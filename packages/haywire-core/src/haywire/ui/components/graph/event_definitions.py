@@ -167,6 +167,36 @@ class DissolveRerouteEvent(BaseGraphEvent):
     node_id: str
 
 
+@graph_event(
+    "collapseToGroup",
+    category="user",
+    description="Collapse the selected nodes into a Group",
+)
+@dataclass
+class CollapseToGroupEvent(BaseGraphEvent):
+    node_ids: List[str]
+
+
+@graph_event(
+    "expandGroup",
+    category="user",
+    description="Expand a Group back into the graph around it",
+)
+@dataclass
+class ExpandGroupEvent(BaseGraphEvent):
+    node_id: str
+
+
+@graph_event(
+    "enterGroup",
+    category="user",
+    description="Step inside a Group to edit its Subgraph",
+)
+@dataclass
+class EnterGroupEvent(BaseGraphEvent):
+    node_id: str
+
+
 @graph_event("edgeCreated", category="user", description="New connection created")
 @dataclass
 class EdgeCreatedEvent(BaseGraphEvent):
@@ -180,6 +210,23 @@ class EdgeCreatedEvent(BaseGraphEvent):
 @dataclass
 class EdgeClickedEvent(BaseGraphEvent):
     edge_id: str
+
+
+@graph_event(
+    "canvasMounted",
+    category="user",
+    description="The canvas component finished mounting and holds no edges yet",
+)
+@dataclass
+class CanvasMountedEvent(BaseGraphEvent):
+    """Sent once per mount of the Vue component, including every RE-mount.
+
+    A tab panel that is not the active one is not rendered at all, so a canvas
+    inside one does not exist and every message addressed to it is dropped.
+    The component that appears on first activation — or after its panel is
+    re-keyed — is therefore brand new and holds none of the edges the server
+    has already sent. This is what tells the server to send them again.
+    """
 
 
 @graph_event("elementRedraw", category="user", description="redraw selected element")

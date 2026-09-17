@@ -27,11 +27,15 @@ from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import BaseNode
 
 from haywire.ui.components.graph.event_definitions import (
+    CanvasMountedEvent,
     UserRemoveEvent,
     NodesMeasuredEvent,
     NodeCreateRequestEvent,
     SplitEdgeWithRerouteEvent,
+    CollapseToGroupEvent,
     DissolveRerouteEvent,
+    EnterGroupEvent,
+    ExpandGroupEvent,
     EdgeCreatedEvent,
     ElementRedrawEvent,
     ElementResetEvent,
@@ -203,10 +207,40 @@ class VisualLayerHandlers:
             logger.error(f"❌ Error during initial sync: {e}")
             traceback.print_exc()
 
+    @handles_event(CanvasMountedEvent)
+    def process_canvas_mounted(self, event: CanvasMountedEvent) -> None:
+        """Send this canvas its edges, because a fresh component has none.
+
+        Fires on every mount, and the re-mounts are the ones that matter: a tab
+        panel that is not the active one is not rendered, so a canvas in a
+        background level or behind a re-keyed panel is destroyed and rebuilt.
+        Its nodes come back with it — they are server-side elements — while its
+        edges do not, because the canvas draws those itself from messages that
+        were addressed to the component that no longer exists.
+        """
+        self.resync_edges()
+
+    def resync_edges(self) -> None:
+        """Re-emit every edge of this graph as one batch, drawn or not.
+
+        Deliberately not routed through ``on_validated``: that skips an edge
+        already in ``edge_states``, which every edge here is — the state is the
+        server's record of having sent the edge, and this method exists for the
+        case where the client no longer has what was sent.
+        """
+        if not self.graph.edge_wrappers:
+            return
+        batch = [
+            self._register_edge_visual(edge_wrapper) for edge_wrapper in self.graph.edge_wrappers.values()
+        ]
+        if batch:
+            self.canvas_vue.emit_sync_event(SyncAllEdgesEvent(edges=batch))
+
     async def sync_with_graph_chunked(
         self,
         on_progress: Optional[Callable[[int, int], None]] = None,
         on_phase: Optional[Callable[[str], None]] = None,
+        on_nodes_mounted: Optional[Callable[[], None]] = None,
     ) -> None:
         """Mount the graph a node at a time, yielding to the event loop between.
 
@@ -230,6 +264,15 @@ class VisualLayerHandlers:
                 cheap — anything slow here is paid once per node.
             on_phase: Called once with a status line when the load moves off
                 per-node mounting and onto the edge batch.
+            on_nodes_mounted: Called once after the last node is mounted, so the
+                viewport can be placed over content that exists.
+
+        The edge pass at the end is a fallback, and usually finds nothing to do.
+        Loading a file marks every edge ``EDGE_ADDED`` and the validation
+        scheduler is a daemon timer (``ThreadingTimerScheduler``), so a pass
+        fires ~50 ms in and emits the edges while this loop is still mounting
+        nodes — which is why a graph shows its edges before the overlay says the
+        nodes are done. ``on_validated`` then skips them here, as already sent.
         """
         node_count = len(self.graph.node_wrappers)
         edge_count = len(self.graph.edge_wrappers)
@@ -247,6 +290,10 @@ class VisualLayerHandlers:
                     on_progress(index, node_count)
                 await asyncio.sleep(0)
 
+            nodes_t = time.perf_counter()
+            if on_nodes_mounted is not None:
+                on_nodes_mounted()
+
             # Edges + canvas resize + the batched sync event, in one pass. Node
             # entries are omitted: they are mounted above, and on_validated
             # skips any node already in node_panels anyway.
@@ -259,7 +306,7 @@ class VisualLayerHandlers:
 
             await self._await_client_drawn(edge_count)
 
-            self._log_render_cost(render_t0, node_count, edge_count, chunked=True)
+            self._log_render_cost(render_t0, node_count, edge_count, chunked=True, nodes_t=nodes_t)
             self._notify_compatibility()
         except asyncio.CancelledError:
             logger.info("🔄 Chunked sync cancelled (editor closed mid-load)")
@@ -282,12 +329,28 @@ class VisualLayerHandlers:
         a delay: it is queued behind the edge message and the outbox is FIFO, so
         its reply cannot come back until the client has processed the batch.
 
-        Drawing then continues across several frames — ``_syncAllEdges`` hands
-        its geometry pass to ``_updateEdgesChunked``, which slices the work so a
-        big batch cannot block the main thread past socket.io's ping timeout. So
-        the script waits for the edge paths to actually be in the DOM rather
-        than for a fixed number of frames, and gives up on its own deadline well
-        inside the ``timeout`` below.
+        What it waits for is the canvas having *accounted for* every edge:
+        ``_syncAllEdges`` stamps how many it has drawn and how many it parked,
+        and the wait ends once those two add up to the graph's edge count.
+
+        Both halves of that matter, and each was a way of hanging for the full
+        deadline:
+
+        * Not drawn-paths-against-the-total. An edge whose node is culled
+          off-viewport, or whose pins have not mounted, is parked and drawn
+          later, so that count is unreachable on any graph large enough to cull.
+        * Not "wait for a new batch". The batch has usually gone out ALREADY:
+          loading a file marks every edge ``EDGE_ADDED``, and the validation
+          scheduler is a daemon timer, so it fires ~50 ms in and emits the edges
+          while the node loop is still running. The loop's own pass then emits
+          nothing, because ``on_validated`` skips edges already in
+          ``edge_states``. A condition that is satisfied on the first frame is
+          the correct answer, not a missed event.
+
+        The root is resolved by ``GraphCanvasVue.dom_selector``, not by
+        ``getElementById``: the canvas's ``containerId`` never reaches the DOM,
+        so a lookup on it finds nothing and the wait either runs out its whole
+        deadline or skips entirely, depending on how the miss is handled.
 
         Best-effort by design. A timeout, a disconnected browser, or a test
         without a real client must not strand the user behind an overlay that
@@ -304,23 +367,39 @@ class VisualLayerHandlers:
                 logger.debug(f"VisualLayer: no client to confirm edge draw ({exc})")
                 return
         script = f"""
+            const root = document.querySelector('{self.canvas_vue.dom_selector}');
+            if (!root) return null;
             const want = {edge_count};
-            const svg = document.getElementById('connection-svg');
-            const drawn = () => svg
-                ? svg.querySelectorAll('path[data-edge-id]').length / 2
-                : 0;
+            const drawn = () => Number(root.dataset.hwEdgeDrawn || 0);
+            const parked = () => Number(root.dataset.hwEdgeParked || 0);
             const deadline = performance.now() + 20000;
-            while (drawn() < want && performance.now() < deadline) {{
+            while (drawn() + parked() < want && performance.now() < deadline) {{
                 await new Promise(r => requestAnimationFrame(r));
             }}
-            // One more frame so the last slice's paths are laid out, not just present.
+            // One more frame so the batch's paths are laid out, not just present.
             await new Promise(r => requestAnimationFrame(r));
-            return drawn();
+            return {{
+                drawn: drawn(),
+                parked: parked(),
+                timedOut: drawn() + parked() < want,
+            }};
         """
         try:
-            await client.run_javascript(script, timeout=25.0)
+            result = await client.run_javascript(script, timeout=25.0)
         except Exception as exc:
             logger.debug(f"VisualLayer: edge-draw confirmation skipped ({exc})")
+            return
+        if isinstance(result, dict):
+            if result.get("timedOut"):
+                logger.warning(
+                    f"VisualLayer: the canvas accounted for "
+                    f"{result.get('drawn', 0) + result.get('parked', 0)} of {edge_count} edges"
+                )
+            elif result.get("parked"):
+                logger.info(
+                    f"VisualLayer: {result.get('drawn')} edges drawn, "
+                    f"{result.get('parked')} waiting for their nodes to be on screen"
+                )
 
     # -- shared scaffolding for the two sync paths ----------------------------
 
@@ -338,15 +417,34 @@ class VisualLayerHandlers:
         )
 
     def _log_render_cost(
-        self, render_t0: float, node_count: int, edge_count: int, *, chunked: bool = False
+        self,
+        render_t0: float,
+        node_count: int,
+        edge_count: int,
+        *,
+        chunked: bool = False,
+        nodes_t: Optional[float] = None,
     ) -> None:
-        render_ms = (time.perf_counter() - render_t0) * 1000.0
+        """Log what the load cost.
+
+        Args:
+            nodes_t: ``perf_counter()`` as the last node finished mounting.
+                Splits the total into the node phase and the edge phase, which
+                is what says whether the load overlay is sitting on real work.
+        """
+        now = time.perf_counter()
+        render_ms = (now - render_t0) * 1000.0
         per_node = render_ms / node_count if node_count else 0.0
         how = " (chunked)" if chunked else ""
         logger.info(
             f"⏱️ Graph render{how}: {render_ms:.1f} ms for {node_count} nodes "
             f"({per_node:.2f} ms/node), {edge_count} edges"
         )
+        if nodes_t is not None:
+            logger.info(
+                f"⏱️   nodes {(nodes_t - render_t0) * 1000.0:.1f} ms, "
+                f"edges {(now - nodes_t) * 1000.0:.1f} ms (emit + client confirmation)"
+            )
         logger.info("✅ Initial sync completed via validation pipeline")
 
     def _notify_compatibility(self) -> None:
@@ -734,6 +832,81 @@ class VisualLayerHandlers:
             ui.notify("Dissolved reroute", type="positive")
         else:
             ui.notify("Failed to dissolve reroute", type="negative")
+
+    @handles_event(CollapseToGroupEvent)
+    def process_collapse_to_group(self, event: CollapseToGroupEvent):
+        """Collapse the selected nodes into a Group (one undoable op).
+
+        The Graph-node and boundary-node classes are discovered through the
+        registry's ``_is_graph_node`` / ``_is_subgraph_input`` /
+        ``_is_subgraph_output`` flags, so this handler names no concrete node.
+
+        A refusal (a non-convex selection) is surfaced with the reason the
+        action gives, which names the nodes that would have to be added.
+        """
+        classes = self._subgraph_node_classes()
+        if classes is None:
+            return
+        card_cls, input_cls, output_cls = classes
+
+        logger.info(f"📦 Collapsing {len(event.node_ids)} nodes into a Group")
+        card_id, reason = self.editor.collapse_to_group(
+            node_ids=list(event.node_ids),
+            card_registry_key=card_cls.class_identity.registry_key,
+            input_registry_key=input_cls.class_identity.registry_key,
+            output_registry_key=output_cls.class_identity.registry_key,
+        )
+        if card_id is None:
+            ui.notify(reason or "Could not collapse the selection", type="warning", multi_line=True)
+            return
+
+        self.sync_with_graph()
+        wrapper = self.editor.graph.get_node_wrapper(card_id)
+        if wrapper is not None:
+            self._make_sole_active_node(wrapper)
+        ui.notify("Collapsed to Group", type="positive")
+
+    @handles_event(ExpandGroupEvent)
+    def process_expand_group(self, event: ExpandGroupEvent):
+        """Expand a Group back into the graph around it (one undoable op)."""
+        logger.info(f"📦 Expanding Group {event.node_id}")
+        if self.editor.expand_group(event.node_id):
+            self.sync_with_graph()
+            ui.notify("Expanded Group", type="positive")
+        else:
+            ui.notify("Failed to expand Group", type="negative")
+
+    @handles_event(EnterGroupEvent)
+    def process_enter_group(self, event: EnterGroupEvent):
+        """Ask this session's editors to step inside the Group on this node.
+
+        The canvas knows the node but not which tab is showing it, so the
+        descent travels as a signal the owning editor answers — the same
+        self-check ``RevealGraphInstance`` uses.
+        """
+        if self.context is None:
+            return
+        from haywire.core.signals import SubgraphNavigation
+
+        logger.info(f"📦 Entering Group {event.node_id}")
+        self.context.session.publish(
+            SubgraphNavigation(graph_id=self.editor.graph.graph_id, node_id=event.node_id)
+        )
+
+    def _subgraph_node_classes(self):
+        """The Graph-node and two boundary classes, or ``None`` after notifying.
+
+        All three come from the framework's own builtin library, so a missing
+        one means that library did not load — worth saying out loud rather than
+        failing silently at the first use.
+        """
+        card_cls = self.editor._node_factory.get_graph_node()
+        input_cls = self.editor._node_factory.get_subgraph_input_node()
+        output_cls = self.editor._node_factory.get_subgraph_output_node()
+        if card_cls is None or input_cls is None or output_cls is None:
+            ui.notify("Groups are unavailable: no Graph-node in the registry", type="negative")
+            return None
+        return card_cls, input_cls, output_cls
 
     def _try_auto_wire(self, wrapper, pending: dict) -> None:
         """

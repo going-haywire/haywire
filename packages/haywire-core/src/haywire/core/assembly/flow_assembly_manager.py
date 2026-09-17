@@ -10,7 +10,7 @@ The FlowAssemblyManager is responsible for:
 """
 
 from __future__ import annotations
-from typing import Dict, List, Optional, Set, TYPE_CHECKING
+from typing import Dict, List, Optional, Set, TYPE_CHECKING, cast
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 from haywire.core.assembly.control_flow_builder import ControlFlowBuilder
 from haywire.core.assembly.data_flow_builder import DataFlowBuilder
+from haywire.core.assembly.flat_view import FlatGraphView
 from haywire.core.execution.flow import Flow
 from haywire.core.node.behavior import NodeType
 from haywire.core.types import FlowType
@@ -80,6 +81,11 @@ class FlowAssemblyManager:
             List of assembled flows
         """
         logger.info(f"Assembling graph: {graph.graph_id}")
+
+        # Every Subgraph's nodes take part in this graph's flows, so the
+        # builders below are handed a view that sees the whole tree and splices
+        # the boundary crossings. Transparent when there is no Subgraph.
+        graph = cast("BaseGraph", FlatGraphView(graph))
 
         # Clear previous assembly
         self.assembled_flows.clear()
@@ -161,10 +167,8 @@ class FlowAssemblyManager:
                     f"Only one event node per event type is allowed."
                 )
 
-        # Additional validations can be added here
-        # - Check for Graph-nodes with missing Source/Sink
-        # - Check for invalid node configurations
-        # etc.
+        # A Subgraph's own shape — one boundary pair, no EVENT or OUTPUT node —
+        # is checked by StructuralValidator._validate_subgraph_contents.
 
         return errors
 

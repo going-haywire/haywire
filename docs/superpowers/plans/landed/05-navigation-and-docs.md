@@ -9,7 +9,7 @@ the documentation this feature owes.
 **Architecture:** Descent is a tab **re-key**, not a new tab: `wrapper.repayload()`
 already swaps which container a live tab shows. A Subgraph just needs to be a
 `GraphContainer` with a synthetic `binding_id` — which the protocol already
-permits. Design record: [2026-09-14-graph-nodes.md](2026-09-14-graph-nodes.md),
+permits. Design record: [graph-nodes.md](../2026-09-14-graph-nodes.md),
 decisions 10, 11, 26.
 
 **Tech Stack:** Python 3.12, NiceGUI 3.13, Playwright, pytest.

@@ -60,6 +60,11 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
 
         # Props for Vue component
         self._props["containerId"] = f"graph-canvas-{id(self)}"
+        # The same value as an attribute that actually survives to the DOM.
+        # The template's ``:id="containerId"`` does not: NiceGUI stamps its own
+        # element id on the component root, so the id never lands and a
+        # ``getElementById`` on it finds nothing.
+        self._props["data-hw-canvas-id"] = self._props["containerId"]
         self._props["canvasWidth"] = canvas_width
         self._props["canvasHeight"] = canvas_height
         self._props["data-graph_canvas"] = True
@@ -81,6 +86,22 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
 
         # Register single unified event handler
         self.on("canvasEvent", self._handle_canvas_event)
+
+    @property
+    def container_id(self) -> str:
+        """This canvas's unique value for ``data-hw-canvas-id``.
+
+        Every mounted canvas repeats the same template, so ids inside it
+        (``connection-svg``, ``node-container``) are duplicated wherever two
+        canvases are on screen at once. Reach the right one with
+        :attr:`dom_selector`, never with ``getElementById``.
+        """
+        return str(self._props["containerId"])
+
+    @property
+    def dom_selector(self) -> str:
+        """CSS selector matching this canvas's root element, and no other's."""
+        return f'[data-hw-canvas-id="{self.container_id}"]'
 
     def _apply_canvas_setting_props(self) -> None:
         """Push current canvas appearance settings to Vue props."""

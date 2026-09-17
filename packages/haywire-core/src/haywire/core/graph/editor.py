@@ -16,6 +16,8 @@ from haywire.core.undo.actions.graph_actions import (
     PasteClipboardAction,
     SplitEdgeWithRerouteAction,
     DissolveRerouteAction,
+    CollapseToGraphNodeAction,
+    ExpandGraphNodeAction,
     SetPropertyAction,
 )
 
@@ -34,14 +36,30 @@ class Editor:
         graph: BaseGraph,
         node_factory: NodeFactory,
         undo_config: Optional[UndoConfig] = None,
+        history_manager: Optional[IHistoryManager] = None,
     ):
         """Initialize the editor with the graph it edits.
 
         Args:
-            undo_config: Undo history configuration. Defaults to ``UndoConfig()``.
+            undo_config: Undo history configuration for the history this editor
+                creates. Defaults to ``UndoConfig()``; ignored when
+                ``history_manager`` is given.
+            history_manager: The history to record on. Defaults to one of this
+                editor's own. Pass another editor's to put both editors' actions
+                on a single stack: every action names the graph it mutates, so
+                one history can span a graph and the Subgraphs inside it.
+
+        Example::
+
+            editor = Editor(graph, node_factory)
+            # A Subgraph belongs to the same file, so it shares the history:
+            # an edit inside it undoes in order with the edits around it.
+            inner = Editor(definition, node_factory, history_manager=editor.history_manager)
         """
         self.graph: BaseGraph = graph
-        self.history_manager: IHistoryManager = HistoryManager(undo_config or UndoConfig())
+        self.history_manager: IHistoryManager = history_manager or HistoryManager(
+            undo_config or UndoConfig()
+        )
         self._node_factory = node_factory
 
     # =============================================================================
@@ -156,11 +174,22 @@ class Editor:
     def remove_elements(self, nodes: List[str], edges: List[str]) -> bool:
         """Remove the given nodes and edges as one undoable action.
 
+        A Subgraph's two boundary nodes are dropped from ``nodes`` rather than
+        removed: they are the Subgraph's interface, not its content, so deleting
+        everything inside a Group empties it and leaves the interface standing.
+        A selection of nothing but boundary nodes therefore removes nothing.
+
         Returns:
-            ``False`` without removing anything if both lists are empty or
-            either names an element the graph doesn't have.
+            ``False`` without removing anything if both lists are empty, if
+            everything named was filtered out, or if either list names an
+            element the graph doesn't have.
         """
         if not nodes and not edges:
+            return False
+
+        nodes = [node_id for node_id in nodes if not self._is_boundary_node(node_id)]
+        if not nodes and not edges:
+            logger.info("Nothing to remove: a Subgraph's boundary nodes cannot be deleted")
             return False
 
         missing_nodes = [node_id for node_id in nodes if node_id not in self.graph.node_wrappers]
@@ -184,6 +213,11 @@ class Editor:
         except Exception as e:
             logger.error(f"Error removing elements: {e}")
             return False
+
+    def _is_boundary_node(self, node_id: str) -> bool:
+        """Whether ``node_id`` names a Subgraph Input or Output in this graph."""
+        wrapper = self.graph.get_node_wrapper(node_id)
+        return wrapper is not None and wrapper.node.behavior.is_boundary_node
 
     def get_node_wrapper(self, node_id: str) -> Optional[NodeWrapper]:
         """Get a node wrapper by ID."""
@@ -270,6 +304,62 @@ class Editor:
             return True
         except Exception as e:
             logger.error(f"Error dissolving reroute {node_id}: {e}")
+            return False
+
+    def collapse_to_group(
+        self,
+        node_ids: List[str],
+        card_registry_key: str,
+        input_registry_key: str,
+        output_registry_key: str,
+        label: str = "Group",
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """Collapse ``node_ids`` into a Group as one undoable operation.
+
+        The three registry keys name the Graph-node and boundary-node classes,
+        which the caller discovers through the registry's ``_is_subgraph_input``
+        / ``_is_subgraph_output`` flags and the Graph-node's own key — so the
+        core names no library's node.
+
+        Returns:
+            ``(card_node_id, None)`` on success, or ``(None, reason)`` when the
+            collapse was refused — a non-convex selection names the intervening
+            nodes in ``reason``, which is written to be shown to the user.
+        """
+        try:
+            action = CollapseToGraphNodeAction(
+                graph=self.graph,
+                node_ids=node_ids,
+                card_registry_key=card_registry_key,
+                input_registry_key=input_registry_key,
+                output_registry_key=output_registry_key,
+                label=label,
+            )
+        except ValueError as e:
+            logger.info(f"Collapse refused: {e}")
+            return (None, str(e))
+
+        try:
+            self.history_manager.add_action(action)
+            logger.info(f"Collapsed {len(node_ids)} nodes into subgraph {action.subgraph_key}")
+            return (action.card_node_id, None)
+        except Exception as e:
+            logger.error(f"Error collapsing selection: {e}")
+            return (None, str(e))
+
+    def expand_group(self, node_id: str) -> bool:
+        """Expand the Group on ``node_id`` back into this graph as one undoable operation.
+
+        Returns ``True`` on success, ``False`` if the node is not a Graph-node
+        with a Subgraph bound, or if the expansion failed.
+        """
+        try:
+            action = ExpandGraphNodeAction(graph=self.graph, node_id=node_id)
+            self.history_manager.add_action(action)
+            logger.info(f"Expanded Group {node_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error expanding Group {node_id}: {e}")
             return False
 
     def list_edges(self) -> List[EdgeWrapper]:

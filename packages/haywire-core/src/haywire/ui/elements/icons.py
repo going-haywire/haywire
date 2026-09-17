@@ -58,6 +58,10 @@ class AppIcon:
     # -- Core Classes ───────────────────────────────────────────────────────────────
     graph: Final[str] = "account_tree"
     """Graph main icon."""
+    subgraph: Final[str] = "workspaces"
+    """A Group — one graph standing inside another. Distinct from ``graph``:
+    a level bar shows both at once, and the same icon on each would say they
+    are the same kind of thing."""
     node: Final[str] = "memory"
     """Node main icon."""
     edge: Final[str] = "cable"

@@ -95,6 +95,10 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             the add-node menu when this node is deprecated. Default: ""
         _is_error (bool): Whether this is an error handler node. Default: False
         _error_priority (int): Priority for error handling. Default: 0
+        _is_subgraph_input (bool): Whether this is the Subgraph Input boundary
+            node. Default: False
+        _is_subgraph_output (bool): Whether this is the Subgraph Output boundary
+            node. Default: False
 
     Behavior Fields (execution characteristics):
         node_type (NodeType): Primary node type classification. Default: NodeType(0)
@@ -105,6 +109,8 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             - NodeType.LOOPBACK: Loop construct (1 ctrl inlet/2+ outlets with loopback)
             - NodeType.REROUTE: A DATA node tolerating a port-less latent state
               (edge-split reroute; typed ports added after creation)
+            - NodeType.BOUNDARY: A Subgraph Input/Output node defining a
+              Subgraph's interface (ports stamped by the collapse action)
         is_stateful (bool): Maintains state between executions. Default: False
         has_execute_async (bool): Supports async execution. Default: False
         is_mutable (bool): Configuration can change at runtime. Default: False

@@ -154,6 +154,21 @@ class NodeFactory:
         or None if no loaded library provides one."""
         return self.node_registry._get_reroute_node()
 
+    def get_subgraph_input_node(self) -> type[BaseNode] | None:
+        """Return the Subgraph Input boundary class (node registered with
+        _is_subgraph_input), or None if no loaded library provides one."""
+        return self.node_registry._get_subgraph_input_node()
+
+    def get_subgraph_output_node(self) -> type[BaseNode] | None:
+        """Return the Subgraph Output boundary class (node registered with
+        _is_subgraph_output), or None if no loaded library provides one."""
+        return self.node_registry._get_subgraph_output_node()
+
+    def get_graph_node(self) -> type[BaseNode] | None:
+        """Return the Graph-node class (node registered with _is_graph_node),
+        or None if no loaded library provides one."""
+        return self.node_registry._get_graph_node()
+
     def get_menu_structure(self) -> Dict[str, List[NodeInfo]]:
         """Return every visible node's ``NodeInfo``, grouped by its menu path.
 

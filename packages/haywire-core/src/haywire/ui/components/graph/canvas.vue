@@ -257,6 +257,12 @@ export default {
     mounted() {
         console.log('GraphCanvas Vue component mounted with container ID:', this.containerId);
         this._pendingNodeIds = new Set();
+        // Edges whose pins were not reachable when the batch arrived, by
+        // edge_id -> the payload to retry with. See _syncEdgeAddition.
+        this._pendingEdges = new Map();
+        // Edge batches this canvas has processed, published on the root element
+        // so the loader can wait for the browser to have handled one.
+        this._edgeBatchSeq = 0;
         // Non-reactive on purpose (see _queueMeasurement): plain instance fields,
         // matching _pendingNodeIds above.
         this._pendingMeasurements = new Map();
@@ -284,6 +290,22 @@ export default {
         // Readiness marker: by now the event listeners are attached.
         // Playwright tests wait for [data-canvas-ready] before interacting.
         this.$el.setAttribute('data-canvas-ready', '1');
+
+        // Tell the server this component exists. It may be a RE-mount — an
+        // inactive tab panel is not rendered, so a canvas inside one is
+        // destroyed and rebuilt, and everything sent meanwhile went nowhere.
+        // The edges are ours to draw, so only the server can restore them.
+        this.emitCanvasEvent(EventCreators.createCanvasMounted());
+    },
+
+    activated() {
+        // A tab panel shown again does NOT re-mount its canvas: Quasar caches
+        // it with <keep-alive>, so the component survives with its DOM
+        // detached. Edges that arrived in that window could not find their
+        // pins — getElementById does not reach a detached tree — and are
+        // waiting to be drawn now that it is back.
+        this._flushParkedOnReattach();
+        this._repairEdgeGeometryIfWrong('panel re-attached');
     },
 
     beforeUnmount() {
@@ -957,6 +979,9 @@ export default {
             this.handleZoomPanNodesUncull = (event) => {
                 const { nodeIds } = event.detail;
                 nodeIds.forEach(id => this._queueDetailRelayout(id));
+                // A node coming back brings its pins with it, which may be what
+                // a parked edge has been waiting for.
+                this._flushPendingEdges();
             };
             document.addEventListener('zoom-pan-nodes-uncull', this.handleZoomPanNodesUncull);
         },
@@ -1128,8 +1153,33 @@ export default {
                 for (const edge_id of touched) {
                     if (this.edgePaths.has(edge_id)) this._updateEdge(edge_id);
                 }
+                // Published only once the batch has been through a render tick,
+                // so a loader waiting on it is waiting for drawn edges rather
+                // than for the message having been received.
+                this._stampEdgeBatch();
+                this._repairEdgeGeometryIfWrong('after a batch');
             });
-            console.log(`🔗 Vue ✅ Batch synced ${touched.length} edges`);
+            console.log(
+                `🔗 Vue ✅ Batch synced ${touched.length} edges` +
+                (this._pendingEdges.size ? `, ${this._pendingEdges.size} parked` : '')
+            );
+        },
+
+        _stampEdgeBatch() {
+            /**
+             *  Publish "this canvas has processed an edge batch" on the root
+             *  element, where `VisualLayerHandlers._await_client_drawn` reads it.
+             *
+             *  A counter, not a drawn-path total: an edge whose node is culled
+             *  or whose panel is hidden cannot be drawn yet and is parked, so a
+             *  loader waiting for every edge to exist would wait for something
+             *  that is not coming.
+             */
+            const root = this.$refs.container;
+            if (!root) return;
+            root.dataset.hwEdgeBatch = String(++this._edgeBatchSeq);
+            root.dataset.hwEdgeDrawn = String(this.edgePaths.size);
+            root.dataset.hwEdgeParked = String(this._pendingEdges.size);
         },
 
         _syncEdgeAddition(data) {
@@ -1151,9 +1201,11 @@ export default {
 
             // Check if connection already exists
             if (this.edgePaths.has(edge_id)) {
+                // Drawn by an earlier batch, so it is no longer waiting.
+                this._pendingEdges.delete(edge_id);
                 // Update existing connection visual properties
                 const edgeInfo = this.edgePaths.get(edge_id);
-                
+
                 edgeInfo.isValid = isValid;
                 edgeInfo.hasWarning = hasWarning;
                 edgeInfo.strokeColor = strokeColor;
@@ -1194,12 +1246,51 @@ export default {
             );
             
             if (result.success) {
+                this._pendingEdges.delete(edge_id);
                 // Per-edge only outside a batch — _syncAllEdges logs one
                 // summary line rather than 1300.
                 if (!this._batchingEdges) console.log('🔗 Vue ✅ Edge added via sync:', edge_id);
             } else {
-                console.error('🔗 Vue ❌ Failed to add connection via sync:', edge_id);
+                // Park it, do not drop it. An edge arrives with — or just
+                // ahead of — the elements it connects, and its pins are absent
+                // from the DOM whenever this canvas is culled, hidden in an
+                // inactive tab panel, or still mounting the nodes the same
+                // message batch created. All three are temporary; a dropped
+                // edge is not, and never draws again.
+                this._pendingEdges.set(edge_id, data);
+                this._ensurePendingWatcher();
             }
+        },
+
+        _flushPendingEdges() {
+            /**
+             *  Retry every parked edge. Each one that finds its pins this time
+             *  is created and forgotten; the rest stay parked for the next try.
+             *  Safe to call often — it does nothing when nothing is parked.
+             */
+            if (!this._pendingEdges || this._pendingEdges.size === 0) return 0;
+            const before = this._pendingEdges.size;
+            this._batchingEdges = true;
+            try {
+                for (const data of [...this._pendingEdges.values()]) {
+                    this._syncEdgeAddition(data);
+                }
+            } finally {
+                this._batchingEdges = false;
+            }
+            const created = before - this._pendingEdges.size;
+            if (created) {
+                console.log(`🔗 Vue ✅ ${created} parked edge(s) drawn; ${this._pendingEdges.size} still waiting`);
+                this.$nextTick(() => {
+                    for (const [edge_id] of this.edgePaths) this._updateEdge(edge_id);
+                    // These were measured at a different moment from the batch
+                    // that parked them, so the stamps and the geometry check
+                    // both have to account for them.
+                    this._stampEdgeBatch();
+                    this._repairEdgeGeometryIfWrong('after a parked flush');
+                });
+            }
+            return created;
         },
 
         _syncNodeRemoval(data) {
@@ -2902,6 +2993,8 @@ export default {
         },
 
         _removeEdge(edge_id) {
+            // An edge deleted before its pins ever appeared must stop waiting.
+            this._pendingEdges.delete(edge_id);
             const edgeInfo = this.edgePaths.get(edge_id);
 
             if (edgeInfo) {
@@ -3089,6 +3182,73 @@ export default {
             }
         },
 
+        _flushParkedOnReattach() {
+            /**
+             *  Draw the edges that were parked while this canvas was detached.
+             *
+             *  requestAnimationFrame, not a direct call: the DOM is re-attached
+             *  by the same update that triggers this, so the pins are only
+             *  reachable from the frame after it.
+             */
+            requestAnimationFrame(() => this._flushPendingEdges());
+        },
+
+        _edgeGeometryLooksWrong() {
+            /**
+             *  Does any of a sample of drawn edges miss its pin?
+             *
+             *  Measured through the browser's own screen CTM and the pin's
+             *  client rect, so it shares no arithmetic with the code that drew
+             *  the edge — a canvas that measured wrongly cannot agree with
+             *  itself here.
+             *
+             *  A SAMPLE, not the first one that answers: an edge set can be
+             *  mixed. Edges drawn in one pass and edges flushed from
+             *  `_pendingEdges` later were measured at different moments, so
+             *  sampling a single edge can land on a good one while most are
+             *  adrift — measured in the field at 144 wrong against 180 right.
+             */
+            const SAMPLE = 24;
+            let checked = 0;
+            for (const [, info] of this.edgePaths) {
+                if (checked >= SAMPLE) break;
+                const pin = document.getElementById(info.outletPinUUID);
+                if (!pin) continue;
+                const rect = pin.getBoundingClientRect();
+                if (!rect.width) continue;
+                const ctm = info.path.getScreenCTM();
+                if (!ctm) continue;
+                const p = info.path.getPointAtLength(0);
+                const dx = (p.x * ctm.a + p.y * ctm.c + ctm.e) - (rect.left + rect.width / 2);
+                const dy = (p.x * ctm.b + p.y * ctm.d + ctm.f) - (rect.top + rect.height / 2);
+                if (Math.sqrt(dx * dx + dy * dy) > 12) return true;
+                checked++;
+            }
+            return false;
+        },
+
+        _repairEdgeGeometryIfWrong(why) {
+            /**
+             *  Re-measure every edge, but only if one of them has come adrift.
+             *
+             *  The moments a canvas comes back on screen are raced by things
+             *  that decide where an edge is drawn — the zoom the canvas
+             *  believes it is at, whether its DOM is attached, whether the
+             *  nodes have laid out. Rather than enumerate those races, check
+             *  the result and repair it: the check is one rect and one matrix,
+             *  and the repair is what a user otherwise gets by selecting every
+             *  node and deselecting again.
+             */
+            requestAnimationFrame(() => {
+                if (!this.edgePaths.size) return;
+                if (!this._edgeGeometryLooksWrong()) return;
+                console.warn(`🔗 Vue edges drawn off their pins (${why}) — re-measuring ${this.edgePaths.size}`);
+                this._cachedNodeContainerRect = null;
+                this._pinIndexDirty = true;
+                for (const [edge_id] of this.edgePaths) this._updateEdge(edge_id);
+            });
+        },
+
         _updateEdgesForNode(nodeId) {
             if (!nodeId) return;
 
@@ -3117,11 +3277,11 @@ export default {
                 // whenever the element appears, and also redraw its edges at that point.
                 console.log(`[PendingObserver] Node ${nodeId} not in DOM — parked for deferred observation. Pending count: ${this._pendingNodeIds.size + 1}`);
                 this._pendingNodeIds.add(nodeId);
-                this._ensurePendingNodeWatcher();
+                this._ensurePendingWatcher();
             }
         },
 
-        _ensurePendingNodeWatcher() {
+        _ensurePendingWatcher() {
             if (this._pendingNodeWatcher) {
                 console.log(`[PendingObserver] Watcher already running, skipping setup.`);
                 return;
@@ -3137,25 +3297,23 @@ export default {
             // canvas editor is detached from the live document. When the user switches back
             // to the graph editor, the canvas re-attaches to body and this fires immediately.
             console.log(`[PendingObserver] Starting MutationObserver on document.body. nodeContainer.isConnected=${container.isConnected}`);
-            this._pendingNodeWatcher = new MutationObserver((mutations) => {
-                console.log(`[PendingObserver] MutationObserver fired (${mutations.length} mutations). Pending nodes: ${this._pendingNodeIds.size}`);
-                if (this._pendingNodeIds.size === 0) return;
-
+            this._pendingNodeWatcher = new MutationObserver(() => {
                 for (const nodeId of [...this._pendingNodeIds]) {
                     const nodeElement = document.getElementById(nodeId);
                     if (nodeElement) {
-                        console.log(`[PendingObserver] Found pending node ${nodeId} — setting up observer and redrawing edges.`);
                         this._pendingNodeIds.delete(nodeId);
                         this._setupHoverObserver(nodeElement);
                         this._updateEdgesForNode(nodeId);
-                    } else {
-                        console.log(`[PendingObserver] Still waiting for node ${nodeId}.`);
                     }
                 }
 
-                // All pending nodes resolved — stop watching to save resources
-                if (this._pendingNodeIds.size === 0) {
-                    console.log(`[PendingObserver] All pending nodes resolved — disconnecting watcher.`);
+                // Parked edges are retried on the same signal: the DOM change
+                // that brought a node back is what makes its pins reachable.
+                this._flushPendingEdges();
+
+                // Nothing left to wait for — stop watching to save resources.
+                if (this._pendingNodeIds.size === 0 && this._pendingEdges.size === 0) {
+                    console.log(`[PendingObserver] Nothing pending — disconnecting watcher.`);
                     this._pendingNodeWatcher.disconnect();
                     this._pendingNodeWatcher = null;
                 }
@@ -3337,13 +3495,25 @@ export default {
         _transformScreenToSVG(clientX, clientY) {
             if (!this.$refs.svg) return { x: clientX, y: clientY };
 
+            // The SVG's own screen matrix, not `zoomState.zoom`. The cached
+            // zoom starts at 1 on every mount and is only corrected when this
+            // canvas's ZoomPanContainer reports in, so anything measured in
+            // that window came out scaled by the ratio between the two — a
+            // whole edge set drawn away from its pins, at a constant factor.
+            // The matrix is what the browser is actually painting with, so it
+            // cannot be stale. Measured: a canvas caught in that window drew
+            // its edges 2.3x oversized.
+            const ctm = this.$refs.svg.getScreenCTM();
+            if (ctm && ctm.a && ctm.d) {
+                return { x: (clientX - ctm.e) / ctm.a, y: (clientY - ctm.f) / ctm.d };
+            }
+
+            // Detached or unrendered: no matrix to read. The cached zoom is the
+            // only answer available, and the caller is measuring nothing useful
+            // against a zero-size rect anyway.
             const svgRect = this.$refs.svg.getBoundingClientRect();
-            const { zoom, panX, panY } = this.zoomState;
-
-            let x = (clientX - svgRect.left) / zoom;
-            let y = (clientY - svgRect.top) / zoom;
-
-            return { x, y };
+            const zoom = this.zoomState.zoom || 1;
+            return { x: (clientX - svgRect.left) / zoom, y: (clientY - svgRect.top) / zoom };
         },
 
         _createBezierPath(startPos, endPos, startDir = [1, 0], endDir = [-1, 0]) {

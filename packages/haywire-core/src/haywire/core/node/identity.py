@@ -14,3 +14,6 @@ class NodeIdentity(BaseIdentity):
     _is_error: bool = False
     _error_priority: int = 0
     _is_reroute: bool = False
+    _is_subgraph_input: bool = False
+    _is_subgraph_output: bool = False
+    _is_graph_node: bool = False

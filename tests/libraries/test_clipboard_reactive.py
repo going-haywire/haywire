@@ -48,6 +48,7 @@ def test_copy_selection_handler_writes_to_session_context(register_edit_state):
     # works when NiceGUI's pseudo-client fallback happens to be available —
     # an execution-order accident).
     wrapper = MagicMock()
+    wrapper.node.behavior.is_boundary_node = False
     wrapper.serialize.return_value = {"node_id": "a", "position": [10.0, 20.0]}
 
     graph = MagicMock()

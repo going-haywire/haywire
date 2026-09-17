@@ -12,8 +12,12 @@ window.GraphEvents = {
     NODE_CREATE_REQUEST: 'nodeCreateRequest', // Request to create node from context menu
     SPLIT_EDGE_WITH_REROUTE: 'splitEdgeWithReroute', // Split a data edge and insert a reroute node from the edge context menu
     DISSOLVE_REROUTE: 'dissolveReroute', // Dissolve a reroute node and bridge its connections
+    COLLAPSE_TO_GROUP: 'collapseToGroup', // Collapse the selected nodes into a Group
+    EXPAND_GROUP: 'expandGroup', // Expand a Group back into the graph around it
+    ENTER_GROUP: 'enterGroup', // Step inside a Group to edit its Subgraph
     EDGE_CREATED: 'edgeCreated', // New connection created
     EDGE_CLICKED: 'edgeClicked', // Connection clicked
+    CANVAS_MOUNTED: 'canvasMounted', // The canvas component finished mounting and holds no edges yet
     ELEMENT_REDRAW: 'elementRedraw', // redraw selected element
     ELEMENT_RESET: 'elementReset', // reset selected element
     ELEMENT_REVALIDATE: 'elementRevalidate', // revalidate selected element
@@ -131,6 +135,36 @@ window.EventCreators = {
     };
   },
 
+  createCollapseToGroup(node_ids, sessionId = 'default') {
+    return {
+      event_type: 'collapseToGroup',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_ids },
+      requires_broadcast: true
+    };
+  },
+
+  createExpandGroup(node_id, sessionId = 'default') {
+    return {
+      event_type: 'expandGroup',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_id },
+      requires_broadcast: true
+    };
+  },
+
+  createEnterGroup(node_id, sessionId = 'default') {
+    return {
+      event_type: 'enterGroup',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_id },
+      requires_broadcast: true
+    };
+  },
+
   createEdgeCreated(sourceNodeId, outletPinId, sinkNodeId, inletPinId, sessionId = 'default') {
     return {
       event_type: 'edgeCreated',
@@ -147,6 +181,16 @@ window.EventCreators = {
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { edge_id },
+      requires_broadcast: true
+    };
+  },
+
+  createCanvasMounted(sessionId = 'default') {
+    return {
+      event_type: 'canvasMounted',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: {  },
       requires_broadcast: true
     };
   },
@@ -334,6 +378,21 @@ window.EventValidators = {
     return requiredFields.every(field => field in data);
   },
 
+  validateCollapseToGroup(data) {
+    const requiredFields = ["node_ids"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateExpandGroup(data) {
+    const requiredFields = ["node_id"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateEnterGroup(data) {
+    const requiredFields = ["node_id"];
+    return requiredFields.every(field => field in data);
+  },
+
   validateEdgeCreated(data) {
     const requiredFields = ["sourceNodeId", "outletPinId", "sinkNodeId", "inletPinId"];
     return requiredFields.every(field => field in data);
@@ -341,6 +400,11 @@ window.EventValidators = {
 
   validateEdgeClicked(data) {
     const requiredFields = ["edge_id"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateCanvasMounted(data) {
+    const requiredFields = [];
     return requiredFields.every(field => field in data);
   },
 

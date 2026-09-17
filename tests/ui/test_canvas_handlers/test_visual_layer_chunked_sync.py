@@ -21,7 +21,7 @@ import pytest
 from unittest.mock import MagicMock
 
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
-from haywire.ui.components.graph.event_definitions import SyncAllEdgesEvent
+from haywire.ui.components.graph.event_definitions import CanvasMountedEvent, SyncAllEdgesEvent
 
 pytestmark = pytest.mark.unit
 
@@ -222,3 +222,208 @@ async def test_cancellation_stops_the_load(graph):
         await task
 
     assert len(h.node_panels) < 200, "cancellation did not stop the mount loop"
+
+
+@pytest.mark.anyio
+async def test_nodes_mounted_fires_after_the_last_node_and_before_the_edges(handler, graph):
+    """The viewport is placed over content that exists, and the edges draw into it."""
+    graph.edge_wrappers = {"e0": MagicMock()}
+    order: list[str] = []
+    handler.canvas_vue.emit_sync_event.side_effect = lambda event: order.append(type(event).__name__)
+
+    await handler.sync_with_graph_chunked(
+        on_progress=lambda mounted, total: order.append(f"node{mounted}"),
+        on_nodes_mounted=lambda: order.append("centre"),
+    )
+
+    assert order.index("centre") > order.index(f"node{len(graph.node_wrappers)}")
+    assert order.index("centre") < order.index(SyncAllEdgesEvent.__name__)
+
+
+@pytest.mark.anyio
+async def test_a_load_cancelled_before_the_last_node_centres_nothing(handler, graph):
+    called: list[int] = []
+
+    def _cancel_midway(mounted: int, _total: int) -> None:
+        if mounted == 2:
+            raise asyncio.CancelledError
+
+    with pytest.raises(asyncio.CancelledError):
+        await handler.sync_with_graph_chunked(
+            on_progress=_cancel_midway,
+            on_nodes_mounted=lambda: called.append(1),
+        )
+
+    assert called == []
+
+
+class TestResyncEdges:
+    """A canvas that came back without its edges gets the batch again."""
+
+    def test_it_re_emits_the_batch(self, handler, graph):
+        graph.edge_wrappers = {"e0": MagicMock(), "e1": MagicMock()}
+
+        handler.resync_edges()
+
+        events = [c.args[0] for c in handler.canvas_vue.emit_sync_event.call_args_list]
+        batches = [e for e in events if isinstance(e, SyncAllEdgesEvent)]
+        assert len(batches) == 1
+        assert len(batches[0].edges) == 2
+
+    def test_a_graph_with_no_edges_sends_nothing(self, handler, graph):
+        graph.edge_wrappers = {}
+
+        handler.resync_edges()
+
+        handler.canvas_vue.emit_sync_event.assert_not_called()
+
+    def test_it_does_not_re_mount_the_nodes(self, handler, graph):
+        """Nodes are server-side elements; they survived whatever lost the edges."""
+        graph.edge_wrappers = {"e0": MagicMock()}
+        before = dict(handler.node_panels)
+
+        handler.resync_edges()
+
+        assert handler.node_panels == before
+
+
+class TestTheEdgeDrawGate:
+    """What the load overlay waits for, and what it must NOT wait for.
+
+    Waiting for one drawn path per edge is what made the overlay sit on its
+    full 20 s deadline: an edge whose node is culled off-viewport, or whose
+    pins have not mounted, is parked by the canvas and drawn later, so the
+    count it was waiting for never arrives.
+    """
+
+    def _replies(self, handler, result, recorded: list | None = None):
+        """Stub the confirmation round-trip, which the loader awaits."""
+
+        async def _run(script, **_kwargs):
+            if recorded is not None:
+                recorded.append(script)
+            return result
+
+        handler.canvas_vue.client.run_javascript = _run
+
+    @pytest.mark.anyio
+    async def test_it_waits_on_what_the_canvas_accounted_for(self, handler):
+        recorded: list[str] = []
+        self._replies(handler, None, recorded)
+
+        await handler._await_client_drawn(3)
+
+        (script,) = recorded
+        assert "hwEdgeDrawn" in script
+        assert "hwEdgeParked" in script
+        # Not a DOM path count: parked edges make that total unreachable.
+        assert "path[data-edge-id]" not in script
+        # Not "a new batch since I started": the batch has usually gone out
+        # already, emitted by the validation timer during the node loop.
+        assert "seen" not in script
+
+    @pytest.mark.anyio
+    async def test_it_scopes_the_lookup_to_this_canvas(self, handler):
+        """By attribute, not by id: the canvas's containerId never reaches the DOM."""
+        recorded: list[str] = []
+        handler.canvas_vue.dom_selector = '[data-hw-canvas-id="graph-canvas-42"]'
+        self._replies(handler, None, recorded)
+
+        await handler._await_client_drawn(1)
+
+        assert """querySelector('[data-hw-canvas-id="graph-canvas-42"]')""" in recorded[0]
+        assert "getElementById" not in recorded[0]
+
+    @pytest.mark.anyio
+    async def test_a_timeout_is_reported_and_not_raised(self, handler, caplog):
+        self._replies(handler, {"drawn": 0, "parked": 0, "timedOut": True})
+
+        with caplog.at_level("WARNING"):
+            await handler._await_client_drawn(2)
+
+        assert "accounted for 0 of 2 edges" in caplog.text
+
+    @pytest.mark.anyio
+    async def test_parked_edges_are_reported_and_release_the_load(self, handler, caplog):
+        """Culled nodes leave edges parked; that is normal, not a failure."""
+        self._replies(handler, {"drawn": 120, "parked": 440, "timedOut": False})
+
+        with caplog.at_level("INFO"):
+            await handler._await_client_drawn(560)
+
+        assert "440 waiting" in caplog.text
+
+
+class TestCanvasMounted:
+    """A re-mounted canvas holds no edges; the server is the only one who can say."""
+
+    def test_mounting_re_sends_the_edges(self, handler, graph):
+        graph.edge_wrappers = {"e0": MagicMock(), "e1": MagicMock()}
+
+        handler.process_canvas_mounted(CanvasMountedEvent())
+
+        events = [c.args[0] for c in handler.canvas_vue.emit_sync_event.call_args_list]
+        batches = [e for e in events if isinstance(e, SyncAllEdgesEvent)]
+        assert len(batches) == 1
+        assert len(batches[0].edges) == 2
+
+    def test_it_re_sends_edges_the_server_already_recorded_as_drawn(self, handler, graph):
+        """The guard on_validated uses would swallow every one of them."""
+        graph.edge_wrappers = {"e0": MagicMock()}
+        handler.edge_states["e0"] = MagicMock()  # already "sent" once
+
+        handler.process_canvas_mounted(CanvasMountedEvent())
+
+        assert handler.canvas_vue.emit_sync_event.called
+
+    def test_it_is_wired_to_the_event(self):
+        from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
+
+        handlers = build_event_handler_map(
+            [
+                VisualLayerHandlers(
+                    graph=MagicMock(), editor=MagicMock(), skin_factory=MagicMock(), canvas_vue=MagicMock()
+                )
+            ]
+        )
+
+        assert CanvasMountedEvent.event_type in handlers
+
+
+class TestTheValidationTimerBeatsTheLoop:
+    """The edge batch normally goes out DURING the node loop, not after it.
+
+    ``ThreadingTimerScheduler`` is a daemon timer, so the validation pass a file
+    load schedules fires on its own thread ~50 ms in, while the chunked loop is
+    still mounting. Its result carries every edge, so the loop's own pass at the
+    end finds them all registered and emits nothing at all — which is why a load
+    gate waiting for a batch to arrive after it starts waits for ever.
+    """
+
+    def test_a_validation_pass_emits_the_edges(self, handler, graph):
+        graph.edge_wrappers = {"e0": MagicMock(), "e1": MagicMock()}
+        graph.get_edge_wrapper.return_value = MagicMock()
+        handler._register_edge_visual = MagicMock(  # type: ignore[method-assign]
+            side_effect=lambda w: handler.edge_states.setdefault("e", MagicMock()) and {"id": "e"}
+        )
+
+        handler.on_validated(handler._full_add_result(include_nodes=False))
+
+        assert handler.canvas_vue.emit_sync_event.called
+
+    @pytest.mark.anyio
+    async def test_the_loops_own_pass_then_emits_nothing(self, handler, graph):
+        graph.edge_wrappers = {"e0": MagicMock(), "e1": MagicMock()}
+        graph.get_edge_wrapper.return_value = MagicMock()
+        # What the timer thread already did: every edge recorded as sent.
+        handler.edge_states.update({"e0": MagicMock(), "e1": MagicMock()})
+        handler._await_client_drawn = _noop_confirm  # type: ignore[method-assign]
+
+        await handler.sync_with_graph_chunked()
+
+        events = [c.args[0] for c in handler.canvas_vue.emit_sync_event.call_args_list]
+        assert [e for e in events if isinstance(e, SyncAllEdgesEvent)] == []
+
+
+async def _noop_confirm(edge_count):
+    return None

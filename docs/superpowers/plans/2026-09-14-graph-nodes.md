@@ -22,6 +22,61 @@ graph runs exactly as it did before.
 
 ---
 
+## Status and sequence — 2026-09-15
+
+**Slice 1 is built.** Branch `feat/graph-nodes-slice1`, eight commits. Gate: 5338
+passed (`-m "not browser and not perf"`), 119 browser tests, ruff + format clean.
+
+A selection collapses into a Group, runs identically to the graph it replaced,
+can be entered, edited, left and expanded, and round-trips through save and
+load. Nesting works to any depth. The mechanism is
+[ADR 0036](docs/adr/0036-groups-execute-through-their-boundary-nodes.md).
+
+### The sequence
+
+Pending plans are numbered by their place in it; `landed/` holds the Slice-1
+step plans, numbered in the order they were built.
+
+
+**1. Instant switching** —
+[2026-09-15-instant-subgraph-switching.md](01-instant-subgraph-switching.md)
+
+Keep every visited level mounted so entering and leaving a Group costs a
+`set_value`. First, because it changes *how* a Subgraph is opened: a Group gets
+its own editor tab rather than re-keying one. Slice 2's Macro opens as its own
+document and needs exactly that primitive, so building Macro tabs first would
+mean two navigation models and then a conversion.
+
+**2. Give `reconcile_interface()` a caller**
+
+Editing a boundary port through the Ports panel must reach the card; today only
+an explicit call does. A validation subscription is not the hook —
+`mark_as_structuraly_dirty` short-circuits on a node already flagged dirty, so a
+second `rejig` produces no batch.
+
+Second, because Slice 2's *"saving a Macro rebuilds every instantiation"* is this
+reconciliation fanned out across placements. Building Macros on a reconciliation
+path that never fires would hide the failure behind a feature.
+
+**3. Slice 2 — Macro**
+
+Three things to settle before writing code; see that section.
+
+**4. Slice 3 — Function**
+
+Design against *"What the current system already gives this slice"*, and settle
+the loopback question under called execution.
+
+### Independent
+
+Neither blocks nor is blocked; pick up whenever:
+
+- An error inside a closed Group needs a badge on the card, and clicking it
+  should descend to the failing node.
+- Double-click on a Graph-node should enter it.
+
+---
+
 ## Vocabulary
 
 Settled, and used throughout.
@@ -98,24 +153,18 @@ is reusable, so Blender users will expect a **Macro** — mitigated by
 
 ---
 
-## Why inlining works here
+## How a Group executes
 
-The VM is already subgraph-agnostic. Its only node resolution is
-`flow.control_graph.get_node_info(current_node_id)`
-([vm.py:186](packages/haywire-core/src/haywire/core/execution/vm.py#L186)); data
-nodes execute as instances already held in `LocalizedDataFlow.execution_sequence`
-([flow.py:60](packages/haywire-core/src/haywire/core/execution/flow.py#L60)). The
-only other graph touch in the whole VM is `flow.graph_ref.variables`
-([vm.py:78](packages/haywire-core/src/haywire/core/execution/vm.py#L78)).
+A Group is crossed, never bypassed: the card and both boundary nodes run as
+ordinary nodes in the host's flow, and the boundary nodes carry the values
+across. Crossings are strings in `outlet_map` and `ExecutionContext.control_pin`,
+supplied through `BaseGraph.control_transitions()`. The VM, the scheduler,
+`execution/flow.py` and the pipe layer are untouched.
 
-The flat-id assumption lives entirely in **two lookups** used by the assembly
-builders:
-
-- `graph.get_node_wrapper(node_id)` — [control_flow_builder.py:100](packages/haywire-core/src/haywire/core/assembly/control_flow_builder.py#L100), [data_flow_builder.py:88,132,177,243](packages/haywire-core/src/haywire/core/assembly/data_flow_builder.py#L88)
-- `graph._get_edge_wrappers_for_port(node_id, port_id)` — [data_flow_builder.py:124](packages/haywire-core/src/haywire/core/assembly/data_flow_builder.py#L124)
-
-Teaching those two to see through a Graph-node is the entire execution change.
-Lazy masks, callbacks, the scheduler and the VM are untouched.
+Read [ADR 0036](docs/adr/0036-groups-execute-through-their-boundary-nodes.md)
+before changing any of it, and
+`.insights/project_assembly_decides_when_pipes_decide_where.md` before assuming
+a view over assembly can move a value.
 
 ---
 
@@ -126,11 +175,11 @@ ones only where stated.
 
 | Step | Scope | Plan |
 |---|---|---|
-| 1 | `NodeType.BOUNDARY`, the two boundary node classes, registry slots, validator rules, skins | [step1](2026-09-14-step1-node-types-and-boundary-nodes.md) |
-| 2 | `SubgraphDefinition`, instantiation, the `subgraphs` table, format bump + the ADR 0035 fold rename | [step2](2026-09-14-step2-subgraph-model-and-format.md) |
-| 3 | `FlatGraphView` and the assembly seam — the whole execution change | [step3](2026-09-14-step3-inlining-flat-view.md) |
-| 4 | Collapse / expand actions, dedup, the convexity check, delete/copy filtering | [step4](2026-09-14-step4-collapse-expand-actions.md) |
-| 5 | `SubgraphContainer`, descend/ascend, toolbar verbs, Ports-panel interface editing, docs | [step5](2026-09-14-step5-navigation-and-docs.md) |
+| 1 | `NodeType.BOUNDARY`, the two boundary node classes, registry slots, validator rules, skins | [step1](landed/01-node-types-and-boundary-nodes.md) |
+| 2 | `SubgraphDefinition`, instantiation, the `subgraphs` table, format bump + the ADR 0035 fold rename | [step2](landed/02-subgraph-model-and-format.md) |
+| 3 | `FlatGraphView` and the assembly seam — the whole execution change | [step3](landed/03-assembly-seam.md) |
+| 4 | Collapse / expand actions, dedup, the convexity check, delete/copy filtering | [step4](landed/04-collapse-expand-actions.md) |
+| 5 | `SubgraphContainer`, descend/ascend, toolbar verbs, Ports-panel interface editing, docs | [step5](landed/05-navigation-and-docs.md) |
 
 Step 3 is the load-bearing one: if `FlatGraphView` is right, the VM, the
 scheduler, lazy masks and callbacks need no change at all.
@@ -155,6 +204,24 @@ integration extends `NodeFactory.get_menu_structure()`
 ([node_menu_builder.py:157](barn/haybale-graph-editor/haybale_graph_editor/panels/node_menu_builder.py#L157)).
 Cross-file cycle detection enforces decision 17.
 
+### Three things to settle first
+
+1. **Give each Graph-node its own instantiation.** A `SubgraphDefinition` is
+   currently both the template and the single live graph, 1:1 with its card. A
+   Macro is placed in any graph, possibly twice in one graph, so each placement
+   needs its own live node set: `instantiate()` becomes the normal path, and
+   `SubgraphDefinition.graph_node_wrapper()` needs a per-card answer rather than
+   one memo. The keyed table means the file format is already right.
+2. **Give a Macro a container that owns its file.** `SubgraphContainer` defers
+   `path`, `unsaved` and `save()` to the graph holding it, which is what a Group
+   wants. A Macro owns its own file, dirty dot and Save, so it needs a sibling
+   container.
+3. **Wire `reconcile_interface()` to the editing path.** "Saving a Macro rebuilds
+   every instantiation" is that reconciliation, fanned out. See the Status
+   section for the hook that does not work.
+
+Steps 1 and 2 of the sequence come first — see *Status and sequence*.
+
 ---
 
 ## Slice 3 — Function (designed for, not built)
@@ -171,25 +238,37 @@ warns about pin changes once.
 Recorded here because the *reason* Slices 1–2 need no accommodation is non-obvious
 and would otherwise be re-derived from scratch.
 
-**What a Function buys, and only this:** recursion. Not laziness (the interior evaluates
-whole rather than per-inlet by EVAL_MASK), and not assembly size — `ControlNodeInfo.node`
-and `LocalizedDataFlow.execution_sequence` hold node *instances*
-([flow.py:40,60](packages/haywire-core/src/haywire/core/execution/flow.py#L40)),
-so under decision 9 each instantiation still needs its own Flow.
+### What the current system already gives this slice
 
-**Not a sandbox VM.** `HaywireVM.execute_control_flow` is already re-entrant and
-documented as shared across scheduler threads, with every piece of mutable state
-a local ([vm.py:150-167](packages/haywire-core/src/haywire/core/execution/vm.py#L150-L167)).
-`exec_ctx.vm` is already a field ([execution_context.py:33](packages/haywire-core/src/haywire/core/execution/execution_context.py#L33)),
-so a worker can call back into the VM with no new plumbing.
+Design against these facts rather than the text below, which predates Slice 1.
+
+- **The boundary workers already carry values.** `SubgraphInput` copies the
+  card's data inlets onto its own outlets; `SubgraphOutput` copies its inlets
+  onto the card's outlets; each write fires that port's pipes. The Function work
+  is to swap "continue in the same flow" for "call a nested flow", not to give
+  these workers a role.
+- **Lifecycle hooks already reach interior nodes.** They sit in
+  `control_graph.control_nodes` and in the localized data flows, so
+  `Flow.get_all_nodes()` finds them and all four hooks fire. Only a nested flow
+  needs the flow-walk in change 5.
+- **The boundary workers hold no cache.** Port objects resolve per call, so
+  `RerouteNode`'s silent `on_startup` failure mode does not apply to them.
+- **An unknown outlet id ends its branch.** `_navigate_next` handles a worker
+  returning a string that names no port, so a card's entry hop can return a
+  virtual crossing id while the card is `LOOPBACK`.
+- **A loopback may cross a boundary under inlining** — one control graph, one
+  loopback stack, so push and pop land in the same list either side. Under
+  called execution the stack is a local per call, so a loop body crossing out of
+  a nested flow pushes onto one stack and pops from another. **Design for that
+  before a Function may be a loopback node.**
 
 ### The boundary nodes' runtime roles
 
 Nesting is where the whitepaper's typing becomes true: **Subgraph Input is the
 nested flow's entry node, Subgraph Output terminates it.** Both designs are served
 by one pair of classes because `NodeType.BOUNDARY` carries neither the DATA nor
-the CONTROL bit — the *role* comes from the assembly context, not the type. Under
-inline execution they are elided and the typing is inert.
+the CONTROL bit — the *role* comes from the assembly context, not the type. Under inlining the
+typing is inert while the nodes still run, copying values across the boundary.
 
 Both use the ordinary control-node contract, which already carries everything
 needed: the VM sets `exec_ctx.control_pin` to the inlet the node was entered

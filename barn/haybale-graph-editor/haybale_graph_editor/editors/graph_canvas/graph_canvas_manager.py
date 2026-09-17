@@ -238,15 +238,16 @@ class GraphCanvasManager:
     def start_chunked_sync(
         self,
         *,
-        on_complete: Optional[Callable[[], None]] = None,
+        on_nodes_mounted: Optional[Callable[[], None]] = None,
         graph_name: str = "graph",
     ) -> None:
         """Mount the graph in the background behind a blocking load overlay.
 
         Returns immediately; the canvas fills in over the following seconds
-        while the server stays responsive. ``on_complete`` runs after the last
-        node is mounted (the editor uses it to centre the viewport, which needs
-        nodes to exist). It does NOT run if the load is cancelled.
+        while the server stays responsive. ``on_nodes_mounted`` runs after the
+        last node is mounted and before the edge batch goes out — the editor
+        centres the viewport there, so the edges draw into a viewport that is
+        already over the graph. It does NOT run if the load is cancelled.
 
         The overlay blocks canvas interaction for the whole load — see
         :mod:`.graph_load_modal` for why a partially-mounted canvas must not be
@@ -267,9 +268,8 @@ class GraphCanvasManager:
                 await self.visual_layer.sync_with_graph_chunked(
                     on_progress=modal.advance,
                     on_phase=modal.set_phase,
+                    on_nodes_mounted=on_nodes_mounted,
                 )
-                if on_complete is not None:
-                    on_complete()
             finally:
                 # Unconditional: success, cancellation and failure all hand the
                 # canvas back rather than leaving the overlay up forever.
@@ -277,6 +277,10 @@ class GraphCanvasManager:
                 self._sync_task = None
 
         self._sync_task = background_tasks.create(_run(), name=f"graph-sync-{self.session_id}")
+
+    def resync_edges(self) -> None:
+        """Re-emit every edge as one batch. See ``VisualLayerHandlers.resync_edges``."""
+        self.visual_layer.resync_edges()
 
     def sync_selections(self):
         """Emit consolidated selection sync event to Vue."""

@@ -64,10 +64,14 @@ assemble_graph(graph)
 | Check | Why |
 |---|---|
 | **Duplicate event types** | Multiple event nodes listening for the same event (e.g. two `BeginPlay` nodes) is undefined — which Flow runs first? |
-| (Future) Graph-node Source/Sink presence | Graph-nodes without a Source or Sink can't enter or exit |
-| (Future) Cycle detection in data-flow | Pure data cycles are illegal; cycles passing through a CONTROL node are allowed |
+| **Subgraph contents** | Checked by `StructuralValidator._validate_subgraph_contents`, not here: exactly one Subgraph Input and one Subgraph Output, and no EVENT or OUTPUT node |
+| **Cycle detection in data-flow** | Implemented in `DataFlowBuilder._check_cycles`, not in `_validate_graph()`. Pure data cycles are illegal; cycles passing through a CONTROL node are allowed |
 
 The validation is structural; per-edge validation happens in `EdgeWrapper.build()` ([edges](../edges/edges-arch.md) §2.2).
+
+`assemble_graph()` wraps the graph in a `FlatGraphView` before any of this, so a
+Subgraph's nodes take part in the host's flows — see
+[ADR 0036](../../../adr/0036-groups-execute-through-their-boundary-nodes.md).
 
 ### 2.4 Assembly metadata
 

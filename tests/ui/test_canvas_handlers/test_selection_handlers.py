@@ -27,6 +27,9 @@ def graph():
     # Default: get_node_wrapper returns a wrapper whose serialize() yields a
     # real dict so build_clipboard_payload produces a sensible payload.
     wrapper = MagicMock()
+    # An ordinary node: build_clipboard_payload filters Subgraph boundary nodes
+    # out, and a bare MagicMock would report itself as one.
+    wrapper.node.behavior.is_boundary_node = False
     wrapper.node.props.posX = 100.0
     wrapper.node.props.posY = 200.0
     wrapper.serialize.return_value = {
@@ -148,7 +151,9 @@ def test_selection_changed_notifies_session(register_edit_state):
     session.context = ctx
     ctx.session = session
     graph = MagicMock()
-    graph.get_node_wrapper.return_value = MagicMock()
+    node_wrapper = MagicMock()
+    node_wrapper.node.behavior.is_boundary_node = False
+    graph.get_node_wrapper.return_value = node_wrapper
     graph.get_edge_wrapper.return_value = MagicMock()
     handler = SelectionHandlers(
         graph=graph,

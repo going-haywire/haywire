@@ -82,6 +82,12 @@ class StructuralValidator(IStructuralValidator):
         if NodeType.REROUTE in node.behavior.node_type:
             return self._validate_reroute_node(wrapper)
 
+        # Boundary is checked before DATA/CONTROL for the same reason as reroute:
+        # a boundary node uses looser rules (a port-less latent state is valid,
+        # and every port faces one direction).
+        if NodeType.BOUNDARY in node.behavior.node_type:
+            return self._validate_boundary_node(wrapper)
+
         if NodeType.DATA in node.behavior.node_type:
             return self._validate_data_node(wrapper)
 
@@ -228,6 +234,116 @@ class StructuralValidator(IStructuralValidator):
                     f"(inlet={inlet_flow.value}, outlet={outlet_flow.value})"
                 ),
                 ["Reroute passes one type straight through; inlet and outlet must match"],
+            )
+
+        return (True, None, [])
+
+    def _validate_boundary_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+        """
+        Validate boundary node structural constraints.
+
+        A boundary node is the Subgraph Input or Subgraph Output that defines a
+        Subgraph's interface. It ships port-less; the collapse action stamps the
+        ports derived from the edges crossing the selection.
+
+        Rules:
+        - Port-less (latent state) is valid — awaiting the collapse action.
+        - Every port faces one direction: a Subgraph Input carries only outlets,
+          a Subgraph Output only inlets.
+
+        A loop may straddle the boundary. Under inlining the control graph spans
+        host and Subgraph alike and the loopback stack is one list, so the push
+        and the pop land in the same place whichever side of the boundary each
+        is on.
+        """
+        node = wrapper.node
+        identity = node.identity
+
+        inlets = node.get_ports(is_port_type=PortType.INLET, has_pin=True)
+        outlets = node.get_ports(is_port_type=PortType.OUTLET, has_pin=True)
+
+        # Port-less latent state is valid (awaiting the collapse action).
+        if not inlets and not outlets:
+            return (True, None, [])
+
+        if identity._is_subgraph_input and inlets:
+            return (
+                False,
+                f"A Subgraph Input carries only outlets. Found inlet(s): {[p.id for p in inlets]}",
+                [
+                    "Remove the inlets from the Subgraph Input node",
+                    "A Subgraph Input hands the parent graph's values out to the Subgraph",
+                ],
+            )
+
+        if identity._is_subgraph_output and outlets:
+            return (
+                False,
+                f"A Subgraph Output carries only inlets. Found outlet(s): {[p.id for p in outlets]}",
+                [
+                    "Remove the outlets from the Subgraph Output node",
+                    "A Subgraph Output collects the Subgraph's values in for the parent graph",
+                ],
+            )
+
+        return (True, None, [])
+
+    def _validate_subgraph_contents(
+        self, wrappers: "list[NodeWrapper]"
+    ) -> tuple[bool, str | None, list[str]]:
+        """
+        Validate the node set of one Subgraph.
+
+        Rules:
+        - Exactly one Subgraph Input and exactly one Subgraph Output.
+        - No EVENT node: it would be rooted as a spurious flow by
+          ``FlowAssemblyManager._identify_event_nodes``.
+        - No OUTPUT node: it would end the host flow rather than the Subgraph.
+
+        Args:
+            wrappers: Every node wrapper the Subgraph contains.
+
+        Returns:
+            Tuple of (is_valid, error_message, suggestions).
+        """
+        from haywire.core.node.behavior import NodeType
+
+        inputs: list[str] = []
+        outputs: list[str] = []
+        offenders: list[str] = []
+
+        for wrapper in wrappers:
+            node = wrapper.node
+            node_type = node.behavior.node_type
+            if NodeType.BOUNDARY in node_type:
+                if node.identity._is_subgraph_input:
+                    inputs.append(wrapper.node_id)
+                if node.identity._is_subgraph_output:
+                    outputs.append(wrapper.node_id)
+                continue
+            # EVENT before OUTPUT: both carry the CONTROL bit, and the two
+            # membership tests are independent.
+            if NodeType.EVENT in node_type or NodeType.OUTPUT in node_type:
+                offenders.append(f"{wrapper.node_id} ({node.identity.label})")
+
+        if offenders:
+            return (
+                False,
+                f"A Subgraph cannot contain an EVENT or OUTPUT node. Found: {', '.join(offenders)}",
+                [
+                    "Move the event or output node into the parent graph",
+                    "A Graph-node is a function of its inlets; it does not root or end a flow",
+                ],
+            )
+
+        if len(inputs) != 1 or len(outputs) != 1:
+            return (
+                False,
+                (
+                    f"A Subgraph must contain exactly one Subgraph Input and one Subgraph Output "
+                    f"(found {len(inputs)} input(s), {len(outputs)} output(s))"
+                ),
+                ["The two boundary nodes are created with the Subgraph and cannot be deleted"],
             )
 
         return (True, None, [])

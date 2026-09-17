@@ -139,11 +139,12 @@ def _build_dynamic_graph(node_factory):
 _PERF_KEY = "haybale-testing:node:PerformanceTester"
 
 
-def _build_edge_batch_graph(node_factory, edge_count: int):
+def _build_edge_batch_graph(node_factory, edge_count: int, wire: int | None = None):
     """Two PerformanceTesters wired outlet_i → inlet_i, ``edge_count`` times.
 
     ``port_count`` drives how many float pairs the node exposes, so the edge
-    count varies while the NODE count stays at two. That separation is the
+    count varies while the NODE count stays at two. ``wire`` connects fewer
+    pairs than there are ports, leaving spares a test can wire up later. That separation is the
     whole point: the test asserts the number of edge sync messages does not
     grow with the number of edges, and a fixture that added nodes alongside
     edges could not tell the two apart.
@@ -162,9 +163,35 @@ def _build_edge_batch_graph(node_factory, edge_count: int):
     src.node.ports["port_count"].set_value(edge_count)
     dst.node.ports["port_count"].set_value(edge_count)
 
-    for i in range(edge_count):
+    for i in range(edge_count if wire is None else wire):
         ok = editor.create_edge(src.node_id, f"float_outlet_{i}", dst.node_id, f"float_inlet_{i}")
         assert ok, f"could not connect float_outlet_{i} -> float_inlet_{i}"
+
+    return graph, editor
+
+
+def _build_chunked_load_graph(node_factory, node_count: int):
+    """A chain of ``node_count`` Test Prints, each wired to the next.
+
+    Many NODES, unlike ``_build_edge_batch_graph``: the load overlay is only
+    observable while the chunked loop has nodes left to mount, so a two-node
+    fixture opens and closes it faster than a test can see it.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("Chunked Load Fixture")
+    editor = Editor(graph, node_factory)
+
+    previous = None
+    for i in range(node_count):
+        wrapper = graph.create_node_wrapper(
+            _RECONNECT_SINK_KEY, position=(3400.0 + (i % 20) * 260.0, 3400.0 + (i // 20) * 220.0)
+        )
+        assert wrapper is not None, "could not create chunked-load node"
+        if previous is not None:
+            assert editor.create_edge(previous.node_id, "done", wrapper.node_id, "exec")
+        previous = wrapper
 
     return graph, editor
 
@@ -341,12 +368,16 @@ class _HarnessProjectState:
         pass
 
 
-def _mount_graph_canvas(library_service, graph, editor, testid: str):
+def _mount_graph_canvas(library_service, graph, editor, testid: str, sync: bool = True):
     """Boot a real GraphCanvasManager over (graph, editor) inside the page.
 
     Wires the full editor stack — session, handlers, context-menu provider —
     exactly as the studio does, so canvas interactions (connect, reconnect,
     context menus) run end-to-end. Returns the GraphCanvasManager.
+
+    Args:
+        sync: Mount the graph synchronously. Pass ``False`` for a page that
+            drives ``start_chunked_sync`` itself.
     """
     from haywire.core.di.context import get_workspace_root
     from haywire.core.session.session_manager import SessionManager
@@ -377,7 +408,8 @@ def _mount_graph_canvas(library_service, graph, editor, testid: str):
         )
         manager.zoom_container.props(f'data-testid="{testid}-zoom"')
         manager.canvas_vue.props(f'data-testid="{testid}-canvas"')
-        manager.sync_with_graph()
+        if sync:
+            manager.sync_with_graph()
         manager.zoom_container._on_ready = manager.zoom_container.center_on_content
     return manager
 
@@ -800,6 +832,73 @@ def register_routes(library_service) -> None:
         edges = int(request.query_params.get("edges", 8))
         graph, editor = _build_edge_batch_graph(library_service.get_node_factory(), edges)
         _mount_graph_canvas(library_service, graph, editor, testid="edge-batch")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-chunked-load?nodes=N
+    #
+    # A graph opened through start_chunked_sync, behind the blocking load
+    # overlay, exactly as the studio opens a large one. Backs the overlay's
+    # release: the edges reach the client from the validation timer DURING the
+    # node loop, so a gate waiting for anything to happen after the loop waits
+    # for its whole deadline. See test_graph_chunked_load_modal.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-chunked-load")
+    async def graph_chunked_load_page(request: Request):
+        nodes = int(request.query_params.get("nodes", 80))
+        graph, editor = _build_chunked_load_graph(library_service.get_node_factory(), nodes)
+        manager = _mount_graph_canvas(library_service, graph, editor, testid="chunked", sync=False)
+        manager.start_chunked_sync(graph_name="chunked fixture")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-hidden-level?edges=N
+    #
+    # A canvas mounted and synced inside a tab panel that is NOT the active one,
+    # plus a button that reveals it. Reproduces the case the studio hits when a
+    # Group's level is edited while another level is on screen: the edge batch
+    # reaches a canvas whose pins have no layout (or are culled away entirely),
+    # so the edges must be parked and drawn on reveal rather than dropped.
+    # See test_graph_hidden_level_edges.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-hidden-level")
+    async def graph_hidden_level_page(request: Request):
+        edges = int(request.query_params.get("edges", 4))
+        # One spare port pair, so a button can wire an edge while the panel is
+        # hidden — which is what an edit in a background level does.
+        graph, editor = _build_edge_batch_graph(library_service.get_node_factory(), edges + 1, wire=edges)
+
+        panels = ui.tab_panels(value="other", animated=False).props("keep-alive").style("width: 100%;")
+        with panels:
+            with ui.tab_panel("other"):
+                ui.label("another level").props('data-testid="other-level"')
+            with ui.tab_panel("canvas") as canvas_panel:
+                manager = _mount_graph_canvas(library_service, graph, editor, testid="hidden")
+
+        ui.button("reveal", on_click=lambda: panels.set_value("canvas")).props('data-testid="reveal"')
+        ui.button("hide", on_click=lambda: panels.set_value("other")).props('data-testid="hide"')
+        # A zoom other than 1 is what makes a re-mount's measurement window
+        # visible: the canvas starts at zoom 1 and divides by it.
+        ui.button("zoom-out", on_click=lambda: manager.zoom_container.set_zoom(0.35)).props(
+            'data-testid="zoom-out"'
+        )
+
+        source, sink = list(graph.node_wrappers.values())[:2]
+
+        def _add_edge() -> None:
+            editor.create_edge(source.node_id, f"float_outlet_{edges}", sink.node_id, f"float_inlet_{edges}")
+
+        ui.button("add-edge", on_click=_add_edge).props('data-testid="add-edge"')
+
+        def _rekey() -> None:
+            """What a save-as does to a graph tab: the panel gets a new name."""
+            canvas_panel._props["name"] = "canvas-renamed"
+            canvas_panel.update()
+            panels.set_value("canvas-renamed")
+
+        ui.button("rekey", on_click=_rekey).props('data-testid="rekey"')
         _stamp_synced()
 
     # -------------------------------------------------------------------------

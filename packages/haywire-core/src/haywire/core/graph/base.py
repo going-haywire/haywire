@@ -18,6 +18,7 @@ from haywire.core.validation.structural_validator import StructuralValidator
 from haywire.core.library.utils import get_registry_id_from_key
 
 from ..types import FlowType
+from ..types.enums import PortType
 from .validation import ValidationManager, ValidationCallback
 from .types import ChangeReason
 
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
     from .scheduler import ValidationScheduler
     from ..settings.settings_graph import GraphSettings
     from .properties import GraphProperties
+    from .subgraph import SubgraphDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +114,15 @@ class BaseGraph:
         self.node_wrappers: Dict[str, "NodeWrapper"] = {}
         self.edge_wrappers: Dict[str, "EdgeWrapper"] = {}
         self.variables: Dict[str, Variable] = {}
+
+        # Subgraph definitions, by key. A Graph-node in this graph references
+        # one by key; a definition is itself a graph and may hold its own
+        # table, so this is a tree. See ``core.graph.subgraph``.
+        self.subgraphs: Dict[str, "SubgraphDefinition"] = {}
+
+        # The graph whose ``subgraphs`` table holds this one; None at the root.
+        # Set by ``add_subgraph``, and what makes ``root_graph`` walkable.
+        self._host_graph: "BaseGraph | None" = None
 
         # Framework-written metadata; the editable fields live in the `meta` bag
         # below. filestem is derived from the real path by save_to_file and
@@ -247,13 +258,102 @@ class BaseGraph:
     # =========================================================================
 
     def generate_unique_node_id(self, registry_key: str = "node") -> str:
-        """Return a node ID, prefixed from ``registry_key``, that no node in this graph uses."""
+        """Return a node ID, prefixed from ``registry_key``, that no node in the whole tree uses.
+
+        The tree is the root graph and every Subgraph definition beneath it, so
+        one id space covers all of them and a Subgraph's contents can be looked
+        up by id alone — see
+        ``haywire.core.assembly.flat_view.FlatGraphView.get_node_wrapper``.
+        """
         prefix = get_registry_id_from_key(registry_key)
+        root = self.root_graph
 
         while True:
             node_id = f"{prefix}_{uuid.uuid4().hex[:6]}"
-            if node_id not in self.node_wrappers:
+            if not root.tree_contains_node_id(node_id):
                 return node_id
+
+    # =========================================================================
+    # SUBGRAPH TABLE
+    # =========================================================================
+
+    @property
+    def root_graph(self) -> "BaseGraph":
+        """The graph at the top of this Subgraph tree; ``self`` for a graph that owns a file."""
+        graph: BaseGraph = self
+        while graph._host_graph is not None:
+            graph = graph._host_graph
+        return graph
+
+    def tree_contains_node_id(self, node_id: str) -> bool:
+        """Return whether ``node_id`` names a node in this graph or any Subgraph beneath it."""
+        if node_id in self.node_wrappers:
+            return True
+        return any(definition.tree_contains_node_id(node_id) for definition in self.subgraphs.values())
+
+    def add_subgraph(self, definition: "SubgraphDefinition") -> "SubgraphDefinition":
+        """Register ``definition`` in this graph's table under its own key and return it.
+
+        Raises:
+            ValueError: If the key is already taken.
+        """
+        if definition.key in self.subgraphs:
+            raise ValueError(f"Subgraph definition '{definition.key}' already exists in graph")
+
+        self.subgraphs[definition.key] = definition
+        definition._host_graph = self
+        return definition
+
+    def get_subgraph(self, key: str) -> "SubgraphDefinition | None":
+        """Return the Subgraph definition under ``key``, or ``None`` if this graph has none."""
+        return self.subgraphs.get(key)
+
+    def detach_subgraph(self, key: str) -> "SubgraphDefinition | None":
+        """Take the Subgraph definition under ``key`` out of this table intact, or ``None``.
+
+        The definition keeps its live nodes and edges and is left with no host,
+        ready to be handed to another graph's :meth:`add_subgraph`. That move is
+        what a Graph-node needs when it is collapsed into a Group or expanded
+        out of one: ``resolve_definition`` reads the table of the graph that
+        owns the node, so the definition has to travel with the card.
+
+        Use :meth:`remove_subgraph` to get rid of a definition for good.
+
+        Example::
+
+            target.add_subgraph(source.detach_subgraph(key))
+        """
+        definition = self.subgraphs.pop(key, None)
+        if definition is None:
+            return None
+
+        definition._host_graph = None
+        return definition
+
+    def remove_subgraph(self, key: str) -> "SubgraphDefinition | None":
+        """Remove and return the Subgraph definition under ``key``, or ``None`` if unknown.
+
+        The removed definition is cleared and cleaned up, so its nodes release
+        their settings subscriptions. Its own Subgraphs go with it.
+        """
+        definition = self.detach_subgraph(key)
+        if definition is None:
+            return None
+
+        definition.clear()
+        definition.cleanup()
+        return definition
+
+    def generate_unique_subgraph_key(self, prefix: str = "subgraph") -> str:
+        """Return a Subgraph key that no definition in this graph's table uses."""
+        while True:
+            key = f"{prefix}_{uuid.uuid4().hex[:6]}"
+            if key not in self.subgraphs:
+                return key
+
+    # =========================================================================
+    # Node Wrapper Management
+    # =========================================================================
 
     def create_node_wrapper(
         self,
@@ -542,6 +642,37 @@ class BaseGraph:
 
         return connected_wrappers
 
+    def control_transitions(self, node_id: str) -> Dict[str, Tuple[str, str]]:
+        """Return where control leaves ``node_id``, by control outlet.
+
+        The control topology of the graph, asked as one question so a view over
+        the graph can answer it differently — see
+        ``haywire.core.assembly.flat_view.FlatGraphView``, which splices
+        Subgraph crossings in here.
+
+        An outlet with no valid edge is left out. A returned key need not name a
+        real port and a returned inlet id need not either: the VM stores the
+        inlet id on ``ExecutionContext.control_pin`` without resolving it, and
+        looks the outlet id up only in the map this builds.
+
+        Returns:
+            ``{outlet_port_id: (next_node_id, inlet_port_id)}``.
+        """
+        transitions: Dict[str, Tuple[str, str]] = {}
+
+        wrapper = self.get_node_wrapper(node_id)
+        if wrapper is None:
+            return transitions
+
+        outlets = wrapper.node.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.CONTROL)
+        for outlet in outlets:
+            # A control outlet carries at most one connection.
+            edges = outlet.get_valid_edges()
+            if edges:
+                transitions[outlet.id] = (edges[0].sink_node_id, edges[0].edge.inlet_port_id)
+
+        return transitions
+
     def _get_edge_wrappers_for_node(self, node_id: str) -> List["EdgeWrapper"]:
         """Return every edge wrapper whose source or sink is ``node_id``."""
         connected_wrappers = []
@@ -655,12 +786,17 @@ class BaseGraph:
     # =========================================================================
 
     def clear(self):
-        """Remove every node, edge and variable from the graph.
+        """Remove every node, edge, variable and Subgraph definition from the graph.
 
         Subscribers are notified of all the removals, through an immediate
         validation pass, before the wrappers are cleaned up. The graph stays
         usable afterwards; ``cleanup()`` is what releases it for good.
         """
+        # Definitions go first, and through remove_subgraph so each releases
+        # its own nodes' settings subscriptions.
+        for key in list(self.subgraphs.keys()):
+            self.remove_subgraph(key)
+
         # Edges before nodes: the edge marks need their wrappers still in place.
         for edge_id in list(self.edge_wrappers.keys()):
             self._validation.mark_edge_dirty(edge_id, ChangeReason.EDGE_REMOVED)
@@ -696,9 +832,12 @@ class BaseGraph:
     def cleanup(self) -> None:
         """Release graph-owned resources: both settings bags' registry subscriptions.
 
+        Recurses into every Subgraph definition, which owns bags of its own.
         Call when the graph object is discarded for good. ``clear()`` does not
         call it, so a cleared graph stays usable.
         """
+        for definition in self.subgraphs.values():
+            definition.cleanup()
         self.props._cleanup()
         self.meta._cleanup()
 
@@ -728,6 +867,10 @@ class BaseGraph:
             "edges": {edge_id: wrapper.edge.to_dict() for edge_id, wrapper in self.edge_wrappers.items()},
             "variables": {name: var.to_dict() for name, var in self.variables.items()},
             "props": self.props._to_dict(),
+            "subgraphs": {
+                key: definition.to_dict(include_data=include_data)
+                for key, definition in self.subgraphs.items()
+            },
         }
 
     def load_from_dict(self, data: Dict[str, Any]) -> bool:
@@ -777,6 +920,20 @@ class BaseGraph:
                         description=var_data.get("description"),
                     )
                     self.variables[name] = var
+
+            # Restored BEFORE the nodes: a Graph-node resolves its definition
+            # from this table during wrapper.build(), to mirror the boundary
+            # nodes' ports onto its own card.
+            if "subgraphs" in data:
+                from .subgraph import SubgraphDefinition
+
+                for key, definition_data in data["subgraphs"].items():
+                    try:
+                        definition = SubgraphDefinition(key=key)
+                        self.add_subgraph(definition)
+                        definition.load_from_dict(definition_data)
+                    except Exception as e:
+                        logger.error(f"Error loading subgraph {key} from dictionary: {e}", exc_info=True)
 
             if "nodes" in data:
                 from ..node.node_wrapper import NodeWrapper

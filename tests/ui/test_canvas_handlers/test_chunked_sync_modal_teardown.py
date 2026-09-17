@@ -72,7 +72,7 @@ async def _drain(mgr) -> None:
 
 @pytest.mark.anyio
 async def test_modal_closes_on_success():
-    async def ok(on_progress=None, on_phase=None):
+    async def ok(on_progress=None, on_phase=None, on_nodes_mounted=None):
         return None
 
     with patch(_MODAL_PATH) as factory:
@@ -87,7 +87,7 @@ async def test_modal_closes_on_success():
 async def test_modal_closes_when_the_load_is_cancelled():
     """The editor closing mid-load must not strand the overlay."""
 
-    async def slow(on_progress=None, on_phase=None):
+    async def slow(on_progress=None, on_phase=None, on_nodes_mounted=None):
         await asyncio.sleep(60)
 
     with patch(_MODAL_PATH) as factory:
@@ -103,7 +103,7 @@ async def test_modal_closes_when_the_load_is_cancelled():
 
 @pytest.mark.anyio
 async def test_modal_closes_when_the_load_raises():
-    async def boom(on_progress=None, on_phase=None):
+    async def boom(on_progress=None, on_phase=None, on_nodes_mounted=None):
         raise RuntimeError("mount blew up")
 
     with patch(_MODAL_PATH) as factory:
@@ -117,16 +117,35 @@ async def test_modal_closes_when_the_load_raises():
 
 
 @pytest.mark.anyio
-async def test_on_complete_does_not_run_when_cancelled():
+async def test_the_nodes_mounted_callback_reaches_the_loader():
+    """The loader decides when it fires — after the last node, before the edges."""
+    seen = {}
+
+    async def report(on_progress=None, on_phase=None, on_nodes_mounted=None):
+        seen["cb"] = on_nodes_mounted
+
+    def centre() -> None:
+        pass
+
+    with patch(_MODAL_PATH):
+        mgr = _manager(report)
+        mgr.start_chunked_sync(on_nodes_mounted=centre)
+        await _drain(mgr)
+
+    assert seen["cb"] is centre
+
+
+@pytest.mark.anyio
+async def test_nothing_is_centred_when_the_load_is_cancelled():
     """Centring the viewport on a half-mounted graph would frame the wrong thing."""
     called = []
 
-    async def slow(on_progress=None, on_phase=None):
+    async def slow(on_progress=None, on_phase=None, on_nodes_mounted=None):
         await asyncio.sleep(60)
 
     with patch(_MODAL_PATH):
         mgr = _manager(slow)
-        mgr.start_chunked_sync(on_complete=lambda: called.append(1))
+        mgr.start_chunked_sync(on_nodes_mounted=lambda: called.append(1))
         await asyncio.sleep(0)
         assert mgr._sync_task is not None
         mgr._sync_task.cancel()
@@ -140,7 +159,7 @@ async def test_progress_is_wired_to_the_modal():
     """The loader's per-node callback must reach the overlay's readout."""
     seen = {}
 
-    async def report(on_progress=None, on_phase=None):
+    async def report(on_progress=None, on_phase=None, on_nodes_mounted=None):
         seen["cb"] = on_progress
 
     with patch(_MODAL_PATH) as factory:

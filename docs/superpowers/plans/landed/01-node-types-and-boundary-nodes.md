@@ -10,7 +10,7 @@ rules they need. Nothing consumes them yet; step 4 is what creates them.
 minted by an action, never offered in the add-node menu, and elided at assembly.
 `RerouteNode` is already exactly that shape, so this step copies its pattern
 point for point rather than inventing one. See the design record:
-[2026-09-14-graph-nodes.md](2026-09-14-graph-nodes.md), decisions 4, 6, 7, 8, 19.
+[graph-nodes.md](../2026-09-14-graph-nodes.md), decisions 4, 6, 7, 8, 19.
 
 **Tech Stack:** Python 3.12, pytest.
 
@@ -125,7 +125,6 @@ way `_validate_reroute_node` is (`structural_validator.py:89`, `:195-232`):
 
 - Port-less is valid (latent, awaiting the collapse action).
 - Every port faces one direction — Input outlets only, Output inlets only.
-- No loopback outlet may cross the boundary.
 
 Add the **Subgraph-level** rule (decision 6): a Subgraph contains exactly one
 Input and one Output boundary node, and **no EVENT or OUTPUT node**. An EVENT

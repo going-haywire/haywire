@@ -10,20 +10,29 @@ from enum import IntFlag
 class NodeType(IntFlag):
     """Bitwise flags for node behavior.
 
-    The types are mutually exclusive, and each follows from a control port
-    configuration:
+    The types are mutually exclusive. What the structural validator enforces:
 
-    - DATA: 0 ctrl inlet / 0 ctrl outlet
-    - CONTROL: 1 ctrl inlet / 1 ctrl outlet
-    - EVENT: 0 ctrl inlet / 1 ctrl outlet
-    - OUTPUT: 1 ctrl inlet / 0 ctrl outlet
-    - LOOPBACK: 1 ctrl inlet / 2+ ctrl outlets (one with, and one without loopback)
+    - DATA: no pins on non-DATA ports, and at least one data outlet.
+    - CONTROL: at least one control inlet and at least one control outlet. A
+      control node may carry several control outlets — ``ControlSwitch`` has two.
+    - EVENT: no inlets with pins, an ``event_subscription``, and at least one
+      control outlet.
+    - OUTPUT: a control node that ends a flow.
+    - LOOPBACK: a control node carrying at least one outlet with
+      ``needs_loopback=True`` (the loop body) and at least one with
+      ``needs_loopback=False`` (the exit). Outlet *count* does not distinguish
+      LOOPBACK from CONTROL; the flags do.
     - REROUTE: a pass-through node that splits an edge and bends a wire. It
       carries neither the DATA nor the CONTROL bit and may stay port-less until
       the edge-split action configures it; the structural validator checks it
       before the DATA/CONTROL rules and applies the looser reroute ones (a
       port-less state is valid, as is any single-FlowType passthrough pair).
       Supports DATA, CONTROL and CALLBACK edges.
+    - BOUNDARY: a Subgraph Input or Subgraph Output node, defining the interface
+      of a Subgraph. It carries neither the DATA nor the CONTROL bit — its role
+      comes from the assembly context, so one pair of classes serves both data
+      and control crossings. Like REROUTE it may stay port-less until the
+      collapse action stamps its ports, and every port faces one direction.
 
     Examples:
         @node(node_type=NodeType.EVENT)
@@ -31,6 +40,7 @@ class NodeType(IntFlag):
         @node(node_type=NodeType.LOOPBACK)
         @node(node_type=NodeType.DATA)
         @node(node_type=NodeType.REROUTE)
+        @node(node_type=NodeType.BOUNDARY)
     """
 
     DATA = 1
@@ -39,6 +49,7 @@ class NodeType(IntFlag):
     OUTPUT = 8 | CONTROL  # 10
     LOOPBACK = 16 | CONTROL  # 18
     REROUTE = 32  # standalone — no DATA or CONTROL bit
+    BOUNDARY = 64  # standalone — no DATA or CONTROL bit
 
 
 @dataclass(frozen=True)
@@ -99,6 +110,11 @@ class NodeBehaviorFlags:
     def is_reroute_node(self) -> bool:
         """True if node is a reroute (a DATA node permitting a port-less state)."""
         return bool(NodeType.REROUTE in self.node_type)
+
+    @property
+    def is_boundary_node(self) -> bool:
+        """True if node defines a Subgraph's interface (BOUNDARY)."""
+        return bool(NodeType.BOUNDARY in self.node_type)
 
     @property
     def is_event_node(self) -> bool:

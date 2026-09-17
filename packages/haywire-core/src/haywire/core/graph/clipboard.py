@@ -32,23 +32,29 @@ def build_clipboard_payload(
     Only edges with both endpoints in ``node_ids`` are included, so a paste is
     always self-consistent. Ids the graph doesn't know are skipped.
 
+    A Subgraph's boundary nodes are left out: a Subgraph Input pasted into an
+    ordinary graph would stand for nothing. Copying a whole Subgraph's contents
+    therefore yields its content nodes alone, and the edges among them.
+
     Returns:
         ``haywire_clipboard``, ``format_version``, ``source`` (``session_id``
         and a ``timestamp`` in epoch seconds), ``bounding_box`` over the node
         positions, and the serialized ``nodes`` and ``edges``.
     """
-    selected = set(node_ids)
-
     nodes: Dict[str, Any] = {}
     positions: list[tuple[float, float]] = []
     for node_id in node_ids:
         wrapper = graph.get_node_wrapper(node_id)
-        if wrapper is None:
+        if wrapper is None or wrapper.node.behavior.is_boundary_node:
             continue
         serialized = wrapper.serialize(include_data=True)
         nodes[node_id] = serialized
         pos = serialized.get("position") or [0.0, 0.0]
         positions.append((float(pos[0]), float(pos[1])))
+
+    # Both endpoints must be among the nodes actually copied, so an edge onto a
+    # filtered-out boundary node is dropped with it.
+    copied = set(nodes)
 
     edges: Dict[str, Any] = {}
     for edge_id in edge_ids:
@@ -56,7 +62,7 @@ def build_clipboard_payload(
         if edge_wrapper is None:
             continue
         edge_dict = edge_wrapper.edge.to_dict()
-        if edge_dict["source_node_id"] in selected and edge_dict["sink_node_id"] in selected:
+        if edge_dict["source_node_id"] in copied and edge_dict["sink_node_id"] in copied:
             edges[edge_id] = edge_dict
 
     if positions:

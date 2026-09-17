@@ -9,7 +9,7 @@ Graph-node incoherent.
 **Architecture:** Collapse is "compute the crossing edges, dedup them into an
 interface, move the selection into a definition". The crossing-edge computation is
 the clipboard's **both-endpoints rule**, already implemented. Design record:
-[2026-09-14-graph-nodes.md](2026-09-14-graph-nodes.md), decisions 12, 13, 26.
+[graph-nodes.md](../2026-09-14-graph-nodes.md), decisions 12, 13, 26.
 
 **Tech Stack:** Python 3.12, pytest.
 

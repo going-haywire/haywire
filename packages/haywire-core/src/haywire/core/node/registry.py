@@ -20,6 +20,9 @@ class NodeRegistry(BaseRegistry[BaseNode]):
         super().__init__()
         self._error_node: type[BaseNode] | None = None
         self._reroute_node: type[BaseNode] | None = None
+        self._subgraph_input_node: type[BaseNode] | None = None
+        self._subgraph_output_node: type[BaseNode] | None = None
+        self._graph_node: type[BaseNode] | None = None
 
     def _class_filter(self, cls):
         """Check if a class is a valid Haywire node class."""
@@ -41,8 +44,10 @@ class NodeRegistry(BaseRegistry[BaseNode]):
 
         A class declaring ``_is_error`` also becomes the registry's error node,
         unless one with a higher ``_error_priority`` already holds the slot; a
-        class declaring ``_is_reroute`` becomes the reroute provider, replacing
-        any earlier one with a warning.
+        class declaring ``_is_reroute`` becomes the reroute provider, and one
+        declaring ``_is_subgraph_input`` or ``_is_subgraph_output`` becomes the
+        matching boundary-node provider — each replacing any earlier one with a
+        warning.
 
         Raises:
             ValueError: If the class has no ``class_identity``, or a node is
@@ -74,13 +79,40 @@ class NodeRegistry(BaseRegistry[BaseNode]):
                 )
             self._reroute_node = cls
 
+        if cls.class_identity._is_subgraph_input:
+            if self._subgraph_input_node is not None and self._subgraph_input_node is not cls:
+                logger.warning(
+                    f"Overriding registered subgraph input node "
+                    f"'{self._subgraph_input_node.class_identity.registry_key}' "
+                    f"with '{cls.class_identity.registry_key}'."
+                )
+            self._subgraph_input_node = cls
+
+        if cls.class_identity._is_subgraph_output:
+            if self._subgraph_output_node is not None and self._subgraph_output_node is not cls:
+                logger.warning(
+                    f"Overriding registered subgraph output node "
+                    f"'{self._subgraph_output_node.class_identity.registry_key}' "
+                    f"with '{cls.class_identity.registry_key}'."
+                )
+            self._subgraph_output_node = cls
+
+        if cls.class_identity._is_graph_node:
+            if self._graph_node is not None and self._graph_node is not cls:
+                logger.warning(
+                    f"Overriding registered graph node "
+                    f"'{self._graph_node.class_identity.registry_key}' "
+                    f"with '{cls.class_identity.registry_key}'."
+                )
+            self._graph_node = cls
+
         return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key) -> type[BaseNode] | None:
         """Unregister a node and return its class, or ``None`` if the key is unknown.
 
-        Clears the error-node or reroute-provider slot, with a warning, when the
-        removed node held it.
+        Clears the error-node, reroute-provider or boundary-node slot, with a
+        warning, when the removed node held it.
         """
         if self.get(registry_key) == self._error_node:
             self._error_node = None
@@ -89,6 +121,23 @@ class NodeRegistry(BaseRegistry[BaseNode]):
         if self.get(registry_key) is self._reroute_node:
             self._reroute_node = None
             logger.warning(f"Reroute node '{registry_key}' unregistered; no reroute node left in registry")
+
+        if self.get(registry_key) is self._subgraph_input_node:
+            self._subgraph_input_node = None
+            logger.warning(
+                f"Subgraph input node '{registry_key}' unregistered; no subgraph input node left in registry"
+            )
+
+        if self.get(registry_key) is self._subgraph_output_node:
+            self._subgraph_output_node = None
+            logger.warning(
+                f"Subgraph output node '{registry_key}' unregistered; "
+                f"no subgraph output node left in registry"
+            )
+
+        if self.get(registry_key) is self._graph_node:
+            self._graph_node = None
+            logger.warning(f"Graph node '{registry_key}' unregistered; no graph node left in registry")
 
         return super()._unregister(registry_key)
 
@@ -99,6 +148,18 @@ class NodeRegistry(BaseRegistry[BaseNode]):
     def _get_reroute_node(self) -> type[BaseNode] | None:
         """The class registered as the reroute provider, or ``None``."""
         return self._reroute_node
+
+    def _get_subgraph_input_node(self) -> type[BaseNode] | None:
+        """The class registered as the Subgraph Input boundary node, or ``None``."""
+        return self._subgraph_input_node
+
+    def _get_subgraph_output_node(self) -> type[BaseNode] | None:
+        """The class registered as the Subgraph Output boundary node, or ``None``."""
+        return self._subgraph_output_node
+
+    def _get_graph_node(self) -> type[BaseNode] | None:
+        """The class registered as the Graph-node (a Group's card), or ``None``."""
+        return self._graph_node
 
     def get_node_lastevent(self, key: str) -> LifeCycleEvent | None:
         """The node's last lifecycle event, or ``None`` if it has had none."""

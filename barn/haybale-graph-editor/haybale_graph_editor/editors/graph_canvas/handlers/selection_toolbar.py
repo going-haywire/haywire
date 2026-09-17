@@ -286,6 +286,15 @@ class SelectionToolbarProvider:
     def dissolve_reroute(self, node_id: str) -> None:
         self._delegate("dissolve_reroute", node_id)
 
+    def collapse_to_group(self) -> None:
+        self._delegate("collapse_to_group")
+
+    def expand_group(self, node_id: str) -> None:
+        self._delegate("expand_group", node_id)
+
+    def enter_group(self, node_id: str) -> None:
+        self._delegate("enter_group", node_id)
+
     # ADR 0032 card axes. Required here even though the toolbar draws no rows
     # for them itself: its ⋯ hosts SelectionMenu directly, and render_surface
     # isinstance-checks the host against that surface's `provides`. A verb

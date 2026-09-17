@@ -13,12 +13,16 @@ from haywire.core.graph.clipboard import (
 pytestmark = pytest.mark.unit
 
 
-def _fake_graph():
-    """A graph with two nodes (n1, n2) and one edge n1->n2, plus a dangling edge n2->n3."""
+def _fake_graph(boundary_ids: frozenset[str] = frozenset()):
+    """A graph with two nodes (n1, n2) and one edge n1->n2, plus a dangling edge n2->n3.
+
+    Ids in ``boundary_ids`` report themselves as Subgraph boundary nodes.
+    """
     g = MagicMock()
 
     def node_wrapper(node_id):
         w = MagicMock()
+        w.node.behavior.is_boundary_node = node_id in boundary_ids
         w.serialize.return_value = {
             "node_id": node_id,
             "registry_key": f"key.{node_id}",
@@ -88,6 +92,7 @@ def test_empty_selection_yields_zero_bounding_box():
 def test_serialize_called_with_include_data_true():
     g = MagicMock()
     wrapper = MagicMock()
+    wrapper.node.behavior.is_boundary_node = False
     wrapper.serialize.return_value = {
         "node_id": "n1",
         "registry_key": "key.n1",
@@ -112,3 +117,29 @@ def test_is_haywire_payload_accepts_valid_rejects_other():
         is_haywire_payload({"haywire_clipboard": True, "format_version": 1, "source": {"timestamp": "x"}})
         is False
     )
+
+
+def test_a_boundary_node_is_left_out_of_the_payload():
+    """A Subgraph Input pasted into an ordinary graph would stand for nothing."""
+    payload = build_clipboard_payload(
+        _fake_graph(boundary_ids=frozenset({"n1"})), ["n1", "n2"], ["e_in"], "sess"
+    )
+
+    assert set(payload["nodes"]) == {"n2"}
+
+
+def test_an_edge_onto_a_filtered_boundary_node_goes_with_it():
+    payload = build_clipboard_payload(
+        _fake_graph(boundary_ids=frozenset({"n1"})), ["n1", "n2"], ["e_in"], "sess"
+    )
+
+    assert payload["edges"] == {}
+
+
+def test_a_selection_of_only_boundary_nodes_yields_an_empty_payload():
+    payload = build_clipboard_payload(
+        _fake_graph(boundary_ids=frozenset({"n1", "n2"})), ["n1", "n2"], ["e_in"], "sess"
+    )
+
+    assert payload["nodes"] == {}
+    assert payload["edges"] == {}

@@ -10,8 +10,6 @@ from __future__ import annotations
 from typing import Dict, List, Set, TYPE_CHECKING
 import logging
 
-from haywire.core.types.enums import FlowType, PortType
-
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node.base import BaseNode
@@ -75,31 +73,22 @@ class ControlFlowBuilder:
                 info.is_loopback = True
                 logger.debug(f"Node {current.wrapper.node_id} is loopback")
 
-            # Get all control outlet ports
-            control_outlets = current.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.CONTROL)
+            # Ask the GRAPH where control leaves this node, rather than reading
+            # each outlet's own edges: a Subgraph crossing is answered by the
+            # graph (FlatGraphView) and has no edge to follow.
+            for outlet_id, (next_node_id, inlet_port_id) in graph.control_transitions(
+                current.wrapper.node_id
+            ).items():
+                info.outlet_map[outlet_id] = (next_node_id, inlet_port_id)
 
-            # Map each outlet to its connected node
-            for outlet in control_outlets:
-                # Get edges connected to this outlet
-                edge_wrappers = outlet.get_valid_edges()
+                logger.debug(
+                    f"Outlet {current.wrapper.node_id}.{outlet_id} → {next_node_id}.{inlet_port_id}"
+                )
 
-                # Control outlets should have at most one connection
-                if edge_wrappers:
-                    edge = edge_wrappers[0]  # Take first (should be only one)
-                    next_node_id = edge.sink_node_id
-                    inlet_port_id = edge.edge.inlet_port_id
-
-                    # Record in outlet map: (next_node_id, inlet_port_id)
-                    info.outlet_map[outlet.id] = (next_node_id, inlet_port_id)
-
-                    logger.debug(
-                        f"Outlet {current.wrapper.node_id}.{outlet.id} → {next_node_id}.{inlet_port_id}"
-                    )
-
-                    # Add next node to queue
-                    next_wrapper = graph.get_node_wrapper(next_node_id)
-                    if next_wrapper:
-                        queue.append(next_wrapper.node)
+                # Add next node to queue
+                next_wrapper = graph.get_node_wrapper(next_node_id)
+                if next_wrapper:
+                    queue.append(next_wrapper.node)
 
             # Add to control graph
             control_graph.control_nodes[current.wrapper.node_id] = info

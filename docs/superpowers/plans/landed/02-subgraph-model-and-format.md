@@ -11,7 +11,7 @@ Also completes ADR 0035's rename, which rides this step's format bump.
 `framework < subgraph < node` settings chain through the existing
 `settings_bag_for` seam. Instantiation is the paste primitive: mint root-unique
 ids, remap edges through an `old → new` map. Design record:
-[2026-09-14-graph-nodes.md](2026-09-14-graph-nodes.md), decisions 3, 9, 11, 15, 16, 25.
+[graph-nodes.md](../2026-09-14-graph-nodes.md), decisions 3, 9, 11, 15, 16, 25.
 
 **Tech Stack:** Python 3.12, pytest.
 

@@ -21,7 +21,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_graph_editor.panels._gating import is_reroute_node
+from haybale_graph_editor.panels._gating import (
+    is_collapsible_selection,
+    is_graph_node,
+    is_reroute_node,
+)
 from nicegui import ui
 
 from haywire.ui import elements as hui
@@ -605,3 +609,79 @@ class DeleteSelectionMenuPanel(BasePanel):
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
             hui.menu_row("Delete", icon=hui.icon.delete, enabled=False)
+
+
+@panel(
+    surface=SelectionMenu,
+    label="Collapse to Group",
+    icon=hui.icon.graph,
+    order=35,
+)
+class CollapseToGroupMenuPanel(BasePanel):
+    """Collapse the selection into one Graph-node standing for a Subgraph.
+
+    Offered whenever two or more nodes are selected. A selection control could
+    leave and re-enter is refused when the command runs, with the intervening
+    nodes named — a row that quietly disappeared would leave the user with
+    nothing to read.
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return is_collapsible_selection(ctx)
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        n_nodes, _n_edges = _selection_counts(ctx)
+        with layout:
+            hui.menu_row(
+                f"Collapse {n_nodes} Nodes to Group",
+                icon=hui.icon.graph,
+                on_click=self.actions.collapse_to_group,
+            )
+
+
+@panel(
+    surface=SelectionMenu,
+    label="Group",
+    icon=hui.icon.graph,
+    order=36,
+)
+class GroupMenuPanel(BasePanel):
+    """Step inside a Group, or expand it back into the graph around it.
+
+    Only visible when the right-clicked node is a Graph-node.
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return is_graph_node(ctx)
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        wrapper = ctx.data[EditState].active_node
+        if wrapper is None:
+            return
+        node_id = wrapper.node_id
+
+        with layout:
+            hui.menu_row(
+                "Enter Group",
+                icon=hui.icon.graph,
+                on_click=lambda: self.actions.enter_group(node_id),
+            )
+            hui.menu_row(
+                "Expand Group",
+                icon=hui.icon.edge,
+                on_click=lambda: self.actions.expand_group(node_id),
+            )

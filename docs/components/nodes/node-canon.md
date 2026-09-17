@@ -112,6 +112,22 @@ with self.rejig(exclude=['exec', 'true', 'false', 'DataType']):
 
 **Node size — the host slot owns it; skins are size-agnostic.** Every node carries three size props on `self.props`: `width` and `height` (both default `200.0`), and `size_adapt` (`"auto"` · `"manual_width"` · `"manual_height"` · `"manual"`, default `"auto"`). `size_adapt` decides, **per axis**, whether the card size is *measured from render* (an `auto` axis — a `ResizeObserver` on the host slot writes the measured offset back into `props`) or *set by the user* (a `manual` axis — set by dragging the resize gadget). A manual size is a **minimum**: the node draws at the user size, but content needing more space (e.g. widgets revealed on selection) expands the node — nothing is ever clipped, so pins, widgets, and attached edges stay intact. The size is applied to the node's **host slot** (`.ui-node-slot`, one `ui.column` per node owned by the graph-editor) as a style-write of `min-width`/`min-height` on manual axes — never as a card rebuild, so the measure→write loop cannot form. Under a manual mode the card-fill CSS in `canvas.vue` (keyed off the slot's `data-node-props-size-adapt` stamp) releases the skin's own clamps (`min-w-64 max-w-sm`) so the card tracks the slot in both directions. **A skin never sets card width/height**: size and measurement live on the host slot, not in skin code. Changing `size_adapt` back to `"auto"` clears the inline minimum and the observer re-populates props from content. `width`/`height`/`size_adapt` are deliberately **outside** `REDRAW_FIELDS` — a size change restyles the slot, it does not redraw the card.
 
+**Graph-nodes are not authored — they are minted.** Three node classes exist that
+no library author writes or places: the **Graph-node** (a Group's card) and the
+two **boundary nodes** (`Subgraph Input` / `Subgraph Output`) that define a
+Subgraph's interface. All three ship in the framework-owned `builtin` library,
+are `hidden=True` so they never appear in the add-node menu, and are born
+**port-less** — the collapse action stamps their ports from the edges crossing
+the selection. The boundary pair carries `NodeType.BOUNDARY`, which holds
+neither the DATA nor the CONTROL bit: one pair of classes serves both kinds of
+crossing, and the type also keeps them out of `_execute`'s data-node shortcut, so
+a node with nothing feeding it still runs its worker. The Graph-node's own type
+is **derived per instance** from its interface — DATA when only data crosses,
+CONTROL otherwise — which is why it overrides the `behavior` property rather than
+declaring a type. If you are writing a node, none of this applies to you; see
+[ADR 0036](../../adr/0036-groups-execute-through-their-boundary-nodes.md) if you
+are changing how a Group runs.
+
 ## 4. Live examples from the codebase
 
 **DATA node — `MathOP`** from `barn/haybale-example/haybale_example/nodes/math_op.py`. Demonstrates the minimal node skeleton: `@node` decorator, `init()` declaring ports, and `worker()` reading named inlet parameters and writing an outlet:

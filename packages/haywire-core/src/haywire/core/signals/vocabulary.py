@@ -82,6 +82,26 @@ class RevealGraphInstance(Signal):
     edge_id: Optional[str] = None
 
 
+@dataclass(frozen=True)
+class SubgraphNavigation(Signal):
+    """Ask every open Subscriber in THIS session: "is this graph yours? If so,
+    open the Subgraph on this node."
+
+    Emitted by the canvas, which knows the node but not which tab is showing the
+    graph; answered by the editor whose canvas holds ``graph_id``, which compares
+    against ``BaseGraph.graph_id`` directly. Only that tab can build the
+    Subgraph's container, because only it holds the container to build it over.
+
+    Carries the descent alone. Returning to a level already open is a
+    :class:`Reveal` for that level's ``binding_id``, published by whoever offers
+    the way back.
+    """
+
+    graph_id: str
+    node_id: str
+    """Descend into the Graph-node with this id."""
+
+
 # ---------------------------------------------------------------------------
 # Data + lifecycle
 # ---------------------------------------------------------------------------

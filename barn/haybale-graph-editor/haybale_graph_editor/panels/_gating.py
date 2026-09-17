@@ -103,3 +103,26 @@ def is_reroute_node(ctx: "SessionContext") -> bool:
     if wrapper is None:
         return False
     return wrapper.node.behavior.is_reroute_node
+
+
+def is_graph_node(ctx: "SessionContext") -> bool:
+    """True when the selection's primary node is a Graph-node — a Group's card.
+
+    The primary node is the one whose card is on show and the one that receives
+    the context menu; see :func:`is_reroute_node`.
+    """
+    wrapper = ctx.data[EditState].active_node
+    if wrapper is None:
+        return False
+    return wrapper.node.identity._is_graph_node
+
+
+def is_collapsible_selection(ctx: "SessionContext") -> bool:
+    """True when at least two nodes are selected, so there is something to collapse.
+
+    Convexity is not checked here: the answer depends on the graph's edges and
+    is worth a named refusal rather than a silently missing row, so the collapse
+    action reports it (naming the intervening nodes) once the user asks.
+    """
+    edit = ctx.data[EditState]
+    return len(edit.selected_nodes) >= 2

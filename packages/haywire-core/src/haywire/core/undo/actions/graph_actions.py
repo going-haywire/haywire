@@ -6,15 +6,18 @@ including node and edge manipulation, positioning, and selection.
 """
 
 import copy
+import logging
 from typing import Any, Optional, Dict, List, Tuple
 from dataclasses import dataclass
 
 from ...node import NodeWrapper
 from ...graph.base import BaseGraph
 from ...edge.edge_wrapper import EdgeWrapper
-from ....ui.utils import generate_edge_uuid
+from ...graph.utils.node_remap import remap_node_ids
 from ..base_action import ActionBase, CompositeAction
 from ..interfaces import IAction
+
+logger = logging.getLogger(__name__)
 
 # Default port ids the split action stamps onto a reroute node. The reroute is
 # port-less until split; these ids are an implementation detail of the split
@@ -517,20 +520,18 @@ class PasteClipboardAction(CompositeAction):
 
         actions: List[IAction] = []
 
+        # 2. Mint new ids and remap the edges onto them.
+        remap = remap_node_ids(nodes=nodes, edges=edges, mint_id=graph.generate_unique_node_id)
+
         # New element ids, exposed so the paste handler can auto-select the
         # freshly pasted subgraph on the canvas.
-        self.new_node_ids: List[str] = []
-        self.new_edge_ids: List[str] = []
+        self.new_node_ids: List[str] = remap.new_node_ids
+        self.new_edge_ids: List[str] = [edge.edge_id for edge in remap.edges]
 
-        # 2. Mint new ids + build child AddNodeActions (no registry_key
-        #    validation — unknown types become placeholders, like file load).
-        id_map: Dict[str, str] = {}
+        # 3. Build child AddNodeActions (no registry_key validation — unknown
+        #    types become placeholders, like file load).
         for old_id, node in nodes.items():
-            new_id = graph.generate_unique_node_id(node["registry_key"])
-            while new_id in self.new_node_ids:
-                new_id = graph.generate_unique_node_id(node["registry_key"])
-            id_map[old_id] = new_id
-            self.new_node_ids.append(new_id)
+            new_id = remap.id_map[old_id]
             pos = node.get("position") or [0.0, 0.0]
             new_x = float(pos[0]) + off_x
             new_y = float(pos[1]) + off_y
@@ -559,23 +560,15 @@ class PasteClipboardAction(CompositeAction):
                 )
             )
 
-        # 3. Remap edges through id_map (both endpoints guaranteed present by
-        #    the both-endpoints copy rule; skip defensively if not).
-        for edge in edges.values():
-            src = id_map.get(edge["source_node_id"])
-            sink = id_map.get(edge["sink_node_id"])
-            if src is None or sink is None:
-                continue
-            outlet = edge["outlet_port_id"]
-            inlet = edge["inlet_port_id"]
-            self.new_edge_ids.append(generate_edge_uuid(src, outlet, sink, inlet))
+        # 4. Build child AddEdgeActions from the remapped edges.
+        for edge in remap.edges:
             actions.append(
                 AddEdgeAction(
                     graph=graph,
-                    source_node_id=src,
-                    outlet_pin_id=outlet,
-                    sink_node_id=sink,
-                    inlet_pin_id=inlet,
+                    source_node_id=edge.source_node_id,
+                    outlet_pin_id=edge.outlet_port_id,
+                    sink_node_id=edge.sink_node_id,
+                    inlet_pin_id=edge.inlet_port_id,
                 )
             )
 
@@ -851,3 +844,548 @@ class SetPropertyAction(ActionBase):
         else:
             assert accessor is not None  # kind == "setting" always carries an accessor
             setattr(getattr(node, accessor), self.name, self._old_value)
+
+
+def _move_subgraphs(source: BaseGraph, target: BaseGraph, keys: List[str]) -> None:
+    """Move the Subgraph definitions named by ``keys`` from one table to the other.
+
+    A key that ``source`` does not hold, or that ``target`` already holds, is
+    skipped with a warning rather than raising: these run inside undo actions,
+    where an exception mid-list would leave half a move applied.
+    """
+    for key in keys:
+        if target.get_subgraph(key) is not None:
+            logger.warning(f"Subgraph '{key}' is already in the target graph; not moving it")
+            continue
+        definition = source.detach_subgraph(key)
+        if definition is None:
+            logger.warning(f"Subgraph '{key}' is not in the source graph; nothing to move")
+            continue
+        target.add_subgraph(definition)
+
+
+class _BuildSubgraphAction(ActionBase):
+    """Create one Subgraph definition, its interface, and its contents.
+
+    A child of ``CollapseToGraphNodeAction``. Registers a ``SubgraphDefinition``
+    under ``key`` in the host's table, creates the two boundary nodes and stamps
+    the ports ``plan`` derived, then rebuilds the selected nodes and the edges
+    internal to them inside it, under the **same ids** they had in the host —
+    they are already unique across the whole tree, so nothing is remapped and a
+    later expand puts them back where they were.
+
+    A selected Graph-node brings its own Subgraph along: ``nested_keys`` names
+    the definitions that move from the host's table into this one, ahead of the
+    nodes, because a Graph-node mirrors its boundary ports while it is built.
+
+    Undo removes the definition outright, which releases its nodes' settings
+    subscriptions; the nested definitions go back to the host first, so they
+    survive it. Redo rebuilds it from the payload captured at construction.
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        key: str,
+        label: str,
+        plan: Any,
+        nodes: Dict[str, Any],
+        edges: Dict[str, Any],
+        input_node_id: str,
+        output_node_id: str,
+        input_registry_key: str,
+        output_registry_key: str,
+        input_position: Tuple[float, float],
+        output_position: Tuple[float, float],
+        nested_keys: Optional[List[str]] = None,
+        description: Optional[str] = None,
+    ):
+        super().__init__(description or f"Build subgraph '{key}'")
+        self.graph = graph
+        self.key = key
+        self.label = label
+        self.plan = plan
+        self.nodes = nodes
+        self.edges = edges
+        self.input_node_id = input_node_id
+        self.output_node_id = output_node_id
+        self.input_registry_key = input_registry_key
+        self.output_registry_key = output_registry_key
+        self.input_position = input_position
+        self.output_position = output_position
+        self.nested_keys = list(nested_keys or [])
+
+    def _execute_impl(self) -> None:
+        from ...graph.subgraph import SubgraphDefinition
+
+        definition = SubgraphDefinition(key=self.key, label=self.label)
+        self.graph.add_subgraph(definition)
+
+        self._build_boundary(definition, is_input=True)
+        self._build_boundary(definition, is_input=False)
+
+        # Before the nodes: a Graph-node among them resolves its Subgraph from
+        # this table while it is built, to mirror the boundary ports.
+        _move_subgraphs(self.graph, definition, self.nested_keys)
+
+        for node_id, node_data in self.nodes.items():
+            position = node_data.get("position") or [0.0, 0.0]
+            definition.create_node_wrapper(
+                registry_key=node_data["registry_key"],
+                position=(float(position[0]), float(position[1])),
+                node_data=node_data.get("node_data", {}),
+                node_id=node_id,
+            )
+
+        for edge in self.edges.values():
+            definition.create_edge_wrapper(
+                edge["source_node_id"],
+                edge["outlet_port_id"],
+                edge["sink_node_id"],
+                edge["inlet_port_id"],
+            )
+
+        # The interface's inner side: the Subgraph Input fans out to the ports
+        # the crossing edges used to land on, and the Subgraph Output collects
+        # from the ports they used to leave.
+        for port in self.plan.inlets:
+            for node_id, port_id in port.inner:
+                definition.create_edge_wrapper(self.input_node_id, port.port_id, node_id, port_id)
+        for port in self.plan.outlets:
+            node_id, port_id = port.inner[0]
+            definition.create_edge_wrapper(node_id, port_id, self.output_node_id, port.port_id)
+
+    def _build_boundary(self, definition: Any, *, is_input: bool) -> None:
+        """Create one boundary node at its side of the contents, with the plan's ports."""
+        node_id = self.input_node_id if is_input else self.output_node_id
+        registry_key = self.input_registry_key if is_input else self.output_registry_key
+        ports = self.plan.inlets if is_input else self.plan.outlets
+        position = self.input_position if is_input else self.output_position
+
+        wrapper = definition.create_node_wrapper(
+            registry_key=registry_key, node_id=node_id, position=position
+        )
+        if wrapper is None:
+            raise RuntimeError(f"Could not create boundary node '{node_id}' for subgraph '{self.key}'")
+
+        node = wrapper.node
+        with node.rejig():
+            for port in ports:
+                spec = (
+                    port.itype.as_outlet(port.port_id, label=port.label, flow_type=port.flow_type)
+                    if is_input
+                    else port.itype.as_inlet(port.port_id, label=port.label, flow_type=port.flow_type)
+                )
+                node.add(spec)
+
+    def _undo_impl(self) -> None:
+        definition = self.graph.get_subgraph(self.key)
+        if definition is not None:
+            # Out before the definition goes: remove_subgraph destroys the whole
+            # subtree, and these belong to the cards returning to the host.
+            _move_subgraphs(definition, self.graph, self.nested_keys)
+        self.graph.remove_subgraph(self.key)
+
+
+class _LiftNestedSubgraphsAction(ActionBase):
+    """Move the Subgraphs of a dissolving Group's own Graph-nodes out to the host.
+
+    A child of ``ExpandGraphNodeAction``, and the first of them: the cards those
+    definitions belong to are rebuilt in the host by the actions that follow,
+    and a Graph-node resolves its Subgraph from its graph's table while it is
+    built. Undo moves them back in, after the definition itself is restored.
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        subgraph_key: str,
+        keys: List[str],
+        description: Optional[str] = None,
+    ):
+        super().__init__(description or f"Lift nested subgraphs out of '{subgraph_key}'")
+        self.graph = graph
+        self.subgraph_key = subgraph_key
+        self.keys = list(keys)
+
+    def _execute_impl(self) -> None:
+        definition = self.graph.get_subgraph(self.subgraph_key)
+        if definition is not None:
+            _move_subgraphs(definition, self.graph, self.keys)
+
+    def _undo_impl(self) -> None:
+        definition = self.graph.get_subgraph(self.subgraph_key)
+        if definition is not None:
+            _move_subgraphs(self.graph, definition, self.keys)
+
+
+class _DropSubgraphAction(ActionBase):
+    """Remove one Subgraph definition, restoring it whole on undo.
+
+    A child of ``ExpandGraphNodeAction``. The definition is serialized just
+    before it goes, so undo rebuilds it — boundary nodes, contents, edges and
+    graph-tier settings alike — through the same ``load_from_dict`` a file load
+    uses.
+    """
+
+    def __init__(self, graph: BaseGraph, key: str, description: Optional[str] = None):
+        super().__init__(description or f"Drop subgraph '{key}'")
+        self.graph = graph
+        self.key = key
+        self._payload: Optional[Dict[str, Any]] = None
+
+    def _execute_impl(self) -> None:
+        definition = self.graph.get_subgraph(self.key)
+        if definition is None:
+            return
+        self._payload = definition.to_dict(include_data=True)
+        self.graph.remove_subgraph(self.key)
+
+    def _undo_impl(self) -> None:
+        if self._payload is None:
+            return
+        from ...graph.subgraph import SubgraphDefinition
+
+        definition = SubgraphDefinition(key=self.key)
+        self.graph.add_subgraph(definition)
+        definition.load_from_dict(self._payload)
+
+
+class CollapseToGraphNodeAction(CompositeAction):
+    """Collapse a selection into a Group — one card standing for a Subgraph.
+
+    Given a convex selection, this composite (one undoable unit):
+
+    1. removes the selected nodes from the host, taking their edges with them,
+    2. builds the ``SubgraphDefinition``, its two boundary nodes, and the
+       selection's own nodes and internal edges inside it,
+    3. creates the Graph-node bound to the definition's key, at the selection's
+       centroid, whose pins mirror the boundary nodes,
+    4. rewires each crossing edge to the matching pin on the card.
+
+    The interface is derived by ``derive_interface``: inlets dedup by their
+    outer source, outlets by their inner source, so one outer outlet feeding
+    three selected nodes becomes one inlet that fans out again inside.
+
+    The boundary node classes are supplied by the caller, discovered through the
+    registry's ``_is_subgraph_input`` / ``_is_subgraph_output`` flags, so the
+    core names no library's node.
+
+    Raises:
+        ValueError: If fewer than one node is selected, if a selected node is
+            not in the graph, if the selection is not convex (the message names
+            the intervening nodes), or if it holds a boundary node (the message
+            names those).
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        node_ids: List[str],
+        card_registry_key: str,
+        input_registry_key: str,
+        output_registry_key: str,
+        label: str = "Group",
+        description: Optional[str] = None,
+    ):
+        from ...graph.subgraph_collapse import check_convex, derive_interface
+        from ...graph.subgraph_crossing import card_port_id
+
+        self.graph = graph
+
+        selected = [node_id for node_id in node_ids if graph.get_node_wrapper(node_id) is not None]
+        if not selected:
+            raise ValueError("Nothing to collapse: none of the selected nodes are in the graph")
+
+        boundary = [
+            node_id
+            for node_id in selected
+            if (wrapper := graph.get_node_wrapper(node_id)) is not None
+            and wrapper.node.behavior.is_boundary_node
+        ]
+        if boundary:
+            raise ValueError(
+                "This selection cannot be collapsed: "
+                f"{', '.join(boundary)} carries the interface of the Group it is already in, "
+                "and a Group cannot hand its interface to another one. "
+                "Leave them out of the selection to collapse the rest."
+            )
+
+        is_convex, intervening = check_convex(graph, selected)
+        if not is_convex:
+            raise ValueError(
+                "This selection cannot be collapsed: control would leave the Group and re-enter "
+                f"it through {', '.join(intervening)}. Add them to the selection to collapse it."
+            )
+
+        plan = derive_interface(graph, selected)
+
+        # Captured while the graph is still intact — the children below run later.
+        wrappers = [graph.get_node_wrapper(node_id) for node_id in selected]
+        nodes = {w.node_id: w.serialize(include_data=True) for w in wrappers if w is not None}
+        # A Graph-node in the selection is collapsed together with its Subgraph.
+        nested_keys = [
+            key
+            for w in wrappers
+            if w is not None
+            and (key := getattr(w.node, "subgraph_key", None))
+            and graph.get_subgraph(key) is not None
+        ]
+        edges = {
+            edge_id: edge.edge.to_dict()
+            for edge_id in plan.internal_edge_ids
+            if (edge := graph.get_edge_wrapper(edge_id)) is not None
+        }
+        crossings = [
+            (edge.source_node_id, edge.outlet_port_id, edge.sink_node_id, edge.inlet_port_id)
+            for edge_id in plan.crossing_edge_ids
+            if (edge := graph.get_edge_wrapper(edge_id)) is not None
+        ]
+
+        # The boundary nodes flank the contents rather than sharing the default
+        # position: they are the Subgraph's edges, so they belong outside its
+        # bounding box, on the axis the contents flow along.
+        input_position, output_position = _boundary_positions(nodes)
+
+        self.subgraph_key = graph.generate_unique_subgraph_key()
+        self.card_node_id = graph.generate_unique_node_id(card_registry_key)
+        input_node_id = graph.generate_unique_node_id(input_registry_key)
+        output_node_id = graph.generate_unique_node_id(output_registry_key)
+
+        actions: List[IAction] = [
+            RemoveElementsAction(graph=graph, nodes=list(selected)),
+            _BuildSubgraphAction(
+                graph=graph,
+                key=self.subgraph_key,
+                label=label,
+                plan=plan,
+                nodes=nodes,
+                edges=edges,
+                input_node_id=input_node_id,
+                output_node_id=output_node_id,
+                input_registry_key=input_registry_key,
+                output_registry_key=output_registry_key,
+                input_position=input_position,
+                output_position=output_position,
+                nested_keys=nested_keys,
+            ),
+            AddNodeAction(
+                graph=graph,
+                registry_key=card_registry_key,
+                position=_centroid(nodes),
+                node_data={"store": {"subgraph_key": self.subgraph_key}},
+                node_id=self.card_node_id,
+            ),
+        ]
+
+        # Rewire the crossing edges onto the card. An inlet's pin takes the one
+        # outer source it deduped on; an outlet's pin feeds every outer sink.
+        pin_for_source = {port.outer[0]: card_port_id(port.port_id, is_inlet=True) for port in plan.inlets}
+        pin_for_sink = {
+            sink: card_port_id(port.port_id, is_inlet=False) for port in plan.outlets for sink in port.outer
+        }
+
+        for source_node_id, outlet_port_id, sink_node_id, inlet_port_id in crossings:
+            if sink_node_id in nodes:
+                pin = pin_for_source.get((source_node_id, outlet_port_id))
+                if pin is None:
+                    continue
+                actions.append(
+                    AddEdgeAction(
+                        graph=graph,
+                        source_node_id=source_node_id,
+                        outlet_pin_id=outlet_port_id,
+                        sink_node_id=self.card_node_id,
+                        inlet_pin_id=pin,
+                    )
+                )
+            else:
+                pin = pin_for_sink.get((sink_node_id, inlet_port_id))
+                if pin is None:
+                    continue
+                actions.append(
+                    AddEdgeAction(
+                        graph=graph,
+                        source_node_id=self.card_node_id,
+                        outlet_pin_id=pin,
+                        sink_node_id=sink_node_id,
+                        inlet_pin_id=inlet_port_id,
+                    )
+                )
+
+        super().__init__(actions, description or f"Collapse to {label}")
+
+
+class ExpandGraphNodeAction(CompositeAction):
+    """Expand a Group back into the host graph — the inverse of a collapse.
+
+    Given a Graph-node, this composite (one undoable unit):
+
+    1. rebuilds the Subgraph's own nodes and edges in the host, under the ids
+       they already carry (unique across the tree, so nothing is remapped),
+    2. rewires each of the card's edges to the inner port the matching boundary
+       port pointed at,
+    3. removes the card, which takes its edges with it, and drops the
+       definition and its boundary nodes.
+
+    ``collapse → expand`` returns an equivalent graph, and each is undoable on
+    its own.
+
+    Raises:
+        ValueError: If ``node_id`` is not a Graph-node with a Subgraph bound.
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        node_id: str,
+        description: Optional[str] = None,
+    ):
+        from ...graph.subgraph import SubgraphDefinition
+        from ...graph.subgraph_crossing import boundary_port_id
+
+        self.graph = graph
+
+        card = graph.get_node_wrapper(node_id)
+        if card is None:
+            raise ValueError(f"Node '{node_id}' not found; cannot expand")
+
+        resolve = getattr(card.node, "resolve_definition", None)
+        definition = resolve() if resolve is not None else None
+        if not isinstance(definition, SubgraphDefinition):
+            raise ValueError(f"Node '{node_id}' is not a Graph-node with a Subgraph; cannot expand")
+
+        input_node = definition.input_node
+        output_node = definition.output_node
+        boundary_ids = {w.node_id for w in (input_node, output_node) if w is not None}
+
+        # The contents to lift out, and the edges among them.
+        contents = definition.content_node_wrappers()
+        nodes = {w.node_id: w.serialize(include_data=True) for w in contents}
+        inner_edges = [
+            edge
+            for edge in definition.edge_wrappers.values()
+            if edge.source_node_id in nodes and edge.sink_node_id in nodes
+        ]
+
+        # Where each boundary port pointed, so the card's edges can be rewired
+        # to the same inner ports.
+        inner_sinks: Dict[str, List[Tuple[str, str]]] = {}
+        inner_sources: Dict[str, Tuple[str, str]] = {}
+        for edge in definition.edge_wrappers.values():
+            if input_node is not None and edge.source_node_id == input_node.node_id:
+                inner_sinks.setdefault(edge.outlet_port_id, []).append(
+                    (edge.sink_node_id, edge.inlet_port_id)
+                )
+            if output_node is not None and edge.sink_node_id == output_node.node_id:
+                inner_sources[edge.inlet_port_id] = (edge.source_node_id, edge.outlet_port_id)
+
+        # First, so the Graph-nodes among the contents find their own Subgraphs
+        # in the host's table as they are rebuilt into it below.
+        nested_keys = [
+            key
+            for w in contents
+            if (key := getattr(w.node, "subgraph_key", None)) and definition.get_subgraph(key) is not None
+        ]
+        actions: List[IAction] = [
+            _LiftNestedSubgraphsAction(graph=graph, subgraph_key=definition.key, keys=nested_keys)
+        ]
+
+        for inner_id, node_data in nodes.items():
+            position = node_data.get("position") or [0.0, 0.0]
+            actions.append(
+                AddNodeAction(
+                    graph=graph,
+                    registry_key=node_data["registry_key"],
+                    position=(float(position[0]), float(position[1])),
+                    node_data=node_data.get("node_data", {}),
+                    node_id=inner_id,
+                )
+            )
+
+        for edge in inner_edges:
+            actions.append(
+                AddEdgeAction(
+                    graph=graph,
+                    source_node_id=edge.source_node_id,
+                    outlet_pin_id=edge.outlet_port_id,
+                    sink_node_id=edge.sink_node_id,
+                    inlet_pin_id=edge.inlet_port_id,
+                )
+            )
+
+        # Bridge the card's own edges to the inner ports behind its pins.
+        for edge in graph._get_all_edges(node_id):
+            if edge.sink_node_id == node_id:
+                boundary_id = boundary_port_id(edge.inlet_port_id)
+                for inner_node_id, inner_port_id in inner_sinks.get(boundary_id or "", []):
+                    actions.append(
+                        AddEdgeAction(
+                            graph=graph,
+                            source_node_id=edge.source_node_id,
+                            outlet_pin_id=edge.outlet_port_id,
+                            sink_node_id=inner_node_id,
+                            inlet_pin_id=inner_port_id,
+                        )
+                    )
+            else:
+                boundary_id = boundary_port_id(edge.outlet_port_id)
+                inner = inner_sources.get(boundary_id or "")
+                if inner is not None:
+                    actions.append(
+                        AddEdgeAction(
+                            graph=graph,
+                            source_node_id=inner[0],
+                            outlet_pin_id=inner[1],
+                            sink_node_id=edge.sink_node_id,
+                            inlet_pin_id=edge.inlet_port_id,
+                        )
+                    )
+
+        # Last: the card goes, taking its edges, and the definition with it.
+        actions.append(RemoveElementsAction(graph=graph, nodes=[node_id]))
+        actions.append(_DropSubgraphAction(graph=graph, key=definition.key))
+
+        self.inner_node_ids = [node_id for node_id in nodes if node_id not in boundary_ids]
+        super().__init__(actions, description or "Expand Group")
+
+
+#: How far outside the contents' bounding box a boundary node sits.
+_BOUNDARY_MARGIN = 360.0
+
+
+def _boundary_positions(
+    nodes: Dict[str, Any],
+) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    """Where the Subgraph Input and Output go, flanking the serialized ``nodes``.
+
+    The Input sits before the contents and the Output after them, both centred
+    on the contents' vertical extent, so a collapsed selection opens with its
+    interface either side of it rather than two cards stacked at the canvas
+    default.
+
+    Returns:
+        ``(input_position, output_position)`` as ``(x, y)`` pairs.
+    """
+    positions = [node.get("position") or [0.0, 0.0] for node in nodes.values()]
+    if not positions:
+        return ((3750.0 - _BOUNDARY_MARGIN, 3750.0), (3750.0 + _BOUNDARY_MARGIN, 3750.0))
+
+    xs = [float(p[0]) for p in positions]
+    ys = [float(p[1]) for p in positions]
+    middle_y = (min(ys) + max(ys)) / 2
+    return (
+        (min(xs) - _BOUNDARY_MARGIN, middle_y),
+        (max(xs) + _BOUNDARY_MARGIN, middle_y),
+    )
+
+
+def _centroid(nodes: Dict[str, Any]) -> Tuple[float, float]:
+    """The average position of the serialized ``nodes``, or the canvas middle if empty."""
+    positions = [node.get("position") or [0.0, 0.0] for node in nodes.values()]
+    if not positions:
+        return (3750.0, 3750.0)
+    return (
+        sum(float(p[0]) for p in positions) / len(positions),
+        sum(float(p[1]) for p in positions) / len(positions),
+    )

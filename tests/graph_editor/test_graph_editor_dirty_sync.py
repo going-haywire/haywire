@@ -50,7 +50,7 @@ def test_graph_data_mutated_handler_is_react_not_redraw():
 def test_handler_refreshes_header():
     """Invoking the handler calls _update_header with the given context."""
     editor = GraphEditor.__new__(GraphEditor)  # bypass wrapper construction
-    editor._canvas_manager = None  # no canvas → recovery short-circuits
+    editor._levels = {}  # nothing drawn → recovery and pruning short-circuit
     editor._update_header = MagicMock()  # type: ignore[method-assign]
 
     bindings = discover_handlers(GraphEditor)[GraphDataMutated]
@@ -69,16 +69,18 @@ def test_handler_recovers_stale_binding_id_after_external_rekey():
     binding_id changes from ``__unsaved_1__`` to a file path (and the old key
     is popped from GraphAppState) without the GraphEditor tab being told. The
     GraphDataMutated handler must recover the tab's identity by matching its
-    canvas graph and repayload the wrapper, so the tab label + dirty marker
+    document graph and repayload the wrapper, so the tab label + dirty marker
     refresh instead of resolving to "No graph".
     """
+    from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, _Level
     from haybale_graph_editor.state.graph_app_state import GraphAppState
 
     graph = object()
 
     editor = GraphEditor.__new__(GraphEditor)  # bypass wrapper construction
-    editor._canvas_manager = MagicMock()
-    editor._canvas_manager.graph = graph
+    stale_document = MagicMock()
+    stale_document.editor.graph = graph
+    editor._levels = {DOCUMENT_LEVEL: _Level(key=DOCUMENT_LEVEL, container=stale_document)}
     editor.wrapper = MagicMock()
     editor.wrapper._binding_id = "__unsaved_1__"  # stale after rekey
     editor._update_header = MagicMock()  # type: ignore[method-assign]

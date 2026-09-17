@@ -676,6 +676,27 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
         self._emit(DissolveRerouteEvent(node_id=node_id))
 
+    # SelectionActions — Group verbs
+
+    def collapse_to_group(self) -> None:
+        """Emit CollapseToGroupEvent for the whole selection."""
+        from haywire.ui.components.graph.event_definitions import CollapseToGroupEvent
+
+        edit = self._context.data[EditState]
+        self._emit(CollapseToGroupEvent(node_ids=list(edit.selected_nodes)))
+
+    def expand_group(self, node_id: str) -> None:
+        """Emit ExpandGroupEvent for the given Graph-node."""
+        from haywire.ui.components.graph.event_definitions import ExpandGroupEvent
+
+        self._emit(ExpandGroupEvent(node_id=node_id))
+
+    def enter_group(self, node_id: str) -> None:
+        """Emit EnterGroupEvent for the given Graph-node."""
+        from haywire.ui.components.graph.event_definitions import EnterGroupEvent
+
+        self._emit(EnterGroupEvent(node_id=node_id))
+
     # PortContextActions — setting demotion, promoted-port widget visibility
 
     def demote_setting(self, port_id: str) -> None:

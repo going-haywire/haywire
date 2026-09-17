@@ -466,7 +466,8 @@ class NodeData:
         if port.is_inlet():
             raise ValueError(f"Port '{id}' is an inlet and cannot be set via out()")
 
-        # set_value() flags the outlet as node-set (out() is its only caller).
+        # set_value() flags the outlet as node-set. Subgraph Output's worker is
+        # the one other caller, writing the Graph-node card's outlets.
         port.set_value(value)
 
     # =========================================================================

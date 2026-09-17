@@ -198,7 +198,10 @@ class HaywireVM:
 
             # Only push to loopback stack if taking a loopback outlet
             if node_info.is_loopback and next_outlet_id:
-                outlet_port = node_info.node.ports[next_outlet_id]
+                # .get(), not [...]: a worker may return any string, and an id
+                # naming no port must end the branch through _navigate_next
+                # rather than abort the whole frame from here.
+                outlet_port = node_info.node.ports.get(next_outlet_id)
                 if outlet_port and outlet_port.needs_loopback:
                     loopback_stack.append(current_node_id)
                     if len(loopback_stack) > self.max_stack_depth:
