@@ -93,14 +93,22 @@ Also corrected: `_validate_callback_edge`'s docstring blamed a wiring-time read
 in the assembly manager, which is not what happens. The rule is right; its
 stated reason was not.
 
-## 3. Code corrections — small, known, unstarted
+## 3. Code corrections
 
-**`NodeData.behavior`'s docstring is wrong for one subclass.**
-`packages/haywire-core/src/haywire/core/node/data.py:105` says *"Node behavior
-flags (read-only, from class)"*. `GraphNode` overrides the property to derive
-`node_type` per instance (`graph_node.py:240`), which is the only per-instance
-`behavior` in the codebase. Either widen the base docstring or note the
-exception. The sibling lines 100 and 110 (`identity`, `library`) are accurate.
+**`NodeData.behavior` — DONE (2026-09-19).** Settled by inquisition as a
+missing contract rather than a stale sentence, then made structural: `behavior`
+is instance state, stamped from `class_behavior` at construction, with
+`set_node_type()` the one guarded write (it replaces the frozen dataclass,
+touching `node_type` alone). `GraphNode` sheds the property override, the
+`_behavior=None` sentinel and `_derive_behavior`.
+
+Worth knowing: the old property's `None` fallback was load-bearing, not a
+guard — it re-derived on every read, which is how an unbound card reported
+DATA. `reconcile_interface` returns early with no Subgraph bound, so stamping
+only there regressed an unbound card to CONTROL. `init()` stamps too.
+
+Glossary corrected: NodeType is declared by the decorator, not "determined by
+its EXEC port configuration"; and "immutable" is not "per class".
 
 **`ADD`'s filled outlet glyph draws inset.** `add.py:56` declares
 `icon_in="add_circle_outline"` and `icon_out="add_circle"`. Measured in the
