@@ -511,16 +511,39 @@ class DataPort(DataTypeIdentity):
         Order is user-owned: a graph user's arrangement outlives a node
         reconfiguring itself, so a node re-adding a port does not move it. A port
         the node adds for the first time takes a fresh order, and so appends.
+
+        Each transplanted edge is re-pointed at this port, and this port's
+        pipes are rebuilt, before the method returns. Both are state the swap
+        invalidates, and both are otherwise repaired only by the next
+        validation batch — which never comes in time for a node that rejigs
+        itself *inside* a validation callback (``GraphNode.reconcile_interface``
+        is the one in the codebase). Their failures are silent and different:
+        a stale ``EdgeWrapper`` endpoint makes ``detach()`` unlink an orphan
+        and leaves this port linked for good, while a missing ``Pipes`` makes
+        an outlet stop delivering values with nothing to see at either end.
         """
         self._linked_edges = existing._linked_edges.copy()
         self._all_edges = existing._all_edges.copy()
         self.order = existing.order
+
+        for edge in self._all_edges.values():
+            if edge._inlet_port is existing:
+                edge._inlet_port = self
+            if edge._outlet_port is existing:
+                edge._outlet_port = self
 
         # Preserve the field instance only when the type is unchanged, so the
         # stored value (and its observers) survive the port swap.
         if existing._data is not None and self._data is not None:
             if existing.type_cls is self.type_cls:
                 self._data = existing._data
+
+        # `_pipes` is derived from the links above and belongs to the port
+        # object, so the replacement starts with none. Rebuilt here rather
+        # than left to housekeeping, which only reaches a node the current
+        # batch is validating.
+        self._is_dirty_structural = True
+        self._housekeeping()
 
     def _add_link(self, edge_wrapper: EdgeWrapper) -> EdgeWrapper | None:
         """
