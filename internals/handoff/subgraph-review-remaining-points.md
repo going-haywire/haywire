@@ -128,17 +128,30 @@ row. The removal row already appears on an interface port, because it gates on
 `is_user_removable()` and those ports are now `RESOLVED`. Rename needs both a
 verb and a menu row before the decision is reachable by a user.
 
-**`docs/components/nodes/node-canon.md` does not mention the growing slot.**
-The ADR and the glossary both do. The canon is where a node author would look.
+**`node-canon.md` growing-slot section — DONE (2026-09-19).** Added alongside
+the `rejig` filter rule, since the two are the same subject from a node
+author's side.
 
-## 4. A trap worth writing up
+## 4. The `rejig()` trap — DONE (2026-09-19)
 
-A bare `rejig()` flags **every** port for removal, so it drops a boundary node's
-growing slot along with the interface. It bit twice in one session: once in
-`_BuildSubgraphAction._build_boundary` (fixed there by re-adding the slots
-explicitly) and once in the harness fixture (fixed with
-`rejig(exclude=r"^slot_")`). Any future code that rebuilds a boundary node's
-ports will hit it a third time. Candidate for `.insights/`.
+A bare `rejig()` flags **every** port, so it dropped a boundary node's growing
+slot along with the interface it was rebuilding — silently, and twice in one
+session, with two different ad-hoc fixes.
+
+Closed by giving the filters what they were missing: `include`/`exclude` now
+take a list of OR'd criteria — exact ids, `PortOrigin` values, compiled
+patterns — so one call can say "rebuild the interface, keep what the node
+declared". Both sites now use `exclude=[PortOrigin.DECLARED]`, and
+`_build_boundary` sheds its manual snapshot-and-re-add.
+
+Match by **origin, not id pattern**, where the distinction is ownership:
+`^slot_` holds only while the naming convention does.
+
+The bare form stays sharp deliberately — "flag everything" is predictable,
+where "flag everything except a category you have to know about" is not. No
+`.insights/` entry: the rule belongs in `rejig()`'s docstring, which now leads
+with it (*flag only what this call owns*) and names both cases that need a
+filter. `node-canon.md` carries the same rule.
 
 ## 5. Not a code change — check before committing
 
