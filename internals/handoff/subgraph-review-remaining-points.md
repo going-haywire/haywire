@@ -120,13 +120,27 @@ same slot on an inlet side sits correctly. Predates this work and is shared with
 tolerance (`_TOLERANCE = 12`) rather than absorbing it silently — tighten that
 constant once the glyph is fixed.
 
-**No rename verb exists anywhere.** ADR 0036 settles that an interface port's
-**label** may be changed and its **id** may not, but the pin menu
-(`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py`)
-has Edit / Type / Widget / Reset / Set-to-none / Detach / Remove and no rename
-row. The removal row already appears on an interface port, because it gates on
-`is_user_removable()` and those ports are now `RESOLVED`. Rename needs both a
-verb and a menu row before the decision is reachable by a user.
+**Rename verb — DONE (2026-09-19).** Landed in the **Ports panel** rather than
+the pin menu: a port's own presentation belongs where the ports are listed.
+Settled by inquisition, then built in three commits.
+
+*Who may edit* — only `RESOLVED`. `DECLARED` is the node author's contract and
+appears in that component's generated docs; `PROMOTED` takes its presentation
+from the setting descriptor and is regenerated on load, so an edit could not
+persist. Card pins are `DECLARED`, so ADR 0036's "a card cannot author shape"
+falls out with no special case — the name is edited on the interface port
+inside the Group, where it lives.
+
+*What is editable* — label, description **and** default. All three are
+spec-level state living in the port's `kwargs`; the default is not the runtime
+value ADR 0036 assigns to the card, which keeps moving independently.
+
+*Seeding* — both paths that mint an interface port now take the naming port's
+label, description, widget and default, and `_mirror` carries them to the card
+pin. Previously only the label travelled, so a Group wrapping a
+slider-constrained input presented a bare number box at 0.0.
+
+Not built: an interface port's **id** stays immutable, as the ADR settles.
 
 **`node-canon.md` growing-slot section — DONE (2026-09-19).** Added alongside
 the `rejig` filter rule, since the two are the same subject from a node
