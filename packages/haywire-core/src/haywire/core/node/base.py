@@ -78,6 +78,27 @@ class BaseNode(NodeData):
         """
         return True, None
 
+    def on_assembly(self) -> tuple[bool, str | None]:
+        """Cache what the worker needs, derived from the graph's structure.
+
+        Called once per assembly, on every node in the graph tree, after the
+        graph has been validated and before any flow is built. Reassembly calls
+        it again, so anything derived from topology is refreshed when the
+        topology changes.
+
+        Resolve here whatever the worker would otherwise re-derive per run:
+        references to other nodes, port pairings, ids computed from the
+        interface. Do not read or write port values — they belong to a run, not
+        to the structure — and do not depend on state a previous run left
+        behind. ``on_startup()`` is where per-run preparation goes.
+
+        Returns:
+            ``(True, None)`` when the node is ready, otherwise ``(False,
+            reason)``. A failure names the node and aborts the assembly, so the
+            reason should say what is structurally wrong.
+        """
+        return True, None
+
     def on_validate(self, context: ExecutionContext) -> None:
         """Validate inlet values — ranges, types, or any other constraint.
 

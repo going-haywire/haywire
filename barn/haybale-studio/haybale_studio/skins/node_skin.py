@@ -7,9 +7,13 @@ from haywire.core.types import DataPort, LayoutDirection, PortType
 from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.skin.base import BaseSkin
-from haywire.ui.skin.pin_render import render_pin, add_pin_tooltip, resolve_layout_direction
+from haywire.ui.skin.pin_render import (
+    add_pin_tooltip,
+    render_ghost_pin,
+    render_pin,
+    resolve_layout_direction,
+)
 from haywire.ui import elements as hui
-from haywire.ui.utils import generate_pin_uuid
 
 from ..settings.node_skin_settings import NodeSkinSettings
 
@@ -664,35 +668,23 @@ class NodeSkin(BaseSkin, ABC):
         node_id = wrapper.node_id
         vertical = layout.is_vertical
 
-        for pin_id, side, (dir_x, dir_y), is_inlet in (
-            ("root_in", layout.inlet_side, layout.inlet_vector, True),
-            ("root_out", layout.outlet_side, layout.outlet_vector, False),
-        ):
+        for is_inlet in (True, False):
             if only is not None and (only == PortType.INLET) != is_inlet:
                 continue
             # Horizontal outlets are pushed to the far end of the flex row;
             # vertically each ghost is alone in its own strip.
-            order = "order: 999; " if (not vertical and not is_inlet) else ""
+            order = not vertical and not is_inlet
             # Vertically the ghost shares a strip with the real pins, so it
             # takes render_pin's offset verbatim (the gutter half comes from
             # the 20px pins, not the ghost's own 12px box) — that puts every
             # pin on the strip on one edge line.
             offset = self.CARD_V_PADDING + self.PIN_GUTTER // 2 + self.PIN_PROTRUSION if vertical else 16
-            (
-                ui.element("div")
-                .classes("connection-pin zoom-pan-lod0")
-                .style(
-                    f"{order}width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; "
-                    "background: var(--hw-ghost-pin); border: 1px dashed var(--hw-ghost-pin); "
-                    f"cursor: default; {side}: -{offset}px;"
-                )
-                .props(
-                    f'id="{generate_pin_uuid(node_id, pin_id)}" data-node-id="{node_id}" '
-                    f'data-pin-id="{pin_id}" '
-                    f'data-pin-flow-type="ghost" data-pin-dir="{"inlet" if is_inlet else "outlet"}" '
-                    f'data-pin-dir-x="{dir_x}" data-pin-dir-y="{dir_y}" '
-                    f'data-hw-layout="{layout.value}" data-pin-color="#888888"'
-                )
+            render_ghost_pin(
+                node_id,
+                layout=layout,
+                is_inlet=is_inlet,
+                offset=offset,
+                order_last=order,
             )
 
     def _render_comment_badge(self, wrapper: NodeWrapper) -> None:

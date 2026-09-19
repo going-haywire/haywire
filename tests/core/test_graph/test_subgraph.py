@@ -105,36 +105,47 @@ class TestRootUniqueIds:
         assert empty_graph.tree_contains_node_id("deep_1")
         assert not empty_graph.tree_contains_node_id("nobody")
 
-    def test_a_minted_id_avoids_one_taken_inside_a_subgraph(self, empty_graph: BaseGraph, monkeypatch):
-        """The whole tree shares one id space, so an inner id must be skipped."""
-        from haywire.core.library.utils import get_registry_id_from_key
+    def test_the_tree_id_set_spans_every_level(self, empty_graph: BaseGraph):
+        outer = _definition(empty_graph, key="outer")
+        inner = SubgraphDefinition(key="inner", validation_scheduler=SyncScheduler())
+        outer.add_subgraph(inner)
 
-        definition = _definition(empty_graph)
-        prefix = get_registry_id_from_key("k")
-        definition.node_wrappers[f"{prefix}_aaaaaa"] = object()  # type: ignore[assignment]
+        empty_graph.node_wrappers["host_1"] = object()  # type: ignore[assignment]
+        outer.node_wrappers["mid_1"] = object()  # type: ignore[assignment]
+        inner.node_wrappers["deep_1"] = object()  # type: ignore[assignment]
 
-        suffixes = iter(["aaaaaa", "bbbbbb"])
-        monkeypatch.setattr(
-            "haywire.core.graph.base.uuid.uuid4",
-            lambda: type("U", (), {"hex": next(suffixes)})(),
-        )
+        assert empty_graph.tree_node_ids() == {"host_1", "mid_1", "deep_1"}
 
-        assert empty_graph.generate_unique_node_id("k") == f"{prefix}_bbbbbb"
+    def test_attaching_a_definition_that_reuses_an_id_is_refused(self, empty_graph: BaseGraph):
+        """Uniqueness across the tree is what makes a node findable by id alone."""
+        empty_graph.node_wrappers["shared_1"] = object()  # type: ignore[assignment]
 
-    def test_a_definition_mints_against_the_whole_tree(self, empty_graph: BaseGraph, monkeypatch):
-        from haywire.core.library.utils import get_registry_id_from_key
+        incoming = SubgraphDefinition(key="incoming", validation_scheduler=SyncScheduler())
+        incoming.node_wrappers["shared_1"] = object()  # type: ignore[assignment]
 
-        definition = _definition(empty_graph)
-        prefix = get_registry_id_from_key("k")
-        empty_graph.node_wrappers[f"{prefix}_aaaaaa"] = object()  # type: ignore[assignment]
+        with pytest.raises(ValueError, match="shared_1"):
+            empty_graph.add_subgraph(incoming)
 
-        suffixes = iter(["aaaaaa", "bbbbbb"])
-        monkeypatch.setattr(
-            "haywire.core.graph.base.uuid.uuid4",
-            lambda: type("U", (), {"hex": next(suffixes)})(),
-        )
+        assert empty_graph.get_subgraph("incoming") is None
 
-        assert definition.generate_unique_node_id("k") == f"{prefix}_bbbbbb"
+    def test_a_definition_with_fresh_ids_attaches(self, empty_graph: BaseGraph):
+        empty_graph.node_wrappers["host_1"] = object()  # type: ignore[assignment]
+
+        incoming = SubgraphDefinition(key="incoming", validation_scheduler=SyncScheduler())
+        incoming.node_wrappers["other_1"] = object()  # type: ignore[assignment]
+
+        assert empty_graph.add_subgraph(incoming) is incoming
+
+    def test_a_collision_deep_in_the_incoming_tree_is_refused(self, empty_graph: BaseGraph):
+        empty_graph.node_wrappers["shared_1"] = object()  # type: ignore[assignment]
+
+        incoming = SubgraphDefinition(key="incoming", validation_scheduler=SyncScheduler())
+        nested = SubgraphDefinition(key="nested", validation_scheduler=SyncScheduler())
+        incoming.add_subgraph(nested)
+        nested.node_wrappers["shared_1"] = object()  # type: ignore[assignment]
+
+        with pytest.raises(ValueError, match="shared_1"):
+            empty_graph.add_subgraph(incoming)
 
 
 # ---------------------------------------------------------------------------

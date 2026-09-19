@@ -468,3 +468,127 @@ class TestCollapsedGroupRuns:
 
         assert "MID=12.0" in after, "the collapsed node did not receive its data"
         assert "TAIL" in after, "control did not continue past the Group"
+
+
+class TestOnAssembly:
+    """``on_assembly()`` runs on the whole tree, and a failure aborts loudly."""
+
+    def test_the_card_and_both_boundary_nodes_are_prepared(self, control_group):
+        graph, definition, card, _add, _outer_print = control_group
+
+        _assemble_one(graph)
+
+        # The card's crossing map routes its control inlet inward, and the exit
+        # crossing back out to its own outlet.
+        assert card.node.cache.crossings["in_exec"] == "enter_in_exec"
+        assert card.node.cache.crossings["exit_exec"] == "out_exec"
+
+        # Each boundary node paired its ports with the card's.
+        assert definition.input_node.node.cache.crossings["enter_in_exec"] == "exec"
+        assert definition.output_node.node.cache.crossings["exec"] == "exit_exec"
+        assert [p.id for _s, p in definition.input_node.node.cache.inward] == ["exec", "value"]
+        assert [p.id for _s, p in definition.output_node.node.cache.outward] == ["out_exec", "out_result"]
+
+    def test_a_node_deep_in_the_tree_is_prepared(self, graph_with_library_system):
+        """A Subgraph nested in a Subgraph is walked too."""
+        from haybale_core.types import EXEC
+
+        graph = graph_with_library_system
+        outer = _definition(graph, key="sg_outer")
+        inner = SubgraphDefinition(key="sg_inner", label="Inner", validation_scheduler=SyncScheduler())
+        outer.add_subgraph(inner)
+
+        outer_input = make_node(outer, _INPUT)
+        _stamp(outer_input, [EXEC.as_outlet("exec")])
+        _stamp(make_node(outer, _OUTPUT), [EXEC.as_inlet("exec")])
+        inner_input = make_node(inner, _INPUT)
+        inner_output = make_node(inner, _OUTPUT)
+        _stamp(inner_input, [EXEC.as_outlet("exec")])
+        _stamp(inner_output, [EXEC.as_inlet("exec")])
+
+        # The nested card lives inside the outer definition.
+        inner_card = _card(outer, inner)
+        outer_card = _card(graph, outer)
+        begin = make_node(graph, _BEGIN)
+        graph.create_edge_wrapper(begin.node_id, "exec", outer_card.node_id, "in_exec")
+        outer.create_edge_wrapper(outer_input.node_id, "exec", inner_card.node_id, "in_exec")
+        graph.force_validation()
+
+        _assemble_one(graph)
+
+        assert inner_card.node.cache.crossings["in_exec"] == "enter_in_exec"
+        assert inner_input.node.cache.crossings["enter_in_exec"] == "exec"
+
+    def test_an_unbound_card_aborts_the_assembly(self, control_group):
+        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
+        from haywire.core.errors.haywire_exception import HaywireException
+
+        graph, _definition, card, _add, _outer_print = control_group
+        card.node.store[SUBGRAPH_KEY] = "no_such_subgraph"
+
+        with pytest.raises(HaywireException, match="no Subgraph is bound"):
+            FlowAssemblyManager().assemble_graph(graph)
+
+    def test_the_failure_names_the_offending_node(self, control_group):
+        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
+        from haywire.core.errors.haywire_exception import HaywireException
+
+        graph, _definition, card, _add, _outer_print = control_group
+        card.node.store[SUBGRAPH_KEY] = "no_such_subgraph"
+
+        with pytest.raises(HaywireException, match=card.node_id):
+            FlowAssemblyManager().assemble_graph(graph)
+
+    def test_each_failing_node_is_recorded_against_itself(self, control_group):
+        """The ledger points at the node to fix, not at the assembly."""
+        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
+        from haywire.core.errors.haywire_exception import HaywireException
+        from haywire.core.errors.ledger import get_error_ledger
+
+        graph, _definition, card, _add, _outer_print = control_group
+        card.node.store[SUBGRAPH_KEY] = "no_such_subgraph"
+
+        ledger = get_error_ledger()
+        before = ledger.current_seq
+        with pytest.raises(HaywireException):
+            FlowAssemblyManager().assemble_graph(graph)
+
+        recorded = ledger.query(since_seq=before).entries
+        assert card.node_id in {entry.node_id for entry in recorded}
+
+
+class TestSubgraphValidation:
+    """A malformed Subgraph is refused at assembly, not discovered at run time."""
+
+    def test_an_event_node_inside_a_subgraph_is_refused(self, control_group):
+        graph, definition, _card, _add, _outer_print = control_group
+
+        make_node(definition, _BEGIN)
+        definition.force_validation()
+
+        with pytest.raises(RuntimeError, match="EVENT or OUTPUT"):
+            FlowAssemblyManager().assemble_graph(graph)
+
+    def test_a_missing_boundary_node_is_refused(self, control_group):
+        graph, definition, _card, _add, _outer_print = control_group
+
+        definition.remove_node_wrapper(definition.output_node)
+        definition.force_validation()
+
+        with pytest.raises(RuntimeError, match="exactly one Subgraph Input"):
+            FlowAssemblyManager().assemble_graph(graph)
+
+    def test_two_cards_bound_to_one_subgraph_are_refused(self, control_group):
+        """The ambiguity ``graph_node_wrapper()`` cannot resolve."""
+        graph, definition, card, _add, _outer_print = control_group
+
+        _card(graph, definition)  # a second card on the same key
+        graph.force_validation()
+
+        with pytest.raises(RuntimeError, match="bound by 2 Graph-nodes"):
+            FlowAssemblyManager().assemble_graph(graph)
+
+    def test_a_well_formed_subgraph_still_assembles(self, control_group):
+        graph, _definition, _card, _add, _outer_print = control_group
+
+        assert len(FlowAssemblyManager().assemble_graph(graph)) == 1

@@ -88,6 +88,11 @@ class StructuralValidator(IStructuralValidator):
         if NodeType.BOUNDARY in node.behavior.node_type:
             return self._validate_boundary_node(wrapper)
 
+        # Keyed on the card's own marker, not its node type: a Graph-node is
+        # CONTROL or DATA depending on what crosses its boundary.
+        if node.identity._is_graph_node:
+            return self._validate_graph_node(wrapper)
+
         if NodeType.DATA in node.behavior.node_type:
             return self._validate_data_node(wrapper)
 
@@ -288,7 +293,48 @@ class StructuralValidator(IStructuralValidator):
 
         return (True, None, [])
 
-    def _validate_subgraph_contents(
+    def _validate_graph_node(self, wrapper: "NodeWrapper") -> tuple[bool, str | None, list[str]]:
+        """
+        Validate that a Graph-node's Subgraph is present.
+
+        A card stands for the Subgraph stored under its ``subgraph_key``. When
+        that key names nothing — a graph saved by a version that had the
+        definition, a Subgraph that failed to load, a hand-edited file — the
+        card keeps whatever pins it last had, and its edges stay wired to them.
+        Reporting it here puts the fault on the card on the canvas, rather than
+        leaving it to surface as a wrong result at run time.
+
+        Rules:
+        - A Subgraph is bound (the key is set).
+        - That Subgraph is in the owning graph's table.
+        """
+        node = wrapper.node
+
+        key = getattr(node, "subgraph_key", None)
+        if key is None:
+            return (
+                False,
+                "This Group has no Subgraph bound to it.",
+                [
+                    "Collapse a selection to create a Group with its contents",
+                    "A Group cannot be added from the node menu",
+                ],
+            )
+
+        graph = wrapper.graph
+        if graph is not None and graph.get_subgraph(key) is None:
+            return (
+                False,
+                f"This Group's contents are missing (Subgraph '{key}' is not in the graph).",
+                [
+                    "Undo the change that removed the Subgraph",
+                    "Delete this Group and collapse the selection again",
+                ],
+            )
+
+        return (True, None, [])
+
+    def validate_subgraph_contents(
         self, wrappers: "list[NodeWrapper]"
     ) -> tuple[bool, str | None, list[str]]:
         """

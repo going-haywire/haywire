@@ -9,6 +9,7 @@ import pytest
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.graph.subgraph import SubgraphDefinition
+from haywire.core.graph.subgraph_crossing import card_port_id
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.enums import PortType
 
@@ -48,6 +49,13 @@ def _graph_node(graph: BaseGraph, subgraph_key: str | None = None) -> NodeWrappe
     )
     assert wrapper is not None
     return wrapper
+
+
+def _is_slot(port) -> bool:
+    """Whether ``port`` is a boundary node's growing slot."""
+    from haywire.barn.builtin.types import ADD
+
+    return port.type_cls is not None and issubclass(port.type_cls, ADD)
 
 
 def _rendered(node) -> list[str]:
@@ -192,9 +200,7 @@ class TestInterfaceMirroring:
 
         assert [p.id for p in node.get_ports(is_port_type=PortType.INLET, has_pin=True)] == ["in_value"]
 
-    def test_removing_a_boundary_port_drops_the_edges_that_lost_it(
-        self, graph_with_library_system: BaseGraph
-    ):
+    def test_removing_a_boundary_port_leaves_its_edges_unlinked(self, graph_with_library_system: BaseGraph):
         from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
         from haybale_testing.types.test_types import TEST_FLOAT
 
@@ -210,17 +216,21 @@ class TestInterfaceMirroring:
         assert feeder is not None
 
         kept = graph.create_edge_wrapper(feeder.node_id, "float_outlet", card.node_id, "in_value")
-        dropped = graph.create_edge_wrapper(feeder.node_id, "float_outlet", card.node_id, "in_gain")
+        orphaned = graph.create_edge_wrapper(feeder.node_id, "float_outlet", card.node_id, "in_gain")
         assert kept is not None
-        assert dropped is not None
+        assert orphaned is not None
 
         with input_node.node.rejig():
             input_node.node.add(TEST_FLOAT.as_outlet("value"))
         _card(card).reconcile_interface()
         graph.force_validation()
 
+        # The pin is gone, but its edge stays in the graph — the canvas draws it
+        # to the card's ghost pin, so the user can re-target it.
+        assert "in_gain" not in _card(card).ports
         assert graph.get_edge_wrapper(kept.edge_id) is not None
-        assert graph.get_edge_wrapper(dropped.edge_id) is None
+        assert graph.get_edge_wrapper(orphaned.edge_id) is not None
+        assert not orphaned.state.is_linked
 
 
 class TestPinIdMapping:
@@ -330,8 +340,12 @@ class TestInterfaceEditing:
     the plan.
     """
 
-    def test_reordering_boundary_ports_reorders_the_cards_pins(self, graph_with_library_system: BaseGraph):
-        """The Ports panel's drag-to-reorder writes ``DataPort.order``."""
+    def test_the_cards_pin_order_is_its_own(self, graph_with_library_system: BaseGraph):
+        """Reordering the interface does not disturb the card (ADR 0036).
+
+        Port order is presentation, and the card is a node on the parent canvas,
+        so how its pins are arranged there is the parent's business.
+        """
         from haybale_testing.types.test_types import TEST_FLOAT
 
         graph = graph_with_library_system
@@ -343,13 +357,52 @@ class TestInterfaceEditing:
 
         card = _card(_graph_node(graph, subgraph_key=definition.key))
         # get_ports is dict order; get_visible_ports is what the skin renders,
-        # sorted by DataPort.order — that is the order a reorder has to reach.
+        # sorted by DataPort.order.
         assert _rendered(card) == ["in_alpha", "in_beta"]
 
         input_node.node.reorder_ports(["beta", "alpha"])
         card.reconcile_interface()
 
+        assert _rendered(card) == ["in_alpha", "in_beta"]
+
+    def test_a_card_reordered_by_the_user_survives_a_reconcile(self, graph_with_library_system: BaseGraph):
+        from haybale_testing.types.test_types import TEST_FLOAT
+
+        graph = graph_with_library_system
+        definition = _definition(graph)
+        input_node, _ = _stamp_data_interface(definition)
+        with input_node.node.rejig():
+            input_node.node.add(TEST_FLOAT.as_outlet("alpha"))
+            input_node.node.add(TEST_FLOAT.as_outlet("beta"))
+
+        card = _card(_graph_node(graph, subgraph_key=definition.key))
+        card.reorder_ports(["in_beta", "in_alpha"])
         assert _rendered(card) == ["in_beta", "in_alpha"]
+
+        card.reconcile_interface()
+
+        assert _rendered(card) == ["in_beta", "in_alpha"]
+
+    def test_a_newly_grown_pin_lands_after_the_pins_already_there(
+        self, graph_with_library_system: BaseGraph
+    ):
+        from haybale_testing.types.test_types import TEST_FLOAT
+
+        graph = graph_with_library_system
+        definition = _definition(graph)
+        input_node, _ = _stamp_data_interface(definition)
+        with input_node.node.rejig():
+            input_node.node.add(TEST_FLOAT.as_outlet("alpha"))
+
+        card = _card(_graph_node(graph, subgraph_key=definition.key))
+        card.reorder_ports(["in_alpha", "in_value"])
+
+        with input_node.node.rejig():
+            input_node.node.add(TEST_FLOAT.as_outlet("alpha"))
+            input_node.node.add(TEST_FLOAT.as_outlet("omega"))
+        card.reconcile_interface()
+
+        assert _rendered(card)[-1] == "in_omega"
 
     def test_reconciling_after_an_unrelated_inner_edit_leaves_the_pins_alone(
         self, graph_with_library_system: BaseGraph
@@ -423,3 +476,88 @@ class TestNaming:
         restored = reloaded.get_subgraph(definition.key)
         assert restored is not None
         assert restored.label == "Smoothing"
+
+
+class TestDanglingSubgraphKey:
+    """A card whose Subgraph is gone reports on the canvas, before any run."""
+
+    def test_a_card_bound_to_a_missing_subgraph_is_invalid(self, graph_with_library_system: BaseGraph):
+        wrapper = _graph_node(graph_with_library_system, subgraph_key="no_such_subgraph")
+
+        ok, message, suggestions = graph_with_library_system._structural.validate_node(wrapper)
+
+        assert not ok
+        assert message is not None
+        assert "no_such_subgraph" in message
+        assert suggestions
+
+    def test_an_unbound_card_is_invalid(self, graph_with_library_system: BaseGraph):
+        wrapper = _graph_node(graph_with_library_system)
+
+        ok, message, _suggestions = graph_with_library_system._structural.validate_node(wrapper)
+
+        assert not ok
+        assert message is not None
+        assert "no Subgraph bound" in message
+
+    def test_a_bound_card_is_valid(self, graph_with_library_system: BaseGraph):
+        definition = _definition(graph_with_library_system)
+        wrapper = _graph_node(graph_with_library_system, subgraph_key=definition.key)
+
+        ok, _message, _suggestions = graph_with_library_system._structural.validate_node(wrapper)
+
+        assert ok
+
+
+class TestGrowingTheInterface:
+    """A Subgraph gains and loses interface ports, and the card follows."""
+
+    def test_a_boundary_node_ships_with_a_growing_slot(self, graph_with_library_system: BaseGraph):
+        graph = graph_with_library_system
+        definition = _definition(graph)
+        input_node = _boundary(definition, is_input=True)
+
+        slots = [p for p in input_node.node.get_all_ports() if _is_slot(p)]
+        assert len(slots) == 1
+        assert slots[0].is_outlet()
+
+    def test_the_growing_slot_is_not_mirrored_onto_the_card(self, graph_with_library_system: BaseGraph):
+        """The slot is the boundary node's own port, not part of the interface."""
+        graph = graph_with_library_system
+        definition = _definition(graph)
+        _stamp_data_interface(definition)
+
+        card = _card(_graph_node(graph, subgraph_key=definition.key))
+
+        assert [p.id for p in card.get_ports(has_pin=True)] == ["in_value", "out_result"]
+
+    def test_the_slot_cannot_be_removed_but_a_grown_port_can(self, graph_with_library_system: BaseGraph):
+        graph = graph_with_library_system
+        definition = _definition(graph)
+        input_node = _boundary(definition, is_input=True)
+
+        slot = next(p for p in input_node.node.get_all_ports() if _is_slot(p))
+        assert not slot.is_user_removable()
+
+    def test_the_card_follows_a_port_grown_inside_the_subgraph(self, graph_with_library_system: BaseGraph):
+        """The watcher, end to end: no explicit reconcile_interface() call."""
+        from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+
+        graph = graph_with_library_system
+        definition = _definition(graph)
+        input_node = _boundary(definition, is_input=True)
+        _boundary(definition, is_input=False)
+        card = _card(_graph_node(graph, subgraph_key=definition.key))
+        assert [p.id for p in card.get_ports(has_pin=True)] == []
+
+        # An interior node whose inlet the user drags onto the growing slot.
+        interior = definition.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key)
+        assert interior is not None
+        slot = next(p for p in input_node.node.get_all_ports() if _is_slot(p))
+        definition.create_edge_wrapper(input_node.node_id, slot.id, interior.node_id, "float_inlet")
+        definition.force_validation()
+
+        # The slot is retyped in place, so the grown port keeps the slot's id —
+        # the edge already attached to it survives that way.
+        assert card_port_id(slot.id, is_inlet=True) in card.ports, "the grown port did not reach the card"
+        assert card.ports[card_port_id(slot.id, is_inlet=True)].label == "Float Inlet"

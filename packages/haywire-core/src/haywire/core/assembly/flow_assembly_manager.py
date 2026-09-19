@@ -6,11 +6,10 @@ The FlowAssemblyManager is responsible for:
 2. Building control flow graphs
 3. Building localized data flows
 4. Managing assembly cache
-5. Just-in-time reassembly on graph changes
 """
 
 from __future__ import annotations
-from typing import Dict, List, Optional, Set, TYPE_CHECKING, cast
+from typing import Dict, List, Optional, TYPE_CHECKING, cast
 from dataclasses import dataclass
 from datetime import datetime
 import logging
@@ -23,11 +22,26 @@ if TYPE_CHECKING:
 from haywire.core.assembly.control_flow_builder import ControlFlowBuilder
 from haywire.core.assembly.data_flow_builder import DataFlowBuilder
 from haywire.core.assembly.flat_view import FlatGraphView
+from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.execution.flow import Flow
 from haywire.core.node.behavior import NodeType
 from haywire.core.types import FlowType
 
 logger = logging.getLogger(__name__)
+
+
+def _iter_tree_wrappers(graph: "BaseGraph"):
+    """Yield every node wrapper in ``graph`` and in every Subgraph beneath it."""
+    yield from graph.node_wrappers.values()
+    for definition in graph.subgraphs.values():
+        yield from _iter_tree_wrappers(definition)
+
+
+def _iter_tree_subgraphs(graph: "BaseGraph"):
+    """Yield every Subgraph definition beneath ``graph``, nested ones included."""
+    for definition in graph.subgraphs.values():
+        yield definition
+        yield from _iter_tree_subgraphs(definition)
 
 
 @dataclass
@@ -48,7 +62,7 @@ class FlowAssemblyManager:
     - Identify event nodes and separate flows
     - Coordinate control and data flow builders
     - Cache assembled flows
-    - Handle JIT reassembly on graph changes
+    - Prepare each node for the flows it takes part in
     """
 
     def __init__(self):
@@ -58,9 +72,6 @@ class FlowAssemblyManager:
 
         self.assembly_cache: Dict[str, AssemblyMetadata] = {}
         """Assembly metadata: flow_id → AssemblyMetadata"""
-
-        self.dirty_flows: Set[str] = set()
-        """Flow IDs that need reassembly"""
 
         logger.debug("FlowAssemblyManager initialized")
 
@@ -90,7 +101,6 @@ class FlowAssemblyManager:
         # Clear previous assembly
         self.assembled_flows.clear()
         self.assembly_cache.clear()
-        self.dirty_flows.clear()
 
         # Validate graph
         validation_errors = self._validate_graph(graph)
@@ -98,6 +108,10 @@ class FlowAssemblyManager:
             error_msg = "Graph validation failed:\n" + "\n".join(validation_errors)
             logger.error(error_msg)
             raise RuntimeError(error_msg)
+
+        # After validation, so a node preparing itself may assume a well-formed
+        # graph; before the builders, so what it caches is what they assemble.
+        self._prepare_nodes(graph)
 
         # Identify event nodes
         event_nodes = self._identify_event_nodes(graph)
@@ -167,10 +181,104 @@ class FlowAssemblyManager:
                     f"Only one event node per event type is allowed."
                 )
 
-        # A Subgraph's own shape — one boundary pair, no EVENT or OUTPUT node —
-        # is checked by StructuralValidator._validate_subgraph_contents.
+        errors.extend(self._validate_subgraphs(graph))
 
         return errors
+
+    def _validate_subgraphs(self, graph: "BaseGraph") -> List[str]:
+        """Check every Subgraph's own shape, and that each has exactly one card.
+
+        A Subgraph's contents are checked by
+        ``StructuralValidator.validate_subgraph_contents``; the one-card rule is
+        checked here because it is a fact about the graph holding the
+        definitions, not about their contents.
+
+        Returns:
+            One message per offending Subgraph, empty when all are well-formed.
+        """
+        errors: List[str] = []
+        cards_by_key: Dict[str, List[str]] = {}
+
+        for wrapper in _iter_tree_wrappers(graph):
+            key = getattr(wrapper.node, "subgraph_key", None)
+            if isinstance(key, str):
+                cards_by_key.setdefault(key, []).append(wrapper.node_id)
+
+        for definition in _iter_tree_subgraphs(graph):
+            ok, message, _suggestions = graph._structural.validate_subgraph_contents(
+                list(definition.node_wrappers.values())
+            )
+            if not ok:
+                errors.append(f"Subgraph '{definition.key}': {message}")
+
+            # Two cards bound to one definition make its own card ambiguous, so
+            # a boundary crossing could return control to either of them.
+            bound = cards_by_key.get(definition.key, [])
+            if len(bound) > 1:
+                errors.append(
+                    f"Subgraph '{definition.key}' is bound by {len(bound)} Graph-nodes "
+                    f"({', '.join(sorted(bound))}). A Subgraph belongs to exactly one."
+                )
+
+        return errors
+
+    def _prepare_nodes(self, graph: "BaseGraph") -> None:
+        """Run ``on_assembly()`` on every node in the tree, host and Subgraphs alike.
+
+        Walks the graph rather than the assembled flows: a node must be prepared
+        before the builders read what it cached, and one whose Subgraph is
+        mis-wired may not end up in any flow at all.
+
+        Each failure is recorded against its own node, so the ledger points at
+        the card or boundary node to fix rather than at the assembly.
+
+        Raises:
+            HaywireException: If any node reports itself unready. Every node is
+                given its turn first, so one assembly names them all.
+        """
+        failures: List[str] = []
+
+        for wrapper in _iter_tree_wrappers(graph):
+            node = wrapper.node
+            try:
+                ready, reason = node.on_assembly()
+            except Exception as exc:
+                reason = f"on_assembly() raised {exc!r}"
+                HaywireException.from_exception(
+                    exception=exc,
+                    message=f"Node assembly preparation failed: {reason}",
+                    operation="Node Assembly Preparation",
+                ).enrich(
+                    registry_key=wrapper.registry_key,
+                    node_id=node.node_id,
+                    graph_id=wrapper.graph.graph_id,
+                    category="Assembly Error",
+                ).log(logger)
+                failures.append(f"{node.node_id}: {reason}")
+                continue
+
+            if not ready:
+                reason = reason or "not ready for assembly"
+                HaywireException.create(
+                    message=f"Node assembly preparation failed: {reason}",
+                    category="Assembly Error",
+                ).enrich(
+                    registry_key=wrapper.registry_key,
+                    node_id=node.node_id,
+                    graph_id=wrapper.graph.graph_id,
+                    operation="Node Assembly Preparation",
+                    suggestions=[
+                        "Check the node's structural state on the canvas",
+                        "A Group needs the Subgraph it stands for to be present",
+                    ],
+                ).log(logger)
+                failures.append(f"{node.node_id}: {reason}")
+
+        if failures:
+            raise HaywireException.create(
+                message="Node assembly preparation failed:\n" + "\n".join(failures),
+                category="Assembly Error",
+            ).enrich(graph_id=graph.graph_id, operation="Node Assembly Preparation")
 
     def _identify_event_nodes(self, graph: "BaseGraph") -> List["BaseNode"]:
         """
@@ -362,74 +470,6 @@ class FlowAssemblyManager:
 
         return matching_flows
 
-    def mark_flow_dirty(self, flow_id: str):
-        """
-        Mark a flow as needing reassembly.
-
-        Args:
-            flow_id: Flow ID to mark dirty
-        """
-        self.dirty_flows.add(flow_id)
-        logger.debug(f"Flow {flow_id} marked dirty")
-
-    def reassemble_dirty_flows(self, graph: "BaseGraph") -> List[Flow]:
-        """
-        Reassemble all dirty flows.
-
-        This is called by JIT assembly manager when graph changes.
-
-        Args:
-            graph: Parent graph
-
-        Returns:
-            List of reassembled flows
-        """
-        if not self.dirty_flows:
-            return []
-
-        logger.info(f"Reassembling {len(self.dirty_flows)} dirty flows")
-
-        reassembled = []
-
-        for flow_id in list(self.dirty_flows):
-            try:
-                # Get event node for this flow
-                metadata = self.assembly_cache.get(flow_id)
-                if not metadata:
-                    logger.warning(f"No metadata for flow {flow_id}, skipping")
-                    continue
-
-                event_wrapper = graph.get_node_wrapper(metadata.event_node_id)
-                if not event_wrapper:
-                    logger.warning(f"Event node {metadata.event_node_id} not found, removing flow {flow_id}")
-                    self.assembled_flows.pop(flow_id, None)
-                    self.assembly_cache.pop(flow_id, None)
-                    continue
-
-                # Reassemble
-                flow = self._assemble_flow(event_wrapper.node, graph)
-
-                # Update cache
-                self.assembled_flows[flow_id] = flow
-                self.assembly_cache[flow_id] = AssemblyMetadata(
-                    flow_id=flow.flow_id,
-                    timestamp=flow.assembly_timestamp,
-                    node_count=len(flow.get_control_node_ids()),
-                    event_node_id=event_wrapper.node_id,
-                )
-
-                reassembled.append(flow)
-
-            except Exception as e:
-                logger.error(f"Failed to reassemble flow {flow_id}: {e}", exc_info=True)
-
-        # Clear dirty flags
-        self.dirty_flows.clear()
-
-        logger.info(f"Reassembled {len(reassembled)} flows")
-
-        return reassembled
-
     def get_statistics(self) -> Dict:
         """
         Get assembly statistics.
@@ -442,7 +482,6 @@ class FlowAssemblyManager:
 
         return {
             "total_flows": len(self.assembled_flows),
-            "dirty_flows": len(self.dirty_flows),
             "callback_edges": sum(len(targets) for targets in callback_edges.values()),
             "callback_topology": {
                 "emitters": len(callback_edges),

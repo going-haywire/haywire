@@ -9,9 +9,9 @@ its graph tier by walking ``node -> wrapper -> graph -> settings_bag_for(...)``
 A definition holds its nodes **live**: the wrappers in ``node_wrappers`` are the
 same objects the canvas draws and the VM executes (decision 9), which is what
 makes error locations and live values work inside a Group with no id
-translation. Its node ids are unique across the whole tree, minted through
-``BaseGraph.generate_unique_node_id``, so a flat lookup over the tree is
-unambiguous.
+translation. Its node ids are unique across the whole tree, so a flat lookup
+over the tree is unambiguous — ``BaseGraph.add_subgraph`` is what enforces that
+when a definition arrives from another tree.
 
 Example::
 
@@ -23,6 +23,7 @@ Example::
 from __future__ import annotations
 
 from typing import Any, Dict, Mapping, Optional, TYPE_CHECKING
+import copy
 import logging
 
 from .base import BaseGraph
@@ -33,6 +34,29 @@ if TYPE_CHECKING:
     from .scheduler import ValidationScheduler
 
 logger = logging.getLogger(__name__)
+
+#: Store key a Graph-node holds its Subgraph key under. Named by string so the
+#: core never imports the card's class.
+SUBGRAPH_KEY = "subgraph_key"
+
+
+def _rebound(node_data: Mapping[str, Any], key_map: Mapping[str, str]) -> Dict[str, Any]:
+    """Return ``node_data`` with a Graph-node's stored Subgraph key remapped.
+
+    Returned unchanged when the node holds no key, or one ``key_map`` does not
+    name. The copy keeps the caller's template intact for a later re-paste.
+    """
+    store = node_data.get("store")
+    if not isinstance(store, dict):
+        return dict(node_data)
+
+    old_key = store.get(SUBGRAPH_KEY)
+    if not isinstance(old_key, str) or old_key not in key_map:
+        return dict(node_data)
+
+    rebound = copy.deepcopy(dict(node_data))
+    rebound["store"][SUBGRAPH_KEY] = key_map[old_key]
+    return rebound
 
 
 class SubgraphDefinition(BaseGraph):
@@ -128,7 +152,12 @@ class SubgraphDefinition(BaseGraph):
     # INSTANTIATION
     # =========================================================================
 
-    def instantiate(self, nodes: Mapping[str, Any], edges: Mapping[str, Any]) -> Dict[str, str]:
+    def instantiate(
+        self,
+        nodes: Mapping[str, Any],
+        edges: Mapping[str, Any],
+        subgraphs: Mapping[str, Any] | None = None,
+    ) -> Dict[str, str]:
         """Build this Subgraph's live contents from a serialized template.
 
         Every node is created under a freshly minted id that is unique across
@@ -136,16 +165,27 @@ class SubgraphDefinition(BaseGraph):
         those ids. Call on an empty definition; existing contents are kept and
         the template is added alongside them.
 
+        A Graph-node among the nodes gets a Subgraph of its own, instantiated
+        from ``subgraphs`` under a fresh key and bound to the rebuilt card, so a
+        Group nested any number of levels deep is copied whole.
+
         Args:
             nodes: Serialized nodes by their id in the template, in the shape
                 ``NodeWrapper.serialize`` produces.
             edges: Serialized edges by their id in the template, in the shape
                 ``Edge.to_dict`` produces.
+            subgraphs: The template's own Subgraph definitions by key, in the
+                shape :meth:`to_dict` produces. A card whose key is absent here
+                is left bound to it, which the structural validator reports.
 
         Returns:
             The ``template id -> minted id`` map.
         """
         remap = remap_node_ids(nodes=nodes, edges=edges, mint_id=self.generate_unique_node_id)
+
+        # Built before the nodes: a Graph-node resolves its definition from this
+        # table while it is built, to mirror the boundary nodes' ports.
+        key_map = self._instantiate_subgraphs(subgraphs or {})
 
         for old_id, node in nodes.items():
             new_id = remap.id_map[old_id]
@@ -154,7 +194,7 @@ class SubgraphDefinition(BaseGraph):
                 self.create_node_wrapper(
                     registry_key=node["registry_key"],
                     position=(float(position[0]), float(position[1])),
-                    node_data=node.get("node_data", {}),
+                    node_data=_rebound(node.get("node_data", {}), key_map),
                     node_id=new_id,
                 )
             except Exception as exc:
@@ -177,6 +217,34 @@ class SubgraphDefinition(BaseGraph):
                 )
 
         return remap.id_map
+
+    def _instantiate_subgraphs(self, subgraphs: Mapping[str, Any]) -> Dict[str, str]:
+        """Rebuild each nested definition under a fresh key; returns ``old key -> new key``.
+
+        Recurses through :meth:`instantiate`, so a Group nested any number of
+        levels deep gets contents and ids of its own.
+        """
+        key_map: Dict[str, str] = {}
+
+        for old_key, payload in subgraphs.items():
+            new_key = self.generate_unique_subgraph_key()
+            try:
+                definition = SubgraphDefinition(key=new_key, label=payload.get("label") or new_key)
+                self.add_subgraph(definition)
+                definition.instantiate(
+                    nodes=payload.get("nodes", {}),
+                    edges=payload.get("edges", {}),
+                    subgraphs=payload.get("subgraphs", {}),
+                )
+            except Exception as exc:
+                logger.error(
+                    f"Error instantiating nested subgraph '{old_key}' in '{self.key}': {exc}",
+                    exc_info=True,
+                )
+                continue
+            key_map[old_key] = new_key
+
+        return key_map
 
     # =========================================================================
     # SERIALIZATION

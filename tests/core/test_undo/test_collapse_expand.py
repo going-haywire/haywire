@@ -25,6 +25,15 @@ _OUTPUT = "haywire-core:node:SubgraphOutputNode"
 _CARD = "haywire-core:node:GraphNode"
 
 
+def _bound_key(graph: BaseGraph, node_id: str) -> str:
+    """The Subgraph key the card ``node_id`` is bound to."""
+    wrapper = graph.get_node_wrapper(node_id)
+    assert wrapper is not None
+    key = getattr(wrapper.node, "subgraph_key", None)
+    assert isinstance(key, str)
+    return key
+
+
 def _collapse(graph: BaseGraph, node_ids, label: str = "Group") -> CollapseToGraphNodeAction:
     action = CollapseToGraphNodeAction(
         graph=graph,
@@ -669,3 +678,247 @@ class TestBoundaryNodesCannotBeCollapsed:
         action = _collapse(definition, contents)
 
         assert action.card_node_id in definition.node_wrappers
+
+
+class TestPastingAGroup:
+    """Copying a Group gives the copy its own Subgraph, never a shared one.
+
+    Two cards bound to one key make ``graph_node_wrapper()`` ambiguous, which
+    silently returns control to whichever card it finds first.
+    """
+
+    @pytest.fixture
+    def collapsed(self, graph_with_library_system: BaseGraph):
+        graph = graph_with_library_system
+        begin = make_node(graph, _BEGIN)
+        middle = make_node(graph, _PRINT)
+        graph.create_edge_wrapper(begin.node_id, "exec", middle.node_id, "exec")
+        graph.force_validation()
+
+        action = _collapse(graph, [middle.node_id])
+        graph.force_validation()
+        return graph, action.card_node_id, action.subgraph_key
+
+    def test_a_pasted_card_gets_its_own_definition(self, collapsed):
+        from haywire.core.graph.clipboard import build_clipboard_payload
+        from haywire.core.undo.actions.graph_actions import PasteClipboardAction
+
+        graph, card_node_id, subgraph_key = collapsed
+
+        payload = build_clipboard_payload(graph, [card_node_id], [], session_id="test")
+        paste = PasteClipboardAction(graph=graph, payload=payload, paste_x=500.0, paste_y=500.0)
+        paste.execute()
+        graph.force_validation()
+
+        pasted_id = paste.new_node_ids[0]
+        pasted = graph.get_node_wrapper(pasted_id)
+        assert pasted is not None
+
+        assert pasted.node.subgraph_key != subgraph_key, "the pasted card shares the original's Subgraph"
+        assert graph.get_subgraph(pasted.node.subgraph_key) is not None, (
+            "the pasted card's Subgraph was never created"
+        )
+
+    def test_each_definition_resolves_back_to_its_own_card(self, collapsed):
+        from haywire.core.graph.clipboard import build_clipboard_payload
+        from haywire.core.undo.actions.graph_actions import PasteClipboardAction
+
+        graph, card_node_id, subgraph_key = collapsed
+
+        payload = build_clipboard_payload(graph, [card_node_id], [], session_id="test")
+        paste = PasteClipboardAction(graph=graph, payload=payload, paste_x=500.0, paste_y=500.0)
+        paste.execute()
+        graph.force_validation()
+
+        pasted_id = paste.new_node_ids[0]
+        pasted_key = graph.get_node_wrapper(pasted_id).node.subgraph_key
+
+        assert graph.get_subgraph(subgraph_key).graph_node_wrapper().node_id == card_node_id
+        assert graph.get_subgraph(pasted_key).graph_node_wrapper().node_id == pasted_id
+
+    def test_the_copy_carries_the_original_contents(self, collapsed):
+        from haywire.core.graph.clipboard import build_clipboard_payload
+        from haywire.core.undo.actions.graph_actions import PasteClipboardAction
+
+        graph, card_node_id, subgraph_key = collapsed
+        original = graph.get_subgraph(subgraph_key)
+        original_keys = sorted(w.registry_key for w in original.node_wrappers.values())
+
+        payload = build_clipboard_payload(graph, [card_node_id], [], session_id="test")
+        paste = PasteClipboardAction(graph=graph, payload=payload, paste_x=500.0, paste_y=500.0)
+        paste.execute()
+        graph.force_validation()
+
+        pasted_key = graph.get_node_wrapper(paste.new_node_ids[0]).node.subgraph_key
+        copy = graph.get_subgraph(pasted_key)
+
+        assert sorted(w.registry_key for w in copy.node_wrappers.values()) == original_keys
+        # Contents are distinct objects under fresh ids, not the originals.
+        assert set(copy.node_wrappers) & set(original.node_wrappers) == set()
+
+    def test_undo_removes_the_pasted_definition(self, collapsed):
+        from haywire.core.graph.clipboard import build_clipboard_payload
+        from haywire.core.undo.actions.graph_actions import PasteClipboardAction
+
+        graph, card_node_id, _subgraph_key = collapsed
+
+        payload = build_clipboard_payload(graph, [card_node_id], [], session_id="test")
+        paste = PasteClipboardAction(graph=graph, payload=payload, paste_x=500.0, paste_y=500.0)
+        paste.execute()
+        graph.force_validation()
+        pasted_key = graph.get_node_wrapper(paste.new_node_ids[0]).node.subgraph_key
+
+        paste.undo()
+        graph.force_validation()
+
+        assert graph.get_subgraph(pasted_key) is None
+
+
+class TestPastingANestedGroup:
+    """A Group inside a Group survives the copy, all the way down."""
+
+    @pytest.fixture
+    def nested(self, graph_with_library_system: BaseGraph):
+        """A host Group whose contents include a Group of their own."""
+        graph = graph_with_library_system
+        begin = make_node(graph, _BEGIN)
+        inner = make_node(graph, _PRINT)
+        outer = make_node(graph, _PRINT)
+        graph.create_edge_wrapper(begin.node_id, "exec", inner.node_id, "exec")
+        graph.create_edge_wrapper(inner.node_id, "done", outer.node_id, "exec")
+        graph.force_validation()
+
+        # Collapse the inner node, then collapse the resulting card with its
+        # neighbour, so the outer Subgraph holds a Graph-node of its own.
+        first = _collapse(graph, [inner.node_id], label="Inner")
+        graph.force_validation()
+        second = _collapse(graph, [first.card_node_id, outer.node_id], label="Outer")
+        graph.force_validation()
+
+        return graph, second.card_node_id, second.subgraph_key, first.subgraph_key
+
+    def test_the_nested_definition_is_copied_too(self, nested):
+        from haywire.core.graph.clipboard import build_clipboard_payload
+        from haywire.core.undo.actions.graph_actions import PasteClipboardAction
+
+        graph, card_node_id, outer_key, inner_key = nested
+
+        payload = build_clipboard_payload(graph, [card_node_id], [], session_id="test")
+        paste = PasteClipboardAction(graph=graph, payload=payload, paste_x=800.0, paste_y=800.0)
+        paste.execute()
+        graph.force_validation()
+
+        pasted = graph.get_node_wrapper(paste.new_node_ids[0])
+        copied_outer = graph.get_subgraph(pasted.node.subgraph_key)
+        assert copied_outer is not None
+
+        # The copy's own card must resolve a Subgraph of its own, inside it.
+        inner_cards = [
+            w for w in copied_outer.node_wrappers.values() if getattr(w.node, "subgraph_key", None)
+        ]
+        assert len(inner_cards) == 1, "the copied Group lost its nested Graph-node"
+
+        nested_key = inner_cards[0].node.subgraph_key
+        assert nested_key != inner_key, "the nested card still points at the original definition"
+        assert copied_outer.get_subgraph(nested_key) is not None, "the nested Subgraph was never copied"
+
+    def test_every_copied_card_passes_validation(self, nested):
+        from haywire.core.graph.clipboard import build_clipboard_payload
+        from haywire.core.undo.actions.graph_actions import PasteClipboardAction
+
+        graph, card_node_id, _outer_key, _inner_key = nested
+
+        payload = build_clipboard_payload(graph, [card_node_id], [], session_id="test")
+        paste = PasteClipboardAction(graph=graph, payload=payload, paste_x=800.0, paste_y=800.0)
+        paste.execute()
+        graph.force_validation()
+
+        pasted = graph.get_node_wrapper(paste.new_node_ids[0])
+        ok, message, _s = graph._structural.validate_node(pasted)
+        assert ok, message
+
+        copied_outer = graph.get_subgraph(pasted.node.subgraph_key)
+        for wrapper in copied_outer.node_wrappers.values():
+            ok, message, _s = copied_outer._structural.validate_node(wrapper)
+            assert ok, f"{wrapper.node_id}: {message}"
+
+    def test_three_levels_deep_are_all_copied(self, graph_with_library_system: BaseGraph):
+        from haywire.core.graph.clipboard import build_clipboard_payload
+        from haywire.core.undo.actions.graph_actions import PasteClipboardAction
+
+        graph = graph_with_library_system
+        begin = make_node(graph, _BEGIN)
+        a = make_node(graph, _PRINT)
+        b = make_node(graph, _PRINT)
+        c = make_node(graph, _PRINT)
+        graph.create_edge_wrapper(begin.node_id, "exec", a.node_id, "exec")
+        graph.create_edge_wrapper(a.node_id, "done", b.node_id, "exec")
+        graph.create_edge_wrapper(b.node_id, "done", c.node_id, "exec")
+        graph.force_validation()
+
+        level3 = _collapse(graph, [a.node_id], label="L3")
+        graph.force_validation()
+        level2 = _collapse(graph, [level3.card_node_id, b.node_id], label="L2")
+        graph.force_validation()
+        level1 = _collapse(graph, [level2.card_node_id, c.node_id], label="L1")
+        graph.force_validation()
+
+        payload = build_clipboard_payload(graph, [level1.card_node_id], [], session_id="test")
+        paste = PasteClipboardAction(graph=graph, payload=payload, paste_x=900.0, paste_y=900.0)
+        paste.execute()
+        graph.force_validation()
+
+        # Walk the copy down, asserting each level resolves its own contents.
+        cursor = graph.get_subgraph(_bound_key(graph, paste.new_node_ids[0]))
+        depth = 1
+        while True:
+            assert cursor is not None
+            cards = [w for w in cursor.node_wrappers.values() if getattr(w.node, "subgraph_key", None)]
+            if not cards:
+                break
+            nested = cursor.get_subgraph(_bound_key(cursor, cards[0].node_id))
+            assert nested is not None, f"level {depth + 1} was not copied"
+            cursor = nested
+            depth += 1
+
+        assert depth == 3
+
+
+class TestCollapsedInterfaceIsTheUsers:
+    """A collapse stamps interface ports the user may remove, around the slot."""
+
+    @pytest.fixture
+    def collapsed_with_data(self, graph_with_library_system: BaseGraph):
+        graph = graph_with_library_system
+        begin = make_node(graph, _BEGIN)
+        adder = make_node(graph, _ADD)
+        printer = make_node(graph, _PRINT)
+        graph.create_edge_wrapper(begin.node_id, "exec", printer.node_id, "exec")
+        graph.create_edge_wrapper(adder.node_id, "result", printer.node_id, "message")
+        graph.force_validation()
+
+        action = _collapse(graph, [printer.node_id])
+        graph.force_validation()
+        return graph, graph.get_subgraph(action.subgraph_key)
+
+    def test_the_stamped_ports_are_removable(self, collapsed_with_data):
+        _graph, definition = collapsed_with_data
+        from haywire.barn.builtin.types import ADD
+
+        interface = [
+            p
+            for node in (definition.input_node, definition.output_node)
+            for p in node.node.get_all_ports()
+            if not issubclass(p.type_cls, ADD)
+        ]
+        assert interface, "the collapse stamped no interface"
+        assert all(p.is_user_removable() for p in interface)
+
+    def test_the_growing_slot_survives_the_collapse(self, collapsed_with_data):
+        _graph, definition = collapsed_with_data
+        from haywire.barn.builtin.types import ADD
+
+        for node in (definition.input_node, definition.output_node):
+            slots = [p for p in node.node.get_all_ports() if issubclass(p.type_cls, ADD)]
+            assert len(slots) == 1, f"{node.node_id} lost its growing slot"
+            assert not slots[0].is_user_removable()

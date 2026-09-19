@@ -261,7 +261,7 @@ def test_a_loopback_outlet_may_cross_the_boundary():
 
 
 # ---------------------------------------------------------------------------
-# _validate_subgraph_contents
+# validate_subgraph_contents
 # ---------------------------------------------------------------------------
 
 
@@ -279,7 +279,7 @@ def test_a_subgraph_with_exactly_one_boundary_pair_is_valid():
 
     wrappers = _boundary_pair()
     wrappers.append(_FakeWrapper(_FakeNode(_identity(label="Add"), NodeType.DATA), "add"))
-    ok, err, _ = _validator()._validate_subgraph_contents(wrappers)
+    ok, err, _ = _validator().validate_subgraph_contents(wrappers)
     assert ok is True
     assert err is None
 
@@ -289,7 +289,7 @@ def test_a_subgraph_with_two_inputs_fails():
 
     wrappers = _boundary_pair()
     wrappers.append(_FakeWrapper(_FakeNode(_identity(_is_subgraph_input=True), NodeType.BOUNDARY), "in2"))
-    ok, err, _ = _validator()._validate_subgraph_contents(wrappers)
+    ok, err, _ = _validator().validate_subgraph_contents(wrappers)
     assert ok is False
     assert "exactly one" in err
 
@@ -300,7 +300,7 @@ def test_a_subgraph_missing_its_output_fails():
     wrappers = [
         _FakeWrapper(_FakeNode(_identity(_is_subgraph_input=True), NodeType.BOUNDARY), "in"),
     ]
-    ok, err, _ = _validator()._validate_subgraph_contents(wrappers)
+    ok, err, _ = _validator().validate_subgraph_contents(wrappers)
     assert ok is False
     assert "exactly one" in err
 
@@ -310,7 +310,7 @@ def test_a_subgraph_containing_an_event_node_fails():
 
     wrappers = _boundary_pair()
     wrappers.append(_FakeWrapper(_FakeNode(_identity(label="Begin Play"), NodeType.EVENT), "ev"))
-    ok, err, suggestions = _validator()._validate_subgraph_contents(wrappers)
+    ok, err, suggestions = _validator().validate_subgraph_contents(wrappers)
     assert ok is False
     assert "EVENT or OUTPUT" in err
     assert "Begin Play" in err
@@ -322,7 +322,7 @@ def test_a_subgraph_containing_an_output_node_fails():
 
     wrappers = _boundary_pair()
     wrappers.append(_FakeWrapper(_FakeNode(_identity(label="Shutdown"), NodeType.OUTPUT), "sd"))
-    ok, err, _ = _validator()._validate_subgraph_contents(wrappers)
+    ok, err, _ = _validator().validate_subgraph_contents(wrappers)
     assert ok is False
     assert "EVENT or OUTPUT" in err
     assert "Shutdown" in err

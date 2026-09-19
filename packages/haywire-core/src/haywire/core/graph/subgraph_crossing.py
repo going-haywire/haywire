@@ -1,4 +1,4 @@
-"""The vocabulary of a Subgraph boundary crossing, and the value copies across it.
+"""The vocabulary of a Subgraph boundary crossing.
 
 A Graph-node's card and the Subgraph behind it are separate graphs, so no edge
 joins them. A crossing is instead named by a **string**, and carried by the two
@@ -25,20 +25,13 @@ outlet G leaves by *and* the virtual inlet the Subgraph Input is entered
 through. That is what lets each worker decide what to do from
 ``control_pin`` alone.
 
-Values cross by worker copy, not by edge: ``copy_inward`` and ``copy_outward``
-write through real ports, so each write fires that port's own pipes and the
-value travels the rest of the way over ordinary edges with their own adapter
-chains.
+Values cross by worker copy, not by edge. Each boundary node pairs its ports
+with the card's in ``on_assembly()`` and writes through them in its worker, so
+each write fires that port's own pipes and the value travels the rest of the way
+over ordinary edges with their own adapter chains.
 """
 
 from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-from ..types.enums import PortType
-
-if TYPE_CHECKING:
-    from ..node.base import BaseNode
 
 #: Prefixes namespacing a card pin by the side it mirrors. Port ids are unique
 #: per node regardless of direction, and the two boundary nodes are separate
@@ -122,47 +115,3 @@ def crossed_exit_id(crossing_id: str) -> str | None:
     if crossing_id.startswith(EXIT_PREFIX):
         return crossing_id[len(EXIT_PREFIX) :]
     return None
-
-
-# ---------------------------------------------------------------------------
-# Value copies
-# ---------------------------------------------------------------------------
-
-
-def copy_inward(card: "BaseNode", subgraph_input: "BaseNode") -> None:
-    """Copy the card's data inlet values onto the Subgraph Input's data outlets.
-
-    Each write fires that outlet's pipes, so the values reach the Subgraph's own
-    nodes over its real edges, with their own adapter chains. A boundary outlet
-    the card has no counterpart for is skipped.
-
-    Reads the card's inlets without resolving them: the card runs before this in
-    both shapes — its entry hop in a control Subgraph, its single data run in a
-    data-only one — and ``BaseNode._execute`` drains every dirty port there, so
-    a lazy outer edge has already been pulled.
-
-    Call from a worker; both nodes must be built.
-    """
-    for outlet in subgraph_input.get_ports(is_port_type=PortType.OUTLET, has_pin=True):
-        source = card.ports.get(card_port_id(outlet.id, is_inlet=True))
-        if source is not None:
-            subgraph_input.out(outlet.id, source.get_value())
-
-
-def copy_outward(subgraph_output: "BaseNode", card: "BaseNode") -> None:
-    """Copy the Subgraph Output's data inlet values onto the card's data outlets.
-
-    Each write fires the card outlet's pipes, so the values reach the parent
-    graph over its real edges. A card outlet the Subgraph Output has no
-    counterpart for is skipped.
-
-    The Subgraph Output's own ``_execute`` has already drained its inlets, so
-    they are read unresolved.
-    """
-    for inlet in subgraph_output.get_ports(is_port_type=PortType.INLET, has_pin=True):
-        target = card.ports.get(card_port_id(inlet.id, is_inlet=False))
-        if target is not None:
-            # A write to a port this node does not own — the card cannot do it
-            # itself, because a data-only Subgraph gives it a single run that
-            # would have to precede the interior. set_value is what out() calls.
-            target.set_value(inlet.get_value())

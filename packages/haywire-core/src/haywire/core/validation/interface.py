@@ -54,6 +54,23 @@ class IStructuralValidator(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def validate_subgraph_contents(
+        self, wrappers: "list[NodeWrapper]"
+    ) -> tuple[bool, str | None, list[str]]:
+        """
+        Validate the node set of one Subgraph.
+
+        Args:
+            wrappers: Every node wrapper the Subgraph contains.
+
+        Returns:
+            Tuple of (is_valid, error_message, suggestions).
+            Error message is None if valid.
+            Suggestions is a list of actionable fixes.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     def validate_graph(self) -> List[str]:
         """Validate all structural constraints across the graph"""
         raise NotImplementedError()

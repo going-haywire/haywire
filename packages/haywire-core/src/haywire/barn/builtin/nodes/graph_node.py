@@ -24,15 +24,14 @@ Group without importing any display-only library.
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.graph.subgraph_crossing import (
+    boundary_port_id,
     card_port_id,
-    copy_inward,
-    crossed_exit_id,
     enter_crossing_id,
-    is_card_inlet_id,
+    exit_crossing_id,
 )
 from haywire.core.node import node, BaseNode, NodeType
 from haywire.core.node.behavior import NodeBehaviorFlags
@@ -71,14 +70,48 @@ class GraphNode(BaseNode):
     makes this a DATA node, anything else a CONTROL node.
     """
 
+    #: Resolved by reconcile_interface. Class-level so a read that lands before
+    #: init() — structural validation does — sees the port-less answer instead
+    #: of an AttributeError.
+    _behavior: NodeBehaviorFlags | None = None
+
+    #: The definition this card is subscribed to, so the subscription can be
+    #: moved when the card is re-bound.
+    _watched: "SubgraphDefinition | None" = None
+
     def init(self) -> None:
-        # No ports. They mirror the Subgraph's boundary nodes, which post_init
+        # No ports. They mirror the Subgraph's interface ports, which post_init
         # reads once the store has restored the subgraph key.
         pass
 
     def post_init(self) -> None:
         self.reconcile_interface()
         self.props._subscribe_field("label", self._on_label_changed)
+        self._watch_definition()
+
+    def _watch_definition(self) -> None:
+        """Follow the bound Subgraph's interface for as long as it is bound.
+
+        The card reads the boundary, never the other way round, so this is what
+        carries a port grown or removed inside the Subgraph out to the card.
+        """
+        definition = self.resolve_definition()
+        if definition is self._watched:
+            return
+        if self._watched is not None:
+            self._watched.unsubscribe_from_validation(self._on_definition_validated)
+        if definition is not None:
+            definition.subscribe_to_validation(self._on_definition_validated)
+        self._watched = definition
+
+    def _on_definition_validated(self, result: Any) -> None:
+        """Reconcile when the Subgraph's own validation reports a structural change.
+
+        A node's ports change through a rejig, which marks it dirty, so every
+        interface edit arrives here. A move or a repaint does not.
+        """
+        if result.graph is not None and result.graph.requires_graph_reassembly():
+            self.reconcile_interface()
 
     def _on_label_changed(self, _value: object, _old: object) -> None:
         """Rename the Subgraph to match this card.
@@ -106,6 +139,7 @@ class GraphNode(BaseNode):
         """Point this card at the Subgraph stored under ``key`` and mirror its interface."""
         self.store[SUBGRAPH_KEY] = key
         self.reconcile_interface()
+        self._watch_definition()
 
     def resolve_definition(self) -> "SubgraphDefinition | None":
         """Return the bound ``SubgraphDefinition``, or ``None`` if unbound or unknown.
@@ -126,12 +160,16 @@ class GraphNode(BaseNode):
     # =========================================================================
 
     def reconcile_interface(self) -> None:
-        """Rebuild this card's pins from the Subgraph's boundary nodes.
+        """Rebuild this card's pins from the Subgraph's interface ports.
 
-        Edges on pins that survive are preserved; a pin whose boundary port is
-        gone is removed along with every edge that was attached to it. Does
-        nothing when no Subgraph is bound, leaving whatever pins the node
-        already carries.
+        The single funnel for every interface change: a collapse, a re-bind, or
+        an edit inside the Subgraph. Edges on pins that survive are preserved;
+        a pin whose interface port is gone is removed, and the edges that were
+        on it stay in the graph unlinked, drawn to this node's ghost pin.
+
+        A pin this card already carries keeps the order it has — the card's pin
+        order is its own (ADR 0036). Does nothing when no Subgraph is bound,
+        leaving whatever pins the node already carries.
         """
         definition = self.resolve_definition()
         if definition is None:
@@ -139,80 +177,60 @@ class GraphNode(BaseNode):
 
         input_node = definition.input_node
         output_node = definition.output_node
-        before = {port.id for port in self.get_ports(has_pin=True)}
 
-        # One rejig over every port: a boundary port that disappeared must lose
-        # its pin, which only happens for ports left un-re-added inside the block.
-        #
-        # `slot` is handed down rather than left to the add order, because
-        # re-adding an existing id preserves that port — edges and all — along
-        # with the order it already had. Without it a reorder on the boundary
-        # node would not reach the card.
-        slot = 0
+        # One rejig over every port: an interface port that disappeared must
+        # lose its pin, which only happens for ports left un-re-added inside
+        # the block.
         with self.rejig():
             if input_node is not None:
                 for outlet in self._boundary_ports(input_node, PortType.OUTLET):
-                    self._mirror(outlet, slot, as_inlet=True)
-                    slot += 1
+                    self._mirror(outlet, as_inlet=True)
             if output_node is not None:
                 for inlet in self._boundary_ports(output_node, PortType.INLET):
-                    self._mirror(inlet, slot, as_outlet=True)
-                    slot += 1
+                    self._mirror(inlet, as_outlet=True)
 
-        lost = before - {port.id for port in self.get_ports(has_pin=True)}
-        if lost:
-            self._drop_edges_on(lost)
-
-    def _drop_edges_on(self, port_ids: set[str]) -> None:
-        """Remove every edge landing on one of this node's ``port_ids``.
-
-        Removing a port leaves its edges in the graph marked invalid, which on a
-        Graph-node would draw a wire to a pin that is gone. Called after the
-        ports are already removed, so the edges are found through the node
-        rather than through the vanished ports.
-        """
-        wrapper = self.wrapper
-        if wrapper is None or wrapper.graph is None:
-            return
-        graph = wrapper.graph
-        for edge in list(graph._get_all_edges(self.node_id)):
-            on_outlet = edge.source_node_id == self.node_id and edge.outlet_port_id in port_ids
-            on_inlet = edge.sink_node_id == self.node_id and edge.inlet_port_id in port_ids
-            if on_outlet or on_inlet:
-                graph.remove_edge_wrapper(edge.edge_id)
+        self._behavior = self._derive_behavior()
 
     @staticmethod
     def _boundary_ports(wrapper, port_type: PortType) -> list["DataPort"]:
-        """The boundary node's ports on one side, in display order."""
-        ports = wrapper.node.get_ports(is_port_type=port_type, has_pin=True)
+        """The boundary node's interface ports on one side, in display order.
+
+        The growing slot is left out: it is the boundary node's own port, not
+        part of the interface, so it has no counterpart on the card.
+        """
+        from haywire.barn.builtin.types import ADD
+
+        ports = [
+            port
+            for port in wrapper.node.get_ports(is_port_type=port_type, has_pin=True)
+            if port.type_cls is not None and not issubclass(port.type_cls, ADD)
+        ]
         return sorted(ports, key=lambda port: port.order)
 
     def _mirror(
         self,
         port: "DataPort",
-        slot: int,
         *,
         as_inlet: bool = False,
         as_outlet: bool = False,
     ) -> None:
-        """Add this card's counterpart of one boundary port, at display position ``slot``."""
+        """Add this card's counterpart of one interface port.
+
+        A pin this card already carries keeps its own order; a new one lands
+        after the pins already there.
+        """
         if port.type_cls is None:
             return
         kwargs = {
             "label": port.label,
             "description": port.description,
             "flow_type": port.flow_type,
-            "order": slot,
         }
         pin_id = card_port_id(port.id, is_inlet=as_inlet)
         if as_inlet:
             self.add(port.type_cls.as_inlet(pin_id, **kwargs))
         elif as_outlet:
             self.add(port.type_cls.as_outlet(pin_id, **kwargs))
-        # A re-added port keeps the order it already had, so set it after.
-        mirrored = self.ports.get(pin_id)
-        if mirrored is not None:
-            mirrored.order = slot
 
     # =========================================================================
     # DERIVED NODE TYPE
@@ -225,11 +243,63 @@ class GraphNode(BaseNode):
         A Subgraph crossed by control flow makes the card a CONTROL node; one
         crossed only by data makes it a DATA node. The flag is per instance
         because the interface is, so it cannot come from the class.
+
+        Resolved by ``reconcile_interface``, which is the only thing that
+        changes this card's pins. ``_execute`` reads this on every run, so it is
+        a stored answer rather than a scan over the ports.
         """
+        if self._behavior is None:
+            return self._derive_behavior()
+        return self._behavior
+
+    def _derive_behavior(self) -> NodeBehaviorFlags:
+        """Read the node type off the pins this card currently carries."""
         flags = type(self).class_behavior
         if self.get_ports(is_flow_type=FlowType.CONTROL, has_pin=True):
             return flags
         return replace(flags, node_type=NodeType.DATA)
+
+    # =========================================================================
+    # ASSEMBLY
+    # =========================================================================
+
+    def on_assembly(self) -> tuple[bool, str | None]:
+        """Resolve the crossings and the inward copy this card's worker follows.
+
+        Both are fixed by the interface, so the worker becomes one dict lookup
+        and a walk over pre-paired ports — no port scan, no id arithmetic.
+
+        Returns:
+            ``(False, reason)`` when no Subgraph resolves, which leaves the card
+            standing for nothing.
+        """
+        definition = self.resolve_definition()
+        if definition is None:
+            key = self.subgraph_key
+            return (False, f"no Subgraph is bound to this Group (key: {key or 'unset'})")
+
+        # control_pin -> what the worker returns, for each of the two hop roles.
+        crossings: dict[str, str] = {}
+        for inlet in self.get_ports(is_port_type=PortType.INLET, is_flow_type=FlowType.CONTROL):
+            crossings[inlet.id] = enter_crossing_id(inlet.id)
+        for outlet in self.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.CONTROL):
+            boundary_id = boundary_port_id(outlet.id)
+            if boundary_id is not None:
+                crossings[exit_crossing_id(boundary_id)] = outlet.id
+        self.cache.crossings = crossings
+
+        # The inward copy a data-only card makes itself: (card inlet, boundary
+        # outlet) pairs, resolved to port objects.
+        input_node = definition.input_node
+        pairs = []
+        if input_node is not None:
+            for outlet in input_node.node.get_ports(is_port_type=PortType.OUTLET, has_pin=True):
+                source = self.ports.get(card_port_id(outlet.id, is_inlet=True))
+                if source is not None:
+                    pairs.append((source, outlet))
+        self.cache.inward = pairs
+
+        return (True, None)
 
     def worker(self, context: ExecutionContext) -> str | None:
         """Cross the boundary, in whichever of three roles this run is.
@@ -247,22 +317,12 @@ class GraphNode(BaseNode):
 
         Returns the outlet or crossing to follow, or ``None`` to end the branch.
         """
-        control_pin = context.control_pin
+        # Hot path: one lookup into the map on_assembly() resolved. A data-only
+        # card has no crossings, so it falls straight through to the copy.
+        crossing = self.cache.crossings.get(context.control_pin)
+        if crossing is not None:
+            return crossing
 
-        # A data-only card runs inside some host control node's data flow, so
-        # control_pin holds THAT node's inlet. Only a card with control pins of
-        # its own can be in one of the two hop roles.
-        if control_pin is not None and self.behavior.is_control_node:
-            leaving_by = crossed_exit_id(control_pin)
-            if leaving_by is not None:
-                outlet_id = card_port_id(leaving_by, is_inlet=False)
-                return outlet_id if outlet_id in self.ports else None
-
-            if is_card_inlet_id(control_pin):
-                return enter_crossing_id(control_pin)
-
-        definition = self.resolve_definition()
-        input_node = definition.input_node if definition is not None else None
-        if input_node is not None:
-            copy_inward(self, input_node.node)
+        for source, target in self.cache.inward:
+            target.set_value(source.get_value())
         return None

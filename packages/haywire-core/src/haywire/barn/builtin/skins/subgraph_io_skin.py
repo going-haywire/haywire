@@ -21,10 +21,18 @@ from haywire.core.types.enums import LayoutDirection
 from haywire.core.types.port import DataPort
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.decorator import skin
-from haywire.ui.skin.pin_render import add_pin_tooltip, render_pin, resolve_graph_layout_direction
+from haywire.ui.skin.pin_render import (
+    add_pin_tooltip,
+    render_ghost_pin,
+    render_pin,
+    resolve_graph_layout_direction,
+)
 
 _PIN_GUTTER = 18
 _PIN_PROTRUSION = 0
+#: Ghost pin box, which render_ghost_pin draws. Smaller than a real pin, so its
+#: offset is computed from this rather than from the gutter.
+_GHOST_SIZE = 12
 # Must match the padding the card PAINTS below: render_pin offsets pins against
 # it, so a value the card does not paint seats every pin off its edge by the
 # difference.
@@ -66,13 +74,38 @@ class SubgraphIOSkin(BaseSkin):
         ports = [p for p in node.get_visible_ports() if p.has_pin()]
 
         with main_card:
-            if not ports:
-                # The latent port-less state: the node exists but the collapse
-                # action has not stamped an interface onto it yet.
-                ui.label("no ports").classes("text-xs hw-text-dim px-1")
-                return
             for port in ports:
                 self._render_rail_row(port, wrapper.node_id, layout)
+            # An edge whose port was removed falls back to the ghost, so the
+            # wire stays on the card instead of hanging in space.
+            self._render_ghosts(wrapper.node_id, layout, ports)
+
+    def _render_ghosts(self, node_id: str, layout: LayoutDirection, ports: list[DataPort]) -> None:
+        """Render the root ghost pins, one per side this rail actually uses.
+
+        A boundary node faces one way, so only the side its ports sit on can
+        receive a fallback edge. Rendered in a row of their own at the card's
+        end, where the outward offset resolves against the card edge.
+        """
+        sides = {port.is_inlet() for port in ports}
+        if not sides:
+            return
+        for is_inlet in sorted(sides, reverse=True):
+            # One row each, so the ghost is the only item on its line and its
+            # static position is the card's content edge — the same place a
+            # real pin's row puts it. The offset is the ghost's own half-box,
+            # not the pin gutter's: the two boxes differ in size.
+            with ui.row().classes("items-center flex-nowrap w-full").style("min-width: 0;"):
+                if not is_inlet:
+                    # An outlet's offset resolves against the row's far edge,
+                    # which a lone item only reaches when pushed there.
+                    ui.element("div").style("flex: 1 1 auto; min-width: 0;")
+                render_ghost_pin(
+                    node_id,
+                    layout=layout,
+                    is_inlet=is_inlet,
+                    offset=_CARD_PADDING + _GHOST_SIZE // 2 + _PIN_PROTRUSION,
+                )
 
     def _render_rail_row(self, port: DataPort, node_id: str, layout: LayoutDirection) -> None:
         """Render one port as a full-width row with its pin on the card edge.

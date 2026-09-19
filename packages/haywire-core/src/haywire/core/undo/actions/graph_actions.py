@@ -19,6 +19,10 @@ from ..interfaces import IAction
 
 logger = logging.getLogger(__name__)
 
+#: Store key a Graph-node holds its Subgraph key under. Named by string so the
+#: core never imports the card's class.
+SUBGRAPH_KEY = "subgraph_key"
+
 # Default port ids the split action stamps onto a reroute node. The reroute is
 # port-less until split; these ids are an implementation detail of the split
 # (the node discovers whatever it is given via introspection), so they live here
@@ -512,6 +516,7 @@ class PasteClipboardAction(CompositeAction):
 
         nodes = payload.get("nodes", {})
         edges = payload.get("edges", {})
+        subgraphs = payload.get("subgraphs", {})
 
         # 1. Compute paste offset from the stored bounding box.
         bbox = payload.get("bounding_box") or {}
@@ -519,6 +524,15 @@ class PasteClipboardAction(CompositeAction):
         off_y = paste_y - bbox.get("min_y", 0.0)
 
         actions: List[IAction] = []
+
+        # 1b. A copied Group gets a Subgraph of its own: one card per definition
+        #     is what makes SubgraphDefinition.graph_node_wrapper() unambiguous,
+        #     so the key is reminted and the cards below are rebound to it.
+        subgraph_key_map: Dict[str, str] = {}
+        for source_key, definition_payload in subgraphs.items():
+            new_key = graph.generate_unique_subgraph_key()
+            subgraph_key_map[source_key] = new_key
+            actions.append(_RestoreSubgraphAction(graph=graph, key=new_key, payload=definition_payload))
 
         # 2. Mint new ids and remap the edges onto them.
         remap = remap_node_ids(nodes=nodes, edges=edges, mint_id=graph.generate_unique_node_id)
@@ -549,6 +563,13 @@ class PasteClipboardAction(CompositeAction):
             props_values = node_data.setdefault("props", {}).setdefault("values", {})
             props_values["posX"] = new_x
             props_values["posY"] = new_y
+
+            # A pasted card points at the copy of its Subgraph, not the original.
+            store = node_data.get("store")
+            if isinstance(store, dict):
+                source_key = store.get(SUBGRAPH_KEY)
+                if isinstance(source_key, str) and source_key in subgraph_key_map:
+                    store[SUBGRAPH_KEY] = subgraph_key_map[source_key]
 
             actions.append(
                 AddNodeAction(
@@ -969,14 +990,36 @@ class _BuildSubgraphAction(ActionBase):
             raise RuntimeError(f"Could not create boundary node '{node_id}' for subgraph '{self.key}'")
 
         node = wrapper.node
+        # The interface is the user's, so it is RESOLVED and each port carries a
+        # removal row. The growing slot init() declared stays DECLARED, and is
+        # re-added here because a bare rejig would take it with the rest.
+        from ...types.enums import PortOrigin
+
+        slots = [p for p in node.get_all_ports() if p.origin is PortOrigin.DECLARED]
         with node.rejig():
             for port in ports:
                 spec = (
-                    port.itype.as_outlet(port.port_id, label=port.label, flow_type=port.flow_type)
+                    port.itype.as_outlet(
+                        port.port_id,
+                        label=port.label,
+                        flow_type=port.flow_type,
+                        origin=PortOrigin.RESOLVED,
+                    )
                     if is_input
-                    else port.itype.as_inlet(port.port_id, label=port.label, flow_type=port.flow_type)
+                    else port.itype.as_inlet(
+                        port.port_id,
+                        label=port.label,
+                        flow_type=port.flow_type,
+                        origin=PortOrigin.RESOLVED,
+                    )
                 )
                 node.add(spec)
+            for slot in slots:
+                node.add(
+                    slot.type_cls.as_outlet(slot.id, label=slot.label, on_connect="hb_grow")
+                    if is_input
+                    else slot.type_cls.as_inlet(slot.id, label=slot.label, on_connect="hb_grow")
+                )
 
     def _undo_impl(self) -> None:
         definition = self.graph.get_subgraph(self.key)
@@ -1049,6 +1092,44 @@ class _DropSubgraphAction(ActionBase):
         definition = SubgraphDefinition(key=self.key)
         self.graph.add_subgraph(definition)
         definition.load_from_dict(self._payload)
+
+
+class _RestoreSubgraphAction(ActionBase):
+    """Build one Subgraph definition from a serialized payload, under ``key``.
+
+    A child of ``PasteClipboardAction``. The payload travels in the clipboard,
+    so the contents are rebuilt under ids minted for this graph — a pasted Group
+    shares nothing with the one it was copied from. Undo removes the definition
+    again.
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        key: str,
+        payload: Dict[str, Any],
+        description: Optional[str] = None,
+    ):
+        super().__init__(description or f"Restore subgraph '{key}'")
+        self.graph = graph
+        self.key = key
+        self.payload = payload
+
+    def _execute_impl(self) -> None:
+        from ...graph.subgraph import SubgraphDefinition
+
+        definition = SubgraphDefinition(key=self.key, label=self.payload.get("label") or self.key)
+        self.graph.add_subgraph(definition)
+        # instantiate(), not load_from_dict(): the source graph's node ids are
+        # still in use here, so the contents need ids of their own.
+        definition.instantiate(
+            nodes=self.payload.get("nodes", {}),
+            edges=self.payload.get("edges", {}),
+            subgraphs=self.payload.get("subgraphs", {}),
+        )
+
+    def _undo_impl(self) -> None:
+        self.graph.remove_subgraph(self.key)
 
 
 class CollapseToGraphNodeAction(CompositeAction):

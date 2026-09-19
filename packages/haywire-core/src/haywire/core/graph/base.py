@@ -258,19 +258,19 @@ class BaseGraph:
     # =========================================================================
 
     def generate_unique_node_id(self, registry_key: str = "node") -> str:
-        """Return a node ID, prefixed from ``registry_key``, that no node in the whole tree uses.
+        """Return a node ID, prefixed from ``registry_key``, that no node in this graph uses.
 
-        The tree is the root graph and every Subgraph definition beneath it, so
-        one id space covers all of them and a Subgraph's contents can be looked
-        up by id alone — see
-        ``haywire.core.assembly.flat_view.FlatGraphView.get_node_wrapper``.
+        Ids are unique across the whole Subgraph tree, not just this graph, so a
+        node can be looked up by id alone — see
+        ``haywire.core.assembly.flat_view.FlatGraphView.get_node_wrapper``. The
+        random suffix is what delivers that; :meth:`add_subgraph` is where an id
+        space from elsewhere could break it, and checks.
         """
         prefix = get_registry_id_from_key(registry_key)
-        root = self.root_graph
 
         while True:
             node_id = f"{prefix}_{uuid.uuid4().hex[:6]}"
-            if not root.tree_contains_node_id(node_id):
+            if node_id not in self.node_wrappers:
                 return node_id
 
     # =========================================================================
@@ -291,14 +291,33 @@ class BaseGraph:
             return True
         return any(definition.tree_contains_node_id(node_id) for definition in self.subgraphs.values())
 
+    def tree_node_ids(self) -> set[str]:
+        """Every node id in this graph and in every Subgraph beneath it."""
+        ids = set(self.node_wrappers)
+        for definition in self.subgraphs.values():
+            ids |= definition.tree_node_ids()
+        return ids
+
     def add_subgraph(self, definition: "SubgraphDefinition") -> "SubgraphDefinition":
         """Register ``definition`` in this graph's table under its own key and return it.
 
+        A node id is unique across the whole tree, which is what lets a node be
+        found by id alone. Attaching a definition is the one moment an id space
+        from another tree arrives, so it is checked here.
+
         Raises:
-            ValueError: If the key is already taken.
+            ValueError: If the key is already taken, or if the definition holds
+                a node id the destination tree already uses.
         """
         if definition.key in self.subgraphs:
             raise ValueError(f"Subgraph definition '{definition.key}' already exists in graph")
+
+        collisions = definition.tree_node_ids() & self.root_graph.tree_node_ids()
+        if collisions:
+            raise ValueError(
+                f"Subgraph definition '{definition.key}' holds node ids already in this graph: "
+                f"{', '.join(sorted(collisions))}"
+            )
 
         self.subgraphs[definition.key] = definition
         definition._host_graph = self

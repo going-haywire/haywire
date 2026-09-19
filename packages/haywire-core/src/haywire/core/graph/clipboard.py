@@ -36,12 +36,18 @@ def build_clipboard_payload(
     ordinary graph would stand for nothing. Copying a whole Subgraph's contents
     therefore yields its content nodes alone, and the edges among them.
 
+    A Graph-node brings its Subgraph with it, serialized under ``subgraphs`` by
+    the key its card names, so pasting it into another graph or another session
+    gives the copy contents of its own.
+
     Returns:
         ``haywire_clipboard``, ``format_version``, ``source`` (``session_id``
         and a ``timestamp`` in epoch seconds), ``bounding_box`` over the node
-        positions, and the serialized ``nodes`` and ``edges``.
+        positions, the serialized ``nodes`` and ``edges``, and the
+        ``subgraphs`` any copied Graph-node stands for.
     """
     nodes: Dict[str, Any] = {}
+    subgraphs: Dict[str, Any] = {}
     positions: list[tuple[float, float]] = []
     for node_id in node_ids:
         wrapper = graph.get_node_wrapper(node_id)
@@ -51,6 +57,12 @@ def build_clipboard_payload(
         nodes[node_id] = serialized
         pos = serialized.get("position") or [0.0, 0.0]
         positions.append((float(pos[0]), float(pos[1])))
+
+        key = getattr(wrapper.node, "subgraph_key", None)
+        if isinstance(key, str):
+            definition = graph.get_subgraph(key)
+            if definition is not None:
+                subgraphs[key] = definition.to_dict(include_data=True)
 
     # Both endpoints must be among the nodes actually copied, so an edge onto a
     # filtered-out boundary node is dropped with it.
@@ -82,6 +94,7 @@ def build_clipboard_payload(
         "bounding_box": bounding_box,
         "nodes": nodes,
         "edges": edges,
+        "subgraphs": subgraphs,
     }
 
 

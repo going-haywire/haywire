@@ -1112,6 +1112,52 @@ def register_routes(library_service) -> None:
     # resize the card in a browser and measure. Backs test_reroute_skin.py.
     # -------------------------------------------------------------------------
 
+    # -------------------------------------------------------------------------
+    # GET /graph-boundary
+    #
+    # A Subgraph Input and a Subgraph Output, each carrying stamped interface
+    # ports plus their growing slot, rendered by SubgraphIOSkin. Backs the rail
+    # skin's pin-geometry and ghost-pin tests.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-boundary")
+    async def graph_boundary_page():
+        from haywire.core.graph.base import BaseGraph
+        from haywire.core.graph.editor import Editor
+        from haywire.core.graph.scheduler import SyncScheduler
+        from haywire.core.graph.subgraph import SubgraphDefinition
+
+        factory = library_service.get_node_factory()
+        host = BaseGraph("Boundary Fixture", validation_scheduler=SyncScheduler())
+        definition = host.add_subgraph(
+            SubgraphDefinition(key="sg", label="Group", validation_scheduler=SyncScheduler())
+        )
+        editor = Editor(definition, factory)
+
+        from haybale_testing.types.test_types import TEST_FLOAT
+        from haywire.barn.builtin.nodes.subgraph_io import SubgraphInputNode, SubgraphOutputNode
+
+        inp = definition.create_node_wrapper(
+            SubgraphInputNode.class_identity.registry_key, position=(3600.0, 3700.0)
+        )
+        out = definition.create_node_wrapper(
+            SubgraphOutputNode.class_identity.registry_key, position=(4000.0, 3700.0)
+        )
+        assert inp is not None and out is not None  # noqa: PT018
+        # exclude the growing slot: a bare rejig() flags every port, so the
+        # slot would be dropped rather than kept beside the stamped interface.
+        with inp.node.rejig(exclude=r"^slot_"):
+            inp.node.add(TEST_FLOAT.as_outlet("value", label="Value"))
+        with out.node.rejig(exclude=r"^slot_"):
+            out.node.add(TEST_FLOAT.as_inlet("result", label="Result"))
+        definition.force_validation()
+
+        ui.label(inp.node_id).props(f'id="boundary-in-id" data-node="{inp.node_id}"')
+        ui.label(out.node_id).props(f'id="boundary-out-id" data-node="{out.node_id}"')
+
+        _mount_graph_canvas(library_service, definition, editor, testid="boundary")
+        _stamp_synced()
+
     @ui.page("/graph-reroute")
     async def graph_reroute_page():
         graph, editor, reroute_id = _build_reroute_graph(library_service.get_node_factory())

@@ -286,3 +286,58 @@ def _resolve_pin_icon(pin: DataPort, pin_icons: PinIconResolver | None = None) -
     :class:`~haywire.ui.skin.pin_icons.PinIconResolver`.
     """
     return (pin_icons or DEFAULT_PIN_ICONS).resolve(pin)
+
+
+def render_ghost_pin(
+    node_id: str,
+    *,
+    layout: LayoutDirection,
+    is_inlet: bool,
+    offset: int,
+    order_last: bool = False,
+) -> ui.element:
+    """Render one root ghost pin into the current flex context.
+
+    A ghost pin is the drop affordance a node always carries, and the endpoint
+    an edge falls back to when its port id resolves to nothing — which is how a
+    wire stays attached to the card after its port is removed. Its id names no
+    entry in ``node.ports``, so the canvas excludes it from pin detection and it
+    carries no menu.
+
+    A regular flex item, never absolutely positioned, so
+    ``getBoundingClientRect()`` reports the coordinates the edge-drawing layer
+    reads. The caller places it where its outward offset resolves against the
+    card edge: in a horizontal layout the header row, vertically the matching
+    edge strip.
+
+    Args:
+        node_id: The node this ghost stands for.
+        is_inlet: Whether this is the inlet ghost (``root_in``) or the outlet
+            one (``root_out``).
+        offset: Pixels to pull the pin outward, resolved against the card's
+            padding box — normally ``card_padding + pin_gutter // 2 +
+            pin_protrusion``, the same arithmetic ``render_pin`` uses.
+        order_last: Pushes the pin to the far end of a horizontal flex row,
+            which is where an outlet ghost belongs beside the node title.
+    """
+    pin_id = "root_in" if is_inlet else "root_out"
+    side = layout.inlet_side if is_inlet else layout.outlet_side
+    dir_x, dir_y = layout.inlet_vector if is_inlet else layout.outlet_vector
+    order = "order: 999; " if order_last else ""
+
+    return (
+        ui.element("div")
+        .classes("connection-pin zoom-pan-lod0")
+        .style(
+            f"{order}width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; "
+            "background: var(--hw-ghost-pin); border: 1px dashed var(--hw-ghost-pin); "
+            f"cursor: default; {side}: -{offset}px;"
+        )
+        .props(
+            f'id="{generate_pin_uuid(node_id, pin_id)}" data-node-id="{node_id}" '
+            f'data-pin-id="{pin_id}" '
+            f'data-pin-flow-type="ghost" data-pin-dir="{"inlet" if is_inlet else "outlet"}" '
+            f'data-pin-dir-x="{dir_x}" data-pin-dir-y="{dir_y}" '
+            f'data-hw-layout="{layout.value}" data-pin-color="#888888"'
+        )
+    )
