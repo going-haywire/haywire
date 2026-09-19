@@ -867,6 +867,97 @@ class SetPropertyAction(ActionBase):
             setattr(getattr(node, accessor), self.name, self._old_value)
 
 
+class SetPortMetadataAction(ActionBase):
+    """Undoable edit of a port's own presentation — its label, docs and default.
+
+    Distinct from :class:`SetPropertyAction`, which writes a port's *value*.
+    This writes the spec beside it: what the port is called, what it documents
+    and where it starts. One action carries every field the user changed in one
+    gesture, so a dialog's Apply is one undo step.
+
+    Only a ``RESOLVED`` port may be edited. A ``DECLARED`` port is the node
+    author's contract — it appears in that component's generated docs — and a
+    ``PROMOTED`` one takes its presentation from the setting descriptor and is
+    regenerated on load, so an edit could not persist.
+
+    Raises:
+        ValueError: If the node or port is not found, or the port's origin is
+            not ``RESOLVED``.
+
+    Example::
+
+        action = SetPortMetadataAction(
+            graph, node_id, "gain", label="Confidence", description="0 to 1"
+        )
+        editor.history_manager.add_action(action)
+    """
+
+    #: The port attributes this action may write.
+    _FIELDS = ("label", "description", "default")
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        node_id: str,
+        port_id: str,
+        description_: Optional[str] = None,
+        **changes: Any,
+    ):
+        """
+        Args:
+            port_id: The port to edit, on ``node_id``.
+            description_: Optional override for the undo entry's own text, kept
+                out of the way of the ``description`` field being edited.
+            **changes: Any of ``label``, ``description``, ``default``. A field
+                left out is untouched.
+        """
+        unknown = set(changes) - set(self._FIELDS)
+        if unknown:
+            raise ValueError(
+                f"SetPortMetadataAction cannot write {', '.join(sorted(unknown))}; "
+                f"it writes {', '.join(self._FIELDS)}"
+            )
+        super().__init__(description=description_ or f"Edit '{port_id}' on {node_id}")
+        self.graph = graph
+        self.node_id = node_id
+        self.port_id = port_id
+        self.changes = changes
+        self._old: Dict[str, Any] = {}
+
+    def _port(self) -> Any:
+        wrapper = self.graph.get_node_wrapper(self.node_id)
+        if wrapper is None:
+            raise ValueError(f"Node '{self.node_id}' not found")
+        port = wrapper.node.ports.get(self.port_id)
+        if port is None:
+            raise ValueError(f"Node '{self.node_id}' has no port '{self.port_id}'")
+        return port
+
+    def _execute_impl(self) -> None:
+        from ...types.enums import PortOrigin
+
+        port = self._port()
+        if port.origin is not PortOrigin.RESOLVED:
+            raise ValueError(
+                f"Port '{self.port_id}' is {port.origin.value}, not resolved: only a port the "
+                f"user brought into being carries its own label, docs and default"
+            )
+        self._old = {name: getattr(port, name) for name in self.changes}
+        self._apply(port, self.changes)
+
+    def _undo_impl(self) -> None:
+        self._apply(self._port(), self._old)
+
+    @staticmethod
+    def _apply(port: Any, values: Dict[str, Any]) -> None:
+        """Write ``values`` onto ``port`` and redraw the card showing it."""
+        for name, value in values.items():
+            setattr(port, name, value)
+        # The label and the widget's bounds are drawn into the node card, which
+        # only rebuilds when the node is marked dirty.
+        port._mark_as_structuraly_dirty()
+
+
 def _move_subgraphs(source: BaseGraph, target: BaseGraph, keys: List[str]) -> None:
     """Move the Subgraph definitions named by ``keys`` from one table to the other.
 
@@ -997,22 +1088,22 @@ class _BuildSubgraphAction(ActionBase):
 
         with node.rejig(exclude=[PortOrigin.DECLARED]):
             for port in ports:
-                spec = (
-                    port.itype.as_outlet(
-                        port.port_id,
-                        label=port.label,
-                        flow_type=port.flow_type,
-                        origin=PortOrigin.RESOLVED,
-                    )
-                    if is_input
-                    else port.itype.as_inlet(
-                        port.port_id,
-                        label=port.label,
-                        flow_type=port.flow_type,
-                        origin=PortOrigin.RESOLVED,
-                    )
-                )
-                node.add(spec)
+                # Seeded from the interior port that named this one, so an
+                # interface derived from documented nodes arrives documented and
+                # keeps their editing affordances. All of it is the user's from
+                # here on — an interface port is RESOLVED.
+                kwargs: Dict[str, Any] = {
+                    "label": port.label,
+                    "description": port.description,
+                    "flow_type": port.flow_type,
+                    "default": port.default,
+                    "origin": PortOrigin.RESOLVED,
+                }
+                if port.widget_key is not None:
+                    kwargs["widget_key"] = port.widget_key
+                    kwargs["widget_config"] = dict(port.widget_config)
+                factory = port.itype.as_outlet if is_input else port.itype.as_inlet
+                node.add(factory(port.port_id, **kwargs))
 
     def _undo_impl(self) -> None:
         definition = self.graph.get_subgraph(self.key)

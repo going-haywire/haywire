@@ -213,16 +213,23 @@ class GraphNode(BaseNode):
     ) -> None:
         """Add this card's counterpart of one interface port.
 
-        A pin this card already carries keeps its own order; a new one lands
+        The pin mirrors everything the interface port presents — its name, its
+        docs, the widget editing it and the value it starts at — so a Group
+        wrapping a slider-constrained input offers that slider on its card. A
+        pin this card already carries keeps its own order; a new one lands
         after the pins already there.
         """
         if port.type_cls is None:
             return
-        kwargs = {
+        kwargs: dict[str, Any] = {
             "label": port.label,
             "description": port.description,
             "flow_type": port.flow_type,
+            "default": port.default,
         }
+        if port.widget_key is not None:
+            kwargs["widget_key"] = port.widget_key
+            kwargs["widget_config"] = dict(port.widget_config)
         pin_id = card_port_id(port.id, is_inlet=as_inlet)
         if as_inlet:
             self.add(port.type_cls.as_inlet(pin_id, **kwargs))

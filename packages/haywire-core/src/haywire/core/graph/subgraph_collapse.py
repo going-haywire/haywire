@@ -12,7 +12,7 @@ boundary when exactly one is.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, Iterable, List, Sequence, Set, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Sequence, Set, Tuple
 import re
 
 from ..types.enums import FlowType
@@ -98,13 +98,21 @@ class BoundaryPort:
 
     ``port_id`` is minted here rather than copied: a boundary port id must be
     unique on its boundary node, and the inner ports it gathers may share a
-    name. ``label`` is what the user reads.
+    name. Everything else is taken from the interior port that names this one,
+    so an interface derived from documented nodes arrives documented — the same
+    inward-to-outward seeding ``SubgraphInputNode.hb_grow`` does for a port
+    grown by wiring.
     """
 
     port_id: str
     label: str
     itype: "type[IType]"
     flow_type: FlowType
+    description: str = ""
+    widget_key: "str | None" = None
+    widget_config: Dict[str, Any] = field(default_factory=dict)
+    default: "dict | None" = None
+    """The interior port's default, so the card's pin starts where it does."""
     outer: List[Endpoint] = field(default_factory=list)
     """The endpoints outside the selection: sources for an inlet, sinks for an outlet."""
     inner: List[Endpoint] = field(default_factory=list)
@@ -184,7 +192,15 @@ def _build_ports(
     *,
     is_inlet: bool,
 ) -> List[BoundaryPort]:
-    """Turn one side's edge groups into boundary ports, with unique ids and labels."""
+    """Turn one side's edge groups into boundary ports, with unique ids and labels.
+
+    Each port takes its name, docs, widget and default from the one interior
+    port that names it. An inlet may dedup several inner sinks — one outer
+    outlet feeding three selected nodes becomes one inlet — and only the first
+    of them names the port; the others' labels and widgets are not merged,
+    because no combination of them reads better than one. Groups are sorted, so
+    which one wins is stable across collapses of the same selection.
+    """
     ports: List[BoundaryPort] = []
     taken_ids: Set[str] = set()
     label_counts: Dict[str, int] = {}
@@ -213,6 +229,10 @@ def _build_ports(
                 label=label,
                 itype=itype,
                 flow_type=naming.flow_type,
+                description=naming.description,
+                widget_key=naming.widget_key,
+                widget_config=dict(naming.widget_config),
+                default=naming.default,
                 outer=[(endpoint[0], endpoint[1])]
                 if is_inlet
                 else [(e.sink_node_id, e.inlet_port_id) for e in edges],

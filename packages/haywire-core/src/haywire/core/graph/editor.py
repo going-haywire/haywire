@@ -18,6 +18,7 @@ from haywire.core.undo.actions.graph_actions import (
     DissolveRerouteAction,
     CollapseToGraphNodeAction,
     ExpandGraphNodeAction,
+    SetPortMetadataAction,
     SetPropertyAction,
 )
 
@@ -170,6 +171,35 @@ class Editor:
         except Exception as e:
             logger.error(f"Error setting property {name!r} on {node_id}: {e}")
             return False
+
+    def set_port_metadata(self, node_id: str, port_id: str, **changes: Any) -> Tuple[bool, Optional[str]]:
+        """Edit a port's label, description and/or default, undo-recorded.
+
+        One call is one undo step, however many fields it carries, so a dialog
+        applying all three reverts in one gesture. Only a ``RESOLVED`` port may
+        be edited — see :class:`SetPortMetadataAction`.
+
+        Args:
+            **changes: Any of ``label``, ``description``, ``default``.
+
+        Returns:
+            ``(True, None)`` on success, otherwise ``(False, reason)`` with a
+            message written to be shown to the user.
+        """
+        try:
+            action = SetPortMetadataAction(self.graph, node_id, port_id, **changes)
+            # Pre-flight for the same reason set_property does it: the history
+            # manager swallows an execute() failure, so a refusal would look
+            # like a silent no-op rather than a reported one.
+            action._port()
+            self.history_manager.add_action(action)
+        except Exception as e:
+            logger.error(f"Error editing port {port_id!r} on {node_id}: {e}")
+            return False, str(e)
+        if not action._executed:
+            return False, f"Port {port_id!r} could not be edited"
+        logger.info(f"Edited port {port_id!r} on node {node_id}")
+        return True, None
 
     def remove_elements(self, nodes: List[str], edges: List[str]) -> bool:
         """Remove the given nodes and edges as one undoable action.

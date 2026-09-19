@@ -34,6 +34,7 @@ importing the skin class.
 
 from __future__ import annotations
 
+from typing import Any
 
 from haywire.barn.builtin.types import CHOICES
 from haywire.core.execution.execution_context import ExecutionContext
@@ -90,7 +91,15 @@ class _GrowsInterface(BaseNode):
         return max(used) + 1 if used else 0
 
     def hb_grow(self, port, edge_wrapper) -> None:
-        """Grow an interface port of the connected port's type, and a fresh slot."""
+        """Grow an interface port of the connected port's type, and a fresh slot.
+
+        The new port takes the connected port's label, description, widget and
+        default, so an interface grown by wiring starts out documented and
+        presents the affordance its counterpart does — an interior port behind
+        a 0..1 slider gives the card a 0..1 slider. All of it is the user's from
+        then on: an interface port is ``RESOLVED``, and the Subgraph owns its
+        own interface (ADR 0036).
+        """
         from haywire.barn.builtin.types import ADD
 
         if port.type_cls is None or not issubclass(port.type_cls, ADD):
@@ -111,14 +120,18 @@ class _GrowsInterface(BaseNode):
         # Retyped in place, keeping the slot's own id: the edge being linked is
         # already attached to it, and a port id is baked into that edge's id.
         factory = incoming.as_inlet if self._SLOT_PORT_TYPE is PortType.INLET else incoming.as_outlet
+        kwargs: dict[str, Any] = {
+            "id": port.id,
+            "label": other.label or port.id,
+            "description": other.description,
+            "default": other.default,
+            "origin": PortOrigin.RESOLVED,
+        }
+        if other.widget_key is not None:
+            kwargs["widget_key"] = other.widget_key
+            kwargs["widget_config"] = dict(other.widget_config)
         with self.rejig(include=[port.id]):
-            self.add(
-                factory(
-                    id=port.id,
-                    label=other.label or port.id,
-                    origin=PortOrigin.RESOLVED,
-                )
-            )
+            self.add(factory(**kwargs))
         self._add_slot(self._next_slot_index())
 
 
