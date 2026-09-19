@@ -11,6 +11,8 @@ from nicegui import Client, ui
 from nicegui.elements.sortable.sortable import Sortable
 from nicegui.page import page as page_deco
 
+from haywire.core.types.enums import PortOrigin
+
 pytestmark = pytest.mark.unit
 
 
@@ -28,6 +30,11 @@ class _FakePort:
     parent_fold: str | None = None
     is_fold: bool = False
     widget_key: str | None = None
+    #: DECLARED so the row draws the dimmed pen, which needs no editor.
+    origin: PortOrigin = PortOrigin.DECLARED
+    description: str = ""
+    type_cls: Any = None
+    data_type: Any = None
 
     def should_show_widget(self) -> bool:
         return False
@@ -46,7 +53,7 @@ def _render_lane(ports: list[_FakePort], lane: str = "inlet"):
     with client:
         anchor = ui.column()
         with anchor:
-            NodePortsPanel()._render_lane(object(), ports, lane, "n1", None)
+            NodePortsPanel()._render_lane(object(), ports, lane, "n1", None, cast(Any, None))
     return anchor
 
 
@@ -177,18 +184,20 @@ def _two_folds() -> list[_FakePort]:
 def test_each_folds_children_follow_that_fold() -> None:
     """A child must sit under its OWN fold, not under the last one rendered.
 
-    A fold renders its label; a plain port renders as an id/type metadata row.
+    Every row leads with the port's label — a fold's and a plain port's alike —
+    with the type beside it when no widget occupies that slot ("—" here, since
+    these fakes carry no type).
     """
     labels = _labels(_render_lane(_two_folds(), "config"))
-    assert labels.index("substeps") < labels.index("Advanced")
-    assert [t for t in labels if t != "—"] == ["Solver", "substeps", "Advanced", "epsilon"]
+    assert labels.index("Substeps") < labels.index("Advanced")
+    assert [t for t in labels if t != "—"] == ["Solver", "Substeps", "Advanced", "Epsilon"]
 
 
 def test_a_fold_child_renders_once() -> None:
     """Rendering the children both inline and in a trailing pass duplicates them."""
     labels = _labels(_render_lane(_two_folds(), "config"))
-    assert labels.count("substeps") == 1
-    assert labels.count("epsilon") == 1
+    assert labels.count("Substeps") == 1
+    assert labels.count("Epsilon") == 1
 
 
 def test_a_fold_child_is_indented_below_its_fold() -> None:
@@ -230,3 +239,34 @@ def test_reorder_handler_reads_indices() -> None:
     # The panel subscribes to GraphDataMutated; publishing one redraws the list
     # out from under the gesture.
     assert "GraphDataMutated" not in source
+
+
+def test_a_row_leads_with_the_label_not_the_id() -> None:
+    """The panel reads the same whether or not a port renders a widget.
+
+    A widget row has always shown the label; a widget-less one used to lead
+    with the id. Both now lead with the label, and the id moves to the row's
+    tooltip.
+    """
+    anchor = _render_lane([_FakePort("gain_in", "Gain")])
+    labels = _labels(anchor)
+
+    assert "Gain" in labels
+    assert "gain_in" not in labels
+
+
+def test_every_row_carries_a_pen() -> None:
+    """Dimmed on a port whose presentation is not the user's, but always there:
+    the greyed form with its reason is what explains the difference."""
+    from haywire.ui import elements as hui
+
+    anchor = _render_lane([_FakePort("a", "A"), _FakePort("b", "B")])
+    pens = [
+        e
+        for e in _walk(anchor)
+        if isinstance(e, ui.button) and e._props.get("icon") == hui.icon.edit  # noqa: SLF001
+    ]
+
+    assert len(pens) == 2
+    # These fakes are DECLARED, so both are the disabled form.
+    assert all(p._props.get("disable") for p in pens)  # noqa: SLF001

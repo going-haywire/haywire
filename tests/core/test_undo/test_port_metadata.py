@@ -168,3 +168,76 @@ class TestWhatIsRefused:
 
         assert ok is False
         assert "nobody" in str(reason)
+
+
+class TestTheEditIsPublished:
+    """Writing the port is not enough — two surfaces have to be told.
+
+    A rename changes no structure, so neither the canvas nor a Graph-node
+    watching this Subgraph would otherwise hear about it. The node is marked
+    ``NODE_VALIDATION_REQUESTED``, which is in the redraw set (the card
+    rebuilds, taking its cached pin tooltips with it) and in the reassembly
+    set (the card watching this definition reconciles).
+    """
+
+    def test_the_node_is_marked_for_a_redraw(self, node_with_a_resolved_port, library_system):
+        graph, wrapper = node_with_a_resolved_port
+        graph.force_validation()
+        seen: list = []
+        graph.subscribe_to_validation(lambda r: seen.append(dict(r.nodes)))
+
+        Editor(graph, library_system.get_node_factory()).set_port_metadata(
+            wrapper.node_id, "grown", label="Confidence"
+        )
+        graph.force_validation()
+
+        reasons = [reason for batch in seen for reason in batch.values()]
+        assert any(reason.requires_redraw() for reason in reasons)
+
+    def test_the_reason_also_triggers_reassembly(self, node_with_a_resolved_port, library_system):
+        """What a Graph-node's definition watcher gates on."""
+        graph, wrapper = node_with_a_resolved_port
+        graph.force_validation()
+        seen: list = []
+        graph.subscribe_to_validation(lambda r: seen.append(dict(r.nodes)))
+
+        Editor(graph, library_system.get_node_factory()).set_port_metadata(
+            wrapper.node_id, "grown", label="Confidence"
+        )
+        graph.force_validation()
+
+        reasons = [reason for batch in seen for reason in batch.values()]
+        assert any(reason.requires_graph_reassembly() for reason in reasons)
+
+    def test_it_publishes_even_when_the_node_is_already_dirty(
+        self, node_with_a_resolved_port, library_system
+    ):
+        """The wrapper's mark_as_structuraly_dirty no-ops while the node's own
+        flag is still set from an earlier rejig — and that flag is cleared by
+        the very housekeeping pass this call is trying to cause."""
+        graph, wrapper = node_with_a_resolved_port
+        assert wrapper._is_dirty_structural is True  # left set by the fixture's rejig
+        seen: list = []
+        graph.subscribe_to_validation(lambda r: seen.append(dict(r.nodes)))
+
+        Editor(graph, library_system.get_node_factory()).set_port_metadata(
+            wrapper.node_id, "grown", label="Confidence"
+        )
+        graph.force_validation()
+
+        assert any(wrapper.node_id in batch for batch in seen)
+
+    def test_undo_publishes_too(self, node_with_a_resolved_port, library_system):
+        """Reverting the name must repaint the card the same way."""
+        graph, wrapper = node_with_a_resolved_port
+        editor = Editor(graph, library_system.get_node_factory())
+        editor.set_port_metadata(wrapper.node_id, "grown", label="Confidence")
+        graph.force_validation()
+        seen: list = []
+        graph.subscribe_to_validation(lambda r: seen.append(dict(r.nodes)))
+
+        editor.undo()
+        graph.force_validation()
+
+        assert wrapper.node.ports["grown"].label == "Grown"
+        assert any(wrapper.node_id in batch for batch in seen)

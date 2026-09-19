@@ -948,14 +948,25 @@ class SetPortMetadataAction(ActionBase):
     def _undo_impl(self) -> None:
         self._apply(self._port(), self._old)
 
-    @staticmethod
-    def _apply(port: Any, values: Dict[str, Any]) -> None:
-        """Write ``values`` onto ``port`` and redraw the card showing it."""
+    def _apply(self, port: Any, values: Dict[str, Any]) -> None:
+        """Write ``values`` onto ``port``, then publish the change.
+
+        Marked ``NODE_VALIDATION_REQUESTED``, which is in both the redraw set
+        (so the card repaints with the new name and bounds) and the reassembly
+        set (so a Graph-node watching this Subgraph reconciles and its mirrored
+        pin follows). A rename changes no structure, so nothing else tells them.
+
+        Straight to ``mark_node_dirty`` rather than through the wrapper's
+        ``mark_as_structuraly_dirty``: that one no-ops while the node's
+        ``_is_dirty_structural`` is still set from an earlier rejig, and the
+        flag is cleared by a housekeeping pass this very call is trying to
+        cause.
+        """
+        from ...graph.types import ChangeReason
+
         for name, value in values.items():
             setattr(port, name, value)
-        # The label and the widget's bounds are drawn into the node card, which
-        # only rebuilds when the node is marked dirty.
-        port._mark_as_structuraly_dirty()
+        self.graph._validation.mark_node_dirty(self.node_id, ChangeReason.NODE_VALIDATION_REQUESTED)
 
 
 def _move_subgraphs(source: BaseGraph, target: BaseGraph, keys: List[str]) -> None:

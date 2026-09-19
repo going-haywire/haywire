@@ -273,3 +273,73 @@ class TestCollapseSeedsTheSameWay:
         assert pin.label == "Gain"
         assert pin.description == "Input multiplier"
         assert pin.widget_key == "haywire-core:widget:SliderWidget"
+
+
+class TestARenameReachesTheCard:
+    """Renaming an interface port updates the Graph-node's mirrored pin.
+
+    The card watches its definition's validation and reconciles when the batch
+    requires reassembly. A rename changes no structure, so the edit has to say
+    so itself — see ``SetPortMetadataAction._apply``.
+    """
+
+    @pytest.fixture
+    def card_over_a_named_interface(self, graph_with_library_system: BaseGraph):
+        from haywire.barn.builtin.types import FLOAT
+        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
+
+        graph = graph_with_library_system
+        definition = _definition(graph, key="sg_rename")
+        input_node = make_node(definition, _INPUT)
+        consumer = make_node(definition, _ADD_FLOAT)
+        with consumer.node.rejig():
+            consumer.node.add(FLOAT.as_inlet("gain", label="Gain", description="first"))
+
+        slot_id = _slot(input_node.node)
+        definition.create_edge_wrapper(input_node.node_id, slot_id, consumer.node_id, "gain")
+        definition.force_validation()
+
+        card = make_node(graph, _CARD, node_data={"store": {SUBGRAPH_KEY: "sg_rename"}})
+        card.node.reconcile_interface()
+        return definition, input_node, card, slot_id
+
+    def test_the_card_starts_with_the_seeded_name(self, card_over_a_named_interface):
+        _definition, _input_node, card, slot_id = card_over_a_named_interface
+
+        assert card.node.ports[f"in_{slot_id}"].label == "Gain"
+
+    def test_renaming_the_interface_port_reaches_the_card(self, card_over_a_named_interface, library_system):
+        from haywire.core.graph.editor import Editor
+
+        definition, input_node, card, slot_id = card_over_a_named_interface
+        editor = Editor(definition, library_system.get_node_factory())
+
+        ok, reason = editor.set_port_metadata(input_node.node_id, slot_id, label="Confidence")
+        assert (ok, reason) == (True, None)
+        definition.force_validation()
+
+        assert card.node.ports[f"in_{slot_id}"].label == "Confidence"
+
+    def test_the_description_follows_too(self, card_over_a_named_interface, library_system):
+        from haywire.core.graph.editor import Editor
+
+        definition, input_node, card, slot_id = card_over_a_named_interface
+        editor = Editor(definition, library_system.get_node_factory())
+
+        editor.set_port_metadata(input_node.node_id, slot_id, description="0 to 1")
+        definition.force_validation()
+
+        assert card.node.ports[f"in_{slot_id}"].description == "0 to 1"
+
+    def test_undoing_the_rename_reaches_the_card(self, card_over_a_named_interface, library_system):
+        from haywire.core.graph.editor import Editor
+
+        definition, input_node, card, slot_id = card_over_a_named_interface
+        editor = Editor(definition, library_system.get_node_factory())
+        editor.set_port_metadata(input_node.node_id, slot_id, label="Confidence")
+        definition.force_validation()
+
+        editor.undo()
+        definition.force_validation()
+
+        assert card.node.ports[f"in_{slot_id}"].label == "Gain"
