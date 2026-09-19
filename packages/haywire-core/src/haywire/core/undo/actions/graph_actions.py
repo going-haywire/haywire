@@ -991,12 +991,11 @@ class _BuildSubgraphAction(ActionBase):
 
         node = wrapper.node
         # The interface is the user's, so it is RESOLVED and each port carries a
-        # removal row. The growing slot init() declared stays DECLARED, and is
-        # re-added here because a bare rejig would take it with the rest.
+        # removal row. Excluding DECLARED spares the growing slot init() added,
+        # which a bare rejig would take with the rest.
         from ...types.enums import PortOrigin
 
-        slots = [p for p in node.get_all_ports() if p.origin is PortOrigin.DECLARED]
-        with node.rejig():
+        with node.rejig(exclude=[PortOrigin.DECLARED]):
             for port in ports:
                 spec = (
                     port.itype.as_outlet(
@@ -1014,12 +1013,6 @@ class _BuildSubgraphAction(ActionBase):
                     )
                 )
                 node.add(spec)
-            for slot in slots:
-                node.add(
-                    slot.type_cls.as_outlet(slot.id, label=slot.label, on_connect="hb_grow")
-                    if is_input
-                    else slot.type_cls.as_inlet(slot.id, label=slot.label, on_connect="hb_grow")
-                )
 
     def _undo_impl(self) -> None:
         definition = self.graph.get_subgraph(self.key)

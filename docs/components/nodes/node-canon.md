@@ -98,7 +98,17 @@ with self.rejig(exclude=['exec', 'true', 'false', 'DataType']):
         self.add(FLOAT.as_inlet('with'))
 ```
 
-`rejig()` accepts `include=` and `exclude=` (list of IDs or regex string). Static ports — those declared once in `init()` and never changing — should be excluded so the system doesn't tear them down.
+`rejig()` accepts `include=` and `exclude=`, each a regex string or a list mixing exact port IDs, `PortOrigin` values and compiled patterns. A list's criteria are OR'd; a port is flagged when it matches `include` and does **not** match `exclude`, so a port named by both is spared. `include=None` means every port, `include=[]` means none.
+
+A bare `rejig()` flags **every** port, the ones declared in `init()` included. Static ports — declared once and never changing — must be excluded so the system doesn't tear them down. `exclude=[PortOrigin.DECLARED]` says that in one criterion, and is what a node whose ports come from two owners needs: an interface stamped from outside plus a growing slot of its own. Naming the slot by an ID pattern works only as long as the naming convention holds; the origin is the property that actually distinguishes them.
+
+```python
+with self.rejig(exclude=[PortOrigin.DECLARED]):
+    for port in interface:
+        self.add(port.spec())
+```
+
+**Growing slot.** A node that should gain ports as the user wires them declares a bare `ADD` port in `init()` — the **growing slot**. Connecting to it grows a real port of the incoming type in its place (`PortOrigin.RESOLVED`, so the user may remove it again) and puts a fresh slot below. The slot itself stays `DECLARED`: it is part of what the node is, so it cannot be removed or renamed. `AddPortTestNode` ships the idiom, and the Subgraph boundary nodes use it to make an interface growable. Because the slot and the grown ports have different origins, code that rebuilds the grown set spares the slot with `exclude=[PortOrigin.DECLARED]`. See [ADR 0034](../../adr/0034-add-is-a-type.md) and the **Growing slot** entry in [reference/glossary](../../reference/glossary.md).
 
 **Folds.** `with self.fold('Advanced'):` organises ports into a collapsible UI container without changing the worker contract — the author supplies only a label; the framework mints the container port. Child ports are hidden when collapsed but connections are preserved via ghost pins. Every port inside one takes the same direction, and a fold holds ports rather than other folds — nesting one raises. See [guides/ports](../../guides/ports.md) and [ADR 0035](../../adr/0035-fold-replaces-group-and-section.md).
 

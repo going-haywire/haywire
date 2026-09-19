@@ -7,7 +7,7 @@ from dataclasses import replace
 
 from haywire.core.execution.event_source import EventSource
 from haywire.core.node import NodeIdentity
-from ..types.enums import FlowType, PortType
+from ..types.enums import FlowType, PortOrigin, PortType
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
 from ..types import DataPort, PortSpec
@@ -18,6 +18,16 @@ from haywire.core.settings import NodeSettings, Settings
 if TYPE_CHECKING:
     from haywire.core.node import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
+
+#: One criterion a :meth:`NodeData.rejig` filter selects ports by: an exact
+#: port id, every port of one :class:`PortOrigin`, or a compiled pattern
+#: searched against each port id.
+PortCriterion = str | PortOrigin | re.Pattern[str]
+
+#: What ``rejig``'s ``include`` / ``exclude`` take: a bare ``str`` is a regex
+#: (kept for the single-pattern spelling), and a list holds ``PortCriterion``
+#: values whose matches are unioned.
+PortFilter = str | List[PortCriterion]
 
 
 class NodeData:
@@ -310,26 +320,29 @@ class NodeData:
         # is_fold — see DataPort.has_pin().
         fold_port.adopt_port_type(committed)
 
-    def _push(
-        self, include: Optional[List[str] | str] = None, exclude: Optional[List[str] | str] = None
-    ) -> None:
-        """Internal: flag ports for potential removal. Use rejig() instead."""
+    def _match_filter(self, spec: PortFilter) -> set[str]:
+        """Internal: the ids ``spec`` selects. A list's criteria are OR'd."""
+        if isinstance(spec, str):
+            pattern = re.compile(spec)
+            return {port_id for port_id in self.ports if pattern.search(port_id)}
 
-        if include is None:
-            flagged = set(self.ports.keys())
-        elif isinstance(include, str):
-            pattern = re.compile(include)
-            flagged = {port_id for port_id in self.ports.keys() if pattern.search(port_id)}
-        else:
-            flagged = set(include) & set(self.ports.keys())
-
-        if exclude is not None:
-            if isinstance(exclude, str):
-                pattern = re.compile(exclude)
-                flagged = {port_id for port_id in flagged if not pattern.search(port_id)}
+        matched: set[str] = set()
+        for criterion in spec:
+            if isinstance(criterion, PortOrigin):
+                matched |= {pid for pid, port in self.ports.items() if port.origin is criterion}
+            elif isinstance(criterion, re.Pattern):
+                matched |= {pid for pid in self.ports if criterion.search(pid)}
             else:
-                flagged -= set(exclude)
+                # An exact id inside a list; a regex there is a compiled Pattern.
+                if criterion in self.ports:
+                    matched.add(criterion)
+        return matched
 
+    def _push(self, include: Optional[PortFilter] = None, exclude: Optional[PortFilter] = None) -> None:
+        """Internal: flag ports for potential removal. Use rejig() instead."""
+        flagged = set(self.ports) if include is None else self._match_filter(include)
+        if exclude is not None:
+            flagged -= self._match_filter(exclude)
         self._push_stack.append(flagged)
 
     def _pop(self) -> List[str]:
@@ -366,17 +379,41 @@ class NodeData:
         return removed
 
     @contextmanager
-    def rejig(self, include: Optional[List[str] | str] = None, exclude: Optional[List[str] | str] = None):
+    def rejig(self, include: Optional[PortFilter] = None, exclude: Optional[PortFilter] = None):
         """Flag ports for removal, yield for re-adding them, then remove the rest.
 
         Edges on re-added ports are preserved, and the removal pass runs even if
         the body raises.
 
+        **Flag only what this call owns.** Whatever is flagged and not re-added
+        inside the block is destroyed, so a call that rebuilds one set of ports
+        must exclude every other set. A bare ``rejig()`` flags **every** port,
+        which is right only when the block re-adds the node's whole port list.
+        Two cases need a filter:
+
+        - ports declared in ``init()`` that this call does not rebuild —
+          config ports, and the **growing slot** of a node whose interface is
+          stamped from outside. ``exclude=[PortOrigin.DECLARED]`` spares them
+          all.
+        - ports grown or promoted by the user, when the call rebuilds only what
+          the author declared. ``exclude=[PortOrigin.RESOLVED,
+          PortOrigin.PROMOTED]``.
+
+        Filter by :class:`PortOrigin` rather than by an id pattern where the
+        distinction is ownership: ``exclude=r"^slot_"`` holds only as long as
+        the naming convention does, while the origin is the property that
+        actually separates an authored port from a stamped one.
+
+        A port is flagged when it matches ``include`` and does not match
+        ``exclude``, so a port named by both is spared. Each filter is
+        ``None``, a regex string, or a list whose criteria are OR'd: an exact
+        port id, a :class:`PortOrigin` standing for every port of that origin,
+        or a compiled pattern. ``include=None`` means every port;
+        ``include=[]`` means none.
+
         Args:
-            include: Ports to flag, applied first — ``None`` for every port, a
-                list of port IDs, or a regex searched against each port ID.
-            exclude: Ports to drop from the flagged set, applied second, in the
-                same three forms.
+            include: Ports to flag, applied first.
+            exclude: Ports to drop from the flagged set, applied second.
 
         Examples:
             Reconfigure all ports except a config port:
@@ -394,6 +431,31 @@ class NodeData:
                 with self.rejig(include=r'^dynamic_'):
                     for i in range(count):
                         self.add(INT.as_inlet(f'dynamic_inlet_{i}'))
+
+            Rebuild an interface stamped from outside, sparing the growing
+            slot this node declared (it is not part of the interface, and a
+            bare rejig would take it):
+
+            .. code-block:: python
+
+                with self.rejig(exclude=[PortOrigin.DECLARED]):
+                    for port in interface:
+                        self.add(port.spec())
+
+            Several criteria in one filter — they are OR'd, so this spares one
+            named port as well as everything declared:
+
+            .. code-block:: python
+
+                with self.rejig(exclude=['add_port', PortOrigin.DECLARED]):
+                    ...
+
+            Rebuild only what the user grew, leaving the rest alone:
+
+            .. code-block:: python
+
+                with self.rejig(include=[PortOrigin.RESOLVED]):
+                    ...
         """
         self._push(include=include, exclude=exclude)
         try:

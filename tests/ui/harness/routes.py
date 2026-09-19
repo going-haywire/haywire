@@ -1136,6 +1136,7 @@ def register_routes(library_service) -> None:
 
         from haybale_testing.types.test_types import TEST_FLOAT
         from haywire.barn.builtin.nodes.subgraph_io import SubgraphInputNode, SubgraphOutputNode
+        from haywire.core.types.enums import PortOrigin
 
         inp = definition.create_node_wrapper(
             SubgraphInputNode.class_identity.registry_key, position=(3600.0, 3700.0)
@@ -1146,9 +1147,9 @@ def register_routes(library_service) -> None:
         assert inp is not None and out is not None  # noqa: PT018
         # exclude the growing slot: a bare rejig() flags every port, so the
         # slot would be dropped rather than kept beside the stamped interface.
-        with inp.node.rejig(exclude=r"^slot_"):
+        with inp.node.rejig(exclude=[PortOrigin.DECLARED]):
             inp.node.add(TEST_FLOAT.as_outlet("value", label="Value"))
-        with out.node.rejig(exclude=r"^slot_"):
+        with out.node.rejig(exclude=[PortOrigin.DECLARED]):
             out.node.add(TEST_FLOAT.as_inlet("result", label="Result"))
         definition.force_validation()
 
