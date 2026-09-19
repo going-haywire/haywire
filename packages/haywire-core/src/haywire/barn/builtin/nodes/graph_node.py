@@ -23,7 +23,6 @@ Group without importing any display-only library.
 
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import Any, TYPE_CHECKING
 
 from haywire.core.execution.execution_context import ExecutionContext
@@ -34,7 +33,6 @@ from haywire.core.graph.subgraph_crossing import (
     exit_crossing_id,
 )
 from haywire.core.node import node, BaseNode, NodeType
-from haywire.core.node.behavior import NodeBehaviorFlags
 from haywire.core.types import FlowType
 from haywire.core.types.enums import PortType
 
@@ -70,11 +68,6 @@ class GraphNode(BaseNode):
     makes this a DATA node, anything else a CONTROL node.
     """
 
-    #: Resolved by reconcile_interface. Class-level so a read that lands before
-    #: init() — structural validation does — sees the port-less answer instead
-    #: of an AttributeError.
-    _behavior: NodeBehaviorFlags | None = None
-
     #: The definition this card is subscribed to, so the subscription can be
     #: moved when the card is re-bound.
     _watched: "SubgraphDefinition | None" = None
@@ -82,7 +75,11 @@ class GraphNode(BaseNode):
     def init(self) -> None:
         # No ports. They mirror the Subgraph's interface ports, which post_init
         # reads once the store has restored the subgraph key.
-        pass
+        #
+        # The role still has to be settled now: a card with no Subgraph bound
+        # never reaches reconcile_interface, and structural validation reads
+        # the role as the node is added.
+        self._stamp_node_type()
 
     def post_init(self) -> None:
         self.reconcile_interface()
@@ -189,7 +186,7 @@ class GraphNode(BaseNode):
                 for inlet in self._boundary_ports(output_node, PortType.INLET):
                     self._mirror(inlet, as_outlet=True)
 
-        self._behavior = self._derive_behavior()
+        self._stamp_node_type()
 
     @staticmethod
     def _boundary_ports(wrapper, port_type: PortType) -> list["DataPort"]:
@@ -236,28 +233,17 @@ class GraphNode(BaseNode):
     # DERIVED NODE TYPE
     # =========================================================================
 
-    @property
-    def behavior(self) -> NodeBehaviorFlags:
-        """This instance's behavior flags, with ``node_type`` derived from the interface.
+    def _stamp_node_type(self) -> None:
+        """Take the node type from the pins this card currently carries.
 
         A Subgraph crossed by control flow makes the card a CONTROL node; one
-        crossed only by data makes it a DATA node. The flag is per instance
-        because the interface is, so it cannot come from the class.
-
-        Resolved by ``reconcile_interface``, which is the only thing that
-        changes this card's pins. ``_execute`` reads this on every run, so it is
-        a stored answer rather than a scan over the ports.
+        crossed only by data makes it a DATA node. Called from ``init()`` for
+        the port-less answer, and again from ``reconcile_interface`` — the only
+        thing that changes these pins — so the role is always settled before
+        validation or assembly reads it.
         """
-        if self._behavior is None:
-            return self._derive_behavior()
-        return self._behavior
-
-    def _derive_behavior(self) -> NodeBehaviorFlags:
-        """Read the node type off the pins this card currently carries."""
-        flags = type(self).class_behavior
-        if self.get_ports(is_flow_type=FlowType.CONTROL, has_pin=True):
-            return flags
-        return replace(flags, node_type=NodeType.DATA)
+        control = bool(self.get_ports(is_flow_type=FlowType.CONTROL, has_pin=True))
+        self.set_node_type(type(self).class_behavior.node_type if control else NodeType.DATA)
 
     # =========================================================================
     # ASSEMBLY

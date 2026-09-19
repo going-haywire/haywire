@@ -54,9 +54,13 @@ class NodeType(IntFlag):
 
 @dataclass(frozen=True)
 class NodeBehaviorFlags:
-    """Immutable behavioral characteristics of a node class.
+    """An immutable set of behavioral characteristics.
 
-    Set at class-definition time by the ``@node`` decorator and fixed from then on.
+    The ``@node`` decorator builds one per class, and every node is stamped
+    with its class's at construction. The object itself never changes — a node
+    whose shape decides its role replaces the whole set through
+    ``BaseNode.set_node_type()``, which is the only field that may vary per
+    instance. See ``NodeData.behavior``.
 
     Set via decorator:
         @node(

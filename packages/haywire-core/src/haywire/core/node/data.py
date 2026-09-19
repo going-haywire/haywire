@@ -3,6 +3,7 @@ import inspect
 import re
 from typing import TYPE_CHECKING, Iterator, Any, Callable, ClassVar, Dict, List, Optional, cast
 from contextlib import contextmanager
+from dataclasses import replace
 
 from haywire.core.execution.event_source import EventSource
 from haywire.core.node import NodeIdentity
@@ -10,7 +11,7 @@ from ..types.enums import FlowType, PortType
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
 from ..types import DataPort, PortSpec
-from .behavior import NodeBehaviorFlags
+from .behavior import NodeBehaviorFlags, NodeType
 from .user_data import NodeCache, NodeStore
 from haywire.core.settings import NodeSettings, Settings
 
@@ -44,6 +45,11 @@ class NodeData:
 
         self.node_id = node_id
         self.wrapper = wrapper
+
+        # Stamped here rather than read off the class on every access, because
+        # a node whose shape decides its role restamps it — and because a read
+        # can land before init() (structural validation does one).
+        self._behavior: NodeBehaviorFlags = self.__class__.class_behavior
 
         self.event_subscription: EventSource | None = None
         # TODO: CallbackSystem
@@ -102,8 +108,28 @@ class NodeData:
 
     @property
     def behavior(self) -> NodeBehaviorFlags:
-        """Node behavior flags (read-only, from class)."""
-        return self.__class__.class_behavior
+        """This node's behavior flags (read-only).
+
+        Stamped from the class at construction. Every field is the class's
+        except ``node_type``, which a node whose shape decides its role
+        restamps through :meth:`set_node_type`.
+        """
+        return self._behavior
+
+    def set_node_type(self, node_type: NodeType) -> None:
+        """Give this node a ``node_type`` of its own, leaving its other flags alone.
+
+        For a node whose execution role follows its ports rather than its
+        class — a Graph-node is CONTROL when control crosses its Subgraph and
+        DATA when only data does.
+
+        Call it whenever the shape it is derived from changes, and before
+        anything reads the role: structural validation reads it as the node is
+        added, and assembly reads it to place the node in a flow. A flow
+        already built is not revisited, so a call after assembly reaches the
+        next one, not the frame in flight.
+        """
+        self._behavior = replace(self._behavior, node_type=node_type)
 
     @property
     def library(self) -> LibraryIdentity:
