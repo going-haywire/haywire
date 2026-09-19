@@ -56,21 +56,42 @@ Held up under review:
   browser harness; the hidden-canvas remount path follows the known
   multi-canvas DOM trap correctly.
 
-## 2. Execution pass — partially reviewed
+## 2. Execution pass — DONE (2026-09-19)
 
-Reviewed: ADR 0036's core argument (crossed, not inlined), `FlatGraphView`, the
-crossing vocabulary, and the three workers' hot paths.
+Reviewed earlier: ADR 0036's core argument (crossed, not inlined),
+`FlatGraphView`, the crossing vocabulary, and the three workers' hot paths.
+This pass covered the four remaining items; all now have tests in
+`tests/core/test_assembly/test_subgraph_execution_edges.py`.
 
-Not reviewed:
+Held up as the ADR claims:
 
-- Lazy edge propagation across a boundary. ADR 0036 asserts "lazy edges need no
-  special handling" — unverified by test.
-- A loopback straddling the boundary. ADR 0036 argues it is safe for Groups and
-  unsafe for Functions; no test exercises the Group case.
-- Callback edges into or out of a Subgraph.
-- Behaviour under the threaded scheduler. Every Subgraph test drives the VM
-  directly and synchronously (`tests/core/test_assembly/test_flat_view.py:1`
-  says so explicitly), so nothing covers a Group in a real scheduler thread.
+- **Lazy edges across a boundary.** A card's `_execute` drains the pull before
+  the crossing is taken, so the Subgraph Input copies a resolved value. Covered
+  in both directions (lazy into the card, lazy out of it).
+- **A loop straddling the boundary.** The inlined control graph spans host and
+  Subgraph, so the loopback push and pop land in the same local list. A
+  ForLoop whose body runs inside a Group assembles into one flow and
+  terminates.
+- **The threaded scheduler.** A control Group runs to completion through it.
+
+**Found: `is_lazy` did not reach the live pipe.** A `Pipe` copies `is_lazy` at
+construction and the setter only wrote the flag, so toggling an edge to lazy in
+the studio had no effect until some later structural change happened to touch
+the same outlet — order-dependent and silent. Not Subgraph-specific. Fixed in
+the setter; regression tests in `tests/core/test_edge/test_edge_lazy_toggle.py`.
+
+**Found: collapse could mint a CALLBACK interface port.** Callbacks cannot
+cross a boundary at all — the subscription travels as a port value pooled on
+the sink keyed by that edge, and no relay can be written (see the new ADR 0036
+section for the full argument, settled by inquisition). `CollapseToGraphNodeAction`
+now refuses a selection a callback edge crosses, in either direction. The
+growing slot needed no change: it is `FlowType.DATA`, so formal edge validation
+already rejects a callback into it. Those are the only two paths that create an
+interface port.
+
+Also corrected: `_validate_callback_edge`'s docstring blamed a wiring-time read
+in the assembly manager, which is not what happens. The rule is right; its
+stated reason was not.
 
 ## 3. Code corrections — small, known, unstarted
 
