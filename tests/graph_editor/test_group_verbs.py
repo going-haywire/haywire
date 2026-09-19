@@ -63,9 +63,6 @@ class TestEditorVerbs:
         before = set(graph.node_wrappers)
 
         _collapse(editor, [a.node_id, b.node_id])
-        # Auto-grouping holds a fresh action pending, so a fence is what makes
-        # it undoable — the same as any other action added through the Editor.
-        editor.history_manager.add_fence()
 
         assert editor.can_undo()
         editor.undo()

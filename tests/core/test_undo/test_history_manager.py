@@ -281,3 +281,40 @@ def test_clear_cleans_pending_and_history():
     assert pending.cleaned is True
     assert h.history == []
     assert h.can_undo() is False
+
+
+# ---------------------------------------------------------------------------
+# Pending actions are undoable
+# ---------------------------------------------------------------------------
+
+
+def test_a_pending_action_is_undoable():
+    """``undo()`` flushes before it undoes, so ``can_undo()`` must say so too.
+
+    Auto-grouping holds a fresh action in ``_pending_actions`` rather than
+    ``history``. Reading only ``history`` here reported False for every
+    unfenced edit, which disabled the undo button and made
+    ``Editor.undo()`` — which gates on this — a silent no-op.
+    """
+    log: list = []
+    h = HistoryManager(_merging_config())
+    h.add_action(RecordingAction("a", log))
+
+    assert h._pending_actions != []
+    assert h.history == []
+    assert h.can_undo() is True
+
+
+def test_undoing_a_pending_action_reverses_it():
+    log: list = []
+    h = HistoryManager(_merging_config())
+    h.add_action(RecordingAction("a", log))
+
+    assert h.undo() is True
+    assert ("undo", "a") in log
+
+
+def test_can_undo_is_false_with_nothing_pending_or_flushed():
+    h = HistoryManager(_merging_config())
+
+    assert h.can_undo() is False

@@ -273,7 +273,10 @@ class HistoryManager(IHistoryManager):
 
     def can_undo(self) -> bool:
         """Check if undo operation is possible."""
-        return self._get_current_undoable_item() is not None
+        # Pending actions count: undo() flushes them before undoing, so an
+        # action still inside the grouping window is undoable even though
+        # nothing has reached `history` yet.
+        return bool(self._pending_actions) or self._get_current_undoable_item() is not None
 
     def can_redo(self) -> bool:
         """Check if redo operation is possible."""

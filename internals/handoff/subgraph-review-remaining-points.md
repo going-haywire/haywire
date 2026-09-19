@@ -17,27 +17,44 @@ findings landed. Pass 3 was covered only where it met the assembly seam. **Pass
 Everything below is unstarted unless marked otherwise. All the landed work is
 uncommitted on `feat/graph-nodes-slice1`.
 
-## 1. UX pass — never reviewed
+## 1. UX pass — DONE (2026-09-19)
 
-The area the user asked for second and we never reached. Nothing here is known
-to be wrong; it is simply unexamined.
+Reviewed: the level system, `SubgraphContainer`, the collapse/expand round
+trip, and instant switching. One defect found, fixed and covered; everything
+else held up.
 
-- `barn/haybale-graph-editor/haybale_graph_editor/editors/graph_editor.py`
-  (+734 lines in the landing commit) — the level system: `_Level`,
-  `level_key_for`, `_open_level`/`_close_level`/`_switch_level`, the breadcrumb
-  and level bar, `_prune_dead_levels`.
-- `SubgraphContainer` (`barn/haybale-graph-editor/haybale_graph_editor/protocols.py:78`)
-  — delegation of `path`/`unsaved`/`save()` to the host, and the shared undo
-  history (`protocols.py:119`: the Subgraph's `Editor` is constructed with
-  `history_manager=host.editor.history_manager`).
-- `CollapseToGraphNodeAction` / `ExpandGraphNodeAction` round-tripping, and
-  whether each is independently undoable in the ways the docstrings claim.
-- Instant switching between a graph and a Group document.
+**Fixed: `can_undo()` ignored pending actions — every unfenced edit was
+silently un-undoable.** `HistoryManager` holds a fresh action in
+`_pending_actions` until something flushes it, but `can_undo()` read only
+`history`. `Editor.undo()` gates on that predicate, so it early-returned and
+undid nothing; `_update_undo_redo_buttons` reads the same predicate, so the
+toolbar button sat disabled too. `HistoryManager.undo()` flushes on its own and
+would have worked — only the guard was wrong. Drag and resize place fences and
+so escaped it; add node/edge, delete, collapse and expand did not. Pre-existing
+and framework-wide, not Subgraph-specific. `can_undo()` now counts
+`_pending_actions`, with three regression tests in `test_history_manager.py`.
 
-One question worth asking early: the shared history means an undo issued at the
-document level can undo an edit made inside a Group that is no longer open.
-`_prune_dead_levels` (`graph_editor.py:305`) handles the reverse direction (a
-level whose Subgraph vanished). The forward direction was never checked.
+The suite had fenced around it: `test_group_verbs.py` called `add_fence()`
+before asserting `can_undo()`, with a comment reading the behaviour as correct.
+That fence is now removed, so the test would catch a regression.
+
+Held up under review:
+
+- **The shared history's forward direction** (the question this doc flagged).
+  An undo issued at the document level does reach an edit made inside a Group,
+  open or closed — actions carry their own graph reference, so the history is
+  graph-agnostic. Verified end to end once the `can_undo()` bug was out of the
+  way.
+- **`_prune_dead_levels` compares definitions by identity, not by key.** This
+  matters: redoing a collapse builds a *new* `SubgraphDefinition` object under
+  the *same* key (verified). A key comparison would leave a stale level pointing
+  at a dead definition; the identity check closes it correctly.
+- **Re-entry keeps the open container**, so a Group keeps its canvas, viewport
+  and undo state. The throwaway `SubgraphContainer` that `descend_into` builds
+  to compute a level key is harmless — `Editor.__init__` is inert.
+- **Instant switching**, covered by `test_graph_hidden_level_edges.py` in the
+  browser harness; the hidden-canvas remount path follows the known
+  multi-canvas DOM trap correctly.
 
 ## 2. Execution pass — partially reviewed
 
