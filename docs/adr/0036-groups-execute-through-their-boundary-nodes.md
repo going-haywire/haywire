@@ -144,6 +144,38 @@ The constraint is real for Functions, where the stack is a local per call and a
 body crossing out of a nested flow would push onto one stack and pop from
 another. It belongs there, with the mechanism that creates it.
 
+## A callback may not cross the boundary
+
+Where a loop crosses safely, a callback cannot cross at all — and the reason is
+not that the crossing machinery is missing, but that no relay can be written.
+
+A callback edge carries its subscription as the source port's **value**: the
+event name, which arrives in the sink's pooled inlet keyed by that edge's id.
+Unlinking the edge clears exactly that key, which is what makes a listener's
+disconnection reach the emitter.
+
+A boundary node copies values with `target.set_value(source.get_value())`, so a
+relayed subscription would enter the interior pool keyed by the *inner* edge.
+The value arrives, and emitting works. Removal does not: unlinking outside
+clears the card's pool and never touches the interior's, leaving the Subgraph
+subscribed to a listener that is gone. Closing that gap needs the relay to
+observe disconnection, but `on_change` fires only on writes — `_clear_link`
+fires `on_disconnect`, which carries the outer `EdgeWrapper` and no handle on
+the inner source to clear. Forwarding the original `source_id` instead would
+forge a pool key against the invariant `remove_source` relies on everywhere.
+And the growing slot lets the user add an interface port at any time, so no
+invariant a collapse establishes survives.
+
+So the existing rule — a callback edge runs straight from its event node — is
+not a gap awaiting a crossing. It is the only enforceable statement, and it is
+the same rule that keeps a reroute off a callback edge, for the same reason.
+
+Two paths create an interface port, and both are closed. The **growing slot**
+is `FlowType.DATA`, so formal edge validation rejects a callback into it and
+`hb_grow` never runs. **Collapse** is checked explicitly:
+`CollapseToGraphNodeAction` refuses a selection that a callback edge crosses,
+in either direction, before `derive_interface` can mint a port for it.
+
 ## The interface belongs to the user; the card reflects it
 
 An interface derived once at collapse is wrong as soon as the Subgraph needs

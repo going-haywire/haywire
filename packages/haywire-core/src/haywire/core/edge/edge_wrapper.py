@@ -252,7 +252,16 @@ class EdgeWrapper:
 
     @is_lazy.setter
     def is_lazy(self, value: bool) -> None:
+        if self._edge.is_lazy == value:
+            return
         self._edge.is_lazy = value
+        # A Pipe copies is_lazy at construction, so the live pipe keeps the old
+        # mode until the outlet rebuilds it. Without this the toggle takes
+        # effect only when some later structural change happens to touch the
+        # same outlet.
+        if self._outlet_port is not None:
+            self._outlet_port._mark_as_structuraly_dirty()
+            self._outlet_port._housekeeping()
 
     # =========================================================================
     # GRAPH NOTIFICATION (mirrors NodeWrapper pattern)

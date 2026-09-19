@@ -1199,6 +1199,16 @@ class CollapseToGraphNodeAction(CompositeAction):
                 f"it through {', '.join(intervening)}. Add them to the selection to collapse it."
             )
 
+        straddling = _callback_edge_partners(graph, selected)
+        if straddling:
+            raise ValueError(
+                "This selection cannot be collapsed: a callback edge would cross the Group's "
+                f"boundary, to {', '.join(straddling)}. A callback edge must run straight from "
+                "its event node to its listener — the subscription travels as a port value, and "
+                "a boundary node cannot carry it across. Add the node at the other end to the "
+                "selection, or leave both ends outside it."
+            )
+
         plan = derive_interface(graph, selected)
 
         # Captured while the graph is still intact — the children below run later.
@@ -1429,6 +1439,30 @@ class ExpandGraphNodeAction(CompositeAction):
 
         self.inner_node_ids = [node_id for node_id in nodes if node_id not in boundary_ids]
         super().__init__(actions, description or "Expand Group")
+
+
+def _callback_edge_partners(graph: BaseGraph, selected: List[str]) -> List[str]:
+    """The nodes outside ``selected`` that a callback edge joins to one inside it.
+
+    A callback edge carries its subscription as a port value, read from the
+    sink's pool. A boundary node cannot relay it: the copy would re-key the
+    pool entry by its own edge, and unlinking the outer edge clears only the
+    outer port's pool, leaving the interior holding a subscription to a
+    listener that is no longer connected. Both directions are reported — a
+    Group can no more import a callback than export one.
+    """
+    from ...types.enums import FlowType
+
+    inside = set(selected)
+    partners: List[str] = []
+    for node_id in selected:
+        for edge in graph._get_all_edges(node_id):
+            if edge.edge_type is not FlowType.CALLBACK:
+                continue
+            other = edge.sink_node_id if edge.source_node_id == node_id else edge.source_node_id
+            if other not in inside:
+                partners.append(other)
+    return sorted(set(partners))
 
 
 #: How far outside the contents' bounding box a boundary node sits.

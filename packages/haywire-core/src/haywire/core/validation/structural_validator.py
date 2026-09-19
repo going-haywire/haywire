@@ -537,10 +537,16 @@ class StructuralValidator(IStructuralValidator):
         Rules:
         - Source must be an EVENT node.
 
-        Reroutes are NOT valid CALLBACK sources: the flow assembly manager reads
-        the subscription key from the source port at wiring time, before any
-        worker has run to forward it through the reroute. The listener flow would
-        never register. Use a direct EVENT → listener connection instead.
+        A callback edge carries its subscription as the source port's *value* —
+        the event name, which lands in the sink's pooled inlet keyed by this
+        edge's id. Only a direct connection keeps that key aligned with the
+        edge the user can unlink: an intermediate node re-keys the entry by its
+        own hop, so removing the upstream edge clears the intermediate's pool
+        and leaves the sink subscribed to an event nothing emits any more.
+
+        This is why a reroute cannot sit on a callback edge, and equally why one
+        cannot cross a Subgraph boundary — ``CollapseToGraphNodeAction`` refuses
+        a selection that would make it. Use a direct EVENT → listener connection.
         """
         from haywire.core.node.behavior import NodeType
 
