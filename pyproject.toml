@@ -35,6 +35,7 @@ haybale-share = { workspace = true }
 dev = [
     "pytest",
     "pytest-cov",
+    "pytest-timeout",
     "mypy",
     # ty is pre-1.0 and ships new diagnostics frequently; pin exactly so the
     # non-blocking CI check (and local runs) stay reproducible. Bump deliberately.
@@ -157,6 +158,10 @@ markers = [
     "perf: Performance micro/graph benchmarks (excluded from default run; `uv run pytest -m perf`)",
 ]
 addopts = "-v --strict-markers --tb=short --maxfail=5 -m 'not perf'"
+# A wedged test otherwise stalls the whole run indefinitely with no output —
+# the suite looks alive while making no progress. The slowest legitimate test
+# is ~17s, so this only ever fires on a genuine hang.
+timeout = 120
 
 [tool.haywire.release]
 # Canonical machine-readable list of releasable packages.
