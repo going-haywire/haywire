@@ -2,6 +2,7 @@ from haywire.core.library.kinds import kind_registry_map, KIND_FOLDERS, canon_ar
 
 EXPECTED = {
     "node",
+    "macro",
     "type",
     "adapter",
     "widget",
@@ -15,7 +16,7 @@ EXPECTED = {
 }
 
 
-def test_kind_map_covers_all_eleven_kinds():
+def test_kind_map_covers_every_kind():
     assert set(kind_registry_map()) == EXPECTED
     assert set(KIND_FOLDERS) == EXPECTED
 

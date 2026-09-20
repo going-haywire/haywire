@@ -22,6 +22,7 @@ def test_extract_collects_components_with_identity(service):
         assert rec.registry_key.split(":")[0] == "haybale-testing"
         assert rec.kind in {
             "node",
+            "macro",
             "type",
             "adapter",
             "widget",
