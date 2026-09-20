@@ -2,35 +2,6 @@ from haywire.core.types import type, FlowType, PrimitiveType, StoreStrategy
 
 from haywire.barn.builtin.types import STRING
 
-
-# ============================================================================
-# Group Type
-# ============================================================================
-
-
-@type(
-    flow_type=FlowType.DATA,
-    label="Group",
-    description="Inlet group",
-    color="#ebff0f",
-    widget_key="haywire-core:widget:SwitchWidget",
-    default={"value": False},
-)
-class GROUP(PrimitiveType[bool]):
-    """Group data type.
-
-    Superseded by ``NodeData.fold()``, which mints a `FOLD` port of its own.
-    Kept for graphs saved before the change; new nodes use ``fold()``.
-    """
-
-    def to_dict(self) -> dict:
-        return {"value": bool(self._value)}
-
-    @classmethod
-    def from_dict(cls, data: dict) -> bool:
-        return bool(data.get("value", False))
-
-
 # ============================================================================
 # Binary Type
 # ============================================================================
