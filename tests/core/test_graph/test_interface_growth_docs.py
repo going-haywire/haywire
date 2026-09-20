@@ -9,6 +9,8 @@ Subgraph owns its interface (ADR 0036), so a user edit survives revalidation.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, cast
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph
@@ -17,6 +19,9 @@ from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.types.enums import PortOrigin, PortType
 
 from tests.conftest import make_node
+
+if TYPE_CHECKING:
+    from haywire.barn.builtin.nodes.graph_node import GraphNode
 
 pytestmark = [pytest.mark.integration]
 
@@ -166,7 +171,7 @@ class TestTheWidgetTravels:
         definition.force_validation()
 
         card = make_node(graph, _CARD, node_data={"store": {SUBGRAPH_KEY: "sg_widget"}})
-        card.node.reconcile_interface()
+        cast("GraphNode", card.node).reconcile_interface()
         return input_node, card, slot_id
 
     def test_the_boundary_port_takes_the_widget(self, slider_interface):
@@ -231,6 +236,7 @@ class TestCollapseSeedsTheSameWay:
         action.execute()
         graph.force_validation()
         definition = graph.get_subgraph(action.subgraph_key)
+        assert definition is not None
         definition.force_validation()
         return definition, graph.get_node_wrapper(action.card_node_id)
 
@@ -300,7 +306,7 @@ class TestARenameReachesTheCard:
         definition.force_validation()
 
         card = make_node(graph, _CARD, node_data={"store": {SUBGRAPH_KEY: "sg_rename"}})
-        card.node.reconcile_interface()
+        cast("GraphNode", card.node).reconcile_interface()
         return definition, input_node, card, slot_id
 
     def test_the_card_starts_with_the_seeded_name(self, card_over_a_named_interface):

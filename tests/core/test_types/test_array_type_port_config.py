@@ -21,6 +21,7 @@ def _edge_link_test_node(graph: BaseGraph):
 
     key = EdgeLinkTestNode.class_identity.registry_key
     wrapper = graph.create_node_wrapper(key, position=(100, 100))
+    assert wrapper is not None
     return wrapper.node
 
 

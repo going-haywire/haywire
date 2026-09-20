@@ -185,9 +185,12 @@ class TestTheGraphNodeCard:
         action.execute()
         graph.force_validation()
         definition = graph.get_subgraph(action.subgraph_key)
+        assert definition is not None
         definition.force_validation()
 
         card = graph.get_node_wrapper(action.card_node_id)
+        assert card is not None
+        assert definition.input_node is not None
         interface = next(
             p
             for p in definition.input_node.node.get_all_ports()

@@ -190,8 +190,8 @@ class NodeData:
 
             self.add(FLOAT.as_inlet("value"))
 
-        A refresh (using this function within a rejig()) keeps the live ``DataPort`` 
-        if possible. Changes of the field or port type produces a genuinely different 
+        A refresh (using this function within a rejig()) keeps the live ``DataPort``
+        if possible. Changes of the field or port type produces a genuinely different
         port object and triggerst a housekeeping pass to reattach edges to the new port.
 
         Returns:

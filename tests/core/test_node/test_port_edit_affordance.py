@@ -7,6 +7,8 @@ the model that backs the default-value editor.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, cast
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph
@@ -16,6 +18,10 @@ from haywire.ui.panel.port_default_widget_model import PortDefaultWidgetModel
 from haybale_graph_editor.panels.properties.introspect.node_ports import _identity_tooltip
 
 from tests.conftest import make_node
+
+if TYPE_CHECKING:
+    from haybale_graph_editor.protocols import GraphContainer
+    from haywire.ui.widget.base import BaseWidget
 
 pytestmark = [pytest.mark.integration]
 
@@ -153,7 +159,7 @@ class TestFindingTheEditor:
         document_editor = Editor(graph, library_system.get_node_factory())
 
         app_state = GraphAppState()
-        app_state.register(_FakeContainer(document_editor))
+        app_state.register(cast("GraphContainer", _FakeContainer(document_editor)))
 
         assert _host_history(app_state, definition) is document_editor.history_manager
 
@@ -174,7 +180,7 @@ class TestFindingTheEditor:
         document_editor = Editor(graph, library_system.get_node_factory())
 
         app_state = GraphAppState()
-        app_state.register(_FakeContainer(document_editor))
+        app_state.register(cast("GraphContainer", _FakeContainer(document_editor)))
 
         assert _host_history(app_state, inner) is document_editor.history_manager
 
@@ -243,10 +249,12 @@ class TestTheWidgetActuallyBuilds:
 
         port, model = model_for
         widget_cls = get_widget_class(port.widget_key)
+        assert widget_cls is not None
 
         widget = widget_cls(model)
 
-        assert widget.get_value() == pytest.approx(0.75)
+        # get_value is BaseWidget's, not on the IWidget interface get_widget_class returns.
+        assert cast("BaseWidget", widget).get_value() == pytest.approx(0.75)
 
     def test_the_model_satisfies_the_widget_model_protocol(self, model_for):
         _port, model = model_for

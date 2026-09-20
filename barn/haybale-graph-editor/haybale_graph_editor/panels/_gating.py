@@ -104,6 +104,7 @@ def is_reroute_node(ctx: "SessionContext") -> bool:
         return False
     return wrapper.node.behavior.is_reroute_node
 
+
 def is_boundary_node(ctx: "SessionContext") -> bool:
     """True when the selection's primary node is a boundary node.
 
@@ -115,7 +116,6 @@ def is_boundary_node(ctx: "SessionContext") -> bool:
     if wrapper is None:
         return False
     return wrapper.node.behavior.is_boundary_node
-
 
 
 def is_graph_node(ctx: "SessionContext") -> bool:
