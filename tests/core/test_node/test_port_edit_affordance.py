@@ -13,10 +13,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.types.enums import PortOrigin
 from haywire.ui.panel.port_default_widget_model import PortDefaultWidgetModel
 
-from haybale_graph_editor.panels.properties.introspect.node_ports import (
-    _NOT_EDITABLE_TOOLTIP,
-    _identity_tooltip,
-)
+from haybale_graph_editor.panels.properties.introspect.node_ports import _identity_tooltip
 
 from tests.conftest import make_node
 
@@ -50,18 +47,8 @@ class TestWhichPortsAreEditable:
     def test_a_resolved_port_is(self, ports):
         assert ports["resolved"].origin is PortOrigin.RESOLVED
 
-    def test_a_declared_port_is_not_and_says_why(self, ports):
-        port = ports["declared"]
-
-        assert port.origin is PortOrigin.DECLARED
-        assert "node author" in _NOT_EDITABLE_TOOLTIP[port.origin]
-
-    def test_a_promoted_port_is_pointed_at_its_setting(self):
-        assert "setting" in _NOT_EDITABLE_TOOLTIP[PortOrigin.PROMOTED]
-
-    def test_every_non_editable_origin_has_a_reason(self):
-        """A dimmed pen with no explanation is worse than no pen."""
-        assert set(_NOT_EDITABLE_TOOLTIP) == {PortOrigin.DECLARED, PortOrigin.PROMOTED}
+    def test_a_declared_port_is_not(self, ports):
+        assert ports["declared"].origin is not PortOrigin.RESOLVED
 
 
 class TestTheRowTooltip:

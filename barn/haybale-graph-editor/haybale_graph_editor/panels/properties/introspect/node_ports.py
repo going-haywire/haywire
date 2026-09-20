@@ -38,15 +38,6 @@ _DRAG_HANDLE_CLASS = "hw-port-drag-handle"
 """Marks the grip element SortableJS accepts a drag from (its ``handle`` selector)."""
 
 
-#: Why a port's presentation is not the user's to edit, per origin. A DECLARED
-#: port is the node author's contract and appears in that component's docs; a
-#: PROMOTED one takes its presentation from the setting behind it.
-_NOT_EDITABLE_TOOLTIP = {
-    PortOrigin.DECLARED: "This pin is part of what the node is — its name and default are the node author's",
-    PortOrigin.PROMOTED: "This pin comes from a setting — edit the setting instead",
-}
-
-
 def _identity_tooltip(port: object) -> str:
     """The port's id, plus its description when the author wrote one.
 
@@ -202,26 +193,13 @@ class NodePortsPanel(BasePanel):
             self._render_pen(port, node_id, widget_factory, context)
 
     def _render_pen(self, port, node_id: str, widget_factory, context: "SessionContext") -> None:
-        """The edit affordance, greyed on a port whose presentation is not the user's.
-
-        Shown on every row rather than only the editable ones: the greyed form
-        with its reason is what answers "why can I rename that one and not this
-        one", the same way the pin menu's removal row does.
-        """
-        if port.origin is not PortOrigin.RESOLVED:
-            # Dimmed rather than greyed, and still hoverable so the tooltip
-            # explaining why reaches the user — see hui.icon_action's rules.
+        """The edit affordance, shown only on ports the user can actually edit."""
+        if port.origin is PortOrigin.RESOLVED:
             hui.icon_action(
                 hui.icon.edit,
-                tooltip=_NOT_EDITABLE_TOOLTIP[port.origin],
-            ).style("opacity: 0.4; cursor: default;").props("disable")
-            return
-
-        hui.icon_action(
-            hui.icon.edit,
-            tooltip="Edit name, description and default",
-            on_click=lambda: self._open_editor(port, node_id, context),
-        )
+                tooltip="Edit name, description and default",
+                on_click=lambda: self._open_editor(port, node_id, context),
+            )
 
     def _open_editor(self, port, node_id: str, context: "SessionContext") -> None:
         """Open the edit dialog against the graph that is on screen now."""
