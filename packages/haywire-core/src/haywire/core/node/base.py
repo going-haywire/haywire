@@ -12,6 +12,7 @@ from haywire.core.settings import Settings
 
 if TYPE_CHECKING:
     from haywire.core.node import NodeWrapper
+    from haywire.core.registry.lifecycle_event import LifeCycleEvent
 
 logger = logging.getLogger(__name__)
 
@@ -206,6 +207,28 @@ class BaseNode(NodeData):
     def on_saved(self) -> None:
         """Run whenever the graph is saved to disk, before the node is serialized."""
         pass
+
+    def on_class_reloaded(self, event: "LifeCycleEvent") -> bool:
+        """Absorb a successful reload of this node's registry entry, or decline it.
+
+        Declining takes the generic path: the node is rebuilt from current code
+        through ``init()``, discarding port values, ``props`` and the store.
+        That is what makes an author's new ports appear, so override this only
+        for a node whose definition lives outside its class — a macro placement
+        swaps its interior in place instead, keeping the values and label the
+        user set.
+
+        An override runs on the reload path and must not raise; one that does
+        is logged and the node takes the generic rebuild.
+
+        Args:
+            event: The successful reload event for this node's registry key.
+
+        Returns:
+            ``True`` when the node has handled the reload itself and no
+            rebuild should follow. ``False`` by default.
+        """
+        return False
 
     def on_teardown(self) -> None:
         """Release any resources this node holds. Called when it is removed from the graph."""

@@ -137,7 +137,7 @@ class NodeWrapper:
             position: Initial (x, y) canvas position of the node.
         """
         self.registry_key = registry_key
-        """The registry key of the node class. Only _rebuild() may change it."""
+        """The registry key of the node class, fixed for the wrapper's lifetime."""
         self._node_id = node_id
         """The node instance's ID, fixed for the wrapper's lifetime."""
         self._graph = graph
@@ -239,17 +239,6 @@ class NodeWrapper:
             )
         else:
             self._state.is_imported = True
-
-    def _rebuild(self, registry_key: str) -> None:
-        """Rebuild the node under a new registry key, carrying its serialized state over."""
-        with self._lock:
-            self.registry_key = registry_key
-            self._import_node_cls()
-            node_info = self._node_instance._to_dict() if self._node_instance is not None else None
-            self.build(node_info)
-            # Tell graph about need for hot reload
-            if self._graph:
-                self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_HOT_RELOADED)
 
     def build(self, node_info: Optional[Dict[str, Any]] = None):
         """Build the node: instantiate, initialize, validate structurally, then test it.
@@ -510,6 +499,26 @@ class NodeWrapper:
             self._node_cls = lc_event.affected_class
             self._state.error_import = None
             self._state.is_imported = True
+
+            # A node whose definition lives outside its class absorbs the reload
+            # itself, keeping values and label the generic rebuild would discard.
+            if self._node_instance is not None:
+                try:
+                    if self._node_instance.on_class_reloaded(lc_event):
+                        return
+                except Exception as e:
+                    HaywireException.from_exception(
+                        exception=e,
+                        operation="Node Class Reloaded",
+                        message=(
+                            f"Node '{self.registry_key}' failed to absorb its class reload; "
+                            f"rebuilding it instead."
+                        ),
+                    ).enrich(
+                        node_id=self._node_id,
+                        graph_id=self._graph.graph_id,
+                        registry_key=self.registry_key,
+                    ).log(logger)
 
             # Tell graph about need for hot reload (will trigger rebuild via validation)
             if self._graph:

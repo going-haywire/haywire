@@ -117,6 +117,10 @@ class GraphNode(BaseNode):
         name everywhere else too — the level tab, the breadcrumb, and the label
         stored in the file. Clearing the label restores the class label, here
         as on the card.
+
+        Sound only where one card owns its interior. A card standing for a
+        template shared by several placements overrides this to a no-op, or
+        renaming one card would rename every other card's interior with it.
         """
         definition = self.resolve_definition()
         if definition is not None:
