@@ -80,7 +80,7 @@ class MacroRegistry(DocumentRegistry[MacroTemplate]):
 
         registry_key = self._document_key(path, library_identity)
 
-        ok, reason = self._validate_containment(document)
+        ok, reason = validate_containment(document)
         if not ok:
             raise ValueError(reason)
 
@@ -108,61 +108,6 @@ class MacroRegistry(DocumentRegistry[MacroTemplate]):
             identity=identity,
             library=library_identity,
         )
-
-    def _validate_containment(self, document: dict) -> tuple[bool, str | None]:
-        """Exactly one Subgraph Input and Output; no EVENT or OUTPUT node.
-
-        Reads each node's ``registry_key`` against ``NodeRegistry`` rather than
-        instantiating: a registry scan must not construct nodes, which would
-        acquire whatever hardware their ``init`` opens. A node class that is
-        not registered is skipped — an absent library is the placement's
-        problem, not a malformed document.
-        """
-        from haywire.core.di.config import get_library_system
-        from haywire.core.node.behavior import NodeType
-
-        try:
-            registry = get_library_system().get_node_registry()
-        except Exception:
-            # Without a node registry there is nothing to validate against;
-            # the document is accepted and the placement reports what is missing.
-            return (True, None)
-
-        inputs: list[str] = []
-        outputs: list[str] = []
-        offenders: list[str] = []
-
-        for node_id, entry in (document.get("nodes") or {}).items():
-            cls = registry.get(str(entry.get("registry_key", "")))
-            if cls is None:
-                continue
-            identity = cls.class_identity
-            node_type = cls.class_behavior.node_type
-            if NodeType.BOUNDARY in node_type:
-                if identity._is_subgraph_input:
-                    inputs.append(node_id)
-                if identity._is_subgraph_output:
-                    outputs.append(node_id)
-                continue
-            if NodeType.EVENT in node_type or NodeType.OUTPUT in node_type:
-                offenders.append(f"{node_id} ({identity.label})")
-
-        if offenders:
-            return (
-                False,
-                f"A Subgraph cannot contain an EVENT or OUTPUT node. Found: {', '.join(offenders)}",
-            )
-
-        if len(inputs) != 1 or len(outputs) != 1:
-            return (
-                False,
-                (
-                    f"A Subgraph must contain exactly one Subgraph Input and one Subgraph Output "
-                    f"(found {len(inputs)} input(s), {len(outputs)} output(s))"
-                ),
-            )
-
-        return (True, None)
 
     def _closes_a_cycle(self, registry_key: str, document: dict) -> str | None:
         """Return the cycle ``document`` would close, or ``None``.
@@ -209,3 +154,66 @@ class MacroRegistry(DocumentRegistry[MacroTemplate]):
                 continue
             frontier.extend(self._macro_keys_in(template.document))
         return seen
+
+
+def validate_containment(document: dict) -> tuple[bool, str | None]:
+    """Whether ``document`` may be a macro, and why not when it may not.
+
+    Exactly one Subgraph Input and one Subgraph Output, and no EVENT or OUTPUT
+    node. Reads each node's ``registry_key`` against ``NodeRegistry`` rather
+    than instantiating: a registry scan must not construct nodes, which would
+    acquire whatever hardware their ``init`` opens. A node class that is not
+    registered is skipped — an absent library is the placement's problem, not
+    a malformed document.
+
+    A module function rather than a method, so the promote flow can refuse a
+    Group in its dialog without building a registry to ask.
+
+    Returns:
+        ``(True, None)`` when the document is acceptable, else ``(False, reason)``.
+    """
+    from haywire.core.di.config import get_library_system
+    from haywire.core.node.behavior import NodeType
+
+    try:
+        registry = get_library_system().get_node_registry()
+    except Exception:
+        # Without a node registry there is nothing to validate against;
+        # the document is accepted and the placement reports what is missing.
+        return (True, None)
+
+    inputs: list[str] = []
+    outputs: list[str] = []
+    offenders: list[str] = []
+
+    for node_id, entry in (document.get("nodes") or {}).items():
+        cls = registry.get(str(entry.get("registry_key", "")))
+        if cls is None:
+            continue
+        identity = cls.class_identity
+        node_type = cls.class_behavior.node_type
+        if NodeType.BOUNDARY in node_type:
+            if identity._is_subgraph_input:
+                inputs.append(node_id)
+            if identity._is_subgraph_output:
+                outputs.append(node_id)
+            continue
+        if NodeType.EVENT in node_type or NodeType.OUTPUT in node_type:
+            offenders.append(f"{node_id} ({identity.label})")
+
+    if offenders:
+        return (
+            False,
+            f"A Subgraph cannot contain an EVENT or OUTPUT node. Found: {', '.join(offenders)}",
+        )
+
+    if len(inputs) != 1 or len(outputs) != 1:
+        return (
+            False,
+            (
+                f"A Subgraph must contain exactly one Subgraph Input and one Subgraph Output "
+                f"(found {len(inputs)} input(s), {len(outputs)} output(s))"
+            ),
+        )
+
+    return (True, None)
