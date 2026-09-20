@@ -28,15 +28,14 @@ interface yet (see ``_validate_boundary_node``).
 
 These nodes live in the framework-owned **builtin** library so headless graphs
 can always load a Subgraph without importing any display-only library: they
-declare their skin by registry-key *string* on their own ``props`` bag, never
-importing the skin class.
+never import the skin class, and render with whichever skin the graph's
+default resolves to, like any other node.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from haywire.barn.builtin.types import CHOICES
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.graph.subgraph_crossing import (
@@ -45,7 +44,6 @@ from haywire.core.graph.subgraph_crossing import (
     exit_crossing_id,
 )
 from haywire.core.node import node, BaseNode, NodeType
-from haywire.core.settings.descriptor import UiState
 from haywire.core.types import FlowType, PortOrigin
 from haywire.core.types.enums import PortType
 

@@ -117,18 +117,25 @@ def test_both_classes_are_hidden_from_the_add_node_menu():
     assert out_key not in reg.list_visible_names()
 
 
-def test_both_classes_bind_the_boundary_skin_by_key_string():
+def test_both_classes_inherit_the_default_skin_binding():
+    """Boundary nodes render with the graph's default skin, like any other node.
+
+    There is no dedicated boundary skin: ``props`` is inherited from
+    ``BaseNode`` unmodified, so the ``skin`` field stays the framework's
+    ``graph()`` mirror rather than a class-level override.
+    """
     from haywire.barn.builtin.nodes.subgraph_io import SubgraphInputNode, SubgraphOutputNode
+    from haywire.core.node.base import BaseNode
 
     for cls in (SubgraphInputNode, SubgraphOutputNode):
-        descriptor = cls.props._settings_descriptors()["skin"]
-        assert descriptor._default == "haywire-core:skin:SubgraphIOSkin"
+        assert cls.props is BaseNode.props
 
 
-def test_module_does_not_import_the_skin_class():
-    """The boundary nodes bind their skin by key string, never by import.
+def test_module_does_not_import_ui():
+    """Boundary nodes live in the headless builtin library.
 
-    Importing it would pull haywire.ui onto the headless execution path.
+    Importing anything skin/UI-related would pull haywire.ui + nicegui onto
+    the headless execution path.
     """
     import ast
     import inspect
@@ -144,7 +151,6 @@ def test_module_does_not_import_the_skin_class():
 
     assert imported, "no imports parsed — the guard would pass vacuously"
     assert not [name for name in imported if "skin" in name or name.startswith("nicegui")]
-    assert not hasattr(mod, "SubgraphIOSkin")
 
 
 # ---------------------------------------------------------------------------
