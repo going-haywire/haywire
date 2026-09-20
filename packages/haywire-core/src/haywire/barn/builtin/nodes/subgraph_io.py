@@ -45,12 +45,10 @@ from haywire.core.graph.subgraph_crossing import (
     exit_crossing_id,
 )
 from haywire.core.node import node, BaseNode, NodeType
-from haywire.core.settings import setting
 from haywire.core.settings.descriptor import UiState
 from haywire.core.types import FlowType, PortOrigin
 from haywire.core.types.enums import PortType
 
-_SKIN_KEY = "haywire-core:skin:SubgraphIOSkin"
 
 #: Id prefix of the growing slot. Indices are never reused: a port id is baked
 #: into the id of every edge attached to it, so renumbering detaches them.
@@ -154,44 +152,12 @@ class SubgraphInputNode(_GrowsInterface):
     more — so a Subgraph can gain an input at any time.
     """
 
-    # Subclasses the INHERITED bag (BaseNode.props), not NodeProperties: the
-    # inherited bag is what @node's conflict check compares against, and it is
-    # itself a NodeProperties subclass, so anything it declares is kept too.
-    # mypy sees BaseNode.props as the `props: NodeProperties` instance
-    # annotation from BaseNode's TYPE_CHECKING branch, hence the ignore.
-    class props(BaseNode.props):  # type: ignore[valid-type,misc]
-        """Overrides the framework ``skin`` prop; inherits every other field.
-
-        A boundary node renders in exactly one skin — that is a constraint of
-        what the node IS, so this replaces ``NodeProperties.skin``'s ``graph()``
-        mirror with a plain field: the graph's (or studio's) default skin never
-        reaches a boundary node, and "reset to default" returns HERE.
-
-        Bound by registry-key STRING, never by importing the skin class:
-        importing it would pull haywire.ui + nicegui onto the headless
-        execution path. The renderer resolves the key lazily at render time.
-        """
-
-        skin = setting[CHOICES](
-            _SKIN_KEY,
-            label="Skin",
-            description="Boundary nodes always use the subgraph rail skin",
-            category="appearance",
-            order=10,
-        )
-
     _SLOT_PORT_TYPE = PortType.OUTLET
 
     def init(self) -> None:
         # Only the growing slot. The collapse action stamps the interface around
         # it, choosing the port ids, so this node names no fixed interface id.
         self._add_slot(0)
-
-    def post_init(self) -> None:
-        # Whole-category chrome gating; the skin binding itself is declared on
-        # the props bag above. Runs on both fresh creation and load.
-        for cat in ("state", "appearance", "annotation", "layout"):
-            self.props._set_ui_state_all(UiState.HIDDEN, category=cat)
 
     def worker(self, context: ExecutionContext) -> str | None:
         """Hand the card's inlet values to the Subgraph, and control with them.
@@ -264,30 +230,12 @@ class SubgraphOutputNode(_GrowsInterface):
     more — so a Subgraph can gain an output at any time.
     """
 
-    class props(BaseNode.props):  # type: ignore[valid-type,misc]
-        """Overrides the framework ``skin`` prop; inherits every other field.
-
-        See ``SubgraphInputNode.props``.
-        """
-
-        skin = setting[CHOICES](
-            _SKIN_KEY,
-            label="Skin",
-            description="Boundary nodes always use the subgraph rail skin",
-            category="appearance",
-            order=10,
-        )
-
     _SLOT_PORT_TYPE = PortType.INLET
 
     def init(self) -> None:
         # Only the growing slot. The collapse action stamps the interface around
         # it, choosing the port ids, so this node names no fixed interface id.
         self._add_slot(0)
-
-    def post_init(self) -> None:
-        for cat in ("state", "appearance", "annotation", "layout"):
-            self.props._set_ui_state_all(UiState.HIDDEN, category=cat)
 
     def worker(self, context: ExecutionContext) -> str | None:
         """Hand the Subgraph's results to the card, and control back out with them.

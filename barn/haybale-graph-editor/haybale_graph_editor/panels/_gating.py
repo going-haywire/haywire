@@ -104,6 +104,19 @@ def is_reroute_node(ctx: "SessionContext") -> bool:
         return False
     return wrapper.node.behavior.is_reroute_node
 
+def is_boundary_node(ctx: "SessionContext") -> bool:
+    """True when the selection's primary node is a boundary node.
+
+    The primary node is the one whose card is on show, and the one that
+    receives the context menu. It is not necessarily the only node in the
+    selection, but it is the one that matters for this command.
+    """
+    wrapper = ctx.data[EditState].active_node
+    if wrapper is None:
+        return False
+    return wrapper.node.behavior.is_boundary_node
+
+
 
 def is_graph_node(ctx: "SessionContext") -> bool:
     """True when the selection's primary node is a Graph-node — a Group's card.

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.core.settings.descriptor import UiState
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
@@ -69,12 +70,13 @@ class NodePropertiesPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         node = ctx.data[EditState].active_node
-        return (
-            node is not None
-            and hasattr(node, "node")
-            and node.node is not None
-            and hasattr(node.node, "props")
-        )
+        if node is None or not hasattr(node, "node") or node.node is None:
+            return False
+        props = getattr(node.node, "props", None)
+        if props is None:
+            return False
+        fields = type(props)._settings_descriptors()
+        return any(props._effective_ui_state(name) is not UiState.HIDDEN for name in fields)
 
     def draw(
         self,

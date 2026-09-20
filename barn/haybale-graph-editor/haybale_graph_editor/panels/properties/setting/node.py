@@ -21,8 +21,9 @@ from haywire.ui.panel.decorator import panel
 
 from haywire.ui.panel.render_utils import render_settings
 
-from ....surfaces import SettingsInspector
-from ....state.edit_state import EditState
+from haybale_graph_editor.panels._gating import is_reroute_node
+from haybale_graph_editor.surfaces import SettingsInspector
+from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -42,6 +43,8 @@ class NodeSettingsPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         node = ctx.data[EditState].active_node
+        if is_reroute_node(ctx):
+            return False
         return (
             node is not None
             and hasattr(node, "node")
