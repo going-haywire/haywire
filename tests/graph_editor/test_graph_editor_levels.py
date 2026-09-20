@@ -81,6 +81,17 @@ def _card(definition) -> Any:
     return wrapper
 
 
+def _placement_card(definition) -> Any:
+    """A wrapper whose node is a macro placement, interior and all."""
+    from haywire.barn.builtin.nodes.macro_node import MacroNode
+
+    wrapper = MagicMock()
+    wrapper.node = MagicMock(spec=MacroNode)
+    type(wrapper.node).class_identity = MacroNode.class_identity
+    wrapper.node.resolve_definition.return_value = definition
+    return wrapper
+
+
 def _editor(document: _FakeDocument | None = None) -> tuple[GraphEditor, Any, _FakeDocument]:
     """A GraphEditor holding ``document`` as its only level, drawn far enough to switch."""
     from haywire.ui.editor.wrapper import EditorWrapper
@@ -183,6 +194,22 @@ class TestDescending:
         editor, context, _document = _editor()
 
         assert editor.descend_into(context, "nobody") is False
+
+    def test_a_macro_placement_is_refused(self):
+        """Its interior is rebuilt from the template, so there is nothing to edit here.
+
+        The studio opens the macro document instead; showing a placement's live
+        interior waits on a read-only editor mode.
+        """
+        editor, context, _document = _editor()
+        definition = _definition(key="macro_card_1")
+        entry = editor._levels[editor._active_level].container
+        graph = entry.editor.graph
+        graph.node_wrappers["MacroNode_1"] = _placement_card(definition)
+        graph.subgraphs[definition.key] = definition
+
+        assert editor.descend_into(context, "MacroNode_1") is False
+        assert list(editor._levels) == [DOCUMENT_LEVEL]
 
 
 class TestAscending:

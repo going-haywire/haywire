@@ -678,6 +678,16 @@ class GraphEditor(BaseEditor):
         wrapper = entry.editor.graph.get_node_wrapper(card_node_id)
         if wrapper is None:
             return False
+
+        from haywire.core.macro.source import is_macro_placement
+
+        if is_macro_placement(wrapper.node):
+            # A placement's interior is runtime state rebuilt from the template,
+            # so there is nothing here to edit in place. Opening the document is
+            # the editing surface; showing the interior needs a read-only mode.
+            logger.info(f"GraphEditor: refused descending into macro placement '{card_node_id}'")
+            return False
+
         resolve = getattr(wrapper.node, "resolve_definition", None)
         definition = resolve() if resolve is not None else None
         if definition is None:
