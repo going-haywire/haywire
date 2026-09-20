@@ -38,8 +38,8 @@ Pending plans are numbered by their place in it; `landed/` holds the Slice-1
 step plans, numbered in the order they were built.
 
 
-**1. Instant switching** —
-[2026-09-15-instant-subgraph-switching.md](01-instant-subgraph-switching.md)
+**1. Instant switching** — **landed** (`10500f44`);
+[01-instant-subgraph-switching.md](01-instant-subgraph-switching.md)
 
 Keep every visited level mounted so entering and leaving a Group costs a
 `set_value`. First, because it changes *how* a Subgraph is opened: a Group gets
@@ -47,20 +47,21 @@ its own editor tab rather than re-keying one. Slice 2's Macro opens as its own
 document and needs exactly that primitive, so building Macro tabs first would
 mean two navigation models and then a conversion.
 
-**2. Give `reconcile_interface()` a caller**
+**2. Give `reconcile_interface()` a caller** — **landed** (`3eac0e4f`;
+`GraphNode._watch_definition()` subscribes the card to its definition's
+validation)
 
-Editing a boundary port through the Ports panel must reach the card; today only
-an explicit call does. A validation subscription is not the hook —
-`mark_as_structuraly_dirty` short-circuits on a node already flagged dirty, so a
-second `rejig` produces no batch.
+Editing a boundary port through the Ports panel must reach the card. A plain
+validation subscription was not enough on its own — `mark_as_structuraly_dirty`
+short-circuits on a node already flagged dirty — which is what the rejig fix
+in `3eac0e4f` addressed.
 
-Second, because Slice 2's *"saving a Macro rebuilds every instantiation"* is this
-reconciliation fanned out across placements. Building Macros on a reconciliation
-path that never fires would hide the failure behind a feature.
+**3. Slice 2 — Macro** — [03-macro.md](03-macro.md), settled 2026-09-20
 
-**3. Slice 2 — Macro**
-
-Three things to settle before writing code; see that section.
+That plan supersedes the outline below. Its 2026-09-20 revision closes the
+reload question: a placement's registry key *is* the macro key, so the node
+factory's per-key lifecycle relay is the fan-out, and the placement absorbs a
+reload in place through the Group's own interior-changed path.
 
 **4. Slice 3 — Function**
 
@@ -205,6 +206,9 @@ integration extends `NodeFactory.get_menu_structure()`
 Cross-file cycle detection enforces decision 17.
 
 ### Three things to settle first
+
+Superseded by [03-macro.md](03-macro.md), which answers items 1 and 2 from
+existing code. Item 3 stands. Kept here for the reasoning.
 
 1. **Give each Graph-node its own instantiation.** A `SubgraphDefinition` is
    currently both the template and the single live graph, 1:1 with its card. A
