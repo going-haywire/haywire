@@ -6,35 +6,31 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="A Group runs as ordinary nodes in the host's flow — the boundary nodes copy values across a virtual crossing — because a view over assembly can decide when a node runs but never where a value goes; and the interface those nodes carry belongs to the user, so it can grow and shrink while the card only reflects it">
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/architecture/execution/assembly/assembly-arch/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0036-groups-execute-through-their-boundary-nodes/">
       
       
-        <link rel="prev" href="../../execution-arch/">
-      
-      
-        <link rel="next" href="../../edges/edges-arch/">
       
       
         
       
       
-      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Assembly - Haywire Documentation</title>
+        <title>A Group executes through its boundary nodes - Haywire Documentation</title>
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,7 +49,7 @@
       
     
     
-    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#assembly-architecture" class="md-skip">
+        <a href="#a-group-executes-through-its-boundary-nodes" class="md-skip">
           Skip to content
         </a>
       
@@ -94,7 +90,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+    <a href="../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -114,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Assembly
+              A Group executes through its boundary nodes
             
           </span>
         </div>
@@ -209,7 +205,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="../../../.." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -230,7 +226,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../welcome/user/" class="md-tabs__link">
+        <a href="../../welcome/user/" class="md-tabs__link">
           
   
   
@@ -252,7 +248,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../components/nodes/node-canon/" class="md-tabs__link">
+        <a href="../../components/nodes/node-canon/" class="md-tabs__link">
           
   
   
@@ -274,7 +270,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../haybale/haybale-canon/" class="md-tabs__link">
+        <a href="../../haybale/haybale-canon/" class="md-tabs__link">
           
   
   
@@ -296,7 +292,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../guides/node-roles/" class="md-tabs__link">
+        <a href="../../guides/node-roles/" class="md-tabs__link">
           
   
   
@@ -314,13 +310,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../../../overview/overview-arch/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/overview-arch/" class="md-tabs__link">
           
   
   
@@ -342,7 +336,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../reference/" class="md-tabs__link">
+        <a href="../../reference/" class="md-tabs__link">
           
   
   
@@ -364,7 +358,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+        <a href="../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
           
   
   
@@ -406,7 +400,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+    <a href="../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -424,7 +418,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -480,7 +474,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../welcome/user/" class="md-nav__link ">
+            <a href="../../welcome/user/" class="md-nav__link ">
               
   
   
@@ -524,7 +518,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../welcome/advanced/" class="md-nav__link">
+      <a href="../../welcome/advanced/" class="md-nav__link">
         
   
   
@@ -552,7 +546,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../welcome/core/" class="md-nav__link">
+      <a href="../../welcome/core/" class="md-nav__link">
         
   
   
@@ -663,7 +657,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../components/nodes/node-canon/" class="md-nav__link">
+      <a href="../../components/nodes/node-canon/" class="md-nav__link">
         
   
   
@@ -698,7 +692,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../components/datatypes/datatype-canon/" class="md-nav__link">
+      <a href="../../components/datatypes/datatype-canon/" class="md-nav__link">
         
   
   
@@ -733,7 +727,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../components/adapters/adapter-canon/" class="md-nav__link">
+      <a href="../../components/adapters/adapter-canon/" class="md-nav__link">
         
   
   
@@ -768,7 +762,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../components/settings/setting-canon/" class="md-nav__link">
+      <a href="../../components/settings/setting-canon/" class="md-nav__link">
         
   
   
@@ -803,7 +797,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../components/widgets/widget-canon/" class="md-nav__link">
+      <a href="../../components/widgets/widget-canon/" class="md-nav__link">
         
   
   
@@ -838,7 +832,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../components/skins/skin-canon/" class="md-nav__link">
+      <a href="../../components/skins/skin-canon/" class="md-nav__link">
         
   
   
@@ -873,7 +867,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../components/themes/theme-canon/" class="md-nav__link">
+      <a href="../../components/themes/theme-canon/" class="md-nav__link">
         
   
   
@@ -908,7 +902,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../components/editors/editor-canon/" class="md-nav__link">
+      <a href="../../components/editors/editor-canon/" class="md-nav__link">
         
   
   
@@ -943,7 +937,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../components/panels/panel-canon/" class="md-nav__link">
+      <a href="../../components/panels/panel-canon/" class="md-nav__link">
         
   
   
@@ -978,7 +972,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../components/states/state-canon/" class="md-nav__link">
+      <a href="../../components/states/state-canon/" class="md-nav__link">
         
   
   
@@ -1086,7 +1080,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../haybale/haybale-canon/" class="md-nav__link">
+      <a href="../../haybale/haybale-canon/" class="md-nav__link">
         
   
   
@@ -1121,7 +1115,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../haybale/metadata-flow/" class="md-nav__link">
+      <a href="../../haybale/metadata-flow/" class="md-nav__link">
         
   
   
@@ -1156,7 +1150,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../haybale/marketplace/marketplace-canon/" class="md-nav__link">
+      <a href="../../haybale/marketplace/marketplace-canon/" class="md-nav__link">
         
   
   
@@ -1191,7 +1185,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../haybale/marketplace/haybale-marketplace-arch/" class="md-nav__link">
+      <a href="../../haybale/marketplace/haybale-marketplace-arch/" class="md-nav__link">
         
   
   
@@ -1226,7 +1220,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+      <a href="../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
         
   
   
@@ -1340,7 +1334,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/node-roles/" class="md-nav__link">
+      <a href="../../guides/node-roles/" class="md-nav__link">
         
   
   
@@ -1375,7 +1369,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/ports/" class="md-nav__link">
+      <a href="../../guides/ports/" class="md-nav__link">
         
   
   
@@ -1410,7 +1404,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/signals/" class="md-nav__link">
+      <a href="../../guides/signals/" class="md-nav__link">
         
   
   
@@ -1445,7 +1439,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/rename-library/" class="md-nav__link">
+      <a href="../../guides/rename-library/" class="md-nav__link">
         
   
   
@@ -1480,7 +1474,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/sharing-libraries/" class="md-nav__link">
+      <a href="../../guides/sharing-libraries/" class="md-nav__link">
         
   
   
@@ -1515,7 +1509,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/publish-to-pypi/" class="md-nav__link">
+      <a href="../../guides/publish-to-pypi/" class="md-nav__link">
         
   
   
@@ -1550,7 +1544,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+      <a href="../../guides/subscribing-to-marketplaces/" class="md-nav__link">
         
   
   
@@ -1585,7 +1579,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../guides/security/" class="md-nav__link">
+      <a href="../../guides/security/" class="md-nav__link">
         
   
   
@@ -1624,10 +1618,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -1657,22 +1649,21 @@
     
     
       
-        
-        
-      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
@@ -1690,7 +1681,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1708,7 +1699,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../overview/overview-arch/" class="md-nav__link">
+      <a href="../../architecture/overview/overview-arch/" class="md-nav__link">
         
   
   
@@ -1743,7 +1734,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../design/design-arch/" class="md-nav__link">
+      <a href="../../architecture/design/design-arch/" class="md-nav__link">
         
   
   
@@ -1778,7 +1769,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../design/stepper-arch/" class="md-nav__link">
+      <a href="../../architecture/design/stepper-arch/" class="md-nav__link">
         
   
   
@@ -1806,7 +1797,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../graph/graph-arch/" class="md-nav__link">
+      <a href="../../architecture/graph/graph-arch/" class="md-nav__link">
         
   
   
@@ -1831,10 +1822,8 @@
                 
   
   
-    
   
   
-  
     
     
       
@@ -1857,21 +1846,20 @@
     
       
       
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
         
           
-          
         
-      
-    
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" checked>
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
             
   
   
@@ -1889,7 +1877,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6_5">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1907,7 +1895,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../execution-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/execution-arch/" class="md-nav__link">
         
   
   
@@ -1932,44 +1920,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Assembly
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../architecture/execution/assembly/assembly-arch/" class="md-nav__link">
         
   
   
@@ -1992,242 +1946,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#1-mental-model" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. Mental model
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-contract" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Contract
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. Contract">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-flowassemblymanager" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1 FlowAssemblyManager
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#22-pipeline-stages" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.2 Pipeline stages
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#23-validation-rules" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.3 Validation rules
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#24-assembly-metadata" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.4 Assembly metadata
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-lifecycle" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Lifecycle
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Lifecycle">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#31-initial-assembly-graph-load" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.1 Initial assembly (graph load)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#32-just-in-time-reassembly-not-yet-implemented" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.2 Just-in-time reassembly (NOT YET IMPLEMENTED)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#33-lazy-evaluation-handoff" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.3 Lazy evaluation handoff
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#34-hot-reload-coordination" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.4 Hot-reload coordination
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-boundary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. Boundary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#5-examples" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Examples
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="5. Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#51-inspect-assembly-output" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.1 Inspect assembly output
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#52-forced-reassembly" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.2 Forced reassembly
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#53-multiple-event-nodes-multiple-flows" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.3 Multiple event nodes → multiple Flows
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#6-open-questions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Open questions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-files" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key files
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2240,7 +1958,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../edges/edges-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/edges/edges-arch/" class="md-nav__link">
         
   
   
@@ -2275,7 +1993,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../flow/flow-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/flow/flow-arch/" class="md-nav__link">
         
   
   
@@ -2310,7 +2028,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../virtual-machine/virtual-machine-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
         
   
   
@@ -2345,7 +2063,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
         
   
   
@@ -2380,7 +2098,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../callbacks/callbacks-arch/" class="md-nav__link">
+      <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
         
   
   
@@ -2423,7 +2141,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../library-system/library-system-arch/" class="md-nav__link">
+      <a href="../../architecture/library-system/library-system-arch/" class="md-nav__link">
         
   
   
@@ -2458,7 +2176,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../sharing/share-pipeline-arch/" class="md-nav__link">
+      <a href="../../architecture/sharing/share-pipeline-arch/" class="md-nav__link">
         
   
   
@@ -2493,7 +2211,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../hot-reload/hot-reload-arch/" class="md-nav__link">
+      <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
         
   
   
@@ -2528,7 +2246,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../settings/settings-arch/" class="md-nav__link">
+      <a href="../../architecture/settings/settings-arch/" class="md-nav__link">
         
   
   
@@ -2563,7 +2281,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../session-and-state/session-and-state-arch/" class="md-nav__link">
+      <a href="../../architecture/session-and-state/session-and-state-arch/" class="md-nav__link">
         
   
   
@@ -2616,13 +2334,10 @@
       
       
         
-          
-          
-        
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
@@ -2631,7 +2346,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
             
   
   
@@ -2667,7 +2382,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../studio/studio-arch/" class="md-nav__link">
+      <a href="../../architecture/studio/studio-arch/" class="md-nav__link">
         
   
   
@@ -2702,7 +2417,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../studio/app-shell/app-shell-arch/" class="md-nav__link">
+      <a href="../../architecture/studio/app-shell/app-shell-arch/" class="md-nav__link">
         
   
   
@@ -2737,7 +2452,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../studio/workspace/workspace-arch/" class="md-nav__link">
+      <a href="../../architecture/studio/workspace/workspace-arch/" class="md-nav__link">
         
   
   
@@ -2772,7 +2487,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../studio/canvas/canvas-arch/" class="md-nav__link">
+      <a href="../../architecture/studio/canvas/canvas-arch/" class="md-nav__link">
         
   
   
@@ -2807,7 +2522,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../studio/rendering/rendering-arch/" class="md-nav__link">
+      <a href="../../architecture/studio/rendering/rendering-arch/" class="md-nav__link">
         
   
   
@@ -2890,7 +2605,7 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../../../reference/" class="md-nav__link ">
+            <a href="../../reference/" class="md-nav__link ">
               
   
   
@@ -2934,7 +2649,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../reference/glossary/" class="md-nav__link">
+      <a href="../../reference/glossary/" class="md-nav__link">
         
   
   
@@ -2969,7 +2684,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../reference/design-guide/" class="md-nav__link">
+      <a href="../../reference/design-guide/" class="md-nav__link">
         
   
   
@@ -3004,7 +2719,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../reference/doc-authoring/" class="md-nav__link">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
         
   
   
@@ -3103,7 +2818,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../reference/files/haybale-toml/" class="md-nav__link">
+      <a href="../../reference/files/haybale-toml/" class="md-nav__link">
         
   
   
@@ -3138,7 +2853,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../reference/files/pyproject-toml/" class="md-nav__link">
+      <a href="../../reference/files/pyproject-toml/" class="md-nav__link">
         
   
   
@@ -3173,7 +2888,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../reference/files/marketstall-toml/" class="md-nav__link">
+      <a href="../../reference/files/marketstall-toml/" class="md-nav__link">
         
   
   
@@ -3208,7 +2923,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../reference/files/marketplace-toml/" class="md-nav__link">
+      <a href="../../reference/files/marketplace-toml/" class="md-nav__link">
         
   
   
@@ -3316,7 +3031,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+      <a href="../../archive/whitepaper/Haywire_design/" class="md-nav__link">
         
   
   
@@ -3371,10 +3086,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-mental-model" class="md-nav__link">
+  <a href="#inlining-at-assembly-does-not-work-and-fails-silently" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Mental model
+        Inlining at assembly does not work, and fails silently
       
     </span>
   </a>
@@ -3382,22 +3097,88 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-contract" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Contract
+        Decision
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="2. Contract">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-the-crossings-are-strings-not-ports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why the crossings are strings, not ports
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-each-alternative-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What each alternative cost
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-nodetypeboundary-earns-its-place" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why NodeType.BOUNDARY earns its place
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-loop-may-straddle-the-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A loop may straddle the boundary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-callback-may-not-cross-the-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A callback may not cross the boundary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-interface-belongs-to-the-user-the-card-reflects-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The interface belongs to the user; the card reflects it
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The interface belongs to the user; the card reflects it">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#21-flowassemblymanager" class="md-nav__link">
+  <a href="#the-card-learns-by-watching-not-by-being-told" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.1 FlowAssemblyManager
+        The card learns by watching, not by being told
       
     </span>
   </a>
@@ -3405,10 +3186,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#22-pipeline-stages" class="md-nav__link">
+  <a href="#a-grown-exec-port-changes-what-the-card-is" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.2 Pipeline stages
+        A grown EXEC port changes what the card is
       
     </span>
   </a>
@@ -3416,10 +3197,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#23-validation-rules" class="md-nav__link">
+  <a href="#a-removed-port-leaves-its-edges-alone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.3 Validation rules
+        A removed port leaves its edges alone
       
     </span>
   </a>
@@ -3427,10 +3208,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#24-assembly-metadata" class="md-nav__link">
+  <a href="#non-goals" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.4 Assembly metadata
+        Non-goals
       
     </span>
   </a>
@@ -3443,143 +3224,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-lifecycle" class="md-nav__link">
+  <a href="#consequences" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. Lifecycle
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Lifecycle">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#31-initial-assembly-graph-load" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.1 Initial assembly (graph load)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#32-just-in-time-reassembly-not-yet-implemented" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.2 Just-in-time reassembly (NOT YET IMPLEMENTED)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#33-lazy-evaluation-handoff" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.3 Lazy evaluation handoff
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#34-hot-reload-coordination" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.4 Hot-reload coordination
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-boundary" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. Boundary
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#5-examples" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Examples
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="5. Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#51-inspect-assembly-output" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.1 Inspect assembly output
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#52-forced-reassembly" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.2 Forced reassembly
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#53-multiple-event-nodes-multiple-flows" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.3 Multiple event nodes → multiple Flows
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#6-open-questions" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Open questions
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#key-files" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Key files
+        Consequences
       
     </span>
   </a>
@@ -3603,218 +3251,275 @@
 
 
 
-<h1 id="assembly-architecture">Assembly — Architecture<a class="headerlink" href="#assembly-architecture" title="Permanent link">&para;</a></h1>
-<h2 id="1-mental-model">1. Mental model<a class="headerlink" href="#1-mental-model" title="Permanent link">&para;</a></h2>
-<p><strong>Assembly</strong> is the process of compiling a Graph (a passive data structure) into one or more executable Flows. The assembled Flow is what the VM runs; the Graph itself is never executed directly.</p>
-<p>The pipeline is rooted at <strong>event nodes</strong>. Every Flow has exactly one entry event node. The assembler identifies all event nodes, builds one Flow per event node, and links them via callback edges (assembly-time wiring; see <a href="../../callbacks/callbacks-arch/">architecture/execution/callbacks</a>).</p>
-<p>Within each Flow, two structures are built side by side:</p>
-<ul>
-<li>The <strong>control-flow DAG</strong> — the sequence of CONTROL nodes the VM walks during execution.</li>
-<li>One <strong>localized data-flow</strong> per CONTROL node — the dependency DAG of DATA nodes whose outputs feed <em>that</em> control node's inlets. Data nodes are not in a global topology; they're scoped per control node.</li>
-</ul>
-<p>Assembly is owned by <code>FlowAssemblyManager</code>. It runs once at graph load, then <strong>just-in-time</strong> on relevant graph mutations.</p>
-<h2 id="2-contract">2. Contract<a class="headerlink" href="#2-contract" title="Permanent link">&para;</a></h2>
-<h3 id="21-flowassemblymanager">2.1 <code>FlowAssemblyManager</code><a class="headerlink" href="#21-flowassemblymanager" title="Permanent link">&para;</a></h3>
-<p>Single class, single entry point: <code>assemble_graph(graph) → list[Flow]</code>. Responsibilities:</p>
-<ul>
-<li>Identify event nodes and separate Flows.</li>
-<li>Coordinate control-flow and data-flow builders.</li>
-<li>Cache assembled flows (<code>assembled_flows: dict[flow_id, Flow]</code>).</li>
-<li>Handle JIT reassembly when the graph mutates (<code>dirty_flows: set[flow_id]</code>).</li>
-<li>Process callback edges for observability (cross-flow wiring; see <a href="../../callbacks/callbacks-arch/">callbacks</a>).</li>
-</ul>
-<p><code>AssemblyMetadata</code> captures per-flow info — <code>flow_id</code>, <code>timestamp</code>, <code>node_count</code>, <code>event_node_id</code>.</p>
-<h3 id="22-pipeline-stages">2.2 Pipeline stages<a class="headerlink" href="#22-pipeline-stages" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>assemble_graph(graph)
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  ├─ _validate_graph(graph)         pre-flight: structure, duplicate event-types
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  ├─ _identify_event_nodes(graph)   one Flow per event node
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  └─ for each event node:
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        ├─ _assemble_flow(event_node, graph)
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        │     ├─ build control-flow DAG (walk EXEC edges from the event node)
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        │     ├─ for each CONTROL node in the DAG:
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        │     │     └─ build its localized data-flow
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        │     │         (backpropagate from inlets through DATA edges,
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        │     │          topologically sort)
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        │     └─ store assembled Flow + metadata
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        └─ cache → assembled_flows[flow_id]
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  └─ _process_callback_edges(graph, flows)   wire cross-flow callbacks
-</span></code></pre></div>
-<h3 id="23-validation-rules">2.3 Validation rules<a class="headerlink" href="#23-validation-rules" title="Permanent link">&para;</a></h3>
-<p><code>_validate_graph()</code> runs structural checks before assembly. Failures raise <code>RuntimeError</code> and abort.</p>
+<h1 id="a-group-executes-through-its-boundary-nodes">A Group executes through its boundary nodes<a class="headerlink" href="#a-group-executes-through-its-boundary-nodes" title="Permanent link">&para;</a></h1>
+<p><strong>Context.</strong> Haywire had no way to encapsulate part of a graph. Slice 1 of the
+Graph-node design gives a selection a <strong>Group</strong>: one card on the parent canvas
+standing for a <strong>Subgraph</strong> whose contents live in the same <code>.haywire</code> file,
+with two <strong>boundary nodes</strong> — <code>Subgraph Input</code> and <code>Subgraph Output</code> — defining
+its interface.</p>
+<p>This record settles two questions: how a Group <em>runs</em>, and who owns the
+<em>interface</em> it runs through.</p>
+<h2 id="inlining-at-assembly-does-not-work-and-fails-silently">Inlining at assembly does not work, and fails silently<a class="headerlink" href="#inlining-at-assembly-does-not-work-and-fails-silently" title="Permanent link">&para;</a></h2>
+<p>The original design was to leave execution alone: wrap the graph in a
+<code>FlatGraphView</code> at the top of <code>assemble_graph()</code> that teaches two lookups —
+<code>get_node_wrapper</code> and <code>_get_edge_wrappers_for_port</code> — to see through a
+Graph-node. The card and both boundary nodes would be elided, their workers
+never called, and the VM, scheduler, lazy masks and callbacks untouched.</p>
+<p>Two things make that impossible, and both were found by reading the execution
+path rather than by testing:</p>
+<p><strong>Control flow never asks the graph.</strong> <code>ControlFlowBuilder</code> reads an outlet's
+target straight off the port object — <code>outlet.get_valid_edges()</code> — and
+<code>get_node_wrapper</code> is consulted only afterwards, to turn an id already chosen
+into a node. A view can answer questions about ids the builder committed to; it
+cannot redirect. A Graph-node therefore stays in <code>control_nodes</code> with its worker
+running, and since that worker returns no outlet, <code>_navigate_next</code> ends the
+whole flow at the Group — everything downstream silently stops.</p>
+<p><strong>Data values never travel through assembly at all.</strong> Runtime data transport is
+pipe-based and edge-driven: <code>out()</code> → <code>set_value</code> → <code>_pipes.propagate()</code> →
+<code>pipe.pull()</code> → <code>sink.set_value()</code>. A port's <code>_pipes</code> are built in
+<code>_refresh_pipes()</code> from <em>that port's own linked <code>EdgeWrapper</code>s</em>, and a <code>Pipe</code>
+holds a <strong>direct Python reference</strong> to the sink <code>DataPort</code>. Nothing in that path
+reads the Flow, the assembly, or the graph.</p>
+<p>That asymmetry is the heart of it: <strong>assembly is id-based and can be
+virtualized; the data path is object-reference-based and cannot.</strong> A view over
+the assembler decides <em>when</em> a node runs and in what order. It can never decide
+<em>where a value goes</em>. So an inlined Group would have produced a correctly
+ordered flow in which every boundary-crossing value stayed on the card's own
+port and the interior read its defaults — no exception, no invalid edge, no node
+error. The graph would run and quietly produce stale numbers.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>A Group is <strong>crossed, never bypassed</strong>. The card and both boundary nodes execute
+as ordinary nodes in the host's flow, and the boundary nodes carry the values.</p>
+<p>In a Subgraph crossed by control:</p>
 <table>
 <thead>
 <tr>
-<th>Check</th>
-<th>Why</th>
+<th>step</th>
+<th>node</th>
+<th>does</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>Duplicate event types</strong></td>
-<td>Multiple event nodes listening for the same event (e.g. two <code>BeginPlay</code> nodes) is undefined — which Flow runs first?</td>
+<td>1</td>
+<td>card, entry hop</td>
+<td>its localized data flow evaluates the producers feeding its inlets over <strong>real</strong> edges; <code>_execute</code> drains any lazy pull. Returns the virtual <code>enter_</code> crossing</td>
 </tr>
 <tr>
-<td><strong>Subgraph contents</strong></td>
-<td>Checked by <code>StructuralValidator._validate_subgraph_contents</code>, not here: exactly one Subgraph Input and one Subgraph Output, and no EVENT or OUTPUT node</td>
+<td>2</td>
+<td>Subgraph Input</td>
+<td>copies the card's data inlets onto its own outlets; each write fires that outlet's pipes, carrying the values inward over the Subgraph's real edges</td>
 </tr>
 <tr>
-<td><strong>Cycle detection in data-flow</strong></td>
-<td>Implemented in <code>DataFlowBuilder._check_cycles</code>, not in <code>_validate_graph()</code>. Pure data cycles are illegal; cycles passing through a CONTROL node are allowed</td>
+<td>3</td>
+<td>interior</td>
+<td>runs normally — real edges, real pipes, real adapter chains</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Subgraph Output</td>
+<td>copies its data inlets onto the <strong>card's</strong> data outlets, which propagate outward</td>
+</tr>
+<tr>
+<td>5</td>
+<td>card, exit hop</td>
+<td>returns the card's matching real control outlet. A pure hop</td>
 </tr>
 </tbody>
 </table>
-<p>The validation is structural; per-edge validation happens in <code>EdgeWrapper.build()</code> (<a href="../../edges/edges-arch/">edges</a> §2.2).</p>
-<p><code>assemble_graph()</code> wraps the graph in a <code>FlatGraphView</code> before any of this, so a
-Subgraph's nodes take part in the host's flows — see
-<a href="../../../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a>.</p>
-<h3 id="24-assembly-metadata">2.4 Assembly metadata<a class="headerlink" href="#24-assembly-metadata" title="Permanent link">&para;</a></h3>
-<p>Every assembled Flow carries metadata exposed via <code>interpreter.get_statistics()</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;total_flows&#39;</span><span class="p">]</span>       <span class="c1"># number of assembled Flows</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;dirty_flows&#39;</span><span class="p">]</span>       <span class="c1"># Flows pending re-assembly</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;callback_edges&#39;</span><span class="p">]</span>    <span class="c1"># total FlowType.CALLBACK edges</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;callback_topology&#39;</span><span class="p">]</span> <span class="c1"># {&#39;emitters&#39;: N, &#39;listeners&#39;: N,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>                                       <span class="c1">#  &#39;edges&#39;: {emitter_id: [target_id, ...]},</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>                                       <span class="c1">#  &#39;triggers&#39;: {target_id: [emitter_id, ...]}}</span>
-</span></code></pre></div>
-<p>Useful for debugging — confirm a graph assembled the expected Flow count and callback topology.</p>
-<h2 id="3-lifecycle">3. Lifecycle<a class="headerlink" href="#3-lifecycle" title="Permanent link">&para;</a></h2>
-<h3 id="31-initial-assembly-graph-load">3.1 Initial assembly (graph load)<a class="headerlink" href="#31-initial-assembly-graph-load" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>graph.load_from_json(...)
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  ↓ (graph fully populated, but no Flows yet)
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>FlowAssemblyManager.assemble_graph(graph)
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  ├─ clear previous assembly (assembled_flows, assembly_cache, dirty_flows)
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  ├─ _validate_graph → raise on failure
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  ├─ _identify_event_nodes → list of event nodes
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  └─ for each event_node:
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        Flow = _assemble_flow(event_node, graph)
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        cache flow
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        cache metadata
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>  └─ _process_callback_edges → wire callback topology
-</span></code></pre></div>
-<p>After this completes, <code>assembled_flows[flow_id] = Flow</code> for every Flow, and the Interpreter can register them.</p>
-<h3 id="32-just-in-time-reassembly-not-yet-implemented">3.2 Just-in-time reassembly (NOT YET IMPLEMENTED)<a class="headerlink" href="#32-just-in-time-reassembly-not-yet-implemented" title="Permanent link">&para;</a></h3>
-<p>When the graph mutates, only affected Flows reassemble. The dirty-tracking is owned by <code>ValidationManager</code> (see <a href="../../edges/edges-arch/#36-validationmanager-debounced-batch-processing">edges §3.6</a>) which marks <code>dirty_flows</code> based on <code>ChangeReason</code>.</p>
-<p>Reasons that trigger reassembly:</p>
-<table>
-<thead>
-<tr>
-<th>Change</th>
-<th>Effect</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Node added / removed</strong> in a Flow's reachable set</td>
-<td>Flow reassembles</td>
-</tr>
-<tr>
-<td><strong>Edge added / removed</strong> in a Flow's control or data graph</td>
-<td>Flow reassembles</td>
-</tr>
-<tr>
-<td><strong>Edge displaced</strong> (single-connection inlet over-subscribed)</td>
-<td>Reassembly only if the <em>active</em> edge changed</td>
-</tr>
-<tr>
-<td><strong>Adapter chain rebuilt</strong></td>
-<td>No reassembly — chain is per-edge, not per-flow</td>
-</tr>
-<tr>
-<td><strong>Hot-reloaded node</strong></td>
-<td>Flow reassembles after the node-wrapper finishes rebuilding</td>
-</tr>
-</tbody>
-</table>
-<p>Reassembly uses the same <code>_assemble_flow()</code> path as initial assembly — just for the affected event-node-rooted Flow, not the whole graph.</p>
-<h3 id="33-lazy-evaluation-handoff">3.3 Lazy evaluation handoff<a class="headerlink" href="#33-lazy-evaluation-handoff" title="Permanent link">&para;</a></h3>
-<p>The assembler is responsible for computing the <strong>EVAL_MASK / LAZY_MASK</strong> bitmasks used by the lazy evaluation algorithm (see <a href="../../lazy-evaluation/lazy-evaluation-arch/">architecture/execution/lazy-evaluation</a>). For each control node:</p>
-<ol>
-<li>Each data inlet gets a unique bit position.</li>
-<li>The localized data-flow is walked backward from the inlets; bits OR-merge as the same data node feeds multiple inlets.</li>
-<li>The result is a <code>dict[data_node, EVAL_MASK]</code> stored on the Flow, telling the VM "for this control node, you need these data nodes if these inlet bits are set."</li>
-</ol>
-<p>This pre-computation is what makes lazy evaluation cheap at run-time — the VM just AND-masks at execution.</p>
-<h3 id="34-hot-reload-coordination">3.4 Hot-reload coordination<a class="headerlink" href="#34-hot-reload-coordination" title="Permanent link">&para;</a></h3>
-<p>The assembler does not do hot-reload itself — it reassembles in response to dirty events. The pipeline is:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>File change
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  ↓
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>FileWatcher → BaseRegistry hot-reload
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  ↓
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>NodeWrapper / EdgeWrapper rebuild (see edges §3.7)
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  ↓
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>ValidationManager marks affected Flows dirty
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>  ↓
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>FlowAssemblyManager reassembles only the dirty Flows
-</span></code></pre></div>
-<p>Full pipeline in <a href="../../../hot-reload/hot-reload-arch/">architecture/hot-reload</a>.</p>
-<h2 id="4-boundary">4. Boundary<a class="headerlink" href="#4-boundary" title="Permanent link">&para;</a></h2>
-<p>The assembly subsystem is <strong>not</strong>:</p>
+<p>In a Subgraph crossed by data alone there is no control chain, so the card is a
+DATA node run once from its consumer's localized data flow, and it does the
+inward copy itself.</p>
+<p><code>FlatGraphView</code> survives, doing far less than first designed: tree-wide
+<code>get_node_wrapper</code>, the virtual control transitions, and — for a data-only
+Subgraph — one <code>_get_edge_wrappers_for_port</code> splice that exists purely so the
+topological sort puts the card before the interior. Values cross by worker copy,
+never by splice.</p>
+<h2 id="why-the-crossings-are-strings-not-ports">Why the crossings are strings, not ports<a class="headerlink" href="#why-the-crossings-are-strings-not-ports" title="Permanent link">&para;</a></h2>
+<p>A card and its Subgraph are separate graphs, so no edge joins them. A boundary
+crossing is instead a <strong>string</strong>, carried by the two places a control transition
+travels: the <code>outlet_map</code> the assembler builds, and
+<code>ExecutionContext.control_pin</code>. Both tolerate it — the VM stores the inlet id
+without ever resolving it to a port, and <code>_parse_worker_result</code> only checks that
+a worker returned a <code>str</code>.</p>
+<p>One token names each crossing from both ends: <code>enter_in_exec</code> is the virtual
+outlet the card leaves by <em>and</em> the virtual inlet the Subgraph Input is entered
+through. That is what lets each worker decide what to do from <code>control_pin</code>
+alone, and it means <strong>no port had to be added anywhere</strong> — every port an edge
+actually attaches to stays real and one-directional, so the boundary nodes keep
+the direction rule they were designed with.</p>
+<p>The seam that makes this possible is <code>BaseGraph.control_transitions(node_id)</code>,
+which returns the whole <code>{outlet_id: (next_node_id, inlet_id)}</code> set. Its default
+is what <code>ControlFlowBuilder</code> used to do inline, so an ordinary graph is
+unchanged; <code>FlatGraphView</code> overrides it to add the crossings.</p>
+<h2 id="what-each-alternative-cost">What each alternative cost<a class="headerlink" href="#what-each-alternative-cost" title="Permanent link">&para;</a></h2>
+<p><strong>Splice at the edge layer</strong> — make a crossing edge a real <code>EdgeWrapper</code> from
+the outer source to the <em>inner</em> sink, with the card's pin as the drawn endpoint
+only. Genuinely fewer moving parts: pipes, assembly and the VM need no change
+because nothing special is left to see through. Rejected because it <strong>dissolves
+the boundary at runtime</strong>, and Slice 3's Functions — which run a Subgraph
+through a re-entrant call into the same VM — would have to rebuild the boundary
+it deleted. The chosen design keeps the boundary real, so a Function becomes an
+increment: swap "copy, then continue in the same flow" for "copy, then call a
+nested flow".</p>
+<p><strong>Run the card twice with a cache</strong> — the card copies inward on its entry visit
+and outward on its exit visit, passing values between the two through
+<code>self.cache</code>. Rejected on two counts. The entry/exit split is representable for
+control but not for data: a data-only Group's card is executed from
+<code>LocalizedDataFlow.execution_sequence</code>, which is a <code>List[BaseNode]</code> iterated
+with no inlet, no index and no role, so the worker cannot tell its first
+occurrence from its second. And the cache would be the one piece of inter-visit
+mutable state in the design, in a VM whose every other piece of mutable state is
+a local precisely because it is shared across scheduler threads. Assigning the
+two copies to the two boundary nodes — which are already two distinct nodes —
+makes the roles distinct by construction and needs no cache at all.</p>
+<h2 id="why-nodetypeboundary-earns-its-place">Why <code>NodeType.BOUNDARY</code> earns its place<a class="headerlink" href="#why-nodetypeboundary-earns-its-place" title="Permanent link">&para;</a></h2>
+<p>A boundary node carries neither the DATA nor the CONTROL bit. That was chosen so
+one pair of classes could serve data and control crossings alike, the role
+coming from the assembly context rather than the type. It turns out to be
+load-bearing for a second reason: <code>BaseNode._execute</code> returns early for a <strong>data
+node with no dirty port</strong>, and a boundary node has nothing feeding it. As a DATA
+node it would never run its worker, and the copy would never happen. As
+<code>BOUNDARY</code> the guard is skipped and it always runs.</p>
+<h2 id="a-loop-may-straddle-the-boundary">A loop may straddle the boundary<a class="headerlink" href="#a-loop-may-straddle-the-boundary" title="Permanent link">&para;</a></h2>
+<p>An earlier draft forbade a loopback outlet crossing a Subgraph boundary. It is
+wrong here: the inlined control graph spans host and Subgraph alike and the
+loopback stack is one local list, so the push and the pop land in the same place
+whichever side of the boundary each is on. The rule was also nearly unreachable
+— <code>needs_loopback</code> is an outlet property, and a crossing loop-body edge derives
+a Subgraph <em>inlet</em>.</p>
+<p>The constraint is real for Functions, where the stack is a local per call and a
+body crossing out of a nested flow would push onto one stack and pop from
+another. It belongs there, with the mechanism that creates it.</p>
+<h2 id="a-callback-may-not-cross-the-boundary">A callback may not cross the boundary<a class="headerlink" href="#a-callback-may-not-cross-the-boundary" title="Permanent link">&para;</a></h2>
+<p>Where a loop crosses safely, a callback cannot cross at all — and the reason is
+not that the crossing machinery is missing, but that no relay can be written.</p>
+<p>A callback edge carries its subscription as the source port's <strong>value</strong>: the
+event name, which arrives in the sink's pooled inlet keyed by that edge's id.
+Unlinking the edge clears exactly that key, which is what makes a listener's
+disconnection reach the emitter.</p>
+<p>A boundary node copies values with <code>target.set_value(source.get_value())</code>, so a
+relayed subscription would enter the interior pool keyed by the <em>inner</em> edge.
+The value arrives, and emitting works. Removal does not: unlinking outside
+clears the card's pool and never touches the interior's, leaving the Subgraph
+subscribed to a listener that is gone. Closing that gap needs the relay to
+observe disconnection, but <code>on_change</code> fires only on writes — <code>_clear_link</code>
+fires <code>on_disconnect</code>, which carries the outer <code>EdgeWrapper</code> and no handle on
+the inner source to clear. Forwarding the original <code>source_id</code> instead would
+forge a pool key against the invariant <code>remove_source</code> relies on everywhere.
+And the growing slot lets the user add an interface port at any time, so no
+invariant a collapse establishes survives.</p>
+<p>So the existing rule — a callback edge runs straight from its event node — is
+not a gap awaiting a crossing. It is the only enforceable statement, and it is
+the same rule that keeps a reroute off a callback edge, for the same reason.</p>
+<p>Two paths create an interface port, and both are closed. The <strong>growing slot</strong>
+is <code>FlowType.DATA</code>, so formal edge validation rejects a callback into it and
+<code>hb_grow</code> never runs. <strong>Collapse</strong> is checked explicitly:
+<code>CollapseToGraphNodeAction</code> refuses a selection that a callback edge crosses,
+in either direction, before <code>derive_interface</code> can mint a port for it.</p>
+<h2 id="the-interface-belongs-to-the-user-the-card-reflects-it">The interface belongs to the user; the card reflects it<a class="headerlink" href="#the-interface-belongs-to-the-user-the-card-reflects-it" title="Permanent link">&para;</a></h2>
+<p>An interface derived once at collapse is wrong as soon as the Subgraph needs
+another input. So a boundary node declares exactly <strong>one</strong> port of its own: a
+bare <code>ADD</code> <strong>growing slot</strong> (ADR 0034). Connecting an interior port to it grows
+an <strong>interface port</strong> of that port's type and puts a fresh slot below, the idiom
+<code>AddPortTestNode</code> already ships.</p>
+<p>That makes the ownership explicit, and it runs one way:</p>
+<p><strong>The Subgraph owns the shape</strong> — which ports exist, their ids, their types and
+their labels. Every interface port is <code>PortOrigin.RESOLVED</code>, because the user
+brought it into being, whether by collapsing a selection or by connecting to the
+slot. <code>is_user_removable()</code> therefore already lets the user remove one, and the
+pin menu's removal row already appears. The growing slot alone is <code>DECLARED</code>: it
+is what the boundary node <em>is</em>, so it cannot be removed or renamed.</p>
+<p><strong>The Graph-node owns the values and the order.</strong> Its pins are <code>DECLARED</code> — the
+user did not make them, the Subgraph did, and a removal row on a card pin would
+desync the card from the Subgraph it stands for. But <strong>port order is
+presentation</strong>: it is read only when sorting for display, never in assembly,
+execution or the edge layer. The card is a node on the parent canvas, so how its
+pins are arranged for <em>that</em> canvas is the parent's business. <code>reconcile_interface</code>
+stamps <code>order</code> only on a pin it is adding; an existing pin keeps its own.</p>
+<p>Growth runs <strong>inward to outward only</strong>. A card cannot author shape: the card
+would then have to add a port to a node in another graph, and
+<code>reconcile_interface</code> — which rebuilds the card <em>from</em> the boundary — would have
+to become a merge, since a card-originated pin must survive a reconcile that
+happens before it reaches the boundary. Keeping one direction keeps reconcile a
+rebuild.</p>
+<h3 id="the-card-learns-by-watching-not-by-being-told">The card learns by watching, not by being told<a class="headerlink" href="#the-card-learns-by-watching-not-by-being-told" title="Permanent link">&para;</a></h3>
+<p><code>reconcile_interface</code> is the single funnel: collapse, re-bind, growth and
+removal all arrive through it. The Graph-node watches its own <code>SubgraphDefinition</code>
+and reconciles when a boundary node reports a structural change, rather than the
+boundary node calling the card.</p>
+<p>That direction is the same one the rest of the design already runs in — the card
+reads the boundary — and it is the only one that covers removal, which happens
+in <code>remove_port</code>, framework code with no boundary-node hook. It also fans out for
+free: a Macro with several cards gets each of them watching the one definition,
+with nothing added.</p>
+<p>A <strong>rename</strong> changes a label, never an id. Value transmission pairs card pin to
+boundary port through <code>card_port_id(port.id)</code>, and every attached edge keys on
+the id, so renaming one would break both, across two graphs. The label is carried
+to the card by the same reconcile and is read by nothing else.</p>
+<h3 id="a-grown-exec-port-changes-what-the-card-is">A grown <code>EXEC</code> port changes what the card is<a class="headerlink" href="#a-grown-exec-port-changes-what-the-card-is" title="Permanent link">&para;</a></h3>
+<p><code>flow_type</code> is a field of a type's <code>class_identity</code>, inherited by <code>as_inlet</code> /
+<code>as_outlet</code>. A slot that adopts <code>EXEC</code> therefore yields a CONTROL port with no
+special casing, and <code>GraphNode.behavior</code> — which derives its node type by asking
+whether the card carries any CONTROL pin — turns the card into a CONTROL node.
+A Group crossed only by data becomes one crossed by control, mid-edit, and
+assembles accordingly.</p>
+<p>This is why <code>behavior</code> is resolved in <code>reconcile_interface</code> rather than per read:
+it is the one moment the card's pins are stamped, it runs in <code>post_init</code> before
+anything can read the result, and <code>BaseNode._execute</code> reads <code>is_data_node</code> on
+every node on every run.</p>
+<h3 id="a-removed-port-leaves-its-edges-alone">A removed port leaves its edges alone<a class="headerlink" href="#a-removed-port-leaves-its-edges-alone" title="Permanent link">&para;</a></h3>
+<p>Removing an interface port removes the card's pin, and the edges that were on it
+<strong>stay in the graph, unlinked</strong>. The canvas already draws an edge whose port id
+resolves to nothing at the node's <strong>Ghost pin</strong> — <code>_findPinInHierarchy</code> walks
+<code>port_id &gt;&gt; parent_id &gt;&gt; root</code> — so the user sees the wire still attached to the
+card and can re-target it. Deleting those edges instead would silently destroy
+outer wiring on what may have been a misclick, and would make Subgraphs the only
+place in the framework where a vanished port takes its edges with it.</p>
+<h3 id="non-goals">Non-goals<a class="headerlink" href="#non-goals" title="Permanent link">&para;</a></h3>
 <ul>
-<li>The <strong>runtime</strong>. Once Flows are built, they are run by the VM (<a href="../../virtual-machine/virtual-machine-arch/">virtual-machine</a>) — assembly hands off the executable structure and stops participating.</li>
-<li>The <strong>edge-build pipeline</strong>. Edges have their own 4-stage build (<a href="../../edges/edges-arch/#22-the-4-stage-build-pipeline">edges §2.2</a>); the assembler reads already-built edges and topologically sorts them into Flows.</li>
-<li>The <strong>callback dispatcher</strong>. Assembly <em>registers</em> the topology with <code>CallbackManager</code>; runtime dispatch is owned by the manager.</li>
-<li>The <strong>graph data structure</strong>. The Graph predates assembly and survives it. The assembler only reads from the graph.</li>
+<li><strong>Card-side growth</strong>, for the reason above.</li>
+<li><strong>Renaming a port id</strong>, which is a cross-graph re-keying operation.</li>
+<li><strong>Undo for interface edits.</strong> Growing a pin is not undoable anywhere in the
+  framework — <code>hb_resolve</code> fires from inside <code>_add_link</code>, past the undo layer —
+  and boundary nodes are not made an exception. The gap is framework-wide.</li>
+<li><strong>Reordering or renaming from the card.</strong> Both are boundary-side gestures.</li>
+<li><strong>Macro fan-out</strong>, which needs one definition to serve many cards. Nothing here
+  forecloses it; the per-card watcher already supports it.</li>
 </ul>
-<h2 id="5-examples">5. Examples<a class="headerlink" href="#5-examples" title="Permanent link">&para;</a></h2>
-<h3 id="51-inspect-assembly-output">5.1 Inspect assembly output<a class="headerlink" href="#51-inspect-assembly-output" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.assembly.flow_assembly_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">FlowAssemblyManager</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">manager</span> <span class="o">=</span> <span class="n">FlowAssemblyManager</span><span class="p">()</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">flows</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">assemble_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Assembled </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">flows</span><span class="p">)</span><span class="si">}</span><span class="s2"> flows&quot;</span><span class="p">)</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="k">for</span> <span class="n">flow</span> <span class="ow">in</span> <span class="n">flows</span><span class="p">:</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">flow</span><span class="o">.</span><span class="n">flow_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">flow</span><span class="o">.</span><span class="n">get_control_node_ids</span><span class="p">())</span><span class="si">}</span><span class="s2"> control nodes&quot;</span><span class="p">)</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cached metadata: </span><span class="si">{</span><span class="n">manager</span><span class="o">.</span><span class="n">assembly_cache</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span></code></pre></div>
-<h3 id="52-forced-reassembly">5.2 Forced reassembly<a class="headerlink" href="#52-forced-reassembly" title="Permanent link">&para;</a></h3>
-<p>For tests and forced rebuilds:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">graph</span><span class="o">.</span><span class="n">validation_manager</span><span class="o">.</span><span class="n">force_immediate_validation</span><span class="p">()</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># After this, manager.dirty_flows is empty and all reassembly has run</span>
-</span></code></pre></div>
-<h3 id="53-multiple-event-nodes-multiple-flows">5.3 Multiple event nodes → multiple Flows<a class="headerlink" href="#53-multiple-event-nodes-multiple-flows" title="Permanent link">&para;</a></h3>
-<p>A graph with <code>BeginPlay</code>, <code>Tick</code>, and a <code>CallbackEvent('frame_ready')</code> node yields three Flows. They share the underlying graph but each runs independently:</p>
-<table>
-<thead>
-<tr>
-<th>Flow</th>
-<th>Entry event node</th>
-<th>Triggered by</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Flow 1</td>
-<td><code>BeginPlay</code></td>
-<td>once at start</td>
-</tr>
-<tr>
-<td>Flow 2</td>
-<td><code>Tick</code></td>
-<td>every frame</td>
-</tr>
-<tr>
-<td>Flow 3</td>
-<td><code>CallbackEvent('frame_ready')</code></td>
-<td>when another Flow emits <code>'frame_ready'</code></td>
-</tr>
-</tbody>
-</table>
-<p><code>_process_callback_edges()</code> registers Flow 3 as a listener of whichever node emits <code>'frame_ready'</code>.</p>
-<h2 id="6-open-questions">6. Open questions<a class="headerlink" href="#6-open-questions" title="Permanent link">&para;</a></h2>
+<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Partial reassembly inside a Flow.</strong> Today, any change inside a Flow's reachable set rebuilds the whole Flow. Could be smarter — rebuild only the affected localized data-flow.</li>
-<li><strong>Cross-Flow optimization.</strong> Two Flows sharing a large data-flow subtree compute it twice. The architecture allows shared subtrees but the current implementation doesn't deduplicate.</li>
-<li><strong>Parallel Flow execution.</strong> The assembler builds independent Flows; whether they run in parallel is the VM's call. Today they run serially. See <a href="../../virtual-machine/virtual-machine-arch/">virtual-machine</a>.</li>
-</ul>
-<h2 id="key-files">Key files<a class="headerlink" href="#key-files" title="Permanent link">&para;</a></h2>
-<ul>
-<li><code>src/haywire/core/assembly/flow_assembly_manager.py</code> — <code>FlowAssemblyManager</code>, <code>AssemblyMetadata</code></li>
-<li><code>src/haywire/core/assembly/control_flow_builder.py</code> — control-flow DAG construction</li>
-<li><code>src/haywire/core/assembly/data_flow_builder.py</code> — localized data-flow construction</li>
-<li><code>src/haywire/core/execution/flow.py</code> — <code>Flow</code> dataclass (the assembly output)</li>
-<li><code>src/haywire/core/graph/validation.py</code> — <code>ValidationManager</code> (dirty-flow tracking)</li>
+<li>The VM, the scheduler, <code>execution/flow.py</code> and the whole pipe layer are
+  untouched — by construction rather than by assertion. The one change to
+  <code>vm.py</code> is unrelated and defensive: a strict <code>ports[...]</code> lookup in the
+  loopback check became <code>.get(...)</code>, so a worker returning an id that names no
+  port ends its branch through <code>_navigate_next</code> instead of aborting the frame
+  from a <code>KeyError</code> that reached only the log.</li>
+<li>Adapter chains are <strong>not</strong> composed across a boundary. The outer chain runs
+  into the card's inlet and the inner chain out of the Subgraph Input's outlet —
+  two real hops, same result.</li>
+<li>A card pin's id is namespaced by side (<code>in_</code> / <code>out_</code>), because the two
+  boundary nodes are separate nodes free to use one name each and a control
+  Subgraph has <code>exec</code> on both. Every pin is prefixed, which keeps the mapping
+  total.</li>
+<li>Lazy edges need no special handling: the card runs before the inward copy in
+  both shapes, and <code>_execute</code> drains its dirty ports there.</li>
+<li><code>Subgraph Output</code>'s worker writes ports it does not own — the card's outlets.
+  The card cannot do it itself, because a data-only Subgraph gives it a single
+  run that would have to precede the interior.</li>
+<li>A node always sees its own graph's settings tier: an inner node's <code>graph()</code>
+  mirror resolves through its own <code>SubgraphDefinition</code> (ADR 0022), which is a
+  <code>BaseGraph</code> for exactly that reason.</li>
+<li>A boundary node is never port-less: it carries its growing slot from <code>init()</code>,
+  so a Subgraph can grow however it was created — by a collapse, by
+  <code>instantiate()</code>, or from a file. <code>_validate_boundary_node</code> still accepts a
+  port-less node, because a slot-only node satisfies the one-direction rule
+  either way.</li>
+<li>The interface a boundary node carries is <code>RESOLVED</code>, so <code>PortOrigin</code> now means
+  "the user brought this port into being" rather than only "resolved from an
+  <code>ADD</code> pin". <code>is_user_removable()</code> is unchanged, and is still the single gate.</li>
+<li>A card's pin order can drift from its Subgraph's. That is intended, and it is
+  why reconcile stamps <code>order</code> only on a pin it adds.</li>
 </ul>
 
 
@@ -3876,10 +3581,10 @@ Subgraph's nodes take part in the host's flows — see
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

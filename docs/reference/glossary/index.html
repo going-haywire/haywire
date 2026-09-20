@@ -2765,6 +2765,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#encapsulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Encapsulation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#flow-types-port-kinds" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3516,6 +3527,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#encapsulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Encapsulation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#flow-types-port-kinds" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3968,7 +3990,7 @@
 <tr>
 <td><strong>Fold</strong></td>
 <td>A pin-less, widget-less boolean port that contains other ports and is opened or closed by a disclosure triangle. Declared with <code>with self.fold("Name"):</code>, which mints a <code>FOLD</code> port (a <code>BOOL</code> subtype carrying the no-widget and always-store rules) — the author chooses no type, widget, direction or pin. Its header shows the triangle, the label, and a checkbox stating the same boolean: checked while open. Hovering the triangle shows the label and <code>description=</code>. Its value is a <strong>disclosure state</strong>, not a decision, and it persists; a node may still read it or hook <code>on_change=</code> to reconfigure itself. Scoped to one direction: a fold renders in the lane its children belong to (config band, inlet lane, or outlet lane) and may not mix directions. <strong>One level deep</strong>: a fold holds ports, not other folds — nesting one raises. Depth indents a port row's <em>content column</em> only, never its pin column, so a pin stays on the card border. Replaces both <code>group()</code> and <code>section()</code></td>
-<td>Group (the superseded <code>GROUP</code>-port spelling), section (removed), collapsible, expander</td>
+<td>Port group (the superseded <code>GROUP</code>-port spelling), section (removed), collapsible, expander. <strong>Not</strong> "Group" unqualified — that now names a <strong>Graph-node</strong> variant</td>
 </tr>
 <tr>
 <td><strong>Port order</strong></td>
@@ -3978,6 +4000,86 @@
 </tbody>
 </table>
 <hr />
+<h2 id="encapsulation">Encapsulation<a class="headerlink" href="#encapsulation" title="Permanent link">&para;</a></h2>
+<p>A <strong>Graph-node</strong> is one card standing for a whole <strong>Subgraph</strong>. The three
+variants are named for their execution mechanism, so the name says what happens.
+See <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Graph-node</strong></td>
+<td>The card on the parent canvas: a node whose behaviour is a whole <strong>Subgraph</strong>. The umbrella term for all three variants. It mirrors its Subgraph's <strong>boundary node</strong> ports onto its own pins, owns the port <em>values</em> and its own <strong>port order</strong> while the Subgraph owns the rest of the <em>shape</em> — which pins exist, their ids, types and labels — and derives its node type from its interface: DATA when only data crosses, CONTROL otherwise</td>
+<td>Module (means a dotted Python module path in the hot-reload dependency graph), container node, composite node</td>
+</tr>
+<tr>
+<td><strong>Subgraph</strong></td>
+<td>The <em>contents</em> of a Graph-node — its nodes and edges — and nothing else. A <code>SubgraphDefinition</code>, which is a <code>BaseGraph</code>, so it carries its own <code>props</code>, <code>meta</code>, Variables and validation, and gives its nodes a <code>framework &lt; subgraph &lt; node</code> settings chain</td>
+<td>Inner graph, child graph, nested graph</td>
+</tr>
+<tr>
+<td><strong>Boundary node</strong></td>
+<td>Either of the two nodes defining a Subgraph's interface. <code>NodeType.BOUNDARY</code>, carrying neither the DATA nor the CONTROL bit, so one pair of classes serves both. Born carrying only its <strong>growing slot</strong>; the collapse action stamps the interface around it. Cannot be deleted or copied — they are the Subgraph's structure, not its content</td>
+<td>Interface node, terminal, port node</td>
+</tr>
+<tr>
+<td><strong>Growing slot</strong></td>
+<td>The bare <code>ADD</code> port each boundary node declares in <code>init()</code> — the one port on a boundary node its author owns, so it is <code>DECLARED</code> and the user can neither remove nor rename it. Connecting an interior port to it grows an <strong>interface port</strong> of that port's type, and a fresh slot takes its place. See <a href="../../adr/0034-add-is-a-type/">ADR 0034</a></td>
+<td>ADD pin (the type; the slot is the port), placeholder</td>
+</tr>
+<tr>
+<td><strong>Interface port</strong></td>
+<td>A port on a boundary node that constitutes the Subgraph's interface, whether stamped by a collapse or grown from the <strong>growing slot</strong>. <code>PortOrigin.RESOLVED</code> — the user brought it into being, so it may be removed, and its label may be changed. Its <strong>id</strong> is immutable: value transmission and every attached edge key on it</td>
+<td>Boundary port (ambiguous with the node), interface pin</td>
+</tr>
+<tr>
+<td><strong>Subgraph Input</strong></td>
+<td>The boundary node carrying only <strong>outlets</strong>: the values arriving from the parent graph. Named for the side it represents on the Graph-node card, not for its own ports. Each outlet becomes one inlet on the card</td>
+<td>Source node, entry node</td>
+</tr>
+<tr>
+<td><strong>Subgraph Output</strong></td>
+<td>The boundary node carrying only <strong>inlets</strong>: the values leaving for the parent graph. Each inlet becomes one outlet on the card</td>
+<td>Sink node, exit node</td>
+</tr>
+<tr>
+<td><strong>Group</strong></td>
+<td>The Slice-1 Graph-node variant: its Subgraph lives in the <strong>parent <code>.haywire</code> file</strong>, serves that one card, and runs as ordinary nodes in the host's flow. The word is reclaimed from the <code>group()</code> port container ADR 0035 retired — the port layer now says <strong>Fold</strong></td>
+<td>Collapsed graph, macro (a Macro is a different variant)</td>
+</tr>
+<tr>
+<td><strong>Macro</strong></td>
+<td>The variant whose Subgraph lives in <strong>its own file</strong> as a library component, reusable from any graph, and still runs inside the host's flow. <strong>Not built</strong> — Slice 2</td>
+<td>Group, function</td>
+</tr>
+<tr>
+<td><strong>Function</strong></td>
+<td>The variant whose Subgraph lives in its own file and whose Graph-node stays <strong>opaque</strong>, running its interior through a re-entrant call into the same VM. The only route to recursion. <strong>Not built</strong> — Slice 3</td>
+<td>Macro, subroutine</td>
+</tr>
+<tr>
+<td><strong>Boundary crossing</strong></td>
+<td>The hop between a Graph-node card and its Subgraph. A <strong>string</strong>, not an edge: the card and the Subgraph are separate graphs, so a crossing travels in the assembler's <code>outlet_map</code> and in <code>ExecutionContext.control_pin</code>, neither of which resolves it to a port</td>
+<td>Virtual edge, implicit edge</td>
+</tr>
+<tr>
+<td><strong>Convex selection</strong></td>
+<td>A selection no path leaves and re-enters. The precondition for a collapse: <code>A → B → C</code> with <code>{A, C}</code> selected would give the parent both <code>G → B</code> and <code>B → G</code>, entering the card twice in one pass. Refused by naming the intervening nodes</td>
+<td>Connected selection (a different question — see <code>get_disconnected_components</code>)</td>
+</tr>
+<tr>
+<td><strong>Interface reconcile</strong></td>
+<td>Rebuilding a Graph-node's pins from its Subgraph's <strong>interface ports</strong> — <code>GraphNode.reconcile_interface()</code>. The single funnel for every interface change: a collapse, a re-bind, or an edit inside the Subgraph, which the card learns of by watching its definition. A pin whose interface port is gone is removed; the edges that were on it stay in the graph, unlinked, and the canvas draws them to the node's <strong>Ghost pin</strong></td>
+<td>Sync, refresh</td>
+</tr>
+</tbody>
+</table>
 <h2 id="flow-types-port-kinds">Flow Types &amp; Port Kinds<a class="headerlink" href="#flow-types-port-kinds" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -4010,7 +4112,7 @@
 </tr>
 <tr>
 <td><strong>CALLBACK port</strong></td>
-<td>A port used for event-style signalling; no hardcoded multiplicity rules. See <a href="../../architecture/execution/callbacks/callbacks-arch/">architecture/execution/callbacks</a></td>
+<td>A port used for event-style signalling; no hardcoded multiplicity rules. A callback edge carries its subscription as the source port's <em>value</em> — the event name, pooled on the sink keyed by that edge — so it must run <strong>straight from its event node</strong>: no reroute, and no Subgraph boundary. An intermediate hop re-keys the pool entry, and unlinking the original edge then leaves the sink subscribed to an event nothing emits. See <a href="../../architecture/execution/callbacks/callbacks-arch/">architecture/execution/callbacks</a> and <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a></td>
 <td>Event port (overloaded)</td>
 </tr>
 <tr>
@@ -4038,7 +4140,7 @@
 <tbody>
 <tr>
 <td><strong>NodeType</strong></td>
-<td>The execution role of a node (the <code>NodeType</code> enum: DATA, CONTROL, EVENT, OUTPUT, LOOPBACK, REROUTE), determined by its EXEC port configuration. <code>NodeBehaviorFlags</code> is the dataclass that holds this field — prefer <strong>NodeType</strong> in conversation</td>
+<td>The execution role of a node (the <code>NodeType</code> enum: DATA, CONTROL, EVENT, OUTPUT, LOOPBACK, REROUTE, BOUNDARY), declared on the class by <code>@node(node_type=…)</code>. <code>NodeBehaviorFlags</code> is the frozen dataclass that holds it — prefer <strong>NodeType</strong> in conversation. Each node is stamped with its class's flags at construction; a node whose role follows its own ports restamps this one field through <code>set_node_type()</code> (the Graph-node card: CONTROL when control crosses its Subgraph, DATA when only data does). No other flag varies per instance</td>
 <td>Node category</td>
 </tr>
 <tr>
@@ -5571,7 +5673,7 @@
 <tr>
 <td><strong>Fold collapse</strong></td>
 <td>The closing of one <strong>Fold</strong> inside a node card, held as that fold's own port value and applied by <code>get_visible_ports()</code> via <code>_is_any_ancestor_collapsed</code>. Hides that fold's child ports only; a hidden child that is linked still renders an ordinary Pin in the card header. Distinct from <strong>Node collapse</strong>.</td>
-<td>group collapse (the superseded <code>group()</code> spelling), collapsed fold (acceptable, but qualify it)</td>
+<td>Port-group collapse (the superseded <code>group()</code> spelling), collapsed fold (acceptable, but qualify it). <strong>Not</strong> "group collapse" unqualified — "Group" now names a <strong>Graph-node</strong> variant</td>
 </tr>
 <tr>
 <td><strong>Ghost pin</strong></td>
@@ -5876,7 +5978,7 @@
 <li><strong>"context"</strong> is overloaded: <code>ExecutionContext</code> (passed to worker) and <code>SessionContext</code> (UI state). Always qualify which one. Never use it for the place a Panel appears — that is a <strong>Surface</strong>.</li>
 <li><strong>"surface"</strong> in prose means a <strong>Surface</strong> — the place Panels appear. Do not use it loosely for "aspect" or "side of a thing", and do not call the <code>provides</code> Protocol a "verb surface". The CSS token <code>--hw-bg-surface</code> is a background colour and unrelated.</li>
 <li><strong>"flow"</strong> appears as both the general concept (data flow, control flow) and the specific assembled object (<code>LocalizedDataFlow</code>, <code>Flow</code>). Capitalize <strong>Flow</strong> when referring to the assembled execution unit.</li>
-<li><strong>"NodeBehaviorFlags" vs "NodeType"</strong>: <code>NodeType</code> is the enum (<code>DATA</code>, <code>CONTROL</code>, <code>EVENT</code>, <code>OUTPUT</code>, <code>LOOPBACK</code>); <code>NodeBehaviorFlags</code> is the frozen dataclass that holds <code>node_type: NodeType</code> plus other flags (<code>is_stateful</code>, <code>is_mutable</code>, …). The glossary term <strong>NodeType</strong> is canonical for the execution role. "Node type" (lowercase) is used consistently in docs and code for this concept only.</li>
+<li><strong>"NodeBehaviorFlags" vs "NodeType"</strong>: <code>NodeType</code> is the enum (<code>DATA</code>, <code>CONTROL</code>, <code>EVENT</code>, <code>OUTPUT</code>, <code>LOOPBACK</code>); <code>NodeBehaviorFlags</code> is the frozen dataclass that holds <code>node_type: NodeType</code> plus other flags (<code>is_stateful</code>, <code>is_mutable</code>, …). The glossary term <strong>NodeType</strong> is canonical for the execution role. "Node type" (lowercase) is used consistently in docs and code for this concept only. <strong>"Immutable" is not "per class"</strong>: the dataclass is frozen, so no flag is ever mutated in place — but <code>NodeData.behavior</code> is <em>instance</em> state, stamped from <code>class_behavior</code> at construction, and <code>set_node_type()</code> swaps the whole set to vary that one field. Read a node's role off the instance (<code>node.behavior</code>), never off <code>type(node).class_behavior</code>, which is only the starting point.</li>
 <li><strong>"sidebar"</strong> is overloaded: the CSS token prefix <code>--hw-sidebar-*</code> refers specifically to the <strong>ActivityBar</strong> and <strong>ContextBar</strong> (the narrow 48px icon strips). It does NOT refer to the Left or Right <strong>Slots</strong> (the wider editor panels). Always qualify: use <strong>ActivityBar</strong>, <strong>ContextBar</strong>, or <strong>Slot</strong> for structural names; "sidebar" only appears as a CSS token prefix.</li>
 <li><strong>"info bar"</strong> appears in two distinct senses: <code>hui.info_bar()</code> is a Panel-level metadata bar pattern; <strong>StatusBar</strong> is a shell-level bar at the bottom of the AppShell. They are different things — never use "info bar" to mean the StatusBar.</li>
 <li><strong>"panel"</strong> in CSS token names (<code>--hw-panel-*</code>) refers to the <code>.hw-panel</code> editor container, not the <strong>Panel</strong> sub-component concept. The CSS token <code>--hw-panel-bg</code> is the background of the editor container, not a per-Panel background.</li>

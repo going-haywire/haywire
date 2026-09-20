@@ -1899,6 +1899,78 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#subgraphs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subgraphs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Subgraphs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-definition-is-a-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The definition is a graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#one-id-space-across-the-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One id space across the tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Serialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collapse-and-expand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collapse and expand
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#todo" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3225,6 +3297,78 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#subgraphs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subgraphs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Subgraphs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-definition-is-a-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The definition is a graph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#one-id-space-across-the-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One id space across the tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Serialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#collapse-and-expand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Collapse and expand
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#todo" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3253,7 +3397,7 @@
 
 
 <hr />
-<p>status: placeholder
+<p>status: draft
 doc_template: impl-spec
 scope: The Graph as data structure: variables, validation pipeline, graph-nodes, haystacks, serialization
 see-also:
@@ -3299,6 +3443,58 @@ auto-stopped by a reassembly-requiring validation change
 (<code>HaystackState._on_entry_validation</code>) and <code>autorestart</code> is set, the entry is
 recompiled and restarted — but only if <code>compile()</code> reports the rebuilt graph is
 viable; otherwise it stays stopped.</p>
+<h2 id="subgraphs">Subgraphs<a class="headerlink" href="#subgraphs" title="Permanent link">&para;</a></h2>
+<p>A <strong>Subgraph</strong> is the contents of a <strong>Graph-node</strong> — one card on the parent
+canvas standing for a whole set of nodes and edges. Slice 1 ships the <strong>Group</strong>
+variant: the Subgraph lives in the parent <code>.haywire</code> file and serves that one
+card. See <a href="../../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a>
+for how it executes, and the <a href="../../../reference/glossary/#encapsulation">glossary</a>
+for the vocabulary.</p>
+<h3 id="the-definition-is-a-graph">The definition is a graph<a class="headerlink" href="#the-definition-is-a-graph" title="Permanent link">&para;</a></h3>
+<p><code>SubgraphDefinition</code> subclasses <code>BaseGraph</code>, so it carries its own <code>props</code>,
+<code>meta</code>, Variables and validation pipeline. That is what delivers the
+<code>framework &lt; subgraph &lt; node</code> settings chain: an inner node's field resolves its
+graph tier by walking <code>node → wrapper → graph → settings_bag_for(...)</code>
+(ADR 0022), and that graph is the definition rather than the host.</p>
+<p>A definition holds its nodes <strong>live</strong> — the wrappers in <code>node_wrappers</code> are the
+same objects the canvas draws and the VM executes, which is what makes error
+locations and live values inside a closed Group work with no id translation.</p>
+<h3 id="one-id-space-across-the-tree">One id space across the tree<a class="headerlink" href="#one-id-space-across-the-tree" title="Permanent link">&para;</a></h3>
+<p><code>BaseGraph</code> gains a <code>subgraphs</code> table keyed by the definition's <code>key</code>, plus
+<code>_host_graph</code> pointing back at the graph whose table holds it. <code>root_graph</code>
+walks that chain, and <code>generate_unique_node_id</code> mints against
+<code>root_graph.tree_contains_node_id</code> — so <strong>every node id is unique across the
+host and every Subgraph beneath it</strong>, at any depth.</p>
+<p>That single invariant is what lets <code>FlatGraphView</code> be a flat dict search with
+nothing to namespace, and what lets a collapse move nodes into a definition and
+an expand lift them back out without ever remapping an id.</p>
+<h3 id="interface">Interface<a class="headerlink" href="#interface" title="Permanent link">&para;</a></h3>
+<p>The two <strong>boundary nodes</strong> inside a Subgraph define its interface, and the card
+mirrors their ports onto its own pins: the Subgraph Input's outlets become the
+card's inlets, the Subgraph Output's inlets its outlets. Pin ids are namespaced
+by side (<code>in_</code> / <code>out_</code>) because the two boundary nodes are separate nodes free
+to use one name each — a control Subgraph has <code>exec</code> on both. The definition
+owns the interface's <em>shape</em>; the card owns the port <em>values</em>, so an unconnected
+inlet's widget value belongs to the instance.</p>
+<p><code>haywire.core.graph.subgraph_crossing</code> holds every conversion between the four
+id spaces that meet here, so the view that builds a crossing and the worker that
+follows one cannot drift.</p>
+<h3 id="serialization">Serialization<a class="headerlink" href="#serialization" title="Permanent link">&para;</a></h3>
+<p><code>to_dict</code> gains a <code>"subgraphs"</code> table; <code>load_from_dict</code> restores it <strong>before</strong>
+the nodes loop, so a Graph-node can resolve its definition during
+<code>wrapper.build()</code> and mirror the interface onto its card. A file without the
+key restores nothing, and <code>clear()</code> drops the table so reloading the same file
+is not a duplicate-key error.</p>
+<p>Format <strong>v4</strong> carries this, and rides the same bump that renames <code>DataPort</code>'s
+<code>parent_group</code>/<code>is_group</code> to <code>parent_fold</code>/<code>is_fold</code> — finishing ADR 0035, after
+which "group" has exactly one meaning in the codebase.</p>
+<h3 id="collapse-and-expand">Collapse and expand<a class="headerlink" href="#collapse-and-expand" title="Permanent link">&para;</a></h3>
+<p><code>core/graph/subgraph_collapse.py</code> is pure analysis over a graph and a selection:
+<code>check_convex</code> (a two-direction reachability test — see <strong>Convex selection</strong> in
+the glossary) and <code>derive_interface</code>, which splits the selection's edges by the
+clipboard's both-endpoints rule and dedups inlets by their <em>outer</em> source,
+outlets by their <em>inner</em> source. <code>CollapseToGraphNodeAction</code> and
+<code>ExpandGraphNodeAction</code> are inverses, each undoable on its own.</p>
 <h2 id="todo">TODO<a class="headerlink" href="#todo" title="Permanent link">&para;</a></h2>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Write content</li>
