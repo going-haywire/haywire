@@ -7,6 +7,7 @@ writing (``.insights/project_stepper_flows.md``), so promotion is split:
 """
 
 import json
+from typing import cast
 
 import pytest
 
@@ -206,6 +207,7 @@ def test_a_promoted_group_can_be_placed_and_runs_its_interior(
     tmp_path, graph_with_library_system, library_system
 ):
     """The point of promoting: the result is a macro you can place like any node."""
+    from haywire.barn.builtin.nodes.macro_node import MacroNode
     from haywire.core.library.identity import LibraryIdentity
     from haywire.core.macro.promote import plan_promotion, write_macro_file
     from tests.conftest import make_node
@@ -224,9 +226,12 @@ def test_a_promoted_group_can_be_placed_and_runs_its_interior(
     registry.add_folder(str(tmp_path), identity)
     try:
         card = make_node(graph, f"testlib:macro:{plan.registry_key_stem}")
+        placement = cast(MacroNode, card.node)
+        interior = placement.resolve_definition()
 
-        assert card.node.display_label == plan.registry_key_stem
-        assert len(card.node.resolve_definition().node_wrappers) == interior_size
+        assert placement.display_label == plan.registry_key_stem
+        assert interior is not None
+        assert len(interior.node_wrappers) == interior_size
     finally:
         registry.remove_folder(str(tmp_path), identity)
 
