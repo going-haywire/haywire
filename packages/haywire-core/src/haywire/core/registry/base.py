@@ -2,10 +2,8 @@
 Base classes for the Haywire library system
 """
 
-from typing import Dict, Any, Generic, Optional, Protocol, Type, TypeVar, List, Tuple, cast
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field as dc_field
-from enum import Enum
+from typing import Dict, Any, Optional, Type, List, Tuple, cast
+from abc import abstractmethod
 import importlib
 from pathlib import Path
 import sys
@@ -13,70 +11,32 @@ import logging
 
 from ..errors import HaywireException
 from ..library.identity import LibraryIdentity
+from .component import ComponentRegistry
 from .dependency_graph import DependencyGraph
 from .identity import BaseIdentity
+from .events import (
+    FileChangeEvent,
+    FileEventType,
+    HotReloadRegistry,
+    RegisteredClass,
+    T,
+)
 from .folder_scan import FolderScanMixin
-from .lifecycle_event import LifeCycleEvent, LifeCycleEventType, LifeCycleBatchCallback
+from .lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
 logger = logging.getLogger(__name__)
 
-
-class FileEventType(Enum):
-    """Enum for file change event types"""
-
-    CREATED = "creation"
-    MODIFIED = "modification"
-    DELETED = "deletion"
-    DETECTED = "detection"
-
-
-@dataclass
-class FileChangeEvent:
-    """Represents a file change event"""
-
-    file_path: str
-    event_type: FileEventType  # 'created', 'modified', 'deleted', 'detected'
-    library_identity: LibraryIdentity
-    timestamp: float
-    reloaded_modules: set[str] = dc_field(default_factory=set)
-    """Track modules already reloaded in this event chain"""
-    dependency_event: bool = False  # Whether this event is due to dependency reload
-    """indicates if this event is a result of a dependency change (detected by a different registry)"""
+__all__ = [
+    "BaseRegistry",
+    "FileChangeEvent",
+    "FileEventType",
+    "HotReloadRegistry",
+    "RegisteredClass",
+    "T",
+]
 
 
-class HotReloadRegistry(ABC):
-    """Abstract base class for registries that support hot-reloading"""
-
-    @abstractmethod
-    def event_dispatcher(self, event: FileChangeEvent):
-        """Handle creation of a module"""
-        pass
-
-
-class RegisteredClass(Protocol):
-    """Structural bound for registry element types.
-
-    The registry contract: every managed class carries both a
-    ``class_identity`` (its registry metadata) and a ``class_library`` (the
-    owning library, used for hot-reload) — set by its component decorator.
-
-    Both are typed as read-only properties so concrete element classes may
-    declare them as ``ClassVar`` of narrower subtypes (``NodeIdentity``,
-    ``AdapterIdentity``, ...). A writable Protocol member (plain annotation
-    or ``ClassVar``) would be invariant and reject them.
-    """
-
-    @property
-    def class_identity(self) -> BaseIdentity: ...
-
-    @property
-    def class_library(self) -> LibraryIdentity: ...
-
-
-T = TypeVar("T", bound=RegisteredClass)
-
-
-class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
+class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
     """
     Abstract base class for all class registries.
 
@@ -86,36 +46,17 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
     """
 
     def __init__(self):
+        super().__init__()
+
         self._dependency_graph = DependencyGraph()  # For hot-reload dependency tracking
-
-        self._classes: Dict[str, type[T]] = {}  # registry_key -> class
-
-        # stores the last life-cycle event for each class that has been processed
-        # it keeps track of what was the last event type for each class,
-        # even those that have been removed
-        # registry_key -> event
-        self._regkey_to_last_lifecycle_event: Dict[str, LifeCycleEvent] = {}
 
         # BaseClassRegistry specific attributes
         self._regkey_to_class_name: Dict[str, str] = {}  # registry_key -> class name
         # module -> list of registry_keys
         self._module_to_registry_keys: Dict[str, list[str]] = {}
-        # folder_path -> library_identity
-        self._folder_to_library: Dict[str, LibraryIdentity] = {}
-
-        # Hot reload callback management
-        # Queue of events to process after reload
-        self._lifecycle_event_queue: List[LifeCycleEvent] = []
-
-        # Other registries that depend on this one
-        self._registry_subscribers: List[HotReloadRegistry] = []
-        # Direct consumers (factories, etc.)
-        self._batch_event_subscribers: List[LifeCycleBatchCallback] = []
 
         self._dependency_module_lifecycle_events: Dict[str, LifeCycleEvent] = {}
         """Track errors during dependency module reloads and store them by registry_key"""
-
-        self.logger = logging.getLogger(__name__)
 
     @abstractmethod
     def _class_filter(self, cls: Type) -> bool:
@@ -137,26 +78,6 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
     # ============================================================================
     # Core Registry (Pure State Management)
     # ============================================================================
-
-    def get(self, registry_key: str) -> type[T] | None:
-        """Retrieve a registered class by its haywire registry_key"""
-        return self._classes.get(registry_key)
-
-    def has(self, registry_key: str) -> bool:
-        """Check if a class is registered"""
-        return registry_key in self._classes
-
-    def list_names(self) -> list[str]:
-        """List all classes registry_keys in this registry."""
-        return list(self._classes.keys())
-
-    def list_visible_names(self) -> list[str]:
-        """List registry_keys of non-hidden classes.
-        for those offered as a choice in author-facing selection UIs (menus, pickers).
-        """
-        return [
-            key for key, cls in self._classes.items() if not cast(BaseIdentity, cls.class_identity).hidden
-        ]
 
     def _register(
         self, registry_key: str, cls: type[T], library_identity: Optional[LibraryIdentity] = None
@@ -961,112 +882,3 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
         self.logger.debug(f"Library '{library_identity.label}': Tracking scopes: {scopes}")
 
         return scopes
-
-    # ============================================================================
-    # Hot Reload Callback Management
-    # ============================================================================
-
-    def add_batch_event_subscriber(self, callback: LifeCycleBatchCallback) -> None:
-        """
-        Register a customer callback to be notified of hot reload events.
-
-        Customer callbacks are invoked immediately after a class is reloaded,
-        added, or removed. They receive a LifeCycleEvent batch with complete context.
-
-        Args:
-            callback: Function to call on life cycle events with signature:
-                     (event: List[LifeCycleEvent]) -> None
-        """
-        if callback not in self._batch_event_subscribers:
-            self._batch_event_subscribers.append(callback)
-            self.logger.debug(
-                f"Registered customer callback: {getattr(callback, '__name__', repr(callback))}"
-            )
-
-    def remove_batch_event_subscriber(self, callback: LifeCycleBatchCallback) -> None:
-        """
-        Unregister a customer callback.
-
-        Args:
-            callback: The callback to remove
-        """
-        if callback in self._batch_event_subscribers:
-            self._batch_event_subscribers.remove(callback)
-            self.logger.debug(f"Removed customer callback: {getattr(callback, '__name__', repr(callback))}")
-
-    def add_registry_subscriber(self, registry: HotReloadRegistry) -> None:
-        """
-        Register another registry to be notified of hot reload events.
-
-        Registry subscribers are invoked after customer callbacks and receive
-        complete FileChangeEvent information for their own processing.
-
-        Args:
-            registry: Another registry that needs to react to changes in this registry
-        """
-        if registry not in self._registry_subscribers:
-            self._registry_subscribers.append(registry)
-            self.logger.debug(
-                f"{self.__class__.__name__}: Registered registry subscriber: {registry.__class__.__name__}"
-            )
-
-    def remove_registry_subscriber(self, registry: HotReloadRegistry) -> None:
-        """
-        Unregister a registry subscriber.
-
-        Args:
-            registry: The registry to unsubscribe
-        """
-        if registry in self._registry_subscribers:
-            self._registry_subscribers.remove(registry)
-            self.logger.debug(f"Removed registry subscriber: {registry.__class__.__name__}")
-
-    def _queue_lifecycle_event(self, event: LifeCycleEvent) -> None:
-        """
-        Queues a hot reload event.
-
-        This method is called internally during hot reload operations.
-        Errors in individual callbacks are logged but don't stop generation of events.
-
-        Args:
-            event: The hot reload event with complete context
-        """
-        self._regkey_to_last_lifecycle_event[event.registry_key] = event
-
-        self._lifecycle_event_queue.append(event)
-
-    def _notify_batch_event_subscribers(self) -> None:
-        """
-        Batch notify all customer callbacks about hot reload events.
-
-        This method is called internally during hot reload operations.
-
-        Callbacks receive the complete event information.:
-
-        """
-
-        for callback in self._batch_event_subscribers[:]:
-            callback(self._lifecycle_event_queue)
-
-        self._lifecycle_event_queue.clear()
-
-    def _notify_registry_subscribers(self, event: FileChangeEvent) -> None:
-        """
-        Notify all registry subscribers about a hot reload event.
-
-        This method is called after customer callbacks have been notified.
-        Registry subscribers receive the complete event information and can
-        perform their own dependency analysis and reloading.
-
-        Args:
-            event: The file change event that triggered the reload
-        """
-        for registry in self._registry_subscribers[:]:
-            try:
-                registry.event_dispatcher(event)
-            except Exception as e:
-                self.logger.error(
-                    f"Registry subscriber '{registry.__class__.__name__}' "
-                    f"callback failed for {event.file_path}: {e}",
-                    exc_info=True,
-                )
