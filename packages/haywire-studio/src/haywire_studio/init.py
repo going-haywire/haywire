@@ -534,6 +534,7 @@ Local haybale library for the {name} project.
 
 Add your custom components in the corresponding folders:
 - nodes/      — node definitions
+- macros/     — macro documents (.hwm)
 - types/      — custom data types
 - widgets/    — UI widgets for data types
 - skins/      — custom node skins
@@ -550,6 +551,7 @@ from pathlib import Path
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
 from haywire.core.adapter.registry import AdapterRegistry
+from haywire.core.macro.registry import MacroRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.types.registry import TypeRegistry
@@ -610,6 +612,11 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(
             folder_path=str(base_path / 'nodes'),
             registry_cls=NodeRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / 'macros'),
+            registry_cls=MacroRegistry,
         )
 
         self.add_folder_to_registry(
@@ -807,6 +814,7 @@ def init_project(
     # Create all component folders
     component_folders = [
         "nodes",
+        "macros",
         "types",
         "widgets",
         "skins",
