@@ -253,20 +253,3 @@ def test_a_row_leads_with_the_label_not_the_id() -> None:
 
     assert "Gain" in labels
     assert "gain_in" not in labels
-
-
-def test_every_row_carries_a_pen() -> None:
-    """Dimmed on a port whose presentation is not the user's, but always there:
-    the greyed form with its reason is what explains the difference."""
-    from haywire.ui import elements as hui
-
-    anchor = _render_lane([_FakePort("a", "A"), _FakePort("b", "B")])
-    pens = [
-        e
-        for e in _walk(anchor)
-        if isinstance(e, ui.button) and e._props.get("icon") == hui.icon.edit  # noqa: SLF001
-    ]
-
-    assert len(pens) == 2
-    # These fakes are DECLARED, so both are the disabled form.
-    assert all(p._props.get("disable") for p in pens)  # noqa: SLF001

@@ -49,47 +49,64 @@ Both are now handled in `adopt_state_from` (`port.py:506`): edges are
 re-pointed, and the port is marked dirty and housekept before the method
 returns.
 
-### What is still enumerated, and unverified
+### Resolved: the same-type refresh no longer swaps
 
-Not carried, with no known live path that breaks on them — but (2) also had no
-known path until it was looked for:
+`add()` now resolves the spec, compares `type_cls` against the live port, and
+splits:
 
-- `_pending_lazy_pipes` — queued lazy pulls; a swap mid-frame would drop them
-- `_is_set_by_node` — whether the current value came from the node
-- `_is_dirty_structural` — now set explicitly by the fix, but not *carried*
+- **Same type** — the common case, and every case above. `DataPort.refresh_from`
+  applies the spec's declarative fields to the **live object**, which stays on
+  the node. Nothing is transplanted because nothing moved: edges, pipes, value
+  and dirty flags are already correct, and every reference to the port is still
+  a reference to the port.
+- **Type changed** — the one case a refresh cannot express in place, since the
+  field and whatever `_configure_port` derives from the type genuinely differ.
+  This still builds a replacement, and `adopt_state_from` still transplants.
 
-### Follow-up: stop swapping the object
+Declarative is defined as "what the port serializes" — the same `serialize`
+field metadata `to_dict` reads, so the two cannot drift. Three exceptions are
+excluded by name:
 
-The structural fix is for `add()` to detect the refresh **first** and mutate the
-existing port in place — apply the new spec's fields to the live object rather
-than building a replacement and transplanting. That removes the whole class of
-bug instead of enumerating against it, and deletes `adopt_state_from`'s reason
-to exist.
+- `order` — user-owned; a user's arrangement outlives a node reconfiguring
+  itself.
+- `_is_dirty_structural` — live state that only looks declarative; the fresh
+  port's value would clear a pending rebuild.
+- `port_type` — applied through `adopt_port_type` so the `_is_inlet` cache
+  follows. `_is_callback` is refreshed for the same reason, since a compound
+  type derives `flow_type` from its element type.
 
-Cost and risk to weigh before starting:
+The three unverified leftovers (`_pending_lazy_pipes`, `_is_set_by_node`,
+`_is_dirty_structural`) stop mattering on the refresh path — they are never
+copied because the object holding them is never replaced. They remain
+enumerated on the retype path, which is rare and revalidates anyway.
 
-- `add()` is a hot path (every node build, every rejig, every promoted-port
-  regeneration), and this changes its core branch.
-- A spec can legitimately change a port's **type**, which today produces a
-  genuinely different object (`_data` is only preserved when `type_cls` is
-  unchanged). In-place mutation has to decide what a type change means for the
-  field, its observers, and any attached edges.
-- `adopt_port_type` (`port.py:96`) already exists as a narrow in-place re-type
-  for folds, and documents that assigning `port_type` directly leaves
-  `_is_inlet` stale — evidence that in-place mutation needs its own care, not
-  that it is simpler.
+A third stale reference was found and is now covered by construction: a `Pipe`
+holds its sink inlet by reference and lives on the **upstream** outlet, which a
+rejig on the sink node never touches. It happened to survive before, but only
+because `adopt_state_from` re-pointed `edge._inlet_port` before `_housekeeping`
+rebuilt the pipe from that edge — an ordering coincidence between two lines,
+not independent correctness.
 
-Until then, the invariant to hold: **anything that replaces a live port object
-must leave the graph indistinguishable from before the swap.** Do not rely on a
-later validation batch; it is a different code path with different timing.
+The invariant still holds for the retype path: **anything that replaces a live
+port object must leave the graph indistinguishable from before the swap.** Do
+not rely on a later validation batch; it is a different code path with
+different timing.
 
 ### Evidence
 
 - Regression tests: `tests/core/test_node/test_port_swap_keeps_edges.py`
-  (9 tests). The plain-node cases pass via either path and say so in their
-  docstrings; the `TestTheGraphNodeCard` and
-  `test_the_card_outlet_still_delivers_after_a_reconcile` cases are the ones
-  that fail without the fix.
+  (14 tests), covering object identity across a refresh, the upstream pipe's
+  sink, that a refresh still applies the new spec and keeps the value, and the
+  type-change swap. The `TestTheGraphNodeCard` and
+  `test_the_card_outlet_still_delivers_after_a_reconcile` cases remain the ones
+  with no validation batch to fall back on.
+- The re-stamping loop in `adopt_state_from` is pinned by exactly one test,
+  `test_a_retyped_interface_port_re_points_the_edge`: a retype driven through
+  `_mirror` from inside the Subgraph's validation. Deleting the loop fails that
+  test and **nothing else** — every plain-node retype is masked by the next
+  batch re-resolving endpoints by id. A retype test written on a plain node
+  asserts nothing about the loop, which is the same asymmetry the report opens
+  with, met once more while writing the tests for the fix.
 - Trap write-up: `.insights/project_rejig_orphans_edge_port_refs.md`, including
   the three plausible-but-wrong diagnoses this cost (a threading race, the
   NodeDetail CSS, and "the redraw never ran" — the redraw does run, on stale

@@ -503,10 +503,60 @@ class DataPort(DataTypeIdentity):
         """
         self.show_widget = strategy
 
+    @classmethod
+    def _refreshable_fields(cls) -> tuple[str, ...]:
+        """The field names ``refresh_from`` copies, computed once per class."""
+        cached = cls.__dict__.get("_REFRESHABLE")
+        if cached is None:
+            cached = tuple(
+                f.name
+                for f in fields(cls)
+                if f.metadata.get("serialize", True)
+                and f.name not in ("order", "port_type", "_is_dirty_structural")
+            )
+            cls._REFRESHABLE = cached  # type: ignore[attr-defined]
+        return cached
+
+    def refresh_from(self, spec_port: "DataPort") -> None:
+        """Apply a freshly built port's declarative fields to this live port.
+
+        The same-type half of a ``rejig`` refresh: ``NodeData.add`` calls this
+        instead of substituting ``spec_port``, so this object survives the
+        reconfiguration and every reference to it stays valid — an
+        ``EdgeWrapper``'s endpoints, an upstream ``Pipe``'s sink, a panel
+        holding the port it is drawing.
+
+        Declarative fields are the ones a port serializes: label, colors, icons,
+        widget, callbacks, flow and link rules. Live state is not touched —
+        value, edges, pipes and dirty flags all belong to this object and are
+        already correct. Three serializable fields are handled apart:
+
+        - ``order`` is user-owned. A graph user's arrangement outlives a node
+          reconfiguring itself, so a node re-adding a port does not move it.
+        - ``_is_dirty_structural`` is live state that only looks declarative;
+          taking the fresh port's value would clear a pending rebuild.
+        - ``port_type`` goes through ``adopt_port_type`` so the ``_is_inlet``
+          cache that ``set_value`` reads follows a port refreshed across
+          directions.
+        """
+        for name in self._refreshable_fields():
+            setattr(self, name, getattr(spec_port, name))
+
+        if spec_port.port_type is not self.port_type:
+            self.adopt_port_type(spec_port.port_type)
+
+        # set_value reads this cache rather than flow_type, which the copy above
+        # just rewrote — a compound type derives it from its element type.
+        self._is_callback = self.flow_type == FlowType.CALLBACK
+
     def adopt_state_from(self, existing: "DataPort") -> None:
-        """Transplant edge state, value (when types match) and display order from a
-        port being replaced during reconfiguration. Called by ``BaseNode.add`` when a
-        port id is re-added in a push/rejig context.
+        """Transplant edge state and display order from a port being replaced.
+
+        Called by ``NodeData.add`` when a re-added port id resolves to a
+        different type, which is the one case a refresh cannot express in
+        place: the field, and whatever ``_configure_port`` derives from the
+        type, genuinely differ. A same-type refresh keeps the live object
+        instead — see ``refresh_from``.
 
         Order is user-owned: a graph user's arrangement outlives a node
         reconfiguring itself, so a node re-adding a port does not move it. A port
@@ -531,12 +581,6 @@ class DataPort(DataTypeIdentity):
                 edge._inlet_port = self
             if edge._outlet_port is existing:
                 edge._outlet_port = self
-
-        # Preserve the field instance only when the type is unchanged, so the
-        # stored value (and its observers) survive the port swap.
-        if existing._data is not None and self._data is not None:
-            if existing.type_cls is self.type_cls:
-                self._data = existing._data
 
         # `_pipes` is derived from the links above and belongs to the port
         # object, so the replacement starts with none. Rebuilt here rather

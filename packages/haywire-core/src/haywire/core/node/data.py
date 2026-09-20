@@ -185,11 +185,18 @@ class NodeData:
 
         The port joins the enclosing ``fold()`` block, if any, and is ordered
         after the ports added before it. Inside ``rejig()``, re-adding a port
-        ID the block flagged replaces that port and keeps its edges (see
-        ``DataPort.adopt_state_from``); any other existing ID raises
-        ``ValueError``::
+        ID the block flagged refreshes that port and keeps its edges; any other
+        existing ID raises ``ValueError``::
 
             self.add(FLOAT.as_inlet("value"))
+
+        A refresh (using this function within a rejig()) keeps the live ``DataPort`` 
+        if possible. Changes of the field or port type produces a genuinely different 
+        port object and triggerst a housekeeping pass to reattach edges to the new port.
+
+        Returns:
+            The live port carrying the spec: the refreshed existing object, or
+            the new one when the port is new or its type changed.
         """
         port = DataPort.from_spec(cast(dict, spec), self._type_registry, self.wrapper, self)
 
@@ -211,8 +218,12 @@ class NodeData:
             else:
                 raise ValueError(f"Port ID already exists: {port.id}")
 
-            # Preserve edges (and value, if types match) from the replaced port.
-            port.adopt_state_from(existing)
+            if existing.type_cls is port.type_cls:
+                existing.refresh_from(port)
+                port = existing
+            else:
+                # Preserve edges from the replaced port.
+                port.adopt_state_from(existing)
 
         self.ports[port.id] = port
 
