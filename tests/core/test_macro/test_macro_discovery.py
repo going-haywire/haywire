@@ -108,7 +108,9 @@ def test_a_hidden_macro_is_not_offered(tmp_path, library_system):
     (tmp_path / "Blur.hwm").write_text(json.dumps(_document()))
     macro_registry = MacroRegistry()
     macro_registry.add_folder(str(tmp_path), _identity(str(tmp_path)))
-    macro_registry.get("testlib:macro:Blur").class_identity.hidden = True
+    template = macro_registry.template("testlib:macro:Blur")
+    assert template is not None
+    template.identity.hidden = True
 
     factory = NodeFactory(library_system.get_node_registry(), macro_registry)
 
