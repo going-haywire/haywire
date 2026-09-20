@@ -13,7 +13,7 @@ from .discovery import LibraryDiscovery, DiscoveredLibrary
 from .install_type import InstallType
 from .identity import LibraryIdentity
 from ..host import HostStore
-from ..registry.base import BaseRegistry
+from ..registry.component import ComponentRegistry
 
 
 _HOST_STORE_SECTION = "libraries"
@@ -51,7 +51,7 @@ class LibraryRegistry:
         self._libraries: Dict[str, BaseLibrary] = {}  # registry_id -> library_instance
         """key is library_registry_name (e.g. 'visiongraph'), value is the instantiated library object"""
         # registry_cls -> registry instance
-        self._class_registries: Dict[Type[BaseRegistry], BaseRegistry] = {}
+        self._class_registries: Dict[Type[ComponentRegistry], ComponentRegistry] = {}
 
         # LibraryRegistry specific attributes
         self.discovered_libraries: Dict[str, Dict[str, Any]] = {}
@@ -106,7 +106,7 @@ class LibraryRegistry:
         """List all registered library names"""
         return list(self._libraries.keys())
 
-    def add_class_registry(self, cls: Type[BaseRegistry], instance: BaseRegistry):
+    def add_class_registry(self, cls: Type[ComponentRegistry], instance: ComponentRegistry):
         """Add a registry instance libraries can register their components with."""
         self._class_registries[cls] = instance
 
