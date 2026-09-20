@@ -241,6 +241,67 @@ def test_reorder_handler_reads_indices() -> None:
     assert "GraphDataMutated" not in source
 
 
+@dataclass
+class _Drop:
+    """The two indices ``_on_reorder`` reads off a ``SortableEventArguments``."""
+
+    old_index: int
+    new_index: int
+
+
+class _RecordingNode:
+    """A node that applies each ``reorder_ports`` call to a live id list."""
+
+    def __init__(self, ids: list[str]) -> None:
+        self.ids = list(ids)
+
+    def reorder_ports(self, ordered_ids: list[str]) -> None:
+        # Mirrors NodeData.reorder_ports for one whole sibling group: the
+        # named ports take the slots the group already occupies, in order.
+        self.ids = [pid for pid in ordered_ids if pid in self.ids]
+
+
+def test_consecutive_drops_track_the_order_already_applied() -> None:
+    """A second drag must address the order the first one produced.
+
+    The panel does not redraw between drops, so a handler holding the ids as
+    they were first *rendered* computes every later move against a stale list —
+    the panel and the node card then disagree.
+    """
+    from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
+
+    panel = NodePortsPanel()
+    node = _RecordingNode(["a", "b", "c"])
+    rendered = ["a", "b", "c"]
+
+    # Drag "c" to the front: a b c -> c a b
+    panel._on_reorder(node, rendered, _Drop(old_index=2, new_index=0))
+    assert node.ids == ["c", "a", "b"]
+
+    # Now drag the row sitting at index 2 ("b") to the front: c a b -> b c a
+    panel._on_reorder(node, rendered, _Drop(old_index=2, new_index=0))
+    assert node.ids == ["b", "c", "a"]
+
+
+def test_a_no_op_drop_leaves_the_order_alone() -> None:
+    from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
+
+    panel = NodePortsPanel()
+    node = _RecordingNode(["a", "b", "c"])
+    panel._on_reorder(node, ["a", "b", "c"], _Drop(old_index=1, new_index=1))
+    assert node.ids == ["a", "b", "c"]
+
+
+def test_an_out_of_range_index_is_ignored() -> None:
+    """A stale index from a redrawn panel must not raise mid-gesture."""
+    from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
+
+    panel = NodePortsPanel()
+    node = _RecordingNode(["a", "b"])
+    panel._on_reorder(node, ["a", "b"], _Drop(old_index=5, new_index=0))
+    assert node.ids == ["a", "b"]
+
+
 def test_a_row_leads_with_the_label_not_the_id() -> None:
     """The panel reads the same whether or not a port renders a widget.
 

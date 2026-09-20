@@ -249,6 +249,9 @@ class NodePortsPanel(BasePanel):
         if not siblings:
             return
 
+        # Handed to every drop on this group and updated in place by each one.
+        # The panel does not redraw between drops, so this list — not the order
+        # the rows were first rendered in — is what the next drop's indices mean.
         sibling_ids = [p.id for p in siblings]
 
         # One row per sibling, each paired with the block its children go in, so
@@ -302,7 +305,9 @@ class NodePortsPanel(BasePanel):
         for the save.
 
         Args:
-            sibling_ids: The group's ids in the order they were rendered.
+            sibling_ids: The group's ids in their current on-screen order.
+                Updated in place to the order this drop applies, so the next
+                drop on the same group addresses the rows where they now are.
             event: A ``SortableEventArguments``, whose indices address
                 ``sibling_ids``.
         """
@@ -312,9 +317,8 @@ class NodePortsPanel(BasePanel):
             return
         if not (0 <= old_index < len(sibling_ids)) or not (0 <= new_index < len(sibling_ids)):
             return
-        reordered = list(sibling_ids)
-        reordered.insert(new_index, reordered.pop(old_index))
-        node.reorder_ports(reordered)
+        sibling_ids.insert(new_index, sibling_ids.pop(old_index))
+        node.reorder_ports(list(sibling_ids))
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
