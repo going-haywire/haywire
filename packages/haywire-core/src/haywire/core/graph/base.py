@@ -886,9 +886,13 @@ class BaseGraph:
             "edges": {edge_id: wrapper.edge.to_dict() for edge_id, wrapper in self.edge_wrappers.items()},
             "variables": {name: var.to_dict() for name, var in self.variables.items()},
             "props": self.props._to_dict(),
+            # A template-instantiated definition is left out: the macro file is
+            # what it is rebuilt from, and writing a copy here would let the two
+            # drift apart. See ADR 0038.
             "subgraphs": {
                 key: definition.to_dict(include_data=include_data)
                 for key, definition in self.subgraphs.items()
+                if getattr(definition, "template_key", None) is None
             },
         }
 

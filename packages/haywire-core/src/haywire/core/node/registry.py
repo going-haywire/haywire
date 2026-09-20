@@ -23,6 +23,7 @@ class NodeRegistry(BaseRegistry[BaseNode]):
         self._subgraph_input_node: type[BaseNode] | None = None
         self._subgraph_output_node: type[BaseNode] | None = None
         self._graph_node: type[BaseNode] | None = None
+        self._macro_node: type[BaseNode] | None = None
 
     def _class_filter(self, cls):
         """Check if a class is a valid Haywire node class."""
@@ -106,6 +107,15 @@ class NodeRegistry(BaseRegistry[BaseNode]):
                 )
             self._graph_node = cls
 
+        if cls.class_identity._is_macro_node:
+            if self._macro_node is not None and self._macro_node is not cls:
+                logger.warning(
+                    f"Overriding registered macro node "
+                    f"'{self._macro_node.class_identity.registry_key}' "
+                    f"with '{cls.class_identity.registry_key}'."
+                )
+            self._macro_node = cls
+
         return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key) -> type[BaseNode] | None:
@@ -137,6 +147,8 @@ class NodeRegistry(BaseRegistry[BaseNode]):
 
         if self.get(registry_key) is self._graph_node:
             self._graph_node = None
+        if self.get(registry_key) is self._macro_node:
+            self._macro_node = None
             logger.warning(f"Graph node '{registry_key}' unregistered; no graph node left in registry")
 
         return super()._unregister(registry_key)
@@ -160,6 +172,10 @@ class NodeRegistry(BaseRegistry[BaseNode]):
     def _get_graph_node(self) -> type[BaseNode] | None:
         """The class registered as the Graph-node (a Group's card), or ``None``."""
         return self._graph_node
+
+    def _get_macro_node(self) -> type[BaseNode] | None:
+        """The class registered as the macro placement card, or ``None``."""
+        return self._macro_node
 
     def get_node_lastevent(self, key: str) -> LifeCycleEvent | None:
         """The node's last lifecycle event, or ``None`` if it has had none."""

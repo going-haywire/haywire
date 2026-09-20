@@ -95,6 +95,13 @@ class SubgraphDefinition(BaseGraph):
         self.key: str = key
         self.label: str = label or key
 
+        self.template_key: str | None = None
+        """The macro this definition was instantiated from, if any.
+
+        A marked definition is runtime state: the host graph does not serialize
+        it, because the template's file is what it is rebuilt from on load.
+        """
+
         # Memo for graph_node_wrapper(); re-validated on every call.
         self._graph_node_id: str | None = None
 

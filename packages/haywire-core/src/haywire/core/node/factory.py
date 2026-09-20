@@ -15,6 +15,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _kind_of(registry_key: str) -> str:
+    """The kind segment of a registry key (``lib:node:Name`` -> ``node``)."""
+    parts = registry_key.split(":")
+    return parts[1] if len(parts) > 2 else ""
+
+
 class NodeFactory:
     """Resolves node classes by registry key and relays the registry's lifecycle events.
 
@@ -66,6 +72,9 @@ class NodeFactory:
             HaywireException: If the key yields no class and no error node is
                 registered at all.
         """
+        if _kind_of(registry_key) == "macro":
+            return self._get_macro_node(registry_key)
+
         node_cls: type[BaseNode] | None = None
         node_error: HaywireException | None = None
         node_event = self.node_registry.get_node_lastevent(registry_key)
@@ -100,6 +109,44 @@ class NodeFactory:
                 category="NodeFactoryConfigurationError",
             )
         return node_cls, node_error
+
+    def _get_macro_node(self, registry_key: str) -> tuple[type[BaseNode], HaywireException | None]:
+        """Return the placement card for a macro key, and any error about the macro.
+
+        The card class is the same for every macro — a placement is told which
+        template it stands for by its own ``registry_key``, not by its class.
+        A key with no registered template takes the error-node path, so a graph
+        using a macro from an absent library still opens.
+        """
+        error: HaywireException | None = None
+        template = self.macro_registry.template(registry_key) if self.macro_registry else None
+        if template is None:
+            error = HaywireException(
+                message=f"Macro with registry key '{registry_key}' not found in registry.",
+                operation="Macro Lookup",
+                registry_key=registry_key,
+                category="NodeNotFoundError",
+                suggestions=[
+                    "Ensure the library providing this macro is installed and enabled.",
+                    "Check that the macro's .hwm file is still in the library's macros folder.",
+                ],
+            )
+
+        macro_cls = self.node_registry._get_macro_node() if template is not None else None
+        if macro_cls is None:
+            macro_cls = self.node_registry._get_error_node()
+        if macro_cls is None:
+            raise HaywireException(
+                message=(
+                    f"Macro lookup failed for '{registry_key}' and no error node is "
+                    f"registered. The application must register an error node with the "
+                    f"node registry to provide a fallback."
+                ),
+                operation="Macro Lookup",
+                registry_key=registry_key,
+                category="NodeFactoryConfigurationError",
+            )
+        return macro_cls, error
 
     def _listen_on_lifecycle_event(self, batch: list[LifeCycleEvent]) -> None:
         """Relay a batch of registry lifecycle events to the batch listeners, then each

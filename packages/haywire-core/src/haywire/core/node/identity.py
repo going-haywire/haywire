@@ -17,3 +17,4 @@ class NodeIdentity(BaseIdentity):
     _is_subgraph_input: bool = False
     _is_subgraph_output: bool = False
     _is_graph_node: bool = False
+    _is_macro_node: bool = False
