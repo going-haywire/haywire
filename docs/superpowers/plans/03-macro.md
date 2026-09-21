@@ -24,9 +24,9 @@ gives `reconcile_interface()` its caller. The draft's "reload fan-out — the re
 open surface" turned out to be machinery that already exists once a placement's
 registry key is the macro's own (decision 2).
 
-**Built**, except **Edit Macro…** (step 7): a macro can be placed, reloaded and
-promoted, but its document cannot yet be opened for editing. Settled by a
-second design interview — see "What steps 7–8 landed as" below.
+**Built** — all nine steps landed. See "What steps 7–8 landed as" below for the
+shape Edit Macro… took, which a second design interview settled after a first
+attempt opened the document in the wrong editor.
 
 ---
 
@@ -346,9 +346,9 @@ never make one. The UI over it is:
 (it used `inspect.getfile`, which raises on an instance and left the editor
 blank), so Component Docs resolve a macro key.
 
-**Edit Macro… is not built**, and the first attempt was wrong: it opened the
-`.hwm` as JSON in the component source viewer, which has no dirty dot, no Save
-and no undo stack — against user story 7. The settled design:
+**Edit Macro…** — the first attempt was wrong: it opened the `.hwm` as JSON in
+the component source viewer, which has no dirty dot, no Save and no undo stack,
+against user story 7. As built:
 
 - A macro document is a **second category of haystack entry**: an `EntryKind`
   (`GRAPH` | `MACRO`) on `GraphEntry`. In `_entries`, so `remove_entry` releases

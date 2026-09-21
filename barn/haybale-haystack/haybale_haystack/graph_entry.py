@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -28,6 +29,30 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class EntryKind(Enum):
+    """What kind of document an entry holds.
+
+    A **graph** is a member of the haystack: it is listed in the haystack TOML,
+    reopened when that haystack loads, and can be executed.
+
+    A **macro** is a ``.hwm`` document open for editing beside the haystack. It
+    edits, saves and undoes like any graph, but it is not a member: no haystack
+    lists it, so it does not reopen on the next launch, and it holds no EVENT
+    node to execute. It stays in memory until the user releases it.
+    """
+
+    GRAPH = "graph"
+    MACRO = "macro"
+
+    def is_haystack_member(self) -> bool:
+        """Whether an entry of this kind belongs to the haystack set."""
+        return self is EntryKind.GRAPH
+
+    def is_executable(self) -> bool:
+        """Whether an entry of this kind can be run."""
+        return self is EntryKind.GRAPH
+
+
 @dataclass
 class GraphEntry(GraphContainer):
     """Holds all runtime state for a single open graph.
@@ -40,6 +65,8 @@ class GraphEntry(GraphContainer):
         interpreter:  Per-graph Interpreter instance (created on execution start).
         run_settings: Per-entry run policy (e.g. autorestart). Always present;
                       persisted in the haystack TOML under ``[graphs.run]``.
+        kind:         Which category this entry belongs to. See
+                      :class:`EntryKind`.
     """
 
     graph: "HaywireGraph"
@@ -49,6 +76,7 @@ class GraphEntry(GraphContainer):
     interpreter: Optional["Interpreter"] = field(default=None, repr=False)
     haystack: "Optional[HaystackState]" = field(default=None, repr=False)
     run_settings: GraphRunSettings = field(default_factory=GraphRunSettings)
+    kind: EntryKind = EntryKind.GRAPH
 
     @property
     def binding_id(self) -> str:
@@ -86,7 +114,20 @@ class GraphEntry(GraphContainer):
         return self.interpreter is not None and self.interpreter.is_executing
 
     def compile(self) -> CompileResult:
-        """Build the Interpreter and assemble the graph WITHOUT starting it."""
+        """Build the Interpreter and assemble the graph WITHOUT starting it.
+
+        Returns a failed result for an entry whose :attr:`kind` is not
+        executable, naming the reason: a macro document holds no EVENT node, so
+        assembly would find nothing to run and the verdict would not say why.
+        """
+        if not self.kind.is_executable():
+            return CompileResult(
+                ok=False,
+                error=(
+                    f"'{self.display_name}' is a macro document, not a graph. Place it in a graph to run it."
+                ),
+            )
+
         if self.is_executing:
             return CompileResult(ok=True, error=None)
 

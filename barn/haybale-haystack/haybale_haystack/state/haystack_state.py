@@ -14,7 +14,7 @@ from haywire.core.node.factory import NodeFactory
 from haywire.core.state import LibraryStateContainer
 from haywire.core.execution.compile_result import CompileResult
 
-from ..graph_entry import GraphEntry
+from ..graph_entry import EntryKind, GraphEntry
 from ..settings.haystack_settings import HaystackSettings
 
 from haybale_graph_editor.state.graph_app_state import GraphAppState
@@ -224,7 +224,7 @@ class HaystackState(AppState):
         """
         from haywire.core.graph.base import BaseGraph
         from haywire.core.graph.editor import Editor
-        from haybale_studio.loop_scheduler import LoopScheduler
+        from haywire.core.graph.scheduler import LoopScheduler
 
         assert self._node_factory is not None, "on_enable must run before _make_graph_and_editor"
         graph = BaseGraph(name, validation_scheduler=LoopScheduler())
@@ -259,13 +259,31 @@ class HaystackState(AppState):
         return entry
 
     def open_graph(self, path: Path) -> GraphEntry:
-        """Open a .haywire file, reusing the existing entry if loaded.
+        """Open a .haywire file as a member of this haystack, reusing an open entry.
 
-        On first open: constructs graph/editor, calls
-        ``graph.load_from_file`` then ``graph.force_validation`` to flush
-        the load-time validation queue *before* subscribing the handler
-        (otherwise loaded-state events would mark the entry unsaved).
+        On first open: constructs graph/editor, calls ``graph.load_from_file``
+        then ``graph.force_validation`` to flush the load-time validation queue
+        *before* subscribing the handler (otherwise loaded-state events would
+        mark the entry unsaved).
         """
+        return self._open_document(path, EntryKind.GRAPH)
+
+    def open_macro(self, path: Path) -> GraphEntry:
+        """Open a ``.hwm`` macro document for editing, reusing an open entry.
+
+        The entry is editable, saveable and undoable like any graph, but it is
+        not a member of this haystack: no haystack lists it, so it does not
+        reopen on the next launch, and it cannot be executed. It stays in memory
+        until ``remove_entry`` releases it.
+
+        Reusing an already-open entry matters more here than for a graph: two
+        browser sessions share one entry, so a second Edit Macro… must not
+        reload the file over unsaved edits the first is still holding.
+        """
+        return self._open_document(path, EntryKind.MACRO)
+
+    def _open_document(self, path: Path, kind: EntryKind) -> GraphEntry:
+        """Open ``path`` under ``kind``, or return the entry already holding it."""
         binding_id = str(path)
         existing = self._entries.get(binding_id)
         if existing is not None:
@@ -274,14 +292,16 @@ class HaystackState(AppState):
         graph, editor = self._make_graph_and_editor(path.stem)
         graph.load_from_file(str(path))
         graph.force_validation()
-        entry = GraphEntry(graph=graph, editor=editor, path=path, unsaved=False, haystack=self)
+        entry = GraphEntry(graph=graph, editor=editor, path=path, unsaved=False, haystack=self, kind=kind)
         self._entries[binding_id] = entry
         self._subscribe_validation(entry)
         if self._graph_app_state is not None:
             self._graph_app_state.register(entry)
-        logger.info(f"HaystackState: opened {path}")
+        logger.info(f"HaystackState: opened {kind.value} {path}")
         self._broadcast_data_mutated()
-        self._mark_haystack_dirty()
+        # Only a member changes the set, so only a member dirties it.
+        if kind.is_haystack_member():
+            self._mark_haystack_dirty()
         return entry
 
     def save_graph(self, entry: GraphEntry, save_as: Optional[Path] = None) -> bool:
@@ -307,8 +327,16 @@ class HaystackState(AppState):
             - on rename: rekeys ``self._entries`` AND
               ``self._graph_app_state``
             - broadcasts ``GraphDataMutated`` AND ``GraphSaved``
-            - marks haystack dirty
+            - marks haystack dirty, for a haystack member
+
+        Refuses a save-as on a macro entry: a macro's filestem *is* its registry
+        key, so writing it elsewhere would either orphan the key or mint a
+        second macro silently. Renaming one is ``haywire rename``'s job.
         """
+        if save_as is not None and not entry.kind.is_haystack_member():
+            logger.info(f"Save-as refused for {entry.kind.value} '{entry.display_name}'")
+            return False
+
         target = save_as or entry.path
         if target is None:
             return False  # untitled with no explicit path
@@ -331,7 +359,8 @@ class HaystackState(AppState):
 
         self._broadcast_data_mutated()
         self._broadcast_graph_saved()
-        self._mark_haystack_dirty()
+        if entry.kind.is_haystack_member():
+            self._mark_haystack_dirty()
         return renamed_to  # None when no rename; str on rename
 
     def rename_graph(self, entry: GraphEntry, new_name: str) -> bool:
@@ -376,7 +405,8 @@ class HaystackState(AppState):
                 entry.graph.cleanup()  # releases props bag's registry subscriptions
             del self._entries[entry.binding_id]
             self._broadcast_data_mutated()
-            self._mark_haystack_dirty()
+            if entry.kind.is_haystack_member():
+                self._mark_haystack_dirty()
             return True
         return False
 
@@ -411,8 +441,16 @@ class HaystackState(AppState):
         return None
 
     def all_entries(self) -> list[GraphEntry]:
-        """Return a list of all open entries (snapshot)."""
+        """Return a list of all open entries, of every kind (snapshot)."""
         return list(self._entries.values())
+
+    def entries_of_kind(self, kind: EntryKind) -> list[GraphEntry]:
+        """Open entries of one kind (snapshot).
+
+        The two categories are rendered as separate lists, so the editor asks
+        for one at a time rather than filtering ``all_entries`` itself.
+        """
+        return [entry for entry in self._entries.values() if entry.kind is kind]
 
     # ------------------------------------------------------------------
     # Unsaved checks

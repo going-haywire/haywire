@@ -28,18 +28,22 @@ The narrow fix would have been to wrap the one off-thread emitter (`HaystackStat
 
 ## Why inject, not import NiceGUI into core
 
-`ValidationManager` lives in `haywire-core`, which is deliberately framework-free — it has **zero** NiceGUI imports today. The alternative of importing `nicegui.core` directly into `ValidationManager` (to call `call_soon_threadsafe` / `ui.timer`) would invert that dependency: pure graph-validation logic would depend on the web UI framework.
+`ValidationManager` lives in `haywire-core`'s graph layer, which is framework-free: the graph, its validation and the execution pipeline hold no NiceGUI imports, even though core's own `haywire/ui` tree does. The alternative of importing `nicegui.core` directly into `ValidationManager` (to call `call_soon_threadsafe` / `ui.timer`) would invert that: pure graph-validation logic would depend on the web UI framework.
 
 Injection preserves the boundary. Core defines a tiny protocol and a default; the application supplies the loop-aware implementation:
 
 - **`ValidationScheduler`** protocol (core): `schedule(delay_seconds, fn) -> handle`, where the handle has an idempotent `cancel()`. Re-scheduling is the caller's job — `ValidationManager` cancels the previous handle and schedules a fresh one on every dirty mark, which is what produces the debounce.
 - **`ThreadingTimerScheduler`** (core): the legacy daemon-`threading.Timer` behavior, kept as the **default** so every construction site that does not inject behaves exactly as before. This change is therefore behavior-preserving by default.
 - **`SyncScheduler`** (core): runs the callback inline. Deterministic; intended for tests and headless use, where it removes the need to call `force_immediate_validation()` after a mutation.
-- **`LoopScheduler`** (haybale-studio, where NiceGUI is permitted): debounces on `nicegui.core.loop`. The live graph factory (`HaystackState._make_graph_and_editor`) injects it, which is what moves validation and the `GraphDataMutated` broadcast onto the main thread in the running app.
+- **`LoopScheduler`** (core, beside the other two): debounces on `nicegui.core.loop`. The live graph factory (`HaystackState._make_graph_and_editor`) injects it, which is what moves validation and the `GraphDataMutated` broadcast onto the main thread in the running app.
 
-## Why `LoopScheduler` lives in `haybale-studio`
+## Where `LoopScheduler` lives
 
-It needs `nicegui.core.loop`, so it cannot live in core. `haybale-haystack` (which owns the live graph factory) already depends on `haybale-studio` and already imports NiceGUI, so placing the scheduler there is reachable from the one construction site that matters without adding a new dependency edge.
+All three implementations sit together in `haywire/core/graph/scheduler.py`.
+
+`LoopScheduler` first shipped in `haybale-studio`, on the reasoning that it needs `nicegui.core.loop` and core was framework-free. That premise no longer holds: `haywire-core` declares `nicegui` as a dependency and imports it across the `haywire/ui` tree, so one more NiceGUI import crosses no boundary that is not already crossed. The import is function-local rather than module-level, which keeps headless and test paths that import this module from pulling NiceGUI in.
+
+The narrower claim below still stands and is the reason injection exists at all: `ValidationManager` itself must not import NiceGUI, because pure graph-validation logic has no business depending on the web framework.
 
 `LoopScheduler` handles two realities the protocol implies:
 

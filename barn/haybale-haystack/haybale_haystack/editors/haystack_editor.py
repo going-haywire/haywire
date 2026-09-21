@@ -31,7 +31,7 @@ from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
 
 from ..signals import HaystackReloaded, HaystackTeardown
 from ..state.haystack_state import HaystackState
-from ..graph_entry import GraphEntry
+from ..graph_entry import EntryKind, GraphEntry
 
 logger = logging.getLogger(__name__)
 
@@ -207,13 +207,22 @@ class HaystackEditor(BaseEditor):
             return
 
         hs = context.app_data[HaystackState]
-        entries = hs.all_entries()
+        graphs = hs.entries_of_kind(EntryKind.GRAPH)
+        macros = hs.entries_of_kind(EntryKind.MACRO)
 
         with self._list_container:
-            if not entries:
+            if not graphs:
                 ui.label("No graphs open").classes("text-xs hw-text-dim p-2 italic")
             else:
-                for entry in entries:
+                for entry in graphs:
+                    self._render_entry(entry, context)
+
+            # A second list, not more rows: a macro document is not part of this
+            # haystack and cannot be run, so it does not belong among the
+            # entries the play controls and the TOML apply to.
+            if macros:
+                ui.label("Macros").classes("text-xs hw-text-dim px-2 pt-2 pb-0.5 uppercase")
+                for entry in macros:
                     self._render_entry(entry, context)
 
             self._render_add_bar(context)
@@ -248,8 +257,14 @@ class HaystackEditor(BaseEditor):
             .style(row_style)
             .on("click", lambda e, eid=eid: self._on_select(eid, context))
         ):
-            # Play / stop execution toggle
-            if is_executing:
+            # Play / stop execution toggle. A macro document has no EVENT node
+            # to run, so it carries its kind's icon instead of a control whose
+            # only answer would be a refusal.
+            if not entry.kind.is_executable():
+                ui.icon(hui.icon.node_source, size="16px").classes("hw-text-dim").tooltip(
+                    "A macro is run by placing it in a graph"
+                )
+            elif is_executing:
                 hui.icon_action(
                     hui.icon.execution_stop,
                     tooltip="Stop execution",
@@ -298,17 +313,22 @@ class HaystackEditor(BaseEditor):
                             "Save",
                             on_click=lambda eid=eid: self._on_entry_save(eid, context),
                         )
-                        ui.menu_item(
-                            "Save as…",
-                            on_click=lambda eid=eid: self._on_entry_save_as(eid, context),
-                        )
-                        ui.menu_item(
-                            "Rename…",
-                            on_click=lambda eid=eid: self._on_entry_rename(eid, context),
-                        )
+                        # Save-as and Rename change a file's stem. A macro's
+                        # stem IS its registry key, so either would orphan
+                        # every placement of it — `haywire rename` is the
+                        # supported path.
+                        if entry.kind.is_haystack_member():
+                            ui.menu_item(
+                                "Save as…",
+                                on_click=lambda eid=eid: self._on_entry_save_as(eid, context),
+                            )
+                            ui.menu_item(
+                                "Rename…",
+                                on_click=lambda eid=eid: self._on_entry_rename(eid, context),
+                            )
                         ui.separator()
                         ui.menu_item(
-                            "Remove",
+                            "Release from memory" if not entry.kind.is_haystack_member() else "Remove",
                             on_click=lambda eid=eid: self._on_entry_delete(eid, context),
                         )
 

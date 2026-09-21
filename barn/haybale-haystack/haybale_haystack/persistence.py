@@ -109,10 +109,13 @@ def dump_haystack(
         except ValueError:
             active_rel = str(active_path)
 
-    # Build graph entries — only saved (file-backed) graphs
+    # Build graph entries — only saved (file-backed) graphs that are members of
+    # the haystack. A macro document is open beside the set, not in it.
     graphs_list = []
     for entry in state.all_entries():
         if entry.path is None:
+            continue
+        if not entry.kind.is_haystack_member():
             continue
         try:
             rel = str(entry.path.relative_to(workspace_root))
