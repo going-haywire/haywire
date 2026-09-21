@@ -40,6 +40,11 @@ class SelectionActions(Protocol):
     def enter_group(self, node_id: str) -> None: ...
     def promote_to_macro(self, node_id: str) -> None: ...
 
+    # Acts on one macro placement: it stops tracking its template and becomes a
+    # Group. Not the inverse of promotion — the macro file and its other
+    # placements are untouched.
+    def detach_from_macro(self, node_id: str) -> None: ...
+
     # ADR 0032 card axes, applied across the selection. Right-clicking an
     # unselected node replaces the selection with it first (canvas.vue's
     # "replace-then-act"), so these reach exactly the node under the cursor

@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING
 from haybale_graph_editor.panels._gating import (
     is_collapsible_selection,
     is_graph_node,
+    is_macro_placement,
     is_reroute_node,
 )
 from nicegui import ui
@@ -690,4 +691,46 @@ class GroupMenuPanel(BasePanel):
                 icon=hui.icon.node_source,
                 tooltip="Write this Group to its own file so it can be placed in any graph",
                 on_click=lambda: self.actions.promote_to_macro(node_id),
+            )
+
+
+@panel(
+    surface=SelectionMenu,
+    label="Detach from Macro",
+    icon=hui.icon.edge,
+    order=38,
+)
+class DetachFromMacroMenuPanel(BasePanel):
+    """Turn one macro placement into a Group of its own.
+
+    Only visible on a placement. Named for what it does to this card rather than
+    as the inverse of "Promote to Macro…", which it is not: the macro file stays
+    on disk and every other placement of it keeps tracking the template.
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return is_macro_placement(ctx)
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        wrapper = ctx.data[EditState].active_node
+        if wrapper is None:
+            return
+        node_id = wrapper.node_id
+
+        with layout:
+            hui.menu_row(
+                "Detach from Macro",
+                icon=hui.icon.edge,
+                tooltip=(
+                    "Turn this card into a Group of its own. The macro file and "
+                    "its other placements are unchanged."
+                ),
+                on_click=lambda: self.actions.detach_from_macro(node_id),
             )

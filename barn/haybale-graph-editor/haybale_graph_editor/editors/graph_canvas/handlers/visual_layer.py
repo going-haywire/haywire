@@ -35,6 +35,7 @@ from haywire.ui.components.graph.event_definitions import (
     CollapseToGroupEvent,
     DissolveRerouteEvent,
     EnterGroupEvent,
+    DetachFromMacroEvent,
     ExpandGroupEvent,
     PromoteToMacroEvent,
     EdgeCreatedEvent,
@@ -941,6 +942,34 @@ class VisualLayerHandlers:
             promotion_targets(library_system, workspace_root),
             on_done=self.sync_with_graph,
         )
+
+    @handles_event(DetachFromMacroEvent)
+    def process_detach_from_macro(self, event: DetachFromMacroEvent):
+        """Turn one macro placement into a Group (one undoable op).
+
+        The macro file and its other placements are untouched, which the
+        notification says out loud: the gesture reads like an undo of promotion
+        and is not one.
+        """
+        card_cls = self.editor._node_factory.get_graph_node()
+        if card_cls is None:
+            ui.notify("Groups are unavailable: no Graph-node in the registry", type="negative")
+            return
+
+        logger.info(f"📦 Detaching placement {event.node_id} from its macro")
+        card_id, refusal = self.editor.detach_placement_from_macro(
+            event.node_id,
+            card_cls.class_identity.registry_key,
+        )
+        if card_id is None:
+            ui.notify(refusal or "Could not detach this card", type="warning", multi_line=True)
+            return
+
+        self.sync_with_graph()
+        wrapper = self.editor.graph.get_node_wrapper(card_id)
+        if wrapper is not None:
+            self._make_sole_active_node(wrapper)
+        ui.notify("Detached into a Group — the macro is unchanged", type="positive")
 
     def _subgraph_node_classes(self):
         """The Graph-node and two boundary classes, or ``None`` after notifying.

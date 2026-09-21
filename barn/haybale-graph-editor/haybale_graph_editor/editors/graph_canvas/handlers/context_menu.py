@@ -703,6 +703,12 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
         self._emit(PromoteToMacroEvent(node_id=node_id))
 
+    def detach_from_macro(self, node_id: str) -> None:
+        """Emit DetachFromMacroEvent for the given macro placement."""
+        from haywire.ui.components.graph.event_definitions import DetachFromMacroEvent
+
+        self._emit(DetachFromMacroEvent(node_id=node_id))
+
     # PortContextActions — setting demotion, promoted-port widget visibility
 
     def demote_setting(self, port_id: str) -> None:

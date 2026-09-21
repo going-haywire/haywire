@@ -369,9 +369,24 @@ against user story 7. As built:
 - **Save-as is refused** — a macro's filestem *is* its registry key, so renaming
   belongs to `haywire rename`.
 
-One follow-on deliberately not taken: **no "Collapse to Macro" shortcut.**
-Decision 1 lists two entry points and a Group is the natural first step — a
-selection has no `SubgraphDefinition` to serialize until it is collapsed.
+**Detach from Macro** was added after the slice: one placement becomes a Group
+of its own, by clearing its interior's `template_key` and re-keying it, so the
+host file owns it and a later save of the `.hwm` no longer reaches the card.
+Named for what it does to that card rather than as the inverse of promotion,
+which it is not — promotion consumed the only card standing for its Subgraph,
+while a detach leaves the file and every sibling placement tracking the
+template. `detach_subgraph` already moves a definition intact, which is what
+makes the conversion four calls rather than a rebuild.
+
+Two follow-ons deliberately not taken:
+
+- **No "Collapse to Macro" shortcut.** Decision 1 lists two entry points and a
+  Group is the natural first step — a selection has no `SubgraphDefinition` to
+  serialize until it is collapsed.
+- **No "dissolve the macro"** — detaching *every* placement everywhere and
+  deleting the file. It would reach into graphs the studio has not loaded, which
+  needs `haywire rename`'s JSON-aware patching. Detaching each placement and
+  deleting the file by hand composes the same result today.
 
 ---
 

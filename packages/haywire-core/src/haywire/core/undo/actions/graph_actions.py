@@ -1580,6 +1580,167 @@ class ExpandGraphNodeAction(CompositeAction):
         super().__init__(actions, description or "Expand Group")
 
 
+class _AdoptTemplateInteriorAction(ActionBase):
+    """Turn a placement's interior into a Subgraph the host file owns.
+
+    A child of :class:`DetachPlacementFromMacroAction`. Moves the definition out
+    of the table and back under a key of its own, clearing ``template_key`` so
+    ``BaseGraph.to_dict`` stops skipping it — that mark is the only thing that
+    distinguishes a placement's interior from a Group's Subgraph, so clearing it
+    and re-keying is the whole conversion. The live nodes and edges travel
+    intact, which is what ``detach_subgraph`` exists for.
+
+    Runs before the cards are swapped, so the new key is in the table by the
+    time the Group's card is built and binds to it.
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        source_key: str,
+        target_key: str,
+        template_key: str,
+        description: Optional[str] = None,
+    ):
+        super().__init__(description or f"Adopt interior '{source_key}' as '{target_key}'")
+        self.graph = graph
+        self.source_key = source_key
+        self.target_key = target_key
+        self.template_key = template_key
+
+    def _execute_impl(self) -> None:
+        definition = self.graph.detach_subgraph(self.source_key)
+        if definition is None:
+            return
+        definition.key = self.target_key
+        definition.template_key = None
+        self.graph.add_subgraph(definition)
+
+    def _undo_impl(self) -> None:
+        definition = self.graph.detach_subgraph(self.target_key)
+        if definition is None:
+            return
+        definition.key = self.source_key
+        definition.template_key = self.template_key
+        self.graph.add_subgraph(definition)
+
+
+class DetachPlacementFromMacroAction(CompositeAction):
+    """Swap a macro placement for a Group holding the interior it was showing.
+
+    The card stops tracking the template: a later save of the ``.hwm`` no longer
+    reaches it, and the interior becomes part of the host file. This composite
+    (one undoable unit):
+
+    1. re-keys the placement's interior and clears its ``template_key``, so the
+       host serializes it,
+    2. removes the placement, which takes its edges with it,
+    3. creates a Graph-node bound to the re-keyed definition, at the same
+       position and carrying the same label,
+    4. re-attaches each of the placement's edges to the matching pin.
+
+    Pin ids survive untouched: both cards derive them from the same boundary
+    ports, so an edge re-attaches by the id it already had.
+
+    **Acts on this one card.** The macro file stays on disk and every other
+    placement of it keeps tracking the template — this is not the inverse of
+    promotion, which consumed the only card standing for the Subgraph.
+
+    Raises:
+        ValueError: If ``node_id`` is not a macro placement with an interior.
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        node_id: str,
+        card_registry_key: str,
+        description: Optional[str] = None,
+    ):
+        self.graph = graph
+
+        card = graph.get_node_wrapper(node_id)
+        if card is None:
+            raise ValueError(f"Node '{node_id}' not found; cannot detach")
+
+        source_key = str(getattr(card.node, "subgraph_key", "") or "")
+        definition = graph.get_subgraph(source_key) if source_key else None
+        if definition is None:
+            raise ValueError(
+                f"Node '{node_id}' has no macro interior to detach; "
+                f"only a placement whose template resolved can be detached."
+            )
+
+        template_key = getattr(definition, "template_key", None)
+        if template_key is None:
+            raise ValueError(f"Node '{node_id}' is already a Group, not a macro placement")
+
+        serialized = card.serialize(include_data=True)
+        raw_position = serialized.get("position") or [0.0, 0.0]
+        position = (float(raw_position[0]), float(raw_position[1]))
+
+        # The macro's own name, so the Group opens under the name the user knows
+        # it by rather than the generic Graph-node label.
+        label = definition.label or ""
+        try:
+            label = str(card.node.props.label or "") or label
+        except Exception:
+            pass
+
+        edges = [
+            (edge.source_node_id, edge.outlet_port_id, edge.sink_node_id, edge.inlet_port_id)
+            for edge in graph._get_all_edges(node_id)
+        ]
+
+        self.subgraph_key = graph.generate_unique_subgraph_key()
+        self.card_node_id = graph.generate_unique_node_id(card_registry_key)
+
+        node_data: Dict[str, Any] = {"store": {SUBGRAPH_KEY: self.subgraph_key}}
+        if label:
+            node_data["props"] = {"values": {"label": label}}
+
+        actions: List[IAction] = [
+            _AdoptTemplateInteriorAction(
+                graph=graph,
+                source_key=source_key,
+                target_key=self.subgraph_key,
+                template_key=template_key,
+            ),
+            RemoveElementsAction(graph=graph, nodes=[node_id]),
+            AddNodeAction(
+                graph=graph,
+                registry_key=card_registry_key,
+                position=position,
+                node_data=node_data,
+                node_id=self.card_node_id,
+            ),
+        ]
+
+        for source_node_id, outlet_port_id, sink_node_id, inlet_port_id in edges:
+            if sink_node_id == node_id:
+                actions.append(
+                    AddEdgeAction(
+                        graph=graph,
+                        source_node_id=source_node_id,
+                        outlet_pin_id=outlet_port_id,
+                        sink_node_id=self.card_node_id,
+                        inlet_pin_id=inlet_port_id,
+                    )
+                )
+            else:
+                actions.append(
+                    AddEdgeAction(
+                        graph=graph,
+                        source_node_id=self.card_node_id,
+                        outlet_pin_id=outlet_port_id,
+                        sink_node_id=sink_node_id,
+                        inlet_pin_id=inlet_port_id,
+                    )
+                )
+
+        super().__init__(actions, description or "Detach from Macro")
+
+
 class PromoteGroupToMacroAction(CompositeAction):
     """Swap a Group's card for a placement of the macro it was written to.
 

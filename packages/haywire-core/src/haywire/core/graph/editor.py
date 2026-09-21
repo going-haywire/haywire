@@ -17,6 +17,7 @@ from haywire.core.undo.actions.graph_actions import (
     SplitEdgeWithRerouteAction,
     DissolveRerouteAction,
     CollapseToGraphNodeAction,
+    DetachPlacementFromMacroAction,
     ExpandGraphNodeAction,
     PromoteGroupToMacroAction,
     SetPortMetadataAction,
@@ -416,6 +417,49 @@ class Editor:
             return (action.placement_node_id, None)
         except Exception as e:
             logger.error(f"Error promoting Group {node_id}: {e}")
+            return (None, str(e))
+
+    def detach_placement_from_macro(
+        self,
+        node_id: str,
+        card_registry_key: str,
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """Swap the macro placement on ``node_id`` for a Group holding its interior.
+
+        One undoable operation. The macro file and every other placement of it
+        are untouched: this card alone stops tracking the template, and its
+        interior becomes part of this graph's file.
+
+        Fenced on both sides, for the same reason ``promote_to_macro`` is:
+        auto-grouping would otherwise fold the swap into whatever preceded it.
+
+        Args:
+            card_registry_key: The Graph-node class to build the Group's card
+                from, which the caller discovers through the registry's
+                ``_is_graph_node`` flag — so the core names no library's node.
+
+        Returns:
+            ``(card_node_id, None)`` on success, or ``(None, reason)`` when the
+            detach was refused, phrased to be shown to the user.
+        """
+        try:
+            action = DetachPlacementFromMacroAction(
+                graph=self.graph,
+                node_id=node_id,
+                card_registry_key=card_registry_key,
+            )
+        except ValueError as e:
+            logger.info(f"Detach refused: {e}")
+            return (None, str(e))
+
+        try:
+            self.history_manager.add_fence()
+            self.history_manager.add_action(action)
+            self.history_manager.add_fence()
+            logger.info(f"Detached placement {node_id} into Group {action.subgraph_key}")
+            return (action.card_node_id, None)
+        except Exception as e:
+            logger.error(f"Error detaching placement {node_id}: {e}")
             return (None, str(e))
 
     def expand_group(self, node_id: str) -> bool:

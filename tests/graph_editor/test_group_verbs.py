@@ -197,3 +197,15 @@ class TestMenuGating:
 
         assert MacroNode.class_identity._is_graph_node is False
         assert MacroNode.class_identity._is_macro_node is True
+
+    def test_detach_and_promote_are_offered_on_opposite_cards(self):
+        """A Group can be promoted; a placement can be detached. Never both."""
+        from haybale_graph_editor.panels._gating import is_graph_node, is_macro_placement
+
+        group = self._ctx(active_node=self._node(is_graph_node=True))
+        placement = self._ctx(active_node=self._placement(is_macro=True))
+
+        assert is_graph_node(group) is True
+        assert is_macro_placement(placement) is True
+        # The Group card carries no macro flag, so Detach never shows on it.
+        assert is_macro_placement(self._ctx(active_node=self._placement(is_macro=False))) is False

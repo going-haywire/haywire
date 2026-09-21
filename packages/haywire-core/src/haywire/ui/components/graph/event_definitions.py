@@ -207,6 +207,16 @@ class PromoteToMacroEvent(BaseGraphEvent):
     node_id: str
 
 
+@graph_event(
+    "detachFromMacro",
+    category="user",
+    description="Turn one macro placement into a Group that no longer tracks the template",
+)
+@dataclass
+class DetachFromMacroEvent(BaseGraphEvent):
+    node_id: str
+
+
 @graph_event("edgeCreated", category="user", description="New connection created")
 @dataclass
 class EdgeCreatedEvent(BaseGraphEvent):
