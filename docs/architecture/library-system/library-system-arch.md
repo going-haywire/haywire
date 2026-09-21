@@ -119,6 +119,21 @@ Authoring surface — see [haybale-canon](../../haybale/haybale-canon.md). The a
 - The `@library` decorator's `file_watcher` parameter wires up §2.5.
 - The decorator takes no identity parameter — `name`, read from `haybale.toml`, is the library's stable identifier across the registries.
 
+### 2.7 Registry families (`haywire/core/registry/`)
+
+A library registers its folders against **registries**, and there are two kinds behind one contract.
+
+`ComponentRegistry` is that contract: folder bookkeeping (`add_folder`/`remove_folder`), the lifecycle queue, both subscriber lists, and `get`/`has`/`list_names`/`list_visible_names`. Everything that consumes a registry — the file watcher, `NodeFactory`, `BaseLibrary`, the docs generator — talks to this, so it never learns what is behind it.
+
+| Subclass | Components are | Reload is |
+|---|---|---|
+| `BaseRegistry` | Python classes, found by scanning modules | `importlib.reload` + re-registration, with `sys.modules` rollback |
+| `DocumentRegistry` | Files of one suffix under the folder | re-parse; the content hash makes a byte-identical save a no-op |
+
+`DocumentRegistry` maps file events onto the lifecycle a class registry already emits — CREATED → `CLASS_ADDED`, MODIFIED → `CLASS_RELOADED`, DELETED → `CLASS_REMOVED`, and a parse or validation failure → `CLASS_RELOAD_FAILED` with the previous element left registered. Its elements are instances rather than classes, and they satisfy the same `RegisteredClass` protocol (`class_identity`, `class_library`), so a kind-generic consumer cannot tell them apart.
+
+`MacroRegistry` (`.hwm` macro documents) is the first document registry; see [ADR 0037](../../adr/0037-macros-are-node-kind-components.md). Macros scan at priority 75, after `NodeRegistry` at 70, because a macro's containment check reads node classes.
+
 ## 3. Data flow
 
 ### 3.1 Discovery sequence at startup
@@ -178,16 +193,20 @@ See also the glossary's [note under "Library" — five distinct meanings](../../
 For libraries with `file_watcher=True`:
 
 ```text
-FileWatcher detects .py change
+FileWatcher detects a change to any file under a claimed folder
   │
-  ├── importlib.reload(module)
+  ├── each registry that claimed the folder decides whether the file is its own
+  │     → BaseRegistry takes .py; MacroRegistry takes .hwm (§2.7)
+  │
+  ├── importlib.reload(module)                              [class registries]
   │
   ├── BaseRegistry._on_change fires for each registry that holds classes from this module
   │     → NodeRegistry, TypeRegistry, AdapterRegistry, WidgetRegistry, …
   │     → For each registered class whose source is in the changed file:
   │         drop old class, register new class under same registry_key
   │
-  ├── Affected NodeWrappers rebuild from recipe (port specs serialized → re-instantiated)
+  ├── Affected NodeWrappers rebuild from current code — values, props and
+  │     store are discarded, unless the node absorbs the reload itself
   │
   ├── Affected EdgeWrappers rebuild adapter chains
   │

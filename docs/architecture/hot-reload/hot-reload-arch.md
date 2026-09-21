@@ -57,10 +57,10 @@ _notify_registry_subscribers()              [Cross-registry cascade]
 
 | Trigger | Mechanism |
 |---|---|
-| `FileWatcher` detects a file change | `watchdog` filesystem observer; one per library with `file_watcher=True`. The handler is a **router**: it offers *every* non-directory event to the registries that claimed the folder. `BaseRegistry.event_dispatcher` drops anything that is not a `.py` — deciding that only modules reload is the registry's business, not the watcher's. A library's own `haybale.toml` is picked up on the root fallback by `_HaybaleTomlWatcher`, which refreshes the identity without any module reload |
+| `FileWatcher` detects a file change | `watchdog` filesystem observer; one per library with `file_watcher=True`. The handler is a **router**: it offers *every* non-directory event to the registries that claimed the folder. `BaseRegistry.event_dispatcher` drops anything that is not a `.py` — deciding that only modules reload is the registry's business, not the watcher's, which is why a **document registry** claiming a different suffix (`MacroRegistry`, `.hwm`) needed no watcher change at all. A library's own `haybale.toml` is picked up on the root fallback by `_HaybaleTomlWatcher`, which refreshes the identity without any module reload |
 | Module reload | `importlib.reload(module)` |
 | Class re-registration | Decorator (`@node`, `@type`, etc.) re-runs on import; `BaseRegistry._class_filter` picks up the new class under the same `registry_key` |
-| Wrapper rebuild | `NodeWrapper.build()` re-instantiates from recipe; `EdgeWrapper.build()` runs the 4-stage pipeline against new ports |
+| Wrapper rebuild | `NodeWrapper.build()` re-instantiates from current code, discarding values, `props` and `store` (§3.2); `EdgeWrapper.build()` runs the 4-stage pipeline against new ports |
 | Graph revalidation | `ValidationManager` debounce-batches the dirty events; flows reassemble |
 
 ### 2.3 What hot-reload does NOT unload
@@ -86,7 +86,8 @@ Each registry attaches its own consumers:
 
 | Registry | What it does on reload |
 |---|---|
-| `NodeRegistry` | `NodeFactory._on_node_reloaded` rebuilds every NodeWrapper of the reloaded class from its recipe |
+| `NodeRegistry` | The lifecycle batch is relayed **per registry key** to every NodeWrapper subscribed on that key, across every open graph — all graphs share one factory. Each wrapper rebuilds, unless its node absorbs the reload itself (§3.2) |
+| `MacroRegistry` | A **document registry** ([ADR 0037](../../adr/0037-macros-are-node-kind-components.md)): a saved `.hwm` file emits `CLASS_RELOADED` on the macro's own key, and the same per-key relay reaches every placement of it |
 | `EdgeRegistry` (implicit via NodeRegistry) | Affected EdgeWrappers re-run their 4-stage build against new port objects |
 | `AdapterRegistry` | Edges using a reloaded adapter rebuild their adapter chain |
 | `WidgetRegistry` | New widget instances pick up the new class; existing widgets don't swap mid-render (NiceGUI element teardown is risky) |
@@ -95,23 +96,29 @@ Each registry attaches its own consumers:
 | `LibraryStateRegistry` | Container disable/re-enable cycle — `on_disable` on old instance, swap class, `on_enable` on new instance ([session-and-state §3.4](../session-and-state/session-and-state-arch.md#34-hot-reload-semantics)) |
 | `PanelRegistry` / `EditorTypeRegistry` | New classes picked up at next render boundary; existing instances continue until natural slot/binding change |
 
-### 3.2 Recipe-based rebuild
+### 3.2 Rebuild discards node state
 
-Wrappers rebuild from **recipes** — serialised creation parameters captured before the reload:
+A reloaded node is rebuilt **fresh from current code**, not restored:
 
 ```text
-Before reload:
-  NodeWrapper.serialize_recipe()   # capture: registry_key + port specs + settings + props
-  ↓
 Reload class:
-  importlib.reload(module)         # @node decorator re-runs, registry updates
+  importlib.reload(module)   # @node decorator re-runs, registry updates
   ↓
-After reload:
-  NodeWrapper.build_from_recipe()  # instantiate new class with old recipe
-  edges.rebuild()                  # 4-stage edge build against new port objects
+Per-key relay:
+  NodeWrapper._on_node_lifecycle_event   # marks NODE_HOT_RELOADED
+  ↓
+Validation:
+  node_wrapper.build()       # no node_info → a fresh init()
+  edges revalidate           # 4-stage edge build against new port objects
 ```
 
-Recipes are how user data survives reload. A node's port configuration, `setting()` overrides, and `store` containers are all preserved by serialising and re-applying. `cache` containers are *not* preserved — see §3.5.
+`build()` is called with **no** `node_info`, so the node runs its `init()` again. Port values, `props` — including the user's label — and the `store` are gone. Only the node's position survives, plus its edges, which rebind by port id.
+
+That is deliberate rather than an oversight. `_initialize_from_dict` restores the *serialized* port set without calling `init()`, so carrying saved state across a class reload would keep showing the old port set and hide the new ports the author just wrote — the one thing the author is reloading to see.
+
+A node whose definition lives **outside its class** must not take that path. `BaseNode.on_class_reloaded(event) -> bool` returns `False` by default; `NodeWrapper` consults it first on a successful lifecycle event and returns early when it answers `True`. A macro placement answers `True` and swaps its interior in place, keeping its values and label ([ADR 0038](../../adr/0038-a-placements-interior-is-runtime-state.md)). An override that raises is logged, and the node takes the generic rebuild.
+
+`cache` containers are not preserved either — see §3.5.
 
 ### 3.3 Edge revalidation
 
@@ -176,11 +183,12 @@ Edit `barn/haybale-mylib/haybale_mylib/nodes/foo.py`:
 1. FileWatcher fires FileChangeEvent
 2. BaseRegistry reloads haybale_mylib.nodes.foo
 3. @node decorator re-runs → NodeRegistry updates FooNode under registry_key
-4. NodeFactory._on_node_reloaded fires for every existing FooNode wrapper
+4. NodeFactory relays the batch to every wrapper subscribed on that registry_key
 5. Each wrapper:
-   - serializes its current state (recipe + settings + cache + store)
-   - instantiates the new class
-   - re-applies the recipe
+   - offers the event to its node via on_class_reloaded() — a macro
+     placement absorbs it here and stops (ADR 0038)
+   - otherwise marks NODE_HOT_RELOADED and calls build() with no node_info
+   - the new class instantiates and runs init(): values, props and store go
 6. Each wrapper's edges:
    - mark EDGE_ADAPTERS_RELOADED
    - 4-stage build re-runs against new port objects
@@ -230,8 +238,11 @@ State reload is fast for cheap `on_enable` and slow for expensive ones (hardware
 ## Key files
 
 - `src/haywire/core/library/file_watcher.py` — `FileWatcher`, `LibraryFileHandler`
+- `src/haywire/core/registry/component.py` — `ComponentRegistry` (the base both registry families share: folder bookkeeping, lifecycle queue, subscribers)
 - `src/haywire/core/registry/base.py` — `BaseRegistry` (event dispatcher, customer callbacks, registry subscribers)
-- `src/haywire/core/node/wrapper.py` — `NodeWrapper.build()` (recipe-based rebuild)
+- `src/haywire/core/registry/document.py` — `DocumentRegistry` (file-backed components; content hashing, file events → lifecycle events)
+- `src/haywire/core/macro/registry.py` — `MacroRegistry` (`.hwm` documents)
+- `src/haywire/core/node/node_wrapper.py` — `NodeWrapper.build()` (fresh rebuild) and `on_class_reloaded` consultation
 - `src/haywire/core/edge/edge_wrapper.py` — `EdgeWrapper.build()` (4-stage pipeline)
 - `src/haywire/core/state/container.py` — `LibraryStateContainer` (disable+enable cycle)
 - `src/haywire/ui/themes/registry.py` — `ThemeRegistry` (apply_workbench_theme on reload)

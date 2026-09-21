@@ -56,11 +56,15 @@ viable; otherwise it stays stopped.
 ## Subgraphs
 
 A **Subgraph** is the contents of a **Graph-node** — one card on the parent
-canvas standing for a whole set of nodes and edges. Slice 1 ships the **Group**
-variant: the Subgraph lives in the parent `.haywire` file and serves that one
-card. See [ADR 0036](../../adr/0036-groups-execute-through-their-boundary-nodes.md)
-for how it executes, and the [glossary](../../reference/glossary.md#encapsulation)
-for the vocabulary.
+canvas standing for a whole set of nodes and edges. Two variants ship: the
+**Group**, whose Subgraph lives in the parent `.haywire` file and serves that
+one card, and the **Macro**, whose Subgraph lives in its own `.hwm` file as a
+library component and can be placed any number of times in any graph. See
+[ADR 0036](../../adr/0036-groups-execute-through-their-boundary-nodes.md) for how
+a Subgraph executes,
+[ADR 0037](../../adr/0037-macros-are-node-kind-components.md) and
+[ADR 0038](../../adr/0038-a-placements-interior-is-runtime-state.md) for macros,
+and the [glossary](../../reference/glossary.md#encapsulation) for the vocabulary.
 
 ### The definition is a graph
 
@@ -100,6 +104,14 @@ inlet's widget value belongs to the instance.
 id spaces that meet here, so the view that builds a crossing and the worker that
 follows one cannot drift.
 
+A Subgraph's **containment** rules — exactly one Subgraph Input and one Subgraph
+Output, no EVENT or OUTPUT node inside — are enforced by
+`StructuralValidator.validate_subgraph_contents`, which runs in exactly **one**
+place: host assembly, from `FlowAssemblyManager`. A Subgraph that is never
+assembled therefore never reaches it, which is why a macro document open in its
+own tab is not checked there, and why `MacroRegistry` validates containment
+itself at registry load.
+
 ### Serialization
 
 `to_dict` gains a `"subgraphs"` table; `load_from_dict` restores it **before**
@@ -107,6 +119,12 @@ the nodes loop, so a Graph-node can resolve its definition during
 `wrapper.build()` and mirror the interface onto its card. A file without the
 key restores nothing, and `clear()` drops the table so reloading the same file
 is not a duplicate-key error.
+
+A **macro placement**'s definition is the exception: it is marked with
+`template_key` and `to_dict` skips every marked entry, so the host file carries
+the card and its port values but no interior. The interior is rebuilt from the
+template on load, by `post_init`. See
+[ADR 0038](../../adr/0038-a-placements-interior-is-runtime-state.md).
 
 Format **v4** carries this, and rides the same bump that renames `DataPort`'s
 `parent_group`/`is_group` to `parent_fold`/`is_fold` — finishing ADR 0035, after
@@ -120,6 +138,36 @@ the glossary) and `derive_interface`, which splits the selection's edges by the
 clipboard's both-endpoints rule and dedups inlets by their *outer* source,
 outlets by their *inner* source. `CollapseToGraphNodeAction` and
 `ExpandGraphNodeAction` are inverses, each undoable on its own.
+
+### Macros
+
+A macro is a `.hwm` document registered as a component kind, `MacroNode` is the
+card standing for one, and `haywire.core.macro` holds the registry, the template,
+the source-resolution helpers and the promote pipeline.
+
+Three things share the name and are not the same:
+
+| | What it is | Where it lives |
+|---|---|---|
+| the **file** | a graph document, `BaseGraph.to_dict()` minus `key` | `<library>/macros/<Name>.hwm` |
+| the **template** | that document parsed, plus a path, a content hash and a per-macro identity | `MacroRegistry`, one per file |
+| a **placement's interior** | a live `SubgraphDefinition` instantiated from the template | the host graph's `subgraphs` table, keyed `macro_<node_id>` |
+
+Because a placement registers its interior in its *owning* graph's table — where
+a Group's sits — every tree walk finds it unchanged: assembly and validation
+recurse on `graph.subgraphs` at whatever level they stand, and
+`resolve_definition()` resolves from the graph that owns the node.
+`SubgraphDefinition.instantiate()` does the per-placement work, minting
+tree-unique ids and rewriting every edge onto them, recursing through nested
+definitions.
+
+A card's key is **derived** (`macro_<node_id>`) rather than stored, so pasting a
+placement yields a second interior instead of two cards sharing one, and
+`bind_subgraph` raises. A reload swaps the interior in place —
+`on_class_reloaded` returns `True`, skipping the generic rebuild — and then
+takes the ordinary `reconcile_interface()` path, so values, the label and edges
+on surviving pins are kept. Recursion is refused at bind time by `MacroNode`, and
+again at registry load as the backstop for a file edited outside the studio.
 
 ## TODO
 

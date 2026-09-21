@@ -24,7 +24,9 @@ gives `reconcile_interface()` its caller. The draft's "reload fan-out — the re
 open surface" turned out to be machinery that already exists once a placement's
 registry key is the macro's own (decision 2).
 
-Nothing here is built.
+**Built**, except for the UI over steps 7–8: the editing surface and
+"Promote to Macro…" landed as core helpers with no call site, so a macro can
+be placed and reloaded but not yet made from inside the studio.
 
 ---
 
@@ -319,7 +321,10 @@ No fence, no action (10). The `MacroNode` that answers `True` skips the
 7. **Editing surface** (12, 18) — descend redirect, Edit Macro…, refusal.
 8. **Promote to Macro…** (1, 15, 16, 17). Stepper, synchronous register,
    undoable swap.
-9. **Docs** — see below.
+9. **Docs** (19) — see below. Plus the `macros/` folder and its registration in
+   `haybale-example` and `haybale-visiongraph`, and the `haywire init` scaffold
+   creating `macros/` (a `.gitkeep`, not an `__init__.py` — a macro is a
+   document, not a module).
 
 Steps 1–3 are registry work with no node behaviour; 4–6 are the feature;
 7–8 are UI.
@@ -357,7 +362,15 @@ Steps 1–3 are registry work with no node behaviour; 4–6 are the feature;
 
 ## Docs to land with the code
 
-Written in the same commit series as the feature, not before.
+**Landed.** Written in the same commit series as the feature, not before.
+
+Two corrections found while writing them, both in
+`architecture/hot-reload/hot-reload-arch.md`: its §3.2 described a
+**recipe-based rebuild** (`serialize_recipe`/`build_from_recipe`) that does not
+exist — neither symbol has a caller anywhere — and claimed "recipes are how user
+data survives reload", which is the opposite of what happens. Rewritten to what
+the code does, per the finding below. The file-watcher fact was already
+documented correctly at §2.2.
 
 **Glossary** (`docs/reference/glossary.md`, Encapsulation section):
 - **Macro** — revise: *is a node kind*; a placement's registry key is the
