@@ -118,6 +118,42 @@ def test_node_decorator_registry_key_not_inherited():
     assert "child_id" in ChildNode.class_identity.registry_key
 
 
+def test_node_decorator_registry_id_not_inherited():
+    """A child that declares no registry_id gets its own, from its class name.
+
+    Inheriting the parent's would re-derive the parent's registry_key under the
+    child's name, and whichever class registered second would be refused as a
+    duplicate key — the collision MacroNode hit against GraphNode.
+    """
+
+    @node()
+    class ParentNode(BaseNode):
+        pass
+
+    @node()
+    class ChildNode(ParentNode):
+        pass
+
+    assert ParentNode.class_identity.registry_id == "ParentNode"
+    assert ChildNode.class_identity.registry_id == "ChildNode"
+    assert ParentNode.class_identity.registry_key != ChildNode.class_identity.registry_key
+
+
+def test_node_decorator_registry_id_taken_when_child_asks():
+    """A child may still claim an explicit registry_id of its own."""
+
+    @node()
+    class ParentNode(BaseNode):
+        pass
+
+    @node(registry_id="explicit_child")
+    class ChildNode(ParentNode):
+        pass
+
+    assert ChildNode.class_identity.registry_id == "explicit_child"
+    assert "explicit_child" in ChildNode.class_identity.registry_key
+
+
 def test_node_decorator_multilevel_inheritance():
     """Test inheritance through multiple levels."""
 

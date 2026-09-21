@@ -811,15 +811,17 @@ def init_project(
     pkg_dir = lib_dir / module_name
     pkg_dir.mkdir(parents=True)
 
-    # Create all component folders
+    # Create all component folders. Every folder the generated library
+    # registers gets created here, or its registration claims a path the file
+    # watcher cannot watch.
     component_folders = [
         "nodes",
-        "macros",
         "types",
         "widgets",
         "skins",
         "adapters",
         "settings",
+        "states",
         "themes",
         "panels",
         "editors",
@@ -828,6 +830,12 @@ def init_project(
         folder_dir = pkg_dir / folder
         folder_dir.mkdir()
         (folder_dir / "__init__.py").write_text("")
+
+    # Macros are graph documents, not Python, so the folder carries a .gitkeep
+    # rather than an __init__.py.
+    macros_dir = pkg_dir / "macros"
+    macros_dir.mkdir()
+    (macros_dir / ".gitkeep").write_text("")
 
     # Generate files
     (project_dir / "pyproject.toml").write_text(

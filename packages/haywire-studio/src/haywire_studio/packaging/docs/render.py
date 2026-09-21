@@ -9,8 +9,12 @@ from haywire_studio.packaging.docs.model import ComponentRecord, LibraryDoc
 # configs, then outputs. Stable sort preserves declaration order within a group.
 _DIRECTION_ORDER = {"inlet": 0, "config": 1, "outlet": 2}
 
+#: Kinds documented by their interface, with ports and settings tables.
+_PORT_BEARING_KINDS = ("node", "macro")
+
 _KIND_ORDER = [
     "node",
+    "macro",
     "type",
     "adapter",
     "widget",
@@ -93,7 +97,7 @@ def render_component(rec: ComponentRecord) -> str:
     if rec.instructions:
         # Prose, not a scalar — own section instead of the ## Details dump.
         lines += ["## Agent Instructions", "", rec.instructions, ""]
-    if rec.kind == "node" and rec.ports:
+    if rec.kind in _PORT_BEARING_KINDS and rec.ports:
         lines += [
             "## Ports",
             "",
@@ -104,7 +108,7 @@ def render_component(rec: ComponentRecord) -> str:
             lines.append(f"| {p.id} | {p.direction} | {p.data_type or ''} | {p.description} |")
         lines.append("")
     documented_settings = [s for s in rec.settings if s.bag != "props"]
-    if rec.kind == "node" and documented_settings:
+    if rec.kind in _PORT_BEARING_KINDS and documented_settings:
         lines += [
             "## Settings",
             "",
@@ -132,9 +136,11 @@ def coverage_report(doc: LibraryDoc) -> list[str]:
         gaps = []
         if not c.description:
             gaps.append("no description")
-        if not c.docstring:
+        # A macro is a document: its prose is the description alone, so the
+        # missing docstring is the format, not a gap.
+        if not c.docstring and c.kind != "macro":
             gaps.append("no docstring")
-        if c.kind == "node" and not c.ports:
+        if c.kind in _PORT_BEARING_KINDS and not c.ports:
             gaps.append("no ports (instantiation may have failed)")
         if gaps:
             report.append(f"{c.registry_key}: {', '.join(gaps)}")

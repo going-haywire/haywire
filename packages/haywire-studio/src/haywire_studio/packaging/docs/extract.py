@@ -71,7 +71,13 @@ def _own_docstring(cls: Any) -> str:
     the class itself has none — which would fabricate documentation for a
     subclass that never wrote its own. Reading ``cls.__dict__["__doc__"]``
     only ever sees what was written on the exact class passed in.
+
+    Returns ``""`` for a document element, whose prose is its identity's
+    description: it is an instance, so its ``__dict__`` holds no docstring
+    and its class's would describe the element type rather than the component.
     """
+    if not isinstance(cls, type):
+        return ""
     own_doc = cls.__dict__.get("__doc__")
     return inspect.cleandoc(own_doc) if own_doc else ""
 
@@ -96,18 +102,25 @@ def _record_from_class(kind: str, key: str, cls: Any) -> ComponentRecord:
     )
 
 
-def _node_record(key: str, cls: Any, graph: BaseGraph) -> ComponentRecord:
+def _node_record(kind: str, key: str, cls: Any, graph: BaseGraph) -> ComponentRecord:
     """Build a node's ComponentRecord by instantiating it in a throwaway graph.
 
     Ports/settings can only be read off a live instance (declared purely at
     the class level they don't exist yet), so nodes get a different path from
-    the other 10 kinds: a headless build via ``create_node_wrapper``, then
+    the other kinds: a headless build via ``create_node_wrapper``, then
     ``NodeInstanceInspector`` over the resulting ``BaseNode``. A node that
     cannot instantiate headlessly still gets a thin doc from its class alone —
     the coverage report (not built in this task) is meant to flag the empty
     port list, never a fabricated one.
+
+    A macro takes this path too: it is documented by its interface, which is
+    the pins its placement mirrors from the template's boundary nodes, and
+    those exist only once a card is built.
+
+    Args:
+        kind: ``"node"`` or ``"macro"`` — recorded as the component's kind.
     """
-    base = _record_from_class("node", key, cls)
+    base = _record_from_class(kind, key, cls)
     try:
         wrapper = graph.create_node_wrapper(key, position=(0, 0))
         if wrapper is None:
@@ -119,7 +132,7 @@ def _node_record(key: str, cls: Any, graph: BaseGraph) -> ComponentRecord:
         ports, settings = [], []
     return ComponentRecord(
         registry_key=base.registry_key,
-        kind="node",
+        kind=kind,
         library_id=base.library_id,
         label=base.label,
         description=base.description,
@@ -148,8 +161,10 @@ def extract_library(service: Any, library_id: str) -> LibraryDoc:
             cls = registry.get(key)
             if cls is None:
                 continue
-            if kind == "node":
-                records.append(_node_record(key, cls, graph))
+            # A macro is documented like a node, by the interface a placement
+            # of it carries.
+            if kind in ("node", "macro"):
+                records.append(_node_record(kind, key, cls, graph))
             else:
                 records.append(_record_from_class(kind, key, cls))
     records.sort(key=lambda r: r.registry_key)

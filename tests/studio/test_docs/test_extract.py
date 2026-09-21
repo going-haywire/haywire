@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from haywire.core.di.config import create_library_system_service
 from haywire_studio.packaging.docs.extract import _record_from_class, extract_library
@@ -55,6 +57,64 @@ def test_nodes_carry_ports_from_instance(service):
     for n in nodes:
         for p in n.ports:
             assert p.direction in ("inlet", "outlet", "config")
+
+
+_INPUT = "haywire-core:node:SubgraphInputNode"
+_OUTPUT = "haywire-core:node:SubgraphOutputNode"
+
+
+@pytest.fixture
+def documented_macro(tmp_path, service):
+    """One macro registered under ``haybale-testing``, removed again after.
+
+    The registry is a singleton on the service, so the folder is removed to
+    keep the key out of the module-scoped service the other tests share.
+    """
+    from haywire.core.library.identity import LibraryIdentity
+    from haywire.core.macro.registry import MacroRegistry
+    from haywire_studio.packaging.docs.extract import service_registry
+
+    document = {
+        "format_version": 1,
+        "meta": {"description": "Blurs a frame."},
+        "nodes": {
+            "b_in": {"node_id": "b_in", "registry_key": _INPUT, "position": [0, 0]},
+            "b_out": {"node_id": "b_out", "registry_key": _OUTPUT, "position": [200, 0]},
+        },
+        "edges": {},
+        "variables": {},
+        "props": {},
+        "subgraphs": {},
+    }
+    (tmp_path / "Blur.hwm").write_text(json.dumps(document))
+
+    identity = LibraryIdentity(
+        label="Testing",
+        name="haybale-testing",
+        folder_path=str(tmp_path),
+        module_name="haybale_testing",
+    )
+    registry = service_registry(service, MacroRegistry)
+    registry.add_folder(str(tmp_path), identity)
+    try:
+        yield "haybale-testing:macro:Blur"
+    finally:
+        registry.remove_folder(str(tmp_path), identity)
+
+
+@pytest.mark.integration
+def test_a_macro_is_documented_like_a_node(service, documented_macro):
+    """Decision 19: a macro is documented by its interface, not by a docstring."""
+    doc = extract_library(service, "haybale-testing")
+    macros = [r for r in doc.components if r.kind == "macro"]
+    assert [m.registry_key for m in macros] == [documented_macro]
+
+    macro = macros[0]
+    assert macro.label == "Blur"
+    assert macro.description == "Blurs a frame."
+    assert macro.menu == "haybale-testing/macros"
+    # The template is an instance, so it carries no class docstring to inherit.
+    assert macro.docstring == ""
 
 
 class _FakeIdentity:

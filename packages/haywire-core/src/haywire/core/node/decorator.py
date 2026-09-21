@@ -237,6 +237,7 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             parent_dict = asdict(parent_identity)
             # Dropped so the child derives its own below.
             parent_dict.pop("registry_key", None)
+            parent_dict.pop("registry_id", None)
             identity_kwargs = {**parent_dict, **identity_kwargs}
 
         if parent_behavior:

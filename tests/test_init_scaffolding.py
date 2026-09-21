@@ -110,18 +110,43 @@ class TestProjectStructure:
         ).is_file()
 
 
-class TestComponentFolders:
-    """Verify that all 5 component folders are created with __init__.py."""
+#: Folders holding Python modules, each a package in its own right.
+_PACKAGE_FOLDERS = [
+    "nodes",
+    "types",
+    "widgets",
+    "skins",
+    "adapters",
+    "settings",
+    "states",
+    "themes",
+    "panels",
+    "editors",
+]
 
-    @pytest.mark.parametrize("folder", ["nodes", "types", "widgets", "skins", "adapters"])
+
+class TestComponentFolders:
+    """Verify every component folder the generated library registers exists."""
+
+    @pytest.mark.parametrize("folder", _PACKAGE_FOLDERS)
     def test_component_folder_exists(self, scaffold_project, folder):
         pkg_dir = scaffold_project / "barn" / "hay-test-project" / "hay_test_project"
         assert (pkg_dir / folder).is_dir()
 
-    @pytest.mark.parametrize("folder", ["nodes", "types", "widgets", "skins", "adapters"])
+    @pytest.mark.parametrize("folder", _PACKAGE_FOLDERS)
     def test_component_folder_has_init(self, scaffold_project, folder):
         pkg_dir = scaffold_project / "barn" / "hay-test-project" / "hay_test_project"
         assert (pkg_dir / folder / "__init__.py").is_file()
+
+    def test_macros_folder_exists(self, scaffold_project):
+        pkg_dir = scaffold_project / "barn" / "hay-test-project" / "hay_test_project"
+        assert (pkg_dir / "macros").is_dir()
+
+    def test_macros_folder_holds_documents_not_python(self, scaffold_project):
+        """A macro is a .hwm graph document, so the folder is not a package."""
+        macros = scaffold_project / "barn" / "hay-test-project" / "hay_test_project" / "macros"
+        assert (macros / ".gitkeep").is_file()
+        assert not (macros / "__init__.py").exists()
 
 
 class TestProjectPyproject:
@@ -231,10 +256,11 @@ class TestLibraryInit:
         assert "from haywire.ui.skin.registry import SkinRegistry" in init_content
 
     def test_registers_all_folders(self, scaffold_project):
+        """Every folder the scaffold creates is registered, and vice versa."""
         init_content = (
             scaffold_project / "barn" / "hay-test-project" / "hay_test_project" / "__init__.py"
         ).read_text()
-        for folder in ["nodes", "types", "adapters", "widgets", "skins"]:
+        for folder in [*_PACKAGE_FOLDERS, "macros"]:
             assert f"base_path / '{folder}'" in init_content
 
     def test_library_decorator(self, scaffold_project):
