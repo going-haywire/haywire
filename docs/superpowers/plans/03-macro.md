@@ -24,9 +24,9 @@ gives `reconcile_interface()` its caller. The draft's "reload fan-out — the re
 open surface" turned out to be machinery that already exists once a placement's
 registry key is the macro's own (decision 2).
 
-**Built**, except for the UI over steps 7–8: the editing surface and
-"Promote to Macro…" landed as core helpers with no call site, so a macro can
-be placed and reloaded but not yet made from inside the studio.
+**Built**, except **Edit Macro…** (step 7): a macro can be placed, reloaded and
+promoted, but its document cannot yet be opened for editing. Settled by a
+second design interview — see "What steps 7–8 landed as" below.
 
 ---
 
@@ -328,6 +328,50 @@ No fence, no action (10). The `MacroNode` that answers `True` skips the
 
 Steps 1–3 are registry work with no node behaviour; 4–6 are the feature;
 7–8 are UI.
+
+**What steps 7–8 landed as.** The first pass landed only the *seam* — the
+core helpers with no call site, so a user could place and reload a macro but
+never make one. The UI over it is:
+
+- `promotion_targets()` (16) — editable libraries that registered a `macros/`
+  folder, the one under `workspace_root/barn` first.
+- `PromoteGroupToMacroAction` + `Editor.promote_to_macro()` (15), **fenced on
+  both sides**: auto-grouping otherwise folds the swap into the preceding
+  collapse, and one undo took back the Group the user had just made.
+- `_promote_flow/` in haybale-graph-editor — a three-step stepper
+  (name → planned → promoted) whose only mutating step is the last.
+- "Promote to Macro…" on the Group's menu row.
+
+`ComponentSourceEditor` also learned to read a document component's own `path`
+(it used `inspect.getfile`, which raises on an instance and left the editor
+blank), so Component Docs resolve a macro key.
+
+**Edit Macro… is not built**, and the first attempt was wrong: it opened the
+`.hwm` as JSON in the component source viewer, which has no dirty dot, no Save
+and no undo stack — against user story 7. The settled design:
+
+- A macro document is a **second category of haystack entry**: an `EntryKind`
+  (`GRAPH` | `MACRO`) on `GraphEntry`. In `_entries`, so `remove_entry` releases
+  it; filtered out of `dump_haystack`, so no haystack lists it and it does not
+  reopen after a restart; its own list in the HaystackEditor; not executable.
+- The menu row lives in **haystack**, registered onto graph-editor's
+  `SelectionMenu` — the pattern `OpenInHaystackMenuPanel` already uses on
+  haybale-studio's `FileMenu`. It calls `HaystackState` directly, so no new
+  signal is needed.
+- **No dispose-on-tab-close.** `GraphAppState` is an `AppState` shared across
+  browser sessions, so one session closing its tab would release a graph another
+  session is still editing, and `on_focus` would `force_close()` the survivor.
+  Releasing from memory is the user's explicit act, as it already is for graphs.
+- `LoopScheduler` moves from haybale-studio to `haywire/core/graph/scheduler.py`
+  beside the other two implementations of its protocol. ADR 0002's reason for
+  the split ("core is framework-free") is stale: core declares `nicegui` and
+  imports it in 49 files.
+- **Save-as is refused** — a macro's filestem *is* its registry key, so renaming
+  belongs to `haywire rename`.
+
+One follow-on deliberately not taken: **no "Collapse to Macro" shortcut.**
+Decision 1 lists two entry points and a Group is the natural first step — a
+selection has no `SubgraphDefinition` to serialize until it is collapsed.
 
 ---
 

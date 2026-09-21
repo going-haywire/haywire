@@ -168,3 +168,32 @@ class TestMenuGating:
         assert is_collapsible_selection(self._ctx(selected=set())) is False
         assert is_collapsible_selection(self._ctx(selected={"a"})) is False
         assert is_collapsible_selection(self._ctx(selected={"a", "b"})) is True
+
+    def _placement(self, *, is_macro: bool):
+        """A card whose CLASS identity carries the macro flag."""
+
+        class _Node:
+            class class_identity:
+                _is_macro_node = is_macro
+
+        wrapper = MagicMock()
+        wrapper.node = _Node()
+        return wrapper
+
+    def test_the_macro_row_shows_only_on_a_placement(self):
+        from haybale_graph_editor.panels._gating import is_macro_placement
+
+        assert is_macro_placement(self._ctx(active_node=self._placement(is_macro=True))) is True
+        assert is_macro_placement(self._ctx(active_node=self._placement(is_macro=False))) is False
+
+    def test_the_macro_row_is_hidden_with_nothing_selected(self):
+        from haybale_graph_editor.panels._gating import is_macro_placement
+
+        assert is_macro_placement(self._ctx()) is False
+
+    def test_a_placement_is_not_offered_the_group_rows(self):
+        """MacroNode clears _is_graph_node so the two gates stay disjoint."""
+        from haywire.barn.builtin.nodes.macro_node import MacroNode
+
+        assert MacroNode.class_identity._is_graph_node is False
+        assert MacroNode.class_identity._is_macro_node is True

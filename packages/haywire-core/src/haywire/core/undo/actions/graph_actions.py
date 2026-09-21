@@ -1157,6 +1157,50 @@ class _LiftNestedSubgraphsAction(ActionBase):
             _move_subgraphs(self.graph, definition, self.keys)
 
 
+class _DiscardTemplateInteriorAction(ActionBase):
+    """Drop a placement's instantiated interior when its card goes.
+
+    A child of ``PromoteGroupToMacroAction``, and the mirror of what creates
+    the interior: a placement builds it in ``post_init``, not through an
+    action, so nothing else would take it away again on undo.
+
+    Execute re-instantiates rather than doing nothing, because a redo re-adds
+    the *existing* wrapper instead of building a new one, so ``post_init`` —
+    which is what creates the interior — does not run a second time. The
+    interior is runtime state rebuilt from the template (ADR 0038), so
+    building it again is the whole restoration.
+    """
+
+    def __init__(self, graph: BaseGraph, node_id: str, description: Optional[str] = None):
+        super().__init__(description or f"Discard the interior of '{node_id}'")
+        self.graph = graph
+        self.node_id = node_id
+
+    def _execute_impl(self) -> None:
+        """Rebuild the interior, for the redo that re-adds an existing card.
+
+        A no-op on first execution: the card was just built, and its
+        ``post_init`` has already instantiated the interior.
+        """
+        wrapper = self.graph.get_node_wrapper(self.node_id)
+        if wrapper is None:
+            return
+        rebuild = getattr(wrapper.node, "instantiate_from_template", None)
+        if rebuild is not None:
+            rebuild()
+
+    def _undo_impl(self) -> None:
+        # Asked of the card rather than rebuilt from its id: how a placement
+        # derives its key is the node's business, and core does not import the
+        # library the class lives in.
+        wrapper = self.graph.get_node_wrapper(self.node_id)
+        if wrapper is None:
+            return
+        key = getattr(wrapper.node, "subgraph_key", None)
+        if key and self.graph.get_subgraph(key) is not None:
+            self.graph.remove_subgraph(key)
+
+
 class _DropSubgraphAction(ActionBase):
     """Remove one Subgraph definition, restoring it whole on undo.
 
@@ -1534,6 +1578,117 @@ class ExpandGraphNodeAction(CompositeAction):
 
         self.inner_node_ids = [node_id for node_id in nodes if node_id not in boundary_ids]
         super().__init__(actions, description or "Expand Group")
+
+
+class PromoteGroupToMacroAction(CompositeAction):
+    """Swap a Group's card for a placement of the macro it was written to.
+
+    The file is already on disk and registered when this runs — writing it is
+    the promote pipeline's job, not the undo stack's. This composite (one
+    undoable unit):
+
+    1. removes the Group's card, which takes its edges with it, and drops the
+       Subgraph definition that served it,
+    2. creates the placement at the same position, under the macro's registry
+       key,
+    3. re-attaches each of the card's edges to the placement's matching pin.
+
+    Pin ids survive the swap untouched: both cards derive them from the same
+    boundary ports through ``card_port_id``, and the placement's interior is
+    instantiated from the document the Group's Subgraph just became. So an
+    edge re-attaches by the id it already had.
+
+    Undo restores the Group, its definition and its edges. **The file stays** —
+    it is not this action's to remove, and a macro that other graphs may
+    already place must not vanish because one promotion was undone.
+
+    Raises:
+        ValueError: If ``node_id`` is not a Graph-node with a Subgraph bound.
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        node_id: str,
+        macro_registry_key: str,
+        description: Optional[str] = None,
+    ):
+        from ...graph.subgraph import SubgraphDefinition
+
+        self.graph = graph
+
+        card = graph.get_node_wrapper(node_id)
+        if card is None:
+            raise ValueError(f"Node '{node_id}' not found; cannot promote")
+
+        resolve = getattr(card.node, "resolve_definition", None)
+        definition = resolve() if resolve is not None else None
+        if not isinstance(definition, SubgraphDefinition):
+            raise ValueError(f"Node '{node_id}' is not a Graph-node with a Subgraph; cannot promote")
+
+        serialized = card.serialize(include_data=True)
+        raw_position = serialized.get("position") or [0.0, 0.0]
+        position = (float(raw_position[0]), float(raw_position[1]))
+
+        try:
+            label = str(card.node.props.label or "")
+        except Exception:
+            label = ""
+
+        # Captured while the card is still in the graph: the removal below
+        # takes its edges with it.
+        edges = [
+            (edge.source_node_id, edge.outlet_port_id, edge.sink_node_id, edge.inlet_port_id)
+            for edge in graph._get_all_edges(node_id)
+        ]
+
+        self.placement_node_id = graph.generate_unique_node_id(macro_registry_key)
+
+        # The label the user gave this card is carried over as a prop, so a
+        # renamed Group does not lose its name to the macro's own. Props
+        # deserialize from the `values` bag, not from a flat dict.
+        node_data: Dict[str, Any] = {}
+        if label:
+            node_data["props"] = {"values": {"label": label}}
+
+        actions: List[IAction] = [
+            RemoveElementsAction(graph=graph, nodes=[node_id]),
+            _DropSubgraphAction(graph=graph, key=definition.key),
+            AddNodeAction(
+                graph=graph,
+                registry_key=macro_registry_key,
+                position=position,
+                node_data=node_data,
+                node_id=self.placement_node_id,
+            ),
+            # After the card, so its undo runs before the card is removed —
+            # while the card, and the interior it built, are still standing.
+            _DiscardTemplateInteriorAction(graph=graph, node_id=self.placement_node_id),
+        ]
+
+        for source_node_id, outlet_port_id, sink_node_id, inlet_port_id in edges:
+            if sink_node_id == node_id:
+                actions.append(
+                    AddEdgeAction(
+                        graph=graph,
+                        source_node_id=source_node_id,
+                        outlet_pin_id=outlet_port_id,
+                        sink_node_id=self.placement_node_id,
+                        inlet_pin_id=inlet_port_id,
+                    )
+                )
+            else:
+                actions.append(
+                    AddEdgeAction(
+                        graph=graph,
+                        source_node_id=self.placement_node_id,
+                        outlet_pin_id=outlet_port_id,
+                        sink_node_id=sink_node_id,
+                        inlet_pin_id=inlet_port_id,
+                    )
+                )
+
+        super().__init__(actions, description or "Promote to Macro")
 
 
 def _callback_edge_partners(graph: BaseGraph, selected: List[str]) -> List[str]:

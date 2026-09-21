@@ -697,6 +697,12 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
         self._emit(EnterGroupEvent(node_id=node_id))
 
+    def promote_to_macro(self, node_id: str) -> None:
+        """Emit PromoteToMacroEvent for the given Graph-node."""
+        from haywire.ui.components.graph.event_definitions import PromoteToMacroEvent
+
+        self._emit(PromoteToMacroEvent(node_id=node_id))
+
     # PortContextActions — setting demotion, promoted-port widget visibility
 
     def demote_setting(self, port_id: str) -> None:

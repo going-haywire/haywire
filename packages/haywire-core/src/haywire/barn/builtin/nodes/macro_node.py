@@ -88,7 +88,7 @@ class MacroNode(GraphNode):
         )
 
     def post_init(self) -> None:
-        self._instantiate_from_template()
+        self.instantiate_from_template()
         super().post_init()
 
     def _template(self) -> "MacroTemplate | None":
@@ -104,11 +104,17 @@ class MacroNode(GraphNode):
             return None
         return registry.template(wrapper.registry_key)
 
-    def _instantiate_from_template(self) -> None:
+    def instantiate_from_template(self) -> None:
         """Build this placement's interior from the template.
 
         Replaces any interior already standing under the derived key, so a
         reload swaps the contents without the card noticing a new definition.
+        Does nothing when the template is absent, leaving the pins the host
+        file restored.
+
+        Public because the promote action calls it to rebuild the interior on
+        redo: a redo re-adds the existing wrapper rather than building a new
+        one, so ``post_init`` does not run again.
         """
         from haywire.core.graph.subgraph import SubgraphDefinition
 
@@ -152,6 +158,6 @@ class MacroNode(GraphNode):
         that survives keeps its edges and a pin that is gone drops them to the
         ghost pin.
         """
-        self._instantiate_from_template()
+        self.instantiate_from_template()
         self.reconcile_interface()
         return True

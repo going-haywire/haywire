@@ -130,6 +130,21 @@ def is_graph_node(ctx: "SessionContext") -> bool:
     return wrapper.node.identity._is_graph_node
 
 
+def is_macro_placement(ctx: "SessionContext") -> bool:
+    """True when the selection's primary node is a card standing for a macro.
+
+    Disjoint from :func:`is_graph_node`: ``MacroNode`` clears ``_is_graph_node``
+    precisely so a placement is not offered the Group verbs, which would act on
+    an interior it does not own.
+    """
+    wrapper = ctx.data[EditState].active_node
+    if wrapper is None:
+        return False
+    from haywire.core.macro.source import is_macro_placement as _is_placement
+
+    return _is_placement(wrapper.node)
+
+
 def is_collapsible_selection(ctx: "SessionContext") -> bool:
     """True when at least two nodes are selected, so there is something to collapse.
 

@@ -44,6 +44,24 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _component_path(component: object) -> Optional[Path]:
+    """The file behind a registered component, or ``None``.
+
+    A class registry hands back a class, whose file ``inspect`` finds. A
+    **document** registry hands back a parsed instance that carries its own
+    ``path`` — and ``inspect.getfile`` raises ``TypeError`` on it, which would
+    open the editor on nothing.
+    """
+    own_path = getattr(component, "path", None)
+    if isinstance(own_path, Path):
+        return own_path
+
+    try:
+        return Path(inspect.getfile(component))  # type: ignore[arg-type]
+    except (TypeError, OSError):
+        return None
+
+
 @editor(
     label="Component Source",
     icon=hui.icon.node_source,
@@ -151,10 +169,7 @@ class ComponentSourceEditor(BaseEditor):
         self._cls = self._lookup_class(context, registry_key)
 
         if self._cls is not None:
-            try:
-                self._path = Path(inspect.getfile(self._cls))
-            except (TypeError, OSError):
-                self._path = None
+            self._path = _component_path(self._cls)
         else:
             self._path = None
 

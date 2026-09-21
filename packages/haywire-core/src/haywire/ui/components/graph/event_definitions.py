@@ -197,6 +197,16 @@ class EnterGroupEvent(BaseGraphEvent):
     node_id: str
 
 
+@graph_event(
+    "promoteToMacro",
+    category="user",
+    description="Turn a Group into a macro: its own file, placeable in any graph",
+)
+@dataclass
+class PromoteToMacroEvent(BaseGraphEvent):
+    node_id: str
+
+
 @graph_event("edgeCreated", category="user", description="New connection created")
 @dataclass
 class EdgeCreatedEvent(BaseGraphEvent):

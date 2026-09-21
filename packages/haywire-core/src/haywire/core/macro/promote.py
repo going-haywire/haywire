@@ -14,10 +14,22 @@ import re
 import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any, Protocol
 
-if TYPE_CHECKING:
-    from haywire.core.graph.subgraph import SubgraphDefinition
+
+class PromotableSubgraph(Protocol):
+    """What :func:`plan_promotion` reads off a Group's Subgraph.
+
+    A Protocol rather than ``SubgraphDefinition`` itself: planning needs a
+    label and a serialized document and nothing else, so the UI's tests can
+    drive the flow without building a graph and a library system.
+    """
+
+    @property
+    def label(self) -> str: ...
+
+    def to_dict(self) -> dict: ...
+
 
 #: A macro's filestem becomes its registry key and its menu entry.
 _NAME_RULE = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
@@ -62,6 +74,89 @@ def suggest_name(label: str) -> str:
     return candidate[0].upper() + candidate[1:]
 
 
+@dataclass(frozen=True)
+class PromotionTarget:
+    """A library a macro may be written into.
+
+    ``folder`` is the library's ``macros/`` folder, which need not exist yet —
+    a library that registered the folder before any macro was authored still
+    has nothing on disk.
+    """
+
+    library_id: str
+    label: str
+    folder: Path
+    is_project_library: bool
+
+
+def promotion_targets(library_system: Any, workspace_root: Path | None = None) -> list[PromotionTarget]:
+    """The libraries a Group may be promoted into, best default first.
+
+    A target is a library that is **editable** (``InstallType.is_editable()``
+    — its files on disk are the ones the framework loads and watches) and that
+    **registered a macros/ folder** with ``MacroRegistry``. A library missing
+    either cannot receive a macro: one is read-only, the other would never
+    scan the file.
+
+    The project's own library — the one under ``workspace_root/barn`` — sorts
+    first and is the default the dialog opens on. That is a path test made
+    here rather than an import from haybale-marketplace, which core does not
+    depend on.
+
+    Args:
+        library_system: The library system service, for the registries.
+        workspace_root: The project root, for deciding which target is the
+            project's own. Without it no target is marked as such and the
+            order falls back to alphabetical.
+
+    Returns:
+        The targets, project library first, then by label. Empty when no
+        library can receive a macro.
+    """
+    from haywire.core.macro.registry import MacroRegistry
+
+    try:
+        macro_registry = library_system.injector.get(MacroRegistry)
+        library_registry = library_system.get_library_registry()
+    except Exception:
+        return []
+
+    barn = (workspace_root / "barn").resolve() if workspace_root is not None else None
+
+    targets: list[PromotionTarget] = []
+    seen: set[str] = set()
+
+    for folder_path, identity in macro_registry._folder_to_library.items():
+        library_id = identity.name
+        if library_id in seen:
+            continue
+
+        install_type = library_registry.get_library_install_type(library_id)
+        if install_type is None or not install_type.is_editable():
+            continue
+
+        folder = Path(folder_path)
+        is_project = False
+        if barn is not None:
+            try:
+                is_project = folder.resolve().is_relative_to(barn)
+            except OSError:
+                is_project = False
+
+        seen.add(library_id)
+        targets.append(
+            PromotionTarget(
+                library_id=library_id,
+                label=identity.label or library_id,
+                folder=folder,
+                is_project_library=is_project,
+            )
+        )
+
+    targets.sort(key=lambda t: (not t.is_project_library, t.label.lower()))
+    return targets
+
+
 @dataclass
 class PromotionPlan:
     """What promoting one Group would write, and why it might be refused.
@@ -77,7 +172,7 @@ class PromotionPlan:
 
 
 def plan_promotion(
-    definition: "SubgraphDefinition",
+    definition: PromotableSubgraph,
     name: str,
     macros_folder: Path,
 ) -> PromotionPlan:

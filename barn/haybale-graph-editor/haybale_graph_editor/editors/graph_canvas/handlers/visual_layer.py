@@ -36,6 +36,7 @@ from haywire.ui.components.graph.event_definitions import (
     DissolveRerouteEvent,
     EnterGroupEvent,
     ExpandGroupEvent,
+    PromoteToMacroEvent,
     EdgeCreatedEvent,
     ElementRedrawEvent,
     ElementResetEvent,
@@ -891,6 +892,54 @@ class VisualLayerHandlers:
         logger.info(f"📦 Entering Group {event.node_id}")
         self.context.session.publish(
             SubgraphNavigation(graph_id=self.editor.graph.graph_id, node_id=event.node_id)
+        )
+
+    @handles_event(PromoteToMacroEvent)
+    def process_promote_to_macro(self, event: PromoteToMacroEvent):
+        """Open the Promote to Macro flow over the Group on this node.
+
+        The flow itself writes nothing until its last step; everything here is
+        resolving what it needs — the Subgraph to serialize and the libraries
+        that could receive it.
+        """
+        from haywire.core.di.config import get_library_system
+        from haywire.core.macro.promote import promotion_targets
+
+        from ...._promote_flow import EditorPromoteSource, show_promote_flow
+
+        wrapper = self.editor.graph.get_node_wrapper(event.node_id)
+        if wrapper is None:
+            return
+
+        resolve = getattr(wrapper.node, "resolve_definition", None)
+        definition = resolve() if resolve is not None else None
+        if definition is None:
+            ui.notify("This node has no Subgraph to promote", type="warning")
+            return
+
+        try:
+            library_system = get_library_system()
+        except Exception:
+            ui.notify("The library system is unavailable", type="negative")
+            return
+
+        workspace_root = None
+        try:
+            from haywire.core.di.context import get_workspace_root
+
+            workspace_root = get_workspace_root()
+        except Exception:
+            # No project open: targets still resolve, just unordered by
+            # project-locality.
+            workspace_root = None
+
+        logger.info(f"📦 Promoting Group {event.node_id} to a macro")
+        show_promote_flow(
+            EditorPromoteSource(self.editor, library_system),
+            definition,
+            event.node_id,
+            promotion_targets(library_system, workspace_root),
+            on_done=self.sync_with_graph,
         )
 
     def _subgraph_node_classes(self):

@@ -18,6 +18,7 @@ from haywire.core.undo.actions.graph_actions import (
     DissolveRerouteAction,
     CollapseToGraphNodeAction,
     ExpandGraphNodeAction,
+    PromoteGroupToMacroAction,
     SetPortMetadataAction,
     SetPropertyAction,
 )
@@ -375,6 +376,46 @@ class Editor:
             return (action.card_node_id, None)
         except Exception as e:
             logger.error(f"Error collapsing selection: {e}")
+            return (None, str(e))
+
+    def promote_to_macro(
+        self,
+        node_id: str,
+        macro_registry_key: str,
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """Swap the Group on ``node_id`` for a placement of ``macro_registry_key``.
+
+        One undoable operation. The macro file must already be written and
+        registered — this only exchanges the cards, so undo restores the Group
+        and leaves the file alone.
+
+        Fenced on both sides: auto-grouping would otherwise fold the swap into
+        whatever the user did just before, and a promotion that undid the
+        preceding collapse along with itself would take back work the user
+        never asked to reverse.
+
+        Returns:
+            ``(placement_node_id, None)`` on success, or ``(None, reason)``
+            when the swap was refused, phrased to be shown to the user.
+        """
+        try:
+            action = PromoteGroupToMacroAction(
+                graph=self.graph,
+                node_id=node_id,
+                macro_registry_key=macro_registry_key,
+            )
+        except ValueError as e:
+            logger.info(f"Promotion refused: {e}")
+            return (None, str(e))
+
+        try:
+            self.history_manager.add_fence()
+            self.history_manager.add_action(action)
+            self.history_manager.add_fence()
+            logger.info(f"Promoted Group {node_id} to macro '{macro_registry_key}'")
+            return (action.placement_node_id, None)
+        except Exception as e:
+            logger.error(f"Error promoting Group {node_id}: {e}")
             return (None, str(e))
 
     def expand_group(self, node_id: str) -> bool:
