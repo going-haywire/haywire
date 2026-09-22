@@ -2908,6 +2908,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#undo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Undo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#graph-management" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3670,6 +3681,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#undo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Undo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#graph-management" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4002,8 +4024,13 @@
 <hr />
 <h2 id="encapsulation">Encapsulation<a class="headerlink" href="#encapsulation" title="Permanent link">&para;</a></h2>
 <p>A <strong>Graph-node</strong> is one card standing for a whole <strong>Subgraph</strong>. The three
-variants are named for their execution mechanism, so the name says what happens.
-See <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a>.</p>
+variants are named for where the Subgraph lives and how it runs, so the name
+says what happens. See
+<a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a> for how a
+Subgraph executes, and
+<a href="../../adr/0037-macros-are-node-kind-components/">ADR 0037</a> /
+<a href="../../adr/0038-a-placements-interior-is-runtime-state/">ADR 0038</a> for how a
+Macro is registered and placed.</p>
 <table>
 <thead>
 <tr>
@@ -4055,8 +4082,33 @@ See <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 00
 </tr>
 <tr>
 <td><strong>Macro</strong></td>
-<td>The variant whose Subgraph lives in <strong>its own file</strong> as a library component, reusable from any graph, and still runs inside the host's flow. <strong>Not built</strong> — Slice 2</td>
+<td>The variant whose Subgraph lives in <strong>its own file</strong> as a library component, reusable from any graph, and still runs inside the host's flow. A macro <strong>is a node kind</strong>: its registry key is <code>&lt;library&gt;:macro:&lt;Name&gt;</code>, and the node factory, the add-node menu, the docs generator and the hot-reload relay treat it exactly as they treat a node class. See <a href="../../adr/0037-macros-are-node-kind-components/">ADR 0037</a></td>
 <td>Group, function</td>
+</tr>
+<tr>
+<td><strong>Macro template</strong></td>
+<td>The registry's entry for one macro file: the parsed document, its path, a content hash, and a per-macro identity. One of the three things that share the name <strong>macro</strong> and are not the same — the file on disk, this template, and each <strong>placement</strong>'s live <code>SubgraphDefinition</code></td>
+<td>The file, the placement</td>
+</tr>
+<tr>
+<td><strong>Placement</strong></td>
+<td>One card standing for a macro in a host graph, a <code>MacroNode</code>. It owns its own interior, keyed by the card's node id, so two placements of one macro never share nodes. That interior is runtime state: the host file carries the card and its port values, never the interior. See <a href="../../adr/0038-a-placements-interior-is-runtime-state/">ADR 0038</a></td>
+<td>Instance (means a node instance), copy, reference</td>
+</tr>
+<tr>
+<td><strong><code>.hwm</code></strong></td>
+<td>The macro file's extension: a graph document by another suffix — the same <code>BaseGraph.to_dict()</code> shape a <code>.haywire</code> file carries, which the graph editor opens unchanged</td>
+<td>Macro format (it is not a separate format)</td>
+</tr>
+<tr>
+<td><strong>Promote to Macro</strong></td>
+<td>The action turning a <strong>Group</strong> into a macro: it writes the Group's Subgraph to <code>&lt;library&gt;/macros/&lt;Name&gt;.hwm</code>, registers it, and swaps the Group card for a placement. One undoable group; undo restores the Group and leaves the file</td>
+<td>Extract, export, convert</td>
+</tr>
+<tr>
+<td><strong>Detach from Macro</strong></td>
+<td>The action turning one <strong>placement</strong> into a <strong>Group</strong> of its own: its interior stops being template-instantiated (<code>template_key</code> cleared, so the host file serializes it) and a later save of the <code>.hwm</code> no longer reaches the card. <strong>Not the inverse of Promote to Macro</strong> — the file stays on disk and every other placement keeps tracking the template, whereas promotion consumed the only card standing for its Subgraph</td>
+<td>Demote (implies the macro stops being a macro, which it does not); unlink, revert</td>
 </tr>
 <tr>
 <td><strong>Function</strong></td>
@@ -4409,8 +4461,18 @@ See <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 00
 </tr>
 <tr>
 <td><strong>Component</strong></td>
-<td>A class managed by a hot-reload <code>BaseRegistry</code> subclass — i.e. a node, type, adapter, skin, widget, editor, panel, settings bag, or theme contributed by a <strong>Library</strong> via <code>register_components()</code>. Resolved by <code>library_service.lookup_component_class(registry_key)</code>; the selected one is <code>SessionContext.active_component</code>. The <code>docs/components/</code> tree documents each component kind.</td>
+<td>Anything managed by a hot-reload <strong>Component registry</strong> — a node, macro, type, adapter, skin, widget, editor, panel, settings bag, state, farmhand or theme contributed by a <strong>Library</strong> via <code>register_components()</code>. Usually a class; a <strong>Macro template</strong> is the one that is not, and it satisfies the same contract so no consumer can tell. Resolved by <code>library_service.lookup_component_class(registry_key)</code>; the selected one is <code>SessionContext.active_component</code>. The <code>docs/components/</code> tree documents each component kind.</td>
 <td>Contribution, plugin item; do <strong>not</strong> confuse with the lowercase <code>haywire.ui.components</code> package (generic Vue/NiceGUI elements — see Flagged ambiguities)</td>
+</tr>
+<tr>
+<td><strong>Component registry</strong></td>
+<td>The base every hot-reload registry shares (<code>ComponentRegistry</code>): folder bookkeeping, the lifecycle queue, both subscriber lists, and <code>get</code>/<code>has</code>/<code>list_names</code>/<code>list_visible_names</code>. What a consumer — the file watcher, the node factory, <code>BaseLibrary</code> — talks to, so it never learns whether the components behind it are classes or files. Two subclasses: <code>BaseRegistry</code> and <strong>Document registry</strong></td>
+<td>Registry (unqualified — say which)</td>
+</tr>
+<tr>
+<td><strong>Document registry</strong></td>
+<td>A <strong>Component registry</strong> whose components are <strong>files</strong> rather than Python modules (<code>DocumentRegistry</code>): it globs one suffix under a claimed folder, parses each file into an element, hashes the content so an unchanged save notifies nobody, and maps file events onto the same <code>CLASS_ADDED</code>/<code>CLASS_RELOADED</code>/<code>CLASS_REMOVED</code> lifecycle a class registry emits. <code>MacroRegistry</code> is the first; a parse or validation failure emits <code>CLASS_RELOAD_FAILED</code> on the key, leaving the previous element registered. See <a href="../../adr/0037-macros-are-node-kind-components/">ADR 0037</a></td>
+<td>File registry, asset registry</td>
 </tr>
 <tr>
 <td><strong>register_components()</strong></td>
@@ -4479,7 +4541,7 @@ See <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 00
 </tr>
 <tr>
 <td><strong>haywire docs</strong></td>
-<td>The deterministic CLI subcommand (<code>uv run haywire docs &lt;path&gt;</code>, or <code>--all</code> for every in-repo library in one load) that generates <code>README.md</code>, <code>OVERVIEW.md</code>, <code>QUICKREF.md</code>, and one deep doc per component under <code>docs/&lt;registry_key-with-dots&gt;.md</code> — for all 11 component kinds, not just nodes. Pure extraction: identity fields, <code>NodeInstanceInspector</code> introspection of a freshly-built instance for node ports/settings, and verbatim author docstrings — never an agent, never inferred prose. Ends with a coverage report flagging components with no description/docstring. Regeneration reconciles <code>docs/</code>, removing deep docs for components that no longer exist. Preserves <code>&lt;!-- marketstall:share-url --&gt;</code> marker blocks in the README verbatim (spec §6.6). Never modifies <code>NOTES.md</code>. Replaced the earlier agent-driven <code>haybale-gen-docs</code> skill, which was non-deterministic.</td>
+<td>The deterministic CLI subcommand (<code>uv run haywire docs &lt;path&gt;</code>, or <code>--all</code> for every in-repo library in one load) that generates <code>README.md</code>, <code>OVERVIEW.md</code>, <code>QUICKREF.md</code>, and one deep doc per component under <code>docs/&lt;registry_key-with-dots&gt;.md</code> — for every component kind, not just nodes. Pure extraction: identity fields, <code>NodeInstanceInspector</code> introspection of a freshly-built instance for node and <strong>macro</strong> ports/settings, and verbatim author docstrings — never an agent, never inferred prose. Ends with a coverage report flagging components with no description/docstring. Regeneration reconciles <code>docs/</code>, removing deep docs for components that no longer exist. Preserves <code>&lt;!-- marketstall:share-url --&gt;</code> marker blocks in the README verbatim (spec §6.6). Never modifies <code>NOTES.md</code>. Replaced the earlier agent-driven <code>haybale-gen-docs</code> skill, which was non-deterministic.</td>
 <td>haybale-gen-docs (retired skill, superseded)</td>
 </tr>
 <tr>
@@ -5261,6 +5323,34 @@ See <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 00
 </tbody>
 </table>
 <hr />
+<h2 id="undo">Undo<a class="headerlink" href="#undo" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fence</strong></td>
+<td>A <strong>boundary</strong> in the action history that groups the actions between two of them into one logical operation, so a single undo reverses a whole gesture. It does <strong>not block</strong> undo — undo walks straight past it. Fences are not actions: they do not count towards <code>max_actions</code>, because a canvas drag emits two per gesture and counting them evicted real undo steps long before the user's limit; repeated fences at the tail collapse, since a gesture that produced nothing still brackets itself</td>
+<td>Barrier, checkpoint, undo stop (it stops nothing)</td>
+</tr>
+<tr>
+<td><strong>Action group</strong></td>
+<td>The unit a fence delimits: a list of actions (or nested groups) executed and undone in order, as one operation</td>
+<td>Transaction, batch</td>
+</tr>
+<tr>
+<td><strong>Mergeable action</strong></td>
+<td>An action that absorbs a later one of its kind rather than stacking — a drag emitting one action per mouse move collapses to one. Its <code>merge()</code> <strong>must</strong> call <code>mark_executed()</code> on what it returns: the merged action stands for work already applied, and an unexecuted one wedges the whole undo stack silently while <code>can_undo()</code> still reports <code>True</code></td>
+<td>Coalescing (fine as a verb), squash</td>
+</tr>
+</tbody>
+</table>
+<hr />
 <h2 id="graph-management">Graph Management<a class="headerlink" href="#graph-management" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -5273,8 +5363,18 @@ See <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 00
 <tbody>
 <tr>
 <td><strong>GraphEntry</strong></td>
-<td>A runtime container for one open graph: holds the <strong>Graph</strong>, <strong>Editor</strong>, file path, unsaved flag, session set, and per-graph <strong>Interpreter</strong>. Concrete implementation of the <strong>GraphContainer</strong> protocol in <code>haybale-haystack</code></td>
+<td>A runtime container for one open graph document: holds the <strong>Graph</strong>, <strong>Editor</strong>, file path, unsaved flag, session set, per-graph <strong>Interpreter</strong>, and its <strong>EntryKind</strong>. Concrete implementation of the <strong>GraphContainer</strong> protocol in <code>haybale-haystack</code>. Shared across browser sessions — two sessions editing one document hold the same entry, the same editor and the same undo history</td>
 <td>Graph slot, graph handle</td>
+</tr>
+<tr>
+<td><strong>EntryKind</strong></td>
+<td>Which category a <strong>GraphEntry</strong> belongs to: <code>GRAPH</code> (a member of the <strong>Haystack</strong> — listed in its TOML, reopened on load, executable) or <code>MACRO</code> (a <code>.hwm</code> document open <em>beside</em> the haystack — editable and saveable, but listed by no haystack, absent after a restart, and not executable). The distinction is the domain fact; non-executability follows from it rather than being declared separately. Function gets a third member when it lands</td>
+<td><code>transient</code> (a macro entry is not transient — it persists until released), <code>executable</code> flag (that is the consequence, not the category)</td>
+</tr>
+<tr>
+<td><strong>Macro entry</strong></td>
+<td>A <strong>GraphEntry</strong> of kind <code>MACRO</code>: one macro's <code>.hwm</code> document open for editing. Reached by <strong>Edit Macro…</strong> on a <strong>placement</strong>, rendered in its own list in the <strong>HaystackEditor</strong>, and released from memory by the user's explicit act — never by closing a tab, since the entry is shared across sessions and one session's close would strip another's editor</td>
+<td>Transient document, macro tab (the tab is one session's view of the entry)</td>
 </tr>
 <tr>
 <td><strong>GraphContainer</strong></td>
@@ -5293,8 +5393,8 @@ See <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 00
 </tr>
 <tr>
 <td><strong>Haystack</strong></td>
-<td>A named, curated selection of <strong>GraphEntry</strong>'s stored as a TOML file in <code>haystacks/</code>; records which graphs are open and which should auto-execute on load. See <a href="../../architecture/graph/graph-arch/">architecture/graph</a></td>
-<td>Session (overloaded with browser sessions), workspace (overloaded with layout), setlist, graphset</td>
+<td>A named, curated selection of <strong>GraphEntry</strong>'s stored as a TOML file in <code>haystacks/</code>; records which graphs it holds and which should auto-execute on load. Its members are the entries of <strong>EntryKind</strong> <code>GRAPH</code>: a <strong>macro entry</strong> is open in the same registry but belongs to no haystack, so it is absent from the TOML. "Open in memory" is therefore wider than "in this haystack"</td>
+<td>Session (overloaded with browser sessions), workspace (overloaded with layout), setlist, graphset; "everything open" (a macro entry is open and is not a member)</td>
 </tr>
 <tr>
 <td><strong>HaystackEditor</strong></td>

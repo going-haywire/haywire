@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Replace ValidationManager's hardcoded threading.Timer debounce with an injected ValidationScheduler, so the app chooses the execution thread">
+        <meta name="description" content="A macro placement's interior is never serialized and is keyed by the card's node id, so the template file is the only copy of the definition; a reload is absorbed in place rather than rebuilt, which is what keeps port values, the label and surviving edges">
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0002-validation-scheduler-injection/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0038-a-placements-interior-is-runtime-state/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>Inject the validation debounce scheduler instead of hardcoding threading.Timer - Haywire Documentation</title>
+        <title>A placement's interior is runtime state - Haywire Documentation</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer" class="md-skip">
+        <a href="#a-placements-interior-is-runtime-state" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Inject the validation debounce scheduler instead of hardcoding threading.Timer
+              A placement's interior is runtime state
             
           </span>
         </div>
@@ -3086,10 +3086,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem-the-timer-caused" class="md-nav__link">
+  <a href="#two-things-the-naive-shape-gets-wrong" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem the timer caused
+        Two things the naive shape gets wrong
       
     </span>
   </a>
@@ -3097,54 +3097,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-injection-not-just-marshal-the-broadcast" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why injection, not "just marshal the broadcast"
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-inject-not-import-nicegui-into-core" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why inject, not import NiceGUI into core
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-loopscheduler-lives" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Where LoopScheduler lives
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-synchronous-reentrancy-subtlety" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The synchronous-reentrancy subtlety
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#considered-alternatives" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Considered alternatives
+        Decision
       
     </span>
   </a>
@@ -3179,52 +3135,105 @@
 
 
 
-<h1 id="inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer">Inject the validation debounce scheduler instead of hardcoding <code>threading.Timer</code><a class="headerlink" href="#inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer" title="Permanent link">&para;</a></h1>
-<p><code>ValidationManager</code> (haywire-core) debounces graph validation: a burst of <code>mark_*_dirty</code> calls (a drag emitting many <code>NODE_MOVED</code>, a multi-node delete) is coalesced into a single <code>_validate_batch</code> pass. That debounce was implemented with a raw <code>threading.Timer</code>. This ADR replaces the hardcoded timer with an injected <code>ValidationScheduler</code>, so the <em>application</em> — not pure core — decides which thread the validation pass runs on. The default stays the legacy timer; the studio injects an event-loop scheduler.</p>
-<h2 id="the-problem-the-timer-caused">The problem the timer caused<a class="headerlink" href="#the-problem-the-timer-caused" title="Permanent link">&para;</a></h2>
-<p><code>_validate_batch</code> runs on whatever thread fires the timer. With <code>threading.Timer</code> that is a background daemon thread, ~50 ms after the mutation. But <code>_validate_batch</code> notifies its subscribers inline, and those subscribers touch the UI:</p>
-<ul>
-<li>the graph canvas redraw (<code>visual_layer.on_validated</code>), and</li>
-<li><code>HaystackState._on_entry_validation</code>, which sets <code>entry.unsaved = True</code> and <strong>broadcasts <code>GraphDataMutated</code></strong> through the session signal bus.</li>
-</ul>
-<p>The signal bus is documented as main-thread-only (<em>"Not thread-safe by design — all session work runs on the NiceGUI event loop's main thread"</em>). So the dirty-state broadcast that drives the header dirty dot and the undo/redo button enablement was being emitted from a thread the UI layer says it cannot be emitted from.</p>
-<p>In practice NiceGUI tolerates this — building elements off-loop lands in the no-task slot stack (<code>Slot.stacks[0]</code>), and <code>element.update()</code> enqueues into the outbox, which the main-loop poll flushes within ≤1 s — which is why nothing crashed and the off-thread-ness went unnoticed. But the tolerance is fragile and adds ~1 s of latency: the cross-thread <code>asyncio.Event.set()</code> that should wake the outbox immediately is not called thread-safely.</p>
-<p>The key realization: <strong>the timer was never a concurrency mechanism — it was only a debounce.</strong> <code>_validate_batch</code> is pure synchronous CPU work (<code>build()</code>, <code>link()</code>, <code>_housekeeping()</code>) with no <code>await</code>, no I/O, and no concurrency requirement. Validation is triggered <em>only</em> by user edits, which originate on the main loop (the execution interpreter does not mark the graph dirty during a run). Running it on a background thread bought nothing and cost the thread-safety hazard above.</p>
-<h2 id="why-injection-not-just-marshal-the-broadcast">Why injection, not "just marshal the broadcast"<a class="headerlink" href="#why-injection-not-just-marshal-the-broadcast" title="Permanent link">&para;</a></h2>
-<p>The narrow fix would have been to wrap the one off-thread emitter (<code>HaystackState._broadcast_data_mutated</code>) in <code>loop.call_soon_threadsafe</code>. Rejected as symptom-level treatment — see "Considered alternatives" below. Moving the debounce onto the event loop fixes the root cause once, for every current and future subscriber, and keeps loop-awareness in exactly one place.</p>
-<h2 id="why-inject-not-import-nicegui-into-core">Why inject, not import NiceGUI into core<a class="headerlink" href="#why-inject-not-import-nicegui-into-core" title="Permanent link">&para;</a></h2>
-<p><code>ValidationManager</code> lives in <code>haywire-core</code>'s graph layer, which is framework-free: the graph, its validation and the execution pipeline hold no NiceGUI imports, even though core's own <code>haywire/ui</code> tree does. The alternative of importing <code>nicegui.core</code> directly into <code>ValidationManager</code> (to call <code>call_soon_threadsafe</code> / <code>ui.timer</code>) would invert that: pure graph-validation logic would depend on the web UI framework.</p>
-<p>Injection preserves the boundary. Core defines a tiny protocol and a default; the application supplies the loop-aware implementation:</p>
-<ul>
-<li><strong><code>ValidationScheduler</code></strong> protocol (core): <code>schedule(delay_seconds, fn) -&gt; handle</code>, where the handle has an idempotent <code>cancel()</code>. Re-scheduling is the caller's job — <code>ValidationManager</code> cancels the previous handle and schedules a fresh one on every dirty mark, which is what produces the debounce.</li>
-<li><strong><code>ThreadingTimerScheduler</code></strong> (core): the legacy daemon-<code>threading.Timer</code> behavior, kept as the <strong>default</strong> so every construction site that does not inject behaves exactly as before. This change is therefore behavior-preserving by default.</li>
-<li><strong><code>SyncScheduler</code></strong> (core): runs the callback inline. Deterministic; intended for tests and headless use, where it removes the need to call <code>force_immediate_validation()</code> after a mutation.</li>
-<li><strong><code>LoopScheduler</code></strong> (core, beside the other two): debounces on <code>nicegui.core.loop</code>. The live graph factory (<code>HaystackState._make_graph_and_editor</code>) injects it, which is what moves validation and the <code>GraphDataMutated</code> broadcast onto the main thread in the running app.</li>
-</ul>
-<h2 id="where-loopscheduler-lives">Where <code>LoopScheduler</code> lives<a class="headerlink" href="#where-loopscheduler-lives" title="Permanent link">&para;</a></h2>
-<p>All three implementations sit together in <code>haywire/core/graph/scheduler.py</code>.</p>
-<p><code>LoopScheduler</code> first shipped in <code>haybale-studio</code>, on the reasoning that it needs <code>nicegui.core.loop</code> and core was framework-free. That premise no longer holds: <code>haywire-core</code> declares <code>nicegui</code> as a dependency and imports it across the <code>haywire/ui</code> tree, so one more NiceGUI import crosses no boundary that is not already crossed. The import is function-local rather than module-level, which keeps headless and test paths that import this module from pulling NiceGUI in.</p>
-<p>The narrower claim below still stands and is the reason injection exists at all: <code>ValidationManager</code> itself must not import NiceGUI, because pure graph-validation logic has no business depending on the web framework.</p>
-<p><code>LoopScheduler</code> handles two realities the protocol implies:</p>
-<ul>
-<li><strong>Off-loop callers.</strong> <code>schedule</code> may be invoked from a non-loop thread (a hot-reload watcher marking nodes dirty via <code>NODE_HOT_RELOADED</code>). <code>call_later</code> is loop-affine, so it hops via <code>call_soon_threadsafe</code> first. The returned handle is cancellable from any thread, and cancellation that races the deferred arming is resolved under a lock.</li>
-<li><strong>No loop yet.</strong> During pre-<code>ui.run</code> startup (workspace rehydrate constructs graphs before the loop exists) it runs the callback inline. Safe, because validation is pure CPU work; it only forgoes debouncing for that early window.</li>
-</ul>
-<h2 id="the-synchronous-reentrancy-subtlety">The synchronous-reentrancy subtlety<a class="headerlink" href="#the-synchronous-reentrancy-subtlety" title="Permanent link">&para;</a></h2>
-<p><code>SyncScheduler.schedule</code> runs <code>_validate_batch</code> <em>inside</em> the <code>schedule()</code> call, re-entrant under the manager's <code>RLock</code>. That batch clears <code>_pending_handle</code>, but then <code>_schedule_validation</code> would overwrite it with the (inert) handle the scheduler returned — leaving <code>pending_validation</code> reporting <code>True</code> when nothing is pending. <code>ValidationManager</code> guards this with a monotonic <code>_batch_generation</code> counter: it snapshots the generation before scheduling and only adopts the returned handle if the generation did not advance during <code>schedule()</code> (i.e. no inline batch ran). This keeps the synchronous path honest without special-casing scheduler types.</p>
-<h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Marshal only <code>_broadcast_data_mutated</code> with <code>call_soon_threadsafe</code>.</strong> Smallest diff, but symptom-level: it leaves <code>_validate_batch</code> and the canvas redraw on the timer thread, so the <em>next</em> off-thread subscriber re-introduces the same class of bug, and it scatters event-loop awareness into <code>HaystackState</code>, which has no business knowing about asyncio loops.</li>
-<li><strong>Import <code>nicegui.core</code> directly into <code>ValidationManager</code>.</strong> Couples pure-core validation to the web framework, inverting a boundary the codebase otherwise holds (core has no NiceGUI imports).</li>
-<li><strong>Replace the debounce with a loop-native <code>ui.timer</code> everywhere, no abstraction.</strong> Forces a NiceGUI dependency on every <code>BaseGraph</code> construction, breaking headless/test/CI use that has no running loop.</li>
-<li><strong>Move the debounce up to the edit layer (coalesce drag deltas before they reach the graph) and make validation purely synchronous.</strong> Arguably the cleanest end state, but a larger rethink of the edit→graph boundary; deferred.</li>
-</ul>
+<h1 id="a-placements-interior-is-runtime-state">A placement's interior is runtime state<a class="headerlink" href="#a-placements-interior-is-runtime-state" title="Permanent link">&para;</a></h1>
+<p><strong>Context.</strong> ADR 0037 makes a macro a node kind whose component is a file, so a
+save of that file reaches every placement through the ordinary per-key reload
+relay. This record settles what a placement <em>is</em> between those saves: where its
+interior lives, what the host file carries, and what happens when the event
+arrives.</p>
+<p>A <strong>placement</strong> is one card standing for a macro in a host graph. Unlike a Group,
+whose Subgraph is its own and lives in the same <code>.haywire</code> file, a placement
+stands for a definition that many cards share — as a template, never as an
+object.</p>
+<h2 id="two-things-the-naive-shape-gets-wrong">Two things the naive shape gets wrong<a class="headerlink" href="#two-things-the-naive-shape-gets-wrong" title="Permanent link">&para;</a></h2>
+<p><strong>Sharing one interior between placements.</strong> A <code>SubgraphDefinition</code> holds its
+nodes <strong>live</strong>: the wrappers in <code>node_wrappers</code> are the same objects the canvas
+draws and the VM executes. Two cards pointing at one definition would therefore
+be two cards over one set of running nodes, with one set of port values and one
+error location. Each placement must instantiate its own.</p>
+<p><strong>Taking the generic rebuild on reload.</strong> On <code>NODE_HOT_RELOADED</code> the validator
+calls <code>node_wrapper.build()</code> with no <code>node_info</code>, which runs <code>init()</code> afresh: port
+values, <code>props</code> — the user's label — and the store are gone, and only position
+and edges survive, the latter rebinding by port id. That is deliberate for a node
+class, because <code>_initialize_from_dict</code> restores the <em>serialized</em> port set without
+calling <code>init()</code>, so carrying state across a class reload would hide an author's
+new ports. Applied to a placement it is simply destructive: every value the user
+typed into a macro card would reset on every save of the macro file, which is the
+one moment the user is most likely to be iterating on it.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p><strong>A placement's interior is never serialized, and its key is derived from the
+card's node id.</strong></p>
+<p><code>MacroNode.subgraph_key</code> returns <code>macro_&lt;node_id&gt;</code> and never reads the store. A
+derived key cannot be copied onto a second card, so pasting a placement yields a
+second interior rather than two cards sharing one — the invariant holds by
+construction rather than by a check. <code>bind_subgraph</code> raises: there is nothing to
+bind, the key is already decided.</p>
+<p><code>SubgraphDefinition.template_key</code> marks a definition as instantiated from a
+template, and <code>BaseGraph.to_dict</code> skips every marked entry. The host file
+therefore carries the placement exactly as it carries any node — registry key,
+position, the mirrored <code>ports</code> block with its values, <code>props</code> — and carries no
+interior at all. On load, <code>post_init</code> instantiates the interior from the live
+template and reconciles the restored pins against it, which is the path a Group
+already takes.</p>
+<p><strong>A reload is absorbed in place, never rebuilt.</strong> <code>BaseNode.on_class_reloaded()</code>
+returns <code>False</code> by default, and <code>NodeWrapper</code> consults it first on a successful
+lifecycle event, returning early when it answers <code>True</code>. <code>MacroNode</code> answers
+<code>True</code>: it swaps the definition — removing the old one from the host table and
+instantiating the new template under the same derived key — and calls
+<code>reconcile_interface()</code>, the funnel every interface change already goes through.
+Values, the label and edges on surviving pins are untouched because nothing
+touched them; a pin that is gone drops its edges to the ghost pin.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>BaseGraph(..., validation_scheduler=None)</code> and <code>ValidationManager(..., scheduler=None)</code> gain an optional parameter; omitting it preserves the prior <code>threading.Timer</code> behavior exactly.</li>
-<li>The live app (graphs created through <code>HaystackState</code>) now validates on the event-loop thread, so the header dirty dot and undo/redo enablement update promptly and on the correct thread. This pairs with the <code>GraphEditor</code> change that adds <code>@react_on(GraphDataMutated)</code> — the scheduler delivers the signal safely; the <code>react_on</code> handler is what makes the editor chrome listen for it.</li>
-<li>Tests may construct graphs with <code>SyncScheduler()</code> for deterministic, inline validation. Existing tests that call <code>force_immediate_validation()</code> to flush the timer continue to work; sweeping them onto <code>SyncScheduler</code> is possible follow-up cleanup, intentionally not done here.</li>
-<li><code>ValidationManager.get_statistics()["pending_validation"]</code> now means "a debounced run is pending" derived from the handle, not from <code>threading.Timer.is_alive()</code>.</li>
+<li>
+<p><strong>The file is the only copy of the definition.</strong> A placement can be
+  reconstructed from the host file plus the template, and never from the host
+  file alone. A macro whose library is absent loads its placement as the error
+  node, from the pins the host file restored.</p>
+</li>
+<li>
+<p><strong>A reload is not an undo subject</strong> — not an action, no fence. The interface is
+  owned by the template, so undoing past a reload cannot resurrect a pin that the
+  template no longer has, and the undo stack is unchanged by a save of the macro
+  file.</p>
+</li>
+<li>
+<p><strong>Lost connections report themselves.</strong> An edge whose pin vanished fails formal
+  validation with "Ports not found" and logs into the error ledger with its
+  <code>edge_id</code> and <code>graph_id</code>. The cross-graph report a fan-out needs already
+  existed; nothing macro-specific reports it.</p>
+</li>
+<li>
+<p><strong>The label write-back is Group-only.</strong> A Group's card renames its Subgraph
+  because it is the only card standing for it. <code>MacroNode._on_label_changed</code> is a
+  no-op: renaming one placement must not rename the interior of every other
+  placement of the same macro.</p>
+</li>
+<li>
+<p><strong>A placement's displayed identity is its template's</strong>, not its class's. Every
+  placement of every macro is an instance of one <code>MacroNode</code> class, whose class
+  identity says only "Macro", so <code>identity</code> is overridden to return the
+  template's — falling back to the class identity when the template is absent.</p>
+</li>
+<li>
+<p><strong><code>_is_graph_node</code> is cleared explicitly on <code>MacroNode</code>.</strong> Identity flags are
+  inherited, and leaving it set would make a placement the registry's Graph-node
+  — so collapsing a selection into a Group would build a macro card instead.</p>
+</li>
+<li>
+<p><strong>Descending into a placement is refused</strong>, and opens the macro document
+  instead. There is nothing in the interior a user may edit in place: it is
+  rebuilt from the template on the next load or save. Looking inside a running
+  placement waits on a read-only editor mode.</p>
+</li>
+<li>
+<p><strong>Promotion writes a file and swaps a card, in one undoable group.</strong> "Promote to
+  Macro…" writes <code>&lt;library&gt;/macros/&lt;Name&gt;.hwm</code>, registers it synchronously — the
+  watcher's later CREATED is a no-op by content hash — then removes the Group card
+  and its definition and creates a placement at the same position, edges
+  re-attaching by pin id. Undo restores the Group; the file stays, because a file
+  on disk is not the undo stack's to remove.</p>
+</li>
 </ul>
 
 

@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Replace ValidationManager's hardcoded threading.Timer debounce with an injected ValidationScheduler, so the app chooses the execution thread">
+        <meta name="description" content="A macro is a node kind whose component is a .hwm file rather than a Python class — registered through a DocumentRegistry that satisfies the class contract, so the factory, the add-node menu, the docs generator and the hot-reload relay reach every placement with no machinery of their own">
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0002-validation-scheduler-injection/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0037-macros-are-node-kind-components/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>Inject the validation debounce scheduler instead of hardcoding threading.Timer - Haywire Documentation</title>
+        <title>A macro is a node kind, and its component is a file - Haywire Documentation</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer" class="md-skip">
+        <a href="#a-macro-is-a-node-kind-and-its-component-is-a-file" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Inject the validation debounce scheduler instead of hardcoding threading.Timer
+              A macro is a node kind, and its component is a file
             
           </span>
         </div>
@@ -3086,10 +3086,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem-the-timer-caused" class="md-nav__link">
+  <a href="#the-alternative-a-node-class-that-points-at-a-file" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem the timer caused
+        The alternative: a node class that points at a file
       
     </span>
   </a>
@@ -3097,54 +3097,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-injection-not-just-marshal-the-broadcast" class="md-nav__link">
+  <a href="#decision" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why injection, not "just marshal the broadcast"
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#why-inject-not-import-nicegui-into-core" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Why inject, not import NiceGUI into core
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-loopscheduler-lives" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Where LoopScheduler lives
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-synchronous-reentrancy-subtlety" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The synchronous-reentrancy subtlety
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#considered-alternatives" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Considered alternatives
+        Decision
       
     </span>
   </a>
@@ -3179,52 +3135,123 @@
 
 
 
-<h1 id="inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer">Inject the validation debounce scheduler instead of hardcoding <code>threading.Timer</code><a class="headerlink" href="#inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer" title="Permanent link">&para;</a></h1>
-<p><code>ValidationManager</code> (haywire-core) debounces graph validation: a burst of <code>mark_*_dirty</code> calls (a drag emitting many <code>NODE_MOVED</code>, a multi-node delete) is coalesced into a single <code>_validate_batch</code> pass. That debounce was implemented with a raw <code>threading.Timer</code>. This ADR replaces the hardcoded timer with an injected <code>ValidationScheduler</code>, so the <em>application</em> — not pure core — decides which thread the validation pass runs on. The default stays the legacy timer; the studio injects an event-loop scheduler.</p>
-<h2 id="the-problem-the-timer-caused">The problem the timer caused<a class="headerlink" href="#the-problem-the-timer-caused" title="Permanent link">&para;</a></h2>
-<p><code>_validate_batch</code> runs on whatever thread fires the timer. With <code>threading.Timer</code> that is a background daemon thread, ~50 ms after the mutation. But <code>_validate_batch</code> notifies its subscribers inline, and those subscribers touch the UI:</p>
-<ul>
-<li>the graph canvas redraw (<code>visual_layer.on_validated</code>), and</li>
-<li><code>HaystackState._on_entry_validation</code>, which sets <code>entry.unsaved = True</code> and <strong>broadcasts <code>GraphDataMutated</code></strong> through the session signal bus.</li>
-</ul>
-<p>The signal bus is documented as main-thread-only (<em>"Not thread-safe by design — all session work runs on the NiceGUI event loop's main thread"</em>). So the dirty-state broadcast that drives the header dirty dot and the undo/redo button enablement was being emitted from a thread the UI layer says it cannot be emitted from.</p>
-<p>In practice NiceGUI tolerates this — building elements off-loop lands in the no-task slot stack (<code>Slot.stacks[0]</code>), and <code>element.update()</code> enqueues into the outbox, which the main-loop poll flushes within ≤1 s — which is why nothing crashed and the off-thread-ness went unnoticed. But the tolerance is fragile and adds ~1 s of latency: the cross-thread <code>asyncio.Event.set()</code> that should wake the outbox immediately is not called thread-safely.</p>
-<p>The key realization: <strong>the timer was never a concurrency mechanism — it was only a debounce.</strong> <code>_validate_batch</code> is pure synchronous CPU work (<code>build()</code>, <code>link()</code>, <code>_housekeeping()</code>) with no <code>await</code>, no I/O, and no concurrency requirement. Validation is triggered <em>only</em> by user edits, which originate on the main loop (the execution interpreter does not mark the graph dirty during a run). Running it on a background thread bought nothing and cost the thread-safety hazard above.</p>
-<h2 id="why-injection-not-just-marshal-the-broadcast">Why injection, not "just marshal the broadcast"<a class="headerlink" href="#why-injection-not-just-marshal-the-broadcast" title="Permanent link">&para;</a></h2>
-<p>The narrow fix would have been to wrap the one off-thread emitter (<code>HaystackState._broadcast_data_mutated</code>) in <code>loop.call_soon_threadsafe</code>. Rejected as symptom-level treatment — see "Considered alternatives" below. Moving the debounce onto the event loop fixes the root cause once, for every current and future subscriber, and keeps loop-awareness in exactly one place.</p>
-<h2 id="why-inject-not-import-nicegui-into-core">Why inject, not import NiceGUI into core<a class="headerlink" href="#why-inject-not-import-nicegui-into-core" title="Permanent link">&para;</a></h2>
-<p><code>ValidationManager</code> lives in <code>haywire-core</code>'s graph layer, which is framework-free: the graph, its validation and the execution pipeline hold no NiceGUI imports, even though core's own <code>haywire/ui</code> tree does. The alternative of importing <code>nicegui.core</code> directly into <code>ValidationManager</code> (to call <code>call_soon_threadsafe</code> / <code>ui.timer</code>) would invert that: pure graph-validation logic would depend on the web UI framework.</p>
-<p>Injection preserves the boundary. Core defines a tiny protocol and a default; the application supplies the loop-aware implementation:</p>
-<ul>
-<li><strong><code>ValidationScheduler</code></strong> protocol (core): <code>schedule(delay_seconds, fn) -&gt; handle</code>, where the handle has an idempotent <code>cancel()</code>. Re-scheduling is the caller's job — <code>ValidationManager</code> cancels the previous handle and schedules a fresh one on every dirty mark, which is what produces the debounce.</li>
-<li><strong><code>ThreadingTimerScheduler</code></strong> (core): the legacy daemon-<code>threading.Timer</code> behavior, kept as the <strong>default</strong> so every construction site that does not inject behaves exactly as before. This change is therefore behavior-preserving by default.</li>
-<li><strong><code>SyncScheduler</code></strong> (core): runs the callback inline. Deterministic; intended for tests and headless use, where it removes the need to call <code>force_immediate_validation()</code> after a mutation.</li>
-<li><strong><code>LoopScheduler</code></strong> (core, beside the other two): debounces on <code>nicegui.core.loop</code>. The live graph factory (<code>HaystackState._make_graph_and_editor</code>) injects it, which is what moves validation and the <code>GraphDataMutated</code> broadcast onto the main thread in the running app.</li>
-</ul>
-<h2 id="where-loopscheduler-lives">Where <code>LoopScheduler</code> lives<a class="headerlink" href="#where-loopscheduler-lives" title="Permanent link">&para;</a></h2>
-<p>All three implementations sit together in <code>haywire/core/graph/scheduler.py</code>.</p>
-<p><code>LoopScheduler</code> first shipped in <code>haybale-studio</code>, on the reasoning that it needs <code>nicegui.core.loop</code> and core was framework-free. That premise no longer holds: <code>haywire-core</code> declares <code>nicegui</code> as a dependency and imports it across the <code>haywire/ui</code> tree, so one more NiceGUI import crosses no boundary that is not already crossed. The import is function-local rather than module-level, which keeps headless and test paths that import this module from pulling NiceGUI in.</p>
-<p>The narrower claim below still stands and is the reason injection exists at all: <code>ValidationManager</code> itself must not import NiceGUI, because pure graph-validation logic has no business depending on the web framework.</p>
-<p><code>LoopScheduler</code> handles two realities the protocol implies:</p>
-<ul>
-<li><strong>Off-loop callers.</strong> <code>schedule</code> may be invoked from a non-loop thread (a hot-reload watcher marking nodes dirty via <code>NODE_HOT_RELOADED</code>). <code>call_later</code> is loop-affine, so it hops via <code>call_soon_threadsafe</code> first. The returned handle is cancellable from any thread, and cancellation that races the deferred arming is resolved under a lock.</li>
-<li><strong>No loop yet.</strong> During pre-<code>ui.run</code> startup (workspace rehydrate constructs graphs before the loop exists) it runs the callback inline. Safe, because validation is pure CPU work; it only forgoes debouncing for that early window.</li>
-</ul>
-<h2 id="the-synchronous-reentrancy-subtlety">The synchronous-reentrancy subtlety<a class="headerlink" href="#the-synchronous-reentrancy-subtlety" title="Permanent link">&para;</a></h2>
-<p><code>SyncScheduler.schedule</code> runs <code>_validate_batch</code> <em>inside</em> the <code>schedule()</code> call, re-entrant under the manager's <code>RLock</code>. That batch clears <code>_pending_handle</code>, but then <code>_schedule_validation</code> would overwrite it with the (inert) handle the scheduler returned — leaving <code>pending_validation</code> reporting <code>True</code> when nothing is pending. <code>ValidationManager</code> guards this with a monotonic <code>_batch_generation</code> counter: it snapshots the generation before scheduling and only adopts the returned handle if the generation did not advance during <code>schedule()</code> (i.e. no inline batch ran). This keeps the synchronous path honest without special-casing scheduler types.</p>
-<h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Marshal only <code>_broadcast_data_mutated</code> with <code>call_soon_threadsafe</code>.</strong> Smallest diff, but symptom-level: it leaves <code>_validate_batch</code> and the canvas redraw on the timer thread, so the <em>next</em> off-thread subscriber re-introduces the same class of bug, and it scatters event-loop awareness into <code>HaystackState</code>, which has no business knowing about asyncio loops.</li>
-<li><strong>Import <code>nicegui.core</code> directly into <code>ValidationManager</code>.</strong> Couples pure-core validation to the web framework, inverting a boundary the codebase otherwise holds (core has no NiceGUI imports).</li>
-<li><strong>Replace the debounce with a loop-native <code>ui.timer</code> everywhere, no abstraction.</strong> Forces a NiceGUI dependency on every <code>BaseGraph</code> construction, breaking headless/test/CI use that has no running loop.</li>
-<li><strong>Move the debounce up to the edit layer (coalesce drag deltas before they reach the graph) and make validation purely synchronous.</strong> Arguably the cleanest end state, but a larger rethink of the edit→graph boundary; deferred.</li>
-</ul>
+<h1 id="a-macro-is-a-node-kind-and-its-component-is-a-file">A macro is a node kind, and its component is a file<a class="headerlink" href="#a-macro-is-a-node-kind-and-its-component-is-a-file" title="Permanent link">&para;</a></h1>
+<p><strong>Context.</strong> A <strong>Group</strong> (ADR 0036) is a Graph-node whose Subgraph lives in the
+parent <code>.haywire</code> file and serves exactly one card. A <strong>Macro</strong> is the same card
+over a Subgraph that lives in <strong>its own file</strong>, is a library component, and can
+be placed any number of times in any graph.</p>
+<p>That raises one question the Group never had to answer: what is a macro <em>to the
+framework</em> — a file the studio happens to read, or a component like any other?
+Everything else follows from it.</p>
+<h2 id="the-alternative-a-node-class-that-points-at-a-file">The alternative: a node class that points at a file<a class="headerlink" href="#the-alternative-a-node-class-that-points-at-a-file" title="Permanent link">&para;</a></h2>
+<p>The obvious shape is a single <code>MacroNode</code> class registered once, whose store
+holds the path (or key) of the macro it stands for. The registry stays
+class-only, no file format enters the component system, and a placement is an
+ordinary node with an unusual setting.</p>
+<p>It breaks on reload, and on identity.</p>
+<p><strong>Reload has nowhere to land.</strong> Hot-reload fans out <strong>per registry key</strong>:
+<code>NodeFactory</code> relays a registry's lifecycle batch to every <code>NodeWrapper</code>
+subscribed on the key that changed. Under one shared class there is exactly one
+key, <code>builtin:node:MacroNode</code>, so saving <code>Blur.hwm</code> either notifies every
+placement of every macro or notifies none. Delivering the event to the right
+cards would mean a second, macro-shaped subscription mechanism running beside
+the one the framework already has.</p>
+<p><strong>Identity is per macro, not per class.</strong> A card's label, description, menu path
+and search tags come from <code>class_identity</code>. One class has one identity, so every
+macro in the add-node menu would read "Macro", and every consumer that shows a
+component — the menu, the library overview, Component Docs, <code>describe_component</code>
+— would need a macro-specific branch to find the real name.</p>
+<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
+<p>A macro <strong>is a node kind</strong>. Its registry key is <code>&lt;library&gt;:macro:&lt;Name&gt;</code>, minted
+from the file's stem, and it takes a seat in <code>kind_registry_map()</code> beside
+<code>node</code>, <code>type</code> and the rest.</p>
+<p>Three things make that work.</p>
+<p><strong><code>ComponentRegistry</code>, extracted from <code>BaseRegistry</code>.</strong> What a consumer actually
+uses of a registry is thin: <code>add_folder</code>/<code>remove_folder</code> for <code>BaseLibrary</code>,
+<code>event_dispatcher</code> for the file watcher, the lifecycle queue and both subscriber
+lists for the factory, and <code>get</code>/<code>has</code>/<code>list_names</code>/<code>list_visible_names</code>. That
+is now the base class. <code>BaseRegistry</code> keeps everything module-centric —
+<code>sys.modules</code>, <code>importlib</code>, the dependency graph, rollback — and becomes one of
+two subclasses.</p>
+<p><strong><code>DocumentRegistry</code>, the other subclass.</strong> It globs one suffix under a claimed
+folder, parses each file into an element, and maps file events onto the lifecycle
+a class registry already emits: CREATED → <code>CLASS_ADDED</code>, MODIFIED →
+<code>CLASS_RELOADED</code>, DELETED → <code>CLASS_REMOVED</code>. It hashes the text on every load, so
+a save that does not change the bytes notifies nobody. A parse or validation
+failure emits <code>CLASS_RELOAD_FAILED</code> against the key and leaves the previous
+element registered.</p>
+<p>The file watcher needed no change for this. <code>_get_matching_registries</code> already
+routes <em>every</em> file under a claimed folder; the <code>.py</code> filter was never the
+watcher's, it was <code>BaseRegistry.event_dispatcher</code>'s own. A document registry
+simply claims a different suffix.</p>
+<p><strong>The template satisfies the class contract.</strong> <code>MacroRegistry.get(key)</code> returns a
+<code>MacroTemplate</code> — the parsed document, its path, a content hash, and a per-macro
+<code>NodeIdentity</code> whose label is the filestem, whose description is the document's
+<code>meta.description</code>, and whose menu is <code>macros/&lt;library label&gt;</code> — one root the
+create menu lifts above the node categories, grouped by library. It exposes
+<code>class_identity</code> and <code>class_library</code>, which is all the <code>RegisteredClass</code> Protocol
+asks for. Consumers that walk kinds generically — the docs extractor, the
+farmhand helpers, the library overview — read it without learning it is a file.</p>
+<p><code>NodeFactory</code> takes both registries and dispatches on the key's kind segment.
+<code>get_node("lib:macro:Blur")</code> returns <code>MacroNode</code> when the template is present and
+takes the error-node path when it is not, so a graph using a macro from an
+absent library loads its placement as the error node from the same serialized
+ports block — exactly as any missing node does.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>BaseGraph(..., validation_scheduler=None)</code> and <code>ValidationManager(..., scheduler=None)</code> gain an optional parameter; omitting it preserves the prior <code>threading.Timer</code> behavior exactly.</li>
-<li>The live app (graphs created through <code>HaystackState</code>) now validates on the event-loop thread, so the header dirty dot and undo/redo enablement update promptly and on the correct thread. This pairs with the <code>GraphEditor</code> change that adds <code>@react_on(GraphDataMutated)</code> — the scheduler delivers the signal safely; the <code>react_on</code> handler is what makes the editor chrome listen for it.</li>
-<li>Tests may construct graphs with <code>SyncScheduler()</code> for deterministic, inline validation. Existing tests that call <code>force_immediate_validation()</code> to flush the timer continue to work; sweeping them onto <code>SyncScheduler</code> is possible follow-up cleanup, intentionally not done here.</li>
-<li><code>ValidationManager.get_statistics()["pending_validation"]</code> now means "a debounced run is pending" derived from the handle, not from <code>threading.Timer.is_alive()</code>.</li>
+<li>
+<p><strong>Reload fan-out is the machinery that already exists.</strong> A placement's
+  <code>registry_key</code> is the macro's own, so a save reaches every placement in every
+  open graph through the per-key relay, with nothing added. What a placement
+  <em>does</em> with that event is ADR 0038.</p>
+</li>
+<li>
+<p><strong>The file is a graph document.</strong> A <code>.hwm</code> is <code>BaseGraph.to_dict()</code> output
+  minus <code>key</code>, so the graph editor opens it unchanged and prehydration and
+  format bumps apply to it as to any graph file. The suffix exists to tell the
+  registry which files to claim, not to describe a second format.</p>
+</li>
+<li>
+<p><strong>Validation happens at registry load, without instantiating.</strong>
+  <code>validate_containment</code> reads each node's <code>registry_key</code> against <code>NodeRegistry</code>
+  and checks the class's declared <code>NodeType</code>: exactly one Subgraph Input and one
+  Subgraph Output, and no EVENT or OUTPUT node. It must not build the nodes — a
+  registry scan that instantiates would open whatever hardware their <code>init()</code>
+  touches. A node class that is not registered is skipped; an absent library is
+  the placement's problem, not the document's.</p>
+</li>
+<li>
+<p><strong>Recursion is refused twice.</strong> At bind time in <code>MacroNode</code>, so the card the
+  user placed is the one that reports it, and again at registry load as the
+  backstop for a file edited outside the studio. <code>MacroRegistry</code> walks the macro
+  keys reachable from a document and refuses one that reaches back.</p>
+</li>
+<li>
+<p><strong>A filestem is a registry key</strong>, so it must look like one:
+  <code>^[A-Za-z][A-Za-z0-9_-]*$</code>. A non-conforming file is skipped at scan with a
+  ledger warning rather than registered under a key nothing can address. The
+  same stem twice in one library is a duplicate-key error; across libraries the
+  keys differ and the usual alternate-key resolution applies.</p>
+</li>
+<li>
+<p><strong>Scan order matters.</strong> <code>MacroRegistry</code> scans at priority 75, after
+  <code>NodeRegistry</code> at 70, because containment reads node classes.</p>
+</li>
+<li>
+<p><strong>Lifecycle event names still say <code>CLASS_</code>.</strong> Renaming them would touch every
+  registry and every subscriber to describe the same event. The enum carries a
+  note that a document registry emits them for documents.</p>
+</li>
+<li>
+<p><strong>The docs generator documents a macro like a node</strong> — by its interface,
+  through the same instantiate-in-a-throwaway-graph path, because a macro's pins
+  exist only once a card is built. It carries no docstring: a document's prose is
+  its description alone, so the coverage report does not ask for one.</p>
+</li>
+<li>
+<p><strong>Function (Slice 3) is the second <code>DocumentRegistry</code>.</strong> The extraction is
+  worth its cost only because a second file-backed kind is already designed.</p>
+</li>
 </ul>
 
 

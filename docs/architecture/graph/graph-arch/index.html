@@ -1965,6 +1965,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#macros" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Macros
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3363,6 +3374,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#macros" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Macros
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3445,11 +3467,15 @@ recompiled and restarted — but only if <code>compile()</code> reports the rebu
 viable; otherwise it stays stopped.</p>
 <h2 id="subgraphs">Subgraphs<a class="headerlink" href="#subgraphs" title="Permanent link">&para;</a></h2>
 <p>A <strong>Subgraph</strong> is the contents of a <strong>Graph-node</strong> — one card on the parent
-canvas standing for a whole set of nodes and edges. Slice 1 ships the <strong>Group</strong>
-variant: the Subgraph lives in the parent <code>.haywire</code> file and serves that one
-card. See <a href="../../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a>
-for how it executes, and the <a href="../../../reference/glossary/#encapsulation">glossary</a>
-for the vocabulary.</p>
+canvas standing for a whole set of nodes and edges. Two variants ship: the
+<strong>Group</strong>, whose Subgraph lives in the parent <code>.haywire</code> file and serves that
+one card, and the <strong>Macro</strong>, whose Subgraph lives in its own <code>.hwm</code> file as a
+library component and can be placed any number of times in any graph. See
+<a href="../../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a> for how
+a Subgraph executes,
+<a href="../../../adr/0037-macros-are-node-kind-components/">ADR 0037</a> and
+<a href="../../../adr/0038-a-placements-interior-is-runtime-state/">ADR 0038</a> for macros,
+and the <a href="../../../reference/glossary/#encapsulation">glossary</a> for the vocabulary.</p>
 <h3 id="the-definition-is-a-graph">The definition is a graph<a class="headerlink" href="#the-definition-is-a-graph" title="Permanent link">&para;</a></h3>
 <p><code>SubgraphDefinition</code> subclasses <code>BaseGraph</code>, so it carries its own <code>props</code>,
 <code>meta</code>, Variables and validation pipeline. That is what delivers the
@@ -3479,12 +3505,24 @@ inlet's widget value belongs to the instance.</p>
 <p><code>haywire.core.graph.subgraph_crossing</code> holds every conversion between the four
 id spaces that meet here, so the view that builds a crossing and the worker that
 follows one cannot drift.</p>
+<p>A Subgraph's <strong>containment</strong> rules — exactly one Subgraph Input and one Subgraph
+Output, no EVENT or OUTPUT node inside — are enforced by
+<code>StructuralValidator.validate_subgraph_contents</code>, which runs in exactly <strong>one</strong>
+place: host assembly, from <code>FlowAssemblyManager</code>. A Subgraph that is never
+assembled therefore never reaches it, which is why a macro document open in its
+own tab is not checked there, and why <code>MacroRegistry</code> validates containment
+itself at registry load.</p>
 <h3 id="serialization">Serialization<a class="headerlink" href="#serialization" title="Permanent link">&para;</a></h3>
 <p><code>to_dict</code> gains a <code>"subgraphs"</code> table; <code>load_from_dict</code> restores it <strong>before</strong>
 the nodes loop, so a Graph-node can resolve its definition during
 <code>wrapper.build()</code> and mirror the interface onto its card. A file without the
 key restores nothing, and <code>clear()</code> drops the table so reloading the same file
 is not a duplicate-key error.</p>
+<p>A <strong>macro placement</strong>'s definition is the exception: it is marked with
+<code>template_key</code> and <code>to_dict</code> skips every marked entry, so the host file carries
+the card and its port values but no interior. The interior is rebuilt from the
+template on load, by <code>post_init</code>. See
+<a href="../../../adr/0038-a-placements-interior-is-runtime-state/">ADR 0038</a>.</p>
 <p>Format <strong>v4</strong> carries this, and rides the same bump that renames <code>DataPort</code>'s
 <code>parent_group</code>/<code>is_group</code> to <code>parent_fold</code>/<code>is_fold</code> — finishing ADR 0035, after
 which "group" has exactly one meaning in the codebase.</p>
@@ -3495,6 +3533,51 @@ the glossary) and <code>derive_interface</code>, which splits the selection's ed
 clipboard's both-endpoints rule and dedups inlets by their <em>outer</em> source,
 outlets by their <em>inner</em> source. <code>CollapseToGraphNodeAction</code> and
 <code>ExpandGraphNodeAction</code> are inverses, each undoable on its own.</p>
+<h3 id="macros">Macros<a class="headerlink" href="#macros" title="Permanent link">&para;</a></h3>
+<p>A macro is a <code>.hwm</code> document registered as a component kind, <code>MacroNode</code> is the
+card standing for one, and <code>haywire.core.macro</code> holds the registry, the template,
+the source-resolution helpers and the promote pipeline.</p>
+<p>Three things share the name and are not the same:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>What it is</th>
+<th>Where it lives</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>the <strong>file</strong></td>
+<td>a graph document, <code>BaseGraph.to_dict()</code> minus <code>key</code></td>
+<td><code>&lt;library&gt;/macros/&lt;Name&gt;.hwm</code></td>
+</tr>
+<tr>
+<td>the <strong>template</strong></td>
+<td>that document parsed, plus a path, a content hash and a per-macro identity</td>
+<td><code>MacroRegistry</code>, one per file</td>
+</tr>
+<tr>
+<td>a <strong>placement's interior</strong></td>
+<td>a live <code>SubgraphDefinition</code> instantiated from the template</td>
+<td>the host graph's <code>subgraphs</code> table, keyed <code>macro_&lt;node_id&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p>Because a placement registers its interior in its <em>owning</em> graph's table — where
+a Group's sits — every tree walk finds it unchanged: assembly and validation
+recurse on <code>graph.subgraphs</code> at whatever level they stand, and
+<code>resolve_definition()</code> resolves from the graph that owns the node.
+<code>SubgraphDefinition.instantiate()</code> does the per-placement work, minting
+tree-unique ids and rewriting every edge onto them, recursing through nested
+definitions.</p>
+<p>A card's key is <strong>derived</strong> (<code>macro_&lt;node_id&gt;</code>) rather than stored, so pasting a
+placement yields a second interior instead of two cards sharing one, and
+<code>bind_subgraph</code> raises. A reload swaps the interior in place —
+<code>on_class_reloaded</code> returns <code>True</code>, skipping the generic rebuild — and then
+takes the ordinary <code>reconcile_interface()</code> path, so values, the label and edges
+on surviving pins are kept. Recursion is refused at bind time by <code>MacroNode</code>, and
+again at registry load as the backstop for a file edited outside the studio.</p>
 <h2 id="todo">TODO<a class="headerlink" href="#todo" title="Permanent link">&para;</a></h2>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Write content</li>

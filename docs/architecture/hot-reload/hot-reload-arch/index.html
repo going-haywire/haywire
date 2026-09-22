@@ -2381,10 +2381,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#32-recipe-based-rebuild" class="md-nav__link">
+  <a href="#32-rebuild-discards-node-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.2 Recipe-based rebuild
+        3.2 Rebuild discards node state
       
     </span>
   </a>
@@ -3466,10 +3466,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#32-recipe-based-rebuild" class="md-nav__link">
+  <a href="#32-rebuild-discards-node-state" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.2 Recipe-based rebuild
+        3.2 Rebuild discards node state
       
     </span>
   </a>
@@ -3670,7 +3670,7 @@
 <tbody>
 <tr>
 <td><code>FileWatcher</code> detects a file change</td>
-<td><code>watchdog</code> filesystem observer; one per library with <code>file_watcher=True</code>. The handler is a <strong>router</strong>: it offers <em>every</em> non-directory event to the registries that claimed the folder. <code>BaseRegistry.event_dispatcher</code> drops anything that is not a <code>.py</code> — deciding that only modules reload is the registry's business, not the watcher's. A library's own <code>haybale.toml</code> is picked up on the root fallback by <code>_HaybaleTomlWatcher</code>, which refreshes the identity without any module reload</td>
+<td><code>watchdog</code> filesystem observer; one per library with <code>file_watcher=True</code>. The handler is a <strong>router</strong>: it offers <em>every</em> non-directory event to the registries that claimed the folder. <code>BaseRegistry.event_dispatcher</code> drops anything that is not a <code>.py</code> — deciding that only modules reload is the registry's business, not the watcher's, which is why a <strong>document registry</strong> claiming a different suffix (<code>MacroRegistry</code>, <code>.hwm</code>) needed no watcher change at all. A library's own <code>haybale.toml</code> is picked up on the root fallback by <code>_HaybaleTomlWatcher</code>, which refreshes the identity without any module reload</td>
 </tr>
 <tr>
 <td>Module reload</td>
@@ -3682,7 +3682,7 @@
 </tr>
 <tr>
 <td>Wrapper rebuild</td>
-<td><code>NodeWrapper.build()</code> re-instantiates from recipe; <code>EdgeWrapper.build()</code> runs the 4-stage pipeline against new ports</td>
+<td><code>NodeWrapper.build()</code> re-instantiates from current code, discarding values, <code>props</code> and <code>store</code> (§3.2); <code>EdgeWrapper.build()</code> runs the 4-stage pipeline against new ports</td>
 </tr>
 <tr>
 <td>Graph revalidation</td>
@@ -3714,7 +3714,11 @@
 <tbody>
 <tr>
 <td><code>NodeRegistry</code></td>
-<td><code>NodeFactory._on_node_reloaded</code> rebuilds every NodeWrapper of the reloaded class from its recipe</td>
+<td>The lifecycle batch is relayed <strong>per registry key</strong> to every NodeWrapper subscribed on that key, across every open graph — all graphs share one factory. Each wrapper rebuilds, unless its node absorbs the reload itself (§3.2)</td>
+</tr>
+<tr>
+<td><code>MacroRegistry</code></td>
+<td>A <strong>document registry</strong> (<a href="../../../adr/0037-macros-are-node-kind-components/">ADR 0037</a>): a saved <code>.hwm</code> file emits <code>CLASS_RELOADED</code> on the macro's own key, and the same per-key relay reaches every placement of it</td>
 </tr>
 <tr>
 <td><code>EdgeRegistry</code> (implicit via NodeRegistry)</td>
@@ -3746,19 +3750,22 @@
 </tr>
 </tbody>
 </table>
-<h3 id="32-recipe-based-rebuild">3.2 Recipe-based rebuild<a class="headerlink" href="#32-recipe-based-rebuild" title="Permanent link">&para;</a></h3>
-<p>Wrappers rebuild from <strong>recipes</strong> — serialised creation parameters captured before the reload:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Before reload:
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  NodeWrapper.serialize_recipe()   # capture: registry_key + port specs + settings + props
+<h3 id="32-rebuild-discards-node-state">3.2 Rebuild discards node state<a class="headerlink" href="#32-rebuild-discards-node-state" title="Permanent link">&para;</a></h3>
+<p>A reloaded node is rebuilt <strong>fresh from current code</strong>, not restored:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Reload class:
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  importlib.reload(module)   # @node decorator re-runs, registry updates
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  ↓
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Reload class:
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  importlib.reload(module)         # @node decorator re-runs, registry updates
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Per-key relay:
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  NodeWrapper._on_node_lifecycle_event   # marks NODE_HOT_RELOADED
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  ↓
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>After reload:
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  NodeWrapper.build_from_recipe()  # instantiate new class with old recipe
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  edges.rebuild()                  # 4-stage edge build against new port objects
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>Validation:
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  node_wrapper.build()       # no node_info → a fresh init()
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  edges revalidate           # 4-stage edge build against new port objects
 </span></code></pre></div>
-<p>Recipes are how user data survives reload. A node's port configuration, <code>setting()</code> overrides, and <code>store</code> containers are all preserved by serialising and re-applying. <code>cache</code> containers are <em>not</em> preserved — see §3.5.</p>
+<p><code>build()</code> is called with <strong>no</strong> <code>node_info</code>, so the node runs its <code>init()</code> again. Port values, <code>props</code> — including the user's label — and the <code>store</code> are gone. Only the node's position survives, plus its edges, which rebind by port id.</p>
+<p>That is deliberate rather than an oversight. <code>_initialize_from_dict</code> restores the <em>serialized</em> port set without calling <code>init()</code>, so carrying saved state across a class reload would keep showing the old port set and hide the new ports the author just wrote — the one thing the author is reloading to see.</p>
+<p>A node whose definition lives <strong>outside its class</strong> must not take that path. <code>BaseNode.on_class_reloaded(event) -&gt; bool</code> returns <code>False</code> by default; <code>NodeWrapper</code> consults it first on a successful lifecycle event and returns early when it answers <code>True</code>. A macro placement answers <code>True</code> and swaps its interior in place, keeping its values and label (<a href="../../../adr/0038-a-placements-interior-is-runtime-state/">ADR 0038</a>). An override that raises is logged, and the node takes the generic rebuild.</p>
+<p><code>cache</code> containers are not preserved either — see §3.5.</p>
 <h3 id="33-edge-revalidation">3.3 Edge revalidation<a class="headerlink" href="#33-edge-revalidation" title="Permanent link">&para;</a></h3>
 <p>When a node hot-reloads, its attached edges need to re-resolve port references and re-test adapter chains:</p>
 <ol>
@@ -3805,18 +3812,19 @@ reloaded theme is the graph's active one) and the browser re-resolves every
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>1. FileWatcher fires FileChangeEvent
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>2. BaseRegistry reloads haybale_mylib.nodes.foo
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>3. @node decorator re-runs → NodeRegistry updates FooNode under registry_key
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>4. NodeFactory._on_node_reloaded fires for every existing FooNode wrapper
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>4. NodeFactory relays the batch to every wrapper subscribed on that registry_key
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>5. Each wrapper:
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>   - serializes its current state (recipe + settings + cache + store)
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>   - instantiates the new class
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>   - re-applies the recipe
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>6. Each wrapper&#39;s edges:
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>   - mark EDGE_ADAPTERS_RELOADED
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>   - 4-stage build re-runs against new port objects
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>   - link() / unlink() based on test result
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>7. ValidationManager debounce settles
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>8. FlowAssemblyManager reassembles affected Flows
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>9. UI re-renders the canvas
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>   - offers the event to its node via on_class_reloaded() — a macro
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>     placement absorbs it here and stops (ADR 0038)
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>   - otherwise marks NODE_HOT_RELOADED and calls build() with no node_info
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>   - the new class instantiates and runs init(): values, props and store go
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>6. Each wrapper&#39;s edges:
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>   - mark EDGE_ADAPTERS_RELOADED
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>   - 4-stage build re-runs against new port objects
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>   - link() / unlink() based on test result
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>7. ValidationManager debounce settles
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>8. FlowAssemblyManager reassembles affected Flows
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>9. UI re-renders the canvas
 </span></code></pre></div>
 <p>Total time: typically 100–500ms for a small graph.</p>
 <h3 id="52-what-gets-rebuilt-when-you-edit-an-adapter-class">5.2 What gets rebuilt when you edit an adapter class<a class="headerlink" href="#52-what-gets-rebuilt-when-you-edit-an-adapter-class" title="Permanent link">&para;</a></h3>
@@ -3849,8 +3857,11 @@ reloaded theme is the graph's active one) and the browser re-resolves every
 <h2 id="key-files">Key files<a class="headerlink" href="#key-files" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>src/haywire/core/library/file_watcher.py</code> — <code>FileWatcher</code>, <code>LibraryFileHandler</code></li>
+<li><code>src/haywire/core/registry/component.py</code> — <code>ComponentRegistry</code> (the base both registry families share: folder bookkeeping, lifecycle queue, subscribers)</li>
 <li><code>src/haywire/core/registry/base.py</code> — <code>BaseRegistry</code> (event dispatcher, customer callbacks, registry subscribers)</li>
-<li><code>src/haywire/core/node/wrapper.py</code> — <code>NodeWrapper.build()</code> (recipe-based rebuild)</li>
+<li><code>src/haywire/core/registry/document.py</code> — <code>DocumentRegistry</code> (file-backed components; content hashing, file events → lifecycle events)</li>
+<li><code>src/haywire/core/macro/registry.py</code> — <code>MacroRegistry</code> (<code>.hwm</code> documents)</li>
+<li><code>src/haywire/core/node/node_wrapper.py</code> — <code>NodeWrapper.build()</code> (fresh rebuild) and <code>on_class_reloaded</code> consultation</li>
 <li><code>src/haywire/core/edge/edge_wrapper.py</code> — <code>EdgeWrapper.build()</code> (4-stage pipeline)</li>
 <li><code>src/haywire/core/state/container.py</code> — <code>LibraryStateContainer</code> (disable+enable cycle)</li>
 <li><code>src/haywire/ui/themes/registry.py</code> — <code>ThemeRegistry</code> (apply_workbench_theme on reload)</li>
