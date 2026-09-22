@@ -88,8 +88,6 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         description (str): Detailed description. Default: ""
         search_tags (list[str]): Tags for searching/filtering. Default: []
         menu (str): Menu category path (e.g., 'math/arithmetic'). Default: 'misc/custom'
-        help_md (str): Markdown help content. Default: None
-        help_url (str): URL to documentation. Default: 'https://haywire.io/internals/node-help'
         registry_id (str): Unique identifier within library. Default set to class name
         deprecation_warning (str): Advisory message shown on the node card and in
             the add-node menu when this node is deprecated. Default: ""

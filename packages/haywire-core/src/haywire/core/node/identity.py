@@ -9,8 +9,6 @@ class NodeIdentity(BaseIdentity):
 
     search_tags: list[str] = field(default_factory=list)
     menu: str = "misc/custom"
-    help_md: str | None = None
-    help_url: str = "https://haywire.io/internals/node-help"
     _is_error: bool = False
     _error_priority: int = 0
     _is_reroute: bool = False
