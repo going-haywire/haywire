@@ -156,6 +156,13 @@ class BaseGraph:
         self.meta: GraphMetadata = GraphMetadata(registry=settings_registry, graph=self)
         self.meta._subscribe_settings()
 
+        # Kept so a Subgraph loaded into this graph can debounce the way its
+        # host does. A definition left on the default background timer can
+        # validate after the host has been flushed and subscribed, which
+        # reports a load as a user edit.
+        self.validation_scheduler: "Optional[ValidationScheduler]" = validation_scheduler
+        self.validation_delay_ms: float = validation_delay_ms
+
         self._validation = ValidationManager(
             graph=self, debounce_ms=validation_delay_ms, scheduler=validation_scheduler
         )
@@ -195,7 +202,13 @@ class BaseGraph:
         """Validate every queued request now, without waiting for the debounce.
 
         Call before handing the graph to the interpreter for assembly.
+
+        Subgraphs are drained first, deepest first, because a Graph-node
+        reports its interior's batch on this graph — draining this graph alone
+        would leave marks queued below it that land afterwards.
         """
+        for definition in list(self.subgraphs.values()):
+            definition.force_validation()
         self._validation.force_immediate_validation()
 
     # =========================================================================
@@ -952,7 +965,14 @@ class BaseGraph:
 
                 for key, definition_data in data["subgraphs"].items():
                     try:
-                        definition = SubgraphDefinition(key=key)
+                        # Debounced like its host: a definition left on the
+                        # default background timer can validate after the host
+                        # has been flushed, reporting a load as a user edit.
+                        definition = SubgraphDefinition(
+                            key=key,
+                            validation_delay_ms=self.validation_delay_ms,
+                            validation_scheduler=self.validation_scheduler,
+                        )
                         self.add_subgraph(definition)
                         definition.load_from_dict(definition_data)
                     except Exception as e:

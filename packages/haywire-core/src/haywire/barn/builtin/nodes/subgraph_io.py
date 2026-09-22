@@ -68,6 +68,9 @@ class _GrowsInterface(BaseNode):
     #: Subclass hook: the side this node's ports face.
     _SLOT_PORT_TYPE: PortType
 
+    #: Subclass hook: name used in the "outside a Subgraph" assembly error.
+    _BOUNDARY_LABEL: str
+
     def _add_slot(self, index: int) -> None:
         """Add the growing slot at ``index``."""
         from haywire.barn.builtin.types import ADD
@@ -130,6 +133,52 @@ class _GrowsInterface(BaseNode):
             self.add(factory(**kwargs))
         self._add_slot(self._next_slot_index())
 
+    def worker(self, context: ExecutionContext) -> str | None:
+        """Copy each cached pair and follow the matching crossing, if any.
+
+        Both boundary nodes execute as this same copy-and-follow shape; only
+        which ports are paired (:meth:`on_assembly`) differs between them.
+
+        Returns:
+            The crossing id ``context.control_pin`` maps to, or ``None`` when
+            the Subgraph is crossed by data alone.
+        """
+        for source, target in self.cache.pairs:
+            target.set_value(source.get_value())
+        return self.cache.crossings.get(context.control_pin)
+
+    def on_assembly(self) -> tuple[bool, str | None]:
+        """Resolve this node's port pairing and control crossings against the card.
+
+        Returns:
+            ``(False, reason)`` when this node sits outside a Subgraph, or in
+            one that no Graph-node stands for.
+        """
+        definition = self.wrapper.graph if self.wrapper else None
+        if not isinstance(definition, SubgraphDefinition):
+            return (False, f"a {self._BOUNDARY_LABEL} belongs inside a Subgraph")
+
+        card_wrapper = definition.graph_node_wrapper()
+        if card_wrapper is None:
+            return (False, f"no Graph-node stands for Subgraph '{definition.key}'")
+
+        pairs, crossings = self._resolve_pairs_and_crossings(card_wrapper.node)
+        self.cache.pairs = pairs
+        self.cache.crossings = crossings
+        return (True, None)
+
+    def _resolve_pairs_and_crossings(self, card: BaseNode) -> tuple[list[tuple[Any, Any]], dict[str, str]]:
+        """Subclass hook: pair this node's ports with the card's, and map control crossings.
+
+        Args:
+            card: The Graph-node this node's Subgraph is the interior of.
+
+        Returns:
+            Pairs to copy in :meth:`worker`, each ``(source, target)``, and a
+            crossing id per control port id, keyed as :meth:`worker` reads them.
+        """
+        raise NotImplementedError
+
 
 @node(
     label="Subgraph Input",
@@ -151,50 +200,20 @@ class SubgraphInputNode(_GrowsInterface):
     """
 
     _SLOT_PORT_TYPE = PortType.OUTLET
+    _BOUNDARY_LABEL = "Subgraph Input"
 
     def init(self) -> None:
         # Only the growing slot. The collapse action stamps the interface around
         # it, choosing the port ids, so this node names no fixed interface id.
         self._add_slot(0)
 
-    def worker(self, context: ExecutionContext) -> str | None:
-        """Hand the card's inlet values to the Subgraph, and control with them.
-
-        Entered through a virtual ``enter_`` crossing naming the card control
-        inlet the Graph-node was entered by; leaves through this node's matching
-        real control outlet, so a Subgraph with several control inlets routes
-        each to its own interior chain.
-
-        Returns the control outlet to follow, or ``None`` when the Subgraph is
-        crossed by data alone and there is no control chain to continue.
-        """
-        # Each write fires that outlet's pipes, carrying the value inward over
-        # the Subgraph's real edges.
-        for source, target in self.cache.inward:
-            target.set_value(source.get_value())
-
-        return self.cache.crossings.get(context.control_pin)
-
-    def on_assembly(self) -> tuple[bool, str | None]:
+    def _resolve_pairs_and_crossings(self, card: BaseNode) -> tuple[list[tuple[Any, Any]], dict[str, str]]:
         """Pair this node's outlets with the card inlets they are copied from.
 
         Also resolves which control outlet each ``enter_`` crossing leads to, so
         the worker neither scans ports nor takes a crossing id apart.
-
-        Returns:
-            ``(False, reason)`` when this node sits outside a Subgraph, or in
-            one that no Graph-node stands for.
         """
-        definition = self.wrapper.graph if self.wrapper else None
-        if not isinstance(definition, SubgraphDefinition):
-            return (False, "a Subgraph Input belongs inside a Subgraph")
-
-        card_wrapper = definition.graph_node_wrapper()
-        if card_wrapper is None:
-            return (False, f"no Graph-node stands for Subgraph '{definition.key}'")
-        card = card_wrapper.node
-
-        pairs = []
+        pairs: list[tuple[Any, Any]] = []
         crossings: dict[str, str] = {}
         for outlet in self.get_ports(is_port_type=PortType.OUTLET, has_pin=True):
             card_inlet_id = card_port_id(outlet.id, is_inlet=True)
@@ -203,10 +222,7 @@ class SubgraphInputNode(_GrowsInterface):
                 pairs.append((source, outlet))
             if outlet.flow_type is FlowType.CONTROL:
                 crossings[enter_crossing_id(card_inlet_id)] = outlet.id
-
-        self.cache.inward = pairs
-        self.cache.crossings = crossings
-        return (True, None)
+        return pairs, crossings
 
 
 @node(
@@ -229,51 +245,20 @@ class SubgraphOutputNode(_GrowsInterface):
     """
 
     _SLOT_PORT_TYPE = PortType.INLET
+    _BOUNDARY_LABEL = "Subgraph Output"
 
     def init(self) -> None:
         # Only the growing slot. The collapse action stamps the interface around
         # it, choosing the port ids, so this node names no fixed interface id.
         self._add_slot(0)
 
-    def worker(self, context: ExecutionContext) -> str | None:
-        """Hand the Subgraph's results to the card, and control back out with them.
-
-        Entered through one of this node's real control inlets; leaves through
-        the matching virtual ``exit_`` crossing, which carries control to the
-        Graph-node's exit hop. A Subgraph with several control inlets here — one
-        per exec exit of the interior, such as a Switch's two — routes each to
-        its own outlet on the card.
-
-        Returns the crossing to follow, or ``None`` when the Subgraph is crossed
-        by data alone.
-        """
-        # Writes ports this node does not own — the card's outlets — so each
-        # write fires the card's pipes and the value leaves for the host.
-        for source, target in self.cache.outward:
-            target.set_value(source.get_value())
-
-        return self.cache.crossings.get(context.control_pin)
-
-    def on_assembly(self) -> tuple[bool, str | None]:
+    def _resolve_pairs_and_crossings(self, card: BaseNode) -> tuple[list[tuple[Any, Any]], dict[str, str]]:
         """Pair this node's inlets with the card outlets they are copied onto.
 
         Also resolves the ``exit_`` crossing each control inlet leaves by. A
         data-only Subgraph gets no crossings, so its worker copies and stops.
-
-        Returns:
-            ``(False, reason)`` when this node sits outside a Subgraph, or in
-            one that no Graph-node stands for.
         """
-        definition = self.wrapper.graph if self.wrapper else None
-        if not isinstance(definition, SubgraphDefinition):
-            return (False, "a Subgraph Output belongs inside a Subgraph")
-
-        card_wrapper = definition.graph_node_wrapper()
-        if card_wrapper is None:
-            return (False, f"no Graph-node stands for Subgraph '{definition.key}'")
-        card = card_wrapper.node
-
-        pairs = []
+        pairs: list[tuple[Any, Any]] = []
         crossings: dict[str, str] = {}
         for inlet in self.get_ports(is_port_type=PortType.INLET, has_pin=True):
             target = card.ports.get(card_port_id(inlet.id, is_inlet=False))
@@ -281,7 +266,4 @@ class SubgraphOutputNode(_GrowsInterface):
                 pairs.append((inlet, target))
             if inlet.flow_type is FlowType.CONTROL:
                 crossings[inlet.id] = exit_crossing_id(inlet.id)
-
-        self.cache.outward = pairs
-        self.cache.crossings = crossings
-        return (True, None)
+        return pairs, crossings

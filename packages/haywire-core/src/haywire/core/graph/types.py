@@ -189,6 +189,24 @@ class ValidationResult:
         """Check if this validation found any changes"""
         return bool(self.nodes or self.edges or self.graph is not None or self.canvas_size is not None)
 
+    def requires_save(self) -> bool:
+        """Return whether a save would record anything in this batch.
+
+        True when any node, edge or graph reason changes persisted state, so an
+        app layer marks the file unsaved for one. A batch of pure repaints
+        returns False, as does a canvas resize — canvas size is derived from
+        node positions and is not serialized.
+
+        The graph reason counts, which is what carries a change made inside a
+        Subgraph out to the host: a Graph-node reports its interior's edits on
+        the host graph as ``GRAPH_REQUIRE_REASSEMBLY``, naming no node of the
+        host's own.
+        """
+        reasons = [*self.nodes.values(), *self.edges.values()]
+        if self.graph is not None:
+            reasons.append(self.graph)
+        return any(not reason.is_visual_only() for reason in reasons)
+
     def get_nodes_by_reason(self, reason: ChangeReason) -> list[str]:
         """Get all node IDs that changed for a specific reason"""
         return [node_id for node_id, r in self.nodes.items() if r == reason]

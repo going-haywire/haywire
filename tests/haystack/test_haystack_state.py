@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from haywire.core.graph.types import ChangeReason
+from haywire.core.graph.types import ChangeReason, ValidationResult
 
 
 @pytest.fixture
@@ -321,12 +321,7 @@ def test_validation_callback_marks_entry_unsaved_and_broadcasts(state_with_mocke
 
     # Build a result with a real structural reason — a repaint-only reason is
     # deliberately NOT a data change (see is_visual_only).
-    result = MagicMock()
-    result.has_changes.return_value = True
-    result.nodes = {"n1": ChangeReason.NODE_ADDED}
-    result.edges = {}
-    result.graph = MagicMock()
-    result.graph.requires_graph_reassembly.return_value = False
+    result = ValidationResult(nodes={"n1": ChangeReason.NODE_ADDED})
 
     state._on_entry_validation(entry, result)
 
@@ -346,13 +341,7 @@ def test_validation_callback_no_broadcast_when_no_changes(state_with_mocked_deps
     # _on_entry_validation does with no-change results.
     state._dispatcher.broadcast.reset_mock()
 
-    result = MagicMock()
-    result.has_changes.return_value = False
-    result.nodes = {}
-    result.edges = {}
-    result.graph = None
-
-    state._on_entry_validation(entry, result)
+    state._on_entry_validation(entry, ValidationResult())
 
     state._dispatcher.broadcast.assert_not_called()
 
@@ -387,13 +376,9 @@ class TestIsVisualOnly:
         assert not reason.is_visual_only()
 
 
-def _visual_result(reason: ChangeReason) -> MagicMock:
-    result = MagicMock()
-    result.has_changes.return_value = True
-    result.nodes = {"n1": reason}
-    result.edges = {}
-    result.graph = None
-    return result
+def _visual_result(reason: ChangeReason) -> ValidationResult:
+    # A real result, so requires_save() is exercised rather than mocked away.
+    return ValidationResult(nodes={"n1": reason})
 
 
 def test_a_repaint_does_not_mark_unsaved_or_broadcast(state_with_mocked_deps):
@@ -421,9 +406,7 @@ def test_an_edge_repaint_does_not_broadcast(state_with_mocked_deps):
     entry.unsaved = False
     state._dispatcher.broadcast.reset_mock()
 
-    result = _visual_result(ChangeReason.NODE_REDRAW_REQUESTED)
-    result.nodes = {}
-    result.edges = {"e1": ChangeReason.EDGE_REDRAW_REQUESTED}
+    result = ValidationResult(edges={"e1": ChangeReason.EDGE_REDRAW_REQUESTED})
     state._on_entry_validation(entry, result)
 
     assert entry.unsaved is False
@@ -451,8 +434,9 @@ def test_a_repaint_batched_with_a_real_change_still_broadcasts(state_with_mocked
     entry.unsaved = False
     state._dispatcher.broadcast.reset_mock()
 
-    result = _visual_result(ChangeReason.NODE_REDRAW_REQUESTED)
-    result.nodes = {"n1": ChangeReason.NODE_REDRAW_REQUESTED, "n2": ChangeReason.NODE_ADDED}
+    result = ValidationResult(
+        nodes={"n1": ChangeReason.NODE_REDRAW_REQUESTED, "n2": ChangeReason.NODE_ADDED}
+    )
     state._on_entry_validation(entry, result)
 
     assert entry.unsaved is True

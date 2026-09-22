@@ -486,8 +486,8 @@ class TestOnAssembly:
         # Each boundary node paired its ports with the card's.
         assert definition.input_node.node.cache.crossings["enter_in_exec"] == "exec"
         assert definition.output_node.node.cache.crossings["exec"] == "exit_exec"
-        assert [p.id for _s, p in definition.input_node.node.cache.inward] == ["exec", "value"]
-        assert [p.id for _s, p in definition.output_node.node.cache.outward] == ["out_exec", "out_result"]
+        assert [p.id for _s, p in definition.input_node.node.cache.pairs] == ["exec", "value"]
+        assert [p.id for _s, p in definition.output_node.node.cache.pairs] == ["out_exec", "out_result"]
 
     def test_a_node_deep_in_the_tree_is_prepared(self, graph_with_library_system):
         """A Subgraph nested in a Subgraph is walked too."""

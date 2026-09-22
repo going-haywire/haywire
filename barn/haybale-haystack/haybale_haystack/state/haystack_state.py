@@ -181,14 +181,14 @@ class HaystackState(AppState):
         Handles three concerns:
 
         1. Stop execution when the result requires graph reassembly.
-        2. Mark the entry unsaved if nodes or edges changed *in substance*.
+        2. Mark the entry unsaved if the batch changed persisted state.
         3. Broadcast ``GraphDataMutated`` so peer sessions refresh.
 
-        Steps 2 and 3 skip results whose every reason is visual-only (a
-        repaint, a move). Such a result carries no data worth saving, and
-        announcing it as a data mutation has two costs: the graph is marked
-        unsaved for a change no save would record, and every panel with
-        ``redraw_on=(GraphDataMutated,)`` rebuilds.
+        Steps 2 and 3 skip results whose every reason is a repaint, per
+        ``ValidationResult.requires_save``. Such a result carries no data worth
+        saving, and announcing it as a data mutation has two costs: the graph
+        is marked unsaved for a change no save would record, and every panel
+        with ``redraw_on=(GraphDataMutated,)`` rebuilds.
         """
         if entry.is_executing and result.has_changes() and result.graph is not None:
             if result.graph.requires_graph_reassembly():
@@ -201,8 +201,7 @@ class HaystackState(AppState):
                             f"Autorestart skipped for '{entry.display_name}': {result_compile.error}"
                         )
 
-        reasons = list(result.nodes.values()) + list(result.edges.values())
-        if any(not reason.is_visual_only() for reason in reasons):
+        if result.requires_save():
             entry.unsaved = True
             self._broadcast_data_mutated()
 

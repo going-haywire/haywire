@@ -49,7 +49,7 @@ So the globals below bite only between canvases on screen *at the same time* —
 several open documents, or a canvas next to the minimap — never between the
 levels of one graph editor, which take turns.
 
-## A canvas whose panel was deselected loses its edges, and only its edges
+## A canvas whose panel was deselected loses its edges, and its stale node shapes
 
 Deselecting a panel destroys the canvas component; selecting it again builds a
 new one. Its **nodes come back** — they are server-side NiceGUI elements, and
@@ -57,6 +57,12 @@ the framework re-renders them into the new panel. Its **edges do not**: those
 are SVG paths `canvas.vue` builds itself, out of `run_method` messages that were
 addressed to a component which no longer exists. Everything sent while the panel
 was deselected went nowhere at all.
+
+"Nodes come back" holds for a node whose **ports did not change** while the
+panel was away — the element re-renders from current server state either way.
+It does not hold for a card whose *shape* changed meanwhile, which is a
+Graph-node: its pins mirror another graph's boundary nodes, so editing inside a
+Subgraph reshapes the card on the hidden host canvas. See the section below.
 
 Nothing on the Python side notices. `VisualLayerHandlers.edge_states` is the
 server's record of *having sent* an edge, and `on_validated` skips any edge
@@ -72,6 +78,39 @@ from the switch that reveals it: at that moment it does not exist yet.
 The *reactivation* path needs nothing from Python — the component still holds
 its edges. What it needs is `activated()`, which flushes edges parked while the
 tree was detached and checks the geometry (below).
+
+## A Graph-node reshaped while its canvas was hidden needs a belt-and-braces redraw
+
+Growing a pin on a boundary node inside a Subgraph reshapes the Graph-node card
+on the **host** canvas — which is the canvas the user is not looking at, because
+they are inside the Subgraph. The model side is correct and needs nothing:
+`reconcile_interface`'s `add()` goes through `rejig`, whose `_pop()` calls
+`mark_as_structuraly_dirty()`, and `NODE_VALIDATION_REQUESTED` is in
+`requires_redraw()`. Traced with the extra `redraw()` removed, the host batch
+arrives with the card correctly flagged.
+
+It still does not repaint, because `on_validated` refreshes through
+`self.node_panels.get(node_id)` and the host canvas is a deselected panel at
+that moment. `UINode.refresh()` ignores the reason it is handed and always
+re-renders, so the reason is never what decides this — **delivery** is. Nothing
+replays it on return: `process_canvas_mounted` resyncs edges only.
+
+`GraphNode._on_definition_validated` therefore calls `self.wrapper.redraw()`
+alongside the graph mark, on top of the mark the rejig already made. It works by
+adding a *second* batch for the same card at a different point in the
+debounce/mount sequence, so one of them finds the panel present. That is
+odds-improving, not a guarantee — keep it, but do not read it as the mechanism
+being sound.
+
+**The real fix, when this bites again**: a node-side counterpart to
+`resync_edges()` — on mount, re-render nodes whose ports changed while the
+canvas was detached. Start narrow (Graph-nodes are the only cards another
+graph's activity reshapes) and cover both paths, since first selection MOUNTs
+while later ones keep-alive ACTIVATE. Do **not** "fix" it by pausing a hidden
+graph's validation scheduler: a hidden graph is exactly where these edits
+originate, paused marks re-create the load-time queue bug that
+`force_validation`'s recursion into subgraphs closes, and haystack's unsaved and
+autorestart gates would stop firing for every background graph.
 
 ## Pin coordinates come from the live matrix, never a cached zoom
 

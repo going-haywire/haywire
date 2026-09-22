@@ -32,6 +32,7 @@ from haywire.core.graph.subgraph_crossing import (
     enter_crossing_id,
     exit_crossing_id,
 )
+from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import node, BaseNode, NodeType
 from haywire.core.types import FlowType
 from haywire.core.types.enums import PortType
@@ -101,14 +102,27 @@ class GraphNode(BaseNode):
             definition.subscribe_to_validation(self._on_definition_validated)
         self._watched = definition
 
-    def _on_definition_validated(self, result: Any) -> None:
-        """Reconcile when the Subgraph's own validation reports a structural change.
+    def _on_definition_validated(self, result: ValidationResult) -> None:
+        """Mirror a changed interface, and carry the interior's edit out to the host.
 
-        A node's ports change through a rejig, which marks it dirty, so every
-        interface edit arrives here. A move or a repaint does not.
+        The card is the only thing spanning both graphs, so it is what tells the
+        host that its Subgraph changed: the host's own validation never runs for
+        an edit made inside one. Without it the host stays clean while its
+        interior is edited, and a running graph is never reassembled.
+
+        Passed on for anything a save would record — a move and a port reorder
+        included, neither of which reassembles — and never for a bare repaint.
+        The graph is marked directly rather than through
+        ``request_graph_reassembly()``, which would also rebuild every edge on
+        this card; ``reconcile_interface`` already rebuilds the ones whose pin
+        actually changed.
         """
         if result.graph is not None and result.graph.requires_graph_reassembly():
             self.reconcile_interface()
+
+        if result.requires_save():
+            self.wrapper.redraw()
+            self.wrapper._graph._validation.mark_graph_dirty(ChangeReason.GRAPH_REQUIRE_REASSEMBLY)
 
     def _on_label_changed(self, _value: object, _old: object) -> None:
         """Rename the Subgraph to match this card.

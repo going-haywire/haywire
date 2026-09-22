@@ -328,11 +328,10 @@ class ValidationManager:
                     logger.error(f"Edge validation failed: {edge_id}", exc_info=e)
 
             # Housekeeping runs only once every node and edge is validated.
-            for node_id, reason in validated_nodes.items():
-                if reason.requires_adding() or reason.requires_rebuild() or reason.requires_validation():
-                    node_wrapper = self._graph.get_node_wrapper(node_id)
-                    if node_wrapper:
-                        node_wrapper._housekeeping()
+            for node_id, _ in validated_nodes.items():
+                node_wrapper = self._graph.get_node_wrapper(node_id)
+                if node_wrapper:
+                    node_wrapper._housekeeping()
 
             validation_time_ms = (time.perf_counter() - start_time) * 1000.0
 
