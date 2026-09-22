@@ -102,6 +102,25 @@ class NodeSkin(BaseSkin, ABC):
         v = self.CARD_V_PADDING
         return f"position: relative; padding-top: {v}px; padding-bottom: {v}px;"
 
+    def strip_min_width(self, pin_count: int) -> int:
+        """Return the card ``min-width``, in px, seating a strip of ``pin_count`` pins.
+
+        A strip is absolutely positioned and contributes nothing to the card's
+        flow width, so a vertical card must reserve this explicitly or its pins
+        spill past the border — taking their attached edges with them, since the
+        edge layer anchors on each pin's rect.
+
+        Args:
+            pin_count: Pins in the widest strip, including the root ghost pin.
+        """
+        # PIN_COLUMN_WIDTH, not PIN_GUTTER: the gutter sizes the glyph, while
+        # the cell render_pin_strip lays out is what consumes the width. They
+        # are independent settings and the cell is the wider default.
+        content = max(0, pin_count) * self.PIN_COLUMN_WIDTH
+        # Quasar sets box-sizing: border-box, so min-width covers the card's
+        # horizontal padding — which the strip spans but cannot lay pins in.
+        return content + 2 * self.CARD_H_PADDING
+
     def _content_inset(self, depth: int) -> int:
         """Return the content column's left inset, in px, for a row at ``depth``.
 
@@ -313,12 +332,12 @@ class NodeSkin(BaseSkin, ABC):
         which must be the containing block.
 
         A strip lays its pins out in a ROW, so here the card must reserve
-        WIDTH, not height. Each pin occupies ``PIN_GUTTER``; the ghost pin
-        riding in each strip is why the widest strip is counted +1.
+        WIDTH, not height — see :meth:`strip_min_width`. The ghost pin riding
+        in each strip is why the widest strip is counted +1.
         """
         widest = max(len(inlets), len(outlets)) + 1
         main_card.classes(f"w-full node-card zoom-pan-lod0 {self.card_classes(wrapper)}").style(
-            f"{card_style} {self.vertical_card_style()} min-width: {widest * self.PIN_GUTTER}px;"
+            f"{card_style} {self.vertical_card_style()} min-width: {self.strip_min_width(widest)}px;"
         )
 
         # Whichever direction belongs on the card's TOP edge goes first — the

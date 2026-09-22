@@ -83,12 +83,22 @@ class StackedNodeSkin(NodeSkin):
     ):
         """Vertical layouts (T2B / B2T): inlets and outlets become bare pin
         strips on the card's top/bottom edges, leaving only configs in the body.
+
+        Both strips are absolutely positioned (see ``render_pin_strip``) and so
+        contribute nothing to the card's flow width; with a short label and few
+        configs, nothing else forces the card wide enough for a busy strip and
+        its pins spill past the border. ``min-width`` reserves it explicitly,
+        the same as the folded vertical card (:meth:`_render_collapsed_vertical`).
         """
+        widest = max(
+            self._edge_strip_pin_count(node, layout, PortType.INLET),
+            self._edge_strip_pin_count(node, layout, PortType.OUTLET),
+        )
         # `min-w-64`/`max-w-sm` size a label+widget content column that a
         # vertical card does not have — its width comes from the pin strips
         # and the config body.
         main_card.classes("w-full node-card zoom-pan-lod0").style(
-            f"{card_style} {self.vertical_card_style()}"
+            f"{card_style} {self.vertical_card_style()} min-width: {self.strip_min_width(widest)}px;"
         )
 
         with main_card:
@@ -210,18 +220,31 @@ class StackedNodeSkin(NodeSkin):
         has no edge strips at all — so this always wants
         ``get_visible_ports()``, never the folded filter.
         """
+        self.render_pin_strip(
+            self._edge_strip_ports(node, port_type),
+            wrapper,
+            layout,
+            ghost_for=port_type,
+        )
+
+    @staticmethod
+    def _edge_strip_ports(node, port_type: PortType) -> List[DataPort]:
+        """The ports :meth:`_render_edge_strip` draws for *port_type*, unfiltered by layout."""
         ports = [
             port
             for port in node.get_visible_ports()
             if port.port_type == port_type and not port.is_fold and not port.parent_fold
         ]
         hidden = node.get_hidden_connected_ports(is_inlet=port_type == PortType.INLET)
-        self.render_pin_strip(
-            ports + list(hidden),
-            wrapper,
-            layout,
-            ghost_for=port_type,
-        )
+        return ports + list(hidden)
+
+    def _edge_strip_pin_count(self, node, layout: LayoutDirection, port_type: PortType) -> int:
+        """Pins :meth:`_render_edge_strip` would draw for *port_type*, ghost pin included.
+
+        Used to reserve the card's ``min-width`` before the strip is built —
+        see :meth:`_render_vertical`.
+        """
+        return len(self._edge_strip_ports(node, port_type)) + 1
 
     def _render_port_hierarchy(
         self,

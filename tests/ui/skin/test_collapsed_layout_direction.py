@@ -178,7 +178,12 @@ class TestFoldedCardReservesPinSpace:
 
     @pytest.mark.parametrize("direction", [LayoutDirection.TOP_TO_BOTTOM, LayoutDirection.BOTTOM_TO_TOP])
     def test_vertical_fold_reserves_width_for_the_widest_strip(self, ctx, direction):
-        """Vertically the pins lay out in a ROW, so it is WIDTH that must grow."""
+        """Vertically the pins lay out in a ROW, so it is WIDTH that must grow.
+
+        Measured against the strip's own cell width and the card's padding, not
+        a literal: the pin glyph is narrower than the cell it sits in, so a
+        reservation in glyph units passes this while the strip overflows.
+        """
         container = _render_folded(ctx, direction)
         cards = [el for el in container.descendants() if "min-width" in el._style]
         assert cards, "no element reserves width — the pin strips will spill sideways"
@@ -187,7 +192,10 @@ class TestFoldedCardReservesPinSpace:
         inlets = [p for p in pins if p._props["data-pin-dir"] == "inlet"]
         outlets = [p for p in pins if p._props["data-pin-dir"] == "outlet"]
         widest = max(len(inlets), len(outlets))
+        skin_factory, _graph, _wrapper, skin_key = ctx
+        skin = skin_factory.get_skin_instance(skin_key)
+        needed = widest * skin.PIN_COLUMN_WIDTH + 2 * skin.CARD_H_PADDING
         reserved = max(int(el._style["min-width"].removesuffix("px")) for el in cards)
-        assert reserved >= widest * 20, (
-            f"reserved {reserved}px for {widest} pins in a row — the widest strip spills"
+        assert reserved >= needed, (
+            f"reserved {reserved}px for {widest} pins in a row, needing {needed}px — the widest strip spills"
         )

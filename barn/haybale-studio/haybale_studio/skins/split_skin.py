@@ -99,20 +99,27 @@ class SplitNodeSkin(NodeSkin):
         directions on the card edges, the body holds configs and nothing else,
         exactly as in the stacked skin. What survives is the config band's own
         heading.
+
+        Both strips are absolutely positioned (see ``render_pin_strip``) and so
+        contribute nothing to the card's flow width; with a short label and few
+        configs, nothing else forces the card wide enough for a busy strip and
+        its pins spill past the border. ``min-width`` reserves it explicitly,
+        the same as the folded vertical card (:meth:`_render_collapsed_vertical`).
         """
+        ports = node.get_visible_ports()
+        configs = [port for port in ports if port.is_config()]
+        inlets = [port for port in ports if port.is_inlet()]
+        outlets = [port for port in ports if port.is_outlet()]
+        widest = max(len(inlets), len(outlets)) + 1
+
         # `min-w-64`/`max-w-sm` size a label+widget content column that a
         # vertical card does not have.
         main_card.classes(f"w-full node-card zoom-pan-lod0 {self.card_classes(wrapper)}").style(
-            f"{card_style} {self.vertical_card_style()}"
+            f"{card_style} {self.vertical_card_style()} min-width: {self.strip_min_width(widest)}px;"
         )
 
         with main_card:
             runtime_errors = self._render_diagnostics_badge(wrapper)
-
-            ports = node.get_visible_ports()
-            configs = [port for port in ports if port.is_config()]
-            inlets = [port for port in ports if port.is_inlet()]
-            outlets = [port for port in ports if port.is_outlet()]
 
             # Whichever direction belongs on the card's TOP edge goes first —
             # inlets under T2B, outlets under B2T. Rendering a strip at the top
