@@ -57,7 +57,7 @@ def test_a_wellformed_macro_registers_with_a_node_identity(tmp_path, library_sys
     assert template.class_identity.label == "Blur"
     assert template.class_identity.registry_key == "testlib:macro:Blur"
     assert template.class_identity.description == "Softens an image"
-    assert template.class_identity.menu == "testlib/macros"
+    assert template.class_identity.menu == "macros/testlib"
 
 
 def test_the_template_satisfies_the_registered_class_contract(tmp_path, library_system):

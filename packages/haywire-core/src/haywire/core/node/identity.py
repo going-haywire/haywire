@@ -7,7 +7,7 @@ from haywire.core.registry.identity import BaseIdentity
 class NodeIdentity(BaseIdentity):
     """Core identifying attributes of a node"""
 
-    search_tags: list[str] = field(default_factory=lambda: ["add", "sub", "math", "vector"])
+    search_tags: list[str] = field(default_factory=list)
     menu: str = "misc/custom"
     help_md: str | None = None
     help_url: str = "https://haywire.io/internals/node-help"

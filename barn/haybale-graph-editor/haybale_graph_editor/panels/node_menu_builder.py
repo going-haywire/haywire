@@ -5,6 +5,14 @@ from haywire.core.node.factory import NodeFactory
 from haywire.ui import elements as hui
 from haywire.ui.elements.flyout import FlyoutSiblings, flyout_category
 
+#: The macro root as ``_build_menu_tree`` titles it, from the ``macros/<library>``
+#: path ``MacroRegistry`` stamps on every template.
+_MACRO_CATEGORY = "Macros"
+
+#: Marks macro entries wherever they sit beside nodes — the section anchor and
+#: each search result.
+_MACRO_ICON = "🧩"
+
 
 class NodeMenuBuilder:
     """Builds organized, hierarchical menus using node identity information
@@ -132,7 +140,8 @@ class NodeMenuBuilder:
             btn.on("contextmenu.prevent", lambda ni=node_info: cb(ni))
 
         with btn:
-            ui.label(f"+ {node_info.identity.label}").classes("truncate min-w-0 flex-1 text-left")
+            prefix = f"+ {_MACRO_ICON}" if node_info.is_macro else "+"
+            ui.label(f"{prefix} {node_info.identity.label}").classes("truncate min-w-0 flex-1 text-left")
             if deprecation_warning:
                 ui.icon("warning").classes("text-amber-500 text-sm shrink-0 ml-2")
             ui.badge(library_id).classes("shrink-0 ml-2 text-xs hw-text-dim")
@@ -141,6 +150,8 @@ class NodeMenuBuilder:
             tip = ui.tooltip().classes("text-xs").props("no-parent-event")
             with tip:
                 ui.label(node_info.identity.description or "No description available")
+                if node_info.is_macro:
+                    ui.label("Macro").classes("hw-text-dim")
                 ui.label(f"Library: {library_id}").classes("hw-text-dim")
                 if deprecation_warning:
                     with ui.row().classes("items-center gap-1 text-amber-500 mt-1"):
@@ -163,6 +174,11 @@ class NodeMenuBuilder:
     def _build_hierarchical_menu(self, siblings: FlyoutSiblings):
         """Build hierarchical menu using menu paths from node identities.
 
+        Node categories come first, then a separator, then one ``Macros``
+        section holding a flyout per library. Macros are lifted out of the
+        alphabetical run of categories because they are the user's own
+        documents rather than a library's offering.
+
         ``siblings`` is the open-flyout group for this level: the top-level
         categories share it with the recent-nodes flyout so only one stays open.
         """
@@ -172,8 +188,41 @@ class NodeMenuBuilder:
         # Build hierarchical tree
         menu_tree = self._build_menu_tree(menu_structure)
 
+        # Lifted out before rendering so it cannot sort in among the node
+        # categories; the key is the title-cased form _build_menu_tree stores.
+        macro_tree = menu_tree.pop(_MACRO_CATEGORY, None)
+
         # Create menu UI elements
         self._create_menu_tree_ui(menu_tree, siblings)
+
+        if macro_tree is not None:
+            if menu_tree:
+                ui.separator()
+            self._create_macro_section(macro_tree, siblings)
+
+    def _create_macro_section(self, macro_tree: Dict, siblings: FlyoutSiblings):
+        """Render the ``Macros`` root and one flyout per library beneath it.
+
+        Drawn without the folder prefix the node categories carry, so the
+        section reads as its own thing rather than one more category. A macro
+        filed directly under the root (no library) is drawn as a leaf beside
+        the library flyouts.
+        """
+        nodes: List[NodeInfo] = macro_tree.get("_nodes", [])
+        libraries: Dict = macro_tree.get("_children", {})
+
+        if not nodes and not libraries:
+            return
+
+        with flyout_category(f"{_MACRO_ICON} Macros", siblings) as child_siblings:
+            for node_info in sorted(nodes, key=lambda x: x.identity.label):
+                self._create_menu_item_for_node(node_info)
+
+            if nodes and libraries:
+                ui.separator()
+
+            for library_name, library_data in sorted(libraries.items()):
+                self._create_category_submenu(library_name, library_data, child_siblings)
 
     def _get_menu_structure(self) -> Dict[str, List[NodeInfo]]:
         """Get menu structure from factory with caching."""
@@ -250,9 +299,17 @@ class NodeMenuBuilder:
         """Create a clickable menu item for a single node."""
         deprecation_warning = node_info.identity.deprecation_warning
 
-        menu_item = ui.menu_item(
-            f"+ {node_info.identity.label}", lambda ni=node_info: self._on_node_selected(ni)
-        ).props("dense")
+        prefix = f"+ {_MACRO_ICON}" if node_info.is_macro else "+"
+        # nowrap, as on a category anchor: the flyout shrink-to-fits its
+        # content, so a label free to wrap breaks mid-name instead of widening
+        # the menu.
+        menu_item = (
+            ui.menu_item(
+                f"{prefix} {node_info.identity.label}", lambda ni=node_info: self._on_node_selected(ni)
+            )
+            .props("dense")
+            .style("white-space: nowrap")
+        )
 
         if self._on_context_click is not None:
             cb = self._on_context_click

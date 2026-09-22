@@ -50,11 +50,13 @@ def factory_with_a_macro(tmp_path, library_system):
     return NodeFactory(node_registry, macro_registry)
 
 
-def test_the_macro_appears_in_the_menu_under_its_library(factory_with_a_macro):
+def test_the_macro_appears_under_the_macros_root_by_library(factory_with_a_macro):
+    """The path is ``macros/<library label>``, so the menu can lift macros into
+    one section rather than filing them under each library."""
     menu = factory_with_a_macro.get_menu_structure()
 
-    assert "testlib/macros" in menu
-    assert [info.identity.label for info in menu["testlib/macros"]] == ["Blur"]
+    assert "macros/testlib" in menu
+    assert [info.identity.label for info in menu["macros/testlib"]] == ["Blur"]
 
 
 def test_the_menu_still_holds_node_classes(factory_with_a_macro):
@@ -62,7 +64,7 @@ def test_the_menu_still_holds_node_classes(factory_with_a_macro):
     menu = factory_with_a_macro.get_menu_structure()
 
     assert len(menu) > 1
-    assert any(path != "testlib/macros" for path in menu)
+    assert any(path != "macros/testlib" for path in menu)
 
 
 def test_a_macro_is_found_by_label(factory_with_a_macro):
@@ -87,6 +89,18 @@ def test_node_info_resolves_for_a_macro_key(factory_with_a_macro):
     assert info is not None
     assert info.identity.label == "Blur"
     assert info.library.name == "testlib"
+    assert info.is_macro is True
+
+
+def test_node_info_for_a_node_class_is_not_a_macro(factory_with_a_macro, library_system):
+    """The flag separates the two kinds a factory resolves, so a menu needs
+    neither the registry nor the key's shape to tell them apart."""
+    node_key = next(iter(library_system.get_node_registry().list_visible_names()))
+
+    info = factory_with_a_macro.get_node_info(node_key)
+
+    assert info is not None
+    assert info.is_macro is False
 
 
 def test_a_factory_without_a_macro_registry_still_works(library_system):
@@ -114,5 +128,5 @@ def test_a_hidden_macro_is_not_offered(tmp_path, library_system):
 
     factory = NodeFactory(library_system.get_node_registry(), macro_registry)
 
-    assert "testlib/macros" not in factory.get_menu_structure()
+    assert "macros/testlib" not in factory.get_menu_structure()
     assert factory.search_nodes("blur") == []

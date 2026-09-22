@@ -217,6 +217,7 @@ class NodeFactory:
                 return NodeInfo(
                     identity=template.class_identity,
                     library=template.class_library,
+                    is_macro=True,
                 )
 
         return None

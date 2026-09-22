@@ -112,7 +112,7 @@ def test_a_macro_is_documented_like_a_node(service, documented_macro):
     macro = macros[0]
     assert macro.label == "Blur"
     assert macro.description == "Blurs a frame."
-    assert macro.menu == "haybale-testing/macros"
+    assert macro.menu == "macros/Testing"
     # The template is an instance, so it carries no class docstring to inherit.
     assert macro.docstring == ""
 

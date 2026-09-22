@@ -20,6 +20,10 @@ _STEM_RULE = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
 
 _MACRO_KIND = "macro"
 
+#: First segment of every macro's menu path, so the create menu can lift them
+#: into one section above the node categories.
+_MACRO_MENU_ROOT = "macros"
+
 
 class MacroRegistry(DocumentRegistry[MacroTemplate]):
     """Macro documents, registered as a node-like component kind.
@@ -99,7 +103,7 @@ class MacroRegistry(DocumentRegistry[MacroTemplate]):
             description=str(meta.get("description") or ""),
             class_name=path.stem,
             module=str(path),
-            menu=f"{library_identity.name}/macros",
+            menu=f"{_MACRO_MENU_ROOT}/{library_identity.label}",
         )
         return MacroTemplate(
             document=document,

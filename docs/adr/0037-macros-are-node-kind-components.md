@@ -72,7 +72,8 @@ simply claims a different suffix.
 **The template satisfies the class contract.** `MacroRegistry.get(key)` returns a
 `MacroTemplate` — the parsed document, its path, a content hash, and a per-macro
 `NodeIdentity` whose label is the filestem, whose description is the document's
-`meta.description`, and whose menu is `<library>/macros`. It exposes
+`meta.description`, and whose menu is `macros/<library label>` — one root the
+create menu lifts above the node categories, grouped by library. It exposes
 `class_identity` and `class_library`, which is all the `RegisteredClass` Protocol
 asks for. Consumers that walk kinds generically — the docs extractor, the
 farmhand helpers, the library overview — read it without learning it is a file.
