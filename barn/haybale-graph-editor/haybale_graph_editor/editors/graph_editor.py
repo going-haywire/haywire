@@ -144,6 +144,7 @@ class GraphEditor(BaseEditor):
         self._level_bar = None  # ui.row — one tab per open level
         self._level_panels = None  # ui.tab_panels — one canvas per open level
         self._graph_name_label = None  # ui.label in the header
+        self._dirty_marker = None  # ui.label — the unsaved dot beside the path
         self._breadcrumb = None  # ui.row — where the active level sits in the tree
         self._undo_button = None  # ui.button — undo
         self._redo_button = None  # ui.button — redo
@@ -525,17 +526,28 @@ class GraphEditor(BaseEditor):
                 # ---- slim header bar ----
                 with (
                     ui.row()
-                    .classes("w-full items-center px-3 gap-2 flex-shrink-0 border-b")
+                    .classes("w-full items-center px-3 gap-2 flex-shrink-0 border-b no-wrap")
                     .style("min-height: 32px; background: var(--hw-bg-surface);")
                 ):
-                    ui.icon(hui.icon.graph, size="14px").classes("hw-text-dim")
+                    ui.icon(hui.icon.graph, size="14px").classes("hw-text-dim flex-shrink-0")
+                    # The unsaved marker sits outside the label: the label
+                    # truncates from the left, which would eat a leading mark
+                    # before any of the path.
+                    self._dirty_marker = ui.label("●").classes("text-xs flex-shrink-0")
+                    self._dirty_marker.set_visibility(False)
+                    # min-w-0 lets the path shrink below its text width; without
+                    # it the label's automatic minimum keeps the row wider than
+                    # the bar and the icon and actions are pushed onto their own
+                    # lines. hw-elide-left puts the ellipsis at the start, so the
+                    # filename stays visible and widening the pane reveals the
+                    # path back towards the root.
                     self._graph_name_label = ui.label("Untitled").classes(
-                        "text-xs hw-text-muted truncate font-mono"
+                        "text-xs hw-text-muted font-mono min-w-0 flex-1 hw-elide-left"
                     )
                     # Filled in by _update_breadcrumb when a Group is on screen;
                     # empty at the document level, so the header looks the same
                     # as it always did for an ordinary graph.
-                    self._breadcrumb = ui.row().classes("items-center gap-1 flex-1 min-w-0")
+                    self._breadcrumb = ui.row().classes("items-center gap-1 min-w-0 no-wrap overflow-hidden")
                     self._undo_button = hui.icon_action(
                         "undo", tooltip="Undo", on_click=lambda: self._do_undo(context)
                     )
@@ -806,6 +818,12 @@ class GraphEditor(BaseEditor):
     # header
     # ------------------------------------------------------------------
 
+    def _set_dirty_marker(self, shown: bool) -> None:
+        """Show or hide the unsaved dot in front of the path."""
+        if self._dirty_marker is None:
+            return
+        self._dirty_marker.set_visibility(shown)
+
     def _update_header(self, context: "SessionContext") -> None:
         """Refresh the name label, undo/redo buttons and breadcrumb."""
         if self._graph_name_label is None:
@@ -823,10 +841,20 @@ class GraphEditor(BaseEditor):
                 rel = str(document.path.relative_to(root))
             except ValueError:
                 rel = str(document.path)
-            self._graph_name_label.text = ("● " if document.unsaved else "") + rel
+            # The label is elided from the left, so the whole path is only ever
+            # readable via the title attribute when the bar is narrow.
+            self._graph_name_label.text = rel
+            # Assigned rather than passed through props(): a quote in a
+            # filename would break the "key=value" parsing.
+            self._graph_name_label._props["title"] = rel
+            self._graph_name_label.update()
+            self._set_dirty_marker(document.unsaved)
             self._graph_name_label.classes(remove="hw-text-muted hw-text-dim", add="hw-text-body")
         else:
-            self._graph_name_label.text = "● not saved"
+            self._graph_name_label.text = "not saved"
+            self._graph_name_label._props.pop("title", None)
+            self._graph_name_label.update()
+            self._set_dirty_marker(True)
             self._graph_name_label.classes(remove="hw-text-body hw-text-dim", add="hw-text-muted")
         self._update_undo_redo_buttons(document)
         self._sync_tab_dirty(document)

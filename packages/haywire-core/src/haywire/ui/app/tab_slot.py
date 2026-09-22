@@ -66,9 +66,13 @@ class TabSlot(Slot):
             initial = active_id if active_id in ids else (ids[0] if ids else None)
             with (
                 ui.tabs(value=cast(Any, initial), on_change=lambda e: self._on_tab_clicked(e.value))
-                .props("dense align=left")
+                .props("dense align=left outside-arrows mobile-arrows")
                 .classes("hw-slot-bar-tabs")
-                .style("flex: 1; min-height: 36px;")
+                # min-width: 0 lets the bar be narrower than its tabs; without it
+                # the flex child grows to max-content, Quasar measures no overflow
+                # and renders no arrows, and the bar's overflow:hidden clips the
+                # excess tabs with no affordance.
+                .style("flex: 1; min-width: 0; min-height: 36px;")
             ):
                 for wrapper in bindings:
                     tab_el = ui.tab(name=wrapper.editor_binding_id, label="").props("no-caps")

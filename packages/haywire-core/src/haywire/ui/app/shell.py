@@ -132,6 +132,17 @@ STATIC_CSS = (
     " .hw-slot-bar-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
     " .hw-slot-bar-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
     " .hw-slot-bar-tabs .q-tab__label { font-size: 12px; }"
+    # Overflow arrows (outside-arrows): the only affordance that more tabs
+    # exist than fit, so they carry the bar's surface rather than the page's.
+    " .hw-slot-bar-tabs .q-tabs__arrow {"
+    "   color: var(--hw-text-muted) !important;"
+    "   background: var(--hw-bg-surface);"
+    "   width: 22px;"
+    " }"
+    " .hw-slot-bar-tabs .q-tabs__arrow:hover { color: var(--hw-text-body) !important; }"
+    # Quasar keeps a disabled arrow in the layout at 0.3 opacity; hiding it
+    # would reflow the whole bar on every scroll to an end.
+    " .hw-slot-bar-tabs .q-tabs__arrow--faded { opacity: 0.25 !important; }"
     # Generic toolbar buttons (hui.toolbar_button helper).
     " .hw-shell-toolbar-btn {"
     "   color: var(--hw-text-muted) !important;"
@@ -322,6 +333,24 @@ STATIC_CSS = (
     # `pointer-events: none` from that INLINE style, which wins over this rule:
     # there it is load-bearing, stopping an empty flyout opening on hover.
     " .hw-menu-row.hw-disabled { opacity: 0.4; cursor: default; }"
+    # ── hw-elide-left utility class ──
+    # Truncate text at the START instead of the end, for paths and other
+    # strings whose tail identifies them: the filename stays visible, and
+    # widening the pane reveals the path back towards the root.
+    #
+    # `direction: rtl` moves the ellipsis to the left edge. A path's segments
+    # are strong-ltr runs, so the separators between them ( `/`, `-`, `.` are
+    # bidi-neutral) resolve to ltr and keep their order; `text-align: left`
+    # keeps a short path against the left edge.
+    #
+    # The element needs `min-width: 0` from its own classes to shrink at all.
+    " .hw-elide-left {"
+    "   white-space: nowrap;"
+    "   overflow: hidden;"
+    "   text-overflow: ellipsis;"
+    "   direction: rtl;"
+    "   text-align: left;"
+    " }"
     # ── compact-fields utility class ──
     # Apply to any container (panel, node widget area) that needs tight
     # Quasar field rendering.  CSS custom properties allow themes to
