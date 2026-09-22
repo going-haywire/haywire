@@ -103,17 +103,6 @@ def test_node_info_for_a_node_class_is_not_a_macro(factory_with_a_macro, library
     assert info.is_macro is False
 
 
-def test_a_factory_without_a_macro_registry_still_works(library_system):
-    """The macro registry is optional; every existing caller passes one argument."""
-    from haywire.core.node.factory import NodeFactory
-
-    factory = NodeFactory(library_system.get_node_registry())
-
-    assert factory.get_menu_structure()
-    assert factory.get_node_info("testlib:macro:Blur") is None
-    assert not [k for k in factory.list_all_nodes() if ":macro:" in k]
-
-
 def test_a_hidden_macro_is_not_offered(tmp_path, library_system):
     """list_visible_names is what the menu reads, for macros as for nodes."""
     from haywire.core.macro.registry import MacroRegistry

@@ -189,10 +189,11 @@ def test_registry_clears_boundary_slots_on_unregister():
 
 def test_factory_exposes_both_boundary_nodes():
     from haywire.barn.builtin.nodes.subgraph_io import SubgraphInputNode, SubgraphOutputNode
+    from haywire.core.macro.registry import MacroRegistry
     from haywire.core.node.factory import NodeFactory
 
     reg = _fresh_registry()
-    factory = NodeFactory(reg)
+    factory = NodeFactory(reg, MacroRegistry())
     assert factory.get_subgraph_input_node() is None
     assert factory.get_subgraph_output_node() is None
 

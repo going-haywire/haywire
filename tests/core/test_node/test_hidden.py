@@ -11,6 +11,7 @@ from typing import Any, cast
 
 import pytest
 
+from haywire.core.macro.registry import MacroRegistry
 from haywire.core.node import node, BaseNode, NodeFactory, NodeRegistry
 
 
@@ -30,7 +31,7 @@ def test_hidden_node_absent_from_menu(node_registry: NodeRegistry):
     node_registry._register_class(cast(Any, VisibleNode), VisibleNode.class_library)
     node_registry._register_class(cast(Any, HiddenNode), HiddenNode.class_library)
 
-    factory = NodeFactory(node_registry)
+    factory = NodeFactory(node_registry, MacroRegistry())
 
     menu = factory.get_menu_structure()
     labels_in_menu = {ni.identity.label for nodes in menu.values() for ni in nodes}
@@ -55,6 +56,6 @@ def test_empty_menu_routes_visible_node_to_misc(node_registry: NodeRegistry):
 
     node_registry._register_class(cast(Any, UncategorizedNode), UncategorizedNode.class_library)
 
-    menu = NodeFactory(node_registry).get_menu_structure()
+    menu = NodeFactory(node_registry, MacroRegistry()).get_menu_structure()
     assert "misc" in menu
     assert "Uncategorized Node" in {ni.identity.label for ni in menu["misc"]}

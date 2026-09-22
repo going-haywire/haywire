@@ -76,12 +76,13 @@ def test_registry_clears_reroute_on_unregister():
 
 def test_factory_exposes_reroute_node():
     """NodeFactory.get_reroute_node proxies the registry's reroute provider."""
+    from haywire.core.macro.registry import MacroRegistry
     from haywire.core.node import node, BaseNode, NodeType
     from haywire.core.node.registry import NodeRegistry
     from haywire.core.node.factory import NodeFactory
 
     reg = NodeRegistry()
-    factory = NodeFactory(reg)
+    factory = NodeFactory(reg, MacroRegistry())
     assert factory.get_reroute_node() is None
 
     @node(node_type=NodeType.REROUTE, _is_reroute=True)

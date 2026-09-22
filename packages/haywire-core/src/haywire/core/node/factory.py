@@ -1,16 +1,14 @@
 """Resolve node classes by registry key, and fan lifecycle events out to their subscribers."""
 
 import logging
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from haywire.core.errors.haywire_exception import HaywireException
 from . import BaseNode, NodeRegistry
 from .info import NodeInfo
 
+from ..macro.registry import MacroRegistry
 from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback, LifeCycleEventCallback
-
-if TYPE_CHECKING:
-    from ..macro.registry import MacroRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +30,8 @@ class NodeFactory:
     and the macro registry, so a macro is offered like any other component.
     """
 
-    def __init__(self, node_registry: NodeRegistry, macro_registry: "MacroRegistry | None" = None):
-        """Initialize the factory and subscribe it to its registries' lifecycle events.
-
-        Args:
-            macro_registry: Supplies macros to the discovery APIs. Omit it for
-                a headless factory that resolves node classes only.
-        """
+    def __init__(self, node_registry: NodeRegistry, macro_registry: MacroRegistry):
+        """Initialize the factory and subscribe it to its registries' lifecycle events."""
         self.node_registry = node_registry
         self.macro_registry = macro_registry
 
@@ -50,10 +43,9 @@ class NodeFactory:
         self._lifecycle_event_subscribers: Dict[str, List[LifeCycleEventCallback]] = {}
 
         self.node_registry.add_batch_event_subscriber(self._listen_on_lifecycle_event)
-        if self.macro_registry is not None:
-            # Same relay: a placement subscribes per registry key, so a macro
-            # reload reaches every card standing for it.
-            self.macro_registry.add_batch_event_subscriber(self._listen_on_lifecycle_event)
+        # Same relay: a placement subscribes per registry key, so a macro
+        # reload reaches every card standing for it.
+        self.macro_registry.add_batch_event_subscriber(self._listen_on_lifecycle_event)
 
     def get_alternate_node_registry_keys(self, registry_key: str) -> list[str]:
         """The registry keys of same-named nodes from other libraries. See
@@ -119,7 +111,7 @@ class NodeFactory:
         using a macro from an absent library still opens.
         """
         error: HaywireException | None = None
-        template = self.macro_registry.template(registry_key) if self.macro_registry else None
+        template = self.macro_registry.template(registry_key)
         if template is None:
             error = HaywireException(
                 message=f"Macro with registry key '{registry_key}' not found in registry.",
@@ -211,22 +203,20 @@ class NodeFactory:
                 library=getattr(node_class, "class_library", None),
             )
 
-        if self.macro_registry is not None:
-            template = self.macro_registry.template(registry_key)
-            if template is not None:
-                return NodeInfo(
-                    identity=template.class_identity,
-                    library=template.class_library,
-                    is_macro=True,
-                )
+        template = self.macro_registry.template(registry_key)
+        if template is not None:
+            return NodeInfo(
+                identity=template.class_identity,
+                library=template.class_library,
+                is_macro=True,
+            )
 
         return None
 
     def _visible_keys(self) -> List[str]:
         """Every key the create menu and search may offer, nodes then macros."""
         keys = list(self.node_registry.list_visible_names())
-        if self.macro_registry is not None:
-            keys.extend(self.macro_registry.list_visible_names())
+        keys.extend(self.macro_registry.list_visible_names())
         return keys
 
     def get_reroute_node(self) -> type[BaseNode] | None:
@@ -296,8 +286,7 @@ class NodeFactory:
     def list_all_nodes(self) -> List[str]:
         """Every registered node and macro registry key, hidden ones included."""
         keys = list(self.node_registry.list_names())
-        if self.macro_registry is not None:
-            keys.extend(self.macro_registry.list_names())
+        keys.extend(self.macro_registry.list_names())
         return keys
 
     def get_node_info(self, registry_key: str) -> Optional[NodeInfo]:
