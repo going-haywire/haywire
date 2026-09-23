@@ -18,13 +18,13 @@ from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready
 
-_URL = "http://localhost:8090/graph-error-skin"
+_PATH = "/graph-error-skin"
 
 pytestmark = pytest.mark.ui
 
 
-def _open(page: Page) -> None:
-    goto_ready(page, _URL)
+def _open(page: Page, harness) -> None:
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".connection-pin")
     page.wait_for_timeout(1000)
@@ -37,12 +37,12 @@ def _pin_ids(page: Page) -> list[str]:
 
 def test_the_fixture_really_uses_the_error_skin(page: Page, harness) -> None:
     """Guard the premise — otherwise the rest silently tests the default skin."""
-    _open(page)
+    _open(page, harness)
     assert page.evaluate("() => !!document.querySelector('.error-node-card')")
 
 
 def test_every_port_renders_exactly_one_pin(page: Page, harness) -> None:
-    _open(page)
+    _open(page, harness)
     ids = _pin_ids(page)
 
     duplicates = sorted({i for i in ids if ids.count(i) > 1})
@@ -54,7 +54,7 @@ def test_every_port_renders_exactly_one_pin(page: Page, harness) -> None:
 
 def test_outlets_render_on_the_outlet_side(page: Page, harness) -> None:
     """The duplicate used to put a copy of every outlet on the inlet side."""
-    _open(page)
+    _open(page, harness)
     sides = page.evaluate(
         """() => [...document.querySelectorAll('.connection-pin')]
             .filter(e => e.dataset.pinDir === 'outlet')
@@ -68,7 +68,7 @@ def test_outlets_render_on_the_outlet_side(page: Page, harness) -> None:
 
 
 def test_card_carries_the_node_card_contract_class(page: Page, harness) -> None:
-    _open(page)
+    _open(page, harness)
     classes = page.evaluate("() => [...document.querySelector('.error-node-card').classList]")
     assert "node-card" in classes, (
         f"error card must carry the literal `node-card` token alongside `error-node-card` — got {classes}"
@@ -77,7 +77,7 @@ def test_card_carries_the_node_card_contract_class(page: Page, harness) -> None:
 
 def test_manual_resize_is_not_clamped(page: Page, harness) -> None:
     """The behaviour `node-card` actually buys: max-width released in manual mode."""
-    _open(page)
+    _open(page, harness)
     released = page.evaluate(
         """() => {
             const slot = document.querySelector('.ui-node-slot');

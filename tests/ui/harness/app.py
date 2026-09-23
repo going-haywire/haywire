@@ -4,7 +4,9 @@ HarnessApp — isolated NiceGUI app for settings UI development and testing.
 Usage:
     uv run python tests/ui/harness/app.py
 
-Runs on http://localhost:8090.
+Runs on http://localhost:8090 by default. Set HAYWIRE_HARNESS_PORT to bind a
+different port — the `harness` fixture does this per pytest-xdist worker so
+parallel workers each get their own server instead of colliding on 8090.
 
 Routes:
     GET  /status               — liveness probe
@@ -67,7 +69,7 @@ def main():
     app.on_shutdown(lambda: library_service.cleanup() if hasattr(library_service, "cleanup") else None)
 
     ui.run(
-        port=8090,
+        port=int(os.environ.get("HAYWIRE_HARNESS_PORT", 8090)),
         show=False,
         title="Haywire Settings Harness",
         reload=False,

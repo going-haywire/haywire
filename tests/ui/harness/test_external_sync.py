@@ -9,10 +9,7 @@ from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready
 
-_LIVE_URL = (
-    "http://localhost:8090/node-live"
-    "?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
-)
+_LIVE_PATH = "/node-live?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
 
 pytestmark = pytest.mark.ui
 
@@ -20,7 +17,7 @@ pytestmark = pytest.mark.ui
 def test_external_mirror_change_shows_dot_and_reset(page: Page, harness):
     """External local override of a mirror field adds • and enables the row menu's
     Reset item (right-click the label cell to open it)."""
-    goto_ready(page, _LIVE_URL)
+    goto_ready(page, f"{harness}{_LIVE_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="intensity"]')

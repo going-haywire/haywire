@@ -15,13 +15,13 @@ from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready
 
-_URL = "http://localhost:8090/graph-two-column"
+_PATH = "/graph-two-column"
 
 pytestmark = pytest.mark.ui
 
 
-def _open(page: Page) -> None:
-    goto_ready(page, _URL)
+def _open(page: Page, harness) -> None:
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".connection-pin")
     page.wait_for_timeout(1000)
@@ -80,7 +80,7 @@ def _card_centre_x(page: Page) -> float:
 
 def test_the_fixture_really_uses_the_two_column_skin(page: Page, harness) -> None:
     """Guard the premise — otherwise this silently tests the default skin."""
-    _open(page)
+    _open(page, harness)
     assert page.evaluate("() => !!document.querySelector('.split-node-card')")
     assert _column_headings_in_order(page) == ["Inputs", "Outputs"]
 
@@ -94,7 +94,7 @@ def test_the_fixture_renders_exactly_one_card(page: Page, harness) -> None:
     the count directly keeps the diagnosis on the real cause — `add_node_visual`
     used to orphan a rival card on a second NODE_ADDED.
     """
-    _open(page)
+    _open(page, harness)
     assert page.evaluate("() => document.querySelectorAll('.split-node-card').length") == 1
     node_ids = page.evaluate(
         "() => [...document.querySelectorAll('[data-node-id]')].map(e => e.dataset.nodeId)"
@@ -103,14 +103,14 @@ def test_the_fixture_renders_exactly_one_card(page: Page, harness) -> None:
 
 
 def test_l2r_puts_inputs_on_the_left(page: Page, harness) -> None:
-    _open(page)
+    _open(page, harness)
     _switch(page, "set-l2r")
     assert _column_headings_in_order(page) == ["Inputs", "Outputs"]
     assert _pin_side(page, "inlet") == "left"
 
 
 def test_r2l_swaps_the_columns_with_the_pins(page: Page, harness) -> None:
-    _open(page)
+    _open(page, harness)
     _switch(page, "set-r2l")
     assert _pin_side(page, "inlet") == "right", "inlet pins should protrude right under r2l"
     assert _column_headings_in_order(page) == ["Outputs", "Inputs"], (
@@ -132,7 +132,7 @@ def test_each_column_sits_on_the_same_side_as_its_own_pins(
     page: Page, harness, testid, heading, pin_dir
 ) -> None:
     """The property that actually matters, stated directly."""
-    _open(page)
+    _open(page, harness)
     _switch(page, testid)
 
     side = _pin_side(page, pin_dir)

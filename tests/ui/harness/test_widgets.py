@@ -24,11 +24,9 @@ from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready
 
-_WIDGET_SCHEMA_URL = "http://localhost:8090/schema?class=haywire.core.di.test_config.TestingWidgetSettings"
-_NODE_URL = (
-    "http://localhost:8090/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
-)
-_TESTING_SCHEMA_URL = "http://localhost:8090/schema?class=haybale_testing.settings.testing.TestingSettings"
+_WIDGET_SCHEMA_PATH = "/schema?class=haywire.core.di.test_config.TestingWidgetSettings"
+_NODE_PATH = "/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
+_TESTING_SCHEMA_PATH = "/schema?class=haybale_testing.settings.testing.TestingSettings"
 
 pytestmark = pytest.mark.ui
 
@@ -40,7 +38,7 @@ pytestmark = pytest.mark.ui
 
 def test_bool_field_renders_switch(page: Page, harness):
     """A bool field renders a ui.switch (not a NumberDrag or text input)."""
-    goto_ready(page, _WIDGET_SCHEMA_URL)
+    goto_ready(page, f"{harness}{_WIDGET_SCHEMA_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="flag"]')
@@ -50,7 +48,7 @@ def test_bool_field_renders_switch(page: Page, harness):
 
 def test_int_field_renders_number_drag(page: Page, harness):
     """An int field (count) renders a NumberDrag widget."""
-    goto_ready(page, _WIDGET_SCHEMA_URL)
+    goto_ready(page, f"{harness}{_WIDGET_SCHEMA_PATH}")
     page.wait_for_selector("[data-field]")
 
     expect(page.locator('[data-field="count"] [data-number_drag]')).to_be_attached()
@@ -58,7 +56,7 @@ def test_int_field_renders_number_drag(page: Page, harness):
 
 def test_float_field_renders_number_drag(page: Page, harness):
     """A float field (ratio) renders a NumberDrag widget."""
-    goto_ready(page, _WIDGET_SCHEMA_URL)
+    goto_ready(page, f"{harness}{_WIDGET_SCHEMA_PATH}")
     page.wait_for_selector("[data-field]")
 
     expect(page.locator('[data-field="ratio"] [data-number_drag]')).to_be_attached()
@@ -66,7 +64,7 @@ def test_float_field_renders_number_drag(page: Page, harness):
 
 def test_str_field_renders_input(page: Page, harness):
     """A str field (label) renders a plain text input."""
-    goto_ready(page, _WIDGET_SCHEMA_URL)
+    goto_ready(page, f"{harness}{_WIDGET_SCHEMA_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="label"]')
@@ -76,7 +74,7 @@ def test_str_field_renders_input(page: Page, harness):
 
 def test_choices_field_renders_select(page: Page, harness):
     """A choices field (mode) renders a ui.select dropdown."""
-    goto_ready(page, _WIDGET_SCHEMA_URL)
+    goto_ready(page, f"{harness}{_WIDGET_SCHEMA_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="mode"]')
@@ -86,7 +84,7 @@ def test_choices_field_renders_select(page: Page, harness):
 
 def test_color_field_renders_color_input(page: Page, harness):
     """A color field (tint) renders a ui.color_input."""
-    goto_ready(page, _WIDGET_SCHEMA_URL)
+    goto_ready(page, f"{harness}{_WIDGET_SCHEMA_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="tint"]')
@@ -96,7 +94,7 @@ def test_color_field_renders_color_input(page: Page, harness):
 
 def test_testing_schema_all_fields_present(page: Page, harness):
     """All TestingSettings fields render in the /schema route."""
-    goto_ready(page, _TESTING_SCHEMA_URL)
+    goto_ready(page, f"{harness}{_TESTING_SCHEMA_PATH}")
     page.wait_for_selector("[data-field]")
 
     for field in [
@@ -119,7 +117,7 @@ def test_schema_row_keeps_label_and_widget_side_by_side(page: Page, harness):
     unlike the reactive path (render_settings), which never exhibited this
     because its error_container sits outside the row entirely.
     """
-    goto_ready(page, _WIDGET_SCHEMA_URL)
+    goto_ready(page, f"{harness}{_WIDGET_SCHEMA_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="mode"]')
@@ -146,7 +144,7 @@ def test_schema_row_keeps_label_and_widget_side_by_side(page: Page, harness):
 
 def test_direct_string_field(page: Page, harness):
     """example_string renders as text input with correct default."""
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="example_string"]')
@@ -155,7 +153,7 @@ def test_direct_string_field(page: Page, harness):
 
 def test_string_field_has_expand_button(page: Page, harness):
     """The editable string widget renders an expand-to-modal button beside the input."""
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="example_string"]')
@@ -165,7 +163,7 @@ def test_string_field_has_expand_button(page: Page, harness):
 
 def test_string_field_expand_modal_round_trip(page: Page, harness):
     """Clicking expand opens a textarea seeded with the value; confirming writes back."""
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="example_string"]')
@@ -189,7 +187,7 @@ def test_string_field_expand_modal_round_trip(page: Page, harness):
 
 def test_direct_int_field(page: Page, harness):
     """example_int renders as NumberDrag."""
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     expect(page.locator('[data-field="example_int"] [data-number_drag]')).to_be_attached()
@@ -197,7 +195,7 @@ def test_direct_int_field(page: Page, harness):
 
 def test_direct_float_field(page: Page, harness):
     """example_float renders as NumberDrag."""
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     expect(page.locator('[data-field="example_float"] [data-number_drag]')).to_be_attached()
@@ -205,7 +203,7 @@ def test_direct_float_field(page: Page, harness):
 
 def test_direct_bool_field(page: Page, harness):
     """example_bool renders as switch with default false."""
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="example_bool"]')
@@ -214,7 +212,7 @@ def test_direct_bool_field(page: Page, harness):
 
 def test_direct_choices_field(page: Page, harness):
     """example_choices renders as dropdown with default 'fast'."""
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="example_choices"]')
@@ -223,7 +221,7 @@ def test_direct_choices_field(page: Page, harness):
 
 def test_direct_color_field(page: Page, harness):
     """example_color renders as color input with default '#00ff00'."""
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="example_color"]')
@@ -237,7 +235,7 @@ def test_direct_color_field(page: Page, harness):
 
 def test_choices_mirror_renders_select(page: Page, harness):
     """mode mirror renders as a dropdown (mirror resolution → widget by type)."""
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     row = page.locator('[data-field="mode"]')
@@ -247,7 +245,7 @@ def test_choices_mirror_renders_select(page: Page, harness):
 def test_watch_mirror_fields_render_disabled_widgets(page: Page, harness):
     """watch() mirror fields render real, disabled widgets — not a label
     fallback. ui_state=DISABLED is uniform chrome across every field kind."""
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     checks = {

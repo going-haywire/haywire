@@ -9,10 +9,7 @@ from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready
 
-_NODE_URL = (
-    "http://localhost:8090/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
-)
-_BASE_URL = "http://localhost:8090"
+_NODE_PATH = "/node?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
 
 pytestmark = pytest.mark.ui
 
@@ -23,13 +20,13 @@ def test_global_setting_change_propagates_to_mirror(page: Page, harness, reset_s
 
     # Change global default
     r = requests.post(
-        f"{_BASE_URL}/api/set",
+        f"{harness}/api/set",
         params={"key": "testing.default_intensity", "value": "0.9"},
     )
     assert r.json()["ok"] is True
 
     # Re-navigate to get a fresh render with the new global value
-    goto_ready(page, _NODE_URL)
+    goto_ready(page, f"{harness}{_NODE_PATH}")
     page.wait_for_selector("[data-field]")
 
     # NumberDrag self-emits data-value, so the mirrored value is DOM-readable.

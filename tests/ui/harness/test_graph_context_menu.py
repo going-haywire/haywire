@@ -5,14 +5,14 @@ from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready
 
-_URL = "http://localhost:8090/graph-context-menu"
+_PATH = "/graph-context-menu"
 
 pytestmark = pytest.mark.ui
 
 
 def test_right_click_on_viewport_background_emits_canvas_context_menu(page: Page, harness):
     """Right-clicking viewport background still reaches the graph canvas menu pipeline."""
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     # Wait for the canvas to finish mounting (listeners attached), not merely
     # for the viewport div to exist — otherwise the right-click can fire before
     # the contextmenu handler is wired and the event is lost (flaky).
@@ -42,7 +42,7 @@ def test_innermost_menu_surface_id_wins_over_an_outer_one(page: Page, harness):
     attribute with closest() semantics fixes that. Injects two nested
     elements directly (no real surface/panel needed — this is testing
     canvas.vue's own DOM routing, not the Python-side surface resolution)."""
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-canvas-ready]")
 
     viewport = page.get_by_test_id("zoom-pan-test")

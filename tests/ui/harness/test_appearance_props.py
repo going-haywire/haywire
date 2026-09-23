@@ -22,7 +22,7 @@ from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready
 
-_URL = "http://localhost:8090/node-appearance"
+_PATH = "/node-appearance"
 
 pytestmark = pytest.mark.ui
 
@@ -66,7 +66,7 @@ def test_colour_starts_unset(page: Page, harness):
     real edit, so merely opening a node styled it. Emptiness is the whole
     "inherit" mechanism now, so an accidental write is still the failure mode.
     """
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 
     expect(_echo(page, "color_override")).to_contain_text("unset")
@@ -81,7 +81,7 @@ def test_picking_a_colour_reaches_the_model(page: Page, harness):
     it. ColorWidget bridges that with an explicit ``on_value_change``; without
     it, every picked colour is silently dropped.
     """
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 
     _open_picker(page)
@@ -96,7 +96,7 @@ def test_a_picked_colour_carries_alpha(page: Page, harness):
     The picker is pinned to ``format-model=hexa``, so what it emits is the
     8-digit form; a 6-digit value would mean the format never took.
     """
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 
     _open_picker(page)
@@ -113,7 +113,7 @@ def test_a_picked_colour_carries_alpha(page: Page, harness):
 def test_clearing_the_colour_returns_to_inheriting(page: Page, harness):
     """Emptiness IS the unset signal — there is no separate reset affordance,
     and no is_locally_set question anywhere in the chain."""
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 
     field = _color_input(page)

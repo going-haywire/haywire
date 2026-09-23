@@ -17,3 +17,28 @@ def goto_ready(page: Page, url: str) -> None:
     """
     page.goto(url)
     page.wait_for_function("() => document.body.dataset.hwSynced === '1'")
+
+
+def wait_for_canvas_settled(page: Page, timeout: int = 5000) -> None:
+    """Wait until the canvas pan/zoom transform stops changing.
+
+    ``goto_ready`` returns once the server's messages are applied, but the
+    canvas then centres itself (``ZoomPan.center_on_content`` →
+    ``fitToContent``), which moves every pin. Geometry read before that
+    settles is read mid-flight.
+
+    There is no "centred" stamp to wait on, so this watches the thing that
+    actually moves: ``.zoom-pan-content``'s transform, held equal across two
+    animation frames. Returns immediately on a page with no canvas.
+    """
+    page.wait_for_function(
+        """() => {
+            const el = document.querySelector('.zoom-pan-content');
+            if (!el) return true;
+            const now = getComputedStyle(el).transform;
+            const settled = window.__hwLastTransform === now;
+            window.__hwLastTransform = now;
+            return settled;
+        }""",
+        timeout=timeout,
+    )

@@ -16,9 +16,9 @@ they live entirely in canvas.vue's edge cache:
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
-_URL = "http://localhost:8090/graph-layout"
+_PATH = "/graph-layout"
 
 pytestmark = pytest.mark.ui
 
@@ -72,11 +72,11 @@ def _edge_first_control_point(page: Page) -> dict:
     )
 
 
-def _open(page: Page) -> None:
-    goto_ready(page, _URL)
+def _open(page: Page, harness) -> None:
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector("path[data-edge-id]")
-    page.wait_for_timeout(1200)  # let the graph sync + center
+    wait_for_canvas_settled(page)
 
 
 def _switch(page: Page, testid: str) -> None:
@@ -87,7 +87,7 @@ def _switch(page: Page, testid: str) -> None:
 
 
 def test_outlet_vector_flips_with_the_graph_direction(page: Page, harness) -> None:
-    _open(page)
+    _open(page, harness)
     before = _pin(page, "TestBeginPlayNode", "exec")
     assert before["dirX"] == 1, "outlet should point +X under the default l2r"
 
@@ -100,7 +100,7 @@ def test_outlet_vector_flips_with_the_graph_direction(page: Page, harness) -> No
 
 def test_edge_control_point_follows_the_flipped_outlet(page: Page, harness) -> None:
     """The regression: a cached vector leaves the curve aiming the old way."""
-    _open(page)
+    _open(page, harness)
     start = _edge_first_control_point(page)
     assert start["c1x"] > start["startX"], "l2r: first control point extends +X"
 
@@ -115,7 +115,7 @@ def test_edge_control_point_follows_the_flipped_outlet(page: Page, harness) -> N
 
 def test_edge_endpoint_tracks_the_moved_pin_without_a_hover(page: Page, harness) -> None:
     """Wrinkle 2: the redraw sync must repaint edges by itself."""
-    _open(page)
+    _open(page, harness)
     _switch(page, "set-r2l")
 
     pin = _pin(page, "TestBeginPlayNode", "exec")
@@ -130,7 +130,7 @@ def test_edge_endpoint_tracks_the_moved_pin_without_a_hover(page: Page, harness)
 
 
 def test_vertical_switch_reaims_both_ends(page: Page, harness) -> None:
-    _open(page)
+    _open(page, harness)
     _switch(page, "set-t2b")
 
     outlet = _pin(page, "TestBeginPlayNode", "exec")
@@ -176,7 +176,7 @@ def _pin_screen_box(page: Page, node_fragment: str, pin_id: str) -> dict:
 )
 def test_vertical_pins_sit_on_the_card_edge_not_inside(page: Page, harness, testid, outlet_edge) -> None:
     """Wrinkle 3: B2T sided its strips the wrong way and pins landed inside."""
-    _open(page)
+    _open(page, harness)
     _switch(page, testid)
 
     card = _card_box(page, "TestBeginPlayNode")
@@ -197,7 +197,7 @@ def test_vertical_pins_sit_on_the_card_edge_not_inside(page: Page, harness, test
 @pytest.mark.parametrize("testid", ["set-t2b", "set-b2t"])
 def test_root_ghost_pins_leave_the_card_body(page: Page, harness, testid) -> None:
     """Wrinkle 1: ghosts inline in a mid-card header row offset inward."""
-    _open(page)
+    _open(page, harness)
     _switch(page, testid)
 
     card = _card_box(page, "TestBeginPlayNode")
@@ -238,7 +238,7 @@ def test_vertical_title_gap_matches_horizontal(page: Page, harness, testid) -> N
     Asserted against the horizontal layout rather than a magic number: the
     budget is "whatever the card's own padding is", which is the real contract.
     """
-    _open(page)
+    _open(page, harness)
 
     _switch(page, "set-l2r")
     card = _card_box(page, "TestBeginPlayNode")
@@ -256,7 +256,7 @@ def test_vertical_title_gap_matches_horizontal(page: Page, harness, testid) -> N
 
 def test_vertical_pin_keeps_its_rotation_while_hovered(page: Page, harness) -> None:
     """Wrinkle 2: canvas.vue scales pins by writing the whole transform."""
-    _open(page)
+    _open(page, harness)
     _switch(page, "set-t2b")
 
     def rotation_of() -> float:
@@ -291,7 +291,7 @@ def test_vertical_pin_keeps_its_rotation_while_hovered(page: Page, harness) -> N
 
 
 def test_switching_back_restores_the_original_orientation(page: Page, harness) -> None:
-    _open(page)
+    _open(page, harness)
     original = _edge_first_control_point(page)
 
     _switch(page, "set-r2l")

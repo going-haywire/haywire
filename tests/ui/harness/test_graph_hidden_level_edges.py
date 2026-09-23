@@ -23,7 +23,7 @@ from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready
 
-_URL = "http://localhost:8090/graph-hidden-level"
+_PATH = "/graph-hidden-level"
 
 pytestmark = pytest.mark.ui
 
@@ -138,13 +138,13 @@ def _endpoint_errors(page: Page) -> list[float]:
 
 def test_a_background_level_is_not_in_the_dom_at_all(page: Page, harness):
     """The fact the rest of this file rests on. If this changes, the fix can too."""
-    goto_ready(page, f"{_URL}?edges={_EDGES}")
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
 
     assert page.evaluate("() => document.querySelectorAll('.graph-canvas').length") == 0
 
 
 def test_edges_are_drawn_once_the_canvas_is_revealed(page: Page, harness):
-    goto_ready(page, f"{_URL}?edges={_EDGES}")
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
 
     page.click('[data-testid="reveal"]')
 
@@ -153,7 +153,7 @@ def test_edges_are_drawn_once_the_canvas_is_revealed(page: Page, harness):
 
 def test_the_revealed_edges_have_real_geometry(page: Page, harness):
     """Drawn is not enough — an edge measured before layout is a path of zeros."""
-    goto_ready(page, f"{_URL}?edges={_EDGES}")
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
 
     page.click('[data-testid="reveal"]')
 
@@ -169,22 +169,26 @@ def test_re_keying_the_panel_brings_the_edges_back(page: Page, harness):
     brief to catch from here, so the assertion is on the outcome — the edges are
     all there, and on their pins — rather than on observing the gap.
     """
-    goto_ready(page, f"{_URL}?edges={_EDGES}")
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
     page.click('[data-testid="reveal"]')
     _wait_for_all_edges(page)
 
     page.click('[data-testid="rekey"]')
+    # The remount is what is under test, and _wait_for_all_edges would be
+    # satisfied by the edges still on screen from BEFORE it. The count is the
+    # only observable that distinguishes them, so wait for the teardown to
+    # drop them first; it is too brief to catch any other way.
     page.wait_for_timeout(500)
 
     assert len(_wait_for_all_edges(page)) == _EDGES
-    errors = _endpoint_errors(page)
+    errors = _wait_until_on_pins(page)
     assert errors
     assert max(errors) < _MAX_ENDPOINT_ERROR_PX, f"worst endpoint {max(errors):.0f}px from its pin"
 
 
 def test_the_canvas_reports_the_batch_it_drew(page: Page, harness):
     """What the load overlay waits on, instead of counting paths against a total."""
-    goto_ready(page, f"{_URL}?edges={_EDGES}")
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
     page.click('[data-testid="reveal"]')
     _wait_for_all_edges(page)
 
@@ -211,17 +215,15 @@ def test_edges_re_measure_after_a_re_mount_at_another_zoom(page: Page, harness):
     transform is already 0.35, so anything measured before the ZoomPanContainer
     reports in is drawn at ~3x too small, bunched towards the canvas origin.
     """
-    goto_ready(page, f"{_URL}?edges={_EDGES}")
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
     page.click('[data-testid="reveal"]')
     _wait_for_all_edges(page)
     page.click('[data-testid="zoom-out"]')
-    page.wait_for_timeout(300)
 
     page.click('[data-testid="hide"]')
     page.wait_for_function(f"() => ({_PATH_DS})().length === 0", timeout=10_000)
     page.click('[data-testid="reveal"]')
     _wait_for_all_edges(page)
-    page.wait_for_timeout(500)
 
     errors = _endpoint_errors(page)
     assert errors, "no edge endpoints could be compared against their pins"
@@ -239,19 +241,17 @@ def test_an_edge_added_while_off_screen_is_drawn_on_its_pins(page: Page, harness
     ``getBoundingClientRect`` in it returns zeros, so the edge is drawn at the
     canvas origin. Re-attaching does not re-measure anything by itself.
     """
-    goto_ready(page, f"{_URL}?edges={_EDGES}")
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
     page.click('[data-testid="reveal"]')
     _wait_for_all_edges(page)
 
     page.click('[data-testid="hide"]')
-    page.wait_for_timeout(300)
+    page.wait_for_function(f"() => ({_PATH_DS})().length === 0", timeout=10_000)
     page.click('[data-testid="add-edge"]')
-    page.wait_for_timeout(500)
     page.click('[data-testid="reveal"]')
     page.wait_for_function(f"() => ({_PATH_DS})().length === {_EDGES + 1}", timeout=10_000)
-    page.wait_for_timeout(500)
 
-    errors = _endpoint_errors(page)
+    errors = _wait_until_on_pins(page)
     assert len(errors) == (_EDGES + 1) * 2
     assert max(errors) < _MAX_ENDPOINT_ERROR_PX, (
         f"an edge added off screen is {max(errors):.0f}px from its pin — "
@@ -266,17 +266,18 @@ def test_a_re_mount_at_another_zoom_draws_on_the_pins(page: Page, harness):
     0.35, so an edge batch arriving before the ZoomPanContainer reports in is
     measured at 1 and drawn at ~3x too small, bunched towards the origin.
     """
-    goto_ready(page, f"{_URL}?edges={_EDGES}")
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
     page.click('[data-testid="reveal"]')
     _wait_for_all_edges(page)
     page.click('[data-testid="zoom-out"]')
-    page.wait_for_timeout(400)
 
     page.click('[data-testid="rekey"]')
-    page.wait_for_timeout(800)
+    # See the other rekey: the edges on screen are the pre-remount ones until
+    # the teardown drops them, and nothing observable marks that moment.
+    page.wait_for_timeout(500)
     _wait_for_all_edges(page)
 
-    errors = _endpoint_errors(page)
+    errors = _wait_until_on_pins(page)
     assert errors
     assert max(errors) < _MAX_ENDPOINT_ERROR_PX, (
         f"edges are {max(errors):.0f}px from their pins after a re-mount at zoom 0.35 — "
@@ -312,7 +313,7 @@ def test_edges_drawn_off_their_pins_are_repaired_on_re_attach(page: Page, harnes
     disagree. The check shares no arithmetic with the code that drew the edge,
     so a canvas that measured wrongly cannot confirm itself.
     """
-    goto_ready(page, f"{_URL}?edges={_EDGES}")
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
     page.click('[data-testid="reveal"]')
     _wait_for_all_edges(page)
 
@@ -320,7 +321,7 @@ def test_edges_drawn_off_their_pins_are_repaired_on_re_attach(page: Page, harnes
     assert max(_endpoint_errors(page)) > _MAX_ENDPOINT_ERROR_PX, "the fixture did not displace anything"
 
     page.click('[data-testid="hide"]')
-    page.wait_for_timeout(300)
+    page.wait_for_function(f"() => ({_PATH_DS})().length === 0", timeout=10_000)
     page.click('[data-testid="reveal"]')
 
     errors = _wait_until_on_pins(page)
@@ -338,17 +339,15 @@ def test_an_edge_drawn_at_a_non_default_zoom_lands_on_its_pins(page: Page, harne
     two — measured in the field at 2.3x, over 850px of displacement, and mixed
     with correctly-drawn edges in the same graph.
     """
-    goto_ready(page, f"{_URL}?edges={_EDGES}")
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
     page.click('[data-testid="reveal"]')
     _wait_for_all_edges(page)
     page.click('[data-testid="zoom-out"]')
-    page.wait_for_timeout(400)
 
     page.click('[data-testid="add-edge"]')
     page.wait_for_function(f"() => ({_PATH_DS})().length === {_EDGES + 1}", timeout=10_000)
-    page.wait_for_timeout(400)
 
-    errors = _endpoint_errors(page)
+    errors = _wait_until_on_pins(page)
     assert len(errors) == (_EDGES + 1) * 2
     assert max(errors) < _MAX_ENDPOINT_ERROR_PX, (
         f"an edge drawn at zoom 0.35 is {max(errors):.0f}px from its pin"

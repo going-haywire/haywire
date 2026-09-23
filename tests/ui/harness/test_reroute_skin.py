@@ -21,10 +21,10 @@ edges before growing the card anyway, so that case stays covered.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 from tests.ui.harness.probe import attr
 
-_URL = "http://localhost:8090/graph-reroute"
+_PATH = "/graph-reroute"
 
 # The pin is offset outward by card_padding + gutter//2, so its center sits ON
 # the border line. Allow a couple of px for rounding through the zoom transform.
@@ -62,11 +62,11 @@ def _geometry(page: Page, node_id: str) -> dict:
     )
 
 
-def _open(page: Page) -> None:
-    goto_ready(page, _URL)
+def _open(page: Page, harness) -> None:
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".connection-pin")
-    page.wait_for_timeout(800)  # let the graph sync + center
+    wait_for_canvas_settled(page)
 
 
 def _assert_pins_on_edges(geo: dict, where: str) -> None:
@@ -100,7 +100,7 @@ def test_pins_follow_the_borders_when_resized(page: Page, harness):
     pre-resize check makes the intrinsic dot size a precondition of the same
     test rather than a second browser launch.
     """
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page)
 
     before = _geometry(page, nid)

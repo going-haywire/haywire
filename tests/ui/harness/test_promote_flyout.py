@@ -21,14 +21,11 @@ from playwright.sync_api import Page
 
 from .nav import goto_ready
 
-_URL = (
-    "http://localhost:8090/node-attached"
-    "?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
-)
+_PATH = "/node-attached?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
 
 
-def _open_row_menu(page: Page, field: str):
-    goto_ready(page, _URL)
+def _open_row_menu(page: Page, harness, field: str):
+    goto_ready(page, f"{harness}{_PATH}")
     row = page.locator(f'[data-field="{field}"]')
     row.locator(".sf-label").first.click(button="right")
     page.wait_for_selector(".q-menu")
@@ -38,7 +35,7 @@ def _open_row_menu(page: Page, field: str):
 def test_the_promote_anchor_is_not_greyed(page: Page, harness):
     """Regression: a submenu anchor whose body draws no counted leaf greys
     ITSELF retroactively — a menu you can see and cannot open."""
-    _open_row_menu(page, "optional_int")
+    _open_row_menu(page, harness, "optional_int")
     anchor = page.locator('.q-menu .q-item:has-text("Promote to")').first
 
     assert anchor.is_visible()
@@ -47,7 +44,7 @@ def test_the_promote_anchor_is_not_greyed(page: Page, harness):
 
 
 def test_hovering_the_anchor_opens_every_eligible_direction(page: Page, harness):
-    _open_row_menu(page, "optional_int")
+    _open_row_menu(page, harness, "optional_int")
     page.locator('.q-menu .q-item:has-text("Promote to")').first.hover()
 
     for direction in ("inlet", "outlet", "config"):
@@ -57,7 +54,7 @@ def test_hovering_the_anchor_opens_every_eligible_direction(page: Page, harness)
 
 def test_promotion_nests_rather_than_flattening(page: Page, harness):
     """The top level carries ONE promotion entry, not one per direction."""
-    _open_row_menu(page, "optional_int")
+    _open_row_menu(page, harness, "optional_int")
     # inner_text includes the Material icon's ligature name, so match on the
     # leading label rather than the whole string.
     items = [t.strip().splitlines()[0] for t in page.locator(".q-menu .q-item").all_inner_texts()]
@@ -75,7 +72,7 @@ def test_an_absent_default_field_still_offers_set_to_none(page: Page, harness):
     on the reasoning that Reset lands there anyway — but Reset greys while the
     field carries no local opinion, so that left no enabled route back at all.
     """
-    _open_row_menu(page, "optional_int")
+    _open_row_menu(page, harness, "optional_int")
     texts = [t.strip() for t in page.locator(".q-menu .q-item").all_inner_texts()]
     assert "Set to none" in texts
 
@@ -84,6 +81,6 @@ def test_an_absent_default_field_still_offers_set_to_none(page: Page, harness):
 def test_reset_is_listed_for_every_row(page: Page, harness, field: str):
     """Listed permanently and greyed while clean — so the menu never renders
     empty and its shape does not shift with the current value."""
-    _open_row_menu(page, field)
+    _open_row_menu(page, harness, field)
     texts = [t.strip() for t in page.locator(".q-menu .q-item").all_inner_texts()]
     assert "Reset to default" in texts

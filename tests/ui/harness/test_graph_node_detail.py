@@ -20,9 +20,9 @@ the edge check vacuous.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
-_URL = "http://localhost:8090/graph-detail"
+_PATH = "/graph-detail"
 
 pytestmark = pytest.mark.ui
 
@@ -90,11 +90,11 @@ def _visible_inlet_count(page: Page) -> int:
     )
 
 
-def _open(page: Page) -> None:
-    goto_ready(page, _URL)
+def _open(page: Page, harness) -> None:
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector("path[data-edge-id]")
-    page.wait_for_timeout(1200)  # let the graph sync + center
+    wait_for_canvas_settled(page)
 
 
 def _switch(page: Page, testid: str) -> None:
@@ -106,7 +106,7 @@ def _switch(page: Page, testid: str) -> None:
 
 def test_detail_pins_hides_the_unlinked_inlets(page: Page, harness) -> None:
     """The fixture's premise: PINS actually removes pins from the layout."""
-    _open(page)
+    _open(page, harness)
     before = _visible_inlet_count(page)
 
     _switch(page, "set-pins")
@@ -120,7 +120,7 @@ def test_detail_pins_hides_the_unlinked_inlets(page: Page, harness) -> None:
 
 
 def test_edge_end_follows_the_pin_that_detail_moved(page: Page, harness) -> None:
-    _open(page)
+    _open(page, harness)
     before = _pin(page, "int_inlet")
 
     _switch(page, "set-pins")
@@ -143,7 +143,7 @@ def test_edge_end_follows_the_pin_that_detail_moved(page: Page, harness) -> None
 
 def test_edge_end_follows_the_pin_back_at_full(page: Page, harness) -> None:
     """And back again — the return trip re-shows the pins and moves it down."""
-    _open(page)
+    _open(page, harness)
     _switch(page, "set-pins")
     lifted = _pin(page, "int_inlet")
 

@@ -15,7 +15,7 @@ from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready
 
-_URL = "http://localhost:8090/fill-widget"
+_PATH = "/fill-widget"
 
 pytestmark = pytest.mark.ui
 
@@ -62,7 +62,7 @@ def test_switching_to_linear_produces_a_gradient(page: Page, harness):
     lone stop rather than opening on something that cannot render as a
     gradient.
     """
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 
     _set_kind(page, "Linear")
@@ -74,7 +74,7 @@ def test_switching_to_linear_produces_a_gradient(page: Page, harness):
 
 
 def test_switching_to_radial_produces_a_radial_gradient(page: Page, harness):
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 
     _set_kind(page, "Radial")
@@ -85,7 +85,7 @@ def test_switching_to_radial_produces_a_radial_gradient(page: Page, harness):
 def test_the_angle_row_belongs_to_linear_alone(page: Page, harness):
     """Angle is meaningless for solid and radial, so it is hidden — not
     redrawn, which would drop focus from the control that switched kind."""
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 
     angle = page.locator("[data-fill-angle-row]")
@@ -106,7 +106,7 @@ def test_a_stop_percentage_is_actually_readable(page: Page, harness):
     as "10". Asserting the *value* would have passed throughout; only the
     rendered width catches it.
     """
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
     _set_kind(page, "Linear")
 
@@ -124,7 +124,7 @@ def test_the_swatch_stays_slim_vertically(page: Page, harness):
     rule beats a class — which would make every stop row taller than the fields
     beside it.
     """
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 
     box = _swatch(page).bounding_box()
@@ -140,7 +140,7 @@ def test_the_swatch_fills_the_row(page: Page, harness):
     `min-width: 0` on the swatch a flex item's default `min-width: auto` would
     floor it at its content and push the row into overflow instead.
     """
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
     _set_kind(page, "Linear")
 
@@ -161,7 +161,7 @@ def test_the_swatch_fills_the_row(page: Page, harness):
 
 def test_the_swatch_shrinks_with_a_narrow_panel(page: Page, harness):
     """`min-width: 0` is load-bearing — without it the row overflows."""
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
     _set_kind(page, "Linear")
 
@@ -179,7 +179,7 @@ def test_number_fields_carry_no_native_spinner(page: Page, harness):
     """The up/down arrows belong to the browser's `type=number` control, and
     Quasar's hide-spin-buttons never reaches them from NiceGUI — the props go
     onto the <input> as plain attributes. A text input has none to hide."""
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
     _set_kind(page, "Linear")
 
@@ -189,7 +189,7 @@ def test_number_fields_carry_no_native_spinner(page: Page, harness):
 
 def test_the_angle_still_writes_through_as_a_number(page: Page, harness):
     """Text input, integer model — the handler parses and clamps."""
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
     _set_kind(page, "Linear")
 
@@ -210,7 +210,7 @@ def test_a_stop_swatch_takes_the_colour_it_holds(page: Page, harness):
     6-digit hex only, so every #rrggbbaa value falls through to transparent —
     blank for exactly the values this widget produces.
     """
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-field]")
 
     echo = _pick_color(page)

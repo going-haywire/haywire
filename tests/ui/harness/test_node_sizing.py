@@ -19,10 +19,10 @@ observable outcome of the whole write-back path.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 from tests.ui.harness.probe import attr, box as probe_box
 
-_URL = "http://localhost:8090/graph-size"
+_PATH = "/graph-size"
 
 pytestmark = pytest.mark.ui
 
@@ -71,21 +71,37 @@ def _card_width(page: Page, node_id: str) -> float | None:
     )
 
 
-def _open(page: Page) -> None:
-    goto_ready(page, _URL)
+def _wait_slot_style(page: Page, fragment: str, timeout: int = 5000) -> None:
+    """Wait until any node slot's inline style contains *fragment*.
+
+    The size presets round-trip through the server (click → set_property →
+    a subscriber restyles the slot), so the style lands some frames after the
+    click. Waiting on the value under assertion is what makes the assertion
+    meaningful rather than a race.
+    """
+    page.wait_for_function(
+        """(frag) => [...document.querySelectorAll('.ui-node-slot')]
+            .some(el => (el.getAttribute('style') || '').includes(frag))""",
+        arg=fragment,
+        timeout=timeout,
+    )
+
+
+def _open(page: Page, harness) -> None:
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".ui-node-slot")
-    page.wait_for_timeout(800)  # let the graph sync + center
+    wait_for_canvas_settled(page)
 
 
 def test_manual_width_is_a_minimum(page: Page, harness):
     """manual_width + width=140 writes a min-width; the slot never goes below it
     and never clips — content wider than the minimum expands the node."""
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page)
 
     page.click('[data-testid="size-manual-width"]')
-    page.wait_for_timeout(400)
+    _wait_slot_style(page, "min-width: 140")
 
     style = _slot_style(page, nid)
     assert "min-width: 140" in style, f"slot did not get manual min-width: {style!r}"
@@ -105,11 +121,11 @@ def test_manual_width_is_a_minimum(page: Page, harness):
 def test_manual_width_expands_past_skin_max(page: Page, harness):
     """A wide minimum (500px > max-w-sm 384px) drives both slot and card to it —
     proves the min governs and the skin's max-width clamp is released."""
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page)
 
     page.click('[data-testid="size-manual-width-wide"]')
-    page.wait_for_timeout(400)
+    _wait_slot_style(page, "min-width: 500")
 
     box = _slot_box(page, nid)
     assert abs(box["width"] - 500.0) < 2.0, f"slot not at its 500px minimum: {box}"
@@ -121,13 +137,19 @@ def test_manual_width_expands_past_skin_max(page: Page, harness):
 
 def test_auto_clears_inline_size(page: Page, harness):
     """Returning to auto clears the inline minimum so the slot hugs content again."""
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page)
 
     page.click('[data-testid="size-manual-width"]')
-    page.wait_for_timeout(300)
+    _wait_slot_style(page, "min-width: 140")
     page.click('[data-testid="size-auto"]')
-    page.wait_for_timeout(300)
+    page.wait_for_function(
+        """(nid) => {
+            const el = document.querySelector(`[data-node-id="${nid}"] .ui-node-slot`);
+            return el && !(el.getAttribute('style') || '').includes('width');
+        }""",
+        arg=nid,
+    )
 
     style = _slot_style(page, nid)
     assert "width" not in style, f"auto slot still carries inline width: {style!r}"
@@ -135,14 +157,14 @@ def test_auto_clears_inline_size(page: Page, harness):
 
 def test_gadget_appears_for_single_selection(page: Page, harness):
     """Clicking the single node shows the 8-handle resize gadget; clearing hides it."""
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page)
 
     assert page.locator('[data-testid="resize-gadget"]').count() == 0
 
     box = _slot_box(page, nid)
     page.mouse.click(box["sx"] + 30, box["sy"] + 14)  # click node header area
-    page.wait_for_timeout(500)
+    page.wait_for_selector('[data-testid="resize-gadget"]')
     assert page.locator('[data-testid="resize-gadget"]').is_visible()
     assert page.locator(".hw-resize-grip").count() == 8
 
@@ -154,19 +176,19 @@ def test_gadget_appears_for_single_selection(page: Page, harness):
     page.mouse.down()
     page.mouse.move(ex + 40, ey + 40, steps=4)
     page.mouse.up()
-    page.wait_for_timeout(600)
+    page.wait_for_selector('[data-testid="resize-gadget"]', state="detached")
     assert page.locator('[data-testid="resize-gadget"]').count() == 0
 
 
 def test_gadget_follows_node_drag(page: Page, harness):
     """Dragging the selected node moves the gadget with it (the drag writes
     style directly — the gadget must be refit per move, no observer fires)."""
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page)
 
     box = _slot_box(page, nid)
     page.mouse.click(box["sx"] + 30, box["sy"] + 14)
-    page.wait_for_timeout(500)
+    page.wait_for_selector('[data-testid="resize-gadget"]')
     assert page.locator('[data-testid="resize-gadget"]').is_visible()
 
     def gadget_box() -> dict:
@@ -196,12 +218,11 @@ def test_gadget_follows_node_drag(page: Page, harness):
 
 def test_drag_right_grip_sets_width_minimum(page: Page, harness):
     """Dragging the right grip widens the slot (manual_width minimum) and it persists."""
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page)
 
     box = _slot_box(page, nid)
     page.mouse.click(box["sx"] + 30, box["sy"] + 14)
-    page.wait_for_timeout(500)
     page.wait_for_selector('.hw-resize-grip[data-handle="right"]')
 
     before = _slot_box(page, nid)
@@ -254,7 +275,7 @@ def test_pins_stay_clickable_under_the_resize_grips(page: Page, harness):
     every other test here passes — the only symptom is that connections can no
     longer be drawn from half the pins. Hence this test.
     """
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page)
 
     box = _slot_box(page, nid)

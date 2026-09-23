@@ -22,7 +22,7 @@ from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready
 
-_URL = "http://localhost:8090/graph-chunked-load"
+_PATH = "/graph-chunked-load"
 
 pytestmark = pytest.mark.ui
 
@@ -45,7 +45,7 @@ def test_the_canvas_is_handed_back_promptly(page: Page, harness):
     is the time to a usable canvas, which is what both bugs blew out.
     """
     started = time.monotonic()
-    page.goto(f"{_URL}?nodes={_NODES}")
+    page.goto(f"{harness}{_PATH}?nodes={_NODES}")
     page.wait_for_selector(_OVERLAY, state="detached", timeout=25_000)
     elapsed = time.monotonic() - started
 
@@ -57,7 +57,7 @@ def test_the_canvas_is_handed_back_promptly(page: Page, harness):
 
 def test_the_edges_are_on_screen_when_it_releases(page: Page, harness):
     """The overlay exists to hide a half-drawn canvas; releasing early defeats it."""
-    goto_ready(page, f"{_URL}?nodes={_NODES}")
+    goto_ready(page, f"{harness}{_PATH}?nodes={_NODES}")
     page.wait_for_selector(_OVERLAY, state="detached", timeout=25_000)
 
     drawn = page.evaluate(

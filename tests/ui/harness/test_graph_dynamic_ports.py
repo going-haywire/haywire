@@ -17,7 +17,7 @@ from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready
 
-_URL = "http://localhost:8090/graph-dynamic"
+_PATH = "/graph-dynamic"
 
 pytestmark = pytest.mark.ui
 
@@ -69,7 +69,7 @@ def _close(a: dict | None, b: dict | None, tol: float = 4.0) -> bool:
 def test_edge_falls_back_to_ghost_pin_then_reattaches(page: Page, harness):
     """Dropping the linked dynamic outlet moves the edge to the ghost outlet;
     restoring the port moves it back onto the real pin."""
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("#connection-svg path[data-edge-id]")
     page.wait_for_timeout(1500)
 

@@ -31,7 +31,7 @@ from haybale_testing.widgets.oversized_content_widget import (
 from tests.ui.harness.nav import goto_ready
 from tests.ui.harness.probe import attr
 
-_URL = "http://localhost:8090/graph-widget-box"
+_PATH = "/graph-widget-box"
 
 pytestmark = pytest.mark.ui
 
@@ -129,8 +129,8 @@ def _select(page: Page, node_id: str) -> None:
     page.wait_for_timeout(500)
 
 
-def _open(page: Page) -> None:
-    goto_ready(page, _URL)
+def _open(page: Page, harness) -> None:
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".ui-node-slot")
     page.wait_for_timeout(800)
@@ -147,7 +147,7 @@ def test_declared_box_reaches_the_dom(page: Page, harness):
     End-to-end through the real skin funnel (BaseSkin.render_widget), which is
     what makes the feature work for any skin without cooperation.
     """
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page, "fixed")
     _select(page, nid)
 
@@ -161,7 +161,7 @@ def test_declared_box_reaches_the_dom(page: Page, harness):
 
 def test_width_only_declaration_contains_the_inline_axis(page: Page, harness):
     """min_width alone → inline-axis containment, leaving the block axis to content."""
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page, "aspect")
     _select(page, nid)
 
@@ -182,7 +182,7 @@ def test_content_sized_widget_floors_its_node_at_its_content(page: Page, harness
     Such a node can be grown by the gadget but not shrunk — the floor it measures
     at commit is the content's own natural size.
     """
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page, "content")
     _select(page, nid)
 
@@ -195,7 +195,7 @@ def test_content_sized_widget_floors_its_node_at_its_content(page: Page, harness
 @pytest.mark.parametrize("which", ["aspect", "fixed"])
 def test_declared_box_frees_the_node_to_shrink(page: Page, harness, which):
     """Same content behind a declaration: the node is no longer floored by it."""
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page, which)
     _select(page, nid)
 
@@ -211,7 +211,7 @@ def test_declared_box_frees_the_node_to_shrink(page: Page, harness, which):
 )
 def test_removing_the_marker_restores_the_content_floor(page: Page, harness, which, attr):
     """Containment is what frees the node — toggling it on the same DOM proves it."""
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page, which)
     _select(page, nid)
 
@@ -238,7 +238,7 @@ def test_aspect_widget_grows_proportionally_with_the_card(page: Page, harness):
     as its node gets wider, because the image's aspect ratio still drives the
     container's height. Full size containment would flatten it to a fixed box.
     """
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page, "aspect")
     _select(page, nid)
 
@@ -269,7 +269,7 @@ def test_fixed_box_widget_widens_but_keeps_its_declared_height(page: Page, harne
     Documented, not incidental — a fully contained widget trades proportional
     growth for a floor in both axes. Declare min_width alone to keep the aspect.
     """
-    _open(page)
+    _open(page, harness)
     nid = _node_id(page, "fixed")
     _select(page, nid)
 

@@ -13,9 +13,9 @@ exposes ``.connection-pin`` elements — see ``test_graph_connect.py``.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
-_URL = "http://localhost:8090/graph-connect"
+_PATH = "/graph-connect"
 
 pytestmark = pytest.mark.ui
 
@@ -49,18 +49,18 @@ def _node_body_center(page: Page, id_fragment: str) -> dict:
     )
 
 
-def _open(page: Page) -> None:
-    goto_ready(page, _URL)
+def _open(page: Page, harness) -> None:
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".connection-pin")
-    page.wait_for_timeout(1200)  # let the graph sync + center
+    wait_for_canvas_settled(page)
 
 
 def test_right_click_on_a_pin_opens_the_pin_menu(page: Page, harness):
     """A right-click on an element carrying data-pin-id (and no
     data-hw-menu-surface-id) opens PinMenu — proven by ``PinEditMenuPanel``'s
     "Edit" row, which is only ever drawn on that surface."""
-    _open(page)
+    _open(page, harness)
     pos = _pin_center(page, "exec@TestBeginPlay")
 
     page.mouse.click(pos["x"], pos["y"], button="right")
@@ -83,7 +83,7 @@ def test_right_click_on_a_node_body_still_opens_the_selection_menu(page: Page, h
     """A right-click on the node body (not a pin) still opens the selection
     menu — the pin branch (checked first, since a pin sits inside a node)
     must not swallow the node case."""
-    _open(page)
+    _open(page, harness)
     pos = _node_body_center(page, "TestBeginPlay")
 
     page.mouse.click(pos["x"], pos["y"], button="right")

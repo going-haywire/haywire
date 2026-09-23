@@ -19,10 +19,10 @@ view, until an incidental trigger (a hover, a drag) repaints it.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 from tests.ui.harness.test_graph_node_detail import _edge_end, _pin
 
-_URL = "http://localhost:8090/graph-detail-culled"
+_PATH = "/graph-detail-culled"
 
 pytestmark = pytest.mark.ui
 
@@ -80,7 +80,7 @@ def _switch(page: Page, testid: str) -> None:
     page.wait_for_timeout(900)
 
 
-def _open(page: Page) -> str:
+def _open(page: Page, harness) -> str:
     """Load the fixture, arm culling, and return the sink node's id.
 
     Ends with the viewport back at _PAN_AWAY, which is already far from the
@@ -89,10 +89,10 @@ def _open(page: Page) -> str:
     the sink (guaranteeing its card is mounted): a query made after would
     race the very unmount this fixture exists to test.
     """
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector("path[data-edge-id]")
-    page.wait_for_timeout(1200)  # let the graph sync + settle
+    wait_for_canvas_settled(page)
 
     _set_pan(page, *_PAN_TO_SINK)
     node_id = _sink_node_id(page)
@@ -112,7 +112,7 @@ def _open(page: Page) -> str:
 
 
 def test_edge_repaints_after_detail_change_while_culled(page: Page, harness) -> None:
-    node_id = _open(page)
+    node_id = _open(page, harness)
 
     # Bring the node on screen first to read its FULL-rank pin position.
     _set_pan(page, *_PAN_TO_SINK)
@@ -145,7 +145,7 @@ def test_edge_repaints_after_detail_change_while_culled(page: Page, harness) -> 
 
 def test_edge_repaints_on_the_return_trip_while_culled(page: Page, harness) -> None:
     """Same as above, flipping back to FULL while culled."""
-    node_id = _open(page)
+    node_id = _open(page, harness)
 
     _set_pan(page, *_PAN_TO_SINK)
     assert not _is_culled(page, node_id), "premise: node must be visible to set up the PINS starting state"

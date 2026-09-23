@@ -18,16 +18,32 @@ from pathlib import Path
 import pytest
 import requests
 
-_BASE_URL = "http://localhost:8090"
+_BASE_PORT = 8090
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+
+
+def _harness_port() -> int:
+    """This session's harness port: 8090 alone, offset per pytest-xdist worker.
+
+    xdist runs each worker as its own pytest session, so this fixture's
+    session scope starts one harness subprocess PER WORKER — all binding 8090
+    at once without an offset. ``PYTEST_XDIST_WORKER`` is xdist's own env var
+    (``gw0``, ``gw1``, ...); its digits give a stable, small per-worker offset.
+    """
+    worker = os.environ.get("PYTEST_XDIST_WORKER", "")
+    digits = "".join(ch for ch in worker if ch.isdigit())
+    return _BASE_PORT + (int(digits) if digits else 0)
 
 
 @pytest.fixture(scope="session")
 def harness():
     """Start the harness app subprocess and wait until it is ready."""
+    port = _harness_port()
+    base_url = f"http://localhost:{port}"
     # Strip PYTEST_CURRENT_TEST so NiceGUI's is_pytest() check doesn't fire inside
     # the subprocess — otherwise ui.run() reads NICEGUI_SCREEN_TEST_PORT and crashes.
     env = {k: v for k, v in os.environ.items() if k != "PYTEST_CURRENT_TEST"}
+    env["HAYWIRE_HARNESS_PORT"] = str(port)
     proc = subprocess.Popen(
         ["uv", "run", "python", "tests/ui/harness/app.py"],
         cwd=str(_REPO_ROOT),
@@ -36,7 +52,7 @@ def harness():
     deadline = time.time() + 20
     while time.time() < deadline:
         try:
-            r = requests.get(f"{_BASE_URL}/status", timeout=1)
+            r = requests.get(f"{base_url}/status", timeout=1)
             if r.status_code == 200:
                 break
         except Exception:
@@ -45,7 +61,7 @@ def harness():
     else:
         proc.terminate()
         raise RuntimeError("Harness did not become ready within 20s")
-    yield _BASE_URL
+    yield base_url
     proc.terminate()
     proc.wait(timeout=5)
 

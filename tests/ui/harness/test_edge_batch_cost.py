@@ -25,7 +25,7 @@ from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready
 
-_URL = "http://localhost:8090/graph-edge-batch"
+_PATH = "/graph-edge-batch"
 
 pytestmark = pytest.mark.ui
 
@@ -63,9 +63,9 @@ COUNTER = """
 """
 
 
-def _open_and_count(page: Page, edges: int) -> int:
+def _open_and_count(page: Page, harness, edges: int) -> int:
     """Load the fixture with `edges` edges; return the edge messages it took."""
-    goto_ready(page, f"{_URL}?edges={edges}")
+    goto_ready(page, f"{harness}{_PATH}?edges={edges}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_function(
         """(n) => {
@@ -82,8 +82,8 @@ def _open_and_count(page: Page, edges: int) -> int:
 def test_edge_sync_message_count_does_not_grow_with_edge_count(page: Page, harness) -> None:
     page.add_init_script(COUNTER)
 
-    few = _open_and_count(page, _FEW)
-    many = _open_and_count(page, _MANY)
+    few = _open_and_count(page, harness, _FEW)
+    many = _open_and_count(page, harness, _MANY)
 
     assert few > 0, "no edge sync message was seen at all — the fixture drew no edges"
 

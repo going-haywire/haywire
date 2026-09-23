@@ -19,7 +19,7 @@ from playwright.sync_api import Page, expect
 
 from tests.ui.harness.nav import goto_ready
 
-_COPY_BUTTON_URL = "http://localhost:8090/copy-button"
+_COPY_BUTTON_PATH = "/copy-button"
 
 pytestmark = pytest.mark.ui
 
@@ -31,7 +31,7 @@ def test_copy_button_click_shows_copied_notification(page: Page, harness):
     navigator.clipboard.writeText() branch of clipboard_script() (not the
     execCommand fallback) through perform_copy()'s async handler.
     """
-    goto_ready(page, _COPY_BUTTON_URL)
+    goto_ready(page, f"{harness}{_COPY_BUTTON_PATH}")
 
     page.get_by_role("button").click()
 

@@ -24,7 +24,7 @@ from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready
 
-_URL = "http://localhost:8090/graph-dynamic"
+_PATH = "/graph-dynamic"
 
 pytestmark = pytest.mark.ui
 
@@ -67,7 +67,7 @@ def _pin_centre(page: Page) -> dict:
 
 
 def test_an_open_edge_drag_does_not_measure_every_pin_per_move(page: Page, harness) -> None:
-    goto_ready(page, _URL)
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector("path[data-edge-id]")
     page.wait_for_timeout(1200)

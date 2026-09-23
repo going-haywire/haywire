@@ -46,6 +46,7 @@ dev = [
     "pyinstaller>=6.14.1",
     "playwright",
     "pytest-playwright",
+    "pytest-xdist",
     "requests",
     "haywire-core",
     "haywire-studio",

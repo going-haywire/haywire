@@ -21,9 +21,9 @@ import re
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
-_URL = "http://localhost:8090/graph-connect"
+_PATH = "/graph-connect"
 
 pytestmark = pytest.mark.ui
 
@@ -54,11 +54,11 @@ def _edge_ids(page: Page) -> list[str]:
     )
 
 
-def _open(page: Page) -> None:
-    goto_ready(page, _URL)
+def _open(page: Page, harness) -> None:
+    goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-node-id]")
     page.wait_for_selector(".connection-pin")
-    page.wait_for_timeout(1200)  # let the graph sync + center
+    wait_for_canvas_settled(page)
     assert _edge_ids(page) == [], "fixture should start with no edges"
 
 
@@ -72,10 +72,10 @@ def _click_pin(page: Page, id_fragment: str) -> dict:
 
 def test_click_click_outlet_then_inlet_creates_edge(page: Page, harness):
     """Click the outlet, then the inlet → a single correctly-oriented edge."""
-    _open(page)
+    _open(page, harness)
     _click_pin(page, "exec@TestBeginPlay")  # outlet
     _click_pin(page, "exec@TestPrint")  # inlet
-    page.wait_for_timeout(400)
+    page.wait_for_selector("path[data-edge-id]")
 
     edges = _edge_ids(page)
     assert len(edges) == 1, f"expected exactly one edge, got {edges}"
@@ -88,10 +88,10 @@ def test_reverse_inlet_then_outlet_creates_oriented_edge(page: Page, harness):
     Exercises direction normalization in _commitConnection (the source is always
     the outlet, regardless of click order).
     """
-    _open(page)
+    _open(page, harness)
     _click_pin(page, "exec@TestPrint")  # inlet first
     _click_pin(page, "exec@TestBeginPlay")  # outlet second
-    page.wait_for_timeout(400)
+    page.wait_for_selector("path[data-edge-id]")
 
     edges = _edge_ids(page)
     assert len(edges) == 1, f"expected exactly one edge, got {edges}"
@@ -100,7 +100,7 @@ def test_reverse_inlet_then_outlet_creates_oriented_edge(page: Page, harness):
 
 def test_proximity_snap_commits_to_nearest_compatible_pin(page: Page, harness):
     """Click the outlet, then click empty canvas near the inlet → snaps and connects."""
-    _open(page)
+    _open(page, harness)
     _click_pin(page, "exec@TestBeginPlay")  # start the active connection
 
     inlet = _pin_center(page, "exec@TestPrint")
@@ -108,7 +108,7 @@ def test_proximity_snap_commits_to_nearest_compatible_pin(page: Page, harness):
     page.mouse.move(near_x, near_y)
     page.wait_for_timeout(200)
     page.mouse.click(near_x, near_y)
-    page.wait_for_timeout(400)
+    page.wait_for_selector("path[data-edge-id]")
 
     edges = _edge_ids(page)
     assert len(edges) == 1, f"proximity snap should connect, got {edges}"
@@ -121,9 +121,10 @@ def test_outlet_to_outlet_makes_no_edge(page: Page, harness):
     The engine enforces direction rules; this is a thin UI-level guard that the
     canvas honors them rather than emitting a bogus edgeCreated.
     """
-    _open(page)
+    _open(page, harness)
     _click_pin(page, "exec@TestBeginPlay")  # outlet
     _click_pin(page, "done@TestPrint")  # another outlet (EXEC.as_outlet "done")
+    # A negative: nothing to wait FOR, so give a wrong edge time to show up.
     page.wait_for_timeout(400)
 
     assert _edge_ids(page) == [], "outlet→outlet must not create an edge"

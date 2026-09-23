@@ -79,6 +79,29 @@ uv run pytest -m integration              # integration only (full library syste
 uv run pytest -m unit                     # unit tests only (~1m40s, 1252 tests)
 uv run pytest --cov                       # with coverage
 
+# Both tiers parallelise with -n (pytest-xdist). Together: ~386s -> ~133s.
+#
+# The browser tier is safe because each xdist worker gets its own harness
+# server — tests/ui/harness/conftest.py offsets the port off
+# PYTEST_XDIST_WORKER, and every test builds its URL from the `harness`
+# fixture rather than a hardcoded localhost:8090.
+uv run pytest -m browser -n 4                        # ~138s -> ~43s
+uv run pytest -m "not browser and not perf" -n 4     # ~248s -> ~90s
+#
+# Stick to -n 4. At -n 8 the cost-measuring browser tests (test_edge_batch_cost,
+# test_edge_drag_cost) intermittently blow their 30s Playwright timeout on a
+# loaded box — they measure work per frame, so contention IS the failure.
+#
+# NEVER use --dist loadfile. It fails ~5 tests every run AND silently collects
+# fewer tests than it should (3689-4242 instead of 5769). Plain --dist load
+# (the default) is the one that works.
+#
+# A parallel run of the non-browser tier hangs roughly 1 run in 13, in
+# tests/core/test_undo/ or a macro/registry test, and times out at 120s. That
+# is a REAL lock-ordering deadlock between the validation timer thread and the
+# main thread (NodeWrapper._lock), not an xdist artifact — load just makes the
+# interleaving likely. Don't write such a hang off as flakiness.
+
 # Running the long tiers without fighting the terminal
 #
 # `addopts` includes `-v`, so a full run emits thousands of lines and the tail
