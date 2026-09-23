@@ -288,6 +288,12 @@ def _resolve_pin_icon(pin: DataPort, pin_icons: PinIconResolver | None = None) -
     return (pin_icons or DEFAULT_PIN_ICONS).resolve(pin)
 
 
+#: A ghost pin's fixed box size in px, both axes. Exposed so a caller can
+#: derive its own offset from the box the CSS below actually draws, rather
+#: than a real pin's (wider) ``pin_gutter``.
+GHOST_PIN_SIZE = 12
+
+
 def render_ghost_pin(
     node_id: str,
     *,
@@ -315,8 +321,9 @@ def render_ghost_pin(
         is_inlet: Whether this is the inlet ghost (``root_in``) or the outlet
             one (``root_out``).
         offset: Pixels to pull the pin outward, resolved against the card's
-            padding box — normally ``card_padding + pin_gutter // 2 +
-            pin_protrusion``, the same arithmetic ``render_pin`` uses.
+            padding box — ``card_padding + GHOST_PIN_SIZE // 2 +
+            pin_protrusion``, mirroring the arithmetic ``render_pin`` uses but
+            with this pin's own (smaller) box, not ``pin_gutter``.
         order_last: Pushes the pin to the far end of a horizontal flex row,
             which is where an outlet ghost belongs beside the node title.
     """
@@ -329,7 +336,8 @@ def render_ghost_pin(
         ui.element("div")
         .classes("connection-pin zoom-pan-lod0")
         .style(
-            f"{order}width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; "
+            f"{order}width: {GHOST_PIN_SIZE}px; height: {GHOST_PIN_SIZE}px; "
+            "border-radius: 50%; flex-shrink: 0; "
             "background: var(--hw-ghost-pin); border: 1px dashed var(--hw-ghost-pin); "
             f"cursor: default; {side}: -{offset}px;"
         )

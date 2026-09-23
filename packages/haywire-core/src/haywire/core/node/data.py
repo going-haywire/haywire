@@ -42,7 +42,10 @@ class NodeData:
     # Class-level attributes (set by @node decorator)
     _settings_bags: ClassVar[dict[str, type[NodeSettings]]] = {}
     class_identity: ClassVar[NodeIdentity]
-    class_behavior: ClassVar[NodeBehaviorFlags]
+    # Defaulted, unlike class_identity/class_library: __init__ stamps _behavior
+    # from this unconditionally, and a bare NodeData (no @node) is a supported
+    # stand-in in widget-only tests that never reach the decorator.
+    class_behavior: ClassVar[NodeBehaviorFlags] = NodeBehaviorFlags()
     class_library: ClassVar[LibraryIdentity]
 
     def worker(self, context: ExecutionContext, *args: Any, **kwargs: Any) -> "str | None":

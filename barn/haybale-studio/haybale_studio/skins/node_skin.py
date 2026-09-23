@@ -8,6 +8,7 @@ from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.pin_render import (
+    GHOST_PIN_SIZE,
     add_pin_tooltip,
     render_ghost_pin,
     render_pin,
@@ -693,11 +694,18 @@ class NodeSkin(BaseSkin, ABC):
             # Horizontal outlets are pushed to the far end of the flex row;
             # vertically each ghost is alone in its own strip.
             order = not vertical and not is_inlet
-            # Vertically the ghost shares a strip with the real pins, so it
-            # takes render_pin's offset verbatim (the gutter half comes from
-            # the 20px pins, not the ghost's own 12px box) — that puts every
-            # pin on the strip on one edge line.
-            offset = self.CARD_V_PADDING + self.PIN_GUTTER // 2 + self.PIN_PROTRUSION if vertical else 16
+            if vertical:
+                # The ghost shares its strip with the real pins as an equal
+                # flex sibling, so it takes render_pin's offset verbatim —
+                # PIN_GUTTER, not its own smaller box, is what centers a flex
+                # item's `{side}: -N` shift onto the same edge line as a pin.
+                offset = self.CARD_V_PADDING + self.PIN_GUTTER // 2 + self.PIN_PROTRUSION
+            else:
+                # Horizontally the ghost sits in the header row itself, while
+                # real pins render into an absolutely-positioned column
+                # (_render_pin_column) — a different containing context, so
+                # the ghost's own (smaller) box half is what lands it flush.
+                offset = self.CARD_H_PADDING + GHOST_PIN_SIZE // 2 + self.PIN_PROTRUSION
             render_ghost_pin(
                 node_id,
                 layout=layout,
