@@ -33,11 +33,12 @@ jobs:
         run: uv sync --dev
 
       - name: Run fast test suite (gate)
-        # Exclude `ui`-marked tests: they drive a real Playwright browser that
-        # isn't provisioned on the release runner (no `playwright install`).
-        # No other CI job runs them either, so excluding them here keeps the
-        # gate consistent with the rest of CI rather than narrowing coverage.
-        run: uv run pytest -m "not integration and not ui" -q
+        # Exclude `browser`-marked tests: they drive a real Playwright browser
+        # that isn't provisioned on the release runner (no `playwright
+        # install`). The marker is auto-applied to tests/ui/harness/ by
+        # tests/conftest.py; `ui` does not select them. tests.yml runs them in
+        # a job that does install a browser.
+        run: uv run pytest -m "not integration and not browser and not perf" -q
 
   build:
     name: Build wheels
