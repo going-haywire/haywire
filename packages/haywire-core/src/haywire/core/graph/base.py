@@ -318,6 +318,12 @@ class BaseGraph:
         found by id alone. Attaching a definition is the one moment an id space
         from another tree arrives, so it is checked here.
 
+        The definition also adopts this graph's validation scheduler. Most
+        callers build a ``SubgraphDefinition`` with no scheduler of its own, so
+        without this a Subgraph of a ``SyncScheduler`` graph would validate on
+        a background timer — see ``ValidationManager.adopt_scheduler`` for what
+        that deadlocks.
+
         Raises:
             ValueError: If the key is already taken, or if the definition holds
                 a node id the destination tree already uses.
@@ -334,6 +340,8 @@ class BaseGraph:
 
         self.subgraphs[definition.key] = definition
         definition._host_graph = self
+        definition.validation_scheduler = self.validation_scheduler
+        definition._validation.adopt_scheduler(self.validation_scheduler)
         return definition
 
     def get_subgraph(self, key: str) -> "SubgraphDefinition | None":

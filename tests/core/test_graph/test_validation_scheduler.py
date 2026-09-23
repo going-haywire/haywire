@@ -88,3 +88,34 @@ def test_reschedule_cancels_previous_handle():
     assert len(sched.handles) == 2
     assert sched.handles[0].cancelled is True, "first pending run must be cancelled on reschedule"
     assert sched.handles[1].cancelled is False
+
+
+def test_a_subgraph_adopts_its_host_s_scheduler():
+    """A Subgraph must validate on the same thread as the graph hosting it.
+
+    The two validations reach each other through the Graph-node card that
+    spans them, so a definition left on the default background timer while its
+    host validates inline takes the card's ``NodeWrapper._lock`` and the host's
+    validation lock in the opposite order to the host. That deadlocked the
+    suite roughly 1 parallel run in 13, always under load.
+
+    Most callers build a ``SubgraphDefinition`` with no scheduler of its own
+    (only the deserialization path passed one), so ``add_subgraph`` is what
+    makes this hold for all of them.
+    """
+    from haywire.core.graph.subgraph import SubgraphDefinition
+
+    host = BaseGraph("host", validation_scheduler=SyncScheduler())
+    definition = host.add_subgraph(SubgraphDefinition(key="sg", label="G"))
+
+    assert isinstance(definition._validation._scheduler, SyncScheduler)
+
+
+def test_a_subgraph_of_a_default_graph_keeps_the_default():
+    """Adopting must not force a scheduler on a host that never chose one."""
+    from haywire.core.graph.subgraph import SubgraphDefinition
+
+    host = BaseGraph("host")
+    definition = host.add_subgraph(SubgraphDefinition(key="sg", label="G"))
+
+    assert isinstance(definition._validation._scheduler, ThreadingTimerScheduler)

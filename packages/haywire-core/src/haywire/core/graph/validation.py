@@ -168,6 +168,25 @@ class ValidationManager:
 
             return self._validate_batch()
 
+    def adopt_scheduler(self, scheduler: Optional[ValidationScheduler]) -> None:
+        """Run future batches on ``scheduler``, cancelling any pending one.
+
+        For a Subgraph joining a host: the two graphs' validations reach each
+        other through the Graph-node card that spans them, so they must run on
+        the same thread. A definition left on the default background timer
+        while its host validates inline takes the card's ``NodeWrapper._lock``
+        and the host's validation lock in the opposite order to the host — a
+        deadlock that appears only under load. ``None`` leaves this manager's
+        scheduler alone, since it means the host never chose one either.
+        """
+        if scheduler is None:
+            return
+        with self._validation_lock:
+            if self._pending_handle is not None:
+                self._pending_handle.cancel()
+                self._pending_handle = None
+            self._scheduler = scheduler
+
     def clear(self) -> None:
         """Drop all dirty tracking and cancel any pending validation, without notifying subscribers."""
         with self._validation_lock:

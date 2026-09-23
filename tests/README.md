@@ -43,21 +43,16 @@ mode.
 
 ### A parallel hang is a real bug, not flakiness
 
-Roughly 1 non-browser run in 13 hangs and dies at the 120s pytest-timeout,
-somewhere in `tests/core/test_undo/` or a macro/registry test. That is a
-**lock-ordering deadlock in product code**:
+Going parallel surfaced a genuine deadlock — a Subgraph validating on a
+background timer while its host validated inline, deadlocking through the
+Graph-node card that spans both graphs. It hung ~1 run in 13 and never failed
+serially. Fixed 2026-09-23; see
+[.insights/project_subgraph_scheduler_deadlock.md](../.insights/project_subgraph_scheduler_deadlock.md).
 
-```text
-node_wrapper.py:649  _housekeeping → with self._lock:      ← blocks forever
-   …while the validation timer thread holds it inside:
-validation.py:362    _validate_batch → _notify_subscribers
-                     → graph_node.py:124 _on_definition_validated
-```
-
-The validation timer thread and the main thread take `NodeWrapper._lock` in
-conflicting orders. The affected tests pass 5/5 serially; only CPU contention
-makes the interleaving likely. Parallelism exposed this, it did not cause it,
-and it can hang a real studio session. Do not dismiss such a hang.
+Keep the lesson: a run that **hangs** to the 120s timeout, rather than
+failing, is a lock cycle until proven otherwise. Do not write one off as xdist
+flakiness — the suite is the only place this class of bug is currently
+observable, and the same cycle can hang a real studio session.
 
 ## Shared mutable state
 
