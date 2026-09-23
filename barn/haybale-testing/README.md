@@ -20,6 +20,7 @@ Test library for test support
 - **Mixed Fold** — Tests that a fold spanning two directions raises
 - **Nested Fold** — Tests that a fold declared inside another fold raises
 - **Performance Testing Node** — Helps test performance of execution system
+- **Reorder Probe** — Tests user-driven port ordering
 - **Settings Test Node** — Test the Settings for debugging
 - **Size Box (content-sized)** — Hosts an oversized widget with no declared box
 - **Size Box (declared box)** — Hosts an oversized widget declaring both axes

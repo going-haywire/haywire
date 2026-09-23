@@ -24,6 +24,7 @@ File-centric multi-graph manager
 - **Haystack State** — 
 
 ## Panels
+- **Edit Macro** — 
 - **Graph Settings** — 
 - **Load into Haystack** — 
 

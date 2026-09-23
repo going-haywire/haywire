@@ -1,4 +1,4 @@
-# haybale-haystack — component index (v0.2.0)
+# haybale-haystack — component index (v0.2.1)
 
 ## setting
 - `haybale-haystack:setting:HaystackSettings` — Haystack — 
@@ -18,6 +18,7 @@
 - `haybale-haystack:state:HaystackState` — Haystack State — 
 
 ## panel
+- `haybale-haystack:panel:EditMacroMenuPanel` — Edit Macro — 
 - `haybale-haystack:panel:GraphRunSettingsPanel` — Graph Settings — 
 - `haybale-haystack:panel:OpenInHaystackMenuPanel` — Load into Haystack — 
 

@@ -1,4 +1,4 @@
-# haybale-graph-editor — component index (v0.2.0)
+# haybale-graph-editor — component index (v0.2.1)
 
 ## farmhand
 - `haybale-graph-editor:farmhand:add_node` — Add node — Add a node by registry key. Call studio_describe_component first to learn its ports.
@@ -22,21 +22,27 @@
 - `haybale-graph-editor:panel:ClearDetailOverridesMenuPanel` — Reset Detail — 
 - `haybale-graph-editor:panel:ClearSettingMenuPanel` — Set to none — 
 - `haybale-graph-editor:panel:CollapseSelectionMenuPanel` — Collapse — 
+- `haybale-graph-editor:panel:CollapseToGroupMenuPanel` — Collapse to Group — 
 - `haybale-graph-editor:panel:CollapseToolbarPanel` — Collapse — 
 - `haybale-graph-editor:panel:CopySelectionMenuPanel` — Copy Selection — 
 - `haybale-graph-editor:panel:CreateNodeMenuPanel` — Create Node — 
 - `haybale-graph-editor:panel:DeleteEdgeMenuPanel` — Delete Connection — 
 - `haybale-graph-editor:panel:DeleteSelectionMenuPanel` — Delete Selection — 
+- `haybale-graph-editor:panel:DetachFromMacroMenuPanel` — Detach from Macro — 
 - `haybale-graph-editor:panel:DetachSettingMenuPanel` — Detach from setting — 
 - `haybale-graph-editor:panel:DetailRankMenuPanel` — Detail Ranks — 
 - `haybale-graph-editor:panel:DetailSelectionMenuPanel` — Detail — 
 - `haybale-graph-editor:panel:DissolveRerouteMenuPanel` — Dissolve Reroute — 
+- `haybale-graph-editor:panel:EdgeAdapterChainPanel` — Adapter Chain — 
+- `haybale-graph-editor:panel:EdgeAdapterEditMenuPanel` — Adapters — 
 - `haybale-graph-editor:panel:EdgeErrorsMenuPanel` — Connection Errors — 
 - `haybale-graph-editor:panel:EdgeErrorsPanel` — Connection Errors — 
+- `haybale-graph-editor:panel:EdgeLazyPanel` — Propagation — 
 - `haybale-graph-editor:panel:EdgePathPanel` — Connection Path — 
 - `haybale-graph-editor:panel:EdgeStatsPanel` — Execution Statistics — 
 - `haybale-graph-editor:panel:EdgeWarningsMenuPanel` — Connection Warnings — 
 - `haybale-graph-editor:panel:EdgeWarningsPanel` — Connection Warnings — 
+- `haybale-graph-editor:panel:EditEdgeMenuPanel` — Edit — 
 - `haybale-graph-editor:panel:EditSelectionMenuPanel` — Edit — 
 - `haybale-graph-editor:panel:FocusGraphPanel` — Focus on Graph — 
 - `haybale-graph-editor:panel:GraphContextPanel` — Graph Context — 
@@ -44,7 +50,9 @@
 - `haybale-graph-editor:panel:GraphMetadataPanel` — Graph Metadata — 
 - `haybale-graph-editor:panel:GraphMorePanel` — More Actions — 
 - `haybale-graph-editor:panel:GraphSettingsPanel` — Graph Settings — 
+- `haybale-graph-editor:panel:GroupMenuPanel` — Group — 
 - `haybale-graph-editor:panel:InsertRerouteMenuPanel` — Insert Reroute — 
+- `haybale-graph-editor:panel:LazyEdgeMenuPanel` — Propagation — Lazy propagation pulls data on demand instead of pushing it to the target node.
 - `haybale-graph-editor:panel:LockToolbarPanel` — Lock — 
 - `haybale-graph-editor:panel:NodeAppearancePanel` — Node Appearance — 
 - `haybale-graph-editor:panel:NodeErrorsPanel` — Node Errors — 

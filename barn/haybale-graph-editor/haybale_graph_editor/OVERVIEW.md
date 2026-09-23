@@ -20,9 +20,12 @@ Visual graph editor library — host-agnostic
 - **Edit State** — 
 
 ## Panels
+- **Adapter Chain** — 
+- **Adapters** — 
 - **Appearance** — 
 - **Collapse** — 
 - **Collapse** — 
+- **Collapse to Group** — 
 - **Connection Errors** — 
 - **Connection Errors** — 
 - **Connection Path** — 
@@ -32,10 +35,12 @@ Visual graph editor library — host-agnostic
 - **Create Node** — 
 - **Delete Connection** — 
 - **Delete Selection** — 
+- **Detach from Macro** — 
 - **Detach from setting** — 
 - **Detail** — 
 - **Detail Ranks** — 
 - **Dissolve Reroute** — 
+- **Edit** — 
 - **Edit** — 
 - **Edit** — 
 - **Execution Statistics** — 
@@ -44,6 +49,7 @@ Visual graph editor library — host-agnostic
 - **Graph Info** — 
 - **Graph Metadata** — 
 - **Graph Settings** — 
+- **Group** — 
 - **Insert Reroute** — 
 - **Lock** — 
 - **More** — 
@@ -57,6 +63,8 @@ Visual graph editor library — host-agnostic
 - **Node Settings** — 
 - **Paste** — 
 - **Ports** — 
+- **Propagation** — 
+- **Propagation** — Lazy propagation pulls data on demand instead of pushing it to the target node.
 - **Rebuild** — 
 - **Reconnect Edge** — 
 - **Redraw Selection** — 

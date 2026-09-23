@@ -14,6 +14,9 @@ Example library for demonstrating multi-library support
 - **Math Operation** — 
 - **Merge Callback** — Listens for a specified number of callbacks from other flows
 
+## Macros
+- **NewMacroGroup** — 
+
 ## Types
 - **Array** — Map with key type string
 - **Fill** — Solid colour or gradient background

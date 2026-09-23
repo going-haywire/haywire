@@ -1,4 +1,4 @@
-# haybale-core — component index (v0.2.0)
+# haybale-core — component index (v0.2.1)
 
 ## node
 - `haybale-core:node:BeginPlayNode` — Begin Player — Triggered once when execution starts  _tags: start, init, begin, event_
@@ -16,7 +16,6 @@
 - `haybale-core:type:CALLBACK` — Callback Signal — Signal for callback execution between nodes
 - `haybale-core:type:DICT` — Dictionary — Key-value pairs
 - `haybale-core:type:EXEC` — Execution Signal — Signal for controlling execution flow between nodes
-- `haybale-core:type:GROUP` — Group — Inlet group
 - `haybale-core:type:LIST` — List — Ordered collection
 - `haybale-core:type:PooledType` — Pooled — Multi-source aggregation
 

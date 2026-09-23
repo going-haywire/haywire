@@ -1,4 +1,4 @@
-# haybale-example — component index (v0.2.0)
+# haybale-example — component index (v0.2.1)
 
 ## node
 - `haybale-example:node:CustomCallbackNode` — Custom Callback — Listens for custom callbacks from other flows  _tags: callback, listen, event, custom_
@@ -6,6 +6,9 @@
 - `haybale-example:node:FillDemoNode` — Fill Demo —   _tags: fill, gradient, colour, color, css, example_
 - `haybale-example:node:MathOP` — Math Operation —   _tags: math, value, single, basic, operation_  **DEPRECATED**
 - `haybale-example:node:MergeCallbackNode` — Merge Callback — Listens for a specified number of callbacks from other flows  _tags: callback, listen, event, custom_
+
+## macro
+- `haybale-example:macro:NewMacroGroup` — NewMacroGroup — 
 
 ## type
 - `haybale-example:type:FILL` — Fill — Solid colour or gradient background

@@ -1,4 +1,4 @@
-# haybale-marketplace — component index (v0.2.0)
+# haybale-marketplace — component index (v0.2.1)
 
 ## farmhand
 - `haybale-marketplace:farmhand:dry_run_install` — Dry-run install — Resolve what an install would remove/upgrade, without installing (informational valve).

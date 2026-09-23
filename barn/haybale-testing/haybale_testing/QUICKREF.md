@@ -1,4 +1,4 @@
-# haybale-testing — component index (v0.2.0)
+# haybale-testing — component index (v0.2.1)
 
 ## node
 - `haybale-testing:node:AddPortTestNode` — Add Port TestNode —   _tags: testing, add, placeholder, resolve, variadic_
@@ -13,6 +13,7 @@
 - `haybale-testing:node:MixedFoldNode` — Mixed Fold — Tests that a fold spanning two directions raises  _tags: testing, fold_
 - `haybale-testing:node:NestedFoldNode` — Nested Fold — Tests that a fold declared inside another fold raises  _tags: testing, fold_
 - `haybale-testing:node:PerformanceTester` — Performance Testing Node — Helps test performance of execution system  _tags: performance, control, flow, event_
+- `haybale-testing:node:ReorderProbeNode` — Reorder Probe — Tests user-driven port ordering  _tags: testing, reorder, order_
 - `haybale-testing:node:SettingsNode` — Settings Test Node — Test the Settings for debugging  _tags: settings, debug, test, example_
 - `haybale-testing:node:SizeBoxAspectNode` — Size Box (declared width) — Hosts an oversized widget declaring min_width only  _tags: size, resize, widget, testing_
 - `haybale-testing:node:SizeBoxContentNode` — Size Box (content-sized) — Hosts an oversized widget with no declared box  _tags: size, resize, widget, testing_
