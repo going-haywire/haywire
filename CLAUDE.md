@@ -66,55 +66,24 @@ uv run haywire
 uv run haywire docs barn/haybale-mylib   # one library
 uv run haywire docs --all                # every in-repo library, one load
 
-# Tests
-#
-# Pick the SMALLEST tier that covers the change; run the full suite once at the
-# end, not on every iteration.
-uv run pytest tests/path/to/file.py       # single file — seconds; the default while iterating
+# Tests — pick the SMALLEST tier that covers the change; full suite once at the end.
+# Rationale, parallelism rules and traps: tests/README.md (read it before
+# changing test infrastructure or dismissing a failure as flaky).
+uv run pytest tests/path/to/file.py       # single file — the default while iterating
 uv run pytest tests/some_dir/             # one area
 uv run pytest tests/ -k "edge"            # filtered by name
-uv run pytest -m "not browser and not perf"  # pre-commit gate: ~2.5 min, 2985 tests
-uv run pytest                             # everything incl. Playwright browser tests — slowest
-uv run pytest -m integration              # integration only (full library system, slow)
+uv run pytest -m "not browser and not perf" -n 4  # pre-commit gate: ~90s, 5769 tests
+uv run pytest -m browser -n 4             # browser tier: ~43s, 135 tests
 uv run pytest -m unit                     # unit tests only (~1m40s, 1252 tests)
+uv run pytest -m integration              # integration only (full library system, slow)
 uv run pytest --cov                       # with coverage
+# -n 4 specifically: -n 8 flakes the cost-measuring tests, and --dist loadfile
+# silently drops tests. A parallel HANG is a real deadlock, not flakiness.
 
-# Both tiers parallelise with -n (pytest-xdist). Together: ~386s -> ~133s.
-#
-# The browser tier is safe because each xdist worker gets its own harness
-# server — tests/ui/harness/conftest.py offsets the port off
-# PYTEST_XDIST_WORKER, and every test builds its URL from the `harness`
-# fixture rather than a hardcoded localhost:8090.
-uv run pytest -m browser -n 4                        # ~138s -> ~43s
-uv run pytest -m "not browser and not perf" -n 4     # ~248s -> ~90s
-#
-# Stick to -n 4. At -n 8 the cost-measuring browser tests (test_edge_batch_cost,
-# test_edge_drag_cost) intermittently blow their 30s Playwright timeout on a
-# loaded box — they measure work per frame, so contention IS the failure.
-#
-# NEVER use --dist loadfile. It fails ~5 tests every run AND silently collects
-# fewer tests than it should (3689-4242 instead of 5769). Plain --dist load
-# (the default) is the one that works.
-#
-# A parallel run of the non-browser tier hangs roughly 1 run in 13, in
-# tests/core/test_undo/ or a macro/registry test, and times out at 120s. That
-# is a REAL lock-ordering deadlock between the validation timer thread and the
-# main thread (NodeWrapper._lock), not an xdist artifact — load just makes the
-# interleaving likely. Don't write such a hang off as flakiness.
-
-# Running the long tiers without fighting the terminal
-#
-# `addopts` includes `-v`, so a full run emits thousands of lines and the tail
-# is easily buried under the studio's post-run update banner. Redirect, then
-# read the exit code — it is the actual pass/fail signal:
-#
+# Redirect long runs — `addopts` has -v, so the tail gets buried. The exit code
+# is the pass/fail signal; use a timeout ≥ 600000 ms for the full suite.
 #   uv run pytest -m "not browser and not perf" -q > /tmp/t.log 2>&1; echo "exit=$?"
-#   grep -E "^FAILED|^ERROR" /tmp/t.log     # what broke
-#   grep -E "passed|failed" /tmp/t.log | tail -1   # the summary line
-#
-# Use a timeout ≥ 600000 ms for the full suite. `--durations=25` shows where the
-# time goes; anything over ~5s in the non-browser suite is worth a look — a 60s
-# outlier is usually an accidental network call, not real work.
+#   grep -E "^FAILED|^ERROR" /tmp/t.log
 
 # Code quality
 # "Run a ruff check" / "ruff check" as a spoken instruction means BOTH commands
