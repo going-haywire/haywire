@@ -23,7 +23,6 @@ ADR-0029, Redraw, for why subscribing it would buy nothing and cost a hazard
 
 from __future__ import annotations
 
-import logging
 from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
 
 from haywire.ui import elements as hui
@@ -49,8 +48,6 @@ if TYPE_CHECKING:
     from haywire.ui.components.popup import Popup
     from .context_menu import SessionContextMenuProvider
 
-logger = logging.getLogger(__name__)
-
 
 class SelectionToolbarProvider:
     """Floating-toolbar host: panel-driven, persistent across repositions.
@@ -66,15 +63,15 @@ class SelectionToolbarProvider:
       hide/show round trip.
 
     **Host contract.** ``SelectionToolbar.provides`` is ``SelectionActions``,
-    and this class satisfies all seven verbs — five of them by forwarding to
-    the ``SessionContextMenuProvider`` constructed alongside it, which already
-    implements them against the same canvas. Before the surface model there
-    was no structural check anywhere in the panel system, so this class
-    claimed both ``ToolbarActions`` and ``SelectionContextActions`` while
-    implementing 3 of the latter's 7 verbs; ``render_surface``'s ``isinstance``
-    is the first thing that would have caught it. Delegation, not
-    duplication, is the fix — the ⋯ then hosts ``SelectionMenu`` directly and
-    no panel learns anything.
+    and this class satisfies all of its verbs — all but ``copy_selection`` and
+    ``delete_selection`` by forwarding to the ``SessionContextMenuProvider``
+    constructed alongside it, which already implements them against the same
+    canvas. Before the surface model there was no structural check anywhere
+    in the panel system, so this class claimed both ``ToolbarActions`` and
+    ``SelectionContextActions`` while implementing 3 of the latter's 7 verbs;
+    ``render_surface``'s ``isinstance`` is the first thing that would have
+    caught it. Delegation, not duplication, is the fix — the ⋯ then hosts
+    ``SelectionMenu`` directly and no panel learns anything.
     """
 
     def __init__(
@@ -82,16 +79,16 @@ class SelectionToolbarProvider:
         context: "SessionContext",
         session: "Session",
         panel_registry: "PanelRegistry",
+        menu_provider: "SessionContextMenuProvider",
         on_emit_event: Optional[Callable] = None,
         on_emit_sync_event: Optional[Callable] = None,
-        menu_provider: Optional["SessionContextMenuProvider"] = None,
     ):
         self._context = context
         self._session = session
         self._panel_registry = panel_registry
         self._on_emit_event = on_emit_event
         self._on_emit_sync_event = on_emit_sync_event
-        self._menu_provider = menu_provider
+        self._menu_provider: "SessionContextMenuProvider" = menu_provider
         self._toolbar_popup: Optional["Popup"] = None
         self._last_bounds: Optional[Tuple[float, float, float, float]] = None
 
@@ -241,9 +238,9 @@ class SelectionToolbarProvider:
     # ------------------------------------------------------------------
     #
     # copy/delete are emitted here directly (they predate the delegation and
-    # read the same EditState); the remaining five forward to the menu
-    # provider, which already implements them. Forwarding rather than
-    # duplicating keeps one definition of each verb.
+    # read the same EditState); the rest forward to the menu provider, which
+    # already implements them. Forwarding rather than duplicating keeps one
+    # definition of each verb.
 
     def copy_selection(self) -> None:
         """Emit UserCopySelectedEvent for the current selection."""
@@ -272,78 +269,53 @@ class SelectionToolbarProvider:
             self._on_emit_event(event)
 
     def paste_at_click(self) -> None:
-        self._delegate("paste_at_click")
+        self._menu_provider.paste_at_click()
 
     def redraw_selection(self) -> None:
-        self._delegate("redraw_selection")
+        self._menu_provider.redraw_selection()
 
     def revalidate_selection(self) -> None:
-        self._delegate("revalidate_selection")
+        self._menu_provider.revalidate_selection()
 
     def reset_selection(self) -> None:
-        self._delegate("reset_selection")
+        self._menu_provider.reset_selection()
 
     def dissolve_reroute(self, node_id: str) -> None:
-        self._delegate("dissolve_reroute", node_id)
+        self._menu_provider.dissolve_reroute(node_id)
 
     def collapse_to_group(self) -> None:
-        self._delegate("collapse_to_group")
+        self._menu_provider.collapse_to_group()
 
     def expand_group(self, node_id: str) -> None:
-        self._delegate("expand_group", node_id)
+        self._menu_provider.expand_group(node_id)
 
     def enter_group(self, node_id: str) -> None:
-        self._delegate("enter_group", node_id)
+        self._menu_provider.enter_group(node_id)
 
     def promote_to_macro(self, node_id: str) -> None:
-        self._delegate("promote_to_macro", node_id)
+        self._menu_provider.promote_to_macro(node_id)
 
     def detach_from_macro(self, node_id: str) -> None:
-        self._delegate("detach_from_macro", node_id)
+        self._menu_provider.detach_from_macro(node_id)
 
     # ADR 0032 card axes. Required here even though the toolbar draws no rows
     # for them itself: its ⋯ hosts SelectionMenu directly, and render_surface
     # isinstance-checks the host against that surface's `provides`. A verb
     # missing here does not fail at the missing row — it fails the whole menu.
     def set_selection_collapsed(self, collapsed: bool) -> None:
-        self._delegate("set_selection_collapsed", collapsed)
+        self._menu_provider.set_selection_collapsed(collapsed)
 
     def selection_is_collapsed(self) -> bool:
-        return bool(self._delegate_result("selection_is_collapsed"))
+        return self._menu_provider.selection_is_collapsed()
 
     def toggle_selection_collapsed(self) -> bool:
-        return bool(self._delegate_result("toggle_selection_collapsed"))
+        return self._menu_provider.toggle_selection_collapsed()
 
     def set_selection_detail(self, detail: str) -> None:
-        self._delegate("set_selection_detail", detail)
+        self._menu_provider.set_selection_detail(detail)
 
     def clear_selection_detail_overrides(self) -> None:
-        self._delegate("clear_selection_detail_overrides")
-
-    def _delegate_result(self, verb: str, *args: object) -> object:
-        """Forward a verb that RETURNS something, rather than a fire-and-forget one.
-
-        ``_delegate`` swallows the return value, which is fine for commands and
-        wrong for a query like ``selection_is_collapsed``. With no provider the
-        answer is ``None`` — callers coerce, and a toggle reading False simply
-        offers to collapse.
-        """
-        if self._menu_provider is None:
-            logger.warning("SelectionToolbarProvider: no menu provider to delegate %r to", verb)
-            return None
-        return getattr(self._menu_provider, verb)(*args)
-
-    def _delegate(self, verb: str, *args: object) -> None:
-        """Forward one verb to the SessionContextMenuProvider.
-
-        Absent (a test constructing the toolbar alone), the verb is a no-op
-        and logs — the alternative, raising from a click handler, would take
-        down the popup for a case the canvas never produces.
-        """
-        if self._menu_provider is None:
-            logger.warning("SelectionToolbarProvider: no menu provider to delegate %r to", verb)
-            return
-        getattr(self._menu_provider, verb)(*args)
+        self._menu_provider.clear_selection_detail_overrides()
 
 
 # ---------------------------------------------------------------------------

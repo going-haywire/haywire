@@ -22,6 +22,8 @@ def _provider(monkeypatch, *, menu_provider=None):
     registry = MagicMock()
     # No panels on the surface by default
     registry.get_panels.return_value = []
+    if menu_provider is None:
+        menu_provider = MagicMock()
     prov = SelectionToolbarProvider(
         context=ctx,
         session=session,
@@ -32,11 +34,11 @@ def _provider(monkeypatch, *, menu_provider=None):
     )
     # The surface gate runs first; default it open so the panel path is reached.
     monkeypatch.setattr(selection_toolbar_module, "_poll_surface", lambda surface, ctx: True)
-    return prov, registry
+    return prov, registry, menu_provider
 
 
 def test_show_with_no_panels_opens_nothing(monkeypatch):
-    prov, _ = _provider(monkeypatch)
+    prov, _, _ = _provider(monkeypatch)
     monkeypatch.setattr(selection_toolbar_module, "partition_panels", lambda classes, ctx: ([], []))
     prov.show_at((0.0, 0.0, 100.0, 50.0))
     assert prov._toolbar_popup is None
@@ -44,7 +46,7 @@ def test_show_with_no_panels_opens_nothing(monkeypatch):
 
 def test_show_hides_when_the_surface_does_not_apply(monkeypatch):
     """The surface gate runs before anything is queried or built."""
-    prov, registry = _provider(monkeypatch)
+    prov, registry, _ = _provider(monkeypatch)
     monkeypatch.setattr(selection_toolbar_module, "_poll_surface", lambda surface, ctx: False)
     prov.hide = MagicMock()
     prov.show_at((0.0, 0.0, 100.0, 50.0))
@@ -53,7 +55,7 @@ def test_show_hides_when_the_surface_does_not_apply(monkeypatch):
 
 
 def test_handler_routes_bounds_to_show(monkeypatch):
-    prov, _ = _provider(monkeypatch)
+    prov, _, _ = _provider(monkeypatch)
     prov.show_at = MagicMock()
     prov.hide = MagicMock()
     handlers = SelectionToolbarHandlers(provider=prov)
@@ -63,7 +65,7 @@ def test_handler_routes_bounds_to_show(monkeypatch):
 
 
 def test_handler_routes_hide(monkeypatch):
-    prov, _ = _provider(monkeypatch)
+    prov, _, _ = _provider(monkeypatch)
     prov.show_at = MagicMock()
     prov.hide = MagicMock()
     handlers = SelectionToolbarHandlers(provider=prov)
@@ -81,7 +83,7 @@ def test_reposition_renders_unconditionally(monkeypatch):
     costs one row per gesture end, and every selectionBounds emission is
     edge-triggered rather than per pan frame.
     """
-    prov, _ = _provider(monkeypatch)
+    prov, _, _ = _provider(monkeypatch)
 
     class PanelA:
         pass
@@ -101,7 +103,7 @@ def test_reposition_renders_unconditionally(monkeypatch):
 def test_toolbar_hides_when_nothing_drew(monkeypatch):
     """A toolbar holding only the ⋯, whose flyout body came up empty, is not
     worth showing — the same emptiness rule the context-menu host uses."""
-    prov, _ = _provider(monkeypatch)
+    prov, _, _ = _provider(monkeypatch)
 
     class HostingPanel:
         pass
@@ -122,7 +124,7 @@ def test_hide_preserves_dom(monkeypatch):
     """hide() must NOT tear the popup down: it closes via Vue (v-show) and keeps
     the rendered DOM across one gesture's hide/show round trip.
     """
-    prov, _ = _provider(monkeypatch)
+    prov, _, _ = _provider(monkeypatch)
 
     class PanelA:
         pass
@@ -152,7 +154,7 @@ def test_destroy_tears_down(monkeypatch):
     """destroy() is the real lifecycle teardown: it deletes the popup and
     forces the next show to rebuild it.
     """
-    prov, _ = _provider(monkeypatch)
+    prov, _, _ = _provider(monkeypatch)
 
     class PanelA:
         pass
@@ -185,7 +187,7 @@ def test_provider_satisfies_selection_actions(monkeypatch):
     panel system, so this class claimed both ToolbarActions and
     SelectionContextActions while implementing 3 of the latter's 7 verbs.
     """
-    prov, _ = _provider(monkeypatch)
+    prov, _, _ = _provider(monkeypatch)
     assert isinstance(prov, SelectionActions)
 
 
@@ -197,22 +199,31 @@ def test_provider_satisfies_selection_actions(monkeypatch):
         ("revalidate_selection", ()),
         ("reset_selection", ()),
         ("dissolve_reroute", ("n1",)),
+        ("collapse_to_group", ()),
+        ("expand_group", ("n1",)),
+        ("enter_group", ("n1",)),
+        ("promote_to_macro", ("n1",)),
+        ("detach_from_macro", ("n1",)),
+        ("set_selection_collapsed", (True,)),
+        ("set_selection_detail", ("compact",)),
+        ("clear_selection_detail_overrides", ()),
     ],
 )
 def test_missing_verbs_delegate_to_the_menu_provider(monkeypatch, verb, args):
     """Fixed by delegation, not by duplication: SessionContextMenuProvider
-    already implements all seven against the same canvas."""
+    already implements every verb against the same canvas."""
     menu_provider = MagicMock()
-    prov, _ = _provider(monkeypatch, menu_provider=menu_provider)
+    prov, _, _ = _provider(monkeypatch, menu_provider=menu_provider)
     getattr(prov, verb)(*args)
     getattr(menu_provider, verb).assert_called_once_with(*args)
 
 
-def test_delegation_without_a_menu_provider_is_a_no_op(monkeypatch):
-    """Raising from a click handler would take down the popup for a case the
-    canvas never produces."""
-    prov, _ = _provider(monkeypatch)
-    prov.reset_selection()  # must not raise
+@pytest.mark.parametrize("verb", ["selection_is_collapsed", "toggle_selection_collapsed"])
+def test_query_verbs_return_the_menu_providers_answer(monkeypatch, verb):
+    menu_provider = MagicMock()
+    getattr(menu_provider, verb).return_value = True
+    prov, _, _ = _provider(monkeypatch, menu_provider=menu_provider)
+    assert getattr(prov, verb)() is True
 
 
 def test_copy_and_delete_are_emitted_directly(monkeypatch):
@@ -221,7 +232,7 @@ def test_copy_and_delete_are_emitted_directly(monkeypatch):
         UserRemoveEvent,
     )
 
-    prov, _ = _provider(monkeypatch)
+    prov, _, _ = _provider(monkeypatch)
     emitted = []
     prov._on_emit_event = lambda ev: emitted.append(ev)
     prov._context.data.__getitem__.return_value = MagicMock(selected_nodes={"n1"}, selected_edges=set())

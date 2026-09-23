@@ -102,8 +102,8 @@ class GraphCanvasManager:
             on_emit_event=self._handle_canvas_event,
             on_emit_sync_event=self.canvas_vue.emit_sync_event,
             # SelectionToolbar.provides is SelectionActions; the toolbar
-            # forwards the five verbs it does not emit itself to the menu
-            # provider, which already implements all seven against the same
+            # forwards every verb it does not emit itself to the menu
+            # provider, which already implements them against the same
             # canvas. Delegation, not duplication (ADR-0029).
             menu_provider=context_menu_provider,
         )
