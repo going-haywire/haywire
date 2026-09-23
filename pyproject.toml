@@ -78,8 +78,24 @@ mypy_path = [
     "barn/haybale-marketplace",
 ]
 
+# haybale_visiongraph.* and cv2 are absent in CI: the library is a separate
+# repo symlinked into barn/ and gitignored, so the tests that import it resolve
+# only on a developer machine that has it checked out. They skip at runtime;
+# mypy reads the imports either way.
 [[tool.mypy.overrides]]
-module = ["toml", "nicegui.*", "jedi", "jedi.*", "markdown2", "pygments.*", "visiongraph.*", "depthai", "psutil"]
+module = [
+    "toml",
+    "nicegui.*",
+    "jedi",
+    "jedi.*",
+    "markdown2",
+    "pygments.*",
+    "visiongraph.*",
+    "haybale_visiongraph.*",
+    "cv2",
+    "depthai",
+    "psutil",
+]
 ignore_missing_imports = true
 
 # Test functions rarely carry a return annotation, and mypy skips the BODY of
