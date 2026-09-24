@@ -1,4 +1,4 @@
-# haybale-haystack — component index (v0.2.1)
+# haybale-haystack — component index (v0.2.2)
 
 ## setting
 - `haybale-haystack:setting:HaystackSettings` — Haystack — 

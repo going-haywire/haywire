@@ -1,4 +1,4 @@
-# haybale-example — component index (v0.2.1)
+# haybale-example — component index (v0.2.2)
 
 ## node
 - `haybale-example:node:CustomCallbackNode` — Custom Callback — Listens for custom callbacks from other flows  _tags: callback, listen, event, custom_
