@@ -1,4 +1,4 @@
-from typing import Any, Dict, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, TypeVar
 from typing_extensions import NotRequired, TypedDict
 from dataclasses import asdict
 from cattrs.preconf.json import make_converter
@@ -7,6 +7,9 @@ from haywire.core.types.enums import PortType
 
 
 from .interface import IType
+
+if TYPE_CHECKING:
+    from .base import PrimitiveType
 
 
 T = TypeVar("T")
@@ -157,6 +160,18 @@ def is_cattrs_serializable(value: Any) -> tuple[bool, str | None]:
 # ============================================================================
 
 
+def _check_primitive_default(value: Any, cls: "type[PrimitiveType[Any]]", context: str) -> None:
+    """Raise ``TypeError`` if the primitive type's own ``to_dict()`` rejects *value* (``None`` passes)."""
+    if value is None:
+        return
+    try:
+        cls(value=value).to_dict()
+    except (TypeError, ValueError) as e:
+        raise TypeError(
+            f"{context} for {cls.__name__}: default {value!r} is not a valid {cls.__name__} ({e})."
+        ) from e
+
+
 def normalize_and_validate_default(
     default_value: Any, cls: type[IType], context: str = "type decorator"
 ) -> Dict[str, Any]:
@@ -175,7 +190,8 @@ def normalize_and_validate_default(
         Normalized default dict
 
     Raises:
-        TypeError: If default is not serializable or invalid format
+        TypeError: If default is not serializable, has an invalid format, or is a
+            primitive the type's ``to_dict()`` rejects (``INT`` given ``"abc"``).
 
     Examples:
         normalize_and_validate_default(0.0, FLOAT, "@type decorator")
@@ -202,6 +218,7 @@ def normalize_and_validate_default(
     # Primitive value for PrimitiveType - auto-wrap
     elif issubclass(cls, PrimitiveType):
         normalized = {"value": default_value}
+        _check_primitive_default(default_value, cls, context)
 
     # Complex type with non-dict default - error
     else:

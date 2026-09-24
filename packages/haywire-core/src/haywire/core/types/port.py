@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from haywire.core.types.enums import FlowType, PortOrigin, PortType, ShowWidgetStrategy, StoreStrategy
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
 from haywire.core.types.utils import serialize_element_type
@@ -924,6 +925,27 @@ class DataPort(DataTypeIdentity):
                 has_widget=self.widget_key is not None,
                 node_set=self._is_set_by_node,
             ):
-                result["field_data"] = self._data.to_dict()
+                result["field_data"] = self._serialize_value()
 
         return result
+
+    def _serialize_value(self) -> dict:
+        """Return the field's ``to_dict()``.
+
+        Raises:
+            HaywireException: The field holds a value the port's type rejects; names the port.
+        """
+        assert self._data is not None and self.type_cls is not None
+        try:
+            return self._data.to_dict()
+        except (TypeError, ValueError) as e:
+            raise HaywireException.from_exception(
+                exception=e,
+                operation="Serialize port",
+                message=(
+                    f"Port '{self.id}' holds {self._data.get_value()!r}, "
+                    f"which is not a valid {self.type_cls.__name__}"
+                ),
+            ).enrich(
+                suggestions=[f"Give port '{self.id}' a {self.type_cls.__name__} value or default."]
+            ) from e
