@@ -4046,7 +4046,7 @@ state in which that helps:</p>
 <li><strong>Corrupt at load</strong> — <code>@library</code> reads this file strictly, so the library
   never loads and no <code>LibraryInfo</code> is built for it. Discovery logs the failure
   and moves on.</li>
-<li><strong>Corrupted while running</strong> — <code>BaseLibrary.update_identity_from_toml()</code> keeps
+<li><strong>Corrupted while running</strong> — <code>BaseLibrary._reload_metadata()</code> keeps
   the previous values ("the author is mid-keystroke and a half-written file is
   expected"), and the next render re-reads the file.</li>
 </ul>
