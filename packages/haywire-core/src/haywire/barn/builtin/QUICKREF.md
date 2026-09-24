@@ -1,4 +1,4 @@
-# haywire-core — component index (v0.2.3)
+# haywire-core — component index (v0.2.4)
 
 ## node
 - `haywire-core:node:ErrorNode` — Core Error Node — Placeholder for node that could not be loaded  _tags: error, system, placeholder_
