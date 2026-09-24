@@ -9,6 +9,7 @@ class NodeIdentity(BaseIdentity):
 
     search_tags: list[str] = field(default_factory=list)
     menu: str = "misc/custom"
+    template: bool = False  # A starting point for new nodes: listed only by the New Node wizard
     _is_error: bool = False
     _error_priority: int = 0
     _is_reroute: bool = False

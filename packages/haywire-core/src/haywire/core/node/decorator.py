@@ -91,6 +91,9 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         registry_id (str): Unique identifier within library. Default set to class name
         deprecation_warning (str): Advisory message shown on the node card and in
             the add-node menu when this node is deprecated. Default: ""
+        template (bool): Whether this node is a Node template, a starting point
+            the New Node wizard copies into a library. Implies ``hidden=True``.
+            Default: False
         _is_error (bool): Whether this is an error handler node. Default: False
         _error_priority (int): Priority for error handling. Default: 0
         _is_subgraph_input (bool): Whether this is the Subgraph Input boundary
@@ -252,6 +255,10 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         identity_kwargs["registry_key"] = reg_key(
             library_identity.name, NODE, identity_kwargs["registry_id"]
         )
+
+        if identity_kwargs.get("template"):
+            # A template exists to be cloned, never placed from the add-node menu.
+            identity_kwargs["hidden"] = True
 
         identity_kwargs["class_name"] = inner_cls.__name__
         identity_kwargs["module"] = inner_cls.__module__

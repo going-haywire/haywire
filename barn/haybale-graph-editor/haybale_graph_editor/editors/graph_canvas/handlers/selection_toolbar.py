@@ -298,6 +298,9 @@ class SelectionToolbarProvider:
     def detach_from_macro(self, node_id: str) -> None:
         self._menu_provider.detach_from_macro(node_id)
 
+    def clone_to_library(self, node_id: str) -> None:
+        self._menu_provider.clone_to_library(node_id)
+
     # ADR 0032 card axes. Required here even though the toolbar draws no rows
     # for them itself: its ⋯ hosts SelectionMenu directly, and render_surface
     # isinstance-checks the host against that surface's `provides`. A verb

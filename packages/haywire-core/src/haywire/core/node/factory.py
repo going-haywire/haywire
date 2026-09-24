@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 
 from haywire.core.errors.haywire_exception import HaywireException
 from . import BaseNode, NodeRegistry
-from .info import NodeInfo
+from .info import NodeInfo, matches_query
 
 from ..macro.registry import MacroRegistry
 from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback, LifeCycleEventCallback
@@ -265,23 +265,28 @@ class NodeFactory:
         """Return the visible nodes whose label, description or search tags contain
         *query*, matched case-insensitively."""
         results: List[NodeInfo] = []
-        query_lower = query.lower()
 
         for key in self._visible_keys():
             node_info = self._build_node_info(key)
-            if node_info is None:
-                continue
-
-            searchable = [
-                node_info.identity.label.lower(),
-                node_info.identity.description.lower(),
-                *[tag.lower() for tag in node_info.identity.search_tags],
-            ]
-
-            if any(query_lower in text for text in searchable):
+            if node_info is not None and matches_query(node_info, query):
                 results.append(node_info)
 
         return results
+
+    def list_templates(self) -> Dict[str, List[NodeInfo]]:
+        """Return every Node template's ``NodeInfo``, grouped by its library's label.
+
+        A template is a node class declared with ``template=True``. Templates
+        are hidden, so this is the only discovery call that lists them.
+        """
+        grouped: Dict[str, List[NodeInfo]] = {}
+        for key in self.node_registry.list_names():
+            node_info = self._build_node_info(key)
+            if node_info is None or not node_info.identity.template:
+                continue
+            library = node_info.library.label if node_info.library is not None else key.split(":")[0]
+            grouped.setdefault(library, []).append(node_info)
+        return grouped
 
     def list_all_nodes(self) -> List[str]:
         """Every registered node and macro registry key, hidden ones included."""

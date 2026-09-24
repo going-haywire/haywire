@@ -65,9 +65,9 @@ class _FakeSource:
 
 
 def _target(folder: Path, library_id: str = "haybale-example", label: str = "Example"):
-    from haywire.core.macro.promote import PromotionTarget
+    from haywire.core.authoring.targets import AuthoringTarget
 
-    return PromotionTarget(library_id=library_id, label=label, folder=folder, is_project_library=True)
+    return AuthoringTarget(library_id=library_id, label=label, folder=folder, is_project_library=True)
 
 
 def _flow(tmp_path: Path, *, source=None, definition=None, targets=None):

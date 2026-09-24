@@ -45,6 +45,9 @@ class SelectionActions(Protocol):
     # placements are untouched.
     def detach_from_macro(self, node_id: str) -> None: ...
 
+    # Opens the New Node wizard with this node's class as the source.
+    def clone_to_library(self, node_id: str) -> None: ...
+
     # ADR 0032 card axes, applied across the selection. Right-clicking an
     # unselected node replaces the selection with it first (canvas.vue's
     # "replace-then-act"), so these reach exactly the node under the cursor

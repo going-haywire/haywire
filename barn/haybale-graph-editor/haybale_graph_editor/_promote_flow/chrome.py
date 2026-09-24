@@ -12,7 +12,8 @@ from .panels import _panel_name, _panel_planned, _panel_promoted
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
-    from haywire.core.macro.promote import PromotableSubgraph, PromotionTarget
+    from haywire.core.authoring.targets import AuthoringTarget
+    from haywire.core.macro.promote import PromotableSubgraph
 
 
 class EditorPromoteSource:
@@ -46,7 +47,7 @@ def show_promote_flow(
     source: PromoteSource,
     definition: "PromotableSubgraph",
     node_id: str,
-    targets: list["PromotionTarget"],
+    targets: list["AuthoringTarget"],
     *,
     on_done: Callable[[], None] | None = None,
 ) -> PromoteFlow:

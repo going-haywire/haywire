@@ -23,6 +23,7 @@ Visual graph editor library — host-agnostic
 - **Adapter Chain** — 
 - **Adapters** — 
 - **Appearance** — 
+- **Clone to Library** — 
 - **Collapse** — 
 - **Collapse** — 
 - **Collapse to Group** — 
@@ -54,6 +55,7 @@ Visual graph editor library — host-agnostic
 - **Lock** — 
 - **More** — 
 - **More Actions** — 
+- **New Node** — 
 - **Node** — 
 - **Node Appearance** — 
 - **Node Errors** — 

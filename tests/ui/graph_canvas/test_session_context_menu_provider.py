@@ -212,6 +212,36 @@ def test_create_node_at_click_emits_node_create_request_event():
     assert event.position == {"x": 50.0, "y": 60.0}
 
 
+def test_open_new_node_wizard_carries_the_click_position():
+    """The position travels on the event: the gesture state is gone once the menu closes."""
+    from haywire.ui.components.graph.event_definitions import OpenNewNodeWizardEvent
+
+    captured: list = []
+    provider = _make_provider(on_emit_event=captured.append)
+    provider._open_ctx = _OpenMenuContext(click_pos=(0.0, 0.0), canvas_pos=(50.0, 60.0))
+
+    provider.open_new_node_wizard()
+
+    assert len(captured) == 1
+    assert isinstance(captured[0], OpenNewNodeWizardEvent)
+    assert captured[0].position == {"x": 50.0, "y": 60.0}
+    assert captured[0].node_id is None
+
+
+def test_clone_to_library_names_the_node():
+    from haywire.ui.components.graph.event_definitions import OpenNewNodeWizardEvent
+
+    captured: list = []
+    provider = _make_provider(on_emit_event=captured.append)
+
+    provider.clone_to_library("n1")
+
+    assert len(captured) == 1
+    assert isinstance(captured[0], OpenNewNodeWizardEvent)
+    assert captured[0].node_id == "n1"
+    assert captured[0].position is None
+
+
 def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
     """reconnect_active_edge reads ctx.data[EditState].active_edge AND _open_ctx.edge_reconnect_end."""
     from haywire.ui.components.graph.event_definitions import SyncEdgeReconnectEvent

@@ -154,3 +154,25 @@ def is_collapsible_selection(ctx: "SessionContext") -> bool:
     """
     edit = ctx.data[EditState]
     return len(edit.selected_nodes) >= 2
+
+
+def is_cloneable_selection(ctx: "SessionContext") -> bool:
+    """True when exactly one node is selected and its class may be cloned into a library.
+
+    Framework role nodes (reroute, Graph-node, macro placement, boundaries),
+    hidden nodes and classes without readable source are refused; see
+    ``haywire.core.authoring.is_clone_source``.
+    """
+    from haywire.core.authoring import is_clone_source
+
+    edit = ctx.data[EditState]
+    if len(edit.selected_nodes) != 1:
+        return False
+    wrapper = edit.active_node
+    if wrapper is None:
+        return False
+    try:
+        node = wrapper.node
+    except RuntimeError:
+        return False
+    return is_clone_source(type(node))

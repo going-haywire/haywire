@@ -395,6 +395,19 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         x, y = self._open_ctx.canvas_pos
         self._emit_sync(SyncRequestClipboardPasteEvent(canvasX=x, canvasY=y))
 
+    def open_new_node_wizard(self) -> None:
+        """Emit OpenNewNodeWizardEvent carrying the click's canvas position.
+
+        The position travels on the event because the gesture state is gone
+        once the menu closes, and Place needs it later.
+        """
+        from haywire.ui.components.graph.event_definitions import OpenNewNodeWizardEvent
+
+        if self._open_ctx is None or self._open_ctx.canvas_pos is None:
+            return
+        x, y = self._open_ctx.canvas_pos
+        self._emit(OpenNewNodeWizardEvent(position={"x": x, "y": y}))
+
     def focus_on_graph(self) -> None:
         """Fit the viewport to show every node in the graph, then close the menu.
 
@@ -708,6 +721,12 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         from haywire.ui.components.graph.event_definitions import DetachFromMacroEvent
 
         self._emit(DetachFromMacroEvent(node_id=node_id))
+
+    def clone_to_library(self, node_id: str) -> None:
+        """Emit OpenNewNodeWizardEvent cloning the given node's class."""
+        from haywire.ui.components.graph.event_definitions import OpenNewNodeWizardEvent
+
+        self._emit(OpenNewNodeWizardEvent(node_id=node_id))
 
     # PortContextActions — setting demotion, promoted-port widget visibility
 

@@ -32,6 +32,9 @@ class GraphActions(Protocol):
     def paste_at_click(self) -> None: ...
     def focus_on_graph(self) -> None: ...
 
+    # Opens the New Node wizard; Place later puts the node at this click.
+    def open_new_node_wizard(self) -> None: ...
+
     # ADR 0032. The counterpart to the graph-tier card settings: mirrors are
     # "unset tracks, set ignores", so a graph whose nodes have been folded or
     # re-ranked by hand can never have its tier reassert over them again

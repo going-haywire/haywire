@@ -362,7 +362,7 @@ state in which that helps:
 - **Corrupt at load** — `@library` reads this file strictly, so the library
   never loads and no `LibraryInfo` is built for it. Discovery logs the failure
   and moves on.
-- **Corrupted while running** — `BaseLibrary.update_identity_from_toml()` keeps
+- **Corrupted while running** — `BaseLibrary._reload_metadata()` keeps
   the previous values ("the author is mid-keystroke and a half-written file is
   expected"), and the next render re-reads the file.
 

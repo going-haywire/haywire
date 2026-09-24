@@ -208,6 +208,20 @@ class PromoteToMacroEvent(BaseGraphEvent):
 
 
 @graph_event(
+    "openNewNodeWizard",
+    category="user",
+    description="Open the New Node wizard: write a new node class into a library",
+)
+@dataclass
+class OpenNewNodeWizardEvent(BaseGraphEvent):
+    # Where Place puts the new node: the canvas right-click point. None when
+    # the wizard opens on a selected node, which Place puts the node beside.
+    position: Optional[Dict[str, float]] = None
+    # The node whose class is cloned. None opens the wizard at its Source step.
+    node_id: Optional[str] = None
+
+
+@graph_event(
     "detachFromMacro",
     category="user",
     description="Turn one macro placement into a Group that no longer tracks the template",

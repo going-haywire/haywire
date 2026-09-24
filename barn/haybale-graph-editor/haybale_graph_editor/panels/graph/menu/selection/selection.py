@@ -22,6 +22,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_graph_editor.panels._gating import (
+    is_cloneable_selection,
     is_collapsible_selection,
     is_graph_node,
     is_macro_placement,
@@ -29,6 +30,7 @@ from haybale_graph_editor.panels._gating import (
 )
 from nicegui import ui
 
+from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
@@ -733,4 +735,43 @@ class DetachFromMacroMenuPanel(BasePanel):
                     "its other placements are unchanged."
                 ),
                 on_click=lambda: self.actions.detach_from_macro(node_id),
+            )
+
+
+@panel(
+    surface=SelectionMenu,
+    label="Clone to Library",
+    icon=hui.icon.node_clone,
+    order=39,
+    access=AccessTier.ADMIN,
+)
+class CloneToLibraryMenuPanel(BasePanel):
+    """Write a copy of this node's class into a library, as a new node to edit.
+
+    Only visible with exactly one node selected whose class may be cloned. The
+    copy is a new node class with its own name; this card is unchanged.
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return is_cloneable_selection(ctx)
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        wrapper = ctx.data[EditState].active_node
+        if wrapper is None:
+            return
+        node_id = wrapper.node_id
+
+        with layout:
+            hui.menu_row(
+                "Clone to Library…",
+                icon=hui.icon.node_clone,
+                tooltip="Write a copy of this node's class into a library, as a new node to edit",
+                on_click=lambda: self.actions.clone_to_library(node_id),
             )

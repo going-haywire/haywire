@@ -126,6 +126,10 @@ class AppIcon:
     """Component preview tab."""
     node_source: Final[str] = "code"
     """Node source editor (source of the currently selected graph node)."""
+    node_new: Final[str] = "note_add"
+    """New Node wizard: write a new node class into a library."""
+    node_clone: Final[str] = "file_copy"
+    """Clone a node's class into a library, through the New Node wizard."""
 
     # ── Edge panels ───────────────────────────────────────────────────────────
     edge_statistics: Final[str] = "line_axis"

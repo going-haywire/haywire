@@ -19,3 +19,17 @@ class NodeInfo:
     ``NodeIdentity._is_macro_node``, which marks the single class that stands
     for a placement.
     """
+
+
+def matches_query(node_info: NodeInfo, query: str) -> bool:
+    """Whether *query* occurs, case-insensitively, in the node's label, description or a search tag.
+
+    An empty query matches every node.
+    """
+    query_lower = query.lower()
+    searchable = [
+        node_info.identity.label.lower(),
+        node_info.identity.description.lower(),
+        *[tag.lower() for tag in node_info.identity.search_tags],
+    ]
+    return any(query_lower in text for text in searchable)

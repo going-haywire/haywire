@@ -21,6 +21,7 @@
 - `haybale-graph-editor:panel:AppearanceToolbarPanel` — Appearance — 
 - `haybale-graph-editor:panel:ClearDetailOverridesMenuPanel` — Reset Detail — 
 - `haybale-graph-editor:panel:ClearSettingMenuPanel` — Set to none — 
+- `haybale-graph-editor:panel:CloneToLibraryMenuPanel` — Clone to Library — 
 - `haybale-graph-editor:panel:CollapseSelectionMenuPanel` — Collapse — 
 - `haybale-graph-editor:panel:CollapseToGroupMenuPanel` — Collapse to Group — 
 - `haybale-graph-editor:panel:CollapseToolbarPanel` — Collapse — 
@@ -54,6 +55,7 @@
 - `haybale-graph-editor:panel:InsertRerouteMenuPanel` — Insert Reroute — 
 - `haybale-graph-editor:panel:LazyEdgeMenuPanel` — Propagation — Lazy propagation pulls data on demand instead of pushing it to the target node.
 - `haybale-graph-editor:panel:LockToolbarPanel` — Lock — 
+- `haybale-graph-editor:panel:NewNodeToolbarPanel` — New Node — 
 - `haybale-graph-editor:panel:NodeAppearancePanel` — Node Appearance — 
 - `haybale-graph-editor:panel:NodeErrorsPanel` — Node Errors — 
 - `haybale-graph-editor:panel:NodeErrorsSelectionMenuPanel` — Node Errors — 

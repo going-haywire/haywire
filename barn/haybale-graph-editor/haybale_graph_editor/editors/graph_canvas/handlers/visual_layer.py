@@ -18,6 +18,7 @@ import asyncio
 import logging
 import time
 import traceback
+from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple, TYPE_CHECKING
 
 from nicegui import ui
@@ -38,6 +39,7 @@ from haywire.ui.components.graph.event_definitions import (
     DetachFromMacroEvent,
     ExpandGroupEvent,
     PromoteToMacroEvent,
+    OpenNewNodeWizardEvent,
     EdgeCreatedEvent,
     ElementRedrawEvent,
     ElementResetEvent,
@@ -66,6 +68,9 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 logger = logging.getLogger(__name__)
+
+#: Canvas units to the right of a cloned node where Place puts its clone.
+_CLONE_OFFSET_X = 280.0
 
 
 def summarize_compatibility(node_warning_count: int, library_messages: list[str]) -> str | None:
@@ -903,8 +908,9 @@ class VisualLayerHandlers:
         resolving what it needs — the Subgraph to serialize and the libraries
         that could receive it.
         """
+        from haywire.core.authoring.targets import authoring_targets
         from haywire.core.di.config import get_library_system
-        from haywire.core.macro.promote import promotion_targets
+        from haywire.core.macro.registry import MacroRegistry
 
         from ...._promote_flow import EditorPromoteSource, show_promote_flow
 
@@ -939,9 +945,64 @@ class VisualLayerHandlers:
             EditorPromoteSource(self.editor, library_system),
             definition,
             event.node_id,
-            promotion_targets(library_system, workspace_root),
+            authoring_targets(library_system, MacroRegistry, workspace_root),
             on_done=self.sync_with_graph,
         )
+
+    @handles_event(OpenNewNodeWizardEvent)
+    def process_open_new_node_wizard(self, event: OpenNewNodeWizardEvent):
+        """Open the New Node wizard, at its Source step or cloning the node on ``event.node_id``.
+
+        Place puts the new node at the right-click point, or beside the
+        cloned node. The wizard writes nothing until its Create step.
+        """
+        from haywire.core.authoring import is_clone_source
+        from haywire.core.di.config import get_library_system
+
+        from ...._new_node_flow import EditorNewNodeHost, new_node_flow, show_new_node_flow
+
+        if self.context is None:
+            return
+
+        source_cls = None
+        position = (event.position["x"], event.position["y"]) if event.position else None
+        if event.node_id is not None:
+            wrapper = self.editor.graph.get_node_wrapper(event.node_id)
+            if wrapper is None:
+                return
+            source_cls = type(wrapper.node)
+            if not is_clone_source(source_cls):
+                ui.notify("This node cannot be cloned into a library", type="warning")
+                return
+            x, y = wrapper.node.props.get_position()
+            position = (x + _CLONE_OFFSET_X, y)
+        if position is None:
+            return
+
+        try:
+            library_system = get_library_system()
+        except Exception:
+            ui.notify("The library system is unavailable", type="negative")
+            return
+
+        workspace_root = None
+        try:
+            from haywire.core.di.context import get_workspace_root
+
+            workspace_root = Path(get_workspace_root())
+        except Exception:
+            workspace_root = None
+
+        def _create(registry_key: str, at: tuple[float, float]) -> None:
+            self.process_node_creation_request(
+                NodeCreateRequestEvent(registryKey=registry_key, position={"x": at[0], "y": at[1]})
+            )
+
+        host = EditorNewNodeHost(self.context, position, _create)
+        flow = new_node_flow(
+            host, library_system, self.editor._node_factory, workspace_root, source_cls=source_cls
+        )
+        show_new_node_flow(flow)
 
     @handles_event(DetachFromMacroEvent)
     def process_detach_from_macro(self, event: DetachFromMacroEvent):

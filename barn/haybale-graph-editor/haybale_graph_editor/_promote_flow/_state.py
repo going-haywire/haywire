@@ -32,7 +32,8 @@ from haywire.ui.components.stepper import StepFlow
 from .copy import STEP_TITLES, STEPS
 
 if TYPE_CHECKING:
-    from haywire.core.macro.promote import PromotionPlan, PromotionTarget
+    from haywire.core.authoring.targets import AuthoringTarget
+    from haywire.core.macro.promote import PromotionPlan
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ class PromoteFlow(StepFlow):
         source: PromoteSource,
         definition: PromotableSubgraph,
         node_id: str,
-        targets: list["PromotionTarget"],
+        targets: list["AuthoringTarget"],
         name: str = "",
         popup: Optional[Popup] = None,
     ) -> None:
@@ -82,7 +83,7 @@ class PromoteFlow(StepFlow):
         from haywire.core.macro.promote import suggest_name
 
         self.name: str = name or suggest_name(definition.label or "")
-        self.target: "PromotionTarget | None" = targets[0] if targets else None
+        self.target: "AuthoringTarget | None" = targets[0] if targets else None
 
         self.plan: "PromotionPlan | None" = None
         self.registry_key: str | None = None

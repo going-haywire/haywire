@@ -219,21 +219,26 @@ def _collect_imports(module_dir: Path) -> tuple[set[str], set[str]]:
             tree = ast.parse(py.read_text(encoding="utf-8"))
         except (SyntaxError, UnicodeDecodeError):
             continue
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    full = alias.name
-                    top_level.add(full.split(".")[0])
-                    if full == "haywire" or full.startswith("haywire."):
-                        haywire_paths.add(full)
-            elif isinstance(node, ast.ImportFrom):
-                if node.level != 0 or node.module is None:
-                    continue  # relative import — intra-library
-                top_level.add(node.module.split(".")[0])
-                if node.module == "haywire" or node.module.startswith("haywire."):
-                    haywire_paths.add(node.module)
+        _collect_tree_imports(tree, top_level, haywire_paths)
 
     return top_level, haywire_paths
+
+
+def _collect_tree_imports(tree: ast.AST, top_level: set[str], haywire_paths: set[str]) -> None:
+    """Add *tree*'s absolute imports to *top_level* and *haywire_paths*, as :func:`_collect_imports`."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                full = alias.name
+                top_level.add(full.split(".")[0])
+                if full == "haywire" or full.startswith("haywire."):
+                    haywire_paths.add(full)
+        elif isinstance(node, ast.ImportFrom):
+            if node.level != 0 or node.module is None:
+                continue  # relative import — intra-library
+            top_level.add(node.module.split(".")[0])
+            if node.module == "haywire" or node.module.startswith("haywire."):
+                haywire_paths.add(node.module)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -262,9 +267,37 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
 
     self_module = _read_self_module_name(lib_dir)
     # The haywire.* submodule paths go unused: every haywire.* import maps to
-    # haywire-core (see below).
+    # haywire-core (see _classify).
     top_level, _haywire_paths = _collect_imports(module_dir)
+    return _classify(top_level, self_module, libraries)
 
+
+def detect_source_deps(
+    source: str, *, self_module: str | None, libraries: HaywireLibrarySource
+) -> DetectedDeps:
+    """Statically infer the dependencies of one module's source text, as :func:`detect_deps` does.
+
+    Args:
+        source: The Python source of one module.
+        self_module: Top-level module name of the library the source belongs
+            to (``haybale_mylib``). Imports of it declare nothing.
+        libraries: The set of haywire libraries, as for :func:`detect_deps`.
+
+    Returns:
+        :class:`DetectedDeps` for this source alone. Empty when the source
+        does not parse.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return DetectedDeps()
+    top_level: set[str] = set()
+    _collect_tree_imports(tree, top_level, set())
+    return _classify(top_level, self_module, libraries)
+
+
+def _classify(top_level: set[str], self_module: str | None, libraries: HaywireLibrarySource) -> DetectedDeps:
+    """Sort imported top-level modules into linked libraries, pyproject entries and unresolved names."""
     # Drop self and stdlib.
     stdlib: frozenset[str] = getattr(sys, "stdlib_module_names", frozenset())
     candidates = {m for m in top_level if m != self_module and m not in stdlib}
@@ -280,6 +313,9 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
     pyproject: list[str] = []
     resolved: dict[str, str] = {}
     unresolved: list[str] = []
+
+    if not candidates:
+        return DetectedDeps()
 
     # One venv-wide metadata scan for the whole run (it is ~1s in a large venv).
     dist_mapping = importlib.metadata.packages_distributions()

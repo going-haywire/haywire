@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.access import AccessTier
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
@@ -94,6 +95,37 @@ class FocusGraphPanel(BasePanel):
                 hui.icon.focus_graph,
                 tooltip="Focus on Graph",
                 on_click=self.actions.focus_on_graph,
+            )
+
+
+@panel(
+    surface=GraphToolBar,
+    label="New Node",
+    icon=hui.icon.node_new,
+    order=30,
+    access=AccessTier.ADMIN,
+)
+class NewNodeToolbarPanel(BasePanel):
+    """Open the New Node wizard, as an icon shortcut.
+
+    The wizard writes a new node class into a library, from a template or a
+    copy of an existing node. Place later puts the node at this click.
+    """
+
+    actions: GraphActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        from haybale_graph_editor.state.edit_state import EditState
+
+        return ctx.data[EditState].active_graph is not None
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            hui.icon_action(
+                hui.icon.node_new,
+                tooltip="New Node…",
+                on_click=self.actions.open_new_node_wizard,
             )
 
 

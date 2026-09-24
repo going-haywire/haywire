@@ -98,7 +98,7 @@ class BaseLibrary(ABC):
             self.register_components()
             self._attach_to_registries()
             self.on_library_enable()
-            if self.enforce_file_watching or self.identity.file_watcher:
+            if self.is_watched:
                 self.file_watcher.start()
             logger.info(f"Library '{self.identity.label}': Enabled and components registered")
 
@@ -110,6 +110,11 @@ class BaseLibrary(ABC):
             self._detach_from_registries()
             self.file_watcher.stop()
             logger.info(f"Library '{self.identity.label}': Disabled and components unregistered")
+
+    @property
+    def is_watched(self) -> bool:
+        """Whether a file watcher registers this library's file changes while it is enabled."""
+        return bool(self.enforce_file_watching or self.identity.file_watcher)
 
     @property
     def identity(self) -> LibraryIdentity:
@@ -307,7 +312,7 @@ class BaseLibrary(ABC):
         ):
             self._register_folder(folder_path, registry_cls, exclude_patterns)
 
-        if self.enforce_file_watching or self.identity.file_watcher:
+        if self.is_watched:
             self.file_watcher.add_root_fallback(
                 self.identity.folder_path,
                 self.identity,
@@ -320,7 +325,7 @@ class BaseLibrary(ABC):
         for registry_cls, (folder_path, exclude_patterns) in self._registry_folders.items():
             self._unregister_folder(folder_path, registry_cls, exclude_patterns)
 
-        if self.enforce_file_watching or self.identity.file_watcher:
+        if self.is_watched:
             self.file_watcher.remove_root_fallback(self.identity.folder_path, self.identity)
 
         self.file_watcher.stop()
@@ -338,7 +343,7 @@ class BaseLibrary(ABC):
 
         registry.add_folder(folder_path, self.identity, exclude_patterns)
 
-        if self.enforce_file_watching or self.identity.file_watcher:
+        if self.is_watched:
             self.file_watcher.add_watch(folder_path, self.identity, registry, self.debounce_delay)
 
     def _unregister_folder(
@@ -354,5 +359,5 @@ class BaseLibrary(ABC):
 
         registry.remove_folder(folder_path, self.identity, exclude_patterns)
 
-        if self.enforce_file_watching or self.identity.file_watcher:
+        if self.is_watched:
             self.file_watcher.remove_watch(folder_path, self.identity)

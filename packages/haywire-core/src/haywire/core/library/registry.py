@@ -690,6 +690,10 @@ class LibraryRegistry:
         """
         return self._libraries[library_registry_name].class_identity
 
+    def get_library(self, library_id: str) -> BaseLibrary | None:
+        """Return the library instance registered under ``library_id``, or ``None``."""
+        return self._libraries.get(library_id)
+
     def get_library_source(self, library_id: str) -> str | None:
         """Get the source path for a library"""
         return self._library_sources.get(library_id)

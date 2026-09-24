@@ -354,6 +354,27 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
                 doc[key] = value
 
 
+def union_linked_libraries(package_dir: Path, names: list[str]) -> list[str]:
+    """Add *names* to ``linked_libraries`` in *package_dir*'s ``haybale.toml``, keeping every entry.
+
+    An existing entry is never dropped or reordered, so a name added by hand
+    for a dynamic import survives.
+
+    Returns:
+        The names actually added, in the order given; empty when every name
+        was already listed, in which case the file is not written.
+
+    Raises:
+        HaybaleTomlError: the file does not exist, or a name is not a module
+            name.
+    """
+    declared = list(read_haybale_toml_lenient(package_dir).get("linked_libraries") or [])
+    added = [n for n in dict.fromkeys(names) if n not in declared]
+    if added:
+        write_haybale_fields(package_dir, {"linked_libraries": declared + added})
+    return added
+
+
 def read_raw(package_dir: Path) -> dict[str, Any]:
     """The whole file as a plain dict, or ``{}`` when unreadable.
 

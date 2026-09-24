@@ -33,11 +33,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haywire.core.library.haybale_toml import (
-    HAYBALE_TOML,
-    read_haybale_toml_lenient,
-    write_haybale_fields,
-)
+from haywire.core.library.haybale_toml import HAYBALE_TOML, union_linked_libraries
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.dep_edit import add_dependencies, remove_dependencies, set_dependency
 from haywire.core.marketstall.requirement import CORE
@@ -149,9 +145,7 @@ def apply_linked_registrations(
         if not toml_file.is_file():
             continue
         try:
-            declared = read_haybale_toml_lenient(module_dir).get("linked_libraries") or []
-            merged = list(declared) + [n for n in names if n not in declared]
-            write_haybale_fields(module_dir, {"linked_libraries": merged})
+            union_linked_libraries(module_dir, names)
         except _MANIFEST_FAILURE_TYPES as exc:
             raise ManifestError(str(exc)) from exc
         written.append(toml_file)
