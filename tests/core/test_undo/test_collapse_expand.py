@@ -286,6 +286,40 @@ class TestCollapse:
         assert (card_id, "out_done", last.node_id, "exec") in endpoints
         assert middle.node_id not in graph.node_wrappers
 
+    def test_one_outer_source_feeding_two_selected_nodes_makes_one_card_edge(
+        self, graph_with_library_system: BaseGraph
+    ):
+        """Both crossings land on the one inlet the plan minted, and yield one card edge."""
+        graph = graph_with_library_system
+        source = make_node(graph, _ADD)
+        left, right = make_node(graph, _ADD), make_node(graph, _ADD)
+        graph.create_edge_wrapper(source.node_id, "result", left.node_id, "value_a")
+        graph.create_edge_wrapper(source.node_id, "result", right.node_id, "value_a")
+
+        action = _collapse(graph, [left.node_id, right.node_id])
+        card_id = action.card_node_id
+
+        landing = [e for e in _snapshot(graph)[1] if e[2] == card_id]
+        assert len(landing) == 1
+        assert landing[0][:2] == (source.node_id, "result")
+
+    def test_one_outer_sink_fed_by_two_selected_nodes_makes_one_card_edge(
+        self, graph_with_library_system: BaseGraph
+    ):
+        """The outlet side of the same hazard: two crossings, one outer sink port."""
+        graph = graph_with_library_system
+        left, right = make_node(graph, _ADD), make_node(graph, _ADD)
+        sink = make_node(graph, _ADD)
+        graph.create_edge_wrapper(left.node_id, "result", sink.node_id, "value_a")
+        graph.create_edge_wrapper(right.node_id, "result", sink.node_id, "value_a")
+
+        action = _collapse(graph, [left.node_id, right.node_id])
+        card_id = action.card_node_id
+
+        leaving = [e for e in _snapshot(graph)[1] if e[0] == card_id]
+        assert len(leaving) == 1
+        assert leaving[0][2:] == (sink.node_id, "value_a")
+
     def test_a_non_convex_selection_is_refused_and_names_the_node(self, chain):
         graph, _begin, first, middle, last = chain
 

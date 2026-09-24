@@ -1415,10 +1415,17 @@ class CollapseToGraphNodeAction(CompositeAction):
             sink: card_port_id(port.port_id, is_inlet=False) for port in plan.outlets for sink in port.outer
         }
 
+        # The pins are deduped but the crossings are not, so several crossings
+        # can land on one pin and name the same card edge. One AddEdgeAction
+        # each; a second on the same endpoints raises and aborts the composite.
+        emitted: set[Tuple[str, str, str, str]] = set()
+
         for source_node_id, outlet_port_id, sink_node_id, inlet_port_id in crossings:
             if sink_node_id in nodes:
                 pin = pin_for_source.get((source_node_id, outlet_port_id))
                 if pin is None:
+                    continue
+                if not _claim(emitted, (source_node_id, outlet_port_id, self.card_node_id, pin)):
                     continue
                 actions.append(
                     AddEdgeAction(
@@ -1432,6 +1439,8 @@ class CollapseToGraphNodeAction(CompositeAction):
             else:
                 pin = pin_for_sink.get((sink_node_id, inlet_port_id))
                 if pin is None:
+                    continue
+                if not _claim(emitted, (self.card_node_id, pin, sink_node_id, inlet_port_id)):
                     continue
                 actions.append(
                     AddEdgeAction(
@@ -1915,3 +1924,11 @@ def _centroid(nodes: Dict[str, Any]) -> Tuple[float, float]:
         sum(float(p[0]) for p in positions) / len(positions),
         sum(float(p[1]) for p in positions) / len(positions),
     )
+
+
+def _claim(seen: set, key: Tuple[str, str, str, str]) -> bool:
+    """Record ``key`` and report whether it is the first time it was seen."""
+    if key in seen:
+        return False
+    seen.add(key)
+    return True
