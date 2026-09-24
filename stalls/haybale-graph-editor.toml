@@ -6,11 +6,11 @@
 [[haybales]]
 name = "haybale-graph-editor"
 label = "Graph Editor"
-version = "0.2.1"
-require = "haywire-core>=0.2.1"
+version = "0.2.2"
+require = "haywire-core>=0.2.2"
 description = "Visual graph editor library — host-agnostic"
 source = "pypi"
-install_spec = "haybale-graph-editor==0.2.1"
+install_spec = "haybale-graph-editor==0.2.2"
 tags = ["graph", "editor", "visualize", "render", "edit", "patching"]
 on_reload = "none"
 origin = "https://github.com/going-haywire/haywire"

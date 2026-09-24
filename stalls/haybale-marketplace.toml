@@ -6,11 +6,11 @@
 [[haybales]]
 name = "haybale-marketplace"
 label = "Marketplace"
-version = "0.2.1"
-require = "haywire-core>=0.2.1"
+version = "0.2.2"
+require = "haywire-core>=0.2.2"
 description = "Library installer + browser editors"
 source = "pypi"
-install_spec = "haybale-marketplace==0.2.1"
+install_spec = "haybale-marketplace==0.2.2"
 tags = ["marketplace"]
 on_reload = "none"
 origin = "https://github.com/going-haywire/haywire"

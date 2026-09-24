@@ -6,11 +6,11 @@
 [[haybales]]
 name = "haybale-share"
 label = "Share"
-version = "0.2.1"
-require = "haywire-core>=0.2.1"
+version = "0.2.2"
+require = "haywire-core>=0.2.2"
 description = "Publish this project: dependencies, version, docs, commit, tag, push"
 source = "pypi"
-install_spec = "haybale-share==0.2.1"
+install_spec = "haybale-share==0.2.2"
 tags = ["publishing"]
 on_reload = "none"
 origin = "https://github.com/going-haywire/haywire"

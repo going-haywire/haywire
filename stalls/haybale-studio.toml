@@ -6,11 +6,11 @@
 [[haybales]]
 name = "haybale-studio"
 label = "Studio"
-version = "0.2.1"
-require = "haywire-core>=0.2.1"
+version = "0.2.2"
+require = "haywire-core>=0.2.2"
 description = "Library for haywire studio"
 source = "pypi"
-install_spec = "haybale-studio==0.2.1"
+install_spec = "haybale-studio==0.2.2"
 tags = ["experimental", "project-local"]
 on_reload = "none"
 origin = "https://github.com/going-haywire/haywire"
