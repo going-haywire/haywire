@@ -1,4 +1,4 @@
-# haybale-graph-editor — component index (v0.2.2)
+# haybale-graph-editor — component index (v0.2.3)
 
 ## farmhand
 - `haybale-graph-editor:farmhand:add_node` — Add node — Add a node by registry key. Call studio_describe_component first to learn its ports.

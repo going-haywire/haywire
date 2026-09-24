@@ -1,4 +1,4 @@
-# haybale-studio — component index (v0.2.2)
+# haybale-studio — component index (v0.2.3)
 
 ## setting
 - `haybale-studio:setting:NodeSkinSettings` — Node Skin — 
