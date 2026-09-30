@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, NiceGUI + Vue (canvas), pytest (+ xdist), uv, ruff, mypy, mkdocs.
 
-**Settled in:** the inquisition of 2026-09-29 (Q1–Q10). Sequence: [2026-09-28-edge-kinds.md](2026-09-28-edge-kinds.md) step 4. Builds on ADR 0039 (propagation), ADR 0040 (unlinking reveals the own value) and step 3 (`NodeWrapper._locked`).
+**Settled in:** the inquisition of 2026-09-29 (Q1–Q10). Sequence: [2026-09-28-edge-kinds.md](../2026-09-28-edge-kinds.md) step 4. Builds on ADR 0039 (propagation), ADR 0040 (unlinking reveals the own value) and step 3 (`NodeWrapper._locked`).
 
 ## Global Constraints
 

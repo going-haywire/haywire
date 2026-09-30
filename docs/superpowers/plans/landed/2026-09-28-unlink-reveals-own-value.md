@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, NiceGUI (widgets), pytest (+ xdist), uv, ruff, mypy, mkdocs.
 
-**Settled in:** the inquisition of 2026-09-28 (decisions Q1–Q9, 3bA, 4bA, 8bA). Sequence: [2026-09-28-edge-kinds.md](2026-09-28-edge-kinds.md) step 2. Supersedes [2026-09-28-immediate-reset-to-default.md](2026-09-28-immediate-reset-to-default.md).
+**Settled in:** the inquisition of 2026-09-28 (decisions Q1–Q9, 3bA, 4bA, 8bA). Sequence: [2026-09-28-edge-kinds.md](../2026-09-28-edge-kinds.md) step 2. Supersedes [2026-09-28-immediate-reset-to-default.md](../2026-09-28-immediate-reset-to-default.md).
 
 ## Global Constraints
 

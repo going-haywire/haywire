@@ -27,7 +27,7 @@ Clean rows from `benchmarks/results/results.jsonl`:
 The last row is step 2's own +2.7%, already attributed: each field read
 checks for a linked value (about +12 ns × 4.7 reads per node execution). See
 the step 2 plan's execution notes,
-`docs/superpowers/plans/2026-09-28-unlink-reveals-own-value.md`. It is **not**
+`docs/superpowers/plans/landed/2026-09-28-unlink-reveals-own-value.md`. It is **not**
 part of this task.
 
 Commit counts: `3d2e9fe..adaa50b` is 28 commits (+5.5%), `adaa50b..79be47e`

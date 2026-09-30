@@ -30,19 +30,18 @@ The steps are numbered in the order they are meant to be built.
 
 ---
 
-## Status and sequence — 2026-09-28
+## Status and sequence — 2026-09-30
 
 | Step | Work | Status | Detail plan | Next |
 |---|---|---|---|---|
 | 0 | Groundwork: split-reroute tests used a stale key; callback and pipe architecture docs corrected, ErrorNode test trap recorded | **Landed** on `master` | none | push |
 | 1 | Callbacks through reroutes; `Propagation` (lazy / eager / immediate) replaces `is_lazy` | **Landed** on `master` | [landed/2026-09-27-callbacks-through-reroutes.md](landed/2026-09-27-callbacks-through-reroutes.md) | push |
-| 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Built** on `unlink-own-value`, not merged | [2026-09-28-unlink-reveals-own-value.md](2026-09-28-unlink-reveals-own-value.md), 10 tasks; supersedes [2026-09-28-immediate-reset-to-default.md](2026-09-28-immediate-reset-to-default.md) | merge |
-| 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Built** on `unlink-own-value`, not merged | none (small; recorded in `.insights/project_subgraph_scheduler_deadlock.md`) | merge with step 2 |
-| 4 | Callbacks across Subgraph boundaries (Groups and macros) | **Built** on `unlink-own-value`, not merged | [2026-09-29-callbacks-across-subgraph-boundaries.md](2026-09-29-callbacks-across-subgraph-boundaries.md), 10 tasks | merge |
+| 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Landed** on `master` | [landed/2026-09-28-unlink-reveals-own-value.md](landed/2026-09-28-unlink-reveals-own-value.md), 10 tasks; supersedes [2026-09-28-immediate-reset-to-default.md](2026-09-28-immediate-reset-to-default.md) | merge |
+| 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Landed** on `master` | none (small; recorded in `.insights/project_subgraph_scheduler_deadlock.md`) | push |
+| 4 | Callbacks across Subgraph boundaries (Groups and macros) | **Landed** on `master` | [landed/2026-09-29-callbacks-across-subgraph-boundaries.md](landed/2026-09-29-callbacks-across-subgraph-boundaries.md), 10 tasks | push |
 | 5 | EdgeKind | Analysis done, not designed | needed, probably several (5.1, 5.2, …) | inquisition |
 
-Local `master` is ahead of `origin/master` (steps 0 and 1, and this
-overview), not pushed. Acceptance tests for steps 1 and 2 live in
+Local `master` is ahead of `origin/master` (steps 0–4), not pushed. Acceptance tests for steps 1 and 2 live in
 `tests/core/test_edge/test_disconnect_semantics.py`; since step 2 they report
 `9 passed`, no xfails.
 
@@ -56,9 +55,9 @@ An unlinked callback inlet resets to `None` for now; step 2 replaces that rule.
 Merging before step 2 because step 2 reaches into settings, promotion and
 widgets, too much to hold on one branch.
 
-**2. Unlinking reveals a port's own value.** **Built**:
-[2026-09-28-unlink-reveals-own-value.md](2026-09-28-unlink-reveals-own-value.md),
-branch `unlink-own-value`, ADR 0040 lands with it.
+**2. Unlinking reveals a port's own value.** **Landed**:
+[landed/2026-09-28-unlink-reveals-own-value.md](landed/2026-09-28-unlink-reveals-own-value.md),
+ADR 0040.
 
 *The rule.* An inlet shows the value from its edge while an edge feeds it, and
 its own value otherwise. The own value is what the user, the node or a setting
@@ -117,7 +116,7 @@ superseded plan's pool rule and test node carry over.
 - `get_value()`'s extra branch is benchmarked before and after;
 - ADR 0040 "unlinking reveals the own value" supersedes ADR 0014 §C3.
 
-**3. The redraw/validation lock cycle.** **Built**.
+**3. The redraw/validation lock cycle.** **Landed**.
 `NodeWrapper.redraw()` held `NodeWrapper._lock` and then took the validation
 lock through `mark_node_dirty`, while `ValidationManager._validate_batch` holds
 the validation lock and takes node locks in `build()`/`_housekeeping`. So did a
@@ -129,9 +128,9 @@ methods take no node lock. Pinned by `tests/core/test_node/test_node_lock_order.
 Across graphs the order is Subgraph before host (a Subgraph batch reaches the
 host through the card); step 4 must keep to it.
 
-**4. Callbacks across Subgraph boundaries.** **Built**:
-[2026-09-29-callbacks-across-subgraph-boundaries.md](2026-09-29-callbacks-across-subgraph-boundaries.md);
-ADR 0041 lands with it. Settled 2026-09-29: an immediate relay on both sides of
+**4. Callbacks across Subgraph boundaries.** **Landed**:
+[landed/2026-09-29-callbacks-across-subgraph-boundaries.md](landed/2026-09-29-callbacks-across-subgraph-boundaries.md);
+ADR 0041. Settled 2026-09-29: an immediate relay on both sides of
 the card (keyed on `is_immediate`), a resync in `reconcile_interface`, deferred
 pairs only in the execution copy, a bare `ADD` accepting any flow, one
 subscription per interface port, one validation lock per graph tree. A listener
