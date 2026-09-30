@@ -226,6 +226,8 @@ def render_pin(
         f'data-pin-dir-x="{dir_x}" '
         f'data-pin-dir-y="{dir_y}" '
         f'data-hw-layout="{layout.value}"'
+        # A bare ADD grows a port of any flow, so the canvas lets any pin connect to it.
+        + (' data-pin-any-flow="true"' if pin.type_cls is not None and pin.type_cls._is_any else "")
     )
 
     pin_size = f"{pin_gutter}px"

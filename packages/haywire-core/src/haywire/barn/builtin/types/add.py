@@ -108,6 +108,10 @@ class ADD(BaseType, Generic[T]):
     An edge between two bare `ADD` pins is valid and does nothing: neither end
     has a type to give. Both resolve once either connects to something concrete.
 
+    A bare `ADD` accepts an edge of any flow — data, control or callback — and
+    the edge carries the other end's flow, so a pin grown from it can be any
+    of them. A typed `ADD[T]` keeps `T`'s flow.
+
     Holds no value and renders no widget. Cannot be a config port — a config
     never connects, so it could never resolve.
     """

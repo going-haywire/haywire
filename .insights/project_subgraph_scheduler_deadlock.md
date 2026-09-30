@@ -88,13 +88,11 @@ node's lock must use `_locked()`. Pinned by
 `tests/core/test_node/test_node_lock_order.py`, which fails (without hanging)
 on the old order.
 
-**Across graphs the order is Subgraph before host.** A Subgraph's batch
-reaches the host through the Graph-node card (`_on_definition_validated` →
-`reconcile_interface` → the card's `_locked()`), so it holds the Subgraph's
-validation lock while taking the host's. No path takes them the other way
-round today. A new one — holding the host's lock, then a Subgraph's — would
-deadlock against it wherever two batches run on different threads:
-`ThreadingTimerScheduler` gives each batch its own timer thread, while the
-app's `LoopScheduler` runs them all on the loop. Edge-kinds step 4 (callbacks
-across the card) must keep to Subgraph before host.
+**Across graphs: one lock per tree.** A Subgraph validates under its host's
+validation lock (`add_subgraph` → `BaseGraph._share_validation_lock`), so every
+batch of a graph tree — scheduled or forced, on any thread — runs one at a
+time, and a Subgraph batch reaching the host through the card (or the host's
+reaching in through a callback relay, edge-kinds step 4) re-enters a lock its
+thread already holds. The node-lock rule above is unchanged: the (shared)
+validation lock first, then a node's.
 

@@ -1,8 +1,9 @@
 """A Group under the execution features ADR 0036 claims need no special handling.
 
-Lazy edges, a loop straddling the boundary, and callback edges each cross a
-Subgraph boundary here. The ADR argues all three fall out of the crossing
-design; these drive them to be sure.
+Lazy edges and a loop straddling the boundary each cross a Subgraph boundary
+here. The ADR argues both fall out of the crossing design; these drive them to
+be sure. Callback edges cross at wiring time instead, through the relay (ADR
+0041): see ``tests/core/test_graph/test_callback_boundary_relay.py``.
 
 Like ``test_flat_view.py``, these drive the VM directly and synchronously, so
 an assertion about a port value cannot race a scheduler thread — except

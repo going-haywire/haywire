@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
 from datetime import datetime
 import math
+import threading
 import uuid
 import logging
 
@@ -322,7 +323,9 @@ class BaseGraph:
         callers build a ``SubgraphDefinition`` with no scheduler of its own, so
         without this a Subgraph of a ``SyncScheduler`` graph would validate on
         a background timer — see ``ValidationManager.adopt_scheduler`` for what
-        that deadlocks.
+        that deadlocks. It also validates under this graph's lock from now on,
+        so the whole tree runs one batch at a time; see
+        ``ValidationManager.share_lock``.
 
         Raises:
             ValueError: If the key is already taken, or if the definition holds
@@ -342,7 +345,14 @@ class BaseGraph:
         definition._host_graph = self
         definition.validation_scheduler = self.validation_scheduler
         definition._validation.adopt_scheduler(self.validation_scheduler)
+        definition._share_validation_lock(self._validation.lock)
         return definition
+
+    def _share_validation_lock(self, lock: "threading.RLock") -> None:
+        """Validate this graph and every Subgraph nested in it under ``lock``."""
+        self._validation.share_lock(lock)
+        for definition in self.subgraphs.values():
+            definition._share_validation_lock(lock)
 
     def get_subgraph(self, key: str) -> "SubgraphDefinition | None":
         """Return the Subgraph definition under ``key``, or ``None`` if this graph has none."""
@@ -601,9 +611,12 @@ class BaseGraph:
             ValueError: If an edge with the same id is already in the graph, or
                 *propagation* is ``IMMEDIATE``.
         """
-        from ..edge.edge_wrapper import EdgeWrapper
+        from ..edge.edge_wrapper import EdgeWrapper, edge_flow_type
 
-        flow_type = self.node_wrappers[source_node_id].node.ports[outlet_port_id].flow_type
+        outlet = self.node_wrappers[source_node_id].node.ports[outlet_port_id]
+        sink = self.node_wrappers.get(sink_node_id)
+        inlet = sink.node.ports.get(inlet_port_id) if sink is not None else None
+        flow_type = edge_flow_type(outlet, inlet) if inlet is not None else outlet.flow_type
 
         edge_wrapper = EdgeWrapper(
             graph=self,

@@ -1102,6 +1102,7 @@ class _BuildSubgraphAction(ActionBase):
         # The interface is the user's, so it is RESOLVED and each port carries a
         # removal row. Excluding DECLARED spares the growing slot init() added,
         # which a bare rejig would take with the rest.
+        from ...graph.subgraph_crossing import RELAY_HANDLER
         from ...types.enums import PortOrigin
 
         with node.rejig(exclude=[PortOrigin.DECLARED]):
@@ -1114,12 +1115,16 @@ class _BuildSubgraphAction(ActionBase):
                     "label": port.label,
                     "description": port.description,
                     "flow_type": port.flow_type,
-                    "default": port.default,
                     "origin": PortOrigin.RESOLVED,
                 }
+                if not port.flow_type.is_immediate:
+                    # An immediate port's default is its own node's subscription; the type's stands.
+                    kwargs["default"] = port.default
                 if port.widget_key is not None:
                     kwargs["widget_key"] = port.widget_key
                     kwargs["widget_config"] = dict(port.widget_config)
+                if not is_input and port.flow_type.is_immediate:
+                    kwargs["on_change"] = RELAY_HANDLER
                 factory = port.itype.as_outlet if is_input else port.itype.as_inlet
                 node.add(factory(port.port_id, **kwargs))
 
@@ -1343,16 +1348,6 @@ class CollapseToGraphNodeAction(CompositeAction):
             raise ValueError(
                 "This selection cannot be collapsed: control would leave the Group and re-enter "
                 f"it through {', '.join(intervening)}. Add them to the selection to collapse it."
-            )
-
-        straddling = _callback_edge_partners(graph, selected)
-        if straddling:
-            raise ValueError(
-                "This selection cannot be collapsed: a callback edge would cross the Group's "
-                f"boundary, to {', '.join(straddling)}. A callback edge must run straight from "
-                "its event node to its listener — the subscription travels as a port value, and "
-                "a boundary node cannot carry it across. Add the node at the other end to the "
-                "selection, or leave both ends outside it."
             )
 
         plan = derive_interface(graph, selected)
@@ -1866,30 +1861,6 @@ class PromoteGroupToMacroAction(CompositeAction):
                 )
 
         super().__init__(actions, description or "Promote to Macro")
-
-
-def _callback_edge_partners(graph: BaseGraph, selected: List[str]) -> List[str]:
-    """The nodes outside ``selected`` that a callback edge joins to one inside it.
-
-    A callback edge carries its subscription as a port value, read from the
-    sink's pool. A boundary node cannot relay it: the copy would re-key the
-    pool entry by its own edge, and unlinking the outer edge clears only the
-    outer port's pool, leaving the interior holding a subscription to a
-    listener that is no longer connected. Both directions are reported — a
-    Group can no more import a callback than export one.
-    """
-    from ...types.enums import FlowType
-
-    inside = set(selected)
-    partners: List[str] = []
-    for node_id in selected:
-        for edge in graph._get_all_edges(node_id):
-            if edge.edge_type is not FlowType.CALLBACK:
-                continue
-            other = edge.sink_node_id if edge.source_node_id == node_id else edge.source_node_id
-            if other not in inside:
-                partners.append(other)
-    return sorted(set(partners))
 
 
 #: How far outside the contents' bounding box a boundary node sits.

@@ -18,7 +18,9 @@ regardless.
 They execute as ordinary nodes in the host's flow: the Subgraph Input copies the
 card's inlet values onto its own outlets, and the Subgraph Output copies its
 inlet values onto the card's outlets. Each write fires that port's own pipes, so
-every value travels the rest of the way over real edges. Control reaches them
+every value travels the rest of the way over real edges. Immediate values —
+callback subscriptions — cross at wiring time instead, through ``hb_relay``;
+see ``haywire.core.graph.subgraph_crossing``. Control reaches them
 across virtual crossings the assembler's view supplies — see
 ``haywire.core.graph.subgraph_crossing``.
 
@@ -39,6 +41,7 @@ from typing import Any
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.graph.subgraph_crossing import (
+    RELAY_HANDLER,
     card_port_id,
     enter_crossing_id,
     exit_crossing_id,
@@ -123,9 +126,16 @@ class _GrowsInterface(BaseNode):
             "id": port.id,
             "label": other.label or port.id,
             "description": other.description,
-            "default": other.default,
             "origin": PortOrigin.RESOLVED,
         }
+        if not other.is_immediate:
+            # An immediate port's default is its own node's subscription, so the type's default stands.
+            kwargs["default"] = other.default
+        if (
+            self._SLOT_PORT_TYPE is PortType.INLET
+            and FlowType(incoming.class_identity.flow_type).is_immediate
+        ):
+            kwargs["on_change"] = RELAY_HANDLER
         if other.widget_key is not None:
             kwargs["widget_key"] = other.widget_key
             kwargs["widget_config"] = dict(other.widget_config)
@@ -138,6 +148,8 @@ class _GrowsInterface(BaseNode):
 
         Both boundary nodes execute as this same copy-and-follow shape; only
         which ports are paired (:meth:`on_assembly`) differs between them.
+        Immediate ports are never paired: they relay at wiring time
+        (``hb_relay``).
 
         Returns:
             The crossing id ``context.control_pin`` maps to, or ``None`` when
@@ -218,7 +230,7 @@ class SubgraphInputNode(_GrowsInterface):
         for outlet in self.get_ports(is_port_type=PortType.OUTLET, has_pin=True):
             card_inlet_id = card_port_id(outlet.id, is_inlet=True)
             source = card.ports.get(card_inlet_id)
-            if source is not None:
+            if source is not None and not outlet.is_immediate:
                 pairs.append((source, outlet))
             if outlet.flow_type is FlowType.CONTROL:
                 crossings[enter_crossing_id(card_inlet_id)] = outlet.id
@@ -252,6 +264,22 @@ class SubgraphOutputNode(_GrowsInterface):
         # it, choosing the port ids, so this node names no fixed interface id.
         self._add_slot(0)
 
+    def hb_relay(self, port, value) -> None:
+        """Copy an immediate inlet's write to the card's matching outlet at once.
+
+        Does nothing while no card stands for this Subgraph; the card copies the
+        value out itself when it reconciles (see ``GraphNode.reconcile_interface``).
+        """
+        if not port.is_immediate:
+            return
+        definition = self.wrapper.graph if self.wrapper else None
+        if not isinstance(definition, SubgraphDefinition):
+            return
+        card = definition.graph_node_wrapper()
+        target = card.node.ports.get(card_port_id(port.id, is_inlet=False)) if card is not None else None
+        if target is not None:
+            target.set_value(value)
+
     def _resolve_pairs_and_crossings(self, card: BaseNode) -> tuple[list[tuple[Any, Any]], dict[str, str]]:
         """Pair this node's inlets with the card outlets they are copied onto.
 
@@ -262,7 +290,7 @@ class SubgraphOutputNode(_GrowsInterface):
         crossings: dict[str, str] = {}
         for inlet in self.get_ports(is_port_type=PortType.INLET, has_pin=True):
             target = card.ports.get(card_port_id(inlet.id, is_inlet=False))
-            if target is not None:
+            if target is not None and not inlet.is_immediate:
                 pairs.append((inlet, target))
             if inlet.flow_type is FlowType.CONTROL:
                 crossings[inlet.id] = exit_crossing_id(inlet.id)

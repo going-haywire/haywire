@@ -98,6 +98,20 @@ class EdgeWrapperState:
             return None
 
 
+def _accepts_any_flow(port: "DataPort") -> bool:
+    """True for a bare ``ADD`` pin, which grows a port of whatever flow connects to it."""
+    return port.type_cls is not None and port.type_cls._is_any
+
+
+def edge_flow_type(outlet: "DataPort", inlet: "DataPort") -> FlowType:
+    """Return the flow an edge between ``outlet`` and ``inlet`` carries.
+
+    The outlet's flow, unless the outlet is a bare ``ADD``: then the inlet's,
+    so an edge out of a boundary node's growing slot is typed by what it feeds.
+    """
+    return inlet.flow_type if _accepts_any_flow(outlet) else outlet.flow_type
+
+
 class EdgeWrapper:
     """
     Manages the complete lifecycle of an Edge instance.
@@ -738,7 +752,9 @@ class EdgeWrapper:
                     f"Invalid port types for edge: Inlet port {self._inlet_port.id} is an outlet"
                 )
 
-            if self._outlet_port.flow_type != self._inlet_port.flow_type:
+            if self._outlet_port.flow_type != self._inlet_port.flow_type and not (
+                _accepts_any_flow(self._outlet_port) or _accepts_any_flow(self._inlet_port)
+            ):
                 raise Exception(
                     f"Flow type mismatch between outlet "
                     f"({self._outlet_port.flow_type}) and inlet "

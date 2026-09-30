@@ -59,13 +59,13 @@ Both coexist. A graph can have some callbacks edge-wired and others matched by n
 
 By design, every callback-listener Flow has its own EVENT-node entry — typically `CallbackEvent(event_name=...)`.
 
-### 2.4 Through reroutes
+### 2.4 Through reroutes and Subgraph boundaries
 
 A callback edge may pass through reroutes. Every port on a callback flow is **immediate**: an edge-driven write fires `on_change` at once, and a reroute's inlet forwards to its outlet from that handler (`RerouteNode.forward_immediate`), so the subscription reaches the emitter without any node executing. Callback edges always have `immediate` propagation, locked — see [edges-arch §3.3](../edges/edges-arch.md).
 
 Removing any edge on the path unsubscribes. An inlet left without a linked edge shows its own value (ADR 0040); for a callback port that is its default, an empty name. The reroute forwards it, and the emitter's pooled inlet treats its element type's default as "no subscription" and removes the entry keyed by its own edge. A displaced edge that takes over keeps the subscription in place.
 
-Subgraph boundaries do not relay callbacks yet: collapsing a selection that a callback edge would cross is still refused.
+A Subgraph boundary relays the same way. The card's immediate inlets and the Subgraph Output's immediate inlets carry `on_change = hb_relay`, which writes the partner port on the other side at once — the Subgraph Input's outlet for a card inlet, the card's outlet for a Subgraph Output inlet — found by id through `subgraph_crossing`. `reconcile_interface` copies every immediate pair once whenever card and interior meet, so load order and a macro reload leave both sides agreeing. Unlinking either side reveals the next port's own value, which the relay carries on. A listener is an EVENT node, which a Subgraph may not contain, so a subscription crosses inward to an interior emitter, or straight through a Group (a reroute or a nested card inside). See ADR 0041.
 
 ## 3. Lifecycle
 

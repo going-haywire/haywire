@@ -29,6 +29,10 @@ Values cross by worker copy, not by edge. Each boundary node pairs its ports
 with the card's in ``on_assembly()`` and writes through them in its worker, so
 each write fires that port's own pipes and the value travels the rest of the way
 over ordinary edges with their own adapter chains.
+
+An immediate value — a callback subscription — cannot wait for execution, so
+it crosses at wiring time instead: each immediate interface inlet relays its
+writes to its partner through ``RELAY_HANDLER``. See ADR 0041.
 """
 
 from __future__ import annotations
@@ -46,6 +50,12 @@ OUTLET_PREFIX = "out_"
 #: so a worker reading ``control_pin`` can tell which of its roles it is in.
 ENTER_PREFIX = "enter_"
 EXIT_PREFIX = "exit_"
+
+#: The handler an immediate interface inlet calls on each write, on the card
+#: (inward) and on the Subgraph Output (outward). It relays the value across
+#: the boundary at once, as ``RerouteNode.forward_immediate`` does along an
+#: edge; the partner is found by id, so no pairing needs assembly.
+RELAY_HANDLER = "hb_relay"
 
 
 # ---------------------------------------------------------------------------

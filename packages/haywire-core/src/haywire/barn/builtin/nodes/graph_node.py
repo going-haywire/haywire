@@ -14,7 +14,8 @@ visited twice: an entry hop, whose localized data flow evaluates the producers
 feeding its inlets and whose worker hands control inward; and an exit hop that
 returns control to the parent. In a Subgraph crossed by data alone there is no
 control chain, so the card runs once and copies its inlet values inward itself.
-Either way the boundary nodes carry the values — see
+Either way the boundary nodes carry the deferred values; an immediate value
+crosses at wiring time through ``hb_relay`` — see
 ``haywire.core.graph.subgraph_crossing``.
 
 Lives in the framework-owned **builtin** library so headless graphs can load a
@@ -27,6 +28,7 @@ from typing import Any, TYPE_CHECKING
 
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.graph.subgraph_crossing import (
+    RELAY_HANDLER,
     boundary_port_id,
     card_port_id,
     enter_crossing_id,
@@ -185,6 +187,9 @@ class GraphNode(BaseNode):
         A pin this card already carries keeps the order it has — the card's pin
         order is its own (ADR 0036). Does nothing when no Subgraph is bound,
         leaving whatever pins the node already carries.
+
+        Ends by copying every immediate pair once, in both directions (see
+        ``hb_relay``).
         """
         definition = self.resolve_definition()
         if definition is None:
@@ -205,6 +210,26 @@ class GraphNode(BaseNode):
                     self._mirror(inlet, as_outlet=True)
 
         self._stamp_node_type()
+        self._resync_immediate_pairs(input_node, output_node)
+
+    def _resync_immediate_pairs(self, input_node, output_node) -> None:
+        """Copy each immediate pair once, both ways, so the card and its interior agree.
+
+        A relay fires only on a write, so a side built after its partner — the
+        card after the interior on load, an interior rebuilt by a macro reload —
+        would otherwise miss the other's current value.
+        """
+        if input_node is not None:
+            for inlet in self.get_ports(is_port_type=PortType.INLET, has_pin=True):
+                boundary_id = boundary_port_id(inlet.id)
+                target = input_node.node.ports.get(boundary_id) if boundary_id else None
+                if inlet.is_immediate and target is not None:
+                    target.set_value(inlet.get_value())
+        if output_node is not None:
+            for inlet in output_node.node.get_ports(is_port_type=PortType.INLET, has_pin=True):
+                target = self.ports.get(card_port_id(inlet.id, is_inlet=False))
+                if inlet.is_immediate and target is not None:
+                    target.set_value(inlet.get_value())
 
     @staticmethod
     def _boundary_ports(wrapper, port_type: PortType) -> list["DataPort"]:
@@ -248,11 +273,26 @@ class GraphNode(BaseNode):
         if port.widget_key is not None:
             kwargs["widget_key"] = port.widget_key
             kwargs["widget_config"] = dict(port.widget_config)
+        if as_inlet and port.is_immediate:
+            kwargs["on_change"] = RELAY_HANDLER
         pin_id = card_port_id(port.id, is_inlet=as_inlet)
         if as_inlet:
             self.add(port.type_cls.as_inlet(pin_id, **kwargs))
         elif as_outlet:
             self.add(port.type_cls.as_outlet(pin_id, **kwargs))
+
+    def hb_relay(self, port: "DataPort", value: Any) -> None:
+        """Copy an immediate inlet's write to the Subgraph Input's matching outlet at once."""
+        if not port.is_immediate:
+            return
+        definition = self.resolve_definition()
+        input_node = definition.input_node if definition is not None else None
+        boundary_id = boundary_port_id(port.id)
+        if input_node is None or boundary_id is None:
+            return
+        target = input_node.node.ports.get(boundary_id)
+        if target is not None:
+            target.set_value(value)
 
     # =========================================================================
     # DERIVED NODE TYPE
@@ -306,7 +346,7 @@ class GraphNode(BaseNode):
         if input_node is not None:
             for outlet in input_node.node.get_ports(is_port_type=PortType.OUTLET, has_pin=True):
                 source = self.ports.get(card_port_id(outlet.id, is_inlet=True))
-                if source is not None:
+                if source is not None and not outlet.is_immediate:
                     pairs.append((source, outlet))
         self.cache.inward = pairs
 

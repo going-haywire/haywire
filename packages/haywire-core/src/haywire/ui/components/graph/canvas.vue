@@ -3643,9 +3643,11 @@ export default {
                 return false;
             }
 
-            // Ghost pins are flow-type agnostic — they accept any connection type.
+            // Ghost pins and bare ADD pins are flow-type agnostic — they accept any connection type.
             const eitherIsGhost = startFlowType === 'ghost' || endFlowType === 'ghost';
-            if (!eitherIsGhost && startFlowType !== endFlowType) {
+            const eitherTakesAnyFlow =
+                startPin.dataset.pinAnyFlow === 'true' || endPin.dataset.pinAnyFlow === 'true';
+            if (!eitherIsGhost && !eitherTakesAnyFlow && startFlowType !== endFlowType) {
                 return false;
             }
 

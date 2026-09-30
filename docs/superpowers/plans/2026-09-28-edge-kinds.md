@@ -38,7 +38,7 @@ The steps are numbered in the order they are meant to be built.
 | 1 | Callbacks through reroutes; `Propagation` (lazy / eager / immediate) replaces `is_lazy` | **Landed** on `master` | [landed/2026-09-27-callbacks-through-reroutes.md](landed/2026-09-27-callbacks-through-reroutes.md) | push |
 | 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Built** on `unlink-own-value`, not merged | [2026-09-28-unlink-reveals-own-value.md](2026-09-28-unlink-reveals-own-value.md), 10 tasks; supersedes [2026-09-28-immediate-reset-to-default.md](2026-09-28-immediate-reset-to-default.md) | merge |
 | 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Built** on `unlink-own-value`, not merged | none (small; recorded in `.insights/project_subgraph_scheduler_deadlock.md`) | merge with step 2 |
-| 4 | Callbacks across Subgraph boundaries (Groups and macros) | Open questions only | needed | inquisition |
+| 4 | Callbacks across Subgraph boundaries (Groups and macros) | **Built** on `unlink-own-value`, not merged | [2026-09-29-callbacks-across-subgraph-boundaries.md](2026-09-29-callbacks-across-subgraph-boundaries.md), 10 tasks | merge |
 | 5 | EdgeKind | Analysis done, not designed | needed, probably several (5.1, 5.2, …) | inquisition |
 
 Local `master` is ahead of `origin/master` (steps 0 and 1, and this
@@ -129,7 +129,14 @@ methods take no node lock. Pinned by `tests/core/test_node/test_node_lock_order.
 Across graphs the order is Subgraph before host (a Subgraph batch reaches the
 host through the card); step 4 must keep to it.
 
-**4. Callbacks across Subgraph boundaries.** Inquisition, then plan.
+**4. Callbacks across Subgraph boundaries.** **Built**:
+[2026-09-29-callbacks-across-subgraph-boundaries.md](2026-09-29-callbacks-across-subgraph-boundaries.md);
+ADR 0041 lands with it. Settled 2026-09-29: an immediate relay on both sides of
+the card (keyed on `is_immediate`), a resync in `reconcile_interface`, deferred
+pairs only in the execution copy, a bare `ADD` accepting any flow, one
+subscription per interface port, one validation lock per graph tree. A listener
+is an EVENT node, which a Subgraph may not contain, so outward a subscription
+crosses only on its way through (Q11A). The questions below were the input.
 Reuses steps 1 and 2: the inlet-`on_change` relay pattern, locked `immediate`
 propagation, the unlink rule. Open questions carried from the 2026-09-27
 inquisition:
@@ -198,6 +205,12 @@ Not steps; each is a single change.
   collision retry never applies: a birthday collision fails it about once in
   800 runs (seen once while building step 2). Register each id, or assert on
   fewer.
+- Collapse does not refuse a selection holding an EVENT node; the invalid Group
+  surfaces only at host assembly (`validate_subgraph_contents`). Pre-existing,
+  not callback-specific; found in step 4.
+- Possibly: collapse seeds a data interface port's default from a *pooled*
+  interior inlet, whose default is pool-shaped. Unverified; step 4 fixed only
+  the immediate case.
 - Check the OAK-D camera once in the studio: step 1 fixed a stale cache, so
   `OakDCameraNode.hb_on_callbacks_changed` now fires on edge-driven writes, as
   `callbacks-arch.md` always described. visiongraph's tests do not cover that

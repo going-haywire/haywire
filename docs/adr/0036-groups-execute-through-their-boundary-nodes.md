@@ -2,11 +2,13 @@
 name: groups-execute-through-their-boundary-nodes
 description: A Group runs as ordinary nodes in the host's flow — the boundary nodes copy values across a virtual crossing — because a view over assembly can decide when a node runs but never where a value goes; and the interface those nodes carry belongs to the user, so it can grow and shrink while the card only reflects it
 status: accepted
-see-also: ADR-0022, ADR-0034, ADR-0035
+see-also: ADR-0022, ADR-0034, ADR-0035, ADR-0041
 level: architectural
 ---
 
 # A Group executes through its boundary nodes
+
+> **"A callback may not cross the boundary" and the growing slot's flow are superseded by [ADR 0041](0041-callbacks-cross-a-subgraph-boundary.md).** Immediate interface ports relay across the card at wiring time; a bare `ADD` slot grows a port of any flow. Everything else here stands.
 
 **Context.** Haywire had no way to encapsulate part of a graph. Slice 1 of the
 Graph-node design gives a selection a **Group**: one card on the parent canvas

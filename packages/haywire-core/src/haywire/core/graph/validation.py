@@ -196,6 +196,16 @@ class ValidationManager:
                 self._pending_handle = None
             self._scheduler = scheduler
 
+    def share_lock(self, lock: "threading.RLock") -> None:
+        """Validate under ``lock`` from now on: the lock of the graph tree this graph joins.
+
+        Graphs of one tree then validate one batch at a time, whatever thread
+        runs it, so a Subgraph and its host may reach into each other inside a
+        batch without a lock-order rule between them. Call it before this
+        manager's lock is in use.
+        """
+        self._validation_lock = lock
+
     def clear(self) -> None:
         """Drop all dirty tracking and cancel any pending validation, without notifying subscribers."""
         with self._validation_lock:
