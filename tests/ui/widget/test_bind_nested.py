@@ -1,6 +1,6 @@
 import pytest
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from haywire.core.types.base import BaseType
 from haywire.core.types.port import DataPort
@@ -78,3 +78,30 @@ def test_nested_field_path_view_to_model():
     assert port.get_value().y == 0.0  # type: ignore[union-attr]
     # binding is the right one
     assert x_binding.source_property == "x"
+
+
+def test_a_nested_view_shows_the_linked_value():
+    port = _vec2_port()
+    port.set_value(_Vec2(x=1.0, y=2.0))
+    w = _Vec2Widget(port)
+    w.render()
+    port._linked_edges["e1"] = cast(Any, object())
+
+    port.set_value(_Vec2(x=7.0, y=9.0), edge_id="e1")
+
+    assert w.ex.value == 7.0
+
+
+def test_a_nested_view_edit_is_refused_while_linked():
+    port = _vec2_port()
+    port.set_value(_Vec2(x=1.0, y=2.0))
+    w = _Vec2Widget(port)
+    w.render()
+    port._linked_edges["e1"] = cast(Any, object())
+    port.set_value(_Vec2(x=7.0, y=9.0), edge_id="e1")
+
+    w.ex.value = 3.0
+    w.ex.handlers["update:modelValue"](type("E", (), {"sender": w.ex})())
+
+    assert cast(_Vec2, port.data.get_own_value()).x == 1.0
+    assert w.ex.value == 7.0

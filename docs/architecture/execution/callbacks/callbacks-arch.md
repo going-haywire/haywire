@@ -63,7 +63,7 @@ By design, every callback-listener Flow has its own EVENT-node entry — typical
 
 A callback edge may pass through reroutes. Every port on a callback flow is **immediate**: an edge-driven write fires `on_change` at once, and a reroute's inlet forwards to its outlet from that handler (`RerouteNode.forward_immediate`), so the subscription reaches the emitter without any node executing. Callback edges always have `immediate` propagation, locked — see [edges-arch §3.3](../edges/edges-arch.md).
 
-Removing any edge on the path unsubscribes. An immediate inlet left without a linked edge is set to absence (`None`), which the reroute forwards; the emitter's pooled inlet then removes the entry keyed by its own edge. A displaced edge that takes over keeps the subscription in place. Fields of immediate types hold absence whatever their storage, dataclass types included (ADR 0033, amendment).
+Removing any edge on the path unsubscribes. An inlet left without a linked edge shows its own value (ADR 0040); for a callback port that is its default, an empty name. The reroute forwards it, and the emitter's pooled inlet treats its element type's default as "no subscription" and removes the entry keyed by its own edge. A displaced edge that takes over keeps the subscription in place.
 
 Subgraph boundaries do not relay callbacks yet: collapsing a selection that a callback edge would cross is still refused.
 

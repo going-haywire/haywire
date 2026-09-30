@@ -1,12 +1,14 @@
 ---
 name: promotion-as-direction
-description: Promotion is a field plus a PortType direction; a setting and its promoted port share one cell as two views (superseded in part by ADR 0019)
+description: Promotion is a field plus a PortType direction; a setting and its promoted port share one cell as two views (superseded in part by ADR 0019 and, for freeze-on-disconnect, ADR 0040)
 status: accepted
-see-also: ADR-0018, ADR-0019
+see-also: ADR-0018, ADR-0019, ADR-0040
 level: architectural
 ---
 
 # Promotion is a field + a direction; a setting and a promoted port are one cell, two views
+
+> **Freeze-on-disconnect is superseded by [ADR 0040](0040-unlinking-reveals-the-own-value.md).** The shared cell now keeps an own value and, while an edge drives the inlet, a linked value in front of it; unlinking and demote show the own value. One cell, two views stands.
 
 > The binding-signal *mechanism* originally recorded here (synthetic `setting__…` port id,
 > id-as-binding-key, per-write `_set_keys` marking) was later replaced. The current mechanism

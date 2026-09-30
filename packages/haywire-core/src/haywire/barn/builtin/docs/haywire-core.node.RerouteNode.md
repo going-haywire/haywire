@@ -2,7 +2,7 @@
 
 `haywire-core:node:RerouteNode` · kind: node
 
-Pass-through node for bending wires. Supports DATA and CONTROL edges.
+Pass-through node for bending wires. Supports DATA, CONTROL and CALLBACK edges.
 
 ## Notes
 

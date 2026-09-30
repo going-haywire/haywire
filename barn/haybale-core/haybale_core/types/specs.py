@@ -101,7 +101,7 @@ class EXEC(PrimitiveType[dict]):
     label="Callback Signal",
     description="Signal for callback execution between nodes",
     color="#ff3c00",
-    default={},
+    default={"value": ""},
     # CALLBACK inherits STRING's payload but is a control-flow signal, not an
     # editable value — it must NOT inherit STRING's TextWidget.
     widget_key=None,
@@ -114,4 +114,5 @@ class CALLBACK(STRING):
     callback signal type - represents callback flow
     Inherits from STRING for payload compatibility.
     but is by default not serialized, and has no widget.
+    An empty name means no subscription: an emitter drops it.
     """

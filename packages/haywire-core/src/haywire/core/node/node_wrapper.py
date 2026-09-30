@@ -190,6 +190,11 @@ class NodeWrapper:
                 )
             return self._node_instance
 
+    @property
+    def is_cleaned_up(self) -> bool:
+        """True once ``cleanup()`` has released the node instance."""
+        return self._cleaned_up
+
     def is_valid(self) -> bool:
         """True when the node has passed every lifecycle stage. See ``NodeWrapperState.is_valid``."""
         return self._state.is_valid()

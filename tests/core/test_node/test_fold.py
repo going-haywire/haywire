@@ -103,7 +103,7 @@ def test_fold_persists_its_open_state(graph_with_library_system) -> None:
 
     probe = _make_probe(graph_with_library_system)
     fold = probe.ports["solver"]
-    assert fold.store_strategy.should_store(is_linked=False, has_widget=False, node_set=False), (
+    assert fold.store_strategy.should_store(has_widget=False, node_set=False), (
         "a fold that does not store forgets whether it was open"
     )
     assert fold.store_strategy & StoreStrategy.ALWAYS

@@ -81,9 +81,6 @@ class TestPromotedPortWritesThroughTheSetting:
         # Edge writes go to the PORT, never through the widget model, so a
         # graph-driven inlet stays clean and reset() keeps its meaning.
         node, port = _promoted(graph_with_library_system, "example_float", PortType.INLET)
-        node.example._set_keys.discard(
-            type(node.example).__dict__["example_float"].storage_key
-        )  # undo promote-time marking, which INLET does deliberately
         port.set_value(0.75, edge_id="e1")
         assert node.example._is_locally_set("example_float") is False
 

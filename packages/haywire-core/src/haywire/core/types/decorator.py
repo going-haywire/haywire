@@ -168,6 +168,13 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         identity_dict["default"] = normalize_and_validate_default(
             identity_dict["default"], inner_cls, context="@type decorator"
         )
+        # A primitive instance cannot hold None, so a missing value only crashes at the first save.
+        if issubclass(inner_cls, PrimitiveType) and identity_dict["default"].get("value") is None:
+            raise TypeError(
+                f"@type decorator for {inner_cls.__name__}: a primitive type's default needs a "
+                f"'value' that is not None, got {identity_dict['default']!r}. For a type whose "
+                f"values can be absent, use OPTIONAL[T]."
+            )
 
         # Set registry_key (always regenerate for this class)
         identity_dict["registry_key"] = reg_key(library_identity.name, TYPE, identity_dict["registry_id"])

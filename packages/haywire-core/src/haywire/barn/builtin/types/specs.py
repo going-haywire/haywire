@@ -36,12 +36,11 @@ class INTField(PrimitiveField):
     its field class from this one rather than using a plain ``PrimitiveField``
     — an optional int must behave exactly like a plain int while a value is
     present. ``int(None)`` raises, so the wrapper's absence branch bypasses this
-    override (see ``absence_capable_field``).
+    override (see ``_absence_tolerant_field``).
     """
 
-    def set_value(self, value, source_id=None):
-        value = int(value)
-        return super().set_value(value, source_id)
+    def _set_own(self, value):
+        self._value = int(value)
 
 
 # Set field_class attributes after classes are defined
@@ -73,9 +72,8 @@ class FLOAT(PrimitiveType[float]):
 class FLOATField(PrimitiveField):
     """DataField for FLOAT type storing float values"""
 
-    def set_value(self, value, source_id=None):
-        value = float(value)
-        return super().set_value(value, source_id)
+    def _set_own(self, value):
+        self._value = float(value)
 
 
 # Set field_class attributes after classes are defined

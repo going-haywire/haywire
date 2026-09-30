@@ -246,13 +246,13 @@ def test_reset_restores_default_and_clears_dirty(make_node_with_setting):
     assert not _dirty_label(row)
 
 
-def test_promoted_inlet_disables_reset_even_when_locally_set(make_node_with_setting):
-    """Promotion marks the field locally-set, but the graph owns an inlet's value (Q5/Q4)."""
+def test_promoted_inlet_leaves_the_field_unset_and_reset_greyed(make_node_with_setting):
+    """Promotion marks nothing, and the graph owns an inlet's value, so Reset stays greyed."""
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
 
     promote_setting(node, "filter", "threshold")
-    assert node.filter._is_locally_set("threshold")
+    assert not node.filter._is_locally_set("threshold")
 
     row = _render(node)
     assert row is not None
@@ -260,37 +260,21 @@ def test_promoted_inlet_disables_reset_even_when_locally_set(make_node_with_sett
     assert not _dirty_label(row)
 
 
-def test_demoted_unchanged_field_is_dirty_then_reset_clears_it(make_node_with_setting):
-    """Promote-then-demote leaves the field locally-set even if its value never
-    changed (freeze-on-disconnect): the row shows • + an enabled Reset item. reset()
-    then discards the local opinion — even though value == default and no cell event
-    fires — so a re-render shows no chrome."""
+def test_promote_then_demote_leaves_an_untouched_field_pristine(make_node_with_setting):
     from haywire.core.node.promotion import demote_setting, promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     default = node.filter.threshold  # 0.5, untouched
 
-    promote_setting(node, "filter", "threshold")  # marks locally-set, value unchanged
+    promote_setting(node, "filter", "threshold")
     pid = type(node.filter).__dict__["threshold"].storage_key
     demote_setting(node, pid)
 
-    # Locally-set, but value still equals the default: the "inert reset" case.
-    assert node.filter._is_locally_set("threshold")
-    assert node.filter.threshold == default
-
-    row = _render(node)
-    assert row is not None
-    assert _reset_enabled(row), "demoted-unchanged field is dirty (freeze-on-disconnect)"
-    assert _dirty_label(row)
-
-    # reset() discards the opinion despite old == new (no cell write / event).
-    node.filter._reset("threshold")
     assert not node.filter._is_locally_set("threshold")
     assert node.filter.threshold == default
-
     row = _render(node)
     assert row is not None
-    assert not _reset_enabled(row), "after reset the row is pristine"
+    assert not _reset_enabled(row)
     assert not _dirty_label(row)
 
 
@@ -299,13 +283,11 @@ def test_reset_click_clears_chrome_in_place_without_cell_event(make_node_with_se
     reset fires NO cell event (old == new), so the ONLY thing that clears the
     • / reset item is the handler refreshing its own row. Render once, click
     the reset menu item in place, assert the same elements clear — no re-render."""
-    from haywire.core.node.promotion import demote_setting, promote_setting
-
     node = make_node_with_setting(accessor="filter", field="threshold")
 
-    promote_setting(node, "filter", "threshold")
-    pid = type(node.filter).__dict__["threshold"].storage_key
-    demote_setting(node, pid)
+    # Locally set, and back at the default value: the "inert reset" case.
+    node.filter.threshold = 0.9
+    node.filter.threshold = 0.5
     assert node.filter._is_locally_set("threshold")
 
     client = Client(cast(Any, _noop_page), request=None)

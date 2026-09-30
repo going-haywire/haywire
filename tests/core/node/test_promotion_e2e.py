@@ -37,14 +37,12 @@ def test_full_promote_drive_demote_cycle(graph_with_library_system, library_syst
     node.ports[pid].resolve_dirty_data()
     assert node.example.example_float == 0.875  # port-driven, not the setting default
 
-    # 4. demote; the inlet is gone. §C3 freeze-on-disconnect: the edge-driven
-    #    value stays frozen in the cell (recovery is an explicit reset), so the
-    #    setting keeps 0.875 rather than snapping back to its default.
+    # 4. demote; the inlet and its edge are gone, so the setting shows its own value.
     demote_setting(node, pid)
     assert pid not in node.ports
-    assert node.example.example_float == 0.875
+    assert node.example.example_float == default_value
 
-    # reset restores the resolved default (the recovery path).
+    # reset leaves the resolved default in place.
     node.example._reset("example_float")
     assert node.example.example_float == default_value
 

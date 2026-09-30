@@ -1,10 +1,7 @@
 """What a port holds once the edge driving it is removed, and callbacks passing through reroutes.
 
-The ``xfail(strict=True)`` tests describe the Blender model — an inlet keeps
-the value the user gave it while linked and shows it again after unlinking.
-Current code keeps the last edge-driven value instead (ADR 0014 §C3,
-freeze-on-disconnect). Strict markers turn each into a failure the moment it
-starts passing, so the marker is removed with the change that fixes it.
+An inlet shows the value its edge delivers while linked and its own value once
+the last edge is gone (ADR 0040).
 """
 
 from typing import Any, cast
@@ -47,11 +44,6 @@ def _split_with_reroute(graph, edge_id: str) -> str:
     return reroute_id
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="unlinking keeps the last edge-driven value (ADR 0014 §C3, freeze-on-disconnect)",
-)
 def test_unlinked_inlet_shows_the_value_it_had_before_linking(graph_with_library_system, library_system):
     from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
 
@@ -73,11 +65,6 @@ def test_unlinked_inlet_shows_the_value_it_had_before_linking(graph_with_library
     assert inlet.get_value() == 7.0
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="a promoted inlet's setting cell holds the edge-driven value, and that is what saves (ADR 0014)",
-)
 def test_linked_promoted_setting_saves_the_users_value(graph_with_library_system, library_system):
     from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
     from haywire.core.node.promotion import promote_setting
@@ -193,7 +180,7 @@ def test_removing_the_edge_before_a_reroute_drops_a_dataclass_subscription(
     assert emit.node.ports["subscriptions"].get_value() == {}
 
 
-def test_a_graph_holding_an_absent_callback_saves_and_loads(graph_with_library_system, library_system):
+def test_a_graph_whose_reroute_lost_its_input_saves_and_loads(graph_with_library_system, library_system):
     graph = graph_with_library_system
     _event, _emit, edge = _callback_pair(graph)
     reroute_id = _split_with_reroute(graph, edge.edge_id)
@@ -204,4 +191,16 @@ def test_a_graph_holding_an_absent_callback_saves_and_loads(graph_with_library_s
     graph.clear()
     graph.load_from_dict(data)
 
-    assert graph.node_wrappers[reroute_id].node.ports["out"].get_value() is None
+    assert graph.node_wrappers[reroute_id].node.ports["out"].get_value() == ""
+
+
+def test_clearing_a_graph_with_a_linked_callback_reroute_raises_nothing(
+    graph_with_library_system, library_system
+):
+    graph = graph_with_library_system
+    _event, emit, edge = _callback_pair(graph)
+    _split_with_reroute(graph, edge.edge_id)
+
+    graph.clear()
+
+    assert graph.node_wrappers == {}

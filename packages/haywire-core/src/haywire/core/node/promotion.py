@@ -114,18 +114,12 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
 
 
 def _bind_port(port, bag: "Settings", desc: "setting") -> None:
-    """Share the setting's cell into *port*; for an inlet or config, also mark the
-    field locally-set.
+    """Share the setting's cell into *port*.
 
-    An inlet's only write path is its edge and a config's is its own widget, so
-    marking them makes the setting read return the shared cell instead of falling
-    back through mirror resolution. An outlet is left unmarked: it is still
-    written through the normal panel path, so promoting it neither freezes a
-    shadow/watch field against its global nor makes an unedited field serialize
-    as dirty. See ADR 0014."""
+    The setting keeps its opinion: an unset mirror field keeps tracking its
+    global in the cell's own value while an edge's value stands in front of
+    it. See ADR 0040."""
     port.bind_field(bag._cell_for(desc))
-    if port.is_inlet() or port.is_config():
-        bag._set_keys.add(desc.storage_key)
 
 
 def regenerate_promoted_ports(node: "NodeData") -> None:
@@ -169,9 +163,8 @@ def promote_setting(
     """Promote a setting field to a DATA port in *direction*. No-op if already promoted.
 
     The port's id is the setting's ``storage_key``, and it borrows the setting's
-    cell by reference, so setting and port are one value. An inlet or config is
-    also marked locally-set; an outlet is not (see ``_bind_port``). The promotion
-    is recorded on the bag, which is what serializes — the port never does.
+    cell by reference, so setting and port are one value. The promotion is
+    recorded on the bag, which is what serializes — the port never does.
 
     A promoted outlet is always ``is_linked_lazy``, since it is never driven by a
     worker ``out()`` call. A promoted config port is pinless (``flow_type=NONE``),
@@ -235,7 +228,7 @@ def promote_setting(
 
 def demote_setting(node: "NodeData", port_id: str) -> None:
     """Remove the promoted port ``port_id``, release its cell binding, and clear the
-    settings-side promotion record.
+    settings-side promotion record. The setting shows its own value again.
 
     No-op if the node has no such port. A port matching no setting — the library
     changed under a saved graph — is still removed."""
@@ -246,6 +239,8 @@ def demote_setting(node: "NodeData", port_id: str) -> None:
         bag._clear_promoted(desc._attr_name)
     except KeyError:
         pass  # port matches no setting (library changed) — just remove the port
+    # Before releasing the cell: once the port and its edges are gone, nothing clears it.
+    node.ports[port_id].data.clear_linked()
     node.ports[port_id].unbind_field()
     with node.rejig(include=[port_id]):
         pass

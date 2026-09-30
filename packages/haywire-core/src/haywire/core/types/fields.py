@@ -50,6 +50,14 @@ class DataField(ABC, Generic[T]):
 
     Each IType declares which DataField class handles its storage.
 
+    A field holds its **own value** — written by a widget, the node or a
+    setting, and the value that is saved — and, while an edge feeds it, the
+    **linked value** that edge delivered. ``get_value()`` returns the linked
+    value while there is one, else the own value. A subclass stores the own
+    value only, through ``_get_own``/``_set_own``; the linked value lives in a
+    second instance of the same class, so it gets the same checks and
+    coercion.
+
     Type tracking via element_type_cls:
     - PrimitiveField: element_type_cls = Python type (float, str, etc.)
     - BaseField: element_type_cls = BaseType class (MeshData, etc.)
@@ -67,36 +75,89 @@ class DataField(ABC, Generic[T]):
         # storage_key; registry: setting key). Purely descriptive — the field
         # itself never reads it.
         self.field_id: str = ""
+        # The value an edge delivered, in a field of this class; None while nothing feeds it.
+        self._linked_slot: DataField[T] | None = None
 
     # ========================================================================
     # CORE API - Implemented by each subclass
     # ========================================================================
 
-    @abstractmethod
     def get_value(self) -> T | None:
-        """
-        Get value for worker/binding access.
+        """Return the linked value while an edge feeds this field, else the own value.
 
-        Returns data in most convenient form:
-        - PrimitiveField: Unwrapped primitive (42.0), or None if no
-          default was registered and no value has been set yet.
+        Returns data in its most convenient form:
+        - PrimitiveField: unwrapped primitive (42.0), or None if no default was
+          registered and no value has been set yet.
         - BaseField: BaseType instance (MeshData(...))
-        - CompoundField: Container (dict, list, etc.)
+        - CompoundField: container (dict, list, etc.)
         """
-        pass
+        slot = self._linked_slot
+        if slot is not None:
+            return slot._get_own()
+        return self._get_own()
 
-    @abstractmethod
+    def get_own_value(self) -> T | None:
+        """Return the own value, whether or not an edge's value stands in front of it."""
+        return self._get_own()
+
     def set_value(self, value: Any, source_id: str | None = None) -> None:
-        """
-        Set value from connection or programmatic update.
-
-        Handles both wrapped (IType instances) and unwrapped values.
+        """Store *value* and fire ``on_changed`` with what ``get_value()`` returns before and after.
 
         Args:
-            value: Can be IType instance or raw value
-            source_id: Required for PooledField, ignored for others
+            value: IType instance or raw value, checked and coerced by the field.
+            source_id: The id of the edge delivering *value*, which stores it as
+                the linked value; ``None`` stores the own value.
+
+        Raises:
+            TypeError: If the field rejects *value*.
         """
-        pass
+        observed = self.on_changed.has_observers()
+        old = self.get_value() if observed else None
+        if source_id is None:
+            self._set_own(value)
+        else:
+            # `is None`, not `or`: an empty ArrayField is falsy.
+            slot = self._linked_slot
+            if slot is None:
+                slot = self._new_linked_slot()
+            slot._set_own(value)
+            self._linked_slot = slot
+        self.is_dirty = True
+        if observed:
+            self.fire(self.get_value(), old)
+
+    def has_linked_value(self) -> bool:
+        """True while an edge's value stands in front of the own value."""
+        return self._linked_slot is not None
+
+    def clear_linked(self) -> None:
+        """Drop the linked value so ``get_value()`` returns the own value again; no-op without one.
+
+        Fires ``on_changed`` with the own value.
+        """
+        slot = self._linked_slot
+        if slot is None:
+            return
+        self._linked_slot = None
+        self.is_dirty = True
+        if self.on_changed.has_observers():
+            self.fire(self._get_own(), slot._get_own())
+
+    def _new_linked_slot(self) -> "DataField[T]":
+        """Return an empty field of this class to hold a linked value."""
+        return type(self)(type_cls=self.type_cls, default_kwargs=self.default_kwargs)
+
+    @abstractmethod
+    def _get_own(self) -> T | None:
+        """Return the own value in its access form (see ``get_value``)."""
+
+    @abstractmethod
+    def _set_own(self, value: Any) -> None:
+        """Check, coerce and store *value* as the own value, firing nothing.
+
+        Raises:
+            TypeError: If *value* cannot be stored in this field.
+        """
 
     def get_stored_type(self) -> type[IType]:
         """
@@ -242,25 +303,20 @@ class PrimitiveField(DataField[T]):
         self._value = self._default
 
     def get_value(self) -> T | None:
-        """Get unwrapped primitive - O(1) direct access. None when unset."""
+        """Return the linked value while an edge feeds this field, else the own value."""
+        # The base's logic without the _get_own call: this read is on the node-execution hot path.
+        slot = self._linked_slot
+        if slot is not None:
+            return slot._value  # type: ignore[attr-defined]
         return self._value
 
-    def set_value(self, value: Any, source_id: str | None = None) -> None:
-        """
-        Store primitive value
+    def _get_own(self) -> T | None:
+        """Return the unwrapped primitive — O(1) direct access. None when unset."""
+        return self._value
 
-        Accepts both wrapped (rare, from adapters) and unwrapped (common).
-
-        Examples:
-            field.set_value(42.0)           # From worker - stores 42.0
-            field.set_value(FLOAT(42.0))    # From adapter - unwraps to 42.0
-        """
-
-        old = self._value
+    def _set_own(self, value: Any) -> None:
+        """Store the primitive as given; a subclass coerces first (see ``INTField``)."""
         self._value = value
-        self.is_dirty = True
-        if self.on_changed.has_observers():
-            self.fire(self._value, old)
 
     def reset(self) -> None:
         """Reset to default value"""
@@ -329,21 +385,20 @@ class BaseField(DataField[BaseType]):
         # type_cls is type[IType] at the base; for BaseField it's always type[BaseType].
         self._container = cast(BaseType, self.type_cls(**self.default_kwargs))
 
-    def get_value(self) -> BaseType:
-        """Get instance"""
+    def _get_own(self) -> BaseType:
+        """Return the instance."""
         return self._container
 
-    def set_value(self, value: Any, source_id: str | None = None) -> None:
-        """Store BaseType instance"""
+    def _set_own(self, value: Any) -> None:
+        """Store a BaseType instance.
+
+        Raises:
+            TypeError: If *value* is not an instance of the field's type.
+        """
         if not isinstance(value, self.type_cls):
             raise TypeError(f"Expected {self.type_cls.__name__}, got {type(value).__name__}")
-
         # type_cls is type[IType] at the base; for BaseField it's always type[BaseType].
-        old = self._container
         self._container = cast(BaseType, value)
-        self.is_dirty = True
-        if self.on_changed.has_observers():
-            self.fire(self._container, old)
 
     def reset(self) -> None:
         """Reset to default value"""

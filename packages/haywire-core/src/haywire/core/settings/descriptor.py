@@ -371,11 +371,12 @@ class setting(SettingDescriptor, Generic[T]):
         if not self.validate(value):
             return
 
-        # Compared against the resolved value, not _default: for a mirror with
-        # no local override that is the mirrored global, and writing it back
-        # must not create an override that then defeats reset. It also ends the
-        # cross-tab echo loop here, at the model layer.
-        old = self.__get__(obj, type(obj))
+        # Compared against the own value, not _default: for a mirror with no
+        # local override that is the mirrored global, and writing it back must
+        # not create an override that then defeats reset. It also ends the
+        # cross-tab echo loop here, at the model layer. An edge's value in
+        # front of a promoted inlet's own value plays no part.
+        old = obj._cell_for(self).get_own_value()
         if value == old:
             return
 

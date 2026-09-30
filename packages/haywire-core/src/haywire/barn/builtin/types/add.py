@@ -27,10 +27,10 @@ class ADDField(DataField):
             return element  # type: ignore[no-any-return]
         return self.type_cls
 
-    def get_value(self) -> AnyValue:
+    def _get_own(self) -> AnyValue:
         return None
 
-    def set_value(self, value: AnyValue, source_id: "str | None" = None) -> None:
+    def _set_own(self, value: AnyValue) -> None:
         """Ignore the write; an ``ADD`` pin is replaced before values flow."""
         return None
 

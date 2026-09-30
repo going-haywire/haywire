@@ -144,6 +144,8 @@ class PooledField(DataField):
 
     _sources: Dict[str, Any] = field(default_factory=dict, init=False, repr=False)
     _default_kwargs: Dict[str, Any] = field(default_factory=dict)
+    _drops_default: bool = field(default=False, init=False, repr=False)
+    _element_default: Any = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
         """Initialize pooled field."""
@@ -155,6 +157,13 @@ class PooledField(DataField):
         # or tests. Stored as-is, matching ``set_value``.
         initial_dict = self._default_kwargs.get("value", {})
         self._sources = dict(initial_dict)
+
+        # A callback element's default means "no subscription"; see set_value.
+        element = getattr(self.type_cls, "element_type_cls", None)
+        identity = getattr(element, "class_identity", None)
+        self._drops_default = identity is not None and FlowType(identity.flow_type).is_immediate
+        if self._drops_default:
+            self._element_default = element.create_field().get_value()
 
     def get_value(self) -> Dict[str, Any]:
         """
@@ -189,10 +198,11 @@ class PooledField(DataField):
             field.set_value(FLOAT(99.0), source_id="node1")
             # Stored: {"node1": 99.0, "node2": 15.0}
 
-        For an immediate element (see ``accepts_absence``), ``None`` removes the source's entry.
+        For a callback element, the element type's default (an empty name for
+        ``CALLBACK``) means "no subscription" and removes the source's entry.
         """
-        if value is None and self.accepts_absence():
-            # Absence from a source ends that source's entry; with no source there is nothing to end.
+        if self._drops_default and value == self._element_default:
+            # With no source there is no entry to end.
             if source_id is not None:
                 self.remove_source(source_id)
             return
@@ -220,10 +230,17 @@ class PooledField(DataField):
         # the contract every caller relies on (.class_identity / issubclass).
         return cast(Type[IType], element_type)
 
-    def accepts_absence(self) -> bool:
-        """True when the pooled element is an immediate type; absence from a source then ends its entry."""
-        identity = getattr(self.get_stored_type(), "class_identity", None)
-        return identity is not None and FlowType(identity.flow_type).is_immediate
+    def _get_own(self) -> Dict[str, Any]:
+        """Return a copy of the per-source values; a pooled field has no value besides them."""
+        return dict(self._sources)
+
+    def _set_own(self, value: Any) -> None:
+        """Refuse a write without a source.
+
+        Raises:
+            ValueError: Always; every pooled write names its source.
+        """
+        raise ValueError("PooledField requires source_id")
 
     def reset(self) -> None:
         """Clear all sources"""

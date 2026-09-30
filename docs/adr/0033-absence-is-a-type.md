@@ -230,6 +230,6 @@ same stamped contract every other surface reads.
 
 ---
 
-## Amendment — callback ports hold absence too (2026-09)
+## Amendment — callback absence withdrawn (2026-09)
 
-Immediate types (`FlowType.is_immediate`, today every `CALLBACK` flow) hold absence in their own fields, so an unlinked callback inlet can go absent and carry that to the emitter. `IType.create_field` gives such a type the absence-capable form of its field class (`absence_capable_field`), which covers `BaseField` storage as well as `PrimitiveField` — visiongraph's `MULTIFRAME_CALLBACK` is a dataclass. An absent `BaseField` value saves as `{"__absent__": true}`, since a dataclass may have a field named `value`. The restriction above still holds for wrappers: `OPTIONAL[T]` wraps only `PrimitiveField`-stored elements. A pooled field accepts absence when its element is immediate; absence from a source removes that source's entry.
+A callback port briefly held absence so an unlinked callback inlet could end a subscription. ADR 0040 replaced that: a callback's default is an ordinary value (an empty name for `CALLBACK`) that an emitter's pool reads as "no subscription", so absence stays what this ADR says — a value of `OPTIONAL[T]`, for `PrimitiveField`-stored elements only. `@type` now rejects a primitive type whose default holds no value: a primitive instance cannot hold `None`, so such a type's port used to raise `TypeError` only at its first save.

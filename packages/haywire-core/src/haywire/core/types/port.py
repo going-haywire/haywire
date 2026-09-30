@@ -26,6 +26,16 @@ if TYPE_CHECKING:
     from haywire.core.node import NodeData
 
 
+def _same_value(a: Any, b: Any) -> bool:
+    """True if *a* and *b* are one object or compare equal; a failing or ambiguous comparison is False."""
+    if a is b:
+        return True
+    try:
+        return bool(a == b)
+    except Exception:
+        return False
+
+
 @dataclass
 class DataPort(DataTypeIdentity):
     """
@@ -277,6 +287,10 @@ class DataPort(DataTypeIdentity):
             # Control flow inlets do allow multiple connections by design
             self.allow_multiple_links = True
 
+        if self.is_inlet() and self.flow_type == FlowType.DATA:
+            # A pooled inlet is made multi-link after construction (PooledType._configure_port).
+            self.allow_multiple_links = False
+
         # contrary to data and control flow, callback flow does not have
         # hardcoded connection rules and can be freely configured by the user
 
@@ -297,7 +311,8 @@ class DataPort(DataTypeIdentity):
             self._trigger_callback(self.on_change, old, new)
             # → node.<on_change>(port, old, new)
         """
-        if not callback_name or not self._wrapper:
+        if not callback_name or not self._wrapper or self._wrapper.is_cleaned_up:
+            # A graph's teardown detaches edges after cleaning up their nodes; there is nothing to call.
             return
 
         node = self._wrapper.node
@@ -345,6 +360,8 @@ class DataPort(DataTypeIdentity):
         Set port value. Single entry point for all value updates.
 
         For inlets:
+        - an own write (no edge_id) while an edge feeds the inlet changes only
+          the own value: no on_change, no dirty mark
         - fire immediately with on_change when
             - Widget/programmatic (no edge_id) or
             - an immediate flow (``is_immediate``) when edge-driven
@@ -366,6 +383,9 @@ class DataPort(DataTypeIdentity):
             # Inlet values come from an edge (edge_id set) or a widget/programmatic
             # set — never from the owning node, so clear the node-set flag.
             self._is_set_by_node = False
+            if edge_id is None and self._data.has_linked_value():
+                # The own value changed behind the linked one; the node sees no change.
+                return
             if self.on_change is not None and (edge_id is None or self._is_immediate):
                 # Widget/programmatic/immediate change → fire on_change immediately
                 self._trigger_callback(self.on_change, new_value)
@@ -658,6 +678,8 @@ class DataPort(DataTypeIdentity):
         if wrapper_uuid in self._linked_edges:
             edge_wrapper = self._linked_edges.pop(wrapper_uuid)
             self._data.remove_source(wrapper_uuid)
+            # A lazy pull still queued for this edge would deliver after it is gone.
+            self._pending_lazy_pipes = {p for p in self._pending_lazy_pipes if p.edge_id != wrapper_uuid}
             self._mark_as_structuraly_dirty()
 
             if self.on_disconnect and edge_wrapper:
@@ -698,18 +720,25 @@ class DataPort(DataTypeIdentity):
 
         return None
 
-    def _reset_if_unlinked(self) -> None:
-        """Set an immediate inlet that no edge feeds any more to absence.
+    def _reveal_own_value_if_unlinked(self) -> None:
+        """Show the own value again once no edge feeds this inlet.
 
-        Fires ``on_change`` like any widget write, so a reroute passes the
-        absence on and the emitter at the end of the chain drops the entry.
-        A pooled inlet has nothing left to clear: unlinking already removed
-        each source's entry.
+        The change reaches the node through its propagation: an immediate
+        inlet fires ``on_change`` now, a deferred one is marked dirty for its
+        node's next execution. Nothing happens while another edge still feeds
+        the inlet, or when the own value equals the linked one.
         """
-        if not (self._is_inlet and self._is_immediate) or self._linked_edges:
+        if not self._is_inlet or self._linked_edges or not self._data.has_linked_value():
             return
-        if self._data.has_data():
-            self.set_value(None)
+        linked = self._data.get_value()
+        self._data.clear_linked()
+        own = self._data.get_value()
+        if _same_value(linked, own):
+            return
+        if self.on_change is not None and self._is_immediate:
+            self._trigger_callback(self.on_change, own)
+        else:
+            self._mark_as_data_dirty()
 
     def _detach_all_edges(self) -> list[EdgeWrapper]:
         """
@@ -938,7 +967,6 @@ class DataPort(DataTypeIdentity):
         # (single-writer).
         if include_data and self._data and not self.promoted:
             if self.store_strategy.should_store(
-                is_linked=self.is_linked(),
                 has_widget=self.widget_key is not None,
                 node_set=self._is_set_by_node,
             ):

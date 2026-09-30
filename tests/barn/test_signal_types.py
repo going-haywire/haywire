@@ -45,4 +45,4 @@ def test_an_untouched_signal_port_stores_nothing(type_name, _expected):
 
     signal = getattr(specs, type_name)
     strategy = signal.class_identity.store_strategy
-    assert not strategy.should_store(is_linked=True, has_widget=False, node_set=False)
+    assert not strategy.should_store(has_widget=False, node_set=False)

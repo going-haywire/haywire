@@ -270,8 +270,7 @@ def test_promoted_outlet_keeps_tracking_global_until_actually_written(library_sy
     locally-set — an outlet has no write path of its own (still written
     through the normal panel/registry path, same as if it weren't promoted),
     so it must keep tracking its mirrored global exactly like an unpromoted,
-    unedited shadow field. Only an INLET's edge-driven value needs the
-    locally-set opinion (see _bind_port)."""
+    unedited shadow field."""
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
@@ -292,8 +291,8 @@ def test_promoted_outlet_keeps_tracking_global_until_actually_written(library_sy
     assert node.cfg.shadowed == 0.3  # tracking stopped once locally set
 
 
-def test_demote_after_driven_value_keeps_the_cell_value(make_node_with_setting):
-    """§C3: demote is structural — it never resets the value."""
+def test_demote_after_a_driven_value_reveals_the_own_value(make_node_with_setting):
+    """Demote removes the port and its edge; the setting shows its own value again."""
     from haywire.core.node.promotion import (
         demote_setting,
         promote_setting,
@@ -307,5 +306,5 @@ def test_demote_after_driven_value_keeps_the_cell_value(make_node_with_setting):
     assert node.filter.threshold == 0.77
 
     demote_setting(node, pid)
-    # The cell value survives demote (recovery is an explicit reset).
-    assert node.filter.threshold == 0.77
+
+    assert node.filter.threshold == 0.5

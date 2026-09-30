@@ -114,7 +114,7 @@ class PropertyBinding:
         else:
             field = self._element.data
             if isinstance(field, BaseField):
-                container = field._container
+                container = field.get_value()
                 model_value = self._navigate_path(container, self.source_property)
             elif isinstance(field, PrimitiveField):
                 raise ValueError(
@@ -152,6 +152,10 @@ class PropertyBinding:
     def _sync_to_model(self, view_value: Any) -> None:
         """Synchronize view value to model."""
         assert self._element is not None and self.converter is not None
+        if self._element.data.has_linked_value():
+            # An edge's value stands in front of the model's own value; show it again.
+            self.sync_to_view()
+            return
         is_valid, _error_msg = self.converter.validate(view_value)
         if not is_valid:
             return
@@ -206,7 +210,7 @@ class PropertyBinding:
             )
 
         # Get container (the BaseType instance)
-        container = field._container
+        container = field.get_own_value()
 
         # Navigate to parent of final property
         parts = path.split(".")

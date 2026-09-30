@@ -21,38 +21,30 @@ class TestShouldStore:
 
     def test_never_and_none_never_store(self):
         for ss in (StoreStrategy.NEVER, StoreStrategy.NONE):
-            assert ss.should_store(is_linked=True, has_widget=True, node_set=True) is False, (
-                f"{ss!r} must never store"
-            )
+            assert ss.should_store(has_widget=True, node_set=True) is False, f"{ss!r} must never store"
 
     def test_always_always_stores(self):
-        assert StoreStrategy.ALWAYS.should_store(is_linked=False, has_widget=False, node_set=False) is True
+        assert StoreStrategy.ALWAYS.should_store(has_widget=False, node_set=False) is True
 
-    def test_when_linked_only_stores_when_linked(self):
-        ss = StoreStrategy.WHEN_LINKED
-        assert ss.should_store(is_linked=True, has_widget=False, node_set=False) is True
-        # The bug we fixed: this used to return True regardless of link state.
-        assert ss.should_store(is_linked=False, has_widget=False, node_set=False) is False
+    def test_always_saved_as_14_still_always_stores(self):
+        # Graphs saved before WHEN_LINKED was removed hold ALWAYS as 14 (2|4|8).
+        assert StoreStrategy(14).should_store(has_widget=False, node_set=False) is True
 
     def test_has_widget_only_stores_with_widget(self):
         ss = StoreStrategy.HAS_WIDGET
-        assert ss.should_store(is_linked=False, has_widget=True, node_set=False) is True
-        # The bug we fixed: this used to return True even with no widget.
-        assert ss.should_store(is_linked=False, has_widget=False, node_set=False) is False
+        assert ss.should_store(has_widget=True, node_set=False) is True
+        assert ss.should_store(has_widget=False, node_set=False) is False
 
     def test_node_set_only_stores_when_node_set(self):
         ss = StoreStrategy.NODE_SET
-        assert ss.should_store(is_linked=False, has_widget=False, node_set=True) is True
-        assert ss.should_store(is_linked=False, has_widget=False, node_set=False) is False
+        assert ss.should_store(has_widget=False, node_set=True) is True
+        assert ss.should_store(has_widget=False, node_set=False) is False
 
     def test_combined_flags_or_their_states(self):
         ss = StoreStrategy.HAS_WIDGET | StoreStrategy.NODE_SET
-        # Either matching state stores; neither does not.
-        assert ss.should_store(is_linked=False, has_widget=True, node_set=False) is True
-        assert ss.should_store(is_linked=False, has_widget=False, node_set=True) is True
-        assert ss.should_store(is_linked=False, has_widget=False, node_set=False) is False
-        # WHEN_LINKED is not part of this combination, so being linked is irrelevant.
-        assert ss.should_store(is_linked=True, has_widget=False, node_set=False) is False
+        assert ss.should_store(has_widget=True, node_set=False) is True
+        assert ss.should_store(has_widget=False, node_set=True) is True
+        assert ss.should_store(has_widget=False, node_set=False) is False
 
 
 @pytest.mark.integration

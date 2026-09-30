@@ -57,6 +57,14 @@ class BaseWidget(IWidget, ABC):
         return self.port.get_value()
 
     def set_value(self, value: Any) -> None:
+        """Write *value* to the model, unless an edge's value stands in front of it.
+
+        While the model's field holds a linked value the write is refused and
+        the view shows the model's value again.
+        """
+        if self.port.data.has_linked_value():
+            self.on_model_changed(self.port.get_value())
+            return
         self.port.set_value(value)
 
     def _size_overrides(self) -> Mapping[str, Any]:

@@ -108,16 +108,14 @@ def test_promote_creates_config_port(make_node_with_setting):
 
 
 @pytest.mark.integration
-def test_promoted_config_marks_field_locally_set(make_node_with_setting):
-    """A promoted CONFIG field is treated as an INPUT: its widget is the only
-    write path (no edge exists), so it is marked locally-set at promote time,
-    same as INLET."""
+def test_promoted_config_leaves_the_field_unset(make_node_with_setting):
+    """Promotion marks nothing; a config's widget edit marks the field, as for any setting."""
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
     promote_setting(node, "filter", "threshold", PortType.CONFIG)
-    assert node.filter._is_locally_set("threshold") is True
+    assert node.filter._is_locally_set("threshold") is False
 
 
 @pytest.mark.integration

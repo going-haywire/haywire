@@ -34,9 +34,8 @@ class TEST_INT(PrimitiveType[int]):
 class TEST_INTField(PrimitiveField):
     """DataField for TEST_INT type storing integer values"""
 
-    def set_value(self, value, source_id=None):
-        value = int(value)
-        return super().set_value(value, source_id)
+    def _set_own(self, value):
+        self._value = int(value)
 
 
 # Set field_class attributes after classes are defined
@@ -67,9 +66,8 @@ class TEST_FLOAT(PrimitiveType[float]):
 class TEST_FLOATField(PrimitiveField):
     """DataField for FLOAT type storing float values"""
 
-    def set_value(self, value, source_id=None):
-        value = float(value)
-        return super().set_value(value, source_id)
+    def _set_own(self, value):
+        self._value = float(value)
 
 
 # Set field_class attributes after classes are defined

@@ -33,6 +33,11 @@ class Pipe:
         # sink's capability cannot change under an existing pipe.
         self._sink_holds_absence: bool = sink.data.accepts_absence()
 
+    @property
+    def edge_id(self) -> str:
+        """The id of the edge this pipe carries."""
+        return self._edge_id
+
     def propagate(self):
         """Propagate outlet value through all pipe connections.
 

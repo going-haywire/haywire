@@ -34,21 +34,21 @@ The steps are numbered in the order they are meant to be built.
 
 | Step | Work | Status | Detail plan | Next |
 |---|---|---|---|---|
-| 0 | Groundwork: split-reroute tests used a stale key; callback and pipe architecture docs corrected, ErrorNode test trap recorded | **Landed** on `edge-kinds` | none | merge with step 1 |
-| 1 | Callbacks through reroutes; `Propagation` (lazy / eager / immediate) replaces `is_lazy` | **Built** on `edge-kinds`, not merged | [landed/2026-09-27-callbacks-through-reroutes.md](landed/2026-09-27-callbacks-through-reroutes.md) | merge `edge-kinds` as it stands |
-| 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Designing** (inquisition 2026-09-28) | needed; [2026-09-28-immediate-reset-to-default.md](2026-09-28-immediate-reset-to-default.md) is a superseded first version for callback ports only | inquisition, then plan, on its own branch |
+| 0 | Groundwork: split-reroute tests used a stale key; callback and pipe architecture docs corrected, ErrorNode test trap recorded | **Landed** on `master` | none | push |
+| 1 | Callbacks through reroutes; `Propagation` (lazy / eager / immediate) replaces `is_lazy` | **Landed** on `master` | [landed/2026-09-27-callbacks-through-reroutes.md](landed/2026-09-27-callbacks-through-reroutes.md) | push |
+| 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Built** on `unlink-own-value`, not merged | [2026-09-28-unlink-reveals-own-value.md](2026-09-28-unlink-reveals-own-value.md), 10 tasks; supersedes [2026-09-28-immediate-reset-to-default.md](2026-09-28-immediate-reset-to-default.md) | merge |
 | 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Found**, pre-existing, not fixed | needed (small) | your go-ahead |
 | 4 | Callbacks across Subgraph boundaries (Groups and macros) | Open questions only | needed | inquisition |
 | 5 | EdgeKind | Analysis done, not designed | needed, probably several (5.1, 5.2, …) | inquisition |
 
-Branch `edge-kinds` holds steps 0 and 1.
-Acceptance tests for steps 1 and 2 live in
-`tests/core/test_edge/test_disconnect_semantics.py`; today they report
-`7 passed, 2 xfailed` — the two strict xfails are step 2's.
+Local `master` is ahead of `origin/master` (steps 0 and 1, and this
+overview), not pushed. Acceptance tests for steps 1 and 2 live in
+`tests/core/test_edge/test_disconnect_semantics.py`; since step 2 they report
+`9 passed`, no xfails.
 
 ### The sequence
 
-**1. Callbacks through reroutes** — **built**, merge as it stands. Reroutes
+**1. Callbacks through reroutes** — **landed**. Reroutes
 forward callback subscriptions at once, removing an edge upstream
 unsubscribes, and edges carry a `Propagation` mode with `immediate` locked on
 callback edges and `lazy` locked on edges out of promoted outlets (ADR 0039).
@@ -56,8 +56,9 @@ An unlinked callback inlet resets to `None` for now; step 2 replaces that rule.
 Merging before step 2 because step 2 reaches into settings, promotion and
 widgets, too much to hold on one branch.
 
-**2. Unlinking reveals a port's own value.** Inquisition, then plan, on its
-own branch.
+**2. Unlinking reveals a port's own value.** **Built**:
+[2026-09-28-unlink-reveals-own-value.md](2026-09-28-unlink-reveals-own-value.md),
+branch `unlink-own-value`, ADR 0040 lands with it.
 
 *The rule.* An inlet shows the value from its edge while an edge feeds it, and
 its own value otherwise. The own value is what the user, the node or a setting
@@ -94,20 +95,27 @@ superseded plan's pool rule and test node carry over.
 (demote keeps the cell value), `test_promotion_e2e.py` step 4,
 `tests/ui/panel/test_promoted_row_state.py:265`.
 
-*Open questions for the inquisition:*
+*Settled in the inquisition of 2026-09-28:*
 
-- what a widget shown while its port is linked displays and edits — own or
-  linked value;
-- what `StoreStrategy.WHEN_LINKED` means once only the own value is saved;
-- a pending lazy pull when its edge is removed;
-- a multi-link scalar inlet: reveal only when its last edge goes?
-- whether promote-to-inlet still marks the field locally set — with two slots
-  a mirror sync only reaches the own slot, so a promoted shadow inlet could
-  keep tracking its global (the deviation ADR 0014's amendment calls
-  deliberate);
-- `CALLBACK`'s default becoming `""`, so callbacks need no absence storage;
-- the extra branch in `get_value()` on the hot path — benchmark it;
-- the ADR: "unlinking reveals the own value", superseding ADR 0014 §C3.
+- vocabulary: **own value** and **linked value**;
+- only the own value is saved; `StoreStrategy.WHEN_LINKED` is removed;
+- a widget on a linked inlet shows the linked value and refuses edits, the
+  view snapping back — one widget kind, the rule in the widget base layer;
+- a pending lazy pull is dropped with its edge;
+- a multi-link inlet reveals only when its last edge goes; a DATA inlet takes
+  one edge unless pooled;
+- promotion marks nothing locally set, so a promoted shadow inlet keeps
+  tracking its global;
+- the field event fires on every stored change; the node's `on_change` only
+  when the value it sees changes;
+- `CALLBACK`'s default becomes `""`, callbacks need no absence storage, and an
+  immediate pool drops an entry equal to its element's default (a library may
+  still give its callback type another default);
+- `@type` rejects a primitive type whose default holds no value;
+- the linked value lives in the `DataField` base, as a second instance of the
+  field class;
+- `get_value()`'s extra branch is benchmarked before and after;
+- ADR 0040 "unlinking reveals the own value" supersedes ADR 0014 §C3.
 
 **3. The redraw/validation lock cycle.**
 `NodeWrapper.redraw()` holds `NodeWrapper._lock` and then takes the validation
@@ -178,6 +186,15 @@ Not steps; each is a single change.
 - `docs/guides/panels.md` links to a file under `.insights/`, outside
   `docs_dir`. `mkdocs build --strict` fails on it; CI builds without
   `--strict`, so CI passes.
+- `DataPort.set_value`/`get_value` open with `if not self._data: return`, and
+  `ArrayField`/`MapsStringField` define `__len__`, so an empty array inlet is
+  falsy: it silently drops an edge's `[1.0, 2.0]` and reads `None`. Should be
+  `is None`. Found while verifying the step 2 plan; pre-existing.
+- `tests/core/test_graph/test_base.py::test_generated_ids_are_distinct` mints
+  200 ids with a 6-hex random suffix without registering them, so the
+  collision retry never applies: a birthday collision fails it about once in
+  800 runs (seen once while building step 2). Register each id, or assert on
+  fewer.
 - Check the OAK-D camera once in the studio: step 1 fixed a stale cache, so
   `OakDCameraNode.hb_on_callbacks_changed` now fires on edge-driven writes, as
   `callbacks-arch.md` always described. visiongraph's tests do not cover that

@@ -25,8 +25,7 @@ class FlowType(Enum):
         """True when a write through this flow takes effect on write, not when the sink executes.
 
         Only ``CALLBACK`` is immediate. An immediate inlet fires ``on_change`` for
-        edge-driven writes too, a reroute forwards it at once, and it goes absent
-        when its last edge is removed.
+        edge-driven writes too, and a reroute forwards it at once.
         """
         return self is FlowType.CALLBACK
 
@@ -306,15 +305,16 @@ _NODE_DETAIL_RANKS: dict[NodeDetail, int] = {
 
 class StoreStrategy(IntFlag):
     """
-    Bitwise flags for when a port stores its value.
+    Bitwise flags for when a port saves its own value.
 
     - NEVER: do not store
     - HAS_WIDGET: store when the port has a widget
-    - WHEN_LINKED: store when the port pin is linked
     - NODE_SET: store when the value was changed by the node
     - ALWAYS: store in any case
 
-    Combine flags with OR; they trigger if any flag matches (there is no AND combination)::
+    A port saves only its own value, never what an edge delivers, so link state
+    plays no part. Combine flags with OR; they trigger if any flag matches
+    (there is no AND combination)::
 
         store_strategy = StoreStrategy.HAS_WIDGET | StoreStrategy.NODE_SET
     """
@@ -322,12 +322,12 @@ class StoreStrategy(IntFlag):
     NONE = 0
     NEVER = 1
     HAS_WIDGET = 2
-    WHEN_LINKED = 4
+    # Its own flag, so HAS_WIDGET | NODE_SET stays conditional; a saved 14 (2|4|8) still reads as ALWAYS.
+    ALWAYS = 4
     NODE_SET = 8
-    ALWAYS = HAS_WIDGET | WHEN_LINKED | NODE_SET  # 14
 
-    def should_store(self, *, is_linked: bool, has_widget: bool, node_set: bool) -> bool:
-        """Resolve whether a port with this strategy should serialize its value.
+    def should_store(self, *, has_widget: bool, node_set: bool) -> bool:
+        """Resolve whether a port with this strategy should serialize its own value.
 
         ``NEVER`` and ``NONE`` never store. ``ALWAYS`` always stores. Otherwise
         store if any set flag matches the port's current state (OR semantics —
@@ -335,12 +335,10 @@ class StoreStrategy(IntFlag):
         """
         if self & StoreStrategy.NEVER or self == StoreStrategy.NONE:
             return False
-        if (self & StoreStrategy.ALWAYS) == StoreStrategy.ALWAYS:
+        if self & StoreStrategy.ALWAYS:
             return True
         return bool(
-            (self & StoreStrategy.WHEN_LINKED and is_linked)
-            or (self & StoreStrategy.HAS_WIDGET and has_widget)
-            or (self & StoreStrategy.NODE_SET and node_set)
+            (self & StoreStrategy.HAS_WIDGET and has_widget) or (self & StoreStrategy.NODE_SET and node_set)
         )
 
 

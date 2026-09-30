@@ -32,7 +32,9 @@ class ShowWidgetStrategy(Enum):
     ALWAYS      = "always"       # always rendered
 ```
 
-The sibling enum `StoreStrategy` is an `IntFlag` with a `NONE = 0` sentinel and OR-combinable members, because storage has **genuinely orthogonal triggers** (`HAS_WIDGET`, `WHEN_LINKED`, `NODE_SET` can each independently be true and are combined with OR).
+The sibling enum `StoreStrategy` is an `IntFlag` with a `NONE = 0` sentinel and OR-combinable members, because storage has **genuinely orthogonal triggers** (`HAS_WIDGET` and `NODE_SET` can each independently be true and are combined with OR).
+
+*(2026-09: `StoreStrategy.WHEN_LINKED` was removed by ADR 0040 — only a port's own value is saved.)*
 
 Widget visibility has **no such orthogonal dimension**. Link state is a single boolean; the widget shows in the linked state, the unlinked state, both, or neither — four mutually-exclusive outcomes. `ALWAYS` already *is* "linked or unlinked" and `NEVER` is the empty case, so there is nothing left to combine. Making it an `IntFlag` would:
 
@@ -124,4 +126,4 @@ Three consequences worth stating, because each is a place this could have been d
 - **The choice persists in the settings bag, not the port.** A promoted port is regenerated from the bag's `promoted` record on load rather than serialized, so the record is the only thing that survives. It widened from `key -> "outlet"` to `key -> {"direction": ..., "show_widget": ...}` — graph format **v3**, migrated by `UpgradeVersionThree`. `show_widget` is written only when it differs from the direction default, so a graph names visibility exactly where a human set it, and `default_show_widget()` now holds those defaults in one place (previously restated at each `as_*` factory plus this document's table).
 - **Both render surfaces stay coupled.** `should_show_widget()` remains the single predicate, so the node card and the Ports Panel (ADR 0008) continue to agree. The Properties-panel *settings row* is ungated by it, so a user who sets `NEVER` can still edit the value there — there is no way to make a promoted value uneditable.
 
-Demoting discards the choice: the promotion record is its only storage. Freeze-on-disconnect (ADR 0014) protects *values*, which can represent real work; a view preference is one right-click to restore.
+Demoting discards the choice: the promotion record is its only storage. Demote keeps a setting's own value (ADR 0040), which can represent real work; a view preference is one right-click to restore.

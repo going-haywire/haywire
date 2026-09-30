@@ -13,15 +13,14 @@ def test_promoted_port_id_is_storage_key(make_node_with_setting):
     assert node.ports[desc.storage_key].promoted is True
 
 
-def test_promote_marks_field_locally_set(make_node_with_setting):
-    """Promoting marks the field locally-set immediately (defacto graph-driven)."""
+def test_promote_leaves_the_field_unset(make_node_with_setting):
+    """Promotion changes where a setting shows, not its opinion: nothing is marked locally set."""
     from haywire.core.node.promotion import promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     desc = type(node.filter).__dict__["threshold"]
-    assert node.filter._is_set(desc) is False
     promote_setting(node, "filter", "threshold")
-    assert node.filter._is_set(desc) is True
+    assert node.filter._is_set(desc) is False
 
 
 def test_promote_binds_shared_cell(make_node_with_setting):
@@ -35,7 +34,7 @@ def test_promote_binds_shared_cell(make_node_with_setting):
 
 def test_edge_drive_reads_through_setting_without_mark_helper(make_node_with_setting):
     """An edge-driven write into the promoted inlet's shared cell is visible via
-    getattr(bag, field) because the field is already locally-set from promote-time."""
+    getattr(bag, field): the setting reads the shared cell, which shows the linked value."""
     from haywire.core.node.promotion import promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")

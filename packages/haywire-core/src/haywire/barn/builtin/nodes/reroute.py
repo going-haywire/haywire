@@ -11,8 +11,9 @@ value, so returning it is harmless.
 
 CALLBACK edges pass through too. A callback inlet is immediate, so the split
 action wires it to ``forward_immediate``, which copies each write to the outlet
-at once: the emitter downstream sees a subscription at wiring time, and its
-absence as soon as an edge upstream is removed.
+at once: the emitter downstream sees a subscription at wiring time, and the
+inlet's own value — an empty name, no subscription — as soon as an edge
+upstream is removed (ADR 0040).
 
 The port-less state is legal because the node is ``NodeType.REROUTE`` — the
 structural validator accepts a reroute with no ports (see

@@ -391,114 +391,47 @@ class CompoundType(BaseType, ABC, Generic[T]):
 # ============================================================================
 
 
-#: Absence-capable field classes, keyed by the field class they extend. Shared
-#: so one base class yields one subclass, whichever type asks for it.
-_ABSENCE_CAPABLE_FIELDS: "dict[type, type]" = {}
-
-#: Wrapper field classes, keyed by the element's own field class. Shared so
-#: ``OPTIONAL[INT]`` built twice yields one field class, matching
+#: Absence-tolerant field classes, keyed by the element's own field class.
+#: Shared so ``OPTIONAL[INT]`` built twice yields one field class, matching
 #: ``_parameterized_cache``'s identity guarantee for the types themselves.
-_WRAPPER_FIELDS: "dict[type, type]" = {}
-
-#: Key an absent ``BaseField`` value saves under. A dataclass may have a field
-#: named ``value``, which makes the primitive form ``{"value": None}`` ambiguous.
-_ABSENT_KEY = "__absent__"
+_ABSENCE_TOLERANT_FIELDS: "dict[type, type]" = {}
 
 
-def absence_capable_field(base_field_cls: type) -> type:
-    """Return a subclass of *base_field_cls* that can also hold ``None`` as absence.
+def _absence_tolerant_field(base_field_cls: type) -> type:
+    """Return a subclass of *base_field_cls* whose own value may also be ``None``.
 
-    A present value keeps the base class's own storage, coercion and type check
-    included; ``None`` bypasses them and still fires the change event. Absence
-    saves and loads back: as ``{"value": None}`` for primitive storage and as
-    ``{"__absent__": True}`` for ``BaseField`` storage. ``accepts_absence()``
-    answers ``True``, so ``Pipe.pull`` forwards absence into the field. Cached,
-    so one base class yields one subclass.
+    A present value keeps the element's own storage behaviour, coercion
+    included; only ``None`` takes a different path, storing through
+    ``PrimitiveField._set_own``. Cached, so one element field class yields
+    one subclass.
 
     Raises:
-        TypeError: If *base_field_cls* is neither a ``PrimitiveField`` nor a
-            ``BaseField`` subclass.
-    """
-    from .fields import BaseField, PrimitiveField
-
-    if not (isinstance(base_field_cls, type) and issubclass(base_field_cls, (PrimitiveField, BaseField))):
-        name = getattr(base_field_cls, "__name__", base_field_cls)
-        raise TypeError(f"absence needs PrimitiveField or BaseField storage; {name} is neither")
-
-    cached = _ABSENCE_CAPABLE_FIELDS.get(base_field_cls)
-    if cached is not None:
-        return cached
-
-    stores_instances = issubclass(base_field_cls, BaseField)
-
-    class _AbsenceCapableField(base_field_cls):  # type: ignore[valid-type,misc]
-        """``base_field_cls``, plus the ability to hold absence."""
-
-        def set_value(self, value: Any, source_id: "str | None" = None) -> None:
-            if value is not None:
-                super().set_value(value, source_id)
-            elif stores_instances:
-                # Past BaseField.set_value, whose isinstance check rejects None.
-                old: Any = self._container  # type: ignore[has-type]
-                self._container = None
-                self.is_dirty = True
-                if self.on_changed.has_observers():
-                    self.fire(None, old)
-            else:
-                # Past the element's own set_value, whose coercion rejects None.
-                PrimitiveField.set_value(self, None, source_id)
-
-        def to_dict(self) -> dict:
-            if self.get_value() is not None:
-                return super().to_dict()
-            return {_ABSENT_KEY: True} if stores_instances else {"value": None}
-
-        def from_dict(self, data: dict) -> None:
-            absent = data.get(_ABSENT_KEY) is True if stores_instances else data.get("value") is None
-            if not absent:
-                super().from_dict(data)
-                return
-            if stores_instances:
-                self._container = None
-            else:
-                self._value = None
-            self.is_dirty = True
-
-        def accepts_absence(self) -> bool:
-            """Always True: this field class exists to hold ``None``."""
-            return True
-
-    _AbsenceCapableField.__name__ = f"AbsenceCapable{base_field_cls.__name__}"
-    _AbsenceCapableField.__qualname__ = _AbsenceCapableField.__name__
-    _ABSENCE_CAPABLE_FIELDS[base_field_cls] = _AbsenceCapableField
-    return _AbsenceCapableField
-
-
-def _wrapper_field(element_field_cls: type) -> type:
-    """Return the field class for a wrapper whose element is stored by *element_field_cls*.
-
-    The absence-capable form of *element_field_cls*, reporting the element as
-    its stored type — what travels on an edge — while ``type_cls`` stays the
-    wrapper. Cached per element field class.
-
-    Raises:
-        TypeError: If *element_field_cls* isn't a ``PrimitiveField`` subclass.
+        TypeError: If *base_field_cls* isn't a ``PrimitiveField`` subclass.
+            Absence needs an unwrapped slot to live in, which only that
+            storage has.
     """
     from .fields import PrimitiveField
 
-    if not (isinstance(element_field_cls, type) and issubclass(element_field_cls, PrimitiveField)):
+    if not (isinstance(base_field_cls, type) and issubclass(base_field_cls, PrimitiveField)):
         raise TypeError(
-            f"a wrapper type cannot wrap an element stored by {element_field_cls.__name__}: "
+            f"a wrapper type cannot wrap an element stored by {base_field_cls.__name__}: "
             f"absence is only defined for PrimitiveField storage (a bare value or None). "
             f"Wrap a primitive-shaped IType instead."
         )
 
-    cached = _WRAPPER_FIELDS.get(element_field_cls)
+    cached = _ABSENCE_TOLERANT_FIELDS.get(base_field_cls)
     if cached is not None:
         return cached
 
-    class _WrapperField(absence_capable_field(element_field_cls)):  # type: ignore[valid-type,misc]
-        """An absence-capable element field that reports the element as its stored type."""
+    class _AbsenceTolerantField(base_field_cls):  # type: ignore[valid-type,misc]
+        """``base_field_cls``, plus the ability to hold absence."""
+
+        def _set_own(self, value: Any) -> None:
+            if value is None:
+                # Past the element's own _set_own, whose coercion rejects None.
+                PrimitiveField._set_own(self, None)
+                return
+            super()._set_own(value)
 
         def get_stored_type(self) -> "type[IType]":
             """Return the element type, which is what travels on an edge.
@@ -511,10 +444,14 @@ def _wrapper_field(element_field_cls: type) -> type:
             assert element is not None  # __class_getitem__ always sets it
             return element
 
-    _WrapperField.__name__ = f"Wrapper{element_field_cls.__name__}"
-    _WrapperField.__qualname__ = _WrapperField.__name__
-    _WRAPPER_FIELDS[element_field_cls] = _WrapperField
-    return _WrapperField
+        def accepts_absence(self) -> bool:
+            """Always True: this field class exists to hold ``None``."""
+            return True
+
+    _AbsenceTolerantField.__name__ = f"AbsenceTolerant{base_field_cls.__name__}"
+    _AbsenceTolerantField.__qualname__ = _AbsenceTolerantField.__name__
+    _ABSENCE_TOLERANT_FIELDS[base_field_cls] = _AbsenceTolerantField
+    return _AbsenceTolerantField
 
 
 def _wrapped_identity(wrapper_identity: Any, element_type_cls: type[IType]) -> Any:
@@ -667,7 +604,7 @@ class WrapperType(IType, ABC, Generic[T]):
         class_name = f"{cls.__name__}[{element_type_cls.__name__}]"
         attrs: dict[str, Any] = {
             "element_type_cls": element_type_cls,
-            "field_class": _wrapper_field(element_field_cls),
+            "field_class": _absence_tolerant_field(element_field_cls),
             # Share the cache
             "_parameterized_cache": cls._parameterized_cache,
         }

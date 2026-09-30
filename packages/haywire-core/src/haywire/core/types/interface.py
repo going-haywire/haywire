@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
-from haywire.core.types.enums import FlowType, PortType, StoreStrategy, default_show_widget
+from haywire.core.types.enums import PortType, StoreStrategy, default_show_widget
 
 if TYPE_CHECKING:
     from ..library.identity import LibraryIdentity
@@ -107,9 +107,6 @@ class IType(ABC):
     def create_field(cls, default_override: Optional[Dict[str, Any]] = None) -> "DataField":
         """Build the ``DataField`` that stores values of this type.
 
-        An immediate type (see ``FlowType.is_immediate``) gets the absence-capable
-        form of its field class, so its ports can go absent.
-
         Args:
             default_override: Constructor kwargs for the field's initial value,
                 replacing the ``default`` the ``@type`` decorator declared. An
@@ -133,14 +130,7 @@ class IType(ABC):
         if not default_kwargs and hasattr(cls, "class_identity"):
             default_kwargs = getattr(cls.class_identity, "default", {})
 
-        field_cls = cls.field_class
-        identity = getattr(cls, "class_identity", None)
-        if identity is not None and FlowType(identity.flow_type).is_immediate:
-            from .base import absence_capable_field
-
-            # An immediate port goes absent when its last edge is removed.
-            field_cls = absence_capable_field(field_cls)
-        return field_cls(type_cls=cls, default_kwargs=default_kwargs)
+        return cls.field_class(type_cls=cls, default_kwargs=default_kwargs)
 
     # ========================================================================
     # HOOKS - Subclasses override to customize behavior
@@ -204,7 +194,7 @@ class IType(ABC):
                     to {'value': ...} for PrimitiveType subclasses
                 flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
                     (default: DATA)
-                store_strategy (StoreStrategy): NEVER, HAS_WIDGET, WHEN_LINKED, NODE_SET or ALWAYS
+                store_strategy (StoreStrategy): NEVER, HAS_WIDGET, NODE_SET or ALWAYS
                     (default: HAS_WIDGET if not set on type identity)
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 icon (str): Pin icon (sets all icon variants)
@@ -274,7 +264,7 @@ class IType(ABC):
                     to {'value': ...} for PrimitiveType subclasses
                 flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
                     (default: DATA)
-                store_strategy (StoreStrategy): NEVER, HAS_WIDGET, WHEN_LINKED, NODE_SET or ALWAYS
+                store_strategy (StoreStrategy): NEVER, HAS_WIDGET, NODE_SET or ALWAYS
                     (default: ALWAYS if not set on type identity)
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 icon (str): Pin icon (sets all icon variants)
@@ -340,7 +330,7 @@ class IType(ABC):
             Type configuration:
                 default (dict | primitive): Default value. Primitives auto-wrap
                     to {'value': ...} for PrimitiveType subclasses
-                store_strategy (StoreStrategy): NEVER, HAS_WIDGET, WHEN_LINKED, NODE_SET or ALWAYS
+                store_strategy (StoreStrategy): NEVER, HAS_WIDGET, NODE_SET or ALWAYS
                     (default: ALWAYS if not set on type identity)
                 color (str): Pin color as hex string (e.g. '#FF0000')
                 widget_key (str): Widget key for value editing (preferably use widget instead)

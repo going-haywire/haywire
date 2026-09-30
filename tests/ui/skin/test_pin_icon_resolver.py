@@ -35,8 +35,13 @@ def _port(type_cls: type, port_type: PortType, **kwargs) -> DataPort:
     for field, enum in (("show_widget", ShowWidgetStrategy), ("store_strategy", StoreStrategy)):
         if field in spec and not isinstance(spec[field], enum):
             spec[field] = enum(spec[field])
+    # A multi-link data inlet is set after construction, as PooledType._configure_port does.
+    multi = kwargs.pop("allow_multiple_links", None)
     spec.update(type_cls=type_cls, flow_type=FlowType.DATA, **kwargs)
-    return DataPort(port_type=port_type, **spec)
+    port = DataPort(port_type=port_type, **spec)
+    if multi is not None:
+        port.allow_multiple_links = multi
+    return port
 
 
 _BARE = dict(icon=None, icon_in=None, icon_in_multi=None, icon_out=None, icon_out_multi=None)

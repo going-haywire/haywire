@@ -121,7 +121,7 @@ When a new edge displaces an existing one on a single-connection port:
 
 When an active edge is removed (`detach`) or loses functionality (`unlink`), the port scans `_all_edges` FIFO for a functional candidate to re-enable. If found, `candidate.link() + candidate.redraw()` is called.
 
-**Unlink reset.** When an immediate inlet loses its active edge and no displaced edge takes over, the inlet is set to absence (`None`) and fires `on_change`, so a reroute passes the absence on (see [callbacks-arch §2.4](../callbacks/callbacks-arch.md)). A pooled inlet needs nothing extra: `_clear_link` already removed that source's entry.
+**Unlinking reveals the own value.** When an inlet loses its last linked edge and no displaced edge takes over, its field drops the linked value (`DataField.clear_linked`) and the own value shows again (ADR 0040). The node learns of it through the port's propagation: an immediate inlet fires `on_change` at once, so a reroute passes it on (see [callbacks-arch §2.4](../callbacks/callbacks-arch.md)); a deferred inlet is marked dirty for its node's next execution. A lazy pull still queued for the removed edge is dropped. A pooled inlet needs nothing extra: `_clear_link` already removed that source's entry.
 
 ### 3.3 Propagation and the unified dirty model
 
@@ -168,6 +168,7 @@ The `set_value()` method on DataPort distinguishes between edge-driven, widget/p
 | ------------------------------------- | --------- | ----------- | ----------------------------------------------------------------------------------------------- |
 | (any)               | no    | absent      | `on_change` does not fire      |
 | Widget / programmatic input           | no   | exists      | `on_change` fires **immediately**         |
+| Own write while linked (no `edge_id`, field holds a linked value) | no | exists | no `on_change`, no dirty mark: the own value changed behind the linked one |
 | Immediate flow (CALLBACK) | yes       | exists       | `on_change` fires **immediately**                                                 |
 | DATA, CONTROL flow_type    | yes       | exists       | `on_change` fires just before the worker |
 | Outlet (any)                          | (any)     | exists      | `on_change` fires **immediately**; pipes propagate downstream                                       |

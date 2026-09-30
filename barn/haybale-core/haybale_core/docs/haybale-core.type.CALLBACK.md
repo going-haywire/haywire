@@ -7,6 +7,7 @@ Signal for callback execution between nodes
 ## Details
 
 - **flow_type**: `callback`
+- **default**: `{'value': ''}`
 - **color**: `#ff3c00`
 
 ## Notes
@@ -14,3 +15,4 @@ Signal for callback execution between nodes
 callback signal type - represents callback flow
 Inherits from STRING for payload compatibility.
 but is by default not serialized, and has no widget.
+An empty name means no subscription: an emitter drops it.

@@ -171,9 +171,9 @@ class Settings:
         return descriptor.storage_key in self._set_keys
 
     def _local_value(self, descriptor: setting) -> Any:
-        """Return this field's locally-set value from its cell. Only meaningful
-        when the field is in ``_set_keys``."""
-        return self._cell_for(descriptor).get_value()
+        """Return this field's own value from its cell, whatever an edge delivers to a
+        promoted inlet. Only meaningful when the field is in ``_set_keys``."""
+        return self._cell_for(descriptor).get_own_value()
 
     def _write_local(self, descriptor: setting, value: Any) -> None:
         """Write *value* into this field's cell and mark it locally set.

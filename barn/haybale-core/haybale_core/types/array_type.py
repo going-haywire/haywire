@@ -127,38 +127,19 @@ class ArrayField(DataField):
         initial_list = self.default_kwargs.get("value", [])
         self._items = initial_list
 
-    def get_value(self) -> List[Any]:
-        """
-        Get list for worker access.
-
-        Returns:
-            [42.0, 3.14, 27.5]  # Primitives unwrapped
-            or
-            [MeshData(...), MeshData(...)]  # Complex types as-is
-        """
+    def _get_own(self) -> List[Any]:
+        """Return a copy of the list, e.g. ``[42.0, 3.14]`` or ``[MeshData(...)]``."""
         return list(self._items)
 
-    def set_value(self, value: Any, source_id: str | None = None) -> None:
-        """
-        Set array from connection or programmatic update.
+    def _set_own(self, value: Any) -> None:
+        """Store a list, e.g. ``[1.0, 2.0, 3.0]``.
 
-        Examples:
-            # From connection (list of instances):
-            field.set_value([FLOAT(1), FLOAT(2), FLOAT(3)])
-            # Stored: [1.0, 2.0, 3.0]
-
-            # Programmatic (already unwrapped):
-            field.set_value([1.0, 2.0, 3.0])
-            # Stored: [1.0, 2.0, 3.0]
+        Raises:
+            TypeError: If *value* is not a list.
         """
         if not isinstance(value, list):
             raise TypeError(f"ArrayField requires list, got {value.__class__.__name__}")
-
-        old = self._items
         self._items = value
-        self.is_dirty = True
-        if self.on_changed.has_observers():
-            self.fire(list(self._items), old)
 
     def reset(self) -> None:
         """Reset to default array"""

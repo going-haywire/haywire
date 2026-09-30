@@ -392,9 +392,9 @@ class EdgeWrapper:
 
         self._update_link_state()
         self._try_reenable_on_ports()
-        # After re-enablement, so a displaced edge that took over leaves the value alone.
+        # After re-enablement, so a displaced edge that took over keeps showing its value.
         if self._inlet_port:
-            self._inlet_port._reset_if_unlinked()
+            self._inlet_port._reveal_own_value_if_unlinked()
 
         if self._inlet_port:
             self._inlet_port._housekeeping()
@@ -419,9 +419,9 @@ class EdgeWrapper:
 
         self._update_link_state()
         self._try_reenable_on_ports()
-        # After re-enablement, so a displaced edge that took over leaves the value alone.
+        # After re-enablement, so a displaced edge that took over keeps showing its value.
         if self._inlet_port:
-            self._inlet_port._reset_if_unlinked()
+            self._inlet_port._reveal_own_value_if_unlinked()
 
         if self._inlet_port:
             self._inlet_port._housekeeping()

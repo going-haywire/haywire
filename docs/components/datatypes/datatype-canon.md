@@ -47,13 +47,13 @@ Adapters live in [components/adapters](../adapters/adapter-canon.md); how the ch
 
 **`default` dict.** Constructor kwargs for the default instance. For primitives: `{'value': <val>}` (or just the bare value, which the decorator auto-wraps). For `@dataclass` complex types: `{'attr1': v1, 'attr2': v2}` — keys must match the dataclass fields.
 
-**`flow_type`.** One of `FlowType.DATA`, `FlowType.CONTROL`, `FlowType.CALLBACK`, or `FlowType.NONE`. The framework default is `NONE`; ordinary value-carrying datatypes set `DATA` explicitly (the common case). `CONTROL`/`CALLBACK` mark the type as a non-data signal — these get no widget and no meaningful default.
+**`flow_type`.** One of `FlowType.DATA`, `FlowType.CONTROL`, `FlowType.CALLBACK`, or `FlowType.NONE`. The framework default is `NONE`; ordinary value-carrying datatypes set `DATA` explicitly (the common case). `CONTROL`/`CALLBACK` mark the type as a non-data signal and get no widget. A `CALLBACK` type's default means "no subscription": an emitter's pool drops a subscription equal to it, so never make it a real one (core `CALLBACK`'s is an empty name; a dataclass callback's default instance carries an empty name).
 
 **Inheritance.** A derived type inherits its parent's full identity (`color`, `widget_key`, `flow_type`, …) and overrides only the parameters you pass to its `@type`. Derived types are **automatically compatible with ancestors** for connections — child→parent works as a passthrough; child→sibling-of-parent walks up to the parent's adapter; parent→child still requires an explicit adapter.
 
 **Serialization.** Override `to_dict()` / `from_dict()` when your type has non-serializable attributes (numpy arrays, file handles). For simple `@dataclass` types, `dataclasses.asdict(self)` and `cls(**data)` work automatically — no override needed.
 
-**Custom field for type coercion.** If incoming values may need casting (e.g. an int arriving where you want a guaranteed float), define a `PrimitiveField` subclass that overrides `set_value()` and assign it as `MyType.field_class = MyTypeField` *after* both classes exist. The built-in `FLOAT`/`INT`/`BOOL` types use this pattern.
+**Custom field for type coercion.** If incoming values may need casting (e.g. an int arriving where you want a guaranteed float), define a `PrimitiveField` subclass that overrides `_set_own()` — the hook that checks, coerces and stores a field's own value, which the framework also runs for an edge's value — and assign it as `MyType.field_class = MyTypeField` *after* both classes exist. The built-in `FLOAT`/`INT`/`BOOL` types use this pattern.
 
 **Widget binding.** Set `widget_key=` and `widget_config=` on the type when **every port** of this type should use the same widget. **Discouraged for general use** — the codebase's `@type` docstring marks `widget_key`/`widget_config` as `NOT RECOMMENDED`. Prefer per-port widget overrides via `as_inlet(widget_key=...)` unless you have a specific reason (e.g. a fixed `MathOperation` enum where a `SelectWidget` is the only sensible UI).
 
@@ -139,7 +139,7 @@ For everything ports-related (`as_config`, `on_change`, `on_connect`, port recon
 
 | Parameter | Type | Required | Default | Notes |
 |---|---|---|---|---|
-| `default` | `dict` | yes | — | Constructor kwargs. Primitives: `{'value': v}` or bare `v`. Complex: `{attr: v, ...}`. |
+| `default` | `dict` | yes | — | Constructor kwargs. Primitives: `{'value': v}` or bare `v`, where `v` is not `None` (`@type` rejects it; use `OPTIONAL[T]` for values that can be absent). Complex: `{attr: v, ...}`. |
 | `label` | `str` | no | class name | Display name in UI. |
 | `description` | `str` | no | docstring | Tooltip / description. |
 | `color` | `str` | no | `#757575` | Hex colour for pins on the canvas. |
