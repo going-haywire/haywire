@@ -37,7 +37,7 @@ The steps are numbered in the order they are meant to be built.
 | 0 | Groundwork: split-reroute tests used a stale key; callback and pipe architecture docs corrected, ErrorNode test trap recorded | **Landed** on `master` | none | push |
 | 1 | Callbacks through reroutes; `Propagation` (lazy / eager / immediate) replaces `is_lazy` | **Landed** on `master` | [landed/2026-09-27-callbacks-through-reroutes.md](landed/2026-09-27-callbacks-through-reroutes.md) | push |
 | 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Built** on `unlink-own-value`, not merged | [2026-09-28-unlink-reveals-own-value.md](2026-09-28-unlink-reveals-own-value.md), 10 tasks; supersedes [2026-09-28-immediate-reset-to-default.md](2026-09-28-immediate-reset-to-default.md) | merge |
-| 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Found**, pre-existing, not fixed | needed (small) | your go-ahead |
+| 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Built** on `unlink-own-value`, not merged | none (small; recorded in `.insights/project_subgraph_scheduler_deadlock.md`) | merge with step 2 |
 | 4 | Callbacks across Subgraph boundaries (Groups and macros) | Open questions only | needed | inquisition |
 | 5 | EdgeKind | Analysis done, not designed | needed, probably several (5.1, 5.2, …) | inquisition |
 
@@ -117,15 +117,17 @@ superseded plan's pool rule and test node carry over.
 - `get_value()`'s extra branch is benchmarked before and after;
 - ADR 0040 "unlinking reveals the own value" supersedes ADR 0014 §C3.
 
-**3. The redraw/validation lock cycle.**
-`NodeWrapper.redraw()` holds `NodeWrapper._lock` and then takes the validation
-lock through `mark_node_dirty`; `ValidationManager._validate_batch` holds the
-validation lock and then takes `NodeWrapper._lock` in `_housekeeping`. Seen once
-as a 120 s timeout in `test_node_skin_graph_tier.py` under `-n 4`; it can hang a
-studio the same way (see `.insights/project_subgraph_scheduler_deadlock.md` for
-the sibling case). Independent of steps 1 and 2, but it comes before step 4,
-which adds immediate writes across the Graph-node card — the object that spans
-two graphs and two sets of these locks.
+**3. The redraw/validation lock cycle.** **Built**.
+`NodeWrapper.redraw()` held `NodeWrapper._lock` and then took the validation
+lock through `mark_node_dirty`, while `ValidationManager._validate_batch` holds
+the validation lock and takes node locks in `build()`/`_housekeeping`. So did a
+hot reload (`_on_node_lifecycle_event`, on the watcher thread) and `build()`
+itself (node code adding a port). Seen once as a 120 s timeout in
+`test_node_skin_graph_tier.py` under `-n 4`. Rule now: the graph's validation
+lock comes before a node's lock (`NodeWrapper._locked()`); the notify-only
+methods take no node lock. Pinned by `tests/core/test_node/test_node_lock_order.py`.
+Across graphs the order is Subgraph before host (a Subgraph batch reaches the
+host through the card); step 4 must keep to it.
 
 **4. Callbacks across Subgraph boundaries.** Inquisition, then plan.
 Reuses steps 1 and 2: the inlet-`on_change` relay pattern, locked `immediate`
@@ -136,7 +138,8 @@ inquisition:
   `on_assembly`, but `subgraph_crossing.card_port_id()` maps ids without
   assembly;
 - where the entering handler lives: the card's inlet, in the host graph;
-- lock order across the card (step 3 first);
+- lock order across the card: Subgraph before host, never the reverse
+  (step 3; `.insights/project_subgraph_scheduler_deadlock.md`);
 - lifting `CollapseToGraphNodeAction`'s refusal (`_callback_edge_partners`),
   and whether collapse batches the drop-and-re-add of a subscription;
 - the growing slot is `FlowType.DATA`, so a callback cannot grow an interface

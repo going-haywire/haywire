@@ -5,7 +5,8 @@ serialization and cleanup.
 import time
 import threading
 import logging
-from typing import List, Optional, Tuple, Any, Dict, TYPE_CHECKING
+from contextlib import contextmanager
+from typing import List, Optional, Tuple, Any, Dict, Iterator, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from ..graph.types import ChangeReason
@@ -220,6 +221,23 @@ class NodeWrapper:
         """The parent graph this wrapper belongs to."""
         return self._graph
 
+    @contextmanager
+    def _locked(self) -> Iterator[None]:
+        """Hold this node's lock, with the graph's validation lock taken first.
+
+        A validation batch holds the graph's lock while it builds and
+        housekeeps nodes, and node code run under this lock can mark the graph
+        dirty; taking the two in this order on every thread keeps them from
+        deadlocking. Without a graph only the node's lock is taken.
+        """
+        graph = self._graph
+        if graph is None:
+            with self._lock:
+                yield
+            return
+        with graph._validation.lock, self._lock:
+            yield
+
     def set_as_registered(self, is_registered: bool) -> None:
         """Record whether the node is registered with the graph."""
         with self._lock:
@@ -256,7 +274,7 @@ class NodeWrapper:
             node_info: Serialized node data to restore from; ``None`` builds a
                 fresh node through its ``init()``.
         """
-        with self._lock:
+        with self._locked():
             logger.debug(f"Start node building: {self._node_id} ... ")
 
             self._state._clear_errors()
@@ -462,7 +480,7 @@ class NodeWrapper:
         adopts the new class. Either way the node is marked dirty, so the graph
         rebuilds or reports it.
         """
-        with self._lock:
+        with self._locked():
             logger.info(
                 f"NodeWrapper {self._node_id}: Detected life cycle event - {lc_event.event_type.value}"
             )
@@ -535,7 +553,7 @@ class NodeWrapper:
         Callers must not touch the wrapper's fields afterwards. Calling it a
         second time does nothing.
         """
-        with self._lock:
+        with self._locked():
             if self._cleaned_up:
                 return
             # Remove event subscription
@@ -596,7 +614,7 @@ class NodeWrapper:
         Call it whenever the node changes its inlets or outlets. It does nothing
         until the node is registered with the graph.
         """
-        with self._lock:
+        with self._locked():
             # Notify graph of redraw request
             if self._graph and not self._is_dirty_structural and self.state.is_registered:
                 self._graph._validation.mark_node_dirty(
@@ -606,10 +624,10 @@ class NodeWrapper:
 
     def redraw(self) -> None:
         """Request a redraw of the node in the UI."""
-        with self._lock:
-            # Notify graph of redraw request
-            if self._graph:
-                self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_REDRAW_REQUESTED)
+        # No node lock: held while waiting for the graph's validation lock, it deadlocks a batch.
+        graph = self._graph
+        if graph:
+            graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_REDRAW_REQUESTED)
 
     def mark_layout_changed(self) -> None:
         """Mark the node's persisted arrangement dirty — its card rebuilds and the graph saves.
@@ -617,9 +635,9 @@ class NodeWrapper:
         Distinct from ``redraw()``, whose ``NODE_REDRAW_REQUESTED`` is
         visual-only and tells the app layer not to mark the file unsaved.
         """
-        with self._lock:
-            if self._graph:
-                self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_LAYOUT_CHANGED)
+        graph = self._graph
+        if graph:
+            graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_LAYOUT_CHANGED)
 
     def _subscribe_props_redraw(self) -> None:
         """Watch the instance's appearance-affecting props and redraw on change."""
@@ -640,10 +658,9 @@ class NodeWrapper:
         assembler reads. When the node's inlets or outlets changed instead, call
         ``mark_as_structuraly_dirty()``.
         """
-        with self._lock:
-            # Notify graph of reassembly request
-            if self._graph:
-                self._graph._validation.mark_graph_dirty(ChangeReason.GRAPH_REQUIRE_REASSEMBLY)
+        graph = self._graph
+        if graph:
+            graph._validation.mark_graph_dirty(ChangeReason.GRAPH_REQUIRE_REASSEMBLY)
 
     def _housekeeping(self) -> None:
         """Rebuild the node's port pipelines if it is structurally dirty.
@@ -651,7 +668,7 @@ class NodeWrapper:
         Called by graph validation or after deserialization, never from inside a
         node.
         """
-        with self._lock:
+        with self._locked():
             if self._node_instance:
                 if self._is_dirty_structural:
                     self._node_instance._housekeeping()
@@ -668,7 +685,7 @@ class NodeWrapper:
         Args:
             include_data: When True, port field values are included.
         """
-        with self._lock:
+        with self._locked():
             if self._node_instance:
                 self._node_instance.on_saved()
 

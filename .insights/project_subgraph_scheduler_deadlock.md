@@ -66,3 +66,35 @@ A hang is not a flake. The suite going parallel did not introduce this — it
 made an existing interleaving likely enough to observe, in code that ships on
 `ThreadingTimerScheduler` by default. The same cycle could hang a real studio
 session with a Group open.
+
+## The same cycle inside one graph (fixed 2026-09-29)
+
+The two locks can also cross on a single graph, with no Subgraph at all: a
+batch on one thread (the timer in tests; the loop in the app) holds the
+validation lock and takes a node's lock in `build()`/`_housekeeping()`, while
+another thread holds that node's lock and marks the graph dirty. Before the
+fix, that other thread could be any `redraw()` caller (the VM thread
+reporting a runtime error), the hot-reload watcher (`_on_node_lifecycle_event`),
+or `build()` itself (node code adds a port → `mark_as_structuraly_dirty`).
+Seen once as a 120 s hang in `test_node_skin_graph_tier.py` under `-n 4`.
+
+**The rule: the graph's validation lock comes before a node's lock.**
+`NodeWrapper._locked()` takes both in that order and guards every block that
+runs node code or marks the graph dirty; `redraw()`,
+`mark_layout_changed()` and `request_graph_reassembly()` take no node lock at
+all. Only the `node` property and `set_as_registered` use the bare
+`self._lock`, and neither calls out. A new block that runs node code under the
+node's lock must use `_locked()`. Pinned by
+`tests/core/test_node/test_node_lock_order.py`, which fails (without hanging)
+on the old order.
+
+**Across graphs the order is Subgraph before host.** A Subgraph's batch
+reaches the host through the Graph-node card (`_on_definition_validated` →
+`reconcile_interface` → the card's `_locked()`), so it holds the Subgraph's
+validation lock while taking the host's. No path takes them the other way
+round today. A new one — holding the host's lock, then a Subgraph's — would
+deadlock against it wherever two batches run on different threads:
+`ThreadingTimerScheduler` gives each batch its own timer thread, while the
+app's `LoopScheduler` runs them all on the loop. Edge-kinds step 4 (callbacks
+across the card) must keep to Subgraph before host.
+

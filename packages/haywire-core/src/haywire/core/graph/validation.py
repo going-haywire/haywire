@@ -151,6 +151,15 @@ class ValidationManager:
                 "pending_validation": self._pending_handle is not None,
             }
 
+    @property
+    def lock(self) -> "threading.RLock":
+        """The lock a validation batch holds while it builds and housekeeps nodes.
+
+        Take it before a ``NodeWrapper``'s own lock, never after: a batch takes
+        node locks while holding it.
+        """
+        return self._validation_lock
+
     def force_immediate_validation(self) -> Optional[ValidationResult]:
         """Run a validation batch now and cancel any pending debounced run.
 
