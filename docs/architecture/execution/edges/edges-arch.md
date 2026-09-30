@@ -57,6 +57,8 @@ Sequential and short-circuiting on failure. Each stage sets flags and error fiel
 | **functional** | registered + formally validated + built + test passed |
 | **valid**      | functional + structural + linked on both ports        |
 
+Only a **valid** edge carries values. An outlet builds its pipes from its valid linked edges (`DataPort.get_valid_edges()`), so an edge that fails structural validation stays in the graph and is drawn as invalid, but delivers nothing to its inlet.
+
 ### 2.3 Connection rules by FlowType
 
 |                    | Outlet `allow_multiple`                  | Inlet `allow_multiple`                       |
@@ -134,16 +136,17 @@ Different edges to the same inlet can have different modes. The `lazy` parameter
 
 ```text
 EAGER EDGE:
-  outlet.set_value(value) → pipes.propagate(value)
-    ├─ adapter chain transforms value
-    └─ inlet.set_value(converted, edge_id=uuid)
-       ├─ stores value (NO on_change)
-       └─ inlet._mark_as_data_dirty()
+  outlet.set_value(value) → pipes.propagate() → pipe.propagate()
+    └─ pipe.pull()
+       ├─ reads the outlet's current value
+       ├─ adapter chain transforms it
+       └─ inlet.set_value(converted, edge_id=uuid)
+          ├─ stores value (NO on_change)
+          └─ inlet._mark_as_data_dirty()
 
 LAZY EDGE:
-  outlet.set_value(value) → pipes.propagate(value)
-    ├─ pipe sees lazy flag → skips transform
-    └─ inlet._mark_as_data_dirty(pipe=self, edge_id=uuid)
+  outlet.set_value(value) → pipes.propagate() → pipe.propagate()
+    └─ inlet._mark_as_data_dirty(pipe=self)   pipe queued, nothing pulled yet
 
 AT EXECUTION TIME (both):
   node._execute()
@@ -166,20 +169,23 @@ The `set_value()` method on DataPort distinguishes between edge-driven, widget/p
 | DATA, CONTROL flow_type    | yes       | exists       | `on_change` fires just before the worker |
 | Outlet (any)                          | (any)     | exists      | `on_change` fires **immediately**; pipes propagate downstream                                       |
 
-`set_value_by_lazy_link()` is a low-level method that stores the value without firing any callbacks. Used by `pull()` during lazy resolution. `set_value()` delegates to it for the actual storage step.
+`Pipe.pull()` stores through the same `set_value(converted, edge_id=...)` call, so a lazily pulled value follows the edge-driven rows above.
 
 ### 3.5 Pipe-based data transport
 
-The `Pipes` class owns all data transport — both eager push (`propagate()`) and lazy pull (`pull()`). It stores:
+A linked outlet owns one `Pipes`, which holds a `Pipe` per valid edge, keyed by edge id (`Pipes._pipes`). A `Pipe` owns one connection — both eager push (`propagate()`) and the pull itself (`pull()`):
 
-| Field          | Purpose                                                   |
-| -------------- | --------------------------------------------------------- |
-| `_outlet_port` | Reference to the source DataPort (for lazy reads)         |
-| `sinks`        | `dict[edge_id, DataPort]` — target inlets                 |
-| `chains`       | `dict[edge_id, IAdapter]` — adapter chains per connection |
-| `lazy_flags`   | `dict[edge_id, bool]` — propagation mode per connection   |
+| Field                 | Purpose                                                                          |
+| --------------------- | -------------------------------------------------------------------------------- |
+| `sink`                | Target inlet `DataPort`                                                          |
+| `chain`               | Head of the edge's adapter chain                                                 |
+| `is_lazy`             | Propagation mode, copied from the edge when the pipe is built                    |
+| `_outlet_port`        | Source `DataPort`, read on every pull (always-latest)                            |
+| `_sink_holds_absence` | Whether the sink accepts absence, read once from `sink.data.accepts_absence()`   |
 
-`pull_lazy(edge_id)` reads the outlet's current value (always-latest), transforms it through the adapter chain, and calls `set_value_by_lazy_link()` on the inlet.
+`Pipe.pull()` reads the outlet's current value, transforms it through the chain and stores it with `sink.set_value(converted, edge_id=...)`. When the outlet holds `None`, the pull forwards absence only to a sink that accepts it; any other sink keeps its last value.
+
+Pipes are rebuilt whenever the outlet is structurally dirty (`_refresh_pipes()` during housekeeping). That is why setting `is_lazy` on a live edge marks its outlet dirty: the existing `Pipe` keeps the mode it was built with.
 
 ### 3.6 ValidationManager — debounced batch processing
 
@@ -279,14 +285,14 @@ Each edge gets its own entry in the pooled `dict[source_id, value]`.
 | `EdgeWrapper._state` (`EdgeWrapperState`)  | All flags, errors, timing                                                           |
 | `DataPort._linked_edges`                   | `dict[edge_id, EdgeWrapper]` — active linked edges (used for pipes)                 |
 | `DataPort._all_edges`                      | `dict[edge_id, EdgeWrapper]` — all tracked edges including displaced/non-functional |
-| `DataPort._pending_lazy_pipes`             | `set[(Pipes, edge_id)]` — lazy pipes needing resolution at execution time           |
+| `DataPort._pending_lazy_pipes`             | `set[Pipe]` — lazy pipes to pull at execution time                                  |
 | `DataPort.allow_multiple_links`            | Connection limit flag                                                               |
 | `Edge.is_lazy`                             | Per-edge lazy propagation flag (default `False`)                                    |
 | `Edge.chain_adapter_keys`                  | List of adapter registry keys (empty = ReturnAdapter)                               |
 | `EdgeWrapper._first_adapter`               | Head of the executable adapter chain                                                |
 | `EdgeWrapper._outlet_port` / `_inlet_port` | Resolved DataPort references (set during formal validation)                         |
 | `Pipes._outlet_port`                       | Source DataPort reference (for lazy reads)                                          |
-| `Pipes.lazy_flags`                         | `dict[edge_id, bool]` — per-connection propagation mode                             |
+| `Pipes._pipes`                             | `dict[edge_id, Pipe]` — one pipe per valid edge; each `Pipe` carries its `is_lazy`  |
 
 ### Key files
 

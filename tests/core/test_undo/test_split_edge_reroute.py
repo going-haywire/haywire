@@ -15,7 +15,7 @@ pytestmark = pytest.mark.unit
 
 # The reroute node ships in the framework-owned builtin library; the split
 # action owns the port ids.
-_RR_KEY = "builtin:node:RerouteNode"
+_RR_KEY = "haywire-core:node:RerouteNode"
 _RR_IN = "in"
 _RR_OUT = "out"
 
@@ -357,11 +357,14 @@ class TestSplitEdgeRerouteIntegration:
 
     def _reroute_args(self):
         """The split action owns the port ids now; only the registry key remains."""
-        return dict(registry_key="builtin:node:RerouteNode")
+        from haywire.barn.builtin.nodes.reroute import RerouteNode
+
+        return dict(registry_key=RerouteNode.class_identity.registry_key)
 
     def test_split_inserts_typed_reroute_and_two_valid_edges(
         self, graph_with_library_system, library_system
     ):
+        from haywire.barn.builtin.nodes.reroute import RerouteNode
         from haywire.barn.builtin.types import FLOAT
         from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
 
@@ -386,6 +389,8 @@ class TestSplitEdgeRerouteIntegration:
 
         # Reroute has exactly the typed in/out ports, matching the outlet (FLOAT).
         reroute = graph.node_wrappers[reroute_id].node
+        # An unknown registry key yields the error node, which accepts the same ports.
+        assert isinstance(reroute, RerouteNode)
         assert set(reroute.ports.keys()) == {"in", "out"}
         assert reroute.ports["in"].stored_type is FLOAT
         assert reroute.ports["out"].stored_type is FLOAT

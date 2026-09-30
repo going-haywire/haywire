@@ -139,6 +139,11 @@ clipboard's both-endpoints rule and dedups inlets by their *outer* source,
 outlets by their *inner* source. `CollapseToGraphNodeAction` and
 `ExpandGraphNodeAction` are inverses, each undoable on its own.
 
+Each interface port takes the **wire type** of the interior port that names it
+(`DataPort.stored_type`, from `get_stored_type()`), not its declared type. An
+interior `PooledType[CALLBACK]` inlet therefore mints a scalar `CALLBACK`
+interface port, and a promoted `OPTIONAL[INT]` setting mints an `INT` one.
+
 ### Macros
 
 A macro is a `.hwm` document registered as a component kind, `MacroNode` is the

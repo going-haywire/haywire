@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: impl-spec
-scope: Callback edge system — cross-flow triggers, FlowType.CALLBACK semantics, CallbackManager, assembly-time wiring
+scope: Callback edge system — cross-flow triggers, FlowType.CALLBACK semantics, CallbackManager, listener registration
 see-also:
   - ../edges/edges-arch.md
   - ../assembly/assembly-arch.md
@@ -13,9 +13,9 @@ see-also:
 
 ## 1. Mental model
 
-A **callback** is a cross-flow trigger: one Flow emits an event, and a sibling Flow whose entry EVENT-node is configured to listen for that event runs in response. Callbacks let an event-node-rooted Flow be triggered *programmatically* by another running flow, instead of only by an external system event (BEGIN_PLAY, Tick, user input).
+A **callback** is a cross-flow trigger: a running node calls `context.emit_callback(event_name, payload)`, and every Flow whose entry EVENT node subscribed to that name runs in response. Callbacks let an event-node-rooted Flow be triggered *programmatically* by another running flow, instead of only by an external system event (BEGIN_PLAY, Tick, user input).
 
-CALLBACK edges serve two roles: **assembly-time wiring** and **run-time value transport**. At assembly time, a CALLBACK edge between an emitter outlet and a listener-event-node's inlet tells the assembler "hook this listener up to fire when the emitter writes." At run-time, the pipe mechanism transports the string listener-id from the EVENT node outlet to the emitter's inlet — the emitter reads it to know which callbacks to fire.
+Routing is by **event name** alone and never goes through the graph. What a CALLBACK edge adds is the *subscription*: it carries the listener event node's subscription value to the emitting node, so the emitter knows which names to emit. The value is whatever the callback type defines — for core `CALLBACK` (a `STRING`) it is the event name; for a library type such as haybale-visiongraph's `MULTIFRAME_CALLBACK` it is a dataclass holding the name plus the stream requirements the camera node reads.
 
 This is the third leg of haywire's connection types — see [reference/glossary §Flow Types & Port Kinds](../../../reference/glossary.md#flow-types-port-kinds):
 
@@ -23,20 +23,20 @@ This is the third leg of haywire's connection types — see [reference/glossary 
 |---|---|---|
 | **DATA edge** | Carries typed values from outlet to inlet | Run-time data transport |
 | **EXEC edge** | Carries control flow within a Flow | Run-time control transport |
-| **CALLBACK edge** | Carries a string listener-id from an EVENT node outlet to an emitter's `PooledType[CALLBACK]` inlet; wires listener Flows to emitter ports | **Run-time** value transport (string) + assembly-time topology registration |
+| **CALLBACK edge** | Carries a listener's subscription value from its EVENT node's CALLBACK outlet to an emitter's pooled `PooledType[...]` callback inlet | Run-time value transport |
 
 ## 2. Contract
 
 ### 2.1 The `FlowType.CALLBACK` port type
 
-CALLBACK ports use the same `DataPort` infrastructure as DATA ports but carry the `FlowType.CALLBACK` flag. Connection rules:
+CALLBACK ports use the same `DataPort` infrastructure as DATA ports but carry the `FlowType.CALLBACK` flag. They have no hardcoded connection rules:
 
 | Direction | `allow_multiple` |
 |---|---|
-| Outlet | `False` (default — one emitter per source) |
-| Inlet | `False` (default — one listener per target) |
+| Outlet | `False` by default; listener event nodes declare `True`, so one listener can subscribe to several emitters |
+| Inlet | `False` by default; emitters use a `PooledType[...]` inlet, which accepts many sources and keys each value by its edge id |
 
-A CALLBACK edge is registered through the same `graph.create_edge_wrapper(...)` flow as DATA/EXEC edges. At run-time, the pipe mechanism transports the string listener-id from the EVENT node outlet to the emitter's `PooledType[CALLBACK]` inlet — the emitter reads this value to know which callback names to emit. Additionally, at assembly time, the assembler reads the edge topology to register listener Flows with the CallbackManager.
+A CALLBACK edge is created through the same `graph.create_edge_wrapper(...)` as DATA and EXEC edges, and its value travels over an ordinary pipe into the emitter's pool. Removing a direct edge removes that edge's entry from the pool (`PooledField.remove_source`). Assembly does not read callback edges to route anything — see §3.1.
 
 #### `on_change` timing on CALLBACK inlets
 
@@ -44,28 +44,24 @@ A CALLBACK edge is registered through the same `graph.create_edge_wrapper(...)` 
 
 This matters because emitter nodes with a pooled `PooledType[CALLBACK]` inlet are often `NodeType.CONTROL` nodes (e.g. `OakDCameraNode`) that only execute their `worker()` in response to a control pulse (`start`/`stop`), not on every dirty-port change. If a callback inlet's `on_change` were deferred like a normal DATA inlet, a subscriber changing its requirements (e.g. a `NumpyFrameEventNode` toggling `enable_depth`) would update the pooled dict but the emitter's `on_change` handler — and anything it derives, like a requirement-union setting — would silently stay stale until the node happened to execute again for an unrelated reason.
 
-### 2.2 Two callback modes
+### 2.2 Two ways to subscribe
 
-The framework supports two ways to wire a listener to an emitter:
+**Edge-based (default).** Draw a CALLBACK edge from the listener event node's CALLBACK outlet to the emitter's pooled callback inlet. The listener publishes its subscription on the outlet (core's `TickEventNode` publishes its own node id), and the emitter emits to every name in its pool.
 
-**Edge-based (visual, default).** A `FlowType.CALLBACK` edge connects an emitter outlet to a listener `CallbackEvent`-node inlet. The event name propagates automatically — the emitter doesn't need a string identifier; the edge is the wiring.
+**By name (no edge).** Nodes that offer it — haybale-example's Custom Callback and Emit Callback — have a **Custom Name** fold (the `custom_name` switch and a `custom_callback_name` text field). With it switched on, the listener subscribes to that name and the emitter emits it. No edge is drawn; the two meet through the CallbackManager's name routing.
 
-**String-based (`mode_switch=True`).** No edge is drawn. Instead, the emitter and listener nodes both have a `event_name` config port set to the same string. The framework matches them at assembly time. Useful for graphs where the visual clutter of callback edges is undesirable.
-
-Both modes coexist. A graph can have some callbacks edge-wired and others string-matched.
+Both coexist. A graph can have some callbacks edge-wired and others matched by name.
 
 ### 2.3 The two endpoints
 
-- **Emitter** — a node whose outlet emits a callback signal. Configured with optional `event_name` (string-mode only) and a `mode_switch` config port.
-- **Listener** — a node with a `FlowType.CALLBACK` inlet that listens for a named event. The Flow rooted at this node runs when the event fires.
+- **Listener** — an EVENT node whose `event_subscription` is a `CallbackEvent(event_name=...)`. It roots its own Flow and, in edge-based mode, publishes its subscription on a CALLBACK outlet.
+- **Emitter** — a node that calls `context.emit_callback(...)`, usually a CONTROL node (core's `TickEmitNode`, haybale-visiongraph's `OakDCameraNode`). In edge-based mode it reads the names to emit from its pooled callback inlet; `TickEmitNode` reads them from a background thread, outside any execution frame.
 
 By design, every callback-listener Flow has its own EVENT-node entry — typically `CallbackEvent(event_name=...)`.
 
 ## 3. Lifecycle
 
-### 3.1 Assembly-time wiring
-
-`FlowAssemblyManager._process_callback_edges()` runs after individual Flows are built:
+### 3.1 Assembly and listener registration
 
 ```text
 FlowAssemblyManager.assemble_graph(graph)
@@ -76,23 +72,26 @@ FlowAssemblyManager.assemble_graph(graph)
   ├─ build each Flow normally (control + data assembly)
   │
   └─ _process_callback_edges(graph, flows)
-       ├─ scan graph.edge_wrappers for FlowType.CALLBACK edges
-       ├─ build a topology map: emitter_node → [listener_flow, …]
-       ├─ register the topology with CallbackManager
-       └─ store statistics on the assembly result
+       └─ statistics and debug logging only (§3.3)
+
+Interpreter, starting each Flow
+  └─ CallbackEvent subscription
+       → callback_manager.register_callback_listener(event_name, flow)
 ```
+
+Listener Flows are registered from each event node's `event_subscription`, never from edges.
 
 ### 3.2 Runtime dispatch
 
-When a node worker writes to a callback outlet during execution:
+When an emitter fires a callback:
 
 ```text
-Flow 1 worker emits → outlet.set_value(...)
+emitter worker (or a thread it started) → context.emit_callback(event_name, payload)
   ↓
-CallbackManager dispatches by event name
+VM.emit_callback → CallbackManager.emit_callback
   ↓
-Each listener Flow registered for that event runs
-  (independently, not as part of Flow 1's control chain)
+Each Flow registered for event_name runs
+  (independently, not as part of the emitter's control chain)
 ```
 
 The listener Flow runs through the standard VM dispatch — it's a Flow like any other; the only thing special is how it was *triggered*.
@@ -104,10 +103,15 @@ The assembly result and the Interpreter both expose callback topology for debugg
 ```python
 stats = interpreter.get_statistics()
 
-stats['assembly']['callback_edges']     # count of CALLBACK edges in the graph
-stats['assembly']['callback_topology']  # {emitter_id: [listener_flow_id, ...]}
-stats['callback_topology']              # same, on interpreter for quick access
+stats['assembly']['callback_edges']     # number of CALLBACK edges in the graph
+stats['callback_topology']              # same as stats['assembly']['callback_topology']:
+#   {'emitters': int, 'listeners': int,
+#    'edges':    {source_node_id: [sink_node_id, ...]},
+#    'triggers': {sink_node_id: [source_node_id, ...]}}
+stats['callbacks']                      # CallbackManager: registered event names and listener counts
 ```
+
+The topology follows the edge direction: an edge's *source* is the listener event node and its *sink* is the emitter. So the `emitters` count is the number of distinct edge sources, and `listeners` the number of distinct sinks — the reverse of the roles in §2.3.
 
 ### 3.4 Hot-reload behaviour
 
@@ -115,14 +119,14 @@ CALLBACK edges follow the same hot-reload path as DATA/EXEC edges (see [architec
 
 1. `NODE_HOT_RELOADED` triggers full `node_wrapper.build()` for the affected node.
 2. Attached CALLBACK edges are marked dirty, rebuilt, and re-linked.
-3. The next assembly pass (triggered by the dirty-edge state change) re-runs `_process_callback_edges()` and rebuilds the callback topology.
+3. The next assembly pass re-reads each event node's `event_subscription`, and the Interpreter registers the listener Flows again when it starts them.
 
 ## 4. Boundary
 
 The callback subsystem is **not**:
 
 - A **synchronous function call** mechanism — listeners run as standalone Flows; emitters do not wait.
-- A **data-passing channel for arbitrary types** — CALLBACK ports carry string listener-ids only. Data flow between sibling Flows requires AppState (see [architecture/session-and-state](../../session-and-state/session-and-state-arch.md)) or a shared `LibrarySettings`.
+- A **data channel** — a CALLBACK edge carries a subscription, not run-time data. Data sent with a callback travels as `emit_callback(payload=...)`; data shared between sibling Flows requires AppState (see [architecture/session-and-state](../../session-and-state/session-and-state-arch.md)) or a shared `LibrarySettings`.
 - A **subscription protocol** for UI events — that's the studio's `notify_context_changed` system; see [architecture/studio](../../studio/studio-arch.md).
 - An **inter-process communication** mechanism — callbacks are intra-Interpreter only.
 
@@ -131,38 +135,36 @@ The callback subsystem is **not**:
 ### 5.1 Edge-based callback
 
 ```text
-Flow 1 (BeginPlay):                Flow 2 (Listener):
-  ┌──────────┐                       ┌─────────────────┐
-  │BeginPlay │─exec→ ... ─emit→     │ CallbackEvent   │
-  └──────────┘                       │ event_name=     │
-                                     │ 'my_callback'   │
-                                     └─────────────────┘
+Flow 1 (BeginPlay):                              Flow 2 (Listener):
+  ┌──────────┐      ┌───────────────┐             ┌─────────────────┐
+  │BeginPlay │─exec→│ Emit Callback │             │ Custom Callback │
+  └──────────┘      │    Trigger ◄──┼─────────────┤ Listen          │
+                    └───────────────┘  CALLBACK   └─────────────────┘
 
-A CALLBACK edge connects the emitter outlet (in Flow 1) to the listener
-event-node's CALLBACK inlet (root of Flow 2). At assembly time, the
-edge is read once to register Flow 2 as a listener; at runtime, when
-Flow 1's emit fires, Flow 2 runs.
+The CALLBACK edge runs from the listener's Listen outlet to the emitter's
+pooled Trigger inlet and carries the listener's subscription name. When
+Flow 1 reaches Emit Callback, it emits to every name in that pool, and
+the CallbackManager runs Flow 2.
 ```
 
-### 5.2 String-based callback (no edge)
+### 5.2 Callback by name (no edge)
 
 ```python
-# Emitter node config:
-emitter.set_value('mode_switch', True)
-emitter.set_value('event_name', 'my_callback')
+# Custom Callback (listener) and Emit Callback (emitter) both switch on
+# the Custom Name fold and use the same name. No edge between them.
+listener.ports["custom_name"].set_value(True)
+listener.ports["custom_callback_name"].set_value("my_callback")
 
-# Listener event node config:
-listener.set_value('event_name', 'my_callback')
-
-# No edge between them. Assembly matches them by event_name string.
+emitter.ports["custom_name"].set_value(True)
+emitter.ports["custom_callback_name"].set_value("my_callback")
 ```
 
 ### 5.3 Inspecting the topology
 
 ```python
-stats = interpreter.get_statistics()
-for emitter_id, listener_flows in stats['callback_topology'].items():
-    print(f"{emitter_id} → {listener_flows}")
+topology = interpreter.get_statistics()["callback_topology"]
+for source_id, sink_ids in topology.get("edges", {}).items():
+    print(f"{source_id} → {sink_ids}")
 ```
 
 ## 6. Open questions
@@ -173,7 +175,8 @@ for emitter_id, listener_flows in stats['callback_topology'].items():
 
 ## Key files
 
-- `src/haywire/core/assembly/flow_assembly_manager.py` — `_process_callback_edges()`
-- `src/haywire/core/execution/callback_manager.py` — `CallbackManager` (runtime dispatch)
-- `src/haywire/core/execution/interpreter.py` — `Interpreter` (per-graph; owns the CallbackManager)
+- `src/haywire/core/execution/interpreter.py` — `Interpreter` (per-graph; owns the CallbackManager and registers `CallbackEvent` Flows with it)
+- `src/haywire/core/execution/callback_manager.py` — `CallbackManager` (dispatch by event name)
+- `src/haywire/core/execution/execution_context.py` — `ExecutionContext.emit_callback`
 - `src/haywire/core/execution/event_source.py` — `CallbackEvent` listener event-node (framework class; library nodes import it)
+- `src/haywire/core/assembly/flow_assembly_manager.py` — `_process_callback_edges()` (statistics only)
