@@ -6,7 +6,7 @@ Simple test data structure for cross-library testing
 
 ## Details
 
-- **flow_type**: `none`
+- **flow_type**: `data`
 - **default**: `{'value': None}`
 - **color**: `#FF5722`
 

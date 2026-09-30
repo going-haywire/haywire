@@ -178,6 +178,19 @@ so every relay is generic before kinds become pluggable. Inputs from the
   propagation at all.
 - *Serialization and authoring:* saved graphs store `edge_type` as a string;
   ~40 `flow_type=` declarations in barn libraries become edge-kind declarations.
+- *A wildcard kind.* A bare `ADD` accepts an edge of any flow (step 4); today
+  that is `type_cls._is_any`, checked in `_formal_validation`, `edge_flow_type`
+  and `pin_render` + `canvas.vue`. Rather than a `FlowType.ANY`, make it a rule
+  of the compatibility key each kind computes, so "matches any kind" is stated
+  once. `_is_any` stays for the adapter factory's type compatibility.
+- *Split `FlowType.NONE`.* It does three jobs today: a config port's flow, which
+  nothing reads (`PortType.CONFIG` decides); a container type's "take my
+  element's flow" (`ArrayType`/`PooledType._configure_port`); and the default of
+  every type that declares none — a value type then gets pins that connect only
+  to each other and that assembly ignores, silently (`haybale-TEST_A`'s
+  `TestData` did, fixed 2026-09-30). With kinds: a config port carries no kind,
+  a container derives its element's kind explicitly, and `@type` rejects a value
+  type that declares no kind, as it rejects a primitive with no default value.
 - *Cleanup to fold in:* `FlowAssemblyManager._process_callback_edges`
   (statistics only, and since step 1 it counts reroutes as emitters);
   `EdgeWrapper.is_callback_edge` / `is_data_edge` and
