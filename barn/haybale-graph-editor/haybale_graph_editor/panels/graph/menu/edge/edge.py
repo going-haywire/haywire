@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.types.enums import Propagation
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
@@ -94,13 +95,7 @@ class EdgeWarningsMenuPanel(BasePanel):
     order=20,
 )
 class InsertRerouteMenuPanel(BasePanel):
-    """Split the active edge and insert a reroute node in between.
-
-    Available for DATA and CONTROL edges only. CALLBACK edges are excluded
-    because the flow assembly manager reads the subscription key from the
-    reroute's outlet at wiring time — before any worker has run to forward
-    it — so the listener flow never registers correctly.
-    """
+    """Split the active edge and insert a reroute node in between. Available for every edge."""
 
     actions: EdgeActions
 
@@ -112,7 +107,7 @@ class InsertRerouteMenuPanel(BasePanel):
         edge = ctx.data[EditState].active_edge
         if edge is None:
             return False
-        return not edge.is_callback_edge()
+        return True
 
     def draw(
         self,
@@ -209,59 +204,77 @@ class EdgeAdapterEditMenuPanel(BasePanel):
     icon=hui.icon.edge_lazy,
     order=0,
 )
-class LazyEdgeMenuPanel(BasePanel):
-    """Flip an edge between eager (push) and lazy (pull-on-demand) propagation.
+class EdgePropagationMenuPanel(BasePanel):
+    """Show an edge's propagation mode and switch it between lazy and eager.
 
     **The row rewrites itself on click rather than closing over its state**,
-    for the same reason as ``CollapseSelectionMenuPanel``: ``hui.menu_row``
-    does not dismiss its popup, so a handler that captured ``lazy`` at draw
-    time would keep re-sending that value and the toggle would work exactly
-    once. The current state is asked for on every click
-    (``toggle_edge_lazy`` decides and returns the new state).
+    for the same reason as `CollapseSelectionMenuPanel`: `hui.menu_row` does
+    not dismiss its popup, so a handler that captured the mode at draw time
+    would keep re-sending that value and the toggle would work exactly once.
+    The current mode is asked for on every click (`toggle_edge_propagation`
+    decides and returns the new one).
 
-    The icon and label both name the current MODE, unlike Collapse's
-    verb-labelled row: propagation is a standing property of the edge, not a
-    one-shot action, so the row reads "Propagation: Lazy/Eager" rather than a
-    command.
+    The icon and label both name the current mode: propagation is a standing
+    property of the edge, so the row reads "Propagation: Lazy/Eager/Immediate"
+    rather than a command. A mode the connection fixes draws a disabled row.
     """
 
     actions: EdgeActions
+
+    _LABELS = {Propagation.LAZY: "Lazy", Propagation.EAGER: "Eager", Propagation.IMMEDIATE: "Immediate"}
+    _ICONS = {
+        Propagation.LAZY: hui.icon.edge_lazy,
+        Propagation.EAGER: hui.icon.edge_eager,
+        Propagation.IMMEDIATE: hui.icon.edge_propagation,
+    }
+    _LOCKED_TOOLTIPS = {
+        Propagation.IMMEDIATE: "Callback connections always take effect immediately.",
+        Propagation.LAZY: "Connections from a promoted setting are always lazy.",
+    }
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_edge is not None
 
-    @staticmethod
-    def _row_text(lazy: bool) -> str:
-        return f"Propagation: {'Lazy' if lazy else 'Eager'}"
-
-    @staticmethod
-    def _row_icon(lazy: bool) -> str:
-        return hui.icon.edge_lazy if lazy else hui.icon.edge_eager
+    @classmethod
+    def _row_text(cls, mode: Propagation) -> str:
+        return f"Propagation: {cls._LABELS[mode]}"
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         edge = ctx.data[EditState].active_edge
         if edge is None:
             return
         edge_id = edge.edge_id
-        lazy = self.actions.edge_is_lazy(edge_id)
+        mode = self.actions.edge_propagation(edge_id)
+        if mode is None:
+            return
+        locked = self.actions.edge_propagation_locked(edge_id)
 
         with layout:
             row = hui.menu_row(
-                self._row_text(lazy),
-                icon=self._row_icon(lazy),
-                tooltip="Lazy propagation pulls data on demand instead of pushing it on write.",
+                self._row_text(mode),
+                icon=self._ICONS[mode],
+                enabled=not locked,
+                tooltip=(
+                    self._LOCKED_TOOLTIPS[mode]
+                    if locked
+                    else "Lazy propagation pulls data on demand instead of pushing it on write."
+                ),
             )
+        if locked:
+            return
 
         icon_el = next((c for c in row.default_slot.children if isinstance(c, ui.icon)), None)
         label_el = next((c for c in row.default_slot.children if isinstance(c, ui.label)), None)
 
         def _toggle() -> None:
-            now_lazy = self.actions.toggle_edge_lazy(edge_id)
+            now = self.actions.toggle_edge_propagation(edge_id)
+            if now is None:
+                return
             if label_el is not None:
-                label_el.set_text(self._row_text(now_lazy))
+                label_el.set_text(self._row_text(now))
             if icon_el is not None:
-                icon_el.set_name(self._row_icon(now_lazy))
+                icon_el.set_name(self._ICONS[now])
 
         row.on("click", lambda _e=None: _toggle())
 

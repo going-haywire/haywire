@@ -91,6 +91,8 @@ def test_split_action_resolves_outlet_type_and_builds_children():
     # Reroute typed to the OUTLET's concrete type (Q2/2A); ids threaded through.
     assert addports.itype is sentinel_type
     assert (addports.inlet_id, addports.outlet_id) == (_RR_IN, _RR_OUT)
+    # The inlet forwards immediate (callback) values through the reroute's handler.
+    assert addports.inlet_on_change == "forward_immediate"
     # First edge: A.out -> reroute.in ; second: reroute.out -> B.in
     assert (edge_in.source_node_id, edge_in.outlet_port_id) == ("A", "result")
     assert (edge_in.sink_node_id, edge_in.inlet_port_id) == ("reroute_1", _RR_IN)
@@ -116,7 +118,7 @@ def test_add_ports_action_rejigs_to_new_type():
 
     class _Type:
         @staticmethod
-        def as_inlet(id, label=""):
+        def as_inlet(id, label="", **kwargs):
             return _Spec("inlet", id)
 
         @staticmethod
@@ -455,6 +457,27 @@ class TestSplitEdgeRerouteIntegration:
         pairs = {(e.source_node_id, e.sink_node_id) for e in edges}
         assert pairs == {(begin.node_id, reroute_id), (reroute_id, print_node.node_id)}
 
+    def test_a_data_reroute_still_forwards_only_when_it_runs(
+        self, graph_with_library_system, library_system
+    ):
+        """The inlet's on_change handler forwards immediate values only; DATA waits for the worker."""
+        from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
+
+        graph = graph_with_library_system
+        node_a, node_b, edge = self._two_connected_nodes(graph)
+        action = SplitEdgeWithRerouteAction(
+            graph=cast(Any, graph), edge_id=edge.edge_id, position=(200.0, 200.0), **self._reroute_args()
+        )
+        action._execute_impl()
+        reroute = graph.node_wrappers[action.reroute_node_id].node
+        sink = node_b.node.ports["value_a"]
+
+        node_a.node.out("result", 42.0)
+        reroute.ports["in"].resolve_dirty_data()  # fires the deferred on_change
+
+        assert reroute.ports["in"].get_value() == 42.0
+        assert sink.get_value() != 42.0
+
     def test_split_undo_restores_original_edge(self, graph_with_library_system, library_system):
         from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
 
@@ -476,13 +499,8 @@ class TestSplitEdgeRerouteIntegration:
         assert restored.state.is_valid()
 
 
-def test_callback_edge_from_reroute_is_invalid():
-    """A CALLBACK edge whose source is a REROUTE node must be rejected.
-
-    Reroutes are not valid CALLBACK sources: the flow assembly manager reads
-    the subscription key at wiring time, before any worker has run to forward
-    it through the reroute, so the listener flow never registers.
-    """
+def test_callback_edge_from_reroute_is_valid():
+    """A reroute may be the source of a CALLBACK edge: it relays the subscription."""
     from haywire.core.validation.structural_validator import StructuralValidator
     from haywire.core.node.behavior import NodeBehaviorFlags, NodeType
     from haywire.core.types.enums import FlowType
@@ -500,6 +518,6 @@ def test_callback_edge_from_reroute_is_invalid():
         source_node_id = "reroute_1"
 
     validator = StructuralValidator.__new__(StructuralValidator)
-    ok, err, _ = validator._validate_callback_edge(cast(Any, _EdgeWrapper()))
-    assert not ok
-    assert err is not None
+    ok, err, _ = validator.validate_edge(cast(Any, _EdgeWrapper()))
+    assert ok
+    assert err is None

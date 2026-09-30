@@ -29,6 +29,8 @@ SUBGRAPH_KEY = "subgraph_key"
 # and are NOT part of the public split API.
 _REROUTE_INLET_ID = "in"
 _REROUTE_OUTLET_ID = "out"
+#: The reroute node's handler its inlet calls on change; it forwards immediate values.
+_REROUTE_FORWARD_HANDLER = "forward_immediate"
 
 
 class AddNodeAction(ActionBase):
@@ -606,6 +608,8 @@ class _AddReroutePortsAction(ActionBase):
     the port set to exactly those two). The core never imports the node class or
     names its type; the ids and target ``IType`` are passed in by the caller
     (the graph-editor), so no core→library dependency is introduced.
+    ``inlet_on_change`` names the node method the inlet calls when its value
+    changes, or ``None`` for none.
 
     Undo is a no-op — the sibling ``AddNodeAction`` removes the whole node (and
     its ports) on undo, and redo re-runs this on the re-added (port-less)
@@ -619,6 +623,7 @@ class _AddReroutePortsAction(ActionBase):
         itype: Any,
         inlet_id: str,
         outlet_id: str,
+        inlet_on_change: Optional[str] = None,
         description: Optional[str] = None,
     ):
         super().__init__(description or f"Add reroute ports '{node_id}'")
@@ -627,6 +632,7 @@ class _AddReroutePortsAction(ActionBase):
         self.itype = itype
         self.inlet_id = inlet_id
         self.outlet_id = outlet_id
+        self.inlet_on_change = inlet_on_change
 
     def _execute_impl(self) -> None:
         wrapper = self.graph.get_node_wrapper(self.node_id)
@@ -637,7 +643,7 @@ class _AddReroutePortsAction(ActionBase):
         # idempotent: on a fresh port-less node it simply adds them; on a redo
         # it keeps the port set to exactly {inlet_id, outlet_id}.
         with node.rejig(include=[self.inlet_id, self.outlet_id]):
-            node.add(self.itype.as_inlet(id=self.inlet_id, label=""))
+            node.add(self.itype.as_inlet(id=self.inlet_id, label="", on_change=self.inlet_on_change))
             node.add(self.itype.as_outlet(id=self.outlet_id, label=""))
 
     def _undo_impl(self) -> None:
@@ -647,7 +653,7 @@ class _AddReroutePortsAction(ActionBase):
 
 
 class SplitEdgeWithRerouteAction(CompositeAction):
-    """Split a data edge and insert a reroute node in between.
+    """Split an edge and insert a reroute node in between.
 
     Given an edge ``A.out -> B.in``, this composite (one undoable unit):
 
@@ -716,6 +722,7 @@ class SplitEdgeWithRerouteAction(CompositeAction):
                 itype=itype,
                 inlet_id=_REROUTE_INLET_ID,
                 outlet_id=_REROUTE_OUTLET_ID,
+                inlet_on_change=_REROUTE_FORWARD_HANDLER,
             ),
             AddEdgeAction(
                 graph=graph,

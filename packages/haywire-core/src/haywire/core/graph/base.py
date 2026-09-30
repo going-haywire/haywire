@@ -17,7 +17,7 @@ from haywire.core.validation.interface import IStructuralValidator
 from haywire.core.validation.structural_validator import StructuralValidator
 from haywire.core.library.utils import get_registry_id_from_key
 
-from ..types import FlowType
+from ..types import FlowType, Propagation
 from ..types.enums import PortType
 from .validation import ValidationManager, ValidationCallback
 from .types import ChangeReason
@@ -584,20 +584,22 @@ class BaseGraph:
         outlet_port_id: str,
         sink_node_id: str,
         inlet_port_id: str,
-        lazy: bool = False,
+        propagation: Propagation = Propagation.EAGER,
     ) -> Optional["EdgeWrapper"]:
         """Create an edge between two ports, build its adapter chain, and add it to the graph.
 
         The edge takes its flow type from the source outlet.
 
         Args:
-            lazy: When ``True`` the edge uses lazy (pull-on-demand) propagation.
+            propagation: The mode chosen for the edge; a locked mode overrides it
+                (see ``EdgeWrapper.locked_propagation``).
 
         Returns:
             The added wrapper.
 
         Raises:
-            ValueError: If an edge with the same id is already in the graph.
+            ValueError: If an edge with the same id is already in the graph, or
+                *propagation* is ``IMMEDIATE``.
         """
         from ..edge.edge_wrapper import EdgeWrapper
 
@@ -610,7 +612,7 @@ class BaseGraph:
             sink_node_id=sink_node_id,
             inlet_port_id=inlet_port_id,
             edge_type=flow_type,
-            lazy=lazy,
+            propagation=propagation,
         )
 
         edge_wrapper.build()
@@ -1016,7 +1018,7 @@ class BaseGraph:
                             sink_node_id=edge_data["sink_node_id"],
                             inlet_port_id=edge_data["inlet_port_id"],
                             edge_type=FlowType(edge_data["edge_type"]),
-                            lazy=edge_data.get("is_lazy", False),
+                            propagation=Propagation(edge_data.get("propagation", Propagation.EAGER.value)),
                         )
 
                         edge_wrapper.build()

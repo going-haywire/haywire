@@ -41,7 +41,7 @@ def _fake_graph(boundary_ids: frozenset[str] = frozenset()):
         "inlet_port_id": "i",
         "edge_type": "data",
         "chain_adapter_keys": [],
-        "is_lazy": False,
+        "propagation": "eager",
     }
     edge_out = MagicMock()
     edge_out.edge.to_dict.return_value = {
@@ -51,7 +51,7 @@ def _fake_graph(boundary_ids: frozenset[str] = frozenset()):
         "inlet_port_id": "i",
         "edge_type": "data",
         "chain_adapter_keys": [],
-        "is_lazy": False,
+        "propagation": "eager",
     }
     g.get_edge_wrapper.side_effect = lambda eid: {"e_in": edge_in, "e_out": edge_out}.get(eid)
     return g

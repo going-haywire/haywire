@@ -36,7 +36,7 @@ class INTField(PrimitiveField):
     its field class from this one rather than using a plain ``PrimitiveField``
     — an optional int must behave exactly like a plain int while a value is
     present. ``int(None)`` raises, so the wrapper's absence branch bypasses this
-    override (see ``_absence_tolerant_field``).
+    override (see ``absence_capable_field``).
     """
 
     def set_value(self, value, source_id=None):

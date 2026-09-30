@@ -519,51 +519,7 @@ class StructuralValidator(IStructuralValidator):
             Error message is None if valid.
             Suggestions is a list of actionable fixes.
         """
-        # Check edge type-specific rules
-        if wrapper._edge_type == FlowType.CALLBACK:
-            return self._validate_callback_edge(wrapper)
-        elif wrapper._edge_type == FlowType.DATA:
-            # Note: Data cycle validation happens graph-wide
-            # Individual edges are valid by default
-            pass
-
-        # Edge passes validation
-        return (True, None, [])
-
-    def _validate_callback_edge(self, wrapper: "EdgeWrapper") -> tuple[bool, str | None, list[str]]:
-        """
-        Validate callback edge structural constraints.
-
-        Rules:
-        - Source must be an EVENT node.
-
-        A callback edge carries its subscription as the source port's *value* —
-        the event name, which lands in the sink's pooled inlet keyed by this
-        edge's id. Only a direct connection keeps that key aligned with the
-        edge the user can unlink: an intermediate node re-keys the entry by its
-        own hop, so removing the upstream edge clears the intermediate's pool
-        and leaves the sink subscribed to an event nothing emits any more.
-
-        This is why a reroute cannot sit on a callback edge, and equally why one
-        cannot cross a Subgraph boundary — ``CollapseToGraphNodeAction`` refuses
-        a selection that would make it. Use a direct EVENT → listener connection.
-        """
-        from haywire.core.node.behavior import NodeType
-
-        assert wrapper._source_wrapper is not None  # validator runs after edge wiring
-        source_node_type = wrapper._source_wrapper.node.behavior.node_type
-        if NodeType.EVENT not in source_node_type:
-            return (
-                False,
-                f"Callback edge source must be an event node. "
-                f"Node '{wrapper.source_node_id}' is not an event node.",
-                [
-                    "Connect callback outlet directly to an event node (EventNode subclass)",
-                    "Or change edge type to DATA if passing data",
-                ],
-            )
-
-        # All checks passed
+        # No flow type adds an edge-level rule; data cycles are validated graph-wide.
         return (True, None, [])
 
     # ========================================================================

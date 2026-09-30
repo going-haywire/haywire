@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.types.enums import Propagation
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
@@ -109,12 +110,12 @@ class EdgeWarningsPanel(BasePanel):
     icon=hui.icon.edge_propagation,
     order=10,
 )
-class EdgeLazyPanel(BasePanel):
-    """Switch the active edge between eager and lazy propagation.
+class EdgePropagationPanel(BasePanel):
+    """Switch the active edge between eager and lazy propagation, or show the mode it is fixed to.
 
-    Writes ``EdgeWrapper.is_lazy`` directly, like ``EdgeStatsPanel`` and
-    ``EdgePathPanel`` read it — ``EdgeInspector`` declares no ``provides``, so
-    its panels have no action host to route the write through.
+    Writes `EdgeWrapper.propagation` directly, like `EdgeStatsPanel` and
+    `EdgePathPanel` read it — `EdgeInspector` declares no `provides`, so its
+    panels have no action host to route the write through.
     """
 
     @classmethod
@@ -130,14 +131,26 @@ class EdgeLazyPanel(BasePanel):
         if edge_wrapper is None:
             return
 
+        locked = edge_wrapper.locked_propagation
+        if locked is not None:
+            with layout:
+                with ui.row().classes("w-full items-center gap-1 py-0.5"):
+                    ui.icon(hui.icon.edge_propagation).classes("text-lg")
+                    ui.label(f"{locked.value.capitalize()} (fixed by the connection)").classes(
+                        "text-xs hw-text-muted"
+                    )
+            return
+
         def _on_change(e) -> None:
-            edge_wrapper.is_lazy = e.value
+            edge_wrapper.propagation = Propagation.LAZY if e.value else Propagation.EAGER
             edge_wrapper.redraw()
 
         with layout:
             with ui.row().classes("w-full items-center gap-1 py-0.5"):
                 ui.icon(hui.icon.edge_eager).classes("text-lg")
-                ui.switch(value=edge_wrapper.is_lazy, on_change=_on_change).props("dense")
+                ui.switch(value=edge_wrapper.propagation is Propagation.LAZY, on_change=_on_change).props(
+                    "dense"
+                )
                 ui.icon(hui.icon.edge_lazy).classes("text-lg")
 
 

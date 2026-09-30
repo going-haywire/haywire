@@ -9,9 +9,10 @@ Returning the outlet id is required for CONTROL reroutes (the VM uses it to
 navigate the execution chain). For DATA reroutes the VM discards the return
 value, so returning it is harmless.
 
-CALLBACK edges are NOT supported: the flow assembly manager reads the
-subscription key from the reroute outlet at wiring time — before any worker
-has run to forward it — so the listener flow would never register.
+CALLBACK edges pass through too. A callback inlet is immediate, so the split
+action wires it to ``forward_immediate``, which copies each write to the outlet
+at once: the emitter downstream sees a subscription at wiring time, and its
+absence as soon as an edge upstream is removed.
 
 The port-less state is legal because the node is ``NodeType.REROUTE`` — the
 structural validator accepts a reroute with no ports (see
@@ -25,6 +26,8 @@ bag, never importing the skin class.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 from haywire.barn.builtin.types import CHOICES
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
@@ -32,10 +35,13 @@ from haywire.core.settings import setting
 from haywire.core.settings.descriptor import UiState
 from haywire.core.types.enums import PortType
 
+if TYPE_CHECKING:
+    from haywire.core.types.port import DataPort
+
 
 @node(
     label="Reroute",
-    description="Pass-through node for bending wires. Supports DATA and CONTROL edges.",
+    description="Pass-through node for bending wires. Supports DATA, CONTROL and CALLBACK edges.",
     node_type=NodeType.REROUTE,
     hidden=True,
     _is_reroute=True,
@@ -105,3 +111,16 @@ class RerouteNode(BaseNode):
             return None  # still in the port-less latent state
         outlet.set_value(self.cache.inlet.get_value())
         return outlet.id
+
+    def forward_immediate(self, port: DataPort, value: Any) -> None:
+        """Copy an immediate inlet's value to the outlet as soon as it is written.
+
+        Wired as the inlet's ``on_change`` by the edge-split action. A deferred
+        inlet also calls it, when the node resolves before executing; the worker
+        forwards that value, so this returns without writing.
+        """
+        if not port.is_immediate:
+            return
+        outlets = self.get_ports(is_port_type=PortType.OUTLET, has_pin=True)
+        if outlets:
+            outlets[0].set_value(value)

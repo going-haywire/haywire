@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from ...ui.utils import generate_edge_uuid
 from ..graph.types import ChangeReason
 from ..validation.interface import IStructuralValidator
-from ..types import FlowType
+from ..types import FlowType, Propagation
 from ..adapter.base import IAdapter, ReturnAdapter
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
@@ -122,7 +122,7 @@ class EdgeWrapper:
         sink_node_id: str,
         inlet_port_id: str,
         edge_type: FlowType,
-        lazy: bool = False,
+        propagation: Propagation = Propagation.EAGER,
     ):
         """
         Initialize EdgeWrapper (similar to NodeWrapper.__init__).
@@ -133,8 +133,13 @@ class EdgeWrapper:
             sink_node_id: Sink node ID
             inlet_port_id: Sink inlet ID
             edge_type: edge type
-            lazy: If True, edge uses lazy (pull-on-demand) propagation
+            propagation: The mode chosen for the edge, ``LAZY`` or ``EAGER``.
+
+        Raises:
+            ValueError: If *propagation* is ``IMMEDIATE``, which only a flow type assigns.
         """
+        if propagation is Propagation.IMMEDIATE:
+            raise ValueError("immediate propagation comes from the flow type; it cannot be chosen")
         self.source_node_id = source_node_id
         self.outlet_port_id = outlet_port_id
         self.sink_node_id = sink_node_id
@@ -184,7 +189,7 @@ class EdgeWrapper:
             inlet_port_id=self.inlet_port_id,
             edge_type=self._edge_type,
             chain_adapter_keys=([]),
-            is_lazy=lazy,
+            propagation=propagation,
         )
 
         self._source_type: Optional[type[IType]] = None
@@ -246,19 +251,41 @@ class EdgeWrapper:
         return self._edge_type
 
     @property
-    def is_lazy(self) -> bool:
-        """True if this edge uses lazy (pull-on-demand) propagation."""
-        return self._edge.is_lazy
+    def locked_propagation(self) -> Optional[Propagation]:
+        """The mode this edge is fixed to, or ``None`` when the user may choose one.
 
-    @is_lazy.setter
-    def is_lazy(self, value: bool) -> None:
-        if self._edge.is_lazy == value:
+        An immediate flow locks ``IMMEDIATE``; an edge out of an ``is_linked_lazy``
+        outlet (every promoted outlet) locks ``LAZY``. The second is known once the
+        edge has resolved its outlet port during ``build()``.
+        """
+        if self._edge_type is not None and self._edge_type.is_immediate:
+            return Propagation.IMMEDIATE
+        if self._outlet_port is not None and self._outlet_port.is_linked_lazy:
+            return Propagation.LAZY
+        return None
+
+    @property
+    def propagation(self) -> Propagation:
+        """The mode in effect: the locked mode when there is one, else the one chosen for the edge."""
+        return self.locked_propagation or self._edge.propagation
+
+    @propagation.setter
+    def propagation(self, value: Propagation) -> None:
+        """Choose ``LAZY`` or ``EAGER`` for this edge and rebuild its pipe.
+
+        Raises:
+            ValueError: If *value* is ``IMMEDIATE``, or the edge's mode is locked.
+        """
+        if value is Propagation.IMMEDIATE:
+            raise ValueError("immediate propagation comes from the flow type; it cannot be chosen")
+        locked = self.locked_propagation
+        if locked is not None:
+            raise ValueError(f"edge {self._edge_id} is locked to {locked.value} propagation")
+        if self._edge.propagation is value:
             return
-        self._edge.is_lazy = value
-        # A Pipe copies is_lazy at construction, so the live pipe keeps the old
-        # mode until the outlet rebuilds it. Without this the toggle takes
-        # effect only when some later structural change happens to touch the
-        # same outlet.
+        self._edge.propagation = value
+        # A Pipe copies its mode at construction, so the live pipe keeps the old
+        # one until the outlet rebuilds it.
         if self._outlet_port is not None:
             self._outlet_port._mark_as_structuraly_dirty()
             self._outlet_port._housekeeping()
@@ -365,6 +392,9 @@ class EdgeWrapper:
 
         self._update_link_state()
         self._try_reenable_on_ports()
+        # After re-enablement, so a displaced edge that took over leaves the value alone.
+        if self._inlet_port:
+            self._inlet_port._reset_if_unlinked()
 
         if self._inlet_port:
             self._inlet_port._housekeeping()
@@ -389,6 +419,9 @@ class EdgeWrapper:
 
         self._update_link_state()
         self._try_reenable_on_ports()
+        # After re-enablement, so a displaced edge that took over leaves the value alone.
+        if self._inlet_port:
+            self._inlet_port._reset_if_unlinked()
 
         if self._inlet_port:
             self._inlet_port._housekeeping()

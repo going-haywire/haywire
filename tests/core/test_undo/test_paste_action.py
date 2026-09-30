@@ -114,7 +114,7 @@ def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch)
                 "inlet_port_id": "i",
                 "edge_type": "data",
                 "chain_adapter_keys": [],
-                "is_lazy": False,
+                "propagation": "eager",
             },
         },
     )
@@ -305,7 +305,7 @@ def test_paste_execution_edge_connects_created_nodes():
                 "inlet_port_id": "i",
                 "edge_type": "data",
                 "chain_adapter_keys": [],
-                "is_lazy": False,
+                "propagation": "eager",
             },
         },
     )

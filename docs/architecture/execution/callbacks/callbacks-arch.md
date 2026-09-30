@@ -36,11 +36,11 @@ CALLBACK ports use the same `DataPort` infrastructure as DATA ports but carry th
 | Outlet | `False` by default; listener event nodes declare `True`, so one listener can subscribe to several emitters |
 | Inlet | `False` by default; emitters use a `PooledType[...]` inlet, which accepts many sources and keys each value by its edge id |
 
-A CALLBACK edge is created through the same `graph.create_edge_wrapper(...)` as DATA and EXEC edges, and its value travels over an ordinary pipe into the emitter's pool. Removing a direct edge removes that edge's entry from the pool (`PooledField.remove_source`). Assembly does not read callback edges to route anything — see §3.1.
+A CALLBACK edge is created through the same `graph.create_edge_wrapper(...)` as DATA and EXEC edges, and its value travels over an ordinary pipe into the emitter's pool. Removing a direct edge removes that edge's entry from the pool (`PooledField.remove_source`); longer paths are covered in §2.4. Assembly does not read callback edges to route anything — see §3.1.
 
 #### `on_change` timing on CALLBACK inlets
 
-`DataPort.set_value()` normally defers an edge-driven inlet's `on_change` callback to `resolve_dirty_data()`, which only runs when the owning node's `worker()` is next dispatched (see [edges-arch.md](../edges/edges-arch.md)). CALLBACK-flow inlets are the one exception: `set_value()` fires `on_change` **immediately**, even when the write came from an edge (`edge_id` set), instead of deferring it.
+`DataPort.set_value()` normally defers an edge-driven inlet's `on_change` callback to `resolve_dirty_data()`, which only runs when the owning node's `worker()` is next dispatched (see [edges-arch.md](../edges/edges-arch.md)). Immediate inlets — every CALLBACK flow (`FlowType.is_immediate`) — are the one exception: `set_value()` fires `on_change` **immediately**, even when the write came from an edge (`edge_id` set), instead of deferring it.
 
 This matters because emitter nodes with a pooled `PooledType[CALLBACK]` inlet are often `NodeType.CONTROL` nodes (e.g. `OakDCameraNode`) that only execute their `worker()` in response to a control pulse (`start`/`stop`), not on every dirty-port change. If a callback inlet's `on_change` were deferred like a normal DATA inlet, a subscriber changing its requirements (e.g. a `NumpyFrameEventNode` toggling `enable_depth`) would update the pooled dict but the emitter's `on_change` handler — and anything it derives, like a requirement-union setting — would silently stay stale until the node happened to execute again for an unrelated reason.
 
@@ -58,6 +58,14 @@ Both coexist. A graph can have some callbacks edge-wired and others matched by n
 - **Emitter** — a node that calls `context.emit_callback(...)`, usually a CONTROL node (core's `TickEmitNode`, haybale-visiongraph's `OakDCameraNode`). In edge-based mode it reads the names to emit from its pooled callback inlet; `TickEmitNode` reads them from a background thread, outside any execution frame.
 
 By design, every callback-listener Flow has its own EVENT-node entry — typically `CallbackEvent(event_name=...)`.
+
+### 2.4 Through reroutes
+
+A callback edge may pass through reroutes. Every port on a callback flow is **immediate**: an edge-driven write fires `on_change` at once, and a reroute's inlet forwards to its outlet from that handler (`RerouteNode.forward_immediate`), so the subscription reaches the emitter without any node executing. Callback edges always have `immediate` propagation, locked — see [edges-arch §3.3](../edges/edges-arch.md).
+
+Removing any edge on the path unsubscribes. An immediate inlet left without a linked edge is set to absence (`None`), which the reroute forwards; the emitter's pooled inlet then removes the entry keyed by its own edge. A displaced edge that takes over keeps the subscription in place. Fields of immediate types hold absence whatever their storage, dataclass types included (ADR 0033, amendment).
+
+Subgraph boundaries do not relay callbacks yet: collapsing a selection that a callback edge would cross is still refused.
 
 ## 3. Lifecycle
 

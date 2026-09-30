@@ -30,6 +30,8 @@ Test library for test support
 - **Test Custom Callback** — Test version of CustomCallback — listens for named callbacks
 - **Test Emit Callback** — Test version of EmitCallback — emits a callback to trigger event nodes
 - **Test Print** — Test version of Logger — logs a message and continues flow
+- **Test Record Emit** — Test control node emitting to every dataclass subscription in its pool
+- **Test Record Event** — Test event node whose subscription is a dataclass callback value
 
 ## Types
 - **Boolean** — True or False
@@ -37,6 +39,7 @@ Test library for test support
 - **Integer** — Whole number
 - **String** — Text data
 - **Temperature** — Temperature in Celsius
+- **Test Record Callback** — Test callback subscription carried as a dataclass
 
 ## Adapters
 - **BoolToIntAdapter** — Convert bool to integer

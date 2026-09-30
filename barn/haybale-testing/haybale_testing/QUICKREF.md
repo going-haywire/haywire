@@ -23,11 +23,14 @@
 - `haybale-testing:node:TestCustomCallbackNode` — Test Custom Callback — Test version of CustomCallback — listens for named callbacks  _tags: test, callback, listen, event, custom_
 - `haybale-testing:node:TestEmitCallbackNode` — Test Emit Callback — Test version of EmitCallback — emits a callback to trigger event nodes  _tags: test, callback, emit, trigger, event_
 - `haybale-testing:node:TestPrintNode` — Test Print — Test version of Logger — logs a message and continues flow  _tags: test, print, log, message, terminal_
+- `haybale-testing:node:TestRecordEmitNode` — Test Record Emit — Test control node emitting to every dataclass subscription in its pool  _tags: test, callback, emit, record_
+- `haybale-testing:node:TestRecordEventNode` — Test Record Event — Test event node whose subscription is a dataclass callback value  _tags: test, callback, event, record_
 
 ## type
 - `haybale-testing:type:TEST_BOOL` — Boolean — True or False
 - `haybale-testing:type:TEST_FLOAT` — Float — Decimal numberer
 - `haybale-testing:type:TEST_INT` — Integer — Whole number
+- `haybale-testing:type:TEST_RECORD_CALLBACK` — Test Record Callback — Test callback subscription carried as a dataclass
 - `haybale-testing:type:TEST_STRING` — String — Text data
 - `haybale-testing:type:TEST_TEMPERATURE` — Temperature — Temperature in Celsius
 

@@ -227,3 +227,9 @@ same stamped contract every other surface reads.
 - If a second wrapper type ever appears (`RESULT[T]`, `LAZY[T]`), it belongs in
   this family. If none does, `WrapperType` stays a one-member family — justified
   by the two mis-dispatches above, not by symmetry.
+
+---
+
+## Amendment — callback ports hold absence too (2026-09)
+
+Immediate types (`FlowType.is_immediate`, today every `CALLBACK` flow) hold absence in their own fields, so an unlinked callback inlet can go absent and carry that to the emitter. `IType.create_field` gives such a type the absence-capable form of its field class (`absence_capable_field`), which covers `BaseField` storage as well as `PrimitiveField` — visiongraph's `MULTIFRAME_CALLBACK` is a dataclass. An absent `BaseField` value saves as `{"__absent__": true}`, since a dataclass may have a field named `value`. The restriction above still holds for wrappers: `OPTIONAL[T]` wraps only `PrimitiveField`-stored elements. A pooled field accepts absence when its element is immediate; absence from a source removes that source's entry.

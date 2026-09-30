@@ -294,3 +294,9 @@ place in the framework where a vanished port takes its edges with it.
   `ADD` pin". `is_user_removable()` is unchanged, and is still the single gate.
 - A card's pin order can drift from its Subgraph's. That is intended, and it is
   why reconcile stamps `order` only on a pin it adds.
+
+---
+
+## Amendment — reroutes carry callbacks (2026-09)
+
+The reroute half of "a callback edge runs straight from its event node" is lifted. On a callback edge a reroute's inlet is immediate: the reroute forwards each write at once (`RerouteNode.forward_immediate`), and when its upstream edge is removed the inlet goes absent, so the emitter's pool drops its entry through its own edge instead of keeping a stale one. The structural rule that a callback edge's source is an event node is gone. The Subgraph-boundary half of this ADR's argument still holds: collapse keeps refusing callback crossings until boundary nodes get the same relay.

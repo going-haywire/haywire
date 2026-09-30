@@ -37,7 +37,8 @@ class RemappedEdge:
     inlet_port_id: str
     edge_type: str
     """The ``FlowType`` value as serialized, e.g. ``"data"``."""
-    is_lazy: bool = False
+    propagation: str = "eager"
+    """The chosen ``Propagation`` value as serialized, e.g. ``"eager"``."""
     chain_adapter_keys: list[str] = field(default_factory=list)
 
 
@@ -110,7 +111,7 @@ def remap_node_ids(
                 sink_node_id=sink,
                 inlet_port_id=inlet,
                 edge_type=edge["edge_type"],
-                is_lazy=edge.get("is_lazy", False),
+                propagation=edge.get("propagation", "eager"),
                 chain_adapter_keys=list(edge.get("chain_adapter_keys") or []),
             )
         )

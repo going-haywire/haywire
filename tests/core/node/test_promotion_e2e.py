@@ -52,7 +52,7 @@ def test_full_promote_drive_demote_cycle(graph_with_library_system, library_syst
 def test_promoted_outlet_drives_consumer_lazily(graph_with_library_system, library_system):
     """A promoted OUTLET wired to a consumer inlet: a setting write (out of frame)
     fires on_changed → the outlet propagates lazily → the consumer pulls the fresh
-    value on its next execution. The linked edge is forced is_lazy."""
+    value on its next execution. The linked edge is locked lazy."""
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
 
@@ -70,8 +70,10 @@ def test_promoted_outlet_drives_consumer_lazily(graph_with_library_system, libra
     # 2. wire the promoted outlet -> MathOP.value_a (FLOAT inlet)
     edge = graph.create_edge_wrapper(settings_wrapper.node_id, pid, math_wrapper.node_id, "value_a")
     assert edge.state.is_valid()
-    # The linked edge was forced lazy by the is_linked_lazy outlet.
-    assert edge.is_lazy is True
+    # The is_linked_lazy outlet locks the linked edge to lazy.
+    from haywire.core.types import Propagation
+
+    assert edge.locked_propagation is Propagation.LAZY
 
     consumer_inlet = math_wrapper.node.ports["value_a"]
 

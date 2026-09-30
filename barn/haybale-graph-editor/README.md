@@ -73,8 +73,8 @@ Visual graph editor library — host-agnostic
 - **Node Settings** — 
 - **Paste** — 
 - **Ports** — 
-- **Propagation** — 
 - **Propagation** — Lazy propagation pulls data on demand instead of pushing it to the target node.
+- **Propagation** — 
 - **Rebuild** — 
 - **Reconnect Edge** — 
 - **Redraw Selection** — 

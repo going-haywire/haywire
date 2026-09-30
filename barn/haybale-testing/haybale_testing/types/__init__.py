@@ -5,6 +5,7 @@ from .test_types import TEST_FLOATField
 from .test_types import TEST_STRING
 from .test_types import TEST_BOOL
 from .test_types import TEST_TEMPERATURE
+from .test_types import TEST_RECORD_CALLBACK
 
 
 __all__ = [
@@ -13,6 +14,7 @@ __all__ = [
     "TEST_FLOATField",
     "TEST_INT",
     "TEST_INTField",
+    "TEST_RECORD_CALLBACK",
     "TEST_STRING",
     "TEST_TEMPERATURE",
 ]

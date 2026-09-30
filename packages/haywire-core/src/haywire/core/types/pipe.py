@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from haywire.core.adapter.base import IAdapter
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.types.enums import Propagation
 
 if TYPE_CHECKING:
     from . import DataPort
@@ -92,7 +93,7 @@ class Pipes:
             outlet_port=self._outlet_port,
             sink=edge_wrapper._inlet_port,
             chain=edge_wrapper.first_adapter,
-            is_lazy=edge_wrapper.is_lazy,
+            is_lazy=edge_wrapper.propagation is Propagation.LAZY,
             edge_id=uuid,
         )
 

@@ -22,7 +22,7 @@ framework knows nothing about; its id may not resolve, and then nothing opens.
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
 
 from haywire.core.session.context import SessionContext
 from haywire.core.session.session import Session
@@ -42,6 +42,9 @@ from .visual_layer import VisualLayerHandlers
 from ....state.edit_state import EditState
 from ..event_handlers import handles_event
 
+if TYPE_CHECKING:
+    from haywire.core.edge.edge_wrapper import EdgeWrapper
+    from haywire.core.types.enums import Propagation
 
 logger = logging.getLogger(__name__)
 
@@ -474,39 +477,36 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         x, y = self._open_ctx.canvas_pos
         self._emit(SplitEdgeWithRerouteEvent(edge_id=edge_id, position={"x": x, "y": y}))
 
-    def set_edge_lazy(self, edge_id: str, lazy: bool) -> None:
-        """Set an edge's propagation mode (eager/lazy) and redraw it.
+    def edge_propagation(self, edge_id: str) -> "Propagation | None":
+        """Return the propagation mode in effect on edge ``edge_id``, or ``None`` if no such edge exists."""
+        wrapper = self._active_edge_wrapper(edge_id)
+        return None if wrapper is None else wrapper.propagation
 
-        A plain property write on the wrapper, not an event — mirrors
-        ``set_selection_collapsed``: the row rewrites itself from the return
-        value of ``toggle_edge_lazy`` rather than an event round-trip.
-        """
-        graph = self._context.data[EditState].active_graph
-        if graph is None:
-            return
-        wrapper = graph.get_edge_wrapper(edge_id)
-        if wrapper is None:
-            return
-        wrapper.is_lazy = lazy
-        wrapper.redraw()
+    def edge_propagation_locked(self, edge_id: str) -> bool:
+        """True when edge ``edge_id`` exists and its propagation mode is locked."""
+        wrapper = self._active_edge_wrapper(edge_id)
+        return wrapper is not None and wrapper.locked_propagation is not None
 
-    def edge_is_lazy(self, edge_id: str) -> bool:
-        graph = self._context.data[EditState].active_graph
-        if graph is None:
-            return False
-        wrapper = graph.get_edge_wrapper(edge_id)
-        return wrapper is not None and wrapper.is_lazy
-
-    def toggle_edge_lazy(self, edge_id: str) -> bool:
-        """Flip an edge's propagation mode, and report the new state.
+    def toggle_edge_propagation(self, edge_id: str) -> "Propagation | None":
+        """Switch an edge between lazy and eager, redraw it, and report the new mode.
 
         Decided here, on each click, for the same reason as
         ``toggle_selection_collapsed``: the menu stays open after the row's
         click, so a value captured at draw time would only ever apply once.
+        Returns a locked edge's mode unchanged, or ``None`` when there is no
+        such edge.
         """
-        lazy = not self.edge_is_lazy(edge_id)
-        self.set_edge_lazy(edge_id, lazy)
-        return lazy
+        wrapper = self._active_edge_wrapper(edge_id)
+        if wrapper is None:
+            return None
+        if wrapper.locked_propagation is None:
+            wrapper.propagation = wrapper.propagation.toggled()
+            wrapper.redraw()
+        return wrapper.propagation
+
+    def _active_edge_wrapper(self, edge_id: str) -> "EdgeWrapper | None":
+        graph = self._context.data[EditState].active_graph
+        return None if graph is None else graph.get_edge_wrapper(edge_id)
 
     # SelectionContextActions
 

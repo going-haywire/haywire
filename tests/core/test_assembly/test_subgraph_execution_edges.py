@@ -22,6 +22,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.core.types import Propagation
 
 from tests.conftest import make_node
 
@@ -111,7 +112,7 @@ def lazy_into_the_card(graph_with_library_system: BaseGraph):
     graph.create_edge_wrapper(begin.node_id, "exec", card.node_id, "in_exec")
     lazy_edge = graph.create_edge_wrapper(outer_add.node_id, "result", card.node_id, "in_value")
     assert lazy_edge is not None
-    lazy_edge.is_lazy = True
+    lazy_edge.propagation = Propagation.LAZY
 
     graph.force_validation()
     definition.force_validation()
@@ -128,7 +129,7 @@ class TestALazyEdgeFeedingTheCard:
             if e.source_node_id == outer_add.node_id and e.sink_node_id == card.node_id
         ]
         assert len(edges) == 1
-        assert edges[0].is_lazy is True
+        assert edges[0].propagation is Propagation.LAZY
 
     def test_the_interior_sees_the_value_pulled_across(self, lazy_into_the_card):
         """1 + 2 crosses the lazy edge, then + 100 inside."""
@@ -179,7 +180,7 @@ def lazy_out_of_the_card(graph_with_library_system: BaseGraph):
     graph.create_edge_wrapper(begin.node_id, "exec", card.node_id, "in_exec")
     out_edge = graph.create_edge_wrapper(card.node_id, "out_result", consumer.node_id, "value_a")
     assert out_edge is not None
-    out_edge.is_lazy = True
+    out_edge.propagation = Propagation.LAZY
     card.node.ports["in_value"].set_value(6.0)
 
     graph.force_validation()

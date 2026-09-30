@@ -20,6 +20,42 @@ class FlowType(Enum):
     CALLBACK = "callback"
     NONE = "none"
 
+    @property
+    def is_immediate(self) -> bool:
+        """True when a write through this flow takes effect on write, not when the sink executes.
+
+        Only ``CALLBACK`` is immediate. An immediate inlet fires ``on_change`` for
+        edge-driven writes too, a reroute forwards it at once, and it goes absent
+        when its last edge is removed.
+        """
+        return self is FlowType.CALLBACK
+
+
+class Propagation(Enum):
+    """When a value written to an outlet takes effect at the inlet across an edge.
+
+    - ``LAZY``: the inlet pulls the outlet's current value when its node next executes.
+    - ``EAGER``: pushed on write; takes effect when the inlet's node next executes.
+    - ``IMMEDIATE``: pushed on write and takes effect on write. Assigned from an
+      immediate flow (see ``FlowType.is_immediate``), never chosen by a user.
+
+    Wire values are the member strings, as saved in a graph's edge block.
+    """
+
+    LAZY = "lazy"
+    EAGER = "eager"
+    IMMEDIATE = "immediate"
+
+    def toggled(self) -> "Propagation":
+        """Return the other user-selectable mode: ``LAZY`` for ``EAGER``, and back.
+
+        Raises:
+            ValueError: For ``IMMEDIATE``, which has no user-selectable counterpart.
+        """
+        if self is Propagation.IMMEDIATE:
+            raise ValueError("immediate propagation cannot be toggled")
+        return Propagation.LAZY if self is Propagation.EAGER else Propagation.EAGER
+
 
 class PortType(Enum):
     """

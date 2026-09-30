@@ -2,7 +2,9 @@
 Temperature type - derived from FLOAT for testing type hierarchy support.
 """
 
-from haywire.core.types import type, FlowType
+from dataclasses import dataclass
+
+from haywire.core.types import type, BaseType, FlowType
 from haywire.core.types import PrimitiveType, PrimitiveField
 
 # ============================================================================
@@ -134,3 +136,23 @@ class TEST_TEMPERATURE(TEST_FLOAT):
 
 # Reuse TEST_FLOATField to guarantee float storage
 TEST_TEMPERATURE.field_class = TEST_FLOATField
+
+
+# ============================================================================
+# Callback Types
+# ============================================================================
+
+
+@type(
+    flow_type=FlowType.CALLBACK,
+    label="Test Record Callback",
+    description="Test callback subscription carried as a dataclass",
+    default={"name": "", "weight": 0},
+    color="#ff3c00",
+)
+@dataclass
+class TEST_RECORD_CALLBACK(BaseType):
+    """Test-only callback type whose subscription is a dataclass: a name plus a weight."""
+
+    name: str = ""
+    weight: int = 0

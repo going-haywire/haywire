@@ -685,3 +685,71 @@ class TestGraphWideCardReset:
 
         provider.clear_node_card_overrides()  # must not raise
         assert good.reset.call_count == 1
+
+
+class _FakeEdge:
+    """Just enough of an EdgeWrapper for the propagation verbs."""
+
+    def __init__(self, chosen, locked=None):
+        self.chosen = chosen
+        self.locked_propagation = locked
+        self.redraws = 0
+
+    @property
+    def propagation(self):
+        return self.locked_propagation or self.chosen
+
+    @propagation.setter
+    def propagation(self, value):
+        self.chosen = value
+
+    def redraw(self):
+        self.redraws += 1
+
+
+def _provider_with_edge(edge: _FakeEdge) -> SessionContextMenuProvider:
+    provider = _make_provider()
+    stub = cast(Any, provider)._test_edit_stub
+    stub.active_graph = SimpleNamespace(get_edge_wrapper=lambda edge_id: edge if edge_id == "e1" else None)
+    return provider
+
+
+def test_toggle_edge_propagation_switches_eager_to_lazy():
+    from haywire.core.types import Propagation
+
+    edge = _FakeEdge(Propagation.EAGER)
+    provider = _provider_with_edge(edge)
+
+    assert provider.toggle_edge_propagation("e1") is Propagation.LAZY
+    assert edge.chosen is Propagation.LAZY
+    assert edge.redraws == 1
+
+
+def test_toggle_edge_propagation_leaves_a_locked_edge_alone():
+    from haywire.core.types import Propagation
+
+    edge = _FakeEdge(Propagation.EAGER, locked=Propagation.IMMEDIATE)
+    provider = _provider_with_edge(edge)
+
+    assert provider.toggle_edge_propagation("e1") is Propagation.IMMEDIATE
+    assert edge.chosen is Propagation.EAGER
+    assert edge.redraws == 0
+
+
+def test_edge_propagation_reports_the_mode_and_the_lock():
+    from haywire.core.types import Propagation
+
+    provider = _provider_with_edge(_FakeEdge(Propagation.EAGER, locked=Propagation.LAZY))
+
+    assert provider.edge_propagation("e1") is Propagation.LAZY
+    assert provider.edge_propagation_locked("e1") is True
+
+
+def test_an_unknown_edge_has_no_propagation():
+    from haywire.core.types import Propagation
+
+    provider = _provider_with_edge(_FakeEdge(Propagation.EAGER))
+
+    assert provider.edge_propagation("nope") is None
+    assert provider.edge_propagation_locked("nope") is False
+    assert provider.toggle_edge_propagation("nope") is None

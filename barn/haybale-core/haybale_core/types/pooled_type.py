@@ -188,7 +188,14 @@ class PooledField(DataField):
             # Update from node1:
             field.set_value(FLOAT(99.0), source_id="node1")
             # Stored: {"node1": 99.0, "node2": 15.0}
+
+        For an immediate element (see ``accepts_absence``), ``None`` removes the source's entry.
         """
+        if value is None and self.accepts_absence():
+            # Absence from a source ends that source's entry; with no source there is nothing to end.
+            if source_id is not None:
+                self.remove_source(source_id)
+            return
         if source_id is None:
             raise ValueError("PooledField requires source_id")
 
@@ -212,6 +219,11 @@ class PooledField(DataField):
         # CompoundType, so here it is always an IType subclass — narrow to match
         # the contract every caller relies on (.class_identity / issubclass).
         return cast(Type[IType], element_type)
+
+    def accepts_absence(self) -> bool:
+        """True when the pooled element is an immediate type; absence from a source then ends its entry."""
+        identity = getattr(self.get_stored_type(), "class_identity", None)
+        return identity is not None and FlowType(identity.flow_type).is_immediate
 
     def reset(self) -> None:
         """Clear all sources"""

@@ -9,7 +9,7 @@ management is handled by EdgeWrapper.
 from dataclasses import dataclass, field
 from typing import Any, List
 
-from ..types import FlowType
+from ..types import FlowType, Propagation
 
 
 @dataclass
@@ -35,9 +35,8 @@ class Edge:
     chain_adapter_keys: List[str] = field(default_factory=list)
     """List of adapter registry keys in execution order."""
 
-    # Lazy propagation
-    is_lazy: bool = False
-    """If True, data is pulled on-demand instead of pushed eagerly."""
+    propagation: Propagation = Propagation.EAGER
+    """The mode chosen for this edge. A locked mode overrides it; see ``EdgeWrapper.propagation``."""
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize edge for graph save"""
@@ -48,5 +47,5 @@ class Edge:
             "inlet_port_id": self.inlet_port_id,
             "edge_type": self.edge_type.value,
             "chain_adapter_keys": self.chain_adapter_keys,
-            "is_lazy": self.is_lazy,
+            "propagation": self.propagation.value,
         }

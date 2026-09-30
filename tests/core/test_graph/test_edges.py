@@ -14,6 +14,7 @@ import pytest
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.core.types import Propagation
 
 
 def _make_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapper:
@@ -43,7 +44,13 @@ def _link(
     A None here means the graph refused to build an edge at all — distinct from
     building an *invalid* edge, which the tests assert on via ``edge.state``.
     """
-    edge = graph.create_edge_wrapper(source.node_id, outlet, sink.node_id, inlet, lazy=lazy)
+    edge = graph.create_edge_wrapper(
+        source.node_id,
+        outlet,
+        sink.node_id,
+        inlet,
+        propagation=Propagation.LAZY if lazy else Propagation.EAGER,
+    )
     assert edge is not None, f"edge creation failed: {outlet} -> {inlet}"
     return edge
 
@@ -1113,7 +1120,7 @@ class TestEdges:
     # ==================================================================
 
     def test_lazy_edge_creation(self, graph_with_library_system: BaseGraph, library_system):
-        """create_edge_wrapper(..., lazy=True) should set is_lazy on the edge."""
+        """create_edge_wrapper(..., propagation=LAZY) should set it on the edge."""
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
@@ -1121,11 +1128,11 @@ class TestEdges:
 
         assert edge is not None
         assert edge.state.is_valid()
-        assert edge.is_lazy is True
-        assert edge.edge.is_lazy is True
+        assert edge.propagation is Propagation.LAZY
+        assert edge.edge.propagation is Propagation.LAZY
 
     def test_lazy_edge_serialization(self, graph_with_library_system: BaseGraph, library_system):
-        """is_lazy should survive to_dict() round-trip."""
+        """The chosen propagation should survive to_dict()."""
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
@@ -1133,12 +1140,12 @@ class TestEdges:
 
         # Serialize and check
         edge_dict = edge.edge.to_dict()
-        assert edge_dict["is_lazy"] is True
+        assert edge_dict["propagation"] == "lazy"
 
-        # Eager edge should serialize as False
+        # Eager edge should serialize as "eager"
         node_c, _ = self._create_two_nodes(graph)
         eager_edge = _link(graph, node_a, "int_outlet", node_c, "int_inlet", lazy=False)
-        assert eager_edge.edge.to_dict()["is_lazy"] is False
+        assert eager_edge.edge.to_dict()["propagation"] == "eager"
 
     def test_eager_edge_defers_on_change(self, graph_with_library_system: BaseGraph, library_system):
         """

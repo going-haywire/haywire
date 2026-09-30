@@ -46,9 +46,9 @@ class DataPort(DataTypeIdentity):
     attribute read instead of an ``is_inlet()`` method call. Re-type a port
     through ``adopt_port_type()``, the one path that refreshes this."""
 
-    _is_callback: bool = field(init=False, repr=False, metadata={"serialize": False})
-    """Cache ``flow_type: FlowType = FlowType.CALLBACK (flow_type is immutable); 
-    lets the set_value hot path branch on an attribute read."""
+    _is_immediate: bool = field(init=False, repr=False, metadata={"serialize": False})
+    """Cached ``flow_type.is_immediate``, so the set_value hot path branches on an
+    attribute read. Refreshed by ``_cache_immediacy()`` wherever ``flow_type`` is rewritten."""
 
     # Type tracking
     type_cls: type[IType] | None = field(default=None, metadata={"serialize": False})
@@ -152,7 +152,7 @@ class DataPort(DataTypeIdentity):
     """Where this port came from, and so whether the user may remove it."""
 
     is_linked_lazy: bool = False
-    """Force any linked edge to lazy (pull-on-demand) propagation"""
+    """Lock every linked edge to lazy propagation; see ``EdgeWrapper.locked_propagation``."""
 
     _is_dirty_structural: bool = False
     """Internal flag to track if port link has structurally changed"""
@@ -260,11 +260,8 @@ class DataPort(DataTypeIdentity):
         # Cache the immutable inlet/outlet role for the set_value hot path.
         self._is_inlet = self.port_type == PortType.INLET
 
-        # Cache the immutable flow type for the set_value hot path.
-        # It is tempting to give CONTROL Flow types this feature, too, but
-        # due to the way Reroute Nodes work, this would actually break.
-        # (CALLBACK edges do not allow Reroutes)
-        self._is_callback = self.flow_type == FlowType.CALLBACK
+        # CONTROL stays deferred: a control reroute forwards in its worker, on the VM's schedule.
+        self._cache_immediacy()
 
         # Hardcoded connection rules based on flow type and direction
         # They cannot be overridden by the user since they are fundamental to how the ports work
@@ -350,7 +347,7 @@ class DataPort(DataTypeIdentity):
         For inlets:
         - fire immediately with on_change when
             - Widget/programmatic (no edge_id) or
-            - CALLBACK flow_type when edge-driven
+            - an immediate flow (``is_immediate``) when edge-driven
         - Otherwise defer to resolve_dirty_data()
 
         For outlets:
@@ -369,8 +366,8 @@ class DataPort(DataTypeIdentity):
             # Inlet values come from an edge (edge_id set) or a widget/programmatic
             # set — never from the owning node, so clear the node-set flag.
             self._is_set_by_node = False
-            if self.on_change is not None and (edge_id is None or self._is_callback):
-                # Widget/programmatic/callback change → fire on_change immediately
+            if self.on_change is not None and (edge_id is None or self._is_immediate):
+                # Widget/programmatic/immediate change → fire on_change immediately
                 self._trigger_callback(self.on_change, new_value)
             else:
                 # Edge-driven OR no callback → defer to resolve_dirty_data()
@@ -424,7 +421,7 @@ class DataPort(DataTypeIdentity):
     def _on_shared_field_changed(self, _value: Any) -> None:
         """Propagate this outlet's pipes when its shared cell changes.
 
-        Lazy edges (forced by ``is_linked_lazy``) just queue the sink pipe + mark
+        Lazy edges (locked by ``is_linked_lazy``) just queue the sink pipe + mark
         it dirty; the consumer pulls the fresh value on its next execution frame.
         No-op when the outlet has no pipes (unlinked)."""
         if self._pipes is not None:
@@ -548,7 +545,7 @@ class DataPort(DataTypeIdentity):
 
         # set_value reads this cache rather than flow_type, which the copy above
         # just rewrote — a compound type derives it from its element type.
-        self._is_callback = self.flow_type == FlowType.CALLBACK
+        self._cache_immediacy()
 
     def adopt_state_from(self, existing: "DataPort") -> None:
         """Transplant edge state and display order from a port being replaced.
@@ -701,6 +698,19 @@ class DataPort(DataTypeIdentity):
 
         return None
 
+    def _reset_if_unlinked(self) -> None:
+        """Set an immediate inlet that no edge feeds any more to absence.
+
+        Fires ``on_change`` like any widget write, so a reroute passes the
+        absence on and the emitter at the end of the chain drops the entry.
+        A pooled inlet has nothing left to clear: unlinking already removed
+        each source's entry.
+        """
+        if not (self._is_inlet and self._is_immediate) or self._linked_edges:
+            return
+        if self._data.has_data():
+            self.set_value(None)
+
     def _detach_all_edges(self) -> list[EdgeWrapper]:
         """
         Remove all edges from both tiers. Used during port destruction (push/pop).
@@ -753,13 +763,9 @@ class DataPort(DataTypeIdentity):
                 if self._pipes is None:
                     self._pipes = Pipes(outlet_port=self)
                 self._pipes.clear()
+                # An is_linked_lazy outlet's edges report LAZY themselves; see
+                # EdgeWrapper.locked_propagation.
                 for wrapper in self.get_valid_edges():
-                    # A promoted outlet writes its cell OUTSIDE the scheduler frame
-                    # (widget / registry / edge) — an eager pull then is unsafe.
-                    # Forcing the edge lazy defers each consumer's pull to its next
-                    # execution; add_pipe reads is_lazy below.
-                    if self.is_linked_lazy:
-                        wrapper.is_lazy = True
                     self._pipes.add_pipe(wrapper)
             else:
                 if self._pipes:
@@ -779,6 +785,15 @@ class DataPort(DataTypeIdentity):
         renders one.
         """
         return not self.is_config() and not self.is_fold
+
+    @property
+    def is_immediate(self) -> bool:
+        """True when a write to this port takes effect on write. See ``FlowType.is_immediate``."""
+        return self._is_immediate
+
+    def _cache_immediacy(self) -> None:
+        """Refresh the ``_is_immediate`` cache from ``flow_type``."""
+        self._is_immediate = FlowType(self.flow_type).is_immediate
 
     def is_callback_pin(self) -> bool:
         """Check if this is a callback pin"""
@@ -866,6 +881,8 @@ class DataPort(DataTypeIdentity):
 
         # Let type configure port (for compound types, etc.)
         type_cls._configure_port(port)
+        # _configure_port may rewrite flow_type: a pooled port takes its element's.
+        port._cache_immediacy()
 
         if "field_data" in spec:
             port._data.from_dict(spec["field_data"])

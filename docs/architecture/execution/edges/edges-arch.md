@@ -14,7 +14,7 @@ see-also:
 
 ## 1. Mental model
 
-An **edge** connects an outlet port on a source node to an inlet port on a sink node. The data structure is `Edge` (a dataclass — connection identifiers, type, adapter chain keys, lazy flag). The lifecycle is owned by `EdgeWrapper` — a wrapper that runs the 4-stage build pipeline (formal validation → structural validation → adapter chain → test), manages the `link → unlink → detach` lifecycle, and handles displacement and re-enablement when ports are over-subscribed.
+An **edge** connects an outlet port on a source node to an inlet port on a sink node. The data structure is `Edge` (a dataclass — connection identifiers, type, adapter chain keys, propagation mode). The lifecycle is owned by `EdgeWrapper` — a wrapper that runs the 4-stage build pipeline (formal validation → structural validation → adapter chain → test), manages the `link → unlink → detach` lifecycle, and handles displacement and re-enablement when ports are over-subscribed.
 
 Two-tier port storage is the core mental model. Each port keeps two dictionaries:
 
@@ -30,7 +30,7 @@ When a new edge displaces an existing one on a single-connection inlet, the disp
 ```python
 graph.create_edge_wrapper(source_node_id, outlet_port_id,
                           sink_node_id, inlet_port_id,
-                          lazy=False)
+                          propagation=Propagation.EAGER)
 ```
 
 Internal sequence:
@@ -45,7 +45,7 @@ Internal sequence:
 ```text
 build()
   ├─ _formal_validation()    do nodes/ports exist? same direction? same FlowType?
-  ├─ _structural_validation() domain rules (e.g. callback source must be event node)
+  ├─ _structural_validation() domain rules (none per edge today)
   ├─ _build_adapter_chain()   find/create adapter chain (DATA edges only)
   └─ _test()                  run a sample value through the adapter chain
 ```
@@ -121,18 +121,21 @@ When a new edge displaces an existing one on a single-connection port:
 
 When an active edge is removed (`detach`) or loses functionality (`unlink`), the port scans `_all_edges` FIFO for a functional candidate to re-enable. If found, `candidate.link() + candidate.redraw()` is called.
 
-### 3.3 Lazy propagation and the unified dirty model
+**Unlink reset.** When an immediate inlet loses its active edge and no displaced edge takes over, the inlet is set to absence (`None`) and fires `on_change`, so a reroute passes the absence on (see [callbacks-arch §2.4](../callbacks/callbacks-arch.md)). A pooled inlet needs nothing extra: `_clear_link` already removed that source's entry.
 
-Edges support two propagation modes via `Edge.is_lazy` (per-edge, not per-port):
+### 3.3 Propagation and the unified dirty model
 
-- **Eager** (`is_lazy=False`, default): outlet value is transformed through the adapter chain and pushed to the inlet immediately. The inlet is marked dirty; `on_change` is deferred to execution time.
-- **Lazy** (`is_lazy=True`): no transform or push at propagation time. The inlet is marked dirty with a reference to the pipe. At execution time, `resolve_dirty_data()` pulls the outlet's *current* value (always-latest semantics) through the adapter chain.
+Each edge has a **propagation** mode (`Propagation`, per edge, not per port):
 
-Different edges to the same inlet can have different modes. The `lazy` parameter is passed to `create_edge_wrapper()` and stored on the `Edge` dataclass. It serialises via `to_dict()` and deserialises with `False` default for backward compatibility.
+- **Eager** (default): outlet value is transformed through the adapter chain and pushed to the inlet immediately. The inlet is marked dirty; `on_change` is deferred to execution time.
+- **Lazy**: no transform or push at propagation time. The inlet is marked dirty with a reference to the pipe. At execution time, `resolve_dirty_data()` pulls the outlet's *current* value (always-latest semantics) through the adapter chain.
+- **Immediate**: pushed like eager, and the inlet acts on it at once (see the exception below).
+
+Users choose lazy or eager per edge, and different edges to the same inlet can differ. `create_edge_wrapper(propagation=...)` stores the choice on the `Edge`, and `to_dict()` saves it under `propagation`. Two modes are locked and never read from a saved graph: `immediate` on an immediate flow, and `lazy` on an edge out of an `is_linked_lazy` outlet (every promoted outlet). `EdgeWrapper.locked_propagation` names the lock; `EdgeWrapper.propagation` is the mode in effect. See [ADR 0039](../../../adr/0039-propagation-mode-replaces-is-lazy.md).
 
 **Unified dirty model.** Both eager and lazy edges use the same deferred callback model. `on_change` callbacks for edge-driven inlet changes are *never* fired at push time — they are always deferred to `resolve_dirty_data()` at execution time. This debounces mixed pooled+lazy scenarios.
 
-**Exception: CALLBACK-flow inlets fire immediately.** A `FlowType.CALLBACK` inlet is exempt from the deferral above — `set_value()` fires its `on_change` synchronously at push time even when `edge_id` is set, same as the widget/programmatic path.
+**Exception: immediate inlets fire at once.** An inlet on an immediate flow (`FlowType.is_immediate`, i.e. `CALLBACK`) is exempt from the deferral above — `set_value()` fires its `on_change` synchronously at push time even when `edge_id` is set, same as the widget/programmatic path.
 
 ```text
 EAGER EDGE:
@@ -165,7 +168,7 @@ The `set_value()` method on DataPort distinguishes between edge-driven, widget/p
 | ------------------------------------- | --------- | ----------- | ----------------------------------------------------------------------------------------------- |
 | (any)               | no    | absent      | `on_change` does not fire      |
 | Widget / programmatic input           | no   | exists      | `on_change` fires **immediately**         |
-| CALLBACK flow_type | yes       | exists       | `on_change` fires **immediately**                                                 |
+| Immediate flow (CALLBACK) | yes       | exists       | `on_change` fires **immediately**                                                 |
 | DATA, CONTROL flow_type    | yes       | exists       | `on_change` fires just before the worker |
 | Outlet (any)                          | (any)     | exists      | `on_change` fires **immediately**; pipes propagate downstream                                       |
 
@@ -179,13 +182,13 @@ A linked outlet owns one `Pipes`, which holds a `Pipe` per valid edge, keyed by 
 | --------------------- | -------------------------------------------------------------------------------- |
 | `sink`                | Target inlet `DataPort`                                                          |
 | `chain`               | Head of the edge's adapter chain                                                 |
-| `is_lazy`             | Propagation mode, copied from the edge when the pipe is built                    |
+| `is_lazy`             | Whether the edge's propagation is lazy, copied from the edge when the pipe is built |
 | `_outlet_port`        | Source `DataPort`, read on every pull (always-latest)                            |
 | `_sink_holds_absence` | Whether the sink accepts absence, read once from `sink.data.accepts_absence()`   |
 
 `Pipe.pull()` reads the outlet's current value, transforms it through the chain and stores it with `sink.set_value(converted, edge_id=...)`. When the outlet holds `None`, the pull forwards absence only to a sink that accepts it; any other sink keeps its last value.
 
-Pipes are rebuilt whenever the outlet is structurally dirty (`_refresh_pipes()` during housekeeping). That is why setting `is_lazy` on a live edge marks its outlet dirty: the existing `Pipe` keeps the mode it was built with.
+Pipes are rebuilt whenever the outlet is structurally dirty (`_refresh_pipes()` during housekeeping). That is why setting `EdgeWrapper.propagation` on a live edge marks its outlet dirty: the existing `Pipe` keeps the mode it was built with.
 
 ### 3.6 ValidationManager — debounced batch processing
 
@@ -287,7 +290,7 @@ Each edge gets its own entry in the pooled `dict[source_id, value]`.
 | `DataPort._all_edges`                      | `dict[edge_id, EdgeWrapper]` — all tracked edges including displaced/non-functional |
 | `DataPort._pending_lazy_pipes`             | `set[Pipe]` — lazy pipes to pull at execution time                                  |
 | `DataPort.allow_multiple_links`            | Connection limit flag                                                               |
-| `Edge.is_lazy`                             | Per-edge lazy propagation flag (default `False`)                                    |
+| `Edge.propagation`                         | Chosen propagation mode (default `EAGER`); `EdgeWrapper.propagation` applies the locks |
 | `Edge.chain_adapter_keys`                  | List of adapter registry keys (empty = ReturnAdapter)                               |
 | `EdgeWrapper._first_adapter`               | Head of the executable adapter chain                                                |
 | `EdgeWrapper._outlet_port` / `_inlet_port` | Resolved DataPort references (set during formal validation)                         |
@@ -297,7 +300,7 @@ Each edge gets its own entry in the pooled `dict[source_id, value]`.
 ### Key files
 
 - `src/haywire/core/edge/edge_wrapper.py` — `EdgeWrapper` + `EdgeWrapperState` (owns link/unlink/detach lifecycle)
-- `src/haywire/core/edge/edge.py` — `Edge` data object (includes `is_lazy` flag)
+- `src/haywire/core/edge/edge.py` — `Edge` data object (includes the chosen propagation)
 - `src/haywire/core/types/port.py` — `DataPort` (two-tier storage, displacement, re-enablement, deferred on_change, lazy resolution)
 - `src/haywire/core/types/pipe.py` — `Pipes` (eager push via `propagate()`, lazy pull via `pull()`, always-latest semantics)
 - `src/haywire/core/graph/base.py` — `BaseGraph` (create/add/remove edge, delegates to edge methods)

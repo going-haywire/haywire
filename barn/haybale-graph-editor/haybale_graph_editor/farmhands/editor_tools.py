@@ -488,7 +488,8 @@ def _edge_row(edge, detail: bool = False) -> dict:
             {
                 "is_functional": edge.is_functional(),
                 "is_linked": edge.state.is_linked,
-                "is_lazy": edge.is_lazy,
+                "propagation": edge.propagation.value,
+                "propagation_locked": edge.locked_propagation is not None,
                 "adapter_chain": adapters,
                 "has_adapters": bool(adapters),
                 "error": _edge_error(edge),
@@ -527,8 +528,8 @@ def _metadata_row(graph) -> dict:
         "Nodes (with ports) and edges of an open graph. Pass detail=true for the full "
         "per-port setup (data_type, allow_multiple_links, is_linked, link_count, use_mode, "
         "promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, "
-        "is_lazy, adapter_chain, has_adapters, error); default returns the base id/direction/"
-        "flow_type per port and id/topology/flow_type per edge."
+        "propagation, propagation_locked, adapter_chain, has_adapters, error); default returns the "
+        "base id/direction/flow_type per port and id/topology/flow_type per edge."
     ),
     registry_id="query_graph",
     annotations=_READ_ONLY,
