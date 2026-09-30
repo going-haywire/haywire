@@ -3986,7 +3986,7 @@
 </tr>
 <tr>
 <td><strong>EdgeWrapper</strong></td>
-<td>The runtime edge object that owns the <code>link/unlink/detach</code> lifecycle and the <code>is_lazy</code> flag</td>
+<td>The runtime edge object that owns the <code>link/unlink/detach</code> lifecycle and its <strong>Propagation</strong></td>
 <td>—</td>
 </tr>
 <tr>
@@ -4057,12 +4057,12 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Growing slot</strong></td>
-<td>The bare <code>ADD</code> port each boundary node declares in <code>init()</code> — the one port on a boundary node its author owns, so it is <code>DECLARED</code> and the user can neither remove nor rename it. Connecting an interior port to it grows an <strong>interface port</strong> of that port's type, and a fresh slot takes its place. See <a href="../../adr/0034-add-is-a-type/">ADR 0034</a></td>
+<td>The bare <code>ADD</code> port each boundary node declares in <code>init()</code> — the one port on a boundary node its author owns, so it is <code>DECLARED</code> and the user can neither remove nor rename it. Connecting an interior port to it grows an <strong>interface port</strong> of that port's type — of any flow: data, control or callback — and a fresh slot takes its place. See <a href="../../adr/0034-add-is-a-type/">ADR 0034</a></td>
 <td>ADD pin (the type; the slot is the port), placeholder</td>
 </tr>
 <tr>
 <td><strong>Interface port</strong></td>
-<td>A port on a boundary node that constitutes the Subgraph's interface, whether stamped by a collapse or grown from the <strong>growing slot</strong>. <code>PortOrigin.RESOLVED</code> — the user brought it into being, so it may be removed, and its label may be changed. Its <strong>id</strong> is immutable: value transmission and every attached edge key on it</td>
+<td>A port on a boundary node that constitutes the Subgraph's interface, whether stamped by a collapse or grown from the <strong>growing slot</strong>. <code>PortOrigin.RESOLVED</code> — the user brought it into being, so it may be removed, and its label may be changed. An immediate one relays each write across the card at once (ADR 0041). Its <strong>id</strong> is immutable: value transmission and every attached edge key on it</td>
 <td>Boundary port (ambiguous with the node), interface pin</td>
 </tr>
 <tr>
@@ -4164,7 +4164,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>CALLBACK port</strong></td>
-<td>A port used for event-style signalling; no hardcoded multiplicity rules. A callback edge carries its subscription as the source port's <em>value</em> — the event name, pooled on the sink keyed by that edge — so it must run <strong>straight from its event node</strong>: no reroute, and no Subgraph boundary. An intermediate hop re-keys the pool entry, and unlinking the original edge then leaves the sink subscribed to an event nothing emits. See <a href="../../architecture/execution/callbacks/callbacks-arch/">architecture/execution/callbacks</a> and <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a></td>
+<td>A port used for event-style signalling; no hardcoded multiplicity rules, and <strong>immediate</strong> propagation (see <strong>Propagation</strong>). A callback edge carries the listener's subscription as the source port's <em>value</em> — whatever the callback type defines (the event name for core <code>CALLBACK</code>, a dataclass for visiongraph's <code>MULTIFRAME_CALLBACK</code>) — pooled on the emitter keyed by the edge. It may pass through <strong>Reroute nodes</strong>, which forward it on write; removing any edge on the path shows the next port's <strong>own value</strong> — its default, an empty name, which the emitter treats as no subscription and drops. It crosses a Subgraph boundary the same way: an immediate interface port relays it across the card — inward to an interior emitter, or straight through (a listener, being an EVENT node, cannot sit inside a Subgraph). See <a href="../../architecture/execution/callbacks/callbacks-arch/">architecture/execution/callbacks</a>, <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a> and <a href="../../adr/0041-callbacks-cross-a-subgraph-boundary/">ADR 0041</a></td>
 <td>Event port (overloaded)</td>
 </tr>
 <tr>
@@ -4222,7 +4222,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Reroute node</strong></td>
-<td>A pass-through node shipped by the framework-owned <strong>builtin</strong> library (<code>haywire.barn.builtin</code>, not a plugin) whose class declares <strong>no</strong> ports; at creation it is given exactly one inlet and one outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet and returns the outlet id. Supports <strong>DATA</strong> and <strong>CONTROL</strong> edges. <strong>CALLBACK edges are not supported</strong> — the flow assembly manager reads the subscription key at wiring time, before any worker has run to forward it, so a CALLBACK reroute's listener would never register. Used to split an edge and bend/organize a wire.</td>
+<td>A pass-through node shipped by the framework-owned <strong>builtin</strong> library (<code>haywire.barn.builtin</code>, not a plugin) whose class declares <strong>no</strong> ports; at creation it is given exactly one inlet and one outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet and returns the outlet id. Supports <strong>DATA</strong>, <strong>CONTROL</strong> and <strong>CALLBACK</strong> edges. On a callback edge the inlet is immediate, so <code>forward_immediate</code> copies each write to the outlet at once and the emitter downstream sees the subscription without any worker running. Used to split an edge and bend/organize a wire.</td>
 <td>Proxy node (collides with <code>_FieldProxy</code> / state proxies), passthrough node</td>
 </tr>
 <tr>
@@ -4314,14 +4314,9 @@ Macro is registered and placed.</p>
 <td>Lossless, every-frame (it is neither)</td>
 </tr>
 <tr>
-<td><strong>Eager push</strong></td>
-<td>Data transport mode where a Pipe immediately propagates a new value downstream on write</td>
-<td>Synchronous push</td>
-</tr>
-<tr>
-<td><strong>Lazy pull</strong></td>
-<td>Data transport mode where a Pipe defers propagation; downstream calls <code>pull()</code> at execution time to get the latest value</td>
-<td>Deferred, on-demand (imprecise)</td>
+<td><strong>Propagation</strong></td>
+<td>When a value written to an outlet takes effect at the inlet across an edge: <strong>lazy</strong> (the inlet pulls the current value when its node executes), <strong>eager</strong> (pushed on write, takes effect when the inlet's node executes) or <strong>immediate</strong> (pushed on write and takes effect on write). Users choose lazy or eager per edge; <strong>immediate</strong> comes from the flow type (<code>CALLBACK</code>) and is locked, and an edge out of a promoted outlet is locked lazy. Eager and immediate both push — they differ in when the inlet acts on the value. See <a href="../../adr/0039-propagation-mode-replaces-is-lazy/">ADR 0039</a></td>
+<td>Eager push / Lazy pull (now two of its values), immediate push</td>
 </tr>
 <tr>
 <td><strong>EVAL_MASK / LAZY_MASK</strong></td>
@@ -5262,7 +5257,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Promotion</strong></td>
-<td>Assigning a <strong>direction</strong> to a value-bearing setting and surfacing it as a DATA port. A promoted port and its setting are <em>one cell, two views</em> — the port borrows the setting's <code>DataField</code> cell by reference and its id IS the setting's <code>storage_key</code>. Promotion state lives in the owning settings bag (<code>Settings._promoted_keys</code>, <code>storage_key → direction</code>) — the single source of truth. The promoted port is <strong>regenerated from settings on load, never serialized</strong> in the ports block (ADR 0019); <code>promote_setting</code> records the promotion and <code>demote_setting</code> clears it (mirror operations). Two verbs (<code>promote(direction)</code> / <code>demote</code>), three directions (inlet / outlet / config — see ADR 0014's reintroduction note). Which directions a field may ever be promoted to is gated by <code>setting(promotable=Promotable.NONE\|INLET\|OUTLET\|CONFIG\|INPUT\|ALL)</code> (default <code>ALL</code>), via the single <code>eligible_promotion_directions()</code> oracle shared by <code>promote_setting</code> (raises for an ineligible direction) and the <strong>Setting-row menu</strong> (hides ineligible entries). <strong>Direction- and link-aware editing surface (decision 7bA, revised 2026-07-07):</strong> a promoted field's label carries the <code>→</code> glyph (<code>→• label</code> when also locally-set). A setting promoted to an <strong>inlet</strong> replaces its widget with a literal "promoted" label — the graph owns the value; the row hint (tooltip + <code>data-hint</code>) reads "promoted to inlet" while unlinked or "driven by inlet" once an edge is connected. A setting promoted to an <strong>outlet</strong> keeps its editable widget (the setting is still the source of truth), hinted "promoted to outlet". The row carries <code>data-promoted-direction="inlet"\|"outlet"</code> and <code>data-hint</code>. Promote/Demote/Reset live in the <strong>Setting-row menu</strong>; the settings panel is the <em>sole</em> promote surface (the canvas node menu no longer offers promotion; the port right-click keeps "Detach from setting"). See <a href="../../adr/0014-promotion-as-direction/">ADR 0014</a> (direction model + one-cell-two-views) and <a href="../../adr/0019-settings-owned-promotion/">ADR 0019</a> (settings-owned state + non-serialized regeneration, superseding 0014's amendment)</td>
+<td>Assigning a <strong>direction</strong> to a value-bearing setting and surfacing it as a DATA port. A promoted port and its setting are <em>one cell, two views</em> — the port borrows the setting's <code>DataField</code> cell by reference and its id IS the setting's <code>storage_key</code>. Promotion state lives in the owning settings bag (<code>Settings._promoted_keys</code>, <code>storage_key → direction</code>) — the single source of truth. The promoted port is <strong>regenerated from settings on load, never serialized</strong> in the ports block (ADR 0019); <code>promote_setting</code> records the promotion and <code>demote_setting</code> clears it (mirror operations). Promotion changes where a setting is visible, not its opinion: it marks nothing locally set, and while an edge drives the inlet the setting keeps, saves and later shows its <strong>own value</strong>. Two verbs (<code>promote(direction)</code> / <code>demote</code>), three directions (inlet / outlet / config — see ADR 0014's reintroduction note). Which directions a field may ever be promoted to is gated by <code>setting(promotable=Promotable.NONE\|INLET\|OUTLET\|CONFIG\|INPUT\|ALL)</code> (default <code>ALL</code>), via the single <code>eligible_promotion_directions()</code> oracle shared by <code>promote_setting</code> (raises for an ineligible direction) and the <strong>Setting-row menu</strong> (hides ineligible entries). <strong>Direction- and link-aware editing surface (decision 7bA, revised 2026-07-07):</strong> a promoted field's label carries the <code>→</code> glyph (<code>→• label</code> when also locally-set). A setting promoted to an <strong>inlet</strong> replaces its widget with a literal "promoted" label — the graph owns the value; the row hint (tooltip + <code>data-hint</code>) reads "promoted to inlet" while unlinked or "driven by inlet" once an edge is connected. A setting promoted to an <strong>outlet</strong> keeps its editable widget (the setting is still the source of truth), hinted "promoted to outlet". The row carries <code>data-promoted-direction="inlet"\|"outlet"</code> and <code>data-hint</code>. Promote/Demote/Reset live in the <strong>Setting-row menu</strong>; the settings panel is the <em>sole</em> promote surface (the canvas node menu no longer offers promotion; the port right-click keeps "Detach from setting"). See <a href="../../adr/0014-promotion-as-direction/">ADR 0014</a> (direction model + one-cell-two-views) and <a href="../../adr/0019-settings-owned-promotion/">ADR 0019</a> (settings-owned state + non-serialized regeneration, superseding 0014's amendment)</td>
 <td>Exposing, hoisting, wiring a setting</td>
 </tr>
 <tr>
@@ -5286,9 +5281,14 @@ Macro is registered and placed.</p>
 <td>—</td>
 </tr>
 <tr>
-<td><strong>freeze-on-disconnect</strong></td>
-<td>Demote (and any structural action) never resets a promoted setting's value: whatever the shared cell holds stays. Recovery to the default is an explicit <code>reset()</code></td>
-<td>—</td>
+<td><strong>Own value</strong></td>
+<td>What a port or setting holds itself: written by the user (a widget), the node or a setting, else its declared default. It is what is saved, and an edge never overwrites it — while an edge feeds an inlet, the own value is <strong>parked</strong> behind the <strong>linked value</strong>: no widget or settings row shows or edits it, only saving reads it, and a write from code (a mirror sync, reset, undo, a node) lands in it quietly. Removing the last edge shows the own value again. The same rule holds for every port, edge kind and propagation mode. See <a href="../../adr/0040-unlinking-reveals-the-own-value/">ADR 0040</a></td>
+<td>freeze-on-disconnect (retired), base value</td>
+</tr>
+<tr>
+<td><strong>Linked value</strong></td>
+<td>The value an inlet's edge delivered, shown and used while the edge is linked and never saved. A widget on a linked inlet displays it and refuses edits</td>
+<td>edge value, driven value</td>
 </tr>
 <tr>
 <td><strong>bag()</strong></td>
@@ -5980,7 +5980,7 @@ Macro is registered and placed.</p>
 <li>A <strong>Graph</strong> contains zero or more <strong>Nodes</strong> and <strong>Edges</strong>; it is serialized as a <code>.haywire</code> file.</li>
 <li>An <strong>Edge</strong> connects exactly one <strong>Outlet</strong> to exactly one <strong>Inlet</strong>; they must share the same <strong>FlowType</strong> or can be cast to a different type with the help of an <strong>Adapter chain</strong>.</li>
 <li>A <strong>Node</strong> (class) defines <strong>Ports</strong> in <code>init()</code>; the <strong>NodeWrapper</strong> holds the live runtime state.</li>
-<li>Each connected DATA port pair owns exactly one <strong>Pipe</strong>; the Pipe's <code>is_lazy</code> flag comes from the <strong>EdgeWrapper</strong>, not the port.</li>
+<li>Each connected DATA port pair owns exactly one <strong>Pipe</strong>; the Pipe's mode comes from the <strong>EdgeWrapper</strong>'s <strong>Propagation</strong>, not the port.</li>
 <li><strong>Assembly</strong> produces one <strong>Flow</strong> per <strong>EVENT node</strong> in the graph.</li>
 <li>A <strong>Flow</strong> contains one global <strong>Control Flow</strong> DAG and one <strong>LocalizedDataFlow</strong> DAG per CONTROL node.</li>
 <li>A <strong>Library</strong> scans folders in <code>register_components()</code> to populate registries (nodes, types, adapters, widgets, skins, themes).</li>
@@ -6020,7 +6020,7 @@ Macro is registered and placed.</p>
 <p><strong>Dev:</strong> "I want to add a node that reads from a camera and fires a new frame event."
 <strong>Domain expert:</strong> "That's an <strong>EVENT node</strong> — it has an EXEC <strong>outlet</strong> but no EXEC <strong>inlet</strong>. It originates the <strong>Flow</strong>."
 <strong>Dev:</strong> "So the camera frames go out of a DATA <strong>outlet</strong> on the same node?"
-<strong>Domain expert:</strong> "Yes — the DATA <strong>outlet</strong> connects via an <strong>Edge</strong> to downstream <strong>CONTROL nodes</strong>. The <strong>Pipe</strong> on that <strong>Edge</strong> can be eager or lazy depending on whether you want immediate push or always-latest pull."
+<strong>Domain expert:</strong> "Yes — the DATA <strong>outlet</strong> connects via an <strong>Edge</strong> to downstream <strong>CONTROL nodes</strong>. The <strong>Pipe</strong> on that <strong>Edge</strong> can be eager or lazy, depending on whether you want the value pushed on write or pulled, always-latest, when the node runs."
 <strong>Dev:</strong> "When I add this to a <strong>Library</strong>, how does it get discovered?"
 <strong>Domain expert:</strong> "Declare it in <code>register_components()</code> with <code>scan_nodes(...)</code>, and the <strong>entry_point</strong> in <code>pyproject.toml</code> makes the whole <strong>Library</strong> discoverable at startup."
 <strong>Dev:</strong> "And if the user is in the <strong>Graph Canvas</strong> and selects the node, what shows in the <strong>CONTEXT Slot</strong>?"

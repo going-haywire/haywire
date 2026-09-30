@@ -3505,6 +3505,12 @@ inlet's widget value belongs to the instance.</p>
 <p><code>haywire.core.graph.subgraph_crossing</code> holds every conversion between the four
 id spaces that meet here, so the view that builds a crossing and the worker that
 follows one cannot drift.</p>
+<p>Deferred values cross when the boundary nodes execute; immediate ones — callback
+subscriptions — cross at wiring time: each immediate interface inlet relays its
+writes to its partner (<code>hb_relay</code>), and <code>reconcile_interface</code> resyncs every
+immediate pair. A graph tree validates under one lock
+(<code>BaseGraph._share_validation_lock</code>), so the two graphs a card spans never
+validate at once. See ADR 0041.</p>
 <p>A Subgraph's <strong>containment</strong> rules — exactly one Subgraph Input and one Subgraph
 Output, no EVENT or OUTPUT node inside — are enforced by
 <code>StructuralValidator.validate_subgraph_contents</code>, which runs in exactly <strong>one</strong>
@@ -3533,6 +3539,10 @@ the glossary) and <code>derive_interface</code>, which splits the selection's ed
 clipboard's both-endpoints rule and dedups inlets by their <em>outer</em> source,
 outlets by their <em>inner</em> source. <code>CollapseToGraphNodeAction</code> and
 <code>ExpandGraphNodeAction</code> are inverses, each undoable on its own.</p>
+<p>Each interface port takes the <strong>wire type</strong> of the interior port that names it
+(<code>DataPort.stored_type</code>, from <code>get_stored_type()</code>), not its declared type. An
+interior <code>PooledType[CALLBACK]</code> inlet therefore mints a scalar <code>CALLBACK</code>
+interface port, and a promoted <code>OPTIONAL[INT]</code> setting mints an <code>INT</code> one.</p>
 <h3 id="macros">Macros<a class="headerlink" href="#macros" title="Permanent link">&para;</a></h3>
 <p>A macro is a <code>.hwm</code> document registered as a component kind, <code>MacroNode</code> is the
 card standing for one, and <code>haywire.core.macro</code> holds the registry, the template,

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Promotion is a field plus a PortType direction; a setting and its promoted port share one cell as two views (superseded in part by ADR 0019)">
+        <meta name="description" content="Promotion is a field plus a PortType direction; a setting and its promoted port share one cell as two views (superseded in part by ADR 0019 and, for freeze-on-disconnect, ADR 0040)">
       
       
       
@@ -3170,6 +3170,7 @@
 
 <h1 id="promotion-is-a-field-a-direction-a-setting-and-a-promoted-port-are-one-cell-two-views">Promotion is a field + a direction; a setting and a promoted port are one cell, two views<a class="headerlink" href="#promotion-is-a-field-a-direction-a-setting-and-a-promoted-port-are-one-cell-two-views" title="Permanent link">&para;</a></h1>
 <blockquote>
+<p><strong>Freeze-on-disconnect is superseded by <a href="../0040-unlinking-reveals-the-own-value/">ADR 0040</a>.</strong> The shared cell now keeps an own value and, while an edge drives the inlet, a linked value in front of it; unlinking and demote show the own value. One cell, two views stands.</p>
 <p>The binding-signal <em>mechanism</em> originally recorded here (synthetic <code>setting__…</code> port id,
 id-as-binding-key, per-write <code>_set_keys</code> marking) was later replaced. The current mechanism
 — a promoted port's id IS the setting's <code>storage_key</code>, marked locally-set at promote-time —

@@ -3234,6 +3234,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-reroutes-carry-callbacks-2026-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment — reroutes carry callbacks (2026-09)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3252,6 +3263,9 @@
 
 
 <h1 id="a-group-executes-through-its-boundary-nodes">A Group executes through its boundary nodes<a class="headerlink" href="#a-group-executes-through-its-boundary-nodes" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>"A callback may not cross the boundary" and the growing slot's flow are superseded by <a href="../0041-callbacks-cross-a-subgraph-boundary/">ADR 0041</a>.</strong> Immediate interface ports relay across the card at wiring time; a bare <code>ADD</code> slot grows a port of any flow. Everything else here stands.</p>
+</blockquote>
 <p><strong>Context.</strong> Haywire had no way to encapsulate part of a graph. Slice 1 of the
 Graph-node design gives a selection a <strong>Group</strong>: one card on the parent canvas
 standing for a <strong>Subgraph</strong> whose contents live in the same <code>.haywire</code> file,
@@ -3521,6 +3535,9 @@ place in the framework where a vanished port takes its edges with it.</p>
 <li>A card's pin order can drift from its Subgraph's. That is intended, and it is
   why reconcile stamps <code>order</code> only on a pin it adds.</li>
 </ul>
+<hr />
+<h2 id="amendment-reroutes-carry-callbacks-2026-09">Amendment — reroutes carry callbacks (2026-09)<a class="headerlink" href="#amendment-reroutes-carry-callbacks-2026-09" title="Permanent link">&para;</a></h2>
+<p>The reroute half of "a callback edge runs straight from its event node" is lifted. On a callback edge a reroute's inlet is immediate: the reroute forwards each write at once (<code>RerouteNode.forward_immediate</code>), and when its upstream edge is removed the inlet shows its own value — its default, an empty name (ADR 0040) — so the emitter's pool drops its entry through its own edge instead of keeping a stale one. The structural rule that a callback edge's source is an event node is gone. The Subgraph-boundary half of this ADR's argument still holds: collapse keeps refusing callback crossings until boundary nodes get the same relay.</p>
 
 
 

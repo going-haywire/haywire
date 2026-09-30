@@ -2150,10 +2150,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#33-lazy-propagation-and-the-unified-dirty-model" class="md-nav__link">
+  <a href="#33-propagation-and-the-unified-dirty-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.3 Lazy propagation and the unified dirty model
+        3.3 Propagation and the unified dirty model
       
     </span>
   </a>
@@ -3516,10 +3516,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#33-lazy-propagation-and-the-unified-dirty-model" class="md-nav__link">
+  <a href="#33-propagation-and-the-unified-dirty-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.3 Lazy propagation and the unified dirty model
+        3.3 Propagation and the unified dirty model
       
     </span>
   </a>
@@ -3683,7 +3683,7 @@
 
 <h1 id="edges-architecture">Edges — Architecture<a class="headerlink" href="#edges-architecture" title="Permanent link">&para;</a></h1>
 <h2 id="1-mental-model">1. Mental model<a class="headerlink" href="#1-mental-model" title="Permanent link">&para;</a></h2>
-<p>An <strong>edge</strong> connects an outlet port on a source node to an inlet port on a sink node. The data structure is <code>Edge</code> (a dataclass — connection identifiers, type, adapter chain keys, lazy flag). The lifecycle is owned by <code>EdgeWrapper</code> — a wrapper that runs the 4-stage build pipeline (formal validation → structural validation → adapter chain → test), manages the <code>link → unlink → detach</code> lifecycle, and handles displacement and re-enablement when ports are over-subscribed.</p>
+<p>An <strong>edge</strong> connects an outlet port on a source node to an inlet port on a sink node. The data structure is <code>Edge</code> (a dataclass — connection identifiers, type, adapter chain keys, propagation mode). The lifecycle is owned by <code>EdgeWrapper</code> — a wrapper that runs the 4-stage build pipeline (formal validation → structural validation → adapter chain → test), manages the <code>link → unlink → detach</code> lifecycle, and handles displacement and re-enablement when ports are over-subscribed.</p>
 <p>Two-tier port storage is the core mental model. Each port keeps two dictionaries:</p>
 <ul>
 <li><strong><code>_linked_edges</code></strong> — active edges currently used for data pipes.</li>
@@ -3694,7 +3694,7 @@
 <h3 id="21-creation-flow">2.1 Creation flow<a class="headerlink" href="#21-creation-flow" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">graph</span><span class="o">.</span><span class="n">create_edge_wrapper</span><span class="p">(</span><span class="n">source_node_id</span><span class="p">,</span> <span class="n">outlet_port_id</span><span class="p">,</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                          <span class="n">sink_node_id</span><span class="p">,</span> <span class="n">inlet_port_id</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                          <span class="n">lazy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                          <span class="n">propagation</span><span class="o">=</span><span class="n">Propagation</span><span class="o">.</span><span class="n">EAGER</span><span class="p">)</span>
 </span></code></pre></div>
 <p>Internal sequence:</p>
 <ol>
@@ -3706,7 +3706,7 @@
 <h3 id="22-the-4-stage-build-pipeline">2.2 The 4-stage build pipeline<a class="headerlink" href="#22-the-4-stage-build-pipeline" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>build()
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  ├─ _formal_validation()    do nodes/ports exist? same direction? same FlowType?
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  ├─ _structural_validation() domain rules (e.g. callback source must be event node)
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  ├─ _structural_validation() domain rules (none per edge today)
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  ├─ _build_adapter_chain()   find/create adapter chain (DATA edges only)
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  └─ _test()                  run a sample value through the adapter chain
 </span></code></pre></div>
@@ -3729,6 +3729,7 @@
 </tr>
 </tbody>
 </table>
+<p>Only a <strong>valid</strong> edge carries values. An outlet builds its pipes from its valid linked edges (<code>DataPort.get_valid_edges()</code>), so an edge that fails structural validation stays in the graph and is drawn as invalid, but delivers nothing to its inlet.</p>
 <h3 id="23-connection-rules-by-flowtype">2.3 Connection rules by FlowType<a class="headerlink" href="#23-connection-rules-by-flowtype" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3816,34 +3817,37 @@
 <li><strong>Asymmetric notification</strong>: inlet displacement informs the source outlet (it needs a pipe update); outlet displacement does NOT inform the sink inlet.</li>
 </ul>
 <p>When an active edge is removed (<code>detach</code>) or loses functionality (<code>unlink</code>), the port scans <code>_all_edges</code> FIFO for a functional candidate to re-enable. If found, <code>candidate.link() + candidate.redraw()</code> is called.</p>
-<h3 id="33-lazy-propagation-and-the-unified-dirty-model">3.3 Lazy propagation and the unified dirty model<a class="headerlink" href="#33-lazy-propagation-and-the-unified-dirty-model" title="Permanent link">&para;</a></h3>
-<p>Edges support two propagation modes via <code>Edge.is_lazy</code> (per-edge, not per-port):</p>
+<p><strong>Unlinking reveals the own value.</strong> When an inlet loses its last linked edge and no displaced edge takes over, its field drops the linked value (<code>DataField.clear_linked</code>) and the own value shows again (ADR 0040). The node learns of it through the port's propagation: an immediate inlet fires <code>on_change</code> at once, so a reroute passes it on (see <a href="../../callbacks/callbacks-arch/">callbacks-arch §2.4</a>); a deferred inlet is marked dirty for its node's next execution. A lazy pull still queued for the removed edge is dropped. A pooled inlet needs nothing extra: <code>_clear_link</code> already removed that source's entry.</p>
+<h3 id="33-propagation-and-the-unified-dirty-model">3.3 Propagation and the unified dirty model<a class="headerlink" href="#33-propagation-and-the-unified-dirty-model" title="Permanent link">&para;</a></h3>
+<p>Each edge has a <strong>propagation</strong> mode (<code>Propagation</code>, per edge, not per port):</p>
 <ul>
-<li><strong>Eager</strong> (<code>is_lazy=False</code>, default): outlet value is transformed through the adapter chain and pushed to the inlet immediately. The inlet is marked dirty; <code>on_change</code> is deferred to execution time.</li>
-<li><strong>Lazy</strong> (<code>is_lazy=True</code>): no transform or push at propagation time. The inlet is marked dirty with a reference to the pipe. At execution time, <code>resolve_dirty_data()</code> pulls the outlet's <em>current</em> value (always-latest semantics) through the adapter chain.</li>
+<li><strong>Eager</strong> (default): outlet value is transformed through the adapter chain and pushed to the inlet immediately. The inlet is marked dirty; <code>on_change</code> is deferred to execution time.</li>
+<li><strong>Lazy</strong>: no transform or push at propagation time. The inlet is marked dirty with a reference to the pipe. At execution time, <code>resolve_dirty_data()</code> pulls the outlet's <em>current</em> value (always-latest semantics) through the adapter chain.</li>
+<li><strong>Immediate</strong>: pushed like eager, and the inlet acts on it at once (see the exception below).</li>
 </ul>
-<p>Different edges to the same inlet can have different modes. The <code>lazy</code> parameter is passed to <code>create_edge_wrapper()</code> and stored on the <code>Edge</code> dataclass. It serialises via <code>to_dict()</code> and deserialises with <code>False</code> default for backward compatibility.</p>
+<p>Users choose lazy or eager per edge, and different edges to the same inlet can differ. <code>create_edge_wrapper(propagation=...)</code> stores the choice on the <code>Edge</code>, and <code>to_dict()</code> saves it under <code>propagation</code>. Two modes are locked and never read from a saved graph: <code>immediate</code> on an immediate flow, and <code>lazy</code> on an edge out of an <code>is_linked_lazy</code> outlet (every promoted outlet). <code>EdgeWrapper.locked_propagation</code> names the lock; <code>EdgeWrapper.propagation</code> is the mode in effect. See <a href="../../../../adr/0039-propagation-mode-replaces-is-lazy/">ADR 0039</a>.</p>
 <p><strong>Unified dirty model.</strong> Both eager and lazy edges use the same deferred callback model. <code>on_change</code> callbacks for edge-driven inlet changes are <em>never</em> fired at push time — they are always deferred to <code>resolve_dirty_data()</code> at execution time. This debounces mixed pooled+lazy scenarios.</p>
-<p><strong>Exception: CALLBACK-flow inlets fire immediately.</strong> A <code>FlowType.CALLBACK</code> inlet is exempt from the deferral above — <code>set_value()</code> fires its <code>on_change</code> synchronously at push time even when <code>edge_id</code> is set, same as the widget/programmatic path.</p>
+<p><strong>Exception: immediate inlets fire at once.</strong> An inlet on an immediate flow (<code>FlowType.is_immediate</code>, i.e. <code>CALLBACK</code>) is exempt from the deferral above — <code>set_value()</code> fires its <code>on_change</code> synchronously at push time even when <code>edge_id</code> is set, same as the widget/programmatic path.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>EAGER EDGE:
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  outlet.set_value(value) → pipes.propagate(value)
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    ├─ adapter chain transforms value
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    └─ inlet.set_value(converted, edge_id=uuid)
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>       ├─ stores value (NO on_change)
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>       └─ inlet._mark_as_data_dirty()
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>LAZY EDGE:
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  outlet.set_value(value) → pipes.propagate(value)
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    ├─ pipe sees lazy flag → skips transform
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    └─ inlet._mark_as_data_dirty(pipe=self, edge_id=uuid)
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
-</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>AT EXECUTION TIME (both):
-</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  node._execute()
-</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    ├─ for each dirty port: resolve_dirty_data()
-</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    │     ├─ pull lazy pipe data (transform + store via pull())
-</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    │     └─ fire on_change ONCE (debounced across all edge types)
-</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    ├─ on_validate()
-</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    └─ worker()
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  outlet.set_value(value) → pipes.propagate() → pipe.propagate()
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    └─ pipe.pull()
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>       ├─ reads the outlet&#39;s current value
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>       ├─ adapter chain transforms it
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>       └─ inlet.set_value(converted, edge_id=uuid)
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>          ├─ stores value (NO on_change)
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>          └─ inlet._mark_as_data_dirty()
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>LAZY EDGE:
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>  outlet.set_value(value) → pipes.propagate() → pipe.propagate()
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    └─ inlet._mark_as_data_dirty(pipe=self)   pipe queued, nothing pulled yet
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>AT EXECUTION TIME (both):
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>  node._execute()
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    ├─ for each dirty port: resolve_dirty_data()
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    │     ├─ pull lazy pipe data (transform + store via pull())
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    │     └─ fire on_change ONCE (debounced across all edge types)
+</span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    ├─ on_validate()
+</span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    └─ worker()
 </span></code></pre></div>
 <h3 id="34-set_value-callback-rules">3.4 <code>set_value()</code> callback rules<a class="headerlink" href="#34-set_value-callback-rules" title="Permanent link">&para;</a></h3>
 <p>The <code>set_value()</code> method on DataPort distinguishes between edge-driven, widget/programmatic changes and the flow type:</p>
@@ -3870,7 +3874,13 @@
 <td><code>on_change</code> fires <strong>immediately</strong></td>
 </tr>
 <tr>
-<td>CALLBACK flow_type</td>
+<td>Own write while linked (no <code>edge_id</code>, field holds a linked value)</td>
+<td>no</td>
+<td>exists</td>
+<td>no <code>on_change</code>, no dirty mark: the own value changed behind the linked one</td>
+</tr>
+<tr>
+<td>Immediate flow (CALLBACK)</td>
 <td>yes</td>
 <td>exists</td>
 <td><code>on_change</code> fires <strong>immediately</strong></td>
@@ -3889,9 +3899,9 @@
 </tr>
 </tbody>
 </table>
-<p><code>set_value_by_lazy_link()</code> is a low-level method that stores the value without firing any callbacks. Used by <code>pull()</code> during lazy resolution. <code>set_value()</code> delegates to it for the actual storage step.</p>
+<p><code>Pipe.pull()</code> stores through the same <code>set_value(converted, edge_id=...)</code> call, so a lazily pulled value follows the edge-driven rows above.</p>
 <h3 id="35-pipe-based-data-transport">3.5 Pipe-based data transport<a class="headerlink" href="#35-pipe-based-data-transport" title="Permanent link">&para;</a></h3>
-<p>The <code>Pipes</code> class owns all data transport — both eager push (<code>propagate()</code>) and lazy pull (<code>pull()</code>). It stores:</p>
+<p>A linked outlet owns one <code>Pipes</code>, which holds a <code>Pipe</code> per valid edge, keyed by edge id (<code>Pipes._pipes</code>). A <code>Pipe</code> owns one connection — both eager push (<code>propagate()</code>) and the pull itself (<code>pull()</code>):</p>
 <table>
 <thead>
 <tr>
@@ -3901,24 +3911,29 @@
 </thead>
 <tbody>
 <tr>
+<td><code>sink</code></td>
+<td>Target inlet <code>DataPort</code></td>
+</tr>
+<tr>
+<td><code>chain</code></td>
+<td>Head of the edge's adapter chain</td>
+</tr>
+<tr>
+<td><code>is_lazy</code></td>
+<td>Whether the edge's propagation is lazy, copied from the edge when the pipe is built</td>
+</tr>
+<tr>
 <td><code>_outlet_port</code></td>
-<td>Reference to the source DataPort (for lazy reads)</td>
+<td>Source <code>DataPort</code>, read on every pull (always-latest)</td>
 </tr>
 <tr>
-<td><code>sinks</code></td>
-<td><code>dict[edge_id, DataPort]</code> — target inlets</td>
-</tr>
-<tr>
-<td><code>chains</code></td>
-<td><code>dict[edge_id, IAdapter]</code> — adapter chains per connection</td>
-</tr>
-<tr>
-<td><code>lazy_flags</code></td>
-<td><code>dict[edge_id, bool]</code> — propagation mode per connection</td>
+<td><code>_sink_holds_absence</code></td>
+<td>Whether the sink accepts absence, read once from <code>sink.data.accepts_absence()</code></td>
 </tr>
 </tbody>
 </table>
-<p><code>pull_lazy(edge_id)</code> reads the outlet's current value (always-latest), transforms it through the adapter chain, and calls <code>set_value_by_lazy_link()</code> on the inlet.</p>
+<p><code>Pipe.pull()</code> reads the outlet's current value, transforms it through the chain and stores it with <code>sink.set_value(converted, edge_id=...)</code>. When the outlet holds <code>None</code>, the pull forwards absence only to a sink that accepts it; any other sink keeps its last value.</p>
+<p>Pipes are rebuilt whenever the outlet is structurally dirty (<code>_refresh_pipes()</code> during housekeeping). That is why setting <code>EdgeWrapper.propagation</code> on a live edge marks its outlet dirty: the existing <code>Pipe</code> keeps the mode it was built with.</p>
 <h3 id="36-validationmanager-debounced-batch-processing">3.6 ValidationManager — debounced batch processing<a class="headerlink" href="#36-validationmanager-debounced-batch-processing" title="Permanent link">&para;</a></h3>
 <p><code>ValidationManager</code> processes dirty nodes and edges in debounced batches (50ms default). Tests use <code>force_immediate_validation()</code> for synchronous execution.</p>
 <p><strong>Priority system (<code>ChangeReason</code>).</strong> Reasons are prioritised — higher priority overrides lower in the dirty queue:</p>
@@ -4081,15 +4096,15 @@
 </tr>
 <tr>
 <td><code>DataPort._pending_lazy_pipes</code></td>
-<td><code>set[(Pipes, edge_id)]</code> — lazy pipes needing resolution at execution time</td>
+<td><code>set[Pipe]</code> — lazy pipes to pull at execution time</td>
 </tr>
 <tr>
 <td><code>DataPort.allow_multiple_links</code></td>
 <td>Connection limit flag</td>
 </tr>
 <tr>
-<td><code>Edge.is_lazy</code></td>
-<td>Per-edge lazy propagation flag (default <code>False</code>)</td>
+<td><code>Edge.propagation</code></td>
+<td>Chosen propagation mode (default <code>EAGER</code>); <code>EdgeWrapper.propagation</code> applies the locks</td>
 </tr>
 <tr>
 <td><code>Edge.chain_adapter_keys</code></td>
@@ -4108,15 +4123,15 @@
 <td>Source DataPort reference (for lazy reads)</td>
 </tr>
 <tr>
-<td><code>Pipes.lazy_flags</code></td>
-<td><code>dict[edge_id, bool]</code> — per-connection propagation mode</td>
+<td><code>Pipes._pipes</code></td>
+<td><code>dict[edge_id, Pipe]</code> — one pipe per valid edge; each <code>Pipe</code> carries its <code>is_lazy</code></td>
 </tr>
 </tbody>
 </table>
 <h3 id="key-files">Key files<a class="headerlink" href="#key-files" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>src/haywire/core/edge/edge_wrapper.py</code> — <code>EdgeWrapper</code> + <code>EdgeWrapperState</code> (owns link/unlink/detach lifecycle)</li>
-<li><code>src/haywire/core/edge/edge.py</code> — <code>Edge</code> data object (includes <code>is_lazy</code> flag)</li>
+<li><code>src/haywire/core/edge/edge.py</code> — <code>Edge</code> data object (includes the chosen propagation)</li>
 <li><code>src/haywire/core/types/port.py</code> — <code>DataPort</code> (two-tier storage, displacement, re-enablement, deferred on_change, lazy resolution)</li>
 <li><code>src/haywire/core/types/pipe.py</code> — <code>Pipes</code> (eager push via <code>propagate()</code>, lazy pull via <code>pull()</code>, always-latest semantics)</li>
 <li><code>src/haywire/core/graph/base.py</code> — <code>BaseGraph</code> (create/add/remove edge, delegates to edge methods)</li>

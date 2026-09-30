@@ -2235,10 +2235,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#22-two-callback-modes" class="md-nav__link">
+  <a href="#22-two-ways-to-subscribe" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.2 Two callback modes
+        2.2 Two ways to subscribe
       
     </span>
   </a>
@@ -2250,6 +2250,17 @@
     <span class="md-ellipsis">
       
         2.3 The two endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-through-reroutes-and-subgraph-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Through reroutes and Subgraph boundaries
       
     </span>
   </a>
@@ -2274,10 +2285,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#31-assembly-time-wiring" class="md-nav__link">
+  <a href="#31-assembly-and-listener-registration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.1 Assembly-time wiring
+        3.1 Assembly and listener registration
       
     </span>
   </a>
@@ -2357,10 +2368,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#52-string-based-callback-no-edge" class="md-nav__link">
+  <a href="#52-callback-by-name-no-edge" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.2 String-based callback (no edge)
+        5.2 Callback by name (no edge)
       
     </span>
   </a>
@@ -3428,10 +3439,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#22-two-callback-modes" class="md-nav__link">
+  <a href="#22-two-ways-to-subscribe" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.2 Two callback modes
+        2.2 Two ways to subscribe
       
     </span>
   </a>
@@ -3443,6 +3454,17 @@
     <span class="md-ellipsis">
       
         2.3 The two endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-through-reroutes-and-subgraph-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Through reroutes and Subgraph boundaries
       
     </span>
   </a>
@@ -3467,10 +3489,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#31-assembly-time-wiring" class="md-nav__link">
+  <a href="#31-assembly-and-listener-registration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.1 Assembly-time wiring
+        3.1 Assembly and listener registration
       
     </span>
   </a>
@@ -3550,10 +3572,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#52-string-based-callback-no-edge" class="md-nav__link">
+  <a href="#52-callback-by-name-no-edge" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.2 String-based callback (no edge)
+        5.2 Callback by name (no edge)
       
     </span>
   </a>
@@ -3617,8 +3639,8 @@
 
 <h1 id="callbacks-architecture">Callbacks — Architecture<a class="headerlink" href="#callbacks-architecture" title="Permanent link">&para;</a></h1>
 <h2 id="1-mental-model">1. Mental model<a class="headerlink" href="#1-mental-model" title="Permanent link">&para;</a></h2>
-<p>A <strong>callback</strong> is a cross-flow trigger: one Flow emits an event, and a sibling Flow whose entry EVENT-node is configured to listen for that event runs in response. Callbacks let an event-node-rooted Flow be triggered <em>programmatically</em> by another running flow, instead of only by an external system event (BEGIN_PLAY, Tick, user input).</p>
-<p>CALLBACK edges serve two roles: <strong>assembly-time wiring</strong> and <strong>run-time value transport</strong>. At assembly time, a CALLBACK edge between an emitter outlet and a listener-event-node's inlet tells the assembler "hook this listener up to fire when the emitter writes." At run-time, the pipe mechanism transports the string listener-id from the EVENT node outlet to the emitter's inlet — the emitter reads it to know which callbacks to fire.</p>
+<p>A <strong>callback</strong> is a cross-flow trigger: a running node calls <code>context.emit_callback(event_name, payload)</code>, and every Flow whose entry EVENT node subscribed to that name runs in response. Callbacks let an event-node-rooted Flow be triggered <em>programmatically</em> by another running flow, instead of only by an external system event (BEGIN_PLAY, Tick, user input).</p>
+<p>Routing is by <strong>event name</strong> alone and never goes through the graph. What a CALLBACK edge adds is the <em>subscription</em>: it carries the listener event node's subscription value to the emitting node, so the emitter knows which names to emit. The value is whatever the callback type defines — for core <code>CALLBACK</code> (a <code>STRING</code>) it is the event name; for a library type such as haybale-visiongraph's <code>MULTIFRAME_CALLBACK</code> it is a dataclass holding the name plus the stream requirements the camera node reads.</p>
 <p>This is the third leg of haywire's connection types — see <a href="../../../../reference/glossary/#flow-types-port-kinds">reference/glossary §Flow Types &amp; Port Kinds</a>:</p>
 <table>
 <thead>
@@ -3641,14 +3663,14 @@
 </tr>
 <tr>
 <td><strong>CALLBACK edge</strong></td>
-<td>Carries a string listener-id from an EVENT node outlet to an emitter's <code>PooledType[CALLBACK]</code> inlet; wires listener Flows to emitter ports</td>
-<td><strong>Run-time</strong> value transport (string) + assembly-time topology registration</td>
+<td>Carries a listener's subscription value from its EVENT node's CALLBACK outlet to an emitter's pooled <code>PooledType[...]</code> callback inlet</td>
+<td>Run-time value transport</td>
 </tr>
 </tbody>
 </table>
 <h2 id="2-contract">2. Contract<a class="headerlink" href="#2-contract" title="Permanent link">&para;</a></h2>
 <h3 id="21-the-flowtypecallback-port-type">2.1 The <code>FlowType.CALLBACK</code> port type<a class="headerlink" href="#21-the-flowtypecallback-port-type" title="Permanent link">&para;</a></h3>
-<p>CALLBACK ports use the same <code>DataPort</code> infrastructure as DATA ports but carry the <code>FlowType.CALLBACK</code> flag. Connection rules:</p>
+<p>CALLBACK ports use the same <code>DataPort</code> infrastructure as DATA ports but carry the <code>FlowType.CALLBACK</code> flag. They have no hardcoded connection rules:</p>
 <table>
 <thead>
 <tr>
@@ -3659,32 +3681,34 @@
 <tbody>
 <tr>
 <td>Outlet</td>
-<td><code>False</code> (default — one emitter per source)</td>
+<td><code>False</code> by default; listener event nodes declare <code>True</code>, so one listener can subscribe to several emitters</td>
 </tr>
 <tr>
 <td>Inlet</td>
-<td><code>False</code> (default — one listener per target)</td>
+<td><code>False</code> by default; emitters use a <code>PooledType[...]</code> inlet, which accepts many sources and keys each value by its edge id</td>
 </tr>
 </tbody>
 </table>
-<p>A CALLBACK edge is registered through the same <code>graph.create_edge_wrapper(...)</code> flow as DATA/EXEC edges. At run-time, the pipe mechanism transports the string listener-id from the EVENT node outlet to the emitter's <code>PooledType[CALLBACK]</code> inlet — the emitter reads this value to know which callback names to emit. Additionally, at assembly time, the assembler reads the edge topology to register listener Flows with the CallbackManager.</p>
+<p>A CALLBACK edge is created through the same <code>graph.create_edge_wrapper(...)</code> as DATA and EXEC edges, and its value travels over an ordinary pipe into the emitter's pool. Removing a direct edge removes that edge's entry from the pool (<code>PooledField.remove_source</code>); longer paths are covered in §2.4. Assembly does not read callback edges to route anything — see §3.1.</p>
 <h4 id="on_change-timing-on-callback-inlets"><code>on_change</code> timing on CALLBACK inlets<a class="headerlink" href="#on_change-timing-on-callback-inlets" title="Permanent link">&para;</a></h4>
-<p><code>DataPort.set_value()</code> normally defers an edge-driven inlet's <code>on_change</code> callback to <code>resolve_dirty_data()</code>, which only runs when the owning node's <code>worker()</code> is next dispatched (see <a href="../../edges/edges-arch/">edges-arch.md</a>). CALLBACK-flow inlets are the one exception: <code>set_value()</code> fires <code>on_change</code> <strong>immediately</strong>, even when the write came from an edge (<code>edge_id</code> set), instead of deferring it.</p>
+<p><code>DataPort.set_value()</code> normally defers an edge-driven inlet's <code>on_change</code> callback to <code>resolve_dirty_data()</code>, which only runs when the owning node's <code>worker()</code> is next dispatched (see <a href="../../edges/edges-arch/">edges-arch.md</a>). Immediate inlets — every CALLBACK flow (<code>FlowType.is_immediate</code>) — are the one exception: <code>set_value()</code> fires <code>on_change</code> <strong>immediately</strong>, even when the write came from an edge (<code>edge_id</code> set), instead of deferring it.</p>
 <p>This matters because emitter nodes with a pooled <code>PooledType[CALLBACK]</code> inlet are often <code>NodeType.CONTROL</code> nodes (e.g. <code>OakDCameraNode</code>) that only execute their <code>worker()</code> in response to a control pulse (<code>start</code>/<code>stop</code>), not on every dirty-port change. If a callback inlet's <code>on_change</code> were deferred like a normal DATA inlet, a subscriber changing its requirements (e.g. a <code>NumpyFrameEventNode</code> toggling <code>enable_depth</code>) would update the pooled dict but the emitter's <code>on_change</code> handler — and anything it derives, like a requirement-union setting — would silently stay stale until the node happened to execute again for an unrelated reason.</p>
-<h3 id="22-two-callback-modes">2.2 Two callback modes<a class="headerlink" href="#22-two-callback-modes" title="Permanent link">&para;</a></h3>
-<p>The framework supports two ways to wire a listener to an emitter:</p>
-<p><strong>Edge-based (visual, default).</strong> A <code>FlowType.CALLBACK</code> edge connects an emitter outlet to a listener <code>CallbackEvent</code>-node inlet. The event name propagates automatically — the emitter doesn't need a string identifier; the edge is the wiring.</p>
-<p><strong>String-based (<code>mode_switch=True</code>).</strong> No edge is drawn. Instead, the emitter and listener nodes both have a <code>event_name</code> config port set to the same string. The framework matches them at assembly time. Useful for graphs where the visual clutter of callback edges is undesirable.</p>
-<p>Both modes coexist. A graph can have some callbacks edge-wired and others string-matched.</p>
+<h3 id="22-two-ways-to-subscribe">2.2 Two ways to subscribe<a class="headerlink" href="#22-two-ways-to-subscribe" title="Permanent link">&para;</a></h3>
+<p><strong>Edge-based (default).</strong> Draw a CALLBACK edge from the listener event node's CALLBACK outlet to the emitter's pooled callback inlet. The listener publishes its subscription on the outlet (core's <code>TickEventNode</code> publishes its own node id), and the emitter emits to every name in its pool.</p>
+<p><strong>By name (no edge).</strong> Nodes that offer it — haybale-example's Custom Callback and Emit Callback — have a <strong>Custom Name</strong> fold (the <code>custom_name</code> switch and a <code>custom_callback_name</code> text field). With it switched on, the listener subscribes to that name and the emitter emits it. No edge is drawn; the two meet through the CallbackManager's name routing.</p>
+<p>Both coexist. A graph can have some callbacks edge-wired and others matched by name.</p>
 <h3 id="23-the-two-endpoints">2.3 The two endpoints<a class="headerlink" href="#23-the-two-endpoints" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Emitter</strong> — a node whose outlet emits a callback signal. Configured with optional <code>event_name</code> (string-mode only) and a <code>mode_switch</code> config port.</li>
-<li><strong>Listener</strong> — a node with a <code>FlowType.CALLBACK</code> inlet that listens for a named event. The Flow rooted at this node runs when the event fires.</li>
+<li><strong>Listener</strong> — an EVENT node whose <code>event_subscription</code> is a <code>CallbackEvent(event_name=...)</code>. It roots its own Flow and, in edge-based mode, publishes its subscription on a CALLBACK outlet.</li>
+<li><strong>Emitter</strong> — a node that calls <code>context.emit_callback(...)</code>, usually a CONTROL node (core's <code>TickEmitNode</code>, haybale-visiongraph's <code>OakDCameraNode</code>). In edge-based mode it reads the names to emit from its pooled callback inlet; <code>TickEmitNode</code> reads them from a background thread, outside any execution frame.</li>
 </ul>
 <p>By design, every callback-listener Flow has its own EVENT-node entry — typically <code>CallbackEvent(event_name=...)</code>.</p>
+<h3 id="24-through-reroutes-and-subgraph-boundaries">2.4 Through reroutes and Subgraph boundaries<a class="headerlink" href="#24-through-reroutes-and-subgraph-boundaries" title="Permanent link">&para;</a></h3>
+<p>A callback edge may pass through reroutes. Every port on a callback flow is <strong>immediate</strong>: an edge-driven write fires <code>on_change</code> at once, and a reroute's inlet forwards to its outlet from that handler (<code>RerouteNode.forward_immediate</code>), so the subscription reaches the emitter without any node executing. Callback edges always have <code>immediate</code> propagation, locked — see <a href="../../edges/edges-arch/">edges-arch §3.3</a>.</p>
+<p>Removing any edge on the path unsubscribes. An inlet left without a linked edge shows its own value (ADR 0040); for a callback port that is its default, an empty name. The reroute forwards it, and the emitter's pooled inlet treats its element type's default as "no subscription" and removes the entry keyed by its own edge. A displaced edge that takes over keeps the subscription in place.</p>
+<p>A Subgraph boundary relays the same way. The card's immediate inlets and the Subgraph Output's immediate inlets carry <code>on_change = hb_relay</code>, which writes the partner port on the other side at once — the Subgraph Input's outlet for a card inlet, the card's outlet for a Subgraph Output inlet — found by id through <code>subgraph_crossing</code>. <code>reconcile_interface</code> copies every immediate pair once whenever card and interior meet, so load order and a macro reload leave both sides agreeing. Unlinking either side reveals the next port's own value, which the relay carries on. A listener is an EVENT node, which a Subgraph may not contain, so a subscription crosses inward to an interior emitter, or straight through a Group (a reroute or a nested card inside). See ADR 0041.</p>
 <h2 id="3-lifecycle">3. Lifecycle<a class="headerlink" href="#3-lifecycle" title="Permanent link">&para;</a></h2>
-<h3 id="31-assembly-time-wiring">3.1 Assembly-time wiring<a class="headerlink" href="#31-assembly-time-wiring" title="Permanent link">&para;</a></h3>
-<p><code>FlowAssemblyManager._process_callback_edges()</code> runs after individual Flows are built:</p>
+<h3 id="31-assembly-and-listener-registration">3.1 Assembly and listener registration<a class="headerlink" href="#31-assembly-and-listener-registration" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>FlowAssemblyManager.assemble_graph(graph)
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  ├─ identify event nodes → one Flow per event node
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  │     Flow 1: event_subscription = SystemEvent(BEGIN_PLAY)
@@ -3693,72 +3717,76 @@
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  ├─ build each Flow normally (control + data assembly)
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  │
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  └─ _process_callback_edges(graph, flows)
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>       ├─ scan graph.edge_wrappers for FlowType.CALLBACK edges
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>       ├─ build a topology map: emitter_node → [listener_flow, …]
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>       ├─ register the topology with CallbackManager
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>       └─ store statistics on the assembly result
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>       └─ statistics and debug logging only (§3.3)
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>Interpreter, starting each Flow
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  └─ CallbackEvent subscription
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>       → callback_manager.register_callback_listener(event_name, flow)
 </span></code></pre></div>
+<p>Listener Flows are registered from each event node's <code>event_subscription</code>, never from edges.</p>
 <h3 id="32-runtime-dispatch">3.2 Runtime dispatch<a class="headerlink" href="#32-runtime-dispatch" title="Permanent link">&para;</a></h3>
-<p>When a node worker writes to a callback outlet during execution:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Flow 1 worker emits → outlet.set_value(...)
+<p>When an emitter fires a callback:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>emitter worker (or a thread it started) → context.emit_callback(event_name, payload)
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  ↓
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>CallbackManager dispatches by event name
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>VM.emit_callback → CallbackManager.emit_callback
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  ↓
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Each listener Flow registered for that event runs
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  (independently, not as part of Flow 1&#39;s control chain)
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Each Flow registered for event_name runs
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  (independently, not as part of the emitter&#39;s control chain)
 </span></code></pre></div>
 <p>The listener Flow runs through the standard VM dispatch — it's a Flow like any other; the only thing special is how it was <em>triggered</em>.</p>
 <h3 id="33-statistics">3.3 Statistics<a class="headerlink" href="#33-statistics" title="Permanent link">&para;</a></h3>
 <p>The assembly result and the Interpreter both expose callback topology for debugging:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">interpreter</span><span class="o">.</span><span class="n">get_statistics</span><span class="p">()</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;callback_edges&#39;</span><span class="p">]</span>     <span class="c1"># count of CALLBACK edges in the graph</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;callback_topology&#39;</span><span class="p">]</span>  <span class="c1"># {emitter_id: [listener_flow_id, ...]}</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;callback_topology&#39;</span><span class="p">]</span>              <span class="c1"># same, on interpreter for quick access</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;callback_edges&#39;</span><span class="p">]</span>     <span class="c1"># number of CALLBACK edges in the graph</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;callback_topology&#39;</span><span class="p">]</span>              <span class="c1"># same as stats[&#39;assembly&#39;][&#39;callback_topology&#39;]:</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1">#   {&#39;emitters&#39;: int, &#39;listeners&#39;: int,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1">#    &#39;edges&#39;:    {source_node_id: [sink_node_id, ...]},</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1">#    &#39;triggers&#39;: {sink_node_id: [source_node_id, ...]}}</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;callbacks&#39;</span><span class="p">]</span>                      <span class="c1"># CallbackManager: registered event names and listener counts</span>
 </span></code></pre></div>
+<p>The topology follows the edge direction: an edge's <em>source</em> is the listener event node and its <em>sink</em> is the emitter. So the <code>emitters</code> count is the number of distinct edge sources, and <code>listeners</code> the number of distinct sinks — the reverse of the roles in §2.3.</p>
 <h3 id="34-hot-reload-behaviour">3.4 Hot-reload behaviour<a class="headerlink" href="#34-hot-reload-behaviour" title="Permanent link">&para;</a></h3>
 <p>CALLBACK edges follow the same hot-reload path as DATA/EXEC edges (see <a href="../../edges/edges-arch/">architecture/execution/edges</a>). If an emitter or listener node reloads:</p>
 <ol>
 <li><code>NODE_HOT_RELOADED</code> triggers full <code>node_wrapper.build()</code> for the affected node.</li>
 <li>Attached CALLBACK edges are marked dirty, rebuilt, and re-linked.</li>
-<li>The next assembly pass (triggered by the dirty-edge state change) re-runs <code>_process_callback_edges()</code> and rebuilds the callback topology.</li>
+<li>The next assembly pass re-reads each event node's <code>event_subscription</code>, and the Interpreter registers the listener Flows again when it starts them.</li>
 </ol>
 <h2 id="4-boundary">4. Boundary<a class="headerlink" href="#4-boundary" title="Permanent link">&para;</a></h2>
 <p>The callback subsystem is <strong>not</strong>:</p>
 <ul>
 <li>A <strong>synchronous function call</strong> mechanism — listeners run as standalone Flows; emitters do not wait.</li>
-<li>A <strong>data-passing channel for arbitrary types</strong> — CALLBACK ports carry string listener-ids only. Data flow between sibling Flows requires AppState (see <a href="../../../session-and-state/session-and-state-arch/">architecture/session-and-state</a>) or a shared <code>LibrarySettings</code>.</li>
+<li>A <strong>data channel</strong> — a CALLBACK edge carries a subscription, not run-time data. Data sent with a callback travels as <code>emit_callback(payload=...)</code>; data shared between sibling Flows requires AppState (see <a href="../../../session-and-state/session-and-state-arch/">architecture/session-and-state</a>) or a shared <code>LibrarySettings</code>.</li>
 <li>A <strong>subscription protocol</strong> for UI events — that's the studio's <code>notify_context_changed</code> system; see <a href="../../../studio/studio-arch/">architecture/studio</a>.</li>
 <li>An <strong>inter-process communication</strong> mechanism — callbacks are intra-Interpreter only.</li>
 </ul>
 <h2 id="5-examples">5. Examples<a class="headerlink" href="#5-examples" title="Permanent link">&para;</a></h2>
 <h3 id="51-edge-based-callback">5.1 Edge-based callback<a class="headerlink" href="#51-edge-based-callback" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Flow 1 (BeginPlay):                Flow 2 (Listener):
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  ┌──────────┐                       ┌─────────────────┐
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  │BeginPlay │─exec→ ... ─emit→     │ CallbackEvent   │
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  └──────────┘                       │ event_name=     │
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>                                     │ &#39;my_callback&#39;   │
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>                                     └─────────────────┘
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>A CALLBACK edge connects the emitter outlet (in Flow 1) to the listener
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>event-node&#39;s CALLBACK inlet (root of Flow 2). At assembly time, the
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>edge is read once to register Flow 2 as a listener; at runtime, when
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>Flow 1&#39;s emit fires, Flow 2 runs.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Flow 1 (BeginPlay):                              Flow 2 (Listener):
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  ┌──────────┐      ┌───────────────┐             ┌─────────────────┐
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  │BeginPlay │─exec→│ Emit Callback │             │ Custom Callback │
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  └──────────┘      │    Trigger ◄──┼─────────────┤ Listen          │
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>                    └───────────────┘  CALLBACK   └─────────────────┘
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>The CALLBACK edge runs from the listener&#39;s Listen outlet to the emitter&#39;s
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>pooled Trigger inlet and carries the listener&#39;s subscription name. When
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>Flow 1 reaches Emit Callback, it emits to every name in that pool, and
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>the CallbackManager runs Flow 2.
 </span></code></pre></div>
-<h3 id="52-string-based-callback-no-edge">5.2 String-based callback (no edge)<a class="headerlink" href="#52-string-based-callback-no-edge" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Emitter node config:</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">emitter</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="s1">&#39;mode_switch&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">emitter</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="s1">&#39;event_name&#39;</span><span class="p">,</span> <span class="s1">&#39;my_callback&#39;</span><span class="p">)</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># Listener event node config:</span>
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">listener</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="s1">&#39;event_name&#39;</span><span class="p">,</span> <span class="s1">&#39;my_callback&#39;</span><span class="p">)</span>
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1"># No edge between them. Assembly matches them by event_name string.</span>
+<h3 id="52-callback-by-name-no-edge">5.2 Callback by name (no edge)<a class="headerlink" href="#52-callback-by-name-no-edge" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Custom Callback (listener) and Emit Callback (emitter) both switch on</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># the Custom Name fold and use the same name. No edge between them.</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">listener</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">listener</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_callback_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="s2">&quot;my_callback&quot;</span><span class="p">)</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">emitter</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">emitter</span><span class="o">.</span><span class="n">ports</span><span class="p">[</span><span class="s2">&quot;custom_callback_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="s2">&quot;my_callback&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="53-inspecting-the-topology">5.3 Inspecting the topology<a class="headerlink" href="#53-inspecting-the-topology" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">interpreter</span><span class="o">.</span><span class="n">get_statistics</span><span class="p">()</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">for</span> <span class="n">emitter_id</span><span class="p">,</span> <span class="n">listener_flows</span> <span class="ow">in</span> <span class="n">stats</span><span class="p">[</span><span class="s1">&#39;callback_topology&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">emitter_id</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">listener_flows</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">topology</span> <span class="o">=</span> <span class="n">interpreter</span><span class="o">.</span><span class="n">get_statistics</span><span class="p">()[</span><span class="s2">&quot;callback_topology&quot;</span><span class="p">]</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">for</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">sink_ids</span> <span class="ow">in</span> <span class="n">topology</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edges&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_id</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">sink_ids</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="6-open-questions">6. Open questions<a class="headerlink" href="#6-open-questions" title="Permanent link">&para;</a></h2>
 <ul>
@@ -3768,10 +3796,11 @@
 </ul>
 <h2 id="key-files">Key files<a class="headerlink" href="#key-files" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>src/haywire/core/assembly/flow_assembly_manager.py</code> — <code>_process_callback_edges()</code></li>
-<li><code>src/haywire/core/execution/callback_manager.py</code> — <code>CallbackManager</code> (runtime dispatch)</li>
-<li><code>src/haywire/core/execution/interpreter.py</code> — <code>Interpreter</code> (per-graph; owns the CallbackManager)</li>
+<li><code>src/haywire/core/execution/interpreter.py</code> — <code>Interpreter</code> (per-graph; owns the CallbackManager and registers <code>CallbackEvent</code> Flows with it)</li>
+<li><code>src/haywire/core/execution/callback_manager.py</code> — <code>CallbackManager</code> (dispatch by event name)</li>
+<li><code>src/haywire/core/execution/execution_context.py</code> — <code>ExecutionContext.emit_callback</code></li>
 <li><code>src/haywire/core/execution/event_source.py</code> — <code>CallbackEvent</code> listener event-node (framework class; library nodes import it)</li>
+<li><code>src/haywire/core/assembly/flow_assembly_manager.py</code> — <code>_process_callback_edges()</code> (statistics only)</li>
 </ul>
 
 
