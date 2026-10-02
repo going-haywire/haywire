@@ -40,6 +40,7 @@ The steps are numbered in the order they are meant to be built.
 | 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Landed** on `master` | none (small; recorded in `.insights/project_subgraph_scheduler_deadlock.md`) | push |
 | 4 | Callbacks across Subgraph boundaries (Groups and macros) | **Landed** on `master` | [landed/2026-09-29-callbacks-across-subgraph-boundaries.md](landed/2026-09-29-callbacks-across-subgraph-boundaries.md), 10 tasks | push |
 | 5 | EdgeKind | Analysis done, not designed | needed, probably several (5.1, 5.2, …) | inquisition |
+| P | `EXEC` and `CALLBACK` into builtin (precondition for 5; the new node wizard's follow-on 2) | **Landed** on branch `signal-types-to-builtin` (both repos), not merged | [2026-10-02-signal-types-to-builtin.md](2026-10-02-signal-types-to-builtin.md) | merge, then 5.1 |
 
 Local `master` is ahead of `origin/master` (steps 0–4), not pushed. Acceptance tests for steps 1 and 2 live in
 `tests/core/test_edge/test_disconnect_semantics.py`; since step 2 they report

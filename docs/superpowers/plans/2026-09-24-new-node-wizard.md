@@ -471,8 +471,11 @@ Written in the same commit series as the feature, not before.
 1. **Replace Node**: a `ReplaceNodeAction` the user runs from the node context
    menu, swapping a card for another key while keeping position, props, port
    values and edges by port id. Same shape as `PromoteGroupToMacroAction`.
-2. **EXEC and CALLBACK into builtin** with a `TypeRegistry` alias for the
-   `haybale-core:type:*` keys, then the Control, Event and Output templates.
+2. **EXEC and CALLBACK into builtin**: done by
+   [2026-10-02-signal-types-to-builtin.md](2026-10-02-signal-types-to-builtin.md),
+   one module each, without a key alias (saved graphs were rewritten by a one-off
+   script that the same plan then deleted). The Control, Event and Output templates
+   remain.
 3. **`template=` on `studio_scaffold_component`**, once more than one template
    exists.
 4. **Promote to Macro's access tier** (finding 2).
