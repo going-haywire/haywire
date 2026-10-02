@@ -12,8 +12,8 @@ Test version of CustomCallback — listens for named callbacks
 | custom_callback_name | config | haywire-core:type:STRING | Text data |
 | thread_mode | config | haywire-core:type:STRING | Text data |
 | queue_mode | config | haywire-core:type:STRING | Text data |
-| listen_callback | outlet | haybale-core:type:CALLBACK | Signal for callback execution between nodes |
-| triggered | outlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| listen_callback | outlet | haywire-core:type:CALLBACK | Signal for callback execution between nodes |
+| triggered | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 | payload | outlet | haywire-core:type:FLOAT | Decimal numberer |
 
 ## Notes

@@ -8,7 +8,7 @@ Triggered when execution is shutting down
 
 | id | direction | type | description |
 |---|---|---|---|
-| exec | outlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| exec | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 | timestamp | outlet | haywire-core:type:FLOAT | Decimal numberer |
 
 ## Notes

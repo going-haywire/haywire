@@ -9,8 +9,10 @@ Framework-owned primitive types and adapters
 ## Types
 - **Add** — Grows a new port from whatever connects to it
 - **Boolean** — True or False
+- **Callback Signal** — Signal for callback execution between nodes
 - **Choices** — A string constrained to a set of options (options live per-use in widget_config)
 - **Color** — Hex or rgba color string
+- **Execution Signal** — Signal for controlling execution flow between nodes
 - **Float** — Decimal numberer
 - **Fold** — Hides or shows the ports inside it
 - **Integer** — Whole number

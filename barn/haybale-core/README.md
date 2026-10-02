@@ -20,9 +20,7 @@ Fundamental components for haywire graphs
 ## Types
 - **Array** — Homogeneous typed array
 - **Bytes** — Binary data
-- **Callback Signal** — Signal for callback execution between nodes
 - **Dictionary** — Key-value pairs
-- **Execution Signal** — Signal for controlling execution flow between nodes
 - **List** — Ordered collection
 - **Pooled** — Multi-source aggregation
 

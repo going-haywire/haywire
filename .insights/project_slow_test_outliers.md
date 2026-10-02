@@ -78,9 +78,9 @@ Two details make it hard to find:
   order them that way — `-m unit` did, the full suite did not.
 - **Restoring only what you planted is not enough.** `remove_library()` ejects
   every `haybale_core.*` submodule by prefix, including ones the test never
-  touched but the package had already imported. `haybale_core.types.specs` is
-  where `EXEC` lives; a fixture listing only the planted keys leaves exactly the
-  entry whose loss causes the failure. Snapshot **by prefix**.
+  touched but the package had already imported (`haybale_core.types.pooled_type`,
+  say). A fixture listing only the planted keys leaves exactly the entry whose
+  loss causes the failure. Snapshot **by prefix**.
 
 Whenever a test mutates `sys.modules`, snapshot and restore — same discipline
 the DI context and settings registry already require. `assert Foo is Foo`

@@ -13,9 +13,7 @@
 ## type
 - `haybale-core:type:ArrayType` — Array — Homogeneous typed array
 - `haybale-core:type:BYTES` — Bytes — Binary data
-- `haybale-core:type:CALLBACK` — Callback Signal — Signal for callback execution between nodes
 - `haybale-core:type:DICT` — Dictionary — Key-value pairs
-- `haybale-core:type:EXEC` — Execution Signal — Signal for controlling execution flow between nodes
 - `haybale-core:type:LIST` — List — Ordered collection
 - `haybale-core:type:PooledType` — Pooled — Multi-source aggregation
 

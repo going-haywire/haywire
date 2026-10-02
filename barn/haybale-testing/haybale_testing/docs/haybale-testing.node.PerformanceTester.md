@@ -8,9 +8,9 @@ Helps test performance of execution system
 
 | id | direction | type | description |
 |---|---|---|---|
-| exec | inlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| exec | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 | port_count | config | haywire-core:type:INT | Whole number |
-| trigger | outlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| trigger | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 
 ## Notes
 

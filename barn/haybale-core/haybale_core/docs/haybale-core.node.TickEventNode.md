@@ -8,8 +8,8 @@ Triggered periodically by a connected TickEmitNode
 
 | id | direction | type | description |
 |---|---|---|---|
-| listen_callback | outlet | haybale-core:type:CALLBACK | Signal for callback execution between nodes |
-| exec | outlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| listen_callback | outlet | haywire-core:type:CALLBACK | Signal for callback execution between nodes |
+| exec | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 | delta_time | outlet | haywire-core:type:FLOAT | Decimal numberer |
 
 ## Notes

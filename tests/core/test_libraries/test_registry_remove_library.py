@@ -50,10 +50,10 @@ def sys_modules_guard():
 
     The snapshot is taken by PREFIX rather than from a list of the keys these
     tests plant, because ``remove_library()`` ejects every ``haybale_core.*``
-    submodule it finds — including ones the test never touched but the real
-    package had already imported, such as ``haybale_core.types.specs``. That
-    submodule is where ``EXEC`` lives, so listing only the planted keys leaves
-    exactly the entry whose loss causes the identity failure.
+    submodule it finds, including ones the test never touched but the real
+    package had already imported, such as ``haybale_core.types.pooled_type``.
+    Listing only the planted keys leaves exactly the entry whose loss causes the
+    identity failure.
     """
     saved = {k: v for k, v in sys.modules.items() if k == "haybale_core" or k.startswith("haybale_core")}
     try:

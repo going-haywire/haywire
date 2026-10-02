@@ -8,11 +8,11 @@ Log a message to the Python logging system at a configurable severity
 
 | id | direction | type | description |
 |---|---|---|---|
-| exec | inlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| exec | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 | prepend | inlet | haywire-core:type:STRING | Text data |
 | message | inlet | haywire-core:type:STRING | Text data |
 | severity | config | haywire-core:type:STRING | Log level this message is emitted at. |
-| done | outlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| done | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 
 ## Notes
 

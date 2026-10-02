@@ -8,10 +8,10 @@ Test version of Logger — logs a message and continues flow
 
 | id | direction | type | description |
 |---|---|---|---|
-| exec | inlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| exec | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 | prepend | inlet | haywire-core:type:STRING | Text data |
 | message | inlet | haywire-core:type:STRING | Text data |
-| done | outlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| done | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 
 ## Notes
 

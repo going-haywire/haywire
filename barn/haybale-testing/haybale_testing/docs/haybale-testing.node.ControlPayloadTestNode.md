@@ -8,8 +8,8 @@ Test-only control node for exercising EXEC-edge payloads. Records the payload th
 
 | id | direction | type | description |
 |---|---|---|---|
-| exec_in | inlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
-| exec_out | outlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| exec_in | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
+| exec_out | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 
 ## Notes
 

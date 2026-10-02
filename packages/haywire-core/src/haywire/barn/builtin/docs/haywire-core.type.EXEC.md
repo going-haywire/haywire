@@ -1,6 +1,6 @@
 # Execution Signal
 
-`haybale-core:type:EXEC` · kind: type
+`haywire-core:type:EXEC` · kind: type
 
 Signal for controlling execution flow between nodes
 
@@ -12,4 +12,4 @@ Signal for controlling execution flow between nodes
 
 ## Notes
 
-Execution signal carrying an optional ``dict`` payload.
+Execution signal carrying an optional `dict` payload.

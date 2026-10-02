@@ -267,7 +267,7 @@ def test_injector(project_root: Path) -> Generator[Injector, None, None]:
     etc.) lazily on first ``injector.get(...)`` — without restore, a unit test
     using this fixture leaves the ambient context pointing at its fresh,
     library-less registries, and any later test that reads the ambient context
-    (node init resolving ``core:type:CALLBACK``, for example) fails depending
+    (node init resolving ``haywire-core:type:CALLBACK``, for example) fails depending
     on execution order. Snapshot/restore keeps the poisoning contained.
     """
     snap = _snapshot_ambient_di()

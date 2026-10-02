@@ -6,8 +6,8 @@
 
 | id | direction | type | description |
 |---|---|---|---|
-| callback_inlet | inlet | haybale-core:type:CALLBACK | Signal for callback execution between nodes |
-| execute_inlet | inlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| callback_inlet | inlet | haywire-core:type:CALLBACK | Signal for callback execution between nodes |
+| execute_inlet | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 | bool_inlet | inlet | haybale-testing:type:TEST_BOOL | True or False |
 | int_inlet | inlet | haybale-testing:type:TEST_INT | Whole number |
 | float_inlet | inlet | haybale-testing:type:TEST_FLOAT | Decimal numberer |
@@ -19,8 +19,8 @@
 | pooled_temperature_inlet | inlet | haybale-core:type:PooledType | Multi-source aggregation |
 | pooled_string_inlet | inlet | haybale-core:type:PooledType | Multi-source aggregation |
 | pooled_array_string_inlet | inlet | haybale-core:type:PooledType | Multi-source aggregation |
-| callback_outlet | outlet | haybale-core:type:CALLBACK | Signal for callback execution between nodes |
-| execute_out | outlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
+| callback_outlet | outlet | haywire-core:type:CALLBACK | Signal for callback execution between nodes |
+| execute_out | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
 | bool_outlet | outlet | haybale-testing:type:TEST_BOOL | True or False |
 | int_outlet | outlet | haybale-testing:type:TEST_INT | Whole number |
 | float_outlet | outlet | haybale-testing:type:TEST_FLOAT | Decimal numberer |

@@ -6,8 +6,10 @@
 ## type
 - `haywire-core:type:ADD` — Add — Grows a new port from whatever connects to it
 - `haywire-core:type:BOOL` — Boolean — True or False
+- `haywire-core:type:CALLBACK` — Callback Signal — Signal for callback execution between nodes
 - `haywire-core:type:CHOICES` — Choices — A string constrained to a set of options (options live per-use in widget_config)
 - `haywire-core:type:COLOR` — Color — Hex or rgba color string
+- `haywire-core:type:EXEC` — Execution Signal — Signal for controlling execution flow between nodes
 - `haywire-core:type:FLOAT` — Float — Decimal numberer
 - `haywire-core:type:FOLD` — Fold — Hides or shows the ports inside it
 - `haywire-core:type:INT` — Integer — Whole number
