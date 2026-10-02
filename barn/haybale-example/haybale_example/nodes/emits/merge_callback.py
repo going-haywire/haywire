@@ -54,7 +54,7 @@ class MergeCallbackNode(BaseNode):
     def hb_reconfigure(self, number_of_callbacks: int = 1):
         """Reconfigure the node based on current settings."""
         from haywire.barn.builtin.types import FLOAT
-        from haybale_core.types import EXEC, CALLBACK
+        from haywire.barn.builtin.types import CALLBACK, EXEC
 
         self.cache.store = {}
 

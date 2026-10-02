@@ -36,7 +36,7 @@ class ForLoopNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import INT
-        from ..types.specs import EXEC
+        from haywire.barn.builtin.types import EXEC
         from haywire.barn.builtin.widgets import NumberWidget
 
         # Control input - starts the loop

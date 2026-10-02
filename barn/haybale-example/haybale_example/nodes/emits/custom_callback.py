@@ -25,7 +25,7 @@ class CustomCallbackNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import STRING, FLOAT
-        from haybale_core.types import EXEC, CALLBACK
+        from haywire.barn.builtin.types import CALLBACK, EXEC
         from haywire.barn.builtin.widgets import TextWidget
 
         # Config for callback name

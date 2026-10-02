@@ -14,7 +14,7 @@ class TestRecordEventNode(BaseNode):
     """Test-only event node publishing a `TEST_RECORD_CALLBACK` subscription named after itself."""
 
     def init(self):
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
         from haybale_testing.types import TEST_RECORD_CALLBACK
 
         self.add(
@@ -45,7 +45,8 @@ class TestRecordEmitNode(BaseNode):
     """Test-only emitter collecting `TEST_RECORD_CALLBACK` subscriptions in a pooled inlet."""
 
     def init(self):
-        from haybale_core.types import EXEC, PooledType
+        from haybale_core.types import PooledType
+        from haywire.barn.builtin.types import EXEC
         from haybale_testing.types import TEST_RECORD_CALLBACK
 
         self.add(EXEC.as_inlet("execute", label="Execute"))

@@ -24,7 +24,7 @@ class PerformanceTester(BaseNode):
     def init(self):
         # Control output
         from haywire.barn.builtin.types import INT
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
 
         self.add(EXEC.as_inlet("exec", label="Execute"))
 

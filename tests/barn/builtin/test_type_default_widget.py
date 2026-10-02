@@ -20,7 +20,7 @@ def test_vec_type_carries_vec_meta_in_widget_config():
 
 def test_callback_type_has_no_widget_key():
     """CALLBACK inherits STRING's payload but must NOT inherit its TextWidget."""
-    from haybale_core.types.specs import CALLBACK
+    from haywire.barn.builtin.types import CALLBACK
 
     assert CALLBACK.class_identity.widget_key is None
 

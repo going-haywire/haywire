@@ -1,7 +1,8 @@
-"""Builtin Library — framework-owned primitive types, vectors, color, their
-basic adapters, and the reroute node/skin. Loaded at Priority 1 before any
-entry-point plugin so that ``builtin:type:*`` (and ``builtin:node:*``,
-``builtin:skin:*``) keys resolve when graphs and plugins reference them.
+"""Builtin Library: framework-owned types (primitives, vectors, colour, and the
+EXEC and CALLBACK signal types), their basic adapters, and the reroute node and
+skin. Loaded at Priority 1 before any entry-point plugin, so that
+``haywire-core:type:*``, ``haywire-core:node:*`` and ``haywire-core:skin:*`` keys
+resolve when graphs and plugins reference them.
 """
 
 from pathlib import Path

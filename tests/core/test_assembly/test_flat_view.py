@@ -84,7 +84,7 @@ def control_group(graph_with_library_system: BaseGraph):
     The Group's inlet is left unconnected so its own port value is the input —
     a Graph-node owns its port values (decision 11).
     """
-    from haybale_core.types import EXEC
+    from haywire.barn.builtin.types import EXEC
     from haywire.barn.builtin.types import FLOAT
 
     graph = graph_with_library_system
@@ -340,7 +340,7 @@ class TestNesting:
 
     @pytest.fixture
     def nested(self, graph_with_library_system: BaseGraph):
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
         from haywire.barn.builtin.types import FLOAT
 
         graph = graph_with_library_system
@@ -491,7 +491,7 @@ class TestOnAssembly:
 
     def test_a_node_deep_in_the_tree_is_prepared(self, graph_with_library_system):
         """A Subgraph nested in a Subgraph is walked too."""
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
 
         graph = graph_with_library_system
         outer = _definition(graph, key="sg_outer")

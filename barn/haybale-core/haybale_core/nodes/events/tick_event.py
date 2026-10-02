@@ -24,7 +24,7 @@ class TickEventNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import FLOAT
-        from haybale_core.types import EXEC, CALLBACK
+        from haywire.barn.builtin.types import CALLBACK, EXEC
 
         # Callback outlet — broadcasts this node's listener ID
         self.add(

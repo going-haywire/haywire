@@ -23,7 +23,7 @@ class BenchExecNode(BaseNode):
     """Single EXEC inlet/outlet pass-through. Worker only advances."""
 
     def init(self):
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
 
         self.add(EXEC.as_inlet("exec_in"))
         self.add(EXEC.as_outlet("exec_out"))

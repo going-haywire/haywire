@@ -7,17 +7,17 @@ pytestmark = pytest.mark.integration
 
 class TestCallbackFields:
     def test_a_callback_field_defaults_to_an_empty_name(self, library_system):
-        from haybale_core.types import CALLBACK
+        from haywire.barn.builtin.types import CALLBACK
 
         assert CALLBACK.create_field().get_value() == ""
 
     def test_a_callback_field_holds_no_absence(self, library_system):
-        from haybale_core.types import CALLBACK
+        from haywire.barn.builtin.types import CALLBACK
 
         assert not CALLBACK.create_field().accepts_absence()
 
     def test_a_callback_value_saves_and_loads(self, library_system):
-        from haybale_core.types import CALLBACK
+        from haywire.barn.builtin.types import CALLBACK
 
         field = CALLBACK.create_field()
         field.set_value("tick")
@@ -28,7 +28,7 @@ class TestCallbackFields:
         assert restored.get_value() == "tick"
 
     def test_it_still_travels_as_callback(self, library_system):
-        from haybale_core.types import CALLBACK
+        from haywire.barn.builtin.types import CALLBACK
 
         assert CALLBACK.create_field().get_stored_type() is CALLBACK
 
@@ -68,7 +68,8 @@ class TestOptionalKeepsAbsence:
 
 class TestPooledFields:
     def test_an_empty_name_from_a_source_removes_its_entry(self, library_system):
-        from haybale_core.types import CALLBACK, PooledType
+        from haybale_core.types import PooledType
+        from haywire.barn.builtin.types import CALLBACK
 
         pool = PooledType[CALLBACK].create_field()
         pool.set_value("a", source_id="e1")
@@ -100,7 +101,8 @@ class TestPooledFields:
         assert pool.get_value() == {"e1": TEST_RECORD_CALLBACK(name="", weight=2)}
 
     def test_the_default_without_a_source_changes_nothing(self, library_system):
-        from haybale_core.types import CALLBACK, PooledType
+        from haybale_core.types import PooledType
+        from haywire.barn.builtin.types import CALLBACK
 
         pool = PooledType[CALLBACK].create_field()
         pool.set_value("a", source_id="e1")

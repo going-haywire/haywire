@@ -406,7 +406,7 @@ class TestSplitEdgeRerouteIntegration:
 
     def test_split_control_edge_inserts_reroute(self, graph_with_library_system, library_system):
         """Splitting a CONTROL edge inserts a reroute with EXEC inlet/outlet."""
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
         from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
         from haywire.core.types.enums import FlowType
         from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode

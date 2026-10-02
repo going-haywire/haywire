@@ -5,17 +5,13 @@ from .pooled_type import PooledField
 from .specs import BYTES
 from .specs import LIST
 from .specs import DICT
-from .specs import EXEC
-from .specs import CALLBACK
 
 
 __all__ = [
     "ArrayField",
     "ArrayType",
     "BYTES",
-    "CALLBACK",
     "DICT",
-    "EXEC",
     "LIST",
     "PooledField",
     "PooledType",

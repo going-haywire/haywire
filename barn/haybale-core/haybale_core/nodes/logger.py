@@ -24,7 +24,7 @@ class LoggerNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import STRING
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
         from haywire.barn.builtin.widgets import TextWidget, SelectWidget
 
         # Control flow

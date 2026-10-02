@@ -33,7 +33,7 @@ def subscriptions(emitter) -> list:
 
 def build_interior(graph, key: str = "sg_cb") -> CallbackGroup:
     """A Subgraph with one callback port on each boundary node, and no card yet."""
-    from haybale_core.types import CALLBACK
+    from haywire.barn.builtin.types import CALLBACK
     from haywire.core.graph.subgraph import SubgraphDefinition
     from haywire.core.graph.subgraph_crossing import RELAY_HANDLER
     from haywire.core.types.enums import PortOrigin

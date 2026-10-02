@@ -14,7 +14,7 @@ class TestEmitCallbackNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import STRING, FLOAT, BOOL
-        from haybale_core.types import EXEC, CALLBACK
+        from haywire.barn.builtin.types import CALLBACK, EXEC
         from haybale_core.types import PooledType
         from haywire.barn.builtin.widgets import SwitchWidget, TextWidget
 

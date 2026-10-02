@@ -13,7 +13,7 @@ class PrintNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import STRING
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
 
         # Control flow
         self.add(EXEC.as_inlet("exec"))

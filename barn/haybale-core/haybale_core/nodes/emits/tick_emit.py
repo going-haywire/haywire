@@ -33,7 +33,8 @@ class TickEmitNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import FLOAT
-        from haybale_core.types import EXEC, CALLBACK, PooledType
+        from haybale_core.types import PooledType
+        from haywire.barn.builtin.types import CALLBACK, EXEC
         from haywire.barn.builtin.widgets import NumberWidget
 
         # Control inputs

@@ -20,7 +20,7 @@ def _document(graph, *, through: bool) -> dict:
     A listener cannot sit inside a Subgraph (containment rules out EVENT nodes),
     so a subscription leaves a macro only on its way through.
     """
-    from haybale_core.types import CALLBACK
+    from haywire.barn.builtin.types import CALLBACK
     from haywire.core.graph.subgraph import SubgraphDefinition
     from haywire.core.graph.subgraph_crossing import RELAY_HANDLER
     from haywire.core.types.enums import PortOrigin

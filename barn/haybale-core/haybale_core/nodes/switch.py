@@ -36,7 +36,7 @@ class ControlSwitch(BaseNode):
         # Control output
         from haywire.barn.builtin.widgets import SelectWidget
         from haywire.barn.builtin.types import INT, STRING
-        from ..types.specs import EXEC
+        from haywire.barn.builtin.types import EXEC
 
         self.add(EXEC.as_inlet("exec", label="Execute"))
 

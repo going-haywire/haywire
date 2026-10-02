@@ -123,7 +123,7 @@ class TestTheGraphNodeCard:
         assert card.node.behavior.is_mutable is True
 
     def test_a_control_crossed_card_is_a_control_node(self, graph_with_library_system: BaseGraph):
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
         from haywire.core.graph.scheduler import SyncScheduler
         from haywire.core.graph.subgraph import SubgraphDefinition
         from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
@@ -145,7 +145,7 @@ class TestTheGraphNodeCard:
 
     def test_the_role_follows_the_interface_when_it_changes(self, graph_with_library_system: BaseGraph):
         """Drop the control crossing and the card becomes a DATA node again."""
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
         from haywire.core.graph.scheduler import SyncScheduler
         from haywire.core.graph.subgraph import SubgraphDefinition
         from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY

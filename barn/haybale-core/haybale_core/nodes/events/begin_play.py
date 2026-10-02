@@ -21,7 +21,7 @@ class BeginPlayNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import FLOAT
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
 
         # Control output
         self.add(EXEC.as_outlet("exec", label="Execute"))

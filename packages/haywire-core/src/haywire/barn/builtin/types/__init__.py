@@ -1,6 +1,8 @@
 from .add import ADD, ADDField
+from .callback import CALLBACK
 from .choices import CHOICES
 from .color import COLOR, ColorStr
+from .exec import EXEC
 from .fold import FOLD
 from .optional import OPTIONAL
 from .specs import BOOL, FLOAT, INT, STRING, FLOATField, INTField
@@ -16,6 +18,8 @@ __all__ = [
     "STRING",
     "CHOICES",
     "BOOL",
+    "EXEC",
+    "CALLBACK",
     "FOLD",
     "VEC2I",
     "VEC3I",

@@ -82,7 +82,7 @@ def lazy_into_the_card(graph_with_library_system: BaseGraph):
     card's own ``_execute`` drains the pull before the crossing is taken, so
     the Subgraph Input copies a resolved value rather than a stale one.
     """
-    from haybale_core.types import EXEC
+    from haywire.barn.builtin.types import EXEC
     from haywire.barn.builtin.types import FLOAT
 
     graph = graph_with_library_system
@@ -154,7 +154,7 @@ class TestALazyEdgeFeedingTheCard:
 @pytest.fixture
 def lazy_out_of_the_card(graph_with_library_system: BaseGraph):
     """The card's outlet feeds a consumer over a LAZY edge."""
-    from haybale_core.types import EXEC
+    from haywire.barn.builtin.types import EXEC
     from haywire.barn.builtin.types import FLOAT
 
     graph = graph_with_library_system
@@ -231,7 +231,7 @@ def loop_body_inside_a_group(graph_with_library_system: BaseGraph):
     graph spans host and Subgraph alike, so the loopback push and pop land in
     the same local list whichever side each is on.
     """
-    from haybale_core.types import EXEC
+    from haywire.barn.builtin.types import EXEC
 
     graph = graph_with_library_system
     definition = _definition(graph, key="sg_loop")
@@ -312,7 +312,7 @@ class TestUnderTheThreadedScheduler:
     def test_a_control_group_runs_to_completion_on_a_scheduler_thread(
         self, graph_with_library_system: BaseGraph
     ):
-        from haybale_core.types import EXEC
+        from haywire.barn.builtin.types import EXEC
         from haywire.barn.builtin.types import FLOAT
 
         graph = graph_with_library_system

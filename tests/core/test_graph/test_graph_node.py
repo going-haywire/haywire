@@ -80,7 +80,7 @@ def _stamp_data_interface(definition: SubgraphDefinition) -> tuple[NodeWrapper, 
 
 def _stamp_control_interface(definition: SubgraphDefinition) -> None:
     """Give the definition a control crossing on top of a data outlet."""
-    from haybale_core.types import EXEC
+    from haywire.barn.builtin.types import EXEC
     from haybale_testing.types.test_types import TEST_FLOAT
 
     input_node = _boundary(definition, is_input=True)
