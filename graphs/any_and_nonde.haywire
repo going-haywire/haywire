@@ -484,11 +484,11 @@
           "callback_inlet": {
             "kwargs": {
               "registry_id": "CALLBACK",
-              "registry_key": "haybale-core:type:CALLBACK",
+              "registry_key": "haywire-core:type:CALLBACK",
               "label": "Callback Signal",
               "description": "Signal for callback execution between nodes",
               "class_name": "CALLBACK",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.callback",
               "flow_type": "callback",
               "default": {},
               "store_strategy": 8,
@@ -497,17 +497,17 @@
               "port_type": "inlet"
             },
             "recipe": {
-              "registry_key": "haybale-core:type:CALLBACK"
+              "registry_key": "haywire-core:type:CALLBACK"
             }
           },
           "execute_inlet": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "haybale-core:type:EXEC",
+              "registry_key": "haywire-core:type:EXEC",
               "label": "Execution Signal",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.exec",
               "flow_type": "control",
               "default": {
                 "value": {}
@@ -520,7 +520,7 @@
               "order": 1
             },
             "recipe": {
-              "registry_key": "haybale-core:type:EXEC"
+              "registry_key": "haywire-core:type:EXEC"
             }
           },
           "bool_inlet": {
@@ -795,11 +795,11 @@
           "callback_outlet": {
             "kwargs": {
               "registry_id": "CALLBACK",
-              "registry_key": "haybale-core:type:CALLBACK",
+              "registry_key": "haywire-core:type:CALLBACK",
               "label": "Callback Signal",
               "description": "Signal for callback execution between nodes",
               "class_name": "CALLBACK",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.callback",
               "flow_type": "callback",
               "default": {},
               "store_strategy": 8,
@@ -810,17 +810,17 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-core:type:CALLBACK"
+              "registry_key": "haywire-core:type:CALLBACK"
             }
           },
           "execute_out": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "haybale-core:type:EXEC",
+              "registry_key": "haywire-core:type:EXEC",
               "label": "Execution Signal",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.exec",
               "flow_type": "control",
               "default": {
                 "value": {}
@@ -833,7 +833,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-core:type:EXEC"
+              "registry_key": "haywire-core:type:EXEC"
             }
           },
           "bool_outlet": {
@@ -1206,11 +1206,11 @@
           "exec": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "haybale-core:type:EXEC",
+              "registry_key": "haywire-core:type:EXEC",
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.exec",
               "flow_type": "control",
               "default": {
                 "value": {}
@@ -1223,7 +1223,7 @@
               "order": 41
             },
             "recipe": {
-              "registry_key": "haybale-core:type:EXEC"
+              "registry_key": "haywire-core:type:EXEC"
             }
           },
           "port_count": {
@@ -1264,11 +1264,11 @@
           "trigger": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "haybale-core:type:EXEC",
+              "registry_key": "haywire-core:type:EXEC",
               "label": "Trigger",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.exec",
               "flow_type": "control",
               "default": {
                 "value": {}
@@ -1281,7 +1281,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-core:type:EXEC"
+              "registry_key": "haywire-core:type:EXEC"
             }
           },
           "float_inlet_0": {
@@ -1465,11 +1465,11 @@
           "exec": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "haybale-core:type:EXEC",
+              "registry_key": "haywire-core:type:EXEC",
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.exec",
               "flow_type": "control",
               "default": {
                 "value": {}
@@ -1481,7 +1481,7 @@
               "allow_multiple_links": true
             },
             "recipe": {
-              "registry_key": "haybale-core:type:EXEC"
+              "registry_key": "haywire-core:type:EXEC"
             }
           },
           "port_count": {
@@ -1522,11 +1522,11 @@
           "trigger": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "haybale-core:type:EXEC",
+              "registry_key": "haywire-core:type:EXEC",
               "label": "Trigger",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
-              "module": "haybale_core.types.specs",
+              "module": "haywire.barn.builtin.types.exec",
               "flow_type": "control",
               "default": {
                 "value": {}
@@ -1539,7 +1539,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haybale-core:type:EXEC"
+              "registry_key": "haywire-core:type:EXEC"
             }
           },
           "float_inlet_0": {
