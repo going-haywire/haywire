@@ -4,7 +4,7 @@
 
 **Goal:** Register `.hwm` macro files as components — a file-backed registry that hands back a Macro template satisfying the same `RegisteredClass` contract a node class does.
 
-**Architecture:** `DocumentRegistry(ComponentRegistry[T])` globs one suffix, parses on load, hashes content, and maps CREATED/MODIFIED/DELETED onto the CLASS_ADDED/RELOADED/REMOVED lifecycle. `MacroRegistry(DocumentRegistry[MacroTemplate])` adds `.hwm`, containment validation (decision 13) and the cycle backstop (decision 14). This is step 2 of [03-macro.md](03-macro.md), covering decisions 4, 5, 13, 14-backstop and 17.
+**Architecture:** `DocumentRegistry(ComponentRegistry[T])` globs one suffix, parses on load, hashes content, and maps CREATED/MODIFIED/DELETED onto the CLASS_ADDED/RELOADED/REMOVED lifecycle. `MacroRegistry(DocumentRegistry[MacroTemplate])` adds `.hwm`, containment validation (decision 13) and the cycle backstop (decision 14). This is step 2 of [03-macro.md](03-macro.md) (now in `landed/`), covering decisions 4, 5, 13, 14-backstop and 17.
 
 **Tech Stack:** Python 3.12, mypy, ruff (line-length 109), pytest.
 

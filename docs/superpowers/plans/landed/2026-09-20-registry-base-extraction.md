@@ -4,7 +4,7 @@
 
 **Goal:** Extract the kind-agnostic registry plumbing out of `BaseRegistry` into a new `ComponentRegistry` base, so a future file-backed `DocumentRegistry` can inherit it without dragging module/`sys.modules` reload machinery along.
 
-**Architecture:** Insert one class between `HotReloadRegistry` and `BaseRegistry`. `ComponentRegistry` owns the storage dict, the folder→library map, the lifecycle-event queue, both subscriber lists and the `get`/`has`/`list_*`/last-event readers. `BaseRegistry` keeps everything module-centric: `FolderScanMixin`, `importlib`/`sys.modules` reload, `DependencyGraph`, rollback snapshots, and the `.py` filter in `event_dispatcher`. This is step 1 of [03-macro.md](03-macro.md) (decision 3) and is a **pure move** — no behaviour change, no macro code.
+**Architecture:** Insert one class between `HotReloadRegistry` and `BaseRegistry`. `ComponentRegistry` owns the storage dict, the folder→library map, the lifecycle-event queue, both subscriber lists and the `get`/`has`/`list_*`/last-event readers. `BaseRegistry` keeps everything module-centric: `FolderScanMixin`, `importlib`/`sys.modules` reload, `DependencyGraph`, rollback snapshots, and the `.py` filter in `event_dispatcher`. This is step 1 of [03-macro.md](03-macro.md) (now in `landed/`) (decision 3) and is a **pure move** — no behaviour change, no macro code.
 
 **Tech Stack:** Python 3.12, mypy (strict-ish, per repo config), ruff (line-length 109), pytest.
 

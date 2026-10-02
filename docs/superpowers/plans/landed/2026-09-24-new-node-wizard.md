@@ -16,7 +16,7 @@ Farmhand gets the same dependency bookkeeping and the same "did it register"
 answer.
 
 **Status: 2026-09-24.** Settled by design interview (21 decisions, below).
-Unbuilt. No ADR, by the user's call.
+Built and landed (`e5beecef`). No ADR, by the user's call.
 
 ---
 
@@ -472,10 +472,10 @@ Written in the same commit series as the feature, not before.
    menu, swapping a card for another key while keeping position, props, port
    values and edges by port id. Same shape as `PromoteGroupToMacroAction`.
 2. **EXEC and CALLBACK into builtin**: done by
-   [2026-10-02-signal-types-to-builtin.md](2026-10-02-signal-types-to-builtin.md),
-   one module each, without a key alias (saved graphs were rewritten by a one-off
-   script that the same plan then deleted). The Control, Event and Output templates
-   remain.
+   [2026-10-02-signal-types-to-builtin.md](2026-10-02-signal-types-to-builtin.md)
+   (now in `landed/`), one module each, without a key alias (saved graphs were
+   rewritten by a one-off script that the same plan then deleted). The Control,
+   Event and Output templates remain.
 3. **`template=` on `studio_scaffold_component`**, once more than one template
    exists.
 4. **Promote to Macro's access tier** (finding 2).

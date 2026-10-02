@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, pytest (+ xdist), uv, ruff, mypy. No UI or JS changes.
 
-**Settled in:** the edge-kinds step 5 inquisition, decision Q6b (move before step 5, its own plan), and this plan's two questions on 2026-10-02: P-Q1 C (no alias, rewrite the files), P-Q2 A (update every importer, no re-export, visiongraph included). Two amendments on 2026-10-02 at the user's request: `EXEC` and `CALLBACK` get one module each rather than joining `specs.py`, and the migration script plus its tests are removed once they have done their job. Design context: [2026-10-02-wire-types.md](2026-10-02-wire-types.md) §P. Origin: [2026-09-24-new-node-wizard.md](2026-09-24-new-node-wizard.md), decision 8 and follow-on 2.
+**Settled in:** the edge-kinds step 5 inquisition, decision Q6b (move before step 5, its own plan), and this plan's two questions on 2026-10-02: P-Q1 C (no alias, rewrite the files), P-Q2 A (update every importer, no re-export, visiongraph included). Two amendments on 2026-10-02 at the user's request: `EXEC` and `CALLBACK` get one module each rather than joining `specs.py`, and the migration script plus its tests are removed once they have done their job. Design context: [2026-10-02-wire-types.md](2026-10-02-wire-types.md) §P. Origin: [landed/2026-09-24-new-node-wizard.md](landed/2026-09-24-new-node-wizard.md), decision 8 and follow-on 2.
 
 ## Global Constraints
 

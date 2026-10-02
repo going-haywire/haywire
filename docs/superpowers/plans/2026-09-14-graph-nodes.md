@@ -39,7 +39,7 @@ step plans, numbered in the order they were built.
 
 
 **1. Instant switching** — **landed** (`10500f44`);
-[01-instant-subgraph-switching.md](01-instant-subgraph-switching.md)
+[landed/01-instant-subgraph-switching.md](landed/01-instant-subgraph-switching.md)
 
 Keep every visited level mounted so entering and leaving a Group costs a
 `set_value`. First, because it changes *how* a Subgraph is opened: a Group gets
@@ -56,7 +56,7 @@ validation subscription was not enough on its own — `mark_as_structuraly_dirty
 short-circuits on a node already flagged dirty — which is what the rejig fix
 in `3eac0e4f` addressed.
 
-**3. Slice 2 — Macro** — [03-macro.md](03-macro.md), settled 2026-09-20
+**3. Slice 2 — Macro** — [landed/03-macro.md](landed/03-macro.md), settled 2026-09-20
 
 That plan supersedes the outline below. Its 2026-09-20 revision closes the
 reload question: a placement's registry key *is* the macro key, so the node
@@ -207,7 +207,7 @@ Cross-file cycle detection enforces decision 17.
 
 ### Three things to settle first
 
-Superseded by [03-macro.md](03-macro.md), which answers items 1 and 2 from
+Superseded by [landed/03-macro.md](landed/03-macro.md), which answers items 1 and 2 from
 existing code. Item 3 stands. Kept here for the reasoning.
 
 1. **Give each Graph-node its own instantiation.** A `SubgraphDefinition` is

@@ -36,11 +36,11 @@ The steps are numbered in the order they are meant to be built.
 |---|---|---|---|---|
 | 0 | Groundwork: split-reroute tests used a stale key; callback and pipe architecture docs corrected, ErrorNode test trap recorded | **Landed** on `master` | none | push |
 | 1 | Callbacks through reroutes; `Propagation` (lazy / eager / immediate) replaces `is_lazy` | **Landed** on `master` | [landed/2026-09-27-callbacks-through-reroutes.md](landed/2026-09-27-callbacks-through-reroutes.md) | push |
-| 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Landed** on `master` | [landed/2026-09-28-unlink-reveals-own-value.md](landed/2026-09-28-unlink-reveals-own-value.md), 10 tasks; supersedes [2026-09-28-immediate-reset-to-default.md](2026-09-28-immediate-reset-to-default.md) | merge |
+| 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Landed** on `master` | [landed/2026-09-28-unlink-reveals-own-value.md](landed/2026-09-28-unlink-reveals-own-value.md), 10 tasks; supersedes 2026-09-28-immediate-reset-to-default.md (removed) | merge |
 | 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Landed** on `master` | none (small; recorded in `.insights/project_subgraph_scheduler_deadlock.md`) | push |
 | 4 | Callbacks across Subgraph boundaries (Groups and macros) | **Landed** on `master` | [landed/2026-09-29-callbacks-across-subgraph-boundaries.md](landed/2026-09-29-callbacks-across-subgraph-boundaries.md), 10 tasks | push |
 | 5 | EdgeKind | Analysis done, not designed | needed, probably several (5.1, 5.2, …) | inquisition |
-| P | `EXEC` and `CALLBACK` into builtin (precondition for 5; the new node wizard's follow-on 2) | **Landed** on branch `signal-types-to-builtin` (both repos), not merged | [2026-10-02-signal-types-to-builtin.md](2026-10-02-signal-types-to-builtin.md) | merge, then 5.1 |
+| P | `EXEC` and `CALLBACK` into builtin (precondition for 5; the new node wizard's follow-on 2) | **Landed** on branch `signal-types-to-builtin` (both repos), not merged | [landed/2026-10-02-signal-types-to-builtin.md](landed/2026-10-02-signal-types-to-builtin.md) | merge, then 5.1 |
 
 Local `master` is ahead of `origin/master` (steps 0–4), not pushed. Acceptance tests for steps 1 and 2 live in
 `tests/core/test_edge/test_disconnect_semantics.py`; since step 2 they report

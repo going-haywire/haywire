@@ -8,7 +8,7 @@ Subgraph that lives in **its own file**, is a library component, and can be
 placed any number of times in any graph.
 
 > | **Macro** | own file, a library component | any graph | **inlined** at assembly | 2 |
-> — [2026-09-14-graph-nodes.md:97](2026-09-14-graph-nodes.md)
+> — [2026-09-14-graph-nodes.md:97](../2026-09-14-graph-nodes.md)
 
 **Outcome:** a user picks a macro from the add-node menu, gets a card wired like
 any other node, and the graph runs as if the macro's interior had been pasted in.

@@ -356,9 +356,9 @@ its code. Each starts with the failing tests listed for it.
 ### P. EXEC and CALLBACK into builtin
 
 The new node wizard's follow-on 2
-([2026-09-24-new-node-wizard.md](2026-09-24-new-node-wizard.md), decision 8),
+([landed/2026-09-24-new-node-wizard.md](landed/2026-09-24-new-node-wizard.md), decision 8),
 pulled forward as a precondition (Q6b). Detail plan:
-[2026-10-02-signal-types-to-builtin.md](2026-10-02-signal-types-to-builtin.md).
+[landed/2026-10-02-signal-types-to-builtin.md](landed/2026-10-02-signal-types-to-builtin.md).
 Move both types to builtin and update every importer, visiongraph included, with
 no re-export. There is no key alias: a script rewrites the saved graphs (14 files
 here, one in visiongraph). It also fixes the Python-type lookup, which would
