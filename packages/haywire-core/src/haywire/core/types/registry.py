@@ -8,6 +8,7 @@ validation, and retrieval of all data types (type variants and custom compound t
 import inspect
 from typing import Optional, Type, Any, cast
 
+from .enums import FlowType
 from .interface import IType
 from .identity import DataTypeIdentity
 from ..registry.base import BaseRegistry
@@ -117,18 +118,23 @@ class TypeRegistry(BaseRegistry[IType]):
         return self._classes.get(key)
 
     def get_type_for_python_type(self, py_type: type) -> type[IType] | None:
-        """Find the registered IType whose ``element_type_cls`` is *py_type*.
+        """Find the registered value type whose ``element_type_cls`` is *py_type*.
 
         Inverse of the IType→Python-type relationship each type already declares
         (e.g. ``FLOAT.element_type_cls is float``). Used by the runtime/TOML
         settings path to resolve an inferred Python type to its IType without a
-        hand-maintained mapping. Returns ``None`` if no registered type matches.
+        hand-maintained mapping. Returns ``None`` if no registered value type matches.
 
-        Exact match only (``element_type_cls is py_type``); a ``haywire-core:`` type is
+        Exact match only (``element_type_cls is py_type``). Only ``FlowType.DATA``
+        types are candidates: a signal type wrapping a Python type (``EXEC`` wraps
+        ``dict``) is not a value a setting holds. A ``haywire-core:`` type is
         preferred when several libraries register the same Python type.
         """
         matches = [
-            cls for cls in self._classes.values() if getattr(cls, "element_type_cls", None) is py_type
+            cls
+            for cls in self._classes.values()
+            if getattr(cls, "element_type_cls", None) is py_type
+            and FlowType(cls.class_identity.flow_type) is FlowType.DATA
         ]
         if not matches:
             return None
