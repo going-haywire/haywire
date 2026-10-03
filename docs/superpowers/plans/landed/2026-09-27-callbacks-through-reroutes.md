@@ -1,6 +1,6 @@
 # Callbacks Through Reroutes (Edge Kinds, Step 1) Implementation Plan
 
-**Status — 2026-09-28.** Built on branch `edge-kinds`, not yet merged. Gate 5904 passed, browser 135, visiongraph 29. Deviations: Task 6's test path `tests/core/test_validation/` does not exist, so `tests/core/node/test_boundary_nodes.py` ran instead; after Task 6 the Insert Reroute panel doc was regenerated. The reset-to-`None` rule of Task 7 is to be replaced by edge-kinds step 2 (unlinking reveals the port's own value). Sequence: [../2026-09-28-edge-kinds.md](../2026-09-28-edge-kinds.md).
+**Status — 2026-09-28.** Built on branch `edge-kinds`, not yet merged. Gate 5904 passed, browser 135, visiongraph 29. Deviations: Task 6's test path `tests/core/test_validation/` does not exist, so `tests/core/node/test_boundary_nodes.py` ran instead; after Task 6 the Insert Reroute panel doc was regenerated. The reset-to-`None` rule of Task 7 is to be replaced by edge-kinds step 2 (unlinking reveals the port's own value). Sequence: [2026-09-28-edge-kinds.md](2026-09-28-edge-kinds.md).
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

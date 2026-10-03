@@ -1,5 +1,12 @@
 # Edge kinds: steps and sequence
 
+**Closed 2026-10-02.** Steps 0 to 4 landed and are on `origin/master`. Step 5
+was designed as wire types and continues, with plan P, in
+[2026-10-02-wire-types.md](../2026-10-02-wire-types.md), now the status source.
+The step 5 inputs below are kept as the inquisition's starting point; where the
+design departs from them, see that plan's "Earlier decisions this revises". Open
+small items moved there too.
+
 ## Context
 
 The goal is to make edges a first-class component, like nodes. A library
@@ -30,19 +37,19 @@ The steps are numbered in the order they are meant to be built.
 
 ---
 
-## Status and sequence — 2026-09-30
+## Status and sequence — closed 2026-10-02
 
-| Step | Work | Status | Detail plan | Next |
-|---|---|---|---|---|
-| 0 | Groundwork: split-reroute tests used a stale key; callback and pipe architecture docs corrected, ErrorNode test trap recorded | **Landed** on `master` | none | push |
-| 1 | Callbacks through reroutes; `Propagation` (lazy / eager / immediate) replaces `is_lazy` | **Landed** on `master` | [landed/2026-09-27-callbacks-through-reroutes.md](landed/2026-09-27-callbacks-through-reroutes.md) | push |
-| 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Landed** on `master` | [landed/2026-09-28-unlink-reveals-own-value.md](landed/2026-09-28-unlink-reveals-own-value.md), 10 tasks; supersedes 2026-09-28-immediate-reset-to-default.md (removed) | merge |
-| 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Landed** on `master` | none (small; recorded in `.insights/project_subgraph_scheduler_deadlock.md`) | push |
-| 4 | Callbacks across Subgraph boundaries (Groups and macros) | **Landed** on `master` | [landed/2026-09-29-callbacks-across-subgraph-boundaries.md](landed/2026-09-29-callbacks-across-subgraph-boundaries.md), 10 tasks | push |
-| 5 | EdgeKind | Analysis done, not designed | needed, probably several (5.1, 5.2, …) | inquisition |
-| P | `EXEC` and `CALLBACK` into builtin (precondition for 5; the new node wizard's follow-on 2) | **Landed** on branch `signal-types-to-builtin` (both repos), not merged | [landed/2026-10-02-signal-types-to-builtin.md](landed/2026-10-02-signal-types-to-builtin.md) | merge, then 5.1 |
+| Step | Work | Status | Detail plan |
+|---|---|---|---|
+| 0 | Groundwork: split-reroute tests used a stale key; callback and pipe architecture docs corrected, ErrorNode test trap recorded | **Landed** on `master` | none |
+| 1 | Callbacks through reroutes; `Propagation` (lazy / eager / immediate) replaces `is_lazy` | **Landed** on `master` | [2026-09-27-callbacks-through-reroutes.md](2026-09-27-callbacks-through-reroutes.md) |
+| 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Landed** on `master` | [2026-09-28-unlink-reveals-own-value.md](2026-09-28-unlink-reveals-own-value.md), 10 tasks; supersedes 2026-09-28-immediate-reset-to-default.md (removed) |
+| 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Landed** on `master` | none (small; recorded in `.insights/project_subgraph_scheduler_deadlock.md`) |
+| 4 | Callbacks across Subgraph boundaries (Groups and macros) | **Landed** on `master` | [2026-09-29-callbacks-across-subgraph-boundaries.md](2026-09-29-callbacks-across-subgraph-boundaries.md), 10 tasks |
+| 5 | EdgeKind | **Superseded**: designed as wire types, sub-plans 5.1 to 5.5 | [2026-10-02-wire-types.md](../2026-10-02-wire-types.md) |
+| P | `EXEC` and `CALLBACK` into builtin (precondition for 5; the new node wizard's follow-on 2) | tracked in wire types | [2026-10-02-signal-types-to-builtin.md](2026-10-02-signal-types-to-builtin.md) |
 
-Local `master` is ahead of `origin/master` (steps 0–4), not pushed. Acceptance tests for steps 1 and 2 live in
+Steps 0–4 are on `origin/master`. Acceptance tests for steps 1 and 2 live in
 `tests/core/test_edge/test_disconnect_semantics.py`; since step 2 they report
 `9 passed`, no xfails.
 
@@ -57,7 +64,7 @@ Merging before step 2 because step 2 reaches into settings, promotion and
 widgets, too much to hold on one branch.
 
 **2. Unlinking reveals a port's own value.** **Landed**:
-[landed/2026-09-28-unlink-reveals-own-value.md](landed/2026-09-28-unlink-reveals-own-value.md),
+[2026-09-28-unlink-reveals-own-value.md](2026-09-28-unlink-reveals-own-value.md),
 ADR 0040.
 
 *The rule.* An inlet shows the value from its edge while an edge feeds it, and
@@ -89,7 +96,9 @@ port's edges detach, which would leave a stale linked value behind.
 default, so a callback emitter reads the element type's default as "no
 subscription" and drops that entry. That is what callback values mean, not an
 unlink rule, and EdgeKind will own it as a property of the callback kind. The
-superseded plan's pool rule and test node carry over.
+superseded plan's pool rule and test node carry over. *(Revised by wire types
+Q14: `CallbackWire.holds_absence` and `default=None` replace the default
+sentinel.)*
 
 *Tests that flip from freeze to reveal:* `test_promotion_single_cell.py:296`
 (demote keeps the cell value), `test_promotion_e2e.py` step 4,
@@ -110,7 +119,7 @@ superseded plan's pool rule and test node carry over.
   when the value it sees changes;
 - `CALLBACK`'s default becomes `""`, callbacks need no absence storage, and an
   immediate pool drops an entry equal to its element's default (a library may
-  still give its callback type another default);
+  still give its callback type another default) — *revised by wire types Q14*;
 - `@type` rejects a primitive type whose default holds no value;
 - the linked value lives in the `DataField` base, as a second instance of the
   field class;
@@ -130,7 +139,7 @@ Across graphs the order is Subgraph before host (a Subgraph batch reaches the
 host through the card); step 4 must keep to it.
 
 **4. Callbacks across Subgraph boundaries.** **Landed**:
-[landed/2026-09-29-callbacks-across-subgraph-boundaries.md](landed/2026-09-29-callbacks-across-subgraph-boundaries.md);
+[2026-09-29-callbacks-across-subgraph-boundaries.md](2026-09-29-callbacks-across-subgraph-boundaries.md);
 ADR 0041. Settled 2026-09-29: an immediate relay on both sides of
 the card (keyed on `is_immediate`), a resync in `reconcile_interface`, deferred
 pairs only in the execution copy, a bare `ADD` accepting any flow, one
@@ -154,7 +163,15 @@ inquisition:
 - Promote to Macro with a callback interface, and a macro reload rebuilding the
   interior (ADR 0038). Macros are built (`03-macro.md`), so this is in scope.
 
-**5. EdgeKind.** Inquisition, then plans, numbered 5.1, 5.2, … After step 4,
+**5. EdgeKind.** *Superseded by
+[2026-10-02-wire-types.md](../2026-10-02-wire-types.md), settled in the
+inquisition of 2026-09-30 to 2026-10-02.* The inputs below are kept as that
+inquisition's starting point. Several were decided differently: compatibility is
+wire-type id equality plus a bare-ADD wildcard (Q9b/c), not a key each kind
+computes; `validate_edge` is deleted, not made per-kind (Q3, Q15); `is_control_node`
+and NodeType stay (Q11).
+
+Inquisition, then plans, numbered 5.1, 5.2, … After step 4,
 so every relay is generic before kinds become pluggable. Inputs from the
 2026-09-27 analysis:
 
@@ -201,31 +218,8 @@ so every relay is generic before kinds become pluggable. Inputs from the
 
 ### Small items
 
-Not steps; each is a single change.
-
-- `packages/haywire-core/src/haywire/barn/builtin/__init__.py` names
-  `builtin:type:*` / `builtin:node:*` keys; the real prefix is `haywire-core:`.
-  Probably where the stale test key came from.
-- `docs/guides/panels.md` links to a file under `.insights/`, outside
-  `docs_dir`. `mkdocs build --strict` fails on it; CI builds without
-  `--strict`, so CI passes.
-- `DataPort.set_value`/`get_value` open with `if not self._data: return`, and
-  `ArrayField`/`MapsStringField` define `__len__`, so an empty array inlet is
-  falsy: it silently drops an edge's `[1.0, 2.0]` and reads `None`. Should be
-  `is None`. Found while verifying the step 2 plan; pre-existing.
-- `tests/core/test_graph/test_base.py::test_generated_ids_are_distinct` mints
-  200 ids with a 6-hex random suffix without registering them, so the
-  collision retry never applies: a birthday collision fails it about once in
-  800 runs (seen once while building step 2). Register each id, or assert on
-  fewer.
-- Collapse does not refuse a selection holding an EVENT node; the invalid Group
-  surfaces only at host assembly (`validate_subgraph_contents`). Pre-existing,
-  not callback-specific; found in step 4.
-- Possibly: collapse seeds a data interface port's default from a *pooled*
-  interior inlet, whose default is pool-shaped. Unverified; step 4 fixed only
-  the immediate case.
-- Check the OAK-D camera once in the studio: step 1 fixed a stale cache, so
-  `OakDCameraNode.hb_on_callbacks_changed` now fires on edge-driven writes, as
-  `callbacks-arch.md` always described. visiongraph's tests do not cover that
-  path.
+Closed with the overview. The `builtin:type:*` / `builtin:node:*` key-prefix
+docstring was fixed by plan P (`58966757`). The OAK-D studio check is part of
+wire types 5.3. The open items moved to
+[2026-10-02-wire-types.md](../2026-10-02-wire-types.md), "Small items".
 

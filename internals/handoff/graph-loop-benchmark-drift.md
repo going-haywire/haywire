@@ -140,8 +140,8 @@ be named differently at old commits; check `benchmarks/run.py` there.
 
 The commits (or harness changes) that account for the gap, each with a
 measured before/after on today's machine, and the hot function each one
-touched. Record the outcome in the edge-kinds overview's *Small items*
-(`docs/superpowers/plans/2026-09-28-edge-kinds.md`) or in a new
+touched. Record the outcome in the wire-types plan's *Small items*
+(`docs/superpowers/plans/2026-10-02-wire-types.md`) or in a new
 `.insights/` file if the cause is a trap others will hit. Only fix what is
 cheap and clearly safe; bring anything structural back to the user first.
 
