@@ -21,7 +21,8 @@ layout engine produces.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.pin_edge import PIN_EDGE_JS
 
 _PATH = "/graph-hidden-level"
 
@@ -29,8 +30,8 @@ pytestmark = pytest.mark.ui
 
 _EDGES = 6
 
-#: A drawn endpoint should sit on its pin. The slack covers the pin's own radius
-#: and sub-pixel rounding; the failure mode is tens to hundreds of pixels out.
+#: A drawn endpoint should sit on its pin's edge. The slack is the canvas's own
+#: geometry tolerance; the failure mode is tens to hundreds of pixels out.
 _MAX_ENDPOINT_ERROR_PX = 12.0
 
 #: Every edge path of the canvas, by its `d` attribute (hit areas excluded).
@@ -55,11 +56,11 @@ def _wait_for_all_edges(page: Page) -> list[str]:
 
 
 #: Each edge's drawn endpoints in SCREEN pixels, via the browser's own CTM, next
-#: to the screen centres of the two pins it claims to join. Comparing those two
-#: needs none of the canvas's coordinate maths, which is the thing under test.
-_ENDPOINTS_VS_PINS = (
-    """
-() => {
+#: to the screen points where they meet the two pins it claims to join (each
+#: pin's edge). Comparing those two needs none of the canvas's coordinate maths,
+#: which is the thing under test.
+_ENDPOINTS_VS_PINS = """
+() => {%s
     const root = document.querySelector('%s');
     if (!root) return [];
     const out = [];
@@ -71,24 +72,18 @@ _ENDPOINTS_VS_PINS = (
             const q = p.getPointAtLength(len);
             return { x: q.x * ctm.a + q.y * ctm.c + ctm.e, y: q.x * ctm.b + q.y * ctm.d + ctm.f };
         };
-        const centre = (el) => {
-            const r = el.getBoundingClientRect();
-            return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-        };
         const info = window.__hwEdgeInfo ? window.__hwEdgeInfo(p.id) : null;
         out.push({
             id: p.id,
             start: at(0),
             end: at(p.getTotalLength()),
-            outlet: info && info.outlet ? centre(info.outlet) : null,
-            inlet: info && info.inlet ? centre(info.inlet) : null,
+            outlet: info && info.outlet ? pinEdge(info.outlet, ctm) : null,
+            inlet: info && info.inlet ? pinEdge(info.inlet, ctm) : null,
         });
     });
     return out;
 }
-"""
-    % _CANVAS
-)
+""" % (PIN_EDGE_JS, _CANVAS)
 
 #: Resolves an edge's two pin elements the way canvas.vue names them, so the
 #: comparison above has something to compare against.
@@ -124,7 +119,7 @@ def _wait_until_on_pins(page: Page, timeout_s: float = 5.0) -> list[float]:
 
 
 def _endpoint_errors(page: Page) -> list[float]:
-    """Distance in screen px between each drawn endpoint and the pin it joins."""
+    """Distance in screen px between each drawn endpoint and the edge of the pin it joins."""
     page.evaluate(_INSTALL_EDGE_INFO)
     rows = page.evaluate(_ENDPOINTS_VS_PINS)
     errors = []
@@ -327,6 +322,83 @@ def test_edges_drawn_off_their_pins_are_repaired_on_re_attach(page: Page, harnes
     errors = _wait_until_on_pins(page)
     assert max(errors) < _MAX_ENDPOINT_ERROR_PX, (
         f"edges left {max(errors):.0f}px from their pins — the canvas did not check its own geometry"
+    )
+
+
+#: Pull every edge's start back inside its outlet pin, onto the line from the
+#: pin's edge through its centre: under 12 screen px from the centre, but over
+#: 12 from the edge, where the start belongs. Returns the worst MEASURED
+#: distance (the moved path's own start, via the screen CTM) from a pin centre,
+#: so the test can show the move is invisible to a centre check.
+_PULL_STARTS_INSIDE = """
+() => {%s
+    const root = document.querySelector('%s');
+    let worstFromCentre = 0;
+    root.querySelectorAll('.connection-svg path[data-edge-id]').forEach(p => {
+        if (p.id.endsWith('_hitarea')) return;
+        const m = /^(.*)\\[(.*)\\]->(.*)\\[(.*)\\]$/.exec(p.id);
+        const pin = document.getElementById(`${m[2]}@${m[1]}`);
+        const ctm = p.getScreenCTM();
+        const r = pin.getBoundingClientRect();
+        const c = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        const e = pinEdge(pin, ctm);
+        const half = Math.hypot(e.x - c.x, e.y - c.y);
+        const fromCentre = 12 - half / 2;
+        const q = new DOMPoint(
+            c.x - (e.x - c.x) / half * fromCentre,
+            c.y - (e.y - c.y) / half * fromCentre,
+        ).matrixTransform(ctm.inverse());
+        const d = p.getAttribute('d');
+        p.setAttribute('d', d.replace(/^M\\s*[-\\d.e]+[\\s,]+[-\\d.e]+/, `M ${q.x} ${q.y}`));
+        const moved = p.getPointAtLength(0);
+        const s = {
+            x: moved.x * ctm.a + moved.y * ctm.c + ctm.e,
+            y: moved.x * ctm.b + moved.y * ctm.d + ctm.f,
+        };
+        worstFromCentre = Math.max(worstFromCentre, Math.hypot(s.x - c.x, s.y - c.y));
+    });
+    return worstFromCentre;
+}
+""" % (PIN_EDGE_JS, _CANVAS)
+
+
+def test_an_edge_end_off_its_pin_edge_is_repaired_on_re_attach(page: Page, harness):
+    """The canvas checks an end against the pin's edge, where it is drawn, not the pin's centre.
+
+    Each start is moved to a point a centre check passes and an edge check
+    fails, so only a check against the edge re-measures it.
+    """
+    goto_ready(page, f"{harness}{_PATH}?edges={_EDGES}")
+    # The fixture's distances are screen px, so the first reveal's fit-to-content must be done.
+    # The canvas starts at zoom 1 and the fit moves it to ~0.67 (this fixture's
+    # content never fits at 1), so a transform scale away from 1 means the fit
+    # has been applied; waiting on that, not on a log line, survives logging changes.
+    page.click('[data-testid="reveal"]')
+    page.wait_for_function(
+        """() => {
+            const el = document.querySelector('.zoom-pan-content');
+            if (!el) return false;
+            const m = new DOMMatrix(getComputedStyle(el).transform);
+            return Math.abs(m.a - 1) > 0.01;
+        }""",
+        timeout=10_000,
+    )
+    _wait_for_all_edges(page)
+    wait_for_canvas_settled(page)
+
+    assert page.evaluate(_PULL_STARTS_INSIDE) < _MAX_ENDPOINT_ERROR_PX, (
+        "the fixture left a start far from its centre"
+    )
+    assert max(_endpoint_errors(page)) > _MAX_ENDPOINT_ERROR_PX, "the fixture did not displace anything"
+
+    page.click('[data-testid="hide"]')
+    page.wait_for_function(f"() => ({_PATH_DS})().length === 0", timeout=10_000)
+    page.click('[data-testid="reveal"]')
+
+    errors = _wait_until_on_pins(page)
+    assert max(errors) < _MAX_ENDPOINT_ERROR_PX, (
+        f"edge starts left {max(errors):.0f}px from their pins' edges — the geometry check "
+        "measured them against something other than the pin's edge"
     )
 
 

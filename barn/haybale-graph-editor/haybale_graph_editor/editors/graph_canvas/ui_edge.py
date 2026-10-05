@@ -21,6 +21,7 @@ import logging
 from dataclasses import dataclass
 
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.types import ArrowAt
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +39,9 @@ class EdgeVisualState:
 
     # Visual properties
     stroke_color: str
-    stroke_width: int
     stroke_dasharray: str  # "" for solid, "5,5" for dashed, "2,4" for dotted
     opacity: float
+    arrow_at: str  # ArrowAt value: the end a computed head is drawn at
 
     # State flags (used to derive visual properties)
     is_valid: bool
@@ -49,17 +50,21 @@ class EdgeVisualState:
     def __eq__(self, other) -> bool:
         """Compare visual states to detect changes.
 
-        Deliberately ignores ``edge_id`` and the state flags: two states are
-        equal when they would *draw* the same, which is the only question the
-        redraw-dedupe in ``on_validated`` is asking.
+        Deliberately ignores ``edge_id``: two states are equal when they would
+        *draw* the same, which is the only question the redraw-dedupe in
+        ``on_validated`` is asking. ``is_valid`` and ``has_warning`` take part
+        because they pick the invalid colour and the warning glow; ``arrow_at``
+        takes part because a rebuild can change the wire type.
         """
         if not isinstance(other, EdgeVisualState):
             return False
         return (
             self.stroke_color == other.stroke_color
-            and self.stroke_width == other.stroke_width
             and self.stroke_dasharray == other.stroke_dasharray
             and self.opacity == other.opacity
+            and self.arrow_at == other.arrow_at
+            and self.is_valid == other.is_valid
+            and self.has_warning == other.has_warning
         )
 
 
@@ -76,20 +81,23 @@ def edge_visual_state(wrapper: EdgeWrapper) -> EdgeVisualState:
 
     Visual States:
     1. VALID (default): Use gradient ('auto'), full opacity
-    2. WARNING (chain changed): Orange color, full opacity
-    3. INVALID (error): Red dashed line, reduced opacity
+    2. WARNING (chain changed): full opacity, drawn with the theme's warning colour by the canvas
+    3. INVALID (error): dashed, reduced opacity, drawn in the theme's danger colour by the canvas
 
     Returns:
         EdgeVisualState with appropriate styling
     """
+    wire = wrapper.wire_type
+    arrow_at = wire.arrow_at.value if wire is not None else ArrowAt.INLET.value
+
     # State: INVALID (highest priority)
     if not wrapper.is_valid():
         return EdgeVisualState(
             edge_id=wrapper.edge_id,
-            stroke_color="#EF4444",  # Red
-            stroke_width=2,
+            stroke_color="auto",  # The canvas paints an invalid edge with the --hw-danger token
             stroke_dasharray="5,5",  # Dashed
             opacity=0.7,
+            arrow_at=arrow_at,
             is_valid=False,
             has_warning=False,
         )
@@ -98,10 +106,10 @@ def edge_visual_state(wrapper: EdgeWrapper) -> EdgeVisualState:
     if wrapper.state.has_warning():
         return EdgeVisualState(
             edge_id=wrapper.edge_id,
-            stroke_color="auto",  # Orange/Amber
-            stroke_width=2,
+            stroke_color="auto",  # The canvas draws the warning glow with the --hw-warning token
             stroke_dasharray="2,2,2,2,2,5,5,5,5,5,5,5",  # Solid
             opacity=1.0,
+            arrow_at=arrow_at,
             is_valid=True,
             has_warning=True,
         )
@@ -110,9 +118,9 @@ def edge_visual_state(wrapper: EdgeWrapper) -> EdgeVisualState:
     return EdgeVisualState(
         edge_id=wrapper.edge_id,
         stroke_color="auto",  # Use gradient from pins
-        stroke_width=2,
         stroke_dasharray=calculate_dasharray(len(wrapper.edge.chain_adapter_keys)),  # Solid
         opacity=1.0,
+        arrow_at=arrow_at,
         is_valid=True,
         has_warning=False,
     )
@@ -136,7 +144,7 @@ def edge_sync_payload(wrapper: EdgeWrapper, state: EdgeVisualState) -> dict:
         "isValid": state.is_valid,
         "hasWarning": state.has_warning,
         "strokeColor": state.stroke_color,
-        "strokeWidth": state.stroke_width,
+        "arrowAt": state.arrow_at,
         "strokeDasharray": state.stroke_dasharray,
         "opacity": state.opacity,
     }

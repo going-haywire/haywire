@@ -459,7 +459,7 @@ class SyncEdgeAdditionEvent(BaseGraphEvent):
 
     Visual properties:
     - strokeColor: 'auto' uses gradient, otherwise solid color
-    - strokeWidth: Line thickness
+    - arrowAt: The end a computed edge's arrow head sits at (inlet, outlet, none)
     - strokeDasharray: Dash pattern ('' for solid)
     - opacity: Transparency (0.0-1.0)
     - isValid: Connection validity state
@@ -476,7 +476,7 @@ class SyncEdgeAdditionEvent(BaseGraphEvent):
     isValid: bool = True
     hasWarning: bool = False
     strokeColor: str = "auto"  # 'auto' = use gradient, else solid color
-    strokeWidth: int = 2
+    arrowAt: str = "inlet"  # ArrowAt value: where a computed head sits
     strokeDasharray: str = ""
     opacity: float = 1.0
 

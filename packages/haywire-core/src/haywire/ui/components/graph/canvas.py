@@ -12,6 +12,7 @@ from pathlib import Path
 
 from nicegui import ui
 
+from haywire.core.edge.arrow_heads import ARROW_HEADS
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
@@ -28,6 +29,7 @@ _CANVAS_SETTING_PROPS: dict[str, str] = {
     "grid_subdivisions": "grid-subdivisions",
     "snap_to_grid": "snap-to-grid",
     "snap_scale_to_grid": "snap-scale-to-grid",
+    "edge_hit_padding": "edge-hit-padding",
 }
 
 # Hover-magnifier settings → Vue prop names. The magnifier lives in canvas.vue
@@ -77,6 +79,8 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         # Canvas appearance settings: push initial values and live-update on change.
         self._canvas_settings = CanvasSettings()
         self._apply_canvas_setting_props()
+        # The head table is static: canvas.vue builds one <marker> per head from it.
+        self._props["arrow-heads"] = [head.to_payload() for head in ARROW_HEADS]
         self._canvas_settings._subscribe(self._on_canvas_setting_changed)
 
         # Hover-magnifier settings: push initial values and live-update on change.
@@ -107,6 +111,12 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         """Push current canvas appearance settings to Vue props."""
         for name, prop in _CANVAS_SETTING_PROPS.items():
             self._props[prop] = getattr(self._canvas_settings, name)
+
+    def set_edge_defaults(self, arrow: str, width: float) -> None:
+        """Push the graph's computed-edge arrow head (a head name or ``none``) and width in pixels."""
+        self._props["edge-arrow"] = arrow
+        self._props["edge-width"] = width
+        self.update()
 
     def _on_canvas_setting_changed(self, name: str, value, _old) -> None:
         """Propagate a canvas appearance settings change to the Vue component."""

@@ -135,12 +135,12 @@ def test_edge_repaints_after_detail_change_while_culled(page: Page, harness) -> 
     )
 
     end = _edge_end(page)
-    assert abs(end["y"] - after["y"]) < 12, (
-        f"edge end {end['y']:.1f} should track the revealed pin's new centre {after['y']:.1f} "
-        f"(it was at {before['y']:.1f} before the rank change) — a stale edge means the "
+    assert abs(end["y"] - after["ey"]) < 12, (
+        f"edge end {end['y']:.1f} should track the revealed pin's new edge {after['ey']:.1f} "
+        f"(it was at {before['ey']:.1f} before the rank change) — a stale edge means the "
         "detail change made while culled never reached the node once it un-culled"
     )
-    assert abs(end["x"] - after["x"]) < 12
+    assert abs(end["x"] - after["ex"]) < 12
 
 
 def test_edge_repaints_on_the_return_trip_while_culled(page: Page, harness) -> None:
@@ -163,6 +163,6 @@ def test_edge_repaints_on_the_return_trip_while_culled(page: Page, harness) -> N
     assert abs(restored["y"] - lifted["y"]) > 8, "returning to FULL must move the pin back down"
 
     end = _edge_end(page)
-    assert abs(end["y"] - restored["y"]) < 12, (
-        f"edge end {end['y']:.1f} should track the restored pin {restored['y']:.1f}"
+    assert abs(end["y"] - restored["ey"]) < 12, (
+        f"edge end {end['y']:.1f} should track the restored pin's edge {restored['ey']:.1f}"
     )

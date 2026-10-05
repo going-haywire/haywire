@@ -6,7 +6,7 @@ the builtin library import them relatively.
 """
 
 from haywire.core.types.enums import Propagation
-from haywire.core.types.wire import WireRole, WireType
+from haywire.core.types.wire import ArrowAt, WireRole, WireType
 
 
 class DataWire(WireType):
@@ -26,8 +26,12 @@ class ControlWire(WireType):
 
 
 class CallbackWire(WireType):
-    """Subscriptions, which take effect as soon as they are written."""
+    """Subscriptions, which take effect as soon as they are written.
+
+    A computed head points at the outlet: the listener the callback returns to.
+    """
 
     role = WireRole.IMMEDIATE
     propagation = ()
     pin_kind = "callback"
+    arrow_at = ArrowAt.OUTLET

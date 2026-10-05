@@ -170,8 +170,8 @@ def cached_packages_distributions():
 # minimal registry so bare ``BaseGraph()`` construction works.
 #
 # The session library-system registry (set once via ``provide_settings_registry``)
-# is not re-run per test, so integration graph fixtures re-assert it themselves at
-# use time (see ``graph_with_library_system``).
+# is not re-run per test, so a test that needs that registry in place takes the
+# ``library_system`` fixture (as ``graph_with_library_system`` does).
 @pytest.fixture(autouse=True)
 def _ambient_settings_registry():
     from haywire.core.di import context as di_context
@@ -332,6 +332,28 @@ def library_system(project_root: Path, test_library_path: Path):
     # Clear global references
     set_library_system(None)
     set_global_injector(None)
+
+
+@pytest.fixture
+def graph_with_library_system(library_system) -> "BaseGraph":
+    """
+    Provide a graph with full library system loaded.
+
+    Use this for integration tests that need to create nodes/edges
+    using NodeFactory and AdapterFactory.
+
+    It depends on the session-scoped ``library_system``; mark tests using it
+    with ``@pytest.mark.integration``.
+
+    Uses ``SyncScheduler`` for inline validation (see ``empty_graph``).
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.scheduler import SyncScheduler
+
+    return BaseGraph(
+        filestem="Integration Test Graph",
+        validation_scheduler=SyncScheduler(),
+    )
 
 
 # ==============================================================================

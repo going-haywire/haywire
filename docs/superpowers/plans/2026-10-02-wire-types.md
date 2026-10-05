@@ -19,8 +19,8 @@ from it, each with its own tasks.
 | 5.3 | The immediate path | Designed, reviewed, O2 to O4 settled (Q22 to Q24) | to write | after 5.2 |
 | 5.4 | Edge rendering and the style bag | Designed, reviewed; revised by D (Q50, Q53, Q58) | to write | after D's code |
 | 5.5 | The annotation wire, type, node and skin | Designed, reviewed | to write | after 5.3 and 5.4 |
-| D | Edge appearance: defaults (framework < graph), arrow heads, UX colours | **Designed** 2026-10-04 (Q48 to Q62); detail plan written | [2026-10-04-wire-types-d-edge-appearance.md](2026-10-04-wire-types-d-edge-appearance.md) | execute, beside 5.3 and before 5.4 (Q56) |
-| F | Follow-ups found while executing 5.1 and 5.2 | F1 to F11 **done** on branch `wire-types-5-1` 2026-10-04; F12 to 5.3; F13 to F15 after 5.5 | [Follow-ups](#follow-ups-from-51-and-52) | 5.3 detail plan must carry F12; close F13 to F15 when 5.5 lands |
+| D | Edge appearance: defaults (framework < graph), arrow heads, UX colours | **Landed** on branch `wire-types-5-1`, not merged | [2026-10-04-wire-types-d-edge-appearance.md](2026-10-04-wire-types-d-edge-appearance.md) | 5.4 detail plan |
+| F | Follow-ups found while executing 5.1, 5.2 and D | F1 to F11 **done** on branch `wire-types-5-1` 2026-10-04; F12 to 5.3; F13 to F15 after 5.5; F16 to 5.4; F17 to F21 open | [Follow-ups](#follow-ups-from-51-52-and-d) | 5.3 detail plan must carry F12, 5.4 detail plan F16; close F13 to F15 when 5.5 lands |
 
 5.1 also made an unknown `pin_kind` draw the fallback glyph (`_from_map` always ends in `fallback`), so 5.4 has no fallback-glyph work left.
 
@@ -952,7 +952,7 @@ overview when it closed.
 - **Done in 5.1.** `ADD`'s docstring (`add.py:111-113`) says a typed `ADD[T]` keeps T's flow. It
   does not today. 5.1 makes it true.
 
-## Follow-ups from 5.1 and 5.2
+## Follow-ups from 5.1, 5.2 and D
 
 Found while executing 5.1 and 5.2 (task reviews, the final whole-branch reviews,
 the live studio checks). Each is either done on `wire-types-5-1` before the merge,
@@ -1028,6 +1028,37 @@ item when it lands; when 5.5 lands, nothing here may be left open.
   the first old one; the others leave `_linked_edges` silently and may leave stale
   sources (a pooled field). Displace every old edge, which changes `_add_link`'s
   single displaced-edge return and `EdgeWrapper.link`'s handling of it.
+
+**From D (edge appearance), landed 2026-10-04:**
+
+Changed during execution (user decisions, recorded in ADR 0045): every edge end
+stops at its pin's edge, and a head adds `inset × width` on top (live check 4
+found heads half under the pin). The head table's `arrowHeads` watcher was
+dropped (it fired on every canvas `update()`). A head on a selected or active
+edge grows with the stroke and runs a few px into the pin (accepted).
+
+- [ ] **F16 → 5.4.** `canvas.vue` reads the graph's width and head where 5.4's
+  styled edges need per-edge values: `_edgeInsets` (path insets), the hit-area
+  sibling path's width, one `--hw-edge-head` var (5.4 needs a start head and an
+  end head), and `_edgeGeometryLooksWrong`, which assumes at most one headed end.
+  ADR 0045's Consequences name these; the 5.4 detail plan owns them.
+- [ ] **F17.** The head table is a canvas prop, and NiceGUI re-sends every prop on
+  each `update()` (after every validation): about 3.3 KB per validation per
+  canvas. Ship `ARROW_HEADS` as a generated JS file, like `graph_events.js`.
+- [ ] **F18.** The `edgeWidth` watcher re-lays out every edge even when no end is
+  headed; with the pin-edge rule a width change moves only headed ends.
+- [ ] **F19.** A head's span is not clickable: the hit area follows the shortened
+  path. The right-click search (`_isPointNearStroke`) also keeps a fixed 8px
+  tolerance instead of `CanvasSettings.edge_hit_padding`.
+- [ ] **F20.** `test_edge_appearance.py`'s `_click` waits a fixed 600 ms; wait on
+  the expected computed value instead (a slow runner can give the
+  marker-survival test a false green).
+- [ ] **F21.** Test infrastructure: framework schemas queue in `_pending_global`
+  and only the first `SettingsRegistry()` drains it. After
+  `tests/farmhand/test_bare_studio.py` or `test_graph_editor_tools.py` builds its
+  own library system, the session registry misses later schemas (seen as
+  `props.edge_width` = `None`). `test_manager_props_subscriptions.py` registers its
+  two schemas explicitly; fix it at the source.
 
 Not a follow-up (decided 2026-10-03): the default skin shows no multi glyph on
 outlets (no `callback_out_multi` in `PinIconResolver.ICONS`, like `data_out`), so

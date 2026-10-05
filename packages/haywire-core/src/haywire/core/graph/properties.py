@@ -9,6 +9,8 @@ Serialized under the ``'props'`` key in graph JSON; restored before nodes
 on load.
 """
 
+from haywire.barn.builtin.widget_keys import ARROW_HEAD_WIDGET
+from haywire.core.edge.settings import EdgeDefaultSettings
 from haywire.core.settings.descriptor import shadow
 from haywire.core.settings.settings_graph import GraphSettings
 from haywire.core.skin.settings import (
@@ -71,4 +73,21 @@ class GraphProperties(GraphSettings):
         category="appearance",
         order=30,
         widget_config={"options": _node_theme_choices},
+    )
+
+    edge_arrow = shadow(
+        src=EdgeDefaultSettings.arrow,
+        label="Edge Arrow",
+        description=("Arrow head on the computed edges of THIS graph. Overrides the studio default."),
+        category="appearance",
+        order=40,
+        widget={"key": ARROW_HEAD_WIDGET},
+    )
+
+    edge_width = shadow(
+        src=EdgeDefaultSettings.width,
+        label="Edge Width",
+        description=("Line width of the computed edges in THIS graph. Overrides the studio default."),
+        category="appearance",
+        order=50,
     )

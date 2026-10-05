@@ -246,6 +246,38 @@ def _build_layout_graph(node_factory):
     return graph, editor
 
 
+_ADD_FLOAT_KEY = "haybale-testing:node:TestAddFloatNode"
+_LISTENER_KEY = "haybale-testing:node:TestCustomCallbackNode"
+_EMITTER_KEY = "haybale-testing:node:TestEmitCallbackNode"
+_ADD_PORT_KEY = "haybale-testing:node:AddPortTestNode"
+
+
+def _build_edge_appearance_graph(node_factory):
+    """One edge of each kind the edge-appearance tests read: data, control, callback, and an invalid one."""
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("Edge Appearance Fixture")
+    editor = Editor(graph, node_factory)
+
+    def node(key: str, x: float, y: float):
+        wrapper = graph.create_node_wrapper(key, position=(x, y))
+        assert wrapper is not None, f"could not create {key}"
+        return wrapper
+
+    add_a, add_b = node(_ADD_FLOAT_KEY, 3600.0, 3600.0), node(_ADD_FLOAT_KEY, 3950.0, 3600.0)
+    begin, printer = node(_RECONNECT_SOURCE_KEY, 3600.0, 3800.0), node(_RECONNECT_SINK_KEY, 3950.0, 3800.0)
+    listener, emitter = node(_LISTENER_KEY, 3600.0, 4000.0), node(_EMITTER_KEY, 3950.0, 4000.0)
+    slot_a, slot_b = node(_ADD_PORT_KEY, 3600.0, 4250.0), node(_ADD_PORT_KEY, 3950.0, 4250.0)
+
+    assert editor.create_edge(add_a.node_id, "result", add_b.node_id, "value_a")
+    assert editor.create_edge(begin.node_id, "exec", printer.node_id, "exec")
+    assert editor.create_edge(listener.node_id, "listen_callback", emitter.node_id, "edge_callback")
+    # Two bare ADD slots never link: the edge stays, and fails validation.
+    graph.create_edge_wrapper(slot_a.node_id, "add_out_0", slot_b.node_id, "add_in_0")
+    return graph, editor
+
+
 def _build_error_skin_graph(node_factory):
     """One node pinned to the error skin, for the error-skin DOM tests.
 
@@ -1030,6 +1062,37 @@ def register_routes(library_service) -> None:
         ui.button("set-b2t", on_click=lambda: _set_direction("b2t")).props('data-testid="set-b2t"')
 
         _mount_graph_canvas(library_service, graph, editor, testid="layout")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-edge-appearance
+    #
+    # A data, a control, a callback and an invalid edge, plus buttons setting
+    # the graph's edge defaults and re-sending the edges. Fixed token values
+    # make colours assertable.
+    # Backs test_edge_appearance.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-edge-appearance")
+    async def graph_edge_appearance_page():
+        graph, editor = _build_edge_appearance_graph(library_service.get_node_factory())
+        ui.add_css(":root:root { --hw-danger: rgb(200, 10, 10); --hw-edge-default: rgb(10, 120, 200); }")
+
+        for testid, field, value in (
+            ("set-width-4", "edge_width", 4.0),
+            ("set-arrow-open", "edge_arrow", "open"),
+            ("set-arrow-ring", "edge_arrow", "circle_hollow"),
+            ("set-arrow-none", "edge_arrow", "none"),
+        ):
+            ui.button(testid, on_click=lambda _, f=field, v=value: setattr(graph.props, f, v)).props(
+                f'data-testid="{testid}"'
+            )
+
+        manager = _mount_graph_canvas(library_service, graph, editor, testid="edge-appearance")
+        # Re-sends every edge as one batch, which the canvas follows with its geometry check.
+        ui.button("resync-edges", on_click=lambda: manager.resync_edges()).props(
+            'data-testid="resync-edges"'
+        )
         _stamp_synced()
 
     # -------------------------------------------------------------------------

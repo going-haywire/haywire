@@ -21,6 +21,7 @@ import pytest
 from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.pin_edge import PIN_EDGE_JS
 
 _PATH = "/graph-detail"
 
@@ -28,11 +29,11 @@ pytestmark = pytest.mark.ui
 
 
 def _pin(page: Page, pin_id: str) -> dict:
-    """Centre of one pin in the SVG space edge paths are authored in.
+    """Centre (``x``/``y``) and edge point (``ex``/``ey``) of one pin, in the SVG space of edge paths.
 
     Mirrors ``_getPinPosition`` → ``_transformScreenToSVG`` exactly, so the
     result is directly comparable to a path's coordinates; raw
-    ``getBoundingClientRect`` values are not.
+    ``getBoundingClientRect`` values are not. An edge end sits on the edge point.
 
     The zoom comes from ``_zoomPanControls``, the same source canvas.vue reads.
     Trap: deriving it from a computed ``transform`` reads the wrong element —
@@ -41,20 +42,25 @@ def _pin(page: Page, pin_id: str) -> dict:
     constant RATIO (not an offset) anywhere else.
     """
     return page.evaluate(
-        """(pinId) => {
+        """(pinId) => {%s
             const pin = [...document.querySelectorAll('.connection-pin')]
                 .find(e => e.dataset.pinId === pinId && e.dataset.pinDir === 'inlet');
             if (!pin) throw new Error('pin not found: ' + pinId);
             const r = pin.getBoundingClientRect();
-            const s = document.querySelector('#connection-svg').getBoundingClientRect();
+            const svg = document.querySelector('#connection-svg');
+            const s = svg.getBoundingClientRect();
             const zp = document.querySelector('.zoom-pan-container');
             const zoom = zp && zp._zoomPanControls ? zp._zoomPanControls.getZoom() : 1;
+            const e = pinEdge(pin, svg.getScreenCTM());
             return {
                 x: (r.left + r.width / 2 - s.left) / zoom,
                 y: (r.top + r.height / 2 - s.top) / zoom,
+                ex: (e.x - s.left) / zoom,
+                ey: (e.y - s.top) / zoom,
                 visible: r.width > 0 && r.height > 0,
             };
-        }""",
+        }"""
+        % PIN_EDGE_JS,
         pin_id,
     )
 
@@ -133,12 +139,12 @@ def test_edge_end_follows_the_pin_that_detail_moved(page: Page, harness) -> None
     )
 
     end = _edge_end(page)
-    assert abs(end["y"] - after["y"]) < 12, (
-        f"edge end {end['y']:.1f} should track the pin's new centre {after['y']:.1f} "
-        f"(it was at {before['y']:.1f} before the rank change) — a stale edge means "
+    assert abs(end["y"] - after["ey"]) < 12, (
+        f"edge end {end['y']:.1f} should track the pin's new edge {after['ey']:.1f} "
+        f"(it was at {before['ey']:.1f} before the rank change) — a stale edge means "
         "the detail attribute change never reached _updateEdgesForNode"
     )
-    assert abs(end["x"] - after["x"]) < 12
+    assert abs(end["x"] - after["ex"]) < 12
 
 
 def test_edge_end_follows_the_pin_back_at_full(page: Page, harness) -> None:
@@ -150,7 +156,7 @@ def test_edge_end_follows_the_pin_back_at_full(page: Page, harness) -> None:
     # Checked on the way out as well, and not only for symmetry: the round trip
     # puts the pin back exactly where a STALE edge is already drawn, so without
     # this the test would pass against the very defect it is here to catch.
-    assert abs(_edge_end(page)["y"] - lifted["y"]) < 12, "edge must track on the way down"
+    assert abs(_edge_end(page)["y"] - lifted["ey"]) < 12, "edge must track on the way down"
 
     _switch(page, "set-full")
 
@@ -158,6 +164,6 @@ def test_edge_end_follows_the_pin_back_at_full(page: Page, harness) -> None:
     assert abs(restored["y"] - lifted["y"]) > 8, "returning to FULL must move the pin back"
 
     end = _edge_end(page)
-    assert abs(end["y"] - restored["y"]) < 12, (
-        f"edge end {end['y']:.1f} should track the restored pin {restored['y']:.1f}"
+    assert abs(end["y"] - restored["ey"]) < 12, (
+        f"edge end {end['y']:.1f} should track the restored pin's edge {restored['ey']:.1f}"
     )

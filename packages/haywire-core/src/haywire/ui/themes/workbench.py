@@ -134,6 +134,10 @@ class BaseTheme:
         "edge_default": "--hw-edge-default",
         "edge_selected": "--hw-edge-selected",
         "edge_active": "--hw-edge-active",
+        # Optional lengths added to the edge width while selected / active;
+        # canvas.vue falls back to 1px and 2px when a theme sets none.
+        "edge_selected_extra": "--hw-edge-selected-extra",
+        "edge_active_extra": "--hw-edge-active-extra",
         # Canvas
         "canvas_bg": "--hw-canvas-bg",
         "canvas_grid": "--hw-canvas-grid",

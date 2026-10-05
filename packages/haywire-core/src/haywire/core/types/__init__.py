@@ -25,7 +25,16 @@ from .utils import (
     normalize_and_validate_default,
     is_cattrs_serializable,
 )
-from .wire import WILDCARD, WireRole, WireType, declaring_type_of, get_wire_type, wire_type_of, wires_match
+from .wire import (
+    WILDCARD,
+    ArrowAt,
+    WireRole,
+    WireType,
+    declaring_type_of,
+    get_wire_type,
+    wire_type_of,
+    wires_match,
+)
 
 __all__ = [
     # Interface
@@ -60,6 +69,7 @@ __all__ = [
     "TypeRegistry",
     # Wire types
     "WILDCARD",
+    "ArrowAt",
     "WireRole",
     "WireType",
     "get_wire_type",

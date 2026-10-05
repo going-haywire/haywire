@@ -10,13 +10,18 @@
  *   canvases[].connected   more than one canvas, or a disconnected one, means a
  *                          stale component is still alive and still processing
  *                          messages meant for the live one.
- *   scaleRatio             drawn span ÷ real pin span, on screen. ~1 is correct
- *                          geometry. A ratio of k means the edges were measured
- *                          at a zoom k times wrong — 2.9 says they were measured
- *                          believing zoom was 1 while it was ~0.35. This is the
- *                          decisive test for the wrong-zoom theory and needs no
- *                          access to the Vue instance.
- *   worstPx                how far the worst endpoint sits from its pin.
+ *   scaleRatio             drawn span ÷ real span between the two pins' edges,
+ *                          on screen. ~1 is correct geometry. A ratio of k means
+ *                          the edges were measured at a zoom k times wrong — 2.9
+ *                          says they were measured believing zoom was 1 while it
+ *                          was ~0.35. This is the decisive test for the
+ *                          wrong-zoom theory and needs no access to the Vue
+ *                          instance.
+ *   worstPx                how far the worst endpoint sits from its pin's edge,
+ *                          where every end stops: the pin's centre moved along
+ *                          its direction (data-pin-dir-x/y) by half its layout
+ *                          size. An end with an arrow head stops a head's length
+ *                          short of that, so it is left out.
  *   missingPins            edges whose pins cannot be found at all. These are
  *                          the ones _updateEdge gives up on, leaving whatever
  *                          geometry they already had — the console errors you
@@ -43,16 +48,24 @@ window.hwEdgeCheck = function (opts) {
         inlet: document.getElementById(`${m[4]}@${m[3]}`),
       };
     };
-    const centre = (el) => {
+    // Where an end meets the pin, on screen: its centre moved along its
+    // direction by half its layout size (SVG units, scaled by the path's CTM).
+    const pinEdge = (el, ctm) => {
       const r = el.getBoundingClientRect();
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width };
+      const dx = parseFloat(el.dataset.pinDirX ?? '1');
+      const dy = parseFloat(el.dataset.pinDirY ?? '0');
+      const half = (Math.abs(dx) * el.offsetWidth + Math.abs(dy) * el.offsetHeight) / 2;
+      return {
+        x: r.left + r.width / 2 + (ctm.a * dx + ctm.c * dy) * half,
+        y: r.top + r.height / 2 + (ctm.b * dx + ctm.d * dy) * half,
+        w: r.width,
+      };
     };
-    const screenAt = (path, len) => {
-      const ctm = path.getScreenCTM();
-      if (!ctm) return null;
+    const screenAt = (path, ctm, len) => {
       const q = path.getPointAtLength(len);
       return { x: q.x * ctm.a + q.y * ctm.c + ctm.e, y: q.x * ctm.b + q.y * ctm.d + ctm.f };
     };
+    const headed = (path, prop) => getComputedStyle(path)[prop] !== 'none';
     const dist = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 
     let worstPx = 0;
@@ -82,14 +95,18 @@ window.hwEdgeCheck = function (opts) {
         });
         return;
       }
-      const a = screenAt(p, 0);
-      const b = screenAt(p, p.getTotalLength());
-      if (!a || !b) return;
-      const pa = centre(pins.outlet);
-      const pb = centre(pins.inlet);
+      const ctm = p.getScreenCTM();
+      if (!ctm) return;
+      const a = screenAt(p, ctm, 0);
+      const b = screenAt(p, ctm, p.getTotalLength());
+      const pa = pinEdge(pins.outlet, ctm);
+      const pb = pinEdge(pins.inlet, ctm);
       if (!pa.w || !pb.w) return;
 
-      const err = Math.max(dist(a, pa), dist(b, pb));
+      const err = Math.max(
+        headed(p, 'markerStart') ? 0 : dist(a, pa),
+        headed(p, 'markerEnd') ? 0 : dist(b, pb),
+      );
       if (err > worstPx) {
         worstPx = err;
         worstEdge = p.id;

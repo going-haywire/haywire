@@ -25,25 +25,6 @@ def empty_graph() -> BaseGraph:
 
 
 @pytest.fixture
-def graph_with_library_system(library_system) -> BaseGraph:
-    """
-    Provide a graph with full library system loaded.
-
-    Use this for integration tests that need to create nodes/edges
-    using NodeFactory and AdapterFactory.
-
-    This fixture is marked with @pytest.mark.integration automatically
-    since it depends on library_system.
-
-    Uses ``SyncScheduler`` for inline validation (see ``empty_graph``).
-    """
-    return BaseGraph(
-        filestem="Integration Test Graph",
-        validation_scheduler=SyncScheduler(),
-    )
-
-
-@pytest.fixture
 def sample_graph_with_nodes(empty_graph: BaseGraph, node_factory):
     """
     Provide a graph with some test nodes.

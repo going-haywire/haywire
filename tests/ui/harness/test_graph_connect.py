@@ -22,6 +22,7 @@ import pytest
 from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.pin_edge import PIN_EDGE_JS
 
 _PATH = "/graph-connect"
 
@@ -44,6 +45,32 @@ def _pin_center(page: Page, id_fragment: str) -> dict:
         }""",
         id_fragment,
     )
+
+
+#: Screen px from the in-progress wire's start to the outlet's edge, and from its
+#: suggestion path's ends to the outlet's and the inlet's edges.
+_WIRE_ENDS_OFF_PIN_EDGES = (
+    """() => {%s
+    const pin = (frag) => [...document.querySelectorAll('.connection-pin')].find(e => e.id.includes(frag));
+    const preview = document.querySelector('#connection-svg path.hw-edge-preview');
+    const suggestion = document.querySelector('#connection-svg path.connection-suggestion');
+    if (!preview || !suggestion) return null;
+    const ctm = preview.getScreenCTM();
+    const at = (path, len) => {
+        const q = path.getPointAtLength(len);
+        return { x: q.x * ctm.a + q.y * ctm.c + ctm.e, y: q.x * ctm.b + q.y * ctm.d + ctm.f };
+    };
+    const off = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const outlet = pinEdge(pin('exec@TestBeginPlay'), ctm);
+    const inlet = pinEdge(pin('exec@TestPrint'), ctm);
+    return {
+        preview: off(at(preview, 0), outlet),
+        suggestionStart: off(at(suggestion, 0), outlet),
+        suggestionEnd: off(at(suggestion, suggestion.getTotalLength()), inlet),
+    };
+}"""
+    % PIN_EDGE_JS
+)
 
 
 def _edge_ids(page: Page) -> list[str]:
@@ -107,6 +134,10 @@ def test_proximity_snap_commits_to_nearest_compatible_pin(page: Page, harness):
     near_x, near_y = inlet["x"] - 25, inlet["y"] + 25  # empty canvas, within suggestion range
     page.mouse.move(near_x, near_y)
     page.wait_for_timeout(200)
+    # The wire and its suggestion run between the pins' edges, where the edge will be drawn.
+    off = page.evaluate(_WIRE_ENDS_OFF_PIN_EDGES)
+    assert off is not None, "no preview or suggestion path near the inlet"
+    assert max(off.values()) < 0.5, f"wire ends off their pins' edges (screen px): {off}"
     page.mouse.click(near_x, near_y)
     page.wait_for_selector("path[data-edge-id]")
 

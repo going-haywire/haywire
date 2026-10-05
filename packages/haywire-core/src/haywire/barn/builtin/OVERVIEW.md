@@ -33,6 +33,7 @@ Framework-owned primitive types and adapters
 - **StringToChoicesAdapter** — String into a choices slot
 
 ## Widgets
+- **ArrowHeadWidget** — Arrow head picker
 - **CheckboxWidget** — checkbox widget
 - **ColorWidget** — Color picker widget
 - **NumberWidget** — Fast number input widget

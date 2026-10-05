@@ -110,6 +110,24 @@ class TestToCssVars:
         assert "--hw-bg-page" in css
         assert "--hw-accent" not in css  # not defined in _Sparse
 
+    def test_edge_extra_lengths_emitted_only_when_set(self):
+        """The selected/active edge extras are optional: unset, canvas.vue's 1px/2px fallbacks apply."""
+
+        class _WithExtras(BaseTheme):
+            edge_selected_extra = "3px"
+            edge_active_extra = "5px"
+
+        class _WithoutExtras(BaseTheme):
+            edge_active = "#ff8800"
+
+        css = _WithExtras().to_css_vars()
+        assert css["--hw-edge-selected-extra"] == "3px"
+        assert css["--hw-edge-active-extra"] == "5px"
+
+        css = _WithoutExtras().to_css_vars()
+        assert "--hw-edge-selected-extra" not in css
+        assert "--hw-edge-active-extra" not in css
+
 
 # ---------------------------------------------------------------------------
 # @theme(theme_type='workbench') decorator

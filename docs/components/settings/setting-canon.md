@@ -473,7 +473,7 @@ it differs from **unset**.
 
 ## 3b. Mirroring a graph setting from a node bag
 
-A graph owns one framework-provided settings bag, `graph.props` (a `GraphProperties` instance), accessed the same way `node.props` is. Its `default_skin` field shadows the framework's studio-skin default via an ordinary `shadow()` — nothing new there. What's new is the **other** direction: a node field mirroring a field on the graph bag, so the resolution order becomes **framework default < graph opinion < node opinion**.
+A graph owns one framework-provided settings bag, `graph.props` (a `GraphProperties` instance), accessed the same way `node.props` is. Its `default_skin` field shadows the framework's studio-skin default via an ordinary `shadow()` — nothing new there. What's new is the **other** direction: a node field mirroring a field on the graph bag, so the resolution order becomes **framework default < graph opinion < node opinion**. `GraphProperties` also shadows `EdgeDefaultSettings.arrow` and `EdgeDefaultSettings.width` as `edge_arrow` and `edge_width` (ADR 0045).
 
 ```python
 from haywire.core.settings import NodeSettings

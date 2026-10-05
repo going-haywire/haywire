@@ -1,3 +1,4 @@
+from .arrow_head_widget import ArrowHeadWidget
 from .basic_widgets import (
     CheckboxWidget,
     NumberWidget,
@@ -22,4 +23,5 @@ __all__ = [
     "VecWidget",
     "ColorWidget",
     "OptionalWidget",
+    "ArrowHeadWidget",
 ]

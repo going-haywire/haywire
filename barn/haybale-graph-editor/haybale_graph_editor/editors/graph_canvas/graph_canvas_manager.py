@@ -125,12 +125,37 @@ class GraphCanvasManager:
         # Subscribe for incremental validation updates
         self.graph.subscribe_to_validation(self.visual_layer.on_validated)
 
+        self._follow_graph_props()
+
+        logger.info(f"🔧 GraphCanvasManager for {self.session_id} is setup")
+
+    def _follow_graph_props(self) -> None:
+        """Apply the graph's canvas-level props and follow later edits to them.
+
+        :meth:`cleanup` releases the subscriptions made here; the graph outlives
+        every canvas drawn for it.
+        """
         # Graph-tier node theme: written once onto the canvas element, which is
         # an ancestor of every node card, so no per-node work is involved.
         self._apply_graph_node_theme()
-        self.graph.props._subscribe_field("node_theme", lambda *_: self._apply_graph_node_theme())
+        self.graph.props._subscribe_field("node_theme", self._on_node_theme_changed)
 
-        logger.info(f"🔧 GraphCanvasManager for {self.session_id} is setup")
+        # Computed-edge defaults: pushed as canvas props; canvas.vue turns them
+        # into CSS vars and path insets, so a change costs one push per canvas.
+        self._apply_edge_defaults()
+        for field in ("edge_arrow", "edge_width"):
+            self.graph.props._subscribe_field(field, self._on_edge_default_changed)
+
+    def _on_node_theme_changed(self, _value, _old) -> None:
+        self._apply_graph_node_theme()
+
+    def _on_edge_default_changed(self, _value, _old) -> None:
+        self._apply_edge_defaults()
+
+    def _apply_edge_defaults(self) -> None:
+        """Push this graph's computed-edge arrow head and width to the canvas."""
+        props = self.graph.props
+        self.canvas_vue.set_edge_defaults(props.edge_arrow, float(props.edge_width))
 
     def _apply_graph_node_theme(self) -> None:
         """Write this graph's node theme onto the canvas as CSS vars.
@@ -331,6 +356,12 @@ class GraphCanvasManager:
             self.graph.unsubscribe_from_validation(self.visual_layer.on_validated)
         except Exception as exc:
             logger.warning(f"GraphCanvasManager: unsubscribe error: {exc}")
+
+        for callback in (self._on_node_theme_changed, self._on_edge_default_changed):
+            try:
+                self.graph.props._unsubscribe(callback)
+            except Exception as exc:
+                logger.warning(f"GraphCanvasManager: props unsubscribe error: {exc}")
 
         if self.canvas_vue:
             self.canvas_vue.cleanup()

@@ -131,8 +131,9 @@ which cannot be stale. The cached zoom survives only as a fallback for a
 detached SVG, where nothing measurable exists anyway.
 
 `edgecheck.js`'s `scaleRatio` is the diagnostic for the whole family: it is the
-drawn span over the real pin span on screen, needs no access to the component,
-and a value of k says the measurement used a zoom k times wrong.
+drawn span over the real span between the two pins' edges on screen, needs no
+access to the component, and a value of k says the measurement used a zoom k
+times wrong.
 
 ## Where an edge gets drawn is also checked, not only reasoned about
 
@@ -142,7 +143,7 @@ have laid out. Each was plausible; each survived the harness test written for
 it, and the one that proved real was only found by measuring a live session.
 So the repair does not name a cause:
 
-`_repairEdgeGeometryIfWrong` compares one drawn endpoint against its pin —
+`_repairEdgeGeometryIfWrong` compares one drawn endpoint against its pin's edge —
 through `getScreenCTM()` and `getBoundingClientRect()`, sharing no arithmetic
 with the code that drew it, so a canvas that measured wrongly cannot confirm
 itself — and re-measures everything when they disagree. It runs after every

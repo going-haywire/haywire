@@ -16,6 +16,7 @@ import pytest
 from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.pin_edge import PIN_EDGE_JS
 
 _PATH = "/graph-dynamic"
 
@@ -50,6 +51,20 @@ def _pin_screen(page: Page, id_prefix: str) -> dict | None:
     )
 
 
+def _pin_edge_screen(page: Page, id_prefix: str) -> dict | None:
+    """Screen-space point where an edge meets the first connection pin whose id starts with id_prefix."""
+    return page.evaluate(
+        """(prefix) => {%s
+            const pin = [...document.querySelectorAll('.connection-pin')]
+                .find(p => p.id.startsWith(prefix));
+            if (!pin) return null;
+            return pinEdge(pin, document.querySelector('#connection-svg').getScreenCTM());
+        }"""
+        % PIN_EDGE_JS,
+        id_prefix,
+    )
+
+
 def _edge_count(page: Page) -> int:
     return page.evaluate(
         "() => new Set([...document.querySelectorAll('path[data-edge-id]')]"
@@ -77,8 +92,8 @@ def test_edge_falls_back_to_ghost_pin_then_reattaches(page: Page, harness):
     assert _edge_count(page) == 1
     assert _has_pin(page, "dynamic_outlet_0")
     start = _edge_start_screen(page)
-    dyn_pin = _pin_screen(page, "dynamic_outlet_0")
-    assert _close(start, dyn_pin), f"edge should start at the dynamic pin: {start} vs {dyn_pin}"
+    dyn_pin = _pin_edge_screen(page, "dynamic_outlet_0")
+    assert _close(start, dyn_pin), f"edge should start at the dynamic pin's edge: {start} vs {dyn_pin}"
 
     # Drop the port (port_count → 0): the real outlet disappears...
     page.click('[data-testid="drop-port"]')
@@ -86,11 +101,11 @@ def test_edge_falls_back_to_ghost_pin_then_reattaches(page: Page, harness):
     assert not _has_pin(page, "dynamic_outlet_0"), "dynamic outlet should be removed"
     # ...but the edge survives and now renders at the node's ghost outlet.
     assert _edge_count(page) == 1, "edge must survive port removal (ghost fallback)"
-    ghost_pin = _pin_screen(page, "root_out@DynamicPort")
+    ghost_pin = _pin_edge_screen(page, "root_out@DynamicPort")
     assert ghost_pin is not None, "ghost outlet pin should exist"
     start_dropped = _edge_start_screen(page)
     assert _close(start_dropped, ghost_pin), (
-        f"edge should fall back to the ghost outlet: {start_dropped} vs {ghost_pin}"
+        f"edge should fall back to the ghost outlet's edge: {start_dropped} vs {ghost_pin}"
     )
 
     # Restore the port (port_count → 2): the real outlet returns and the edge
@@ -100,7 +115,7 @@ def test_edge_falls_back_to_ghost_pin_then_reattaches(page: Page, harness):
     assert _has_pin(page, "dynamic_outlet_0"), "dynamic outlet should be restored"
     assert _edge_count(page) == 1
     start_restored = _edge_start_screen(page)
-    dyn_pin_again = _pin_screen(page, "dynamic_outlet_0")
+    dyn_pin_again = _pin_edge_screen(page, "dynamic_outlet_0")
     assert _close(start_restored, dyn_pin_again), (
-        f"edge should reattach to the restored pin: {start_restored} vs {dyn_pin_again}"
+        f"edge should reattach to the restored pin's edge: {start_restored} vs {dyn_pin_again}"
     )

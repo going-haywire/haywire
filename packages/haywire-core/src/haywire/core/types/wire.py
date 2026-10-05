@@ -43,6 +43,22 @@ class WireRole(Enum):
     VISUAL = "visual"
 
 
+class ArrowAt(Enum):
+    """The end of a computed edge its arrow head is drawn at.
+
+    A computed edge's wire type declares no style bag; its head comes from the
+    graph's edge defaults and sits where the wire type's ``arrow_at`` says.
+
+    - ``INLET``: at the inlet end, pointing into the inlet's pin.
+    - ``OUTLET``: at the outlet end, pointing back into the outlet's pin.
+    - ``NONE``: no head, whatever the graph sets.
+    """
+
+    INLET = "inlet"
+    OUTLET = "outlet"
+    NONE = "none"
+
+
 class WireType:
     """How a value travels between two ports, and how its pins look.
 
@@ -58,6 +74,8 @@ class WireType:
             single entry locks it, and an empty tuple means the edge has none.
         pin_kind: The key the skin's ``PinIconResolver`` looks up in its icon
             map, such as ``"control"``. It is not an icon; a type names its own.
+        arrow_at: The end a computed edge of this wire type draws its arrow head at;
+            see ``ArrowAt``.
         id: The registry id, set when the class is defined.
 
     Raises:
@@ -79,6 +97,7 @@ class WireType:
     role: ClassVar[WireRole]
     propagation: ClassVar[tuple[Propagation, ...]] = ()
     pin_kind: ClassVar[str] = ""
+    arrow_at: ClassVar[ArrowAt] = ArrowAt.INLET
     id: ClassVar[str]
 
     def __init_subclass__(cls, **kwargs: Any) -> None:

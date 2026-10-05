@@ -11,7 +11,7 @@
         ></div>
 
         <!-- SVG layer for connections -->
-        <svg id="connection-svg" ref="svg" class="connection-svg" :style="canvasSizeStyle">
+        <svg id="connection-svg" ref="svg" class="connection-svg" :style="[canvasSizeStyle, edgeStyleVars]">
             <defs ref="defs">
                 <!-- Dynamic gradients will be added here -->
             </defs>
@@ -119,6 +119,12 @@ export default {
         hoverScaleCutoffZoom: { type: Number,  default: 0.5 },
         hoverEnterDelay:      { type: Number,  default: 350 },
         hoverExitDelay:       { type: Number,  default: 0 },
+        // Edge appearance: the graph's computed-edge defaults,
+        // the studio's hit padding and the static head table.
+        edgeWidth:      { type: Number, default: 2 },
+        edgeArrow:      { type: String, default: 'none' },
+        edgeHitPadding: { type: Number, default: 8 },
+        arrowHeads:     { type: Array,  default: () => [] },
     },
 
     data() {
@@ -205,6 +211,20 @@ export default {
             return { width: this.canvasWidth + 'px', height: this.canvasHeight + 'px' };
         },
 
+        edgeStyleVars() {
+            return {
+                '--hw-edge-width': `${this.edgeWidth}px`,
+                '--hw-edge-hit-padding': `${this.edgeHitPadding}px`,
+                '--hw-edge-head': this._headUrl(this.edgeArrow),
+            };
+        },
+
+        headInsets() {
+            const insets = {};
+            for (const head of this.arrowHeads) insets[head.name] = head.inset;
+            return insets;
+        },
+
         svgTransform() {
             return this.canvasSizeStyle;
         },
@@ -260,6 +280,13 @@ export default {
         }
     },
 
+    watch: {
+        // A width or head change moves every computed edge's end: re-lay-out.
+        // Primitive props, so these fire only when the value changes.
+        edgeWidth() { this._relayoutEdges(); },
+        edgeArrow() { this._relayoutEdges(); },
+    },
+
     mounted() {
         console.log('GraphCanvas Vue component mounted with container ID:', this.containerId);
         this._pendingNodeIds = new Set();
@@ -302,6 +329,10 @@ export default {
         // destroyed and rebuilt, and everything sent meanwhile went nowhere.
         // The edges are ours to draw, so only the server can restore them.
         this.emitCanvasEvent(EventCreators.createCanvasMounted());
+
+        // The head table is static and set before the first render, so mount
+        // time is the only time it needs reading.
+        this._buildHeadMarkers();
     },
 
     activated() {
@@ -1200,7 +1231,7 @@ export default {
                 isValid = true,
                 hasWarning = false,
                 strokeColor = 'auto',
-                strokeWidth = 2,
+                arrowAt = 'inlet',
                 strokeDasharray = '',
                 opacity = 1.0
             } = data;
@@ -1215,7 +1246,8 @@ export default {
                 edgeInfo.isValid = isValid;
                 edgeInfo.hasWarning = hasWarning;
                 edgeInfo.strokeColor = strokeColor;
-                edgeInfo.strokeWidth = strokeWidth;
+                edgeInfo.arrowAt = arrowAt;
+                this._applyArrowClass(edgeInfo);
                 edgeInfo.strokeDasharray = strokeDasharray;
                 edgeInfo.opacity = opacity;
 
@@ -1246,7 +1278,7 @@ export default {
                 isValid,
                 hasWarning,
                 strokeColor,
-                strokeWidth,
+                arrowAt,
                 strokeDasharray,
                 opacity
             );
@@ -1288,7 +1320,7 @@ export default {
             if (created) {
                 console.log(`🔗 Vue ✅ ${created} parked edge(s) drawn; ${this._pendingEdges.size} still waiting`);
                 this.$nextTick(() => {
-                    for (const [edge_id] of this.edgePaths) this._updateEdge(edge_id);
+                    this._relayoutEdges();
                     // These were measured at a different moment from the batch
                     // that parked them, so the stamps and the geometry check
                     // both have to account for them.
@@ -1752,8 +1784,9 @@ export default {
                     ));
                 } else {
                     // Determine which end of the edge was closer to the click point,
-                    // measured to where each end is drawn (a missing port's end is
-                    // drawn to the node's ghost pin).
+                    // measured to each end's pin centre (a missing port's end is
+                    // measured to the node's ghost pin). Ends are drawn at the pin
+                    // edges, but the centre picks the same nearer end.
                     const edgeInfo = this.edgePaths.get(edge_id);
                     let atSinkEnd = false;
                     if (edgeInfo) {
@@ -2621,17 +2654,17 @@ export default {
             this._pinIndexDirty = true;
             this._edgeDragStyled = new Set();
 
-            // Create preview path
-            const startPos = this._getPinPosition(pin);
+            // Create preview path, from the pin's edge like the edge it may become.
             const [dirX, dirY] = this._getPinDirectionVector(pin);
-            const pinColor = pin.dataset.pinColor || '#000000';
+            const startPos = this._pinEdgePoint(pin, [dirX, dirY]);
+            const pinColor = pin.dataset.pinColor || 'currentColor';
 
             this.edgeDrag.previewPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            this.edgeDrag.previewPath.classList.add('hw-edge-preview');
             const initialPath = this._createBezierPath(startPos, startPos, [dirX, dirY], [-dirX, -dirY]);
 
             this.edgeDrag.previewPath.setAttribute('d', initialPath);
             this.edgeDrag.previewPath.setAttribute('stroke', pinColor);
-            this.edgeDrag.previewPath.setAttribute('stroke-width', '2');
             this.edgeDrag.previewPath.setAttribute('fill', 'none');
             this.edgeDrag.previewPath.setAttribute('stroke-dasharray', '4');
             this.edgeDrag.previewPath.style.pointerEvents = 'none';
@@ -2744,6 +2777,8 @@ export default {
                     el: pin,
                     x: pos.x,
                     y: pos.y,
+                    // Where a suggestion path to this pin ends.
+                    edge: this._pinEdgePoint(pin, this._getPinDirectionVector(pin), pos),
                     valid: this._isValidEdge(anchorPin, pin),
                     sameType: anchorPin.dataset.pinDataType === pin.dataset.pinDataType,
                 });
@@ -2758,9 +2793,9 @@ export default {
 
             const anchorPin = this._resolveAnchorPin();
             if (!anchorPin) return;
-            const startPos = this._getPinPosition(anchorPin);
-            const mousePos = this._transformScreenToSVG(e.clientX, e.clientY);
             const [dirX, dirY] = this._getPinDirectionVector(anchorPin);
+            const startPos = this._pinEdgePoint(anchorPin, [dirX, dirY]);
+            const mousePos = this._transformScreenToSVG(e.clientX, e.clientY);
 
             const pathData = this._createBezierPath(startPos, mousePos, [dirX, dirY], [-dirX, -dirY]);
             this.edgeDrag.previewPath.setAttribute('d', pathData);
@@ -2822,7 +2857,7 @@ export default {
                 if (hit && p.el === hit.el) continue;   // already claimed above
                 p.el.classList.add('connection-compatible');
                 this._edgeDragStyled.add(p.el);
-                this._createSuggestionPath(p.el, startPos, { x: p.x, y: p.y }, [dirX, dirY]);
+                this._createSuggestionPath(p.el, startPos, p.edge, [dirX, dirY]);
                 if (distance < nearestDistance) {
                     nearestPin = p.el;
                     nearestDistance = distance;
@@ -2857,8 +2892,7 @@ export default {
 
             const suggestionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             suggestionPath.setAttribute('d', pathData);
-            suggestionPath.setAttribute('stroke', this.edgeDrag.anchorPin.dataset.pinColor || '#4CAF50');
-            suggestionPath.setAttribute('stroke-width', '2');
+            suggestionPath.setAttribute('stroke', this.edgeDrag.anchorPin.dataset.pinColor || 'currentColor');
             suggestionPath.setAttribute('fill', 'none');
             suggestionPath.setAttribute('opacity', '0.6');
             suggestionPath.style.pointerEvents = 'none';
@@ -2890,7 +2924,7 @@ export default {
             isValid = true,
             hasWarning = false,
             strokeColor = 'auto',
-            strokeWidth = 2,
+            arrowAt = 'inlet',
             strokeDasharray = '',
             opacity = 1.0
         ) {
@@ -2912,11 +2946,13 @@ export default {
 
             const outletPos = this._getPinPosition(outletPin);
             const inletPos = this._getPinPosition(inletPin);
-            const outletColor = outletPin.dataset.pinColor || '#bbbbbb';
-            const inletColor = inletPin.dataset.pinColor || '#333333';
+            const outletColor = outletPin.dataset.pinColor || 'currentColor';
+            const inletColor = inletPin.dataset.pinColor || 'currentColor';
             const outletConnectDir = this._getPinDirectionVector(outletPin);
             const inletConnectDir = this._getPinDirectionVector(inletPin);
-            
+            const outletPinHalf = this._pinHalfExtent(outletPin, outletConnectDir);
+            const inletPinHalf = this._pinHalfExtent(inletPin, inletConnectDir);
+
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             // edge_id contains [ ] and > — a valid DOM id, but NOT a valid CSS
             // selector ('>' parses as the child combinator). Look it up (and the
@@ -2927,6 +2963,7 @@ export default {
             path.setAttribute('id', edge_id);
             path.setAttribute('data-edge-id', edge_id);
             path.setAttribute('fill', 'none');
+            path.classList.add('hw-edge');
             path.style.pointerEvents = 'stroke';
             path.style.cursor = 'pointer';
 
@@ -2937,6 +2974,7 @@ export default {
                 outletPinUUID: outletPinUUID,
                 outletPinId: outletPinId,
                 outletPos: outletPos,
+                outletPinHalf: outletPinHalf,
                 outletColor: outletColor,
                 outletConnectDir: outletConnectDir,
                 outletPinFallback: outletPinFallback,
@@ -2944,6 +2982,7 @@ export default {
                 inletPinUUID: inletPinUUID,
                 inletPinId: inletPinId,
                 inletPos: inletPos,
+                inletPinHalf: inletPinHalf,
                 inletColor: inletColor,
                 inletConnectDir: inletConnectDir,
                 inletPinFallback: inletPinFallback,
@@ -2951,16 +2990,17 @@ export default {
                 isValid: isValid,
                 hasWarning: hasWarning,
                 strokeColor: strokeColor,
-                strokeWidth: strokeWidth,
+                arrowAt: arrowAt,
                 strokeDasharray: strokeDasharray,
                 opacity: opacity
             };
+            this._applyArrowClass(edgeInfo);
 
             const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             hitArea.setAttribute('id', edge_id + '_hitarea');
             hitArea.setAttribute('data-edge-id', edge_id);
             hitArea.setAttribute('stroke', 'transparent');
-            hitArea.setAttribute('stroke-width', '10');
+            hitArea.classList.add('hw-edge-hit');
             hitArea.setAttribute('fill', 'none');
             hitArea.style.pointerEvents = 'stroke';
             hitArea.style.cursor = 'pointer';
@@ -2989,6 +3029,63 @@ export default {
             }
 
             return { success: true, pathElement: path };
+        },
+
+        _applyArrowClass(edgeInfo) {
+            const path = edgeInfo.path;
+            path.classList.remove('edge-arrow-inlet', 'edge-arrow-outlet', 'edge-arrow-none');
+            path.classList.add(`edge-arrow-${edgeInfo.arrowAt}`);
+        },
+
+        _headMarkerId(name) {
+            return `hw-head-${this.containerId}-${name}`;
+        },
+
+        _headUrl(name) {
+            return this.headInsets[name] === undefined ? 'none' : `url(#${this._headMarkerId(name)})`;
+        },
+
+        _buildHeadMarkers() {
+            const defs = this.$refs.defs;
+            if (!defs) return;
+            defs.querySelectorAll('marker.hw-edge-head').forEach((marker) => marker.remove());
+            for (const head of this.arrowHeads) {
+                const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                marker.setAttribute('id', this._headMarkerId(head.name));
+                marker.setAttribute('class', 'hw-edge-head');
+                marker.setAttribute('viewBox', head.view_box);
+                marker.setAttribute('refX', '0');
+                marker.setAttribute('refY', '0');
+                marker.setAttribute('markerWidth', String(head.width));
+                marker.setAttribute('markerHeight', String(head.height));
+                marker.setAttribute('markerUnits', 'strokeWidth');
+                // One definition serves both ends: at marker-start it turns to
+                // point back into the outlet.
+                marker.setAttribute('orient', 'auto-start-reverse');
+                marker.setAttribute('overflow', 'visible');
+                marker.innerHTML = head.svg;
+                defs.appendChild(marker);
+            }
+        },
+
+        _relayoutEdges() {
+            for (const [edge_id] of this.edgePaths) this._updateEdge(edge_id);
+        },
+
+        /** Whether the end named `end` ('inlet' | 'outlet') carries the graph's head; `arrowAt` is the edge's. */
+        _endIsHeaded(arrowAt, end) {
+            return this.headInsets[this.edgeArrow] !== undefined && arrowAt === end;
+        },
+
+        /** How far each end stops short of its pin's centre, [outlet, inlet] in SVG units:
+         *  the pin's half-size, plus the head's length at a headed end. */
+        _edgeInsets(edgeInfo) {
+            const headLength = (end) => this._endIsHeaded(edgeInfo.arrowAt, end)
+                ? this.headInsets[this.edgeArrow] * this.edgeWidth : 0;
+            return [
+                edgeInfo.outletPinHalf + headLength('outlet'),
+                edgeInfo.inletPinHalf + headLength('inlet'),
+            ];
         },
 
         _removeEdge(edge_id) {
@@ -3133,13 +3230,15 @@ export default {
             // visibly, an outlet's edge doubling back into its own node.
             if (outletPin) {
                 edgeInfo.outletPos = this._getPinPosition(outletPin);
-                edgeInfo.outletColor = outletPin.dataset.pinColor;
+                edgeInfo.outletColor = outletPin.dataset.pinColor || 'currentColor';
                 edgeInfo.outletConnectDir = this._getPinDirectionVector(outletPin);
+                edgeInfo.outletPinHalf = this._pinHalfExtent(outletPin, edgeInfo.outletConnectDir);
             }
             if (inletPin) {
                 edgeInfo.inletPos = this._getPinPosition(inletPin);
-                edgeInfo.inletColor = inletPin.dataset.pinColor;
+                edgeInfo.inletColor = inletPin.dataset.pinColor || 'currentColor';
                 edgeInfo.inletConnectDir = this._getPinDirectionVector(inletPin);
+                edgeInfo.inletPinHalf = this._pinHalfExtent(inletPin, edgeInfo.inletConnectDir);
             }
 
             const pathData = this._createBezierPathForEdge(edge_id);
@@ -3154,15 +3253,11 @@ export default {
             const stroke = this._createBezierStroke(edge_id);
             edgeInfo.path.setAttribute('stroke', stroke);
             edgeInfo.path.setAttribute(
-                'stroke-width',
-                edgeInfo.strokeWidth
-            );
-            edgeInfo.path.setAttribute(
                 'stroke-dasharray',
                 edgeInfo.strokeDasharray
             );
             edgeInfo.path.style.opacity = edgeInfo.opacity;
-            
+
             // Update CSS classes for additional styling
             edgeInfo.path.classList.toggle(
                 'connection-invalid',
@@ -3172,14 +3267,6 @@ export default {
                 'connection-warning',
                 edgeInfo.hasWarning
             );
-            
-            // Update hit area width
-            if (hitArea) {
-                hitArea.setAttribute(
-                    'stroke-width',
-                    edgeInfo.strokeWidth + 8
-                );
-            }
         },
 
         _flushParkedOnReattach() {
@@ -3195,32 +3282,43 @@ export default {
 
         _edgeGeometryLooksWrong() {
             /**
-             *  Does any of a sample of drawn edges miss its pin?
+             *  Does any of a sample of drawn edges miss its pin's edge?
              *
-             *  Measured through the browser's own screen CTM and the pin's
-             *  client rect, so it shares no arithmetic with the code that drew
-             *  the edge — a canvas that measured wrongly cannot agree with
-             *  itself here.
+             *  The end is measured through the browser's own screen CTM and
+             *  the pin through its client rect and layout box, read fresh, so
+             *  it shares no coordinate arithmetic with the code that drew the
+             *  edge — a canvas that measured wrongly cannot agree with itself
+             *  here.
              *
              *  A SAMPLE, not the first one that answers: an edge set can be
              *  mixed. Edges drawn in one pass and edges flushed from
              *  `_pendingEdges` later were measured at different moments, so
              *  sampling a single edge can land on a good one while most are
              *  adrift — measured in the field at 144 wrong against 180 right.
+             *
+             *  Each edge is checked at an end with no head: a head shortens the
+             *  path by its own length (`_edgeInsets`), so that end sits off its
+             *  pin's edge.
              */
             const SAMPLE = 24;
             let checked = 0;
             for (const [, info] of this.edgePaths) {
                 if (checked >= SAMPLE) break;
-                const pin = document.getElementById(info.outletPinUUID);
+                const atInlet = this._endIsHeaded(info.arrowAt, 'outlet');
+                const pin = document.getElementById(atInlet ? info.inletPinUUID : info.outletPinUUID);
                 if (!pin) continue;
                 const rect = pin.getBoundingClientRect();
                 if (!rect.width) continue;
                 const ctm = info.path.getScreenCTM();
                 if (!ctm) continue;
-                const p = info.path.getPointAtLength(0);
-                const dx = (p.x * ctm.a + p.y * ctm.c + ctm.e) - (rect.left + rect.width / 2);
-                const dy = (p.x * ctm.b + p.y * ctm.d + ctm.f) - (rect.top + rect.height / 2);
+                // The pin's edge: its centre moved along its direction by its half-size, in screen px.
+                const dir = this._getPinDirectionVector(pin);
+                const half = this._pinHalfExtent(pin, dir);
+                const edgeX = rect.left + rect.width / 2 + (dir[0] * ctm.a + dir[1] * ctm.c) * half;
+                const edgeY = rect.top + rect.height / 2 + (dir[0] * ctm.b + dir[1] * ctm.d) * half;
+                const p = info.path.getPointAtLength(atInlet ? info.path.getTotalLength() : 0);
+                const dx = (p.x * ctm.a + p.y * ctm.c + ctm.e) - edgeX;
+                const dy = (p.x * ctm.b + p.y * ctm.d + ctm.f) - edgeY;
                 if (Math.sqrt(dx * dx + dy * dy) > 12) return true;
                 checked++;
             }
@@ -3245,7 +3343,7 @@ export default {
                 console.warn(`🔗 Vue edges drawn off their pins (${why}) — re-measuring ${this.edgePaths.size}`);
                 this._cachedNodeContainerRect = null;
                 this._pinIndexDirty = true;
-                for (const [edge_id] of this.edgePaths) this._updateEdge(edge_id);
+                this._relayoutEdges();
             });
         },
 
@@ -3349,10 +3447,8 @@ export default {
             if (edgeInfo && edgeInfo.path) {
                 if (selected) {
                     edgeInfo.path.classList.add('connection-selected');
-                    edgeInfo.path.style.strokeWidth = '3';
                 } else {
                     edgeInfo.path.classList.remove('connection-selected');
-                    edgeInfo.path.style.strokeWidth = '2';
                 }
             } else if (selected && _retries > 0) {
                 // Edge path may not be registered yet (e.g. just after a paste);
@@ -3492,6 +3588,24 @@ export default {
             return position;
         },
 
+        /** Half the pin's size along the edge direction [dx, dy], in SVG units; 0 without a pin. */
+        _pinHalfExtent(pinElement, [dx, dy]) {
+            if (!pinElement) return 0;
+            // The layout box, in the node layer's CSS px, which equal SVG units: zoom, the hover
+            // and drag scales and a layout's glyph rotation are transforms, which offsetWidth/Height
+            // ignore. Skin assumption: along the edge's direction the box equals the glyph's size,
+            // since a pin row stretches it only across that direction. Known limit: the low-zoom
+            // node magnifier (`_magnifyScaleForZoom`) is also a transform, so while a card is
+            // magnified its edges end inside the enlarged glyphs (transient).
+            return (Math.abs(dx) * pinElement.offsetWidth + Math.abs(dy) * pinElement.offsetHeight) / 2;
+        },
+
+        /** Where an edge meets the pin, in SVG units: its centre `pos` moved along `dir` by its half-size. */
+        _pinEdgePoint(pinElement, dir, pos = this._getPinPosition(pinElement)) {
+            const half = this._pinHalfExtent(pinElement, dir);
+            return { x: pos.x + dir[0] * half, y: pos.y + dir[1] * half };
+        },
+
         _transformScreenToSVG(clientX, clientY) {
             if (!this.$refs.svg) return { x: clientX, y: clientY };
 
@@ -3553,19 +3667,23 @@ export default {
                 return 'M 0 0';
             }
 
-            return this._createBezierPath(
-                edgeInfo.outletPos,
-                edgeInfo.inletPos,
-                edgeInfo.outletConnectDir,
-                edgeInfo.inletConnectDir
-            );
+            // Every end stops at its pin's edge, its pin's half-size short of the
+            // centre along the end's own direction. A head is drawn from where the
+            // path ends towards the pin, so a headed end stops a head's length
+            // shorter still: the tip touches the pin's edge.
+            const [startInset, endInset] = this._edgeInsets(edgeInfo);
+            const [ox, oy] = edgeInfo.outletConnectDir;
+            const [ix, iy] = edgeInfo.inletConnectDir;
+            const start = { x: edgeInfo.outletPos.x + ox * startInset, y: edgeInfo.outletPos.y + oy * startInset };
+            const end = { x: edgeInfo.inletPos.x + ix * endInset, y: edgeInfo.inletPos.y + iy * endInset };
+            return this._createBezierPath(start, end, edgeInfo.outletConnectDir, edgeInfo.inletConnectDir);
         },
 
         _createBezierStroke(edge_id) {
             const edgeInfo = this.edgePaths.get(edge_id);
             if (!edgeInfo) {
                 console.error(`Edge not found: ${edge_id}`);
-                return '#000000';
+                return 'currentColor';
             }
             
             // If strokeColor is not 'auto', use the solid color directly
@@ -3580,7 +3698,7 @@ export default {
             const endColor = edgeInfo.inletColor;
             
             if (!endColor || !edge_id) {
-                return startColor || '#ff0000';
+                return startColor || 'currentColor';
             }
 
             let defs = this.$refs.defs;
@@ -3957,22 +4075,22 @@ export default {
 }
 
 .connection-pin.connection-valid {
-    box-shadow: 0 0 15px #4CAF50 !important;
-    border-color: #4CAF50 !important;
+    box-shadow: 0 0 15px var(--hw-success) !important;
+    border-color: var(--hw-success) !important;
     z-index: 10002 !important;
 }
 
 .connection-pin.connection-invalid {
     transform: var(--hw-pin-rotate, ) scale(0.8) !important;
-    box-shadow: 0 0 15px #f44336 !important;
-    border-color: #f44336 !important;
+    box-shadow: 0 0 15px var(--hw-danger) !important;
+    border-color: var(--hw-danger) !important;
     z-index: 10002 !important;
     opacity: 0.8 !important;
 }
 
 .connection-pin.connection-compatible {
-    box-shadow: 0 0 6px rgba(76, 175, 80, 0.6) !important;
-    border-color: rgba(76, 175, 80, 0.8) !important;
+    box-shadow: 0 0 6px color-mix(in srgb, var(--hw-success) 60%, transparent) !important;
+    border-color: color-mix(in srgb, var(--hw-success) 80%, transparent) !important;
     /* Carries --hw-pin-rotate, like every other scale in this block — see the
      * comment above it. Dropping it un-rotates every compatible pin on a
      * vertical-layout graph for as long as a wire is open. */
@@ -3981,26 +4099,61 @@ export default {
 }
 
 .connection-selected {
-    filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--hw-edge-selected) 60%, transparent)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
 }
 
 path.connection-selected {
-    filter: drop-shadow(0 0 12px rgba(74, 144, 226, 0.6)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--hw-edge-selected) 60%, transparent)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
 }
 
 .connection-active {
     stroke: var(--hw-edge-active) !important;
-    stroke-width: 4 !important;
+    stroke-width: calc(var(--hw-edge-width, 2px) + var(--hw-edge-active-extra, 2px)) !important;
 }
 
 /* Edge state styles - UIEdge visual feedback */
 /* Specific to SVG path elements only */
 path.connection-invalid {
-    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.5));
+    stroke: var(--hw-danger);
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--hw-danger) 50%, transparent));
 }
 
 path.connection-warning {
-    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5));
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--hw-warning) 50%, transparent));
+}
+
+/* Edge appearance. The canvas sets --hw-edge-width,
+   --hw-edge-hit-padding and --hw-edge-head on its SVG; selected and active
+   add a theme length. A missing pin colour is drawn as currentColor. */
+.connection-svg {
+    color: var(--hw-edge-default);
+}
+
+path.hw-edge {
+    stroke-width: var(--hw-edge-width, 2px);
+    marker-end: var(--hw-edge-head, none);
+}
+
+path.hw-edge.edge-arrow-outlet {
+    marker-end: none;
+    marker-start: var(--hw-edge-head, none);
+}
+
+path.hw-edge.edge-arrow-none {
+    marker-end: none;
+    marker-start: none;
+}
+
+path.hw-edge.connection-selected {
+    stroke-width: calc(var(--hw-edge-width, 2px) + var(--hw-edge-selected-extra, 1px));
+}
+
+path.hw-edge-hit {
+    stroke-width: calc(var(--hw-edge-width, 2px) + var(--hw-edge-hit-padding, 8px));
+}
+
+path.hw-edge-preview {
+    stroke-width: var(--hw-edge-width, 2px);
 }
 
 /* Manual-size axes are user MINIMUMS applied to the host slot (min-width /
@@ -4135,13 +4288,13 @@ path.connection-warning {
 
 .connection-suggestion {
     opacity: 0.3 !important;
-    stroke-width: 2 !important;
+    stroke-width: var(--hw-edge-width, 2px) !important;
     stroke-dasharray: 12 6 !important;
 }
 
 .connection-suggestion-nearest {
     opacity: 0.8 !important;
     stroke-dasharray: 8 4 !important;
-    stroke-width: 3 !important;
+    stroke-width: calc(var(--hw-edge-width, 2px) + 1px) !important;
 }
 </style>

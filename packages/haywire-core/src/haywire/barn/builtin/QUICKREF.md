@@ -30,6 +30,7 @@
 - `haywire-core:adapter:StringToChoicesAdapter` — StringToChoicesAdapter — String into a choices slot
 
 ## widget
+- `haywire-core:widget:ArrowHeadWidget` — ArrowHeadWidget — Arrow head picker
 - `haywire-core:widget:CheckboxWidget` — CheckboxWidget — checkbox widget
 - `haywire-core:widget:ColorWidget` — ColorWidget — Color picker widget
 - `haywire-core:widget:NumberWidget` — NumberWidget — Fast number input widget

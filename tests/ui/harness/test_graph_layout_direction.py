@@ -17,6 +17,7 @@ import pytest
 from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.pin_edge import PIN_EDGE_JS
 
 _PATH = "/graph-layout"
 
@@ -24,15 +25,16 @@ pytestmark = pytest.mark.ui
 
 
 def _pin(page: Page, node_fragment: str, pin_id: str) -> dict:
-    """Direction vector + centre of one pin, read from the live DOM.
+    """Direction vector, centre and edge point of one pin, read from the live DOM.
 
-    ``x``/``y`` are in the SVG space the edge path is authored in (screen coords
-    divided by zoom, relative to the svg rect) — the same transform
-    ``_getPinPosition`` applies — so they are directly comparable to the `M x y`
-    of a path `d` attribute. Raw ``getBoundingClientRect`` values are NOT.
+    ``x``/``y`` (centre) and ``ex``/``ey`` (where an edge end sits) are in the
+    SVG space the edge path is authored in (screen coords divided by zoom,
+    relative to the svg rect) — the same transform ``_getPinPosition`` applies —
+    so they are directly comparable to the `M x y` of a path `d` attribute. Raw
+    ``getBoundingClientRect`` values are NOT.
     """
     return page.evaluate(
-        """([frag, pinId]) => {
+        """([frag, pinId]) => {%s
             const pin = [...document.querySelectorAll('.connection-pin')]
                 .find(e => e.id.includes(frag) && e.dataset.pinId === pinId);
             if (!pin) throw new Error('pin not found: ' + frag + '/' + pinId);
@@ -43,14 +45,18 @@ def _pin(page: Page, node_fragment: str, pin_id: str) -> dict:
             // Mirror _transformScreenToSVG: undo the pan/zoom transform.
             const t = canvas ? getComputedStyle(canvas).transform : 'none';
             const zoom = t && t !== 'none' ? new DOMMatrix(t).a : 1;
+            const e = pinEdge(pin, svg.getScreenCTM());
             return {
                 dirX: parseFloat(pin.dataset.pinDirX),
                 dirY: parseFloat(pin.dataset.pinDirY),
                 layout: pin.dataset.hwLayout,
                 x: (r.left + r.width / 2 - s.left) / zoom,
                 y: (r.top + r.height / 2 - s.top) / zoom,
+                ex: (e.x - s.left) / zoom,
+                ey: (e.y - s.top) / zoom,
             };
-        }""",
+        }"""
+        % PIN_EDGE_JS,
         [node_fragment, pin_id],
     )
 
@@ -123,10 +129,10 @@ def test_edge_endpoint_tracks_the_moved_pin_without_a_hover(page: Page, harness)
     # The edge must start at the pin's CURRENT screen position. Without the
     # redraw-triggered update it still starts where the pin used to be, which
     # after an l2r->r2l flip is the far side of the card.
-    assert abs(path["startX"] - pin["x"]) < 12, (
-        f"edge start {path['startX']:.1f} should track pin centre {pin['x']:.1f}"
+    assert abs(path["startX"] - pin["ex"]) < 12, (
+        f"edge start {path['startX']:.1f} should track the pin's edge {pin['ex']:.1f}"
     )
-    assert abs(path["startY"] - pin["y"]) < 12
+    assert abs(path["startY"] - pin["ey"]) < 12
 
 
 def test_vertical_switch_reaims_both_ends(page: Page, harness) -> None:

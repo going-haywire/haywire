@@ -17,7 +17,7 @@ Only the wire contract is asserted here. The other half — that
 already covered by mypy, since the parameter is typed.
 """
 
-from dataclasses import fields
+from dataclasses import fields, replace
 from types import SimpleNamespace
 from typing import cast
 
@@ -56,9 +56,9 @@ def _state() -> EdgeVisualState:
     return EdgeVisualState(
         edge_id="node_a[float_outlet_0]->node_b[float_inlet_0]",
         stroke_color="auto",
-        stroke_width=2,
         stroke_dasharray="",
         opacity=1.0,
+        arrow_at="inlet",
         is_valid=True,
         has_warning=False,
     )
@@ -96,8 +96,18 @@ def test_batch_entry_carries_the_wrapper_and_state_values():
     assert payload["inletPinFallback"] == "float_inlet_0>>root_in"
     assert payload["edge_id"] == "node_a[float_outlet_0]->node_b[float_inlet_0]"
     assert payload["strokeColor"] == "auto"
-    assert payload["strokeWidth"] == 2
+    assert payload["arrowAt"] == "inlet"
     assert payload["strokeDasharray"] == ""
     assert payload["opacity"] == 1.0
     assert payload["isValid"] is True
     assert payload["hasWarning"] is False
+
+
+def test_states_differing_only_in_validity_are_unequal():
+    """Validity picks the invalid colour class, so a redraw-dedupe must see it."""
+    assert _state() != replace(_state(), is_valid=False)
+
+
+def test_states_differing_only_in_warning_are_unequal():
+    """The warning flag picks the warning glow, so a redraw-dedupe must see it."""
+    assert _state() != replace(_state(), has_warning=True)

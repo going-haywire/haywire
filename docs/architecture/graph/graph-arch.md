@@ -74,6 +74,8 @@ and the [glossary](../../reference/glossary.md#encapsulation) for the vocabulary
 graph tier by walking `node → wrapper → graph → settings_bag_for(...)`
 (ADR 0022), and that graph is the definition rather than the host.
 
+`graph.props` (`GraphProperties`) also carries `edge_arrow` and `edge_width`, which shadow `EdgeDefaultSettings` and set the arrow head and width of every computed edge in the graph (ADR 0045).
+
 A definition holds its nodes **live** — the wrappers in `node_wrappers` are the
 same objects the canvas draws and the VM executes, which is what makes error
 locations and live values inside a closed Group work with no id translation.
