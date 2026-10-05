@@ -67,10 +67,15 @@ class ValidationManager:
         self._total_validation_time_ms = 0.0
 
     def _set_reason(self, id: str, reason: ChangeReason, store: dict) -> None:
-        """Record ``reason`` for ``id`` unless a higher-priority reason is already stored."""
+        """Record ``reason`` for ``id`` unless a higher-priority reason is already stored.
+
+        An add after a removal replaces it: the element exists again, so the pass must
+        treat it as added (an edge removed and re-linked to the same pins, an undone delete).
+        """
         if id in store:
             existing_reason = store[id]
-            if existing_reason.has_higher_priority_than(reason):
+            readded = existing_reason.requires_removal() and reason.requires_adding()
+            if existing_reason.has_higher_priority_than(reason) and not readded:
                 return
         store[id] = reason
 

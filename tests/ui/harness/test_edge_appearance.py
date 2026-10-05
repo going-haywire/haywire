@@ -28,9 +28,32 @@ def _open(page: Page, harness) -> None:
     wait_for_canvas_settled(page)
 
 
+#: What each graph-default button changes: the canvas var it sets on every edge, and that var's value.
+_EXPECTED_VAR = {
+    "set-width-4": ("--hw-edge-width", "4px"),
+    "set-arrow-open": ("--hw-edge-head", "-open)"),
+    "set-arrow-ring": ("--hw-edge-head", "-circle_hollow)"),
+    "set-arrow-none": ("--hw-edge-head", "none"),
+}
+
+
 def _click(page: Page, testid: str) -> None:
+    """Click a graph-default button and wait until the canvas applied it.
+
+    The canvas sets the var and re-lays-out its paths in the same update, so once the
+    var reads the new value the paths are drawn with it too.
+    """
+    var, expected = _EXPECTED_VAR[testid]
     page.click(f'[data-testid="{testid}"]')
-    page.wait_for_timeout(600)
+    page.wait_for_function(
+        """([sel, v, want]) => {
+            const value = getComputedStyle(document.querySelector(sel)).getPropertyValue(v).trim();
+            return value === want || value.endsWith(want);
+        }""",
+        arg=[_DATA, var, expected],
+        timeout=5000,
+    )
+    page.evaluate("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
 
 
 def _computed(page: Page, selector: str, prop: str) -> str:
@@ -294,3 +317,38 @@ def test_an_outlet_head_does_not_read_as_an_edge_off_its_pin(page: Page, harness
 
     warnings = page.evaluate("() => window.__hwWarnings.filter(w => w.includes('drawn off their pins'))")
     assert warnings == []
+
+
+#: Whether the canvas's width watcher re-lays out the edge whose id contains the given fragment.
+_RELAID_ON_WIDTH = """(frag) => {
+    let canvas = null;
+    for (let i = 0; i < 5000 && !canvas; i++) {
+        const c = getElement(i);
+        if (c && c.$el && c.$el.dataset && c.$el.dataset.testid === 'edge-appearance-canvas') canvas = c;
+    }
+    for (const [id, info] of canvas.edgePaths) {
+        if (id.includes(frag)) return canvas._followsGraphWidth(info) && canvas._isHeaded(info);
+    }
+    throw new Error('no edge ' + frag);
+}"""
+
+
+def test_a_width_change_re_lays_out_only_headed_edges_at_the_graph_width(page: Page, harness) -> None:
+    """F18: an unheaded edge's path does not depend on the width; a styled width ignores the graph's."""
+    _open(page, harness)
+    assert page.evaluate(_RELAID_ON_WIDTH, "[result]->") is False
+    assert page.evaluate(_RELAID_ON_WIDTH, "[note_out]->") is False, "a styled edge has its own width"
+
+    _click(page, "set-arrow-open")
+    assert page.evaluate(_RELAID_ON_WIDTH, "[result]->") is True
+
+
+def test_the_hit_area_covers_the_heads_span(page: Page, harness) -> None:
+    """F19: the drawn path stops a head's length short of the pin; its hit area reaches the pin's edge."""
+    _open(page, harness)
+    _click(page, "set-width-4")
+    _click(page, "set-arrow-open")
+    pin = _pin(page, _DATA, "inlet")
+
+    assert _distance(_end_point(page, _DATA, "inlet"), pin["edge"]) > 10
+    assert _distance(_end_point(page, _DATA_HIT, "inlet"), pin["edge"]) < 0.5

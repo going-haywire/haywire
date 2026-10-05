@@ -38,6 +38,19 @@ def _resolve_class(dotted: str):
     return getattr(mod, class_name)
 
 
+def _harness_graph(name: str):
+    """A graph validated on the NiceGUI event loop, as in the running studio (``LoopScheduler``).
+
+    On the default timer scheduler a validation pass ran on its own thread while NiceGUI
+    serialised the page, which surfaced as "dictionary changed size during iteration" in
+    ``build_response`` (F13). On the loop the two never overlap.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.scheduler import LoopScheduler
+
+    return BaseGraph(name, validation_scheduler=LoopScheduler())
+
+
 def _stamp_synced() -> None:
     """Mark the page as fully synced, for Playwright's ``goto_ready``.
 
@@ -69,10 +82,9 @@ def _write_reconnect_graph(node_factory, out_path) -> None:
     Round-tripping through the real serializer (rather than a committed file)
     keeps the fixture in lockstep with the save/load code on every run.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Reconnect Fixture")
+    graph = _harness_graph("Reconnect Fixture")
     editor = Editor(graph, node_factory)
 
     source = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
@@ -94,10 +106,9 @@ def _build_connect_graph(node_factory):
     form a valid control pair the user can wire up; leaving them unconnected lets
     the test drive the click-drag / click-click / proximity-snap entry paths.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Connect Fixture")
+    graph = _harness_graph("Connect Fixture")
     editor = Editor(graph, node_factory)
 
     src = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
@@ -121,10 +132,9 @@ def _build_dynamic_graph(node_factory):
     pin disappears, and back onto the real pin when it returns. Returns
     (graph, editor, dyn_node) so the route can mutate port_count.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Dynamic Fixture")
+    graph = _harness_graph("Dynamic Fixture")
     editor = Editor(graph, node_factory)
 
     dyn = graph.create_node_wrapper(_DYNAMIC_KEY, position=(3600.0, 3700.0))
@@ -149,10 +159,9 @@ def _build_edge_batch_graph(node_factory, edge_count: int, wire: int | None = No
     grow with the number of edges, and a fixture that added nodes alongside
     edges could not tell the two apart.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Edge Batch Fixture")
+    graph = _harness_graph("Edge Batch Fixture")
     editor = Editor(graph, node_factory)
 
     src = graph.create_node_wrapper(_PERF_KEY, position=(3600.0, 3700.0))
@@ -177,10 +186,9 @@ def _build_chunked_load_graph(node_factory, node_count: int):
     observable while the chunked loop has nodes left to mount, so a two-node
     fixture opens and closes it faster than a test can see it.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Chunked Load Fixture")
+    graph = _harness_graph("Chunked Load Fixture")
     editor = Editor(graph, node_factory)
 
     previous = None
@@ -207,10 +215,9 @@ def _build_detail_graph(node_factory):
 
     Returns (graph, editor, sink) so the route can flip the sink's detail rank.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Detail Fixture")
+    graph = _harness_graph("Detail Fixture")
     editor = Editor(graph, node_factory)
 
     dyn = graph.create_node_wrapper(_DYNAMIC_KEY, position=(3600.0, 3700.0))
@@ -231,10 +238,9 @@ def _build_layout_graph(node_factory):
     the edge on the redraw sync instead of waiting for an incidental hover.
     Returns (graph, editor) so the route can flip the graph-tier prop.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Layout Fixture")
+    graph = _harness_graph("Layout Fixture")
     editor = Editor(graph, node_factory)
 
     src = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
@@ -255,10 +261,9 @@ _ADD_PORT_KEY = "haybale-testing:node:AddPortTestNode"
 def _build_edge_appearance_graph(node_factory):
     """One edge of each kind the edge-appearance tests read: data, control, callback, an invalid one,
     and a styled one on the test visual wire."""
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Edge Appearance Fixture")
+    graph = _harness_graph("Edge Appearance Fixture")
     editor = Editor(graph, node_factory)
 
     def node(key: str, x: float, y: float):
@@ -293,10 +298,9 @@ def _build_error_skin_graph(node_factory):
     pointing a healthy node at it renders the same DOM without needing a broken
     node. Backs test_error_skin.py.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Error Skin Fixture")
+    graph = _harness_graph("Error Skin Fixture")
     editor = Editor(graph, node_factory)
 
     node = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3700.0, 3700.0))
@@ -313,10 +317,9 @@ def _build_two_column_graph(node_factory):
     flow direction" rule is observable. Returns (graph, editor) so the route
     can flip the graph-tier layout_direction.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Two Column Fixture")
+    graph = _harness_graph("Two Column Fixture")
     editor = Editor(graph, node_factory)
 
     # TestPrintNode, not TestBeginPlayNode: the test needs BOTH an inlet and an
@@ -335,10 +338,9 @@ def _build_reroute_graph(node_factory):
     than hand-stamped ports. Returns (graph, editor, reroute_id) so the route
     can drive size props on the reroute itself.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Reroute Fixture")
+    graph = _harness_graph("Reroute Fixture")
     editor = Editor(graph, node_factory)
 
     src = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
@@ -370,10 +372,9 @@ def _build_size_graph(node_factory):
     edges. Returns (graph, editor, node) so the route can drive size props and
     the test can select/resize it. See test_node_size_measure / test_resize_gadget.
     """
-    from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("Size Fixture")
+    graph = _harness_graph("Size Fixture")
     editor = Editor(graph, node_factory)
 
     node = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3700.0))
@@ -713,8 +714,6 @@ def register_routes(library_service) -> None:
 
     @ui.page("/node-attached")
     async def node_attached_page(request: Request):
-        from haywire.core.graph.base import BaseGraph
-
         params = dict(request.query_params)
         class_path = params.get("class", "")
         bag_name = params.get("bag", "")
@@ -728,7 +727,7 @@ def register_routes(library_service) -> None:
                 return
             try:
                 node_cls = _resolve_class(class_path)
-                graph = BaseGraph("Attached Fixture")
+                graph = _harness_graph("Attached Fixture")
                 wrapper = graph.create_node_wrapper(
                     node_cls.class_identity.registry_key, position=(0.0, 0.0)
                 )
@@ -829,7 +828,6 @@ def register_routes(library_service) -> None:
         import tempfile
         from pathlib import Path
 
-        from haywire.core.graph.base import BaseGraph
         from haywire.core.graph.editor import Editor
 
         # Generate the fixture programmatically and round-trip it through a real
@@ -844,7 +842,7 @@ def register_routes(library_service) -> None:
                 edge["inlet_port_id"] = "gone"
             fixture.write_text(json.dumps(saved))
 
-        graph = BaseGraph("Reconnect Fixture")
+        graph = _harness_graph("Reconnect Fixture")
         editor = Editor(graph, node_factory)
         assert graph.load_from_file(str(fixture)), f"could not load fixture: {fixture}"
         fixture.unlink(missing_ok=True)
@@ -1300,10 +1298,9 @@ def register_routes(library_service) -> None:
 
     @ui.page("/graph-widget-box")
     async def graph_widget_box_page():
-        from haywire.core.graph.base import BaseGraph
         from haywire.core.graph.editor import Editor
 
-        graph = BaseGraph("Widget Box Fixture")
+        graph = _harness_graph("Widget Box Fixture")
         editor = Editor(graph, library_service.get_node_factory())
 
         content = graph.create_node_wrapper(

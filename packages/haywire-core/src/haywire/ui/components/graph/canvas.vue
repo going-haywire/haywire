@@ -54,6 +54,8 @@
 // This side-effect import triggers graph_events.js to run, setting window.GraphEvents,
 // window.EventCreators, and window.EventValidators that the component uses as globals.
 import 'graph_events';
+// Sets window.HwArrowHeads, the static head table the markers are built from.
+import 'arrow_heads';
 
 /* ---------------------------------------------------------------------------
  * DOM attributes this component reads, and who writes them
@@ -124,7 +126,6 @@ export default {
         edgeWidth:      { type: Number, default: 2 },
         edgeArrow:      { type: String, default: 'none' },
         edgeHitPadding: { type: Number, default: 8 },
-        arrowHeads:     { type: Array,  default: () => [] },
     },
 
     data() {
@@ -221,7 +222,7 @@ export default {
 
         headInsets() {
             const insets = {};
-            for (const head of this.arrowHeads) insets[head.name] = head.inset;
+            for (const head of window.HwArrowHeads || []) insets[head.name] = head.inset;
             return insets;
         },
 
@@ -281,10 +282,11 @@ export default {
     },
 
     watch: {
-        // A width or head change moves every computed edge's end: re-lay-out.
+        // A width change moves only a headed end of an edge drawn at the graph width; a head
+        // change, only an end that takes the graph's head. The stroke itself follows the var.
         // Primitive props, so these fire only when the value changes.
-        edgeWidth() { this._relayoutEdges(); },
-        edgeArrow() { this._relayoutEdges(); },
+        edgeWidth() { this._relayoutEdges((info) => this._followsGraphWidth(info) && this._isHeaded(info)); },
+        edgeArrow() { this._relayoutEdges((info) => this._followsGraphHead(info)); },
     },
 
     mounted() {
@@ -1485,15 +1487,17 @@ export default {
 
         _syncEdgeReconnect(data) {
             const { edge_id, anchorNodeId, anchorPinId } = data;
-            // Remove the edge visual, then enter active connection mode from the anchor pin.
-            this._syncEdgeRemoval({ edge_id });
+            // The server removes the edge only once this reports the drag started, so an
+            // anchor that is not in the DOM (a culled node, a ghost end) leaves the edge as it is.
             const pinUUID = this._buildPinUUID(anchorNodeId, anchorPinId);
             const pin = document.getElementById(pinUUID);
-            if (pin) {
-                this._enterActiveEdge(pin);
-            } else {
-                console.warn(`[syncEdgeReconnect] Anchor pin not found: ${pinUUID}`);
+            if (!pin || 'pinGhost' in pin.dataset) {
+                console.warn(`[syncEdgeReconnect] Anchor pin not found: ${pinUUID}; edge kept`);
+                return;
             }
+            this._syncEdgeRemoval({ edge_id });
+            this._enterActiveEdge(pin);
+            this.emitCanvasEvent(EventCreators.createEdgeReconnectStarted(edge_id));
         },
 
         _syncEdgeConnectResume() {
@@ -1746,7 +1750,7 @@ export default {
                     const paths = svg.querySelectorAll('path[data-edge-id]');
                     const clickPoint = { x: clientX, y: clientY };
                     for (const path of paths) {
-                        if (this._isPointNearStroke(path, clickPoint)) {
+                        if (this._isPointNearStroke(path, clickPoint, this.edgeHitPadding)) {
                             edgeElement = path;
                             edge_id = path.getAttribute('data-edge-id');
                             break;
@@ -3056,7 +3060,7 @@ export default {
             const defs = this.$refs.defs;
             if (!defs) return;
             defs.querySelectorAll('marker.hw-edge-head').forEach((marker) => marker.remove());
-            for (const head of this.arrowHeads) {
+            for (const head of window.HwArrowHeads || []) {
                 const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
                 marker.setAttribute('id', this._headMarkerId(head.name));
                 marker.setAttribute('class', 'hw-edge-head');
@@ -3075,8 +3079,29 @@ export default {
             }
         },
 
-        _relayoutEdges() {
-            for (const [edge_id] of this.edgePaths) this._updateEdge(edge_id);
+        /** Re-lay-out every edge, or only those `keep(edgeInfo)` accepts. */
+        _relayoutEdges(keep = null) {
+            for (const [edge_id, edgeInfo] of this.edgePaths) {
+                if (keep === null || keep(edgeInfo)) this._updateEdge(edge_id);
+            }
+        },
+
+        /** Whether the edge is drawn at the graph's width (its style declares none). */
+        _followsGraphWidth(edgeInfo) {
+            return (edgeInfo.style || {}).width === undefined;
+        },
+
+        /** Whether either end of the edge draws a head. */
+        _isHeaded(edgeInfo) {
+            return this._endIsHeaded(edgeInfo, 'outlet') || this._endIsHeaded(edgeInfo, 'inlet');
+        },
+
+        /** Whether an end of the edge takes the graph's head: undeclared by its style, and
+         *  named by its wire type's `arrowAt`. */
+        _followsGraphHead(edgeInfo) {
+            const style = edgeInfo.style || {};
+            const declared = edgeInfo.arrowAt === 'outlet' ? style.arrowStart : style.arrowEnd;
+            return (edgeInfo.arrowAt === 'outlet' || edgeInfo.arrowAt === 'inlet') && declared === undefined;
         },
 
         /** The head drawn at the end named `end` ('inlet' | 'outlet'): the edge's own when its
@@ -3286,7 +3311,7 @@ export default {
             edgeInfo.path.setAttribute('d', pathData);
             const hitArea = document.getElementById(edge_id + '_hitarea');
             if (hitArea) {
-                hitArea.setAttribute('d', pathData);
+                hitArea.setAttribute('d', this._createBezierPathForEdge(edge_id, { toPins: true }));
             }
 
             // Apply visual properties from edgeInfo
@@ -3703,7 +3728,9 @@ export default {
         },
 
         // Wrapper method for established connections
-        _createBezierPathForEdge(edge_id) {
+        /** The edge's bezier path data. With `toPins`, both ends reach their pins' edges, heads
+         *  or not: the hit area's path, so a click on a head's span lands on the edge. */
+        _createBezierPathForEdge(edge_id, { toPins = false } = {}) {
             const edgeInfo = this.edgePaths.get(edge_id);
             if (!edgeInfo) {
                 console.error(`Edge info not found for: ${edge_id}`);
@@ -3714,7 +3741,9 @@ export default {
             // centre along the end's own direction. A head is drawn from where the
             // path ends towards the pin, so a headed end stops a head's length
             // shorter still: the tip touches the pin's edge.
-            const [startInset, endInset] = this._edgeInsets(edgeInfo);
+            const [startInset, endInset] = toPins
+                ? [edgeInfo.outletPinHalf, edgeInfo.inletPinHalf]
+                : this._edgeInsets(edgeInfo);
             const [ox, oy] = edgeInfo.outletConnectDir;
             const [ix, iy] = edgeInfo.inletConnectDir;
             const start = { x: edgeInfo.outletPos.x + ox * startInset, y: edgeInfo.outletPos.y + oy * startInset };

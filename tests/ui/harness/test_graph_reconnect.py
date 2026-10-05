@@ -183,3 +183,63 @@ def test_reconnect_an_edge_drawn_to_a_ghost_pin_starts_from_its_outlet(page: Pag
     assert abs(preview["x"] - outlet["x"]) < 5 and abs(preview["y"] - outlet["y"]) < 5, (  # noqa: PT018
         f"drag did not start from the outlet: preview={preview} outlet={outlet}"
     )
+
+
+def test_reconnect_keeps_the_edge_when_the_anchor_pin_is_not_in_the_dom(page: Page, harness):
+    """F14: with the anchor pin absent (a culled node, a ghost end), no drag starts and the edge stays."""
+    goto_ready(page, f"{harness}{_PATH}")
+    page.wait_for_selector("#connection-svg path[data-edge-id]")
+    wait_for_canvas_settled(page)
+
+    # Right-click nearer the inlet, so the outlet is the anchor; then hide the outlet pin from
+    # getElementById, the way an unmounted (culled) card does.
+    click = _path_point(page, 0.62)
+    page.mouse.click(click["x"], click["y"], button="right")
+    page.wait_for_selector(".hw-popup-card")
+    page.evaluate(
+        """() => {
+            const node = [...document.querySelectorAll('[data-node-id]')]
+                .find(n => n.dataset.nodeId.includes('BeginPlay'));
+            const pin = document.getElementById('exec@' + node.dataset.nodeId);
+            pin.id = pin.id + '-culled';
+        }"""
+    )
+    _click_menu_item(page, "Reconnect")
+    page.wait_for_timeout(800)
+    # A started drag draws its dashed preview on the first move.
+    page.mouse.move(click["x"] + 40, click["y"] + 40, steps=3)
+    page.wait_for_timeout(300)
+
+    assert page.evaluate(_DRAG_PREVIEW_START_JS) is None, "no drag may start without an anchor"
+    assert page.evaluate(_LIVE_EDGE_START_JS) is not None, "the edge must survive"
+
+
+def test_a_reconnect_dropped_back_on_its_inlet_leaves_one_edge(page: Page, harness):
+    """F14: the edge is removed once the drag starts, so re-linking the same pins is no duplicate."""
+    goto_ready(page, f"{harness}{_PATH}")
+    page.wait_for_selector("#connection-svg path[data-edge-id]")
+    wait_for_canvas_settled(page)
+    inlet = page.evaluate(
+        """() => {
+            const node = [...document.querySelectorAll('[data-node-id]')]
+                .find(n => n.dataset.nodeId.includes('Print'));
+            const r = document.getElementById('exec@' + node.dataset.nodeId).getBoundingClientRect();
+            return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        }"""
+    )
+
+    click = _path_point(page, 0.62)
+    page.mouse.click(click["x"], click["y"], button="right")
+    page.wait_for_selector(".hw-popup-card")
+    _click_menu_item(page, "Reconnect")
+    page.mouse.move(inlet["x"] - 20, inlet["y"], steps=3)
+    page.wait_for_function(f"() => ({_DRAG_PREVIEW_START_JS})() !== null")
+    page.mouse.click(inlet["x"], inlet["y"])
+    page.wait_for_function(f"() => ({_DRAG_PREVIEW_START_JS})() === null")
+    page.wait_for_timeout(500)
+
+    ids = page.evaluate(
+        "() => [...new Set([...document.querySelectorAll('#connection-svg path[data-edge-id]')]"
+        ".map(e => e.getAttribute('data-edge-id')))]"
+    )
+    assert len(ids) == 1, ids

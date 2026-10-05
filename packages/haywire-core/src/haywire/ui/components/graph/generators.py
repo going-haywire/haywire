@@ -6,6 +6,7 @@ ensuring consistency between frontend and backend event handling.
 """
 
 import dataclasses
+import json
 import os
 from typing import Dict
 
@@ -169,22 +170,41 @@ export interface {interface_name} {{"""
         return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", camel_str).upper()
 
 
+def generate_arrow_heads() -> str:
+    """Return the arrow-head table as a JavaScript module that sets ``window.HwArrowHeads``.
+
+    canvas.vue builds one ``<marker>`` per head from it. Shipped as a file rather than a
+    prop, so it is not re-sent with every canvas update.
+    """
+    from haywire.core.edge.arrow_heads import ARROW_HEADS
+
+    table = json.dumps([head.to_payload() for head in ARROW_HEADS], indent=2)
+    return (
+        "// Auto-generated from haywire.core.edge.arrow_heads.ARROW_HEADS\n"
+        "// DO NOT EDIT MANUALLY - Run `python ./scripts/generate_vue_events.py` to update\n\n"
+        f"window.HwArrowHeads = Object.freeze({table});\n"
+    )
+
+
+#: Every generated file in ``generated/``, by file name, with the function that produces it.
+GENERATED_FILES = {
+    "graph_events.js": VueEventGenerator.generate_event_constants,
+    "arrow_heads.js": generate_arrow_heads,
+}
+
+
 # Build script
 def main():
-    """Generate Vue event constants"""
-    vue_code = VueEventGenerator.generate_event_constants()
-
-    # Create generated directory if it doesn't exist
+    """Write every generated file into ``generated/``."""
     current_dir = os.path.dirname(__file__)
     generated_dir = os.path.join(current_dir, "generated")
     os.makedirs(generated_dir, exist_ok=True)
 
-    output_path = os.path.join(generated_dir, "graph_events.js")
-    with open(output_path, "w") as f:
-        f.write(vue_code)
-
-    print("Vue event constants generated successfully!")
-    print(f"File: {output_path}")
+    for name, generate in GENERATED_FILES.items():
+        output_path = os.path.join(generated_dir, name)
+        with open(output_path, "w") as f:
+            f.write(generate())
+        print(f"Generated {output_path}")
 
 
 if __name__ == "__main__":

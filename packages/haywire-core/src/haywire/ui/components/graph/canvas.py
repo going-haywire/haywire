@@ -12,12 +12,12 @@ from pathlib import Path
 
 from nicegui import ui
 
-from haywire.core.edge.arrow_heads import ARROW_HEADS
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 
 _GRAPH_EVENTS_JS = Path(__file__).parent / "generated" / "graph_events.js"
+_ARROW_HEADS_JS = Path(__file__).parent / "generated" / "arrow_heads.js"
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ _HOVER_SETTING_PROPS: dict[str, str] = {
 
 
 # list[Path] vs ui.element's invariant list[str | Path]; a list of paths is a valid dependencies arg.
-class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EVENTS_JS]):  # ty: ignore[invalid-argument-type]
+class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EVENTS_JS, _ARROW_HEADS_JS]):  # ty: ignore[invalid-argument-type]
     """Vue-based graph canvas component with ONLY unified event handling."""
 
     def __init__(
@@ -79,8 +79,6 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         # Canvas appearance settings: push initial values and live-update on change.
         self._canvas_settings = CanvasSettings()
         self._apply_canvas_setting_props()
-        # The head table is static: canvas.vue builds one <marker> per head from it.
-        self._props["arrow-heads"] = [head.to_payload() for head in ARROW_HEADS]
         self._canvas_settings._subscribe(self._on_canvas_setting_changed)
 
         # Hover-magnifier settings: push initial values and live-update on change.

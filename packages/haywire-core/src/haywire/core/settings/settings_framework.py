@@ -2,9 +2,10 @@
 """
 FrameworkSettings — framework/app-defined settings schemas.
 
-Defined in haywire-core or haywire-studio; auto-register via _pending_global
-at SettingsRegistry init time. May be instantiated by framework classes
-for live reactive access — no explicit registry injection needed.
+Defined in haywire-core or haywire-studio; each registers into every live
+SettingsRegistry when defined, and every registry built later takes it too.
+May be instantiated by framework classes for live reactive access — no
+explicit registry injection needed.
 
 For haywire-core and haywire-studio extension only. Node and library authors
 should use NodeSettings or LibrarySettings instead.
@@ -14,7 +15,9 @@ instantiation with no args produces a fully registry-wired instance.
 """
 
 from __future__ import annotations
-from typing import ClassVar
+
+import weakref
+from typing import TYPE_CHECKING, ClassVar
 
 from typing_extensions import dataclass_transform
 
@@ -23,10 +26,22 @@ from haywire.core.settings.decorator import SettingsClassIdentity
 from haywire.core.settings.descriptor import persistent_setting, setting
 from haywire.core.settings.settings import Settings
 
+if TYPE_CHECKING:
+    from haywire.core.settings.registry import SettingsRegistry
+
 
 # Module-level queue: FrameworkSettings subclasses defined before the registry exists
 # are appended here and drained by SettingsRegistry.__init__.
 _pending_global: list[type[FrameworkSettings]] = []
+
+# Every FrameworkSettings subclass defined so far, by namespace; a later class with the
+# same namespace replaces the earlier one. A registry built after a schema was defined
+# takes them all (SettingsRegistry._drain_pending_global).
+_known_schemas: dict[str, type[FrameworkSettings]] = {}
+
+# Every SettingsRegistry alive in the process. A schema defined after several were built
+# registers into each, not only the last one built.
+_live_registries: weakref.WeakSet[SettingsRegistry] = weakref.WeakSet()
 
 
 @dataclass_transform(field_specifiers=(setting,))
@@ -88,7 +103,10 @@ class FrameworkSettings(Settings):
                 # Persistence keys off _setting_key and the registry-owned cell.
                 val.__class__ = persistent_setting
 
-            # Self-registration: queue or register immediately
+            _known_schemas[namespace] = cls
+            # Self-registration: register into every live registry, or queue
+            for registry in list(_live_registries):
+                registry.register_schema(cls)
             if FrameworkSettings._registry is not None:
                 FrameworkSettings._registry.register_schema(cls)
                 cls._registry = FrameworkSettings._registry

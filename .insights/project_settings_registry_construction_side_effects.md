@@ -39,6 +39,16 @@ discarded the throwaway, the real session registry no longer had those schemas â
 symptom: `KeyError: 'Unknown setting: ui.node.default.skin.studio_skin'` in an
 *unrelated* later test, only under full-suite ordering (passed in isolation).
 
+## Since F21 (2026-10-04): schemas no longer go missing
+
+`_known_schemas` (every schema by namespace) and `_live_registries` (a WeakSet of every
+registry built) now make a schema reach every registry: one defined later registers into
+each live registry, and a registry built later takes every known schema. The
+`KeyError: Unknown setting` symptom above is fixed at the source. What remains true:
+construction still repoints `FrameworkSettings._registry` (the registry a bare
+`SomeFrameworkSettings()` instance binds to), so building a throwaway registry still
+changes which registry those instances read and write.
+
 ## Don't
 
 - Build a bare `SettingsRegistry()` "just to have one" in tests, tooling, or a

@@ -716,6 +716,8 @@ class SplitEdgeWithRerouteAction(CompositeAction):
         outlet_port_id = edge.outlet_port_id
         sink_node_id = edge.sink_node_id
         inlet_port_id = edge.inlet_port_id
+        # Both halves sit on the original's wire type, so they take its propagation and style.
+        carried = _carried(edge.serialize())
 
         # Resolve the outlet's concrete IType (the type the reroute will carry).
         source_wrapper = graph.get_node_wrapper(source_node_id)
@@ -752,6 +754,7 @@ class SplitEdgeWithRerouteAction(CompositeAction):
                 outlet_pin_id=outlet_port_id,
                 sink_node_id=new_node_id,
                 inlet_pin_id=_REROUTE_INLET_ID,
+                **carried,
             ),
             AddEdgeAction(
                 graph=graph,
@@ -759,6 +762,7 @@ class SplitEdgeWithRerouteAction(CompositeAction):
                 outlet_pin_id=_REROUTE_OUTLET_ID,
                 sink_node_id=sink_node_id,
                 inlet_pin_id=inlet_port_id,
+                **carried,
             ),
         ]
 
@@ -810,6 +814,7 @@ class DissolveRerouteAction(CompositeAction):
 
         # Bridge every upstream source to every downstream sink.
         # CONTROL inlets allow multiple upstream edges; DATA inlets allow one.
+        # Each bridge takes its downstream edge's values: the one side that keeps them distinct.
         for src in upstream:
             for sink_edge in downstream:
                 actions.append(
@@ -819,6 +824,7 @@ class DissolveRerouteAction(CompositeAction):
                         outlet_pin_id=src.outlet_port_id,
                         sink_node_id=sink_edge.sink_node_id,
                         inlet_pin_id=sink_edge.inlet_port_id,
+                        **_carried(sink_edge.serialize()),
                     )
                 )
 
@@ -1610,6 +1616,7 @@ class ExpandGraphNodeAction(CompositeAction):
                             outlet_pin_id=edge.outlet_port_id,
                             sink_node_id=inner_node_id,
                             inlet_pin_id=inner_port_id,
+                            **_carried(edge.serialize()),
                         )
                     )
             else:
@@ -1623,6 +1630,7 @@ class ExpandGraphNodeAction(CompositeAction):
                             outlet_pin_id=inner[1],
                             sink_node_id=edge.sink_node_id,
                             inlet_pin_id=edge.inlet_port_id,
+                            **_carried(edge.serialize()),
                         )
                     )
 

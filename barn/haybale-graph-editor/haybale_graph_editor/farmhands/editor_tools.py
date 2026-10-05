@@ -485,6 +485,18 @@ def _edge_error(edge) -> str | None:
     return getattr(err, "message", None) if err is not None else None
 
 
+def _edge_style(edge) -> dict | None:
+    """An edge's look by style field: every field its bag declares while it validates, else the
+    values it saved; ``None`` for an edge whose wire type declares no style."""
+    bag = edge.style
+    if bag is not None:
+        from haywire.core.settings import settings_fields
+
+        return {name: getattr(bag, name) for name in settings_fields(type(bag))}
+    saved = edge.style_values()
+    return saved or None
+
+
 def _edge_row(edge, detail: bool = False) -> dict:
     row = {
         "edge_id": edge.edge_id,
@@ -505,6 +517,7 @@ def _edge_row(edge, detail: bool = False) -> dict:
                 "is_linked": edge.state.is_linked,
                 "propagation": edge.propagation.value if edge.propagation is not None else None,
                 "propagation_locked": edge.locked_propagation is not None,
+                "style": _edge_style(edge),
                 "adapter_chain": adapters,
                 "has_adapters": bool(adapters),
                 "error": _edge_error(edge),
@@ -543,7 +556,8 @@ def _metadata_row(graph) -> dict:
         "Nodes (with ports) and edges of an open graph. Pass detail=true for the full "
         "per-port setup (data_type, takes_many_links, single_link when set, is_linked, link_count, "
         "use_mode, promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, "
-        "propagation, propagation_locked, adapter_chain, has_adapters, error); default returns the "
+        "propagation, propagation_locked, style, adapter_chain, has_adapters, error; style is the "
+        "edge's colour, width, dash and heads for a styled edge, null otherwise); default returns the "
         "base id/direction/wire_type/role per port and id/topology/wire_type/role per edge."
     ),
     registry_id="query_graph",

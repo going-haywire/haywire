@@ -34,6 +34,9 @@ def _make_edge(source_node_id, outlet_port_id, sink_node_id, inlet_port_id, edge
         inlet_port_id: Any
         edge_id: Any
 
+        def serialize(self) -> dict:
+            return {}
+
     e = _E()
     e.source_node_id = source_node_id
     e.outlet_port_id = outlet_port_id

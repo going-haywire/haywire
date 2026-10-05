@@ -52,6 +52,7 @@ from haywire.ui.components.graph.event_definitions import (
     SyncSelectionsEvent,
     SyncCanvasClearEvent,
     SyncEdgeReconnectEvent,
+    EdgeReconnectStartedEvent,
     SyncEdgeConnectCancelEvent,
 )
 
@@ -1153,16 +1154,23 @@ class VisualLayerHandlers:
 
     @handles_event(SyncEdgeReconnectEvent)
     def process_start_reconnect(self, event: SyncEdgeReconnectEvent):
-        """Forward reconnect command to Vue, then remove the edge from the graph.
+        """Forward the reconnect command to Vue; the edge stays until the drag starts.
+
+        Vue answers with ``EdgeReconnectStartedEvent`` once it found the anchor pin, and
+        only then is the edge removed (see ``process_reconnect_started``).
+        """
+        self.canvas_vue.emit_sync_event(event)
+
+    @handles_event(EdgeReconnectStartedEvent)
+    def process_reconnect_started(self, event: EdgeReconnectStartedEvent):
+        """Remove the edge whose reconnect drag Vue started.
 
         Order matters:
         1. Pre-remove the edge from edge_states so that the validation callback fired
-           by editor.remove_elements does not emit a redundant syncEdgeRemoval to Vue.
-        2. Send syncEdgeReconnect to Vue — it removes the edge visual and starts the
-           click-click drag from the anchor pin.
-        3. Remove the edge from the graph so a subsequent edgeCreated for the same
+           by editor.remove_elements does not emit a redundant syncEdgeRemoval to Vue,
+           which already dropped the edge's visual.
+        2. Remove the edge from the graph so a subsequent edgeCreated for the same
            pins is not rejected as a duplicate.
         """
         self.edge_states.pop(event.edge_id, None)
-        self.canvas_vue.emit_sync_event(event)
         self.editor.remove_elements([], [event.edge_id])

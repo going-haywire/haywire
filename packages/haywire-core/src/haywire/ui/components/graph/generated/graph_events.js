@@ -20,6 +20,7 @@ window.GraphEvents = {
     DETACH_FROM_MACRO: 'detachFromMacro', // Turn one macro placement into a Group that no longer tracks the template
     EDGE_CREATED: 'edgeCreated', // New connection created
     EDGE_CLICKED: 'edgeClicked', // Connection clicked
+    EDGE_RECONNECT_STARTED: 'edgeReconnectStarted', // A reconnect drag started from the anchor pin; the edge may now be removed
     CANVAS_MOUNTED: 'canvasMounted', // The canvas component finished mounting and holds no edges yet
     ELEMENT_REDRAW: 'elementRedraw', // redraw selected element
     ELEMENT_RESET: 'elementReset', // reset selected element
@@ -49,7 +50,7 @@ window.GraphEvents = {
     SYNC_ALL_EDGES: 'syncAllEdges', // Sync all connections to UI
     SYNC_NODE_REDRAW: 'syncNodeRedraw', // Node DOM was rebuilt — re-attach observer and redraw edges
     SYNC_EDGES_UPDATE: 'syncEdgesUpdate', // Update connections for node
-    SYNC_EDGE_RECONNECT: 'syncEdgeReconnect', // Remove an edge and start a new connection drag from the anchor pin
+    SYNC_EDGE_RECONNECT: 'syncEdgeReconnect', // Start a new connection drag from the anchor pin, removing the edge once it starts
     SYNC_EDGE_CONNECT_RESUME: 'syncEdgeConnectResume', // Resume a paused pending connection drag (context menu dismissed without action)
     SYNC_EDGE_CONNECT_CANCEL: 'syncEdgeConnectCancel', // Cancel an in-progress connection drag (e.g. after auto-wire committed the edge)
     SYNC_REQUEST_CLIPBOARD_PASTE: 'syncRequestClipboardPaste', // Ask Vue to read the OS clipboard and emit a paste
@@ -211,6 +212,16 @@ window.EventCreators = {
   createEdgeClicked(edge_id, sessionId = 'default') {
     return {
       event_type: 'edgeClicked',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { edge_id },
+      requires_broadcast: true
+    };
+  },
+
+  createEdgeReconnectStarted(edge_id, sessionId = 'default') {
+    return {
+      event_type: 'edgeReconnectStarted',
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { edge_id },
@@ -447,6 +458,11 @@ window.EventValidators = {
   },
 
   validateEdgeClicked(data) {
+    const requiredFields = ["edge_id"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateEdgeReconnectStarted(data) {
     const requiredFields = ["edge_id"];
     return requiredFields.every(field => field in data);
   },

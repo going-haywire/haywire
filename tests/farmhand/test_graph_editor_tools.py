@@ -204,6 +204,49 @@ def test_query_edge_detail_reports_health_and_adapter_chain(farmhand_call):
             "haybale-testing:adapter:BoolToIntAdapter",
             "haybale-testing:adapter:IntToFloatAdapter",
         ]
+        assert edge["style"] is None, "a computed edge has no style"
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_query_edge_detail_reports_a_styled_edges_look(farmhand_call):
+    """F24: a styled edge reports its look, the bag's defaults included."""
+    from haybale_testing.nodes.testbed.visual_probe import VisualProbeNode
+
+    key = VisualProbeNode.class_identity.registry_key
+    bid = _new_graph(farmhand_call)
+    try:
+        a, b = (
+            call_tool_json(
+                _call(
+                    farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": key}
+                )
+            )["node_id"]
+            for _ in range(2)
+        )
+        _call(
+            farmhand_call,
+            "haybale-graph-editor_connect",
+            {
+                "binding_id": bid,
+                "source_node_id": a,
+                "outlet": "note_out",
+                "sink_node_id": b,
+                "inlet": "note_in",
+            },
+        )
+        detailed = call_tool_json(
+            _call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid, "detail": True})
+        )
+        (edge,) = detailed["edges"]
+        assert edge["role"] == "visual"
+        assert edge["style"] == {
+            "color": "#8e8e8e",
+            "width": 2.0,
+            "dash": "solid",
+            "arrow_start": "none",
+            "arrow_end": "arrow",
+        }
     finally:
         _close(farmhand_call, bid)
 

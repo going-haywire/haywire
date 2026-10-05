@@ -21,11 +21,9 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def props_graph(graph_with_library_system: BaseGraph) -> BaseGraph:
     """A graph whose props shadows resolve, whichever registry was built first in this process."""
-    # A framework schema reaches only the first registry built in the process (the pending
-    # queue drains once), so a later session registry needs it registered explicitly.
     registry = get_settings_registry()
-    registry.register_schema(EdgeDefaultSettings)
-    registry.register_schema(NodeDefaultSkinSettings)
+    for schema in (EdgeDefaultSettings, NodeDefaultSkinSettings):
+        assert registry.has(schema.class_identity.registry_key)
     return graph_with_library_system
 
 

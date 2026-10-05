@@ -247,6 +247,22 @@ class EdgeClickedEvent(BaseGraphEvent):
 
 
 @graph_event(
+    "edgeReconnectStarted",
+    category="user",
+    description="A reconnect drag started from the anchor pin; the edge may now be removed",
+)
+@dataclass
+class EdgeReconnectStartedEvent(BaseGraphEvent):
+    """Sent once the canvas found the anchor pin of a ``SyncEdgeReconnectEvent`` and began the drag.
+
+    The server removes the edge only on this event, so an edge whose anchor pin is not in the
+    DOM (a culled node, a ghost end) is never lost.
+    """
+
+    edge_id: str
+
+
+@graph_event(
     "canvasMounted",
     category="user",
     description="The canvas component finished mounting and holds no edges yet",
@@ -530,7 +546,7 @@ class SyncEdgesUpdateEvent(BaseGraphEvent):
 @graph_event(
     "syncEdgeReconnect",
     category="sync",
-    description="Remove an edge and start a new connection drag from the anchor pin",
+    description="Start a new connection drag from the anchor pin, removing the edge once it starts",
 )
 @dataclass
 class SyncEdgeReconnectEvent(BaseGraphEvent):

@@ -60,6 +60,9 @@ def test_split_action_resolves_outlet_type_and_builds_children():
         sink_node_id = "B"
         inlet_port_id = "value_a"
 
+        def serialize(self) -> dict:
+            return {}
+
     class _G:
         def get_edge_wrapper(self, edge_id):
             return _Edge()

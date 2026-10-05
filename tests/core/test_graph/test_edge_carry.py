@@ -133,3 +133,73 @@ def test_collapse_and_expand_keep_propagation_and_style(graph):
     back = _edges_by_port(graph)
     assert back[("result", "value_a")].propagation is Propagation.LAZY
     assert _color(back[("note_out", "note_in")]) == "#ff0000"
+
+
+def _reroute_key() -> str:
+    from haywire.barn.builtin.nodes.reroute import RerouteNode
+
+    return RerouteNode.class_identity.registry_key
+
+
+def test_split_keeps_propagation_and_style_on_both_halves(graph):
+    """F22: both edges a split leaves take the original's values."""
+    from haywire.core.undo.actions.graph_actions import SplitEdgeWithRerouteAction
+
+    _, lazy, styled = _pair(graph)
+    for edge, check in ((lazy, "lazy"), (styled, "style")):
+        split = SplitEdgeWithRerouteAction(graph, edge.edge_id, (150, 0), _reroute_key())
+        split.execute()
+        graph.force_validation()
+        halves = [
+            e
+            for e in graph.edge_wrappers.values()
+            if split.reroute_node_id in (e.source_node_id, e.sink_node_id)
+        ]
+        assert len(halves) == 2
+        for half in halves:
+            if check == "lazy":
+                assert half.propagation is Propagation.LAZY
+            else:
+                assert _color(half) == "#ff0000"
+
+
+def test_dissolve_keeps_the_downstream_edges_values(graph):
+    """F22: dissolving a reroute bridges each downstream edge with its own propagation."""
+    from haywire.core.undo.actions.graph_actions import DissolveRerouteAction, SplitEdgeWithRerouteAction
+
+    nodes, lazy, _ = _pair(graph)
+    split = SplitEdgeWithRerouteAction(graph, lazy.edge_id, (150, 0), _reroute_key())
+    split.execute()
+    graph.force_validation()
+    assert split.reroute_node_id is not None
+    upstream = next(e for e in graph.edge_wrappers.values() if e.sink_node_id == split.reroute_node_id)
+    upstream.propagation = Propagation.EAGER
+
+    DissolveRerouteAction(graph, split.reroute_node_id).execute()
+    graph.force_validation()
+    assert _edges_by_port(graph)[("result", "value_a")].propagation is Propagation.LAZY
+
+
+def test_expand_keeps_the_card_edges_values(graph):
+    """F22: an edge into a Group's card keeps its propagation when expand bridges it inside."""
+    from haywire.core.undo.actions.graph_actions import CollapseToGraphNodeAction, ExpandGraphNodeAction
+
+    nodes, _, _ = _pair(graph)
+    a, b = nodes[0], nodes[1]
+    collapse = CollapseToGraphNodeAction(
+        graph=graph,
+        node_ids=[b.node_id],
+        card_registry_key=_CARD,
+        input_registry_key=_INPUT,
+        output_registry_key=_OUTPUT,
+        label="Group",
+    )
+    collapse.execute()
+    graph.force_validation()
+    card_edge = next(e for e in graph.edge_wrappers.values() if e.sink_node_id == collapse.card_node_id)
+    card_edge.propagation = Propagation.LAZY
+
+    ExpandGraphNodeAction(graph=graph, node_id=collapse.card_node_id).execute()
+    graph.force_validation()
+    bridged = next(e for e in graph.edge_wrappers.values() if e.source_node_id == a.node_id)
+    assert bridged.propagation is Propagation.LAZY

@@ -394,8 +394,8 @@ class EdgeWrapper:
         If not functional, this is a no-op.
 
         Flow:
-        1. Register at inlet via _add_link (may displace an old edge)
-        2. Register at outlet via _add_link (may displace an old edge)
+        1. Register at inlet via _add_link (may displace old edges)
+        2. Register at outlet via _add_link (may displace old edges)
         3. Update own link state flags
         4. Handle displaced edges with asymmetric invalidation rules
         5. Housekeeping on both ports (rebuild pipes)
@@ -406,7 +406,7 @@ class EdgeWrapper:
         if not self._inlet_port or not self._outlet_port:
             return
 
-        # Link at both ports — each returns the displaced edge (if any)
+        # Link at both ports — each returns the edges it displaced
         displaced_at_inlet = self._inlet_port._add_link(self)
         displaced_at_outlet = self._outlet_port._add_link(self)
 
@@ -415,12 +415,12 @@ class EdgeWrapper:
 
         # Handle displaced edges with asymmetric invalidation:
         # Inlet displaced old edge → old edge DOES inform its source outlet
-        if displaced_at_inlet:
-            displaced_at_inlet._on_displaced_from_inlet()
+        for displaced in displaced_at_inlet:
+            displaced._on_displaced_from_inlet()
 
         # Outlet displaced old edge → old edge does NOT inform its sink inlet
-        if displaced_at_outlet:
-            displaced_at_outlet._on_displaced_from_outlet()
+        for displaced in displaced_at_outlet:
+            displaced._on_displaced_from_outlet()
 
         # Housekeeping (rebuild pipes)
         self._inlet_port._housekeeping()

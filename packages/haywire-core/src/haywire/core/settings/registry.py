@@ -124,14 +124,21 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self._drain_pending_global()
 
     def _drain_pending_global(self) -> None:
-        """Register FrameworkSettings subclasses queued before this registry was created."""
-        from .settings_framework import FrameworkSettings, _pending_global
+        """Register every FrameworkSettings subclass defined so far, and those defined later.
+
+        Joins the live registries a schema defined from now on registers into, so a
+        registry built before another one still receives later schemas.
+        """
+        from .settings_framework import FrameworkSettings, _known_schemas, _live_registries, _pending_global
 
         FrameworkSettings._registry = self
+        _live_registries.add(self)
         while _pending_global:
             schema_cls = _pending_global.pop(0)
             self.register_schema(schema_cls)
             schema_cls._registry = self
+        for schema_cls in list(_known_schemas.values()):
+            self.register_schema(schema_cls)
 
     # =========================================================================
     # BaseRegistry abstract methods

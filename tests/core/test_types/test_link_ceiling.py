@@ -111,3 +111,33 @@ def test_a_narrowed_outlet_keeps_one_linked_edge(graph_with_library_system):
     linked = source.node.ports["result"]._linked_edges
     assert len(linked) == 1
     assert list(linked) == [newest.edge_id]
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("narrowed", ["outlet", "inlet"])
+def test_narrowing_a_port_with_several_links_displaces_every_old_edge(graph_with_library_system, narrowed):
+    """F15: a port narrowed after it took several links keeps only the next edge, and drops all others."""
+    from haybale_testing.nodes.testbed.visual_probe import VisualProbeNode
+
+    graph = graph_with_library_system
+    key = VisualProbeNode.class_identity.registry_key
+    hub = make_node(graph, key)
+    others = [make_node(graph, key) for _ in range(3)]
+
+    def link(other):
+        if narrowed == "outlet":
+            return make_edge(graph, hub.node_id, "note_out", other.node_id, "note_in")
+        return make_edge(graph, other.node_id, "note_out", hub.node_id, "note_in")
+
+    old = [link(o) for o in others[:2]]
+    graph.force_validation()
+    port = hub.node.ports["note_out" if narrowed == "outlet" else "note_in"]
+    assert len(port._linked_edges) == 2
+
+    port.single_link = True
+    newest = link(others[2])
+    graph.force_validation()
+
+    assert list(port._linked_edges) == [newest.edge_id]
+    for edge in old:
+        assert not edge.state.is_linked, f"{edge.edge_id} still reports linked"

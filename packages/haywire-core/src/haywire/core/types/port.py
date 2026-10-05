@@ -647,34 +647,34 @@ class DataPort(DataTypeIdentity):
         self._is_dirty_structural = True
         self._housekeeping()
 
-    def _add_link(self, edge_wrapper: EdgeWrapper) -> EdgeWrapper | None:
+    def _add_link(self, edge_wrapper: EdgeWrapper) -> list[EdgeWrapper]:
         """
         Attempt to link an edge to this port.
 
-        Always tracks in _all_edges. If the port takes one link and
-        already has a linked edge, the old edge is displaced (removed from
-        _linked_edges but remains in _all_edges).
+        Always tracks in _all_edges. If the port takes one link, every edge
+        already linked is displaced (removed from _linked_edges but kept in
+        _all_edges): usually one, several when ``single_link`` was set on a
+        port that already held more.
 
         Args:
             edge_wrapper: EdgeWrapper to link
 
         Returns:
-            The displaced EdgeWrapper if one was replaced, None otherwise
+            The displaced edges, oldest first; empty when none was replaced.
         """
-        displaced: EdgeWrapper | None = None
+        displaced: list[EdgeWrapper] = []
 
         # Always track in _all_edges
         self._all_edges[edge_wrapper.edge_id] = edge_wrapper
 
         if edge_wrapper.edge_id not in self._linked_edges:
             if not self.takes_many_links:
-                old_wrapper_uuid = next(iter(self._linked_edges), None)
-                if old_wrapper_uuid:
-                    displaced = self._linked_edges.pop(old_wrapper_uuid)
-                    self._data.remove_source(old_wrapper_uuid)
-                    if self.on_disconnect and displaced:
-                        self._trigger_callback(self.on_disconnect, displaced)
+                displaced = list(self._linked_edges.values())
                 self._linked_edges = {edge_wrapper.edge_id: edge_wrapper}
+                for old_wrapper in displaced:
+                    self._data.remove_source(old_wrapper.edge_id)
+                    if self.on_disconnect:
+                        self._trigger_callback(self.on_disconnect, old_wrapper)
             else:
                 self._linked_edges[edge_wrapper.edge_id] = edge_wrapper
 
