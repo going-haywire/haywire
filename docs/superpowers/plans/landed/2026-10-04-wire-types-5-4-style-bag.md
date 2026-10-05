@@ -109,7 +109,7 @@ Found while reading the code for this plan. **To be confirmed by the user in Tas
 - [ ] **Step 2: Clean trees.** `git status --short` in both repos shows nothing but untracked plan files and `.claude/settings.json`.
 - [ ] **Step 3: Baselines.** Run the pre-commit gate, the browser tier, the visiongraph tests, the mypy set and `uv run ruff check . && uv run ruff format --check .`. Record the pass counts in `.superpowers/sdd/progress.md` under a new section "5.4". All must be green; if not, stop and start an error-fix session with the user (CLAUDE.md).
 - [ ] **Step 4: Benchmark baseline.** Run the `haywire-benchmark` skill on the clean tree; Task 8 compares against it.
-- [ ] **Step 5: Saved-graph snapshot.** Recreate the scratch test `tests/core/test_zz_graph_snapshot.py` exactly as in [5.1's Task 0 Step 4](landed/2026-10-03-wire-types-5-1-sweep.md) (never committed), and run `HW_GRAPH_SNAPSHOT=/tmp/graph_snapshot_before_5_4.json uv run pytest tests/core/test_zz_graph_snapshot.py -q -p no:randomly`. Task 8 compares against it: no saved graph in either repo may change, since none has a styled edge.
+- [ ] **Step 5: Saved-graph snapshot.** Recreate the scratch test `tests/core/test_zz_graph_snapshot.py` exactly as in [5.1's Task 0 Step 4](2026-10-03-wire-types-5-1-sweep.md) (never committed), and run `HW_GRAPH_SNAPSHOT=/tmp/graph_snapshot_before_5_4.json uv run pytest tests/core/test_zz_graph_snapshot.py -q -p no:randomly`. Task 8 compares against it: no saved graph in either repo may change, since none has a styled edge.
 
 ---
 
@@ -1669,7 +1669,7 @@ level: architectural
 - Splitting or dissolving a reroute on a styled edge does not carry its style.
 ```
 
-- [ ] **Step 2: Glossary.** Add a row after **Styled edge**: `| **Style bag** | The `EdgeSettings` subclass a wire type names in `style`: the fields of a **Styled edge** the user may set. Each edge holds one while it validates and saves its set values under `"style"`. See [ADR 0047](../adr/0047-edge-settings.md) | edge style settings |`. In the **Wire type** row, add `style` next to `arrow_at`: "`style` names the **Style bag** of a **Styled edge**".
+- [ ] **Step 2: Glossary.** Add a row after **Styled edge**: `| **Style bag** | The `EdgeSettings` subclass a wire type names in `style`: the fields of a **Styled edge** the user may set. Each edge holds one while it validates and saves its set values under `"style"`. See [ADR 0047](../../adr/0047-edge-settings.md) | edge style settings |`. In the **Wire type** row, add `style` next to `arrow_at`: "`style` names the **Style bag** of a **Styled edge**".
 - [ ] **Step 3: settings-arch.md.** Add `EdgeSettings` to the schema-class table in §6.1 (owner: an edge; registered: no; serialized: the edge's `"style"`; promotion: no) and a paragraph after the `GraphSettings` description with the lifetime rule. Add the Q33 fact: a node or edge bag skips an unknown key on load and drops it at the next save, so a renamed field loses its value.
 - [ ] **Step 4: setting-canon.md.** A short "Edge style bags" section: when to declare one, the five recognised fields and their value types, `dash_choices`, `ARROW_HEAD_WIDGET`, the example from `EdgeSettings`'s docstring.
 - [ ] **Step 5: edges-arch.md.** The bag's lifetime in `build()`, `serialize()` as the one save path, and `EDGE_STYLE_CHANGED`.

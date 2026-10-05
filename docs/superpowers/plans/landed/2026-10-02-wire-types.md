@@ -4,23 +4,27 @@ Settled in the inquisition of 2026-09-30 to 2026-10-02, questions Q1 to Q17,
 reviewed against the code on 2026-10-03 and settled further in a second
 inquisition the same day, Q18 to Q33 (see [Decisions of 2026-10-03](#decisions-of-2026-10-03-q18-to-q33)). This
 is step 5 of the edge-kinds sequence, whose overview is closed
-([landed/2026-09-28-edge-kinds.md](landed/2026-09-28-edge-kinds.md); steps 0 to 4
+([landed/2026-09-28-edge-kinds.md](2026-09-28-edge-kinds.md); steps 0 to 4
 landed and are on `origin/master`). This document is the design and, from here on,
 the status source. The detail plans for P and 5.1 to 5.5 are written one at a time
 from it, each with its own tasks.
 
-## Status — 2026-10-03
+## Status — 2026-10-05
+
+5.1 to 5.4, D and the follow-ups were squashed (one commit per step) and merged into local `master` 2026-10-05 (haywire-repo 988e9454..8fda4e44, visiongraph cdfe724); not pushed. The pre-squash history is tagged `wire-types-full` in both repos.
+
+## Status — 2026-10-03 (per step)
 
 | Plan | Work | Status | Detail plan | Next |
 |---|---|---|---|---|
-| P | `EXEC` and `CALLBACK` into builtin | **Merged** into local `master` 2026-10-03 (both repos, fast-forward; gate 5975 passed, visiongraph 29 passed) | [landed/2026-10-02-signal-types-to-builtin.md](landed/2026-10-02-signal-types-to-builtin.md) | push both repos |
-| 5.1 | Wire types and the FlowType sweep, behaviour-preserving | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-1-sweep.md](landed/2026-10-03-wire-types-5-1-sweep.md) | merge |
-| 5.2 | Rule changes | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-2-rules.md](landed/2026-10-03-wire-types-5-2-rules.md) | merge; design round D and the 5.3 detail plan |
-| 5.3 | The immediate path | **Landed** on branch `wire-types-5-1` 2026-10-04 (haywire-repo fb6ca02d..f42f8b27, visiongraph 8b60334), not merged; all live checks passed (cameras by the user) | [landed/2026-10-04-wire-types-5-3-immediate-path.md](landed/2026-10-04-wire-types-5-3-immediate-path.md) | merge |
-| 5.4 | Edge rendering and the style bag | **Landed** on branch `wire-types-5-1` 2026-10-04 (haywire-repo 281e252a..52127ca1; visiongraph unchanged), not merged; C1 to C10 confirmed (Q71 to Q80); live UI checks pending (user) | [2026-10-04-wire-types-5-4-style-bag.md](2026-10-04-wire-types-5-4-style-bag.md) | live checks, then merge; 5.5 detail plan |
-| 5.5 | The annotation wire, type, node and skin | Designed, reviewed | to write | after 5.3 and 5.4 |
+| P | `EXEC` and `CALLBACK` into builtin | **Merged** into local `master` 2026-10-03 (both repos, fast-forward; gate 5975 passed, visiongraph 29 passed) | [landed/2026-10-02-signal-types-to-builtin.md](2026-10-02-signal-types-to-builtin.md) | push both repos |
+| 5.1 | Wire types and the FlowType sweep, behaviour-preserving | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-1-sweep.md](2026-10-03-wire-types-5-1-sweep.md) | merge |
+| 5.2 | Rule changes | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-2-rules.md](2026-10-03-wire-types-5-2-rules.md) | merge; design round D and the 5.3 detail plan |
+| 5.3 | The immediate path | **Landed** on branch `wire-types-5-1` 2026-10-04 (haywire-repo fb6ca02d..f42f8b27, visiongraph 8b60334), not merged; all live checks passed (cameras by the user) | [landed/2026-10-04-wire-types-5-3-immediate-path.md](2026-10-04-wire-types-5-3-immediate-path.md) | merge |
+| 5.4 | Edge rendering and the style bag | **Landed** on branch `wire-types-5-1` 2026-10-04 (haywire-repo 281e252a..52127ca1; visiongraph unchanged), not merged; C1 to C10 confirmed (Q71 to Q80); live checks passed 2026-10-05 (A6 covered by 5.5's B6) | [2026-10-04-wire-types-5-4-style-bag.md](2026-10-04-wire-types-5-4-style-bag.md) | merge |
+| 5.5 | The annotation wire, type, node and skin | **Split off, not merged** (2026-10-05): built and live-checked, but unusable as designed (a pin must be an inlet or an outlet). Kept on branch `diagram-annotations` | [2026-10-05-diagram-annotations.md](../2026-10-05-diagram-annotations.md) | design round |
 | D | Edge appearance: defaults (framework < graph), arrow heads, UX colours | **Landed** on branch `wire-types-5-1`, not merged | [2026-10-04-wire-types-d-edge-appearance.md](2026-10-04-wire-types-d-edge-appearance.md) | 5.4 detail plan |
-| F | Follow-ups found while executing 5.1, 5.2 and D | F1 to F11 **done** on branch `wire-types-5-1` 2026-10-04; F12 decided in 5.3; F16 done in 5.4; F13 to F15 after 5.5; F17 to F24 open | [Follow-ups](#follow-ups-from-51-52-and-d) | 5.3 detail plan must carry F12, 5.4 detail plan F16; close F13 to F15 when 5.5 lands |
+| F | Follow-ups found while executing 5.1, 5.2 and D | **All closed** on branch `wire-types-5-1` by 2026-10-05: F1 to F11, F13 to F15, F17 to F22, F24 done; F12 and F23 decided (Q69, Q92) | [Follow-ups](#follow-ups-from-51-52-and-d) | 5.3 detail plan must carry F12, 5.4 detail plan F16; close F13 to F15 when 5.5 lands |
 
 5.1 also made an unknown `pin_kind` draw the fallback glyph (`_from_map` always ends in `fallback`), so 5.4 has no fallback-glyph work left.
 
@@ -67,7 +71,7 @@ and data types reference it by class while everything compares it by id. There i
 no registry, no DI provider and no folder scan. Hot reload works through the
 registry's unmanaged-module dependency reload: a changed wire-type module reloads,
 then the type modules that import it, and `TypeRegistry`'s cascade rebuilds ports
-and edges ([base.py:559-600](../../../packages/haywire-core/src/haywire/core/registry/base.py#L559-L600)).
+and edges ([base.py:559-600](../../../../packages/haywire-core/src/haywire/core/registry/base.py#L559-L600)).
 
 | `ClassVar` | Meaning |
 |---|---|
@@ -86,7 +90,7 @@ module carries a `Library`, so the builtin wire types live under
 `haywire.barn.builtin`, not `haywire.core`.
 
 The id map behaves like Surface's `_SURFACE_BY_ID`
-([surface.py:40-78](../../../packages/haywire-core/src/haywire/ui/surface/surface.py#L40-L78)):
+([surface.py:40-78](../../../../packages/haywire-core/src/haywire/ui/surface/surface.py#L40-L78)):
 
 - a reload of the same module and qualname replaces the entry;
 - the same id from a different module raises `ValueError`, so moving a wire class
@@ -129,7 +133,7 @@ builtin, which plan P delivers.
   same way.
 - `OPTIONAL[T]` answers T's wire type, like the other wrappers (Q21). Today
   `OPTIONAL` is declared DATA, and `_wrapped_identity` copies no flow
-  ([base.py:475-479](../../../packages/haywire-core/src/haywire/core/types/base.py#L475-L479)),
+  ([base.py:475-479](../../../../packages/haywire-core/src/haywire/core/types/base.py#L475-L479)),
   so `OPTIONAL[EXEC]` is a data port. All 41 uses of `OPTIONAL` wrap data types, so
   nothing existing changes, but it is a rule change and lands in 5.2.
   `OPTIONAL[CALLBACK]` is redundant once callback inlets hold absence, and stays
@@ -162,7 +166,7 @@ never enters `wires_match`:
   (`test_node_sizing`, `test_edge_drag_cost`, `test_boundary_skin`), `skin-canon.md`
   and the glossary;
 - auto-wire with no matching port still targets `root_in` or `root_out`, as today
-  ([visual_layer.py:1088-1095](../../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/handlers/visual_layer.py#L1088-L1095)).
+  ([visual_layer.py:1088-1095](../../../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/handlers/visual_layer.py#L1088-L1095)).
 
 **An edge that fails validation is never rewritten (Q20).** While it fails, its
 wire type comes from whichever end resolves, and only for drawing (look, pin kind).
@@ -177,7 +181,7 @@ would not allow it, and gets it back with `in_3`.
 
 **Removing a pin keeps its edges.** The pin menu's removal (`remove_port`, then
 `rejig`) detaches the port's edges and keeps them in the graph, drawn to the
-ghost ([data.py:372-386](../../../packages/haywire-core/src/haywire/core/node/data.py#L372-L386)).
+ghost ([data.py:372-386](../../../../packages/haywire-core/src/haywire/core/node/data.py#L372-L386)).
 It is not undoable. This stays the rule for every node, annotation nodes included
 (Q28). An annotation edge whose pin was removed never resolves again, because
 annotation pin indices are never reused. It waits on the ghost until the user
@@ -198,7 +202,7 @@ of `DataPort.takes_many_links`, and a port can only narrow it with `single_link`
 | | Outlet | Inlet |
 |---|---|---|
 | value wire (`DEPENDENT`, `IMMEDIATE`) | many | one, many when the field `keeps_value_per_source()` |
-| `SEQUENCE` | one: the VM keeps one transition per outlet ([base.py:722-727](../../../packages/haywire-core/src/haywire/core/graph/base.py#L722-L727)) | many |
+| `SEQUENCE` | one: the VM keeps one transition per outlet ([base.py:722-727](../../../../packages/haywire-core/src/haywire/core/graph/base.py#L722-L727)) | many |
 | `VISUAL` | many | many |
 
 A container takes its element's role, so `ArrayType[T]`, `OPTIONAL[T]` and `ADD[T]`
@@ -221,10 +225,10 @@ locked `EAGER` would have been a misleading label. What follows, all in 5.1:
 
 - `EdgeWrapper.propagation` answers `None`. The pipe still pushes, because
   `Pipe.is_lazy` tests `is Propagation.LAZY`
-  ([pipe.py:101](../../../packages/haywire-core/src/haywire/core/types/pipe.py#L101)).
+  ([pipe.py:101](../../../../packages/haywire-core/src/haywire/core/types/pipe.py#L101)).
 - The edge menu's propagation row disappears through its existing
   `if mode is None: return`
-  ([edge.py:248-250](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/edge/edge.py#L248-L250)),
+  ([edge.py:248-250](../../../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/edge/edge.py#L248-L250)),
   and its `IMMEDIATE` label, icon and locked tooltip go (deletion 2). The
   properties inspector's propagation panel (`introspect/edge.py:110-151`) hides
   for such an edge too.
@@ -255,7 +259,7 @@ the same stance for widget visibility. Applied here:
 - The widget layer's read-only guard extends from "the field holds a linked value"
   to "the field cannot hold an own value". That covers pooled fields, whose
   `_set_own` raises, so the first edit of a widget on a pooled port no longer
-  crashes ([pooled_type.py:194-228](../../../barn/haybale-core/haybale_core/types/pooled_type.py#L194-L228)).
+  crashes ([pooled_type.py:194-228](../../../../barn/haybale-core/haybale_core/types/pooled_type.py#L194-L228)).
 - haybale-core drops its container refusals (`ArrayType` of CONTROL or CALLBACK,
   `PooledType` of CONTROL) once a test shows each combination runs.
 
@@ -281,17 +285,17 @@ a graph field.
 
 **The bag's lifetime.** `EdgeWrapper.build()` creates the bag from the derived wire
 type and re-derives it on every rebuild. Validation re-runs `build()` and `link()`
-on the same wrapper ([validation.py:346-358](../../../packages/haywire-core/src/haywire/core/graph/validation.py#L346-L358)),
+on the same wrapper ([validation.py:346-358](../../../../packages/haywire-core/src/haywire/core/graph/validation.py#L346-L358)),
 and nothing re-creates the edge. That one place covers a hot reload of the wire
 type and a bare-ADD slot growing into a typed port. A bag is bound only while the
 edge validates. An edge that fails validation keeps its saved dict verbatim (Q20,
 see [Connecting](#connecting)). A new bag class takes the old bag's saved dict
 through `to_dict` and `from_dict`. Keys the new class does not declare are skipped
 and gone at the next save, as node settings bags do today
-([settings.py:613-617](../../../packages/haywire-core/src/haywire/core/settings/settings.py#L613-L617), Q26). Paste and Subgraph instantiation carry `"style"`
+([settings.py:613-617](../../../../packages/haywire-core/src/haywire/core/settings/settings.py#L613-L617), Q26). Paste and Subgraph instantiation carry `"style"`
 through `RemappedEdge`, together with `propagation`, which both drop today
-([graph_actions.py:587-596](../../../packages/haywire-core/src/haywire/core/undo/actions/graph_actions.py#L587-L596),
-[subgraph.py:212-219](../../../packages/haywire-core/src/haywire/core/graph/subgraph.py#L212-L219)). Undo keeps the wrapper and needs nothing.
+([graph_actions.py:587-596](../../../../packages/haywire-core/src/haywire/core/undo/actions/graph_actions.py#L587-L596),
+[subgraph.py:212-219](../../../../packages/haywire-core/src/haywire/core/graph/subgraph.py#L212-L219)). Undo keeps the wrapper and needs nothing.
 
 Recognised style fields: `color`, `width`, `dash`, `arrow_start` and `arrow_end`,
 each arrow field a head from D's vocabulary or none, so either end is set
@@ -303,7 +307,7 @@ single cubic bezier and `marker-mid` has no vertex to draw at (Q10b).
 Rendering rules (Q10c):
 
 1. Style values travel in the existing edge sync payload. `EdgeVisualState`
-   ([ui_edge.py:28-63](../../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/ui_edge.py#L28-L63))
+   ([ui_edge.py:28-63](../../../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/ui_edge.py#L28-L63))
    carries the stroke fields, and D adds `arrowAt`; 5.4 adds the declared fields
    (`arrow_start`, `arrow_end`) and includes them in `__eq__`, or an arrow-only
    change is deduplicated away. A style edit calls `edge.redraw()`, because the
@@ -324,7 +328,7 @@ Rendering rules (Q10c):
    `"fallback"`. Two cases need care:
    - A bare ADD slot has no wire type, and `resolve` returns `None` before it reads
      the declared icon
-     ([pin_icons.py:71-73](../../../packages/haywire-core/src/haywire/ui/skin/pin_icons.py#L71-L73)),
+     ([pin_icons.py:71-73](../../../../packages/haywire-core/src/haywire/ui/skin/pin_icons.py#L71-L73)),
      so without a fix every boundary-node slot loses its pin. The resolver's `None`
      gate goes: `DataPort.has_pin()` already decides whether a pin exists, so the
      slot keeps its declared `add_circle`.
@@ -339,15 +343,15 @@ Rendering rules (Q10c):
 ### The immediate path
 
 Two guards, both in one helper `DataPort._fire_immediate` that the immediate branch
-of `set_value` ([port.py:389](../../../packages/haywire-core/src/haywire/core/types/port.py#L389))
-and the reveal path on unlink ([port.py:738](../../../packages/haywire-core/src/haywire/core/types/port.py#L738))
+of `set_value` ([port.py:389](../../../../packages/haywire-core/src/haywire/core/types/port.py#L389))
+and the reveal path on unlink ([port.py:738](../../../../packages/haywire-core/src/haywire/core/types/port.py#L738))
 both call (Q13b):
 
 - **Echo guard.** An edge-driven write to an immediate inlet that equals the value
   the node already sees is stored and fires no `on_change`. This is step 2's
   settled rule ("the node's `on_change` only when the value it sees changes"),
   which `set_value`'s immediate branch never implemented. The reveal path already
-  does ([port.py:736](../../../packages/haywire-core/src/haywire/core/types/port.py#L736)),
+  does ([port.py:736](../../../../packages/haywire-core/src/haywire/core/types/port.py#L736)),
   and the guard reuses its `_same_value`, which treats a comparison that raises
   (numpy arrays) as "changed". That is the safe direction.
 - **Re-entrancy guard.** A thread-local set holds the immediate inlets on the
@@ -386,7 +390,7 @@ This replaces the "drop an entry equal to the element's default" sentinel.
 - The wrap is a variant of `_absence_tolerant_field`, not that function itself.
   The existing one is built for wrappers. Its `get_stored_type` returns
   `element_type_cls`
-  ([base.py:436-445](../../../packages/haywire-core/src/haywire/core/types/base.py#L436-L445)),
+  ([base.py:436-445](../../../../packages/haywire-core/src/haywire/core/types/base.py#L436-L445)),
   which for `CALLBACK` is `str`. That would break the reroute split, `hb_grow`,
   adapters and pin rendering. The variant keeps the type's own stored type and
   does not hard-code `PrimitiveField` storage for `None`.
@@ -397,7 +401,7 @@ This replaces the "drop an entry equal to the element's default" sentinel.
 - **A `None` default becomes empty `default_kwargs` (Q22).** On a `holds_absence`
   wire, "no default" means absent, for both storages. `PrimitiveField` already
   starts at `None` when `default_kwargs` has no `"value"`
-  ([fields.py:298-303](../../../packages/haywire-core/src/haywire/core/types/fields.py#L298-L303)).
+  ([fields.py:298-303](../../../../packages/haywire-core/src/haywire/core/types/fields.py#L298-L303)).
   The `BaseField` side of the variant skips the constructor in `__post_init__` and
   `reset`, which otherwise build `type_cls(**default_kwargs)`, a dataclass with
   `name=""`: the very sentinel Q14 removes. `default_kwargs` keeps its `Dict` type,
@@ -426,7 +430,7 @@ This replaces the "drop an entry equal to the element's default" sentinel.
   `{"value": None}`, because a dataclass type may have an attribute called `value`.
   `OPTIONAL`'s current `{"value": None}` stays readable.
 - The base's `to_dict` and `from_dict` are stubs today. `to_dict` returns the
-  decorator default ([fields.py:241-256](../../../packages/haywire-core/src/haywire/core/types/fields.py#L241-L256)).
+  decorator default ([fields.py:241-256](../../../../packages/haywire-core/src/haywire/core/types/fields.py#L241-L256)).
   `ArrayField` and `MapsStringField` inherit it, so their port values are never
   saved (see Small items). `PooledField` inherits it too, but a pool's contents
   come from its edges, so nothing is lost there. 5.3 fixes the array and map case
@@ -443,7 +447,7 @@ This replaces the "drop an entry equal to the element's default" sentinel.
 - **`BaseField` storage** gains absence on `holds_absence` wires: `__post_init__`,
   `reset` and `_set_own` accept `None`, through the variant above. Today
   `_absence_tolerant_field` raises for anything but `PrimitiveField`
-  ([base.py:400-420](../../../packages/haywire-core/src/haywire/core/types/base.py#L400-L420)).
+  ([base.py:400-420](../../../../packages/haywire-core/src/haywire/core/types/base.py#L400-L420)).
   This lifts ADR 0033's primitive-only restriction for this wire only.
 - Port declarations do not change. An unlinked plain callback inlet reads `None`
   instead of `""`. No product node code reads a plain callback inlet. Framework
@@ -455,7 +459,7 @@ This replaces the "drop an entry equal to the element's default" sentinel.
 
 Why it works through relays: `Pipe.pull` forwards `None` only into a sink that
 `accepts_absence()` and otherwise keeps the sink's last value
-([pipe.py:56-75](../../../packages/haywire-core/src/haywire/core/types/pipe.py#L56-L75)).
+([pipe.py:56-75](../../../../packages/haywire-core/src/haywire/core/types/pipe.py#L56-L75)).
 A reroute's ports take the split edge's type, and `hb_grow` and
 `reconcile_interface` copy the incoming type, so every port on a callback path
 holds absence. Wrapping ports in `OPTIONAL[CALLBACK]` would not have been enough.
@@ -471,7 +475,7 @@ because `OPTIONAL` is declared DATA.
   `is_flow_type` and `is_not_flow_type`.
 - `NodeData.has_sequence_pins()` answers "does this node carry a SEQUENCE pin". It
   replaces the data walk's stop
-  ([data_flow_builder.py:135-137](../../../packages/haywire-core/src/haywire/core/assembly/data_flow_builder.py#L135-L137)),
+  ([data_flow_builder.py:135-137](../../../../packages/haywire-core/src/haywire/core/assembly/data_flow_builder.py#L135-L137)),
   `flat_view._is_control_crossed` (deleted, three callers) and the check in
   `GraphNode._stamp_node_type`. Today the data walk checks any CONTROL port and the
   others check pinned ones. They already agree in practice: config ports are forced
@@ -496,7 +500,7 @@ ignored on load and never written. `RemappedEdge.edge_type` goes. Farmhand repor
 script, re-saving rewrites a file. When a type's wire type changed between save and
 load, the edge fails `_formal_validation` and stays visible as an invalid edge,
 where today an unknown `edge_type` drops it with a log line
-([base.py:1026-1044](../../../packages/haywire-core/src/haywire/core/graph/base.py#L1026-L1044)).
+([base.py:1026-1044](../../../../packages/haywire-core/src/haywire/core/graph/base.py#L1026-L1044)).
 
 ### The annotation node (Q16 to Q16e)
 
@@ -504,7 +508,7 @@ Builtin ships a visual wire type that users can use: `AnnotationWire`, an
 `ANNOTATION` type, an annotation node and a skin with pins on every side. The node
 binds its skin by key string, as the reroute node does, so the headless execution
 path never imports nicegui
-([reroute.py:60-80](../../../packages/haywire-core/src/haywire/barn/builtin/nodes/reroute.py#L60-L80)).
+([reroute.py:60-80](../../../../packages/haywire-core/src/haywire/barn/builtin/nodes/reroute.py#L60-L80)).
 
 - **Pins.** Each side carries a growing `ADD[ANNOTATION]` inlet and outlet, eight
   slots in all. `ADD[T]` answers T's wire type, so the slots accept annotation
@@ -517,13 +521,13 @@ path never imports nicegui
 - **Side in the port id.** The side is recorded in the port id prefix, side plus
   direction plus index. `add_port_test` has the id scheme, prefix plus an index
   from `_next_index` that is never reused
-  ([add_port_test.py:41-128](../../../barn/haybale-testing/haybale_testing/nodes/testbed/add_port_test.py#L41-L128)).
+  ([add_port_test.py:41-128](../../../../barn/haybale-testing/haybale_testing/nodes/testbed/add_port_test.py#L41-L128)).
   Its `_SIDES` are slot families (in, out, str), not card edges. Indices are never
   reused, because a port id is part of every edge id attached to it.
 - **`render_pin` stays as it is.** Each side-and-direction pair maps to exactly
   one `LayoutDirection`, and `render_pin` derives both the CSS side and
   `data-pin-dir-x/y` from the layout it gets
-  ([pin_render.py:215-216](../../../packages/haywire-core/src/haywire/ui/skin/pin_render.py#L215-L216)).
+  ([pin_render.py:215-216](../../../../packages/haywire-core/src/haywire/ui/skin/pin_render.py#L215-L216)).
   The skin passes a per-pin layout, which keeps the one-source rule of
   `.insights/project_layout_direction_pin_contract.md`. The skin still picks the
   axis-specific `card_padding`. No skin places pins on all four sides today, so the
@@ -537,7 +541,7 @@ path never imports nicegui
   on the canvas for the drag (none exists). The suggestion rule needs no change:
   `sameType` compares `data-pin-data-type`, which is the stored type's key, and
   `ADD[ANNOTATION]`'s stored type is `ANNOTATION`
-  ([add.py:24-28](../../../packages/haywire-core/src/haywire/barn/builtin/types/add.py#L24-L28)).
+  ([add.py:24-28](../../../../packages/haywire-core/src/haywire/barn/builtin/types/add.py#L24-L28)).
 - **Content.** A plain multi-line `text` setting (`STRING`, `TextWidget` with its
   `text_modal` pop-out), edited in the properties panel. `TextWidget`'s inline
   field is single-line, and the modal is where multi-line text is edited.
@@ -549,7 +553,7 @@ path never imports nicegui
 - **A CONTROL node** (the user's choice). It has a control inlet and outlet, and its
   worker passes control through, forwarding the payload with `out()` like a control
   reroute. CONTROL nodes have no validator rules, so an unlinked one is valid and
-  silent ([structural_validator.py:100-105](../../../packages/haywire-core/src/haywire/core/validation/structural_validator.py#L100-L105)).
+  silent ([structural_validator.py:100-105](../../../../packages/haywire-core/src/haywire/core/validation/structural_validator.py#L100-L105)).
 - **Hidden control pins.** The control ports always exist. A setting decides whether
   unlinked ones are drawn, and a linked one is always drawn. The setting never
   changes execution, and no edge anchors to an undrawn pin.
@@ -578,7 +582,7 @@ All in 5.1 unless marked.
    and `receives_callbacks` (`flow_assembly_manager.py:434, 498-499`) and the
    `callback_topology` passthrough (`interpreter.py:383`).
 8. `validate_edge`: the no-op, its `IStructuralValidator` method, its call at
-   [edge_wrapper.py:796](../../../packages/haywire-core/src/haywire/core/edge/edge_wrapper.py#L796)
+   [edge_wrapper.py:796](../../../../packages/haywire-core/src/haywire/core/edge/edge_wrapper.py#L796)
    and its test. Q3 rules out code hooks, and a kept seam would read as an
    invitation.
 9. `PooledField._drops_default` and `_element_default` (5.3, with Q14)
@@ -608,9 +612,9 @@ its code. Each starts with the failing tests listed for it.
 ### P. EXEC and CALLBACK into builtin
 
 The new node wizard's follow-on 2
-([landed/2026-09-24-new-node-wizard.md](landed/2026-09-24-new-node-wizard.md), decision 8),
+([landed/2026-09-24-new-node-wizard.md](2026-09-24-new-node-wizard.md), decision 8),
 pulled forward as a precondition (Q6b). Detail plan:
-[landed/2026-10-02-signal-types-to-builtin.md](landed/2026-10-02-signal-types-to-builtin.md).
+[landed/2026-10-02-signal-types-to-builtin.md](2026-10-02-signal-types-to-builtin.md).
 Move both types to builtin and update every importer, visiongraph included, with
 no re-export. There is no key alias: a script rewrites the saved graphs (14 files
 here, one in visiongraph). It also fixes the Python-type lookup, which would
@@ -750,6 +754,11 @@ declares `color`, `dash`, `width`, `arrow_start` and `arrow_end` (Q48, Q58).
 
 Not costed before the review: the four-sided skin, the double-click hook, and
 the canvas container class that reveals slots during a drag.
+
+As landed (Q81 to Q90): the wire, its style and `ANNOTATION` live in `builtin/types/annotation.py`
+(import cycle with `wires.py`); the double-click is a skin-level `.on('dblclick')`; the canvas gained
+two generic pieces, `edge-dragging` and `hw-pin-reveal`. The annotation skin is exempt from the
+collapse contract: a note has nothing to fold.
 
 Verify first: the canvas pin index finds a slot hidden with `visibility`, a drop
 on a hidden slot resolves through `nearestCompatiblePin`, and a drag onto a side
@@ -1014,15 +1023,15 @@ item when it lands; when 5.5 lands, nothing here may be left open.
 
 **After 5.5 has landed:**
 
-- [ ] **F13.** Browser harness graph builders run on the default timer scheduler;
+- [x] **F13.** Done (d696217d: harness graphs on LoopScheduler, five browser runs green). Browser harness graph builders run on the default timer scheduler;
   the intermittent `test_edge_batch_cost` failure (NiceGUI `build_response`
   "dictionary changed size during iteration") is likely that race. Move the
   harness builders to `SyncScheduler` and check the tier stays green over
   several runs.
-- [ ] **F14.** Reconnecting an edge onto a ghost pin removes the edge server-side
+- [x] **F14.** Done (253bf1f8, minimal ack (Q94); with 715ff729, which fixed a remove-then-re-add in one validation window being recorded as a removal). Reconnecting an edge onto a ghost pin removes the edge server-side
   before the canvas has confirmed the anchor pin is in the DOM; on a culled node the
   edge disappears (undo restores it). Needs a two-phase reconnect.
-- [ ] **F15.** `DataPort._add_link` on a port that takes one link but already holds
+- [x] **F15.** Done (3415820e). `DataPort._add_link` on a port that takes one link but already holds
   several (reachable only by setting `single_link` on a linked port, see F5) keeps
   only the new edge, yet removes the source of, and fires `on_disconnect` for, just
   the first old one; the others leave `_linked_edges` silently and may leave stale
@@ -1042,18 +1051,18 @@ edge grows with the stroke and runs a few px into the pin (accepted).
   sibling path's width, one `--hw-edge-head` var (5.4 needs a start head and an
   end head), and `_edgeGeometryLooksWrong`, which assumes at most one headed end.
   ADR 0045's Consequences name these; the 5.4 detail plan owns them.
-- [ ] **F17.** The head table is a canvas prop, and NiceGUI re-sends every prop on
+- [x] **F17.** Done (87cdbc6e, plus a staleness test for both generated files). The head table is a canvas prop, and NiceGUI re-sends every prop on
   each `update()` (after every validation): about 3.3 KB per validation per
   canvas. Ship `ARROW_HEADS` as a generated JS file, like `graph_events.js`.
-- [ ] **F18.** The `edgeWidth` watcher re-lays out every edge even when no end is
+- [x] **F18.** Done (31ebd64d). The `edgeWidth` watcher re-lays out every edge even when no end is
   headed; with the pin-edge rule a width change moves only headed ends.
-- [ ] **F19.** A head's span is not clickable: the hit area follows the shortened
+- [x] **F19.** Done (acfb5c24). A head's span is not clickable: the hit area follows the shortened
   path. The right-click search (`_isPointNearStroke`) also keeps a fixed 8px
   tolerance instead of `CanvasSettings.edge_hit_padding`.
-- [ ] **F20.** `test_edge_appearance.py`'s `_click` waits a fixed 600 ms; wait on
+- [x] **F20.** Done (3176c708). `test_edge_appearance.py`'s `_click` waits a fixed 600 ms; wait on
   the expected computed value instead (a slow runner can give the
   marker-survival test a false green).
-- [ ] **F21.** Test infrastructure: framework schemas queue in `_pending_global`
+- [x] **F21.** Done (ff963d6b; fixed at the source (live registries + known schemas)). Test infrastructure: framework schemas queue in `_pending_global`
   and only the first `SettingsRegistry()` drains it. After
   `tests/farmhand/test_bare_studio.py` or `test_graph_editor_tools.py` builds its
   own library system, the session registry misses later schemas (seen as
@@ -1062,9 +1071,9 @@ edge grows with the stroke and runs a few px into the pin (accepted).
 
 **From 5.4, landed 2026-10-04:**
 
-- [ ] **F22.** Splitting or dissolving a reroute, and the Group card's bridging edges, turn one edge into two or two into one, and carry neither propagation nor style (Q73).
-- [ ] **F23.** Style edits are not undoable, like node and graph settings edits through the renderer (Q78).
-- [ ] **F24.** Farmhand neither reports nor sets an edge's style (Q80).
+- [x] **F22.** Done (d5778096: split, dissolve, expand bridging; collapse/detach/promote unchanged (Q91)). Splitting or dissolving a reroute, and the Group card's bridging edges, turn one edge into two or two into one, and carry neither propagation nor style (Q73).
+- [x] **F23.** Done (closed, not built: settings changes stay off the undo history (Q92)). Style edits are not undoable, like node and graph settings edits through the renderer (Q78).
+- [x] **F24.** Done (1827dc02: reported in query_graph detail; no setter (Q93)). Farmhand neither reports nor sets an edge's style (Q80).
 
 Not a follow-up (decided 2026-10-03): the default skin shows no multi glyph on
 outlets (no `callback_out_multi` in `PinIconResolver.ICONS`, like `data_out`), so
@@ -1083,7 +1092,7 @@ Glossary:
   pins for the skin's icon map, such as `control`; not an icon, Q30);
 - changed: **FlowType** entries replaced; **Propagation** reduced to lazy and
   eager; **lazy** gains the dirty mark it pushes on write, which is what lets a
-  DATA node skip its worker ([base.py:126](../../../packages/haywire-core/src/haywire/core/node/base.py#L126));
+  DATA node skip its worker ([base.py:126](../../../../packages/haywire-core/src/haywire/core/node/base.py#L126));
   **CALLBACK port** loses "an empty name, which the emitter treats as no
   subscription"; **Edge** keeps *wire* on its avoid list, and the ten or so prose
   uses of "the wire" for an edge become "the edge"; **ghost pin** is rewritten
@@ -1125,11 +1134,11 @@ schema list.
 
 Doc drift found on the way:
 
-- [hot-reload-arch.md:19, 91, 208](../../architecture/hot-reload/hot-reload-arch.md#L19)
+- [hot-reload-arch.md:19, 91, 208](../../../architecture/hot-reload/hot-reload-arch.md#L19)
   names an `EdgeRegistry` that does not exist. Edges rebuild through the node
   registry and adapter chains. The new wire-type map must not take that name
   either.
-- [datatype-canon.md:50](../../components/datatypes/datatype-canon.md#L50)
+- [datatype-canon.md:50](../../../components/datatypes/datatype-canon.md#L50)
   describes `flow_type` and says CONTROL and CALLBACK types get no widget. More
   flow drift at :19, :132 and :149.
 - `skin-canon.md:330, 335` and `glossary.md:513` name `data-pin-flow-type`.
@@ -1157,7 +1166,7 @@ that touches each area:
 
 | Found | Fixed by |
 |---|---|
-| A config port reloads as DATA: `to_dict` skips `NONE`, `from_spec` fills in DATA ([port.py:873](../../../packages/haywire-core/src/haywire/core/types/port.py#L873), [:946](../../../packages/haywire-core/src/haywire/core/types/port.py#L946)) | Q8a, Q12 |
+| A config port reloads as DATA: `to_dict` skips `NONE`, `from_spec` fills in DATA ([port.py:873](../../../../packages/haywire-core/src/haywire/core/types/port.py#L873), [:946](../../../../packages/haywire-core/src/haywire/core/types/port.py#L946)) | Q8a, Q12 |
 | `ADD[T]` is always DATA; `_wrapped_identity` copies no flow | Q8a |
 | The container `_configure_port` walk can loop on an undeclared primitive element (read, not run) | Q8a |
 | Auto-wire has no ADD exemption | Q9b, Q9c |
@@ -1295,3 +1304,29 @@ The corrections C1 to C10 found while writing the 5.4 detail plan, confirmed by 
 | 78 | (C8) Style edits are not undoable (F23) | 5.4 |
 | 79 | (C9) A picker inside the edge menu is checked in a browser first; `ArrowHeadWidget` gets `FLYOUT_Z` if needed | 5.4 |
 | 80 | (C10) No edge style in Farmhand (F24) | 5.4 |
+
+## Decisions of 2026-10-04, 5.5 detail plan (Q81 to Q90)
+
+The corrections C1 to C10 found while writing the 5.5 detail plan, confirmed by the user (all as proposed).
+
+| Q | Decision | Lands in |
+|---|---|---|
+| 81 | (C1) `AnnotationStyle`, `AnnotationWire` and `ANNOTATION` live in `builtin/types/annotation.py` (import cycle with `wires.py`) | 5.5 |
+| 82 | (C2) `text` and `show_control_pins` are props on the node's props subclass, in `REDRAW_FIELDS` | 5.5 |
+| 83 | (C3) The double-click is a skin-level `.on('dblclick')`; checked in a browser first | 5.5 |
+| 84 | (C4) Generic canvas pieces: `edge-dragging` container class and `hw-pin-reveal` pin class | 5.5 |
+| 85 | (C5) A drop commits to the nearest compatible pin: near a grown pin links it, near the slot grows one; slots sit at each strip's end | 5.5 |
+| 86 | (C6) The annotation skin renders the ghost pins | 5.5 |
+| 87 | (C7) No new icon entries; grown pins draw the fallback glyph | 5.5 |
+| 88 | (C8) Text edits are not undoable, like other props | 5.5 |
+| 89 | (C9) Slots are never removable; grown pins are | 5.5 |
+| 90 | (C10) Label "Annotation", menu `annotation` | 5.5 |
+
+## Decisions of 2026-10-05, follow-ups F14, F22 to F24 (Q91 to Q94)
+
+| Q | Decision | Lands in |
+|---|---|---|
+| 91 | (F22) Replaced edges carry propagation and style where it is simple: split (both halves), dissolve (the downstream edge's), and Group-card paths only where the replaced edge is at hand. Styled edges rarely meet reroutes or Groups, so no new mechanics for it. Confirmed after the live check (2026-10-05): an edge crossing a collapsed selection loses its look, and expand cannot restore it | F22 |
+| 92 | (F23) Style edits stay off the undo history; for now every settings change does | F23 closed, not built |
+| 93 | (F24) Farmhand reports an edge's style (`query_graph(detail=True)`); no tool sets it | F24 |
+| 94 | (F14) Minimal fix: the canvas acknowledges a started reconnect drag and the server removes the edge only then. Cancel still deletes; undo still takes two steps. Live check 2026-10-05: an anchor only off-screen (mounted, not yet culled) still starts a drag; kept as is (user), scroll the anchor into view first | F14 |

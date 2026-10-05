@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, pytest (+ xdist, Playwright browser tier), uv, ruff, mypy; Vue 3 (`canvas.vue`) for `_wiresMatch`; NiceGUI widgets.
 
-**Settled in:** [2026-10-02-wire-types.md](../2026-10-02-wire-types.md), the step 5 design: Q8b, Q8c, Q9a, Q9c, Q9d and Q21. The 2026-10-03 inquisition on this plan settled Q34 to Q47 (logged in the design's decision table). They reverse the design's link model: wire types carry no link defaults. The framework sets a ceiling by mechanism, and a port can only narrow it.
+**Settled in:** [2026-10-02-wire-types.md](2026-10-02-wire-types.md), the step 5 design: Q8b, Q8c, Q9a, Q9c, Q9d and Q21. The 2026-10-03 inquisition on this plan settled Q34 to Q47 (logged in the design's decision table). They reverse the design's link model: wire types carry no link defaults. The framework sets a ceiling by mechanism, and a port can only narrow it.
 
 ## Global Constraints
 

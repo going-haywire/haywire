@@ -1802,7 +1802,7 @@ level: architectural
 In `docs/reference/glossary.md`, add these rows, keeping alphabetical order and the table's avoid column:
 
 ```markdown
-| **Arrow head** | A glyph drawn at an edge end, from the shared vocabulary of fifteen heads (arrow, open V, triangle, diamond, circle, bar, the ERD cardinalities). Drawn as a `context-stroke` marker on a path shortened by the head's inset. See [ADR 0045](../adr/0045-edge-appearance.md) | arrow type, marker |
+| **Arrow head** | A glyph drawn at an edge end, from the shared vocabulary of fifteen heads (arrow, open V, triangle, diamond, circle, bar, the ERD cardinalities). Drawn as a `context-stroke` marker on a path shortened by the head's inset. See [ADR 0045](../../adr/0045-edge-appearance.md) | arrow type, marker |
 | **Computed edge** | An edge whose wire type declares no style bag (data, control, callback). Its colour comes from its pins, its dash from its adapter chain, and its arrow head and width from the **Edge defaults** | default edge, plain edge |
 | **Edge defaults** | The arrow head and width every **Computed edge** draws with: `EdgeDefaultSettings` in the studio, overridden per graph by `edge_arrow` and `edge_width` on the graph props. The head sits at the end the wire type's `arrow_at` names | edge settings, edge style |
 | **Styled edge** | An edge whose wire type declares a style bag; each edge sets the fields its bag declares (colour, dash, width, arrow heads). A field it does not declare falls through to the **Edge defaults** | annotated edge, custom edge |

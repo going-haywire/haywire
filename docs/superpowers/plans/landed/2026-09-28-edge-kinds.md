@@ -2,7 +2,7 @@
 
 **Closed 2026-10-02.** Steps 0 to 4 landed and are on `origin/master`. Step 5
 was designed as wire types and continues, with plan P, in
-[2026-10-02-wire-types.md](../2026-10-02-wire-types.md), now the status source.
+[2026-10-02-wire-types.md](2026-10-02-wire-types.md), now the status source.
 The step 5 inputs below are kept as the inquisition's starting point; where the
 design departs from them, see that plan's "Earlier decisions this revises". Open
 small items moved there too.
@@ -46,7 +46,7 @@ The steps are numbered in the order they are meant to be built.
 | 2 | Unlinking reveals a port's own value — one rule for every port, edge kind and propagation mode, promoted settings included | **Landed** on `master` | [2026-09-28-unlink-reveals-own-value.md](2026-09-28-unlink-reveals-own-value.md), 10 tasks; supersedes 2026-09-28-immediate-reset-to-default.md (removed) |
 | 3 | Lock-order cycle between `NodeWrapper.redraw()` and validation | **Landed** on `master` | none (small; recorded in `.insights/project_subgraph_scheduler_deadlock.md`) |
 | 4 | Callbacks across Subgraph boundaries (Groups and macros) | **Landed** on `master` | [2026-09-29-callbacks-across-subgraph-boundaries.md](2026-09-29-callbacks-across-subgraph-boundaries.md), 10 tasks |
-| 5 | EdgeKind | **Superseded**: designed as wire types, sub-plans 5.1 to 5.5 | [2026-10-02-wire-types.md](../2026-10-02-wire-types.md) |
+| 5 | EdgeKind | **Superseded**: designed as wire types, sub-plans 5.1 to 5.5 | [2026-10-02-wire-types.md](2026-10-02-wire-types.md) |
 | P | `EXEC` and `CALLBACK` into builtin (precondition for 5; the new node wizard's follow-on 2) | tracked in wire types | [2026-10-02-signal-types-to-builtin.md](2026-10-02-signal-types-to-builtin.md) |
 
 Steps 0–4 are on `origin/master`. Acceptance tests for steps 1 and 2 live in
@@ -164,7 +164,7 @@ inquisition:
   interior (ADR 0038). Macros are built (`03-macro.md`), so this is in scope.
 
 **5. EdgeKind.** *Superseded by
-[2026-10-02-wire-types.md](../2026-10-02-wire-types.md), settled in the
+[2026-10-02-wire-types.md](2026-10-02-wire-types.md), settled in the
 inquisition of 2026-09-30 to 2026-10-02.* The inputs below are kept as that
 inquisition's starting point. Several were decided differently: compatibility is
 wire-type id equality plus a bare-ADD wildcard (Q9b/c), not a key each kind
@@ -221,5 +221,5 @@ so every relay is generic before kinds become pluggable. Inputs from the
 Closed with the overview. The `builtin:type:*` / `builtin:node:*` key-prefix
 docstring was fixed by plan P (`58966757`). The OAK-D studio check is part of
 wire types 5.3. The open items moved to
-[2026-10-02-wire-types.md](../2026-10-02-wire-types.md), "Small items".
+[2026-10-02-wire-types.md](2026-10-02-wire-types.md), "Small items".
 
