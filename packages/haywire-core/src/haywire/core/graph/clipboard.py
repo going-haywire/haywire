@@ -73,7 +73,7 @@ def build_clipboard_payload(
         edge_wrapper = graph.get_edge_wrapper(edge_id)
         if edge_wrapper is None:
             continue
-        edge_dict = edge_wrapper.edge.to_dict()
+        edge_dict = edge_wrapper.serialize()
         if edge_dict["source_node_id"] in copied and edge_dict["sink_node_id"] in copied:
             edges[edge_id] = edge_dict
 

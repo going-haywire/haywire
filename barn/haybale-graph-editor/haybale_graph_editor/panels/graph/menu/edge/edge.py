@@ -18,6 +18,7 @@ from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
+from haywire.ui.panel.render_utils import render_settings
 
 from .....surfaces import EdgeActions, EdgeEditMenu, EdgeMenu
 from .....state.edit_state import EditState
@@ -86,6 +87,34 @@ class EdgeWarningsMenuPanel(BasePanel):
             return
         with layout.container:
             _render_edge_warnings(state)
+
+
+@panel(
+    surface=EdgeMenu,
+    label="Style",
+    icon=hui.icon.theme,
+    order=15,
+)
+class EdgeStyleMenuPanel(BasePanel):
+    """The connection's colour, line and arrow heads, editable in place.
+
+    The same fields and writes as the Style panel in the properties editor.
+    """
+
+    actions: EdgeActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        edge = ctx.data[EditState].active_edge
+        return edge is not None and edge.style is not None
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        edge = ctx.data[EditState].active_edge
+        if edge is None or edge.style is None:
+            return
+        with layout:
+            with ui.column().classes("hw-panel gap-0").style("min-width: 240px"):
+                render_settings(ctx, edge.style)
 
 
 @panel(

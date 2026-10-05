@@ -34,7 +34,7 @@ def _fake_graph(boundary_ids: frozenset[str] = frozenset()):
     g.get_node_wrapper.side_effect = node_wrapper
 
     edge_in = MagicMock()
-    edge_in.edge.to_dict.return_value = {
+    edge_in.serialize.return_value = {
         "source_node_id": "n1",
         "outlet_port_id": "o",
         "sink_node_id": "n2",
@@ -43,7 +43,7 @@ def _fake_graph(boundary_ids: frozenset[str] = frozenset()):
         "propagation": "eager",
     }
     edge_out = MagicMock()
-    edge_out.edge.to_dict.return_value = {
+    edge_out.serialize.return_value = {
         "source_node_id": "n2",
         "outlet_port_id": "o",
         "sink_node_id": "n3",

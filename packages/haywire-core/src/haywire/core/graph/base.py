@@ -6,7 +6,7 @@ settings bags ``props`` and ``meta``.
 """
 
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Mapping, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
 from datetime import datetime
 import math
@@ -596,11 +596,13 @@ class BaseGraph:
         sink_node_id: str,
         inlet_port_id: str,
         propagation: Propagation = Propagation.EAGER,
+        style: Optional[Mapping[str, Any]] = None,
     ) -> Optional["EdgeWrapper"]:
         """Create an edge between two ports, build its adapter chain, and add it to the graph.
 
         Args:
             propagation: The mode chosen for the edge; the wire type fits or locks it.
+            style: The edge's saved style values (see ``EdgeWrapper.serialize``).
 
         Returns:
             The added wrapper.
@@ -617,6 +619,7 @@ class BaseGraph:
             sink_node_id=sink_node_id,
             inlet_port_id=inlet_port_id,
             propagation=propagation,
+            style=style,
         )
 
         edge_wrapper.build()
@@ -910,7 +913,7 @@ class BaseGraph:
                 node_id: wrapper.serialize(include_data=include_data)
                 for node_id, wrapper in self.node_wrappers.items()
             },
-            "edges": {edge_id: wrapper.edge.to_dict() for edge_id, wrapper in self.edge_wrappers.items()},
+            "edges": {edge_id: wrapper.serialize() for edge_id, wrapper in self.edge_wrappers.items()},
             "variables": {name: var.to_dict() for name, var in self.variables.items()},
             "props": self.props._to_dict(),
             # A template-instantiated definition is left out: the macro file is
@@ -1022,6 +1025,7 @@ class BaseGraph:
                             sink_node_id=edge_data["sink_node_id"],
                             inlet_port_id=edge_data["inlet_port_id"],
                             propagation=Propagation(edge_data.get("propagation", Propagation.EAGER.value)),
+                            style=edge_data.get("style"),
                         )
 
                         edge_wrapper.build()

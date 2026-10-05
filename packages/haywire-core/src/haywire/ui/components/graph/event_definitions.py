@@ -464,6 +464,7 @@ class SyncEdgeAdditionEvent(BaseGraphEvent):
     - opacity: Transparency (0.0-1.0)
     - isValid: Connection validity state
     - hasWarning: Warning indicator
+    - style: A styled edge's declared width and heads (width, arrowStart, arrowEnd)
     """
 
     edge_id: str
@@ -479,6 +480,7 @@ class SyncEdgeAdditionEvent(BaseGraphEvent):
     arrowAt: str = "inlet"  # ArrowAt value: where a computed head sits
     strokeDasharray: str = ""
     opacity: float = 1.0
+    style: Dict[str, Any] = field(default_factory=dict)  # declared width and heads
 
 
 @graph_event("syncEdgeRemoval", category="sync", description="Sync connection removal from UI")

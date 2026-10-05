@@ -166,6 +166,10 @@ AT EXECUTION TIME (both):
     └─ worker()
 ```
 
+### 3.3a Style bag and saving
+
+A wire type that names a style bag (`WireType.style`, an `EdgeSettings` subclass) gives each of its edges one, bound in `build()` once formal validation passes and dropped, values kept, when it fails (ADR 0047). `EdgeWrapper.serialize()` is the one save path: `Edge.to_dict()` plus `"style"` when a value is set; graph save, the clipboard and collapse all call it. A style change marks `ChangeReason.EDGE_STYLE_CHANGED`, which redraws the edge and, unlike `EDGE_REDRAW_REQUESTED`, records an unsaved change. Paste, Subgraph instantiation, collapse and expand pass `propagation` and `style` on to the edges they create.
+
 ### 3.4 `set_value()` callback rules
 
 The `set_value()` method on DataPort distinguishes between edge-driven, widget/programmatic changes and the wire role:

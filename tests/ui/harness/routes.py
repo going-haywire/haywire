@@ -253,7 +253,8 @@ _ADD_PORT_KEY = "haybale-testing:node:AddPortTestNode"
 
 
 def _build_edge_appearance_graph(node_factory):
-    """One edge of each kind the edge-appearance tests read: data, control, callback, and an invalid one."""
+    """One edge of each kind the edge-appearance tests read: data, control, callback, an invalid one,
+    and a styled one on the test visual wire."""
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
@@ -275,6 +276,12 @@ def _build_edge_appearance_graph(node_factory):
     assert editor.create_edge(listener.node_id, "listen_callback", emitter.node_id, "edge_callback")
     # Two bare ADD slots never link: the edge stays, and fails validation.
     graph.create_edge_wrapper(slot_a.node_id, "add_out_0", slot_b.node_id, "add_in_0")
+
+    from haybale_testing.nodes.testbed.visual_probe import VisualProbeNode
+
+    probe_key = VisualProbeNode.class_identity.registry_key
+    note_a, note_b = node(probe_key, 3600.0, 4450.0), node(probe_key, 3950.0, 4450.0)
+    assert editor.create_edge(note_a.node_id, "note_out", note_b.node_id, "note_in")
     return graph, editor
 
 
@@ -1093,6 +1100,36 @@ def register_routes(library_service) -> None:
         ui.button("resync-edges", on_click=lambda: manager.resync_edges()).props(
             'data-testid="resync-edges"'
         )
+
+        def _styled_edge():
+            return next(e for e in graph.edge_wrappers.values() if e.outlet_port_id == "note_out")
+
+        for testid, field, value in (
+            ("style-width-6", "width", 6.0),
+            ("style-end-open", "arrow_end", "open"),
+            ("style-end-none", "arrow_end", "none"),
+            ("style-start-open", "arrow_start", "open"),
+            ("style-color-red", "color", "#ff0000"),
+            ("style-dash-dotted", "dash", "dotted"),
+        ):
+            on_click = lambda _, f=field, v=value: setattr(_styled_edge().style, f, v)  # noqa: E731
+            ui.button(testid, on_click=on_click).props(f'data-testid="{testid}"')
+
+        def _send_partial_style() -> None:
+            # A crafted payload: only arrowEnd declared, so the start end falls through (Q76).
+            from haybale_graph_editor.editors.graph_canvas.ui_edge import (
+                edge_sync_payload,
+                edge_visual_state,
+            )
+
+            from haywire.ui.components.graph.event_definitions import SyncAllEdgesEvent
+
+            edge = _styled_edge()
+            state = edge_visual_state(edge)
+            state.style = {"arrowEnd": "open"}
+            manager.canvas_vue.emit_sync_event(SyncAllEdgesEvent(edges=[edge_sync_payload(edge, state)]))
+
+        ui.button("style-partial", on_click=_send_partial_style).props('data-testid="style-partial"')
         _stamp_synced()
 
     # -------------------------------------------------------------------------

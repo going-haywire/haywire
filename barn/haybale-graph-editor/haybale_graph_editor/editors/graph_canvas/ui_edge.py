@@ -18,9 +18,12 @@ canvas.vue receives only the resulting stroke values.
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any
 
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.edge.style import DASH_PATTERNS, STYLE_FIELDS
+from haywire.core.settings import settings_fields
 from haywire.core.types import ArrowAt
 
 logger = logging.getLogger(__name__)
@@ -47,6 +50,10 @@ class EdgeVisualState:
     is_valid: bool
     has_warning: bool
 
+    # A styled edge's declared width and heads, keyed as canvas.vue reads them:
+    # "width", "arrowStart", "arrowEnd"; only the keys its style bag declares.
+    style: dict[str, Any] = field(default_factory=dict)
+
     def __eq__(self, other) -> bool:
         """Compare visual states to detect changes.
 
@@ -54,7 +61,8 @@ class EdgeVisualState:
         *draw* the same, which is the only question the redraw-dedupe in
         ``on_validated`` is asking. ``is_valid`` and ``has_warning`` take part
         because they pick the invalid colour and the warning glow; ``arrow_at``
-        takes part because a rebuild can change the wire type.
+        takes part because a rebuild can change the wire type; ``style`` takes
+        part because a styled edge's width and heads are drawn from it.
         """
         if not isinstance(other, EdgeVisualState):
             return False
@@ -65,6 +73,7 @@ class EdgeVisualState:
             and self.arrow_at == other.arrow_at
             and self.is_valid == other.is_valid
             and self.has_warning == other.has_warning
+            and self.style == other.style
         )
 
 
@@ -73,6 +82,27 @@ def calculate_dasharray(chain_length: int) -> str:
     if chain_length == 0:
         return ""
     return "40,2" + ",2,2" * (chain_length)
+
+
+def _declared_style(wrapper: EdgeWrapper) -> dict[str, Any]:
+    """The recognised style fields the edge's bag declares, with their values; empty without a bag."""
+    bag = wrapper.style
+    if bag is None:
+        return {}
+    declared = settings_fields(bag)
+    return {name: getattr(bag, name) for name in STYLE_FIELDS if name in declared}
+
+
+def _canvas_style(style: dict[str, Any]) -> dict[str, Any]:
+    """The width and heads of a declared style, keyed as canvas.vue reads them."""
+    out: dict[str, Any] = {}
+    if "width" in style:
+        out["width"] = float(style["width"])
+    if "arrow_start" in style:
+        out["arrowStart"] = str(style["arrow_start"])
+    if "arrow_end" in style:
+        out["arrowEnd"] = str(style["arrow_end"])
+    return out
 
 
 def edge_visual_state(wrapper: EdgeWrapper) -> EdgeVisualState:
@@ -84,11 +114,18 @@ def edge_visual_state(wrapper: EdgeWrapper) -> EdgeVisualState:
     2. WARNING (chain changed): full opacity, drawn with the theme's warning colour by the canvas
     3. INVALID (error): dashed, reduced opacity, drawn in the theme's danger colour by the canvas
 
+    A styled edge's declared colour replaces the gradient in the valid and
+    warning states, and its declared dash replaces the chain dash in the valid
+    state; its width and heads travel in ``style``. An invalid edge has no style
+    bag, so it draws unstyled.
+
     Returns:
         EdgeVisualState with appropriate styling
     """
     wire = wrapper.wire_type
     arrow_at = wire.arrow_at.value if wire is not None else ArrowAt.INLET.value
+    style = _declared_style(wrapper)
+    color = str(style["color"]) if "color" in style else "auto"
 
     # State: INVALID (highest priority)
     if not wrapper.is_valid():
@@ -106,23 +143,28 @@ def edge_visual_state(wrapper: EdgeWrapper) -> EdgeVisualState:
     if wrapper.state.has_warning():
         return EdgeVisualState(
             edge_id=wrapper.edge_id,
-            stroke_color="auto",  # The canvas draws the warning glow with the --hw-warning token
-            stroke_dasharray="2,2,2,2,2,5,5,5,5,5,5,5",  # Solid
+            stroke_color=color,  # The canvas draws the warning glow with the --hw-warning token
+            stroke_dasharray="2,2,2,2,2,5,5,5,5,5,5,5",
             opacity=1.0,
             arrow_at=arrow_at,
             is_valid=True,
             has_warning=True,
+            style=_canvas_style(style),
         )
 
-    # State: VALID (default) - use 'auto' for gradient
+    # State: VALID (default) - 'auto' draws the gradient from the pins
+    dash = DASH_PATTERNS.get(style["dash"]) if "dash" in style else None
     return EdgeVisualState(
         edge_id=wrapper.edge_id,
-        stroke_color="auto",  # Use gradient from pins
-        stroke_dasharray=calculate_dasharray(len(wrapper.edge.chain_adapter_keys)),  # Solid
+        stroke_color=color,
+        stroke_dasharray=(
+            dash if dash is not None else calculate_dasharray(len(wrapper.edge.chain_adapter_keys))
+        ),
         opacity=1.0,
         arrow_at=arrow_at,
         is_valid=True,
         has_warning=False,
+        style=_canvas_style(style),
     )
 
 
@@ -147,4 +189,5 @@ def edge_sync_payload(wrapper: EdgeWrapper, state: EdgeVisualState) -> dict:
         "arrowAt": state.arrow_at,
         "strokeDasharray": state.stroke_dasharray,
         "opacity": state.opacity,
+        "style": state.style,
     }

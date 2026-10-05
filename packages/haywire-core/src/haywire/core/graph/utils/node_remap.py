@@ -38,6 +38,8 @@ class RemappedEdge:
     propagation: str = "eager"
     """The chosen ``Propagation`` value as serialized, e.g. ``"eager"``."""
     chain_adapter_keys: list[str] = field(default_factory=list)
+    style: dict[str, Any] = field(default_factory=dict)
+    """The edge's saved style values, as ``EdgeWrapper.serialize`` writes them under ``"style"``."""
 
 
 @dataclass(frozen=True)
@@ -71,7 +73,7 @@ def remap_node_ids(
         nodes: Serialized nodes by their current id, each carrying a
             ``registry_key`` (the shape ``NodeWrapper.serialize`` produces).
         edges: Serialized edges by their current id, each in the shape
-            ``Edge.to_dict`` produces.
+            ``EdgeWrapper.serialize`` produces.
         mint_id: Returns an id unused by the destination graph, given a
             ``registry_key`` to derive the prefix from. Called once per node;
             a returned id already minted in this call is retried, so a minter
@@ -110,6 +112,7 @@ def remap_node_ids(
                 inlet_port_id=inlet,
                 propagation=edge.get("propagation", "eager"),
                 chain_adapter_keys=list(edge.get("chain_adapter_keys") or []),
+                style=dict(edge.get("style") or {}),
             )
         )
 

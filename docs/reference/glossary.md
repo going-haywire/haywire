@@ -97,7 +97,7 @@ Macro is registered and placed.
 
 | Term | Definition | Aliases to avoid |
 |------|-----------|-----------------|
-| **Wire type** | How a port's values travel and what the framework does with its edges. A data type declares one with `@type(wire_type=…)` and derived types inherit it; a container takes its element's. A class never instantiated, identified by the id `"<library>:wire:<ClassName>"`. Builtin ships `DataWire`, `ControlWire` and `CallbackWire`; `holds_absence` lets the types on a wire hold `None` (`CallbackWire` only). Ports and edges derive theirs and never save it; a config port has none. See [ADR 0042](../adr/0042-wire-types-replace-flowtype.md); `arrow_at` names the end a **Computed edge** draws its arrow head at (`CallbackWire`: the outlet) | FlowType (removed), flow type, edge kind |
+| **Wire type** | How a port's values travel and what the framework does with its edges. A data type declares one with `@type(wire_type=…)` and derived types inherit it; a container takes its element's. A class never instantiated, identified by the id `"<library>:wire:<ClassName>"`. Builtin ships `DataWire`, `ControlWire` and `CallbackWire`; `holds_absence` lets the types on a wire hold `None` (`CallbackWire` only). Ports and edges derive theirs and never save it; a config port has none. See [ADR 0042](../adr/0042-wire-types-replace-flowtype.md); `arrow_at` names the end a **Computed edge** draws its arrow head at (`CallbackWire`: the outlet); `style` names the **Style bag** of a **Styled edge** | FlowType (removed), flow type, edge kind |
 | **WireRole** | What the framework does with an edge, picked by its wire type: **dependent** (assembly walks it backward — data), **sequence** (the VM walks it forward — control), **immediate** (takes effect on write — callbacks), **visual** (drawn and saved, never executed). Closed: framework code branches on the role | Flow |
 | **Wire key** | What a pin is matched by: its wire type's id, or `*` for a bare `ADD` slot, which matches any wire key except another `*`. Two pins may link when their keys match (`wires_match`) | — |
 | **Pin kind** | The key a wire type gives its pins for the skin's icon map, such as `control`. Not an icon: a type names its own icon | Glyph (means the drawn icon) |
@@ -112,6 +112,7 @@ Macro is registered and placed.
 | **Computed edge** | An edge whose wire type declares no style bag (data, control, callback). Its colour comes from its pins, its dash from its adapter chain, and its arrow head and width from the **Edge defaults** | default edge, plain edge |
 | **Edge defaults** | The arrow head and width every **Computed edge** draws with: `EdgeDefaultSettings` in the studio, overridden per graph by `edge_arrow` and `edge_width` on the graph props. The head sits at the end the wire type's `arrow_at` names | edge settings, edge style |
 | **Styled edge** | An edge whose wire type declares a style bag; each edge sets the fields its bag declares (colour, dash, width, arrow heads). A field it does not declare falls through to the **Edge defaults** | annotated edge, custom edge |
+| **Style bag** | The `EdgeSettings` subclass a wire type names in `style`: the fields of a **Styled edge** the user may set. Each edge holds one while it validates and saves its set values under `"style"`. See [ADR 0047](../adr/0047-edge-settings.md) | edge style settings |
 
 ---
 

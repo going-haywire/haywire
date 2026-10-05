@@ -17,10 +17,10 @@ from it, each with its own tasks.
 | 5.1 | Wire types and the FlowType sweep, behaviour-preserving | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-1-sweep.md](landed/2026-10-03-wire-types-5-1-sweep.md) | merge |
 | 5.2 | Rule changes | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-2-rules.md](landed/2026-10-03-wire-types-5-2-rules.md) | merge; design round D and the 5.3 detail plan |
 | 5.3 | The immediate path | **Landed** on branch `wire-types-5-1` 2026-10-04 (haywire-repo fb6ca02d..f42f8b27, visiongraph 8b60334), not merged; all live checks passed (cameras by the user) | [landed/2026-10-04-wire-types-5-3-immediate-path.md](landed/2026-10-04-wire-types-5-3-immediate-path.md) | merge |
-| 5.4 | Edge rendering and the style bag | Designed, reviewed; revised by D (Q50, Q53, Q58) | to write | after D's code |
+| 5.4 | Edge rendering and the style bag | **Landed** on branch `wire-types-5-1` 2026-10-04 (haywire-repo 281e252a..52127ca1; visiongraph unchanged), not merged; C1 to C10 confirmed (Q71 to Q80); live UI checks pending (user) | [2026-10-04-wire-types-5-4-style-bag.md](2026-10-04-wire-types-5-4-style-bag.md) | live checks, then merge; 5.5 detail plan |
 | 5.5 | The annotation wire, type, node and skin | Designed, reviewed | to write | after 5.3 and 5.4 |
 | D | Edge appearance: defaults (framework < graph), arrow heads, UX colours | **Landed** on branch `wire-types-5-1`, not merged | [2026-10-04-wire-types-d-edge-appearance.md](2026-10-04-wire-types-d-edge-appearance.md) | 5.4 detail plan |
-| F | Follow-ups found while executing 5.1, 5.2 and D | F1 to F11 **done** on branch `wire-types-5-1` 2026-10-04; F12 to 5.3; F13 to F15 after 5.5; F16 to 5.4; F17 to F21 open | [Follow-ups](#follow-ups-from-51-52-and-d) | 5.3 detail plan must carry F12, 5.4 detail plan F16; close F13 to F15 when 5.5 lands |
+| F | Follow-ups found while executing 5.1, 5.2 and D | F1 to F11 **done** on branch `wire-types-5-1` 2026-10-04; F12 decided in 5.3; F16 done in 5.4; F13 to F15 after 5.5; F17 to F24 open | [Follow-ups](#follow-ups-from-51-52-and-d) | 5.3 detail plan must carry F12, 5.4 detail plan F16; close F13 to F15 when 5.5 lands |
 
 5.1 also made an unknown `pin_kind` draw the fallback glyph (`_from_map` always ends in `fallback`), so 5.4 has no fallback-glyph work left.
 
@@ -727,7 +727,7 @@ running studio.
 payload and `__eq__`, `canvas.vue` setting a styled edge's values as inline vars on
 its path (Q53), the fallback glyph for an unknown `pin_kind`, edge menu and
 `EdgeInspector` rendering of the bag (`arrow_start`/`arrow_end` through D's
-`ArrowHeadWidget`). Heads, markers, path shortening, the width var, selection and
+`ArrowHeadWidget`). The fallback glyph was 5.1's (Q71). Heads, markers, path shortening, the width var, selection and
 active, and the state colours are D's code, landed before 5.4 (Q56). The detail
 plan follows Q50 and Q53.
 
@@ -946,7 +946,7 @@ overview when it closed.
   ports exist only on haybale-testing testbed nodes, and `MapsStringField` only in
   haybale-example. 5.3's template method fixes it (Q25). If a library adds array
   inlets with their own values before 5.3 lands, fix it standalone instead.
-- Paste and Subgraph instantiation drop an edge's `propagation`: `RemappedEdge`
+- **Done in 5.4 (Q27, Q73, 3feaf7fb).** Paste and Subgraph instantiation drop an edge's `propagation`: `RemappedEdge`
   carries it and nobody reads it. A `LAZY` choice silently becomes `EAGER`. Fixed
   by 5.4 together with style (Q27).
 - **Done in 5.1.** `ADD`'s docstring (`add.py:111-113`) says a typed `ADD[T]` keeps T's flow. It
@@ -1037,7 +1037,7 @@ found heads half under the pin). The head table's `arrowHeads` watcher was
 dropped (it fired on every canvas `update()`). A head on a selected or active
 edge grows with the stroke and runs a few px into the pin (accepted).
 
-- [ ] **F16 → 5.4.** `canvas.vue` reads the graph's width and head where 5.4's
+- [x] **F16 → 5.4.** Done in 5.4 (2183b362). `canvas.vue` reads the graph's width and head where 5.4's
   styled edges need per-edge values: `_edgeInsets` (path insets), the hit-area
   sibling path's width, one `--hw-edge-head` var (5.4 needs a start head and an
   end head), and `_edgeGeometryLooksWrong`, which assumes at most one headed end.
@@ -1059,6 +1059,12 @@ edge grows with the stroke and runs a few px into the pin (accepted).
   own library system, the session registry misses later schemas (seen as
   `props.edge_width` = `None`). `test_manager_props_subscriptions.py` registers its
   two schemas explicitly; fix it at the source.
+
+**From 5.4, landed 2026-10-04:**
+
+- [ ] **F22.** Splitting or dissolving a reroute, and the Group card's bridging edges, turn one edge into two or two into one, and carry neither propagation nor style (Q73).
+- [ ] **F23.** Style edits are not undoable, like node and graph settings edits through the renderer (Q78).
+- [ ] **F24.** Farmhand neither reports nor sets an edge's style (Q80).
 
 Not a follow-up (decided 2026-10-03): the default skin shows no multi glyph on
 outlets (no `callback_out_multi` in `PinIconResolver.ICONS`, like `data_out`), so
@@ -1160,7 +1166,7 @@ that touches each area:
 | A widget on a pooled port raises on first edit | Q8c |
 | A closed loop of immediate edges recurses until `RecursionError` (traced 2026-10-03) | Q13b |
 | `_isValidEdge`'s ghost branch is unreachable; ghosts never start, end or join a drag | deletion 11 |
-| Paste and Subgraph instantiation drop `propagation` | 5.4 |
+| Paste and Subgraph instantiation drop `propagation` (and collapse, expand; Q73) | 5.4 |
 | Array and map port values are never saved (base `to_dict` stub) | 5.3 |
 
 ## Review corrections (2026-10-03)
@@ -1272,3 +1278,20 @@ The corrections C1 to C8 found while writing the 5.3 detail plan, confirmed by t
 | 69 | (C7, F12) `PooledType[EXEC]` stays refused; `holds_absence` is per wire and `ControlWire` holds none | 5.3 |
 | 70 | (C8) A re-entrant reveal on unlink is dropped before `clear_linked()`, as Q24 | 5.3 |
 
+
+## Decisions of 2026-10-04, 5.4 detail plan (Q71 to Q80)
+
+The corrections C1 to C10 found while writing the 5.4 detail plan, confirmed by the user.
+
+| Q | Decision | Lands in |
+|---|---|---|
+| 71 | (C1) The fallback glyph for an unknown `pin_kind` is 5.1's; 5.4 has none | 5.4 |
+| 72 | (C2) A style edit marks a new `EDGE_STYLE_CHANGED`: redraws and persists, not visual-only | 5.4 |
+| 73 | (C3) Collapse and expand carry propagation and style too; split, dissolve and bridging edges do not (F22) | 5.4 |
+| 74 | (C4) `"style"` saves the values mapping flat | 5.4 |
+| 75 | (C5) Colour and dash travel in `strokeColor`/`strokeDasharray`; width and heads are inline vars on path and hit area | 5.4 |
+| 76 | (C6) Heads fall back per end to the computed head at the end `arrow_at` names | 5.4 |
+| 77 | (C7) A failing edge draws without its style; the saved style is kept verbatim | 5.4 |
+| 78 | (C8) Style edits are not undoable (F23) | 5.4 |
+| 79 | (C9) A picker inside the edge menu is checked in a browser first; `ArrowHeadWidget` gets `FLYOUT_Z` if needed | 5.4 |
+| 80 | (C10) No edge style in Farmhand (F24) | 5.4 |

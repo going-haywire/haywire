@@ -1233,7 +1233,8 @@ export default {
                 strokeColor = 'auto',
                 arrowAt = 'inlet',
                 strokeDasharray = '',
-                opacity = 1.0
+                opacity = 1.0,
+                style = {}
             } = data;
 
             // Check if connection already exists
@@ -1250,6 +1251,8 @@ export default {
                 this._applyArrowClass(edgeInfo);
                 edgeInfo.strokeDasharray = strokeDasharray;
                 edgeInfo.opacity = opacity;
+                edgeInfo.style = style;
+                this._applyEdgeStyle(edgeInfo);
 
                 // Trigger visual update (the batch caller runs one pass for all
                 // of its edges instead — see _syncAllEdges).
@@ -1280,7 +1283,8 @@ export default {
                 strokeColor,
                 arrowAt,
                 strokeDasharray,
-                opacity
+                opacity,
+                style
             );
             
             if (result.success) {
@@ -2926,7 +2930,8 @@ export default {
             strokeColor = 'auto',
             arrowAt = 'inlet',
             strokeDasharray = '',
-            opacity = 1.0
+            opacity = 1.0,
+            style = {}
         ) {
             const outletPinUUID = this._buildPinUUID(sourceNodeId, outletPinId);
             const inletPinUUID = this._buildPinUUID(sinkNodeId, inletPinId);
@@ -2992,7 +2997,8 @@ export default {
                 strokeColor: strokeColor,
                 arrowAt: arrowAt,
                 strokeDasharray: strokeDasharray,
-                opacity: opacity
+                opacity: opacity,
+                style: style
             };
             this._applyArrowClass(edgeInfo);
 
@@ -3007,6 +3013,7 @@ export default {
 
             this.$refs.svg.appendChild(path);
             this.$refs.svg.appendChild(hitArea);
+            this._applyEdgeStyle(edgeInfo);
             
             // ENHANCED: Store the full connection info instead of just the path
             this.edgePaths.set(edge_id, edgeInfo);
@@ -3072,20 +3079,53 @@ export default {
             for (const [edge_id] of this.edgePaths) this._updateEdge(edge_id);
         },
 
-        /** Whether the end named `end` ('inlet' | 'outlet') carries the graph's head; `arrowAt` is the edge's. */
-        _endIsHeaded(arrowAt, end) {
-            return this.headInsets[this.edgeArrow] !== undefined && arrowAt === end;
+        /** The head drawn at the end named `end` ('inlet' | 'outlet'): the edge's own when its
+         *  style declares one there, else the graph's head at the end its wire type names. */
+        _headAt(edgeInfo, end) {
+            const style = edgeInfo.style || {};
+            const declared = end === 'outlet' ? style.arrowStart : style.arrowEnd;
+            if (declared !== undefined) return declared;
+            return edgeInfo.arrowAt === end ? this.edgeArrow : 'none';
+        },
+
+        /** The edge's width in SVG units: its style's, else the graph's. */
+        _edgeWidthOf(edgeInfo) {
+            const width = (edgeInfo.style || {}).width;
+            return width !== undefined ? width : this.edgeWidth;
+        },
+
+        /** Whether a head is drawn at the end named `end` ('inlet' | 'outlet'). */
+        _endIsHeaded(edgeInfo, end) {
+            return this.headInsets[this._headAt(edgeInfo, end)] !== undefined;
         },
 
         /** How far each end stops short of its pin's centre, [outlet, inlet] in SVG units:
          *  the pin's half-size, plus the head's length at a headed end. */
         _edgeInsets(edgeInfo) {
-            const headLength = (end) => this._endIsHeaded(edgeInfo.arrowAt, end)
-                ? this.headInsets[this.edgeArrow] * this.edgeWidth : 0;
+            const headLength = (end) => this._endIsHeaded(edgeInfo, end)
+                ? this.headInsets[this._headAt(edgeInfo, end)] * this._edgeWidthOf(edgeInfo) : 0;
             return [
                 edgeInfo.outletPinHalf + headLength('outlet'),
                 edgeInfo.inletPinHalf + headLength('inlet'),
             ];
+        },
+
+        /** Set a styled edge's width and heads as inline vars on its path and hit area; a computed
+         *  edge sets none, so the canvas's vars and the arrow class apply. */
+        _applyEdgeStyle(edgeInfo) {
+            const style = edgeInfo.style || {};
+            const hitArea = document.getElementById(edgeInfo.path.getAttribute('id') + '_hitarea');
+            const width = style.width !== undefined ? `${style.width}px` : null;
+            for (const el of [edgeInfo.path, hitArea]) {
+                if (!el) continue;
+                if (width) el.style.setProperty('--hw-edge-width', width);
+                else el.style.removeProperty('--hw-edge-width');
+            }
+            const heads = { '--hw-edge-head-start': style.arrowStart, '--hw-edge-head-end': style.arrowEnd };
+            for (const [name, head] of Object.entries(heads)) {
+                if (head !== undefined) edgeInfo.path.style.setProperty(name, this._headUrl(head));
+                else edgeInfo.path.style.removeProperty(name);
+            }
         },
 
         _removeEdge(edge_id) {
@@ -3296,15 +3336,18 @@ export default {
              *  sampling a single edge can land on a good one while most are
              *  adrift — measured in the field at 144 wrong against 180 right.
              *
-             *  Each edge is checked at an end with no head: a head shortens the
-             *  path by its own length (`_edgeInsets`), so that end sits off its
-             *  pin's edge.
+             *  Each edge is checked at an end with no head, and an edge headed at
+             *  both ends is skipped: a head shortens the path by its own length
+             *  (`_edgeInsets`), so that end sits off its pin's edge.
              */
             const SAMPLE = 24;
             let checked = 0;
             for (const [, info] of this.edgePaths) {
                 if (checked >= SAMPLE) break;
-                const atInlet = this._endIsHeaded(info.arrowAt, 'outlet');
+                const outletHeaded = this._endIsHeaded(info, 'outlet');
+                // An edge headed at both ends has no end on its pin's edge to measure.
+                if (outletHeaded && this._endIsHeaded(info, 'inlet')) continue;
+                const atInlet = outletHeaded;
                 const pin = document.getElementById(atInlet ? info.inletPinUUID : info.outletPinUUID);
                 if (!pin) continue;
                 const rect = pin.getBoundingClientRect();
@@ -4123,25 +4166,31 @@ path.connection-warning {
 }
 
 /* Edge appearance. The canvas sets --hw-edge-width,
-   --hw-edge-hit-padding and --hw-edge-head on its SVG; selected and active
-   add a theme length. A missing pin colour is drawn as currentColor. */
+   --hw-edge-hit-padding and --hw-edge-head on its SVG; a styled edge sets
+   --hw-edge-width on its path and hit area and --hw-edge-head-start/-end on
+   its path; selected and active add a theme length. A missing pin colour is
+   drawn as currentColor. */
 .connection-svg {
     color: var(--hw-edge-default);
 }
 
+/* A head per end. The arrow class puts the graph's head at the end the wire
+   type names; a styled edge overrides either end with an inline var. */
 path.hw-edge {
     stroke-width: var(--hw-edge-width, 2px);
-    marker-end: var(--hw-edge-head, none);
+    --hw-edge-head-start: none;
+    --hw-edge-head-end: var(--hw-edge-head, none);
+    marker-start: var(--hw-edge-head-start);
+    marker-end: var(--hw-edge-head-end);
 }
 
 path.hw-edge.edge-arrow-outlet {
-    marker-end: none;
-    marker-start: var(--hw-edge-head, none);
+    --hw-edge-head-start: var(--hw-edge-head, none);
+    --hw-edge-head-end: none;
 }
 
 path.hw-edge.edge-arrow-none {
-    marker-end: none;
-    marker-start: none;
+    --hw-edge-head-end: none;
 }
 
 path.hw-edge.connection-selected {

@@ -41,7 +41,7 @@ def graph():
     g.get_node_wrapper.return_value = wrapper
     # Edges serialize to a dict with endpoints both inside the selection.
     edge_wrapper = MagicMock()
-    edge_wrapper.edge.to_dict.return_value = {
+    edge_wrapper.serialize.return_value = {
         "edge_id": "e",
         "source_node_id": "n1",
         "sink_node_id": "n1",

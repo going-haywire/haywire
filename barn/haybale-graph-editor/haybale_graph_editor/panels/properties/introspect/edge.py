@@ -13,6 +13,7 @@ from haywire.core.types.enums import Propagation
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
+from haywire.ui.panel.render_utils import render_settings
 
 from ....surfaces import EdgeInspector
 from ....state.edit_state import EditState
@@ -102,6 +103,29 @@ class EdgeWarningsPanel(BasePanel):
             return
         with layout.container:
             _render_edge_warnings(state)
+
+
+@panel(
+    surface=EdgeInspector,
+    label="Style",
+    icon=hui.icon.theme,
+    order=8,
+    default_open=True,
+)
+class EdgeStylePanel(BasePanel):
+    """The connection's colour, line and arrow heads, for a connection type that lets you set them."""
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        edge = ctx.data[EditState].active_edge
+        return edge is not None and edge.style is not None
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        edge = ctx.data[EditState].active_edge
+        if edge is None or edge.style is None:
+            return
+        with layout:
+            render_settings(ctx, edge.style)
 
 
 @panel(

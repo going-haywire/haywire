@@ -51,6 +51,10 @@ class ChangeReason(Enum):
     EDGE_PORT_CHANGED = "edge_port_changed"
     EDGE_REDRAW_REQUESTED = "edge_redraw_requested"
 
+    # Edge reason that persists a look without changing structure
+    EDGE_STYLE_CHANGED = "edge_style_changed"
+    """An edge's style bag changed: the edge redraws and the graph saves."""
+
     def requires_adding(self) -> bool:
         adding_reasons = {
             ChangeReason.NODE_ADDED,
@@ -93,6 +97,7 @@ class ChangeReason(Enum):
             ChangeReason.EDGE_ADAPTERS_RELOADED,
             ChangeReason.EDGE_HOT_RELOAD_ERROR,
             ChangeReason.EDGE_REDRAW_REQUESTED,
+            ChangeReason.EDGE_STYLE_CHANGED,
             ChangeReason.EDGE_VALIDATION_REQUESTED,
         }
         return self in redraw_reasons
@@ -101,9 +106,10 @@ class ChangeReason(Enum):
         """Return whether this reason repaints the UI without changing data a save records.
 
         An app layer must not mark the file unsaved or announce a data
-        mutation for one. ``NODE_MOVED`` and ``NODE_LAYOUT_CHANGED`` are not
-        visual-only: both repaint, and both persist — position as
-        ``props.posX``/``posY``, port order as ``DataPort.order``.
+        mutation for one. ``NODE_MOVED``, ``NODE_LAYOUT_CHANGED`` and
+        ``EDGE_STYLE_CHANGED`` are not visual-only: all three repaint, and all
+        three persist — position as ``props.posX``/``posY``, port order as
+        ``DataPort.order``, an edge's look under its ``"style"`` key.
         """
         visual_reasons = {
             ChangeReason.NODE_REDRAW_REQUESTED,

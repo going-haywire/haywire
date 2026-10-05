@@ -46,6 +46,7 @@ def graph():
     g = MagicMock()
     g.node_wrappers = {f"n{i}": _node_wrapper(f"n{i}") for i in range(5)}
     g.edge_wrappers = {}
+    g.get_edge_wrapper.return_value = MagicMock(style=None)
     g.canvas_width = 8000
     g.canvas_height = 8000
     g.library_compatibility_findings = []
@@ -124,7 +125,7 @@ async def test_yields_between_nodes(handler, graph):
 @pytest.mark.anyio
 async def test_edges_emit_one_batched_event(handler, graph):
     """Edges stay batched: one SyncAllEdgesEvent, never one message per edge."""
-    edge = MagicMock()
+    edge = MagicMock(style=None)
     graph.edge_wrappers = {f"e{i}": edge for i in range(4)}
     graph.get_edge_wrapper.return_value = edge
     handler._register_edge_visual = MagicMock(return_value={"id": "e"})  # type: ignore[method-assign]
@@ -149,8 +150,8 @@ async def test_waits_for_the_client_to_draw_the_edges(handler, graph):
     ZERO edges (measured: 0 edge paths at unlock, 198 a second later). The
     confirmation round-trip must happen, and must happen AFTER the emit.
     """
-    graph.edge_wrappers = {"e0": MagicMock()}
-    graph.get_edge_wrapper.return_value = MagicMock()
+    graph.edge_wrappers = {"e0": MagicMock(style=None)}
+    graph.get_edge_wrapper.return_value = MagicMock(style=None)
     handler._register_edge_visual = MagicMock(return_value={"id": "e"})  # type: ignore[method-assign]
 
     order: list[str] = []
@@ -189,8 +190,8 @@ async def test_client_confirmation_failure_does_not_strand_the_load(handler, gra
     The overlay has no dismiss button, so an exception escaping the wait would
     strand the user behind it.
     """
-    graph.edge_wrappers = {"e0": MagicMock()}
-    graph.get_edge_wrapper.return_value = MagicMock()
+    graph.edge_wrappers = {"e0": MagicMock(style=None)}
+    graph.get_edge_wrapper.return_value = MagicMock(style=None)
     handler._register_edge_visual = MagicMock(return_value={"id": "e"})  # type: ignore[method-assign]
     handler.canvas_vue.client.run_javascript = MagicMock(side_effect=RuntimeError("client gone"))
 
@@ -227,7 +228,7 @@ async def test_cancellation_stops_the_load(graph):
 @pytest.mark.anyio
 async def test_nodes_mounted_fires_after_the_last_node_and_before_the_edges(handler, graph):
     """The viewport is placed over content that exists, and the edges draw into it."""
-    graph.edge_wrappers = {"e0": MagicMock()}
+    graph.edge_wrappers = {"e0": MagicMock(style=None)}
     order: list[str] = []
     handler.canvas_vue.emit_sync_event.side_effect = lambda event: order.append(type(event).__name__)
 
@@ -261,7 +262,7 @@ class TestResyncEdges:
     """A canvas that came back without its edges gets the batch again."""
 
     def test_it_re_emits_the_batch(self, handler, graph):
-        graph.edge_wrappers = {"e0": MagicMock(), "e1": MagicMock()}
+        graph.edge_wrappers = {"e0": MagicMock(style=None), "e1": MagicMock(style=None)}
 
         handler.resync_edges()
 
@@ -279,7 +280,7 @@ class TestResyncEdges:
 
     def test_it_does_not_re_mount_the_nodes(self, handler, graph):
         """Nodes are server-side elements; they survived whatever lost the edges."""
-        graph.edge_wrappers = {"e0": MagicMock()}
+        graph.edge_wrappers = {"e0": MagicMock(style=None)}
         before = dict(handler.node_panels)
 
         handler.resync_edges()
@@ -358,7 +359,7 @@ class TestCanvasMounted:
     """A re-mounted canvas holds no edges; the server is the only one who can say."""
 
     def test_mounting_re_sends_the_edges(self, handler, graph):
-        graph.edge_wrappers = {"e0": MagicMock(), "e1": MagicMock()}
+        graph.edge_wrappers = {"e0": MagicMock(style=None), "e1": MagicMock(style=None)}
 
         handler.process_canvas_mounted(CanvasMountedEvent())
 
@@ -369,7 +370,7 @@ class TestCanvasMounted:
 
     def test_it_re_sends_edges_the_server_already_recorded_as_drawn(self, handler, graph):
         """The guard on_validated uses would swallow every one of them."""
-        graph.edge_wrappers = {"e0": MagicMock()}
+        graph.edge_wrappers = {"e0": MagicMock(style=None)}
         handler.edge_states["e0"] = MagicMock()  # already "sent" once
 
         handler.process_canvas_mounted(CanvasMountedEvent())
@@ -401,8 +402,8 @@ class TestTheValidationTimerBeatsTheLoop:
     """
 
     def test_a_validation_pass_emits_the_edges(self, handler, graph):
-        graph.edge_wrappers = {"e0": MagicMock(), "e1": MagicMock()}
-        graph.get_edge_wrapper.return_value = MagicMock()
+        graph.edge_wrappers = {"e0": MagicMock(style=None), "e1": MagicMock(style=None)}
+        graph.get_edge_wrapper.return_value = MagicMock(style=None)
         handler._register_edge_visual = MagicMock(  # type: ignore[method-assign]
             side_effect=lambda w: handler.edge_states.setdefault("e", MagicMock()) and {"id": "e"}
         )
@@ -413,8 +414,8 @@ class TestTheValidationTimerBeatsTheLoop:
 
     @pytest.mark.anyio
     async def test_the_loops_own_pass_then_emits_nothing(self, handler, graph):
-        graph.edge_wrappers = {"e0": MagicMock(), "e1": MagicMock()}
-        graph.get_edge_wrapper.return_value = MagicMock()
+        graph.edge_wrappers = {"e0": MagicMock(style=None), "e1": MagicMock(style=None)}
+        graph.get_edge_wrapper.return_value = MagicMock(style=None)
         # What the timer thread already did: every edge recorded as sent.
         handler.edge_states.update({"e0": MagicMock(), "e1": MagicMock()})
         handler._await_client_drawn = _noop_confirm  # type: ignore[method-assign]

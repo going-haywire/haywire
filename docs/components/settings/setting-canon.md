@@ -501,6 +501,43 @@ This is the actual declaration `NodeProperties.skin` uses (ADR 0022).
 
 **Declaring your own `GraphSettings` bag.** Only one bag exists today (`GraphProperties`); a library adding its own graph-scoped bag is out of scope for now (see ADR 0022's rejected alternatives — the hot-reload lifecycle for library-registered graph bags was judged not worth the risk yet).
 
+## 3c. Edge style bags
+
+A wire type can let the user style each of its edges. Declare an `EdgeSettings` subclass with the fields the user may set, and name it in the wire type's `style`. The field defaults are the wire type's look; each edge saves only the values the user set, under its `"style"` key (ADR 0047).
+
+```python
+from haywire.barn.builtin.types import CHOICES, COLOR, FLOAT, STRING
+from haywire.barn.builtin.widget_keys import ARROW_HEAD_WIDGET
+from haywire.core.edge.arrow_heads import NO_HEAD
+from haywire.core.edge.style import dash_choices
+from haywire.core.settings import EdgeSettings, setting
+from haywire.core.types import WireRole, WireType
+
+
+class NoteStyle(EdgeSettings):
+    color = setting[COLOR]("#8e8e8e", label="Colour")
+    width = setting[FLOAT](2.0, label="Width", min=0.5, max=12.0)
+    dash = setting[CHOICES]("solid", label="Dash", widget_config={"options": dash_choices})
+    arrow_start = setting[STRING](NO_HEAD, label="Start Head", widget={"key": ARROW_HEAD_WIDGET})
+    arrow_end = setting[STRING]("arrow", label="End Head", widget={"key": ARROW_HEAD_WIDGET})
+
+
+class NoteWire(WireType):
+    role = WireRole.VISUAL
+    style = NoteStyle
+```
+
+The canvas draws five field names (`haywire.core.edge.style.STYLE_FIELDS`):
+
+| Field | Value |
+|---|---|
+| `color` | a colour string; replaces the pin gradient |
+| `width` | px; replaces the graph's edge width |
+| `dash` | a key of `DASH_PATTERNS` (`solid`, `dashed`, `dotted`); replaces the adapter-chain dash |
+| `arrow_start`, `arrow_end` | a head name from the arrow-head vocabulary, or `"none"` |
+
+A field the bag does not declare falls back to the graph's edge defaults: for heads, per end, to the computed head at the end the wire type's `arrow_at` names. Other fields are saved but not drawn. The edge menu and the Edge inspector show the bag. An edge holds its bag only while it validates; while it fails, its saved values wait unchanged.
+
 ## 3a. Using `LibrarySettings` from a State, Editor, or Panel
 
 Hold a `LibrarySettings` instance the same way you'd hold any other dependency: construct it once, read fields off it. No injection, no setup call.

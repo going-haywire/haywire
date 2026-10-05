@@ -27,6 +27,7 @@ import copy
 import logging
 
 from .base import BaseGraph
+from ..types import Propagation
 from .utils.node_remap import remap_node_ids
 
 if TYPE_CHECKING:
@@ -180,7 +181,7 @@ class SubgraphDefinition(BaseGraph):
             nodes: Serialized nodes by their id in the template, in the shape
                 ``NodeWrapper.serialize`` produces.
             edges: Serialized edges by their id in the template, in the shape
-                ``Edge.to_dict`` produces.
+                ``EdgeWrapper.serialize`` produces.
             subgraphs: The template's own Subgraph definitions by key, in the
                 shape :meth:`to_dict` produces. A card whose key is absent here
                 is left bound to it, which the structural validator reports.
@@ -216,6 +217,8 @@ class SubgraphDefinition(BaseGraph):
                     outlet_port_id=edge.outlet_port_id,
                     sink_node_id=edge.sink_node_id,
                     inlet_port_id=edge.inlet_port_id,
+                    propagation=Propagation(edge.propagation),
+                    style=edge.style,
                 )
             except Exception as exc:
                 logger.error(

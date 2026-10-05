@@ -330,7 +330,9 @@ def test_paste_execution_edge_connects_created_nodes():
             self.node_wrappers[node_id] = wrapper
             return wrapper
 
-        def create_edge_wrapper(self, source_node_id, outlet_port_id, sink_node_id, inlet_port_id):
+        def create_edge_wrapper(
+            self, source_node_id, outlet_port_id, sink_node_id, inlet_port_id, propagation=None, style=None
+        ):
             # Real graph indexes node_wrappers by id -> KeyError if absent.
             _ = self.node_wrappers[source_node_id]
             _ = self.node_wrappers[sink_node_id]

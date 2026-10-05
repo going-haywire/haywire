@@ -61,6 +61,7 @@ def _state() -> EdgeVisualState:
         arrow_at="inlet",
         is_valid=True,
         has_warning=False,
+        style={},
     )
 
 
@@ -111,3 +112,8 @@ def test_states_differing_only_in_validity_are_unequal():
 def test_states_differing_only_in_warning_are_unequal():
     """The warning flag picks the warning glow, so a redraw-dedupe must see it."""
     assert _state() != replace(_state(), has_warning=True)
+
+
+def test_the_payload_carries_the_style():
+    state = replace(_state(), style={"width": 5.0})
+    assert edge_sync_payload(_wrapper(), state)["style"] == {"width": 5.0}

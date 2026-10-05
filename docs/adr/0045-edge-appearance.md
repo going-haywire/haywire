@@ -59,5 +59,5 @@ level: architectural
 - A graph can turn arrows on for all its execution edges.
 - Themes restyle edge states live.
 - No edge line runs under a pin glyph: every end stops at the pin's edge, so through a reroute dot the line stops at the dot's rim on both sides.
-- 5.4 builds on the same vars: a styled edge sets them inline on its own path. The canvas code that reads the graph's width and head today (path insets, the hit area's width, the geometry check's choice of end) then needs per-edge inputs, and a start head and an end head need separate vars.
+- Styled edges set `--hw-edge-width` on their path and hit area and `--hw-edge-head-start`/`--hw-edge-head-end` on their path (ADR 0047); the canvas reads each edge's own width and heads for its insets, hit area and geometry check.
 - Saved graphs carry `edge_arrow` and `edge_width` under `"props"` only when set.

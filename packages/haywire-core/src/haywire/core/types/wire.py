@@ -13,10 +13,13 @@ ids, or a bare ``ADD`` slot, whose key is ``WILDCARD``.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from haywire.core.library.utils import WIRE, derive_library_identity, reg_key
 from haywire.core.types.enums import Propagation
+
+if TYPE_CHECKING:
+    from haywire.core.settings.settings_edge import EdgeSettings
 
 #: The wire key of a bare ``ADD`` slot, which any wire type connects to.
 WILDCARD = "*"
@@ -78,10 +81,14 @@ class WireType:
             see ``ArrowAt``.
         holds_absence: Fields of types declared on this wire type can hold ``None``,
             meaning "no value", and pools of them drop an absent entry.
+        style: The ``EdgeSettings`` subclass each edge of this wire type carries,
+            holding what the user may set per edge, or ``None`` for a computed
+            edge whose look comes from its pins and the graph's edge defaults.
         id: The registry id, set when the class is defined.
 
     Raises:
         ValueError: When a class from another module already holds the derived id.
+        TypeError: When ``style`` is neither ``None`` nor an ``EdgeSettings`` subclass.
 
     Example::
 
@@ -101,12 +108,22 @@ class WireType:
     pin_kind: ClassVar[str] = ""
     arrow_at: ClassVar[ArrowAt] = ArrowAt.INLET
     holds_absence: ClassVar[bool] = False
+    style: ClassVar[type[EdgeSettings] | None] = None
     id: ClassVar[str]
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if getattr(cls, "role", None) is None:
             return
+        style = cls.__dict__.get("style")
+        if style is not None:
+            # Imported here: settings import the builtin types, which import wire types.
+            from haywire.core.settings.settings_edge import EdgeSettings
+
+            if not (isinstance(style, type) and issubclass(style, EdgeSettings)):
+                raise TypeError(
+                    f"{cls.__qualname__}.style must be an EdgeSettings subclass or None, got {style!r}"
+                )
         segment = cls.__dict__.get("id", cls.__name__)
         wire_id = reg_key(derive_library_identity(cls).name, WIRE, segment)
         existing = _WIRE_BY_ID.get(wire_id)

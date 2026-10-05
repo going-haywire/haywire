@@ -7,12 +7,13 @@ including node and edge manipulation, positioning, and selection.
 
 import copy
 import logging
-from typing import Any, Optional, Dict, List, Tuple
+from typing import Any, Optional, Dict, List, Mapping, Tuple
 from dataclasses import dataclass
 
 from ...node import NodeWrapper
 from ...graph.base import BaseGraph
 from ...edge.edge_wrapper import EdgeWrapper
+from ...types import Propagation
 from ...graph.utils.node_remap import remap_node_ids
 from ..base_action import ActionBase, CompositeAction
 from ..interfaces import IAction
@@ -115,6 +116,8 @@ class AddEdgeAction(ActionBase):
         outlet_pin_id: str,
         sink_node_id: str,
         inlet_pin_id: str,
+        propagation: Propagation = Propagation.EAGER,
+        style: Optional[Mapping[str, Any]] = None,
         description: Optional[str] = None,
     ):
         """
@@ -126,6 +129,8 @@ class AddEdgeAction(ActionBase):
             outlet_pin_id: Source outlet ID
             sink_node_id: Sink node ID
             inlet_pin_id: Sink inlet ID
+            propagation: The mode chosen for the edge; the wire type fits or locks it.
+            style: The edge's saved style values (see ``EdgeWrapper.serialize``).
             description: Optional description override
         """
         super().__init__(description or f"Connect {source_node_id} to {sink_node_id}")
@@ -136,6 +141,8 @@ class AddEdgeAction(ActionBase):
         self.sink_node_id = sink_node_id
         self.inlet_port_id = inlet_pin_id
         self.inlet_pin_id = inlet_pin_id
+        self.propagation = propagation
+        self.style: Dict[str, Any] = dict(style or {})
 
         # Wrapper created during execute
         self.wrapper: Optional[EdgeWrapper] = None
@@ -147,7 +154,12 @@ class AddEdgeAction(ActionBase):
         if self.wrapper is None:
             # First execution: Create new wrapper via graph
             self.wrapper = self.graph.create_edge_wrapper(
-                self.source_node_id, self.outlet_port_id, self.sink_node_id, self.inlet_port_id
+                self.source_node_id,
+                self.outlet_port_id,
+                self.sink_node_id,
+                self.inlet_port_id,
+                propagation=self.propagation,
+                style=self.style,
             )
         else:
             # Redo: Re-add existing wrapper
@@ -177,6 +189,14 @@ class AddEdgeAction(ActionBase):
         """
         if self.undo_wrapper:
             self.undo_wrapper.cleanup()
+
+
+def _carried(edge: Mapping[str, Any]) -> Dict[str, Any]:
+    """The propagation and style of a serialized edge, as keyword arguments of ``AddEdgeAction``."""
+    return {
+        "propagation": Propagation(edge.get("propagation", Propagation.EAGER.value)),
+        "style": edge.get("style"),
+    }
 
 
 class MoveNodesAction(ActionBase):
@@ -592,6 +612,8 @@ class PasteClipboardAction(CompositeAction):
                     outlet_pin_id=edge.outlet_port_id,
                     sink_node_id=edge.sink_node_id,
                     inlet_pin_id=edge.inlet_port_id,
+                    propagation=Propagation(edge.propagation),
+                    style=edge.style,
                 )
             )
 
@@ -1089,6 +1111,7 @@ class _BuildSubgraphAction(ActionBase):
                 edge["outlet_port_id"],
                 edge["sink_node_id"],
                 edge["inlet_port_id"],
+                **_carried(edge),
             )
 
         # The interface's inner side: the Subgraph Input fans out to the ports
@@ -1383,7 +1406,7 @@ class CollapseToGraphNodeAction(CompositeAction):
             and graph.get_subgraph(key) is not None
         ]
         edges = {
-            edge_id: edge.edge.to_dict()
+            edge_id: edge.serialize()
             for edge_id in plan.internal_edge_ids
             if (edge := graph.get_edge_wrapper(edge_id)) is not None
         }
@@ -1571,6 +1594,7 @@ class ExpandGraphNodeAction(CompositeAction):
                     outlet_pin_id=edge.outlet_port_id,
                     sink_node_id=edge.sink_node_id,
                     inlet_pin_id=edge.inlet_port_id,
+                    **_carried(edge.serialize()),
                 )
             )
 

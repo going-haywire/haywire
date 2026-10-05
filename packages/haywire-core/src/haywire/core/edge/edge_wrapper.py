@@ -1,7 +1,7 @@
 import copy
 import logging
 import time
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Mapping, Optional, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from ...ui.utils import generate_edge_uuid
@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from ..adapter.factory import AdapterFactory
     from ..node.node_wrapper import NodeWrapper
     from ..types import DataPort
+    from ..settings.settings_edge import EdgeSettings
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,7 @@ class EdgeWrapper:
         sink_node_id: str,
         inlet_port_id: str,
         propagation: Propagation = Propagation.EAGER,
+        style: Optional[Mapping[str, Any]] = None,
     ):
         """
         Initialize EdgeWrapper (similar to NodeWrapper.__init__).
@@ -126,6 +128,8 @@ class EdgeWrapper:
             sink_node_id: Sink node ID
             inlet_port_id: Sink inlet ID
             propagation: The mode chosen for the edge. It is fitted to the wire type once the edge validates.
+            style: The edge's saved style values by field name, as ``serialize`` writes them under
+                ``"style"``. They are bound to the wire type's style bag once the edge validates.
         """
         self.source_node_id = source_node_id
         self.outlet_port_id = outlet_port_id
@@ -176,6 +180,11 @@ class EdgeWrapper:
         )
 
         self._source_type: Optional[type[IType]] = None
+
+        # The style bag, bound while the edge validates; see _bind_style.
+        self._style: Optional["EdgeSettings"] = None
+        # The style values while no bag holds them: before the first validation, and while the edge fails.
+        self._unbound_style: Dict[str, Any] = dict(style or {})
 
         # Subscribe to adapter factory for hot reload
         self._adapter_factory.register_edge_callback(self._edge_id, self._on_adapter_lifecycle_event)
@@ -277,6 +286,64 @@ class EdgeWrapper:
         if self._outlet_port is not None:
             self._outlet_port._mark_as_structuraly_dirty()
             self._outlet_port._housekeeping()
+
+    # =========================================================================
+    # STYLE
+    # =========================================================================
+
+    @property
+    def style(self) -> Optional["EdgeSettings"]:
+        """The style bag; ``None`` when its wire type declares none or the edge does not validate."""
+        return self._style
+
+    def style_values(self) -> Dict[str, Any]:
+        """Return the edge's locally set style values by field name, as saved under ``"style"``.
+
+        While the edge does not validate, these are the values it was loaded or
+        created with, unchanged.
+        """
+        if self._style is not None:
+            return dict(self._style._to_dict()["values"])
+        return dict(self._unbound_style)
+
+    def mark_style_changed(self) -> None:
+        """Mark the edge's look changed: it redraws, and the graph records an unsaved change."""
+        if self._graph:
+            self._graph._validation.mark_edge_dirty(self._edge_id, ChangeReason.EDGE_STYLE_CHANGED)
+
+    def _bind_style(self) -> None:
+        """Give the edge a bag of its wire type's style class, carrying the values it holds."""
+        wire = self.wire_type
+        wanted = wire.style if wire is not None else None
+        # Identity on purpose: a hot-reloaded bag class is a new object, and must rebind.
+        if self._style is not None and type(self._style) is wanted:
+            return
+        values = self.style_values()
+        self._release_style()
+        self._unbound_style = {}
+        if wanted is None:
+            return
+        from haywire.core.di.context import get_settings_registry
+
+        bag = wanted(registry=get_settings_registry(), edge=self)
+        bag._from_dict({"values": values})
+        bag._subscribe(self._on_style_change)
+        self._style = bag
+
+    def _unbind_style(self) -> None:
+        """Drop the bag of an edge that no longer validates, keeping its values as they are."""
+        if self._style is None:
+            return
+        self._unbound_style = self.style_values()
+        self._release_style()
+
+    def _release_style(self) -> None:
+        if self._style is not None:
+            self._style._cleanup()
+            self._style = None
+
+    def _on_style_change(self, _name: str, _value: Any, _old: Any) -> None:
+        self.mark_style_changed()
 
     # =========================================================================
     # GRAPH NOTIFICATION (mirrors NodeWrapper pattern)
@@ -549,16 +616,22 @@ class EdgeWrapper:
         self._state.error_test = None
         self._state.warnings = []
 
-        if self._formal_validation():
-            self._fit_propagation()
-            if not self.carries_values:
-                self._build_drawn_only()
-                logger.debug(".. drawn-only edge built.")
+        if not self._formal_validation():
+            # Q20: an edge that fails keeps its style unchanged until it validates again.
+            self._unbind_style()
+            logger.debug(".. rebuilding failed with errors.")
+            return
+
+        self._fit_propagation()
+        self._bind_style()
+        if not self.carries_values:
+            self._build_drawn_only()
+            logger.debug(".. drawn-only edge built.")
+            return
+        if self._build_adapter_chain():
+            if self._test():
+                logger.debug(".. rebuilding edge done.")
                 return
-            if self._build_adapter_chain():
-                if self._test():
-                    logger.debug(".. rebuilding edge done.")
-                    return
 
         logger.debug(".. rebuilding failed with errors.")
 
@@ -886,16 +959,12 @@ class EdgeWrapper:
         return copy.copy(self._state)
 
     def serialize(self) -> Dict[str, Any]:
-        """
-        Serialize edge wrapper state.
-
-        Returns the edge data which includes adapter chain metadata.
-        This can be used directly by BaseGraph serialization.
-
-        Returns:
-            Dictionary containing edge state
-        """
-        return self._edge.to_dict()
+        """Return the edge as a graph saves it: ``Edge.to_dict``, plus ``"style"`` once a value is set."""
+        data = self._edge.to_dict()
+        style = self.style_values()
+        if style:
+            data["style"] = style
+        return data
 
     def restore_after_load(self) -> bool:
         """
@@ -925,6 +994,7 @@ class EdgeWrapper:
             return
         # Remove from ports before signalling teardown
         self.detach()
+        self._release_style()
 
         # Unsubscribe from adapter factory. ``_adapter_factory`` is set in
         # ``__init__`` and only nulled by GC — assert non-None to narrow the

@@ -19,6 +19,7 @@ Framework / library internals:
 from .settings import Settings, bag, settings_fields
 from .settings_node import NodeSettings
 from .settings_graph import GraphSettings
+from .settings_edge import EdgeSettings
 from .descriptor import setting, shadow, watch, graph, Promotable, UiState
 from .base import SettingDescriptor
 from .value import SettingValue
@@ -33,6 +34,7 @@ __all__ = [
     "Settings",
     "NodeSettings",
     "GraphSettings",
+    "EdgeSettings",
     "setting",
     "shadow",
     "watch",

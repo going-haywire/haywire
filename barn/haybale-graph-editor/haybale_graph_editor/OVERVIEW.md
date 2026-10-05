@@ -80,6 +80,8 @@ Visual graph editor library — host-agnostic
 - **Skin** — 
 - **Status** — 
 - **Strategy** — 
+- **Style** — 
+- **Style** — 
 - **Theme** — 
 - **Type** — 
 - **Widget** — 
