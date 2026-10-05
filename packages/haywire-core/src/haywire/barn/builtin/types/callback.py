@@ -11,7 +11,7 @@ from ..wires import CallbackWire
     label="Callback Signal",
     description="Signal for callback execution between nodes",
     color="#ff3c00",
-    default={"value": ""},
+    default=None,
     # A signal, not an editable value: clears the TextWidget it would inherit from STRING.
     widget_key=None,
     # The node may set it; only a value the node set is worth storing.
@@ -21,5 +21,5 @@ class CALLBACK(STRING):
     """Callback signal: the name a listener subscribes under.
 
     It travels like a `STRING`, has no widget, and a port stores it only when its
-    node set it. An empty name means no subscription: an emitter drops it.
+    node set it. An absent value means no subscription: an emitter's pool drops it.
     """

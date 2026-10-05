@@ -107,6 +107,9 @@ class IType(ABC):
     def create_field(cls, default_override: Optional[Dict[str, Any]] = None) -> "DataField":
         """Build the ``DataField`` that stores values of this type.
 
+        A type that declares a wire type which ``holds_absence`` gets a field that
+        can hold ``None`` (see ``_field_holding_absence``).
+
         Args:
             default_override: Constructor kwargs for the field's initial value,
                 replacing the ``default`` the ``@type`` decorator declared. An
@@ -130,7 +133,15 @@ class IType(ABC):
         if not default_kwargs and hasattr(cls, "class_identity"):
             default_kwargs = getattr(cls.class_identity, "default", {})
 
-        return cls.field_class(type_cls=cls, default_kwargs=default_kwargs)
+        from haywire.core.types.base import _field_holding_absence
+        from haywire.core.types.wire import declaring_type_of
+
+        field_class = cls.field_class
+        declared = declaring_type_of(cls)
+        # Only a type declaring the wire itself: a container or wrapper of one keeps its own field.
+        if declared is not None and declared[0] is cls and declared[1].holds_absence:
+            field_class = _field_holding_absence(field_class)
+        return field_class(type_cls=cls, default_kwargs=default_kwargs)
 
     # ========================================================================
     # HOOKS - Subclasses override to customize behavior

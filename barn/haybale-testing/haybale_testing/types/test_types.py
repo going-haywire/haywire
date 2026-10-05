@@ -148,7 +148,7 @@ TEST_TEMPERATURE.field_class = TEST_FLOATField
     wire_type=CallbackWire,
     label="Test Record Callback",
     description="Test callback subscription carried as a dataclass",
-    default={"name": "", "weight": 0},
+    default=None,
     color="#ff3c00",
 )
 @dataclass

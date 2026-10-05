@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, cast, Dict, Optional, Type, TypeVar
 
-from haywire.core.types import type, DataField, CompoundType
+from haywire.core.types import type, DataField, CompoundType, IType
+from haywire.core.types.fields import element_from_dict, element_to_dict
 from haywire.ui import elements as hui
 from haywire.barn.builtin.wires import DataWire
 
@@ -103,6 +104,18 @@ class MapsStringField(DataField):
     def has_data(self) -> bool:
         """Check if has any items"""
         return len(self._items) > 0
+
+    def _own_to_dict(self) -> dict:
+        """Return ``{"value": {key: item}}`` with each item as a field of the element type saves it."""
+        # A compound's element is always an IType; `type | None` covers PrimitiveType[T].
+        element = cast("Type[IType]", self.type_cls.element_type_cls)
+        return {"value": {key: element_to_dict(element, item) for key, item in self._items.items()}}
+
+    def _own_from_dict(self, data: dict) -> None:
+        """Restore the items from ``_own_to_dict`` output."""
+        # A compound's element is always an IType; `type | None` covers PrimitiveType[T].
+        element = cast("Type[IType]", self.type_cls.element_type_cls)
+        self._items = {key: element_from_dict(element, item) for key, item in data.get("value", {}).items()}
 
     # ========================================================================
     # ARRAY-SPECIFIC HELPERS

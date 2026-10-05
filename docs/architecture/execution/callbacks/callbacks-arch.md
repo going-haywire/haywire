@@ -29,6 +29,8 @@ This is the third leg of haywire's connection types — see [reference/glossary 
 
 ### 2.1 The callback wire type
 
+`CallbackWire` declares `holds_absence`: a callback port can be **absent** (`None`), which means no subscription. Callback types declare `default=None`, so an unlinked callback port reads `None`; absence saves as JSON `null` and crosses every pipe into another callback port. A pool of a callback element drops an absent entry; an empty name, or a dataclass with default fields, is an ordinary subscription. See ADR 0046.
+
 CALLBACK ports use the same `DataPort` infrastructure as DATA ports but sit on `CallbackWire` (the `IMMEDIATE` role), declared by the callback data type. Their edges have no propagation: a write takes effect at once by the role. They follow the link ceiling (ADR 0044):
 
 | Direction | Ceiling |
@@ -41,6 +43,11 @@ A CALLBACK edge is created through the same `graph.create_edge_wrapper(...)` as 
 #### `on_change` timing on CALLBACK inlets
 
 `DataPort.set_value()` normally defers an edge-driven inlet's `on_change` callback to `resolve_dirty_data()`, which only runs when the owning node's `worker()` is next dispatched (see [edges-arch.md](../edges/edges-arch.md)). Immediate inlets — every port on a wire with the `IMMEDIATE` role (`DataPort.is_immediate`) — are the one exception: `set_value()` fires `on_change` **immediately**, even when the write came from an edge (`edge_id` set), instead of deferring it.
+
+Two guards apply to an edge's write into an immediate inlet (`DataPort._fire_immediate`, ADR 0046):
+
+- **Echo guard.** The write is stored, and `on_change` fires only when the value the node sees (`get_value()`) differs before and after. An emitter's pool fed the same subscription twice tells its node once.
+- **Re-entrancy guard.** A write that reaches an inlet whose `on_change` is still running on the same thread closes a loop of immediate edges. It is dropped, not stored, and logged as a warning naming the port and node. Every loop ends after one pass, value-changing loops included; a loop that relays the value unchanged ends at the echo guard with no warning. A Subgraph relay runs on the same call stack, so one guard covers both graphs. In a loop, the dropped inlet keeps what its node was last told, and the upstream outlet disagrees with it until the next write.
 
 This matters because emitter nodes with a pooled `PooledType[CALLBACK]` inlet are often `NodeType.CONTROL` nodes (e.g. `OakDCameraNode`) that only execute their `worker()` in response to a control pulse (`start`/`stop`), not on every dirty-port change. If a callback inlet's `on_change` were deferred like a normal DATA inlet, a subscriber changing its requirements (e.g. a `NumpyFrameEventNode` toggling `enable_depth`) would update the pooled dict but the emitter's `on_change` handler — and anything it derives, like a requirement-union setting — would silently stay stale until the node happened to execute again for an unrelated reason.
 
@@ -61,9 +68,11 @@ By design, every callback-listener Flow has its own EVENT-node entry — typical
 
 ### 2.4 Through reroutes and Subgraph boundaries
 
-A callback edge may pass through reroutes. Every port on a callback flow is **immediate**: an edge-driven write fires `on_change` at once, and a reroute's inlet forwards to its outlet from that handler (`RerouteNode.forward_immediate`), so the subscription reaches the emitter without any node executing. Callback edges always have `immediate` propagation, locked — see [edges-arch §3.3](../edges/edges-arch.md).
+A callback edge may pass through reroutes. Every port on a callback flow is **immediate**: an edge-driven write fires `on_change` at once, and a reroute's inlet forwards to its outlet from that handler (`RerouteNode.forward_immediate`), so the subscription reaches the emitter without any node executing. Callback edges have no propagation — see [edges-arch §3.3](../edges/edges-arch.md).
 
-Removing any edge on the path unsubscribes. An inlet left without a linked edge shows its own value (ADR 0040); for a callback port that is its default, an empty name. The reroute forwards it, and the emitter's pooled inlet treats its element type's default as "no subscription" and removes the entry keyed by its own edge. A displaced edge that takes over keeps the subscription in place.
+Removing any edge on the path unsubscribes. An inlet left without a linked edge shows its own value (ADR 0040); for a callback port that is absent. The reroute forwards absence, and the emitter's pooled inlet removes the entry keyed by its own edge. A displaced edge that takes over keeps the subscription in place.
+
+On load, a relay with something upstream takes its value from upstream, not from its own saved value. Only an orphaned relay (nothing upstream) keeps what it saved; a relay saved before callbacks could be absent may hold `""`, now a real name, until it is relinked or deleted.
 
 A Subgraph boundary relays the same way. The card's immediate inlets and the Subgraph Output's immediate inlets carry `on_change = hb_relay`, which writes the partner port on the other side at once — the Subgraph Input's outlet for a card inlet, the card's outlet for a Subgraph Output inlet — found by id through `subgraph_crossing`. `reconcile_interface` copies every immediate pair once whenever card and interior meet, so load order and a macro reload leave both sides agreeing. Unlinking either side reveals the next port's own value, which the relay carries on. A listener is an EVENT node, which a Subgraph may not contain, so a subscription crosses inward to an interior emitter, or straight through a Group (a reroute or a nested card inside). See ADR 0041.
 

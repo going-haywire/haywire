@@ -6,6 +6,7 @@
 - `haybale-testing:node:ArrayExecProbeNode` — Array Exec Probe — Test-only: an array-of-EXEC outlet and inlet on a control node.  _tags: test, array, exec, container_
 - `haybale-testing:node:BenchBareNode` — Bench Bare Node — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.  _tags: benchmark, frozen, bare, dispatch_
 - `haybale-testing:node:BenchExecNode` — Bench Exec Node — FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.  _tags: benchmark, frozen, exec, conduit, control-edge_
+- `haybale-testing:node:CallbackRelayProbeNode` — Callback Relay Probe — Test-only: copies a callback inlet's value to its outlet on write, with a suffix.  _tags: test, callback, relay, loop_
 - `haybale-testing:node:ControlPayloadTestNode` — Control Payload TestNode — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).  _tags: test, control, exec, payload, conduit_
 - `haybale-testing:node:DisplayNode` — Display — Displays input values for debugging  _tags: display, debug, output, basic_
 - `haybale-testing:node:DynamicPortTestNode` — Dynamic Port TestNode —   _tags: testing, dynamic, push, pop, reconfigure_

@@ -13,6 +13,7 @@ Test library for test support
 - **Array Exec Probe** — Test-only: an array-of-EXEC outlet and inlet on a control node.
 - **Bench Bare Node** — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.
 - **Bench Exec Node** — FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.
+- **Callback Relay Probe** — Test-only: copies a callback inlet's value to its outlet on write, with a suffix.
 - **Control Payload TestNode** — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).
 - **Display** — Displays input values for debugging
 - **Dynamic Port TestNode** — 

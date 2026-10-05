@@ -90,4 +90,4 @@ class TestGrowing:
 
         grown = group.output_node.node.ports[slot.id]
         assert grown.on_change == RELAY_HANDLER
-        assert grown.data.get_own_value() == ""
+        assert grown.data.get_own_value() is None

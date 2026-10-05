@@ -16,7 +16,7 @@ from it, each with its own tasks.
 | P | `EXEC` and `CALLBACK` into builtin | **Merged** into local `master` 2026-10-03 (both repos, fast-forward; gate 5975 passed, visiongraph 29 passed) | [landed/2026-10-02-signal-types-to-builtin.md](landed/2026-10-02-signal-types-to-builtin.md) | push both repos |
 | 5.1 | Wire types and the FlowType sweep, behaviour-preserving | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-1-sweep.md](landed/2026-10-03-wire-types-5-1-sweep.md) | merge |
 | 5.2 | Rule changes | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-2-rules.md](landed/2026-10-03-wire-types-5-2-rules.md) | merge; design round D and the 5.3 detail plan |
-| 5.3 | The immediate path | Designed, reviewed, O2 to O4 settled (Q22 to Q24) | to write | after 5.2 |
+| 5.3 | The immediate path | **Landed** on branch `wire-types-5-1` 2026-10-04 (haywire-repo fb6ca02d..f42f8b27, visiongraph 8b60334), not merged; all live checks passed (cameras by the user) | [landed/2026-10-04-wire-types-5-3-immediate-path.md](landed/2026-10-04-wire-types-5-3-immediate-path.md) | merge |
 | 5.4 | Edge rendering and the style bag | Designed, reviewed; revised by D (Q50, Q53, Q58) | to write | after D's code |
 | 5.5 | The annotation wire, type, node and skin | Designed, reviewed | to write | after 5.3 and 5.4 |
 | D | Edge appearance: defaults (framework < graph), arrow heads, UX colours | **Landed** on branch `wire-types-5-1`, not merged | [2026-10-04-wire-types-d-edge-appearance.md](2026-10-04-wire-types-d-edge-appearance.md) | 5.4 detail plan |
@@ -938,7 +938,7 @@ overview when it closed.
 - Possibly: collapse seeds a data interface port's default from a *pooled*
   interior inlet, whose default is pool-shaped. Unverified; step 4 fixed only
   the immediate case.
-- `ArrayField`, `PooledField` and `MapsStringField` have no `to_dict`, so they
+- **Done in 5.3 (Q25, 65e4d79d).** `ArrayField`, `PooledField` and `MapsStringField` have no `to_dict`, so they
   inherit `DataField`'s stub, which returns the decorator default. An array port
   set to `[5, 6]` saves as `{"value": []}`, so array port edits are lost on save.
   (A pool's contents come from its edges, so for `PooledField` nothing is lost.)
@@ -1005,7 +1005,7 @@ item when it lands; when 5.5 lands, nothing here may be left open.
 
 **Carried by a later step:**
 
-- [ ] **F12 → 5.3.** `PooledType` refuses a control element (kept by the user,
+- [x] **F12 → 5.3.** Decided 2026-10-04 (user): the refusal stays; `holds_absence` is per wire and `ControlWire` holds none (5.3 plan, C7). `PooledType` refuses a control element (kept by the user,
   2026-10-03): a pooled inlet reads every linked outlet, so a source that never
   fired adds its empty payload `{}`, and one that fired in an earlier run would add
   that run's payload (untested). With absence on the wire (`holds_absence`), a pool
@@ -1256,3 +1256,19 @@ leave hard-coded values.
 | 60 | `WireType.arrow_at` (`INLET` default, `OUTLET`, `NONE`) declares where a computed head sits; `CallbackWire` declares `OUTLET`. No role check | D |
 | 61 | Selected/active extra widths are optional theme tokens with fallbacks (1px, 2px); hit-area padding is a `CanvasSettings` field (8px), pushed live through the existing props table | D |
 | 62 | The path is shortened by each head's inset so the line meets the glyph's edge; hollow heads are hollow. The graph values reach `canvas.vue` as props, which sets the vars and re-lays-out its paths client-side | D |
+
+## Decisions of 2026-10-04, 5.3 detail plan (Q63 to Q70)
+
+The corrections C1 to C8 found while writing the 5.3 detail plan, confirmed by the user.
+
+| Q | Decision | Lands in |
+|---|---|---|
+| 63 | (C1) Two plain callback reroutes looped end through the echo guard with no warning; the re-entrancy guard is shown with a node that changes the value (`CallbackRelayProbeNode`) | 5.3 |
+| 64 | (C2) The echo guard compares what the node sees before and after the store, so a pool works; `on_change` keeps its arguments | 5.3 |
+| 65 | (C3) The guard's set holds `id(port)`: port hashes are by port id, shared across nodes | 5.3 |
+| 66 | (C4) Only the field-level `from_dict` overrides (`PrimitiveField`, `BaseField`, `ADDField`) move to the hook; type classmethods stay | 5.3 |
+| 67 | (C5) `@type` maps `default=None` to `{}` on a `holds_absence` wire; `normalize_and_validate_default` is unchanged | 5.3 |
+| 68 | (C6) No migration for array saves: every saved array port holds `[]` with no port default | 5.3 |
+| 69 | (C7, F12) `PooledType[EXEC]` stays refused; `holds_absence` is per wire and `ControlWire` holds none | 5.3 |
+| 70 | (C8) A re-entrant reveal on unlink is dropped before `clear_linked()`, as Q24 | 5.3 |
+

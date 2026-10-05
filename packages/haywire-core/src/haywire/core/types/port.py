@@ -6,8 +6,10 @@ Direction is determined by the is_inlet field (True for inlet, False for outlet)
 """
 
 from __future__ import annotations
+import logging
+import threading
 from dataclasses import MISSING, dataclass, field, fields
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 
 from haywire.core.types.enums import PortOrigin, PortType, ShowWidgetStrategy, StoreStrategy
 from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -35,6 +37,20 @@ def _same_value(a: Any, b: Any) -> bool:
         return bool(a == b)
     except Exception:
         return False
+
+
+logger = logging.getLogger(__name__)
+
+# ids of the immediate inlets whose on_change is running on this thread; see DataPort._fire_immediate.
+_immediate_fires = threading.local()
+
+
+def _firing_inlets() -> set[int]:
+    """Return the ``id()`` of every immediate inlet whose ``on_change`` is running on this thread."""
+    firing = getattr(_immediate_fires, "inlets", None)
+    if firing is None:
+        firing = _immediate_fires.inlets = set()
+    return firing
 
 
 @dataclass
@@ -349,12 +365,11 @@ class DataPort(DataTypeIdentity):
         Set port value. Single entry point for all value updates.
 
         For inlets:
+        - an edge's write to an immediate inlet goes through ``_fire_immediate``
         - an own write (no edge_id) while an edge feeds the inlet changes only
           the own value: no on_change, no dirty mark
-        - fire immediately with on_change when
-            - Widget/programmatic (no edge_id) or
-            - an immediate flow (``is_immediate``) when edge-driven
-        - Otherwise defer to resolve_dirty_data()
+        - any other own write fires on_change immediately
+        - any other edge's write defers to resolve_dirty_data()
 
         For outlets:
         - Fire on_change immediately, then propagate to downstream inlets
@@ -366,6 +381,12 @@ class DataPort(DataTypeIdentity):
         if self._data is None:
             return
 
+        # _is_immediate first: on a data or control port the hot path pays one attribute read.
+        if self._is_immediate and self._is_inlet and edge_id is not None:
+            self._is_set_by_node = False
+            self._fire_immediate(lambda: self._data.set_value(new_value, source_id=edge_id), new_value)
+            return
+
         self._data.set_value(new_value, source_id=edge_id)
 
         if self._is_inlet:
@@ -375,8 +396,8 @@ class DataPort(DataTypeIdentity):
             if edge_id is None and self._data.has_linked_value():
                 # The own value changed behind the linked one; the node sees no change.
                 return
-            if self.on_change is not None and (edge_id is None or self._is_immediate):
-                # Widget/programmatic/immediate change → fire on_change immediately
+            if self.on_change is not None and edge_id is None:
+                # Widget/programmatic change → fire on_change immediately
                 self._trigger_callback(self.on_change, new_value)
             else:
                 # Edge-driven OR no callback → defer to resolve_dirty_data()
@@ -389,6 +410,38 @@ class DataPort(DataTypeIdentity):
                 self._trigger_callback(self.on_change, new_value)
             if self._pipes is not None:
                 self._pipes.propagate()
+
+    def _fire_immediate(self, store: Callable[[], None], value: Any) -> None:
+        """Store a write to this immediate inlet and tell the node only when what it sees changed.
+
+        *store* writes the field; ``on_change`` receives *value*. Nothing fires when
+        ``get_value()`` is the same before and after the store. A write that reaches
+        this inlet while its own ``on_change`` is still running on this thread closes
+        a loop of immediate edges: it is dropped without being stored and logged as a
+        warning. Without ``on_change``, a change marks the port data-dirty.
+        """
+        firing = _firing_inlets()
+        key = id(self)
+        if key in firing:
+            node_id = self._wrapper.node_id if self._wrapper is not None else "?"
+            logger.warning(
+                "Dropped a write to immediate inlet %r of node %s: it closes a loop of immediate edges",
+                self.id,
+                node_id,
+            )
+            return
+        before = self._data.get_value()
+        store()
+        if _same_value(before, self._data.get_value()):
+            return
+        if self.on_change is None:
+            self._mark_as_data_dirty()
+            return
+        firing.add(key)
+        try:
+            self._trigger_callback(self.on_change, value)
+        finally:
+            firing.discard(key)
 
     # ========================================================================
     # FIELD BINDING (promotion — one cell, two views)
@@ -710,21 +763,18 @@ class DataPort(DataTypeIdentity):
     def _reveal_own_value_if_unlinked(self) -> None:
         """Show the own value again once no edge feeds this inlet.
 
-        The change reaches the node through its propagation: an immediate
-        inlet fires ``on_change`` now, a deferred one is marked dirty for its
-        node's next execution. Nothing happens while another edge still feeds
-        the inlet, or when the own value equals the linked one.
+        An immediate inlet goes through ``_fire_immediate``; a deferred one is
+        marked dirty for its node's next execution. Nothing happens while another
+        edge still feeds the inlet, or when the own value equals the linked one.
         """
         if not self._is_inlet or self._linked_edges or not self._data.has_linked_value():
             return
+        if self._is_immediate:
+            self._fire_immediate(self._data.clear_linked, self._data.get_own_value())
+            return
         linked = self._data.get_value()
         self._data.clear_linked()
-        own = self._data.get_value()
-        if _same_value(linked, own):
-            return
-        if self.on_change is not None and self._is_immediate:
-            self._trigger_callback(self.on_change, own)
-        else:
+        if not _same_value(linked, self._data.get_value()):
             self._mark_as_data_dirty()
 
     def _detach_all_edges(self) -> list[EdgeWrapper]:
@@ -991,8 +1041,8 @@ class DataPort(DataTypeIdentity):
 
         return result
 
-    def _serialize_value(self) -> dict:
-        """Return the field's ``to_dict()``.
+    def _serialize_value(self) -> dict | None:
+        """Return the field's ``to_dict()``; ``None`` for an absent value.
 
         Raises:
             HaywireException: The field holds a value the port's type rejects; names the port.

@@ -191,7 +191,7 @@ def test_a_graph_whose_reroute_lost_its_input_saves_and_loads(graph_with_library
     graph.clear()
     graph.load_from_dict(data)
 
-    assert graph.node_wrappers[reroute_id].node.ports["out"].get_value() == ""
+    assert graph.node_wrappers[reroute_id].node.ports["out"].get_value() is None
 
 
 def test_clearing_a_graph_with_a_linked_callback_reroute_raises_nothing(

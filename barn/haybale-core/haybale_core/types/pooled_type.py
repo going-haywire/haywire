@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 
 from haywire.core.types import type, CompoundType, DataField, IType
 from haywire.core.types.enums import PortType
-from haywire.core.types.wire import WireRole, declaring_type_of, wire_type_of
+from haywire.core.types.wire import WireRole, declaring_type_of
 
 T = TypeVar("T")
 
@@ -125,10 +125,13 @@ class PooledField(DataField):
         """A pooled field holds only its sources' values."""
         return False
 
+    def accepts_absence(self) -> bool:
+        """True when the element type's fields hold absence; ``None`` then removes its source's entry."""
+        return self._element_holds_absence
+
     _sources: Dict[str, Any] = field(default_factory=dict, init=False, repr=False)
     _default_kwargs: Dict[str, Any] = field(default_factory=dict)
-    _drops_default: bool = field(default=False, init=False, repr=False)
-    _element_default: Any = field(default=None, init=False, repr=False)
+    _element_holds_absence: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self):
         """Initialize pooled field."""
@@ -141,12 +144,10 @@ class PooledField(DataField):
         initial_dict = self._default_kwargs.get("value", {})
         self._sources = dict(initial_dict)
 
-        # A callback element's default means "no subscription"; see set_value.
+        # Absence from a source means the source has no value: its entry goes.
         element = getattr(self.type_cls, "element_type_cls", None)
-        element_wire = wire_type_of(element)
-        self._drops_default = element_wire is not None and element_wire.role is WireRole.IMMEDIATE
-        if self._drops_default:
-            self._element_default = element.create_field().get_value()
+        create = getattr(element, "create_field", None)
+        self._element_holds_absence = create is not None and create().accepts_absence()
 
     def get_value(self) -> Dict[str, Any]:
         """
@@ -181,10 +182,9 @@ class PooledField(DataField):
             field.set_value(FLOAT(99.0), source_id="node1")
             # Stored: {"node1": 99.0, "node2": 15.0}
 
-        For a callback element, the element type's default (an empty name for
-        ``CALLBACK``) means "no subscription" and removes the source's entry.
+        For an element type that holds absence, ``None`` removes the source's entry.
         """
-        if self._drops_default and value == self._element_default:
+        if value is None and self._element_holds_absence:
             # With no source there is no entry to end.
             if source_id is not None:
                 self.remove_source(source_id)

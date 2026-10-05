@@ -1,12 +1,14 @@
 ---
 name: absence-is-a-type
 description: A setting that can hold "no value" expresses it through its IType (OPTIONAL[T], a new WrapperType family), not through a flag on setting() or the set-or-unset opinion axis
-status: accepted
+status: superseded-in-part by ADR-0046
 see-also: ADR-0013, ADR-0014, ADR-0017, ADR-0019
 level: architectural
 ---
 
 # Absence is a value, and a value's domain is its type
+
+> **Absence beyond `PrimitiveField` storage**: on a wire type that `holds_absence`, a `BaseField` type holds absence too ([ADR 0046](0046-callback-absence-and-immediate-guards.md)). `OPTIONAL` itself is unchanged, and saves absence as `null`.
 
 **Context.** A settings field always holds a value; there is no null. Wrapping
 an external library means mirroring its parameters onto settings, and real

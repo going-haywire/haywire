@@ -8,9 +8,10 @@ Key changes:
 """
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Type, TypeVar
+from typing import Any, cast, List, Optional, Type, TypeVar
 
-from haywire.core.types import type, DataField, CompoundType
+from haywire.core.types import type, DataField, CompoundType, IType
+from haywire.core.types.fields import element_from_dict, element_to_dict
 from haywire.core.types.wire import declaring_type_of
 
 T = TypeVar("T")
@@ -118,6 +119,18 @@ class ArrayField(DataField):
     def has_data(self) -> bool:
         """Check if has any items"""
         return len(self._items) > 0
+
+    def _own_to_dict(self) -> dict:
+        """Return ``{"value": [...]}`` with each item as a field of the element type saves it."""
+        # A compound's element is always an IType; `type | None` covers PrimitiveType[T].
+        element = cast("Type[IType]", self.type_cls.element_type_cls)
+        return {"value": [element_to_dict(element, item) for item in self._items]}
+
+    def _own_from_dict(self, data: dict) -> None:
+        """Restore the items from ``_own_to_dict`` output."""
+        # A compound's element is always an IType; `type | None` covers PrimitiveType[T].
+        element = cast("Type[IType]", self.type_cls.element_type_cls)
+        self._items = [element_from_dict(element, item) for item in data.get("value", [])]
 
     # ========================================================================
     # ARRAY-SPECIFIC HELPERS

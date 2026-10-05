@@ -7,7 +7,6 @@ Test callback subscription carried as a dataclass
 ## Details
 
 - **wire_type**: `haywire-core:wire:CallbackWire`
-- **default**: `{'name': '', 'weight': 0}`
 - **color**: `#ff3c00`
 
 ## Notes

@@ -454,6 +454,67 @@ def _absence_tolerant_field(base_field_cls: type) -> type:
     return _AbsenceTolerantField
 
 
+#: Absence-holding field classes, keyed by the field class they extend.
+_FIELDS_HOLDING_ABSENCE: "dict[type, type]" = {}
+
+
+def _field_holding_absence(base_field_cls: type) -> type:
+    """Return *base_field_cls* extended to hold ``None`` as its own value, keeping its stored type.
+
+    For a type whose wire type ``holds_absence``. A ``PrimitiveField`` subclass
+    stores ``None`` past its own coercion; a ``BaseField`` subclass does too and
+    also starts and resets absent when its default kwargs are empty. Any other
+    field class is returned unchanged: it decides for itself what it holds.
+    Cached, so one field class yields one extension.
+    """
+    from .fields import BaseField, PrimitiveField
+
+    cached = _FIELDS_HOLDING_ABSENCE.get(base_field_cls)
+    if cached is not None:
+        return cached
+
+    if issubclass(base_field_cls, PrimitiveField):
+
+        class _PrimitiveHoldingAbsence(base_field_cls):  # type: ignore[valid-type,misc]
+            def _set_own(self, value: Any) -> None:
+                if value is None:
+                    # Past the subclass's own _set_own, whose coercion rejects None.
+                    PrimitiveField._set_own(self, None)
+                    return
+                super()._set_own(value)
+
+            def accepts_absence(self) -> bool:
+                """Always True: a field on a wire that holds absence."""
+                return True
+
+        extended: type = _PrimitiveHoldingAbsence
+    elif issubclass(base_field_cls, BaseField):
+
+        class _BaseHoldingAbsence(base_field_cls):  # type: ignore[valid-type,misc]
+            def _default_instance(self) -> Any:
+                # Empty default kwargs mean absent (Q22), not the type built with no arguments.
+                return super()._default_instance() if self.default_kwargs else None
+
+            def _set_own(self, value: Any) -> None:
+                if value is None:
+                    self._container = None
+                    return
+                super()._set_own(value)
+
+            def accepts_absence(self) -> bool:
+                """Always True: a field on a wire that holds absence."""
+                return True
+
+        extended = _BaseHoldingAbsence
+    else:
+        return base_field_cls
+
+    extended.__name__ = f"{base_field_cls.__name__}HoldingAbsence"
+    extended.__qualname__ = extended.__name__
+    _FIELDS_HOLDING_ABSENCE[base_field_cls] = extended
+    return extended
+
+
 def _wrapped_identity(wrapper_identity: Any, element_type_cls: type[IType]) -> Any:
     """Return *wrapper_identity* with the element's colour and widget properties merged in.
 

@@ -56,7 +56,7 @@ def test_a_reconcile_pushes_the_cards_subscription_into_a_reset_interior(graph_w
     )
     listener = make_node(group.graph, LISTEN)
     group.graph.create_edge_wrapper(listener.node_id, "listen_callback", group.card.node_id, "in_sub_in")
-    group.input_node.node.ports["sub_in"].set_value("")  # as a rebuilt interior starts
+    group.input_node.node.ports["sub_in"].set_value(None)  # as a rebuilt interior starts: absent
     assert subscriptions(emitter) == []
 
     group.card.node.reconcile_interface()

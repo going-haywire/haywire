@@ -77,7 +77,8 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         widget_config (dict, optional): Additional widget configuration properties. NOT RECOMENDED TO USE
         wire_type (type[WireType]): The wire type values travel on; inherited by derived
             types. Required unless the type is a container, a wrapper or ADD.
-        default (dict, required): Dict of constructor kwargs for default instance.
+        default (dict, required): Dict of constructor kwargs for default instance. On a wire
+            type that ``holds_absence``, ``None`` means the type's fields start absent.
         help_url (str, optional): Documentation URL.
         deprecation_warning (str, optional): Deprecation warning message.
         store_strategy: (StoreStrategy, optional): When to serialize field values (default: NEVER).
@@ -152,12 +153,21 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
                 f"  - Types with custom create_default(): default={{'value': None}}"
             )
 
-        # Normalize and validate default
-        identity_dict["default"] = normalize_and_validate_default(
-            identity_dict["default"], inner_cls, context="@type decorator"
-        )
+        wire = identity_dict.get("wire_type")
+        holds_absence = wire is not None and wire.holds_absence
+        if holds_absence and identity_dict["default"] is None:
+            # On a wire that holds absence, no default means a field that starts absent (Q22).
+            identity_dict["default"] = {}
+        else:
+            identity_dict["default"] = normalize_and_validate_default(
+                identity_dict["default"], inner_cls, context="@type decorator"
+            )
         # A primitive instance cannot hold None, so a missing value only crashes at the first save.
-        if issubclass(inner_cls, PrimitiveType) and identity_dict["default"].get("value") is None:
+        if (
+            issubclass(inner_cls, PrimitiveType)
+            and not holds_absence
+            and identity_dict["default"].get("value") is None
+        ):
             raise TypeError(
                 f"@type decorator for {inner_cls.__name__}: a primitive type's default needs a "
                 f"'value' that is not None, got {identity_dict['default']!r}. For a type whose "

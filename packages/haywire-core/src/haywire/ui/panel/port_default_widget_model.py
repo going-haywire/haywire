@@ -73,6 +73,9 @@ class PortDefaultWidgetModel:
         self._cell.set_value(value)
         self._on_edit(value)
 
-    def as_default(self) -> dict[str, Any]:
-        """The staged value in the shape ``DataPort.default`` takes."""
+    def as_default(self) -> dict[str, Any] | None:
+        """The staged value in the shape ``DataPort.default`` takes.
+
+        ``None`` when the value is absent, which a port reads as the type's default.
+        """
         return self._cell.to_dict()

@@ -45,10 +45,10 @@ class ADDField(DataField):
         """Always False: the pin holds nothing to read."""
         return False
 
-    def to_dict(self) -> dict:
+    def _own_to_dict(self) -> dict:
         return {"value": None}
 
-    def from_dict(self, data: dict) -> None:
+    def _own_from_dict(self, data: dict) -> None:
         return None
 
 

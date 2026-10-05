@@ -76,6 +76,8 @@ class WireType:
             map, such as ``"control"``. It is not an icon; a type names its own.
         arrow_at: The end a computed edge of this wire type draws its arrow head at;
             see ``ArrowAt``.
+        holds_absence: Fields of types declared on this wire type can hold ``None``,
+            meaning "no value", and pools of them drop an absent entry.
         id: The registry id, set when the class is defined.
 
     Raises:
@@ -98,6 +100,7 @@ class WireType:
     propagation: ClassVar[tuple[Propagation, ...]] = ()
     pin_kind: ClassVar[str] = ""
     arrow_at: ClassVar[ArrowAt] = ArrowAt.INLET
+    holds_absence: ClassVar[bool] = False
     id: ClassVar[str]
 
     def __init_subclass__(cls, **kwargs: Any) -> None:

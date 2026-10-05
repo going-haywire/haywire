@@ -29,9 +29,11 @@ class CallbackWire(WireType):
     """Subscriptions, which take effect as soon as they are written.
 
     A computed head points at the outlet: the listener the callback returns to.
+    A callback port can be absent: `None` is no subscription.
     """
 
     role = WireRole.IMMEDIATE
     propagation = ()
     pin_kind = "callback"
     arrow_at = ArrowAt.OUTLET
+    holds_absence = True

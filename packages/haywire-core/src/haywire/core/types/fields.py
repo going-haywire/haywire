@@ -252,38 +252,66 @@ class DataField(ABC, Generic[T]):
         self.is_dirty = False
 
     # ========================================================================
-    # SERIALIZATION - Stub methods for field value persistence
+    # SERIALIZATION - absence in the base, a present value in the hooks
     # ========================================================================
 
-    def to_dict(self) -> dict:
-        """
-        Serialize field value.
+    def to_dict(self) -> dict | None:
+        """Return the own value as JSON-ready data, or ``None`` (JSON null) for absence.
 
-        Default stub implementation - returns decorator default.
-        Subclasses override for actual serialization.
+        A field that ``accepts_absence()`` and holds no own value saves ``None``;
+        any other value goes through ``_own_to_dict``.
 
-        Returns:
-            dict: Serialized representation
+        Raises:
+            TypeError, ValueError: The own value is not a valid value of the field's type.
         """
-        # Default: return decorator default
+        if self.accepts_absence() and self._get_own() is None:
+            return None
+        return self._own_to_dict()
+
+    def from_dict(self, data: dict | None) -> None:
+        """Restore the own value from what ``to_dict`` returned.
+
+        Raises:
+            TypeError: *data* is ``None`` and this field cannot hold absence.
+        """
+        if data is None:
+            if not self.accepts_absence():
+                raise TypeError(
+                    f"{type(self).__name__} of {self.type_cls.__name__} cannot hold absence, got null"
+                )
+            self._set_own(None)
+        else:
+            self._own_from_dict(data)
+        self.is_dirty = True
+
+    def _own_to_dict(self) -> dict:
+        """Serialize a present own value. The default returns the type's declared default."""
         if hasattr(self.type_cls, "class_identity"):
             default_dict = getattr(self.type_cls.class_identity, "default", None)
             if isinstance(default_dict, dict):
                 return default_dict
         return {}
 
-    def from_dict(self, data: dict) -> None:
-        """
-        Deserialize field value.
-
-        Default stub implementation - resets to default.
-        Subclasses override for actual deserialization.
-
-        Args:
-            data: Dictionary containing serialized value
-        """
-        # Default: reset to initial state
+    def _own_from_dict(self, data: dict) -> None:
+        """Restore a present own value from ``_own_to_dict`` output. The default resets the field."""
         self.reset()
+
+
+def element_to_dict(element_type: "type[IType]", value: Any) -> dict | None:
+    """Return *value* serialized the way a field of *element_type* serializes its own value.
+
+    For a container field saving its items one by one.
+    """
+    cell = element_type.create_field()
+    cell.set_value(value)
+    return cell.to_dict()
+
+
+def element_from_dict(element_type: "type[IType]", data: dict | None) -> Any:
+    """Return the value a field of *element_type* holds after loading *data*; see ``element_to_dict``."""
+    cell = element_type.create_field()
+    cell.from_dict(data)
+    return cell.get_value()
 
 
 # ============================================================================
@@ -348,32 +376,16 @@ class PrimitiveField(DataField[T]):
     # SERIALIZATION - Delegate to PrimitiveType classmethods
     # ========================================================================
 
-    def to_dict(self) -> dict:
-        """
-        Serialize primitive field value.
-
-        Wraps the unwrapped value in a temporary type instance and calls
-        the unified IType.to_dict() instance method.
-
-        Returns:
-            dict: Serialized representation
-        """
+    def _own_to_dict(self) -> dict:
+        """Serialize the present value through the type's ``to_dict``."""
         # PrimitiveField stores PrimitiveType[T] subclasses; cast to access
         # PrimitiveType's value= constructor.
         primitive_cls = cast("type[PrimitiveType[T]]", self.type_cls)
         return primitive_cls(value=self._value).to_dict()
 
-    def from_dict(self, data: dict) -> None:
-        """
-        Deserialize primitive field value.
-
-        Delegates to PrimitiveType.from_dict(data) classmethod.
-
-        Args:
-            data: Dictionary containing serialized value
-        """
+    def _own_from_dict(self, data: dict) -> None:
+        """Restore a present value through the type's ``from_dict``."""
         self._value = self.type_cls.from_dict(data)
-        self.is_dirty = True
 
 
 # ============================================================================
@@ -393,17 +405,20 @@ class BaseField(DataField[BaseType]):
     Complex types are already "unwrapped" - the instance IS the value.
     """
 
-    _container: BaseType = field(init=False, repr=False)
+    _container: BaseType | None = field(init=False, repr=False)
 
     def __post_init__(self):
         """Initialize complex field with default instance"""
         super().__post_init__()
+        self._container = self._default_instance()
 
+    def _default_instance(self) -> BaseType | None:
+        """Return the own value this field starts and resets to: the type built from the default kwargs."""
         # type_cls is type[IType] at the base; for BaseField it's always type[BaseType].
-        self._container = cast(BaseType, self.type_cls(**self.default_kwargs))
+        return cast(BaseType, self.type_cls(**self.default_kwargs))
 
-    def _get_own(self) -> BaseType:
-        """Return the instance."""
+    def _get_own(self) -> BaseType | None:
+        """Return the instance, or ``None`` for an absent value."""
         return self._container
 
     def _set_own(self, value: Any) -> None:
@@ -419,8 +434,7 @@ class BaseField(DataField[BaseType]):
 
     def reset(self) -> None:
         """Reset to default value"""
-        # type_cls is type[IType] at the base; for BaseField it's always type[BaseType].
-        self._container = cast(BaseType, self.type_cls(**self.default_kwargs))
+        self._container = self._default_instance()
         self.is_dirty = True
 
     def has_data(self) -> bool:
@@ -431,28 +445,15 @@ class BaseField(DataField[BaseType]):
     # SERIALIZATION - Delegate to BaseType methods
     # ========================================================================
 
-    def to_dict(self) -> dict:
-        """
-        Serialize BaseType field value.
-
-        Delegates to instance's to_dict() method.
-
-        Returns:
-            dict: Serialized representation
-        """
+    def _own_to_dict(self) -> dict:
+        """Serialize the present instance through its ``to_dict``."""
+        # Only a field that holds absence holds None, and the base saves that as null.
+        assert self._container is not None
         return self._container.to_dict()
 
-    def from_dict(self, data: dict) -> None:
-        """
-        Deserialize BaseType field value.
-
-        Delegates to type's from_dict(data) classmethod.
-
-        Args:
-            data: Dictionary containing serialized value
-        """
+    def _own_from_dict(self, data: dict) -> None:
+        """Restore a present instance through the type's ``from_dict``."""
         self._container = self.type_cls.from_dict(data)
-        self.is_dirty = True
 
 
 # Set field_class attributes after classes are defined

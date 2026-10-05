@@ -7,7 +7,6 @@ Signal for callback execution between nodes
 ## Details
 
 - **wire_type**: `haywire-core:wire:CallbackWire`
-- **default**: `{'value': ''}`
 - **color**: `#ff3c00`
 
 ## Notes
@@ -15,4 +14,4 @@ Signal for callback execution between nodes
 Callback signal: the name a listener subscribes under.
 
 It travels like a `STRING`, has no widget, and a port stores it only when its
-node set it. An empty name means no subscription: an emitter drops it.
+node set it. An absent value means no subscription: an emitter's pool drops it.
