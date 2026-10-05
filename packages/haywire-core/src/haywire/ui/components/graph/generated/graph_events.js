@@ -15,6 +15,9 @@ window.GraphEvents = {
     COLLAPSE_TO_GROUP: 'collapseToGroup', // Collapse the selected nodes into a Group
     EXPAND_GROUP: 'expandGroup', // Expand a Group back into the graph around it
     ENTER_GROUP: 'enterGroup', // Step inside a Group to edit its Subgraph
+    PROMOTE_TO_MACRO: 'promoteToMacro', // Turn a Group into a macro: its own file, placeable in any graph
+    OPEN_NEW_NODE_WIZARD: 'openNewNodeWizard', // Open the New Node wizard: write a new node class into a library
+    DETACH_FROM_MACRO: 'detachFromMacro', // Turn one macro placement into a Group that no longer tracks the template
     EDGE_CREATED: 'edgeCreated', // New connection created
     EDGE_CLICKED: 'edgeClicked', // Connection clicked
     CANVAS_MOUNTED: 'canvasMounted', // The canvas component finished mounting and holds no edges yet
@@ -165,6 +168,36 @@ window.EventCreators = {
     };
   },
 
+  createPromoteToMacro(node_id, sessionId = 'default') {
+    return {
+      event_type: 'promoteToMacro',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_id },
+      requires_broadcast: true
+    };
+  },
+
+  createOpenNewNodeWizard(position, node_id, sessionId = 'default') {
+    return {
+      event_type: 'openNewNodeWizard',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { position, node_id },
+      requires_broadcast: true
+    };
+  },
+
+  createDetachFromMacro(node_id, sessionId = 'default') {
+    return {
+      event_type: 'detachFromMacro',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_id },
+      requires_broadcast: true
+    };
+  },
+
   createEdgeCreated(sourceNodeId, outletPinId, sinkNodeId, inletPinId, sessionId = 'default') {
     return {
       event_type: 'edgeCreated',
@@ -275,12 +308,12 @@ window.EventCreators = {
     };
   },
 
-  createContextMenuCanvas(screenX, screenY, canvasX, canvasY, pendingPinId, pendingNodeId, pendingPinDir, pendingFlowType, pendingDataType, sessionId = 'default') {
+  createContextMenuCanvas(screenX, screenY, canvasX, canvasY, pendingPinId, pendingNodeId, pendingPinDir, pendingWire, pendingDataType, sessionId = 'default') {
     return {
       event_type: 'contextMenuCanvas',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { screenX, screenY, canvasX, canvasY, pendingPinId, pendingNodeId, pendingPinDir, pendingFlowType, pendingDataType },
+      data: { screenX, screenY, canvasX, canvasY, pendingPinId, pendingNodeId, pendingPinDir, pendingWire, pendingDataType },
       requires_broadcast: true
     };
   },
@@ -393,6 +426,21 @@ window.EventValidators = {
     return requiredFields.every(field => field in data);
   },
 
+  validatePromoteToMacro(data) {
+    const requiredFields = ["node_id"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateOpenNewNodeWizard(data) {
+    const requiredFields = ["position", "node_id"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateDetachFromMacro(data) {
+    const requiredFields = ["node_id"];
+    return requiredFields.every(field => field in data);
+  },
+
   validateEdgeCreated(data) {
     const requiredFields = ["sourceNodeId", "outletPinId", "sinkNodeId", "inletPinId"];
     return requiredFields.every(field => field in data);
@@ -449,7 +497,7 @@ window.EventValidators = {
   },
 
   validateContextMenuCanvas(data) {
-    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "pendingPinId", "pendingNodeId", "pendingPinDir", "pendingFlowType", "pendingDataType"];
+    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "pendingPinId", "pendingNodeId", "pendingPinDir", "pendingWire", "pendingDataType"];
     return requiredFields.every(field => field in data);
   },
 

@@ -242,14 +242,17 @@ def test_clone_to_library_names_the_node():
     assert captured[0].position is None
 
 
-def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
-    """reconnect_active_edge reads ctx.data[EditState].active_edge AND _open_ctx.edge_reconnect_end."""
-    from haywire.ui.components.graph.event_definitions import SyncEdgeReconnectEvent
+def _seed_reconnect(provider, *, at_sink_end: bool, live_ports: dict[str, set[str]]) -> None:
+    """Give ``provider`` an active edge src-node:out-pin -> snk-node:in-pin and a gesture.
 
-    captured: list = []
-    provider = _make_provider(on_emit_event=captured.append)
-
-    # Set up a fake edge in active_edge so reconnect_active_edge sees it.
+    ``live_ports`` maps a node id to the port ids that still exist on it, each
+    drawn as a pin; a node missing from it does not exist.
+    """
+    pin = SimpleNamespace(has_pin=lambda: True)
+    nodes = {
+        node_id: SimpleNamespace(node=SimpleNamespace(ports={port_id: pin for port_id in port_ids}))
+        for node_id, port_ids in live_ports.items()
+    }
     wrapper = MagicMock()
     wrapper._edge_id = "edge-1"
     wrapper.source_node_id = "src-node"
@@ -257,11 +260,23 @@ def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
     wrapper.sink_node_id = "snk-node"
     wrapper.inlet_port_id = "in-pin"
 
-    cast(Any, provider)._test_edit_stub.active_edge = wrapper
-    provider._open_ctx = _OpenMenuContext(
-        click_pos=(0.0, 0.0),
-        edge_reconnect_end=True,  # clicked near inlet → anchor on outlet (source) side
-    )
+    stub = cast(Any, provider)._test_edit_stub
+    stub.active_edge = wrapper
+    stub.active_graph = SimpleNamespace(get_node_wrapper=nodes.get)
+    provider._open_ctx = _OpenMenuContext(click_pos=(0.0, 0.0), edge_reconnect_end=at_sink_end)
+
+
+_BOTH_ENDS = {"src-node": {"out-pin"}, "snk-node": {"in-pin"}}
+
+
+def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
+    """reconnect_active_edge reads ctx.data[EditState].active_edge AND _open_ctx.edge_reconnect_end."""
+    from haywire.ui.components.graph.event_definitions import SyncEdgeReconnectEvent
+
+    captured: list = []
+    provider = _make_provider(on_emit_event=captured.append)
+    # Clicked near inlet → anchor on outlet (source) side.
+    _seed_reconnect(provider, at_sink_end=True, live_ports=_BOTH_ENDS)
 
     provider.reconnect_active_edge()
 
@@ -270,6 +285,43 @@ def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
     assert isinstance(event, SyncEdgeReconnectEvent)
     assert event.anchorNodeId == "src-node"
     assert event.anchorPinId == "out-pin"
+
+
+def test_reconnect_from_the_source_end_anchors_on_the_inlet():
+    captured: list = []
+    provider = _make_provider(on_emit_event=captured.append)
+    _seed_reconnect(provider, at_sink_end=False, live_ports=_BOTH_ENDS)
+
+    provider.reconnect_active_edge()
+
+    assert [(e.anchorNodeId, e.anchorPinId) for e in captured] == [("snk-node", "in-pin")]
+
+
+def test_reconnect_anchors_on_the_end_that_still_has_a_pin():
+    """An edge drawn to a ghost pin (its inlet port is gone) reconnects from its outlet.
+
+    Clicked near the source end, the inlet would anchor the drag; it has no pin,
+    so the outlet anchors instead and the edge is not lost.
+    """
+    captured: list = []
+    provider = _make_provider(on_emit_event=captured.append)
+    _seed_reconnect(provider, at_sink_end=False, live_ports={"src-node": {"out-pin"}, "snk-node": set()})
+
+    assert provider.can_reconnect_active_edge()
+    provider.reconnect_active_edge()
+
+    assert [(e.anchorNodeId, e.anchorPinId) for e in captured] == [("src-node", "out-pin")]
+
+
+def test_reconnect_with_no_pin_at_either_end_does_nothing():
+    captured: list = []
+    provider = _make_provider(on_emit_event=captured.append)
+    _seed_reconnect(provider, at_sink_end=True, live_ports={"snk-node": set()})
+
+    assert not provider.can_reconnect_active_edge()
+    provider.reconnect_active_edge()
+
+    assert captured == []
 
 
 def test_reconnect_active_edge_no_active_edge_is_noop():
@@ -728,11 +780,19 @@ def test_toggle_edge_propagation_switches_eager_to_lazy():
 def test_toggle_edge_propagation_leaves_a_locked_edge_alone():
     from haywire.core.types import Propagation
 
-    edge = _FakeEdge(Propagation.EAGER, locked=Propagation.IMMEDIATE)
+    edge = _FakeEdge(Propagation.EAGER, locked=Propagation.LAZY)
     provider = _provider_with_edge(edge)
 
-    assert provider.toggle_edge_propagation("e1") is Propagation.IMMEDIATE
+    assert provider.toggle_edge_propagation("e1") is Propagation.LAZY
     assert edge.chosen is Propagation.EAGER
+    assert edge.redraws == 0
+
+
+def test_toggle_edge_propagation_leaves_an_edge_without_propagation_alone():
+    edge = _FakeEdge(None)
+    provider = _provider_with_edge(edge)
+
+    assert provider.toggle_edge_propagation("e1") is None
     assert edge.redraws == 0
 
 

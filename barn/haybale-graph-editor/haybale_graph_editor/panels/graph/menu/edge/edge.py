@@ -215,20 +215,19 @@ class EdgePropagationMenuPanel(BasePanel):
     decides and returns the new one).
 
     The icon and label both name the current mode: propagation is a standing
-    property of the edge, so the row reads "Propagation: Lazy/Eager/Immediate"
-    rather than a command. A mode the connection fixes draws a disabled row.
+    property of the edge, so the row reads "Propagation: Lazy/Eager"
+    rather than a command. A mode the connection fixes draws a disabled row. An edge
+    without propagation (a callback edge) draws no row.
     """
 
     actions: EdgeActions
 
-    _LABELS = {Propagation.LAZY: "Lazy", Propagation.EAGER: "Eager", Propagation.IMMEDIATE: "Immediate"}
+    _LABELS = {Propagation.LAZY: "Lazy", Propagation.EAGER: "Eager"}
     _ICONS = {
         Propagation.LAZY: hui.icon.edge_lazy,
         Propagation.EAGER: hui.icon.edge_eager,
-        Propagation.IMMEDIATE: hui.icon.edge_propagation,
     }
     _LOCKED_TOOLTIPS = {
-        Propagation.IMMEDIATE: "Callback connections always take effect immediately.",
         Propagation.LAZY: "Connections from a promoted setting are always lazy.",
     }
 
@@ -321,7 +320,8 @@ class ReconnectEdgeMenuPanel(BasePanel):
 
     The provider's reconnect_active_edge action reads the active edge
     and the gesture state (which end was right-clicked) from its own
-    _OpenMenuContext. The panel just invokes the verb.
+    _OpenMenuContext. The panel just invokes the verb. The row is greyed
+    when neither end of the edge has a pin to start the drag from.
     """
 
     actions: EdgeActions
@@ -335,9 +335,12 @@ class ReconnectEdgeMenuPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
+        enabled = self.actions.can_reconnect_active_edge()
         with layout:
             hui.menu_row(
                 "Reconnect",
                 icon=hui.icon.edge,
                 on_click=self.actions.reconnect_active_edge,
+                enabled=enabled,
+                tooltip=None if enabled else "Neither end of this edge has a pin to reconnect from",
             )

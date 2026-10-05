@@ -6,7 +6,7 @@
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': [0.0, 0.0, 0.0, 0.0]}`
 - **widget_key**: `haywire-core:widget:VecWidget`
 - **color**: `#757575`

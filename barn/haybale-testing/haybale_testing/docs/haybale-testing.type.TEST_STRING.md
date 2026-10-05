@@ -6,7 +6,7 @@ Text data
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': ''}`
 - **color**: `#ffc107`
 

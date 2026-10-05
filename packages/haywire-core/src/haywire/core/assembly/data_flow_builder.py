@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from haywire.core.node.base import BaseNode
     from haywire.core.execution.flow import LocalizedDataFlow, ControlFlowGraph
 
-from haywire.core.types.enums import FlowType
 
 logger = logging.getLogger(__name__)
 
@@ -53,11 +52,7 @@ class DataFlowBuilder:
         data_flow = LocalizedDataFlow(control_node_id=control_node.node_id)
 
         # Get all data inlets on control node
-        data_inlets = [
-            port
-            for port in control_node.ports.values()
-            if port.flow_type == FlowType.DATA and port.is_inlet()
-        ]
+        data_inlets = [port for port in control_node.ports.values() if port.is_dependent and port.is_inlet()]
 
         if not data_inlets:
             logger.debug(f"No data inlets on {control_node.node_id}")
@@ -132,9 +127,7 @@ class DataFlowBuilder:
                 source_wrapper = graph.get_node_wrapper(source_node_id)
                 if source_wrapper:
                     source_node = source_wrapper.node
-                    is_control = any(
-                        port.flow_type == FlowType.CONTROL for port in source_node.ports.values()
-                    )
+                    is_control = source_node.has_sequence_pins()
 
                     if is_control:
                         # Stop at control nodes (data doesn't backprop through them)
@@ -145,9 +138,7 @@ class DataFlowBuilder:
 
                     # Continue backpropagating from this node's inlets
                     source_inlets = [
-                        port
-                        for port in source_node.ports.values()
-                        if port.flow_type == FlowType.DATA and port.is_inlet()
+                        port for port in source_node.ports.values() if port.is_dependent and port.is_inlet()
                     ]
 
                     for inlet in source_inlets:
@@ -181,9 +172,7 @@ class DataFlowBuilder:
             node = node_wrapper.node
 
             # Get all data outlets
-            outlets = [
-                port for port in node.ports.values() if port.flow_type == FlowType.DATA and port.is_outlet()
-            ]
+            outlets = [port for port in node.ports.values() if port.is_dependent and port.is_outlet()]
 
             for outlet in outlets:
                 # Get connected edges
@@ -247,9 +236,7 @@ class DataFlowBuilder:
             node = node_wrapper.node
 
             # Get all data outlets
-            outlets = [
-                port for port in node.ports.values() if port.flow_type == FlowType.DATA and port.is_outlet()
-            ]
+            outlets = [port for port in node.ports.values() if port.is_dependent and port.is_outlet()]
 
             for outlet in outlets:
                 edges = graph._get_edge_wrappers_for_port(node_id, outlet.id)

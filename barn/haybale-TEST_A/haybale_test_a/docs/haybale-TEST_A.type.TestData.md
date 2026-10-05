@@ -6,7 +6,7 @@ Simple test data structure for cross-library testing
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': None}`
 - **color**: `#FF5722`
 

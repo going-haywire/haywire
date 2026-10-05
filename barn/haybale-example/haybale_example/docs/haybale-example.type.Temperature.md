@@ -6,7 +6,7 @@ Temperature data types
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': 0.0}`
 - **widget_key**: `haybale-example:widget:TemperatureWidget`
 - **color**: `#50b0ff`

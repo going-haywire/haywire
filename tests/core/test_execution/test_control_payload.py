@@ -14,6 +14,7 @@ import pytest
 from haywire.core.execution.event_source import SystemEventType
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
+from haywire.core.types import WireRole
 
 from tests.conftest import make_edge, make_node
 
@@ -35,7 +36,7 @@ class TestControlPayload:
         _, _, edge = self._exec_linked_nodes(graph)
 
         assert edge is not None
-        assert edge.is_control_edge()
+        assert edge.wire_type.role is WireRole.SEQUENCE
         assert edge.state.is_valid()
         # An EXEC→EXEC edge resolves to a trivial (same-type) chain, not None.
         assert edge.first_adapter is not None

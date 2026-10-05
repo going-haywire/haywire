@@ -20,7 +20,10 @@ class PortInfo:
     direction: str
     label: str
     description: str
-    flow_type: str
+    wire_type: str | None
+    """The wire type's id, ``"*"`` for a bare ``ADD`` slot, ``None`` for a config port."""
+    role: str | None
+    """The wire type's role value, such as ``"dependent"``; ``None`` without a wire type."""
     data_type: str | None
     hidden: bool
     deprecation: str
@@ -81,7 +84,8 @@ class NodeInstanceInspector:
                     direction=_port_direction(port),
                     label=port.label or "",
                     description=port.description or "",
-                    flow_type=port.flow_type.value,
+                    wire_type=port.wire_key,
+                    role=port.wire_type.role.value if port.wire_type is not None else None,
                     data_type=_port_type_key(port),
                     hidden=bool(port.hidden),
                     deprecation=port.deprecation_warning or "",

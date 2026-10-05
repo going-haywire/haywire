@@ -8,11 +8,17 @@ validation, and retrieval of all data types (type variants and custom compound t
 import inspect
 from typing import Optional, Type, Any, cast
 
-from .enums import FlowType
 from .interface import IType
+from .wire import WireRole, wire_type_of
 from .identity import DataTypeIdentity
 from ..registry.base import BaseRegistry
 from ..library.identity import LibraryIdentity
+
+
+def _is_value_type(cls: type) -> bool:
+    """True for a type on a ``DEPENDENT`` wire: one whose values a setting can hold."""
+    wire = wire_type_of(cls)
+    return wire is not None and wire.role is WireRole.DEPENDENT
 
 
 class TypeRegistry(BaseRegistry[IType]):
@@ -125,16 +131,15 @@ class TypeRegistry(BaseRegistry[IType]):
         settings path to resolve an inferred Python type to its IType without a
         hand-maintained mapping. Returns ``None`` if no registered value type matches.
 
-        Exact match only (``element_type_cls is py_type``). Only ``FlowType.DATA``
-        types are candidates: a signal type wrapping a Python type (``EXEC`` wraps
+        Exact match only (``element_type_cls is py_type``). Only types on a ``DEPENDENT`` wire
+        are candidates: a signal type wrapping a Python type (``EXEC`` wraps
         ``dict``) is not a value a setting holds. A ``haywire-core:`` type is
         preferred when several libraries register the same Python type.
         """
         matches = [
             cls
             for cls in self._classes.values()
-            if getattr(cls, "element_type_cls", None) is py_type
-            and FlowType(cls.class_identity.flow_type) is FlowType.DATA
+            if getattr(cls, "element_type_cls", None) is py_type and _is_value_type(cls)
         ]
         if not matches:
             return None

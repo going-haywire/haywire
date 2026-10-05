@@ -6,7 +6,7 @@ Simple mathematical operations for one or two float values
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': 'add'}`
 - **widget_key**: `haywire-core:widget:SelectWidget`
 - **color**: `#ffc107`

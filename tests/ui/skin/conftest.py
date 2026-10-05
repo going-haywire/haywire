@@ -6,6 +6,9 @@ from typing import Any, cast
 
 import pytest
 
+from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.scheduler import SyncScheduler
+
 # Lazily-captured persistent NiceGUI default client (see nicegui_slot_context).
 _CLIENT: list = []
 
@@ -35,3 +38,9 @@ def nicegui_slot_context():
         _CLIENT.append(Client(cast(Any, _noop_page), request=None))
     with _CLIENT[0]:
         yield
+
+
+@pytest.fixture
+def graph_with_library_system(library_system) -> BaseGraph:
+    """A graph with the full library system loaded, validating inline."""
+    return BaseGraph(filestem="Pin kind", validation_scheduler=SyncScheduler())

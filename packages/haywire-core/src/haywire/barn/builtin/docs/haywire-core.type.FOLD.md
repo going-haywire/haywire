@@ -6,7 +6,7 @@ Hides or shows the ports inside it
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': True}`
 - **color**: `#90a4ae`
 

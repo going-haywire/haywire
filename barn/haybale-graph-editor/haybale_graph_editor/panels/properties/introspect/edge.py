@@ -120,7 +120,8 @@ class EdgePropagationPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_edge is not None
+        edge = ctx.data[EditState].active_edge
+        return edge is not None and edge.propagation is not None
 
     def draw(
         self,

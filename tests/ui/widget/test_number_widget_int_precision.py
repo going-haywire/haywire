@@ -11,7 +11,7 @@ from nicegui import ui
 
 from haywire.barn.builtin.types import FLOAT, INT
 from haywire.barn.builtin.widgets.basic_widgets import NumberWidget
-from haywire.core.types.enums import FlowType, PortType
+from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
 
 pytestmark = pytest.mark.unit
@@ -25,7 +25,6 @@ def _make_port(type_cls, widget_config: dict | None = None) -> DataPort:
         id="v",
         type_cls=type_cls,
         port_type=PortType.INLET,
-        flow_type=FlowType.DATA,
         widget_config=widget_config or {},
     )
 

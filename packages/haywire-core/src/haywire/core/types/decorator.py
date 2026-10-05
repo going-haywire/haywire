@@ -13,10 +13,10 @@ from dataclasses import asdict
 
 from ..library.utils import TYPE, derive_library_identity, reg_key
 from .base import BaseType, CompoundType, PrimitiveType, WrapperType
-from .enums import FlowType
 from .identity import DataTypeIdentity
 from .interface import IType
 from .utils import normalize_and_validate_default
+from .wire import WireRole
 
 T = TypeVar("T")
 
@@ -72,7 +72,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         icon_out_multi (str, optional): Icon for multi-link outlet pins.
         widget_key (str, optional): Widget for editing values. NOT RECOMENDED TO USE
         widget_config (dict, optional): Additional widget configuration properties. NOT RECOMENDED TO USE
-        flow_type (FlowType, optional): DATA, CTRL, or NONE.
+        wire_type (type[WireType], optional): The wire type values travel on; inherited by derived types.
         default (dict, required): Dict of constructor kwargs for default instance.
         help_url (str, optional): Documentation URL.
         deprecation_warning (str, optional): Deprecation warning message.
@@ -136,20 +136,19 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
             kwargs.setdefault("description", inner_cls.__doc__.strip() if inner_cls.__doc__ else "")
             identity_dict = kwargs
 
-        # CONTROL/CALLBACK flow types are signals, not editable values — a widget
-        # makes no sense on a pin that carries execution/callback flow. This also
-        # catches the inheritance trap: a CALLBACK/CONTROL type derived from a scalar
-        # (e.g. CALLBACK(STRING)) inherits the parent's widget_key via asdict() — pass
-        # widget_key=None explicitly to clear it.
-        flow = identity_dict.get("flow_type", FlowType.NONE)
-        flow_value = flow.value if isinstance(flow, FlowType) else flow
-        if flow_value in (FlowType.CONTROL.value, FlowType.CALLBACK.value) and identity_dict.get(
-            "widget_key"
+        # A control or callback type is a signal, not an editable value. This also
+        # catches the inheritance trap: a signal type derived from a scalar inherits
+        # the parent's widget_key through asdict(); pass widget_key=None to clear it.
+        wire = identity_dict.get("wire_type")
+        if (
+            wire is not None
+            and wire.role in (WireRole.SEQUENCE, WireRole.IMMEDIATE)
+            and identity_dict.get("widget_key")
         ):
             raise TypeError(
-                f"@type decorator for {inner_cls.__name__}: a {flow_value!r} flow type cannot "
-                f"have a widget_key (got {identity_dict['widget_key']!r}). CONTROL and CALLBACK "
-                f"pins are signals, not editable values. If this type inherits a widget_key from a "
+                f"@type decorator for {inner_cls.__name__}: a type on {wire.id} cannot have a "
+                f"widget_key (got {identity_dict['widget_key']!r}). Control and callback pins "
+                f"are signals, not editable values. If this type inherits a widget_key from a "
                 f"parent (e.g. a scalar base), pass widget_key=None to clear it."
             )
 

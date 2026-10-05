@@ -85,7 +85,13 @@ import 'graph_events';
  *                       agree with the pin's CSS side — see pin_render.py; a
  *                       mismatch draws edges from the right edge with the
  *                       wrong curve and reports no error.
- *                       All three written by ui/skin/pin_render.py.
+ *   data-pin-wire       A pin's wire key: its wire type's id, or '*' for a bare
+ *                       ADD slot. Two pins may link when _wiresMatch says so,
+ *                       the mirror of wires_match in core/types/wire.py.
+ *   data-pin-ghost      Present on a node's root ghost pins. A ghost is the
+ *                       fallback anchor for an edge whose port is missing: it
+ *                       never starts, ends or joins a drag.
+ *                       All of these written by ui/skin/pin_render.py.
  *
  * Adding one? Follow the data-node-props-* rule if it mirrors a props field,
  * and record it here — this block is the only index of the contract.
@@ -1533,7 +1539,7 @@ export default {
                 event.preventDefault();
                 event.stopPropagation();
                 const pin = target.closest('.connection-pin');
-                if (pin && pin.dataset.pinFlowType !== 'ghost') {
+                if (pin && !('pinGhost' in pin.dataset)) {
                     this._commitConnection(pin);
                 } else if (!pin && this.edgeDrag.nearestCompatiblePin) {
                     // Clicked empty canvas but a suggestion is active — commit to it
@@ -1547,7 +1553,7 @@ export default {
             // 3. Check for connection pin — start a new connection drag
             const pin = target.closest('.connection-pin');
             if (pin) {
-                if (pin.dataset.pinFlowType === 'ghost') return;
+                if ('pinGhost' in pin.dataset) return;
                 event.preventDefault();
                 event.stopPropagation();
                 this._enterActiveEdge(pin);
@@ -1661,12 +1667,10 @@ export default {
             // the skin's. Checked BEFORE the node branch, since a pin sits
             // inside a node and would otherwise be swallowed by it.
             // data-port-id is accepted as an alias; nothing in-tree emits it.
-            // A ghost pin is a drop affordance, not a port: its id names no
-            // entry in node.ports, so a menu there would open nothing AND
-            // swallow the node menu the click used to reach. Excluded here,
-            // where the fall-through is still available.
+            // A ghost pin is a fallback anchor, not a port: its id names no
+            // entry in node.ports, so it is no menu target.
             const pinElement = target.closest(
-                '[data-pin-id]:not([data-pin-flow-type="ghost"]), [data-port-id]'
+                '[data-pin-id]:not([data-pin-ghost]), [data-port-id]'
             );
             if (pinElement) {
                 const portId = pinElement.dataset.pinId || pinElement.dataset.portId || '';
@@ -1747,12 +1751,14 @@ export default {
                         Array.from(this.selectionState.selectedEdges)
                     ));
                 } else {
-                    // Determine which end of the edge was closer to the click point.
+                    // Determine which end of the edge was closer to the click point,
+                    // measured to where each end is drawn (a missing port's end is
+                    // drawn to the node's ghost pin).
                     const edgeInfo = this.edgePaths.get(edge_id);
                     let atSinkEnd = false;
                     if (edgeInfo) {
-                        const outletPin = document.getElementById(edgeInfo.outletPinUUID);
-                        const inletPin  = document.getElementById(edgeInfo.inletPinUUID);
+                        const outletPin = this._drawnPin(edgeInfo.outletNodeId, edgeInfo.outletPinUUID, edgeInfo.outletPinFallback);
+                        const inletPin  = this._drawnPin(edgeInfo.inletNodeId, edgeInfo.inletPinUUID, edgeInfo.inletPinFallback);
                         if (outletPin && inletPin) {
                             const op = this._getPinPosition(outletPin);
                             const ip = this._getPinPosition(inletPin);
@@ -1769,20 +1775,20 @@ export default {
 
                 // Snapshot pending connection before pausing drag (used for canvas menu below).
                 let pendingPinId = '', pendingNodeId = '', pendingPinDir = '',
-                    pendingFlowType = '', pendingDataType = '';
+                    pendingWire = '', pendingDataType = '';
                 if (this.edgeDrag.mode === 'active' && this.edgeDrag.anchorPin) {
                     const sp = this.edgeDrag.anchorPin.dataset;
                     pendingPinId   = sp.pinId       || '';
                     pendingNodeId  = sp.nodeId      || '';
                     pendingPinDir  = sp.pinDir      || '';
-                    pendingFlowType = sp.pinFlowType || '';
+                    pendingWire = sp.pinWire || '';
                     pendingDataType = sp.pinDataType || '';
                     this._enterPausedEdge();
                 }
 
                 this.emitCanvasEvent(EventCreators.createContextMenuCanvas(
                     clientX, clientY, canvasCoords.x, canvasCoords.y,
-                    pendingPinId, pendingNodeId, pendingPinDir, pendingFlowType, pendingDataType
+                    pendingPinId, pendingNodeId, pendingPinDir, pendingWire, pendingDataType
                 ));
             }
         },
@@ -2732,7 +2738,7 @@ export default {
             const index = [];
             document.querySelectorAll('.connection-pin').forEach(pin => {
                 if (pin === anchorPin) return;
-                if (pin.dataset.pinFlowType === 'ghost') return;
+                if ('pinGhost' in pin.dataset) return;
                 const pos = this._getPinPosition(pin);
                 index.push({
                     el: pin,
@@ -2891,15 +2897,8 @@ export default {
             const outletPinUUID = this._buildPinUUID(sourceNodeId, outletPinId);
             const inletPinUUID = this._buildPinUUID(sinkNodeId, inletPinId);
 
-            let outletPin = document.getElementById(outletPinUUID);
-            let inletPin = document.getElementById(inletPinUUID);
-
-            if (!outletPin) {
-                outletPin = this._findPinInHierarchy(sourceNodeId, outletPinFallback);
-            }
-            if (!inletPin) {
-                inletPin = this._findPinInHierarchy(sinkNodeId, inletPinFallback);
-            }
+            const outletPin = this._drawnPin(sourceNodeId, outletPinUUID, outletPinFallback);
+            const inletPin = this._drawnPin(sinkNodeId, inletPinUUID, inletPinFallback);
 
             if (!outletPin || !inletPin) {
                 console.error(`🔗 Vue could not find pins:`, {
@@ -3017,6 +3016,14 @@ export default {
             }
         },
 
+        /**
+         * The pin element an edge end is drawn to: its own pin, else the first
+         * present pin up its hierarchy (ending at the node's ghost pin), else null.
+         */
+        _drawnPin(nodeId, pinUUID, hierarchyString) {
+            return document.getElementById(pinUUID) || this._findPinInHierarchy(nodeId, hierarchyString);
+        },
+
         _findPinInHierarchy(nodeId, hierarchyString) {
             /**
              * Iterate through port hierarchy to find an existing pin element.
@@ -3092,15 +3099,8 @@ export default {
                 return;
             }
 
-            let outletPin = document.getElementById(edgeInfo.outletPinUUID);
-            let inletPin = document.getElementById(edgeInfo.inletPinUUID);
-
-            if (!outletPin) {
-                outletPin = this._findPinInHierarchy(edgeInfo.outletNodeId, edgeInfo.outletPinFallback);
-            }
-            if (!inletPin) {
-                inletPin = this._findPinInHierarchy(edgeInfo.inletNodeId, edgeInfo.inletPinFallback);
-            }
+            const outletPin = this._drawnPin(edgeInfo.outletNodeId, edgeInfo.outletPinUUID, edgeInfo.outletPinFallback);
+            const inletPin = this._drawnPin(edgeInfo.inletNodeId, edgeInfo.inletPinUUID, edgeInfo.inletPinFallback);
 
             // A CULLED node has no pins in the DOM, and that is not an error.
             // Refresh only the end that is actually present and keep the values
@@ -3632,28 +3632,24 @@ export default {
         _isValidEdge(startPin, endPin) {
             if (!startPin || !endPin || startPin === endPin) return false;
 
+            if (startPin.dataset.nodeId === endPin.dataset.nodeId) {
+                return false;
+            }
+
+            if (!this._wiresMatch(startPin.dataset.pinWire, endPin.dataset.pinWire)) {
+                return false;
+            }
+
             const startDir = startPin.dataset.pinDir;
-            const startNodeId = startPin.dataset.nodeId;
-            const startFlowType = startPin.dataset.pinFlowType;
             const endDir = endPin.dataset.pinDir;
-            const endNodeId = endPin.dataset.nodeId;
-            const endFlowType = endPin.dataset.pinFlowType;
-
-            if (startNodeId === endNodeId) {
-                return false;
-            }
-
-            // Ghost pins and bare ADD pins are flow-type agnostic — they accept any connection type.
-            const eitherIsGhost = startFlowType === 'ghost' || endFlowType === 'ghost';
-            const eitherTakesAnyFlow =
-                startPin.dataset.pinAnyFlow === 'true' || endPin.dataset.pinAnyFlow === 'true';
-            if (!eitherIsGhost && !eitherTakesAnyFlow && startFlowType !== endFlowType) {
-                return false;
-            }
-
-            const valid = (startDir === 'outlet' && endDir === 'inlet') ||
+            return (startDir === 'outlet' && endDir === 'inlet') ||
                 (startDir === 'inlet' && endDir === 'outlet');
-            return valid;
+        },
+
+        /** Mirror of wires_match (core/types/wire.py): equal wire keys, or either the '*' wildcard. */
+        _wiresMatch(a, b) {
+            if (!a || !b) return false;
+            return a === b || a === '*' || b === '*';
         },
 
         _scheduleEdgeUpdates(nodeId, nodeElement = null, animationDuration = 300) {

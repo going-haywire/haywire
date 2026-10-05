@@ -298,7 +298,7 @@ def test_pins_stay_clickable_under_the_resize_grips(page: Page, harness):
 
     pins = page.evaluate(
         """() => [...document.querySelectorAll('.connection-pin')]
-            .filter(p => p.dataset.pinFlowType !== 'ghost')
+            .filter(p => !('pinGhost' in p.dataset))
             .map(p => { const r = p.getBoundingClientRect();
                         return {id: p.dataset.pinId,
                                 x: r.left + r.width / 2, y: r.top + r.height / 2}; })"""

@@ -26,6 +26,7 @@ from nicegui import ui
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import BaseNode
+from haywire.core.types.wire import wires_match
 
 from haywire.ui.components.graph.event_definitions import (
     CanvasMountedEvent,
@@ -1053,7 +1054,7 @@ class VisualLayerHandlers:
         node to a compatible port on the dragged-from pin's side.
 
         ``pending`` carries the dragged-from pin's metadata (pin_id, node_id,
-        pin_dir, flow_type, data_type) — see NodeCreateRequestEvent.
+        pin_dir, wire, data_type) — see NodeCreateRequestEvent.
 
         TODO: Static port-type introspection (before instantiation) is not yet supported.
         """
@@ -1061,7 +1062,7 @@ class VisualLayerHandlers:
             return
 
         pending_pin_dir = pending.get("pin_dir", "")  # 'inlet' or 'outlet'
-        pending_flow = pending.get("flow_type", "")
+        pending_wire = pending.get("wire", "")
         pending_data = pending.get("data_type", "")
         pending_node_id = pending.get("node_id", "")
         pending_pin_id = pending.get("pin_id", "")
@@ -1075,8 +1076,8 @@ class VisualLayerHandlers:
                 continue
             if target_dir == "outlet" and not port.is_outlet():
                 continue
-            # Flow type must match (pending_flow is the .value string, e.g. 'data', 'control')
-            if pending_flow and port.flow_type.value != pending_flow:
+            # The wire types must match, as a drag onto the pin would require.
+            if pending_wire and not wires_match(pending_wire, port.wire_key):
                 continue
             # For data pins, data type must match if provided
             if pending_data:

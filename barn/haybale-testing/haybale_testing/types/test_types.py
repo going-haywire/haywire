@@ -4,8 +4,9 @@ Temperature type - derived from FLOAT for testing type hierarchy support.
 
 from dataclasses import dataclass
 
-from haywire.core.types import type, BaseType, FlowType
+from haywire.core.types import type, BaseType
 from haywire.core.types import PrimitiveType, PrimitiveField
+from haywire.barn.builtin.wires import CallbackWire, DataWire
 
 # ============================================================================
 # Numeric Types
@@ -13,7 +14,7 @@ from haywire.core.types import PrimitiveType, PrimitiveField
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Integer",
     description="Whole number",
     color="#f7b0ff",
@@ -45,7 +46,7 @@ TEST_INT.field_class = TEST_INTField
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Float",
     description="Decimal numberer",
     color="#50b0ff",
@@ -79,7 +80,7 @@ TEST_FLOAT.field_class = TEST_FLOATField
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="String",
     description="Text data",
     color="#ffc107",
@@ -102,7 +103,7 @@ class TEST_STRING(PrimitiveType[str]):
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Boolean",
     description="True or False",
     color="#4caf50",
@@ -123,7 +124,7 @@ class TEST_BOOL(PrimitiveType[bool]):
     label="Temperature",
     description="Temperature in Celsius",
     color="#ff5722",
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     default={"value": 20.0},
 )
 class TEST_TEMPERATURE(TEST_FLOAT):
@@ -142,7 +143,7 @@ TEST_TEMPERATURE.field_class = TEST_FLOATField
 
 
 @type(
-    flow_type=FlowType.CALLBACK,
+    wire_type=CallbackWire,
     label="Test Record Callback",
     description="Test callback subscription carried as a dataclass",
     default={"name": "", "weight": 0},

@@ -14,12 +14,14 @@ from it, each with its own tasks.
 | Plan | Work | Status | Detail plan | Next |
 |---|---|---|---|---|
 | P | `EXEC` and `CALLBACK` into builtin | **Merged** into local `master` 2026-10-03 (both repos, fast-forward; gate 5975 passed, visiongraph 29 passed) | [landed/2026-10-02-signal-types-to-builtin.md](landed/2026-10-02-signal-types-to-builtin.md) | push both repos |
-| 5.1 | Wire types and the FlowType sweep, behaviour-preserving | Detail plan written | [2026-10-03-wire-types-5-1-sweep.md](2026-10-03-wire-types-5-1-sweep.md) | execute |
+| 5.1 | Wire types and the FlowType sweep, behaviour-preserving | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-1-sweep.md](2026-10-03-wire-types-5-1-sweep.md) | merge |
 | 5.2 | Rule changes | Designed, reviewed, O1 settled (Q21) | to write | after 5.1 |
 | 5.3 | The immediate path | Designed, reviewed, O2 to O4 settled (Q22 to Q24) | to write | after 5.2 |
 | 5.4 | Edge rendering and the style bag | Designed, reviewed | to write | after 5.2 and D's design round |
 | 5.5 | The annotation wire, type, node and skin | Designed, reviewed | to write | after 5.3 and 5.4 |
 | D | Edge appearance defaults (graph tier, UX colours) | **Design round owed** | none | design after 5.2, beside 5.3; code after 5.4 (Q32) |
+
+5.1 also made an unknown `pin_kind` draw the fallback glyph (`_from_map` always ends in `fallback`), so 5.4 has no fallback-glyph work left.
 
 Reviewed against the code on 2026-10-03. The corrections are folded into the
 sections below and listed in [Review corrections](#review-corrections-2026-10-03).

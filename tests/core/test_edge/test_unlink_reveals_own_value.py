@@ -5,7 +5,7 @@ from typing import Any, cast
 import pytest
 
 from haywire.barn.builtin.types import FLOAT
-from haywire.core.types import DataPort, FlowType, PortType, Propagation
+from haywire.core.types import DataPort, PortType, Propagation
 
 
 @pytest.fixture
@@ -76,7 +76,6 @@ def _inlet() -> DataPort:
         id="v",
         type_cls=FLOAT,
         port_type=PortType.INLET,
-        flow_type=FlowType.DATA,
     )
 
 

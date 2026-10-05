@@ -221,13 +221,11 @@ def render_pin(
         f'id="{pin_uuid}" '
         f'data-node-id="{node_id}" '
         f'data-pin-id="{pin.id}" '
-        f'data-pin-flow-type="{pin.flow_type.value}" '
+        f'data-pin-wire="{pin.wire_key or ""}" '
         f'data-pin-dir="{pin_direction}" '
         f'data-pin-dir-x="{dir_x}" '
         f'data-pin-dir-y="{dir_y}" '
         f'data-hw-layout="{layout.value}"'
-        # A bare ADD grows a port of any flow, so the canvas lets any pin connect to it.
-        + (' data-pin-any-flow="true"' if pin.type_cls is not None and pin.type_cls._is_any else "")
     )
 
     pin_size = f"{pin_gutter}px"
@@ -256,17 +254,17 @@ def render_pin(
         pin_offset += f"--hw-pin-rotate: {glyph_transform}; "
     pin_offset += cell_style
 
-    # Resolve the per-flow-type icon; everything else (classes, color,
-    # data-type, props chain) is identical across all three flow types.
+    # Resolve the pin's icon from its type and wire type; everything else
+    # (classes, color, data-type, props chain) is identical across pins.
     icon = _resolve_pin_icon(pin, pin_icons)
     if icon is None:
-        # Unknown / unsupported flow type — render no pin.
+        # A port without a pin (config, fold) draws nothing.
         return None
 
-    # Every pin's port carries a data type; advertise it for all flow types so
+    # Every pin's port carries a data type; advertise it for all wire types so
     # the Vue layer's compatibility hint can match by type (CONTROL/CALLBACK
     # previously omitted it and matched only by the undefined===undefined
-    # coincidence). Connection VALIDITY keys off flow-type, not this attribute.
+    # coincidence). Connection VALIDITY keys off the wire key, not this attribute.
     pin_data_type = pin.stored_type.class_identity.registry_key
 
     # `q-icon`'s size/color props have no meaning on a native tag — see PinGlyph.
@@ -281,7 +279,7 @@ def render_pin(
 
 
 def _resolve_pin_icon(pin: DataPort, pin_icons: PinIconResolver | None = None) -> str | None:
-    """Return the glyph *pin* draws, or ``None`` if its flow type draws no pin.
+    """Return the glyph *pin* draws, or ``None`` for a port without a pin.
 
     Delegates to *pin_icons* (the shared default when a skin supplies none),
     which resolves the declared icon, then its own map. See
@@ -346,7 +344,7 @@ def render_ghost_pin(
         .props(
             f'id="{generate_pin_uuid(node_id, pin_id)}" data-node-id="{node_id}" '
             f'data-pin-id="{pin_id}" '
-            f'data-pin-flow-type="ghost" data-pin-dir="{"inlet" if is_inlet else "outlet"}" '
+            f'data-pin-ghost data-pin-dir="{"inlet" if is_inlet else "outlet"}" '
             f'data-pin-dir-x="{dir_x}" data-pin-dir-y="{dir_y}" '
             f'data-hw-layout="{layout.value}" data-pin-color="#888888"'
         )

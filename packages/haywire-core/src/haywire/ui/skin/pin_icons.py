@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from haywire.core.types import CompoundType, DataPort, FlowType
+from haywire.core.types import CompoundType, DataPort
 
 from ..themes.icons import ICONS
 
@@ -14,9 +14,8 @@ class PinIconResolver:
 
     Three tiers, widest last: a glyph declared on the port or its type wins;
     otherwise this resolver's :attr:`ICONS` map answers by role; and any role
-    the map omits degrades to its flow type, then to ``"fallback"``. A pin
-    therefore always gets an icon — only a flow type that draws no pin at all
-    resolves to ``None``.
+    the map omits degrades to its kind, then to ``"fallback"``. A pin
+    therefore always gets an icon; only a port without a pin resolves to ``None``.
 
     A skin reskins every pin in the graph by subclassing and replacing the map.
     Keys are optional: one entry is a complete resolver, because every role
@@ -30,22 +29,24 @@ class PinIconResolver:
         ICONS = {"data_in": "chevron_right", "data": "arrow_right", "fallback": "circle"}
     ```
 
-    Roles are ``<kind>_<direction>``, where *kind* is ``data``, ``compound``,
-    ``control`` or ``callback``, and *direction* is ``in`` or ``out``. A pin
-    accepting several links looks for a ``_multi`` suffix first, so
-    ``data_in_multi`` styles a pooled inlet without touching single-link ones.
+    Roles are ``<kind>_<direction>``, where *kind* is the wire type's
+    ``pin_kind`` (``data``, ``control``, ``callback`` for the builtin wire
+    types), or ``compound`` for a container on a data wire, and *direction* is
+    ``in`` or ``out``. A pin accepting several links looks for a ``_multi``
+    suffix first, so ``data_in_multi`` styles a pooled inlet without touching
+    single-link ones.
 
     Override :meth:`resolve` only to change the tier order itself; override
     :meth:`role_of` to key the map differently.
 
     Note that a type inherits its parent's icons: ``@type`` copies the parent
     identity wholesale, so a type derived from one that declares an icon keeps
-    that glyph even across flow types. Pass ``icon_in=None`` (and
+    that glyph even across wire types. Pass ``icon_in=None`` (and
     ``icon_out=None``) on the derived type to drop it, the way ``widget_key``
     is cleared.
     """
 
-    #: Glyph per role. A role absent here falls back to its flow type, then to
+    #: Glyph per role. A role absent here falls back to its kind, then to
     #: ``"fallback"``, so a partial map is valid.
     ICONS: ClassVar[dict[str, str]] = {
         "data_in": ICONS.MY_LOCATION,
@@ -62,39 +63,32 @@ class PinIconResolver:
     }
 
     def resolve(self, pin: DataPort) -> str | None:
-        """Return the glyph *pin* draws, or ``None`` if its flow type has no pin.
+        """Return the glyph *pin* draws, or ``None`` for a port without a pin.
 
         The port answers first: ``icon_in``/``icon_out`` and their ``_multi``
         variants carry what the type declared, already resolved through
         ``DataTypeIdentity.__post_init__``, plus any per-port override.
         """
-        kind = self._kind_of(pin)
-        if kind is None:
+        if not pin.has_pin():
             return None
-        declared = self._declared(pin)
-        return declared or self._from_map(kind, pin)
+        return self._declared(pin) or self._from_map(self._kind_of(pin), pin)
 
     def role_of(self, pin: DataPort) -> str:
         """Return the :attr:`ICONS` key for *pin*, e.g. ``"data_in_multi"``."""
-        kind = self._kind_of(pin) or "data"
-        return self._role(kind, pin)
+        return self._role(self._kind_of(pin) or "data", pin)
 
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
 
     def _kind_of(self, pin: DataPort) -> str | None:
-        """The map's *kind* segment for *pin*, or ``None`` for a pinless flow type."""
-        flow = pin.flow_type
-        if flow == FlowType.CONTROL:
-            return "control"
-        if flow == FlowType.CALLBACK:
-            return "callback"
-        if flow == FlowType.DATA:
-            if pin.type_cls is not None and issubclass(pin.type_cls, CompoundType):
-                return "compound"
-            return "data"
-        return None
+        """The map's *kind* segment for *pin*, or ``None`` for a pin without a wire type."""
+        wire = pin.wire_type
+        if wire is None:
+            return None
+        if wire.pin_kind == "data" and pin.type_cls is not None and issubclass(pin.type_cls, CompoundType):
+            return "compound"
+        return wire.pin_kind
 
     def _role(self, kind: str, pin: DataPort) -> str:
         direction = "in" if pin.is_inlet() else "out"
@@ -107,14 +101,16 @@ class PinIconResolver:
             return (pin.icon_in_multi if pin.allow_multiple_links else pin.icon_in) or None
         return (pin.icon_out_multi if pin.allow_multiple_links else pin.icon_out) or None
 
-    def _from_map(self, kind: str, pin: DataPort) -> str:
+    def _from_map(self, kind: str | None, pin: DataPort) -> str:
         """This resolver's glyph for *kind*, narrowest key first."""
         icons = self.ICONS
         direction = "in" if pin.is_inlet() else "out"
         keys = []
-        if pin.allow_multiple_links:
-            keys.append(f"{kind}_{direction}_multi")
-        keys += [f"{kind}_{direction}", kind, "fallback"]
+        if kind is not None:
+            if pin.allow_multiple_links:
+                keys.append(f"{kind}_{direction}_multi")
+            keys += [f"{kind}_{direction}", kind]
+        keys.append("fallback")
         for key in keys:
             icon = icons.get(key)
             if icon:

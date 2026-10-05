@@ -3,7 +3,7 @@
 import pytest
 
 from haywire.barn.builtin.types import FLOAT
-from haywire.core.types import DataPort, FlowType, PortType
+from haywire.core.types import DataPort, PortType
 
 
 @pytest.mark.unit
@@ -15,7 +15,6 @@ def test_a_data_inlet_is_single_link_whatever_it_declares():
         id="v",
         type_cls=FLOAT,
         port_type=PortType.INLET,
-        flow_type=FlowType.DATA,
         allow_multiple_links=True,
     )
 

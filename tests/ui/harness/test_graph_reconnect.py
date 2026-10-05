@@ -145,3 +145,41 @@ def test_reconnect_anchor_stays_on_outlet_pin(page: Page, harness):
     assert abs(preview["y"] - outlet["y"]) < 5, (
         f"anchor Y drifted from outlet (stale-pin bug): preview={preview} outlet={outlet}"
     )
+
+
+# Start point of the in-progress drag preview: the one dashed path that is no edge.
+_DRAG_PREVIEW_START_JS = """() => {
+    const p = document.querySelector('#connection-svg path[stroke-dasharray]:not([data-edge-id])');
+    if (!p) return null;
+    const m = p.getAttribute('d').match(/M\\s+([-\\d.]+)\\s+([-\\d.]+)/);
+    return { x: parseFloat(m[1]), y: parseFloat(m[2]) };
+}"""
+
+
+@pytest.mark.parametrize("frac", [0.25, 0.75], ids=["near-outlet", "near-ghost"])
+def test_reconnect_an_edge_drawn_to_a_ghost_pin_starts_from_its_outlet(page: Page, harness, frac):
+    """An edge whose inlet port is gone reconnects from its outlet, wherever it is clicked.
+
+    The inlet end is drawn to the sink's ghost pin, which cannot anchor a drag.
+    Before the fix, a click nearer the outlet anchored on the missing inlet: the
+    edge was removed and no drag started.
+    """
+    goto_ready(page, f"{harness}{_PATH}?missing_inlet=1")
+    page.wait_for_selector("#connection-svg path[data-edge-id]")
+    wait_for_canvas_settled(page)
+
+    outlet = page.evaluate(_LIVE_EDGE_START_JS)
+    assert outlet is not None, "live edge not rendered"
+
+    click = _path_point(page, frac)
+    page.mouse.click(click["x"], click["y"], button="right")
+    page.wait_for_selector(".hw-popup-card")
+    _click_menu_item(page, "Reconnect")
+    page.mouse.move(click["x"] + 40, click["y"] + 40)
+    page.wait_for_timeout(200)
+
+    preview = page.evaluate(_DRAG_PREVIEW_START_JS)
+    assert preview is not None, "no reconnect drag started"
+    assert abs(preview["x"] - outlet["x"]) < 5 and abs(preview["y"] - outlet["y"]) < 5, (  # noqa: PT018
+        f"drag did not start from the outlet: preview={preview} outlet={outlet}"
+    )

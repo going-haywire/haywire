@@ -68,7 +68,7 @@ def test_query_detail_adds_port_setup_fields(farmhand_call):
         plain = call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))
         plain_node = next(n for n in plain["nodes"] if n["node_id"] == node_id)
         for port in plain_node["ports"]:
-            assert set(port) == {"id", "direction", "flow_type"}
+            assert set(port) == {"id", "direction", "wire_type", "role"}
 
         # detail=true: the tier-1/2 setup fields are present and typed sensibly.
         detailed = call_tool_json(
@@ -92,7 +92,7 @@ def test_query_detail_adds_port_setup_fields(farmhand_call):
         assert inlet["link_count"] == 0
         assert inlet["promoted"] is False
         # A concrete data type resolves to a registry key (not None) on data ports.
-        data_port = next(p for p in node["ports"] if p["flow_type"] == "data")
+        data_port = next(p for p in node["ports"] if p["role"] == "dependent")
         assert isinstance(data_port["data_type"], str)
         assert ":" in data_port["data_type"]
     finally:
@@ -100,7 +100,7 @@ def test_query_detail_adds_port_setup_fields(farmhand_call):
 
 
 def test_query_labels_callback_ports_and_edges(farmhand_call):
-    """Callback ports carry flow_type='callback'; the edge between them is self-labeled."""
+    """Callback ports carry role 'immediate'; the edge between them has role 'immediate'."""
     bid = _new_graph(farmhand_call)
     try:
         src = call_tool_json(
@@ -132,15 +132,15 @@ def test_query_labels_callback_ports_and_edges(farmhand_call):
         graph = call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))
 
         # The edge is self-labeled — no port join needed to classify it.
-        cb_edges = [e for e in graph["edges"] if e["flow_type"] == "callback"]
+        cb_edges = [e for e in graph["edges"] if e["role"] == "immediate"]
         assert len(cb_edges) == 1
         assert cb_edges[0]["outlet"] == "callback_outlet"
         assert cb_edges[0]["inlet"] == "callback_inlet"
 
-        # And the ports themselves report flow_type='callback'.
+        # And the ports themselves report role='immediate'.
         src_node = next(n for n in graph["nodes"] if n["node_id"] == src)
         outlet = next(p for p in src_node["ports"] if p["id"] == "callback_outlet")
-        assert outlet["flow_type"] == "callback"
+        assert outlet["role"] == "immediate"
     finally:
         _close(farmhand_call, bid)
 
@@ -188,7 +188,8 @@ def test_query_edge_detail_reports_health_and_adapter_chain(farmhand_call):
             "outlet",
             "sink_node",
             "inlet",
-            "flow_type",
+            "wire_type",
+            "role",
         }
 
         detailed = call_tool_json(
@@ -299,6 +300,36 @@ def test_connect_bad_pin_is_connect_failed(farmhand_call):
                 "binding_id": bid,
                 "source_node_id": a,
                 "outlet": "no_such_outlet",
+                "sink_node_id": b,
+                "inlet": "no_such_inlet",
+            },
+        )
+        assert result.isError is True
+        assert "[connect_failed]" in result.content[0].text
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_connect_bad_inlet_is_connect_failed(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        a = call_tool_json(
+            _call(
+                farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY}
+            )
+        )["node_id"]
+        b = call_tool_json(
+            _call(
+                farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY}
+            )
+        )["node_id"]
+        result = _call(
+            farmhand_call,
+            "haybale-graph-editor_connect",
+            {
+                "binding_id": bid,
+                "source_node_id": a,
+                "outlet": "out",
                 "sink_node_id": b,
                 "inlet": "no_such_inlet",
             },

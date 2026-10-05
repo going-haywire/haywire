@@ -6,7 +6,7 @@ Signal for callback execution between nodes
 
 ## Details
 
-- **flow_type**: `callback`
+- **wire_type**: `haywire-core:wire:CallbackWire`
 - **default**: `{'value': ''}`
 - **color**: `#ff3c00`
 

@@ -47,9 +47,9 @@ Adapters live in [components/adapters](../adapters/adapter-canon.md); how the ch
 
 **`default` dict.** Constructor kwargs for the default instance. For primitives: `{'value': <val>}` (or just the bare value, which the decorator auto-wraps). For `@dataclass` complex types: `{'attr1': v1, 'attr2': v2}` — keys must match the dataclass fields.
 
-**`flow_type`.** One of `FlowType.DATA`, `FlowType.CONTROL`, `FlowType.CALLBACK`, or `FlowType.NONE`. The framework default is `NONE`; ordinary value-carrying datatypes set `DATA` explicitly (the common case). `CONTROL`/`CALLBACK` mark the type as a non-data signal and get no widget. A `CALLBACK` type's default means "no subscription": an emitter's pool drops a subscription equal to it, so never make it a real one (core `CALLBACK`'s is an empty name; a dataclass callback's default instance carries an empty name).
+**`wire_type`.** The wire type values of this type travel on: a class such as `DataWire`, `ControlWire` or `CallbackWire` (imported from `haywire.barn.builtin.wires`), or one your library defines (see [ADR 0042](../../adr/0042-wire-types-replace-flowtype.md)). Ordinary value-carrying datatypes name `DataWire`. A derived type inherits its parent's; a container or wrapper that names none (`ArrayType[T]`, `PooledType[T]`) takes its element's. A type on a control or callback wire type gets no widget (5.2 lifts this). A `CALLBACK` type's default means "no subscription": an emitter's pool drops a subscription equal to it, so never make it a real one (core `CALLBACK`'s is an empty name; a dataclass callback's default instance carries an empty name). A port derives its wire type from its type; it is never passed per port or saved.
 
-**Inheritance.** A derived type inherits its parent's full identity (`color`, `widget_key`, `flow_type`, …) and overrides only the parameters you pass to its `@type`. Derived types are **automatically compatible with ancestors** for connections — child→parent works as a passthrough; child→sibling-of-parent walks up to the parent's adapter; parent→child still requires an explicit adapter.
+**Inheritance.** A derived type inherits its parent's full identity (`color`, `widget_key`, `wire_type`, …) and overrides only the parameters you pass to its `@type`. Derived types are **automatically compatible with ancestors** for connections — child→parent works as a passthrough; child→sibling-of-parent walks up to the parent's adapter; parent→child still requires an explicit adapter.
 
 **Serialization.** Override `to_dict()` / `from_dict()` when your type has non-serializable attributes (numpy arrays, file handles). For simple `@dataclass` types, `dataclasses.asdict(self)` and `cls(**data)` work automatically — no override needed.
 
@@ -129,7 +129,7 @@ What these examples exercise:
 | `field_class` assigned post-definition | `MapsStringType.field_class = MapsStringField` |
 | `WrapperType[T]` for a value-or-absence type | `OPTIONAL` |
 | `default={'value': None}` (legal only outside `PrimitiveType`) | `OPTIONAL` |
-| `flow_type=FlowType.DATA` explicit | all four |
+| `wire_type=DataWire` explicit | all four |
 
 For everything ports-related (`as_config`, `on_change`, `on_connect`, port reconfiguration), see [guides/ports](../../guides/ports.md). For the worker function and node lifecycle, see [components/nodes](../nodes/node-canon.md).
 
@@ -146,7 +146,7 @@ For everything ports-related (`as_config`, `on_change`, `on_connect`, port recon
 | `icon` | `str` | no | `None` | Pin icon (applies to all pin variants unless overridden). |
 | `icon_in` / `icon_out` | `str` | no | `None` | Inlet- / outlet-specific icon override. |
 | `icon_in_multi` / `icon_out_multi` | `str` | no | `None` | Multi-connection icon overrides. |
-| `flow_type` | `FlowType` | no | `NONE` | `DATA`, `CONTROL`, `CALLBACK`, `NONE`. |
+| `wire_type` | `type[WireType]` | no | none (inherited) | `DataWire`, `ControlWire`, `CallbackWire`, or a library-defined wire type. |
 | `widget_key` | `str` | no | `None` | **NOT RECOMMENDED at type level** — prefer per-port `as_inlet(widget_key=...)`. |
 | `widget_config` | `dict` | no | `{}` | **NOT RECOMMENDED at type level** — see above. |
 | `store_strategy` | `StoreStrategy` | no | `NONE` | When to persist field values on save. (Older docs called this `store_data: bool` — out of date.) |

@@ -6,7 +6,7 @@ Whole number
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': 0}`
 - **color**: `#f7b0ff`
 

@@ -51,7 +51,7 @@ class TestShouldStore:
 class TestStoreStrategyRoundTrip:
     """store_strategy must survive to_dict -> from_spec as a StoreStrategy enum.
 
-    Regression: from_spec reconstructed flow_type/port_type/show_widget but not
+    Regression: from_spec reconstructed port_type/show_widget but not
     store_strategy, so a deserialized (or copied) port carried a plain int. The
     next serialize then crashed on `int.should_store(...)` (copy/paste of a node
     blew up with "'int' object has no attribute 'should_store'").

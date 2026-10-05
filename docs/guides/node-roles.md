@@ -95,7 +95,7 @@ from: `EmitCallbackNode` — registry_key: `haybale-example:node:EmitCallbackNod
 - **`context.trigger.payload`** delivers the emitter's payload to the listener's worker.
 - **`wrapper.request_graph_reassembly()`** is called when the subscription changes so the flow graph is rebuilt with the new wiring.
 
-For the framework's dispatch model — assembly-time wiring, FlowType.CALLBACK, CallbackManager — see [architecture/execution/callbacks](../architecture/execution/callbacks/callbacks-arch.md).
+For the framework's dispatch model — listener registration by the Interpreter, the callback wire type, CallbackManager — see [architecture/execution/callbacks](../architecture/execution/callbacks/callbacks-arch.md).
 
 ## LOOPBACK — round-trip with break
 

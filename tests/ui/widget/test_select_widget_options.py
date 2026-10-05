@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from haywire.barn.builtin.widgets import basic_widgets
 from haywire.barn.builtin.widgets.basic_widgets import SelectWidget
 from haywire.core.types.port import DataPort
-from haywire.core.types.enums import FlowType, PortOrigin, PortType
+from haywire.core.types.enums import PortOrigin, PortType
 from haywire.barn.builtin.types import STRING
 
 pytestmark = pytest.mark.unit
@@ -28,7 +28,6 @@ def make_string_port_with_config(widget_config: dict[str, Any], port_id: str = "
         id=port_id,
         type_cls=STRING,
         port_type=PortType.INLET,
-        flow_type=FlowType.DATA,
         widget_config=widget_config,
         origin=PortOrigin.PROMOTED,
     )

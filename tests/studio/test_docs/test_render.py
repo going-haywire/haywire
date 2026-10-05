@@ -73,7 +73,19 @@ def test_render_component_node_lists_ports():
         search_tags=[],
         menu="",
         docstring="Does the resize.",
-        ports=[PortInfo("img", "inlet", "Image", "the image", "data", "lib:type:image", False, "")],
+        ports=[
+            PortInfo(
+                "img",
+                "inlet",
+                "Image",
+                "the image",
+                "haywire-core:wire:DataWire",
+                "dependent",
+                "lib:type:image",
+                False,
+                "",
+            )
+        ],
         settings=[],
         extra={},
     )
@@ -98,9 +110,9 @@ def test_render_component_orders_ports_inlet_config_outlet():
         menu="",
         docstring="",
         ports=[
-            PortInfo("out1", "outlet", "", "", "data", None, False, ""),
-            PortInfo("cfg1", "config", "", "", "data", None, False, ""),
-            PortInfo("in1", "inlet", "", "", "data", None, False, ""),
+            PortInfo("out1", "outlet", "", "", "haywire-core:wire:DataWire", "dependent", None, False, ""),
+            PortInfo("cfg1", "config", "", "", "haywire-core:wire:DataWire", "dependent", None, False, ""),
+            PortInfo("in1", "inlet", "", "", "haywire-core:wire:DataWire", "dependent", None, False, ""),
         ],
         settings=[],
         extra={},

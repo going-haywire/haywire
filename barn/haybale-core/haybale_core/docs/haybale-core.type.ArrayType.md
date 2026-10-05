@@ -6,7 +6,6 @@ Homogeneous typed array
 
 ## Details
 
-- **flow_type**: `none`
 - **default**: `{'value': []}`
 - **color**: `#d8e91e`
 
@@ -28,9 +27,8 @@ Storage: ArrayField stores List[T] with unwrapped elements
 Transfer: List of unwrapped values (primitives or instances)
 
 IMPORTANT:
-It inherits the element type's flow type (if it is set).
-!!Setting the flow type in the decorator or as_inlet/as_outlet has no effect!!
+It travels on the element type's wire type; a wire type declared on the array has no effect.
 
 Hooks: Uses default implementations from IType
 - _validate_port_type: Allows all port types (inlet, outlet, config)
-- _configure_port: Sets flow type based on element type
+- _configure_port: takes the element's colour, and refuses a control or callback element

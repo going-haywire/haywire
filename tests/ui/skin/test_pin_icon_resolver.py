@@ -13,7 +13,7 @@ from typing import Any, ClassVar, cast
 import pytest
 
 from haywire.barn.builtin.types import FLOAT
-from haywire.core.types import DataPort, FlowType, PortType
+from haywire.core.types import DataPort, PortType
 from haywire.core.types.enums import ShowWidgetStrategy, StoreStrategy
 from haywire.ui.skin.pin_icons import DEFAULT_PIN_ICONS, PinIconResolver
 
@@ -30,14 +30,14 @@ def _port(type_cls: type, port_type: PortType, **kwargs) -> DataPort:
     """A port built through the type's own factory, as the app builds one."""
     factory = type_cls.as_inlet if port_type is PortType.INLET else type_cls.as_outlet  # type: ignore[attr-defined]
     spec = dict(factory(f"p_{port_type.value}")["kwargs"])
-    for key in ("flow_type", "promoted", "port_type"):
+    for key in ("promoted", "port_type"):
         spec.pop(key, None)
     for field, enum in (("show_widget", ShowWidgetStrategy), ("store_strategy", StoreStrategy)):
         if field in spec and not isinstance(spec[field], enum):
             spec[field] = enum(spec[field])
     # A multi-link data inlet is set after construction, as PooledType._configure_port does.
     multi = kwargs.pop("allow_multiple_links", None)
-    spec.update(type_cls=type_cls, flow_type=FlowType.DATA, **kwargs)
+    spec.update(type_cls=type_cls, **kwargs)
     port = DataPort(port_type=port_type, **spec)
     if multi is not None:
         port.allow_multiple_links = multi
@@ -72,7 +72,7 @@ class TestFallbackChain:
         for port_type in (PortType.INLET, PortType.OUTLET):
             assert Minimal().resolve(_port(bare, port_type)) == "circle"
 
-    def test_a_role_falls_back_to_its_flow_type(self):
+    def test_a_role_falls_back_to_its_kind(self):
         """``data`` covers every data role the map does not name."""
 
         class ByKind(PinIconResolver):
@@ -80,7 +80,7 @@ class TestFallbackChain:
 
         assert ByKind().resolve(_port(_typed(**_BARE), PortType.INLET)) == "square"
 
-    def test_a_narrower_role_wins_over_its_flow_type(self):
+    def test_a_narrower_role_wins_over_its_kind(self):
         class Mixed(PinIconResolver):
             ICONS = {"data_in": "inlet_glyph", "data": "square", "fallback": "circle"}
 
@@ -123,10 +123,10 @@ class TestRoles:
         assert DEFAULT_PIN_ICONS.role_of(port) == "compound_in"
         assert DEFAULT_PIN_ICONS.resolve(port) == "view_day"
 
-    def test_a_pinless_flow_type_resolves_to_no_icon(self):
+    def test_a_port_without_a_pin_resolves_to_no_icon(self):
         """``render_pin`` draws nothing for it, which an icon would contradict."""
         port = _port(_typed(**_BARE), PortType.INLET)
-        port.flow_type = FlowType.NONE
+        port.is_fold = True
         assert DEFAULT_PIN_ICONS.resolve(port) is None
 
 

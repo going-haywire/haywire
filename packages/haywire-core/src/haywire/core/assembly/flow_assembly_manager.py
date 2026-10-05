@@ -25,7 +25,6 @@ from haywire.core.assembly.flat_view import FlatGraphView
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.execution.flow import Flow
 from haywire.core.node.behavior import NodeType
-from haywire.core.types import FlowType
 
 logger = logging.getLogger(__name__)
 
@@ -143,9 +142,6 @@ class FlowAssemblyManager:
                     f"Failed to assemble flow from event node {event_node.node_id}: {e}", exc_info=True
                 )
                 raise
-
-        # Process callback edges for observability
-        self._process_callback_edges(graph, flows)
 
         logger.info(f"Assembly complete: {len(flows)} flows")
 
@@ -344,102 +340,6 @@ class FlowAssemblyManager:
 
         return flow
 
-    def _process_callback_edges(self, graph: "BaseGraph", flows: List[Flow]):
-        """
-        Process callback edges for observability and statistics.
-
-        Callback edges connect flows but don't affect flow separation
-        (handled by control edges). This method:
-        - Documents callback connections between flows
-        - Builds callback connection map for statistics
-        - Logs inter-flow dependencies for debugging
-
-        Note: Validation is already done by StructuralValidator.
-        Runtime propagation is handled by pipe mechanism.
-
-        Args:
-            graph: Parent graph
-            flows: List of assembled flows
-        """
-        # Find all callback edges
-        callback_edge_list = [
-            edge for edge in graph.edge_wrappers.values() if edge._edge_type == FlowType.CALLBACK
-        ]
-
-        if not callback_edge_list:
-            logger.debug("No callback edges found")
-            return
-
-        logger.info(f"Found {len(callback_edge_list)} callback edges connecting flows")
-
-        # Build callback connection map for statistics
-        # Maps: source_node_id -> list of target_node_ids
-        callback_edges: dict[str, list[str]] = {}
-
-        # Build reverse map: target_node_id -> source event subscription
-        # This helps show which flows trigger which event nodes
-        callback_triggers: dict[str, list[str]] = {}  # target_node_id -> list of source_node_ids
-
-        for edge in callback_edge_list:
-            source_id = edge.source_node_id
-            target_id = edge.sink_node_id
-
-            # Forward map (emitter -> listeners)
-            if source_id not in callback_edges:
-                callback_edges[source_id] = []
-            callback_edges[source_id].append(target_id)
-
-            # Reverse map (listener -> emitters)
-            if target_id not in callback_triggers:
-                callback_triggers[target_id] = []
-            callback_triggers[target_id].append(source_id)
-
-            # Get node details for logging
-            source_wrapper = graph.get_node_wrapper(source_id)
-            target_wrapper = graph.get_node_wrapper(target_id)
-
-            if source_wrapper and target_wrapper:
-                logger.debug(
-                    f"  Callback edge: {source_wrapper.node_id}."
-                    f"{edge.outlet_port_id} → {target_wrapper.node_id}."
-                    f"{edge.inlet_port_id}"
-                )
-
-                # Log the event propagation for debugging
-                source_node = source_wrapper.node
-                target_node = target_wrapper.node
-                source_port = source_node.ports.get(edge.outlet_port_id)
-                target_port = target_node.ports.get(edge.inlet_port_id)
-
-                if source_port and target_port:
-                    source_event = source_port.get_value()
-                    logger.debug(f"    Event propagation: '{source_event}' → {target_wrapper.node_id}")
-
-        # Store for statistics
-        self._callback_edges = callback_edges
-        self._callback_triggers = callback_triggers
-
-        # Log summary
-        logger.info(f"Callback topology: {len(callback_edges)} emitters, {len(callback_triggers)} listeners")
-
-    def get_callback_edges(self) -> Dict[str, List[str]]:
-        """
-        Get callback edge map.
-
-        Returns:
-            Dictionary mapping source node IDs to lists of target node IDs
-        """
-        return getattr(self, "_callback_edges", {})
-
-    def get_callback_triggers(self) -> Dict[str, List[str]]:
-        """
-        Get callback trigger map (reverse of edges).
-
-        Returns:
-            Dictionary mapping target node IDs to lists of source node IDs
-        """
-        return getattr(self, "_callback_triggers", {})
-
     def get_flow(self, flow_id: str) -> Optional[Flow]:
         """
         Get an assembled flow by ID.
@@ -475,28 +375,16 @@ class FlowAssemblyManager:
         Get assembly statistics.
 
         Returns:
-            Dictionary with statistics including callback topology
+            Assembly statistics
         """
-        callback_edges = getattr(self, "_callback_edges", {})
-        callback_triggers = getattr(self, "_callback_triggers", {})
-
         return {
             "total_flows": len(self.assembled_flows),
-            "callback_edges": sum(len(targets) for targets in callback_edges.values()),
-            "callback_topology": {
-                "emitters": len(callback_edges),
-                "listeners": len(callback_triggers),
-                "edges": callback_edges,
-                "triggers": callback_triggers,
-            },
             "flows": [
                 {
                     "flow_id": flow_id,
                     "event_type": flow.event_subscription.get_subscription_key(),
                     "node_count": len(flow.get_control_node_ids()),
                     "assembled_at": metadata.timestamp.isoformat(),
-                    "emits_callbacks": (flow.entry_event_node.node_id in callback_edges),
-                    "receives_callbacks": (flow.entry_event_node.node_id in callback_triggers),
                 }
                 for flow_id, flow in self.assembled_flows.items()
                 if (metadata := self.assembly_cache.get(flow_id))

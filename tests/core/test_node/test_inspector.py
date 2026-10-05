@@ -20,7 +20,8 @@ def test_ports_returns_portinfo_with_schema_shape(graph_with_library_system):
         assert isinstance(p.id, str)
         assert p.id
         assert p.direction in ("inlet", "outlet", "config")
-        assert p.flow_type in ("data", "control", "callback", "none")
+        assert p.role in ("dependent", "sequence", "immediate", None)
+        assert p.wire_type is None or ":wire:" in p.wire_type or p.wire_type == "*"
         assert isinstance(p.hidden, bool)
 
 

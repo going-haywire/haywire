@@ -192,8 +192,6 @@ class IType(ABC):
             Type configuration:
                 default (dict | primitive): Default value. Primitives auto-wrap
                     to {'value': ...} for PrimitiveType subclasses
-                flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
-                    (default: DATA)
                 store_strategy (StoreStrategy): NEVER, HAS_WIDGET, NODE_SET or ALWAYS
                     (default: HAS_WIDGET if not set on type identity)
                 color (str): Pin color as hex string (e.g. '#FF0000')
@@ -262,8 +260,6 @@ class IType(ABC):
             Type configuration:
                 default (dict | primitive): Default value. Primitives auto-wrap
                     to {'value': ...} for PrimitiveType subclasses
-                flow_type (FlowType): DATA, CONTROL, CALLBACK, or NONE
-                    (default: DATA)
                 store_strategy (StoreStrategy): NEVER, HAS_WIDGET, NODE_SET or ALWAYS
                     (default: ALWAYS if not set on type identity)
                 color (str): Pin color as hex string (e.g. '#FF0000')
@@ -282,7 +278,7 @@ class IType(ABC):
                     widget_config during port creation. Use
                     WidgetClass.config(**kwargs) to generate correct format
                 allow_multiple_links (bool): Allow multiple outgoing
-                    connections (default: True for DATA flow)
+                    connections (default: True for an outlet on a data wire)
                 show_widget (ShowWidgetStrategy): When the inline widget is
                     rendered relative to link state — NEVER, NOT_LINKED,
                     WHEN_LINKED, ALWAYS (default: NEVER for outlets)
@@ -312,8 +308,8 @@ class IType(ABC):
     def as_config(cls, id: str, **kwargs) -> "PortSpec":
         """Build a config spec for ``node.add()``: a parameter with a widget but no pin.
 
-        ``flow_type`` is forced to ``NONE``, so a config can never be linked,
-        and its value is saved with the graph.
+        A config port has no pin and no wire type, so it is never linked; its value is
+        saved with the graph.
 
         Args:
             id: Config identifier, unique among the node's ports.
@@ -357,12 +353,10 @@ class IType(ABC):
                      widget=SliderWidget.config(min=0.0, max=10.0)))
             self.add(ArrayType[STRING].as_config('tags', default=['a', 'b']))
         """
-        from haywire.core.types.enums import FlowType
         from haywire.core.types.utils import create_port_spec
 
         cls._validate_port_type(PortType.CONFIG)
 
-        kwargs["flow_type"] = FlowType.NONE
         kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.ALWAYS))
         kwargs.setdefault("show_widget", default_show_widget(PortType.CONFIG))
 

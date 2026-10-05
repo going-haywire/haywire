@@ -1,10 +1,11 @@
 """EXEC — the execution signal that sequences one node after another."""
 
-from haywire.core.types import FlowType, PrimitiveType, StoreStrategy, type
+from haywire.core.types import PrimitiveType, StoreStrategy, type
+from ..wires import ControlWire
 
 
 @type(
-    flow_type=FlowType.CONTROL,
+    wire_type=ControlWire,
     label="Execution Signal",
     description="Signal for controlling execution flow between nodes",
     color="#004cff",

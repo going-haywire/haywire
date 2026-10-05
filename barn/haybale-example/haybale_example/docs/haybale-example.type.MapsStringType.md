@@ -6,7 +6,7 @@ Map with key type string
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': []}`
 - **color**: `#39f55f`
 

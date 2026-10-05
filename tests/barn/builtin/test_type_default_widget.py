@@ -26,18 +26,18 @@ def test_callback_type_has_no_widget_key():
 
 
 @pytest.mark.parametrize("flow", ["control", "callback"])
-def test_control_and_callback_flow_types_reject_widget_key(flow):
+def test_control_and_callback_wire_types_reject_widget_key(flow):
     """A signal pin (CONTROL/CALLBACK) with a widget_key is rejected at decoration."""
     from haywire.core.types.base import PrimitiveType
     from haywire.core.types.decorator import type as type_dec
-    from haywire.core.types.enums import FlowType
+    from haywire.barn.builtin.wires import CallbackWire, ControlWire
 
-    flow_type = FlowType.CONTROL if flow == "control" else FlowType.CALLBACK
+    wire_type = ControlWire if flow == "control" else CallbackWire
 
     with pytest.raises(TypeError, match="cannot have a widget_key"):
 
         @type_dec(
-            flow_type=flow_type,
+            wire_type=wire_type,
             label="BadSignal",
             default={"value": ""},
             widget_key="haywire-core:widget:TextWidget",
@@ -49,10 +49,10 @@ def test_control_and_callback_flow_types_reject_widget_key(flow):
 def test_inherited_widget_key_on_signal_type_is_rejected():
     """The inheritance trap: a CALLBACK derived from a widgeted scalar must clear it."""
     from haywire.core.types.decorator import type as type_dec
-    from haywire.core.types.enums import FlowType
+    from haywire.barn.builtin.wires import CallbackWire
 
     with pytest.raises(TypeError, match="inherits a widget_key|cannot have a widget_key"):
 
-        @type_dec(flow_type=FlowType.CALLBACK, label="BadCb", default={}, color="#fff")
+        @type_dec(wire_type=CallbackWire, label="BadCb", default={}, color="#fff")
         class BadInheritedCallback(STRING):  # inherits STRING's TextWidget, no override
             pass

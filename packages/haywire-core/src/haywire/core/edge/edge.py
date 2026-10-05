@@ -9,7 +9,7 @@ management is handled by EdgeWrapper.
 from dataclasses import dataclass, field
 from typing import Any, List
 
-from ..types import FlowType, Propagation
+from ..types import Propagation
 
 
 @dataclass
@@ -28,24 +28,23 @@ class Edge:
     sink_node_id: str
     inlet_port_id: str
 
-    # Edge classification
-    edge_type: FlowType
-
     # Adapter chain metadata (for serialization/deserialization)
     chain_adapter_keys: List[str] = field(default_factory=list)
     """List of adapter registry keys in execution order."""
 
-    propagation: Propagation = Propagation.EAGER
-    """The mode chosen for this edge. A locked mode overrides it; see ``EdgeWrapper.propagation``."""
+    propagation: Propagation | None = Propagation.EAGER
+    """The mode chosen for this edge, ``None`` once fitted to a wire type that allows none.
+    A locked mode overrides it; see ``EdgeWrapper.propagation``."""
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize edge for graph save"""
-        return {
+        data: dict[str, Any] = {
             "source_node_id": self.source_node_id,
             "outlet_port_id": self.outlet_port_id,
             "sink_node_id": self.sink_node_id,
             "inlet_port_id": self.inlet_port_id,
-            "edge_type": self.edge_type.value,
             "chain_adapter_keys": self.chain_adapter_keys,
-            "propagation": self.propagation.value,
         }
+        if self.propagation is not None:
+            data["propagation"] = self.propagation.value
+        return data

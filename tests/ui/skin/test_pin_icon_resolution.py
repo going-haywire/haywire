@@ -15,7 +15,7 @@ from typing import Any, cast
 import pytest
 
 from haywire.barn.builtin.types import FLOAT
-from haywire.core.types import DataPort, FlowType, PortType
+from haywire.core.types import DataPort, PortType
 from haywire.core.types.enums import ShowWidgetStrategy, StoreStrategy
 from haywire.ui.skin.pin_render import _resolve_pin_icon
 
@@ -38,7 +38,6 @@ def _port(type_cls: type, port_type: PortType, **kwargs) -> DataPort:
     """
     factory = type_cls.as_inlet if port_type is PortType.INLET else type_cls.as_outlet  # type: ignore[attr-defined]
     spec = dict(factory(f"p_{port_type.value}")["kwargs"])
-    spec.pop("flow_type", None)
     spec.pop("promoted", None)
     spec.pop("port_type", None)
     for field, enum in (("show_widget", ShowWidgetStrategy), ("store_strategy", StoreStrategy)):
@@ -46,7 +45,7 @@ def _port(type_cls: type, port_type: PortType, **kwargs) -> DataPort:
             spec[field] = enum(spec[field])
     # A multi-link data inlet is set after construction, as PooledType._configure_port does.
     multi = kwargs.pop("allow_multiple_links", None)
-    spec.update(type_cls=type_cls, flow_type=FlowType.DATA, **kwargs)
+    spec.update(type_cls=type_cls, **kwargs)
     port = DataPort(port_type=port_type, **spec)
     if multi is not None:
         port.allow_multiple_links = multi

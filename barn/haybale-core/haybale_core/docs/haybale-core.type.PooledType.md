@@ -6,7 +6,6 @@ Multi-source aggregation
 
 ## Details
 
-- **flow_type**: `none`
 - **default**: `{'value': {}}`
 - **color**: `#9c27b0`
 
@@ -29,10 +28,7 @@ Note: Pooled is INLET-ONLY - cannot be used with outlets!
 It sets the pin to allow multiple connections automatically.
 
 IMPORTANT:
-    It inherits the element type's flow_type (if it is set).
-    Setting the flow type here in the
-        * as_inlet() has no effect
-    if the element type has a flow_type defined.
+    It travels on the element type's wire type; a wire type declared in as_inlet() has no effect.
 
 Storage: PooledField stores Dict[str, T] with unwrapped values
 Worker Access: Dict[str, T] or List[T]

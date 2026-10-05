@@ -1,11 +1,12 @@
-from haywire.core.types import FlowType, type
+from haywire.core.types import type
 from haywire.barn.builtin import widget_keys
 
 from .specs import STRING
+from ..wires import DataWire
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Choices",
     description="A string constrained to a set of options (options live per-use in widget_config)",
     color="#ffd54f",

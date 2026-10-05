@@ -6,7 +6,6 @@ Grows a new port from whatever connects to it
 
 ## Details
 
-- **flow_type**: `data`
 - **default**: `{'value': None}`
 - **color**: `#666666`
 
@@ -58,9 +57,9 @@ and the edge passing values through untouched.
 An edge between two bare `ADD` pins is valid and does nothing: neither end
 has a type to give. Both resolve once either connects to something concrete.
 
-A bare `ADD` accepts an edge of any flow — data, control or callback — and
-the edge carries the other end's flow, so a pin grown from it can be any
-of them. A typed `ADD[T]` keeps `T`'s flow.
+A bare `ADD` accepts an edge of any wire type (data, control or callback), and
+the edge carries the other end's, so a pin grown from it can be any of them.
+A typed `ADD[T]` travels on `T`'s wire type.
 
 Holds no value and renders no widget. Cannot be a config port — a config
 never connects, so it could never resolve.

@@ -11,8 +11,9 @@ Key changes:
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 
-from haywire.core.types import type, FlowType, CompoundType, DataField, IType
+from haywire.core.types import type, CompoundType, DataField, IType
 from haywire.core.types.enums import PortType
+from haywire.core.types.wire import WireRole, wire_type_of
 
 T = TypeVar("T")
 
@@ -46,10 +47,7 @@ class PooledType(CompoundType[T]):
     It sets the pin to allow multiple connections automatically.
 
     IMPORTANT:
-        It inherits the element type's flow_type (if it is set).
-        Setting the flow type here in the
-            * as_inlet() has no effect
-        if the element type has a flow_type defined.
+        as_inlet() refuses a wire_type kwarg; the port travels on its element type's wire type.
 
     Storage: PooledField stores Dict[str, T] with unwrapped values
     Worker Access: Dict[str, T] or List[T]
@@ -83,39 +81,23 @@ class PooledType(CompoundType[T]):
         """
         Override:
         - Mark port as accepting multiple connections.
-        - Set flow type based on element type.
-        - Set color based on element type.
+        - Take the element's colour; refuse a control element.
 
         This is the semantic purpose of pooled - to aggregate from
         multiple sources into one inlet.
         """
         port.allow_multiple_links = True
 
-        # pooled type's flow type is determined by its element type
-        if not port.type_cls.element_type_cls:
-            return
-
-        # Start with the immediate element type
         current_type = port.type_cls.element_type_cls
-
-        # Drill down until we find a non-NONE flow type
         while current_type is not None:
-            # Check if this type has a non-NONE flow type
-            if hasattr(current_type, "class_identity"):
-                if current_type.class_identity.flow_type != FlowType.NONE:
-                    port.flow_type = current_type.class_identity.flow_type
-                    port.color = current_type.class_identity.color
-                    if port.flow_type == FlowType.CONTROL:
-                        raise ValueError(
-                            "PooledType cannot have CONTROL flow type based on its element type"
-                        )
-                    return
-
-                # Move to next level if available
-                if hasattr(current_type, "element_type_cls"):
-                    current_type = current_type.element_type_cls
-                else:
-                    break
+            identity = getattr(current_type, "class_identity", None)
+            wire = getattr(identity, "wire_type", None)
+            if identity is not None and wire is not None:
+                port.color = identity.color
+                if wire.role is WireRole.SEQUENCE:
+                    raise ValueError("PooledType cannot have a control element type")
+                return
+            current_type = getattr(current_type, "element_type_cls", None)
 
     @property
     def value(self):
@@ -160,8 +142,8 @@ class PooledField(DataField):
 
         # A callback element's default means "no subscription"; see set_value.
         element = getattr(self.type_cls, "element_type_cls", None)
-        identity = getattr(element, "class_identity", None)
-        self._drops_default = identity is not None and FlowType(identity.flow_type).is_immediate
+        element_wire = wire_type_of(element)
+        self._drops_default = element_wire is not None and element_wire.role is WireRole.IMMEDIATE
         if self._drops_default:
             self._element_default = element.create_field().get_value()
 

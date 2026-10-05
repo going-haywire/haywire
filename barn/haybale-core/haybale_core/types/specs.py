@@ -1,4 +1,5 @@
-from haywire.core.types import type, FlowType, PrimitiveType
+from haywire.core.types import type, PrimitiveType
+from haywire.barn.builtin.wires import DataWire
 
 # ============================================================================
 # Binary Type
@@ -6,7 +7,7 @@ from haywire.core.types import type, FlowType, PrimitiveType
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Bytes",
     description="Binary data",
     color="#9e9e9e",
@@ -33,7 +34,7 @@ class BYTES(PrimitiveType[bytes]):
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="List",
     description="Ordered collection",
     color="#e91e63",
@@ -51,7 +52,7 @@ class LIST(PrimitiveType[list]):
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Dictionary",
     description="Key-value pairs",
     color="#9c27b0",

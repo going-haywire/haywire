@@ -16,7 +16,7 @@ see-also:
 
 **Assembly** is the process of compiling a Graph (a passive data structure) into one or more executable Flows. The assembled Flow is what the VM runs; the Graph itself is never executed directly.
 
-The pipeline is rooted at **event nodes**. Every Flow has exactly one entry event node. The assembler identifies all event nodes, builds one Flow per event node, and links them via callback edges (assembly-time wiring; see [architecture/execution/callbacks](../callbacks/callbacks-arch.md)).
+The pipeline is rooted at **event nodes**. Every Flow has exactly one entry event node. The assembler identifies all event nodes, builds one Flow per event node. Callback edges play no part in assembly: the Interpreter registers callback listeners (see [architecture/execution/callbacks](../callbacks/callbacks-arch.md)).
 
 Within each Flow, two structures are built side by side:
 
@@ -35,7 +35,6 @@ Single class, single entry point: `assemble_graph(graph) → list[Flow]`. Respon
 - Coordinate control-flow and data-flow builders.
 - Cache assembled flows (`assembled_flows: dict[flow_id, Flow]`).
 - Handle JIT reassembly when the graph mutates (`dirty_flows: set[flow_id]`).
-- Process callback edges for observability (cross-flow wiring; see [callbacks](../callbacks/callbacks-arch.md)).
 
 `AssemblyMetadata` captures per-flow info — `flow_id`, `timestamp`, `node_count`, `event_node_id`.
 
@@ -47,14 +46,13 @@ assemble_graph(graph)
   ├─ _identify_event_nodes(graph)   one Flow per event node
   └─ for each event node:
         ├─ _assemble_flow(event_node, graph)
-        │     ├─ build control-flow DAG (walk EXEC edges from the event node)
+        │     ├─ build control-flow DAG (walk EXEC (sequence) edges from the event node)
         │     ├─ for each CONTROL node in the DAG:
         │     │     └─ build its localized data-flow
-        │     │         (backpropagate from inlets through DATA edges,
+        │     │         (backpropagate from inlets through DATA (dependent) edges,
         │     │          topologically sort)
         │     └─ store assembled Flow + metadata
         └─ cache → assembled_flows[flow_id]
-  └─ _process_callback_edges(graph, flows)   wire cross-flow callbacks
 ```
 
 ### 2.3 Validation rules
@@ -80,13 +78,9 @@ Every assembled Flow carries metadata exposed via `interpreter.get_statistics()`
 ```python
 stats['assembly']['total_flows']       # number of assembled Flows
 stats['assembly']['dirty_flows']       # Flows pending re-assembly
-stats['assembly']['callback_edges']    # total FlowType.CALLBACK edges
-stats['assembly']['callback_topology'] # {'emitters': N, 'listeners': N,
-                                       #  'edges': {emitter_id: [target_id, ...]},
-                                       #  'triggers': {target_id: [emitter_id, ...]}}
 ```
 
-Useful for debugging — confirm a graph assembled the expected Flow count and callback topology.
+Useful for debugging — confirm a graph assembled the expected Flow count.
 
 ## 3. Lifecycle
 
@@ -103,7 +97,6 @@ FlowAssemblyManager.assemble_graph(graph)
         Flow = _assemble_flow(event_node, graph)
         cache flow
         cache metadata
-  └─ _process_callback_edges → wire callback topology
 ```
 
 After this completes, `assembled_flows[flow_id] = Flow` for every Flow, and the Interpreter can register them.
@@ -158,7 +151,7 @@ The assembly subsystem is **not**:
 
 - The **runtime**. Once Flows are built, they are run by the VM ([virtual-machine](../virtual-machine/virtual-machine-arch.md)) — assembly hands off the executable structure and stops participating.
 - The **edge-build pipeline**. Edges have their own 4-stage build ([edges §2.2](../edges/edges-arch.md#22-the-4-stage-build-pipeline)); the assembler reads already-built edges and topologically sorts them into Flows.
-- The **callback dispatcher**. Assembly *registers* the topology with `CallbackManager`; runtime dispatch is owned by the manager.
+- The **callback dispatcher**. Assembly does not touch callbacks; the Interpreter registers `CallbackEvent` Flows with `CallbackManager` when it starts them, and the manager owns runtime dispatch.
 - The **graph data structure**. The Graph predates assembly and survives it. The assembler only reads from the graph.
 
 ## 5. Examples
@@ -197,7 +190,7 @@ A graph with `BeginPlay`, `Tick`, and a `CallbackEvent('frame_ready')` node yiel
 | Flow 2 | `Tick` | every frame |
 | Flow 3 | `CallbackEvent('frame_ready')` | when another Flow emits `'frame_ready'` |
 
-`_process_callback_edges()` registers Flow 3 as a listener of whichever node emits `'frame_ready'`.
+The Interpreter registers Flow 3 with `CallbackManager` under `'frame_ready'` when it starts the Flow; any node that emits `'frame_ready'` then triggers it.
 
 ## 6. Open questions
 

@@ -432,29 +432,21 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         self._emit(UserRemoveEvent(nodes=[], edges=[edge_id]))
 
     def reconnect_active_edge(self) -> None:
-        """Emit SyncEdgeReconnectEvent for the active edge.
+        """Emit SyncEdgeReconnectEvent for the active edge, anchored on ``_reconnect_anchor()``.
 
         Reads `ctx.data[EditState].active_edge` (the edge to reconnect)
-        and `self._open_ctx.edge_reconnect_end` (which end was right-clicked)
-        to compute the anchor pin. Panels never pass these as arguments —
-        the provider holds them as gesture state.
+        and `self._open_ctx.edge_reconnect_end` (which end was right-clicked).
+        Panels never pass these as arguments — the provider holds them as
+        gesture state. Does nothing when neither end has a pin to anchor on.
         """
         from haywire.ui.components.graph.event_definitions import SyncEdgeReconnectEvent
 
         wrapper = self._context.data[EditState].active_edge
-        if wrapper is None or self._open_ctx is None:
+        anchor = self._reconnect_anchor()
+        if wrapper is None or anchor is None:
             return
 
-        at_sink_end = self._open_ctx.edge_reconnect_end
-        if at_sink_end:
-            # Clicked near inlet → anchor on outlet (source) side
-            anchor_node_id = wrapper.source_node_id
-            anchor_pin_id = wrapper.outlet_port_id
-        else:
-            # Clicked near outlet → anchor on inlet (sink) side
-            anchor_node_id = wrapper.sink_node_id
-            anchor_pin_id = wrapper.inlet_port_id
-
+        anchor_node_id, anchor_pin_id = anchor
         self._emit(
             SyncEdgeReconnectEvent(
                 edge_id=wrapper._edge_id,
@@ -462,6 +454,38 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
                 anchorPinId=anchor_pin_id,
             )
         )
+
+    def can_reconnect_active_edge(self) -> bool:
+        """True when the active edge has an end with a pin a reconnect drag can start from."""
+        return self._reconnect_anchor() is not None
+
+    def _reconnect_anchor(self) -> Optional[Tuple[str, str]]:
+        """The ``(node_id, port_id)`` a reconnect drag starts from, or ``None``.
+
+        The end away from the click anchors the drag and the clicked end follows
+        the pointer. An end whose port is gone (its edge is drawn to the node's
+        ghost pin) cannot anchor, so the other end does.
+        """
+        wrapper = self._context.data[EditState].active_edge
+        if wrapper is None or self._open_ctx is None:
+            return None
+        source = (wrapper.source_node_id, wrapper.outlet_port_id)
+        sink = (wrapper.sink_node_id, wrapper.inlet_port_id)
+        ends = (source, sink) if self._open_ctx.edge_reconnect_end else (sink, source)
+        return next((end for end in ends if self._has_pin(*end)), None)
+
+    def _has_pin(self, node_id: str, port_id: str) -> bool:
+        """True when the active graph's node ``node_id`` has a port ``port_id`` drawn as a pin."""
+        graph = self._context.data[EditState].active_graph
+        node_wrapper = graph.get_node_wrapper(node_id) if graph is not None else None
+        if node_wrapper is None:
+            return False
+        try:
+            port = node_wrapper.node.ports.get(port_id)
+        except RuntimeError:
+            # NodeWrapper.node raises for a node that is not built.
+            return False
+        return port is not None and port.has_pin()
 
     def split_edge_with_reroute(self, edge_id: str) -> None:
         """Emit SplitEdgeWithRerouteEvent for the right-clicked edge.
@@ -499,7 +523,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         wrapper = self._active_edge_wrapper(edge_id)
         if wrapper is None:
             return None
-        if wrapper.locked_propagation is None:
+        if wrapper.propagation is not None and wrapper.locked_propagation is None:
             wrapper.propagation = wrapper.propagation.toggled()
             wrapper.redraw()
         return wrapper.propagation
@@ -873,7 +897,7 @@ class ContextMenuHandlers:
                     "pin_id": event.pendingPinId,
                     "node_id": event.pendingNodeId,
                     "pin_dir": event.pendingPinDir,
-                    "flow_type": event.pendingFlowType,
+                    "wire": event.pendingWire,
                     "data_type": event.pendingDataType,
                 }
             self.provider.on_canvas_context(

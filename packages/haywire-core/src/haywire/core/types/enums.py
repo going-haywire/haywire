@@ -5,54 +5,23 @@ if TYPE_CHECKING:
     from .port import DataPort
 
 
-class FlowType(Enum):
-    """
-    Type of data flow through a port.
-
-    - NONE: Configuration port (no flow, not a pin)
-    - CONTROL: Execution flow (determines when nodes execute)
-    - DATA: Data flow (passes values between nodes)
-    - CALLBACK: Callback registration (event nodes declare interest)
-    """
-
-    CONTROL = "control"
-    DATA = "data"
-    CALLBACK = "callback"
-    NONE = "none"
-
-    @property
-    def is_immediate(self) -> bool:
-        """True when a write through this flow takes effect on write, not when the sink executes.
-
-        Only ``CALLBACK`` is immediate. An immediate inlet fires ``on_change`` for
-        edge-driven writes too, and a reroute forwards it at once.
-        """
-        return self is FlowType.CALLBACK
-
-
 class Propagation(Enum):
     """When a value written to an outlet takes effect at the inlet across an edge.
 
     - ``LAZY``: the inlet pulls the outlet's current value when its node next executes.
     - ``EAGER``: pushed on write; takes effect when the inlet's node next executes.
-    - ``IMMEDIATE``: pushed on write and takes effect on write. Assigned from an
-      immediate flow (see ``FlowType.is_immediate``), never chosen by a user.
 
-    Wire values are the member strings, as saved in a graph's edge block.
+    Which modes an edge may take is its wire type's ``propagation``. An edge on a
+    wire type that allows none has no propagation (``None``): callback edges take
+    effect on write, by their role. Wire values are the member strings, as saved
+    in a graph's edge block.
     """
 
     LAZY = "lazy"
     EAGER = "eager"
-    IMMEDIATE = "immediate"
 
     def toggled(self) -> "Propagation":
-        """Return the other user-selectable mode: ``LAZY`` for ``EAGER``, and back.
-
-        Raises:
-            ValueError: For ``IMMEDIATE``, which has no user-selectable counterpart.
-        """
-        if self is Propagation.IMMEDIATE:
-            raise ValueError("immediate propagation cannot be toggled")
+        """Return the other mode: ``LAZY`` for ``EAGER``, and back."""
         return Propagation.LAZY if self is Propagation.EAGER else Propagation.EAGER
 
 

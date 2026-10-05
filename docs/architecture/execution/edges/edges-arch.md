@@ -35,7 +35,7 @@ graph.create_edge_wrapper(source_node_id, outlet_port_id,
 
 Internal sequence:
 
-1. Look up the outlet's `FlowType` to classify the edge (DATA / CONTROL / CALLBACK).
+1. Take the edge's wire type from its ports (`EdgeWrapper.wire_type`): a data, control or callback wire, with the role that tells the framework what to do with the edge. It is derived, never passed or saved.
 2. Instantiate `EdgeWrapper` (which constructs the internal `Edge` dataclass).
 3. Call `edge_wrapper.build()` — runs the 4-stage pipeline (§3.1).
 4. Call `graph.add_edge_wrapper()` → `edge_wrapper.link()` — registers at both ports.
@@ -44,7 +44,7 @@ Internal sequence:
 
 ```text
 build()
-  ├─ _formal_validation()    do nodes/ports exist? same direction? same FlowType?
+  ├─ _formal_validation()    do nodes/ports exist? same direction? wire keys match (`wires_match`)?
   ├─ _structural_validation() domain rules (none per edge today)
   ├─ _build_adapter_chain()   find/create adapter chain (DATA edges only)
   └─ _test()                  run a sample value through the adapter chain
@@ -59,7 +59,7 @@ Sequential and short-circuiting on failure. Each stage sets flags and error fiel
 
 Only a **valid** edge carries values. An outlet builds its pipes from its valid linked edges (`DataPort.get_valid_edges()`), so an edge that fails structural validation stays in the graph and is drawn as invalid, but delivers nothing to its inlet.
 
-### 2.3 Connection rules by FlowType
+### 2.3 Connection rules by wire type
 
 |                    | Outlet `allow_multiple`                  | Inlet `allow_multiple`                       |
 | ------------------ | ---------------------------------------- | -------------------------------------------- |
@@ -68,7 +68,7 @@ Only a **valid** edge carries values. An outlet builds its pipes from its valid 
 | **CALLBACK**       | `False` (default)                        | `False` (default)                            |
 | **Pooled inlet**   | N/A (inlet only)                         | `True` (set by `PooledType._configure_port`) |
 
-Cross-flow connections (e.g. EXEC→DATA) are rejected in `_formal_validation()`. Same-direction connections (outlet→outlet, inlet→inlet) are also rejected there.
+Two pins connect when their wire keys match: equal wire-type ids, or a bare `ADD` slot's wildcard `*` (`wires_match`, mirrored on the canvas). Connections across wire types (e.g. EXEC→DATA) are rejected in `_formal_validation()`. A failing edge is never rewritten; while it fails, its wire type comes from whichever end resolves, for drawing only. See [ADR 0042](../../../adr/0042-wire-types-replace-flowtype.md). Same-direction connections (outlet→outlet, inlet→inlet) are also rejected there.
 
 ### 2.4 EdgeWrapper lifecycle methods
 
@@ -129,13 +129,13 @@ Each edge has a **propagation** mode (`Propagation`, per edge, not per port):
 
 - **Eager** (default): outlet value is transformed through the adapter chain and pushed to the inlet immediately. The inlet is marked dirty; `on_change` is deferred to execution time.
 - **Lazy**: no transform or push at propagation time. The inlet is marked dirty with a reference to the pipe. At execution time, `resolve_dirty_data()` pulls the outlet's *current* value (always-latest semantics) through the adapter chain.
-- **Immediate**: pushed like eager, and the inlet acts on it at once (see the exception below).
+- **No propagation** (callback edges): a wire type whose `propagation` is empty gives its edges none. The value takes effect on write by the `IMMEDIATE` role (see the exception below).
 
-Users choose lazy or eager per edge, and different edges to the same inlet can differ. `create_edge_wrapper(propagation=...)` stores the choice on the `Edge`, and `to_dict()` saves it under `propagation`. Two modes are locked and never read from a saved graph: `immediate` on an immediate flow, and `lazy` on an edge out of an `is_linked_lazy` outlet (every promoted outlet). `EdgeWrapper.locked_propagation` names the lock; `EdgeWrapper.propagation` is the mode in effect. See [ADR 0039](../../../adr/0039-propagation-mode-replaces-is-lazy.md).
+Users choose lazy or eager per edge, and different edges to the same inlet can differ. `create_edge_wrapper(propagation=...)` stores the choice on the `Edge`, and `to_dict()` saves it under `propagation`. A wire type lists the modes its edges may take (`WireType.propagation`); a single entry locks the edge to it, and an empty list gives the edge no propagation (`EdgeWrapper.propagation` is `None`). A mode is also locked to `lazy` on an edge out of an `is_linked_lazy` outlet (every promoted outlet). Neither lock is read from a saved graph. `EdgeWrapper.locked_propagation` names the lock; `EdgeWrapper.propagation` is the mode in effect. See [ADR 0039](../../../adr/0039-propagation-mode-replaces-is-lazy.md).
 
 **Unified dirty model.** Both eager and lazy edges use the same deferred callback model. `on_change` callbacks for edge-driven inlet changes are *never* fired at push time — they are always deferred to `resolve_dirty_data()` at execution time. This debounces mixed pooled+lazy scenarios.
 
-**Exception: immediate inlets fire at once.** An inlet on an immediate flow (`FlowType.is_immediate`, i.e. `CALLBACK`) is exempt from the deferral above — `set_value()` fires its `on_change` synchronously at push time even when `edge_id` is set, same as the widget/programmatic path.
+**Exception: immediate inlets fire at once.** An inlet on a wire with the `IMMEDIATE` role (`DataPort.is_immediate`, i.e. `CallbackWire`) is exempt from the deferral above — `set_value()` fires its `on_change` synchronously at push time even when `edge_id` is set, same as the widget/programmatic path.
 
 ```text
 EAGER EDGE:
@@ -162,15 +162,15 @@ AT EXECUTION TIME (both):
 
 ### 3.4 `set_value()` callback rules
 
-The `set_value()` method on DataPort distinguishes between edge-driven, widget/programmatic changes and the flow type:
+The `set_value()` method on DataPort distinguishes between edge-driven, widget/programmatic changes and the wire role:
 
 | Path                                  | `Edge-driven` | `on_change` | Behaviour                                                                                       |
 | ------------------------------------- | --------- | ----------- | ----------------------------------------------------------------------------------------------- |
 | (any)               | no    | absent      | `on_change` does not fire      |
 | Widget / programmatic input           | no   | exists      | `on_change` fires **immediately**         |
 | Own write while linked (no `edge_id`, field holds a linked value) | no | exists | no `on_change`, no dirty mark: the own value changed behind the linked one |
-| Immediate flow (CALLBACK) | yes       | exists       | `on_change` fires **immediately**                                                 |
-| DATA, CONTROL flow_type    | yes       | exists       | `on_change` fires just before the worker |
+| Immediate role (CALLBACK) | yes       | exists       | `on_change` fires **immediately**                                                 |
+| DEPENDENT, SEQUENCE role   | yes       | exists       | `on_change` fires just before the worker |
 | Outlet (any)                          | (any)     | exists      | `on_change` fires **immediately**; pipes propagate downstream                                       |
 
 `Pipe.pull()` stores through the same `set_value(converted, edge_id=...)` call, so a lazily pulled value follows the edge-driven rows above.

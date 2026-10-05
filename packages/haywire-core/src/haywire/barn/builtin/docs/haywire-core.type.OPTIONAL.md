@@ -6,7 +6,7 @@ A value of the wrapped type, or absence
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': None}`
 - **widget_key**: `haywire-core:widget:OptionalWidget`
 - **color**: `#757575`

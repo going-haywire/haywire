@@ -9,11 +9,12 @@ from __future__ import annotations
 from dataclasses import MISSING, dataclass, field, fields
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from haywire.core.types.enums import FlowType, PortOrigin, PortType, ShowWidgetStrategy, StoreStrategy
+from haywire.core.types.enums import PortOrigin, PortType, ShowWidgetStrategy, StoreStrategy
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
+from haywire.core.types.wire import WILDCARD, WireRole, WireType, wire_type_of
 from haywire.core.types.utils import serialize_element_type
 
 # Import the new DataField classes
@@ -57,12 +58,19 @@ class DataPort(DataTypeIdentity):
     through ``adopt_port_type()``, the one path that refreshes this."""
 
     _is_immediate: bool = field(init=False, repr=False, metadata={"serialize": False})
-    """Cached ``flow_type.is_immediate``, so the set_value hot path branches on an
-    attribute read. Refreshed by ``_cache_immediacy()`` wherever ``flow_type`` is rewritten."""
+    """Cached: the wire type's role is ``IMMEDIATE``, so the set_value hot path branches on an
+    attribute read. Refreshed by ``_derive_wire()``."""
 
     # Type tracking
     type_cls: type[IType] | None = field(default=None, metadata={"serialize": False})
     """The type class (FLOAT, ArrayType, etc.)"""
+
+    wire_type: type[WireType] | None = field(
+        default=None, init=False, repr=False, compare=False, metadata={"serialize": False}
+    )
+    """The wire type this port's values travel on, derived from ``type_cls``. ``None`` for
+    a config port, a fold, a bare ``ADD`` slot and a type that declares none. Read-only:
+    set by ``_derive_wire``."""
 
     # Edge state — two-tier storage
     _linked_edges: dict[str, EdgeWrapper] = field(
@@ -269,30 +277,15 @@ class DataPort(DataTypeIdentity):
         self._data = self.type_cls.create_field(default_override=self.default)
         # Cache the immutable inlet/outlet role for the set_value hot path.
         self._is_inlet = self.port_type == PortType.INLET
+        self._derive_wire()
 
-        # CONTROL stays deferred: a control reroute forwards in its worker, on the VM's schedule.
-        self._cache_immediacy()
-
-        # Hardcoded connection rules based on flow type and direction
-        # They cannot be overridden by the user since they are fundamental to how the ports work
-        if self.is_outlet():
-            if self.flow_type == FlowType.DATA:
-                # Data flow outlets allow multiple connections by design
-                self.allow_multiple_links = True
-            if self.flow_type == FlowType.CONTROL:
-                # Control flow outlets do NOT allow multiple connections by design
-                self.allow_multiple_links = False
-
-        if self.is_inlet() and self.flow_type == FlowType.CONTROL:
-            # Control flow inlets do allow multiple connections by design
-            self.allow_multiple_links = True
-
-        if self.is_inlet() and self.flow_type == FlowType.DATA:
-            # A pooled inlet is made multi-link after construction (PooledType._configure_port).
-            self.allow_multiple_links = False
-
-        # contrary to data and control flow, callback flow does not have
-        # hardcoded connection rules and can be freely configured by the user
+        # Link limits by role. A pooled inlet is made multi-link after construction
+        # (PooledType._configure_port); a callback port keeps whatever it declares.
+        if self.is_dependent:
+            self.allow_multiple_links = self.is_outlet()
+        elif self.has_role(WireRole.SEQUENCE):
+            # The VM keeps one transition per control outlet; a control inlet takes many.
+            self.allow_multiple_links = self.is_inlet()
 
     # ========================================================================
     # CALLBACK TRIGGERING
@@ -563,9 +556,7 @@ class DataPort(DataTypeIdentity):
         if spec_port.port_type is not self.port_type:
             self.adopt_port_type(spec_port.port_type)
 
-        # set_value reads this cache rather than flow_type, which the copy above
-        # just rewrote — a compound type derives it from its element type.
-        self._cache_immediacy()
+        self._derive_wire()
 
     def adopt_state_from(self, existing: "DataPort") -> None:
         """Transplant edge state and display order from a port being replaced.
@@ -815,26 +806,38 @@ class DataPort(DataTypeIdentity):
         """
         return not self.is_config() and not self.is_fold
 
+    def _derive_wire(self) -> None:
+        """Set ``wire_type`` from the port's type, and the immediacy cache from its role.
+
+        A config port and a fold have no wire type.
+        """
+        self.wire_type = None if self.is_config() or self.is_fold else wire_type_of(self.type_cls)
+        self._is_immediate = self.has_role(WireRole.IMMEDIATE)
+
+    @property
+    def wire_key(self) -> str | None:
+        """The key this pin matches other pins by: its wire type's id, ``WILDCARD`` for a
+        bare ``ADD`` slot, or ``None`` for a port without a wire type. See ``wires_match``."""
+        if self.wire_type is not None:
+            return self.wire_type.id
+        if self.has_pin() and self.type_cls is not None and self.type_cls._is_any:
+            return WILDCARD
+        return None
+
+    def has_role(self, role: WireRole) -> bool:
+        """True if this port's wire type has *role*; False for a port without a wire type."""
+        return self.wire_type is not None and self.wire_type.role is role
+
+    @property
+    def is_dependent(self) -> bool:
+        """True for a port on a ``DEPENDENT`` wire, and for a bare ``ADD`` slot, which
+        counts as one until it grows."""
+        return self.has_role(WireRole.DEPENDENT) or self.wire_key == WILDCARD
+
     @property
     def is_immediate(self) -> bool:
-        """True when a write to this port takes effect on write. See ``FlowType.is_immediate``."""
+        """True when a write to this port takes effect on write: its wire type's role is ``IMMEDIATE``."""
         return self._is_immediate
-
-    def _cache_immediacy(self) -> None:
-        """Refresh the ``_is_immediate`` cache from ``flow_type``."""
-        self._is_immediate = FlowType(self.flow_type).is_immediate
-
-    def is_callback_pin(self) -> bool:
-        """Check if this is a callback pin"""
-        return self.flow_type == FlowType.CALLBACK
-
-    def is_control_pin(self) -> bool:
-        """Check if this is a control pin"""
-        return self.flow_type == FlowType.CONTROL
-
-    def is_data_pin(self) -> bool:
-        """Check if this is a data pin"""
-        return self.flow_type == FlowType.DATA
 
     # ========================================================================
     # FACTORY
@@ -870,7 +873,8 @@ class DataPort(DataTypeIdentity):
         type_cls = type_registry.resolve_type_from_spec(spec["recipe"])
 
         # Build port kwargs - spec already contains merged identity + user values
-        flow_type = FlowType(kwargs.pop("flow_type", FlowType.DATA.value))
+        # A key saved before wire types; a port derives its wire type from its type.
+        kwargs.pop("flow_type", None)
         port_type = PortType(kwargs.pop("port_type", PortType.UNDEFINED.value))
 
         # show_widget arrives as a raw string from JSON; reconstruct the enum.
@@ -898,7 +902,6 @@ class DataPort(DataTypeIdentity):
         # that a type checker would then check key-by-key against cls.__init__.
         port_kwargs: dict[str, Any] = {
             **kwargs,  # Spec already has identity + user overrides
-            "flow_type": flow_type,
             "port_type": port_type,
             "type_cls": type_cls,
             "_wrapper": wrapper,
@@ -910,8 +913,6 @@ class DataPort(DataTypeIdentity):
 
         # Let type configure port (for compound types, etc.)
         type_cls._configure_port(port)
-        # _configure_port may rewrite flow_type: a pooled port takes its element's.
-        port._cache_immediacy()
 
         if "field_data" in spec:
             port._data.from_dict(spec["field_data"])
@@ -949,8 +950,6 @@ class DataPort(DataTypeIdentity):
                 continue
 
             # Transform enums
-            if isinstance(value, FlowType):
-                value = value.value
             if isinstance(value, PortType):
                 value = value.value
             if isinstance(value, ShowWidgetStrategy):

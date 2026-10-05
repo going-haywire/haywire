@@ -327,12 +327,12 @@ you want right-clickable with commands only your library knows about.
 
 ### Ghost pins are excluded from pin detection
 
-The structural pin detector is `[data-pin-id]:not([data-pin-flow-type="ghost"]), [data-port-id]`
-— note the exclusion. A ghost pin is a drop affordance (the temporary target shown while
-dragging a connection to an empty area of a node), not a real port: its id names no entry in
+The structural pin detector is `[data-pin-id]:not([data-pin-ghost]), [data-port-id]`
+— note the exclusion. A ghost pin is a node's fallback anchor for an edge whose port is
+missing; it never takes part in a drag. It is not a real port: its id names no entry in
 `node.ports`, so a menu opened there would both resolve nothing *and* swallow the click that
 would otherwise fall through to the node's own context menu. If you author a skin that emits
-ghost pins with `data-pin-flow-type="ghost"` (the convention `render_pin` itself follows),
+ghost pins with `data-pin-ghost` (the convention `render_pin` itself follows),
 right-clicking one correctly falls through past the pin check to whatever is next —
 normally the node. Do not expect a ghost pin to carry a menu; it is deliberately excluded,
 not an oversight to work around.

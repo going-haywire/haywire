@@ -1,0 +1,144 @@
+"""Wire types: how a value travels between ports, and what the framework does with the edge.
+
+Every port has a data type, and the data type declares its wire type. The data
+type says what the value is; the wire type says how it travels. A wire type is
+a class that is never instantiated. Its metadata is class attributes, and
+``__init_subclass__`` gives it an id and records it in an id map. Framework
+code branches on a wire type's ``role``, never on which wire type it is.
+
+Two pins connect when their wire keys match (``wires_match``): equal wire type
+ids, or a bare ``ADD`` slot, whose key is ``WILDCARD``.
+"""
+
+from __future__ import annotations
+
+from enum import Enum
+from typing import Any, ClassVar
+
+from haywire.core.library.utils import WIRE, derive_library_identity, reg_key
+from haywire.core.types.enums import Propagation
+
+#: The wire key of a bare ``ADD`` slot, which any wire type connects to.
+WILDCARD = "*"
+
+# id -> WireType subclass, filled by WireType.__init_subclass__.
+_WIRE_BY_ID: dict[str, type["WireType"]] = {}
+
+
+class WireRole(Enum):
+    """What the framework does with an edge, decided by the edge's wire type.
+
+    The set is closed: framework code branches on the role, so a new role is a
+    framework change.
+
+    - ``DEPENDENT``: assembly walks it backward from the node that needs the value.
+    - ``SEQUENCE``: the VM walks it forward, in execution order.
+    - ``IMMEDIATE``: takes effect on write, with no engine involved.
+    - ``VISUAL``: drawn and saved, never executed.
+    """
+
+    DEPENDENT = "dependent"
+    SEQUENCE = "sequence"
+    IMMEDIATE = "immediate"
+    VISUAL = "visual"
+
+
+class WireType:
+    """How a value travels between two ports, and how its pins look.
+
+    Subclass it and name the subclass in ``@type(wire_type=...)``. It is never
+    instantiated. A subclass that sets ``role`` is registered under the id
+    ``"<library>:wire:<ClassName>"``; setting ``id`` replaces the last segment.
+    Compare wire types by ``id``: a hot reload makes a new class object under
+    the same id.
+
+    Attributes:
+        role: What the framework does with an edge of this wire type.
+        propagation: The modes an edge may take. The first is the default, a
+            single entry locks it, and an empty tuple means the edge has none.
+        pin_kind: The key the skin's ``PinIconResolver`` looks up in its icon
+            map, such as ``"control"``. It is not an icon; a type names its own.
+        id: The registry id, set when the class is defined.
+
+    Raises:
+        ValueError: When a class from another module already holds the derived id.
+
+    Example::
+
+        class ControlWire(WireType):
+            role = WireRole.SEQUENCE
+            propagation = (Propagation.EAGER, Propagation.LAZY)
+            pin_kind = "control"
+
+        @type(wire_type=ControlWire, default={"value": {}})
+        class EXEC(PrimitiveType[dict]): ...
+
+        ControlWire.id  # "haywire-core:wire:ControlWire"
+    """
+
+    role: ClassVar[WireRole]
+    propagation: ClassVar[tuple[Propagation, ...]] = ()
+    pin_kind: ClassVar[str] = ""
+    id: ClassVar[str]
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        if getattr(cls, "role", None) is None:
+            return
+        segment = cls.__dict__.get("id", cls.__name__)
+        wire_id = reg_key(derive_library_identity(cls).name, WIRE, segment)
+        existing = _WIRE_BY_ID.get(wire_id)
+        if existing is not None and (existing.__module__, existing.__qualname__) != (
+            cls.__module__,
+            cls.__qualname__,
+        ):
+            raise ValueError(
+                f"Wire type id collision: {cls.__module__}.{cls.__qualname__} and "
+                f"{existing.__module__}.{existing.__qualname__} both derive id={wire_id!r}"
+            )
+        # The same module and qualname is a hot reload: the new class replaces the old.
+        cls.id = wire_id
+        _WIRE_BY_ID[wire_id] = cls
+
+    @classmethod
+    def clamp(cls, mode: Propagation | None) -> Propagation | None:
+        """Return *mode* when this wire type allows it, else its default; ``None`` when it allows none."""
+        if not cls.propagation:
+            return None
+        return mode if mode in cls.propagation else cls.propagation[0]
+
+
+def get_wire_type(wire_id: str) -> type[WireType] | None:
+    """Return the wire type registered under *wire_id*, or ``None``."""
+    return _WIRE_BY_ID.get(wire_id)
+
+
+def wire_type_of(type_cls: Any) -> type[WireType] | None:
+    """Return the wire type values of *type_cls* travel on, or ``None``.
+
+    A type answers with the wire type its identity declares. A container or
+    wrapper that declares none (``ArrayType[T]``, ``PooledType[T]``, ``ADD[T]``)
+    answers with its element's, through any nesting. A bare ``ADD``, a type
+    without an identity and ``None`` answer ``None``.
+    """
+    current = type_cls
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        identity = getattr(current, "class_identity", None)
+        wire = getattr(identity, "wire_type", None)
+        if wire is not None:
+            return wire
+        current = getattr(current, "element_type_cls", None)
+    return None
+
+
+def wires_match(a: str | None, b: str | None) -> bool:
+    """Return whether two pins with wire keys *a* and *b* may be linked.
+
+    True for equal wire type ids, and when either key is ``WILDCARD`` (a bare
+    ``ADD`` slot). A key of ``None`` (a port without a wire type) matches nothing.
+    """
+    if a is None or b is None:
+        return False
+    return a == b or a == WILDCARD or b == WILDCARD

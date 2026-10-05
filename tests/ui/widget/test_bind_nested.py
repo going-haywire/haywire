@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from haywire.core.types.base import BaseType
 from haywire.core.types.port import DataPort
-from haywire.core.types.enums import FlowType, PortType
+from haywire.core.types.enums import PortType
 from haywire.ui.widget.base import BaseWidget
 from tests.ui.widget._sync_fixtures import _RecordingElement
 
@@ -25,7 +25,6 @@ def _vec2_port() -> DataPort:
         id="v",
         type_cls=_Vec2,
         port_type=PortType.INLET,
-        flow_type=FlowType.DATA,
     )
 
 

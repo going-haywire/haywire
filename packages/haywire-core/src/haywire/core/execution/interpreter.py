@@ -371,7 +371,7 @@ class Interpreter:
         Get execution statistics.
 
         Returns:
-            Dictionary with statistics from all components including callback topology
+            Dictionary with statistics from all components
         """
         assembly_stats = self.assembly_manager.get_statistics()
 
@@ -380,7 +380,6 @@ class Interpreter:
             "total_subscriptions": len(self.event_subscriptions),
             "assembly": assembly_stats,
             "callbacks": self.callback_manager.get_statistics(),
-            "callback_topology": assembly_stats.get("callback_topology", {}),
             "schedulers": [
                 {
                     "flow_id": flow.flow_id,

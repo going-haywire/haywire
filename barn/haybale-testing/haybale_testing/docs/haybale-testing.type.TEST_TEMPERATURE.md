@@ -6,7 +6,7 @@ Temperature in Celsius
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': 20.0}`
 - **color**: `#ff5722`
 

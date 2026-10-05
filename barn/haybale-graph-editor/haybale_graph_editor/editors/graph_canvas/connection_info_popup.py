@@ -16,6 +16,7 @@ from typing import Optional
 from haywire.core.edge.edge import Edge
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.edge.edge_wrapper import EdgeWrapperState
+from haywire.core.types.wire import WireType
 
 from haywire.ui import elements as hui
 from haywire.ui.errors.error_info import error_render_detail
@@ -29,8 +30,21 @@ class EdgeInfoPopup:
     def __init__(self):
         self._info_popup: Optional[Popup] = None
 
-    def show(self, x: float, y: float, edge_id: str, edge: Edge, state: EdgeWrapperState):
-        """Show detailed connection information in a dedicated popup."""
+    def show(
+        self,
+        x: float,
+        y: float,
+        edge_id: str,
+        edge: Edge,
+        state: EdgeWrapperState,
+        wire_type: Optional[type[WireType]] = None,
+    ):
+        """Show detailed connection information in a dedicated popup.
+
+        Args:
+            wire_type: The wire type the edge carries (``EdgeWrapper.wire_type``); the header
+                is blank without it.
+        """
         # Close any existing popup first
         self.close()
 
@@ -43,7 +57,9 @@ class EdgeInfoPopup:
             with ui.column().classes("w-full gap-2 p-2"):
                 # Header with connection status
                 with ui.row().classes("w-full"):
-                    ui.label(f"{edge.edge_type}").classes("text-xs hw-text-muted ml-2 mt-2")
+                    ui.label(wire_type.id if wire_type is not None else "").classes(
+                        "text-xs hw-text-muted ml-2 mt-2"
+                    )
                     is_valid = state.is_valid()
                     status_icon = "✓" if is_valid else "✗"
                     status_color = "hw-text-success" if is_valid else "hw-text-danger"

@@ -6,7 +6,7 @@ Signal for controlling execution flow between nodes
 
 ## Details
 
-- **flow_type**: `control`
+- **wire_type**: `haywire-core:wire:ControlWire`
 - **default**: `{'value': {}}`
 - **color**: `#004cff`
 

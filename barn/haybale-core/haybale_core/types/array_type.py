@@ -10,7 +10,8 @@ Key changes:
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Type, TypeVar
 
-from haywire.core.types import type, FlowType, DataField, CompoundType
+from haywire.core.types import type, DataField, CompoundType
+from haywire.core.types.wire import WireRole
 
 T = TypeVar("T")
 
@@ -43,12 +44,12 @@ class ArrayType(CompoundType[T]):
     Transfer: List of unwrapped values (primitives or instances)
 
     IMPORTANT:
-    It inherits the element type's flow type (if it is set).
-    !!Setting the flow type in the decorator or as_inlet/as_outlet has no effect!!
+    ArrayType declares no wire type, so it travels on its element type's; a declared one would take
+    precedence (see wire_type_of).
 
     Hooks: Uses default implementations from IType
     - _validate_port_type: Allows all port types (inlet, outlet, config)
-    - _configure_port: Sets flow type based on element type
+    - _configure_port: takes the element's colour, and refuses a control or callback element
     """
 
     field_class: "Optional[Type[DataField]]" = None  # Will be set to ArrayField after it's defined
@@ -57,42 +58,22 @@ class ArrayType(CompoundType[T]):
 
     @classmethod
     def _configure_port(cls, port, **context) -> None:
-        """
-        array type's flow type is determined by its element type
-
-        Override:
-        - Set flow type based on element type.
-        - Set color based on element type.
-        """
-        # array type's flow type is determined by its element type
-        if not port.type_cls.element_type_cls:
-            return
-
-        # Start with the immediate element type
+        """Take the colour of the element that declares the wire type, and refuse a control
+        or callback element. An array outlet on a data wire allows several links."""
         current_type = port.type_cls.element_type_cls
-
-        # Drill down until we find a non-NONE flow type
         while current_type is not None:
-            # Check if this type has a non-NONE flow type
-            if hasattr(current_type, "class_identity"):
-                if current_type.class_identity.flow_type != FlowType.NONE:
-                    port.flow_type = current_type.class_identity.flow_type
-                    port.color = current_type.class_identity.color
-                    if port.is_outlet():
-                        port.allow_multiple_links = port.flow_type == FlowType.DATA
-                    if port.flow_type == FlowType.CONTROL:
-                        raise ValueError("ArrayType cannot have CONTROL flow type based on its element type")
-                    if port.flow_type == FlowType.CALLBACK:
-                        raise ValueError(
-                            "ArrayType cannot have CALLBACK flow type based on its element type"
-                        )
-                    return
-
-                # Move to next level if available
-                if hasattr(current_type, "element_type_cls"):
-                    current_type = current_type.element_type_cls
-                else:
-                    break
+            identity = getattr(current_type, "class_identity", None)
+            wire = getattr(identity, "wire_type", None)
+            if identity is not None and wire is not None:
+                port.color = identity.color
+                if port.is_outlet():
+                    port.allow_multiple_links = wire.role is WireRole.DEPENDENT
+                if wire.role is WireRole.SEQUENCE:
+                    raise ValueError("ArrayType cannot have a control element type")
+                if wire.role is WireRole.IMMEDIATE:
+                    raise ValueError("ArrayType cannot have a callback element type")
+                return
+            current_type = getattr(current_type, "element_type_cls", None)
 
     @property
     def value(self):

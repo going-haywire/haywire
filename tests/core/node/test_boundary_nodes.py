@@ -30,7 +30,7 @@ class _FakeNode:
         self.behavior = _FakeBehavior(node_type)
         self.event_subscription = None
 
-    def get_ports(self, is_port_type=None, has_pin=None, is_flow_type=None, **kw):
+    def get_ports(self, is_port_type=None, has_pin=None, is_role=None, **kw):
         from haywire.core.types.enums import PortType
 
         out = self._ports

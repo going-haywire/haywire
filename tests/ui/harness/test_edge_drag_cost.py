@@ -53,7 +53,7 @@ def _pin_centre(page: Page) -> dict:
     return page.evaluate(
         """() => {
             const pins = [...document.querySelectorAll('.connection-pin')]
-                .filter(p => p.dataset.pinFlowType !== 'ghost');
+                .filter(p => !('pinGhost' in p.dataset));
             for (const p of pins) {
                 const r = p.getBoundingClientRect();
                 if (r.width < 2) continue;

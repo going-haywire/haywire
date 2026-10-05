@@ -9,13 +9,13 @@ from dataclasses import dataclass, field, asdict
 from typing import Any
 
 from haywire.core.types.decorator import type
-from haywire.core.types.enums import FlowType
 from haywire.core.types.base import BaseType
 from haywire.ui import elements as hui
+from haywire.barn.builtin.wires import DataWire
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Test Data",
     description="Simple test data structure for cross-library testing",
     color="#FF5722",

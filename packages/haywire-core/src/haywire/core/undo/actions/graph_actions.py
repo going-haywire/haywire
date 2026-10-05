@@ -1104,6 +1104,7 @@ class _BuildSubgraphAction(ActionBase):
         # which a bare rejig would take with the rest.
         from ...graph.subgraph_crossing import RELAY_HANDLER
         from ...types.enums import PortOrigin
+        from ...types.wire import WireRole, wire_type_of
 
         with node.rejig(exclude=[PortOrigin.DECLARED]):
             for port in ports:
@@ -1111,19 +1112,20 @@ class _BuildSubgraphAction(ActionBase):
                 # interface derived from documented nodes arrives documented and
                 # keeps their editing affordances. All of it is the user's from
                 # here on — an interface port is RESOLVED.
+                port_wire = wire_type_of(port.itype)
+                immediate = port_wire is not None and port_wire.role is WireRole.IMMEDIATE
                 kwargs: Dict[str, Any] = {
                     "label": port.label,
                     "description": port.description,
-                    "flow_type": port.flow_type,
                     "origin": PortOrigin.RESOLVED,
                 }
-                if not port.flow_type.is_immediate:
+                if not immediate:
                     # An immediate port's default is its own node's subscription; the type's stands.
                     kwargs["default"] = port.default
                 if port.widget_key is not None:
                     kwargs["widget_key"] = port.widget_key
                     kwargs["widget_config"] = dict(port.widget_config)
-                if not is_input and port.flow_type.is_immediate:
+                if not is_input and immediate:
                     kwargs["on_change"] = RELAY_HANDLER
                 factory = port.itype.as_outlet if is_input else port.itype.as_inlet
                 node.add(factory(port.port_id, **kwargs))

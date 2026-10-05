@@ -1,9 +1,9 @@
-"""A boundary node's growing slot grows a port of whatever flow connects to it (ADR 0041)."""
+"""A boundary node's growing slot grows a port of whatever wire type connects to it (ADR 0041)."""
 
 import pytest
 
 from haywire.core.graph.subgraph import SubgraphDefinition
-from haywire.core.types import FlowType, Propagation
+from haywire.barn.builtin.wires import CallbackWire, ControlWire
 
 from tests.conftest import make_node
 
@@ -34,7 +34,7 @@ def test_a_control_edge_into_the_output_slot_grows_a_control_inlet(definition):
     definition.force_validation()
 
     assert edge.state.is_valid()
-    assert output_node.node.ports[slot.id].flow_type is FlowType.CONTROL
+    assert output_node.node.ports[slot.id].wire_key == ControlWire.id
 
 
 def test_a_callback_edge_into_the_output_slot_grows_a_callback_inlet(definition):
@@ -46,7 +46,7 @@ def test_a_callback_edge_into_the_output_slot_grows_a_callback_inlet(definition)
     definition.force_validation()
 
     assert edge.state.is_valid()
-    assert output_node.node.ports[slot.id].flow_type is FlowType.CALLBACK
+    assert output_node.node.ports[slot.id].wire_key == CallbackWire.id
 
 
 def test_an_edge_out_of_the_input_slot_takes_the_inlets_flow(definition):
@@ -57,6 +57,6 @@ def test_an_edge_out_of_the_input_slot_takes_the_inlets_flow(definition):
     edge = definition.create_edge_wrapper(input_node.node_id, slot.id, emitter.node_id, "edge_callback")
     definition.force_validation()
 
-    assert edge.edge_type is FlowType.CALLBACK
-    assert edge.propagation is Propagation.IMMEDIATE
-    assert input_node.node.ports[slot.id].flow_type is FlowType.CALLBACK
+    assert edge.wire_type.id == CallbackWire.id
+    assert edge.propagation is None
+    assert input_node.node.ports[slot.id].wire_key == CallbackWire.id

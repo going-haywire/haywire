@@ -1,22 +1,16 @@
-"""Which flows are immediate, and which ports cache it."""
+"""Which wire roles are immediate, and which ports cache it."""
 
 import pytest
 
-from haywire.core.types import FlowType
-
 
 @pytest.mark.unit
-@pytest.mark.parametrize(
-    ("flow", "immediate"),
-    [
-        (FlowType.CALLBACK, True),
-        (FlowType.DATA, False),
-        (FlowType.CONTROL, False),
-        (FlowType.NONE, False),
-    ],
-)
-def test_only_callback_is_immediate(flow, immediate):
-    assert flow.is_immediate is immediate
+def test_only_the_callback_wire_type_is_immediate():
+    from haywire.barn.builtin.wires import CallbackWire, ControlWire, DataWire
+    from haywire.core.types import WireRole
+
+    assert CallbackWire.role is WireRole.IMMEDIATE
+    assert DataWire.role is not WireRole.IMMEDIATE
+    assert ControlWire.role is not WireRole.IMMEDIATE
 
 
 @pytest.mark.integration
@@ -31,7 +25,7 @@ class TestPortsCacheImmediacy:
         assert event.node.ports["listen_callback"].is_immediate
 
     def test_a_pooled_callback_inlet_is_immediate(self, graph_with_library_system, library_system):
-        """PooledType sets the flow type after the port is built; the cache follows it."""
+        """A pooled port's wire type is its element's; the cache follows it."""
         from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode
 
         emit = graph_with_library_system.create_node_wrapper(

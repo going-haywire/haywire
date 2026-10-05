@@ -6,7 +6,7 @@ True or False
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': False}`
 - **color**: `#4caf50`
 

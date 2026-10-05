@@ -16,7 +16,7 @@ see-also:
 
 Hot-reload is the framework's response to a `.py` file change in a library that has `file_watcher=True`. It re-imports the changed module, re-registers any decorated classes from that module under their existing `registry_key`s, and allows thus every wrapper to rebuild the referenced class on the spot.
 
-It is a **cross-cutting** subsystem: every registry (NodeRegistry, EdgeRegistry, AdapterRegistry, WidgetRegistry, SkinRegistry, ThemeRegistry, SettingsRegistry, LibraryStateRegistry, EditorTypeRegistry, PanelRegistry) subscribes to the same `BaseRegistry` event pipeline. Hot-reload doesn't know what kind of class is reloading — it just fires events; consumers (factories, wrappers, the graph) handle the rebuild for their own concerns.
+It is a **cross-cutting** subsystem: every registry (NodeRegistry, AdapterRegistry, WidgetRegistry, SkinRegistry, ThemeRegistry, SettingsRegistry, LibraryStateRegistry, EditorTypeRegistry, PanelRegistry) subscribes to the same `BaseRegistry` event pipeline. Hot-reload doesn't know what kind of class is reloading — it just fires events; consumers (factories, wrappers, the graph) handle the rebuild for their own concerns.
 
 The discipline is: **every wrapper rebuilds references of a reloaded class** so user code sees only the new class. Managed modules are evicted from `sys.modules` before re-import (`del sys.modules[name]` in `folder_scan.py`), so the module object is replaced — not accumulated. Closures and direct attribute references to old classes can still pin memory, but the module slot itself is reused.
 
@@ -88,13 +88,15 @@ Each registry attaches its own consumers:
 |---|---|
 | `NodeRegistry` | The lifecycle batch is relayed **per registry key** to every NodeWrapper subscribed on that key, across every open graph — all graphs share one factory. Each wrapper rebuilds, unless its node absorbs the reload itself (§3.2) |
 | `MacroRegistry` | A **document registry** ([ADR 0037](../../adr/0037-macros-are-node-kind-components.md)): a saved `.hwm` file emits `CLASS_RELOADED` on the macro's own key, and the same per-key relay reaches every placement of it |
-| `EdgeRegistry` (implicit via NodeRegistry) | Affected EdgeWrappers re-run their 4-stage build against new port objects |
+| Edges (no registry of their own) | Edges rebuild through the node registry and their adapter chains: affected EdgeWrappers re-run their 4-stage build against new port objects |
 | `AdapterRegistry` | Edges using a reloaded adapter rebuild their adapter chain |
 | `WidgetRegistry` | New widget instances pick up the new class; existing widgets don't swap mid-render (NiceGUI element teardown is risky) |
 | `ThemeRegistry` | Active workbench theme is re-applied via `apply_workbench_theme()` (CSS variables re-injected) |
 | `SettingsRegistry` | Schema descriptors re-bind; `cls._registry` is re-wired on the new class |
 | `LibraryStateRegistry` | Container disable/re-enable cycle — `on_disable` on old instance, swap class, `on_enable` on new instance ([session-and-state §3.4](../session-and-state/session-and-state-arch.md#34-hot-reload-semantics)) |
 | `PanelRegistry` / `EditorTypeRegistry` | New classes picked up at next render boundary; existing instances continue until natural slot/binding change |
+
+**Wire-type modules.** A wire type is a class that is never instantiated and is not a registered component, so its module reloads as an unmanaged module, and the type modules that import it reload after it. The cascade follows module imports, so a library imports a wire type by its module path (`from mylib.wires import MyWire`); `from mylib import MyWire` does not reach it. See [ADR 0042](../../adr/0042-wire-types-replace-flowtype.md).
 
 ### 3.2 Rebuild discards node state
 
@@ -205,7 +207,7 @@ Total time: typically 100–500ms for a small graph.
 ```text
 1. FileWatcher fires
 2. AdapterRegistry updates the adapter class
-3. EdgeRegistry: every edge whose chain includes this adapter marks EDGE_ADAPTERS_RELOADED
+3. Every edge whose chain includes this adapter marks EDGE_ADAPTERS_RELOADED
 4. AdapterFactory.create_chain() re-runs for affected edges
 5. Each edge's _test() validates the new chain
 6. Edges that pass: link() — connection works again

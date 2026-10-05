@@ -16,8 +16,9 @@ from haywire.core.settings.types import (
     Vec4i,
     get_vec_meta,
 )
-from haywire.core.types import FlowType, PrimitiveType
+from haywire.core.types import PrimitiveType
 from haywire.core.types import type as type_decorator
+from ..wires import DataWire
 
 
 class _VecSerialize:
@@ -63,7 +64,7 @@ def _vec_widget_config(vec_cls: type) -> dict:
 
 
 @type_decorator(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Vec2i",
     description="2D integer vector",
     default=_vec_default(Vec2i),
@@ -77,7 +78,7 @@ class VEC2I(_VecSerialize, PrimitiveType[Vec2i]):
 
 
 @type_decorator(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Vec3i",
     description="3D integer vector",
     default=_vec_default(Vec3i),
@@ -91,7 +92,7 @@ class VEC3I(_VecSerialize, PrimitiveType[Vec3i]):
 
 
 @type_decorator(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Vec4i",
     description="4D integer vector",
     default=_vec_default(Vec4i),
@@ -105,7 +106,7 @@ class VEC4I(_VecSerialize, PrimitiveType[Vec4i]):
 
 
 @type_decorator(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Vec2f",
     description="2D float vector",
     default=_vec_default(Vec2f),
@@ -119,7 +120,7 @@ class VEC2F(_VecSerialize, PrimitiveType[Vec2f]):
 
 
 @type_decorator(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Vec3f",
     description="3D float vector",
     default=_vec_default(Vec3f),
@@ -133,7 +134,7 @@ class VEC3F(_VecSerialize, PrimitiveType[Vec3f]):
 
 
 @type_decorator(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Vec4f",
     description="4D float vector",
     default=_vec_default(Vec4f),

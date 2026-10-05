@@ -6,7 +6,7 @@ Solid colour or gradient background
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'kind': 'solid', 'angle': 135, 'stops': [{'color': '#1e1e1eff', 'at': 0}]}`
 - **widget_key**: `haybale-example:widget:FillWidget`
 - **color**: `#f7b0ff`

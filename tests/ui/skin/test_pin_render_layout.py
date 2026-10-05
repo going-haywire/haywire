@@ -12,7 +12,7 @@ from __future__ import annotations
 import pytest
 
 from haywire.barn.builtin.types import FLOAT
-from haywire.core.types import DataPort, FlowType, LayoutDirection, PortType
+from haywire.core.types import DataPort, LayoutDirection, PortType
 from haywire.ui.skin.pin_render import render_pin
 
 pytestmark = pytest.mark.unit
@@ -37,7 +37,6 @@ def _make_port(port_type: PortType) -> DataPort:
         id=f"p_{port_type.value}",
         type_cls=FLOAT,
         port_type=port_type,
-        flow_type=FlowType.DATA,
     )
 
 

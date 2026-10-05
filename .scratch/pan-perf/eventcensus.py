@@ -161,7 +161,7 @@ SPOT = """
     // sibling would open no wire and the run would silently measure nothing.
     let best = null, bestD = Infinity;
     for (const p of c.querySelectorAll('.connection-pin')) {
-      if (p.dataset.pinFlowType === 'ghost') continue;
+      if ('pinGhost' in p.dataset) continue;
       const b = p.getBoundingClientRect();
       if (b.width < 2 || b.left < r.left || b.right > r.right) continue;
       if (b.top < r.top || b.bottom > r.bottom) continue;

@@ -67,8 +67,16 @@ def _port_direction(port) -> str:
     return "config"
 
 
+def _wire_fields(port) -> dict:
+    """The port's wire key and role, as Farmhand reports them."""
+    return {
+        "wire_type": port.wire_key,
+        "role": port.wire_type.role.value if port.wire_type is not None else None,
+    }
+
+
 def _port_row(pid: str, port, detail: bool) -> dict:
-    row = {"id": pid, "direction": _port_direction(port), "flow_type": port.flow_type.value}
+    row = {"id": pid, "direction": _port_direction(port), **_wire_fields(port)}
     if detail:
         row.update(
             {
@@ -142,7 +150,8 @@ _RESERVED_ROW_KEYS = frozenset(
         "promoted_as",
         "ui_state",
         "direction",
-        "flow_type",
+        "wire_type",
+        "role",
         "data_type",
         "is_linked",
     }
@@ -203,14 +212,15 @@ def _inspect_port_row(pid: str, port, data: str, expand: bool = False) -> dict:
             direction="inlet" if port.is_inlet() else "outlet",
             label=port.label or "",
             description=port.description or "",
-            flow_type=port.flow_type.value,
+            **_wire_fields(port),
             data_type=_port_type_key(port),
             hidden=bool(port.hidden),
             deprecation=port.deprecation_warning or "",
         )
         row["label"] = info.label
         row["description"] = info.description
-        row["flow_type"] = info.flow_type
+        row["wire_type"] = info.wire_type
+        row["role"] = info.role
         row["data_type"] = info.data_type
         if info.hidden:
             row["hidden"] = True
@@ -234,7 +244,7 @@ def _inspect_port_row(pid: str, port, data: str, expand: bool = False) -> dict:
 
     if data == "all":
         row["data_type"] = _port_type_key(port)
-        row["flow_type"] = port.flow_type.value
+        row.update(_wire_fields(port))
         row["use_mode"] = port.use_mode
         row["allow_multiple_links"] = port.allow_multiple_links
         row.update(_constraints(port.widget_config))
@@ -478,7 +488,8 @@ def _edge_row(edge, detail: bool = False) -> dict:
         "outlet": edge.outlet_port_id,
         "sink_node": edge.sink_node_id,
         "inlet": edge.inlet_port_id,
-        "flow_type": edge.edge_type.value,  # "data" | "control" | "callback"
+        "wire_type": edge.wire_type.id if edge.wire_type is not None else None,
+        "role": edge.wire_type.role.value if edge.wire_type is not None else None,
     }
     if detail:
         # chain_adapter_keys is the BUILT chain (ordered adapter registry keys):
@@ -488,7 +499,7 @@ def _edge_row(edge, detail: bool = False) -> dict:
             {
                 "is_functional": edge.is_functional(),
                 "is_linked": edge.state.is_linked,
-                "propagation": edge.propagation.value,
+                "propagation": edge.propagation.value if edge.propagation is not None else None,
                 "propagation_locked": edge.locked_propagation is not None,
                 "adapter_chain": adapters,
                 "has_adapters": bool(adapters),
@@ -529,7 +540,7 @@ def _metadata_row(graph) -> dict:
         "per-port setup (data_type, allow_multiple_links, is_linked, link_count, use_mode, "
         "promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, "
         "propagation, propagation_locked, adapter_chain, has_adapters, error); default returns the "
-        "base id/direction/flow_type per port and id/topology/flow_type per edge."
+        "base id/direction/wire_type/role per port and id/topology/wire_type/role per edge."
     ),
     registry_id="query_graph",
     annotations=_READ_ONLY,
@@ -852,12 +863,15 @@ class GraphEditorConnectTool(Farmhand):
         # because HistoryManager.add_action swallows execute() errors. Validate the
         # endpoints up front and verify the edge really landed so the tool reports
         # honest success/failure.
-        _node(editor, source_node_id)
-        _node(editor, sink_node_id)
+        source = _node(editor, source_node_id)
+        sink = _node(editor, sink_node_id)
+        # A missing pin no longer stops edge creation: the edge is kept and fails validation.
+        pins_exist = outlet in source.node.ports and inlet in sink.node.ports
         before = len(editor.list_edges())
-        ctx.fence(editor)
-        editor.create_edge(source_node_id, outlet, sink_node_id, inlet)
-        if len(editor.list_edges()) <= before:
+        if pins_exist:
+            ctx.fence(editor)
+            editor.create_edge(source_node_id, outlet, sink_node_id, inlet)
+        if not pins_exist or len(editor.list_edges()) <= before:
             raise FarmhandError(
                 "connect_failed",
                 f"Could not connect {source_node_id}:{outlet} -> {sink_node_id}:{inlet} "

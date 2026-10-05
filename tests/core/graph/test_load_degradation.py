@@ -48,13 +48,10 @@ def test_poisoned_edge_skips_only_itself(graph_with_library_system, library_syst
 
     data = graph.to_dict()
     assert len(data["edges"]) == 2
-    # Poison the first edge with an edge_type value FlowType can't parse — this
-    # raises ValueError directly in the loop body (source/sink node id mismatches
-    # are swallowed internally by EdgeWrapper's own guarded build/formal
-    # validation and don't propagate out of the loop).
+    # Poison the first edge with a missing key, which raises KeyError in the loop body.
     first_edge_id = edge1.edge_id
     second_edge_id = edge2.edge_id
-    data["edges"][first_edge_id]["edge_type"] = "not-a-real-flow-type"
+    del data["edges"][first_edge_id]["source_node_id"]
     # Force the poisoned edge to be iterated first, so this test fails today
     # (pre-fix) when the try/except wraps the whole loop.
     data["edges"] = {

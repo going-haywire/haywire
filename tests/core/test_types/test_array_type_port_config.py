@@ -1,17 +1,10 @@
-"""Tests for ArrayType._configure_port's flow-type fixup.
-
-``ArrayType`` declares no ``flow_type`` of its own (its ``class_identity``
-defaults to ``FlowType.NONE``), so ``DataPort.__post_init__`` computes
-``allow_multiple_links`` against ``NONE`` at construction time. ``_configure_port``
-then corrects ``flow_type`` to the element type's (e.g. ``DATA``) — and must also
-re-derive ``allow_multiple_links``, or an array outlet ends up DATA-typed but
-stuck refusing a second edge.
-"""
+"""An ArrayType port takes its element's wire type and colour, and an array outlet on a data wire
+allows several links like any data outlet."""
 
 import pytest
 
 from haywire.core.graph.base import BaseGraph
-from haywire.core.types.enums import FlowType
+from haywire.barn.builtin.wires import DataWire
 
 pytestmark = pytest.mark.integration
 
@@ -33,23 +26,22 @@ class TestArrayTypeOutletConnectionRule:
         node = _edge_link_test_node(graph_with_library_system)
         outlet = node.ports["array_float_outlet"]
 
-        assert outlet.flow_type == FlowType.DATA
+        assert outlet.wire_type.id == DataWire.id
         assert outlet.allow_multiple_links is True
 
-    def test_array_inlet_over_data_element_keeps_single_link_default(self, graph_with_library_system):
-        """Only the outlet rule changes; a DATA inlet stays single-link (the
-        DataPort.__post_init__ default), same as a scalar DATA inlet."""
+    def test_pooled_array_inlet_over_data_element_is_multi_link(self, graph_with_library_system):
+        """A pooled array inlet resolves to the data wire and allows several links
+        (PooledType sets multi-link)."""
         node = _edge_link_test_node(graph_with_library_system)
         inlet = node.ports["pooled_array_string_inlet"]
 
-        # Wrapped in PooledType, whose own _configure_port sets this True —
-        # confirm the ArrayType layer beneath it still resolves to DATA.
-        assert inlet.flow_type == FlowType.DATA
+        # Wrapped in PooledType, whose own _configure_port sets multi-link; the ArrayType
+        # layer beneath it still resolves to the data wire.
+        assert inlet.wire_type.id == DataWire.id
+        assert inlet.allow_multiple_links is True
 
     def test_array_outlet_color_follows_element_type(self, graph_with_library_system):
-        """_configure_port's flow_type fixup and its color fixup are the same
-        codepath; a passing color assertion pins down that we didn't break it
-        while touching allow_multiple_links alongside it."""
+        """_configure_port takes the colour from the element that declares the wire type."""
         from haywire.barn.builtin.types import FLOAT
 
         node = _edge_link_test_node(graph_with_library_system)

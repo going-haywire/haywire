@@ -4,17 +4,18 @@ from dataclasses import replace
 
 import pytest
 
-from haywire.core.types import FlowType, PrimitiveType
+from haywire.barn.builtin.wires import ControlWire, DataWire
+from haywire.core.types import PrimitiveType
 from haywire.core.types import type as haywire_type
 from haywire.core.types.registry import TypeRegistry
 
 
-@haywire_type(flow_type=FlowType.DATA, label="Dict Value", default={"value": {}})
+@haywire_type(wire_type=DataWire, label="Dict Value", default={"value": {}})
 class _DictValue(PrimitiveType[dict]):
     """A value type wrapping `dict`."""
 
 
-@haywire_type(flow_type=FlowType.CONTROL, label="Dict Signal", default={"value": {}})
+@haywire_type(wire_type=ControlWire, label="Dict Signal", default={"value": {}})
 class _DictSignal(PrimitiveType[dict]):
     """A signal type wrapping `dict`, as `EXEC` does."""
 

@@ -18,6 +18,7 @@ THEME = "theme"
 PANEL = "panel"
 EDITOR = "editor"
 FARMHAND = "farmhand"
+WIRE = "wire"
 
 
 def derive_library_identity(cls: Type) -> LibraryIdentity:

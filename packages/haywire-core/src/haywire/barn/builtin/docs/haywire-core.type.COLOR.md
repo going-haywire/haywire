@@ -6,7 +6,7 @@ Hex or rgba color string
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': '#ffffff'}`
 - **widget_key**: `haywire-core:widget:ColorWidget`
 - **color**: `#f7b0ff`

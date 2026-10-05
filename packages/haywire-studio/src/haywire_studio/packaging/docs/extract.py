@@ -17,7 +17,7 @@ def _extra_for_kind(kind: str, cls: Any, identity: Any) -> dict[str, Any]:
     data — never infers. Unknown kinds return {}."""
     if kind == "type":
         return {
-            "flow_type": getattr(identity, "flow_type", None) and identity.flow_type.value,
+            "wire_type": identity.wire_type.id if getattr(identity, "wire_type", None) is not None else None,
             "default": getattr(identity, "default", None),
             "widget_key": getattr(identity, "widget_key", None),
             "color": getattr(identity, "color", None),

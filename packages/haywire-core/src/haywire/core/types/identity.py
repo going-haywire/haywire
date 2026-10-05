@@ -10,12 +10,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from haywire.core.types.enums import FlowType, StoreStrategy
+from haywire.core.types.enums import StoreStrategy
 
 from ..registry.identity import BaseIdentity
 
 if TYPE_CHECKING:
     from haywire.core.types.interface import IType
+    from haywire.core.types.wire import WireType
 
 
 @dataclass
@@ -38,7 +39,9 @@ class DataTypeIdentity(BaseIdentity):
         label: Display name
         description: Type description
         cls: Python type (int, float, str, MeshData, etc.)
-        flow_type: DATA, CTRL, or NONE
+        wire_type: The wire type values of this type travel on; ``None`` for a
+            container, which takes its element's, and for a bare ``ADD``, the
+            wildcard; see ``wire_type_of``
         color: UI pin color (hex)
         icon: UI pin icon, used by any direction that declares none of its own
         icon_in: Icon for inlet pins, defaulting to ``icon``
@@ -57,8 +60,9 @@ class DataTypeIdentity(BaseIdentity):
     # label: str = ''
     # description: str = ''
 
-    # Override flow_type to make it required for ports
-    flow_type: FlowType = FlowType.NONE
+    wire_type: type[WireType] | None = None
+    """The wire type values of this type travel on. ``None`` for a container, which
+    takes its element's, and for a bare ``ADD``, the wildcard; see ``wire_type_of``."""
 
     # Type specification:
     type_cls: type[IType] | None = None  # The Python Type class

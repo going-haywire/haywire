@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 
 from ...ui.utils import generate_edge_uuid
 from ..graph.types import ChangeReason
-from ..validation.interface import IStructuralValidator
-from ..types import FlowType, Propagation
+from ..types import Propagation
+from ..types.wire import WireType, wires_match
 from ..adapter.base import IAdapter, ReturnAdapter
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
@@ -33,8 +33,6 @@ class EdgeWrapperState:
     """The edge is formally validated (node/port existence and type compatibility)"""
     is_built: bool = False
     """The edge adapter chain has been built (inlets/outlets are compatible)"""
-    is_structural: bool = False
-    """The edge has passed structural validation"""
     has_test_passed: bool = False
     """The edge adapter chain has been successfully tested"""
     is_inlet_linked: bool = False
@@ -53,8 +51,6 @@ class EdgeWrapperState:
     """port type error"""
     error_build: Optional[HaywireException] = None
     """build error"""
-    error_structural: Optional[HaywireException] = None
-    """structural validation error"""
     error_test: Optional[HaywireException] = None
     """test error message"""
     creation_time: float = 0.0
@@ -80,7 +76,7 @@ class EdgeWrapperState:
 
     def is_valid(self) -> bool:
         """Check if connection is in valid state (functional and linked)"""
-        return self.is_functional() and self.is_structural and self.is_linked
+        return self.is_functional() and self.is_linked
 
     def get_error(self) -> Optional[HaywireException]:
         """Get main error"""
@@ -88,28 +84,12 @@ class EdgeWrapperState:
             return self.error_formal
         elif self.error_build:
             return self.error_build
-        elif self.error_structural:
-            return self.error_structural
         elif self.error_link:
             return self.error_link
         elif self.error_test:
             return self.error_test
         else:
             return None
-
-
-def _accepts_any_flow(port: "DataPort") -> bool:
-    """True for a bare ``ADD`` pin, which grows a port of whatever flow connects to it."""
-    return port.type_cls is not None and port.type_cls._is_any
-
-
-def edge_flow_type(outlet: "DataPort", inlet: "DataPort") -> FlowType:
-    """Return the flow an edge between ``outlet`` and ``inlet`` carries.
-
-    The outlet's flow, unless the outlet is a bare ``ADD``: then the inlet's,
-    so an edge out of a boundary node's growing slot is typed by what it feeds.
-    """
-    return inlet.flow_type if _accepts_any_flow(outlet) else outlet.flow_type
 
 
 class EdgeWrapper:
@@ -135,7 +115,6 @@ class EdgeWrapper:
         outlet_port_id: str,
         sink_node_id: str,
         inlet_port_id: str,
-        edge_type: FlowType,
         propagation: Propagation = Propagation.EAGER,
     ):
         """
@@ -146,21 +125,12 @@ class EdgeWrapper:
             outlet_port_id: Source outlet ID
             sink_node_id: Sink node ID
             inlet_port_id: Sink inlet ID
-            edge_type: edge type
-            propagation: The mode chosen for the edge, ``LAZY`` or ``EAGER``.
-
-        Raises:
-            ValueError: If *propagation* is ``IMMEDIATE``, which only a flow type assigns.
+            propagation: The mode chosen for the edge. It is fitted to the wire type once the edge validates.
         """
-        if propagation is Propagation.IMMEDIATE:
-            raise ValueError("immediate propagation comes from the flow type; it cannot be chosen")
         self.source_node_id = source_node_id
         self.outlet_port_id = outlet_port_id
         self.sink_node_id = sink_node_id
         self.inlet_port_id = inlet_port_id
-
-        # Edge type (may be overridden during registration)
-        self._edge_type = edge_type
 
         # Generate connection UUID
         self._edge_id = generate_edge_uuid(source_node_id, outlet_port_id, sink_node_id, inlet_port_id)
@@ -201,7 +171,6 @@ class EdgeWrapper:
             outlet_port_id=self.outlet_port_id,
             sink_node_id=self.sink_node_id,
             inlet_port_id=self.inlet_port_id,
-            edge_type=self._edge_type,
             chain_adapter_keys=([]),
             propagation=propagation,
         )
@@ -211,8 +180,6 @@ class EdgeWrapper:
         # Subscribe to adapter factory for hot reload
         self._adapter_factory.register_edge_callback(self._edge_id, self._on_adapter_lifecycle_event)
 
-        self._structural_validator: "IStructuralValidator" = self._graph._structural
-
     def is_valid(self) -> bool:
         """Check if edge is valid"""
         return self._state.is_valid()
@@ -220,18 +187,6 @@ class EdgeWrapper:
     def is_functional(self) -> bool:
         """Check if connection is functional (registered, formal-validated and built)"""
         return self._state.is_functional()
-
-    def is_callback_edge(self) -> bool:
-        """Check if this is a callback edge"""
-        return self.edge_type == FlowType.CALLBACK
-
-    def is_control_edge(self) -> bool:
-        """Check if this is a control edge"""
-        return self.edge_type == FlowType.CONTROL
-
-    def is_data_edge(self) -> bool:
-        """Check if this is a data edge"""
-        return self.edge_type == FlowType.DATA
 
     @property
     def edge(self) -> Edge:
@@ -260,38 +215,51 @@ class EdgeWrapper:
         return self._state
 
     @property
-    def edge_type(self) -> FlowType:
-        """Get the edge flow type"""
-        return self._edge_type
+    def wire_type(self) -> Optional[type[WireType]]:
+        """The wire type this edge carries: its outlet's, else its inlet's.
+
+        An edge out of a bare ``ADD`` slot carries what it feeds. ``None`` until an
+        end resolves (before the first build, or with both ports gone).
+        """
+        for port in (self._outlet_port, self._inlet_port):
+            if port is not None and port.wire_type is not None:
+                return port.wire_type
+        return None
 
     @property
     def locked_propagation(self) -> Optional[Propagation]:
         """The mode this edge is fixed to, or ``None`` when the user may choose one.
 
-        An immediate flow locks ``IMMEDIATE``; an edge out of an ``is_linked_lazy``
-        outlet (every promoted outlet) locks ``LAZY``. The second is known once the
-        edge has resolved its outlet port during ``build()``.
+        An edge out of an ``is_linked_lazy`` outlet (every promoted outlet) is locked
+        ``LAZY``, and a wire type that allows a single mode locks that mode. An edge
+        whose wire type allows no mode has no lock and no propagation.
         """
-        if self._edge_type is not None and self._edge_type.is_immediate:
-            return Propagation.IMMEDIATE
         if self._outlet_port is not None and self._outlet_port.is_linked_lazy:
             return Propagation.LAZY
+        wire = self.wire_type
+        if wire is not None and len(wire.propagation) == 1:
+            return wire.propagation[0]
         return None
 
     @property
-    def propagation(self) -> Propagation:
-        """The mode in effect: the locked mode when there is one, else the one chosen for the edge."""
+    def propagation(self) -> Optional[Propagation]:
+        """The mode in effect, or ``None`` for an edge whose wire type allows none."""
+        wire = self.wire_type
+        if wire is not None and not wire.propagation:
+            return None
         return self.locked_propagation or self._edge.propagation
 
     @propagation.setter
     def propagation(self, value: Propagation) -> None:
-        """Choose ``LAZY`` or ``EAGER`` for this edge and rebuild its pipe.
+        """Choose a mode for this edge and rebuild its pipe.
 
         Raises:
-            ValueError: If *value* is ``IMMEDIATE``, or the edge's mode is locked.
+            ValueError: If the edge's wire type does not allow *value* (a callback edge
+                allows none), or the edge's mode is locked.
         """
-        if value is Propagation.IMMEDIATE:
-            raise ValueError("immediate propagation comes from the flow type; it cannot be chosen")
+        wire = self.wire_type
+        if wire is not None and value not in wire.propagation:
+            raise ValueError(f"edge {self._edge_id} on {wire.id} cannot take {value.value} propagation")
         locked = self.locked_propagation
         if locked is not None:
             raise ValueError(f"edge {self._edge_id} is locked to {locked.value} propagation")
@@ -576,13 +544,19 @@ class EdgeWrapper:
         self._state.warnings = []
 
         if self._formal_validation():
-            if self._structural_validation():
-                if self._build_adapter_chain():
-                    if self._test():
-                        logger.debug(".. rebuilding edge done.")
-                        return
+            self._fit_propagation()
+            if self._build_adapter_chain():
+                if self._test():
+                    logger.debug(".. rebuilding edge done.")
+                    return
 
         logger.debug(".. rebuilding failed with errors.")
+
+    def _fit_propagation(self) -> None:
+        """Fit the chosen mode to the wire type; runs only once the edge has validated."""
+        wire = self.wire_type
+        if wire is not None:
+            self._edge.propagation = wire.clamp(self._edge.propagation)
 
     def _check_chain_for_changes(self, chain: List[str]):
         """
@@ -727,10 +701,6 @@ class EdgeWrapper:
             self._outlet_port = outlet_node.ports.get(self.outlet_port_id)
             self._inlet_port = inlet_node.ports.get(self.inlet_port_id)
 
-            # Determine edge type if not set
-            if self._edge_type is None:
-                self._edge_type = self._outlet_port.flow_type
-
             if self.source_node_id == self.sink_node_id:
                 raise Exception(f"Source and sink node are the same: {self.source_node_id}")
 
@@ -752,14 +722,10 @@ class EdgeWrapper:
                     f"Invalid port types for edge: Inlet port {self._inlet_port.id} is an outlet"
                 )
 
-            if self._outlet_port.flow_type != self._inlet_port.flow_type and not (
-                _accepts_any_flow(self._outlet_port) or _accepts_any_flow(self._inlet_port)
-            ):
+            if not wires_match(self._outlet_port.wire_key, self._inlet_port.wire_key):
                 raise Exception(
-                    f"Flow type mismatch between outlet "
-                    f"({self._outlet_port.flow_type}) and inlet "
-                    f"({self._inlet_port.flow_type}) on edge "
-                    f"{self._edge_id}"
+                    f"Wire type mismatch between outlet ({self._outlet_port.wire_key}) and inlet "
+                    f"({self._inlet_port.wire_key}) on edge {self._edge_id}"
                 )
 
             self._state.is_formally_validated = True
@@ -774,60 +740,11 @@ class EdgeWrapper:
                 operation="Port Type Validation",
                 edge_id=self._edge_id,
                 graph_id=self._graph.graph_id,
-                suggestions=["Ensure both ports exist", "Check port flow types for compatibility"],
+                suggestions=["Ensure both ports exist", "Check that both ports are on the same wire type"],
             )
             self._state.error_formal.log()
             self._state.is_formally_validated = False
 
-            return False
-
-    def _structural_validation(self) -> bool:
-        """
-        Validate structural constraints for this edge.
-
-        Uses the graph's structural validator to check domain-specific rules
-        such as callback edge constraints, control flow topology, etc.
-
-        Returns:
-            True if validation passed, False otherwise
-        """
-        try:
-            # Call structural validator
-            (is_valid, error_message, suggestions) = self._structural_validator.validate_edge(self)
-
-            # Update state
-            self._state.is_structural = is_valid
-
-            # Create exception from error message if validation failed
-            if not is_valid and error_message:
-                self._state.error_structural = HaywireException.create(message=error_message).enrich(
-                    edge_id=self._edge_id,
-                    graph_id=self._graph.graph_id,
-                    operation="Structural Validation",
-                    category="Structural Validation Error",
-                    suggestions=suggestions,
-                )
-                self._state.error_structural.log()
-            else:
-                self._state.error_structural = None
-
-            return is_valid
-
-        except Exception as e:
-            self._state.error_structural = HaywireException.from_exception(
-                exception=e, message=f"Structural validation failed: {e}"
-            ).enrich(
-                operation="Structural Validation",
-                category="Structural Validation Error",
-                edge_id=self._edge_id,
-                graph_id=self._graph.graph_id,
-                suggestions=[
-                    "Check edge type and node constraints",
-                    "Verify callback edge rules if applicable",
-                ],
-            )
-            self._state.error_structural.log()
-            self._state.is_structural = False
             return False
 
     def _test(self) -> bool:
@@ -1004,6 +921,6 @@ class EdgeWrapper:
 
         return (
             f"EdgeWrapper({self._edge_id}, "
-            f"type={self._edge_type.value if self._edge_type else 'unknown'}, "
+            f"wire={self.wire_type.id if self.wire_type is not None else 'unknown'}, "
             f"status={status}, chain={chain_desc})"
         )

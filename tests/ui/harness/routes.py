@@ -779,10 +779,14 @@ def register_routes(library_service) -> None:
     # pipeline runs end-to-end in a browser. Backs the edge-reconnect Playwright
     # regression test (the anchor end must stay glued to its pin even though the
     # node DOM is rebuilt during reconnect). See test_graph_reconnect.py.
+    #
+    # ?missing_inlet=1 saves the edge's inlet as a port the sink does not have,
+    # so the edge loads kept and drawn to the sink's ghost pin.
     # -------------------------------------------------------------------------
 
     @ui.page("/graph-reconnect")
-    async def graph_reconnect_page():
+    async def graph_reconnect_page(missing_inlet: bool = False):
+        import json
         import tempfile
         from pathlib import Path
 
@@ -795,6 +799,11 @@ def register_routes(library_service) -> None:
         with tempfile.NamedTemporaryFile(suffix=".haywire", delete=False) as tmp:
             fixture = Path(tmp.name)
         _write_reconnect_graph(node_factory, fixture)
+        if missing_inlet:
+            saved = json.loads(fixture.read_text())
+            for edge in saved["edges"].values():
+                edge["inlet_port_id"] = "gone"
+            fixture.write_text(json.dumps(saved))
 
         graph = BaseGraph("Reconnect Fixture")
         editor = Editor(graph, node_factory)

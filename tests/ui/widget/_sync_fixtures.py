@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 from haywire.core.types.port import DataPort
-from haywire.core.types.enums import FlowType, PortType
+from haywire.core.types.enums import PortType
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.converters import Converters
 
@@ -27,7 +27,6 @@ def make_float_port(port_id: str = "v") -> DataPort:
         id=port_id,
         type_cls=FLOAT,
         port_type=PortType.INLET,
-        flow_type=FlowType.DATA,
     )
 
 

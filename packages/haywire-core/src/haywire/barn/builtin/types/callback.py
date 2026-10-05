@@ -1,12 +1,13 @@
 """CALLBACK — the subscription name a listener registers under."""
 
-from haywire.core.types import FlowType, StoreStrategy, type
+from haywire.core.types import StoreStrategy, type
 
 from .specs import STRING
+from ..wires import CallbackWire
 
 
 @type(
-    flow_type=FlowType.CALLBACK,
+    wire_type=CallbackWire,
     label="Callback Signal",
     description="Signal for callback execution between nodes",
     color="#ff3c00",

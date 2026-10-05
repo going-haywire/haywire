@@ -26,7 +26,7 @@ class NodeType(IntFlag):
       carries neither the DATA nor the CONTROL bit and may stay port-less until
       the edge-split action configures it; the structural validator checks it
       before the DATA/CONTROL rules and applies the looser reroute ones (a
-      port-less state is valid, as is any single-FlowType passthrough pair).
+      port-less state is valid, as is any passthrough pair on one wire type).
       Supports DATA, CONTROL and CALLBACK edges.
     - BOUNDARY: a Subgraph Input or Subgraph Output node, defining the interface
       of a Subgraph. It carries neither the DATA nor the CONTROL bit — its role

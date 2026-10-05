@@ -50,7 +50,7 @@ class NodeSkin(BaseSkin, ABC):
         class ArrowSkin(NodeSkin):
             pin_icons = ArrowPinIcons()
 
-    Every key is optional — a role falls back to its flow type, then to
+    Every key is optional — a role falls back to its kind, then to
     ``'fallback'`` — so a one-key map is a complete resolver. A glyph declared
     on a port or its type still wins over it; see ``PinIconResolver``.
     """

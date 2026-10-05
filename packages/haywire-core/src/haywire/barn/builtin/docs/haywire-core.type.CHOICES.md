@@ -6,7 +6,7 @@ A string constrained to a set of options (options live per-use in widget_config)
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': ''}`
 - **widget_key**: `haywire-core:widget:SelectWidget`
 - **color**: `#ffd54f`

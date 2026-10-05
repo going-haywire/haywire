@@ -18,7 +18,8 @@ from haywire.core.validation.interface import IStructuralValidator
 from haywire.core.validation.structural_validator import StructuralValidator
 from haywire.core.library.utils import get_registry_id_from_key
 
-from ..types import FlowType, Propagation
+from ..types import Propagation
+from ..types.wire import WireRole
 from ..types.enums import PortType
 from .validation import ValidationManager, ValidationCallback
 from .types import ChangeReason
@@ -598,25 +599,16 @@ class BaseGraph:
     ) -> Optional["EdgeWrapper"]:
         """Create an edge between two ports, build its adapter chain, and add it to the graph.
 
-        The edge takes its flow type from the source outlet.
-
         Args:
-            propagation: The mode chosen for the edge; a locked mode overrides it
-                (see ``EdgeWrapper.locked_propagation``).
+            propagation: The mode chosen for the edge; the wire type fits or locks it.
 
         Returns:
             The added wrapper.
 
         Raises:
-            ValueError: If an edge with the same id is already in the graph, or
-                *propagation* is ``IMMEDIATE``.
+            ValueError: If an edge with the same id is already in the graph.
         """
-        from ..edge.edge_wrapper import EdgeWrapper, edge_flow_type
-
-        outlet = self.node_wrappers[source_node_id].node.ports[outlet_port_id]
-        sink = self.node_wrappers.get(sink_node_id)
-        inlet = sink.node.ports.get(inlet_port_id) if sink is not None else None
-        flow_type = edge_flow_type(outlet, inlet) if inlet is not None else outlet.flow_type
+        from ..edge.edge_wrapper import EdgeWrapper
 
         edge_wrapper = EdgeWrapper(
             graph=self,
@@ -624,7 +616,6 @@ class BaseGraph:
             outlet_port_id=outlet_port_id,
             sink_node_id=sink_node_id,
             inlet_port_id=inlet_port_id,
-            edge_type=flow_type,
             propagation=propagation,
         )
 
@@ -719,7 +710,7 @@ class BaseGraph:
         if wrapper is None:
             return transitions
 
-        outlets = wrapper.node.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.CONTROL)
+        outlets = wrapper.node.get_ports(is_port_type=PortType.OUTLET, is_role=WireRole.SEQUENCE)
         for outlet in outlets:
             # A control outlet carries at most one connection.
             edges = outlet.get_valid_edges()
@@ -1030,7 +1021,6 @@ class BaseGraph:
                             outlet_port_id=edge_data["outlet_port_id"],
                             sink_node_id=edge_data["sink_node_id"],
                             inlet_port_id=edge_data["inlet_port_id"],
-                            edge_type=FlowType(edge_data["edge_type"]),
                             propagation=Propagation(edge_data.get("propagation", Propagation.EAGER.value)),
                         )
 

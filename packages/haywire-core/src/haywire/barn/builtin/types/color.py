@@ -5,8 +5,9 @@ establishes the type.
 """
 
 from haywire.barn.builtin import widget_keys
-from haywire.core.types import FlowType, PrimitiveType
+from haywire.core.types import PrimitiveType
 from haywire.core.types import type as type_decorator
+from ..wires import DataWire
 
 
 class ColorStr(str):
@@ -14,7 +15,7 @@ class ColorStr(str):
 
 
 @type_decorator(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Color",
     description="Hex or rgba color string",
     color="#f7b0ff",

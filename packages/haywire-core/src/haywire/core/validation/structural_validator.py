@@ -13,14 +13,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List
 import logging
 
-from haywire.core.types import FlowType
+from haywire.core.types.wire import WireRole
 from haywire.core.types.enums import PortType
 from haywire.core.validation.interface import IStructuralValidator
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node.node_wrapper import NodeWrapper
-    from haywire.core.edge.edge_wrapper import EdgeWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +143,7 @@ class StructuralValidator(IStructuralValidator):
             )
 
         # Check for at least one control outlet
-        if len(node.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.CONTROL)) == 0:
+        if len(node.get_ports(is_port_type=PortType.OUTLET, is_role=WireRole.SEQUENCE)) == 0:
             return (
                 False,
                 "Event node must have at least one control outlet",
@@ -173,23 +172,24 @@ class StructuralValidator(IStructuralValidator):
         node = wrapper.node
 
         # Check for non-DATA ports with pins (not allowed)
-        ports = node.get_ports(is_not_flow_type=FlowType.DATA, has_pin=True)
+        ports = node.get_ports(is_not_role=WireRole.DEPENDENT, has_pin=True)
         if len(ports) > 0:
             return (
                 False,
-                f"Data nodes cannot have pins on non-DATA ports. Found: {[p.id for p in ports]}",
+                f"Data nodes cannot have pins on control or callback ports. Found: {[p.id for p in ports]}",
                 [
-                    "Remove all inlets and outlets with pins that are not DATA ports",
-                    "Data nodes are cannot be triggered by events or control flow",
+                    "Remove all pins on control or callback ports",
+                    "Data nodes cannot be triggered by events or control flow",
                 ],
             )
 
         # Check for at least one data outlet
-        if len(node.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.DATA)) == 0:
+        # A bare ADD slot counts: it is a data outlet until it grows.
+        if not any(port.is_dependent for port in node.get_ports(is_port_type=PortType.OUTLET)):
             return (
                 False,
                 "Data nodes must have at least one data outlet",
-                ["Add at least one outlet with FlowType.DATA to the node"],
+                ["Add at least one outlet on a data wire type to the node"],
             )
 
         # All checks passed
@@ -205,8 +205,8 @@ class StructuralValidator(IStructuralValidator):
 
         Rules:
         - Port-less (latent state) is valid — awaiting configuration by the split action.
-        - Configured: exactly one inlet AND one outlet of the same FlowType.
-        - Mixed FlowTypes (e.g. DATA inlet + CONTROL outlet) are invalid.
+        - Configured: exactly one inlet AND one outlet of the same wire type.
+        - Different wire types (e.g. data inlet + control outlet) are invalid.
         """
         node = wrapper.node
 
@@ -228,15 +228,15 @@ class StructuralValidator(IStructuralValidator):
                 ["A reroute passes one inlet value straight to one outlet"],
             )
 
-        # The inlet and outlet must carry the same FlowType.
-        inlet_flow = inlets[0].flow_type
-        outlet_flow = outlets[0].flow_type
-        if inlet_flow != outlet_flow:
+        # The inlet and outlet must carry the same wire type.
+        inlet_wire = inlets[0].wire_key
+        outlet_wire = outlets[0].wire_key
+        if inlet_wire != outlet_wire:
             return (
                 False,
                 (
-                    f"A reroute's inlet and outlet must have the same FlowType "
-                    f"(inlet={inlet_flow.value}, outlet={outlet_flow.value})"
+                    f"A reroute's inlet and outlet must be on the same wire type "
+                    f"(inlet={inlet_wire}, outlet={outlet_wire})"
                 ),
                 ["Reroute passes one type straight through; inlet and outlet must match"],
             )
@@ -413,7 +413,7 @@ class StructuralValidator(IStructuralValidator):
             Suggestions is a list of actionable fixes.
         """
         node = wrapper.node
-        control_outlets = node.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.CONTROL)
+        control_outlets = node.get_ports(is_port_type=PortType.OUTLET, is_role=WireRole.SEQUENCE)
 
         # Must have at least 2 control outlets (one for loop, one for exit)
         if len(control_outlets) < 2:
@@ -500,27 +500,6 @@ class StructuralValidator(IStructuralValidator):
                 )
 
         return errors
-
-    # ========================================================================
-    # EDGE VALIDATION
-    # ========================================================================
-
-    def validate_edge(self, wrapper: "EdgeWrapper") -> tuple[bool, str | None, list[str]]:
-        """
-        Validate structural constraints for a single edge.
-
-        This is called after edge build but before adding to graph.
-
-        Args:
-            wrapper: EdgeWrapper to validate
-
-        Returns:
-            Tuple of (is_valid, error_message, suggestions).
-            Error message is None if valid.
-            Suggestions is a list of actionable fixes.
-        """
-        # No flow type adds an edge-level rule; data cycles are validated graph-wide.
-        return (True, None, [])
 
     # ========================================================================
     # GRAPH-WIDE VALIDATION

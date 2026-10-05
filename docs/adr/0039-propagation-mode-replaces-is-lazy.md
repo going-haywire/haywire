@@ -1,12 +1,14 @@
 ---
 name: propagation-mode-replaces-is-lazy
-description: An edge's delivery timing is one Propagation mode — lazy, eager or immediate — replacing the is_lazy flag; immediate is locked by the flow type and a promoted outlet's edges are locked lazy
-status: accepted
-see-also: ADR-0014, ADR-0033, ADR-0036
+description: An edge's delivery timing is one Propagation mode — lazy, eager or immediate — replacing the is_lazy flag; immediate is locked by the flow type and a promoted outlet's edges are locked lazy (immediate is now a wire role, not a mode — ADR 0042)
+status: superseded-in-part by ADR-0042
+see-also: ADR-0014, ADR-0033, ADR-0036, ADR-0042
 level: architectural
 ---
 
 # An edge's delivery timing is one Propagation mode, and some modes are locked
+
+> **The immediate mode is superseded by [ADR 0042](0042-wire-types-replace-flowtype.md).** Immediate is the `IMMEDIATE` wire role, not a propagation mode: `Propagation` keeps lazy and eager, a wire type lists the modes its edges may take, and a callback edge, whose wire type allows none, has no propagation at all. Lazy, eager and the promoted outlet's lazy lock stand.
 
 **Context.** An edge carried one flag, `is_lazy`, while the timing of a delivered value depended on more: whether the pipe pushes or pulls, whether the receiving port acts on the value at once (callback inlets did, through a cached `_is_callback`), and an override behind the user's back — edges out of a promoted outlet were forced lazy in `_refresh_pipes`, so switching one to eager in the menu was silently undone. Letting callbacks pass through reroutes added a case the flag could not express safely: a lazy edge into a reroute never delivers, because nothing on a callback path executes to pull it.
 

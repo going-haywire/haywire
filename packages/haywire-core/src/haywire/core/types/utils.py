@@ -78,9 +78,16 @@ def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kw
         )
 
     # Build spec: identity as defaults, kwargs override
-    # The spec becomes the self-contained truth
+    # The spec becomes the self-contained truth. A port derives its wire type from
+    # its type, so the identity's is left out and a wire_type kwarg is refused.
+    if "wire_type" in kwargs:
+        raise TypeError(
+            f"{type_cls.__name__}.as_{port_type.value}({id!r}): a port takes its wire type from its "
+            f"type; declare it on the type with @type(wire_type=...)"
+        )
+    identity = {k: v for k, v in asdict(type_cls.class_identity).items() if k != "wire_type"}
     merged_kwargs = {
-        **asdict(type_cls.class_identity),  # Identity defaults
+        **identity,  # Identity defaults
         "id": id,
         "port_type": port_type,
         **kwargs,  # User overrides

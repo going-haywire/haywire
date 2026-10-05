@@ -47,7 +47,8 @@ from haywire.core.graph.subgraph_crossing import (
     exit_crossing_id,
 )
 from haywire.core.node import node, BaseNode, NodeType
-from haywire.core.types import FlowType, PortOrigin
+from haywire.core.types import PortOrigin
+from haywire.core.types.wire import WireRole, wire_type_of
 from haywire.core.types.enums import PortType
 
 
@@ -64,7 +65,7 @@ class _GrowsInterface(BaseNode):
     in one open pin. The grown port is ``PortOrigin.RESOLVED``, so the user may
     remove it; the slot is ``DECLARED`` and permanent.
 
-    A port whose type carries ``FlowType.CONTROL`` grows a control port, which
+    A port whose type travels on a control wire grows a control port, which
     is what turns the Graph-node into a CONTROL node. See ADR 0036.
     """
 
@@ -131,9 +132,11 @@ class _GrowsInterface(BaseNode):
         if not other.is_immediate:
             # An immediate port's default is its own node's subscription, so the type's default stands.
             kwargs["default"] = other.default
+        incoming_wire = wire_type_of(incoming)
         if (
             self._SLOT_PORT_TYPE is PortType.INLET
-            and FlowType(incoming.class_identity.flow_type).is_immediate
+            and incoming_wire is not None
+            and incoming_wire.role is WireRole.IMMEDIATE
         ):
             kwargs["on_change"] = RELAY_HANDLER
         if other.widget_key is not None:
@@ -232,7 +235,7 @@ class SubgraphInputNode(_GrowsInterface):
             source = card.ports.get(card_inlet_id)
             if source is not None and not outlet.is_immediate:
                 pairs.append((source, outlet))
-            if outlet.flow_type is FlowType.CONTROL:
+            if outlet.has_role(WireRole.SEQUENCE):
                 crossings[enter_crossing_id(card_inlet_id)] = outlet.id
         return pairs, crossings
 
@@ -292,6 +295,6 @@ class SubgraphOutputNode(_GrowsInterface):
             target = card.ports.get(card_port_id(inlet.id, is_inlet=False))
             if target is not None and not inlet.is_immediate:
                 pairs.append((inlet, target))
-            if inlet.flow_type is FlowType.CONTROL:
+            if inlet.has_role(WireRole.SEQUENCE):
                 crossings[inlet.id] = exit_crossing_id(inlet.id)
         return pairs, crossings

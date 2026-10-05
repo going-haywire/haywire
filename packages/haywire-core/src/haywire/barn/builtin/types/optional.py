@@ -2,14 +2,15 @@
 
 from typing import TypeVar
 
-from haywire.core.types import FlowType, WrapperType, type
+from haywire.core.types import WrapperType, type
 from haywire.barn.builtin import widget_keys
+from ..wires import DataWire
 
 T = TypeVar("T")
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Optional",
     description="A value of the wrapped type, or absence",
     default={"value": None},

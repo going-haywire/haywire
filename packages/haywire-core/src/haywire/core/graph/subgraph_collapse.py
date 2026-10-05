@@ -15,7 +15,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Sequence, Set, Tuple
 import re
 
-from ..types.enums import FlowType
 
 if TYPE_CHECKING:
     from ..edge.edge_wrapper import EdgeWrapper
@@ -39,7 +38,7 @@ def check_convex(graph: "BaseGraph", node_ids: Iterable[str]) -> Tuple[bool, Lis
     both ``G -> B`` and ``B -> G``, so the Graph-node would be entered twice in
     one pass — incoherent for control flow, and a real cycle for data.
 
-    Both flow types count. A data path that leaves and re-enters becomes a cycle
+    Both wire types count. A data path that leaves and re-enters becomes a cycle
     through the Subgraph's own contents once inlined, which the data-flow
     builder rejects at assembly.
 
@@ -107,7 +106,6 @@ class BoundaryPort:
     port_id: str
     label: str
     itype: "type[IType]"
-    flow_type: FlowType
     description: str = ""
     widget_key: "str | None" = None
     widget_config: Dict[str, Any] = field(default_factory=dict)
@@ -228,7 +226,6 @@ def _build_ports(
                 port_id=_mint_port_id(naming.id, taken_ids),
                 label=label,
                 itype=itype,
-                flow_type=naming.flow_type,
                 description=naming.description,
                 widget_key=naming.widget_key,
                 widget_config=dict(naming.widget_config),

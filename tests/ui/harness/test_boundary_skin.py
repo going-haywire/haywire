@@ -32,7 +32,7 @@ def _pins(page: Page) -> list[dict]:
                 return {
                     node: n.id,
                     pin: p.dataset.pinId,
-                    flow: p.dataset.pinFlowType,
+                    ghost: 'pinGhost' in p.dataset,
                     inset: p.dataset.pinDir === 'inlet' ? cx - c.left : c.right - cx,
                 };
             });
@@ -55,7 +55,7 @@ def test_both_boundary_nodes_render_a_root_ghost_pin(page: Page, harness) -> Non
     """An edge whose port is removed falls back to the ghost, so it stays on the card."""
     goto_ready(page, f"{harness}/graph-boundary")
 
-    ghosts = {(r["node"], r["pin"]) for r in _pins(page) if r["flow"] == "ghost"}
+    ghosts = {(r["node"], r["pin"]) for r in _pins(page) if r["ghost"]}
 
     assert any(pin == "root_out" for _node, pin in ghosts), "the Subgraph Input has no outlet ghost"
     assert any(pin == "root_in" for _node, pin in ghosts), "the Subgraph Output has no inlet ghost"
@@ -65,7 +65,7 @@ def test_a_ghost_pin_sits_on_the_edge_like_a_real_pin(page: Page, harness) -> No
     goto_ready(page, f"{harness}/graph-boundary")
 
     for row in _pins(page):
-        if row["flow"] == "ghost":
+        if row["ghost"]:
             assert abs(row["inset"]) <= 2, f"ghost {row['pin']} sits {row['inset']:.1f}px from the card edge"
 
 

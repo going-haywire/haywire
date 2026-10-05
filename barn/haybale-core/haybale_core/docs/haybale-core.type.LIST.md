@@ -6,7 +6,7 @@ Ordered collection
 
 ## Details
 
-- **flow_type**: `data`
+- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': []}`
 - **color**: `#e91e63`
 

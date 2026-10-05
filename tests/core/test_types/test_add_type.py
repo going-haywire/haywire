@@ -141,7 +141,6 @@ def _bare_port(spec) -> DataPort:
     read provenance off the finished port, so the kwargs are applied directly.
     """
     kwargs = dict(spec["kwargs"])
-    kwargs.pop("flow_type", None)
     port_type = PortType(kwargs.pop("port_type"))
     if kwargs.pop("promoted", False):
         kwargs.setdefault("origin", PortOrigin.PROMOTED)

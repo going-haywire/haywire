@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Type, TypeVar
 
-from haywire.core.types import type, FlowType, DataField, CompoundType
+from haywire.core.types import type, DataField, CompoundType
 from haywire.ui import elements as hui
+from haywire.barn.builtin.wires import DataWire
 
 T = TypeVar("T")
 
@@ -12,7 +13,7 @@ T = TypeVar("T")
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Array",
     description="Map with key type string",
     color="#39f55f",

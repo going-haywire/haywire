@@ -10,7 +10,7 @@ from .interface import IType
 from .base import PrimitiveType, BaseType, CompoundType, WrapperType
 from .decorator import type
 from .identity import DataTypeIdentity
-from .enums import FlowType, LayoutDirection, NodeDetail, PortOrigin, PortType, Propagation, StoreStrategy
+from .enums import LayoutDirection, NodeDetail, PortOrigin, PortType, Propagation, StoreStrategy
 from .event import Event
 from .fields import DataField, PrimitiveField, BaseField
 from .port import DataPort
@@ -25,6 +25,7 @@ from .utils import (
     normalize_and_validate_default,
     is_cattrs_serializable,
 )
+from .wire import WILDCARD, WireRole, WireType, get_wire_type, wire_type_of, wires_match
 
 __all__ = [
     # Interface
@@ -39,7 +40,6 @@ __all__ = [
     # Identity
     "DataTypeIdentity",
     # Enums
-    "FlowType",
     "LayoutDirection",
     "NodeDetail",
     "PortOrigin",
@@ -58,6 +58,13 @@ __all__ = [
     "Pipes",
     # Registry
     "TypeRegistry",
+    # Wire types
+    "WILDCARD",
+    "WireRole",
+    "WireType",
+    "get_wire_type",
+    "wire_type_of",
+    "wires_match",
     # Specs & utilities
     "PortSpec",
     "ElementTypeSpec",

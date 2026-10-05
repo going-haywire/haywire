@@ -35,7 +35,8 @@ from haywire.core.graph.subgraph_crossing import (
     enter_crossing_id,
     exit_crossing_id,
 )
-from haywire.core.types.enums import FlowType, PortType
+from haywire.core.types.enums import PortType
+from haywire.core.types.wire import WireRole
 
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
@@ -145,7 +146,7 @@ class FlatGraphView:
             return {}
 
         crossings: Dict[str, Tuple[str, str]] = {}
-        inlets = card.node.get_ports(is_port_type=PortType.INLET, is_flow_type=FlowType.CONTROL)
+        inlets = card.node.get_ports(is_port_type=PortType.INLET, is_role=WireRole.SEQUENCE)
         for inlet in inlets:
             crossing = enter_crossing_id(inlet.id)
             crossings[crossing] = (input_node.node_id, crossing)
@@ -160,7 +161,7 @@ class FlatGraphView:
             return {}
 
         crossings: Dict[str, Tuple[str, str]] = {}
-        inlets = output_node.node.get_ports(is_port_type=PortType.INLET, is_flow_type=FlowType.CONTROL)
+        inlets = output_node.node.get_ports(is_port_type=PortType.INLET, is_role=WireRole.SEQUENCE)
         for inlet in inlets:
             crossing = exit_crossing_id(inlet.id)
             crossings[crossing] = (card.node_id, crossing)
@@ -207,7 +208,7 @@ class FlatGraphView:
         ]
 
         definition = _subgraph_of(wrapper)
-        if definition is not None and not _is_control_crossed(wrapper):
+        if definition is not None and not wrapper.node.has_sequence_pins():
             spliced.extend(self._interior_sinks(wrapper, definition, port_id))
 
         return spliced
@@ -225,7 +226,7 @@ class FlatGraphView:
         # A card's outlet is written by its Subgraph Output, so that is what a
         # consumer depends on.
         definition = _subgraph_of(source)
-        if definition is not None and not _is_control_crossed(source):
+        if definition is not None and not source.node.has_sequence_pins():
             output_node = definition.output_node
             boundary_id = boundary_port_id(edge.outlet_port_id)
             if output_node is not None and boundary_id is not None:
@@ -245,7 +246,7 @@ class FlatGraphView:
         if not isinstance(owner, SubgraphDefinition):
             return edge
         card = owner.graph_node_wrapper()
-        if card is None or _is_control_crossed(card):
+        if card is None or card.node.has_sequence_pins():
             return edge
 
         return SplicedEdge(
@@ -315,8 +316,3 @@ def _subgraph_of(wrapper: "NodeWrapper") -> SubgraphDefinition | None:
         return None
     definition = resolve()
     return definition if isinstance(definition, SubgraphDefinition) else None
-
-
-def _is_control_crossed(card: "NodeWrapper") -> bool:
-    """Whether control crosses this Graph-node's boundary, rather than data alone."""
-    return bool(card.node.get_ports(is_flow_type=FlowType.CONTROL, has_pin=True))

@@ -20,9 +20,9 @@ valid ``background`` value, so a hand-edited graph cannot break a render.
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from haywire.core.types import FlowType
 from haywire.core.types import type as type_decorator
 from haywire.core.types.base import BaseType
+from haywire.barn.builtin.wires import DataWire
 
 FILL_WIDGET = "haybale-example:widget:FillWidget"
 """The widget's registry key. Spelled out rather than imported from a shared
@@ -66,7 +66,7 @@ def _clean_stop(stop: Any, fallback_at: int) -> dict:
 
 
 @type_decorator(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Fill",
     description="Solid colour or gradient background",
     color="#f7b0ff",

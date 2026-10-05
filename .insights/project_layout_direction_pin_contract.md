@@ -55,7 +55,7 @@ hand-rolled vector fails a test instead of shipping.
 ## The edge cache assumed orientation was immutable
 
 `_createEdge` captured each pin's direction vector once; `_updateEdge` refreshed position
-and colour on every update but *not* the vector. Safe only while every node was L2R. After
+and colour on every update but *not* the vector. Safe only while every node was `LEFT_TO_RIGHT`. After
 a direction switch the curve still aimed the old way — visibly, an outlet's edge doubling
 back into its own node. `_updateEdge` now re-reads both vectors from the live pins.
 

@@ -36,7 +36,7 @@ from haywire.core.graph.subgraph_crossing import (
 )
 from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import node, BaseNode, NodeType
-from haywire.core.types import FlowType
+from haywire.core.types.wire import WireRole
 from haywire.core.types.enums import PortType
 
 if TYPE_CHECKING:
@@ -267,7 +267,6 @@ class GraphNode(BaseNode):
         kwargs: dict[str, Any] = {
             "label": port.label,
             "description": port.description,
-            "flow_type": port.flow_type,
             "default": port.default,
         }
         if port.widget_key is not None:
@@ -307,7 +306,7 @@ class GraphNode(BaseNode):
         thing that changes these pins — so the role is always settled before
         validation or assembly reads it.
         """
-        control = bool(self.get_ports(is_flow_type=FlowType.CONTROL, has_pin=True))
+        control = self.has_sequence_pins()
         self.set_node_type(type(self).class_behavior.node_type if control else NodeType.DATA)
 
     # =========================================================================
@@ -331,9 +330,9 @@ class GraphNode(BaseNode):
 
         # control_pin -> what the worker returns, for each of the two hop roles.
         crossings: dict[str, str] = {}
-        for inlet in self.get_ports(is_port_type=PortType.INLET, is_flow_type=FlowType.CONTROL):
+        for inlet in self.get_ports(is_port_type=PortType.INLET, is_role=WireRole.SEQUENCE):
             crossings[inlet.id] = enter_crossing_id(inlet.id)
-        for outlet in self.get_ports(is_port_type=PortType.OUTLET, is_flow_type=FlowType.CONTROL):
+        for outlet in self.get_ports(is_port_type=PortType.OUTLET, is_role=WireRole.SEQUENCE):
             boundary_id = boundary_port_id(outlet.id)
             if boundary_id is not None:
                 crossings[exit_crossing_id(boundary_id)] = outlet.id

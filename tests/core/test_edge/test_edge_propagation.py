@@ -1,4 +1,4 @@
-"""An edge's propagation: the user's lazy/eager choice, and the modes a flow or outlet locks.
+"""An edge's propagation: the user's lazy/eager choice, the mode an outlet locks, and edges that have none.
 
 A ``Pipe`` copies its mode at construction, so a change has to rebuild it. The
 pin menu and the edge properties panel both write the property directly, which
@@ -143,34 +143,19 @@ class TestChoosingLazyOrEager:
 
         assert sorted(_pipe_modes(source.node.ports["result"])) == [False, True]
 
-    def test_immediate_cannot_be_chosen(self, linked_pair):
-        _graph, _source, _sink, edge = linked_pair
-
-        with pytest.raises(ValueError, match="cannot be chosen"):
-            edge.propagation = Propagation.IMMEDIATE
-
-    def test_immediate_cannot_be_passed_at_creation(self, graph_with_library_system):
-        graph = graph_with_library_system
-        source, sink = make_node(graph, _ADD), make_node(graph, _ADD)
-
-        with pytest.raises(ValueError, match="cannot be chosen"):
-            graph.create_edge_wrapper(
-                source.node_id, "result", sink.node_id, "value_a", propagation=Propagation.IMMEDIATE
-            )
-
 
 class TestLockedModes:
-    def test_a_callback_edge_is_locked_immediate(self, callback_edge):
+    def test_a_callback_edge_has_no_propagation(self, callback_edge):
         event, edge = callback_edge
 
-        assert edge.locked_propagation is Propagation.IMMEDIATE
-        assert edge.propagation is Propagation.IMMEDIATE
+        assert edge.propagation is None
+        assert edge.locked_propagation is None
         assert _pipe_modes(event.node.ports["listen_callback"]) == [False]
 
-    def test_a_locked_edge_refuses_a_choice(self, callback_edge):
+    def test_a_callback_edge_refuses_a_choice(self, callback_edge):
         _event, edge = callback_edge
 
-        with pytest.raises(ValueError, match="locked"):
+        with pytest.raises(ValueError, match="cannot take"):
             edge.propagation = Propagation.LAZY
 
     def test_an_edge_out_of_a_promoted_outlet_is_locked_lazy(self, promoted_outlet_edge):
@@ -193,10 +178,25 @@ class TestSaving:
         assert saved["propagation"] == "lazy"
         assert "is_lazy" not in saved
 
-    def test_a_locked_mode_is_not_saved(self, callback_edge):
+    def test_a_callback_edge_saves_no_propagation(self, callback_edge):
         _event, edge = callback_edge
 
-        assert edge.edge.to_dict()["propagation"] == "eager"
+        assert "propagation" not in edge.edge.to_dict()
+
+    def test_a_mode_loaded_into_an_edge_that_fails_validation_is_kept(self, linked_pair):
+        """Q20: an edge that does not validate is never rewritten."""
+        graph, _source, _sink, edge = linked_pair
+        edge.propagation = Propagation.LAZY
+        edge_id = edge.edge_id
+        data = graph.to_dict()
+        data["edges"][edge_id]["inlet_port_id"] = "gone"
+
+        graph.clear()
+        graph.load_from_dict(data)
+        reloaded = next(iter(graph.edge_wrappers.values()))
+
+        assert not reloaded.state.is_valid()
+        assert reloaded.edge.to_dict()["propagation"] == "lazy"
 
     def test_loading_restores_the_chosen_mode(self, linked_pair):
         graph, _source, _sink, edge = linked_pair
@@ -225,7 +225,3 @@ class TestToggling:
     def test_eager_toggles_to_lazy_and_back(self):
         assert Propagation.EAGER.toggled() is Propagation.LAZY
         assert Propagation.LAZY.toggled() is Propagation.EAGER
-
-    def test_immediate_does_not_toggle(self):
-        with pytest.raises(ValueError, match="cannot be toggled"):
-            Propagation.IMMEDIATE.toggled()

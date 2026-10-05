@@ -1,5 +1,6 @@
 from haywire.barn.builtin import widget_keys
-from haywire.core.types import FlowType, PrimitiveField, PrimitiveType, type
+from haywire.core.types import PrimitiveField, PrimitiveType, type
+from ..wires import DataWire
 
 
 # ============================================================================
@@ -8,7 +9,7 @@ from haywire.core.types import FlowType, PrimitiveField, PrimitiveType, type
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Integer",
     description="Whole number",
     color="#f7b0ff",
@@ -50,7 +51,7 @@ INT.field_class = INTField
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Float",
     description="Decimal numberer",
     color="#50b0ff",
@@ -85,7 +86,7 @@ FLOAT.field_class = FLOATField
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="String",
     description="Text data",
     color="#ffc107",
@@ -109,7 +110,7 @@ class STRING(PrimitiveType[str]):
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Boolean",
     description="True or False",
     color="#4caf50",

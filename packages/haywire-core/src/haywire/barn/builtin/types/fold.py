@@ -1,10 +1,11 @@
-from haywire.core.types import FlowType, StoreStrategy, type
+from haywire.core.types import StoreStrategy, type
 
 from .specs import BOOL
+from ..wires import DataWire
 
 
 @type(
-    flow_type=FlowType.DATA,
+    wire_type=DataWire,
     label="Fold",
     description="Hides or shows the ports inside it",
     color="#90a4ae",

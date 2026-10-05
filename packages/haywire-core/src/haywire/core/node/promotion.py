@@ -167,7 +167,7 @@ def promote_setting(
     recorded on the bag, which is what serializes — the port never does.
 
     A promoted outlet is always ``is_linked_lazy``, since it is never driven by a
-    worker ``out()`` call. A promoted config port is pinless (``flow_type=NONE``),
+    worker ``out()`` call. A promoted config port has no pin and no wire type,
     so it is never linked and never lazy, and it keeps its editable row in the
     Properties panel: promoting to config adds the port's own widget wherever a
     config port renders, rather than moving the panel's.

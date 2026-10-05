@@ -142,7 +142,7 @@ class NodeCreateRequestEvent(BaseGraphEvent):
     position: Dict[str, float]  # {x: float, y: float}
     # Set when the canvas context menu was opened mid-drag from a pin.
     # The visual-layer handler uses it to auto-wire the new node to a
-    # compatible port. Carries pin_id, node_id, pin_dir, flow_type, data_type.
+    # compatible port. Carries pin_id, node_id, pin_dir, wire, data_type.
     pending_connection: Optional[Dict[str, str]] = None
 
 
@@ -353,7 +353,7 @@ class ContextMenuCanvasEvent(BaseGraphEvent):
     pendingPinId: str = ""
     pendingNodeId: str = ""
     pendingPinDir: str = ""  # 'inlet' | 'outlet' | ''
-    pendingFlowType: str = ""  # 'data' | 'control' | 'callback' | ''
+    pendingWire: str = ""  # the dragged pin's wire key ('*' for a bare ADD slot) or ''
     pendingDataType: str = ""  # data-type registry key or ''
 
 

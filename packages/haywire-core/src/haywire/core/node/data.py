@@ -7,7 +7,8 @@ from dataclasses import replace
 
 from haywire.core.execution.event_source import EventSource
 from haywire.core.node import NodeIdentity
-from ..types.enums import FlowType, PortOrigin, PortType
+from ..types.enums import PortOrigin, PortType
+from ..types.wire import WireRole
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
 from ..types import DataPort, PortSpec
@@ -610,8 +611,8 @@ class NodeData:
         self,
         is_port_type: Optional[PortType] = None,
         has_pin: Optional[bool] = None,
-        is_flow_type: Optional[FlowType] = None,
-        is_not_flow_type: Optional[FlowType] = None,
+        is_role: Optional[WireRole] = None,
+        is_not_role: Optional[WireRole] = None,
         has_widget: Optional[bool] = None,
     ) -> list[DataPort]:
         """Return the ports matching every filter given. ``None`` disables a filter.
@@ -619,8 +620,9 @@ class NodeData:
         Args:
             is_port_type: Keep ports of this ``PortType``.
             has_pin: Keep ports that do, or do not, draw a visual pin.
-            is_flow_type: Keep ports of this ``FlowType``.
-            is_not_flow_type: Drop ports of this ``FlowType``.
+            is_role: Keep ports whose wire type has this role.
+            is_not_role: Keep ports that have a wire type, of another role. A port
+                without a wire type (a config port, a bare ``ADD`` slot) is left out.
             has_widget: Keep ports that do, or do not, carry a widget.
         """
         return [
@@ -628,10 +630,14 @@ class NodeData:
             for port in self.ports.values()
             if (is_port_type is None or is_port_type == port.port_type)
             and (has_pin is None or has_pin == port.has_pin())
-            and (is_flow_type is None or is_flow_type == port.flow_type)
-            and (is_not_flow_type is None or is_not_flow_type != port.flow_type)
+            and (is_role is None or port.has_role(is_role))
+            and (is_not_role is None or (port.wire_type is not None and not port.has_role(is_not_role)))
             and (has_widget is None or has_widget == port.widget_key is not None)
         ]
+
+    def has_sequence_pins(self) -> bool:
+        """True if this node carries a pin on a ``SEQUENCE`` wire, a control pin."""
+        return bool(self.get_ports(is_role=WireRole.SEQUENCE, has_pin=True))
 
     def iter_hidden_connected_ports(self, is_inlet: bool) -> Iterator[DataPort]:
         """Yield linked ports that a collapsed ancestor fold hides, in display order.

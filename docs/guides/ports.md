@@ -31,7 +31,7 @@ Type system              Port factory          Runtime
 FLOAT (IType cls)   →   FLOAT.as_inlet(    →   DataPort instance
                           id='value',           on node.ports[id]
                           default=0.0,          + DataField that holds the value
-                          label='Value',        + flow_type, socket_type, mate_type
+                          label='Value',        + wire_type (derived), socket_type, mate_type
                           widget=...)           + edge wrappers (when connected)
                           → spec dict
                                             self.add(spec) attaches it
@@ -51,7 +51,7 @@ FLOAT (IType cls)   →   FLOAT.as_inlet(    →   DataPort instance
 | `T.as_outlet(id, **kwargs)` | Emits data or control | Yes |
 | `T.as_config(id, **kwargs)` | Internal parameter, only visible in the property panel | No |
 
-`as_config` is implemented as an inlet with `flow_type=FlowType.NONE`. Use it for "knobs" that the user adjusts via the property panel rather than connecting to other nodes (a mode selector, a quality preset).
+`as_config` builds a port with no pin and no wire type. Use it for "knobs" that the user adjusts via the property panel rather than connecting to other nodes (a mode selector, a quality preset).
 
 **Common kwargs (all optional, pass to any of the three factories).**
 
@@ -61,7 +61,6 @@ FLOAT (IType cls)   →   FLOAT.as_inlet(    →   DataPort instance
 | `default` | varies | Override the type's default value |
 | `widget_key` | `str` | Override the type's widget |
 | `widget_config` | `dict` | Override the widget's config |
-| `flow_type` | `FlowType` | Override the type's flow type |
 | `on_change` | `str` | Name of a node method to call when the port's value changes |
 | `on_connect` | `str` | Name of a node method to call when an edge connects |
 | `on_disconnect` | `str` | Name of a node method to call when an edge disconnects |
@@ -147,7 +146,7 @@ with self.fold('Solver'):
 ```
 
 While closed, child ports are hidden but their edges survive, drawn to a
-ghost pin near the node title (see `iter_hidden_connected_ports`). `default=`
+pin in the node card header (see `iter_hidden_connected_ports`). `default=`
 sets the starting open/closed state, and `on_change=` names a method to call
 when the user folds or unfolds — the same reconfigure hook a config port
 uses:
