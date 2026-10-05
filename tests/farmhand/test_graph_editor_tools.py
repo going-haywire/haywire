@@ -77,7 +77,7 @@ def test_query_detail_adds_port_setup_fields(farmhand_call):
         node = next(n for n in detailed["nodes"] if n["node_id"] == node_id)
         detail_keys = {
             "data_type",
-            "allow_multiple_links",
+            "takes_many_links",
             "is_linked",
             "link_count",
             "use_mode",
@@ -899,3 +899,48 @@ def test_set_metadata_unknown_graph_is_a_stable_error(farmhand_call):
     )
     assert result.isError is True
     assert "[graph_not_found]" in result.content[0].text
+
+
+def test_set_property_on_a_pooled_inlet_raises_no_own_value(farmhand_call):
+    """A pooled inlet's value comes only from its edges: the tool names that, not 'unknown property'."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid, CALLBACK_NODE_KEY)
+        result = _call(
+            farmhand_call,
+            "haybale-graph-editor_set_property",
+            {"binding_id": bid, "node_id": node_id, "name": "pooled_float_inlet", "value": 3.0},
+        )
+        assert result.isError is True
+        assert "[no_own_value]" in result.content[0].text
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_set_property_on_a_linked_inlet_writes_and_reports_the_own_value(farmhand_call):
+    """An edge's value stands in front of the own value; the write targets and reports the own one."""
+    bid = _new_graph(farmhand_call)
+    try:
+        src = _add(farmhand_call, bid, NODE_KEY)
+        sink = _add(farmhand_call, bid, NODE_KEY)
+        connect = _call(
+            farmhand_call,
+            "haybale-graph-editor_connect",
+            {
+                "binding_id": bid,
+                "source_node_id": src,
+                "outlet": "result",
+                "sink_node_id": sink,
+                "inlet": "value_a",
+            },
+        )
+        assert connect.isError is not True
+        result = _call(
+            farmhand_call,
+            "haybale-graph-editor_set_property",
+            {"binding_id": bid, "node_id": sink, "name": "value_a", "value": 42.0},
+        )
+        assert result.isError is not True, result.content[0].text
+        assert "42.0" in result.content[0].text
+    finally:
+        _close(farmhand_call, bid)

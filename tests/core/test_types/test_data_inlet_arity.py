@@ -1,4 +1,4 @@
-"""A DATA inlet takes one edge; only a pooled inlet takes several."""
+"""A data inlet takes one edge; only a pooled inlet takes several."""
 
 import pytest
 
@@ -7,7 +7,7 @@ from haywire.core.types import DataPort, PortType
 
 
 @pytest.mark.unit
-def test_a_data_inlet_is_single_link_whatever_it_declares():
+def test_a_data_inlet_takes_one_link():
     port = DataPort(
         registry_id="float",
         registry_key="haybale_core:type:float",
@@ -15,10 +15,9 @@ def test_a_data_inlet_is_single_link_whatever_it_declares():
         id="v",
         type_cls=FLOAT,
         port_type=PortType.INLET,
-        allow_multiple_links=True,
     )
 
-    assert port.allow_multiple_links is False
+    assert port.takes_many_links is False
 
 
 @pytest.mark.integration
@@ -29,4 +28,4 @@ def test_a_pooled_inlet_still_takes_several_edges(graph_with_library_system, lib
         EdgeLinkTestNode.class_identity.registry_key, position=(0, 0)
     ).node
 
-    assert node.ports["pooled_float_inlet"].allow_multiple_links is True
+    assert node.ports["pooled_float_inlet"].takes_many_links is True

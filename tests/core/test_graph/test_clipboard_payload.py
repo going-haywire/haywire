@@ -39,7 +39,6 @@ def _fake_graph(boundary_ids: frozenset[str] = frozenset()):
         "outlet_port_id": "o",
         "sink_node_id": "n2",
         "inlet_port_id": "i",
-        "edge_type": "data",
         "chain_adapter_keys": [],
         "propagation": "eager",
     }
@@ -49,7 +48,6 @@ def _fake_graph(boundary_ids: frozenset[str] = frozenset()):
         "outlet_port_id": "o",
         "sink_node_id": "n3",
         "inlet_port_id": "i",
-        "edge_type": "data",
         "chain_adapter_keys": [],
         "propagation": "eager",
     }

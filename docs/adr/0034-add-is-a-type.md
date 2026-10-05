@@ -1,12 +1,14 @@
 ---
 name: add-is-a-type
 description: A pin that grows a new port declares what it accepts through its IType (bare ADD, or ADD[T], a new type family), so an unconvertible edge is refused by the adapter layer instead of by node code
-status: accepted
-see-also: ADR-0017, ADR-0033
+status: superseded-in-part by ADR-0043
+see-also: ADR-0017, ADR-0033, ADR-0043
 level: architectural
 ---
 
 # A growing pin declares what it accepts
+
+> **Two bare `ADD` slots no longer connect ([ADR 0043](0043-refuse-only-what-breaks.md)).** The edge would have no wire type to take. A bare `ADD` connects to any other port.
 
 **Context.** A node can declare a pin that grows: connecting to it replaces it
 with a real port, which is how a node offers a variable number of inputs. What

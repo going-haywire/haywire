@@ -25,14 +25,14 @@ Usage:
 
 Note: Pooled is INLET-ONLY - cannot be used with outlets!
 
-It sets the pin to allow multiple connections automatically.
+Its field keeps one value per source, so the inlet takes many edges (see `DataPort.takes_many_links`).
 
 IMPORTANT:
-    It travels on the element type's wire type; a wire type declared in as_inlet() has no effect.
+    as_inlet() refuses a wire_type kwarg; the port travels on its element type's wire type.
 
 Storage: PooledField stores Dict[str, T] with unwrapped values
 Worker Access: Dict[str, T] or List[T]
 
 Hooks:
 - _validate_port_type: Overridden to prevent outlets
-- _configure_port: Overridden to set allow_multiple_links
+- _configure_port: takes the element's colour and refuses a control element

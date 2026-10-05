@@ -19,26 +19,26 @@ def _edge_link_test_node(graph: BaseGraph):
 
 
 class TestArrayTypeOutletConnectionRule:
-    """An ArrayType outlet over a DATA element type allows multiple links,
-    exactly like a scalar DATA outlet — see DataPort.__post_init__."""
+    """An ArrayType outlet over a data element takes many links, exactly like a scalar
+    data outlet; see `DataPort.takes_many_links`."""
 
     def test_array_outlet_over_data_element_allows_multiple_links(self, graph_with_library_system):
         node = _edge_link_test_node(graph_with_library_system)
         outlet = node.ports["array_float_outlet"]
 
         assert outlet.wire_type.id == DataWire.id
-        assert outlet.allow_multiple_links is True
+        assert outlet.takes_many_links is True
 
     def test_pooled_array_inlet_over_data_element_is_multi_link(self, graph_with_library_system):
-        """A pooled array inlet resolves to the data wire and allows several links
-        (PooledType sets multi-link)."""
+        """A pooled array inlet resolves to the data wire and takes several links
+        (a pooled field keeps one value per source, so the inlet takes many)."""
         node = _edge_link_test_node(graph_with_library_system)
         inlet = node.ports["pooled_array_string_inlet"]
 
-        # Wrapped in PooledType, whose own _configure_port sets multi-link; the ArrayType
-        # layer beneath it still resolves to the data wire.
+        # Wrapped in PooledType: a pooled field keeps one value per source, so the inlet
+        # takes many; the ArrayType layer beneath it still resolves to the data wire.
         assert inlet.wire_type.id == DataWire.id
-        assert inlet.allow_multiple_links is True
+        assert inlet.takes_many_links is True
 
     def test_array_outlet_color_follows_element_type(self, graph_with_library_system):
         """_configure_port takes the colour from the element that declares the wire type."""
@@ -48,6 +48,15 @@ class TestArrayTypeOutletConnectionRule:
         outlet = node.ports["array_float_outlet"]
 
         assert outlet.color == FLOAT.class_identity.color
+
+    def test_pooled_inlet_color_follows_element_type(self, graph_with_library_system):
+        """A PooledType wrapper takes the colour of the element that declares the wire type."""
+        from haywire.barn.builtin.types import FLOAT
+
+        node = _edge_link_test_node(graph_with_library_system)
+        inlet = node.ports["pooled_float_inlet"]
+
+        assert inlet.color == FLOAT.class_identity.color
 
     def test_two_edges_link_from_the_same_array_outlet(self, graph_with_library_system):
         """End-to-end regression: a second edge from an ArrayType outlet must

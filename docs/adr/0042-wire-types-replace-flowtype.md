@@ -1,12 +1,14 @@
 ---
 name: wire-types-replace-flowtype
 description: A port's transport is a wire type its data type declares — a never-instantiated class with a closed role — derived for ports and edges, never stored; FlowType is gone
-status: accepted
-see-also: ADR-0009, ADR-0039, ADR-0041
+status: superseded-in-part by ADR-0043
+see-also: ADR-0009, ADR-0039, ADR-0041, ADR-0043
 level: architectural
 ---
 
 # Wire types replace FlowType
+
+> **The wildcard matches any wire key except another wildcard ([ADR 0043](0043-refuse-only-what-breaks.md)).**
 
 **Context.** `FlowType` was a closed enum (DATA, CONTROL, CALLBACK, NONE) that every type, port and edge carried and saved. A library could not add a kind of edge, three places decided what may connect (the server's formal check, the canvas and auto-wire) and drifted apart, a config port reloaded as DATA because the saved flow beat the type, and `ADD[T]` was DATA whatever `T` was.
 

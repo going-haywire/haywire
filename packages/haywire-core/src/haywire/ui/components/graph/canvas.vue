@@ -3646,9 +3646,10 @@ export default {
                 (startDir === 'inlet' && endDir === 'outlet');
         },
 
-        /** Mirror of wires_match (core/types/wire.py): equal wire keys, or either the '*' wildcard. */
+        /** Mirror of wires_match (core/types/wire.py): equal wire keys, or exactly one '*' wildcard. */
         _wiresMatch(a, b) {
             if (!a || !b) return false;
+            if (a === '*' && b === '*') return false;
             return a === b || a === '*' || b === '*';
         },
 

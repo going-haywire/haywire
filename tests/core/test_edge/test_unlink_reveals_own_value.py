@@ -82,7 +82,6 @@ def _inlet() -> DataPort:
 @pytest.mark.unit
 def test_an_inlet_fed_by_two_edges_keeps_the_linked_value_until_the_last_goes():
     port = _inlet()
-    port.allow_multiple_links = True
     port.set_value(1.0)
     port._linked_edges["a"] = cast(Any, object())
     port._linked_edges["b"] = cast(Any, object())

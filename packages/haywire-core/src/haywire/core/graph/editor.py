@@ -160,7 +160,8 @@ class Editor:
         ``name`` resolves to a port id first, then a settings-bag field name;
         ``prefer_setting=True`` flips that order, for a ``name`` that must mean
         the settings field even though a port shares it. Returns ``False``
-        without mutating anything if the node or the name is unknown.
+        without mutating anything if the node or the name is unknown, or the port
+        holds no own value (a pooled inlet or an ``ADD`` slot).
         """
         try:
             action = SetPropertyAction(self.graph, node_id, name, value, prefer_setting=prefer_setting)

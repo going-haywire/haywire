@@ -89,7 +89,7 @@ from: `EmitCallbackNode` — registry_key: `haybale-example:node:EmitCallbackNod
 
 **What the pair shows:**
 
-- **`allow_multiple_links=True`** on the listener's `CALLBACK` outlet lets many emitters target the same listener (port detail in [guides/ports](./ports.md)).
+- **One listener, many emitters:** a `CALLBACK` outlet fans out by its link ceiling, so a listener needs no flag to target several emitters (port detail in [guides/ports](./ports.md)).
 - **`PooledType[CALLBACK].as_inlet(...)`** on the emitter collects all connected listener IDs into a dict (port detail in [guides/ports](./ports.md)).
 - **`context.emit_callback(event_name=..., payload=...)`** dispatches to subscribers.
 - **`context.trigger.payload`** delivers the emitter's payload to the listener's worker.

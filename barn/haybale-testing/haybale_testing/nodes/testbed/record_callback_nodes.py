@@ -22,7 +22,6 @@ class TestRecordEventNode(BaseNode):
                 "subscription",
                 label="Listen",
                 default={"name": self.node_id, "weight": 1},
-                allow_multiple_links=True,
             )
         )
         self.add(EXEC.as_outlet("triggered", label="Triggered"))

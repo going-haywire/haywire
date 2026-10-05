@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from ...ui.utils import generate_edge_uuid
 from ..graph.types import ChangeReason
 from ..types import Propagation
-from ..types.wire import WireType, wires_match
+from ..types.wire import WILDCARD, WireRole, WireType, wires_match
 from ..adapter.base import IAdapter, ReturnAdapter
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
@@ -225,6 +225,12 @@ class EdgeWrapper:
             if port is not None and port.wire_type is not None:
                 return port.wire_type
         return None
+
+    @property
+    def carries_values(self) -> bool:
+        """False for an edge on a ``VISUAL`` wire: drawn and saved, with no adapter chain and no pipe."""
+        wire = self.wire_type
+        return wire is None or wire.role is not WireRole.VISUAL
 
     @property
     def locked_propagation(self) -> Optional[Propagation]:
@@ -545,6 +551,10 @@ class EdgeWrapper:
 
         if self._formal_validation():
             self._fit_propagation()
+            if not self.carries_values:
+                self._build_drawn_only()
+                logger.debug(".. drawn-only edge built.")
+                return
             if self._build_adapter_chain():
                 if self._test():
                     logger.debug(".. rebuilding edge done.")
@@ -557,6 +567,13 @@ class EdgeWrapper:
         wire = self.wire_type
         if wire is not None:
             self._edge.propagation = wire.clamp(self._edge.propagation)
+
+    def _build_drawn_only(self) -> None:
+        """Mark a ``VISUAL`` edge built: it has no adapter chain to build or test."""
+        self._first_adapter = None
+        self._edge.chain_adapter_keys = []
+        self._state.is_built = True
+        self._state.has_test_passed = True
 
     def _check_chain_for_changes(self, chain: List[str]):
         """
@@ -722,6 +739,12 @@ class EdgeWrapper:
                     f"Invalid port types for edge: Inlet port {self._inlet_port.id} is an outlet"
                 )
 
+            if self._outlet_port.wire_key == WILDCARD and self._inlet_port.wire_key == WILDCARD:
+                raise Exception(
+                    f"Two bare ADD slots cannot link: the edge has no wire type to take "
+                    f"(edge {self._edge_id})"
+                )
+
             if not wires_match(self._outlet_port.wire_key, self._inlet_port.wire_key):
                 raise Exception(
                     f"Wire type mismatch between outlet ({self._outlet_port.wire_key}) and inlet "
@@ -740,7 +763,15 @@ class EdgeWrapper:
                 operation="Port Type Validation",
                 edge_id=self._edge_id,
                 graph_id=self._graph.graph_id,
-                suggestions=["Ensure both ports exist", "Check that both ports are on the same wire type"],
+                suggestions=[
+                    "Ensure both ports exist",
+                    "Connect one bare ADD slot to a typed pin first"
+                    if self._outlet_port is not None
+                    and self._inlet_port is not None
+                    and self._outlet_port.wire_key == WILDCARD
+                    and self._inlet_port.wire_key == WILDCARD
+                    else "Check that both ports are on the same wire type",
+                ],
             )
             self._state.error_formal.log()
             self._state.is_formally_validated = False

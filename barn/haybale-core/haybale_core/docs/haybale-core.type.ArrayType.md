@@ -27,8 +27,9 @@ Storage: ArrayField stores List[T] with unwrapped elements
 Transfer: List of unwrapped values (primitives or instances)
 
 IMPORTANT:
-It travels on the element type's wire type; a wire type declared on the array has no effect.
+ArrayType declares no wire type, so it travels on its element type's; a declared one would take
+precedence (see wire_type_of).
 
 Hooks: Uses default implementations from IType
 - _validate_port_type: Allows all port types (inlet, outlet, config)
-- _configure_port: takes the element's colour, and refuses a control or callback element
+- _configure_port: takes the element's colour

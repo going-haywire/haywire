@@ -57,12 +57,14 @@ class BaseWidget(IWidget, ABC):
         return self.port.get_value()
 
     def set_value(self, value: Any) -> None:
-        """Write *value* to the model, unless an edge's value stands in front of it.
+        """Write *value* to the model, unless the model cannot take it as its own value.
 
-        While the model's field holds a linked value the write is refused and
-        the view shows the model's value again.
+        The write is refused, and the view shows the model's value again, while an
+        edge's value stands in front of the own value or the field holds no own
+        value (see ``DataField.accepts_own_value``).
         """
-        if self.port.data.has_linked_value():
+        data = self.port.data
+        if data.has_linked_value() or not data.accepts_own_value():
             self.on_model_changed(self.port.get_value())
             return
         self.port.set_value(value)

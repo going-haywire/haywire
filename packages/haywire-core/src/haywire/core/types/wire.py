@@ -113,13 +113,13 @@ def get_wire_type(wire_id: str) -> type[WireType] | None:
     return _WIRE_BY_ID.get(wire_id)
 
 
-def wire_type_of(type_cls: Any) -> type[WireType] | None:
-    """Return the wire type values of *type_cls* travel on, or ``None``.
+def declaring_type_of(type_cls: Any) -> tuple[Any, type[WireType]] | None:
+    """Return the type that declares the wire type of *type_cls*, with that wire type, or ``None``.
 
-    A type answers with the wire type its identity declares. A container or
-    wrapper that declares none (``ArrayType[T]``, ``PooledType[T]``, ``ADD[T]``)
-    answers with its element's, through any nesting. A bare ``ADD``, a type
-    without an identity and ``None`` answer ``None``.
+    A type that declares a wire type in its identity is its own declarer. A
+    container or wrapper that declares none (``ArrayType[T]``, ``PooledType[T]``,
+    ``ADD[T]``) yields its element's declarer, through any nesting. A bare
+    ``ADD``, a type without an identity and ``None`` yield ``None``.
     """
     current = type_cls
     seen: set[int] = set()
@@ -128,17 +128,32 @@ def wire_type_of(type_cls: Any) -> type[WireType] | None:
         identity = getattr(current, "class_identity", None)
         wire = getattr(identity, "wire_type", None)
         if wire is not None:
-            return wire
+            return current, wire
         current = getattr(current, "element_type_cls", None)
     return None
+
+
+def wire_type_of(type_cls: Any) -> type[WireType] | None:
+    """Return the wire type values of *type_cls* travel on, or ``None``.
+
+    A type answers with the wire type its identity declares. A container or
+    wrapper that declares none (``ArrayType[T]``, ``PooledType[T]``, ``ADD[T]``)
+    answers with its element's, through any nesting. A bare ``ADD``, a type
+    without an identity and ``None`` answer ``None``. See ``declaring_type_of``.
+    """
+    declared = declaring_type_of(type_cls)
+    return declared[1] if declared is not None else None
 
 
 def wires_match(a: str | None, b: str | None) -> bool:
     """Return whether two pins with wire keys *a* and *b* may be linked.
 
-    True for equal wire type ids, and when either key is ``WILDCARD`` (a bare
-    ``ADD`` slot). A key of ``None`` (a port without a wire type) matches nothing.
+    True for equal wire type ids, and when exactly one key is ``WILDCARD`` (a bare
+    ``ADD`` slot). Two wildcards do not match: the edge would have no wire type
+    to take. A key of ``None`` (a port without a wire type) matches nothing.
     """
     if a is None or b is None:
+        return False
+    if a == WILDCARD and b == WILDCARD:
         return False
     return a == b or a == WILDCARD or b == WILDCARD

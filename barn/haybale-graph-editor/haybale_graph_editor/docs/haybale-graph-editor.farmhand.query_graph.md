@@ -6,7 +6,7 @@ Nodes (with ports) and edges of an open graph.
 
 ## Agent Instructions
 
-Nodes (with ports) and edges of an open graph. Pass detail=true for the full per-port setup (data_type, allow_multiple_links, is_linked, link_count, use_mode, promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, propagation, propagation_locked, adapter_chain, has_adapters, error); default returns the base id/direction/wire_type/role per port and id/topology/wire_type/role per edge.
+Nodes (with ports) and edges of an open graph. Pass detail=true for the full per-port setup (data_type, takes_many_links, single_link when set, is_linked, link_count, use_mode, promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, propagation, propagation_locked, adapter_chain, has_adapters, error); default returns the base id/direction/wire_type/role per port and id/topology/wire_type/role per edge.
 
 ## Details
 

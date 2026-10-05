@@ -104,6 +104,8 @@ inlet's widget value belongs to the instance.
 id spaces that meet here, so the view that builds a crossing and the worker that
 follows one cannot drift.
 
+Every pinned interface port that is not immediate is copied when the boundary nodes execute, a `VISUAL` port included; with no pipe downstream, that copy is harmless.
+
 Deferred values cross when the boundary nodes execute; immediate ones — callback
 subscriptions — cross at wiring time: each immediate interface inlet relays its
 writes to its partner (`hb_relay`), and `reconcile_interface` resyncs every

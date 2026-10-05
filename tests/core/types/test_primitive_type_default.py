@@ -2,6 +2,7 @@
 
 import pytest
 
+from haywire.barn.builtin.wires import DataWire
 from haywire.core.types.base import PrimitiveType
 from haywire.core.types.decorator import type as type_dec
 
@@ -11,7 +12,7 @@ pytestmark = pytest.mark.unit
 def test_a_primitive_type_without_a_default_value_is_rejected():
     with pytest.raises(TypeError, match="needs a 'value' that is not None"):
 
-        @type_dec(label="NoValue", default={})
+        @type_dec(wire_type=DataWire, label="NoValue", default={})
         class NoValue(PrimitiveType[str]):
             pass
 
@@ -19,13 +20,13 @@ def test_a_primitive_type_without_a_default_value_is_rejected():
 def test_a_primitive_type_with_a_none_default_is_rejected():
     with pytest.raises(TypeError, match="OPTIONAL"):
 
-        @type_dec(label="NoneValue", default={"value": None})
+        @type_dec(wire_type=DataWire, label="NoneValue", default={"value": None})
         class NoneValue(PrimitiveType[str]):
             pass
 
 
 def test_a_primitive_type_with_a_value_is_accepted():
-    @type_dec(label="HasValue", default={"value": ""})
+    @type_dec(wire_type=DataWire, label="HasValue", default={"value": ""})
     class HasValue(PrimitiveType[str]):
         pass
 

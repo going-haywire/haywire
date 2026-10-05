@@ -29,12 +29,12 @@ This is the third leg of haywire's connection types — see [reference/glossary 
 
 ### 2.1 The callback wire type
 
-CALLBACK ports use the same `DataPort` infrastructure as DATA ports but sit on `CallbackWire` (the `IMMEDIATE` role), declared by the callback data type. Their edges have no propagation: a write takes effect at once by the role. They have no hardcoded connection rules:
+CALLBACK ports use the same `DataPort` infrastructure as DATA ports but sit on `CallbackWire` (the `IMMEDIATE` role), declared by the callback data type. Their edges have no propagation: a write takes effect at once by the role. They follow the link ceiling (ADR 0044):
 
-| Direction | `allow_multiple` |
+| Direction | Ceiling |
 |---|---|
-| Outlet | `False` by default; listener event nodes declare `True`, so one listener can subscribe to several emitters |
-| Inlet | `False` by default; emitters use a `PooledType[...]` inlet, which accepts many sources and keys each value by its edge id |
+| Outlet | many: one listener can subscribe to several emitters |
+| Inlet | one; emitters use a `PooledType[...]` inlet, whose field keeps one value per source and so takes many, keyed by edge id |
 
 A CALLBACK edge is created through the same `graph.create_edge_wrapper(...)` as DATA and EXEC edges, and its value travels over an ordinary pipe into the emitter's pool. Removing a direct edge removes that edge's entry from the pool (`PooledField.remove_source`); longer paths are covered in §2.4. Assembly does not read callback edges to route anything — see §3.1.
 

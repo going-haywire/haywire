@@ -7,6 +7,7 @@ Validates domain-specific structural rules that go beyond formal validity:
 - Control flow topology
 - Data flow cycles
 - Callback edge rules
+- Pins on a ``VISUAL`` wire never make a node invalid, except on a reroute
 """
 
 from __future__ import annotations
@@ -22,6 +23,11 @@ if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
 
 logger = logging.getLogger(__name__)
+
+
+def _executing(ports: list) -> list:
+    """*ports* without those on a ``VISUAL`` wire, which never take part in execution."""
+    return [p for p in ports if not p.has_role(WireRole.VISUAL)]
 
 
 class StructuralValidator(IStructuralValidator):
@@ -123,7 +129,7 @@ class StructuralValidator(IStructuralValidator):
         node = wrapper.node
 
         # Check for inlets with pins (not allowed)
-        inlets = node.get_ports(is_port_type=PortType.INLET, has_pin=True)
+        inlets = _executing(node.get_ports(is_port_type=PortType.INLET, has_pin=True))
         if len(inlets) > 0:
             return (
                 False,
@@ -172,7 +178,7 @@ class StructuralValidator(IStructuralValidator):
         node = wrapper.node
 
         # Check for non-DATA ports with pins (not allowed)
-        ports = node.get_ports(is_not_role=WireRole.DEPENDENT, has_pin=True)
+        ports = _executing(node.get_ports(is_not_role=WireRole.DEPENDENT, has_pin=True))
         if len(ports) > 0:
             return (
                 False,
@@ -264,8 +270,8 @@ class StructuralValidator(IStructuralValidator):
         node = wrapper.node
         identity = node.identity
 
-        inlets = node.get_ports(is_port_type=PortType.INLET, has_pin=True)
-        outlets = node.get_ports(is_port_type=PortType.OUTLET, has_pin=True)
+        inlets = _executing(node.get_ports(is_port_type=PortType.INLET, has_pin=True))
+        outlets = _executing(node.get_ports(is_port_type=PortType.OUTLET, has_pin=True))
 
         # Port-less latent state is valid (awaiting the collapse action).
         if not inlets and not outlets:

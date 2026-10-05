@@ -61,12 +61,18 @@ Only a **valid** edge carries values. An outlet builds its pipes from its valid 
 
 ### 2.3 Connection rules by wire type
 
-|                    | Outlet `allow_multiple`                  | Inlet `allow_multiple`                       |
-| ------------------ | ---------------------------------------- | -------------------------------------------- |
-| **DATA**           | `True` (set by `DataPort.__post_init__`) | `False` (default)                            |
-| **CONTROL (EXEC)** | `False` (hardcoded in `__post_init__`)   | `True` (hardcoded in `__post_init__`)        |
-| **CALLBACK**       | `False` (default)                        | `False` (default)                            |
-| **Pooled inlet**   | N/A (inlet only)                         | `True` (set by `PooledType._configure_port`) |
+Each port has a **link ceiling**: how many edges it holds at once, read as `DataPort.takes_many_links`. The framework derives it from the port's wire role and its field's storage; nothing else writes it (`_configure_port` sets colour and refusals only). A port can only narrow it with `single_link=True`. See [ADR 0044](../../../adr/0044-link-ceiling.md).
+
+| Port                                                         | Outlet                                       | Inlet                                          |
+| ------------------------------------------------------------ | -------------------------------------------- | ---------------------------------------------- |
+| `DataWire` (`DEPENDENT`)                                     | many                                         | one                                            |
+| `ControlWire` (`SEQUENCE`)                                   | one (the VM keeps one transition per outlet) | many                                           |
+| `CallbackWire` (`IMMEDIATE`)                                 | many                                         | one                                            |
+| a `VISUAL` wire                                              | many                                         | many                                           |
+| bare `ADD` slot                                              | many                                         | one                                            |
+| pooled inlet (field `keeps_value_per_source()`)              | n/a (a pool has no outlet)                   | many                                           |
+
+A container's role is its element's. `PooledType` refuses a control element and an outlet; `ArrayType` of control and callback elements is allowed.
 
 Two pins connect when their wire keys match: equal wire-type ids, or a bare `ADD` slot's wildcard `*` (`wires_match`, mirrored on the canvas). Connections across wire types (e.g. EXEC→DATA) are rejected in `_formal_validation()`. A failing edge is never rewritten; while it fails, its wire type comes from whichever end resolves, for drawing only. See [ADR 0042](../../../adr/0042-wire-types-replace-flowtype.md). Same-direction connections (outlet→outlet, inlet→inlet) are also rejected there.
 
@@ -290,7 +296,7 @@ Each edge gets its own entry in the pooled `dict[source_id, value]`.
 | `DataPort._linked_edges`                   | `dict[edge_id, EdgeWrapper]` — active linked edges (used for pipes)                 |
 | `DataPort._all_edges`                      | `dict[edge_id, EdgeWrapper]` — all tracked edges including displaced/non-functional |
 | `DataPort._pending_lazy_pipes`             | `set[Pipe]` — lazy pipes to pull at execution time                                  |
-| `DataPort.allow_multiple_links`            | Connection limit flag                                                               |
+| `DataPort.takes_many_links` / `single_link` | The port's link ceiling, and the setting that narrows it (ADR 0044) |
 | `Edge.propagation`                         | Chosen propagation mode (default `EAGER`); `EdgeWrapper.propagation` applies the locks |
 | `Edge.chain_adapter_keys`                  | List of adapter registry keys (empty = ReturnAdapter)                               |
 | `EdgeWrapper._first_adapter`               | Head of the executable adapter chain                                                |

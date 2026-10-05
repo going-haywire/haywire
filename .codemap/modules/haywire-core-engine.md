@@ -80,7 +80,7 @@ haywire/core/
 - **Single-cell model** (ADR 0013): a setting's per-instance value lives in a per-field `DataField` cell, not a raw dict. `setting.__get__` is a pure cell read (`obj._cell_for(self).get_value()`) on every path — no mode branch, no chain walk at read time. The resolution chain runs only at write/seed time. A wired persistent field's cell is **registry-owned** (one live cell per definition, borrowed by instances); tier mutations must funnel through `_notify_subscribers` or registry cells go stale.
 - **Promotion is field + direction, not a bridge** (ADR 0014): a promoted port `bind_field`s the setting's cell by reference — one cell, two views, no `_promoted_port_id` read-tier branch, no second value. A promoted port's id IS `descriptor.storage_key`. Demote freezes the cell's current value (no auto-revert); recovery is an explicit `reset()`.
 - **Widget selection is a stamped port contract, resolved once** (ADR 0017): `widget_key`/`widget_config` are computed once by `_stamp_widget()`, never recomputed at render time. `choices=` and string `widget=` params are deleted — use `setting[CHOICES](..., widget_config={"options": ...})`.
-- CONTROL/CALLBACK flow types cannot carry a `widget_key` (`@type` decorator raises) — they are signals, not editable values.
+- A widget writes only to a field that can hold an own value (`DataField.accepts_own_value()`); `@type` refuses a value type without a wire type, except containers, wrappers and `ADD` (ADR 0043).
 - Load hardening: a stale promotion, or a poisoned node/edge in `load_from_dict`, degrades per-item (warns and skips) rather than aborting the whole graph load.
 
 ## 5. Source of Truth

@@ -30,9 +30,6 @@ class AddPortTestNode(BaseNode):
     typed slot the user can reconnect, and removing it for good is a separate
     gesture on the pin menu. Slot indices are never reused, so the pins a saved
     graph refers to keep their ids.
-
-    A connection between two undecided pins is ignored — neither end has a type
-    to adopt — and both stay undecided.
     """
 
     #: Port-id prefix per side, and the label each side shows.
@@ -79,9 +76,6 @@ class AddPortTestNode(BaseNode):
             return
 
         incoming = other.stored_type
-        if incoming._is_any:
-            # Both ends undecided: nothing to adopt, and no new slot.
-            return
 
         with self.rejig(include=[port.id]):
             self._add_slot(side, self._index_of(side, port.id), incoming, PortOrigin.RESOLVED)

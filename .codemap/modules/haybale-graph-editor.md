@@ -28,7 +28,7 @@ haybale_graph_editor/
 │   ├── graph_save_as.py     ← save-as dialog logic
 │   └── graph_canvas/
 │       ├── graph_canvas_manager.py
-│       ├── event_handlers.py, connection_info_popup.py, ui_node.py, ui_edge.py
+│       ├── event_handlers.py, ui_node.py, ui_edge.py
 │       ├── node_menu_builder.py   ← (rewritten) add-node menu; now built on shared
 │       │                            `hui.elements.flyout` (FlyoutSiblings/flyout_category)
 │       │                            instead of its own hover/z-index/close logic

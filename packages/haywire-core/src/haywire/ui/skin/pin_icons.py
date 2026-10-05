@@ -92,14 +92,14 @@ class PinIconResolver:
 
     def _role(self, kind: str, pin: DataPort) -> str:
         direction = "in" if pin.is_inlet() else "out"
-        suffix = "_multi" if pin.allow_multiple_links else ""
+        suffix = "_multi" if pin.takes_many_links else ""
         return f"{kind}_{direction}{suffix}"
 
     def _declared(self, pin: DataPort) -> str | None:
         """The glyph the port or its type declared for this direction."""
         if pin.is_inlet():
-            return (pin.icon_in_multi if pin.allow_multiple_links else pin.icon_in) or None
-        return (pin.icon_out_multi if pin.allow_multiple_links else pin.icon_out) or None
+            return (pin.icon_in_multi if pin.takes_many_links else pin.icon_in) or None
+        return (pin.icon_out_multi if pin.takes_many_links else pin.icon_out) or None
 
     def _from_map(self, kind: str | None, pin: DataPort) -> str:
         """This resolver's glyph for *kind*, narrowest key first."""
@@ -107,7 +107,7 @@ class PinIconResolver:
         direction = "in" if pin.is_inlet() else "out"
         keys = []
         if kind is not None:
-            if pin.allow_multiple_links:
+            if pin.takes_many_links:
                 keys.append(f"{kind}_{direction}_multi")
             keys += [f"{kind}_{direction}", kind]
         keys.append("fallback")

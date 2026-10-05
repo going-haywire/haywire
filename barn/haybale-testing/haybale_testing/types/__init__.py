@@ -6,6 +6,8 @@ from .test_types import TEST_STRING
 from .test_types import TEST_BOOL
 from .test_types import TEST_TEMPERATURE
 from .test_types import TEST_RECORD_CALLBACK
+from .test_types import TEST_VISUAL
+from .test_types import TEST_VISUAL_COUNT
 
 
 __all__ = [
@@ -17,4 +19,6 @@ __all__ = [
     "TEST_RECORD_CALLBACK",
     "TEST_STRING",
     "TEST_TEMPERATURE",
+    "TEST_VISUAL",
+    "TEST_VISUAL_COUNT",
 ]

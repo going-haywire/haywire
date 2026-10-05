@@ -65,6 +65,7 @@ FLOAT (IType cls)   →   FLOAT.as_inlet(    →   DataPort instance
 | `on_connect` | `str` | Name of a node method to call when an edge connects |
 | `on_disconnect` | `str` | Name of a node method to call when an edge disconnects |
 | `show_widget` | `ShowWidgetStrategy` | When the port's inline widget renders, relative to link state (see below) |
+| `single_link` | `bool` | `True` narrows a port to one edge where its link ceiling allows many (ADR 0044) |
 | `store_strategy` | `StoreStrategy` | When values persist on graph save (older docs called this `store_data: bool` — out of date) |
 
 The `on_change` callback is what you wire to a `hb_*` reconfigure method when a config port should rebuild dynamic ports. See [components/nodes](../components/nodes/node-canon.md) §3 for the rejig pattern.

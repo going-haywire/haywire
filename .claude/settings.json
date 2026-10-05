@@ -7,7 +7,8 @@
       "Bash(mkdir -p tests/barn/builtin packages/haywire-core/src/haywire/barn/builtin)",
       "Bash(git rm *)",
       "Bash(git stash *)",
-      "Bash(python3)"
+      "Bash(python3)",
+      "Bash(python3 -c \"import sys; sys.path.insert\\(0,'packages/haywire-core/src'\\)\")"
     ],
     "additionalDirectories": [
       "/tmp",

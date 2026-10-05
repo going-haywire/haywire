@@ -199,6 +199,23 @@ class DataField(ABC, Generic[T]):
         """
         return False
 
+    def keeps_value_per_source(self) -> bool:
+        """Whether this field keeps one value per feeding edge rather than one value in total.
+
+        True for a pooled field, whose value is a mapping from feeding edge id to
+        that edge's value. False for a field holding a single value. See
+        ``DataPort.takes_many_links``.
+        """
+        return False
+
+    def accepts_own_value(self) -> bool:
+        """Whether a write without a source can store an own value in this field.
+
+        False for a field whose value comes only from its edges (a pooled field)
+        and for one that holds nothing (an ``ADD`` slot).
+        """
+        return True
+
     @abstractmethod
     def reset(self) -> None:
         """Reset field to default value"""

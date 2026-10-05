@@ -27,6 +27,10 @@ class ADDField(DataField):
             return element  # type: ignore[no-any-return]
         return self.type_cls
 
+    def accepts_own_value(self) -> bool:
+        """An ``ADD`` slot holds nothing."""
+        return False
+
     def _get_own(self) -> AnyValue:
         return None
 
@@ -94,8 +98,6 @@ class ADD(BaseType, Generic[T]):
     ```python
     def _resolve(self, port, edge_wrapper):
         incoming = edge_wrapper._outlet_port.stored_type
-        if incoming._is_any:
-            return  # the other end is undecided too — nothing to adopt
         with self.rejig(include=[port.id]):
             self.add(incoming.as_inlet(port.id, on_connect="_resolve"))
     ```
@@ -104,8 +106,7 @@ class ADD(BaseType, Generic[T]):
     validation pass. A handler that declines to retype leaves the pin as it is
     and the edge passing values through untouched.
 
-    An edge between two bare `ADD` pins is valid and does nothing: neither end
-    has a type to give. Both resolve once either connects to something concrete.
+    Two bare `ADD` pins do not connect: neither end has a wire type for the edge to take.
 
     A bare `ADD` accepts an edge of any wire type (data, control or callback), and
     the edge carries the other end's, so a pin grown from it can be any of them.

@@ -25,6 +25,12 @@ _OUTPUT = "haywire-core:node:SubgraphOutputNode"
 _CARD = "haywire-core:node:GraphNode"
 
 
+def _probe_key() -> str:
+    from haybale_testing.nodes.testbed.visual_probe import VisualProbeNode
+
+    return VisualProbeNode.class_identity.registry_key
+
+
 def _bound_key(graph: BaseGraph, node_id: str) -> str:
     """The Subgraph key the card ``node_id`` is bound to."""
     wrapper = graph.get_node_wrapper(node_id)
@@ -125,6 +131,29 @@ class TestConvexity:
         graph.create_edge_wrapper(b.node_id, "done", a.node_id, "exec")
 
         assert check_convex(graph, [a.node_id, b.node_id]) == (True, [])
+
+    def test_a_visual_only_path_does_not_break_convexity(self, graph_with_library_system: BaseGraph):
+        """A visual edge executes nothing, so a selection joined only through one is convex."""
+        graph = graph_with_library_system
+        a, b, c = (make_node(graph, _probe_key()) for _ in range(3))
+        graph.create_edge_wrapper(a.node_id, "note_out", b.node_id, "note_in")
+        graph.create_edge_wrapper(b.node_id, "note_out", c.node_id, "note_in")
+
+        assert check_convex(graph, [a.node_id, c.node_id]) == (True, [])
+
+    def test_a_visual_only_path_collapses_with_every_edge_valid(self, graph_with_library_system: BaseGraph):
+        graph = graph_with_library_system
+        a, b, c = (make_node(graph, _probe_key()) for _ in range(3))
+        graph.create_edge_wrapper(a.node_id, "note_out", b.node_id, "note_in")
+        graph.create_edge_wrapper(b.node_id, "note_out", c.node_id, "note_in")
+
+        _collapse(graph, [a.node_id, c.node_id])
+        graph.force_validation()
+
+        assert all(e.state.is_valid() for e in graph.edge_wrappers.values())
+
+    # The same shape over data/control edges stays refused: see
+    # test_skipping_the_middle_is_refused_and_names_it above.
 
 
 # ---------------------------------------------------------------------------

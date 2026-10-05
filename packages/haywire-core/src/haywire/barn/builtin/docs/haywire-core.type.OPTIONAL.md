@@ -6,7 +6,6 @@ A value of the wrapped type, or absence
 
 ## Details
 
-- **wire_type**: `haywire-core:wire:DataWire`
 - **default**: `{'value': None}`
 - **widget_key**: `haywire-core:widget:OptionalWidget`
 - **color**: `#757575`
@@ -43,6 +42,9 @@ structural fact. The generated port carries the ELEMENT type, so an
 ``OPTIONAL[INT]`` field becomes an ``INT`` pin and connects to whatever
 ``INT`` connects to. That is what removes the need for an
 ``OPTIONAL[T] -> T`` adapter: nothing asks for one.
+
+**Wire type.** `OPTIONAL[T]` travels on `T`'s wire type, so `OPTIONAL[EXEC]` is a control pin and
+`OPTIONAL[CALLBACK]` a callback pin.
 
 **What crosses an edge** is decided by the SINK, via
 ``DataField.accepts_absence()`` — resolved once when the pipe is built:

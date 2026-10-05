@@ -26,6 +26,3 @@ A resolved pin stays once its edge is gone — unplugging leaves an empty
 typed slot the user can reconnect, and removing it for good is a separate
 gesture on the pin menu. Slot indices are never reused, so the pins a saved
 graph refers to keep their ids.
-
-A connection between two undecided pins is ignored — neither end has a type
-to adopt — and both stay undecided.

@@ -105,8 +105,7 @@ class AdapterFactory:
         # An undecided end has no representation to convert, so there is nothing
         # to look up: the edge is valid and carries the value untouched. This is
         # what lets a node see the connection (via on_connect) and retype the
-        # port to the other end's type; ADD -> ADD stays a pass-through, leaving
-        # both ends undecided.
+        # port to the other end's type. ADD -> ADD never reaches here: `wires_match` refuses it.
         if source_type._is_any or sink_type._is_any:
             return (ReturnAdapter(), None)
 

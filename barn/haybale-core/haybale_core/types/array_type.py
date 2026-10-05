@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import Any, List, Optional, Type, TypeVar
 
 from haywire.core.types import type, DataField, CompoundType
-from haywire.core.types.wire import WireRole
+from haywire.core.types.wire import declaring_type_of
 
 T = TypeVar("T")
 
@@ -49,7 +49,7 @@ class ArrayType(CompoundType[T]):
 
     Hooks: Uses default implementations from IType
     - _validate_port_type: Allows all port types (inlet, outlet, config)
-    - _configure_port: takes the element's colour, and refuses a control or callback element
+    - _configure_port: takes the element's colour
     """
 
     field_class: "Optional[Type[DataField]]" = None  # Will be set to ArrayField after it's defined
@@ -58,22 +58,10 @@ class ArrayType(CompoundType[T]):
 
     @classmethod
     def _configure_port(cls, port, **context) -> None:
-        """Take the colour of the element that declares the wire type, and refuse a control
-        or callback element. An array outlet on a data wire allows several links."""
-        current_type = port.type_cls.element_type_cls
-        while current_type is not None:
-            identity = getattr(current_type, "class_identity", None)
-            wire = getattr(identity, "wire_type", None)
-            if identity is not None and wire is not None:
-                port.color = identity.color
-                if port.is_outlet():
-                    port.allow_multiple_links = wire.role is WireRole.DEPENDENT
-                if wire.role is WireRole.SEQUENCE:
-                    raise ValueError("ArrayType cannot have a control element type")
-                if wire.role is WireRole.IMMEDIATE:
-                    raise ValueError("ArrayType cannot have a callback element type")
-                return
-            current_type = getattr(current_type, "element_type_cls", None)
+        """Take the colour of the element that declares the wire type."""
+        declared = declaring_type_of(port.type_cls.element_type_cls)
+        if declared is not None:
+            port.color = declared[0].class_identity.color
 
     @property
     def value(self):

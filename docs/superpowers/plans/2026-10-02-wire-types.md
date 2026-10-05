@@ -14,12 +14,13 @@ from it, each with its own tasks.
 | Plan | Work | Status | Detail plan | Next |
 |---|---|---|---|---|
 | P | `EXEC` and `CALLBACK` into builtin | **Merged** into local `master` 2026-10-03 (both repos, fast-forward; gate 5975 passed, visiongraph 29 passed) | [landed/2026-10-02-signal-types-to-builtin.md](landed/2026-10-02-signal-types-to-builtin.md) | push both repos |
-| 5.1 | Wire types and the FlowType sweep, behaviour-preserving | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-1-sweep.md](2026-10-03-wire-types-5-1-sweep.md) | merge |
-| 5.2 | Rule changes | Designed, reviewed, O1 settled (Q21) | to write | after 5.1 |
+| 5.1 | Wire types and the FlowType sweep, behaviour-preserving | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-1-sweep.md](landed/2026-10-03-wire-types-5-1-sweep.md) | merge |
+| 5.2 | Rule changes | **Landed** on branch `wire-types-5-1` (both repos), not merged | [2026-10-03-wire-types-5-2-rules.md](landed/2026-10-03-wire-types-5-2-rules.md) | merge; design round D and the 5.3 detail plan |
 | 5.3 | The immediate path | Designed, reviewed, O2 to O4 settled (Q22 to Q24) | to write | after 5.2 |
-| 5.4 | Edge rendering and the style bag | Designed, reviewed | to write | after 5.2 and D's design round |
+| 5.4 | Edge rendering and the style bag | Designed, reviewed; revised by D (Q50, Q53, Q58) | to write | after D's code |
 | 5.5 | The annotation wire, type, node and skin | Designed, reviewed | to write | after 5.3 and 5.4 |
-| D | Edge appearance defaults (graph tier, UX colours) | **Design round owed** | none | design after 5.2, beside 5.3; code after 5.4 (Q32) |
+| D | Edge appearance: defaults (framework < graph), arrow heads, UX colours | **Designed** 2026-10-04 (Q48 to Q62); detail plan written | [2026-10-04-wire-types-d-edge-appearance.md](2026-10-04-wire-types-d-edge-appearance.md) | execute, beside 5.3 and before 5.4 (Q56) |
+| F | Follow-ups found while executing 5.1 and 5.2 | F1 to F11 **done** on branch `wire-types-5-1` 2026-10-04; F12 to 5.3; F13 to F15 after 5.5 | [Follow-ups](#follow-ups-from-51-and-52) | 5.3 detail plan must carry F12; close F13 to F15 when 5.5 lands |
 
 5.1 also made an unknown `pin_kind` draw the fallback glyph (`_from_map` always ends in `fallback`), so 5.4 has no fallback-glyph work left.
 
@@ -72,7 +73,7 @@ and edges ([base.py:559-600](../../../packages/haywire-core/src/haywire/core/reg
 |---|---|
 | `role` | one `WireRole` |
 | `propagation` | the allowed modes. The first is the default, a single entry means locked, an empty tuple means none |
-| `outlet_links`, `inlet_links` | link defaults per direction (Q9a) |
+| ~~`outlet_links`, `inlet_links`~~ | dropped by Q35: wire types carry no link attributes; the framework derives a link ceiling (see [Link limits](#link-limits)) |
 | `pin_kind` | the key the skin's `PinIconResolver` looks up in its icon map, such as `"control"` (Q10c, Q30). It is not an icon: a real icon stays on the type (`icon_in`, `icon_out`) |
 | `style` | an `EdgeSettings` subclass holding what the user may edit per edge, or `None` (Q10a) |
 | `holds_absence` | fields of types on this wire can hold `None`, and pools drop absent entries (Q14) |
@@ -102,8 +103,6 @@ never hot-reload.
 class CallbackWire(WireType):
     role = WireRole.IMMEDIATE
     propagation = ()      # takes effect on write: no mode to choose (Q19)
-    outlet_links = ONE    # a listener's outlet passes allow_multiple_links=True
-    inlet_links = ONE     # a pooled inlet takes many through its container
     pin_kind = "callback"
     holds_absence = True
 
@@ -191,15 +190,22 @@ connects today stops connecting.
 
 ### Link limits
 
-The wire type declares per-direction defaults. A port's own `allow_multiple_links=`
-is honoured instead of being silently overwritten, as `DataPort.__post_init__`
-does today for DATA and CONTROL ports. Containers keep setting their own (a pooled
-inlet takes many). Two mechanism limits hold whatever the port says (Q9a):
+Revised by the 5.2 inquisition (Q35, Q36, Q42, Q43, Q45); the first design gave
+wire types per-direction defaults that a port overrode. Now the framework derives
+a **link ceiling** from the port's role and its field's storage, read on every call
+of `DataPort.takes_many_links`, and a port can only narrow it with `single_link`:
 
-- a `SEQUENCE` outlet takes one link, because the VM keeps one transition per
-  outlet ([base.py:722-727](../../../packages/haywire-core/src/haywire/core/graph/base.py#L722-L727));
-- a `DEPENDENT` inlet takes one link unless its field pools, because two writes
-  into one linked slot would make the value depend on order.
+| | Outlet | Inlet |
+|---|---|---|
+| value wire (`DEPENDENT`, `IMMEDIATE`) | many | one, many when the field `keeps_value_per_source()` |
+| `SEQUENCE` | one: the VM keeps one transition per outlet ([base.py:722-727](../../../packages/haywire-core/src/haywire/core/graph/base.py#L722-L727)) | many |
+| `VISUAL` | many | many |
+
+A container takes its element's role, so `ArrayType[T]`, `OPTIONAL[T]` and `ADD[T]`
+behave as `T`; `PooledType[T]` lifts its inlet because its field keeps one value per
+source. `allow_multiple_links` is gone and a saved key is ignored. `_configure_port`
+writes no link count, and mirrors start at the ceiling. A callback outlet that
+declared nothing now fans out.
 
 ### Propagation
 
@@ -258,19 +264,20 @@ the same stance for widget visibility. Applied here:
 `EdgeSettings` is a fifth settings flavour, built on the ADR 0022 template:
 per-instance cells, an `_edge` back-reference, `_node` always `None` so promotion
 is off. A wire type's `style` names the bag class, and that class decides what the
-user may edit (Q10a). Field defaults are the wire type's default look. A field the
-bag does not declare stays computed: colour from the pin gradient, dash from
-validity and the adapter chain, width 2. `DataWire`, `ControlWire` and
-`CallbackWire` declare no bag and look as they do today. The existing bag renderer
+user may edit (Q10a). Field defaults are the wire type's default look: plain field
+defaults, not a tier (Q50). A field the bag does not declare stays computed:
+colour from the pin gradient, dash from validity and the adapter chain, and width
+and arrow head from D's graph defaults. `DataWire`, `ControlWire` and
+`CallbackWire` declare no bag (computed edges, Q48). The existing bag renderer
 (`render_settings`) draws the fields in the edge menu and the `EdgeInspector`
 panels. The bag saves under the edge's `"style"` key, locally set values only.
 
-5.4 implements no graph tier. Defaults above the edge (a graph or framework
-default for every edge) are design round D's. D's design runs before the 5.4
-detail plan (Q32), because its answer on precedence decides how 5.4 defines a
-wire's default look: as plain field defaults, or as a tier of its own. 5.4 computes
-the effective style in one server-side function, so D's code adds a tier there
-without touching the canvas.
+**Precedence (Q50).** A field the bag declares always comes from the bag (the
+edge's own value or the wire type's default) and wins; a field it does not declare
+falls through to D's graph default, as on a computed edge. A styled edge applies
+its values as inline CSS vars on its own path (Q53), the same vars D's canvas
+rules read, so the cascade does the precedence and no `EdgeSettings` field mirrors
+a graph field.
 
 **The bag's lifetime.** `EdgeWrapper.build()` creates the bag from the derived wire
 type and re-derives it on every rebuild. Validation re-runs `build()` and `link()`
@@ -286,32 +293,29 @@ through `RemappedEdge`, together with `propagation`, which both drop today
 ([graph_actions.py:587-596](../../../packages/haywire-core/src/haywire/core/undo/actions/graph_actions.py#L587-L596),
 [subgraph.py:212-219](../../../packages/haywire-core/src/haywire/core/graph/subgraph.py#L212-L219)). Undo keeps the wrapper and needs nothing.
 
-Recognised style fields: `color`, `width`, `dash`, `arrow` (none, end, start,
-both). Arrows are SVG markers, one definition per colour: `marker-end` with
-`orient="auto"` and `marker-start` with `orient="auto-start-reverse"` (plain `auto`
-points the start arrow the wrong way). `refX` insets the tip so it does not sit
-under the pin. They sit at the ends only, because an edge is a single cubic bezier
-and `marker-mid` has no vertex to draw at (Q10b).
+Recognised style fields: `color`, `width`, `dash`, `arrow_start` and `arrow_end`,
+each arrow field a head from D's vocabulary or none, so either end is set
+independently (Q58). Heads are D's: one static `context-stroke` marker per head
+serving both ends, the path shortened by the head's inset so the line meets the
+glyph's edge (Q54, Q58, Q62). They sit at the ends only, because an edge is a
+single cubic bezier and `marker-mid` has no vertex to draw at (Q10b).
 
 Rendering rules (Q10c):
 
 1. Style values travel in the existing edge sync payload. `EdgeVisualState`
    ([ui_edge.py:28-63](../../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/ui_edge.py#L28-L63))
-   already carries `stroke_color`, `stroke_width` and `stroke_dasharray`, so only
-   `arrow` is new. Its `__eq__` compares the stroke fields only and must include
-   `arrow`, or an arrow-only change is deduplicated away. A style edit calls
-   `edge.redraw()`, because the visual state is otherwise refreshed only by
-   validation. Wire types get no theme tokens.
-2. Precedence: invalid or warning overlay, then the edge's style, then computed. A
-   declared `dash` replaces the adapter-chain dash. The chain stays visible in the
-   edge menu and the connection-info popup.
-3. Selection becomes a class. `_updateEdgeVisualSelection` stops writing an inline
-   `strokeWidth`, which today overrides any width
-   ([canvas.vue:3352-3355](../../../packages/haywire-core/src/haywire/ui/components/graph/canvas.vue#L3352-L3355)).
-   `.connection-active` (:3994-3997) sets width and colour with `!important` and
-   overrides a styled edge the same way. Both keep today's look in 5.4. Their
-   colours and how they combine with a styled width (a CSS variable for the width)
-   are design round D's.
+   carries the stroke fields, and D adds `arrowAt`; 5.4 adds the declared fields
+   (`arrow_start`, `arrow_end`) and includes them in `__eq__`, or an arrow-only
+   change is deduplicated away. A style edit calls `edge.redraw()`, because the
+   visual state is otherwise refreshed only by validation. Wire types get no theme
+   tokens. On the canvas the values become inline CSS vars on the edge's own path
+   (Q53).
+2. Precedence: invalid or warning overlay, then the edge's style, then D's graph
+   default, then computed. A declared `dash` replaces the adapter-chain dash. The
+   chain stays visible in the edge menu.
+3. Selection and active are classes whose widths are relative to the edge's width
+   var; D builds this before 5.4 (Q51, Q53, Q61), so a styled width combines with
+   them without 5.4 code.
 4. The pin's kind comes from the wire type's `pin_kind`, replacing
    `PinIconResolver._kind_of`'s flow mapping. This lands in 5.1 (Q29): the three
    standard wires declare `"data"`, `"control"` and `"callback"`, so every icon
@@ -590,13 +594,13 @@ All in 5.1 unless marked.
 ## Sub-plans and sequence (Q17)
 
 ```text
-P ──► 5.1 ──► 5.2 ──┬──► 5.3 ────────────────┐
-                    └──► D (design) ──► 5.4 ──┴──► 5.5
-                                         └──► D (code)
+P ──► 5.1 ──► 5.2 ──┬──► 5.3 ───────────────┐
+                    └──► D ──► 5.4 ──────────┴──► 5.5
 ```
 
-D's design round runs beside 5.3 and before the 5.4 detail plan; D's code is its
-own plan after 5.4 (Q32).
+D's design was settled on 2026-10-04 (Q48 to Q62). Its code lands before 5.4 and
+beside 5.3 (Q56, revising Q32): D lays the rendering foundation on today's edges,
+and 5.4 only binds a style bag's values to D's inline vars.
 
 Each plan carries its own glossary, ADR and architecture-doc edits, landing with
 its code. Each starts with the failing tests listed for it.
@@ -719,16 +723,17 @@ running studio.
 
 `EdgeSettings`, the `style` `ClassVar`, the `"style"` key, the bag's lifetime in
 `build()` (bound only while the edge validates, Q20; unknown keys skipped, Q26),
-`RemappedEdge` carrying style and propagation (Q27), the `arrow` payload field and
-`__eq__`, `canvas.vue` (style application, arrows, selection class with today's
-look), the fallback glyph for an unknown `pin_kind`, edge menu and `EdgeInspector`
-rendering of the bag. No graph tier and no new colour vocabulary: both are D's.
-The detail plan is written after D's design round, whose answer on precedence it
-follows (Q32).
+`RemappedEdge` carrying style and propagation (Q27), the declared fields in the
+payload and `__eq__`, `canvas.vue` setting a styled edge's values as inline vars on
+its path (Q53), the fallback glyph for an unknown `pin_kind`, edge menu and
+`EdgeInspector` rendering of the bag (`arrow_start`/`arrow_end` through D's
+`ArrowHeadWidget`). Heads, markers, path shortening, the width var, selection and
+active, and the state colours are D's code, landed before 5.4 (Q56). The detail
+plan follows Q50 and Q53.
 
-`EdgeSettings` needs its own owner resolution. `_owning_graph`
-(`settings.py:306-317`) reads only `_graph` or `_node`, so an `_edge`
-back-reference alone resolves no graph. That matters as soon as D adds a tier.
+No `EdgeSettings` field mirrors a graph field (Q50), so the `_edge`
+back-reference needs no owner resolution through `_owning_graph`
+(`settings.py:306-317`), which reads only `_graph` or `_node`.
 
 Verify first: hot reload of a library wire type with a style bag rebinds every
 live edge's bag. Edges are not re-created on a port rebuild. Validation re-runs
@@ -740,7 +745,8 @@ changes are checked in a browser, not only in unit tests
 ### 5.5 The annotation wire, type, node and skin
 
 Everything under "The annotation node" above. Depends on P for `EXEC` in builtin,
-5.2 for `VISUAL`, and 5.4 for the style bag and arrows.
+5.2 for `VISUAL`, D for heads, and 5.4 for the style bag. The annotation wire's bag
+declares `color`, `dash`, `width`, `arrow_start` and `arrow_end` (Q48, Q58).
 
 Not costed before the review: the four-sided skin, the double-click hook, and
 the canvas container class that reveals slots during a drag.
@@ -749,48 +755,108 @@ Verify first: the canvas pin index finds a slot hidden with `visibility`, a drop
 on a hidden slot resolves through `nearestCompatiblePin`, and a drag onto a side
 resolves to the right slot.
 
-### D. Edge appearance defaults (design round owed)
+### D. Edge appearance: defaults, arrow heads, UX colours (designed 2026-10-04)
 
-Taken out of 5.4 in the review of 2026-10-03, and still to be designed. The design
-round runs after 5.2, beside 5.3, and before the 5.4 detail plan. Its code is its
-own plan after 5.4 (Q32). The aim
-is a mechanism like the node settings tiers, but limited: a graph, and possibly the
-framework, sets a few appearance defaults for all edges. The candidates so far are
-whether edges draw an arrow to show the flow direction, and the edge width. The
-same round defines the UX colours of edges.
+Taken out of 5.4 in the review of 2026-10-03 and designed on 2026-10-04 (Q48 to Q62,
+see [Decisions of 2026-10-04](#decisions-of-2026-10-04-design-round-d-q48-to-q62)).
+The constraint for every answer: minimal new machinery, reuse what exists, fast and
+reactive. Rendering runs on CSS custom properties, so a graph, theme or setting
+change restyles every edge in the browser with no per-edge redraw and no server
+round trip.
 
-Questions for the round:
+**Two kinds of edge (Q48).**
 
-- **Tiers and fields.** Framework < graph < edge, as for nodes (ADR 0022)? Which
-  fields: arrow and width only, or more?
-- **Scope.** One default for every edge, or per role or per wire type (arrows on
-  control edges only, say)?
-- **Precedence against a wire type's own look.** A style bag's field defaults are
-  the wire type's look (`AnnotationWire` with an arrow, for one). Does a graph
-  default override that, or only fill in what the wire type leaves computed? This
-  one decides how 5.4 defines a wire's look, which is why D's design comes first.
-- **Where the fields live.** `settings_bag_for` knows only `props` and `meta`
-  ([base.py:877-885](../../../packages/haywire-core/src/haywire/core/graph/base.py#L877-L885)),
-  so graph-tier fields go on the core `GraphProperties`. A library wire type
-  cannot add its own while ADR 0022's library graph bags are deferred.
-- **Arrow colour on a gradient edge.** An edge without a style is drawn with a
-  gradient between its two pin colours. Which colour does its arrow take?
-- **UX colours as theme tokens:**
-  - selection: `--hw-edge-selected`, declared and documented, never read;
-  - the active highlight: `.connection-active` sets width and `--hw-edge-active`
-    with `!important`;
-  - validity: `#EF4444` in `ui_edge.py:89`;
-  - pin highlights during a drag: `#4CAF50` and `#f44336` in `canvas.vue`;
-  - the default colour: `--hw-edge-default`, never read. The hard-coded
-    `#bbbbbb` and `#333333` (canvas.vue:2916-2917) it would replace are mostly
-    dead, because `_updateEdge` re-reads the pin colour without a fallback;
-  - the other hard-coded fallbacks: `#000000` (:2621, :3568), `#ff0000` (:3583),
-    `#4CAF50` (:2854).
-- **Selection and a styled width.** Is the selected width relative to the edge's
-  own (width + 1, through a CSS variable) or fixed?
+- A **styled edge**'s wire type declares a style bag (5.4). The annotation wire
+  declares `color`, `dash`, `width`, `arrow_start` and `arrow_end`, set per edge.
+- A **computed edge**'s wire type declares no bag (data, control, callback). Its
+  colour is the pin gradient and its dash the adapter chain, both carrying
+  information. Its width and arrow head come from the edge defaults below. Its look
+  is never edited per edge.
 
-5.4 computes the effective style in one server-side function, so D's code adds a
-tier there.
+**Edge defaults: framework < graph (Q48, Q49).**
+
+- A core `FrameworkSettings` schema, `EdgeDefaultSettings` (namespace
+  `ui.edge.default`, in `haywire.core.edge`; core because `GraphProperties` must
+  not import ui, as for `NodeDefaultSkinSettings`): `arrow` (a head, default none)
+  and `width` (px, default 2). The defaults match today's look.
+- `GraphProperties` gains `edge_arrow` and `edge_width`, each `shadow()`ing the
+  framework field ("unset tracks, set ignores"), category "appearance".
+- One pair for all computed edges, not per role (Q49).
+- The canvas receives both as Vue props through the existing props push (as
+  `CanvasSettings` does), and `canvas.vue` sets `--hw-edge-width` and the head var
+  itself and re-lays-out its paths on a change (Q62).
+- A Group interior uses its own `props` (framework < subgraph), as `node_theme`
+  and `layout_direction` do; the host's choice does not reach inside (Q55).
+
+**Where a computed head sits: `WireType.arrow_at` (Q59, Q60).** A new wire-type
+class attribute, a fact like `role`, `propagation` and `pin_kind`: `INLET` (the
+default, pointing into the inlet), `OUTLET` (pointing into the outlet) or `NONE`.
+`CallbackWire` declares `OUTLET`: the head points at the listener, the return path
+the user defines. The edge payload carries it (and the visual-state `__eq__`, since
+a rebuild can change the wire type); the canvas sets a class that moves the head
+to `marker-start` or removes it. No role check anywhere.
+
+**Precedence (Q50, Q53).** A field a style bag declares always comes from the bag
+(the edge's own value or the wire type's default) and wins. A field it does not
+declare falls through to the graph default. A styled edge sets its values as
+inline vars on its own path, so the cascade decides and no precedence code exists.
+A wire type's look is plain field defaults on its bag.
+
+**Arrow heads (Q54, Q58, Q62).**
+
+- One vocabulary for every edge: none plus fifteen heads (arrow, sharp arrow, open
+  V, filled triangle, hollow triangle, filled and hollow diamond, filled and hollow
+  circle, bar, many, one-or-many, exactly-one, zero-or-many, zero-or-one).
+- One table (name, label, "common" flag, inset) is the single source for the
+  widget's previews and the canvas markers.
+- One static `<marker>` per head: `context-stroke` paint (the head takes the edge's
+  own stroke: style colour, pin gradient, overlay), `orient="auto-start-reverse"`
+  (one definition serves both ends), `markerUnits="strokeWidth"` (heads scale with
+  the width). Hollow heads use `fill: none`.
+- The path is shortened at every end with a head by `inset × width` along the end
+  tangent; `refX` puts the tip on the pin. The line meets the glyph's edge and no
+  head overlaps its line.
+- A new core builtin `ArrowHeadWidget` shows None and the four common arrows (arrow,
+  sharp, open V, filled triangle) and a "more" item revealing the full grid. It
+  serves the framework and graph fields and the annotation bag.
+- Every edge draws its own head, reroute segments included (Q57).
+
+**State colours and widths (Q51, Q52, Q61).** Theme tokens, not settings: the
+studio tier (`:root`) and the graph tier (`node_theme` on the canvas) come with the
+cascade, and a theme switch is already live.
+
+| State | Reads |
+|---|---|
+| invalid | `--hw-danger` (the server stops sending `#EF4444`; the `isValid` flag's class reads the var) |
+| warning glow | `--hw-warning` |
+| valid / refused drop target | `--hw-success` / `--hw-danger` |
+| selected | glow `--hw-edge-selected`; width `calc(width + var(--hw-edge-selected-extra, 1px))` |
+| active | `--hw-edge-active`; width `calc(width + var(--hw-edge-active-extra, 2px))` |
+| missing pin colour (every fallback) | `--hw-edge-default` |
+
+`--hw-edge-selected-extra` and `--hw-edge-active-extra` are the only new tokens,
+both optional with CSS fallbacks. The hit area is `width + edge_hit_padding`, a new
+`CanvasSettings` field (studio-wide, default 8px): a click tolerance is ergonomics,
+so a theme switch must not change it.
+
+**Not in D.** Per-role defaults; individual styling of computed edges;
+edge-specific state colour tokens (addable later as optional tokens falling back to
+the semantic ones); host-to-Group inheritance of graph props; suppressing heads
+around reroutes; library-added head shapes; `EdgeSettings` itself (5.4).
+
+**D's code plan, verify first.**
+
+1. `context-stroke` on a gradient edge paints the head in the end colour.
+2. Safari supports it. A failing case falls back to one marker per colour.
+3. Dropping the `stroke-width` attribute lets the CSS rule take over everywhere (an
+   SVG attribute loses to any stylesheet rule).
+4. A shortened path meets the glyph edge for every head at every width, on curved
+   and straight edges.
+5. Chrome paints completely after a width change: check with `paintcheck.py`, not
+   fps (`.insights/project_chrome_paint_completeness.md`).
+
+Canvas changes are checked in a browser, not only in unit tests
+(`.insights/project_multi_canvas_dom_globals.md`).
 
 ## Earlier decisions this revises
 
@@ -807,6 +873,11 @@ tier there.
   on a `holds_absence` wire.
 - The overview listed `NodeBehaviorFlags.is_control_node` as unused cleanup. It
   stays (Q11).
+- Q32 put D's code after 5.4. Q56 moves it before 5.4, beside 5.3.
+- 5.4's "arrows are SVG markers, one definition per colour" and its single `arrow`
+  field (none, end, start, both) are replaced by D's one `context-stroke` marker per
+  head and the bag's `arrow_start` / `arrow_end` (Q54, Q58). 5.4's "selection keeps
+  today's look" is replaced by D's width-relative classes (Q51, Q61).
 
 ## Not in scope
 
@@ -835,7 +906,8 @@ tier there.
   (Q13b) already stops the pair after one pass. A state machine needs an
   active-state token that persists across frames, which is closer to `SEQUENCE`
   and would be a new role with its own engine.
-- The hard-coded validity colours (Q13) moved into design round D.
+- The hard-coded validity colours (Q13) moved into design round D, which reads them
+  from theme tokens (Q51, Q52).
 - **Undoable pin removal** (Q28). `remove_port` is not undoable, and the edges it
   leaves on the ghost are kept on purpose. If leftover annotation arrows prove
   annoying, make the removal undoable before revisiting edge deletion.
@@ -851,7 +923,7 @@ overview when it closed.
 - `docs/guides/panels.md` links to a file under `.insights/`, outside
   `docs_dir`. `mkdocs build --strict` fails on it; CI builds without
   `--strict`, so CI passes.
-- `DataPort.set_value`/`get_value` open with `if not self._data: return`, and
+- **Done in 5.2 (Q46, 69e41bd5; `to_dict` too, 5458956a).** `DataPort.set_value`/`get_value` open with `if not self._data: return`, and
   `ArrayField`/`MapsStringField` define `__len__`, so an empty array inlet is
   falsy: it silently drops an edge's `[1.0, 2.0]` and reads `None`. Should be
   `is None`. Found while verifying the step 2 plan; pre-existing.
@@ -877,8 +949,90 @@ overview when it closed.
 - Paste and Subgraph instantiation drop an edge's `propagation`: `RemappedEdge`
   carries it and nobody reads it. A `LAZY` choice silently becomes `EAGER`. Fixed
   by 5.4 together with style (Q27).
-- `ADD`'s docstring (`add.py:111-113`) says a typed `ADD[T]` keeps T's flow. It
+- **Done in 5.1.** `ADD`'s docstring (`add.py:111-113`) says a typed `ADD[T]` keeps T's flow. It
   does not today. 5.1 makes it true.
+
+## Follow-ups from 5.1 and 5.2
+
+Found while executing 5.1 and 5.2 (task reviews, the final whole-branch reviews,
+the live studio checks). Each is either done on `wire-types-5-1` before the merge,
+carried by a named later step's detail plan, or done once 5.5 has landed. Tick an
+item when it lands; when 5.5 lands, nothing here may be left open.
+
+**On `wire-types-5-1`, before the merge:**
+
+- [x] **F1.** `EdgePropagationMenuPanel.poll` (`haybale_graph_editor/panels/graph/menu/edge/edge.py`)
+  answers true for an edge without propagation (callback, visual); its `draw`
+  then returns empty. Poll on `edge.propagation is not None`.
+- [x] **F2.** `EdgeInfoPopup` (`editors/graph_canvas/connection_info_popup.py`) has
+  no caller; it is only exported. Delete it, its export and its `.codemap` mention.
+- [x] **F3.** `allow_multiple_links=` passed in code is silently dropped by the
+  `from_spec` pop meant for old saved graphs. Refuse it in `create_port_spec` the
+  way `wire_type` is refused, naming the link ceiling and `single_link`; keep the
+  load-path pop. Landed with `flow_type=` refused the same way.
+- [x] **F4.** `SetPropertyAction` and Farmhand `graph_editor_set_property` write a
+  port's own value without asking `accepts_own_value()`. On a pooled port the
+  write raises inside the history manager (swallowed), and Farmhand then reports a
+  misleading "validator rejected it". Refuse up front, by mechanism, with a
+  specific Farmhand error. Landed together with a pre-existing bug the batch review
+  found: on a linked inlet, undo and the Farmhand read-back used the edge's value,
+  not the own value (undo wrote the edge's value into the own slot).
+- [x] **F5.** `single_link` is read at link time; setting it on a port that already
+  holds several edges does not remove any. State that contract in its docstring.
+- [x] **F6.** `ArrayType._configure_port` and `PooledType._configure_port` repeat
+  the element walk `wire_type_of` does (three copies). One helper in `wire.py`
+  returning the declaring type and its wire type.
+- [x] **F7.** `_try_auto_wire` (`visual_layer.py`) skips the wire check when the
+  pending wire key is empty. Since `@type` requires a wire type, always apply
+  `wires_match`.
+- [x] **F8.** Collapse convexity (`subgraph_collapse._adjacency`) counts `VISUAL`
+  edges, so a selection joined only through a visual path is refused although
+  nothing executes on it (ADR 0043, Q41). Skip edges that do not carry values.
+- [x] **F9.** Legacy `"edge_type": "data"` keys in test fixtures
+  (`tests/core/test_graph/test_clipboard_payload.py:42,52`,
+  `tests/core/test_undo/test_paste_action.py:115`); visiongraph `notes.md` still
+  says `flow_type` in five places.
+- [x] **F10.** Missing or weak tests:
+  - `refresh_from` re-derives the wire type when a port is retyped;
+  - a saved callback edge without a `propagation` key loads with none;
+  - `test_a_saved_flow_is_ignored_on_load` asserts only `value_a`;
+  - `test_wire.py::test_a_base_without_a_role_is_not_registered` passes either way;
+  - `@type` exemptions (container, wrapper, `ADD` without a wire type) are untested;
+  - the widget-refusal tests do not assert the view shows the model again;
+  - `canvas.vue` `_wiresMatch` has no test.
+- [x] **F11.** `test_link_ceiling.py::test_a_narrowed_outlet_keeps_one_linked_edge`
+  does not assert which edge survives.
+
+**Carried by a later step:**
+
+- [ ] **F12 → 5.3.** `PooledType` refuses a control element (kept by the user,
+  2026-10-03): a pooled inlet reads every linked outlet, so a source that never
+  fired adds its empty payload `{}`, and one that fired in an earlier run would add
+  that run's payload (untested). With absence on the wire (`holds_absence`), a pool
+  could record only sources that fired. The 5.3 detail plan decides whether to
+  lift the refusal, with the end-to-end test from 5.2 Task 5.
+
+**After 5.5 has landed:**
+
+- [ ] **F13.** Browser harness graph builders run on the default timer scheduler;
+  the intermittent `test_edge_batch_cost` failure (NiceGUI `build_response`
+  "dictionary changed size during iteration") is likely that race. Move the
+  harness builders to `SyncScheduler` and check the tier stays green over
+  several runs.
+- [ ] **F14.** Reconnecting an edge onto a ghost pin removes the edge server-side
+  before the canvas has confirmed the anchor pin is in the DOM; on a culled node the
+  edge disappears (undo restores it). Needs a two-phase reconnect.
+- [ ] **F15.** `DataPort._add_link` on a port that takes one link but already holds
+  several (reachable only by setting `single_link` on a linked port, see F5) keeps
+  only the new edge, yet removes the source of, and fires `on_disconnect` for, just
+  the first old one; the others leave `_linked_edges` silently and may leave stale
+  sources (a pooled field). Displace every old edge, which changes `_add_link`'s
+  single displaced-edge return and `EdgeWrapper.link`'s handling of it.
+
+Not a follow-up (decided 2026-10-03): the default skin shows no multi glyph on
+outlets (no `callback_out_multi` in `PinIconResolver.ICONS`, like `data_out`), so
+a callback outlet's fan-out is not visible in its glyph. A skin may style
+`callback_out_multi`.
 
 ## Docs, glossary and ADR candidates
 
@@ -901,6 +1055,12 @@ Glossary:
   drag, and never takes part in wire matching. Removing a pin leaves its edges
   drawn to the ghost." It drops "drop affordance" and carries `data-pin-ghost`;
   **Propagation** gains "an edge on an immediate or visual wire has none" (Q19).
+- D: new **computed edge** (its wire type declares no style bag; colour from the
+  pins, dash from the adapter chain, width and arrow head from the edge defaults),
+  **styled edge** (its wire type declares a style bag), **edge defaults**
+  (`edge_arrow` and `edge_width`, framework < graph), **arrow head** (one of the
+  shared vocabulary of heads, drawn at an edge end); the **Wire type** row gains
+  `arrow_at` (Q48 to Q62).
 
 ADRs:
 
@@ -909,11 +1069,22 @@ ADRs:
   rewritten" (Q20) (5.1);
 - ADR 0039 amended: immediate is a role, and its edges have no propagation (Q19)
   (5.1);
-- refuse only what breaks, stated by mechanism, with the ADR 0003 correction (5.2);
+- refuse only what breaks, stated by mechanism, with the ADR 0003 correction (5.2, ADR 0043);
+- the link ceiling (5.2, ADR 0044, Q44); ADRs 0003, 0034 and 0042 marked superseded in part;
 - callback absence, superseding step 2's sentinel and ADR 0033's restriction for
   this wire, with absent defaults as empty `default_kwargs` (Q22) (5.3); the
   immediate guards may share it, including "a dropped fire stores nothing" (Q24);
+- edge appearance through CSS custom properties: framework < graph defaults for
+  computed edges, `arrow_at` as a wire-type fact, state colours as theme tokens,
+  `context-stroke` markers with path insets, styled edges overriding by inline
+  vars (D, Q48 to Q62);
 - `EdgeSettings` as the fifth settings flavour (5.4).
+
+Docs D updates: the design-guide edge-token table (`--hw-edge-default` and
+`--hw-edge-selected` now read; state colours from the semantic tokens; the two
+optional width tokens), theme canon, `graph-arch`'s graph-props list, the
+`CanvasSettings` docs (`edge_hit_padding`), and the settings canon's framework
+schema list.
 
 Doc drift found on the way:
 
@@ -1009,5 +1180,48 @@ reopened.
 | 29 | Q8b to 5.2; `data-pin-ghost`, `pin_kind` with deletion 10, and hiding the propagation UI in 5.1; deletion 9 in 5.3; the fallback glyph for an unknown kind in 5.4 | 5.1 to 5.4 |
 | 30 | The wire type's pin family is `pin_kind`, a key for the skin's map. Real icons stay on types | 5.1 |
 | 31 | A ghost pin is a fallback anchor, never a drag target. The docs calling it a drop affordance are corrected | 5.1 |
-| 32 | D's design round runs after 5.2, beside 5.3, before the 5.4 detail plan. D's code follows 5.4 | sequence |
+| 32 | D's design round runs after 5.2, beside 5.3, before the 5.4 detail plan. D's code follows 5.4 (code order revised by Q56: before 5.4) | sequence |
 | 33 | Shared understanding confirmed. Three facts found by reading the code are marked as docs additions | docs |
+
+## Decisions of 2026-10-03, 5.2 inquisition (Q34 to Q47)
+
+| Q | Decision | Lands in |
+|---|---|---|
+| 34 | 5.2's scope is the six design items (8b, 8c, 9a, 9c, Q21, 9d) with a test-only `VISUAL` wire; no Small items except Q46 | 5.2 |
+| 35 | The framework sets the **link ceiling** by mechanism; a port can only narrow it. Wire types carry no link attributes | 5.2 |
+| 36 | The narrowing setting is `single_link: bool = False`, saved only when set; `allow_multiple_links` is gone and its saved key ignored; the four listener declarations go | 5.2 |
+| 37 | Two field predicates: `keeps_value_per_source()` (ceiling) and `accepts_own_value()` (widget guard) | 5.2 |
+| 38 | A widget on a field without an own value refuses the edit and shows the model again, like a linked inlet; no visual change | 5.2 |
+| 39 | A container refusal goes only after a permanent end-to-end integration test of its combination passes; a failing one keeps its refusal, reworded by mechanism | 5.2 |
+| 40 | `@type` exempts `CompoundType`, `WrapperType` and `_is_any` from needing a wire type | 5.2 |
+| 41 | A `VISUAL` wire crosses Group boundaries like any wire type, proven by tests | 5.2 |
+| 42 | `single_link` is not copied to mirrors, reroute ports or grown slots | 5.2 |
+| 43 | The term is **link ceiling**; the effective property `DataPort.takes_many_links`; Farmhand reports it, plus `single_link` when set | 5.2 |
+| 44 | Two ADRs (refuse only what breaks; the link ceiling) and superseded marks on the ADRs they make stale | 5.2 |
+| 45 | A type cannot narrow its ports: `_configure_port` keeps colour and refusals only | 5.2 |
+| 46 | The falsy-array Small item is fixed first in 5.2's container task: the verify-first tests need it | 5.2 |
+| 47 | Docs addition: a boundary node copies every pinned non-immediate interface port, `VISUAL` included | 5.2 |
+
+## Decisions of 2026-10-04, design round D (Q48 to Q62)
+
+Constraint (user): minimal new machinery, reuse existing approaches, fast and
+reactive. Annotation edges need colour and dash set individually; state colours
+leave hard-coded values.
+
+| Q | Decision | Lands in |
+|---|---|---|
+| 48 | An individual look only through a wire type's style bag (annotation: `color`, `dash`, `width`, `arrow_start`, `arrow_end`). Computed edges (data, control, callback) take `arrow` and `width` from a framework < graph default: a core `EdgeDefaultSettings` schema and two `GraphProperties` shadows | D, 5.4 |
+| 49 | One `arrow` + `width` pair for all computed edges, not per role | D |
+| 50 | A field a bag declares always comes from the bag and wins; an undeclared field falls through to the graph default. A wire's look is plain field defaults on its bag, not a tier; no `EdgeSettings` → graph mirror | D, 5.4 |
+| 51 | State colours are theme tokens (studio and graph tiers through the cascade); selected and active widths derive from the width var | D |
+| 52 | No new colour tokens: invalid `--hw-danger`, warning `--hw-warning`, drop targets `--hw-success` / `--hw-danger`, selected `--hw-edge-selected`, active `--hw-edge-active`, every missing-pin fallback `--hw-edge-default` | D |
+| 53 | A styled edge sets its values as inline vars on its own path; one stylesheet rule set draws every edge | D, 5.4 |
+| 54 | Heads are `context-stroke` markers, one definition per head serving both ends (`auto-start-reverse`); verify the gradient end colour and Safari first, else one marker per colour | D |
+| 55 | A Group interior uses its own `props` (framework < subgraph), as for every graph prop today | D |
+| 56 | D's code lands before 5.4, beside 5.3 (revises Q32) | sequence |
+| 57 | Every edge draws its own head, reroute segments included | D |
+| 58 | One head vocabulary for every edge: none + fifteen (Miro's set); a core `ArrowHeadWidget` shows None and four common arrows, "more" reveals all; one table is the single source for widget and markers | D, 5.4 |
+| 59 | By default a computed head sits at the inlet, pointing along the edge | D |
+| 60 | `WireType.arrow_at` (`INLET` default, `OUTLET`, `NONE`) declares where a computed head sits; `CallbackWire` declares `OUTLET`. No role check | D |
+| 61 | Selected/active extra widths are optional theme tokens with fallbacks (1px, 2px); hit-area padding is a `CanvasSettings` field (8px), pushed live through the existing props table | D |
+| 62 | The path is shortened by each head's inset so the line meets the glyph's edge; hollow heads are hollow. The graph values reach `canvas.vue` as props, which sets the vars and re-lays-out its paths client-side | D |

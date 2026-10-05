@@ -756,7 +756,7 @@ class DissolveRerouteAction(CompositeAction):
        ``upstream.out → downstream.in`` (``AddEdgeAction``).
 
     DATA reroutes have one upstream edge; CONTROL reroutes allow multiple
-    upstream edges on the inlet (``allow_multiple_links=True``), so all
+    upstream edges on the inlet (an inlet that takes many links), so all
     upstreams are bridged to all downstreams.
 
     If no upstream edges exist (partial state), no bridge edges are created
@@ -811,6 +811,10 @@ class SetPropertyAction(ActionBase):
     the one deliberate new core mutation surface mandated by the Farmhand spec:
     the raw settings/port write paths are non-undoable and not id-addressable.
 
+    A port whose field holds no own value (a pooled inlet, an ``ADD`` slot) is
+    refused with a ``ValueError`` naming why; a linked port that does accept
+    one stays writable.
+
     ``prefer_setting=True`` flips the resolution order (settings bags first),
     for callers that mean a settings field even when a port shares the name —
     e.g. the resize commit writing ``props.width`` on a node that also has a
@@ -845,19 +849,31 @@ class SetPropertyAction(ActionBase):
             if accessor is not None:
                 return node, "setting", accessor
             if self.name in node.ports:
+                self._require_own_value(node)
                 return node, "port", None
         else:
             if self.name in node.ports:
+                self._require_own_value(node)
                 return node, "port", None
             accessor = _find_bag()
             if accessor is not None:
                 return node, "setting", accessor
         raise ValueError(f"Node '{self.node_id}' has no port or setting named '{self.name}'")
 
+    def _require_own_value(self, node: Any) -> None:
+        """Raise ``ValueError`` when the named port stores no value of its own."""
+        data = node.ports[self.name].data
+        if not data.accepts_own_value():
+            raise ValueError(
+                f"Port '{self.name}' on '{self.node_id}' holds no own value: its value comes only "
+                f"from its edges (a pooled inlet or an ADD slot)."
+            )
+
     def _execute_impl(self) -> None:
         node, kind, accessor = self._resolve()
         if kind == "port":
-            self._old_value = node.ports[self.name].get_value()
+            # The own value, not the one an edge puts in front of it: undo restores the slot written.
+            self._old_value = node.ports[self.name].data.get_own_value()
             node.ports[self.name].set_value(self.new_value)
         else:
             assert accessor is not None  # kind == "setting" always carries an accessor
@@ -1348,7 +1364,8 @@ class CollapseToGraphNodeAction(CompositeAction):
         is_convex, intervening = check_convex(graph, selected)
         if not is_convex:
             raise ValueError(
-                "This selection cannot be collapsed: control would leave the Group and re-enter "
+                "This selection cannot be collapsed: a path carrying values (data, control or "
+                "callback) would leave the Group and re-enter "
                 f"it through {', '.join(intervening)}. Add them to the selection to collapse it."
             )
 

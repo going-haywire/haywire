@@ -4,7 +4,7 @@ Pooled Compound Type - Final Simplified Version
 Key changes:
 1. Uses hooks from IType (_validate_port_type, _configure_port)
 2. _validate_port_type: Prevents outlet creation
-3. _configure_port: Sets allow_multiple_links = True
+3. _configure_port: takes the element's colour
 4. Clean and focused - just overrides what's needed
 """
 
@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 
 from haywire.core.types import type, CompoundType, DataField, IType
 from haywire.core.types.enums import PortType
-from haywire.core.types.wire import WireRole, wire_type_of
+from haywire.core.types.wire import WireRole, declaring_type_of, wire_type_of
 
 T = TypeVar("T")
 
@@ -44,7 +44,7 @@ class PooledType(CompoundType[T]):
 
     Note: Pooled is INLET-ONLY - cannot be used with outlets!
 
-    It sets the pin to allow multiple connections automatically.
+    Its field keeps one value per source, so the inlet takes many edges (see `DataPort.takes_many_links`).
 
     IMPORTANT:
         as_inlet() refuses a wire_type kwarg; the port travels on its element type's wire type.
@@ -54,7 +54,7 @@ class PooledType(CompoundType[T]):
 
     Hooks:
     - _validate_port_type: Overridden to prevent outlets
-    - _configure_port: Overridden to set allow_multiple_links
+    - _configure_port: takes the element's colour and refuses a control element
     """
 
     field_class: "Optional[Type[DataField]]" = None  # Will be set to PooledField after it's defined
@@ -78,26 +78,19 @@ class PooledType(CompoundType[T]):
 
     @classmethod
     def _configure_port(cls, port, **context) -> None:
-        """
-        Override:
-        - Mark port as accepting multiple connections.
-        - Take the element's colour; refuse a control element.
-
-        This is the semantic purpose of pooled - to aggregate from
-        multiple sources into one inlet.
-        """
-        port.allow_multiple_links = True
-
-        current_type = port.type_cls.element_type_cls
-        while current_type is not None:
-            identity = getattr(current_type, "class_identity", None)
-            wire = getattr(identity, "wire_type", None)
-            if identity is not None and wire is not None:
-                port.color = identity.color
-                if wire.role is WireRole.SEQUENCE:
-                    raise ValueError("PooledType cannot have a control element type")
-                return
-            current_type = getattr(current_type, "element_type_cls", None)
+        """Take the colour of the element that declares the wire type; refuse a control element."""
+        declared = declaring_type_of(port.type_cls.element_type_cls)
+        if declared is None:
+            return
+        element, wire = declared
+        port.color = element.class_identity.color
+        if wire.role is WireRole.SEQUENCE:
+            # The pool pulls every linked outlet, so a source that never fired
+            # contributes its empty payload `{}`, which reads as a fired empty payload.
+            raise ValueError(
+                "PooledType cannot have a control element type: the pool holds the empty "
+                "payload of a source that never fired, indistinguishable from a fired one"
+            )
 
     @property
     def value(self):
@@ -123,6 +116,14 @@ class PooledField(DataField):
     Worker Access: Dict[str, T] or List[T]
     Transfer: Not allowed (inlet-only)
     """
+
+    def keeps_value_per_source(self) -> bool:
+        """True: a pooled field keeps one value per source edge."""
+        return True
+
+    def accepts_own_value(self) -> bool:
+        """A pooled field holds only its sources' values."""
+        return False
 
     _sources: Dict[str, Any] = field(default_factory=dict, init=False, repr=False)
     _default_kwargs: Dict[str, Any] = field(default_factory=dict)

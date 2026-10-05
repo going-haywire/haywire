@@ -16,7 +16,6 @@ from .base import BaseType, CompoundType, PrimitiveType, WrapperType
 from .identity import DataTypeIdentity
 from .interface import IType
 from .utils import normalize_and_validate_default
-from .wire import WireRole
 
 T = TypeVar("T")
 
@@ -31,8 +30,11 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
     - Complex types with multiple fields (MeshData, Color, etc.)
 
     Examples:
+        from haywire.barn.builtin.wires import DataWire
+
         # Primitive type:
         @type(
+            wire_type=DataWire,
             color='#50b0ff',
             default={'value': 0.0}
         )
@@ -50,6 +52,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
 
         # Complex type:
         @type(
+            wire_type=DataWire,
             label='3D Mesh',
             color='#4CAF50',
             default={'vertices': [], 'faces': [], 'name': 'Default Mesh'}
@@ -72,7 +75,8 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         icon_out_multi (str, optional): Icon for multi-link outlet pins.
         widget_key (str, optional): Widget for editing values. NOT RECOMENDED TO USE
         widget_config (dict, optional): Additional widget configuration properties. NOT RECOMENDED TO USE
-        wire_type (type[WireType], optional): The wire type values travel on; inherited by derived types.
+        wire_type (type[WireType]): The wire type values travel on; inherited by derived
+            types. Required unless the type is a container, a wrapper or ADD.
         default (dict, required): Dict of constructor kwargs for default instance.
         help_url (str, optional): Documentation URL.
         deprecation_warning (str, optional): Deprecation warning message.
@@ -85,6 +89,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
     Raises:
         TypeError: If 'default' is missing or not a dict
         TypeError: If class doesn't inherit from IType
+        TypeError: If the type has no wire type and is not a container, a wrapper or ADD
     """
 
     def decorator(inner_cls: Type[T]) -> Type[T]:
@@ -136,22 +141,6 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
             kwargs.setdefault("description", inner_cls.__doc__.strip() if inner_cls.__doc__ else "")
             identity_dict = kwargs
 
-        # A control or callback type is a signal, not an editable value. This also
-        # catches the inheritance trap: a signal type derived from a scalar inherits
-        # the parent's widget_key through asdict(); pass widget_key=None to clear it.
-        wire = identity_dict.get("wire_type")
-        if (
-            wire is not None
-            and wire.role in (WireRole.SEQUENCE, WireRole.IMMEDIATE)
-            and identity_dict.get("widget_key")
-        ):
-            raise TypeError(
-                f"@type decorator for {inner_cls.__name__}: a type on {wire.id} cannot have a "
-                f"widget_key (got {identity_dict['widget_key']!r}). Control and callback pins "
-                f"are signals, not editable values. If this type inherits a widget_key from a "
-                f"parent (e.g. a scalar base), pass widget_key=None to clear it."
-            )
-
         # Validate 'default' parameter
         if "default" not in identity_dict:
             raise TypeError(
@@ -173,6 +162,18 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
                 f"@type decorator for {inner_cls.__name__}: a primitive type's default needs a "
                 f"'value' that is not None, got {identity_dict['default']!r}. For a type whose "
                 f"values can be absent, use OPTIONAL[T]."
+            )
+
+        # A pin with no wire type matches no other pin, so its edges could never link.
+        # A container or wrapper takes its element's; a bare ADD is the wildcard.
+        if identity_dict.get("wire_type") is None and not (
+            issubclass(inner_cls, (CompoundType, WrapperType)) or getattr(inner_cls, "_is_any", False)
+        ):
+            raise TypeError(
+                f"@type decorator for {inner_cls.__name__}: a value type needs a wire type: without "
+                f"one its pins could never link. Pass wire_type=DataWire (or the wire type its values "
+                f"travel on, from haywire.barn.builtin.wires or your library), or derive from a type "
+                f"that has one."
             )
 
         # Set registry_key (always regenerate for this class)

@@ -1077,7 +1077,7 @@ class VisualLayerHandlers:
             if target_dir == "outlet" and not port.is_outlet():
                 continue
             # The wire types must match, as a drag onto the pin would require.
-            if pending_wire and not wires_match(pending_wire, port.wire_key):
+            if not wires_match(pending_wire or None, port.wire_key):
                 continue
             # For data pins, data type must match if provided
             if pending_data:

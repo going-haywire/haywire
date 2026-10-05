@@ -12,7 +12,7 @@
 
 **Tech Stack:** Python 3.12, pytest (+ xdist, Playwright browser tier), uv, ruff, mypy; Vue 3 (`canvas.vue`) for the pin attributes; NiceGUI for the edge panels.
 
-**Settled in:** [2026-10-02-wire-types.md](2026-10-02-wire-types.md), the step 5 design. The decisions this plan implements are Q2, Q3, Q5, Q7a-d, Q8a, Q9b, Q12, Q15 (deletions 1-8, 10-12) and Q19, Q20, Q29, Q30, Q31. Its review and second inquisition (2026-10-03) moved Q8b, Q21 and the ADD↔ADD refusal into 5.2.
+**Settled in:** [2026-10-02-wire-types.md](../2026-10-02-wire-types.md), the step 5 design. The decisions this plan implements are Q2, Q3, Q5, Q7a-d, Q8a, Q9b, Q12, Q15 (deletions 1-8, 10-12) and Q19, Q20, Q29, Q30, Q31. Its review and second inquisition (2026-10-03) moved Q8b, Q21 and the ADD↔ADD refusal into 5.2.
 
 ## Global Constraints
 

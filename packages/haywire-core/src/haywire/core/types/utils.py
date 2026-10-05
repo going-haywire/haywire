@@ -57,6 +57,9 @@ def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kw
 
     Raises:
         ValueError: if an author-declared *id* contains a '.'.
+        TypeError: if *kwargs* holds ``wire_type``, ``allow_multiple_links`` or ``flow_type``,
+            none of which a port takes: its wire type comes from its data type and its link
+            ceiling from its wire role and field.
 
     A promoted setting's port id IS its ``storage_key``, which is
     ``'<accessor>.<field>'`` — so the dotted namespace belongs to promotion.
@@ -84,6 +87,18 @@ def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kw
         raise TypeError(
             f"{type_cls.__name__}.as_{port_type.value}({id!r}): a port takes its wire type from its "
             f"type; declare it on the type with @type(wire_type=...)"
+        )
+    if "flow_type" in kwargs:
+        raise TypeError(
+            f"{type_cls.__name__}.as_{port_type.value}({id!r}): flow_type is not a port setting: a "
+            f"port's wire type comes from its data type; declare it on the type with "
+            f"@type(wire_type=...)"
+        )
+    if "allow_multiple_links" in kwargs:
+        raise TypeError(
+            f"{type_cls.__name__}.as_{port_type.value}({id!r}): allow_multiple_links is not a port "
+            f"setting: a port's link count is its link ceiling, derived from its wire role and field "
+            f"(DataPort.takes_many_links, ADR 0044). Pass single_link=True to narrow it to one."
         )
     identity = {k: v for k, v in asdict(type_cls.class_identity).items() if k != "wire_type"}
     merged_kwargs = {

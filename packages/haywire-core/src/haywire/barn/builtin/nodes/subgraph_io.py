@@ -116,9 +116,6 @@ class _GrowsInterface(BaseNode):
             return
 
         incoming = other.stored_type
-        if incoming._is_any:
-            # Both ends undecided: nothing to adopt.
-            return
 
         # Retyped in place, keeping the slot's own id: the edge being linked is
         # already attached to it, and a port id is baked into that edge's id.

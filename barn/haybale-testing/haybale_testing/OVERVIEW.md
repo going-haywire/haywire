@@ -5,6 +5,8 @@ Test library for test support
 ## Nodes
 ### Testing
 - **Add Port TestNode** — 
+- **Array Callback Probe** — Test-only: an array-of-CALLBACK outlet and inlet.
+- **Array Exec Probe** — Test-only: an array-of-EXEC outlet and inlet on a control node.
 - **Bench Bare Node** — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.
 - **Bench Exec Node** — FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.
 - **Control Payload TestNode** — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).
@@ -28,6 +30,7 @@ Test library for test support
 - **Test Print** — Test version of Logger — logs a message and continues flow
 - **Test Record Emit** — Test control node emitting to every dataclass subscription in its pool
 - **Test Record Event** — Test event node whose subscription is a dataclass callback value
+- **Visual Probe** — Test-only: a data node with pins on a drawn-only wire.
 
 ## Types
 - **Boolean** — True or False
@@ -36,6 +39,8 @@ Test library for test support
 - **String** — Text data
 - **Temperature** — Temperature in Celsius
 - **Test Record Callback** — Test callback subscription carried as a dataclass
+- **Test Visual** — Test-only: a text value on a drawn-only wire
+- **Test Visual Count** — Test-only: a number on a drawn-only wire
 
 ## Adapters
 - **BoolToIntAdapter** — Convert bool to integer

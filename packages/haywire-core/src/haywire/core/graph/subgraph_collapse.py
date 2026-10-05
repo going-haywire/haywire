@@ -38,9 +38,10 @@ def check_convex(graph: "BaseGraph", node_ids: Iterable[str]) -> Tuple[bool, Lis
     both ``G -> B`` and ``B -> G``, so the Graph-node would be entered twice in
     one pass — incoherent for control flow, and a real cycle for data.
 
-    Both wire types count. A data path that leaves and re-enters becomes a cycle
-    through the Subgraph's own contents once inlined, which the data-flow
-    builder rejects at assembly.
+    Every edge that carries values counts (data, control, callback); a visual
+    edge does not, because it executes nothing. A data path that leaves and
+    re-enters becomes a cycle through the Subgraph's own contents once inlined,
+    which the data-flow builder rejects at assembly.
 
     Args:
         node_ids: The selected nodes. Ids the graph does not know are ignored.
@@ -64,10 +65,12 @@ def check_convex(graph: "BaseGraph", node_ids: Iterable[str]) -> Tuple[bool, Lis
 
 
 def _adjacency(graph: "BaseGraph") -> Tuple[Dict[str, Set[str]], Dict[str, Set[str]]]:
-    """Forward and backward node adjacency over every edge in the graph."""
+    """Forward and backward node adjacency over every edge that carries values."""
     successors: Dict[str, Set[str]] = {}
     predecessors: Dict[str, Set[str]] = {}
     for edge in graph.edge_wrappers.values():
+        if not edge.carries_values:
+            continue
         successors.setdefault(edge.source_node_id, set()).add(edge.sink_node_id)
         predecessors.setdefault(edge.sink_node_id, set()).add(edge.source_node_id)
     return successors, predecessors

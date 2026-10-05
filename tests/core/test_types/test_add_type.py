@@ -13,7 +13,6 @@ from haywire.barn.builtin.types import ADD, BOOL, FLOAT, INT, STRING
 from haywire.core.adapter.factory import AdapterFactory
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.adapter.base import ReturnAdapter
-from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.base import BaseGraph
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types import DataPort
@@ -203,7 +202,7 @@ class TestAddAdapterShortCircuit:
         assert isinstance(adapter, ReturnAdapter)
 
     def test_any_to_any_passes_through(self):
-        """Two undecided ends still make a valid edge; neither resolves."""
+        """The factory answers a pass-through; `wires_match` refuses the edge before a chain is asked for."""
         factory = AdapterFactory(AdapterRegistry())
         adapter, error = factory.create_chain(ADD, ADD, "edge-1")
         assert error is None
@@ -303,23 +302,21 @@ class TestAddResolution:
 
         assert edge.is_functional()
 
-    def test_any_to_any_leaves_both_ends_undecided(
-        self, graph_with_library_system: BaseGraph, library_system
-    ):
-        """Neither end has a type to adopt, so no port is retyped or added."""
+    def test_two_bare_slots_do_not_link(self, graph_with_library_system: BaseGraph, library_system):
+        """Neither end has a wire type for the edge to take, so the edge fails formal validation."""
         graph = graph_with_library_system
         source = _make_add_node(graph, (100, 100))
         target = _make_add_node(graph, (300, 100))
 
-        edge: EdgeWrapper | None = graph.create_edge_wrapper(
-            source.node_id, "add_out_0", target.node_id, "add_in_0"
-        )
+        edge = graph.create_edge_wrapper(source.node_id, "add_out_0", target.node_id, "add_in_0")
         assert edge is not None
+        graph._validation.force_immediate_validation()
 
+        assert not edge.state.is_formally_validated
+        error = edge.state.get_error()
+        assert error is not None and "Two bare ADD slots cannot link" in error.message  # noqa: PT018
         assert target.node.ports["add_in_0"].type_cls is ADD
         assert source.node.ports["add_out_0"].type_cls is ADD
-        assert "add_in_1" not in target.node.ports
-        assert "add_out_1" not in source.node.ports
 
 
 @pytest.mark.integration

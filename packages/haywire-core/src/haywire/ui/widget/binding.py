@@ -152,8 +152,9 @@ class PropertyBinding:
     def _sync_to_model(self, view_value: Any) -> None:
         """Synchronize view value to model."""
         assert self._element is not None and self.converter is not None
-        if self._element.data.has_linked_value():
-            # An edge's value stands in front of the model's own value; show it again.
+        if self._element.data.has_linked_value() or not self._element.data.accepts_own_value():
+            # An edge's value stands in front of the own value, or there is no
+            # own value to write; show the model again.
             self.sync_to_view()
             return
         is_valid, _error_msg = self.converter.validate(view_value)

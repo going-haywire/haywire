@@ -43,12 +43,12 @@ def _port(type_cls: type, port_type: PortType, **kwargs) -> DataPort:
     for field, enum in (("show_widget", ShowWidgetStrategy), ("store_strategy", StoreStrategy)):
         if field in spec and not isinstance(spec[field], enum):
             spec[field] = enum(spec[field])
-    # A multi-link data inlet is set after construction, as PooledType._configure_port does.
-    multi = kwargs.pop("allow_multiple_links", None)
+    # A many-link inlet is one whose field keeps a value per source, as a pooled field does.
+    pooled = kwargs.pop("pooled", False)
     spec.update(type_cls=type_cls, **kwargs)
     port = DataPort(port_type=port_type, **spec)
-    if multi is not None:
-        port.allow_multiple_links = multi
+    if pooled:
+        port._data.keeps_value_per_source = lambda: True  # type: ignore[method-assign]
     return port
 
 
@@ -58,13 +58,13 @@ def test_a_data_inlet_uses_icon_in():
 
 
 def test_a_multi_link_data_inlet_uses_icon_in_multi():
-    port = _port(_typed(icon_in_multi="my_multi"), PortType.INLET, allow_multiple_links=True)
+    port = _port(_typed(icon_in_multi="my_multi"), PortType.INLET, pooled=True)
     assert _resolve_pin_icon(port) == "my_multi"
 
 
 def test_a_multi_link_inlet_falls_back_to_icon_in():
     """Each step falls through to the next-widest one that is declared."""
-    port = _port(_typed(icon_in="my_inlet"), PortType.INLET, allow_multiple_links=True)
+    port = _port(_typed(icon_in="my_inlet"), PortType.INLET, pooled=True)
     assert _resolve_pin_icon(port) == "my_inlet"
 
 
@@ -76,14 +76,13 @@ def test_a_data_outlet_uses_icon_out():
 
 def test_icon_out_multi_wins_on_a_multi_link_outlet():
     port = _port(_typed(icon_out="general", icon_out_multi="specific"), PortType.OUTLET)
-    assert port.allow_multiple_links is True
+    assert port.takes_many_links is True
     assert _resolve_pin_icon(port) == "specific"
 
 
 def test_icon_out_multi_is_ignored_on_a_single_link_outlet():
     """The _multi step applies only while the pin accepts several links."""
-    port = _port(_typed(icon_out="general", icon_out_multi="specific"), PortType.OUTLET)
-    port.allow_multiple_links = False
+    port = _port(_typed(icon_out="general", icon_out_multi="specific"), PortType.OUTLET, single_link=True)
     assert _resolve_pin_icon(port) == "general"
 
 

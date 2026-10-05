@@ -217,7 +217,7 @@ class EdgePropagationMenuPanel(BasePanel):
     The icon and label both name the current mode: propagation is a standing
     property of the edge, so the row reads "Propagation: Lazy/Eager"
     rather than a command. A mode the connection fixes draws a disabled row. An edge
-    without propagation (a callback edge) draws no row.
+    without propagation (a callback or visual edge) does not poll, so no row is drawn.
     """
 
     actions: EdgeActions
@@ -233,7 +233,8 @@ class EdgePropagationMenuPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return ctx.data[EditState].active_edge is not None
+        edge = ctx.data[EditState].active_edge
+        return edge is not None and edge.propagation is not None
 
     @classmethod
     def _row_text(cls, mode: Propagation) -> str:

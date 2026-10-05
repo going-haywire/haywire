@@ -1,11 +1,14 @@
 ---
 name: show-widget-strategy
 description: ShowWidgetStrategy enum gives each DataPort explicit per-direction control over inline widget visibility vs. link state, replacing one hardcoded rule
-status: accepted
+status: superseded-in-part by ADR-0043, ADR-0044
+see-also: ADR-0043, ADR-0044
 level: architectural
 ---
 
 # `ShowWidgetStrategy` — per-port control of widget visibility vs. link state
+
+> **Link counts are superseded by [ADR 0044](0044-link-ceiling.md)**: `allow_multiple_links` is gone, and a port's link count is a ceiling the framework derives. **Editing a pooled port's widget is refused, not crashed, per [ADR 0043](0043-refuse-only-what-breaks.md)**: showing it is still the author's call.
 
 A `DataPort` may carry an inline editing **widget** (a slider, a text field, a dict editor). Until now the node skin decided whether to render that widget with one hardcoded rule:
 

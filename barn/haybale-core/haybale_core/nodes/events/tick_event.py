@@ -27,11 +27,7 @@ class TickEventNode(BaseNode):
         from haywire.barn.builtin.types import CALLBACK, EXEC
 
         # Callback outlet — broadcasts this node's listener ID
-        self.add(
-            CALLBACK.as_outlet(
-                "listen_callback", label="Listen", default=self.node_id, allow_multiple_links=True
-            )
-        )
+        self.add(CALLBACK.as_outlet("listen_callback", label="Listen", default=self.node_id))
 
         # Control output
         self.add(EXEC.as_outlet("exec", label="Execute"))

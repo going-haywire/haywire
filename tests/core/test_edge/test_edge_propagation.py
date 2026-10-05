@@ -183,6 +183,28 @@ class TestSaving:
 
         assert "propagation" not in edge.edge.to_dict()
 
+    def test_a_saved_callback_edge_without_a_propagation_key_loads_with_none(
+        self, graph_with_library_system, callback_edge
+    ):
+        """The loader defaults a missing key to EAGER; fitting to the wire type clamps it to none."""
+        graph = graph_with_library_system
+        _event, edge = callback_edge
+        edge_id = edge.edge_id
+        graph.force_validation()
+        data = graph.to_dict()
+        data["edges"][edge_id].pop("propagation", None)
+        assert "propagation" not in data["edges"][edge_id]
+
+        graph.clear()
+        graph.load_from_dict(data)
+        graph.force_validation()
+        reloaded = graph.get_edge_wrapper(edge_id)
+
+        assert reloaded is not None
+        assert reloaded.state.is_valid()
+        assert reloaded.propagation is None
+        assert reloaded.edge.propagation is None
+
     def test_a_mode_loaded_into_an_edge_that_fails_validation_is_kept(self, linked_pair):
         """Q20: an edge that does not validate is never rewritten."""
         graph, _source, _sink, edge = linked_pair

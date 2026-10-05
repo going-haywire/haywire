@@ -81,7 +81,7 @@ def _port_row(pid: str, port, detail: bool) -> dict:
         row.update(
             {
                 "data_type": _port_type_key(port),
-                "allow_multiple_links": port.allow_multiple_links,
+                "takes_many_links": port.takes_many_links,
                 "is_linked": port.is_linked(),
                 "link_count": len(port._get_linked_edges_uuid()),
                 "use_mode": port.use_mode,
@@ -90,6 +90,8 @@ def _port_row(pid: str, port, detail: bool) -> dict:
                 "is_linked_lazy": port.is_linked_lazy,
             }
         )
+        if port.single_link:
+            row["single_link"] = True
     return row
 
 
@@ -246,7 +248,9 @@ def _inspect_port_row(pid: str, port, data: str, expand: bool = False) -> dict:
         row["data_type"] = _port_type_key(port)
         row.update(_wire_fields(port))
         row["use_mode"] = port.use_mode
-        row["allow_multiple_links"] = port.allow_multiple_links
+        row["takes_many_links"] = port.takes_many_links
+        if port.single_link:
+            row["single_link"] = True
         row.update(_constraints(port.widget_config))
     return row
 
@@ -537,8 +541,8 @@ def _metadata_row(graph) -> dict:
     description="Nodes (with ports) and edges of an open graph.",
     instructions=(
         "Nodes (with ports) and edges of an open graph. Pass detail=true for the full "
-        "per-port setup (data_type, allow_multiple_links, is_linked, link_count, use_mode, "
-        "promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, "
+        "per-port setup (data_type, takes_many_links, single_link when set, is_linked, link_count, "
+        "use_mode, promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, "
         "propagation, propagation_locked, adapter_chain, has_adapters, error); default returns the "
         "base id/direction/wire_type/role per port and id/topology/wire_type/role per edge."
     ),
@@ -955,10 +959,11 @@ def _read_property(node, name: str):
     Returns ``(found, value)``. Used to verify a write actually landed — the
     settings write path rejects a value failing its validator SILENTLY
     (``setting.__set__`` returns early), so the action reports success either
-    way and only a read-back can tell them apart.
+    way and only a read-back can tell them apart. A port reads its own value, the slot
+    the write targets, even while an edge's value stands in front of it.
     """
     if name in node.ports:
-        return True, node.ports[name].get_value()
+        return True, node.ports[name].data.get_own_value()
     for accessor in type(node)._settings_bags:
         bag = getattr(node, accessor)
         if name in type(bag)._settings_descriptors():
@@ -974,7 +979,8 @@ def _read_property(node, name: str):
     "graph_editor_inspect_node row. The write is verified by reading the value back: a value "
     "rejected by the field's validator raises set_rejected rather than reporting a success that "
     "did not happen. Note min/max are UI hints only and are NOT enforced — an out-of-range write "
-    "succeeds, so respect the bounds inspect_node reports.",
+    "succeeds, so respect the bounds inspect_node reports. A port that holds no own value "
+    "(a pooled inlet or an ADD slot) raises no_own_value: wire an edge to feed it instead.",
     registry_id="set_property",
     annotations=_MUTATING,
     access=AccessTier.EDIT,
@@ -985,11 +991,20 @@ class GraphEditorSetPropertyTool(Farmhand):
     ) -> dict:
         editor = _editor(ctx, binding_id)
         ctx.fence(editor)
+        port = _node(editor, node_id).node.ports.get(name)
+        if port is not None and not port.data.accepts_own_value():
+            raise FarmhandError(
+                "no_own_value",
+                f"Port '{name}' on node '{node_id}' holds no own value: its value comes only from "
+                f"its edges (a pooled inlet or an ADD slot).",
+                ids={"node_id": node_id, "name": name},
+                help=f"Wire an edge into '{name}' with graph_editor_connect instead of setting it.",
+            )
         ok = editor.set_property(node_id, name, value)
         if not ok:
             raise FarmhandError(
                 "set_property_failed",
-                f"Could not set '{name}' on node '{node_id}' (unknown node or property).",
+                f"Could not set '{name}' on node '{node_id}' (unknown property).",
                 ids={"node_id": node_id, "name": name},
                 help=(
                     f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports','settings'] "

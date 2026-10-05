@@ -51,11 +51,7 @@ class CustomCallbackNode(BaseNode):
         )
 
         # Declare callback interest
-        self.add(
-            CALLBACK.as_outlet(
-                "listen_callback", label="Listen", default=self.node_id, allow_multiple_links=True
-            )
-        )
+        self.add(CALLBACK.as_outlet("listen_callback", label="Listen", default=self.node_id))
 
         # Control output
         self.add(EXEC.as_outlet("triggered", label="Triggered"))

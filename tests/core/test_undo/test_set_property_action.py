@@ -118,3 +118,83 @@ def test_action_serializes(graph_and_editor):
     d = action.to_dict()
     assert d["action_type"] == "SetPropertyAction"
     assert d["executed"] is True
+
+
+POOLED_NODE_KEY = "haybale-testing:node:EdgeLinkTestNode"  # has pooled_float_inlet
+
+
+def _history(editor) -> dict:
+    stats = editor.history_manager.get_history_stats()
+    return {k: stats[k] for k in ("total_items", "action_count", "pending_actions")}
+
+
+def test_a_pooled_inlet_refuses_a_property_write(graph_and_editor):
+    """A pooled inlet's value comes only from its edges: the write is refused, not swallowed."""
+    graph, editor = graph_and_editor
+    wrapper = _add_node(editor, POOLED_NODE_KEY)
+    port = wrapper.node.ports["pooled_float_inlet"]
+    pool_before = dict(port.data.get_value())
+    history_before = _history(editor)
+
+    assert editor.set_property(wrapper.node_id, "pooled_float_inlet", 3.0) is False
+
+    assert dict(port.data.get_value()) == pool_before
+    assert _history(editor) == history_before
+
+
+def test_an_add_slot_refuses_a_property_write(graph_and_editor):
+    graph, editor = graph_and_editor
+    from haybale_testing.nodes.testbed.add_port_test import AddPortTestNode
+
+    wrapper = _add_node(editor, AddPortTestNode.class_identity.registry_key)
+    assert isinstance(wrapper.node, AddPortTestNode)
+    assert "add_in_0" in wrapper.node.ports
+    history_before = _history(editor)
+
+    assert editor.set_property(wrapper.node_id, "add_in_0", 3.0) is False
+
+    assert _history(editor) == history_before
+
+
+def test_the_refusal_names_the_mechanism(graph_and_editor):
+    from haywire.core.undo.actions.graph_actions import SetPropertyAction
+
+    graph, editor = graph_and_editor
+    wrapper = _add_node(editor, POOLED_NODE_KEY)
+    action = SetPropertyAction(graph, wrapper.node_id, "pooled_float_inlet", 3.0)
+
+    with pytest.raises(ValueError, match="holds no own value.*only from its edges"):
+        action._resolve()
+
+
+def test_a_linked_inlet_that_accepts_an_own_value_still_takes_a_property_write(graph_and_editor):
+    """The refusal is for a field with no own value; an edge into a FLOAT inlet leaves it writable."""
+    graph, editor = graph_and_editor
+    source = _add_node(editor)
+    sink = _add_node(editor)
+    assert editor.create_edge(source.node_id, "result", sink.node_id, "value_a") is True
+    inlet = sink.node.ports["value_a"]
+    assert inlet._linked_edges
+    assert inlet.data.accepts_own_value()
+
+    assert editor.set_property(sink.node_id, "value_a", 42.0) is True
+
+    assert inlet.data.get_own_value() == 42.0
+
+
+def test_undo_on_a_linked_inlet_restores_the_own_value_not_the_edges(graph_and_editor):
+    graph, editor = graph_and_editor
+    source = _add_node(editor)
+    sink = _add_node(editor)
+    assert editor.create_edge(source.node_id, "result", sink.node_id, "value_a") is True
+    inlet = sink.node.ports["value_a"]
+    inlet.data.set_value(7.0, source_id="edge-1")  # the edge's value stands in front
+    inlet.data.set_value(0.0)
+    assert inlet.data.get_own_value() == 0.0
+
+    assert editor.set_property(sink.node_id, "value_a", 42.0) is True
+    assert inlet.data.get_own_value() == 42.0
+
+    assert editor.undo() is True
+    assert inlet.data.get_own_value() == 0.0
+    assert inlet.get_value() == 7.0  # the edge's value is untouched

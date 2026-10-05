@@ -35,12 +35,12 @@ def _port(type_cls: type, port_type: PortType, **kwargs) -> DataPort:
     for field, enum in (("show_widget", ShowWidgetStrategy), ("store_strategy", StoreStrategy)):
         if field in spec and not isinstance(spec[field], enum):
             spec[field] = enum(spec[field])
-    # A multi-link data inlet is set after construction, as PooledType._configure_port does.
-    multi = kwargs.pop("allow_multiple_links", None)
+    # A many-link inlet is one whose field keeps a value per source, as a pooled field does.
+    pooled = kwargs.pop("pooled", False)
     spec.update(type_cls=type_cls, **kwargs)
     port = DataPort(port_type=port_type, **spec)
-    if multi is not None:
-        port.allow_multiple_links = multi
+    if pooled:
+        port._data.keeps_value_per_source = lambda: True  # type: ignore[method-assign]
     return port
 
 
@@ -98,14 +98,14 @@ class TestFallbackChain:
 
 class TestMultiLink:
     def test_a_multi_link_inlet_takes_the_multi_role(self):
-        port = _port(_typed(**_BARE), PortType.INLET, allow_multiple_links=True)
+        port = _port(_typed(**_BARE), PortType.INLET, pooled=True)
         assert DEFAULT_PIN_ICONS.resolve(port) == "fiber_smart_record"
 
     def test_a_multi_role_falls_back_to_its_direction(self):
         class OnlyDirection(PinIconResolver):
             ICONS = {"data_in": "inlet_glyph", "fallback": "circle"}
 
-        port = _port(_typed(**_BARE), PortType.INLET, allow_multiple_links=True)
+        port = _port(_typed(**_BARE), PortType.INLET, pooled=True)
         assert OnlyDirection().resolve(port) == "inlet_glyph"
 
 
@@ -113,7 +113,7 @@ class TestRoles:
     def test_role_names_are_kind_direction_multi(self):
         bare = _typed(**_BARE)
         assert DEFAULT_PIN_ICONS.role_of(_port(bare, PortType.INLET)) == "data_in"
-        multi = _port(bare, PortType.INLET, allow_multiple_links=True)
+        multi = _port(bare, PortType.INLET, pooled=True)
         assert DEFAULT_PIN_ICONS.role_of(multi) == "data_in_multi"
 
     def test_a_compound_type_takes_the_compound_kind(self):

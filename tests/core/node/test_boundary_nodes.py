@@ -53,6 +53,9 @@ class _FakePort:
         self.port_type = port_type
         self.needs_loopback = needs_loopback
 
+    def has_role(self, role):
+        return False
+
 
 def _identity(label="Fake", **flags):
     from haywire.core.node.identity import NodeIdentity

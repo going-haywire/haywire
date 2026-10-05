@@ -163,7 +163,9 @@ class IType(ABC):
             class PooledType(CompoundType):
                 @classmethod
                 def _configure_port(cls, port, **context):
-                    port.allow_multiple_links = True
+                    port.color = "#9c27b0"
+
+        A link count is not one of them: ``DataPort.takes_many_links`` derives it.
         """
         pass
 
@@ -209,8 +211,8 @@ class IType(ABC):
                     optional 'config' fields. Decomposed into widget_key and
                     widget_config during port creation. Use
                     WidgetClass.config(**kwargs) to generate correct format
-                allow_multiple_links (bool): Allow multiple incoming
-                    connections (default: False)
+                single_link (bool): Narrow the inlet to one edge where its
+                    link ceiling allows many (default: False)
                 show_widget (ShowWidgetStrategy): When the inline widget is
                     rendered relative to link state — NEVER, NOT_LINKED,
                     WHEN_LINKED, ALWAYS (default: NOT_LINKED for inlets)
@@ -277,8 +279,8 @@ class IType(ABC):
                     optional 'config' fields. Decomposed into widget_key and
                     widget_config during port creation. Use
                     WidgetClass.config(**kwargs) to generate correct format
-                allow_multiple_links (bool): Allow multiple outgoing
-                    connections (default: True for an outlet on a data wire)
+                single_link (bool): Narrow the outlet to one edge where its
+                    link ceiling allows many (default: False)
                 show_widget (ShowWidgetStrategy): When the inline widget is
                     rendered relative to link state — NEVER, NOT_LINKED,
                     WHEN_LINKED, ALWAYS (default: NEVER for outlets)

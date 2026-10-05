@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from haywire.core.types import type, BaseType
 from haywire.core.types import PrimitiveType, PrimitiveField
 from haywire.barn.builtin.wires import CallbackWire, DataWire
+from haywire.barn.builtin.types import INT, STRING
+from haybale_testing.wires import TestVisualWire
 
 # ============================================================================
 # Numeric Types
@@ -155,3 +157,28 @@ class TEST_RECORD_CALLBACK(BaseType):
 
     name: str = ""
     weight: int = 0
+
+
+# ============================================================================
+# Drawn-only Types
+# ============================================================================
+
+
+@type(
+    wire_type=TestVisualWire,
+    label="Test Visual",
+    description="Test-only: a text value on a drawn-only wire",
+    color="#8e8e8e",
+)
+class TEST_VISUAL(STRING):
+    """Test-only type on `TestVisualWire`, with `STRING`'s text widget."""
+
+
+@type(
+    wire_type=TestVisualWire,
+    label="Test Visual Count",
+    description="Test-only: a number on a drawn-only wire",
+    color="#8e8e8e",
+)
+class TEST_VISUAL_COUNT(INT):
+    """Test-only type on `TestVisualWire` whose payload differs from `TEST_VISUAL`'s."""

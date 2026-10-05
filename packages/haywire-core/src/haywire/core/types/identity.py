@@ -40,8 +40,8 @@ class DataTypeIdentity(BaseIdentity):
         description: Type description
         cls: Python type (int, float, str, MeshData, etc.)
         wire_type: The wire type values of this type travel on; ``None`` for a
-            container, which takes its element's, and for a bare ``ADD``, the
-            wildcard; see ``wire_type_of``
+            container or wrapper, which take their element's, and for a bare ``ADD``, the
+            wildcard; ``@type`` refuses ``None`` for any other type. See ``wire_type_of``
         color: UI pin color (hex)
         icon: UI pin icon, used by any direction that declares none of its own
         icon_in: Icon for inlet pins, defaulting to ``icon``
@@ -61,8 +61,9 @@ class DataTypeIdentity(BaseIdentity):
     # description: str = ''
 
     wire_type: type[WireType] | None = None
-    """The wire type values of this type travel on. ``None`` for a container, which
-    takes its element's, and for a bare ``ADD``, the wildcard; see ``wire_type_of``."""
+    """The wire type values of this type travel on. ``None`` for a container or wrapper, which
+    take their element's, and for a bare ``ADD``, the wildcard; ``@type`` refuses ``None`` for
+    any other type. See ``wire_type_of``."""
 
     # Type specification:
     type_cls: type[IType] | None = None  # The Python Type class

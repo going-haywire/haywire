@@ -10,6 +10,7 @@ from haywire.core.types.wire import (
     WILDCARD,
     WireRole,
     WireType,
+    declaring_type_of,
     get_wire_type,
     wire_type_of,
     wires_match,
@@ -47,7 +48,8 @@ class TestIds:
             "AbstractWire", (WireType,), {"__module__": __name__, "__qualname__": "AbstractWire"}
         )
 
-        assert not hasattr(abstract, "id") or get_wire_type(abstract.id) is not abstract
+        assert not hasattr(abstract, "id")
+        assert abstract not in wire_module._WIRE_BY_ID.values()
 
     def test_the_same_class_defined_again_replaces_the_old_one(self):
         first = _wire("ReloadedWire")
@@ -106,6 +108,40 @@ class TestWireTypeOf:
         assert wire_type_of(container) is None
 
 
+class TestDeclaringTypeOf:
+    def test_a_type_that_declares_a_wire_type_is_its_own_declarer(self):
+        declared = _wire("DeclaredWire2")
+        value = SimpleNamespace(class_identity=SimpleNamespace(wire_type=declared))
+
+        assert declaring_type_of(value) == (value, declared)
+
+    def test_a_container_answers_with_the_element_that_declares_through_nesting(self):
+        declared = _wire("ElementWire2")
+        element = SimpleNamespace(class_identity=SimpleNamespace(wire_type=declared))
+        inner = SimpleNamespace(class_identity=SimpleNamespace(wire_type=None), element_type_cls=element)
+        outer = SimpleNamespace(class_identity=SimpleNamespace(wire_type=None), element_type_cls=inner)
+
+        assert declaring_type_of(outer) == (element, declared)
+
+    def test_a_type_without_identity_or_element_answers_none(self):
+        assert declaring_type_of(SimpleNamespace()) is None
+        assert declaring_type_of(None) is None
+
+    def test_an_element_that_is_a_plain_python_type_ends_the_walk(self):
+        container = SimpleNamespace(class_identity=SimpleNamespace(wire_type=None), element_type_cls=float)
+
+        assert declaring_type_of(container) is None
+
+    def test_wire_type_of_agrees_with_it(self):
+        agreed = _wire("AgreeWire")
+        element = SimpleNamespace(class_identity=SimpleNamespace(wire_type=agreed))
+        outer = SimpleNamespace(class_identity=SimpleNamespace(wire_type=None), element_type_cls=element)
+
+        declared = declaring_type_of(outer)
+        assert declared is not None
+        assert wire_type_of(outer) is declared[1]
+
+
 @pytest.mark.parametrize(
     ("a", "b", "expected"),
     [
@@ -113,7 +149,7 @@ class TestWireTypeOf:
         ("lib:wire:A", "lib:wire:B", False),
         (WILDCARD, "lib:wire:A", True),
         ("lib:wire:A", WILDCARD, True),
-        (WILDCARD, WILDCARD, True),
+        (WILDCARD, WILDCARD, False),
         (None, "lib:wire:A", False),
         ("lib:wire:A", None, False),
         (None, None, False),

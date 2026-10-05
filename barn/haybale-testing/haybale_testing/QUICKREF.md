@@ -2,6 +2,8 @@
 
 ## node
 - `haybale-testing:node:AddPortTestNode` — Add Port TestNode —   _tags: testing, add, placeholder, resolve, variadic_
+- `haybale-testing:node:ArrayCallbackProbeNode` — Array Callback Probe — Test-only: an array-of-CALLBACK outlet and inlet.  _tags: test, array, callback, container_
+- `haybale-testing:node:ArrayExecProbeNode` — Array Exec Probe — Test-only: an array-of-EXEC outlet and inlet on a control node.  _tags: test, array, exec, container_
 - `haybale-testing:node:BenchBareNode` — Bench Bare Node — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.  _tags: benchmark, frozen, bare, dispatch_
 - `haybale-testing:node:BenchExecNode` — Bench Exec Node — FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.  _tags: benchmark, frozen, exec, conduit, control-edge_
 - `haybale-testing:node:ControlPayloadTestNode` — Control Payload TestNode — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).  _tags: test, control, exec, payload, conduit_
@@ -25,6 +27,7 @@
 - `haybale-testing:node:TestPrintNode` — Test Print — Test version of Logger — logs a message and continues flow  _tags: test, print, log, message, terminal_
 - `haybale-testing:node:TestRecordEmitNode` — Test Record Emit — Test control node emitting to every dataclass subscription in its pool  _tags: test, callback, emit, record_
 - `haybale-testing:node:TestRecordEventNode` — Test Record Event — Test event node whose subscription is a dataclass callback value  _tags: test, callback, event, record_
+- `haybale-testing:node:VisualProbeNode` — Visual Probe — Test-only: a data node with pins on a drawn-only wire.  _tags: test, visual, wire_
 
 ## type
 - `haybale-testing:type:TEST_BOOL` — Boolean — True or False
@@ -33,6 +36,8 @@
 - `haybale-testing:type:TEST_RECORD_CALLBACK` — Test Record Callback — Test callback subscription carried as a dataclass
 - `haybale-testing:type:TEST_STRING` — String — Text data
 - `haybale-testing:type:TEST_TEMPERATURE` — Temperature — Temperature in Celsius
+- `haybale-testing:type:TEST_VISUAL` — Test Visual — Test-only: a text value on a drawn-only wire
+- `haybale-testing:type:TEST_VISUAL_COUNT` — Test Visual Count — Test-only: a number on a drawn-only wire
 
 ## adapter
 - `haybale-testing:adapter:BoolToIntAdapter` — BoolToIntAdapter — Convert bool to integer

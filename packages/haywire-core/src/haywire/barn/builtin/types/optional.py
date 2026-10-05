@@ -4,13 +4,11 @@ from typing import TypeVar
 
 from haywire.core.types import WrapperType, type
 from haywire.barn.builtin import widget_keys
-from ..wires import DataWire
 
 T = TypeVar("T")
 
 
 @type(
-    wire_type=DataWire,
     label="Optional",
     description="A value of the wrapped type, or absence",
     default={"value": None},
@@ -47,6 +45,9 @@ class OPTIONAL(WrapperType[T]):
     ``OPTIONAL[INT]`` field becomes an ``INT`` pin and connects to whatever
     ``INT`` connects to. That is what removes the need for an
     ``OPTIONAL[T] -> T`` adapter: nothing asks for one.
+
+    **Wire type.** `OPTIONAL[T]` travels on `T`'s wire type, so `OPTIONAL[EXEC]` is a control pin and
+    `OPTIONAL[CALLBACK]` a callback pin.
 
     **What crosses an edge** is decided by the SINK, via
     ``DataField.accepts_absence()`` — resolved once when the pipe is built:

@@ -23,4 +23,4 @@ decides and returns the new one).
 The icon and label both name the current mode: propagation is a standing
 property of the edge, so the row reads "Propagation: Lazy/Eager"
 rather than a command. A mode the connection fixes draws a disabled row. An edge
-without propagation (a callback edge) draws no row.
+without propagation (a callback or visual edge) does not poll, so no row is drawn.

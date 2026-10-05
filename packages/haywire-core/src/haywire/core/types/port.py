@@ -87,8 +87,12 @@ class DataPort(DataTypeIdentity):
     # Outlet-specific
     _pipes: Optional[Pipes] = field(default=None, repr=False, metadata={"serialize": False})
 
-    allow_multiple_links: bool = False
-    """Whether multiple links are allowed"""
+    single_link: bool = False
+    """Narrow this port to one link where its link ceiling allows many; see ``takes_many_links``.
+
+    Read when an edge links, so setting it removes no edge the port already holds: the next link
+    leaves only itself linked.
+    """
 
     # Inlet-specific
     use_mode: str = "optional"
@@ -279,14 +283,6 @@ class DataPort(DataTypeIdentity):
         self._is_inlet = self.port_type == PortType.INLET
         self._derive_wire()
 
-        # Link limits by role. A pooled inlet is made multi-link after construction
-        # (PooledType._configure_port); a callback port keeps whatever it declares.
-        if self.is_dependent:
-            self.allow_multiple_links = self.is_outlet()
-        elif self.has_role(WireRole.SEQUENCE):
-            # The VM keeps one transition per control outlet; a control inlet takes many.
-            self.allow_multiple_links = self.is_inlet()
-
     # ========================================================================
     # CALLBACK TRIGGERING
     # ========================================================================
@@ -343,7 +339,7 @@ class DataPort(DataTypeIdentity):
             - For CompoundField: Container (dict, list, etc.)
             - None if no data
         """
-        if not self._data:
+        if self._data is None:
             return None
 
         return self._data.get_value()
@@ -367,7 +363,7 @@ class DataPort(DataTypeIdentity):
             new_value: Value to set (can be IType instance or raw value)
             edge_id: Source identifier (set when value comes via Pipe.pull())
         """
-        if not self._data:
+        if self._data is None:
             return
 
         self._data.set_value(new_value, source_id=edge_id)
@@ -602,7 +598,7 @@ class DataPort(DataTypeIdentity):
         """
         Attempt to link an edge to this port.
 
-        Always tracks in _all_edges. If the port is single-connection and
+        Always tracks in _all_edges. If the port takes one link and
         already has a linked edge, the old edge is displaced (removed from
         _linked_edges but remains in _all_edges).
 
@@ -618,7 +614,7 @@ class DataPort(DataTypeIdentity):
         self._all_edges[edge_wrapper.edge_id] = edge_wrapper
 
         if edge_wrapper.edge_id not in self._linked_edges:
-            if not self.allow_multiple_links:
+            if not self.takes_many_links:
                 old_wrapper_uuid = next(iter(self._linked_edges), None)
                 if old_wrapper_uuid:
                     displaced = self._linked_edges.pop(old_wrapper_uuid)
@@ -693,13 +689,13 @@ class DataPort(DataTypeIdentity):
         After an active edge is removed, scan _all_edges for a functional
         candidate to promote to linked. Uses FIFO order (dict insertion order).
 
-        Only applicable for single-connection ports that have no linked edge.
+        Only applicable for a port that takes one link and has no linked edge.
 
         Returns:
             The re-enableable EdgeWrapper, or None if none found.
             Caller is responsible for calling candidate.link().
         """
-        if self.allow_multiple_links:
+        if self.takes_many_links:
             return None
 
         if self._linked_edges:
@@ -786,7 +782,9 @@ class DataPort(DataTypeIdentity):
                 # An is_linked_lazy outlet's edges report LAZY themselves; see
                 # EdgeWrapper.locked_propagation.
                 for wrapper in self.get_valid_edges():
-                    self._pipes.add_pipe(wrapper)
+                    # A VISUAL edge gets no pipe: nothing travels on it.
+                    if wrapper.carries_values:
+                        self._pipes.add_pipe(wrapper)
             else:
                 if self._pipes:
                     self._pipes.clear()
@@ -835,6 +833,25 @@ class DataPort(DataTypeIdentity):
         return self.has_role(WireRole.DEPENDENT) or self.wire_key == WILDCARD
 
     @property
+    def takes_many_links(self) -> bool:
+        """Whether this port may hold more than one linked edge at a time.
+
+        The link ceiling allows many, except where a second edge would break the
+        mechanism: a ``SEQUENCE`` outlet (the VM keeps one transition per outlet),
+        and a value inlet whose field keeps one value in total (two edges writing
+        into it would race). A ``SEQUENCE`` inlet is entered once per transition and
+        a ``VISUAL`` inlet receives no value, so both take many. ``single_link``
+        narrows any ceiling to one.
+        """
+        if self.single_link:
+            return False
+        if self.is_outlet():
+            return not self.has_role(WireRole.SEQUENCE)
+        if self.has_role(WireRole.SEQUENCE) or self.has_role(WireRole.VISUAL):
+            return True
+        return self._data.keeps_value_per_source()
+
+    @property
     def is_immediate(self) -> bool:
         """True when a write to this port takes effect on write: its wire type's role is ``IMMEDIATE``."""
         return self._is_immediate
@@ -873,8 +890,9 @@ class DataPort(DataTypeIdentity):
         type_cls = type_registry.resolve_type_from_spec(spec["recipe"])
 
         # Build port kwargs - spec already contains merged identity + user values
-        # A key saved before wire types; a port derives its wire type from its type.
+        # Keys saved before wire types and link ceilings; a port derives both.
         kwargs.pop("flow_type", None)
+        kwargs.pop("allow_multiple_links", None)
         port_type = PortType(kwargs.pop("port_type", PortType.UNDEFINED.value))
 
         # show_widget arrives as a raw string from JSON; reconstruct the enum.
@@ -964,7 +982,7 @@ class DataPort(DataTypeIdentity):
         # Optionally serialize field data. A promoted port never persists its
         # value here — the shared setting cell round-trips via the settings block
         # (single-writer).
-        if include_data and self._data and not self.promoted:
+        if include_data and self._data is not None and not self.promoted:
             if self.store_strategy.should_store(
                 has_widget=self.widget_key is not None,
                 node_set=self._is_set_by_node,

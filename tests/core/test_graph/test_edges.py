@@ -202,7 +202,7 @@ class TestEdges:
         assert edge_2.state.is_valid()
 
         pooled_port = self._get_port(node_c, "pooled_bool_inlet")
-        assert pooled_port.allow_multiple_links is True
+        assert pooled_port.takes_many_links is True
         assert len(pooled_port._linked_edges) == 2
 
     def test_pooled_inlet_with_adapter_edges(self, graph_with_library_system: BaseGraph, library_system):
@@ -236,7 +236,7 @@ class TestEdges:
         assert edge_2.state.is_valid()
 
         outlet_port = self._get_port(node_a, "bool_outlet")
-        assert outlet_port.allow_multiple_links is True
+        assert outlet_port.takes_many_links is True
         assert len(outlet_port._linked_edges) == 2
 
     # ==================================================================
@@ -397,7 +397,7 @@ class TestEdges:
         edge_2 = _link(graph, node_a, "execute_out", node_c, "execute_inlet")
 
         outlet_port = self._get_port(node_a, "execute_out")
-        assert outlet_port.allow_multiple_links is False
+        assert outlet_port.takes_many_links is False
         assert len(outlet_port._linked_edges) == 1
 
         # The second edge should be the one linked
@@ -706,7 +706,7 @@ class TestEdges:
     def test_pooled_port_allows_multiple_edges_flag(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """All pooled inlets should have allow_multiple_links set to True."""
+        """All pooled inlets take many links."""
         graph = graph_with_library_system
         node_a, _ = self._create_two_nodes(graph)
 
@@ -721,7 +721,7 @@ class TestEdges:
 
         for port_id in pooled_port_ids:
             port = self._get_port(node_a, port_id)
-            assert port.allow_multiple_links is True, f"Port {port_id} should allow multiple connections"
+            assert port.takes_many_links is True, f"Port {port_id} should allow multiple connections"
 
     def test_standard_data_inlet_disallows_multiple_edges(
         self, graph_with_library_system: BaseGraph, library_system
@@ -740,9 +740,7 @@ class TestEdges:
 
         for port_id in single_port_ids:
             port = self._get_port(node_a, port_id)
-            assert port.allow_multiple_links is False, (
-                f"Port {port_id} should NOT allow multiple connections"
-            )
+            assert port.takes_many_links is False, f"Port {port_id} should NOT allow multiple connections"
 
     # ==================================================================
     # TWO-TIER PORT STORAGE & RE-ENABLEMENT
