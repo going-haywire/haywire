@@ -3628,7 +3628,7 @@
 <h1 id="hot-reload-architecture">Hot-Reload — Architecture<a class="headerlink" href="#hot-reload-architecture" title="Permanent link">&para;</a></h1>
 <h2 id="1-mental-model">1. Mental model<a class="headerlink" href="#1-mental-model" title="Permanent link">&para;</a></h2>
 <p>Hot-reload is the framework's response to a <code>.py</code> file change in a library that has <code>file_watcher=True</code>. It re-imports the changed module, re-registers any decorated classes from that module under their existing <code>registry_key</code>s, and allows thus every wrapper to rebuild the referenced class on the spot.</p>
-<p>It is a <strong>cross-cutting</strong> subsystem: every registry (NodeRegistry, EdgeRegistry, AdapterRegistry, WidgetRegistry, SkinRegistry, ThemeRegistry, SettingsRegistry, LibraryStateRegistry, EditorTypeRegistry, PanelRegistry) subscribes to the same <code>BaseRegistry</code> event pipeline. Hot-reload doesn't know what kind of class is reloading — it just fires events; consumers (factories, wrappers, the graph) handle the rebuild for their own concerns.</p>
+<p>It is a <strong>cross-cutting</strong> subsystem: every registry (NodeRegistry, AdapterRegistry, WidgetRegistry, SkinRegistry, ThemeRegistry, SettingsRegistry, LibraryStateRegistry, EditorTypeRegistry, PanelRegistry) subscribes to the same <code>BaseRegistry</code> event pipeline. Hot-reload doesn't know what kind of class is reloading — it just fires events; consumers (factories, wrappers, the graph) handle the rebuild for their own concerns.</p>
 <p>The discipline is: <strong>every wrapper rebuilds references of a reloaded class</strong> so user code sees only the new class. Managed modules are evicted from <code>sys.modules</code> before re-import (<code>del sys.modules[name]</code> in <code>folder_scan.py</code>), so the module object is replaced — not accumulated. Closures and direct attribute references to old classes can still pin memory, but the module slot itself is reused.</p>
 <h2 id="2-contract">2. Contract<a class="headerlink" href="#2-contract" title="Permanent link">&para;</a></h2>
 <h3 id="21-the-cascade">2.1 The cascade<a class="headerlink" href="#21-the-cascade" title="Permanent link">&para;</a></h3>
@@ -3721,8 +3721,8 @@
 <td>A <strong>document registry</strong> (<a href="../../../adr/0037-macros-are-node-kind-components/">ADR 0037</a>): a saved <code>.hwm</code> file emits <code>CLASS_RELOADED</code> on the macro's own key, and the same per-key relay reaches every placement of it</td>
 </tr>
 <tr>
-<td><code>EdgeRegistry</code> (implicit via NodeRegistry)</td>
-<td>Affected EdgeWrappers re-run their 4-stage build against new port objects</td>
+<td>Edges (no registry of their own)</td>
+<td>Edges rebuild through the node registry and their adapter chains: affected EdgeWrappers re-run their 4-stage build against new port objects</td>
 </tr>
 <tr>
 <td><code>AdapterRegistry</code></td>
@@ -3750,6 +3750,7 @@
 </tr>
 </tbody>
 </table>
+<p><strong>Wire-type modules.</strong> A wire type is a class that is never instantiated and is not a registered component, so its module reloads as an unmanaged module, and the type modules that import it reload after it. The cascade follows module imports, so a library imports a wire type by its module path (<code>from mylib.wires import MyWire</code>); <code>from mylib import MyWire</code> does not reach it. See <a href="../../../adr/0042-wire-types-replace-flowtype/">ADR 0042</a>.</p>
 <h3 id="32-rebuild-discards-node-state">3.2 Rebuild discards node state<a class="headerlink" href="#32-rebuild-discards-node-state" title="Permanent link">&para;</a></h3>
 <p>A reloaded node is rebuilt <strong>fresh from current code</strong>, not restored:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Reload class:
@@ -3774,7 +3775,7 @@
 <li><code>EdgeWrapper._formal_validation()</code> refreshes <code>_outlet_port</code> / <code>_inlet_port</code> references from the new node instance.</li>
 <li><code>_build_adapter_chain()</code> re-resolves the chain (adapter classes may have reloaded too).</li>
 <li><code>_test()</code> runs the chain against a sample value; on failure, edge transitions to non-functional and gets unlinked.</li>
-<li>On success, <code>link()</code> registers at the new ports — including any displaced/re-enableable edges in <code>_all_edges</code>.</li>
+<li>On success, <code>link()</code> registers at the new ports — including any displaced/re-enableable edges in the ports' <code>LinkSet.all</code>.</li>
 </ol>
 <p>See <a href="../../execution/edges/edges-arch/#37-hot-reload-coordination-node-rebuild">edges §3.7</a> for full mechanics.</p>
 <h3 id="34-flow-reassembly">3.4 Flow reassembly<a class="headerlink" href="#34-flow-reassembly" title="Permanent link">&para;</a></h3>
@@ -3830,7 +3831,7 @@ reloaded theme is the graph's active one) and the browser re-resolves every
 <h3 id="52-what-gets-rebuilt-when-you-edit-an-adapter-class">5.2 What gets rebuilt when you edit an adapter class<a class="headerlink" href="#52-what-gets-rebuilt-when-you-edit-an-adapter-class" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>1. FileWatcher fires
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>2. AdapterRegistry updates the adapter class
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>3. EdgeRegistry: every edge whose chain includes this adapter marks EDGE_ADAPTERS_RELOADED
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>3. Every edge whose chain includes this adapter marks EDGE_ADAPTERS_RELOADED
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>4. AdapterFactory.create_chain() re-runs for affected edges
 </span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>5. Each edge&#39;s _test() validates the new chain
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>6. Edges that pass: link() — connection works again

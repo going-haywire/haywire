@@ -3482,6 +3482,7 @@ and the <a href="../../../reference/glossary/#encapsulation">glossary</a> for th
 <code>framework &lt; subgraph &lt; node</code> settings chain: an inner node's field resolves its
 graph tier by walking <code>node → wrapper → graph → settings_bag_for(...)</code>
 (ADR 0022), and that graph is the definition rather than the host.</p>
+<p><code>graph.props</code> (<code>GraphProperties</code>) also carries <code>edge_arrow</code> and <code>edge_width</code>, which shadow <code>EdgeDefaultSettings</code> and set the arrow head and width of every computed edge in the graph (ADR 0045).</p>
 <p>A definition holds its nodes <strong>live</strong> — the wrappers in <code>node_wrappers</code> are the
 same objects the canvas draws and the VM executes, which is what makes error
 locations and live values inside a closed Group work with no id translation.</p>
@@ -3505,6 +3506,7 @@ inlet's widget value belongs to the instance.</p>
 <p><code>haywire.core.graph.subgraph_crossing</code> holds every conversion between the four
 id spaces that meet here, so the view that builds a crossing and the worker that
 follows one cannot drift.</p>
+<p>Every pinned interface port that is not immediate is copied when the boundary nodes execute, a <code>VISUAL</code> port included; with no pipe downstream, that copy is harmless.</p>
 <p>Deferred values cross when the boundary nodes execute; immediate ones — callback
 subscriptions — cross at wiring time: each immediate interface inlet relays its
 writes to its partner (<code>hb_relay</code>), and <code>reconcile_interface</code> resyncs every

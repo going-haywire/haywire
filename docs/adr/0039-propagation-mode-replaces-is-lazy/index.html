@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="An edge's delivery timing is one Propagation mode — lazy, eager or immediate — replacing the is_lazy flag; immediate is locked by the flow type and a promoted outlet's edges are locked lazy">
+        <meta name="description" content="An edge's delivery timing is one Propagation mode — lazy, eager or immediate — replacing the is_lazy flag; immediate is locked by the flow type and a promoted outlet's edges are locked lazy (immediate is now a wire role, not a mode — ADR 0042)">
       
       
       
@@ -3095,6 +3095,9 @@
 
 
 <h1 id="an-edges-delivery-timing-is-one-propagation-mode-and-some-modes-are-locked">An edge's delivery timing is one Propagation mode, and some modes are locked<a class="headerlink" href="#an-edges-delivery-timing-is-one-propagation-mode-and-some-modes-are-locked" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>The immediate mode is superseded by <a href="../0042-wire-types-replace-flowtype/">ADR 0042</a>.</strong> Immediate is the <code>IMMEDIATE</code> wire role, not a propagation mode: <code>Propagation</code> keeps lazy and eager, a wire type lists the modes its edges may take, and a callback edge, whose wire type allows none, has no propagation at all. Lazy, eager and the promoted outlet's lazy lock stand.</p>
+</blockquote>
 <p><strong>Context.</strong> An edge carried one flag, <code>is_lazy</code>, while the timing of a delivered value depended on more: whether the pipe pushes or pulls, whether the receiving port acts on the value at once (callback inlets did, through a cached <code>_is_callback</code>), and an override behind the user's back — edges out of a promoted outlet were forced lazy in <code>_refresh_pipes</code>, so switching one to eager in the menu was silently undone. Letting callbacks pass through reroutes added a case the flag could not express safely: a lazy edge into a reroute never delivers, because nothing on a callback path executes to pull it.</p>
 <p><strong>Decision.</strong> <code>Edge.is_lazy</code> becomes <code>Edge.propagation</code>, one of three <code>Propagation</code> values:</p>
 <ul>

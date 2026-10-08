@@ -2089,10 +2089,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#23-connection-rules-by-flowtype" class="md-nav__link">
+  <a href="#23-connection-rules-by-wire-type" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.3 Connection rules by FlowType
+        2.3 Connection rules by wire type
       
     </span>
   </a>
@@ -2154,6 +2154,17 @@
     <span class="md-ellipsis">
       
         3.3 Propagation and the unified dirty model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33a-style-bag-and-saving" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3a Style bag and saving
       
     </span>
   </a>
@@ -3455,10 +3466,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#23-connection-rules-by-flowtype" class="md-nav__link">
+  <a href="#23-connection-rules-by-wire-type" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.3 Connection rules by FlowType
+        2.3 Connection rules by wire type
       
     </span>
   </a>
@@ -3520,6 +3531,17 @@
     <span class="md-ellipsis">
       
         3.3 Propagation and the unified dirty model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33a-style-bag-and-saving" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3a Style bag and saving
       
     </span>
   </a>
@@ -3684,12 +3706,12 @@
 <h1 id="edges-architecture">Edges — Architecture<a class="headerlink" href="#edges-architecture" title="Permanent link">&para;</a></h1>
 <h2 id="1-mental-model">1. Mental model<a class="headerlink" href="#1-mental-model" title="Permanent link">&para;</a></h2>
 <p>An <strong>edge</strong> connects an outlet port on a source node to an inlet port on a sink node. The data structure is <code>Edge</code> (a dataclass — connection identifiers, type, adapter chain keys, propagation mode). The lifecycle is owned by <code>EdgeWrapper</code> — a wrapper that runs the 4-stage build pipeline (formal validation → structural validation → adapter chain → test), manages the <code>link → unlink → detach</code> lifecycle, and handles displacement and re-enablement when ports are over-subscribed.</p>
-<p>Two-tier port storage is the core mental model. Each port keeps two dictionaries:</p>
+<p>Two-tier port storage is the core mental model. Each port holds two <code>LinkSet</code>s, <code>port.incoming</code> (edges ending at it) and <code>port.outgoing</code> (edges leaving it); an inlet fills only the first, an outlet only the second, a swinglet (<a href="../../../../adr/0048-swinglets/">ADR 0048</a>) may fill both. Each set keeps two dictionaries:</p>
 <ul>
-<li><strong><code>_linked_edges</code></strong> — active edges currently used for data pipes.</li>
-<li><strong><code>_all_edges</code></strong> — every edge ever registered, including displaced and non-functional ones. This is what makes re-enablement possible.</li>
+<li><strong><code>linked</code></strong> — active edges currently used for data pipes.</li>
+<li><strong><code>all</code></strong> — every edge ever registered at this end, including displaced and non-functional ones. This is what makes re-enablement possible.</li>
 </ul>
-<p>When a new edge displaces an existing one on a single-connection inlet, the displaced edge stays in <code>_all_edges</code> but leaves <code>_linked_edges</code>. If the new edge later loses functionality (adapter broken by hot-reload), the port scans <code>_all_edges</code> for a candidate to re-enable. Edges aren't deleted — they're just not currently the active one.</p>
+<p>When a new edge displaces an existing one on a single-connection end, the displaced edge stays in <code>all</code> but leaves <code>linked</code>. If the new edge later loses functionality (adapter broken by hot-reload), the set scans <code>all</code> for a candidate to re-enable. Edges aren't deleted — they're just not currently the active one.</p>
 <h2 id="2-contract">2. Contract<a class="headerlink" href="#2-contract" title="Permanent link">&para;</a></h2>
 <h3 id="21-creation-flow">2.1 Creation flow<a class="headerlink" href="#21-creation-flow" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">graph</span><span class="o">.</span><span class="n">create_edge_wrapper</span><span class="p">(</span><span class="n">source_node_id</span><span class="p">,</span> <span class="n">outlet_port_id</span><span class="p">,</span>
@@ -3698,14 +3720,14 @@
 </span></code></pre></div>
 <p>Internal sequence:</p>
 <ol>
-<li>Look up the outlet's <code>FlowType</code> to classify the edge (DATA / CONTROL / CALLBACK).</li>
+<li>Take the edge's wire type from its ports (<code>EdgeWrapper.wire_type</code>): a data, control or callback wire, with the role that tells the framework what to do with the edge. It is derived, never passed or saved.</li>
 <li>Instantiate <code>EdgeWrapper</code> (which constructs the internal <code>Edge</code> dataclass).</li>
 <li>Call <code>edge_wrapper.build()</code> — runs the 4-stage pipeline (§3.1).</li>
 <li>Call <code>graph.add_edge_wrapper()</code> → <code>edge_wrapper.link()</code> — registers at both ports.</li>
 </ol>
 <h3 id="22-the-4-stage-build-pipeline">2.2 The 4-stage build pipeline<a class="headerlink" href="#22-the-4-stage-build-pipeline" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>build()
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  ├─ _formal_validation()    do nodes/ports exist? same direction? same FlowType?
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  ├─ _formal_validation()    do nodes/ports exist? same direction? wire keys match (`wires_match`)?
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  ├─ _structural_validation() domain rules (none per edge today)
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  ├─ _build_adapter_chain()   find/create adapter chain (DATA edges only)
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  └─ _test()                  run a sample value through the adapter chain
@@ -3730,45 +3752,57 @@
 </tbody>
 </table>
 <p>Only a <strong>valid</strong> edge carries values. An outlet builds its pipes from its valid linked edges (<code>DataPort.get_valid_edges()</code>), so an edge that fails structural validation stays in the graph and is drawn as invalid, but delivers nothing to its inlet.</p>
-<h3 id="23-connection-rules-by-flowtype">2.3 Connection rules by FlowType<a class="headerlink" href="#23-connection-rules-by-flowtype" title="Permanent link">&para;</a></h3>
+<h3 id="23-connection-rules-by-wire-type">2.3 Connection rules by wire type<a class="headerlink" href="#23-connection-rules-by-wire-type" title="Permanent link">&para;</a></h3>
+<p>Each port has a <strong>link ceiling</strong>: how many edges it holds at once, read as <code>DataPort.takes_many_links</code>. The framework derives it from the port's wire role and its field's storage; nothing else writes it (<code>_configure_port</code> sets colour and refusals only). A port can only narrow it with <code>single_link=True</code>. See <a href="../../../../adr/0044-link-ceiling/">ADR 0044</a>.</p>
 <table>
 <thead>
 <tr>
-<th></th>
-<th>Outlet <code>allow_multiple</code></th>
-<th>Inlet <code>allow_multiple</code></th>
+<th>Port</th>
+<th>Outlet</th>
+<th>Inlet</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>DATA</strong></td>
-<td><code>True</code> (set by <code>DataPort.__post_init__</code>)</td>
-<td><code>False</code> (default)</td>
+<td><code>DataWire</code> (<code>DEPENDENT</code>)</td>
+<td>many</td>
+<td>one</td>
 </tr>
 <tr>
-<td><strong>CONTROL (EXEC)</strong></td>
-<td><code>False</code> (hardcoded in <code>__post_init__</code>)</td>
-<td><code>True</code> (hardcoded in <code>__post_init__</code>)</td>
+<td><code>ControlWire</code> (<code>SEQUENCE</code>)</td>
+<td>one (the VM keeps one transition per outlet)</td>
+<td>many</td>
 </tr>
 <tr>
-<td><strong>CALLBACK</strong></td>
-<td><code>False</code> (default)</td>
-<td><code>False</code> (default)</td>
+<td><code>CallbackWire</code> (<code>IMMEDIATE</code>)</td>
+<td>many</td>
+<td>one</td>
 </tr>
 <tr>
-<td><strong>Pooled inlet</strong></td>
-<td>N/A (inlet only)</td>
-<td><code>True</code> (set by <code>PooledType._configure_port</code>)</td>
+<td>a <code>VISUAL</code> wire</td>
+<td>many</td>
+<td>many</td>
+</tr>
+<tr>
+<td>bare <code>ADD</code> slot</td>
+<td>many</td>
+<td>one</td>
+</tr>
+<tr>
+<td>pooled inlet (field <code>keeps_value_per_source()</code>)</td>
+<td>n/a (a pool has no outlet)</td>
+<td>many</td>
 </tr>
 </tbody>
 </table>
-<p>Cross-flow connections (e.g. EXEC→DATA) are rejected in <code>_formal_validation()</code>. Same-direction connections (outlet→outlet, inlet→inlet) are also rejected there.</p>
+<p>A container's role is its element's. <code>PooledType</code> refuses a control element and an outlet; <code>ArrayType</code> of control and callback elements is allowed.</p>
+<p>Two pins connect when their wire keys match: equal wire-type ids, or a bare <code>ADD</code> slot's wildcard <code>*</code> (<code>wires_match</code>, mirrored on the canvas). Connections across wire types (e.g. EXEC→DATA) are rejected in <code>_formal_validation()</code>. A failing edge is never rewritten; while it fails, its wire type comes from whichever end resolves, for drawing only. See <a href="../../../../adr/0042-wire-types-replace-flowtype/">ADR 0042</a>. Same-direction connections (outlet→outlet, inlet→inlet) are also rejected there.</p>
 <h3 id="24-edgewrapper-lifecycle-methods">2.4 EdgeWrapper lifecycle methods<a class="headerlink" href="#24-edgewrapper-lifecycle-methods" title="Permanent link">&para;</a></h3>
 <p>Three methods own the lifecycle (all on <code>EdgeWrapper</code>, not on the graph):</p>
 <ul>
-<li><strong><code>link()</code></strong> — Functional edge registers at both ports. May displace existing edges on single-connection ports. Displaced edges stay in <code>_all_edges</code> but leave <code>_linked_edges</code>.</li>
-<li><strong><code>unlink()</code></strong> — Edge lost functionality (e.g. adapter broke during hot-reload). Removed from <code>_linked_edges</code> but stays in <code>_all_edges</code>. Triggers re-enablement scan on the affected port.</li>
-<li><strong><code>detach()</code></strong> — Edge explicitly deleted. Full removal from both <code>_linked_edges</code> and <code>_all_edges</code>. Triggers re-enablement scan.</li>
+<li><strong><code>link()</code></strong> — Functional edge registers at both ports. May displace existing edges on single-connection ports. Displaced edges stay in the set's <code>all</code> but leave <code>linked</code>.</li>
+<li><strong><code>unlink()</code></strong> — Edge lost functionality (e.g. adapter broke during hot-reload). Removed from <code>linked</code> but stays in <code>all</code>. Triggers re-enablement scan on the affected port.</li>
+<li><strong><code>detach()</code></strong> — Edge explicitly deleted. Full removal from both <code>linked</code> and <code>all</code>. Triggers re-enablement scan.</li>
 </ul>
 <p>Graph integration:</p>
 <ul>
@@ -3813,21 +3847,21 @@
 <h3 id="32-displacement-and-re-enablement">3.2 Displacement and re-enablement<a class="headerlink" href="#32-displacement-and-re-enablement" title="Permanent link">&para;</a></h3>
 <p>When a new edge displaces an existing one on a single-connection port:</p>
 <ul>
-<li>The displaced edge is removed from <code>_linked_edges</code> but remains in <code>_all_edges</code>.</li>
+<li>The displaced edge is removed from <code>linked</code> but remains in <code>all</code>.</li>
 <li><strong>Asymmetric notification</strong>: inlet displacement informs the source outlet (it needs a pipe update); outlet displacement does NOT inform the sink inlet.</li>
 </ul>
-<p>When an active edge is removed (<code>detach</code>) or loses functionality (<code>unlink</code>), the port scans <code>_all_edges</code> FIFO for a functional candidate to re-enable. If found, <code>candidate.link() + candidate.redraw()</code> is called.</p>
-<p><strong>Unlinking reveals the own value.</strong> When an inlet loses its last linked edge and no displaced edge takes over, its field drops the linked value (<code>DataField.clear_linked</code>) and the own value shows again (ADR 0040). The node learns of it through the port's propagation: an immediate inlet fires <code>on_change</code> at once, so a reroute passes it on (see <a href="../../callbacks/callbacks-arch/">callbacks-arch §2.4</a>); a deferred inlet is marked dirty for its node's next execution. A lazy pull still queued for the removed edge is dropped. A pooled inlet needs nothing extra: <code>_clear_link</code> already removed that source's entry.</p>
+<p>When an active edge is removed (<code>detach</code>) or loses functionality (<code>unlink</code>), the port's set scans <code>all</code> FIFO for a functional candidate to re-enable. If found, <code>candidate.link() + candidate.redraw()</code> is called.</p>
+<p><strong>Unlinking reveals the own value.</strong> When an inlet loses its last linked edge and no displaced edge takes over, its field drops the linked value (<code>DataField.clear_linked</code>) and the own value shows again (ADR 0040). The node learns of it through the port's propagation: an immediate inlet fires <code>on_change</code> at once, so a reroute passes it on (see <a href="../../callbacks/callbacks-arch/">callbacks-arch §2.4</a>); a deferred inlet is marked dirty for its node's next execution. A lazy pull still queued for the removed edge is dropped. A pooled inlet needs nothing extra: <code>LinkSet.clear_link</code> already removed that source's entry.</p>
 <h3 id="33-propagation-and-the-unified-dirty-model">3.3 Propagation and the unified dirty model<a class="headerlink" href="#33-propagation-and-the-unified-dirty-model" title="Permanent link">&para;</a></h3>
 <p>Each edge has a <strong>propagation</strong> mode (<code>Propagation</code>, per edge, not per port):</p>
 <ul>
 <li><strong>Eager</strong> (default): outlet value is transformed through the adapter chain and pushed to the inlet immediately. The inlet is marked dirty; <code>on_change</code> is deferred to execution time.</li>
 <li><strong>Lazy</strong>: no transform or push at propagation time. The inlet is marked dirty with a reference to the pipe. At execution time, <code>resolve_dirty_data()</code> pulls the outlet's <em>current</em> value (always-latest semantics) through the adapter chain.</li>
-<li><strong>Immediate</strong>: pushed like eager, and the inlet acts on it at once (see the exception below).</li>
+<li><strong>No propagation</strong> (callback edges): a wire type whose <code>propagation</code> is empty gives its edges none. The value takes effect on write by the <code>IMMEDIATE</code> role (see the exception below).</li>
 </ul>
-<p>Users choose lazy or eager per edge, and different edges to the same inlet can differ. <code>create_edge_wrapper(propagation=...)</code> stores the choice on the <code>Edge</code>, and <code>to_dict()</code> saves it under <code>propagation</code>. Two modes are locked and never read from a saved graph: <code>immediate</code> on an immediate flow, and <code>lazy</code> on an edge out of an <code>is_linked_lazy</code> outlet (every promoted outlet). <code>EdgeWrapper.locked_propagation</code> names the lock; <code>EdgeWrapper.propagation</code> is the mode in effect. See <a href="../../../../adr/0039-propagation-mode-replaces-is-lazy/">ADR 0039</a>.</p>
+<p>Users choose lazy or eager per edge, and different edges to the same inlet can differ. <code>create_edge_wrapper(propagation=...)</code> stores the choice on the <code>Edge</code>, and <code>to_dict()</code> saves it under <code>propagation</code>. A wire type lists the modes its edges may take (<code>WireType.propagation</code>); a single entry locks the edge to it, and an empty list gives the edge no propagation (<code>EdgeWrapper.propagation</code> is <code>None</code>). A mode is also locked to <code>lazy</code> on an edge out of an <code>is_linked_lazy</code> outlet (every promoted outlet). Neither lock is read from a saved graph. <code>EdgeWrapper.locked_propagation</code> names the lock; <code>EdgeWrapper.propagation</code> is the mode in effect. See <a href="../../../../adr/0039-propagation-mode-replaces-is-lazy/">ADR 0039</a>.</p>
 <p><strong>Unified dirty model.</strong> Both eager and lazy edges use the same deferred callback model. <code>on_change</code> callbacks for edge-driven inlet changes are <em>never</em> fired at push time — they are always deferred to <code>resolve_dirty_data()</code> at execution time. This debounces mixed pooled+lazy scenarios.</p>
-<p><strong>Exception: immediate inlets fire at once.</strong> An inlet on an immediate flow (<code>FlowType.is_immediate</code>, i.e. <code>CALLBACK</code>) is exempt from the deferral above — <code>set_value()</code> fires its <code>on_change</code> synchronously at push time even when <code>edge_id</code> is set, same as the widget/programmatic path.</p>
+<p><strong>Exception: immediate inlets fire at once.</strong> An inlet on a wire with the <code>IMMEDIATE</code> role (<code>DataPort.is_immediate</code>, i.e. <code>CallbackWire</code>) is exempt from the deferral above — <code>set_value()</code> fires its <code>on_change</code> synchronously at push time even when <code>edge_id</code> is set, same as the widget/programmatic path.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>EAGER EDGE:
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  outlet.set_value(value) → pipes.propagate() → pipe.propagate()
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    └─ pipe.pull()
@@ -3849,8 +3883,10 @@
 </span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    ├─ on_validate()
 </span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    └─ worker()
 </span></code></pre></div>
+<h3 id="33a-style-bag-and-saving">3.3a Style bag and saving<a class="headerlink" href="#33a-style-bag-and-saving" title="Permanent link">&para;</a></h3>
+<p>A wire type that names a style bag (<code>WireType.style</code>, an <code>EdgeSettings</code> subclass) gives each of its edges one, bound in <code>build()</code> once formal validation passes and dropped, values kept, when it fails (ADR 0047). <code>EdgeWrapper.serialize()</code> is the one save path: <code>Edge.to_dict()</code> plus <code>"style"</code> when a value is set; graph save, the clipboard and collapse all call it. A style change marks <code>ChangeReason.EDGE_STYLE_CHANGED</code>, which redraws the edge and, unlike <code>EDGE_REDRAW_REQUESTED</code>, records an unsaved change. Paste, Subgraph instantiation, collapse and expand pass <code>propagation</code> and <code>style</code> on to the edges they create.</p>
 <h3 id="34-set_value-callback-rules">3.4 <code>set_value()</code> callback rules<a class="headerlink" href="#34-set_value-callback-rules" title="Permanent link">&para;</a></h3>
-<p>The <code>set_value()</code> method on DataPort distinguishes between edge-driven, widget/programmatic changes and the flow type:</p>
+<p>The <code>set_value()</code> method on DataPort distinguishes between edge-driven, widget/programmatic changes and the wire role:</p>
 <table>
 <thead>
 <tr>
@@ -3880,13 +3916,13 @@
 <td>no <code>on_change</code>, no dirty mark: the own value changed behind the linked one</td>
 </tr>
 <tr>
-<td>Immediate flow (CALLBACK)</td>
+<td>Immediate role (CALLBACK)</td>
 <td>yes</td>
 <td>exists</td>
 <td><code>on_change</code> fires <strong>immediately</strong></td>
 </tr>
 <tr>
-<td>DATA, CONTROL flow_type</td>
+<td>DEPENDENT, SEQUENCE role</td>
 <td>yes</td>
 <td>exists</td>
 <td><code>on_change</code> fires just before the worker</td>
@@ -4087,20 +4123,20 @@
 <td>All flags, errors, timing</td>
 </tr>
 <tr>
-<td><code>DataPort._linked_edges</code></td>
-<td><code>dict[edge_id, EdgeWrapper]</code> — active linked edges (used for pipes)</td>
+<td><code>DataPort.incoming</code> / <code>.outgoing</code> (<code>LinkSet</code>)</td>
+<td>Per-end edge storage; <code>.linked</code> is <code>dict[edge_id, EdgeWrapper]</code> of active edges (used for pipes)</td>
 </tr>
 <tr>
-<td><code>DataPort._all_edges</code></td>
-<td><code>dict[edge_id, EdgeWrapper]</code> — all tracked edges including displaced/non-functional</td>
+<td><code>LinkSet.all</code></td>
+<td><code>dict[edge_id, EdgeWrapper]</code> — all tracked edges at that end including displaced/non-functional</td>
 </tr>
 <tr>
 <td><code>DataPort._pending_lazy_pipes</code></td>
 <td><code>set[Pipe]</code> — lazy pipes to pull at execution time</td>
 </tr>
 <tr>
-<td><code>DataPort.allow_multiple_links</code></td>
-<td>Connection limit flag</td>
+<td><code>DataPort.takes_many_links</code> / <code>single_link</code></td>
+<td>The port's link ceiling, and the setting that narrows it (ADR 0044)</td>
 </tr>
 <tr>
 <td><code>Edge.propagation</code></td>

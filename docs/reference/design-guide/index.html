@@ -5649,15 +5649,23 @@ mirroring the one panels get from <code>.hw-panel</code>.</p>
 </tr>
 <tr>
 <td><code>--hw-edge-default</code></td>
-<td>Default edge stroke colour</td>
+<td>Edge colour where a pin gives none (the edge SVG's <code>color</code>, drawn as <code>currentColor</code>)</td>
 </tr>
 <tr>
 <td><code>--hw-edge-selected</code></td>
-<td>Selected edge stroke colour</td>
+<td>Glow of a selected edge</td>
+</tr>
+<tr>
+<td><code>--hw-edge-selected-extra</code></td>
+<td>Optional length added to an edge's width while selected (default <code>1px</code>)</td>
 </tr>
 <tr>
 <td><code>--hw-edge-active</code></td>
-<td>Accent stroke (colour + weight) on the single <em>active</em> edge; mutually exclusive with <code>--hw-node-active</code></td>
+<td>Stroke of the single <em>active</em> edge; mutually exclusive with <code>--hw-node-active</code></td>
+</tr>
+<tr>
+<td><code>--hw-edge-active-extra</code></td>
+<td>Optional length added to an edge's width while active (default <code>2px</code>)</td>
 </tr>
 <tr>
 <td><code>--hw-canvas-bg</code></td>
@@ -5677,6 +5685,7 @@ mirroring the one panels get from <code>.hw-panel</code>.</p>
 </tr>
 </tbody>
 </table>
+<p>Edge states read the semantic status tokens: an invalid edge <code>--hw-danger</code>, a warning glow <code>--hw-warning</code>, drop targets <code>--hw-success</code> / <code>--hw-danger</code>. An edge's width and arrow head are graph settings, not tokens (ADR 0045).</p>
 <p><strong>Rule:</strong> <code>--hw-node-shadow</code> is the only permitted use of <code>box-shadow</code> in the
 entire application. Panel and shell chrome must use elevation colours instead.</p>
 <p><strong>Rule:</strong> <code>--hw-ghost-pin</code> replaces all hardcoded <code>rgba(128,128,128,…)</code> values

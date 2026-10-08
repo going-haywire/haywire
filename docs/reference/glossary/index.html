@@ -2776,10 +2776,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#flow-types-port-kinds" class="md-nav__link">
+  <a href="#wire-types-port-kinds" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Flow Types &amp; Port Kinds
+        Wire Types &amp; Port Kinds
       
     </span>
   </a>
@@ -3549,10 +3549,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#flow-types-port-kinds" class="md-nav__link">
+  <a href="#wire-types-port-kinds" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Flow Types &amp; Port Kinds
+        Wire Types &amp; Port Kinds
       
     </span>
   </a>
@@ -4006,7 +4006,7 @@
 </tr>
 <tr>
 <td><strong>Pin</strong></td>
-<td>A port that carries an edge handle on the node card — every inlet and outlet, whatever its FlowType. A <strong>config port has no pin</strong>: it is never linked and never driven by an edge, so it renders a widget but no handle. The term names what the user can grab and drag from, which is why the canvas layer is spelled <code>PinMenu</code> / <code>data-pin-id</code> / <code>PinGlyph</code></td>
+<td>A port that carries an edge handle on the node card — every inlet and outlet, whatever its wire type. A <strong>config port has no pin</strong>: it is never linked and never driven by an edge, so it renders a widget but no handle. The term names what the user can grab and drag from, which is why the canvas layer is spelled <code>PinMenu</code> / <code>data-pin-id</code> / <code>data-pin-wire</code> / <code>PinGlyph</code></td>
 <td>Socket; "pin" for a config port (there is no handle to mean)</td>
 </tr>
 <tr>
@@ -4122,7 +4122,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Convex selection</strong></td>
-<td>A selection no path leaves and re-enters. The precondition for a collapse: <code>A → B → C</code> with <code>{A, C}</code> selected would give the parent both <code>G → B</code> and <code>B → G</code>, entering the card twice in one pass. Refused by naming the intervening nodes</td>
+<td>A selection no value-carrying path (data, control or callback) leaves and re-enters; visual paths do not count. The precondition for a collapse: <code>A → B → C</code> with <code>{A, C}</code> selected would give the parent both <code>G → B</code> and <code>B → G</code>, entering the card twice in one pass. Refused by naming the intervening nodes</td>
 <td>Connected selection (a different question — see <code>get_disconnected_components</code>)</td>
 </tr>
 <tr>
@@ -4132,7 +4132,7 @@ Macro is registered and placed.</p>
 </tr>
 </tbody>
 </table>
-<h2 id="flow-types-port-kinds">Flow Types &amp; Port Kinds<a class="headerlink" href="#flow-types-port-kinds" title="Permanent link">&para;</a></h2>
+<h2 id="wire-types-port-kinds">Wire Types &amp; Port Kinds<a class="headerlink" href="#wire-types-port-kinds" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
@@ -4143,18 +4143,33 @@ Macro is registered and placed.</p>
 </thead>
 <tbody>
 <tr>
-<td><strong>FlowType</strong></td>
-<td>The transport category of a port/edge: <code>DATA</code>, <code>CONTROL</code> (EXEC), <code>CALLBACK</code>, or <code>NONE</code></td>
-<td>Port type (ambiguous with data type)</td>
+<td><strong>Wire type</strong></td>
+<td>How a port's values travel and what the framework does with its edges. A data type declares one with <code>@type(wire_type=…)</code> and derived types inherit it; a container takes its element's. A class never instantiated, identified by the id <code>"&lt;library&gt;:wire:&lt;ClassName&gt;"</code>. Builtin ships <code>DataWire</code>, <code>ControlWire</code>, <code>CallbackWire</code> and <code>AnnotationWire</code> (a <code>VISUAL</code> wire with a <strong>Style bag</strong>, used by the <strong>Annotation node</strong>); <code>holds_absence</code> lets the types on a wire hold <code>None</code> (<code>CallbackWire</code> only). Ports and edges derive theirs and never save it; a config port has none. See <a href="../../adr/0042-wire-types-replace-flowtype/">ADR 0042</a>; <code>arrow_at</code> names the end a <strong>Computed edge</strong> draws its arrow head at (<code>CallbackWire</code>: the outlet); <code>style</code> names the <strong>Style bag</strong> of a <strong>Styled edge</strong></td>
+<td>FlowType (removed), flow type, edge kind</td>
+</tr>
+<tr>
+<td><strong>WireRole</strong></td>
+<td>What the framework does with an edge, picked by its wire type: <strong>dependent</strong> (assembly walks it backward — data), <strong>sequence</strong> (the VM walks it forward — control), <strong>immediate</strong> (takes effect on write — callbacks), <strong>visual</strong> (drawn and saved, never executed). Closed: framework code branches on the role</td>
+<td>Flow</td>
+</tr>
+<tr>
+<td><strong>Wire key</strong></td>
+<td>What a pin is matched by: its wire type's id, or <code>*</code> for a bare <code>ADD</code> slot, which matches any wire key except another <code>*</code>. Two pins may link when their keys match (<code>wires_match</code>)</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Pin kind</strong></td>
+<td>The key a wire type gives its pins for the skin's icon map, such as <code>control</code>. Not an icon: a type names its own icon</td>
+<td>Glyph (means the drawn icon)</td>
 </tr>
 <tr>
 <td><strong>DATA port</strong></td>
-<td>A port that carries typed values; outlets fan-out, inlets accept a single source</td>
+<td>A port on <code>DataWire</code> that carries typed values; outlets fan out; an inlet takes one edge unless it is a <strong>Pooled inlet</strong> (see <strong>Link ceiling</strong>)</td>
 <td>Value port</td>
 </tr>
 <tr>
 <td><strong>EXEC port</strong></td>
-<td>A control port that carries execution order; outlets single-target, inlets multi-source. <em>(may also carry a <a href="#flow-types-port-kinds">Control payload</a>)</em></td>
+<td>A port on <code>ControlWire</code> that carries execution order; outlets single-target, inlets multi-source. <em>(may also carry a <a href="#wire-types-port-kinds">Control payload</a>)</em></td>
 <td>Control pin (Pin is acceptable colloquially)</td>
 </tr>
 <tr>
@@ -4164,18 +4179,63 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>CALLBACK port</strong></td>
-<td>A port used for event-style signalling; no hardcoded multiplicity rules, and <strong>immediate</strong> propagation (see <strong>Propagation</strong>). A callback edge carries the listener's subscription as the source port's <em>value</em> — whatever the callback type defines (the event name for core <code>CALLBACK</code>, a dataclass for visiongraph's <code>MULTIFRAME_CALLBACK</code>) — pooled on the emitter keyed by the edge. It may pass through <strong>Reroute nodes</strong>, which forward it on write; removing any edge on the path shows the next port's <strong>own value</strong> — its default, an empty name, which the emitter treats as no subscription and drops. It crosses a Subgraph boundary the same way: an immediate interface port relays it across the card — inward to an interior emitter, or straight through (a listener, being an EVENT node, cannot sit inside a Subgraph). See <a href="../../architecture/execution/callbacks/callbacks-arch/">architecture/execution/callbacks</a>, <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a> and <a href="../../adr/0041-callbacks-cross-a-subgraph-boundary/">ADR 0041</a></td>
+<td>A port used for event-style signalling, on <code>CallbackWire</code> (the immediate role); its outlet fans out, and its inlet takes one edge unless pooled (see <strong>Link ceiling</strong>); its edges have no propagation. A callback edge carries the listener's subscription as the source port's <em>value</em> — whatever the callback type defines (the event name for core <code>CALLBACK</code>, a dataclass for visiongraph's <code>MULTIFRAME_CALLBACK</code>) — pooled on the emitter keyed by the edge. It may pass through <strong>Reroute nodes</strong>, which forward it on write; removing any edge on the path shows the next port's <strong>own value</strong> — absent (<code>None</code>), which the emitter's pool drops (see <strong>absence</strong>, ADR 0046). It crosses a Subgraph boundary the same way: an immediate interface port relays it across the card — inward to an interior emitter, or straight through (a listener, being an EVENT node, cannot sit inside a Subgraph). See <a href="../../architecture/execution/callbacks/callbacks-arch/">architecture/execution/callbacks</a>, <a href="../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a> and <a href="../../adr/0041-callbacks-cross-a-subgraph-boundary/">ADR 0041</a></td>
 <td>Event port (overloaded)</td>
 </tr>
 <tr>
 <td><strong>Pooled inlet</strong></td>
-<td>An inlet that accepts multiple sources and delivers them as a <code>dict[node_id, value]</code> to the worker</td>
+<td>An inlet that accepts multiple sources and delivers them as a <code>dict[edge_id, value]</code> to the worker; its field keeps one value per source, which lifts the inlet's <strong>Link ceiling</strong> to many</td>
 <td>Multi-inlet</td>
+</tr>
+<tr>
+<td><strong>Link ceiling</strong></td>
+<td>How many edges a port may hold at one end, derived by the framework from the port's wire role and its field's storage: outlets take many except a control outlet; inlets take one except a control or visual inlet and a <strong>Pooled inlet</strong>. A port can only narrow it, with <code>single_link</code>. Read per end as <code>port.incoming.takes_many</code> and <code>port.outgoing.takes_many</code>, and as <code>DataPort.takes_many_links</code> (outgoing for an outlet, incoming otherwise). See <a href="../../adr/0044-link-ceiling/">ADR 0044</a></td>
+<td>allow_multiple_links (removed), connection limit</td>
 </tr>
 <tr>
 <td><strong>Pipe</strong></td>
 <td>The internal transport object for a connected DATA port pair; handles eager push or lazy pull</td>
 <td>Channel, stream</td>
+</tr>
+<tr>
+<td><strong>Arrow head</strong></td>
+<td>A glyph drawn at an edge end, from the shared vocabulary of fifteen heads (arrow, open V, triangle, diamond, circle, bar, the ERD cardinalities). Every edge end stops at its pin's edge; a head is drawn as a <code>context-stroke</code> marker on a path shortened a further <code>inset × width</code>, so its tip touches the pin's edge. See <a href="../../adr/0045-edge-appearance/">ADR 0045</a></td>
+<td>arrow type, marker</td>
+</tr>
+<tr>
+<td><strong>Computed edge</strong></td>
+<td>An edge whose wire type declares no style bag (data, control, callback). Its colour comes from its pins, its dash from its adapter chain, and its arrow head and width from the <strong>Edge defaults</strong></td>
+<td>default edge, plain edge</td>
+</tr>
+<tr>
+<td><strong>Edge defaults</strong></td>
+<td>The arrow head and width every <strong>Computed edge</strong> draws with: <code>EdgeDefaultSettings</code> in the studio, overridden per graph by <code>edge_arrow</code> and <code>edge_width</code> on the graph props. The head sits at the end the wire type's <code>arrow_at</code> names</td>
+<td>edge settings, edge style</td>
+</tr>
+<tr>
+<td><strong>Styled edge</strong></td>
+<td>An edge whose wire type declares a style bag; each edge sets the fields its bag declares (colour, dash, width, arrow heads). A field it does not declare falls through to the <strong>Edge defaults</strong></td>
+<td>annotated edge, custom edge</td>
+</tr>
+<tr>
+<td><strong>Style bag</strong></td>
+<td>The <code>EdgeSettings</code> subclass a wire type names in <code>style</code>: the fields of a <strong>Styled edge</strong> the user may set. Each edge holds one while it validates and saves its set values under <code>"style"</code>. See <a href="../../adr/0047-edge-settings/">ADR 0047</a></td>
+<td>edge style settings</td>
+</tr>
+<tr>
+<td><strong>Annotation node</strong></td>
+<td>A builtin <code>CONTROL</code> node that draws a box of text and links to other annotation nodes with <strong>Styled edge</strong>s on <code>AnnotationWire</code>, which are drawn and saved but never executed. Each card side grows pins where the user connects; its pins are <strong>Swinglet</strong>s and the side is part of the port id (<code>{side}_{index}</code>: <code>left_0</code>, <code>top_2</code>). Its control pins pass control and its payload through, and are drawn only when linked or when <em>Show Control Pins</em> is set. Double-clicking the card edits the text</td>
+<td>note, comment node, sticky note</td>
+</tr>
+<tr>
+<td><strong>Swinglet</strong></td>
+<td>A port that may be either end of an edge (<code>PortType.SWINGLET</code>, declared with <code>as_swinglet</code>), on any wire type. <code>is_inlet()</code> and <code>is_outlet()</code> are both true for it. An edge's write is stored as its linked value and stops there; the node's own write (<code>out()</code>) goes to its own value and passes on to its outgoing edges; a pipe reads the own value. An unfed swinglet reads its own last write when its node next runs (a data node runs only when a port is dirty). <code>on_change</code> reports only what the node receives. See <a href="../../adr/0048-swinglets/">ADR 0048</a> and <a href="../../guides/ports/#swinglets">ports guide</a></td>
+<td>bidirectional port, inout port</td>
+</tr>
+<tr>
+<td><strong>Link set</strong></td>
+<td><code>LinkSet</code>: the edges a port holds at one end. Every port has <code>port.incoming</code> and <code>port.outgoing</code>, each with its own <strong>Link ceiling</strong>, a <code>linked</code> tier of active edges and an <code>all</code> tier that also holds displaced ones. See <a href="../../adr/0048-swinglets/">ADR 0048</a></td>
+<td>edge dict</td>
 </tr>
 </tbody>
 </table>
@@ -4224,6 +4284,11 @@ Macro is registered and placed.</p>
 <td><strong>Reroute node</strong></td>
 <td>A pass-through node shipped by the framework-owned <strong>builtin</strong> library (<code>haywire.barn.builtin</code>, not a plugin) whose class declares <strong>no</strong> ports; at creation it is given exactly one inlet and one outlet matching the split edge's type, and its worker passes the inlet value straight to the outlet and returns the outlet id. Supports <strong>DATA</strong>, <strong>CONTROL</strong> and <strong>CALLBACK</strong> edges. On a callback edge the inlet is immediate, so <code>forward_immediate</code> copies each write to the outlet at once and the emitter downstream sees the subscription without any worker running. Used to split an edge and bend/organize a wire.</td>
 <td>Proxy node (collides with <code>_FieldProxy</code> / state proxies), passthrough node</td>
+</tr>
+<tr>
+<td><strong>Immediate guards</strong></td>
+<td>The two rules on an edge's write into an immediate inlet (<code>DataPort._fire_immediate</code>). <strong>Echo guard:</strong> a write that leaves the value the node sees unchanged is stored and fires nothing. <strong>Re-entrancy guard:</strong> a write that reaches an inlet whose <code>on_change</code> is still running on the same thread closes a loop of immediate edges; it is dropped, not stored, and logged as a warning. Every loop of callback edges ends after one pass. See <a href="../../adr/0046-callback-absence-and-immediate-guards/">ADR 0046</a></td>
+<td>cycle detection (nothing is detected ahead of time)</td>
 </tr>
 <tr>
 <td><strong>Node template</strong></td>
@@ -4315,8 +4380,8 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Propagation</strong></td>
-<td>When a value written to an outlet takes effect at the inlet across an edge: <strong>lazy</strong> (the inlet pulls the current value when its node executes), <strong>eager</strong> (pushed on write, takes effect when the inlet's node executes) or <strong>immediate</strong> (pushed on write and takes effect on write). Users choose lazy or eager per edge; <strong>immediate</strong> comes from the flow type (<code>CALLBACK</code>) and is locked, and an edge out of a promoted outlet is locked lazy. Eager and immediate both push — they differ in when the inlet acts on the value. See <a href="../../adr/0039-propagation-mode-replaces-is-lazy/">ADR 0039</a></td>
-<td>Eager push / Lazy pull (now two of its values), immediate push</td>
+<td>When a value written to an outlet takes effect at the inlet across an edge: <strong>lazy</strong> (the inlet pulls the current value when its node executes; the write only marks it dirty, which is what lets a DATA node skip its worker) or <strong>eager</strong> (pushed on write, takes effect when the inlet's node executes). An edge's wire type lists the modes it may take: one entry locks it, and a wire type that allows none gives the edge no propagation — a callback edge takes effect on write by its role. An edge out of a promoted outlet is locked lazy. See <a href="../../adr/0039-propagation-mode-replaces-is-lazy/">ADR 0039</a> and <a href="../../adr/0042-wire-types-replace-flowtype/">ADR 0042</a></td>
+<td>Eager push / Lazy pull (two of its values), immediate (a role, not a mode)</td>
 </tr>
 <tr>
 <td><strong>EVAL_MASK / LAZY_MASK</strong></td>
@@ -4353,12 +4418,12 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>displacement</strong></td>
-<td>When a newly linked edge takes the slot of an existing edge on a single-connection port; the displaced edge stays in <code>_all_edges</code></td>
+<td>When a newly linked edge takes the slot of an existing edge on a single-connection port; the displaced edge leaves <code>linked</code> and stays in the <strong>Link set</strong>'s <code>all</code> tier</td>
 <td>override, eviction</td>
 </tr>
 <tr>
 <td><strong>re-enablement</strong></td>
-<td>When an active edge is removed and the port scans <code>_all_edges</code> FIFO for a functional candidate to restore</td>
+<td>When an active edge is removed and the port's <strong>Link set</strong> scans its <code>all</code> tier FIFO for a functional candidate to restore</td>
 <td>fallback restoration</td>
 </tr>
 <tr>
@@ -5322,7 +5387,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>absence</strong></td>
-<td>A <strong>value</strong>, not an opinion: the state of an <code>OPTIONAL[T]</code> field the user has deliberately chosen to hold nothing, meaning "do not pass this parameter to the wrapped library at all". Orthogonal to <strong>unset</strong> — a tier can be <em>set</em> to absence, and that choice survives a save/load; "unset" instead means a tier has no view and defers down the chain. Left via the row's <code>none</code> cell (a framed, always-iconed control, not bare text); reached via the Setting-row menu's <em>Reset</em> or <em>Set to none</em>; a <code>validator=</code> constrains only the <em>present</em> domain (absence is always admissible). Never model absence as "not in <code>_set_keys</code>" — that is the opinion axis, already spoken for by <code>reset()</code> and mirror resolution.</td>
+<td>A <strong>value</strong>, not an opinion: the state of an <code>OPTIONAL[T]</code> field the user has deliberately chosen to hold nothing, meaning "do not pass this parameter to the wrapped library at all". On a wire type that <code>holds_absence</code> (the callback wire), absence is also the value of a port with no subscription. A field holding absence saves it as JSON <code>null</code>. Orthogonal to <strong>unset</strong> — a tier can be <em>set</em> to absence, and that choice survives a save/load; "unset" instead means a tier has no view and defers down the chain. Left via the row's <code>none</code> cell (a framed, always-iconed control, not bare text); reached via the Setting-row menu's <em>Reset</em> or <em>Set to none</em>; a <code>validator=</code> constrains only the <em>present</em> domain (absence is always admissible). Never model absence as "not in <code>_set_keys</code>" — that is the opinion axis, already spoken for by <code>reset()</code> and mirror resolution.</td>
 <td>unset (the opinion axis — do not conflate), null, nothing, "not locally set"</td>
 </tr>
 <tr>
@@ -5702,8 +5767,8 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>LayoutDirection</strong></td>
-<td>Which way flow reads across a node card — <code>l2r</code>, <code>r2l</code>, <code>t2b</code>, <code>b2t</code> — deciding the card edge each pin sits on and how the Skin arranges content. Purely presentational: the execution engine imposes no directionality. Resolved <strong>per node</strong> through framework &lt; graph &lt; node (<code>node.props.layout_direction</code>), exactly like <strong>Skin</strong>, so one graph may mix directions and nothing may assume both ends of an Edge share an axis. Vertical values render inlets/outlets as bare pin strips (no labels, no inline Widgets — values are reached through the <strong>Ports Panel</strong>), leaving only config ports in the card body. Distinct from <strong>FlowType</strong>, which is a port's transport category</td>
-<td>Flow direction (reads as a property of FlowType), orientation, node rotation</td>
+<td>Which way flow reads across a node card — <code>l2r</code>, <code>r2l</code>, <code>t2b</code>, <code>b2t</code> — deciding the card edge each pin sits on and how the Skin arranges content. Purely presentational: the execution engine imposes no directionality. Resolved <strong>per node</strong> through framework &lt; graph &lt; node (<code>node.props.layout_direction</code>), exactly like <strong>Skin</strong>, so one graph may mix directions and nothing may assume both ends of an Edge share an axis. Vertical values render inlets/outlets as bare pin strips (no labels, no inline Widgets — values are reached through the <strong>Ports Panel</strong>), leaving only config ports in the card body. Distinct from <strong>Wire type</strong>, which is a port's transport category</td>
+<td>Flow direction (reads as a property of a wire type), orientation, node rotation</td>
 </tr>
 <tr>
 <td><strong>Widget</strong></td>
@@ -5792,7 +5857,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Ghost pin</strong></td>
-<td>An always-present <strong>drop affordance</strong> on a node card — the <code>root_in</code> / <code>root_out</code> anchors rendered by node skins in <code>--hw-ghost-pin</code> (low-opacity, dashed) and carrying <code>data-pin-flow-type="ghost"</code>. Its id names <strong>no entry in <code>node.ports</code></strong>, which is why the canvas excludes it from structural pin detection (no pin menu) — see <a href="../../components/skins/skin-canon/#ghost-pins-are-excluded-from-pin-detection">skin-canon</a>. A ghost pin is never "linked": it stands in for the node as a whole, not for a port. A port hidden by a collapsed group renders an ordinary <strong>Pin</strong> in the card header, not a ghost.</td>
+<td>A node's fallback anchor — the <code>root_in</code> / <code>root_out</code> pins rendered by node skins (the annotation skin included) in <code>--hw-ghost-pin</code> (low-opacity, dashed) and marked <code>data-pin-ghost</code> — for an edge whose port is missing or that found no matching port (auto-wire). Its id names <strong>no entry in <code>node.ports</code></strong>, so it never starts, ends or joins a user drag, takes no part in wire matching, and has no pin menu — see <a href="../../components/skins/skin-canon/#ghost-pins-are-excluded-from-pin-detection">skin-canon</a>. Removing a pin from the pin menu keeps its edges: they are drawn to the ghost and resolve to the pin again when a port with that id returns, so the user never redraws them. A port hidden by a collapsed group renders an ordinary <strong>Pin</strong> in the card header, not a ghost.</td>
 <td>Unconnected pin, empty pin (a ghost is not a port at all); do <strong>not</strong> call a hidden-but-connected port's header pin a ghost pin</td>
 </tr>
 </tbody>
@@ -5978,7 +6043,7 @@ Macro is registered and placed.</p>
 <h2 id="relationships">Relationships<a class="headerlink" href="#relationships" title="Permanent link">&para;</a></h2>
 <ul>
 <li>A <strong>Graph</strong> contains zero or more <strong>Nodes</strong> and <strong>Edges</strong>; it is serialized as a <code>.haywire</code> file.</li>
-<li>An <strong>Edge</strong> connects exactly one <strong>Outlet</strong> to exactly one <strong>Inlet</strong>; they must share the same <strong>FlowType</strong> or can be cast to a different type with the help of an <strong>Adapter chain</strong>.</li>
+<li>An <strong>Edge</strong> connects exactly one <strong>Outlet</strong> to exactly one <strong>Inlet</strong>; their pins' <strong>Wire keys</strong> must match or can be cast to a different type with the help of an <strong>Adapter chain</strong>.</li>
 <li>A <strong>Node</strong> (class) defines <strong>Ports</strong> in <code>init()</code>; the <strong>NodeWrapper</strong> holds the live runtime state.</li>
 <li>Each connected DATA port pair owns exactly one <strong>Pipe</strong>; the Pipe's mode comes from the <strong>EdgeWrapper</strong>'s <strong>Propagation</strong>, not the port.</li>
 <li><strong>Assembly</strong> produces one <strong>Flow</strong> per <strong>EVENT node</strong> in the graph.</li>

@@ -3158,6 +3158,9 @@
 
 
 <h1 id="absence-is-a-value-and-a-values-domain-is-its-type">Absence is a value, and a value's domain is its type<a class="headerlink" href="#absence-is-a-value-and-a-values-domain-is-its-type" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Absence beyond <code>PrimitiveField</code> storage</strong>: on a wire type that <code>holds_absence</code>, a <code>BaseField</code> type holds absence too (<a href="../0046-callback-absence-and-immediate-guards/">ADR 0046</a>). <code>OPTIONAL</code> itself is unchanged, and saves absence as <code>null</code>.</p>
+</blockquote>
 <p><strong>Context.</strong> A settings field always holds a value; there is no null. Wrapping
 an external library means mirroring its parameters onto settings, and real
 libraries use <code>Optional[T]</code> for "leave this alone", where the <em>absence</em> is

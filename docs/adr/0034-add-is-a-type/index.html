@@ -3158,6 +3158,9 @@
 
 
 <h1 id="a-growing-pin-declares-what-it-accepts">A growing pin declares what it accepts<a class="headerlink" href="#a-growing-pin-declares-what-it-accepts" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Two bare <code>ADD</code> slots no longer connect (<a href="../0043-refuse-only-what-breaks/">ADR 0043</a>).</strong> The edge would have no wire type to take. A bare <code>ADD</code> connects to any other port.</p>
+</blockquote>
 <p><strong>Context.</strong> A node can declare a pin that grows: connecting to it replaces it
 with a real port, which is how a node offers a variable number of inputs. What
 that new port's type should be is the open question. Adopting the type at the

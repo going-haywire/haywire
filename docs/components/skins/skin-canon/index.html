@@ -1059,6 +1059,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#a-pin-on-any-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A pin on any side
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3482,6 +3493,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#a-pin-on-any-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A pin on any side
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3835,6 +3857,22 @@ own vector. This is also why <code>NodeSkinSettings</code> declares geometry for
 (<code>card_padding</code>/<code>card_padding_block</code>, <code>pin_row_height</code>/<code>pin_column_width</code>) rather than one
 reinterpreted set — that bag is library-global, so there is no single "current direction"
 to reinterpret against.</p>
+<h3 id="a-pin-on-any-side">A pin on any side<a class="headerlink" href="#a-pin-on-any-side" title="Permanent link">&para;</a></h3>
+<p><code>render_pin</code> takes no side argument. To put a pin on a given card edge, pass it the one
+<code>LayoutDirection</code> whose <code>inlet_side</code> (for an inlet) or <code>outlet_side</code> (for an outlet) is that
+edge: an outlet on the bottom renders with <code>TOP_TO_BOTTOM</code>, an inlet on the right with
+<code>RIGHT_TO_LEFT</code>. The pin's CSS side and its <code>data-pin-dir-x/y</code> then still come from one
+source. The builtin <code>AnnotationSkin</code> keeps this as a table, <code>_LAYOUT[side]</code>, holding the one
+layout whose inlet side is that side; its notes carry one swinglet set per side (ids
+<code>{side}_{index}</code>), and a swinglet is drawn once, on its inlet side. The pins of a side sit
+in an absolutely positioned strip on that edge and are centred along it as a group. The
+open slot sits in a zero-width wrapper after the last pin (centred when the side has no
+pins), and ghost pins get a wrapper of their own, rendered before the strip.</p>
+<p>A pin may carry the class <code>hw-pin-reveal</code> to stay hidden until its card is hovered or an edge
+drag is in progress (the canvas sets <code>edge-dragging</code> on its container meanwhile). It is hidden
+with <code>visibility</code>, so it keeps its box: the drag's pin index still finds it, and a drop near
+it commits to it. Never hide a pin with <code>display: none</code> — its rect collapses to the viewport
+origin, and the index and its edges read that.</p>
 <h2 id="context-menus-data-hw-menu-surface-id-and-what-a-skin-cannot-address">Context menus: <code>data-hw-menu-surface-id</code>, and what a skin cannot address<a class="headerlink" href="#context-menus-data-hw-menu-surface-id-and-what-a-skin-cannot-address" title="Permanent link">&para;</a></h2>
 <p>A skin can add its own right-click menu on any element it renders, by writing one DOM
 attribute:</p>
@@ -3866,12 +3904,12 @@ attribute:</p>
 custom badge, an inline control, a region of the card that isn't the node or a pin — that
 you want right-clickable with commands only your library knows about.</p>
 <h3 id="ghost-pins-are-excluded-from-pin-detection">Ghost pins are excluded from pin detection<a class="headerlink" href="#ghost-pins-are-excluded-from-pin-detection" title="Permanent link">&para;</a></h3>
-<p>The structural pin detector is <code>[data-pin-id]:not([data-pin-flow-type="ghost"]), [data-port-id]</code>
-— note the exclusion. A ghost pin is a drop affordance (the temporary target shown while
-dragging a connection to an empty area of a node), not a real port: its id names no entry in
+<p>The structural pin detector is <code>[data-pin-id]:not([data-pin-ghost]), [data-port-id]</code>
+— note the exclusion. A ghost pin is a node's fallback anchor for an edge whose port is
+missing; it never takes part in a drag. It is not a real port: its id names no entry in
 <code>node.ports</code>, so a menu opened there would both resolve nothing <em>and</em> swallow the click that
 would otherwise fall through to the node's own context menu. If you author a skin that emits
-ghost pins with <code>data-pin-flow-type="ghost"</code> (the convention <code>render_pin</code> itself follows),
+ghost pins with <code>data-pin-ghost</code> (the convention <code>render_pin</code> itself follows),
 right-clicking one correctly falls through past the pin check to whatever is next —
 normally the node. Do not expect a ghost pin to carry a menu; it is deliberately excluded,
 not an oversight to work around.</p>

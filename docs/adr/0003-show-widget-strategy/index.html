@@ -3202,6 +3202,9 @@
 
 
 <h1 id="showwidgetstrategy-per-port-control-of-widget-visibility-vs-link-state"><code>ShowWidgetStrategy</code> — per-port control of widget visibility vs. link state<a class="headerlink" href="#showwidgetstrategy-per-port-control-of-widget-visibility-vs-link-state" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Link counts are superseded by <a href="../0044-link-ceiling/">ADR 0044</a></strong>: <code>allow_multiple_links</code> is gone, and a port's link count is a ceiling the framework derives. <strong>Editing a pooled port's widget is refused, not crashed, per <a href="../0043-refuse-only-what-breaks/">ADR 0043</a></strong>: showing it is still the author's call.</p>
+</blockquote>
 <p>A <code>DataPort</code> may carry an inline editing <strong>widget</strong> (a slider, a text field, a dict editor). Until now the node skin decided whether to render that widget with one hardcoded rule:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">port</span><span class="o">.</span><span class="n">allow_multiple_links</span> <span class="ow">and</span> <span class="n">port</span><span class="o">.</span><span class="n">widget_key</span><span class="p">:</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">render_widget</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>

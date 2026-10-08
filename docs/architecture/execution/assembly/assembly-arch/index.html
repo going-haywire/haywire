@@ -3606,7 +3606,7 @@
 <h1 id="assembly-architecture">Assembly — Architecture<a class="headerlink" href="#assembly-architecture" title="Permanent link">&para;</a></h1>
 <h2 id="1-mental-model">1. Mental model<a class="headerlink" href="#1-mental-model" title="Permanent link">&para;</a></h2>
 <p><strong>Assembly</strong> is the process of compiling a Graph (a passive data structure) into one or more executable Flows. The assembled Flow is what the VM runs; the Graph itself is never executed directly.</p>
-<p>The pipeline is rooted at <strong>event nodes</strong>. Every Flow has exactly one entry event node. The assembler identifies all event nodes, builds one Flow per event node, and links them via callback edges (assembly-time wiring; see <a href="../../callbacks/callbacks-arch/">architecture/execution/callbacks</a>).</p>
+<p>The pipeline is rooted at <strong>event nodes</strong>. Every Flow has exactly one entry event node. The assembler identifies all event nodes, builds one Flow per event node. Callback edges play no part in assembly: the Interpreter registers callback listeners (see <a href="../../callbacks/callbacks-arch/">architecture/execution/callbacks</a>).</p>
 <p>Within each Flow, two structures are built side by side:</p>
 <ul>
 <li>The <strong>control-flow DAG</strong> — the sequence of CONTROL nodes the VM walks during execution.</li>
@@ -3621,7 +3621,6 @@
 <li>Coordinate control-flow and data-flow builders.</li>
 <li>Cache assembled flows (<code>assembled_flows: dict[flow_id, Flow]</code>).</li>
 <li>Handle JIT reassembly when the graph mutates (<code>dirty_flows: set[flow_id]</code>).</li>
-<li>Process callback edges for observability (cross-flow wiring; see <a href="../../callbacks/callbacks-arch/">callbacks</a>).</li>
 </ul>
 <p><code>AssemblyMetadata</code> captures per-flow info — <code>flow_id</code>, <code>timestamp</code>, <code>node_count</code>, <code>event_node_id</code>.</p>
 <h3 id="22-pipeline-stages">2.2 Pipeline stages<a class="headerlink" href="#22-pipeline-stages" title="Permanent link">&para;</a></h3>
@@ -3630,14 +3629,13 @@
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  ├─ _identify_event_nodes(graph)   one Flow per event node
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  └─ for each event node:
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        ├─ _assemble_flow(event_node, graph)
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        │     ├─ build control-flow DAG (walk EXEC edges from the event node)
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        │     ├─ build control-flow DAG (walk EXEC (sequence) edges from the event node)
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        │     ├─ for each CONTROL node in the DAG:
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        │     │     └─ build its localized data-flow
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        │     │         (backpropagate from inlets through DATA edges,
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        │     │         (backpropagate from inlets through DATA (dependent) edges,
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        │     │          topologically sort)
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        │     └─ store assembled Flow + metadata
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        └─ cache → assembled_flows[flow_id]
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  └─ _process_callback_edges(graph, flows)   wire cross-flow callbacks
 </span></code></pre></div>
 <h3 id="23-validation-rules">2.3 Validation rules<a class="headerlink" href="#23-validation-rules" title="Permanent link">&para;</a></h3>
 <p><code>_validate_graph()</code> runs structural checks before assembly. Failures raise <code>RuntimeError</code> and abort.</p>
@@ -3666,17 +3664,19 @@
 <p>The validation is structural; per-edge validation happens in <code>EdgeWrapper.build()</code> (<a href="../../edges/edges-arch/">edges</a> §2.2).</p>
 <p><code>assemble_graph()</code> wraps the graph in a <code>FlatGraphView</code> before any of this, so a
 Subgraph's nodes take part in the host's flows — see
-<a href="../../../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a>.</p>
+<a href="../../../../adr/0036-groups-execute-through-their-boundary-nodes/">ADR 0036</a>.
+The ordering walks (<code>DataFlowBuilder._check_cycles</code> and <code>_topological_sort</code>) take their
+dependencies from inlet-side lookups (<code>_get_edge_wrappers_for_port(..., incoming=True)</code>),
+as <code>_backpropagate</code> does: the view splices the Output-to-consumer crossing of a data-only
+Subgraph only into incoming lookups. An outgoing lookup returns the owning graph's edges
+unchanged, so an outlet-side walk misses the Output-to-consumer edge and would order a
+consumer before the Group's interior.</p>
 <h3 id="24-assembly-metadata">2.4 Assembly metadata<a class="headerlink" href="#24-assembly-metadata" title="Permanent link">&para;</a></h3>
 <p>Every assembled Flow carries metadata exposed via <code>interpreter.get_statistics()</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;total_flows&#39;</span><span class="p">]</span>       <span class="c1"># number of assembled Flows</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;dirty_flows&#39;</span><span class="p">]</span>       <span class="c1"># Flows pending re-assembly</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;callback_edges&#39;</span><span class="p">]</span>    <span class="c1"># total FlowType.CALLBACK edges</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;assembly&#39;</span><span class="p">][</span><span class="s1">&#39;callback_topology&#39;</span><span class="p">]</span> <span class="c1"># {&#39;emitters&#39;: N, &#39;listeners&#39;: N,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>                                       <span class="c1">#  &#39;edges&#39;: {emitter_id: [target_id, ...]},</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>                                       <span class="c1">#  &#39;triggers&#39;: {target_id: [emitter_id, ...]}}</span>
 </span></code></pre></div>
-<p>Useful for debugging — confirm a graph assembled the expected Flow count and callback topology.</p>
+<p>Useful for debugging — confirm a graph assembled the expected Flow count.</p>
 <h2 id="3-lifecycle">3. Lifecycle<a class="headerlink" href="#3-lifecycle" title="Permanent link">&para;</a></h2>
 <h3 id="31-initial-assembly-graph-load">3.1 Initial assembly (graph load)<a class="headerlink" href="#31-initial-assembly-graph-load" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>graph.load_from_json(...)
@@ -3689,7 +3689,6 @@ Subgraph's nodes take part in the host's flows — see
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        Flow = _assemble_flow(event_node, graph)
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        cache flow
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        cache metadata
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>  └─ _process_callback_edges → wire callback topology
 </span></code></pre></div>
 <p>After this completes, <code>assembled_flows[flow_id] = Flow</code> for every Flow, and the Interpreter can register them.</p>
 <h3 id="32-just-in-time-reassembly-not-yet-implemented">3.2 Just-in-time reassembly (NOT YET IMPLEMENTED)<a class="headerlink" href="#32-just-in-time-reassembly-not-yet-implemented" title="Permanent link">&para;</a></h3>
@@ -3752,7 +3751,7 @@ Subgraph's nodes take part in the host's flows — see
 <ul>
 <li>The <strong>runtime</strong>. Once Flows are built, they are run by the VM (<a href="../../virtual-machine/virtual-machine-arch/">virtual-machine</a>) — assembly hands off the executable structure and stops participating.</li>
 <li>The <strong>edge-build pipeline</strong>. Edges have their own 4-stage build (<a href="../../edges/edges-arch/#22-the-4-stage-build-pipeline">edges §2.2</a>); the assembler reads already-built edges and topologically sorts them into Flows.</li>
-<li>The <strong>callback dispatcher</strong>. Assembly <em>registers</em> the topology with <code>CallbackManager</code>; runtime dispatch is owned by the manager.</li>
+<li>The <strong>callback dispatcher</strong>. Assembly does not touch callbacks; the Interpreter registers <code>CallbackEvent</code> Flows with <code>CallbackManager</code> when it starts them, and the manager owns runtime dispatch.</li>
 <li>The <strong>graph data structure</strong>. The Graph predates assembly and survives it. The assembler only reads from the graph.</li>
 </ul>
 <h2 id="5-examples">5. Examples<a class="headerlink" href="#5-examples" title="Permanent link">&para;</a></h2>
@@ -3801,7 +3800,7 @@ Subgraph's nodes take part in the host's flows — see
 </tr>
 </tbody>
 </table>
-<p><code>_process_callback_edges()</code> registers Flow 3 as a listener of whichever node emits <code>'frame_ready'</code>.</p>
+<p>The Interpreter registers Flow 3 with <code>CallbackManager</code> under <code>'frame_ready'</code> when it starts the Flow; any node that emits <code>'frame_ready'</code> then triggers it.</p>
 <h2 id="6-open-questions">6. Open questions<a class="headerlink" href="#6-open-questions" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Partial reassembly inside a Flow.</strong> Today, any change inside a Flow's reachable set rebuilds the whole Flow. Could be smarter — rebuild only the affected localized data-flow.</li>

@@ -3397,6 +3397,7 @@
 </span></code></pre></div>
 <p><code>BaseTheme.__init_subclass__</code> collects these into <code>_fields</code>. Defining a field that isn't in the token map is silently ignored (no error). Omitting a field is silently inherited from the parent class — partial themes work without ceremony.</p>
 <p><strong><code>_CSS_TOKEN_MAP</code>.</strong> ~40 named tokens covering backgrounds, borders, text, accents, status colours, node chrome, edges, canvas, top bar, sidebars, panels, status bar, and console. Defined in <code>_CSS_TOKEN_MAP</code> mapping <code>field_name</code> → <code>--hw-&lt;token&gt;</code>. The full list is in <a href="../../../reference/design-guide/">reference/design-guide</a>; examples in §4.</p>
+<p>The edge tokens are <code>--hw-edge-default</code>, <code>--hw-edge-selected</code> and <code>--hw-edge-active</code>, plus the optional length tokens <code>--hw-edge-selected-extra</code> and <code>--hw-edge-active-extra</code> (fallback <code>1px</code> / <code>2px</code>, added to the edge width). Edge states read the semantic status tokens: an invalid edge <code>--hw-danger</code>, a warning glow <code>--hw-warning</code>, drop targets <code>--hw-success</code> / <code>--hw-danger</code>. An edge's width and arrow head are graph settings, not tokens (ADR 0045).</p>
 <p><strong>Full token vocabulary at every tier.</strong> A node-flavoured theme may declare any token in <code>_CSS_TOKEN_MAP</code>, <code>text_body</code>/<code>bg_input</code>/<code>accent</code> included, not just the <code>node_*</code> group:</p>
 <table>
 <thead>
