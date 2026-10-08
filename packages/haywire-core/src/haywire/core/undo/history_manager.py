@@ -111,33 +111,37 @@ class HistoryManager(IHistoryManager):
 
         self._action_count = 0
 
-    def add_action(self, action: IAction) -> None:
+    def add_action(self, action: IAction) -> bool:
         """
-        Add an action to the history.
+        Execute ``action`` and add it to the history.
 
         This method handles action merging, grouping, and history maintenance
         based on the current configuration.
+
+        Returns:
+            ``True`` if the action executed and entered the history, ``False``
+            if its execution raised. The error is logged, and the history,
+            including what can be redone, is left unchanged.
         """
         current_time = time.time()
 
-        # Clear any redo history when adding new action
-        self._clear_redo_history()
-
-        # Execute the action immediately
         try:
             action.execute()
             if self.config.enable_debug_logging:
                 logger.debug(f"Executed action: {action.description}")
         except Exception as e:
             logger.error(f"Failed to execute action {action.description}: {e}", exc_info=True)
-            return  # Don't add failed actions to history
+            return False
+
+        # A new action ends the redo branch, once it has actually changed the graph.
+        self._clear_redo_history()
 
         # Try to merge with the last action if merging is enabled
         if self.config.enable_action_merging and self._should_merge_action(action, current_time):
             self._merge_with_last_action(action)
             self._maintain_history_limits()
             self._action_count += 1
-            return
+            return True
 
         # Every action is a merge candidate for the next one, so the window is
         # measured from the last action added — not only from the last actual
@@ -168,6 +172,8 @@ class HistoryManager(IHistoryManager):
             logger.debug(f"Added action: {action.description}")
             logger.debug(f"History state: {len(self.history)} items, current_index: {self.current_index}")
             logger.debug(f"Can undo: {self.can_undo()}, Can redo: {self.can_redo()}")
+
+        return True
 
     def add_fence(self) -> None:
         """

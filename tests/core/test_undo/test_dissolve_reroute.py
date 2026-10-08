@@ -215,6 +215,7 @@ def test_editor_dissolve_returns_true_on_success(monkeypatch):
     class _HM:
         def add_action(self, action):
             added["action"] = action
+            return True
 
     class _FakeAction:
         def __init__(self, *a, **k):

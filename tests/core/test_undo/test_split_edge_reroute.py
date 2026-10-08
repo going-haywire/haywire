@@ -180,6 +180,7 @@ def test_editor_split_returns_reroute_id(monkeypatch):
     class _HM:
         def add_action(self, action):
             added["action"] = action
+            return True
 
     class _FakeAction:
         reroute_node_id = "reroute_x"

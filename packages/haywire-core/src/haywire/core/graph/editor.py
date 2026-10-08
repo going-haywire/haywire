@@ -82,7 +82,8 @@ class Editor:
         """
         try:
             action = AddNodeAction(graph=self.graph, registry_key=registry_key, position=position)
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return None
 
             logger.info(f"Created node of type {registry_key} at {position}")
 
@@ -101,13 +102,14 @@ class Editor:
 
         Returns:
             ``(new_node_ids, new_edge_ids)`` for the pasted elements, or
-            ``None`` on an unexpected error.
+            ``None`` if the paste failed.
         """
         try:
             action = PasteClipboardAction(
                 graph=self.graph, payload=payload, paste_x=paste_x, paste_y=paste_y
             )
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return None
             logger.info(f"Pasted {len(payload.get('nodes', {}))} nodes at ({paste_x}, {paste_y})")
             return (action.new_node_ids, action.new_edge_ids)
         except Exception as e:
@@ -125,7 +127,8 @@ class Editor:
 
         try:
             action = MoveNodesAction(self.graph, nodes, deltaX, deltaY)
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return False
 
             logger.info(f"Moved {len(nodes)} nodes by delta ({deltaX}, {deltaY})")
             return True
@@ -147,7 +150,8 @@ class Editor:
             return False
         try:
             action = MoveNodesToAction(self.graph, positions)
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return False
             logger.info(f"Moved {len(positions)} nodes to absolute positions")
             return True
         except Exception as e:
@@ -165,10 +169,10 @@ class Editor:
         """
         try:
             action = SetPropertyAction(self.graph, node_id, name, value, prefer_setting=prefer_setting)
-            # Pre-validate: the history manager swallows execute() failures, so
-            # resolve the target up front to distinguish a real set from a miss.
+            # Resolve up front so a miss is refused before the action runs.
             action._resolve()
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return False
             logger.info(f"Set property {name!r} on node {node_id}")
             return True
         except Exception as e:
@@ -191,15 +195,14 @@ class Editor:
         """
         try:
             action = SetPortMetadataAction(self.graph, node_id, port_id, **changes)
-            # Pre-flight for the same reason set_property does it: the history
-            # manager swallows an execute() failure, so a refusal would look
-            # like a silent no-op rather than a reported one.
+            # Pre-flight so a refusal returns its reason; a failure inside the
+            # action itself only reports that it failed.
             action._port()
-            self.history_manager.add_action(action)
+            added = self.history_manager.add_action(action)
         except Exception as e:
             logger.error(f"Error editing port {port_id!r} on {node_id}: {e}")
             return False, str(e)
-        if not action._executed:
+        if not added:
             return False, f"Port {port_id!r} could not be edited"
         logger.info(f"Edited port {port_id!r} on node {node_id}")
         return True, None
@@ -214,8 +217,8 @@ class Editor:
 
         Returns:
             ``False`` without removing anything if both lists are empty, if
-            everything named was filtered out, or if either list names an
-            element the graph doesn't have.
+            everything named was filtered out, if either list names an
+            element the graph doesn't have, or if the removal failed.
         """
         if not nodes and not edges:
             return False
@@ -237,7 +240,8 @@ class Editor:
 
         try:
             action = RemoveElementsAction(self.graph, nodes, edges)
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return False
 
             total_count = len(nodes) + len(edges)
             logger.info(f"Removed {total_count} elements ({len(nodes)} nodes, {len(edges)} connections)")
@@ -272,7 +276,9 @@ class Editor:
         """Connect ``outlet_pin`` on the source node to ``inlet_pin`` on the sink node.
 
         Returns:
-            ``True`` if the edge was created, ``False`` otherwise.
+            ``True`` if the edge was created, ``False`` if the graph refused it
+            (an edge already links the two pins, in either direction) or the
+            creation failed.
         """
         try:
             action = AddEdgeAction(
@@ -282,7 +288,8 @@ class Editor:
                 sink_node_id=sink_node_id,
                 inlet_pin_id=inlet_pin,
             )
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return False
 
             logger.info(f"Created connection {source_node_id}:{outlet_pin} -> {sink_node_id}:{inlet_pin}")
             return True
@@ -317,7 +324,8 @@ class Editor:
                 position=position,
                 registry_key=registry_key,
             )
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return None
             logger.info(f"Split edge {edge_id} with reroute {action.reroute_node_id}")
             return action.reroute_node_id
         except Exception as e:
@@ -332,7 +340,8 @@ class Editor:
         """
         try:
             action = DissolveRerouteAction(graph=self.graph, node_id=node_id)
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return False
             logger.info(f"Dissolved reroute node {node_id}")
             return True
         except Exception as e:
@@ -373,7 +382,8 @@ class Editor:
             return (None, str(e))
 
         try:
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return (None, "The selection could not be collapsed")
             logger.info(f"Collapsed {len(node_ids)} nodes into subgraph {action.subgraph_key}")
             return (action.card_node_id, None)
         except Exception as e:
@@ -412,8 +422,10 @@ class Editor:
 
         try:
             self.history_manager.add_fence()
-            self.history_manager.add_action(action)
+            added = self.history_manager.add_action(action)
             self.history_manager.add_fence()
+            if not added:
+                return (None, "The Group could not be promoted")
             logger.info(f"Promoted Group {node_id} to macro '{macro_registry_key}'")
             return (action.placement_node_id, None)
         except Exception as e:
@@ -455,8 +467,10 @@ class Editor:
 
         try:
             self.history_manager.add_fence()
-            self.history_manager.add_action(action)
+            added = self.history_manager.add_action(action)
             self.history_manager.add_fence()
+            if not added:
+                return (None, "The placement could not be detached")
             logger.info(f"Detached placement {node_id} into Group {action.subgraph_key}")
             return (action.card_node_id, None)
         except Exception as e:
@@ -471,7 +485,8 @@ class Editor:
         """
         try:
             action = ExpandGraphNodeAction(graph=self.graph, node_id=node_id)
-            self.history_manager.add_action(action)
+            if not self.history_manager.add_action(action):
+                return False
             logger.info(f"Expanded Group {node_id}")
             return True
         except Exception as e:

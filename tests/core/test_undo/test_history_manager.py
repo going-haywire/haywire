@@ -318,3 +318,43 @@ def test_can_undo_is_false_with_nothing_pending_or_flushed():
     h = HistoryManager(_merging_config())
 
     assert h.can_undo() is False
+
+
+# ---------------------------------------------------------------------------
+# Failed actions
+# ---------------------------------------------------------------------------
+
+
+class FailingAction(RecordingAction):
+    """A fake action whose execution raises, as a refused graph edit does."""
+
+    def _execute_impl(self) -> None:
+        raise ValueError("refused")
+
+
+def test_add_action_reports_an_executed_action():
+    h = HistoryManager(_plain_config())
+
+    assert h.add_action(RecordingAction("a", [])) is True
+    assert h.can_undo() is True
+
+
+def test_add_action_reports_a_failed_action_and_records_nothing():
+    h = HistoryManager(_plain_config())
+
+    assert h.add_action(FailingAction("bad", [])) is False
+    assert h.history == []
+    assert h.can_undo() is False
+
+
+def test_a_failed_action_keeps_what_can_be_redone():
+    log: list = []
+    h = HistoryManager(_plain_config())
+    undone = RecordingAction("undone", log)
+    h.add_action(undone)
+    h.undo()
+
+    assert h.add_action(FailingAction("bad", log)) is False
+    assert undone.cleaned is False
+    assert h.redo() is True
+    assert log[-1] == ("exec", "undone")

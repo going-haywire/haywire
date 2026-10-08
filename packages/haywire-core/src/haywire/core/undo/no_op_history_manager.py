@@ -22,9 +22,9 @@ class NoOpHistoryManager(IHistoryManager):
         """Initialize no-op history manager."""
         pass
 
-    def add_action(self, action: IAction) -> None:
-        """No-op: action is ignored."""
-        pass
+    def add_action(self, action: IAction) -> bool:
+        """No-op: the action is ignored and never runs, so this returns ``False``."""
+        return False
 
     def add_fence(self) -> None:
         """No-op: fence is ignored."""

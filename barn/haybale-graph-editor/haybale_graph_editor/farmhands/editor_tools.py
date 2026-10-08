@@ -886,23 +886,20 @@ class GraphEditorConnectTool(Farmhand):
         inlet: str,
     ) -> dict:
         editor = _editor(ctx, binding_id)
-        # Editor.create_edge returns True even when the underlying action fails,
-        # because HistoryManager.add_action swallows execute() errors. Validate the
-        # endpoints up front and verify the edge really landed so the tool reports
-        # honest success/failure.
         source = _node(editor, source_node_id)
         sink = _node(editor, sink_node_id)
-        # A missing pin no longer stops edge creation: the edge is kept and fails validation.
+        # The graph keeps an edge to a missing pin (it fails validation), so check the pins here.
         pins_exist = outlet in source.node.ports and inlet in sink.node.ports
-        before = len(editor.list_edges())
+        connected = False
         if pins_exist:
             ctx.fence(editor)
-            editor.create_edge(source_node_id, outlet, sink_node_id, inlet)
-        if not pins_exist or len(editor.list_edges()) <= before:
+            connected = editor.create_edge(source_node_id, outlet, sink_node_id, inlet)
+        if not connected:
             raise FarmhandError(
                 "connect_failed",
                 f"Could not connect {source_node_id}:{outlet} -> {sink_node_id}:{inlet} "
-                f"(check the pin ids and type compatibility).",
+                f"(check the pin ids and type compatibility, and that no edge already links "
+                f"these two pins in either direction).",
                 help=(
                     f"Run graph_editor_inspect_node node_id={source_node_id!r} get=['ports'] "
                     f"(and for {sink_node_id!r}) to see valid pin ids and their types."

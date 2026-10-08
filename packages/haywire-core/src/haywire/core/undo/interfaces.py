@@ -92,12 +92,17 @@ class IHistoryManager(ABC):
     """
 
     @abstractmethod
-    def add_action(self, action: IAction) -> None:
+    def add_action(self, action: IAction) -> bool:
         """
-        Add an action to the history.
+        Execute ``action`` and add it to the history.
 
         Args:
             action: The action to add to the history
+
+        Returns:
+            ``True`` if the action executed and entered the history, ``False``
+            if it did not run or its execution raised. A failed action leaves
+            the history, including what can be redone, unchanged.
         """
         pass
 

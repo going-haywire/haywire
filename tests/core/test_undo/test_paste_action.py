@@ -197,6 +197,7 @@ def test_editor_paste_clipboard_adds_action_and_returns_new_ids():
     class _HM:
         def add_action(self, action):
             added["action"] = action
+            return True
 
     payload = _payload(
         nodes={"n1": {"node_id": "n1", "registry_key": "k", "position": [0, 0], "node_data": {}}},

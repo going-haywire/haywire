@@ -1034,3 +1034,24 @@ def test_query_detail_reports_a_swinglets_outgoing_ceiling(farmhand_call):
         assert "outgoing_takes_many" not in inlet
     finally:
         _close(farmhand_call, bid)
+
+
+def test_connect_the_reverse_of_an_existing_edge_is_connect_failed(farmhand_call):
+    """The graph refuses a second edge between the same two pins, in either direction."""
+    bid = _new_graph(farmhand_call)
+    try:
+        v1 = _swinglet_node(farmhand_call, bid, "SwingletVisualProbeNode")
+        v2 = _swinglet_node(farmhand_call, bid, "SwingletVisualProbeNode")
+        link = {"binding_id": bid, "outlet": "note", "inlet": "note"}
+        first = _call(
+            farmhand_call, "haybale-graph-editor_connect", {**link, "source_node_id": v1, "sink_node_id": v2}
+        )
+        assert first.isError is False
+
+        reverse = _call(
+            farmhand_call, "haybale-graph-editor_connect", {**link, "source_node_id": v2, "sink_node_id": v1}
+        )
+        assert reverse.isError is True
+        assert "[connect_failed]" in reverse.content[0].text
+    finally:
+        _close(farmhand_call, bid)
