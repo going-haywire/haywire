@@ -171,20 +171,18 @@ class FlatGraphView:
     # DATA DEPENDENCIES, WITH CROSSINGS
     # =========================================================================
 
-    def _get_edge_wrappers_for_port(self, node_id: str, port_id: str) -> List[Any]:
-        """Edges on one port, with a data-only Subgraph's crossings spliced in.
+    def _get_edge_wrappers_for_port(self, node_id: str, port_id: str, *, incoming: bool) -> List[Any]:
+        """Edges at one end of a port, with a data-only Subgraph's crossings spliced in.
 
-        Three splices, all for ordering and reachability — never for values:
+        Two splices on an incoming query, both for ordering and reachability —
+        never for values; an outgoing query is answered unchanged:
 
         - **an inlet fed by a card's outlet** is reported as fed by that
           Subgraph's Output, so backpropagation walks into the interior instead
-          of stopping at the card;
+          of stopping at the card, and the consumer orders after the Output;
         - **an inner inlet fed by the Subgraph Input** is reported as fed by the
           **card**, so the walk carries on out to the card's own producers and
-          the card is what the interior depends on;
-        - **a card's outlet** also reports the edges leaving the Subgraph Input,
-          re-sourced to the card, which is what orders the card — and so the
-          inward copy — before the interior that consumes it.
+          the card — and so the inward copy — orders before the interior.
 
         A Subgraph crossed by control needs none of them: its card and boundary
         nodes are control nodes, so the interior is reached through the control
@@ -195,23 +193,17 @@ class FlatGraphView:
             return []
 
         owner = wrapper.graph
-        edges: List[Any] = list(owner._get_edge_wrappers_for_port(node_id, port_id)) if owner else []
+        edges: List[Any] = (
+            list(owner._get_edge_wrappers_for_port(node_id, port_id, incoming=incoming)) if owner else []
+        )
 
         # Only an edge whose INLET end is the port being asked about has its
-        # source rewritten. On an outlet query the near end is the source, and
+        # source rewritten. On an outgoing query the near end is the source, and
         # rewriting the far end there would point the edge back at this node.
-        spliced: List[Any] = [
-            self._reroute_source(edge, node_id, port_id)
-            if edge.sink_node_id == node_id and edge.inlet_port_id == port_id
-            else edge
-            for edge in edges
-        ]
+        if incoming:
+            return [self._reroute_source(edge, node_id, port_id) for edge in edges]
 
-        definition = _subgraph_of(wrapper)
-        if definition is not None and not wrapper.node.has_sequence_pins():
-            spliced.extend(self._interior_sinks(wrapper, definition, port_id))
-
-        return spliced
+        return edges
 
     def _reroute_source(self, edge: Any, node_id: str, port_id: str) -> Any:
         """Report an edge across a data-only Subgraph boundary from its real source.
@@ -255,36 +247,6 @@ class FlatGraphView:
             sink_node_id=node_id,
             inlet_port_id=port_id,
         )
-
-    def _interior_sinks(
-        self, card: "NodeWrapper", definition: SubgraphDefinition, port_id: str
-    ) -> List[SplicedEdge]:
-        """The interior nodes the Subgraph Input feeds, reported as fed by the card.
-
-        Reported under every data outlet of the card rather than one of them:
-        the topological sort counts in-degree and walks adjacency in the same
-        pass, so a repeated edge increments and decrements alike and the extra
-        copies cancel.
-        """
-        input_node = definition.input_node
-        outlet = card.node.ports.get(port_id)
-        if input_node is None or outlet is None or not outlet.is_outlet():
-            return []
-
-        spliced: List[SplicedEdge] = []
-        for inner_outlet in input_node.node.get_ports(is_port_type=PortType.OUTLET, has_pin=True):
-            for edge in definition._get_edge_wrappers_for_port(input_node.node_id, inner_outlet.id):
-                if edge.source_node_id != input_node.node_id:
-                    continue
-                spliced.append(
-                    SplicedEdge(
-                        source_node_id=card.node_id,
-                        outlet_port_id=port_id,
-                        sink_node_id=edge.sink_node_id,
-                        inlet_port_id=edge.inlet_port_id,
-                    )
-                )
-        return spliced
 
 
 # ---------------------------------------------------------------------------

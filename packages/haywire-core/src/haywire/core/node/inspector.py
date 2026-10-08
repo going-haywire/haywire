@@ -43,8 +43,11 @@ class SettingInfo:
 
 
 def _port_direction(port: Any) -> str:
-    """Three-way port direction: ``'inlet'``, ``'outlet'``, or ``'config'`` for a
-    port that is neither."""
+    """Four-way port direction: ``'swinglet'`` (checked first, since it is also an
+    inlet and an outlet), ``'inlet'``, ``'outlet'``, or ``'config'`` for a port that
+    is none of them."""
+    if port.is_swinglet():
+        return "swinglet"
     if port.is_inlet():
         return "inlet"
     if port.is_outlet():

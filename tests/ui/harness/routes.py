@@ -290,6 +290,38 @@ def _build_edge_appearance_graph(node_factory):
     return graph, editor
 
 
+def _build_annotation_graph(node_factory):
+    """Four annotation nodes for the annotation-skin tests.
+
+    A (text "hello") and B are unlinked, side by side, for the hover, drag and
+    double-click tests. C is linked to D twice (``right_0`` -> ``left_0``, then
+    ``right_1`` -> ``left_1``) for the style and centring tests. Returns (graph,
+    editor, ids) where *ids* maps "a".."d" to node ids.
+    """
+    from haywire.barn.builtin.nodes.annotation import AnnotationNode
+    from haywire.core.graph.editor import Editor
+
+    graph = _harness_graph("Annotation Fixture")
+    editor = Editor(graph, node_factory)
+    key = AnnotationNode.class_identity.registry_key
+    ids = {}
+    for name, x, y in (
+        ("a", 3600.0, 3700.0),
+        ("b", 3950.0, 3700.0),
+        ("c", 3600.0, 3950.0),
+        ("d", 3950.0, 3950.0),
+    ):
+        wrapper = graph.create_node_wrapper(key, position=(x, y))
+        assert wrapper is not None, "could not create an annotation node"
+        ids[name] = wrapper.node_id
+    graph.node_wrappers[ids["a"]].node.props.text = "hello"  # type: ignore[attr-defined]
+    assert editor.create_edge(ids["c"], "right_0", ids["d"], "left_0")
+    # The first link grows the `_1` slots it connects to.
+    graph.force_validation()
+    assert editor.create_edge(ids["c"], "right_1", ids["d"], "left_1")
+    return graph, editor, ids
+
+
 def _build_error_skin_graph(node_factory):
     """One node pinned to the error skin, for the error-skin DOM tests.
 
@@ -307,6 +339,77 @@ def _build_error_skin_graph(node_factory):
     assert node is not None, f"could not create {_RECONNECT_SOURCE_KEY}"
     node.node.props.skin = "haybale-studio:skin:ErrorNodeSkin"
     return graph, editor, node
+
+
+def _build_swinglet_skins_graph(node_factory):
+    """One swinglet pass probe per skin, plus a card of all three glyphs.
+
+    Backs test_swinglet_skins.py. Returns (graph, editor, ids): *ids* maps
+    "default" (no skin set), "split", "stacked", "error" to the probe's node id,
+    and "glyphs" to a probe that also carries an `EXEC` and a `CALLBACK` swinglet.
+    """
+    from haybale_studio.skins.error_skin import ErrorNodeSkin
+    from haybale_studio.skins.split_skin import SplitNodeSkin
+    from haybale_studio.skins.stacked_skin import StackedNodeSkin
+    from haybale_testing.nodes.testbed.swinglet_probe import SwingletPassProbeNode
+    from haywire.barn.builtin.types import CALLBACK, EXEC
+    from haywire.core.graph.editor import Editor
+
+    graph = _harness_graph("Swinglet Skins Fixture")
+    editor = Editor(graph, node_factory)
+    key = SwingletPassProbeNode.class_identity.registry_key
+    skins = {
+        "default": None,
+        "split": SplitNodeSkin.class_identity.registry_key,
+        "stacked": StackedNodeSkin.class_identity.registry_key,
+        "error": ErrorNodeSkin.class_identity.registry_key,
+        "glyphs": None,
+    }
+    ids = {}
+    for index, (name, skin_key) in enumerate(skins.items()):
+        wrapper = graph.create_node_wrapper(key, position=(3600.0 + 450.0 * index, 3700.0))
+        assert wrapper is not None, f"could not create {key}"
+        if skin_key is not None:
+            wrapper.node.props.skin = skin_key
+        if name == "glyphs":
+            wrapper.node.add(EXEC.as_swinglet("flow"))
+            wrapper.node.add(CALLBACK.as_swinglet("hook"))
+        ids[name] = wrapper.node_id
+    return graph, editor, ids
+
+
+def _build_swinglet_graph(node_factory):
+    """Unlinked swinglet probes and an Add node, for the swinglet connect tests.
+
+    Backs test_graph_swinglet_connect.py. Returns (graph, editor, ids): *ids*
+    maps "v1".."v3" to visual probes (`TEST_VISUAL` swinglet `note`), "p1" and
+    "p2" to pass probes (`FLOAT` swinglet `s`) and "add" to a `TestAddFloatNode`.
+    """
+    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_testing.nodes.testbed.swinglet_probe import (
+        SwingletPassProbeNode,
+        SwingletVisualProbeNode,
+    )
+    from haywire.core.graph.editor import Editor
+
+    graph = _harness_graph("Swinglet Fixture")
+    editor = Editor(graph, node_factory)
+    visual = SwingletVisualProbeNode.class_identity.registry_key
+    passing = SwingletPassProbeNode.class_identity.registry_key
+    add = TestAddFloatNode.class_identity.registry_key
+    ids = {}
+    for name, key, x, y in (
+        ("v1", visual, 3600.0, 3700.0),
+        ("v2", visual, 3950.0, 3800.0),
+        ("v3", visual, 4300.0, 3700.0),
+        ("p1", passing, 3600.0, 4000.0),
+        ("p2", passing, 3950.0, 4100.0),
+        ("add", add, 4300.0, 4000.0),
+    ):
+        wrapper = graph.create_node_wrapper(key, position=(x, y))
+        assert wrapper is not None, f"could not create {key}"
+        ids[name] = wrapper.node_id
+    return graph, editor, ids
 
 
 def _build_two_column_graph(node_factory):
@@ -1131,6 +1234,45 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /graph-annotation
+    #
+    # Annotation nodes on their four-sided skin, with buttons that set the linked
+    # pair's edge style and A's control-pin switch. Node ids are on
+    # `note-<name>` labels. Backs test_annotation_node.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-annotation")
+    async def graph_annotation_page():
+        graph, editor, ids = _build_annotation_graph(library_service.get_node_factory())
+        controls = ui.row().classes("items-center gap-2")
+        with controls:
+            for name, node_id in ids.items():
+                ui.label(node_id).props(f'data-testid="note-{name}"')
+
+        def _linked_edge():
+            return next(
+                e
+                for e in graph.edge_wrappers.values()
+                if (e.outlet_port_id, e.inlet_port_id) == ("right_0", "left_0")
+            )
+
+        for testid, field, value in (
+            ("style-start-circle", "arrow_start", "circle"),
+            ("style-color-red", "color", "#ff0000"),
+        ):
+            on_click = lambda _, f=field, v=value: setattr(_linked_edge().style, f, v)  # noqa: E731
+            with controls:
+                ui.button(testid, on_click=on_click).props(f'data-testid="{testid}" dense')
+
+        def _show_control_pins() -> None:
+            graph.node_wrappers[ids["a"]].node.props.show_control_pins = True  # type: ignore[attr-defined]
+
+        with controls:
+            ui.button("show-control", on_click=_show_control_pins).props('data-testid="show-control" dense')
+        _mount_graph_canvas(library_service, graph, editor, testid="annotation")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /graph-two-column
     #
     # A node on the two-column SplitNodeSkin plus direction buttons. Backs the
@@ -1164,6 +1306,48 @@ def register_routes(library_service) -> None:
     async def graph_error_skin_page():
         graph, editor, _node = _build_error_skin_graph(library_service.get_node_factory())
         _mount_graph_canvas(library_service, graph, editor, testid="error-skin")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-swinglet-skins
+    #
+    # One float-swinglet probe per skin. Backs test_swinglet_skins.py: each
+    # card must draw its swinglet pin exactly once, on the inlet side. Node ids
+    # are on `probe-<name>` labels.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-swinglet-skins")
+    async def graph_swinglet_skins_page():
+        graph, editor, ids = _build_swinglet_skins_graph(library_service.get_node_factory())
+        with ui.row():
+            for name, node_id in ids.items():
+                ui.label(node_id).props(f'data-testid="probe-{name}"')
+        _mount_graph_canvas(library_service, graph, editor, testid="swinglet-skins")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-swinglet
+    #
+    # Unlinked swinglet probes and an Add node on the full editor stack. Backs
+    # test_graph_swinglet_connect.py: drags, reverse drops and reconnects that
+    # involve a swinglet. Node ids are on `probe-<name>` labels; `server-edges`
+    # lists the graph's own edge ids, sorted and joined by `|`.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-swinglet")
+    async def graph_swinglet_page():
+        graph, editor, ids = _build_swinglet_graph(library_service.get_node_factory())
+        with ui.row():
+            for name, node_id in ids.items():
+                ui.label(node_id).props(f'data-testid="probe-{name}"')
+            server_edges = ui.label().props('data-testid="server-edges"')
+
+        def _refresh() -> None:
+            server_edges.set_text("|".join(sorted(graph.edge_wrappers)))
+
+        # Polled: the label must show what the graph holds, whichever path changed it.
+        ui.timer(0.2, _refresh)
+        _mount_graph_canvas(library_service, graph, editor, testid="swinglet")
         _stamp_synced()
 
     # -------------------------------------------------------------------------

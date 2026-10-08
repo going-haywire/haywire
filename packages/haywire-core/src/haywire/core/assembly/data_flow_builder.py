@@ -117,7 +117,7 @@ class DataFlowBuilder:
             visited.add((node_id, port_id))
 
             # Get edges connected to this inlet
-            edge_wrappers = graph._get_edge_wrappers_for_port(node_id, port_id)
+            edge_wrappers = graph._get_edge_wrappers_for_port(node_id, port_id, incoming=True)
 
             for edge in edge_wrappers:
                 # Follow data edge backwards to source
@@ -178,7 +178,7 @@ class DataFlowBuilder:
             inlets = [port for port in node.ports.values() if port.is_dependent and port.is_inlet()]
 
             for inlet in inlets:
-                for edge in graph._get_edge_wrappers_for_port(node_id, inlet.id):
+                for edge in graph._get_edge_wrappers_for_port(node_id, inlet.id, incoming=True):
                     source_id = edge.source_node_id
 
                     # Only consider edges within our data flow
@@ -242,7 +242,7 @@ class DataFlowBuilder:
             inlets = [port for port in node.ports.values() if port.is_dependent and port.is_inlet()]
 
             for inlet in inlets:
-                for edge in graph._get_edge_wrappers_for_port(node_id, inlet.id):
+                for edge in graph._get_edge_wrappers_for_port(node_id, inlet.id, incoming=True):
                     source_id = edge.source_node_id
 
                     if source_id in node_ids:

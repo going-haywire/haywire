@@ -314,3 +314,40 @@ def test_a_row_leads_with_the_label_not_the_id() -> None:
 
     assert "Gain" in labels
     assert "gain_in" not in labels
+
+
+@dataclass
+class _DirPort(_FakePort):
+    port_type: str = "inlet"
+
+    def is_inlet(self) -> bool:
+        return self.port_type in ("inlet", "swinglet")
+
+    def is_outlet(self) -> bool:
+        return self.port_type in ("outlet", "swinglet")
+
+    def is_config(self) -> bool:
+        return self.port_type == "config"
+
+    def is_swinglet(self) -> bool:
+        return self.port_type == "swinglet"
+
+
+def test_a_swinglet_gets_its_own_lane_and_no_other() -> None:
+    """A swinglet is both an inlet and an outlet, yet the panel files it once, as "Swinglets"."""
+    from haybale_graph_editor.panels.properties.introspect.node_ports import _split_lanes
+
+    ports = [
+        _DirPort("a", "A"),
+        _DirPort("s", "S", port_type="swinglet"),
+        _DirPort("o", "O", port_type="outlet"),
+    ]
+    lanes = _split_lanes(ports)
+
+    assert [(lane, label, [p.id for p in ps]) for lane, label, ps in lanes if ps] == [
+        ("inlet", "Inlets", ["a"]),
+        ("swinglet", "Swinglets", ["s"]),
+        ("outlet", "Outlets", ["o"]),
+    ]
+    anchor = _render_lane([p for p in ports if p.id == "s"], "swinglet")
+    assert _labels(anchor).count("S") == 1

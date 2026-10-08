@@ -34,6 +34,7 @@ class ICONS:
     SQUARE: Final[str] = "square"
     VIEW_DAY: Final[str] = "view_day"
     VIEW_ARRAY: Final[str] = "view_array"
+    JOIN_INNER: Final[str] = "join_inner"
     JOIN_LEFT: Final[str] = "join_left"
     JOIN_RIGHT: Final[str] = "join_right"
     WEB_STORIES: Final[str] = "web_stories"
@@ -64,6 +65,7 @@ class ICONS:
     GAMEPAD: Final[str] = "gamepad"
     GRID_4X4: Final[str] = "grid_4x4"
     FIBER_SMART_RECORD: Final[str] = "fiber_smart_record"
+    SWAP_HORIZ: Final[str] = "swap_horiz"
     SWIPE_LEFT_ALT: Final[str] = "swipe_left_alt"
     SWIPE_RIGHT_ALT: Final[str] = "swipe_right_alt"
 

@@ -299,9 +299,12 @@ class IType(ABC):
                     this outlet needs to loop back to the node (default: False)
 
             Callbacks:
-                on_change (str): Node method name to call when value changes
                 on_connect (str): Node method name to call when connected
                 on_disconnect (str): Node method name to call when disconnected
+
+        Raises:
+            ValueError: If ``on_change`` is given. Only the node writes an outlet, so
+                the callback would never fire.
 
         Example::
 
@@ -311,11 +314,89 @@ class IType(ABC):
         """
         from haywire.core.types.utils import create_port_spec
 
+        if kwargs.get("on_change") is not None:
+            raise ValueError("an outlet's on_change would never fire: only its own node writes it")
         cls._validate_port_type(PortType.OUTLET)
 
         kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.ALWAYS))
         kwargs.setdefault("show_widget", default_show_widget(PortType.OUTLET))
         return create_port_spec(cls, id=id, port_type=PortType.OUTLET, **kwargs)
+
+    @classmethod
+    def as_swinglet(cls, id: str, **kwargs) -> "PortSpec":
+        """Build a swinglet spec for ``node.add()``: one port that may be either end of an edge.
+
+        A swinglet takes edges as an inlet does and gives edges as an outlet does, so a
+        link can leave it or arrive at it. Compound and wrapper types are subscripted
+        first (``ArrayType[FLOAT].as_swinglet('numbers')``).
+
+        Values: what an edge writes to a swinglet is stored as its linked value and stops
+        there, as it does at an inlet. Only the node's own write, ``out()``, passes on to
+        the edges that leave it, as it does at an outlet. The node's own write goes to the
+        port's own value, replaces the widget value, and is saved when the
+        ``store_strategy`` includes ``NODE_SET``. A data node runs only when one of its
+        ports is dirty, and its own ``out()`` dirties nothing, so it reads its own last
+        write when it next runs for another reason. A control node runs every time control
+        reaches it. To react only to what arrives, use ``on_change``.
+
+        ``on_change`` reports what the node receives: an edge, widget or setting write.
+        The node's own write never fires it.
+
+        Args:
+            id: Port identifier, unique within the node.
+            **kwargs: Override identity or port attributes. All values below
+                are inherited from the type's class_identity and can be
+                overridden per-port.
+
+            Identity:
+                label (str): Display name (auto-generated from id if omitted)
+                description (str): Human-readable description
+
+            Type configuration:
+                default (dict | primitive): Default value. Primitives auto-wrap
+                    to {'value': ...} for PrimitiveType subclasses
+                store_strategy (StoreStrategy): NEVER, HAS_WIDGET, NODE_SET or ALWAYS
+                    (default: HAS_WIDGET | NODE_SET if not set on type identity)
+                color (str): Pin color as hex string (e.g. '#FF0000')
+                icon (str): Pin icon (sets all icon variants)
+                icon_in (str): Icon for the pin as an inlet end
+                icon_in_multi (str): Icon for the pin as a multi-link inlet end
+                icon_out (str): Icon for the pin as an outlet end
+                icon_out_multi (str): Icon for the pin as a multi-link outlet end
+                widget_key (str): Widget key for value editing (preferably use widget instead)
+                widget_config (dict): Widget configuration parameters (preferably use widget instead)
+                help_url (str): Documentation link
+
+            Port behavior:
+                widget (dict): Transient widget config dict with 'key' and
+                    optional 'config' fields. Decomposed into widget_key and
+                    widget_config during port creation. Use
+                    WidgetClass.config(**kwargs) to generate correct format
+                single_link (bool): Narrow each end to one edge where its
+                    link ceiling allows many (default: False)
+                show_widget (ShowWidgetStrategy): When the inline widget is
+                    rendered relative to link state — NEVER, NOT_LINKED,
+                    WHEN_LINKED, ALWAYS (default: NOT_LINKED for swinglets)
+                use_mode (str): 'optional' or 'required' (default: 'optional')
+
+            Callbacks:
+                on_change (str): Node method name to call when a value arrives
+                on_connect (str): Node method name to call when connected
+                on_disconnect (str): Node method name to call when disconnected
+
+        Example::
+
+            self.add(FLOAT.as_swinglet("value", default=0.0))
+        """
+        from haywire.core.types.utils import create_port_spec
+
+        cls._validate_port_type(PortType.SWINGLET)
+
+        kwargs.setdefault(
+            "store_strategy", cls._resolve_store_strategy(StoreStrategy.HAS_WIDGET | StoreStrategy.NODE_SET)
+        )
+        kwargs.setdefault("show_widget", default_show_widget(PortType.SWINGLET))
+        return create_port_spec(cls, id=id, port_type=PortType.SWINGLET, **kwargs)
 
     @classmethod
     def as_config(cls, id: str, **kwargs) -> "PortSpec":

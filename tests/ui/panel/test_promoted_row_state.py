@@ -141,7 +141,7 @@ def test_promoted_linked_inlet_row_shows_driven_hint(make_node_with_setting):
     promote_setting(node, "filter", "threshold")
     desc = type(node.filter).__dict__["threshold"]
     port = node.ports[desc.storage_key]
-    port._linked_edges["fake_edge"] = object()  # is_linked() only checks length
+    port.incoming.linked["fake_edge"] = object()  # is_linked() only checks length
 
     row = _render(node)
     assert row is not None

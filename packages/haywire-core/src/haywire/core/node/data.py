@@ -373,18 +373,18 @@ class NodeData:
                 port = self.ports[port_id]
 
                 # Detach all edges from the destroyed port
-                detached = port._detach_all_edges()
-                for edge in detached:
-                    if port.is_inlet():
-                        # Inlet destroyed → inform source outlet (needs pipe update)
-                        if edge._outlet_port and edge._outlet_port is not port:
-                            edge._outlet_port._remove_edge(edge.edge_id)
+                for link_set in (port.incoming, port.outgoing):
+                    for edge in link_set.detach_all():
+                        if link_set.is_incoming:
+                            # The source end drops its pipe; the sink end of an outgoing edge is not told.
+                            source = edge._outlet_port
+                            if source is not None and source is not port:
+                                source.outgoing.remove_edge(edge.edge_id)
+                                edge._update_link_state()
+                                source._housekeeping()
+                        else:
                             edge._update_link_state()
-                            edge._outlet_port._housekeeping()
-                    else:
-                        # Outlet destroyed: the sink inlet is not informed (asymmetric).
-                        edge._update_link_state()
-                    edge.redraw()
+                        edge.redraw()
 
                 del self.ports[port_id]
                 removed.append(port_id)
@@ -549,9 +549,13 @@ class NodeData:
     def out(self, id: str, value: Any) -> None:
         """Set an outlet's value from the worker, taking the value unwrapped.
 
+        An outlet or config takes the write; a swinglet takes it as its own value and
+        passes it on to the edges at its outlet end. What arrived through an edge at
+        its inlet end stays what ``get(id)`` returns. ``out()`` never fires ``on_change``.
+
         Raises:
             KeyError: If no port has this ID.
-            ValueError: If the port is an inlet.
+            ValueError: If the port is a pure inlet (swinglets and configs are accepted).
 
         Examples:
             # Primitive outlet
@@ -566,12 +570,11 @@ class NodeData:
         port = self.ports.get(id)
         if not port:
             raise KeyError(f"Port '{id}' not found")
-        if port.is_inlet():
+        if port.port_type is PortType.INLET:
             raise ValueError(f"Port '{id}' is an inlet and cannot be set via out()")
 
-        # set_value() flags the outlet as node-set. Subgraph Output's worker is
-        # the one other caller, writing the Graph-node card's outlets.
-        port.set_value(value)
+        # _emit() flags the port as node-set and runs its pipes.
+        port._emit(value)
 
     # =========================================================================
     # Port Querying and Organization
@@ -607,6 +610,15 @@ class NodeData:
         """
         return [port for port in self.get_all_ports() if not port.is_fold and port.is_linked()]
 
+    @staticmethod
+    def _matches_port_type(port: DataPort, port_type: PortType) -> bool:
+        """True if *port* matches a ``get_ports`` direction filter."""
+        if port_type is PortType.INLET:
+            return port.is_inlet()
+        if port_type is PortType.OUTLET:
+            return port.is_outlet()
+        return port.port_type == port_type
+
     def get_ports(
         self,
         is_port_type: Optional[PortType] = None,
@@ -618,7 +630,9 @@ class NodeData:
         """Return the ports matching every filter given. ``None`` disables a filter.
 
         Args:
-            is_port_type: Keep ports of this ``PortType``.
+            is_port_type: Keep ports of this ``PortType``. ``INLET`` keeps every port that
+                ``is_inlet()``, ``OUTLET`` every port that ``is_outlet()``, so both include
+                swinglets; any other value matches exactly.
             has_pin: Keep ports that do, or do not, draw a visual pin.
             is_role: Keep ports whose wire type has this role.
             is_not_role: Keep ports that have a wire type, of another role. A port
@@ -628,7 +642,7 @@ class NodeData:
         return [
             port
             for port in self.ports.values()
-            if (is_port_type is None or is_port_type == port.port_type)
+            if (is_port_type is None or self._matches_port_type(port, is_port_type))
             and (has_pin is None or has_pin == port.has_pin())
             and (is_role is None or port.has_role(is_role))
             and (is_not_role is None or (port.wire_type is not None and not port.has_role(is_not_role)))

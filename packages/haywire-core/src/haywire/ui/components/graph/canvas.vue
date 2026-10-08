@@ -1,7 +1,8 @@
 <template>
     <div :id="containerId" ref="container" class="graph-canvas" :class="{
         dragging: dragState.isDragging,
-        'box-selecting': boxSelectionState.isActive
+        'box-selecting': boxSelectionState.isActive,
+        'edge-dragging': edgeDrag.mode === 'active'
     }" :style="[canvasSizeStyle, backgroundStyle]" tabindex="0" @click="handleCanvasClick" @contextmenu="handleContextMenu">
         <!-- Box selection rectangle -->
         <div 
@@ -83,6 +84,10 @@ import 'arrow_heads';
  *   data-node-id        The node's id; the container every lookup starts from.
  *                       Written by visual_layer.py and pin_render.py.
  *   data-pin-id         A pin's id; drives pin-menu detection.
+ *   data-pin-dir        A pin's role in an edge: 'inlet', 'outlet', or
+ *                       'swinglet' (either end). A drop links one end that can
+ *                       send to one that can receive — see _isValidEdge and
+ *                       _orientEdge. Ghost pins carry 'inlet' or 'outlet'.
  *   data-pin-dir-x/y    A pin's direction vector, from LayoutDirection. MUST
  *                       agree with the pin's CSS side — see pin_render.py; a
  *                       mismatch draws edges from the right edge with the
@@ -134,6 +139,8 @@ export default {
             edgeDrag: {
                 mode: 'idle',
                 anchorPin: null,         // the pin we're dragging from
+                // A reconnect's anchor role, 'outlet' | 'inlet'; null on a fresh drag.
+                anchorEnd: null,
                 lastMousePos: { x: 0, y: 0 },  // last known screen mouse position
                 previewPath: null,       // SVG path element for the in-progress connection
                 // Screen-px radius that counts as "the cursor is on this pin".
@@ -1486,7 +1493,7 @@ export default {
         },
 
         _syncEdgeReconnect(data) {
-            const { edge_id, anchorNodeId, anchorPinId } = data;
+            const { edge_id, anchorNodeId, anchorPinId, anchorEnd } = data;
             // The server removes the edge only once this reports the drag started, so an
             // anchor that is not in the DOM (a culled node, a ghost end) leaves the edge as it is.
             const pinUUID = this._buildPinUUID(anchorNodeId, anchorPinId);
@@ -1496,7 +1503,7 @@ export default {
                 return;
             }
             this._syncEdgeRemoval({ edge_id });
-            this._enterActiveEdge(pin);
+            this._enterActiveEdge(pin, anchorEnd);
             this.emitCanvasEvent(EventCreators.createEdgeReconnectStarted(edge_id));
         },
 
@@ -1504,7 +1511,7 @@ export default {
             if (this.edgeDrag.mode !== 'paused') return;
             // The anchor node may have been rebuilt while paused (context menu
             // open); resolve a live element before re-entering active mode.
-            this._enterActiveEdge(this._resolveAnchorPin());
+            this._enterActiveEdge(this._resolveAnchorPin(), this.edgeDrag.anchorEnd);
         },
 
         _syncEdgeConnectCancel() {
@@ -1821,7 +1828,8 @@ export default {
                     const sp = this.edgeDrag.anchorPin.dataset;
                     pendingPinId   = sp.pinId       || '';
                     pendingNodeId  = sp.nodeId      || '';
-                    pendingPinDir  = sp.pinDir      || '';
+                    // A reconnect's anchor role outranks its pin's dir: a swinglet's dir is 'swinglet'.
+                    pendingPinDir  = this.edgeDrag.anchorEnd || sp.pinDir || '';
                     pendingWire = sp.pinWire || '';
                     pendingDataType = sp.pinDataType || '';
                     this._enterPausedEdge();
@@ -2645,13 +2653,14 @@ export default {
             return fresh;
         },
 
-        /** Transition to active connection mode from a pin. */
-        _enterActiveEdge(pin) {
+        /** Transition to active connection mode from a pin; `anchorEnd` is a reconnect's anchor role. */
+        _enterActiveEdge(pin, anchorEnd = null) {
             // A magnified node shifts pins; clear magnify before wiring an edge.
             this._clearAllMagnified();
 
             this.edgeDrag.mode = 'active';
             this.edgeDrag.anchorPin = pin;
+            this.edgeDrag.anchorEnd = anchorEnd;
             this.edgeDrag.nearestCompatiblePin = null;
 
             // Pin geometry + per-pin validity, resolved once for the gesture.
@@ -2725,6 +2734,7 @@ export default {
             });
             this.edgeDrag.mode = 'idle';
             this.edgeDrag.anchorPin = null;
+            this.edgeDrag.anchorEnd = null;
             this.edgeDrag.nearestCompatiblePin = null;
             this._pinIndex = null;
             this._pinIndexDirty = true;
@@ -2746,13 +2756,9 @@ export default {
             const anchorPin = this._resolveAnchorPin();
 
             if (targetPin && this._isValidEdge(anchorPin, targetPin)) {
-                let sourceData = anchorPin.dataset;
-                let sinkData = targetPin.dataset;
-
-                if (targetPin.dataset.pinDir === 'outlet') {
-                    sinkData = anchorPin.dataset;
-                    sourceData = targetPin.dataset;
-                }
+                const [outletEnd, inletEnd] = this._orientEdge(anchorPin, targetPin);
+                const sourceData = outletEnd.dataset;
+                const sinkData = inletEnd.dataset;
 
                 if (!this._edgeExists(sourceData.nodeId, sourceData.pinId, sinkData.nodeId, sinkData.pinId)) {
                     this.emitCanvasEvent(EventCreators.createEdgeCreated(
@@ -2781,12 +2787,14 @@ export default {
                 if (pin === anchorPin) return;
                 if ('pinGhost' in pin.dataset) return;
                 const pos = this._getPinPosition(pin);
+                const dir = this._getPinDirectionVector(pin);
                 index.push({
                     el: pin,
                     x: pos.x,
                     y: pos.y,
-                    // Where a suggestion path to this pin ends.
-                    edge: this._pinEdgePoint(pin, this._getPinDirectionVector(pin), pos),
+                    // Where a suggestion path to this pin ends, and the way it arrives.
+                    edge: this._pinEdgePoint(pin, dir, pos),
+                    dir,
                     valid: this._isValidEdge(anchorPin, pin),
                     sameType: anchorPin.dataset.pinDataType === pin.dataset.pinDataType,
                 });
@@ -2865,7 +2873,7 @@ export default {
                 if (hit && p.el === hit.el) continue;   // already claimed above
                 p.el.classList.add('connection-compatible');
                 this._edgeDragStyled.add(p.el);
-                this._createSuggestionPath(p.el, startPos, p.edge, [dirX, dirY]);
+                this._createSuggestionPath(p.el, startPos, p.edge, [dirX, dirY], p.dir);
                 if (distance < nearestDistance) {
                     nearestPin = p.el;
                     nearestDistance = distance;
@@ -2884,19 +2892,18 @@ export default {
 
         /** Draw the dashed "you could land here" path to one compatible pin.
          *
-         *  Positions and the anchor direction are passed in rather than
+         *  Positions and both pins' directions are passed in rather than
          *  measured: the caller already holds them (from the pin index and its
          *  own anchor read), and measuring here would be three
-         *  `getBoundingClientRect` calls per suggestion per mousemove.
+         *  `getBoundingClientRect` calls per suggestion per mousemove. Each end
+         *  leaves along its own pin's vector, as the edge it suggests will.
          */
-        _createSuggestionPath(targetPin, startPos, endPos, anchorDir) {
+        _createSuggestionPath(targetPin, startPos, endPos, anchorDir, targetDir) {
             if (this.edgeDrag.suggestionPaths.has(targetPin)) {
                 return;
             }
 
-            const [dirX, dirY] = anchorDir;
-
-            const pathData = this._createBezierPath(startPos, endPos, [dirX, dirY], [-dirX, -dirY]);
+            const pathData = this._createBezierPath(startPos, endPos, anchorDir, targetDir);
 
             const suggestionPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             suggestionPath.setAttribute('d', pathData);
@@ -3830,10 +3837,20 @@ export default {
                 return false;
             }
 
-            const startDir = startPin.dataset.pinDir;
-            const endDir = endPin.dataset.pinDir;
-            return (startDir === 'outlet' && endDir === 'inlet') ||
-                (startDir === 'inlet' && endDir === 'outlet');
+            // A swinglet can be either end; one pin must send and the other receive, in either order.
+            const sends = (pin) => pin.dataset.pinDir === 'outlet' || pin.dataset.pinDir === 'swinglet';
+            const receives = (pin) => pin.dataset.pinDir === 'inlet' || pin.dataset.pinDir === 'swinglet';
+            return (sends(startPin) && receives(endPin)) || (sends(endPin) && receives(startPin));
+        },
+
+        /** [outletEndPin, inletEndPin] for a drop. A pure inlet or outlet decides; between two
+         *  swinglets the drag order does, unless a reconnect keeps the anchor's role. */
+        _orientEdge(startPin, endPin) {
+            const s = startPin.dataset.pinDir, e = endPin.dataset.pinDir;
+            if (s === 'swinglet' && e === 'swinglet') {
+                return this.edgeDrag.anchorEnd === 'inlet' ? [endPin, startPin] : [startPin, endPin];
+            }
+            return (s === 'inlet' || e === 'outlet') ? [endPin, startPin] : [startPin, endPin];
         },
 
         /** Mirror of wires_match (core/types/wire.py): equal wire keys, or exactly one '*' wildcard. */
@@ -3874,9 +3891,10 @@ export default {
             }
         },
 
+        /** True when an edge links these two pins in either order: one edge between two pins. */
         _edgeExists(sourceNodeId, outletPinId, sinkNodeId, inletPinId) {
-            const edge_id = this._buildEdgeID(sourceNodeId, outletPinId, sinkNodeId, inletPinId);
-            return this.edgePaths.has(edge_id);
+            return this.edgePaths.has(this._buildEdgeID(sourceNodeId, outletPinId, sinkNodeId, inletPinId)) ||
+                this.edgePaths.has(this._buildEdgeID(sinkNodeId, inletPinId, sourceNodeId, outletPinId));
         },
 
         _getPinDirectionVector(pinElement) {
@@ -4168,6 +4186,18 @@ export default {
      * vertical-layout graph for as long as a wire is open. */
     transform: var(--hw-pin-rotate, ) scale(1.15) !important;
     z-index: 10001 !important;
+}
+
+/* A pin shown only while its card is hovered or an edge drag is in progress.
+ * Hidden with visibility, never display: the pin keeps its box, so the drag's
+ * pin index and the edges anchored to it still read a real rect. */
+.connection-pin.hw-pin-reveal {
+    visibility: hidden !important;
+}
+
+.node-card:hover .connection-pin.hw-pin-reveal,
+.graph-canvas.edge-dragging .connection-pin.hw-pin-reveal {
+    visibility: visible !important;
 }
 
 .connection-selected {

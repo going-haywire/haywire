@@ -289,6 +289,25 @@ own vector. This is also why `NodeSkinSettings` declares geometry for *both* axe
 reinterpreted set — that bag is library-global, so there is no single "current direction"
 to reinterpret against.
 
+### A pin on any side
+
+`render_pin` takes no side argument. To put a pin on a given card edge, pass it the one
+`LayoutDirection` whose `inlet_side` (for an inlet) or `outlet_side` (for an outlet) is that
+edge: an outlet on the bottom renders with `TOP_TO_BOTTOM`, an inlet on the right with
+`RIGHT_TO_LEFT`. The pin's CSS side and its `data-pin-dir-x/y` then still come from one
+source. The builtin `AnnotationSkin` keeps this as a table, `_LAYOUT[side]`, holding the one
+layout whose inlet side is that side; its notes carry one swinglet set per side (ids
+`{side}_{index}`), and a swinglet is drawn once, on its inlet side. The pins of a side sit
+in an absolutely positioned strip on that edge and are centred along it as a group. The
+open slot sits in a zero-width wrapper after the last pin (centred when the side has no
+pins), and ghost pins get a wrapper of their own, rendered before the strip.
+
+A pin may carry the class `hw-pin-reveal` to stay hidden until its card is hovered or an edge
+drag is in progress (the canvas sets `edge-dragging` on its container meanwhile). It is hidden
+with `visibility`, so it keeps its box: the drag's pin index still finds it, and a drop near
+it commits to it. Never hide a pin with `display: none` — its rect collapses to the viewport
+origin, and the index and its edges read that.
+
 ## Context menus: `data-hw-menu-surface-id`, and what a skin cannot address
 
 A skin can add its own right-click menu on any element it renders, by writing one DOM

@@ -313,6 +313,29 @@ def test_reconnect_anchors_on_the_end_that_still_has_a_pin():
     assert [(e.anchorNodeId, e.anchorPinId) for e in captured] == [("src-node", "out-pin")]
 
 
+def test_reconnect_from_the_outlet_end_anchors_on_the_inlet_end():
+    """The anchor keeps its role in the edge: clicked near the outlet end, the sink anchors as `"inlet"`."""
+    captured: list = []
+    provider = _make_provider(on_emit_event=captured.append)
+    _seed_reconnect(provider, at_sink_end=False, live_ports=_BOTH_ENDS)
+
+    assert provider._reconnect_anchor() == ("snk-node", "in-pin", "inlet")
+    provider.reconnect_active_edge()
+
+    assert [e.anchorEnd for e in captured] == ["inlet"]
+
+
+def test_reconnect_from_the_inlet_end_anchors_on_the_outlet_end():
+    captured: list = []
+    provider = _make_provider(on_emit_event=captured.append)
+    _seed_reconnect(provider, at_sink_end=True, live_ports=_BOTH_ENDS)
+
+    assert provider._reconnect_anchor() == ("src-node", "out-pin", "outlet")
+    provider.reconnect_active_edge()
+
+    assert [e.anchorEnd for e in captured] == ["outlet"]
+
+
 def test_reconnect_with_no_pin_at_either_end_does_nothing():
     captured: list = []
     provider = _make_provider(on_emit_event=captured.append)

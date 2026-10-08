@@ -23,6 +23,7 @@ from ..types.wire import WireRole
 from ..types.enums import PortType
 from .validation import ValidationManager, ValidationCallback
 from .types import ChangeReason
+from ...ui.utils import generate_edge_uuid
 
 if TYPE_CHECKING:
     from ..types import DataPort
@@ -608,7 +609,8 @@ class BaseGraph:
             The added wrapper.
 
         Raises:
-            ValueError: If an edge with the same id is already in the graph.
+            ValueError: If an edge with the same id is already in the graph, or
+                one already links these pins the other way.
         """
         from ..edge.edge_wrapper import EdgeWrapper
 
@@ -633,10 +635,20 @@ class BaseGraph:
             The added wrapper.
 
         Raises:
-            ValueError: If a wrapper with the same ``edge_id`` is already in the graph.
+            ValueError: If a wrapper with the same ``edge_id`` is already in the graph, or one
+                already links the same two pins the other way (one edge between two pins).
         """
         if edge_wrapper.edge_id in self.edge_wrappers:
             raise ValueError(f"Edge wrapper with UUID '{edge_wrapper.edge_id}' already exists in graph")
+
+        reverse = generate_edge_uuid(
+            edge_wrapper.sink_node_id,
+            edge_wrapper.inlet_port_id,
+            edge_wrapper.source_node_id,
+            edge_wrapper.outlet_port_id,
+        )
+        if reverse in self.edge_wrappers:
+            raise ValueError(f"Edge wrapper '{reverse}' already links these pins the other way")
 
         self.edge_wrappers[edge_wrapper.edge_id] = edge_wrapper
         edge_wrapper.set_as_registered(True)
@@ -679,14 +691,21 @@ class BaseGraph:
         """Return every edge wrapper in the graph."""
         return list(self.edge_wrappers.values())
 
-    def _get_edge_wrappers_for_port(self, node_id: str, port_id: str) -> List["EdgeWrapper"]:
-        """Return every edge wrapper attached to ``port_id`` on ``node_id``, as inlet or outlet."""
+    def _get_edge_wrappers_for_port(
+        self, node_id: str, port_id: str, *, incoming: bool
+    ) -> List["EdgeWrapper"]:
+        """Return the edge wrappers at one end of ``port_id`` on ``node_id``.
+
+        A swinglet may be either end of an edge, so the caller names the end:
+        ``incoming=True`` returns the edges whose inlet end is this port,
+        ``incoming=False`` those whose outlet end is.
+        """
         connected_wrappers = []
 
         for wrapper in self.edge_wrappers.values():
-            if wrapper.sink_node_id == node_id and wrapper.inlet_port_id == port_id:
+            if incoming and wrapper.sink_node_id == node_id and wrapper.inlet_port_id == port_id:
                 connected_wrappers.append(wrapper)
-            if wrapper.source_node_id == node_id and wrapper.outlet_port_id == port_id:
+            if not incoming and wrapper.source_node_id == node_id and wrapper.outlet_port_id == port_id:
                 connected_wrappers.append(wrapper)
 
         return connected_wrappers
@@ -716,7 +735,7 @@ class BaseGraph:
         outlets = wrapper.node.get_ports(is_port_type=PortType.OUTLET, is_role=WireRole.SEQUENCE)
         for outlet in outlets:
             # A control outlet carries at most one connection.
-            edges = outlet.get_valid_edges()
+            edges = outlet.outgoing.valid_edges()
             if edges:
                 transitions[outlet.id] = (edges[0].sink_node_id, edges[0].edge.inlet_port_id)
 

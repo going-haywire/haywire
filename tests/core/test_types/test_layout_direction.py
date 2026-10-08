@@ -11,10 +11,14 @@ B2T = LayoutDirection.BOTTOM_TO_TOP
 
 
 class _FakePort:
-    """Minimal stand-in — side_for/vector_for only ever call is_inlet()."""
+    """Minimal stand-in — side_for/vector_for call is_inlet() and is_swinglet()."""
 
-    def __init__(self, is_inlet: bool) -> None:
+    def __init__(self, is_inlet: bool, swinglet: bool = False) -> None:
         self._is_inlet = is_inlet
+        self._swinglet = swinglet
+
+    def is_swinglet(self) -> bool:
+        return self._swinglet
 
     def is_inlet(self) -> bool:
         return self._is_inlet
@@ -104,6 +108,16 @@ class TestLayoutDirectionPortHelpers:
         assert direction.side_for(outlet) == direction.outlet_side
         assert direction.vector_for(inlet) == direction.inlet_vector
         assert direction.vector_for(outlet) == direction.outlet_vector
+
+    @pytest.mark.parametrize("direction", list(LayoutDirection))
+    def test_a_swinglet_sits_on_the_inlet_side(self, direction):
+        swinglet = _FakePort(True, swinglet=True)
+        assert direction.side_for(swinglet) == direction.inlet_side
+        assert direction.vector_for(swinglet) == direction.inlet_vector
+
+    @pytest.mark.parametrize(("direction", "side"), [(L2R, "left"), (R2L, "right")])
+    def test_a_swinglet_sits_where_an_inlet_does(self, direction, side):
+        assert direction.side_for(_FakePort(True, swinglet=True)) == side
 
 
 @pytest.mark.unit

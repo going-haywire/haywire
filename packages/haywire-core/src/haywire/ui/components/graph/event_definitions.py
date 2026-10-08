@@ -368,7 +368,7 @@ class ContextMenuCanvasEvent(BaseGraphEvent):
     # Non-empty when right-clicked while a connection drag was in progress.
     pendingPinId: str = ""
     pendingNodeId: str = ""
-    pendingPinDir: str = ""  # 'inlet' | 'outlet' | ''
+    pendingPinDir: str = ""  # 'inlet' | 'outlet' | 'swinglet' | ''
     pendingWire: str = ""  # the dragged pin's wire key ('*' for a bare ADD slot) or ''
     pendingDataType: str = ""  # data-type registry key or ''
 
@@ -553,6 +553,7 @@ class SyncEdgeReconnectEvent(BaseGraphEvent):
     edge_id: str
     anchorNodeId: str
     anchorPinId: str
+    anchorEnd: str  # 'outlet' | 'inlet': the anchor's end of the edge, which the new edge keeps
 
 
 @graph_event(

@@ -114,7 +114,7 @@ class ErrorNodeSkin(NodeSkin):
             # full visible list, never the collapsed filter.
             ports = node.get_visible_ports()
             inlets = [p for p in ports if p.is_inlet()]
-            outlets = [p for p in ports if p.is_outlet()]
+            outlets = [p for p in ports if p.is_outlet() and not p.is_swinglet()]
 
             # Columns follow the flow direction, as in the split skin: the
             # inlet column is whichever side inlets' pins protrude from, so a

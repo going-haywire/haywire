@@ -21,6 +21,11 @@
 - `haybale-testing:node:SizeBoxAspectNode` — Size Box (declared width) — Hosts an oversized widget declaring min_width only  _tags: size, resize, widget, testing_
 - `haybale-testing:node:SizeBoxContentNode` — Size Box (content-sized) — Hosts an oversized widget with no declared box  _tags: size, resize, widget, testing_
 - `haybale-testing:node:SizeBoxFixedNode` — Size Box (declared box) — Hosts an oversized widget declaring both axes  _tags: size, resize, widget, testing_
+- `haybale-testing:node:SwingletControlProbeNode` — Swinglet Control Probe — Test-only: a control node with an exec swinglet that counts its runs.  _tags: test, swinglet, control_
+- `haybale-testing:node:SwingletEchoProbeNode` — Swinglet Echo Probe — Test-only: a data node whose float swinglet records an arrival and writes it plus one.  _tags: test, swinglet, on_change_
+- `haybale-testing:node:SwingletPassProbeNode` — Swinglet Pass Probe — Test-only: a data node whose float swinglet records each run and writes ten times it.  _tags: test, swinglet_
+- `haybale-testing:node:SwingletStopProbeNode` — Swinglet Stop Probe — Test-only: a data node whose float swinglet records each run and passes nothing on.  _tags: test, swinglet_
+- `haybale-testing:node:SwingletVisualProbeNode` — Swinglet Visual Probe — Test-only: a data node with a swinglet on a drawn-only wire.  _tags: test, swinglet, visual_
 - `haybale-testing:node:TestAddFloatNode` — Test Add Float — Test arithmetic node — adds two float values  _tags: test, math, add, float, arithmetic_
 - `haybale-testing:node:TestBeginPlayNode` — Test Begin Play — Test version of BeginPlay — triggered once when execution starts  _tags: test, start, init, begin, event_
 - `haybale-testing:node:TestCustomCallbackNode` — Test Custom Callback — Test version of CustomCallback — listens for named callbacks  _tags: test, callback, listen, event, custom_

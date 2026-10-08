@@ -210,7 +210,7 @@ def render_pin(
     ``data-hw-menu-surface-id`` exists only for a menu the framework knows
     nothing about, and a skin adds it to its own elements, not to a pin.
     """
-    pin_direction = "inlet" if pin.is_inlet() else "outlet"
+    pin_direction = "swinglet" if pin.is_swinglet() else "inlet" if pin.is_inlet() else "outlet"
     pin_uuid = generate_pin_uuid(node_id, pin.id)
 
     # One source for both the CSS side and the direction vector.

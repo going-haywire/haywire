@@ -446,12 +446,13 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         if wrapper is None or anchor is None:
             return
 
-        anchor_node_id, anchor_pin_id = anchor
+        anchor_node_id, anchor_pin_id, anchor_end = anchor
         self._emit(
             SyncEdgeReconnectEvent(
                 edge_id=wrapper._edge_id,
                 anchorNodeId=anchor_node_id,
                 anchorPinId=anchor_pin_id,
+                anchorEnd=anchor_end,
             )
         )
 
@@ -459,20 +460,23 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         """True when the active edge has an end with a pin a reconnect drag can start from."""
         return self._reconnect_anchor() is not None
 
-    def _reconnect_anchor(self) -> Optional[Tuple[str, str]]:
-        """The ``(node_id, port_id)`` a reconnect drag starts from, or ``None``.
+    def _reconnect_anchor(self) -> Optional[Tuple[str, str, str]]:
+        """The ``(node_id, port_id, end)`` a reconnect drag starts from, or ``None``.
 
         The end away from the click anchors the drag and the clicked end follows
         the pointer. An end whose port is gone (its edge is drawn to the node's
-        ghost pin) cannot anchor, so the other end does.
+        ghost pin) cannot anchor, so the other end does. ``end`` is the anchor's
+        role in the old edge: ``"outlet"`` for the source, ``"inlet"`` for the
+        sink. A swinglet anchor dropped on a pure inlet or outlet takes its
+        orientation from that pure pin; between two swinglets it keeps ``end``.
         """
         wrapper = self._context.data[EditState].active_edge
         if wrapper is None or self._open_ctx is None:
             return None
-        source = (wrapper.source_node_id, wrapper.outlet_port_id)
-        sink = (wrapper.sink_node_id, wrapper.inlet_port_id)
+        source = (wrapper.source_node_id, wrapper.outlet_port_id, "outlet")
+        sink = (wrapper.sink_node_id, wrapper.inlet_port_id, "inlet")
         ends = (source, sink) if self._open_ctx.edge_reconnect_end else (sink, source)
-        return next((end for end in ends if self._has_pin(*end)), None)
+        return next((end for end in ends if self._has_pin(end[0], end[1])), None)
 
     def _has_pin(self, node_id: str, port_id: str) -> bool:
         """True when the active graph's node ``node_id`` has a port ``port_id`` drawn as a pin."""

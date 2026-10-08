@@ -11,7 +11,7 @@ def _link_and_push(node, pid, value):
     """Drive an upstream value onto a promoted inlet: stamp a linked edge so
     ``is_linked()`` is True, then push the value through the port's field."""
     port = node.ports[pid]
-    port._linked_edges["fake_edge"] = object()  # is_linked() only checks length
+    port.incoming.linked["fake_edge"] = object()  # is_linked() only checks length
     port.set_value(value, edge_id="fake_edge")
 
 

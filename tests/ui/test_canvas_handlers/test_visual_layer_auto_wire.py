@@ -48,3 +48,18 @@ def test_a_matching_wire_is_wired():
     h = _handler()
     h._try_auto_wire(_wrapper({"a": _port("w.one")}), _pending("w.one"))
     h.editor.create_edge.assert_called_once_with("src", "out", "new", "a")
+
+
+def test_a_pending_swinglet_is_wired_as_the_outlet_end():
+    h = _handler()
+    h._try_auto_wire(_wrapper({"a": _port("w.one")}), {**_pending("w.one"), "pin_dir": "swinglet"})
+    h.editor.create_edge.assert_called_once_with("src", "out", "new", "a")
+
+
+def test_a_pending_inlet_is_wired_as_the_inlet_end():
+    h = _handler()
+    outlet = _port("w.one")
+    outlet.is_inlet.return_value = False
+    outlet.is_outlet.return_value = True
+    h._try_auto_wire(_wrapper({"a": outlet}), {**_pending("w.one"), "pin_dir": "inlet"})
+    h.editor.create_edge.assert_called_once_with("new", "a", "src", "out")

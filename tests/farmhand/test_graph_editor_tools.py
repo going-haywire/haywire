@@ -209,11 +209,11 @@ def test_query_edge_detail_reports_health_and_adapter_chain(farmhand_call):
         _close(farmhand_call, bid)
 
 
-def test_query_edge_detail_reports_a_styled_edges_look(farmhand_call):
+def test_query_edge_detail_reports_an_annotation_edges_style(farmhand_call):
     """F24: a styled edge reports its look, the bag's defaults included."""
-    from haybale_testing.nodes.testbed.visual_probe import VisualProbeNode
+    from haywire.barn.builtin.nodes.annotation import AnnotationNode
 
-    key = VisualProbeNode.class_identity.registry_key
+    key = AnnotationNode.class_identity.registry_key
     bid = _new_graph(farmhand_call)
     try:
         a, b = (
@@ -230,9 +230,9 @@ def test_query_edge_detail_reports_a_styled_edges_look(farmhand_call):
             {
                 "binding_id": bid,
                 "source_node_id": a,
-                "outlet": "note_out",
+                "outlet": "right_0",
                 "sink_node_id": b,
-                "inlet": "note_in",
+                "inlet": "left_0",
             },
         )
         detailed = call_tool_json(
@@ -985,5 +985,52 @@ def test_set_property_on_a_linked_inlet_writes_and_reports_the_own_value(farmhan
         )
         assert result.isError is not True, result.content[0].text
         assert "42.0" in result.content[0].text
+    finally:
+        _close(farmhand_call, bid)
+
+
+def _swinglet_node(farmhand_call, bid, probe: str) -> str:
+    from haybale_testing.nodes.testbed import swinglet_probe
+
+    return _add(farmhand_call, bid, getattr(swinglet_probe, probe).class_identity.registry_key)
+
+
+def test_inspect_files_a_swinglet_under_its_own_group(farmhand_call):
+    """A swinglet is neither inlet nor outlet in Farmhand's report; by_dir names it."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _swinglet_node(farmhand_call, bid, "SwingletPassProbeNode")
+        ports = _inspect(farmhand_call, bid, node_id, ["ports"])["ports"]
+        assert set(ports) == {"swinglets"}
+        assert [row["name"] if "name" in row else row["id"] for row in ports["swinglets"]] == ["s"]
+
+        kept = _inspect(farmhand_call, bid, node_id, ["ports"], by_dir=["swinglet"])
+        assert set(kept["ports"]) == {"swinglets"}
+
+        dropped = _inspect(farmhand_call, bid, node_id, ["ports"], by_dir=["inlet"])
+        assert not dropped.get("ports")
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_query_detail_reports_a_swinglets_outgoing_ceiling(farmhand_call):
+    """Only a swinglet's row carries outgoing_takes_many; an inlet's does not."""
+    bid = _new_graph(farmhand_call)
+    try:
+        control_id = _swinglet_node(farmhand_call, bid, "SwingletControlProbeNode")
+        pass_id = _swinglet_node(farmhand_call, bid, "SwingletPassProbeNode")
+        math_id = _add(farmhand_call, bid, NODE_KEY)
+        detailed = call_tool_json(
+            _call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid, "detail": True})
+        )
+        rows = {n["node_id"]: {p["id"]: p for p in n["ports"]} for n in detailed["nodes"]}
+
+        flow = rows[control_id]["flow"]
+        assert flow["direction"] == "swinglet"
+        assert flow["takes_many_links"] is True
+        assert flow["outgoing_takes_many"] is False
+        assert "outgoing_takes_many" in rows[pass_id]["s"]
+        inlet = next(p for p in rows[math_id].values() if p["direction"] == "inlet")
+        assert "outgoing_takes_many" not in inlet
     finally:
         _close(farmhand_call, bid)

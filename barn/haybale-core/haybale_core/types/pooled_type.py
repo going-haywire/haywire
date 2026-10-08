@@ -71,10 +71,7 @@ class PooledType(CompoundType[T]):
         Pooled fields aggregate multiple inputs - they can't be outputs.
         """
         if port_type != PortType.INLET:
-            raise ValueError(
-                "PooledType cannot be used with outlets or configs. "
-                "Pooled fields are for aggregating multiple inputs only."
-            )
+            raise ValueError("PooledType supports inlets only: pooled fields aggregate multiple inputs.")
 
     @classmethod
     def _configure_port(cls, port, **context) -> None:

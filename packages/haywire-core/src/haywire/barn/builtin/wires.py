@@ -3,6 +3,9 @@
 A value type travels on one of these unless its library defines its own wire
 type (see ``haywire.core.types.wire``). Import them from this module; types in
 the builtin library import them relatively.
+
+The fourth builtin wire, ``AnnotationWire``, lives in ``types/annotation.py``
+with its style bag, whose fields need builtin types.
 """
 
 from haywire.core.types.enums import Propagation

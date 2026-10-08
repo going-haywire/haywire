@@ -29,12 +29,14 @@ class PortType(Enum):
     """
     - INLET: Can receives data/control via Inlets
     - OUTLET: Sends data/control via Outlets
+    - SWINGLET: One port that may be either end of an edge
     - CONFIG: Has neither Inlets nor Outlets
     """
 
     UNDEFINED = "undefined"
     INLET = "inlet"
     OUTLET = "outlet"
+    SWINGLET = "swinglet"
     CONFIG = "config"
 
 
@@ -133,11 +135,11 @@ class LayoutDirection(Enum):
         return _LAYOUT_DIRECTION_VECTORS[self][1]
 
     def side_for(self, port: "DataPort") -> str:
-        """Card edge *port*'s pin sits on. Non-inlets are treated as outlets."""
+        """Card edge *port*'s pin sits on. A swinglet counts as an inlet; other non-inlets as outlets."""
         return self.inlet_side if port.is_inlet() else self.outlet_side
 
     def vector_for(self, port: "DataPort") -> tuple[int, int]:
-        """Direction vector for *port*'s pin. Non-inlets are treated as outlets."""
+        """Direction vector for *port*'s pin. A swinglet counts as an inlet; other non-inlets as outlets."""
         return self.inlet_vector if port.is_inlet() else self.outlet_vector
 
     @classmethod
@@ -341,17 +343,19 @@ def default_show_widget(port_type: "PortType") -> ShowWidgetStrategy:
     """The per-direction default ``show_widget`` for *port_type* (ADR 0003).
 
     The single source of truth for the direction defaults that ``as_inlet`` /
-    ``as_outlet`` / ``as_config`` inject via ``kwargs.setdefault``. Named here
+    ``as_outlet`` / ``as_swinglet`` / ``as_config`` inject via ``kwargs.setdefault``. Named here
     rather than restated at each factory because two other callers need to
     *recognise* a default rather than apply one: a promoted port's saved
     strategy is omitted when it equals the direction default, so both the
     writer and the reader must agree on what that default is.
 
-    Any port type without an explicit default (UNDEFINED) falls back to the
-    dataclass default, ``NOT_LINKED``.
+    A swinglet is ``NOT_LINKED``, like an inlet. Any port type without an
+    explicit default (UNDEFINED) falls back to the dataclass default, ``NOT_LINKED``.
     """
     if port_type is PortType.OUTLET:
         return ShowWidgetStrategy.NEVER
     if port_type is PortType.CONFIG:
         return ShowWidgetStrategy.ALWAYS
+    if port_type is PortType.SWINGLET:
+        return ShowWidgetStrategy.NOT_LINKED
     return ShowWidgetStrategy.NOT_LINKED

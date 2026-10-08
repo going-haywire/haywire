@@ -219,3 +219,28 @@ def test_readme_inserts_placeholder_marker_when_existing_readme_lacks_it():
     out = render_readme(doc, notes="", existing_readme=existing)
     assert "marketstall:share-url:start" in out
     assert "Subscribe URL not yet published" in out
+
+
+def test_render_component_lists_a_swinglet_between_inlets_and_outlets():
+    """A swinglet sorts after the inlets and before the outlets."""
+    rec = ComponentRecord(
+        registry_key="lib:node:n",
+        kind="node",
+        library_id="lib",
+        label="N",
+        description="",
+        deprecation="",
+        hidden=False,
+        search_tags=[],
+        menu="",
+        docstring="",
+        ports=[
+            PortInfo("out1", "outlet", "", "", "haywire-core:wire:DataWire", "dependent", None, False, ""),
+            PortInfo("sw1", "swinglet", "", "", "haywire-core:wire:DataWire", "dependent", None, False, ""),
+            PortInfo("in1", "inlet", "", "", "haywire-core:wire:DataWire", "dependent", None, False, ""),
+        ],
+        settings=[],
+        extra={},
+    )
+    out = render_component(rec)
+    assert out.index("in1") < out.index("sw1") < out.index("out1")

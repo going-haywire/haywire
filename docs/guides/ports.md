@@ -43,17 +43,18 @@ FLOAT (IType cls)   →   FLOAT.as_inlet(    →   DataPort instance
 
 ## 3. Important concepts
 
-**Three creation methods.** Every type has the same three factories:
+**Four creation methods.** Every type has the same four factories:
 
 | Method | Returns a port that... | Has a pin on the canvas? |
 |---|---|---|
 | `T.as_inlet(id, **kwargs)` | Receives data or control | Yes |
 | `T.as_outlet(id, **kwargs)` | Emits data or control | Yes |
+| `T.as_swinglet(id, **kwargs)` | May be either end of an edge (see [Swinglets](#swinglets)) | Yes |
 | `T.as_config(id, **kwargs)` | Internal parameter, only visible in the property panel | No |
 
 `as_config` builds a port with no pin and no wire type. Use it for "knobs" that the user adjusts via the property panel rather than connecting to other nodes (a mode selector, a quality preset).
 
-**Common kwargs (all optional, pass to any of the three factories).**
+**Common kwargs (all optional, pass to any of the factories).**
 
 | Kwarg | Type | Effect |
 |---|---|---|
@@ -61,7 +62,7 @@ FLOAT (IType cls)   →   FLOAT.as_inlet(    →   DataPort instance
 | `default` | varies | Override the type's default value |
 | `widget_key` | `str` | Override the type's widget |
 | `widget_config` | `dict` | Override the widget's config |
-| `on_change` | `str` | Name of a node method to call when the port's value changes |
+| `on_change` | `str` | Name of a node method to call when a value arrives at the port. Not accepted by `as_outlet` (raises `ValueError`): only the node writes an outlet |
 | `on_connect` | `str` | Name of a node method to call when an edge connects |
 | `on_disconnect` | `str` | Name of a node method to call when an edge disconnects |
 | `show_widget` | `ShowWidgetStrategy` | When the port's inline widget renders, relative to link state (see below) |
@@ -95,6 +96,8 @@ PooledType[FLOAT].as_inlet('values')
 ```
 
 **Pooled is inlet-only.** `PooledType[T].as_outlet(...)` is invalid and raises an error.
+
+**Outlets take no `on_change`.** `on_change` reports what a node receives; the node's own `out()` never fires it, so `as_outlet(..., on_change=...)` raises `ValueError` at declaration (ADR 0048).
 
 **Worker access — three patterns.**
 
@@ -214,6 +217,36 @@ already saved.
 
 Reordering is not undoable. A bad drop is repaired by dragging back.
 
+### Swinglets
+
+A swinglet is a port that may be either end of an edge, on any wire type: `T.as_swinglet(id, **kwargs)`. A link can leave it or arrive at it, so a card needs one pin where an inlet/outlet pair would need two. Compound and wrapper types are subscripted first (`ArrayType[FLOAT].as_swinglet('numbers')`); a pooled type refuses it. `as_swinglet` defaults to `store_strategy = HAS_WIDGET | NODE_SET` and `show_widget = NOT_LINKED`; a type's own declaration wins. The design is in [ADR 0048](../adr/0048-swinglets.md).
+
+```python
+self.add(FLOAT.as_swinglet("value", default=0.0))
+```
+
+**Four value rules.**
+
+1. **An arriving value stops.** What an edge writes is stored as the port's linked value and goes no further, as at an inlet.
+2. **`out()` passes on.** `self.out("value", x)` writes the node's own value and sends it down every edge that leaves the port, as at an outlet. `out()` refuses only a pure inlet; configs and swinglets are accepted.
+3. **A pipe reads the own value.** The edges that leave a swinglet carry what the node wrote, never what arrived.
+4. **An unfed swinglet reads its own last write** when its node next runs. A data node runs only when one of its ports is dirty, and its own `out()` dirties nothing, so it re-reads its write when it runs again for another reason (a widget edit, another port changing). A control node runs every time control reaches it.
+
+The node's write replaces the widget value, and is saved when the `store_strategy` includes `NODE_SET`. After the feeding edge goes, the node continues from its last output.
+
+**One pattern, from those rules.** `self.out("x", self.value("x") + 1)` counts up: `value("x")` reads the own last write (rule 4), and `out()` stores and passes it on (rule 2). On a control node it counts once per pass; on a data node, once per run.
+
+**`on_change` for input only.** `on_change` fires for edge, widget and setting writes, on inlets, swinglets and configs. The node's own `out()` never fires it, so a swinglet's `on_change` reacts only to what arrives (rule 1).
+
+**Link ceilings per end.** A port holds an incoming and an outgoing `LinkSet` (`port.incoming`, `port.outgoing`), each with its own ceiling:
+
+| End | Takes many edges |
+|---|---|
+| Outgoing | Always, unless the wire role is `SEQUENCE` |
+| Incoming | For `SEQUENCE` and `VISUAL` wires; otherwise only if the field keeps one value per source (pooled) |
+
+`single_link=True` narrows both ends to one. `port.takes_many_links` reads the outgoing set for an outlet and the incoming set for any other port. Between two pins only one edge may exist, in either direction, on every wire.
+
 ## 4. Live examples from the codebase
 
 ### Port shapes — declaration
@@ -288,6 +321,9 @@ ArrayType[FLOAT].as_outlet('filtered')
 
 # Pooled (inlet only, multiple connections)
 PooledType[FLOAT].as_inlet('values')
+
+# Swinglet (either end of an edge)
+FLOAT.as_swinglet('value', default=0.0)
 
 # Config (no pin on canvas, panel-only)
 STRING.as_config('mode', default='int')

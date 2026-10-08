@@ -1062,14 +1062,16 @@ class VisualLayerHandlers:
         if self.context is None:
             return
 
-        pending_pin_dir = pending.get("pin_dir", "")  # 'inlet' or 'outlet'
+        pending_pin_dir = pending.get("pin_dir", "")  # 'inlet', 'outlet' or 'swinglet'
         pending_wire = pending.get("wire", "")
         pending_data = pending.get("data_type", "")
         pending_node_id = pending.get("node_id", "")
         pending_pin_id = pending.get("pin_id", "")
 
+        # A dragged swinglet becomes the outlet end, as a drop from it onto another swinglet does.
+        as_outlet = pending_pin_dir in ("outlet", "swinglet")
         # The new node's compatible direction is the opposite of the dragged pin.
-        target_dir = "inlet" if pending_pin_dir == "outlet" else "outlet"
+        target_dir = "inlet" if as_outlet else "outlet"
 
         compatible_ports = []
         for port_id, port in wrapper.node.ports.items():
@@ -1099,8 +1101,8 @@ class VisualLayerHandlers:
             target_port_id = compatible_ports[0]
         new_node_id = wrapper.node_id
 
-        if pending_pin_dir == "outlet":
-            # dragged from outlet → new node inlet
+        if as_outlet:
+            # dragged from outlet (or swinglet) → new node inlet
             success = self.editor.create_edge(pending_node_id, pending_pin_id, new_node_id, target_port_id)
         else:
             # dragged from inlet → new node outlet

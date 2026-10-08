@@ -13,7 +13,7 @@ def _linked_widget():
     port = make_float_port()
     widget = _BaseDefaultFloatWidget(port)
     widget.render()
-    port._linked_edges["e1"] = cast(Any, object())
+    port.incoming.linked["e1"] = cast(Any, object())
     port.set_value(4.0, edge_id="e1")
     return port, widget
 

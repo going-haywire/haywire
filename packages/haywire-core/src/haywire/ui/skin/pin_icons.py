@@ -32,7 +32,8 @@ class PinIconResolver:
     Roles are ``<kind>_<direction>``, where *kind* is the wire type's
     ``pin_kind`` (``data``, ``control``, ``callback`` for the builtin wire
     types), or ``compound`` for a container on a data wire, and *direction* is
-    ``in`` or ``out``. A pin accepting several links looks for a ``_multi``
+    ``in``, ``out`` or ``swing`` (a swinglet, which draws its own glyph
+    and takes the inlet's ``icon_in`` declarations). A pin accepting several links looks for a ``_multi``
     suffix first, so ``data_in_multi`` styles a pooled inlet without touching
     single-link ones.
 
@@ -59,6 +60,10 @@ class PinIconResolver:
         "control_out": ICONS.JOIN_RIGHT,
         "callback_in": ICONS.SWIPE_LEFT_ALT,
         "callback_out": ICONS.SWIPE_RIGHT_ALT,
+        "data_swing": ICONS.RADIO_BUTTON_CHECKED,
+        "compound_swing": ICONS.RADIO_BUTTON_CHECKED,
+        "control_swing": ICONS.JOIN_INNER,
+        "callback_swing": ICONS.SWAP_HORIZ,
         "fallback": ICONS.CIRCLE,
     }
 
@@ -90,8 +95,15 @@ class PinIconResolver:
             return "compound"
         return wire.pin_kind
 
+    @staticmethod
+    def _direction_of(pin: DataPort) -> str:
+        """The map's *direction* segment: a swinglet is neither plain in nor out."""
+        if pin.is_swinglet():
+            return "swing"
+        return "in" if pin.is_inlet() else "out"
+
     def _role(self, kind: str, pin: DataPort) -> str:
-        direction = "in" if pin.is_inlet() else "out"
+        direction = self._direction_of(pin)
         suffix = "_multi" if pin.takes_many_links else ""
         return f"{kind}_{direction}{suffix}"
 
@@ -104,7 +116,7 @@ class PinIconResolver:
     def _from_map(self, kind: str | None, pin: DataPort) -> str:
         """This resolver's glyph for *kind*, narrowest key first."""
         icons = self.ICONS
-        direction = "in" if pin.is_inlet() else "out"
+        direction = self._direction_of(pin)
         keys = []
         if kind is not None:
             if pin.takes_many_links:

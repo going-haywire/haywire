@@ -95,7 +95,7 @@ class TestEdges:
 
         inlet_port = self._get_port(node_b, "bool_inlet")
         assert inlet_port.is_linked()
-        assert len(inlet_port._linked_edges) == 1
+        assert len(inlet_port.incoming.linked) == 1
 
     def test_data_inlet_second_valid_edge_replaces_first(
         self, graph_with_library_system: BaseGraph, library_system
@@ -117,8 +117,8 @@ class TestEdges:
         inlet_port = self._get_port(node_c, "bool_inlet")
 
         # Inlet should only have one linked edge — the second one
-        assert len(inlet_port._linked_edges) == 1
-        assert edge_2.edge_id in inlet_port._linked_edges
+        assert len(inlet_port.incoming.linked) == 1
+        assert edge_2.edge_id in inlet_port.incoming.linked
 
         # The second edge should not be valid
         assert not edge_1.state.is_valid()
@@ -153,7 +153,7 @@ class TestEdges:
 
         inlet_port = self._get_port(node_c, "bool_inlet")
         # The first valid edge should still be linked
-        assert edge_valid.edge_id in inlet_port._linked_edges
+        assert edge_valid.edge_id in inlet_port.incoming.linked
         assert edge_valid.state.is_inlet_linked
 
         assert edge_valid.state.is_valid()
@@ -178,8 +178,8 @@ class TestEdges:
         assert edge_2.state.is_valid()
 
         inlet_port = self._get_port(node_c, "int_inlet")
-        assert len(inlet_port._linked_edges) == 1
-        assert edge_2.edge_id in inlet_port._linked_edges
+        assert len(inlet_port.incoming.linked) == 1
+        assert edge_2.edge_id in inlet_port.incoming.linked
         assert not edge_1.state.is_inlet_linked
 
         assert not edge_1.state.is_valid()
@@ -203,7 +203,7 @@ class TestEdges:
 
         pooled_port = self._get_port(node_c, "pooled_bool_inlet")
         assert pooled_port.takes_many_links is True
-        assert len(pooled_port._linked_edges) == 2
+        assert len(pooled_port.incoming.linked) == 2
 
     def test_pooled_inlet_with_adapter_edges(self, graph_with_library_system: BaseGraph, library_system):
         """
@@ -222,7 +222,7 @@ class TestEdges:
         assert edge_2.state.is_valid()
 
         pooled_port = self._get_port(node_c, "pooled_int_inlet")
-        assert len(pooled_port._linked_edges) == 2
+        assert len(pooled_port.incoming.linked) == 2
 
     def test_data_outlet_allows_multiple_edges(self, graph_with_library_system: BaseGraph, library_system):
         """Data outlets should allow multiple outgoing connections."""
@@ -237,7 +237,7 @@ class TestEdges:
 
         outlet_port = self._get_port(node_a, "bool_outlet")
         assert outlet_port.takes_many_links is True
-        assert len(outlet_port._linked_edges) == 2
+        assert len(outlet_port.outgoing.linked) == 2
 
     # ==================================================================
     # ADAPTER CHAIN CREATION
@@ -398,10 +398,10 @@ class TestEdges:
 
         outlet_port = self._get_port(node_a, "execute_out")
         assert outlet_port.takes_many_links is False
-        assert len(outlet_port._linked_edges) == 1
+        assert len(outlet_port.outgoing.linked) == 1
 
         # The second edge should be the one linked
-        assert edge_2.edge_id in outlet_port._linked_edges
+        assert edge_2.edge_id in outlet_port.outgoing.linked
         # The first edge should no longer be linked on the outlet side
         assert not edge_1.state.is_outlet_linked
 
@@ -419,7 +419,7 @@ class TestEdges:
         edge_2 = _link(graph, node_b, "execute_out", node_c, "execute_inlet")
 
         inlet_port = self._get_port(node_c, "execute_inlet")
-        assert len(inlet_port._linked_edges) == 2
+        assert len(inlet_port.incoming.linked) == 2
 
         assert edge_1.state.is_valid()
         assert edge_2.state.is_valid()
@@ -605,12 +605,12 @@ class TestEdges:
         assert edge_2.state.is_valid()
 
         pooled_port = self._get_port(node_c, "pooled_bool_inlet")
-        assert len(pooled_port._linked_edges) == 2
+        assert len(pooled_port.incoming.linked) == 2
 
         graph.remove_edge_wrapper(edge_1.edge_id)
 
-        assert len(pooled_port._linked_edges) == 1
-        assert edge_2.edge_id in pooled_port._linked_edges
+        assert len(pooled_port.incoming.linked) == 1
+        assert edge_2.edge_id in pooled_port.incoming.linked
         assert edge_2.state.is_valid()
 
     # ==================================================================
@@ -761,12 +761,12 @@ class TestEdges:
         inlet_port = self._get_port(node_c, "bool_inlet")
 
         # Displaced edge leaves _linked_edges
-        assert edge_1.edge_id not in inlet_port._linked_edges
+        assert edge_1.edge_id not in inlet_port.incoming.linked
         # But remains in _all_edges
-        assert edge_1.edge_id in inlet_port._all_edges
+        assert edge_1.edge_id in inlet_port.incoming.all
         # Active edge is in both
-        assert edge_2.edge_id in inlet_port._linked_edges
-        assert edge_2.edge_id in inlet_port._all_edges
+        assert edge_2.edge_id in inlet_port.incoming.linked
+        assert edge_2.edge_id in inlet_port.incoming.all
 
     def test_reenable_after_active_edge_removed(self, graph_with_library_system: BaseGraph, library_system):
         """
@@ -790,7 +790,7 @@ class TestEdges:
         inlet_port = self._get_port(node_c, "bool_inlet")
 
         # edge_1 should be re-enabled
-        assert edge_1.edge_id in inlet_port._linked_edges
+        assert edge_1.edge_id in inlet_port.incoming.linked
         assert edge_1.state.is_linked
         assert edge_1.state.is_inlet_linked
         assert edge_1.state.is_outlet_linked
@@ -813,10 +813,10 @@ class TestEdges:
         graph.remove_edge_wrapper(edge.edge_id)
 
         # Fully removed from both tiers on both ports
-        assert edge.edge_id not in inlet_port._linked_edges
-        assert edge.edge_id not in inlet_port._all_edges
-        assert edge.edge_id not in outlet_port._linked_edges
-        assert edge.edge_id not in outlet_port._all_edges
+        assert edge.edge_id not in inlet_port.incoming.linked
+        assert edge.edge_id not in inlet_port.incoming.all
+        assert edge.edge_id not in outlet_port.outgoing.linked
+        assert edge.edge_id not in outlet_port.outgoing.all
 
     def test_asymmetric_inlet_displacement(self, graph_with_library_system: BaseGraph, library_system):
         """
@@ -836,7 +836,7 @@ class TestEdges:
         outlet_port_a = self._get_port(node_a, "bool_outlet")
 
         # edge_1 should be removed from the source outlet's linked set
-        assert edge_1.edge_id not in outlet_port_a._linked_edges
+        assert edge_1.edge_id not in outlet_port_a.outgoing.linked
         # edge_1 should not be linked on either side
         assert not edge_1.state.is_inlet_linked
         assert not edge_1.state.is_outlet_linked
@@ -862,9 +862,9 @@ class TestEdges:
         inlet_port_b = self._get_port(node_b, "execute_inlet")
 
         # edge_1 should be removed from outlet
-        assert edge_1.edge_id not in outlet_port_a._linked_edges
+        assert edge_1.edge_id not in outlet_port_a.outgoing.linked
         # Sink inlet NOT informed — edge_1 remains in inlet's linked set
-        assert edge_1.edge_id in inlet_port_b._linked_edges
+        assert edge_1.edge_id in inlet_port_b.incoming.linked
 
         # Edge state reflects asymmetry
         assert edge_1.state.is_inlet_linked  # Stale but harmless
@@ -892,7 +892,7 @@ class TestEdges:
         inlet_port = self._get_port(node_c, "bool_inlet")
 
         # edge_1 is not functional, so it should NOT be re-enabled
-        assert edge_1.edge_id not in inlet_port._linked_edges
+        assert edge_1.edge_id not in inlet_port.incoming.linked
         assert not inlet_port.is_linked()
 
     # ==================================================================
@@ -930,8 +930,8 @@ class TestEdges:
         # Ports should still have the edge
         outlet_port = self._get_port(node_a, "bool_outlet")
         inlet_port = self._get_port(node_b, "bool_inlet")
-        assert edge.edge_id in outlet_port._linked_edges
-        assert edge.edge_id in inlet_port._linked_edges
+        assert edge.edge_id in outlet_port.outgoing.linked
+        assert edge.edge_id in inlet_port.incoming.linked
 
     def test_node_hot_reload_edges_survive_rebuild(
         self, graph_with_library_system: BaseGraph, library_system
@@ -964,10 +964,10 @@ class TestEdges:
         assert new_outlet is not old_outlet
 
         # Edge should be linked at the new port
-        assert edge.edge_id in new_outlet._linked_edges
+        assert edge.edge_id in new_outlet.outgoing.linked
 
         # Edge should be linked at the new port
-        assert edge.edge_id in new_outlet._linked_edges
+        assert edge.edge_id in new_outlet.outgoing.linked
 
     def test_node_hot_reload_adapter_chain_survives(
         self, graph_with_library_system: BaseGraph, library_system
@@ -996,7 +996,7 @@ class TestEdges:
 
         # Linked at new ports
         new_inlet = self._get_port(node_b, "int_inlet")
-        assert edge.edge_id in new_inlet._linked_edges
+        assert edge.edge_id in new_inlet.incoming.linked
 
     def test_node_hot_reload_displaced_edge_survives(
         self, graph_with_library_system: BaseGraph, library_system
@@ -1026,11 +1026,11 @@ class TestEdges:
         # After rebuild: both edges are rebuilt and link() is called
         # in order. edge_1 links first, then edge_2 displaces it.
         assert edge_2.state.is_valid()
-        assert edge_2.edge_id in new_inlet._linked_edges
+        assert edge_2.edge_id in new_inlet.incoming.linked
 
         # edge_1 was displaced again — in _all_edges but not _linked_edges
-        assert edge_1.edge_id in new_inlet._all_edges
-        assert edge_1.edge_id not in new_inlet._linked_edges
+        assert edge_1.edge_id in new_inlet.incoming.all
+        assert edge_1.edge_id not in new_inlet.incoming.linked
 
     def test_dynamic_port_removal_detaches_edge(self, graph_with_library_system: BaseGraph, library_system):
         """
@@ -1270,8 +1270,8 @@ class TestEdges:
         pooled_port = self._get_port(node_c, "pooled_bool_inlet")
 
         # Both edges should be linked
-        assert eager_edge.edge_id in pooled_port._linked_edges
-        assert lazy_edge.edge_id in pooled_port._linked_edges
+        assert eager_edge.edge_id in pooled_port.incoming.linked
+        assert lazy_edge.edge_id in pooled_port.incoming.linked
 
         # Change both outlets
         outlet_a = self._get_port(node_a, "bool_outlet")

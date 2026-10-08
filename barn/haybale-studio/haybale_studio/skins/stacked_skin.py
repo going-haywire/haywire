@@ -18,6 +18,11 @@ from haywire.ui.skin.pin_render import add_pin_tooltip
 from .node_skin import NodeSkin
 
 
+def _lane_of(port: DataPort) -> PortType:
+    """The lane *port* is drawn in: a swinglet sits with the inlets, once."""
+    return PortType.INLET if port.is_swinglet() else port.port_type
+
+
 @skin(
     label="Stacked",
     description="One port column, outlets over configs over inlets, with collapsible groups",
@@ -233,7 +238,7 @@ class StackedNodeSkin(NodeSkin):
         ports = [
             port
             for port in node.get_visible_ports()
-            if port.port_type == port_type and not port.is_fold and not port.parent_fold
+            if _lane_of(port) == port_type and not port.is_fold and not port.parent_fold
         ]
         hidden = node.get_hidden_connected_ports(is_inlet=port_type == PortType.INLET)
         return ports + list(hidden)
@@ -269,7 +274,7 @@ class StackedNodeSkin(NodeSkin):
         for port in ports:
             # Skip ports of wrong direction. A fold carries the direction of
             # the ports it holds, so it lands in their lane.
-            if port.port_type != port_type:
+            if _lane_of(port) != port_type:
                 continue
 
             # Skip child ports (they're rendered inside their parent groups)
@@ -358,7 +363,7 @@ class StackedNodeSkin(NodeSkin):
                 children = [
                     port
                     for port in all_ports
-                    if port.parent_fold == group_port.id and port.port_type == port_type
+                    if port.parent_fold == group_port.id and _lane_of(port) == port_type
                 ]
 
                 for child_port in sorted(children, key=lambda p: p.order):

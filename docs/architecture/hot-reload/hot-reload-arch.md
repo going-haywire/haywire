@@ -131,7 +131,7 @@ When a node hot-reloads, its attached edges need to re-resolve port references a
 3. `EdgeWrapper._formal_validation()` refreshes `_outlet_port` / `_inlet_port` references from the new node instance.
 4. `_build_adapter_chain()` re-resolves the chain (adapter classes may have reloaded too).
 5. `_test()` runs the chain against a sample value; on failure, edge transitions to non-functional and gets unlinked.
-6. On success, `link()` registers at the new ports — including any displaced/re-enableable edges in `_all_edges`.
+6. On success, `link()` registers at the new ports — including any displaced/re-enableable edges in the ports' `LinkSet.all`.
 
 See [edges §3.7](../execution/edges/edges-arch.md#37-hot-reload-coordination-node-rebuild) for full mechanics.
 

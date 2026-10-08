@@ -83,14 +83,14 @@ def _inlet() -> DataPort:
 def test_an_inlet_fed_by_two_edges_keeps_the_linked_value_until_the_last_goes():
     port = _inlet()
     port.set_value(1.0)
-    port._linked_edges["a"] = cast(Any, object())
-    port._linked_edges["b"] = cast(Any, object())
+    port.incoming.linked["a"] = cast(Any, object())
+    port.incoming.linked["b"] = cast(Any, object())
     port.set_value(9.0, edge_id="a")
 
-    port._linked_edges.pop("a")
+    port.incoming.linked.pop("a")
     port._reveal_own_value_if_unlinked()
     assert port.get_value() == 9.0
 
-    port._linked_edges.pop("b")
+    port.incoming.linked.pop("b")
     port._reveal_own_value_if_unlinked()
     assert port.get_value() == 1.0

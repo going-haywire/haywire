@@ -3,11 +3,15 @@
 Framework-owned primitive types and adapters
 
 ## Nodes
+### Annotation
+- **Annotation** — A box of text for diagrams; links to other annotations with styled arrows
+
 ### Core
 - **Core Error Node** — Placeholder for node that could not be loaded
 
 ## Types
 - **Add** — Grows a new port from whatever connects to it
+- **Annotation** — A link between annotation nodes; carries no value
 - **Boolean** — True or False
 - **Callback Signal** — Signal for callback execution between nodes
 - **Choices** — A string constrained to a set of options (options live per-use in widget_config)

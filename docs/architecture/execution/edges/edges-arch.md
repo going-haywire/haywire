@@ -16,12 +16,12 @@ see-also:
 
 An **edge** connects an outlet port on a source node to an inlet port on a sink node. The data structure is `Edge` (a dataclass — connection identifiers, type, adapter chain keys, propagation mode). The lifecycle is owned by `EdgeWrapper` — a wrapper that runs the 4-stage build pipeline (formal validation → structural validation → adapter chain → test), manages the `link → unlink → detach` lifecycle, and handles displacement and re-enablement when ports are over-subscribed.
 
-Two-tier port storage is the core mental model. Each port keeps two dictionaries:
+Two-tier port storage is the core mental model. Each port holds two `LinkSet`s, `port.incoming` (edges ending at it) and `port.outgoing` (edges leaving it); an inlet fills only the first, an outlet only the second, a swinglet ([ADR 0048](../../../adr/0048-swinglets.md)) may fill both. Each set keeps two dictionaries:
 
-- **`_linked_edges`** — active edges currently used for data pipes.
-- **`_all_edges`** — every edge ever registered, including displaced and non-functional ones. This is what makes re-enablement possible.
+- **`linked`** — active edges currently used for data pipes.
+- **`all`** — every edge ever registered at this end, including displaced and non-functional ones. This is what makes re-enablement possible.
 
-When a new edge displaces an existing one on a single-connection inlet, the displaced edge stays in `_all_edges` but leaves `_linked_edges`. If the new edge later loses functionality (adapter broken by hot-reload), the port scans `_all_edges` for a candidate to re-enable. Edges aren't deleted — they're just not currently the active one.
+When a new edge displaces an existing one on a single-connection end, the displaced edge stays in `all` but leaves `linked`. If the new edge later loses functionality (adapter broken by hot-reload), the set scans `all` for a candidate to re-enable. Edges aren't deleted — they're just not currently the active one.
 
 ## 2. Contract
 
@@ -80,9 +80,9 @@ Two pins connect when their wire keys match: equal wire-type ids, or a bare `ADD
 
 Three methods own the lifecycle (all on `EdgeWrapper`, not on the graph):
 
-- **`link()`** — Functional edge registers at both ports. May displace existing edges on single-connection ports. Displaced edges stay in `_all_edges` but leave `_linked_edges`.
-- **`unlink()`** — Edge lost functionality (e.g. adapter broke during hot-reload). Removed from `_linked_edges` but stays in `_all_edges`. Triggers re-enablement scan on the affected port.
-- **`detach()`** — Edge explicitly deleted. Full removal from both `_linked_edges` and `_all_edges`. Triggers re-enablement scan.
+- **`link()`** — Functional edge registers at both ports. May displace existing edges on single-connection ports. Displaced edges stay in the set's `all` but leave `linked`.
+- **`unlink()`** — Edge lost functionality (e.g. adapter broke during hot-reload). Removed from `linked` but stays in `all`. Triggers re-enablement scan on the affected port.
+- **`detach()`** — Edge explicitly deleted. Full removal from both `linked` and `all`. Triggers re-enablement scan.
 
 Graph integration:
 
@@ -122,12 +122,12 @@ Authoring adapters lives in [components/adapters](../../../components/adapters/a
 
 When a new edge displaces an existing one on a single-connection port:
 
-- The displaced edge is removed from `_linked_edges` but remains in `_all_edges`.
+- The displaced edge is removed from `linked` but remains in `all`.
 - **Asymmetric notification**: inlet displacement informs the source outlet (it needs a pipe update); outlet displacement does NOT inform the sink inlet.
 
-When an active edge is removed (`detach`) or loses functionality (`unlink`), the port scans `_all_edges` FIFO for a functional candidate to re-enable. If found, `candidate.link() + candidate.redraw()` is called.
+When an active edge is removed (`detach`) or loses functionality (`unlink`), the port's set scans `all` FIFO for a functional candidate to re-enable. If found, `candidate.link() + candidate.redraw()` is called.
 
-**Unlinking reveals the own value.** When an inlet loses its last linked edge and no displaced edge takes over, its field drops the linked value (`DataField.clear_linked`) and the own value shows again (ADR 0040). The node learns of it through the port's propagation: an immediate inlet fires `on_change` at once, so a reroute passes it on (see [callbacks-arch §2.4](../callbacks/callbacks-arch.md)); a deferred inlet is marked dirty for its node's next execution. A lazy pull still queued for the removed edge is dropped. A pooled inlet needs nothing extra: `_clear_link` already removed that source's entry.
+**Unlinking reveals the own value.** When an inlet loses its last linked edge and no displaced edge takes over, its field drops the linked value (`DataField.clear_linked`) and the own value shows again (ADR 0040). The node learns of it through the port's propagation: an immediate inlet fires `on_change` at once, so a reroute passes it on (see [callbacks-arch §2.4](../callbacks/callbacks-arch.md)); a deferred inlet is marked dirty for its node's next execution. A lazy pull still queued for the removed edge is dropped. A pooled inlet needs nothing extra: `LinkSet.clear_link` already removed that source's entry.
 
 ### 3.3 Propagation and the unified dirty model
 
@@ -297,8 +297,8 @@ Each edge gets its own entry in the pooled `dict[source_id, value]`.
 | Field                                      | Purpose                                                                             |
 | ------------------------------------------ | ----------------------------------------------------------------------------------- |
 | `EdgeWrapper._state` (`EdgeWrapperState`)  | All flags, errors, timing                                                           |
-| `DataPort._linked_edges`                   | `dict[edge_id, EdgeWrapper]` — active linked edges (used for pipes)                 |
-| `DataPort._all_edges`                      | `dict[edge_id, EdgeWrapper]` — all tracked edges including displaced/non-functional |
+| `DataPort.incoming` / `.outgoing` (`LinkSet`) | Per-end edge storage; `.linked` is `dict[edge_id, EdgeWrapper]` of active edges (used for pipes) |
+| `LinkSet.all`                              | `dict[edge_id, EdgeWrapper]` — all tracked edges at that end including displaced/non-functional |
 | `DataPort._pending_lazy_pipes`             | `set[Pipe]` — lazy pipes to pull at execution time                                  |
 | `DataPort.takes_many_links` / `single_link` | The port's link ceiling, and the setting that narrows it (ADR 0044) |
 | `Edge.propagation`                         | Chosen propagation mode (default `EAGER`); `EdgeWrapper.propagation` applies the locks |

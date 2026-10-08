@@ -28,7 +28,12 @@ def _typed(**icons: str | None) -> type:
 
 def _port(type_cls: type, port_type: PortType, **kwargs) -> DataPort:
     """A port built through the type's own factory, as the app builds one."""
-    factory = type_cls.as_inlet if port_type is PortType.INLET else type_cls.as_outlet  # type: ignore[attr-defined]
+    factories = {
+        PortType.INLET: "as_inlet",
+        PortType.OUTLET: "as_outlet",
+        PortType.SWINGLET: "as_swinglet",
+    }
+    factory = getattr(type_cls, factories[port_type])
     spec = dict(factory(f"p_{port_type.value}")["kwargs"])
     for key in ("promoted", "port_type"):
         spec.pop(key, None)
@@ -157,3 +162,43 @@ class TestSkinWiring:
 
         port = _port(_typed(icon_in="from_type"), PortType.INLET)
         assert _resolve_pin_icon(port, Minimal()) == "from_type"
+
+
+class TestSwinglet:
+    """A swinglet draws its own glyph, keyed ``<kind>_swing`` (Q115)."""
+
+    @pytest.mark.parametrize(
+        ("type_name", "glyph"),
+        [("FLOAT", "radio_button_checked"), ("EXEC", "join_inner"), ("CALLBACK", "swap_horiz")],
+    )
+    def test_each_kind_draws_its_own_glyph(self, type_name, glyph):
+        from haywire.barn.builtin import types
+
+        port = _port(getattr(types, type_name), PortType.SWINGLET)
+        assert DEFAULT_PIN_ICONS.resolve(port) == glyph
+
+    def test_the_role_names_the_swing_direction(self):
+        port = _port(_typed(**_BARE), PortType.SWINGLET)
+        assert DEFAULT_PIN_ICONS.role_of(port) == "data_swing"
+
+    def test_a_declared_inlet_icon_is_the_swinglets(self):
+        port = _port(_typed(icon_in="from_type", icon_out="other"), PortType.SWINGLET)
+        assert DEFAULT_PIN_ICONS.resolve(port) == "from_type"
+
+    def test_a_kind_without_an_entry_resolves_swing_then_kind_then_fallback(self):
+        from haywire.barn.builtin.types import ANNOTATION
+
+        port = _port(ANNOTATION, PortType.SWINGLET)
+
+        class Full(PinIconResolver):
+            ICONS = {"annotation_swing": "a", "annotation": "b", "fallback": "c"}
+
+        class KindOnly(PinIconResolver):
+            ICONS = {"annotation": "b", "fallback": "c"}
+
+        class FallbackOnly(PinIconResolver):
+            ICONS = {"fallback": "c"}
+
+        assert Full().resolve(port) == "a"
+        assert KindOnly().resolve(port) == "b"
+        assert FallbackOnly().resolve(port) == "c"

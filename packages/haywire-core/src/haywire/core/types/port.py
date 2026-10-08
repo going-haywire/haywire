@@ -21,6 +21,7 @@ from haywire.core.types.utils import serialize_element_type
 
 # Import the new DataField classes
 from haywire.core.types.fields import DataField
+from haywire.core.types.link_set import LinkSet
 from haywire.core.types.pipe import Pipe, Pipes
 
 if TYPE_CHECKING:
@@ -88,17 +89,12 @@ class DataPort(DataTypeIdentity):
     a config port, a fold, a bare ``ADD`` slot and a type that declares none. Read-only:
     set by ``_derive_wire``."""
 
-    # Edge state — two-tier storage
-    _linked_edges: dict[str, EdgeWrapper] = field(
-        default_factory=dict, repr=False, metadata={"serialize": False}
-    )
-    """Active linked EdgeWrapper instances. Used for pipe building."""
+    # Edge state: one set per end of an edge
+    incoming: LinkSet = field(init=False, repr=False, compare=False, metadata={"serialize": False})
+    """The edges ending at this port. Filled for an inlet or a swinglet."""
 
-    # All EdgeWrapper instances targeting this port (linked + denied/displaced);
-    # used for re-enablement when an active edge is removed.
-    _all_edges: dict[str, EdgeWrapper] = field(
-        default_factory=dict, repr=False, metadata={"serialize": False}
-    )
+    outgoing: LinkSet = field(init=False, repr=False, compare=False, metadata={"serialize": False})
+    """The edges leaving this port. Filled for an outlet or a swinglet."""
 
     # Outlet-specific
     _pipes: Optional[Pipes] = field(default=None, repr=False, metadata={"serialize": False})
@@ -125,12 +121,16 @@ class DataPort(DataTypeIdentity):
         return self.port_type == PortType.CONFIG
 
     def is_outlet(self) -> bool:
-        """True for outlet, False for anything else"""
-        return self.port_type == PortType.OUTLET
+        """True if this port can be an edge's outlet end: an outlet or a swinglet."""
+        return self.port_type in (PortType.OUTLET, PortType.SWINGLET)
 
     def is_inlet(self) -> bool:
-        """True for inlet, False for anything else"""
-        return self.port_type == PortType.INLET
+        """True if this port can be an edge's inlet end: an inlet or a swinglet."""
+        return self.port_type in (PortType.INLET, PortType.SWINGLET)
+
+    def is_swinglet(self) -> bool:
+        """True for a swinglet, which may be either end of an edge."""
+        return self.port_type == PortType.SWINGLET
 
     def adopt_port_type(self, port_type: PortType) -> None:
         """Set this port's direction, refreshing the caches derived from it.
@@ -141,7 +141,7 @@ class DataPort(DataTypeIdentity):
         ``set_value`` reads that cache rather than ``is_inlet()``.
         """
         self.port_type = port_type
-        self._is_inlet = port_type == PortType.INLET
+        self._is_inlet = port_type in (PortType.INLET, PortType.SWINGLET)
 
     @property
     def promoted(self) -> bool:
@@ -295,8 +295,10 @@ class DataPort(DataTypeIdentity):
                 f"DataPort instances must be created via from_spec()."
             )
         self._data = self.type_cls.create_field(default_override=self.default)
+        self.incoming = LinkSet(self, is_incoming=True)
+        self.outgoing = LinkSet(self, is_incoming=False)
         # Cache the immutable inlet/outlet role for the set_value hot path.
-        self._is_inlet = self.port_type == PortType.INLET
+        self._is_inlet = self.port_type in (PortType.INLET, PortType.SWINGLET)
         self._derive_wire()
 
     # ========================================================================
@@ -364,15 +366,29 @@ class DataPort(DataTypeIdentity):
         """
         Set port value. Single entry point for all value updates.
 
-        For inlets:
-        - an edge's write to an immediate inlet goes through ``_fire_immediate``
-        - an own write (no edge_id) while an edge feeds the inlet changes only
+        ``on_change`` reports only what the port receives: an edge's write or a
+        widget or programmatic write. ``out()`` and ``_emit`` never fire it,
+        ``as_outlet`` refuses an ``on_change``, and no port built with
+        ``as_outlet`` carries one. A fold wrapping outlets may carry one, and
+        its own write through ``set_value`` fires it.
+
+        For inlets and swinglets:
+        - an edge's write to an immediate port goes through ``_fire_immediate``
+        - an own write (no edge_id) while an edge feeds the port changes only
           the own value: no on_change, no dirty mark
         - any other own write fires on_change immediately
         - any other edge's write defers to resolve_dirty_data()
+        - an edge's write is stored as the linked value and stops there; it
+          leaves the node-set mark as it is
+
+        For config ports:
+        - Fire on_change immediately
 
         For outlets:
-        - Fire on_change immediately, then propagate to downstream inlets
+        - Store the value, then propagate to downstream inlets
+
+        A swinglet's own write through ``out()`` goes to ``_emit`` instead, which
+        passes it on to the edges at the swinglet's outlet end.
 
         Args:
             new_value: Value to set (can be IType instance or raw value)
@@ -383,33 +399,59 @@ class DataPort(DataTypeIdentity):
 
         # _is_immediate first: on a data or control port the hot path pays one attribute read.
         if self._is_immediate and self._is_inlet and edge_id is not None:
-            self._is_set_by_node = False
             self._fire_immediate(lambda: self._data.set_value(new_value, source_id=edge_id), new_value)
             return
 
         self._data.set_value(new_value, source_id=edge_id)
 
         if self._is_inlet:
-            # Inlet values come from an edge (edge_id set) or a widget/programmatic
-            # set — never from the owning node, so clear the node-set flag.
-            self._is_set_by_node = False
-            if edge_id is None and self._data.has_linked_value():
-                # The own value changed behind the linked one; the node sees no change.
-                return
-            if self.on_change is not None and edge_id is None:
-                # Widget/programmatic change → fire on_change immediately
-                self._trigger_callback(self.on_change, new_value)
-            else:
-                # Edge-driven OR no callback → defer to resolve_dirty_data()
-                self._mark_as_data_dirty()
+            if edge_id is None:
+                # An own write is a widget or programmatic set, never the node's, so
+                # it clears the node-set flag; an edge's write leaves it.
+                self._is_set_by_node = False
+                if self._data.has_linked_value():
+                    # The own value changed behind the linked one; the node sees no change.
+                    return
+                if self.on_change is not None:
+                    # Widget/programmatic change → fire on_change immediately
+                    self._trigger_callback(self.on_change, new_value)
+                    return
+            # Edge-driven OR no callback → defer to resolve_dirty_data()
+            self._mark_as_data_dirty()
         else:
-            # Outlet: the node is always the setter (out() is the only caller).
-            self._is_set_by_node = True
-            # Fire on_change immediately (node is the setter)
+            # Configs, and a fold wrapping outlets, report their write.
             if self.on_change is not None:
                 self._trigger_callback(self.on_change, new_value)
-            if self._pipes is not None:
-                self._pipes.propagate()
+            self._after_node_write()
+
+    def _emit(self, new_value: Any) -> None:
+        """Store the node's own write and run the pipes: the outlet half of ``set_value``.
+
+        Stores the own value, marks the port node-set and propagates to the edges
+        leaving it. Fires no ``on_change``: that reports only what the port receives.
+        """
+        if self._data is None:
+            return
+        self._data.set_value(new_value)
+        self._after_node_write()
+
+    def _after_node_write(self) -> None:
+        """Mark the port node-set and run its pipes, the tail shared by outlet writes."""
+        self._is_set_by_node = True
+        if self._pipes is not None:
+            self._pipes.propagate()
+
+    def get_own_value(self) -> Any:
+        """Get the node's own value, ignoring a linked value that stands in front of it.
+
+        A pipe reads this from its source port. For an outlet it equals ``get_value()``.
+
+        Returns:
+            The own value, or None without a field.
+        """
+        if self._data is None:
+            return None
+        return self._data.get_own_value()
 
     def _fire_immediate(self, store: Callable[[], None], value: Any) -> None:
         """Store a write to this immediate inlet and tell the node only when what it sees changed.
@@ -451,9 +493,7 @@ class DataPort(DataTypeIdentity):
         """Share *field* as this port's ``_data`` by reference (promotion spine).
 
         A promoted port does not own a value — it becomes a second view of the
-        setting's P4 ``DataField`` cell. This is the same object-swap ``_add_link``
-        performs when two ports share a cell; here it binds the port to the
-        setting's cell so a write on either side is seen by both.
+        setting's P4 ``DataField`` cell, so a write on either side is seen by both.
 
         On an OUTLET this also subscribes ``field.on_changed →
         self._on_shared_field_changed`` so that when anything writes the shared
@@ -525,8 +565,8 @@ class DataPort(DataTypeIdentity):
     # ========================================================================
 
     def is_linked(self) -> bool:
-        """Check if port has any linked edges"""
-        return len(self._linked_edges) > 0
+        """Check if port has any linked edges, at either end."""
+        return bool(self.incoming.linked) or bool(self.outgoing.linked)
 
     def should_show_widget(self) -> bool:
         """
@@ -541,10 +581,12 @@ class DataPort(DataTypeIdentity):
             return True
         if strategy == ShowWidgetStrategy.NEVER:
             return False
+        # An outlet's widget follows its outgoing edges; an inlet's or swinglet's, its incoming ones.
+        linked = bool(self.outgoing.linked if self.port_type is PortType.OUTLET else self.incoming.linked)
         if strategy == ShowWidgetStrategy.WHEN_LINKED:
-            return self.is_linked()
+            return linked
         # NOT_LINKED
-        return not self.is_linked()
+        return not linked
 
     def set_show_widget(self, strategy: ShowWidgetStrategy) -> None:
         """Set this port's widget-visibility strategy at runtime.
@@ -630,15 +672,16 @@ class DataPort(DataTypeIdentity):
         and leaves this port linked for good, while a missing ``Pipes`` makes
         an outlet stop delivering values with nothing to see at either end.
         """
-        self._linked_edges = existing._linked_edges.copy()
-        self._all_edges = existing._all_edges.copy()
+        self.incoming.adopt(existing.incoming)
+        self.outgoing.adopt(existing.outgoing)
         self.order = existing.order
 
-        for edge in self._all_edges.values():
-            if edge._inlet_port is existing:
-                edge._inlet_port = self
-            if edge._outlet_port is existing:
-                edge._outlet_port = self
+        for link_set in (self.incoming, self.outgoing):
+            for edge in link_set.all.values():
+                if edge._inlet_port is existing:
+                    edge._inlet_port = self
+                if edge._outlet_port is existing:
+                    edge._outlet_port = self
 
         # `_pipes` is derived from the links above and belongs to the port
         # object, so the replacement starts with none. Rebuilt here rather
@@ -647,47 +690,6 @@ class DataPort(DataTypeIdentity):
         self._is_dirty_structural = True
         self._housekeeping()
 
-    def _add_link(self, edge_wrapper: EdgeWrapper) -> list[EdgeWrapper]:
-        """
-        Attempt to link an edge to this port.
-
-        Always tracks in _all_edges. If the port takes one link, every edge
-        already linked is displaced (removed from _linked_edges but kept in
-        _all_edges): usually one, several when ``single_link`` was set on a
-        port that already held more.
-
-        Args:
-            edge_wrapper: EdgeWrapper to link
-
-        Returns:
-            The displaced edges, oldest first; empty when none was replaced.
-        """
-        displaced: list[EdgeWrapper] = []
-
-        # Always track in _all_edges
-        self._all_edges[edge_wrapper.edge_id] = edge_wrapper
-
-        if edge_wrapper.edge_id not in self._linked_edges:
-            if not self.takes_many_links:
-                displaced = list(self._linked_edges.values())
-                self._linked_edges = {edge_wrapper.edge_id: edge_wrapper}
-                for old_wrapper in displaced:
-                    self._data.remove_source(old_wrapper.edge_id)
-                    if self.on_disconnect:
-                        self._trigger_callback(self.on_disconnect, old_wrapper)
-            else:
-                self._linked_edges[edge_wrapper.edge_id] = edge_wrapper
-
-            if self.on_connect:
-                self._trigger_callback(self.on_connect, edge_wrapper)
-
-        # Mark structurally dirty in any case because even if the
-        # connection already exists, it may have been reconnected to a
-        # different source during edge validation
-        self._mark_as_structuraly_dirty()
-
-        return displaced
-
     def _get_linked_edges_uuid(self) -> list[str]:
         """
         Get list of linked edge UUIDs.
@@ -695,70 +697,7 @@ class DataPort(DataTypeIdentity):
         Returns:
             List of EdgeWrapper UUIDs linked to this port
         """
-        return list(self._linked_edges.keys())
-
-    def _is_linked_to(self, wrapper_uuid: str) -> bool:
-        """
-        Check if linked to given edge.
-        Args:
-            wrapper_uuid: UUID of EdgeWrapper to check
-        Returns:
-            True if linked, False otherwise
-        """
-        return wrapper_uuid in self._linked_edges
-
-    def _clear_link(self, wrapper_uuid: str) -> None:
-        """
-        Remove an edge from the linked set only (stays in _all_edges).
-        Called when an edge is displaced or loses functionality.
-
-        Args:
-            wrapper_uuid: UUID of EdgeWrapper to unlink
-        """
-        if wrapper_uuid in self._linked_edges:
-            edge_wrapper = self._linked_edges.pop(wrapper_uuid)
-            self._data.remove_source(wrapper_uuid)
-            # A lazy pull still queued for this edge would deliver after it is gone.
-            self._pending_lazy_pipes = {p for p in self._pending_lazy_pipes if p.edge_id != wrapper_uuid}
-            self._mark_as_structuraly_dirty()
-
-            if self.on_disconnect and edge_wrapper:
-                self._trigger_callback(self.on_disconnect, edge_wrapper)
-
-    def _remove_edge(self, wrapper_uuid: str) -> None:
-        """
-        Fully remove an edge from both _linked_edges and _all_edges.
-        Called when an edge is explicitly deleted or the port is destroyed.
-
-        Args:
-            wrapper_uuid: UUID of EdgeWrapper to remove entirely
-        """
-        if wrapper_uuid in self._linked_edges:
-            self._clear_link(wrapper_uuid)
-        self._all_edges.pop(wrapper_uuid, None)
-
-    def _try_reenable(self) -> EdgeWrapper | None:
-        """
-        After an active edge is removed, scan _all_edges for a functional
-        candidate to promote to linked. Uses FIFO order (dict insertion order).
-
-        Only applicable for a port that takes one link and has no linked edge.
-
-        Returns:
-            The re-enableable EdgeWrapper, or None if none found.
-            Caller is responsible for calling candidate.link().
-        """
-        if self.takes_many_links:
-            return None
-
-        if self._linked_edges:
-            return None  # Already has a linked edge
-
-        for uuid, edge in self._all_edges.items():
-            if uuid not in self._linked_edges and edge.is_functional():
-                return edge
-
-        return None
+        return [*self.incoming.linked, *self.outgoing.linked]
 
     def _reveal_own_value_if_unlinked(self) -> None:
         """Show the own value again once no edge feeds this inlet.
@@ -767,7 +706,7 @@ class DataPort(DataTypeIdentity):
         marked dirty for its node's next execution. Nothing happens while another
         edge still feeds the inlet, or when the own value equals the linked one.
         """
-        if not self._is_inlet or self._linked_edges or not self._data.has_linked_value():
+        if not self._is_inlet or self.incoming.linked or not self._data.has_linked_value():
             return
         if self._is_immediate:
             self._fire_immediate(self._data.clear_linked, self._data.get_own_value())
@@ -777,27 +716,9 @@ class DataPort(DataTypeIdentity):
         if not _same_value(linked, self._data.get_value()):
             self._mark_as_data_dirty()
 
-    def _detach_all_edges(self) -> list[EdgeWrapper]:
-        """
-        Remove all edges from both tiers. Used during port destruction (push/pop).
-
-        Returns:
-            List of all edges that were being tracked, so the caller can
-            notify them of port destruction.
-        """
-        all_edges = list(self._all_edges.values())
-        self._linked_edges.clear()
-        self._all_edges.clear()
-        return all_edges
-
     def get_valid_edges(self) -> list[EdgeWrapper]:
-        """
-        Get list of valid linked EdgeWrappers.
-
-        Returns:
-            List of valid EdgeWrapper instances linked to this port
-        """
-        return [edge_wrapper for edge_wrapper in self._linked_edges.values() if edge_wrapper.is_valid()]
+        """Return the valid linked EdgeWrappers at either end of this port."""
+        return [*self.incoming.valid_edges(), *self.outgoing.valid_edges()]
 
     def _mark_as_structuraly_dirty(self) -> None:
         """Mark the port's node as structurally dirty."""
@@ -819,26 +740,24 @@ class DataPort(DataTypeIdentity):
 
     def _refresh_pipes(self) -> None:
         """
-        Refresh pipes based on current link state.
-        If outlet and linked, ensure pipes exist and are up-to-date.
-        If outlet and unlinked, clear pipes.
+        Refresh pipes based on the port's outgoing linked edges.
+        With outgoing linked edges, ensure pipes exist and are up-to-date.
+        Without any, clear pipes.
         Called during graph housekeeping phase.
         """
-        if self.is_outlet():
-            if self.is_linked():
-                if self._pipes is None:
-                    self._pipes = Pipes(outlet_port=self)
-                self._pipes.clear()
-                # An is_linked_lazy outlet's edges report LAZY themselves; see
-                # EdgeWrapper.locked_propagation.
-                for wrapper in self.get_valid_edges():
-                    # A VISUAL edge gets no pipe: nothing travels on it.
-                    if wrapper.carries_values:
-                        self._pipes.add_pipe(wrapper)
-            else:
-                if self._pipes:
-                    self._pipes.clear()
-                    self._pipes = None
+        if self.outgoing.linked:
+            if self._pipes is None:
+                self._pipes = Pipes(outlet_port=self)
+            self._pipes.clear()
+            # An is_linked_lazy outlet's edges report LAZY themselves; see
+            # EdgeWrapper.locked_propagation.
+            for wrapper in self.outgoing.valid_edges():
+                # A VISUAL edge gets no pipe: nothing travels on it.
+                if wrapper.carries_values:
+                    self._pipes.add_pipe(wrapper)
+        elif self._pipes:
+            self._pipes.clear()
+            self._pipes = None
 
     # ========================================================================
     # PORT TYPE CHECKS
@@ -886,20 +805,12 @@ class DataPort(DataTypeIdentity):
     def takes_many_links(self) -> bool:
         """Whether this port may hold more than one linked edge at a time.
 
-        The link ceiling allows many, except where a second edge would break the
-        mechanism: a ``SEQUENCE`` outlet (the VM keeps one transition per outlet),
-        and a value inlet whose field keeps one value in total (two edges writing
-        into it would race). A ``SEQUENCE`` inlet is entered once per transition and
-        a ``VISUAL`` inlet receives no value, so both take many. ``single_link``
-        narrows any ceiling to one.
+        Reads ``outgoing`` for an outlet and ``incoming`` for any other port; see
+        ``LinkSet.takes_many`` for the ceiling each end has.
         """
-        if self.single_link:
-            return False
-        if self.is_outlet():
-            return not self.has_role(WireRole.SEQUENCE)
-        if self.has_role(WireRole.SEQUENCE) or self.has_role(WireRole.VISUAL):
-            return True
-        return self._data.keeps_value_per_source()
+        if self.port_type is PortType.OUTLET:
+            return self.outgoing.takes_many
+        return self.incoming.takes_many
 
     @property
     def is_immediate(self) -> bool:

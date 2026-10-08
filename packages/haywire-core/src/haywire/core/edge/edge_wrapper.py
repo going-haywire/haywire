@@ -394,8 +394,8 @@ class EdgeWrapper:
         If not functional, this is a no-op.
 
         Flow:
-        1. Register at inlet via _add_link (may displace old edges)
-        2. Register at outlet via _add_link (may displace old edges)
+        1. Register at inlet via LinkSet.add_link (may displace old edges)
+        2. Register at outlet via LinkSet.add_link (may displace old edges)
         3. Update own link state flags
         4. Handle displaced edges with asymmetric invalidation rules
         5. Housekeeping on both ports (rebuild pipes)
@@ -407,8 +407,8 @@ class EdgeWrapper:
             return
 
         # Link at both ports — each returns the edges it displaced
-        displaced_at_inlet = self._inlet_port._add_link(self)
-        displaced_at_outlet = self._outlet_port._add_link(self)
+        displaced_at_inlet = self._inlet_port.incoming.add_link(self)
+        displaced_at_outlet = self._outlet_port.outgoing.add_link(self)
 
         # Update own link flags
         self._update_link_state()
@@ -432,7 +432,7 @@ class EdgeWrapper:
     def unlink(self) -> None:
         """
         Remove this edge from the linked set of both ports.
-        The edge remains tracked in _all_edges for potential re-enablement.
+        The edge remains tracked in the port's ``all`` set for potential re-enablement.
 
         Used when the edge loses functionality (e.g. hot reload broke
         the adapter chain).
@@ -440,10 +440,10 @@ class EdgeWrapper:
         After unlinking, attempts re-enablement on both ports.
         """
         if self._inlet_port:
-            self._inlet_port._clear_link(self._edge_id)
+            self._inlet_port.incoming.clear_link(self._edge_id)
 
         if self._outlet_port:
-            self._outlet_port._clear_link(self._edge_id)
+            self._outlet_port.outgoing.clear_link(self._edge_id)
 
         self._update_link_state()
         self._try_reenable_on_ports()
@@ -467,10 +467,10 @@ class EdgeWrapper:
         After detaching, attempts re-enablement on both ports.
         """
         if self._inlet_port:
-            self._inlet_port._remove_edge(self._edge_id)
+            self._inlet_port.incoming.remove_edge(self._edge_id)
 
         if self._outlet_port:
-            self._outlet_port._remove_edge(self._edge_id)
+            self._outlet_port.outgoing.remove_edge(self._edge_id)
 
         self._update_link_state()
         self._try_reenable_on_ports()
@@ -511,7 +511,7 @@ class EdgeWrapper:
 
         # Inform source outlet: remove from its linked set too
         if self._outlet_port:
-            self._outlet_port._clear_link(self._edge_id)
+            self._outlet_port.outgoing.clear_link(self._edge_id)
             self._state.is_outlet_linked = False
             self._outlet_port._housekeeping()
 
@@ -550,12 +550,12 @@ class EdgeWrapper:
         this edge as linked.
         """
         if self._inlet_port:
-            self._state.is_inlet_linked = self._inlet_port._is_linked_to(self._edge_id)
+            self._state.is_inlet_linked = self._inlet_port.incoming.is_linked_to(self._edge_id)
         else:
             self._state.is_inlet_linked = False
 
         if self._outlet_port:
-            self._state.is_outlet_linked = self._outlet_port._is_linked_to(self._edge_id)
+            self._state.is_outlet_linked = self._outlet_port.outgoing.is_linked_to(self._edge_id)
         else:
             self._state.is_outlet_linked = False
 
@@ -589,13 +589,13 @@ class EdgeWrapper:
         re-enablement candidates.
         """
         if self._inlet_port:
-            candidate = self._inlet_port._try_reenable()
+            candidate = self._inlet_port.incoming.try_reenable()
             if candidate:
                 candidate.link()
                 candidate.redraw()
 
         if self._outlet_port:
-            candidate = self._outlet_port._try_reenable()
+            candidate = self._outlet_port.outgoing.try_reenable()
             if candidate:
                 candidate.link()
                 candidate.redraw()
@@ -801,15 +801,17 @@ class EdgeWrapper:
                     f"(outlet_port_id={self.outlet_port_id}, inlet_port_id={self.inlet_port_id})"
                 )
 
-            # Check if this is an inlet (sanity check)
-            if self._outlet_port.is_inlet():
+            # A swinglet answers True to both, so it may sit at either end.
+            if not self._outlet_port.is_outlet():
                 raise Exception(
-                    f"Invalid port types for edge: Outlet port {self._outlet_port.id} is an inlet"
+                    f"Invalid port types for edge: Outlet port {self._outlet_port.id} "
+                    f"cannot be an edge's outlet end"
                 )
 
-            if self._inlet_port.is_outlet():
+            if not self._inlet_port.is_inlet():
                 raise Exception(
-                    f"Invalid port types for edge: Inlet port {self._inlet_port.id} is an outlet"
+                    f"Invalid port types for edge: Inlet port {self._inlet_port.id} "
+                    f"cannot be an edge's inlet end"
                 )
 
             if self._outlet_port.wire_key == WILDCARD and self._inlet_port.wire_key == WILDCARD:

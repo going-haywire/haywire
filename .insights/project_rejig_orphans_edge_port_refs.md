@@ -8,17 +8,17 @@ entirely in `DataPort.adopt_state_from`, the retype fallback.
 ## The mechanism
 
 A retyped re-add still builds a new `DataPort` and discards the old one.
-`adopt_state_from` transplants `_linked_edges` to the replacement, but an
+`adopt_state_from` transplants both `LinkSet`s (`incoming`, `outgoing`) to the replacement, but an
 `EdgeWrapper` holds its endpoints by object reference (`_inlet_port` /
 `_outlet_port`), resolved when the edge was last validated. Left alone, every
 attached edge would point at an object no longer on the node: `detach()` would
-unlink the **orphan**, the live port would keep its `_linked_edges` entry, and
+unlink the **orphan**, the live port would keep its `LinkSet` entry, and
 `is_linked()` would stay True for good. Nothing raises — the only symptom is a
 pin frozen in its linked rendering, most visibly an inlet whose widget never
 comes back after the edge is removed.
 
-`adopt_state_from` re-points both endpoints on every transplanted edge before
-it returns. That loop is the only thing standing between a retype and the bug
+`adopt_state_from` re-points both endpoints on every transplanted edge of both
+sets before it returns. That loop is the only thing standing between a retype and the bug
 above.
 
 ## Why it almost never bites
@@ -56,17 +56,23 @@ reference:
 
 ## Testing this is subject to the same trap it describes
 
-A test of the re-pointing written on a plain node **passes whether or not the
-re-pointing exists**: the node rejigs outside a validation callback, so the
-next batch re-resolves the endpoints by id before the assertion runs. Delete
-the loop in `adopt_state_from` and such a test stays green — this happened
-while writing the regression test for it.
+A test of the re-pointing **passes whether or not the re-pointing exists**
+whenever the graph's scheduler runs validation: the sync scheduler revalidates
+when the rejig exits, and `_validate_port_types` re-resolves both endpoints by
+id before the assertion runs. Delete the loop in `adopt_state_from` and such a
+test stays green — this happened twice, including
+`test_a_retyped_interface_port_re_points_the_edge` in
+`tests/core/test_node/test_port_swap_keeps_edges.py`, which passes with the
+loop deleted and so does not guard it on its own.
 
-Only a rejig inside a validation callback pins it down
-(`test_a_retyped_interface_port_re_points_the_edge` in
-`tests/core/test_node/test_port_swap_keeps_edges.py`, driven through
-`GraphNode.reconcile_interface`). Check any test claiming to cover this by
-deleting the loop and confirming it actually fails.
+A guarding test builds the graph with a scheduler that holds every scheduled
+validation and never runs it (`_ParkedScheduler` in
+`tests/core/test_edge/test_swinglet_links.py`), wires the edges, calls
+`force_validation()`, rejigs, and asserts `edge._inlet_port is new` /
+`edge._outlet_port is new` straight after — before any further validation.
+`test_a_retyped_swinglet_keeps_both_edges` does this and fails with the loop
+removed for the incoming set, the outgoing set, or both. Check any test
+claiming to cover this by deleting the loop and confirming it fails.
 
 ## Why the obvious diagnoses are wrong
 

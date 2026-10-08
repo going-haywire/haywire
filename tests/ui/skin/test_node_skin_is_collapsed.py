@@ -121,6 +121,9 @@ class TestSkinsHonourNodeCollapse:
         # Already a bare dot on a wire — a folded card would be BIGGER, and it
         # has no labels or widgets for a rank to remove.
         "reroute_skin.py",
+        # A note is its text: no labels or widgets for a rank to remove, and its
+        # unlinked slots are already hidden until hover.
+        "annotation_skin.py",
     }
 
     def test_every_known_skin_dir_exists(self):

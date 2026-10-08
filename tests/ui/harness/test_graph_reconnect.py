@@ -206,11 +206,8 @@ def test_reconnect_keeps_the_edge_when_the_anchor_pin_is_not_in_the_dom(page: Pa
     )
     _click_menu_item(page, "Reconnect")
     page.wait_for_timeout(800)
-    # A started drag draws its dashed preview on the first move.
-    page.mouse.move(click["x"] + 40, click["y"] + 40, steps=3)
-    page.wait_for_timeout(300)
 
-    assert page.evaluate(_DRAG_PREVIEW_START_JS) is None, "no drag may start without an anchor"
+    assert page.query_selector(".graph-canvas.edge-dragging") is None, "no drag may start without an anchor"
     assert page.evaluate(_LIVE_EDGE_START_JS) is not None, "the edge must survive"
 
 
@@ -232,10 +229,10 @@ def test_a_reconnect_dropped_back_on_its_inlet_leaves_one_edge(page: Page, harne
     page.mouse.click(click["x"], click["y"], button="right")
     page.wait_for_selector(".hw-popup-card")
     _click_menu_item(page, "Reconnect")
+    page.wait_for_selector(".graph-canvas.edge-dragging")
     page.mouse.move(inlet["x"] - 20, inlet["y"], steps=3)
-    page.wait_for_function(f"() => ({_DRAG_PREVIEW_START_JS})() !== null")
     page.mouse.click(inlet["x"], inlet["y"])
-    page.wait_for_function(f"() => ({_DRAG_PREVIEW_START_JS})() === null")
+    page.wait_for_selector(".graph-canvas:not(.edge-dragging)")
     page.wait_for_timeout(500)
 
     ids = page.evaluate(

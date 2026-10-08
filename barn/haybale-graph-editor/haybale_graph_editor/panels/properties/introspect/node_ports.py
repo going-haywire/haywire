@@ -1,6 +1,6 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node_ports.py
 """
-NodePortsPanel — lists inlet, outlet, and config ports on the selected node.
+NodePortsPanel — lists inlet, swinglet, outlet, and config ports on the selected node.
 """
 
 from __future__ import annotations
@@ -36,6 +36,29 @@ if TYPE_CHECKING:
 
 _DRAG_HANDLE_CLASS = "hw-port-drag-handle"
 """Marks the grip element SortableJS accepts a drag from (its ``handle`` selector)."""
+
+_PANEL_KEYS = {
+    "config": "node:ports:config",
+    "inlet": "node:ports:inlets",
+    "swinglet": "node:ports:swinglets",
+    "outlet": "node:ports:outlets",
+}
+"""Per-lane expansion-state keys."""
+
+
+def _split_lanes(ports: list) -> list[tuple[str, str, list]]:
+    """Sort a node's ports into ``(lane, section label, ports)`` in display order.
+
+    A swinglet is both an inlet and an outlet, so it is taken out first and
+    gets a lane of its own rather than appearing under both.
+    """
+    swinglets = [p for p in ports if p.is_swinglet()]
+    return [
+        ("config", "Config", [p for p in ports if p.is_config()]),
+        ("inlet", "Inlets", [p for p in ports if p.is_inlet() and not p.is_swinglet()]),
+        ("swinglet", "Swinglets", swinglets),
+        ("outlet", "Outlets", [p for p in ports if p.is_outlet() and not p.is_swinglet()]),
+    ]
 
 
 def _identity_tooltip(port: object) -> str:
@@ -240,7 +263,7 @@ class NodePortsPanel(BasePanel):
             node: The ``BaseNode``, threaded rather than held on ``self``: the
                 panel is rebuilt on every redraw and owns no instance state.
             ports: Every port of the lane, folded children included.
-            lane: ``"config"``, ``"inlet"`` or ``"outlet"``, supplied by the
+            lane: ``"config"``, ``"inlet"``, ``"swinglet"`` or ``"outlet"``, supplied by the
                 section that owns this list. Never read off a port — a fold is
                 itself a CONFIG port and would misreport its lane.
             depth: Fold nesting level, which sets this group's indentation.
@@ -354,9 +377,6 @@ class NodePortsPanel(BasePanel):
                     visible_ports = hw_node.get_all_ports()
                 else:
                     visible_ports = list(getattr(hw_node, "ports", {}).values())
-                inlets = [p for p in visible_ports if p.is_inlet()]
-                outlets = [p for p in visible_ports if p.is_outlet()]
-                configs = [p for p in visible_ports if p.is_config()]
 
                 node_id = getattr(node, "node_id", "")
 
@@ -367,32 +387,17 @@ class NodePortsPanel(BasePanel):
                 # (see UI state scope decision), not a per-node setting.
                 state_bag = layout.state_bag
 
-                if configs:
+                # Config first, then the ends of an edge in wiring order.
+                for lane, label, ports in _split_lanes(visible_ports):
+                    if not ports:
+                        continue
                     with hui.expansion_section(
-                        label=f"Config ({len(configs)})",
+                        label=f"{label} ({len(ports)})",
                         default_open=True,
                         state=state_bag,
-                        panel_key="node:ports:config",
+                        panel_key=_PANEL_KEYS[lane],
                     ):
-                        self._render_lane(hw_node, configs, "config", node_id, widget_factory, ctx)
-
-                if inlets:
-                    with hui.expansion_section(
-                        label=f"Inlets ({len(inlets)})",
-                        default_open=True,
-                        state=state_bag,
-                        panel_key="node:ports:inlets",
-                    ):
-                        self._render_lane(hw_node, inlets, "inlet", node_id, widget_factory, ctx)
-
-                if outlets:
-                    with hui.expansion_section(
-                        label=f"Outlets ({len(outlets)})",
-                        default_open=True,
-                        state=state_bag,
-                        panel_key="node:ports:outlets",
-                    ):
-                        self._render_lane(hw_node, outlets, "outlet", node_id, widget_factory, ctx)
+                        self._render_lane(hw_node, ports, lane, node_id, widget_factory, ctx)
 
             except Exception:
                 # Structural backstop (Q11): a malformed node / port collection

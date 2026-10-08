@@ -1,10 +1,12 @@
 # haywire-core — component index (v0.2.4)
 
 ## node
+- `haywire-core:node:AnnotationNode` — Annotation — A box of text for diagrams; links to other annotations with styled arrows  _tags: note, comment, diagram, arrow, annotation_
 - `haywire-core:node:ErrorNode` — Core Error Node — Placeholder for node that could not be loaded  _tags: error, system, placeholder_
 
 ## type
 - `haywire-core:type:ADD` — Add — Grows a new port from whatever connects to it
+- `haywire-core:type:ANNOTATION` — Annotation — A link between annotation nodes; carries no value
 - `haywire-core:type:BOOL` — Boolean — True or False
 - `haywire-core:type:CALLBACK` — Callback Signal — Signal for callback execution between nodes
 - `haywire-core:type:CHOICES` — Choices — A string constrained to a set of options (options live per-use in widget_config)

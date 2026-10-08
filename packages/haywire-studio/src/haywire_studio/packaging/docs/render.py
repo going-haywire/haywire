@@ -5,9 +5,9 @@ import re
 from haywire.core.library.kinds import doc_filename  # noqa: F401  (re-exported for generate.py)
 from haywire_studio.packaging.docs.model import ComponentRecord, LibraryDoc
 
-# Port presentation order in a node's deep doc: inputs first, then editable
-# configs, then outputs. Stable sort preserves declaration order within a group.
-_DIRECTION_ORDER = {"inlet": 0, "config": 1, "outlet": 2}
+# Port presentation order in a node's deep doc: inputs first, then swinglets,
+# then editable configs, then outputs. Stable sort preserves declaration order within a group.
+_DIRECTION_ORDER = {"inlet": 0, "swinglet": 1, "config": 2, "outlet": 3}
 
 #: Kinds documented by their interface, with ports and settings tables.
 _PORT_BEARING_KINDS = ("node", "macro")

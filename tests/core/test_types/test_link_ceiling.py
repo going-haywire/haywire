@@ -108,7 +108,7 @@ def test_a_narrowed_outlet_keeps_one_linked_edge(graph_with_library_system):
     newest = make_edge(graph, source.node_id, "result", second.node_id, "value_a")
     graph.force_validation()
 
-    linked = source.node.ports["result"]._linked_edges
+    linked = source.node.ports["result"].outgoing.linked
     assert len(linked) == 1
     assert list(linked) == [newest.edge_id]
 
@@ -132,12 +132,13 @@ def test_narrowing_a_port_with_several_links_displaces_every_old_edge(graph_with
     old = [link(o) for o in others[:2]]
     graph.force_validation()
     port = hub.node.ports["note_out" if narrowed == "outlet" else "note_in"]
-    assert len(port._linked_edges) == 2
+    link_set = port.outgoing if narrowed == "outlet" else port.incoming
+    assert len(link_set.linked) == 2
 
     port.single_link = True
     newest = link(others[2])
     graph.force_validation()
 
-    assert list(port._linked_edges) == [newest.edge_id]
+    assert list(link_set.linked) == [newest.edge_id]
     for edge in old:
         assert not edge.state.is_linked, f"{edge.edge_id} still reports linked"

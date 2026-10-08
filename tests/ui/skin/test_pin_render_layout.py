@@ -158,3 +158,14 @@ def test_non_default_layouts_reaim_the_glyph(simple_ports, layout, expected):
 def test_layout_is_advertised_on_the_element(simple_ports, layout):
     for port in simple_ports:
         assert _render(port, layout)._props["data-hw-layout"] == layout.value
+
+
+@pytest.mark.parametrize("layout", list(LayoutDirection))
+def test_a_swinglet_pin_says_so(nicegui_slot_context, layout):
+    """`data-pin-dir` names the swinglet; its side and vector are the inlet's."""
+    inlet = _render(_make_port(PortType.INLET), layout)
+    swinglet = _render(_make_port(PortType.SWINGLET), layout)
+    assert swinglet._props["data-pin-dir"] == "swinglet"
+    assert inlet._props["data-pin-dir"] == "inlet"
+    assert _offset_side(swinglet) == _offset_side(inlet)
+    assert _vector(swinglet) == _vector(inlet)

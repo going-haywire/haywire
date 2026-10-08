@@ -109,7 +109,7 @@ class SplitNodeSkin(NodeSkin):
         ports = node.get_visible_ports()
         configs = [port for port in ports if port.is_config()]
         inlets = [port for port in ports if port.is_inlet()]
-        outlets = [port for port in ports if port.is_outlet()]
+        outlets = [port for port in ports if port.is_outlet() and not port.is_swinglet()]
         widest = max(len(inlets), len(outlets)) + 1
 
         # `min-w-64`/`max-w-sm` size a label+widget content column that a
@@ -157,7 +157,7 @@ class SplitNodeSkin(NodeSkin):
             ports = node.get_visible_ports()
             configs = [port for port in ports if port.is_config()]
             inlets = [port for port in ports if port.is_inlet()]
-            outlets = [port for port in ports if port.is_outlet()]
+            outlets = [port for port in ports if port.is_outlet() and not port.is_swinglet()]
 
             with self.header_row("gap-2"):
                 # Root ghost pins — always-present fallback connection anchors,

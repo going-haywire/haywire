@@ -27,7 +27,7 @@ class Pipe:
         self._edge_id = edge_id
         # Resolved ONCE, here, because a pipe is rebuilt on every structural
         # change: _refresh_pipes() clears and re-adds every pipe whenever the
-        # outlet is structurally dirty, which _add_link/_clear_link set on any
+        # outlet is structurally dirty, which LinkSet.add_link/clear_link set on any
         # link change. A port's field is swapped only by bind_field/unbind_field
         # (promote/demote), and demote removes the port outright — so a live
         # sink's capability cannot change under an existing pipe.
@@ -56,11 +56,11 @@ class Pipe:
     def pull(self) -> None:
         """Pull current outlet value through adapter chain to inlet.
 
-        Reads the outlet's current value (always-latest semantics),
+        Reads the source port's own value (always-latest semantics),
         transforms it, and stores it in the inlet via set_value.
         The edge_id signals edge-driven update (defers on_change).
         """
-        value = self._outlet_port.get_value()
+        value = self._outlet_port.get_own_value()
         if value is not None:
             converted_value = self.chain.execute(value)
             self.sink.set_value(converted_value, edge_id=self._edge_id)

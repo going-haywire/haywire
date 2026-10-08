@@ -60,6 +60,8 @@ def _node(editor, node_id):
 
 
 def _port_direction(port) -> str:
+    if port.is_swinglet():
+        return "swinglet"
     if port.is_inlet():
         return "inlet"
     if port.is_outlet():
@@ -92,6 +94,8 @@ def _port_row(pid: str, port, detail: bool) -> dict:
         )
         if port.single_link:
             row["single_link"] = True
+        if port.is_swinglet():
+            row["outgoing_takes_many"] = port.outgoing.takes_many
     return row
 
 
@@ -211,7 +215,7 @@ def _inspect_port_row(pid: str, port, data: str, expand: bool = False) -> dict:
         # by direction upstream makes the direction key itself redundant.
         info = PortInfo(
             id=pid,
-            direction="inlet" if port.is_inlet() else "outlet",
+            direction=_port_direction(port),
             label=port.label or "",
             description=port.description or "",
             **_wire_fields(port),
@@ -249,6 +253,8 @@ def _inspect_port_row(pid: str, port, data: str, expand: bool = False) -> dict:
         row.update(_wire_fields(port))
         row["use_mode"] = port.use_mode
         row["takes_many_links"] = port.takes_many_links
+        if port.is_swinglet():
+            row["outgoing_takes_many"] = port.outgoing.takes_many
         if port.single_link:
             row["single_link"] = True
         row.update(_constraints(port.widget_config))
@@ -554,8 +560,9 @@ def _metadata_row(graph) -> dict:
     description="Nodes (with ports) and edges of an open graph.",
     instructions=(
         "Nodes (with ports) and edges of an open graph. Pass detail=true for the full "
-        "per-port setup (data_type, takes_many_links, single_link when set, is_linked, link_count, "
-        "use_mode, promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, "
+        "per-port setup (data_type, takes_many_links, outgoing_takes_many on a swinglet only, "
+        "single_link when set, is_linked, link_count, use_mode, "
+        "promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, "
         "propagation, propagation_locked, style, adapter_chain, has_adapters, error; style is the "
         "edge's colour, width, dash and heads for a styled edge, null otherwise); default returns the "
         "base id/direction/wire_type/role per port and id/topology/wire_type/role per edge."
@@ -606,7 +613,7 @@ class GraphEditorQueryGraphTool(Farmhand):
 
 _SECTIONS = ("summary", "node_id", "ports", "settings", "props", "state")
 _DATA_LEVELS = ("info", "value", "all")
-_DIRECTIONS = ("inlet", "outlet", "config")
+_DIRECTIONS = ("inlet", "swinglet", "outlet", "config")
 
 
 @farmhand(
@@ -623,7 +630,7 @@ _DIRECTIONS = ("inlet", "outlet", "config")
     "  summary: always returned — identity, per-bag setting_counts, validity (name it alone for "
     "a cheap survey)\n"
     "  node_id: node_id + registry_key\n"
-    "  ports: ports grouped as inlets/outlets/configs\n"
+    "  ports: ports grouped as inlets/swinglets/outlets/configs (a swinglet may be either end of an edge)\n"
     "  settings: author-declared settings bags, nested {bag: {category: [rows]}} at data='info' "
     "and {bag: [rows]} deeper — never a flat list, so bag identity is always explicit\n"
     "  props: framework properties (position, size, locked, skin) — never mixed into settings\n"
@@ -744,7 +751,7 @@ class GraphEditorInspectNodeTool(Farmhand):
             # Grouped by direction: it is how ports are declared
             # (as_inlet/as_outlet/as_config) and how an agent wiring an edge
             # thinks, and it makes a per-row direction key redundant.
-            groups: dict[str, list[dict]] = {"inlets": [], "outlets": [], "configs": []}
+            groups: dict[str, list[dict]] = {"inlets": [], "swinglets": [], "outlets": [], "configs": []}
             for pid, port in node.ports.items():
                 # Ports have no bag or category, so those axes exclude them
                 # outright rather than matching everything. by_dir is then
@@ -762,7 +769,9 @@ class GraphEditorInspectNodeTool(Farmhand):
                     filters.hit_names.add(pid)
                 elif filters.names:
                     continue
-                bucket = {"inlet": "inlets", "outlet": "outlets"}.get(direction, "configs")
+                bucket = {"inlet": "inlets", "swinglet": "swinglets", "outlet": "outlets"}.get(
+                    direction, "configs"
+                )
                 groups[bucket].append(_inspect_port_row(pid, port, data, expand=pid in filters.names))
             result["ports"] = {k: v for k, v in groups.items() if v}
         if "settings" in sections:

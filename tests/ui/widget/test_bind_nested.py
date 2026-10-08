@@ -84,7 +84,7 @@ def test_a_nested_view_shows_the_linked_value():
     port.set_value(_Vec2(x=1.0, y=2.0))
     w = _Vec2Widget(port)
     w.render()
-    port._linked_edges["e1"] = cast(Any, object())
+    port.incoming.linked["e1"] = cast(Any, object())
 
     port.set_value(_Vec2(x=7.0, y=9.0), edge_id="e1")
 
@@ -96,7 +96,7 @@ def test_a_nested_view_edit_is_refused_while_linked():
     port.set_value(_Vec2(x=1.0, y=2.0))
     w = _Vec2Widget(port)
     w.render()
-    port._linked_edges["e1"] = cast(Any, object())
+    port.incoming.linked["e1"] = cast(Any, object())
     port.set_value(_Vec2(x=7.0, y=9.0), edge_id="e1")
 
     w.ex.value = 3.0

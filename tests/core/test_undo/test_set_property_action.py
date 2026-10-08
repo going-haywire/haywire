@@ -174,7 +174,7 @@ def test_a_linked_inlet_that_accepts_an_own_value_still_takes_a_property_write(g
     sink = _add_node(editor)
     assert editor.create_edge(source.node_id, "result", sink.node_id, "value_a") is True
     inlet = sink.node.ports["value_a"]
-    assert inlet._linked_edges
+    assert inlet.incoming.linked
     assert inlet.data.accepts_own_value()
 
     assert editor.set_property(sink.node_id, "value_a", 42.0) is True

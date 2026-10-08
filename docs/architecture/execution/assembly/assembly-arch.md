@@ -70,6 +70,12 @@ The validation is structural; per-edge validation happens in `EdgeWrapper.build(
 `assemble_graph()` wraps the graph in a `FlatGraphView` before any of this, so a
 Subgraph's nodes take part in the host's flows — see
 [ADR 0036](../../../adr/0036-groups-execute-through-their-boundary-nodes.md).
+The ordering walks (`DataFlowBuilder._check_cycles` and `_topological_sort`) take their
+dependencies from inlet-side lookups (`_get_edge_wrappers_for_port(..., incoming=True)`),
+as `_backpropagate` does: the view splices the Output-to-consumer crossing of a data-only
+Subgraph only into incoming lookups. An outgoing lookup returns the owning graph's edges
+unchanged, so an outlet-side walk misses the Output-to-consumer edge and would order a
+consumer before the Group's interior.
 
 ### 2.4 Assembly metadata
 

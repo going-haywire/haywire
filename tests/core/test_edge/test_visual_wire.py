@@ -59,7 +59,7 @@ def test_a_visual_inlet_takes_many_edges(graph_with_library_system):
     make_edge(graph, second.node_id, "note_out", sink.node_id, "note_in")
     graph.force_validation()
 
-    assert len(sink.node.ports["note_in"]._linked_edges) == 2
+    assert len(sink.node.ports["note_in"].incoming.linked) == 2
 
 
 def test_visual_pins_never_make_a_data_node_invalid(graph_with_library_system):
