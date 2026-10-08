@@ -171,19 +171,19 @@ class DataFlowBuilder:
 
             node = node_wrapper.node
 
-            # Get all data outlets
-            outlets = [port for port in node.ports.values() if port.is_dependent and port.is_outlet()]
+            # Dependencies come from the INLET side, the question _backpropagate asks:
+            # a FlatGraphView splices a data-only Group's Output -> consumer edge only
+            # into incoming queries, so an outlet-side walk would order the consumer
+            # before the Group's interior.
+            inlets = [port for port in node.ports.values() if port.is_dependent and port.is_inlet()]
 
-            for outlet in outlets:
-                # Get connected edges
-                edges = graph._get_edge_wrappers_for_port(node_id, outlet.id)
-
-                for edge in edges:
-                    target_id = edge.sink_node_id
+            for inlet in inlets:
+                for edge in graph._get_edge_wrappers_for_port(node_id, inlet.id):
+                    source_id = edge.source_node_id
 
                     # Only consider edges within our data flow
-                    if target_id in node_ids:
-                        adj[node_id].append(target_id)
+                    if source_id in node_ids:
+                        adj[source_id].append(node_id)
 
         # DFS to detect cycles
         visited: Set[str] = set()
@@ -235,18 +235,19 @@ class DataFlowBuilder:
 
             node = node_wrapper.node
 
-            # Get all data outlets
-            outlets = [port for port in node.ports.values() if port.is_dependent and port.is_outlet()]
+            # Dependencies come from the INLET side, the question _backpropagate asks:
+            # a FlatGraphView splices a data-only Group's Output -> consumer edge only
+            # into incoming queries, so an outlet-side walk would order the consumer
+            # before the Group's interior.
+            inlets = [port for port in node.ports.values() if port.is_dependent and port.is_inlet()]
 
-            for outlet in outlets:
-                edges = graph._get_edge_wrappers_for_port(node_id, outlet.id)
+            for inlet in inlets:
+                for edge in graph._get_edge_wrappers_for_port(node_id, inlet.id):
+                    source_id = edge.source_node_id
 
-                for edge in edges:
-                    target_id = edge.sink_node_id
-
-                    if target_id in node_ids:
-                        adj[node_id].append(target_id)
-                        in_degree[target_id] += 1
+                    if source_id in node_ids:
+                        adj[source_id].append(node_id)
+                        in_degree[node_id] += 1
 
         # Kahn's algorithm
         queue = [node_id for node_id, degree in in_degree.items() if degree == 0]

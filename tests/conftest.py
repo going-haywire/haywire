@@ -567,3 +567,16 @@ def make_edge(
     edge = graph.create_edge_wrapper(source_node_id, outlet_port_id, sink_node_id, inlet_port_id, **kwargs)
     assert edge is not None, f"edge creation failed: {outlet_port_id} -> {inlet_port_id}"
     return edge
+
+
+def run_frame(graph: "BaseGraph") -> None:
+    """Assemble ``graph`` into its one flow and execute a single control frame synchronously."""
+    from typing import cast
+
+    from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager
+    from haywire.core.execution.event_source import Trigger
+    from haywire.core.execution.vm import HaywireVM
+
+    flows = FlowAssemblyManager().assemble_graph(graph)
+    assert len(flows) == 1, f"expected one flow, got {len(flows)}"
+    HaywireVM().execute_control_flow(flows[0], cast("Trigger", None))
