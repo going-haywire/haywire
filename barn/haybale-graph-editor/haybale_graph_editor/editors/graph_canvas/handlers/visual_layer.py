@@ -1175,4 +1175,4 @@ class VisualLayerHandlers:
            pins is not rejected as a duplicate.
         """
         self.edge_states.pop(event.edge_id, None)
-        self.editor.remove_elements([], [event.edge_id])
+        self.editor.remove_elements([], [event.edge_id], release_pins=False)

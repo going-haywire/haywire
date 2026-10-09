@@ -39,6 +39,7 @@ from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.widget.base import DISABLED_STYLE
 
 if TYPE_CHECKING:
+    from haywire.core.graph.editor import Editor
     from haywire.core.node.data import NodeData
     from haywire.core.session.context import SessionContext
     from haywire.core.settings.registry import SettingsRegistry
@@ -59,7 +60,11 @@ _COLUMN_STYLE = "container-type: inline-size; container-name: settings-panel;"
 
 
 def render_settings(
-    ctx: "SessionContext", obj: "Settings", *, categories: Iterable[str] | None = None
+    ctx: "SessionContext",
+    obj: "Settings",
+    *,
+    categories: Iterable[str] | None = None,
+    editor: "Editor | None" = None,
 ) -> None:
     """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
 
@@ -80,6 +85,8 @@ def render_settings(
             order, grouping, headers, chrome and the subscription are what an
             unfiltered render gives. An unknown name selects nothing and
             renders the empty state.
+        editor: The graph editor to record a row's promote and demote on, so each
+            is one undo step. Without one they apply directly and cannot be undone.
     """
 
     fields = type(obj)._settings_descriptors()
@@ -125,7 +132,9 @@ def render_settings(
         def _on_applied() -> None:
             _refresh_group_visibility(category)
 
-        _render_reactive_field_row(ctx, obj, item[0], item[1], updaters, on_ui_state_applied=_on_applied)
+        _render_reactive_field_row(
+            ctx, obj, item[0], item[1], updaters, on_ui_state_applied=_on_applied, editor=editor
+        )
 
     column = _render_grouped(
         sorted_fields,
@@ -553,6 +562,7 @@ def _render_reactive_field_row(
     defn: "setting",
     updaters: dict[str, Callable[[], None]],
     on_ui_state_applied: Callable[[], None] | None = None,
+    editor: "Editor | None" = None,
 ) -> None:
     """Render a single reactive field row (instance path).
 
@@ -674,7 +684,10 @@ def _render_reactive_field_row(
         accessor = bag_accessor(node, obj)
         if accessor is None:
             return
-        promote_setting(node, accessor, attr_name, direction)
+        if editor is not None:
+            editor.promote_setting(node.node_id, accessor, attr_name, direction)
+        else:
+            promote_setting(node, accessor, attr_name, direction)
         _request_canvas_redraw(node)
 
     def _demote() -> None:
@@ -683,7 +696,10 @@ def _render_reactive_field_row(
         node = obj._node
         if node is None:
             return
-        demote_setting(node, defn.storage_key)
+        if editor is not None:
+            editor.remove_port(node.node_id, defn.storage_key)
+        else:
+            demote_setting(node, defn.storage_key)
         _request_canvas_redraw(node)
 
     reset_item: Any = None

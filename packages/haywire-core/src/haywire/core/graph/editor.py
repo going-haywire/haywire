@@ -12,6 +12,8 @@ from haywire.core.undo.actions.graph_actions import (
     MoveNodesAction,
     MoveNodesToAction,
     RemoveElementsAction,
+    RemovePortAction,
+    PromoteSettingAction,
     AddEdgeAction,
     PasteClipboardAction,
     SplitEdgeWithRerouteAction,
@@ -207,13 +209,46 @@ class Editor:
         logger.info(f"Edited port {port_id!r} on node {node_id}")
         return True, None
 
-    def remove_elements(self, nodes: List[str], edges: List[str]) -> bool:
+    def promote_setting(self, node_id: str, accessor: str, field: str, direction: Any) -> bool:
+        """Promote a node setting to a pin of *direction*, undo-recorded.
+
+        Returns:
+            ``False`` without promoting anything for an unknown node or setting, or a
+            direction the setting is not eligible for.
+        """
+        try:
+            action = PromoteSettingAction(self.graph, node_id, accessor, field, direction)
+            return self.history_manager.add_action(action)
+        except Exception as e:
+            logger.error(f"Error promoting {accessor}.{field} on {node_id}: {e}")
+            return False
+
+    def remove_port(self, node_id: str, port_id: str) -> bool:
+        """Remove a port the user brought into being (promoted or resolved), undo-recorded.
+
+        Returns:
+            ``False`` without removing anything for an unknown node or port, or one
+            the node's author declared.
+        """
+        try:
+            action = RemovePortAction(self.graph, node_id, port_id)
+            return self.history_manager.add_action(action)
+        except Exception as e:
+            logger.error(f"Error removing port {port_id!r} on {node_id}: {e}")
+            return False
+
+    def remove_elements(self, nodes: List[str], edges: List[str], release_pins: bool = True) -> bool:
         """Remove the given nodes and edges as one undoable action.
 
         A Subgraph's two boundary nodes are dropped from ``nodes`` rather than
         removed: they are the Subgraph's interface, not its content, so deleting
         everything inside a Group empties it and leaves the interface standing.
         A selection of nothing but boundary nodes therefore removes nothing.
+
+        Args:
+            release_pins: Let the nodes the removed edges ended on drop the ports the
+                edges leave bare. Pass ``False`` when the edge is about to be replaced,
+                as in a reconnect drag, which starts from one of those ports.
 
         Returns:
             ``False`` without removing anything if both lists are empty, if
@@ -239,7 +274,7 @@ class Editor:
             return False
 
         try:
-            action = RemoveElementsAction(self.graph, nodes, edges)
+            action = RemoveElementsAction(self.graph, nodes, edges, release_pins=release_pins)
             if not self.history_manager.add_action(action):
                 return False
 

@@ -130,6 +130,117 @@ def test_removing_a_grown_pin_leaves_its_edge_on_the_ghost(graph):
     assert "top_1" in b.node.ports
 
 
+def _delete(graph, *edge_ids):
+    from haywire.core.undo.actions.graph_actions import RemoveElementsAction
+
+    action = RemoveElementsAction(graph, edges=list(edge_ids), release_pins=True)
+    action.execute()
+    graph.force_validation()
+    return action
+
+
+def test_deleting_the_last_arrow_removes_the_pin_on_both_notes(graph):
+    from haywire.barn.builtin.types import ADD, ANNOTATION
+
+    a, b = _notes(graph)
+    edge = make_edge(graph, a.node_id, "right_0", b.node_id, "left_0")
+    graph.force_validation()
+
+    _delete(graph, edge.edge_id)
+
+    for wrapper, side in ((a, "right"), (b, "left")):
+        assert f"{side}_0" not in wrapper.node.ports
+        assert wrapper.node.ports[f"{side}_1"].type_cls is ADD[ANNOTATION]
+
+
+def test_a_pin_with_another_arrow_stays_when_one_is_deleted(graph):
+    a, b = _notes(graph)
+    make_edge(graph, a.node_id, "right_0", b.node_id, "left_0")
+    graph.force_validation()
+    second = make_edge(graph, a.node_id, "right_1", b.node_id, "top_0")
+    graph.force_validation()
+
+    _delete(graph, second.edge_id)
+
+    assert "right_0" in a.node.ports
+    assert "left_0" in b.node.ports
+    assert "right_1" not in a.node.ports
+    assert "top_0" not in b.node.ports
+
+
+def test_undoing_the_delete_brings_back_the_pins_and_the_arrow(graph):
+    from haywire.barn.builtin.types import ANNOTATION
+
+    a, b = _notes(graph)
+    edge = make_edge(graph, a.node_id, "right_0", b.node_id, "left_0")
+    graph.force_validation()
+
+    action = _delete(graph, edge.edge_id)
+    action.undo()
+    graph.force_validation()
+
+    for wrapper, side in ((a, "right"), (b, "left")):
+        assert wrapper.node.ports[f"{side}_0"].type_cls is ANNOTATION
+        assert wrapper.node.ports[f"{side}_0"].is_linked()
+    assert edge.is_valid()
+
+
+def test_removing_a_pin_is_undoable_and_the_arrow_relinks(graph):
+    from haywire.barn.builtin.types import ANNOTATION
+    from haywire.core.undo.actions.graph_actions import RemovePortAction
+
+    a, b = _notes(graph)
+    edge = make_edge(graph, a.node_id, "bottom_0", b.node_id, "top_0")
+    graph.force_validation()
+    order = b.node.ports["top_0"].order
+
+    action = RemovePortAction(graph, b.node_id, "top_0")
+    action.execute()
+    graph.force_validation()
+    assert "top_0" not in b.node.ports
+    assert not edge.is_valid()
+
+    action.undo()
+    graph.force_validation()
+    restored = b.node.ports["top_0"]
+    assert restored.type_cls is ANNOTATION
+    assert restored.order == order
+    assert restored.is_linked()
+    assert edge.is_valid()
+
+
+def test_undoing_a_new_arrow_removes_the_pins_it_grew_and_redo_restores_them(graph):
+    from haywire.barn.builtin.types import ADD, ANNOTATION
+    from haywire.core.undo.actions.graph_actions import AddEdgeAction
+
+    a, b = _notes(graph)
+    action = AddEdgeAction(graph, a.node_id, "right_0", b.node_id, "left_0")
+    action.execute()
+    graph.force_validation()
+    assert a.node.ports["right_0"].type_cls is ANNOTATION
+
+    action.undo()
+    graph.force_validation()
+    for wrapper, side in ((a, "right"), (b, "left")):
+        assert f"{side}_0" not in wrapper.node.ports
+        assert wrapper.node.ports[f"{side}_1"].type_cls is ADD[ANNOTATION]
+    assert not graph.edge_wrappers
+
+    action.execute()
+    graph.force_validation()
+    assert a.node.ports["right_0"].is_linked()
+    assert b.node.ports["left_0"].is_linked()
+    assert all(e.is_valid() for e in graph.edge_wrappers.values())
+
+
+def test_a_declared_port_cannot_be_removed(graph):
+    from haywire.core.undo.actions.graph_actions import RemovePortAction
+
+    a = make_node(graph, _key())
+    with pytest.raises(RuntimeError, match="declared by the node"):
+        RemovePortAction(graph, a.node_id, "exec").execute()
+
+
 def test_slots_are_not_removable_and_grown_pins_are(graph):
     a, b = _notes(graph)
     make_edge(graph, a.node_id, "right_0", b.node_id, "left_0")

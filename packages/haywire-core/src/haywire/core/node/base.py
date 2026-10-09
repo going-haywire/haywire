@@ -70,6 +70,23 @@ class BaseNode(NodeData):
         """
         pass
 
+    def release_pins(self, port_ids: list[str]) -> list[str]:
+        """Remove the ports among *port_ids* that no longer earn their place after an edge delete.
+
+        Called after the user deletes edges that ended on these ports. A node
+        that grows a port per edge overrides it to drop the ports left without
+        an edge.
+
+        Returns:
+            The ids of the ports removed, to be handed to ``restore_pins()`` on undo;
+            the default removes nothing.
+        """
+        return []
+
+    def restore_pins(self, port_ids: list[str]) -> None:
+        """Bring back the ports ``release_pins()`` removed, when the delete is undone."""
+        pass
+
     def on_testrun(self) -> tuple[bool, str | None]:
         """Verify that the node is set up correctly. Run when the node is added to the graph.
 

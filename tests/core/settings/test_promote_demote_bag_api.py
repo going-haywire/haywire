@@ -63,3 +63,46 @@ def test_bag_promote_raises_for_ineligible_direction(make_node_with_setting):
     type(node.filter).__dict__["threshold"]._promotable = Promotable.OUTLET
     with pytest.raises(ValueError, match="cannot be promoted"):
         node.filter._promote("threshold", PortType.INLET)
+
+
+def test_removing_a_promoted_pin_through_the_action_is_undoable(make_node_with_setting):
+    from unittest.mock import MagicMock
+
+    from haywire.core.undo.actions.graph_actions import RemovePortAction
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    node.filter._promote("threshold", PortType.OUTLET)
+    pid = type(node.filter).__dict__["threshold"].storage_key
+    graph = MagicMock()
+    graph.get_node_wrapper.return_value.node = node
+
+    action = RemovePortAction(graph, "n1", pid)
+    action.execute()
+    assert pid not in node.ports
+    assert node.filter._is_promoted("threshold") is False
+
+    action.undo()
+    assert node.ports[pid].is_outlet()
+    assert node.filter._is_promoted("threshold") is True
+
+
+def test_promoting_through_the_action_is_undoable(make_node_with_setting):
+    from unittest.mock import MagicMock
+
+    from haywire.core.undo.actions.graph_actions import PromoteSettingAction
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    pid = type(node.filter).__dict__["threshold"].storage_key
+    graph = MagicMock()
+    graph.get_node_wrapper.return_value.node = node
+
+    action = PromoteSettingAction(graph, "n1", "filter", "threshold", PortType.INLET)
+    action.execute()
+    assert node.ports[pid].is_inlet()
+
+    action.undo()
+    assert pid not in node.ports
+    assert node.filter._is_promoted("threshold") is False
+
+    action.execute()
+    assert node.ports[pid].is_inlet()

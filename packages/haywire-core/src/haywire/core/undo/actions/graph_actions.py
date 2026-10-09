@@ -149,10 +149,30 @@ class AddEdgeAction(ActionBase):
 
         self.undo_wrapper: Optional[EdgeWrapper] = None
 
+        # Ends that were bare ``ADD`` slots when the edge was made: linking grows a pin
+        # there, which undo takes away again (node_id -> port ids).
+        self._slot_ends: Dict[str, List[str]] = {}
+        self._released: Dict[str, List[str]] = {}
+
+    def _slot_ends_of_edge(self) -> Dict[str, List[str]]:
+        from haywire.barn.builtin.types.add import ADD
+
+        ends: Dict[str, List[str]] = {}
+        for node_id, port_id in (
+            (self.source_node_id, self.outlet_port_id),
+            (self.sink_node_id, self.inlet_port_id),
+        ):
+            wrapper = self.graph.get_node_wrapper(node_id)
+            port = wrapper.node.ports.get(port_id) if wrapper is not None else None
+            if port is not None and port.type_cls is not None and issubclass(port.type_cls, ADD):
+                ends.setdefault(node_id, []).append(port_id)
+        return ends
+
     def _execute_impl(self) -> None:
         """Add the edge to the graph."""
         if self.wrapper is None:
             # First execution: Create new wrapper via graph
+            self._slot_ends = self._slot_ends_of_edge()
             self.wrapper = self.graph.create_edge_wrapper(
                 self.source_node_id,
                 self.outlet_port_id,
@@ -162,7 +182,14 @@ class AddEdgeAction(ActionBase):
                 style=self.style,
             )
         else:
-            # Redo: Re-add existing wrapper
+            # Redo: bring back the pins undo took away, then re-add the wrapper on them.
+            for node_id, port_ids in self._released.items():
+                owner = self.graph.get_node_wrapper(node_id)
+                if owner is not None:
+                    owner.node.restore_pins(port_ids)
+            if self._released:
+                self.wrapper.build()
+            self._released = {}
             self.wrapper = self.graph.add_edge_wrapper(self.wrapper)
 
         self.undo_wrapper = None
@@ -175,9 +202,14 @@ class AddEdgeAction(ActionBase):
             )
 
     def _undo_impl(self) -> None:
-        """Remove the edge from the graph."""
+        """Remove the edge from the graph, and the pins its linking grew."""
         if self.wrapper:
             self.undo_wrapper = self.graph.remove_edge_wrapper(self.wrapper.edge_id)
+            for node_id, port_ids in self._slot_ends.items():
+                owner = self.graph.get_node_wrapper(node_id)
+                released = owner.node.release_pins(port_ids) if owner is not None else []
+                if released:
+                    self._released[node_id] = released
 
     def cleanup(self) -> None:
         """
@@ -336,6 +368,7 @@ class RemoveElementsAction(ActionBase):
         nodes: Optional[List[str]] = None,
         edges: Optional[List[str]] = None,
         description: Optional[str] = None,
+        release_pins: bool = False,
     ):
         """
         Initialize the remove elements action.
@@ -345,6 +378,9 @@ class RemoveElementsAction(ActionBase):
             nodes: List of node IDs to remove
             edges: List of edge UUIDs to remove
             description: Optional description override
+            release_pins: Let the nodes the removed edges ended on drop the ports the
+                edges leave bare (see ``BaseNode.release_pins``). Off for a rewire,
+                which removes an edge only to add its replacement.
         """
         nodes = nodes or []
         edges = edges or []
@@ -363,21 +399,36 @@ class RemoveElementsAction(ActionBase):
         self.graph = graph
         self.nodes = nodes
         self.edges = edges
+        self.release_pins = release_pins
 
         # Store removed elements for restoration
         self.removed_node_wrappers: Dict[str, NodeWrapper] = {}
         self.removed_edge_wrappers: Dict[str, EdgeWrapper] = {}
         # node_id -> edge wrappers that were connected to it
         self.node_connected_edge_wrappers: Dict[str, EdgeWrapper] = {}
+        # node_id -> ids of the ports the node released along with the edges
+        self.released_pins: Dict[str, List[str]] = {}
 
     def _execute_impl(self) -> None:
         """Remove all specified elements and store them for undo."""
         # First, store and remove connections
+        ends: Dict[str, List[str]] = {}
         for edge_id in self.edges:
             edge_wrapper = self.graph.get_edge_wrapper(edge_id)
             if edge_wrapper:
                 self.removed_edge_wrappers[edge_id] = edge_wrapper
+                ends.setdefault(edge_wrapper.source_node_id, []).append(edge_wrapper.outlet_port_id)
+                ends.setdefault(edge_wrapper.sink_node_id, []).append(edge_wrapper.inlet_port_id)
                 self.graph.remove_edge_wrapper(edge_id)
+
+        # A node that grows a port per edge drops the ports the deleted edges leave bare.
+        for node_id, port_ids in ends.items():
+            node_wrapper = self.graph.get_node_wrapper(node_id)
+            if not self.release_pins or node_wrapper is None or node_id in self.nodes:
+                continue
+            released = node_wrapper.node.release_pins(port_ids)
+            if released:
+                self.released_pins[node_id] = released
 
         # Then, store and remove nodes
         for node_id in self.nodes:
@@ -400,6 +451,17 @@ class RemoveElementsAction(ActionBase):
         # First, restore node wrappers
         for _node_id, node_wrapper in self.removed_node_wrappers.items():
             self.graph.add_node_wrapper(node_wrapper)
+
+        # Released ports come back before the edges that end on them.
+        for node_id, port_ids in self.released_pins.items():
+            owner = self.graph.get_node_wrapper(node_id)
+            if owner is not None:
+                owner.node.restore_pins(port_ids)
+        # An edge holds the port objects it was built on, so it rebuilds onto the restored ones.
+        if self.released_pins:
+            for edge_wrapper in self.removed_edge_wrappers.values():
+                edge_wrapper.build()
+        self.released_pins.clear()
 
         # then, restore all edges connected to restored nodes
         for _edge_id, edge_wrapper in self.node_connected_edge_wrappers.items():
@@ -1017,6 +1079,129 @@ class SetPortMetadataAction(ActionBase):
 
         for name, value in values.items():
             setattr(port, name, value)
+        self.graph._validation.mark_node_dirty(self.node_id, ChangeReason.NODE_VALIDATION_REQUESTED)
+
+
+class RemovePortAction(ActionBase):
+    """Undoable removal of a port the user brought into being.
+
+    Covers what ``remove_port()`` covers: a setting promoted to a pin, or a slot
+    resolved from an ``ADD`` placeholder. Edges on the port are detached with it
+    and stay in the graph; undo restores the port and the edges link to it again.
+
+    Raises:
+        ValueError: If the node or port is not found, or the port is one the node's
+            author declared.
+    """
+
+    def __init__(self, graph: BaseGraph, node_id: str, port_id: str):
+        super().__init__(description=f"Remove pin '{port_id}'")
+        self.graph = graph
+        self.node_id = node_id
+        self.port_id = port_id
+        # A promoted port is regenerated from its setting; any other from its saved spec.
+        self._promotion: Optional[Tuple[str, str, Any]] = None
+        self._spec: Optional[Dict[str, Any]] = None
+        self._order = 0
+
+    def _node(self) -> Any:
+        wrapper = self.graph.get_node_wrapper(self.node_id)
+        if wrapper is None:
+            raise ValueError(f"Node '{self.node_id}' not found")
+        return wrapper.node
+
+    def _execute_impl(self) -> None:
+        from ...node.promotion import _resolve_promoted, bag_accessor, remove_port
+        from ...types.enums import PortOrigin
+
+        node = self._node()
+        port = node.ports.get(self.port_id)
+        if port is None:
+            raise ValueError(f"Node '{self.node_id}' has no port '{self.port_id}'")
+        if not port.is_user_removable():
+            raise ValueError(f"Port '{self.port_id}' is declared by the node and cannot be removed")
+
+        self._promotion = self._spec = None
+        if port.origin is PortOrigin.PROMOTED:
+            bag, desc = _resolve_promoted(node, self.port_id)
+            accessor = bag_accessor(node, bag)
+            record = bag._promoted_keys.get(desc.storage_key)
+            if accessor is not None and record is not None:
+                self._promotion = (accessor, desc._attr_name, record)
+        else:
+            self._spec = port.to_dict()
+            self._order = port.order
+        remove_port(node, self.port_id)
+        self._publish()
+
+    def _undo_impl(self) -> None:
+        from ...node.promotion import promote_setting
+
+        node = self._node()
+        if self._promotion is not None:
+            accessor, field, record = self._promotion
+            promote_setting(node, accessor, field, record.direction, record.show_widget, record.order)
+        elif self._spec is not None:
+            with node.rejig(include=[self.port_id]):
+                node.add(self._spec).order = self._order
+        self._publish()
+
+    def _publish(self) -> None:
+        """Mark the node so its card repaints and its edges rebuild onto the port's new state."""
+        from ...graph.types import ChangeReason
+
+        self.graph._validation.mark_node_dirty(self.node_id, ChangeReason.NODE_VALIDATION_REQUESTED)
+
+
+class PromoteSettingAction(ActionBase):
+    """Undoable promotion of a node setting to a pin.
+
+    Undo removes the pin again, detaching any edge that was wired to it in the
+    meantime. The reverse, demoting a pin, is :class:`RemovePortAction`.
+
+    Raises:
+        ValueError: If the node is not found.
+    """
+
+    def __init__(self, graph: BaseGraph, node_id: str, accessor: str, field: str, direction: Any):
+        """
+        Args:
+            accessor: The settings bag's handle on the node (``bag_accessor()``).
+            field: The setting's attribute name in that bag.
+            direction: The ``PortType`` to promote to: inlet, outlet or config.
+        """
+        super().__init__(description=f"Promote '{field}'")
+        self.graph = graph
+        self.node_id = node_id
+        self.accessor = accessor
+        self.field = field
+        self.direction = direction
+        self._port_id: Optional[str] = None
+
+    def _node(self) -> Any:
+        wrapper = self.graph.get_node_wrapper(self.node_id)
+        if wrapper is None:
+            raise ValueError(f"Node '{self.node_id}' not found")
+        return wrapper.node
+
+    def _execute_impl(self) -> None:
+        from ...node.promotion import _descriptor, promote_setting
+
+        node = self._node()
+        self._port_id = _descriptor(node, self.accessor, self.field).storage_key
+        promote_setting(node, self.accessor, self.field, self.direction)
+        self._publish()
+
+    def _undo_impl(self) -> None:
+        from ...node.promotion import demote_setting
+
+        if self._port_id is not None:
+            demote_setting(self._node(), self._port_id)
+        self._publish()
+
+    def _publish(self) -> None:
+        from ...graph.types import ChangeReason
+
         self.graph._validation.mark_node_dirty(self.node_id, ChangeReason.NODE_VALIDATION_REQUESTED)
 
 

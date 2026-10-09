@@ -22,6 +22,7 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
 from haybale_graph_editor.panels._gating import is_reroute_node
+from haybale_graph_editor.panels.properties.introspect.node_ports import _editor_for
 from haybale_graph_editor.surfaces import SettingsInspector
 from haybale_graph_editor.state.edit_state import EditState
 
@@ -72,4 +73,4 @@ class NodeSettingsPanel(BasePanel):
                 continue  # skip props bag, rendered separately in NodePropertiesPanel
             header = bag_name.replace("_", " ").title()
             with hui.category_group(header):
-                render_settings(ctx, bag)
+                render_settings(ctx, bag, editor=_editor_for(ctx))

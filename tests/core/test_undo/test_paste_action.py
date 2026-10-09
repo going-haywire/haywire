@@ -327,9 +327,12 @@ def test_paste_execution_edge_connects_created_nodes():
             # The real base.py mints its OWN id when node_id is None.
             if node_id is None:
                 node_id = self.generate_unique_node_id(registry_key)
-            wrapper = type("W", (), {"node_id": node_id})()
+            wrapper = type("W", (), {"node_id": node_id, "node": type("N", (), {"ports": {}})()})()
             self.node_wrappers[node_id] = wrapper
             return wrapper
+
+        def get_node_wrapper(self, node_id):
+            return self.node_wrappers.get(node_id)
 
         def create_edge_wrapper(
             self, source_node_id, outlet_port_id, sink_node_id, inlet_port_id, propagation=None, style=None

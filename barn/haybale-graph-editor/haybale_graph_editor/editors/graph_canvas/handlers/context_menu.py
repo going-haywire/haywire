@@ -759,27 +759,18 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
     # PortContextActions — setting demotion, promoted-port widget visibility
 
     def demote_setting(self, port_id: str) -> None:
-        """Remove the promoted port for ``port_id`` on the right-clicked node."""
-        from haywire.core.node.promotion import demote_setting
-
-        wrapper = self._context.data[EditState].active_node
-        if wrapper is None:
-            return
-        demote_setting(wrapper.node, port_id)
-        self._redraw_node(wrapper.node_id)
+        """Remove the promoted port for ``port_id`` on the right-clicked node, as one undo step."""
+        self.remove_port(port_id)
 
     def remove_port(self, port_id: str) -> None:
-        """Remove the user-created port ``port_id`` on the right-clicked node.
-
-        Not undoable — matching ``demote_setting``, which it dispatches to for a
-        promoted pin.
-        """
-        from haywire.core.node.promotion import remove_port
+        """Remove the user-created port ``port_id`` on the right-clicked node, as one undo step."""
+        from ....panels.properties.introspect.node_ports import _editor_for
 
         wrapper = self._context.data[EditState].active_node
-        if wrapper is None:
+        editor = _editor_for(self._context)
+        if wrapper is None or editor is None:
             return
-        if remove_port(wrapper.node, port_id):
+        if editor.remove_port(wrapper.node_id, port_id):
             self._redraw_node(wrapper.node_id)
 
     def reset_setting(self, port_id: str) -> None:

@@ -40,8 +40,9 @@ class AnnotationNode(BaseNode):
     arrow's edge menu.
 
     A pin you connect stays, and a new open pin appears after it, so a side can
-    hold any number of arrows. A side's pins are kept centred along it. Remove a
-    pin you no longer need from its pin menu.
+    hold any number of arrows. A side's pins are kept centred along it. Deleting
+    an arrow removes a pin it leaves without one; undoing the delete brings the
+    pin back. You can also remove a pin from its pin menu.
 
     Arrows between annotations are drawn and saved with the graph but never run.
     The node also has a control inlet and outlet that pass control and its
@@ -127,6 +128,32 @@ class AnnotationNode(BaseNode):
         with self.rejig(include=[port.id]):
             self._add_slot(side, index, ANNOTATION, PortOrigin.RESOLVED)
         self._add_slot(side, self._next_index(side), ADD[ANNOTATION])
+
+    def release_pins(self, port_ids: list[str]) -> list[str]:
+        """Remove the annotation pins among *port_ids* that hold no arrow, and return their ids."""
+        from haywire.barn.builtin.types import ADD
+        from haywire.core.node.promotion import remove_port
+
+        released = []
+        for port_id in dict.fromkeys(port_ids):
+            port = self.ports.get(port_id)
+            # Open slots and the control pair are not grown pins.
+            if port is None or self._parse(port_id) is None or port.is_linked():
+                continue
+            if port.type_cls is None or issubclass(port.type_cls, ADD):
+                continue
+            if remove_port(self, port_id):
+                released.append(port_id)
+        return released
+
+    def restore_pins(self, port_ids: list[str]) -> None:
+        """Grow the pins ``release_pins()`` removed back at their old ids."""
+        from haywire.barn.builtin.types import ANNOTATION
+
+        for port_id in port_ids:
+            parsed = self._parse(port_id)
+            if parsed is not None and port_id not in self.ports:
+                self._add_slot(parsed[0], parsed[1], ANNOTATION, PortOrigin.RESOLVED)
 
     def _next_index(self, side: str) -> int:
         """One past the highest index in use on *side*.
