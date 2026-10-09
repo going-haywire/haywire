@@ -9,6 +9,7 @@ shape that prevents it.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
 
@@ -68,7 +69,9 @@ def _draw(actions: _Actions):
     panel = CollapseToolbarPanel()
     panel.actions = actions  # type: ignore[assignment]
     container = ui.element("div")
-    panel.draw(MagicMock(), PanelLayout(container))
+    ctx = MagicMock()
+    ctx.data.__getitem__.return_value = SimpleNamespace(selected_nodes={"a", "b"})
+    panel.draw(ctx, PanelLayout(container))
     buttons = [el for el in container.descendants() if isinstance(el, ui.button)]
     assert len(buttons) == 1, f"expected one button, got {len(buttons)}"
     return buttons[0]
@@ -139,7 +142,7 @@ class TestItReadsStateRatherThanCapturingIt:
 
         tooltips = [el for el in button.descendants() if isinstance(el, ui.tooltip)]
         assert len(tooltips) == 1
-        assert tooltips[0].text == "Collapse"
+        assert tooltips[0].text == "Collapse 2 Nodes"
 
     def test_the_tooltip_names_the_action_not_the_state(self, nicegui_slot_context):
         """Icon and tooltip must agree — an icon showing the current state
@@ -148,5 +151,14 @@ class TestItReadsStateRatherThanCapturingIt:
         button = _draw(actions)
 
         tooltips = [el for el in button.descendants() if isinstance(el, ui.tooltip)]
-        assert tooltips[0].text == "Expand"
+        assert tooltips[0].text == "Expand 2 Nodes"
         assert button._props["icon"] == hui.icon.node_expand
+
+
+def test_it_is_a_verb_on_the_nodes_only():
+    """Edges in the selection are left alone; an edges-only selection has nothing to fold."""
+    edges_only = MagicMock()
+    edges_only.data.__getitem__.return_value = SimpleNamespace(
+        selected_nodes=set(), selected_edges={"e"}, active_node=None
+    )
+    assert CollapseToolbarPanel.poll(edges_only) is False

@@ -1804,6 +1804,14 @@ export default {
                         Array.from(this.selectionState.selectedEdges)
                     ));
                 } else {
+                    // Replace-then-act, as for a node: the edge menu always concerns
+                    // a selection of exactly this edge, which the Style flyout reads.
+                    if (!isEdgeSelected) {
+                        this._clearSelection();
+                        this._selectElement('edge', edge_id, false);
+                        this._setActive('edge', edge_id);
+                        this._emitSelectionChanged();
+                    }
                     // Determine which end of the edge was closer to the click point,
                     // measured to each end's pin centre (a missing port's end is
                     // measured to the node's ghost pin). Ends are drawn at the pin
@@ -2354,19 +2362,26 @@ export default {
          *  rects resolvable. Edges-only selections fall back to null (toolbar hides). */
         _computeSelectionScreenBounds() {
             const ids = Array.from(this.selectionState.selectedNodes);
-            if (ids.length === 0) return null;
+            const edgeIds = Array.from(this.selectionState.selectedEdges);
+            if (ids.length === 0 && edgeIds.length === 0) return null;
 
             let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
-            for (const nodeId of ids) {
-                const el = this.$refs.nodeContainer
-                    ? this.$refs.nodeContainer.querySelector(`[data-node-id="${nodeId}"]`)
-                    : null;
-                if (!el) continue;
-                const r = el.getBoundingClientRect();
+            const include = (r) => {
                 if (r.left < left) left = r.left;
                 if (r.top < top) top = r.top;
                 if (r.right > right) right = r.right;
                 if (r.bottom > bottom) bottom = r.bottom;
+            };
+            for (const nodeId of ids) {
+                const el = this.$refs.nodeContainer
+                    ? this.$refs.nodeContainer.querySelector(`[data-node-id="${nodeId}"]`)
+                    : null;
+                if (el) include(el.getBoundingClientRect());
+            }
+            // An edge counts by its drawn curve, so an edges-only selection anchors the toolbar too.
+            for (const edgeId of edgeIds) {
+                const info = this.edgePaths.get(edgeId);
+                if (info && info.path) include(info.path.getBoundingClientRect());
             }
             if (left === Infinity) return null;
 

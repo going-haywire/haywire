@@ -52,14 +52,25 @@ async def user() -> AsyncGenerator[User, None]:
         yield u
 
 
-def _ctx(with_node):  # untyped stand-in for SessionContext, like the sibling tests
-    behavior = SimpleNamespace(is_reroute_node=False)
-    node = (
-        SimpleNamespace(node=SimpleNamespace(props=NodeProperties(), behavior=behavior))
-        if with_node
-        else None
+def _node(*, reroute: bool = False):
+    behavior = SimpleNamespace(is_reroute_node=reroute)
+    return SimpleNamespace(props=NodeProperties(), behavior=behavior)
+
+
+def _ctx(with_node=False, *, nodes=None, edges=()):  # untyped stand-in for SessionContext
+    """A selection of *nodes* (id -> node) and edge ids; ``with_node`` selects one plain node."""
+    if nodes is None:
+        nodes = {"n1": _node()} if with_node else {}
+    graph = SimpleNamespace(
+        get_node_wrapper=lambda node_id: SimpleNamespace(node=nodes[node_id]) if node_id in nodes else None,
+        get_edge_wrapper=lambda _edge_id: None,
     )
-    edit = SimpleNamespace(active_node=node, selected_nodes=set(), selected_edges=set())
+    edit = SimpleNamespace(
+        active_node=None,
+        active_graph=graph,
+        selected_nodes=set(nodes),
+        selected_edges=set(edges),
+    )
     data = MagicMock()
     data.__getitem__.return_value = edit
     return SimpleNamespace(
@@ -98,8 +109,13 @@ def test_it_polls_for_a_node_not_merely_a_selection():
     """SelectionToolbar.poll is "something is selected", which an edges-only
     selection satisfies — there is nothing to style without a node."""
     assert AppearanceToolbarPanel.poll(_ctx(with_node=True)) is True
-    assert AppearanceToolbarPanel.poll(_ctx(with_node=False)) is False
-    assert NodeAppearancePanel.poll(_ctx(with_node=False)) is False
+    assert AppearanceToolbarPanel.poll(_ctx(edges=["e1"])) is False
+    assert NodeAppearancePanel.poll(_ctx(edges=["e1"])) is False
+
+
+def test_a_selection_with_edges_hides_it():
+    """Cross-kind: nodes and edges together have no shared appearance."""
+    assert AppearanceToolbarPanel.poll(_ctx(with_node=True, edges=["e1"])) is False
 
 
 # ---------------------------------------------------------------------------
@@ -148,28 +164,25 @@ async def test_the_dropdown_renders_the_appearance_slice_and_stays_live(user: Us
 
 @pytest.mark.anyio
 async def test_nothing_renders_without_a_node(user: User) -> None:
-    """poll() is False and there is no draw_disabled: a toolbar icon for a
-    thing that cannot apply simply is not there (unlike a menu command, which
-    greys)."""
+    """An edges-only selection is cross-kind for Appearance: the icon is not
+    there at all, not even greyed."""
     captured: dict[str, object] = {}
 
     @ui.page("/")
     def page() -> None:
         with hui.open_flyout_group():
             layout = PanelLayout(ui.column())
-            drew = render_panel(
+            render_panel(
                 AppearanceToolbarPanel,
-                _ctx(with_node=False),
+                _ctx(edges=["e1"]),
                 layout,
                 actions_host=MagicMock(),
                 registry=_registry(),
                 disabled=True,
             )
-            captured["drew"] = drew
             captured["layout"] = layout
 
     await user.open("/")
 
-    assert captured["drew"] is False
     layout: PanelLayout = captured["layout"]  # type: ignore[assignment]
     assert not list(layout.container.descendants())

@@ -26,6 +26,8 @@ from haywire.ui.panel.decorator import panel
 from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionToolbar
 
 from ..._gating import locked_bag, selection_has_locked
+from ..menu.selection.selection import selection_label
+from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -61,7 +63,8 @@ class CollapseToolbarPanel(BasePanel):
         # A locked node's geometry is frozen, so folding it is not on offer.
         # Any selection size — see selection_has_locked on why this is not
         # the Lock button's locked_bag.
-        if is_reroute_node(ctx):
+        # A verb on the selected nodes: edges in the selection are left alone.
+        if not ctx.data[EditState].selected_nodes or is_reroute_node(ctx):
             return False
         return not selection_has_locked(ctx)
 
@@ -70,11 +73,12 @@ class CollapseToolbarPanel(BasePanel):
         return hui.icon.node_expand if collapsed else hui.icon.node_collapse
 
     @staticmethod
-    def _tip(collapsed: bool) -> str:
-        return "Expand" if collapsed else "Collapse"
+    def _tip(collapsed: bool, n_nodes: int) -> str:
+        return selection_label("Expand" if collapsed else "Collapse", n_nodes, 0)
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         collapsed = self.actions.selection_is_collapsed()
+        n_nodes = len(ctx.data[EditState].selected_nodes)
 
         with layout:
             # Tooltip built here rather than through icon_action's `tooltip=`
@@ -83,13 +87,13 @@ class CollapseToolbarPanel(BasePanel):
             # second one rather than replace the first.
             btn = hui.icon_action(self._icon(collapsed))
             with btn:
-                tip = ui.tooltip(self._tip(collapsed))
+                tip = ui.tooltip(self._tip(collapsed, n_nodes))
 
         def _toggle() -> None:
             now = self.actions.toggle_selection_collapsed()
             btn.props(f"icon={self._icon(now)}")
             btn.update()
-            tip.set_text(self._tip(now))
+            tip.set_text(self._tip(now, n_nodes))
 
         btn.on("click", lambda _e=None: _toggle())
 

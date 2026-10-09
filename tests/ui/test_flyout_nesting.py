@@ -543,6 +543,28 @@ async def test_a_flyout_over_an_empty_body_at_the_popup_level_does_not_count_as_
     )
 
 
+@pytest.mark.anyio
+async def test_a_flyout_over_a_drawn_body_at_the_popup_level_counts_once(user: User) -> None:
+    """The other half of the rule above: an icon whose body drew content is
+    content at the popup level, so a toolbar of hosting icons alone (an edge
+    selection's Style and ⋯) still shows. It counts once, not once per leaf."""
+    from haywire.ui.panel.host_rendering import counting_leaves
+
+    captured: dict[str, object] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        with counting_leaves() as leaves:
+            with open_flyout_group():
+                with hui.dropdown("style", tooltip="Style"):
+                    _leaves_drawn.set(_leaves_drawn.get() + 2)  # two leaves in the body
+            captured["leaves"] = leaves()
+
+    await user.open("/")
+
+    assert captured["leaves"] == 1
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Open delay
 # ──────────────────────────────────────────────────────────────────────────────

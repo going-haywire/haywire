@@ -12,4 +12,5 @@
 
 The ⧉ icon that drops the appearance fields above the toolbar.
 
-Gated on the selection's primary node being unlocked
+Shown for a selection of nodes only; greyed, with the reason, when the
+selected nodes cannot be styled together. See ``_selection_forms``.

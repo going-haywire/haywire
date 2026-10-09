@@ -19,10 +19,10 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from .....surfaces import EdgeActions, EdgeEditMenu, EdgeMenu, EdgeStyle, SelectionMenu
+from .....surfaces import EdgeActions, EdgeEditMenu, EdgeMenu, EdgeStyle
 from .....state.edit_state import EditState
 from ..component_rows import component_row
-from ...._edge_style import render_edge_style, selection_shares_style, style_group
+from ...._selection_forms import edge_style_subject, render_form
 from ....properties.introspect.edge import (
     _state_from_context,
     _has_edge_errors,
@@ -115,48 +115,25 @@ class EdgeStyleMenuPanel(BasePanel):
 
 
 @panel(
-    surface=SelectionMenu,
-    hosts=(EdgeStyle,),
-    label="Style",
-    icon=hui.icon.theme,
-    order=36,
-)
-class EdgeStyleSelectionMenuPanel(BasePanel):
-    """The "Style…" row for a selection of edges that share a connection type's style fields.
-
-    Appears on ``SelectionMenu``; a change in the submenu is applied to every selected edge.
-    """
-
-    @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
-        return selection_shares_style(ctx)
-
-    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
-        with layout:
-            with hui.submenu_row("Style", icon=hui.icon.theme, content=True):
-                self.render_surface(EdgeStyle, ctx)
-
-
-@panel(
     surface=EdgeStyle,
     label="Style",
     icon=hui.icon.theme,
     order=10,
 )
 class EdgeStyleBodyPanel(BasePanel):
-    """The style fields of the active edge, written to the selected edges that share them."""
+    """The style fields of the selected edge, or a form applying to every selected edge."""
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return bool(style_group(ctx))
+        return edge_style_subject(ctx).editable
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
-        group = style_group(ctx)
-        if not group:
+        subject = edge_style_subject(ctx)
+        if not subject.editable:
             return
         with layout:
             with ui.column().classes("hw-panel gap-0").style("min-width: 240px"):
-                render_edge_style(ctx, group)
+                render_form(ctx, subject)
 
 
 @panel(

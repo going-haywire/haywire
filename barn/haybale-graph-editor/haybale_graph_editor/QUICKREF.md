@@ -42,8 +42,10 @@
 - `haybale-graph-editor:panel:EdgePropagationMenuPanel` — Propagation — Lazy propagation pulls data on demand instead of pushing it to the target node.
 - `haybale-graph-editor:panel:EdgePropagationPanel` — Propagation — 
 - `haybale-graph-editor:panel:EdgeStatsPanel` — Execution Statistics — 
+- `haybale-graph-editor:panel:EdgeStyleBodyPanel` — Style — 
 - `haybale-graph-editor:panel:EdgeStyleMenuPanel` — Style — 
 - `haybale-graph-editor:panel:EdgeStylePanel` — Style — 
+- `haybale-graph-editor:panel:EdgeStyleToolbarPanel` — Style — 
 - `haybale-graph-editor:panel:EdgeWarningsMenuPanel` — Connection Warnings — 
 - `haybale-graph-editor:panel:EdgeWarningsPanel` — Connection Warnings — 
 - `haybale-graph-editor:panel:EditEdgeMenuPanel` — Edit — 
@@ -58,7 +60,7 @@
 - `haybale-graph-editor:panel:InsertRerouteMenuPanel` — Insert Reroute — 
 - `haybale-graph-editor:panel:LockToolbarPanel` — Lock — 
 - `haybale-graph-editor:panel:NewNodeToolbarPanel` — New Node — 
-- `haybale-graph-editor:panel:NodeAppearancePanel` — Node Appearance — 
+- `haybale-graph-editor:panel:NodeAppearancePanel` — Appearance — 
 - `haybale-graph-editor:panel:NodeErrorsPanel` — Node Errors — 
 - `haybale-graph-editor:panel:NodeErrorsSelectionMenuPanel` — Node Errors — 
 - `haybale-graph-editor:panel:NodeInfoPanel` — Node Info — 

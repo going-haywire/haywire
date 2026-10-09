@@ -12,26 +12,26 @@ not a list of commands. ``hui.dropdown`` opens on click and never
 — the first click into a field would shut the panel. See
 ``haywire.ui.elements.flyout.DropdownIcon``.
 
-The fields are the *live* ``appearance`` category of the node's own props bag
+For one node, the fields are the *live* ``appearance`` category of its own props bag
 (``skin``, ``layout_direction``, ``body_color``, ``border_color``,
 ``border_thickness``, ``border_roundness``) — the same rows, the same
 reset chrome and the same subscriptions the properties editor renders, sliced
 by ``render_settings(categories=...)`` rather than copied. Editing one here
-and in the Node Properties panel is the same write.
+and in the Node Properties panel is the same write. For several nodes they are a
+neutral form whose changes go to every selected node (see ``_selection_forms``).
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from haybale_graph_editor.panels._gating import is_reroute_node
+from haybale_graph_editor.panels._selection_forms import disabled_icon, node_appearance_subject, render_form
 from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_settings
 
 from haybale_graph_editor.surfaces import NodeAppearance, SelectionActions, SelectionToolbar
 from haybale_graph_editor.state.edit_state import EditState
@@ -44,22 +44,6 @@ if TYPE_CHECKING:
 APPEARANCE_CATEGORY = "appearance"
 
 
-def _appearance_bag(ctx: "SessionContext") -> Any | None:
-    """The active node's props bag, or None when there is no node to style.
-
-    Deliberately NOT ``_gating.locked_bag``, despite the family resemblance:
-    this one carries no selection-size rule, because the fields inside the
-    dropdown are scoped to the selection's *primary* node on purpose (see
-    :class:`NodeAppearancePanel`). The gate on the hosting panel does use
-    ``locked_bag`` — that one is a single-node affordance.
-    """
-    wrapper = ctx.data[EditState].active_node
-    if wrapper is None:
-        return None
-    node = getattr(wrapper, "node", None)
-    return getattr(node, "props", None)
-
-
 @panel(
     surface=SelectionToolbar,
     hosts=(NodeAppearance,),
@@ -70,37 +54,36 @@ def _appearance_bag(ctx: "SessionContext") -> Any | None:
 class AppearanceToolbarPanel(BasePanel):
     """The ⧉ icon that drops the appearance fields above the toolbar.
 
-    Gated on the selection's primary node being unlocked
+    Shown for a selection of nodes only; greyed, with the reason, when the
+    selected nodes cannot be styled together. See ``_selection_forms``.
     """
 
     actions: SelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        if is_reroute_node(ctx):
-            return False
-        bag = _appearance_bag(ctx)
-        return bag is not None and bag.locked is not True  # None or False
+        return node_appearance_subject(ctx).editable
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
             with hui.dropdown(hui.icon.theme, tooltip="Appearance", align="center", direction="up"):
                 self.render_surface(NodeAppearance, ctx)
 
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        subject = node_appearance_subject(ctx)
+        if subject.status == "greyed":
+            with layout:
+                disabled_icon(hui.icon.theme, f"Appearance — {subject.reason}")
+
 
 @panel(
     surface=NodeAppearance,
-    label="Node Appearance",
+    label="Appearance",
     icon=hui.icon.theme,
     order=10,
 )
 class NodeAppearancePanel(BasePanel):
-    """The appearance slice of the active node's props bag, live-editable.
-
-    Scoped to the primary (active) node, like ``NodeErrorsSelectionMenuPanel``:
-    ``EditState.active_node`` is the selection's primary, so a multi-node
-    selection styles the one that was right-clicked rather than silently
-    editing several bags.
+    """The appearance slice of the selected node's props, or a form applying to every selected node.
 
     The ``hw-panel`` wrapper is load-bearing. A dropdown is a ``QMenu`` and
     portals to ``<body>``, outside the toolbar popup's own ``hw-panel``, so
@@ -110,12 +93,17 @@ class NodeAppearancePanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return _appearance_bag(ctx) is not None
+        return node_appearance_subject(ctx).editable
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
-        bag = _appearance_bag(ctx)
-        if bag is None:
+        subject = node_appearance_subject(ctx)
+        if not subject.editable:
             return
         with layout:
             with ui.column().classes("hw-panel gap-0").style("min-width: 240px"):
-                render_settings(ctx, bag, categories=(APPEARANCE_CATEGORY,))
+                render_form(
+                    ctx,
+                    subject,
+                    categories=(APPEARANCE_CATEGORY,),
+                    graph=ctx.data[EditState].active_graph,
+                )

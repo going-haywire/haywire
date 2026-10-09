@@ -23,6 +23,9 @@ from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
 _PATH = "/graph-reconnect"
 
+#: The context-menu popup, not the selection toolbar that a right-click selection also shows.
+_MENU = ".hw-popup-card:not(:has(.hw-selection-toolbar))"
+
 pytestmark = pytest.mark.ui
 
 # Live-edge endpoint accessor: the first 'M x y' of the visible (non-hitarea)
@@ -89,7 +92,7 @@ def _click_menu_item(page: Page, label: str) -> None:
     """Click a context-menu item by its (case-insensitive) text label."""
     page.evaluate(
         """(label) => {
-            const el = [...document.querySelectorAll('.hw-popup-card *')]
+            const el = [...document.querySelectorAll('.hw-popup-card:not(:has(.hw-selection-toolbar)) *')]
                 .find(x => (x.textContent || '').trim().toUpperCase() === label);
             if (!el) throw new Error('menu item not found: ' + label);
             const r = el.getBoundingClientRect();
@@ -118,7 +121,7 @@ def test_reconnect_anchor_stays_on_outlet_pin(page: Page, harness):
     # Right-click past the midpoint (nearer the inlet) so the outlet is the anchor.
     click = _path_point(page, 0.62)
     page.mouse.click(click["x"], click["y"], button="right")
-    page.wait_for_selector(".hw-popup-card")
+    page.wait_for_selector(_MENU)
     _click_menu_item(page, "Reconnect")
     page.wait_for_timeout(200)
 
@@ -173,7 +176,7 @@ def test_reconnect_an_edge_drawn_to_a_ghost_pin_starts_from_its_outlet(page: Pag
 
     click = _path_point(page, frac)
     page.mouse.click(click["x"], click["y"], button="right")
-    page.wait_for_selector(".hw-popup-card")
+    page.wait_for_selector(_MENU)
     _click_menu_item(page, "Reconnect")
     page.mouse.move(click["x"] + 40, click["y"] + 40)
     page.wait_for_timeout(200)
@@ -195,7 +198,7 @@ def test_reconnect_keeps_the_edge_when_the_anchor_pin_is_not_in_the_dom(page: Pa
     # getElementById, the way an unmounted (culled) card does.
     click = _path_point(page, 0.62)
     page.mouse.click(click["x"], click["y"], button="right")
-    page.wait_for_selector(".hw-popup-card")
+    page.wait_for_selector(_MENU)
     page.evaluate(
         """() => {
             const node = [...document.querySelectorAll('[data-node-id]')]
@@ -227,7 +230,7 @@ def test_a_reconnect_dropped_back_on_its_inlet_leaves_one_edge(page: Page, harne
 
     click = _path_point(page, 0.62)
     page.mouse.click(click["x"], click["y"], button="right")
-    page.wait_for_selector(".hw-popup-card")
+    page.wait_for_selector(_MENU)
     _click_menu_item(page, "Reconnect")
     page.wait_for_selector(".graph-canvas.edge-dragging")
     page.mouse.move(inlet["x"] - 20, inlet["y"], steps=3)

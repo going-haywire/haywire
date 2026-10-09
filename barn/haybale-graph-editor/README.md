@@ -31,6 +31,7 @@ Visual graph editor library — host-agnostic
 - **Adapter Chain** — 
 - **Adapters** — 
 - **Appearance** — 
+- **Appearance** — 
 - **Clone to Library** — 
 - **Collapse** — 
 - **Collapse** — 
@@ -65,7 +66,6 @@ Visual graph editor library — host-agnostic
 - **More Actions** — 
 - **New Node** — 
 - **Node** — 
-- **Node Appearance** — 
 - **Node Errors** — 
 - **Node Errors** — 
 - **Node Info** — 
@@ -88,6 +88,8 @@ Visual graph editor library — host-agnostic
 - **Skin** — 
 - **Status** — 
 - **Strategy** — 
+- **Style** — 
+- **Style** — 
 - **Style** — 
 - **Style** — 
 - **Theme** — 

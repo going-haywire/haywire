@@ -8,7 +8,8 @@ from tests.ui.harness.test_edge_appearance import _computed
 
 _PATH = "/graph-edge-appearance"
 _STYLED = 'path.hw-edge[data-edge-id*="[note_out]->"]'
-_POPUP = ".hw-popup-card"
+#: The context-menu popup, not the selection toolbar that a right-click selection also shows.
+_POPUP = ".hw-popup-card:not(:has(.hw-selection-toolbar))"
 #: The Style flyout: the one menu holding the style fields' select.
 _FLYOUT = ".q-menu:has(.q-select)"
 

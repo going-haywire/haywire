@@ -176,9 +176,10 @@ _leaves_drawn: ContextVar[int] = ContextVar("_leaves_drawn", default=0)
 #
 # A row drawn straight into a host's own `draw()` is a container at that
 # scope, the category `render_panel` already excludes from popup-emptiness
-# counting. Bumping the host's counter there makes a popup whose only content
-# is one empty flyout icon look non-empty, so it opens around a single greyed
-# control instead of not opening.
+# counting. Bumping the host's counter there at construction makes a popup
+# whose only content is one empty flyout icon look non-empty, so it opens
+# around a single greyed control instead of not opening. A `FlyoutIcon` there
+# bumps it in `__exit__` instead, once its body has drawn something.
 #
 # Only `SubmenuRow.__enter__`/`FlyoutIcon.__enter__` set it True.
 _in_flyout_body: ContextVar[bool] = ContextVar("_in_flyout_body", default=False)
@@ -380,6 +381,11 @@ class FlyoutIcon:
 
         if not drew_anything:
             self._anchor.classes(add="hw-disabled").style(_DISABLED_STYLE)
+        elif not _in_flyout_body.get():
+            # At a host's top level the icon counts only once its body proved
+            # non-empty, so a toolbar of hosting icons alone still shows, while
+            # one holding a single empty icon does not.
+            _leaves_drawn.set(_leaves_drawn.get() + 1)
 
 
 # A popup opened inside a dropdown is its own Quasar portal at the default

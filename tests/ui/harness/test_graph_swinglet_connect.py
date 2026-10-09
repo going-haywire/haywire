@@ -20,6 +20,9 @@ from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 _PATH = "/graph-swinglet"
 _PROBES = ("v1", "v2", "v3", "p1", "p2", "add")
 
+#: The context-menu popup, not the selection toolbar that a right-click selection also shows.
+_MENU = ".hw-popup-card:not(:has(.hw-selection-toolbar))"
+
 pytestmark = pytest.mark.ui
 
 
@@ -108,7 +111,7 @@ def _click_menu_item(page: Page, label: str) -> None:
     """Click a context-menu item by its (case-insensitive) text label."""
     pos = page.evaluate(
         """(label) => {
-            const el = [...document.querySelectorAll('.hw-popup-card *')]
+            const el = [...document.querySelectorAll('.hw-popup-card:not(:has(.hw-selection-toolbar)) *')]
                 .find(x => (x.textContent || '').trim().toUpperCase() === label);
             if (!el) throw new Error('menu item not found: ' + label);
             const r = el.getBoundingClientRect();
@@ -176,7 +179,7 @@ def test_reconnecting_the_outlet_end_of_a_swinglet_edge_keeps_its_direction(page
 
     click = _edge_point_near(page, ids["v1"], "note")
     page.mouse.click(click["x"], click["y"], button="right")
-    page.wait_for_selector(".hw-popup-card")
+    page.wait_for_selector(_MENU)
     _click_menu_item(page, "Reconnect")
     page.wait_for_selector(".graph-canvas.edge-dragging")
     _click_pin(page, ids["v3"], "note")
@@ -203,7 +206,7 @@ def _canvas_menu_pending_dir(page: Page, harness, held: str) -> str:
     # Right-clicking near an end makes the other end the anchor.
     click = _edge_point_near(page, ids[held], "note")
     page.mouse.click(click["x"], click["y"], button="right")
-    page.wait_for_selector(".hw-popup-card")
+    page.wait_for_selector(_MENU)
     _click_menu_item(page, "Reconnect")
     page.wait_for_selector(".graph-canvas.edge-dragging")
     sent.clear()
