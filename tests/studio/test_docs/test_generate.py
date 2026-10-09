@@ -1,3 +1,4 @@
+import fcntl
 import shutil
 import subprocess
 from pathlib import Path
@@ -17,15 +18,31 @@ from haywire_studio.packaging.docs.generate import (
 
 
 @pytest.fixture
-def clean_haybale_testing():
+def clean_haybale_testing(tmp_path_factory):
     """generate_docs() writes OVERVIEW.md/QUICKREF.md/docs/*.md/README.md
     in place against the real barn/haybale-testing library — library
     discovery is entry-point/import based, so folder_path is baked to the
     real repo location and can't be redirected to a scratch copy. Restore
     tracked files and remove any newly-created untracked ones on teardown,
     so this always runs even if the test's assertions fail partway.
+
+    Because the directory is shared, the tests using this fixture are
+    serialized across xdist workers with a lock held from setup through
+    cleanup: otherwise one worker's regeneration (or teardown checkout)
+    lands between another's write and its read-back.
     """
-    yield
+    # Parent of the per-worker basetemp is shared by every worker of one run.
+    lock_path = tmp_path_factory.getbasetemp().parent / "haybale-testing.lock"
+    with open(lock_path, "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            yield
+            _restore_haybale_testing()
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def _restore_haybale_testing() -> None:
     repo = Path(__file__).resolve().parents[3]
     lib_dir = repo / "barn" / "haybale-testing"
     subprocess.run(["git", "checkout", "--", str(lib_dir)], cwd=repo, check=False)

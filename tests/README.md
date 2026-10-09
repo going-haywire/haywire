@@ -61,10 +61,13 @@ observable, and the same cycle can hang a real studio session.
 [.insights/project_docs_test_reverts_barn_testing.md](../.insights/project_docs_test_reverts_barn_testing.md)
 for what that costs you and why it cannot be redirected to a scratch copy.
 
-For parallelism it is the one genuine shared-resource hazard: a repo-wide
-`git checkout` on a working tree other workers are reading. It is confined to
-that single file and has not been observed to bite, but it is the first
-suspect if a docs test starts failing only under `-n`.
+For parallelism it is the one genuine shared-resource hazard: workers
+regenerating and `git checkout`-ing the same directory. The
+`clean_haybale_testing` fixture serializes its users across workers with an
+`fcntl` lock in the shared xdist basetemp. Any new test that writes into
+`barn/` must take that fixture, or a version-specific assertion
+(`test_generate_renders_explicit_version_over_declared`) reads another
+worker's QUICKREF.
 
 ## Reading a long run
 
