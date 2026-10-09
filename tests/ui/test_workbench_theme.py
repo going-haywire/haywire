@@ -128,6 +128,24 @@ class TestToCssVars:
         assert "--hw-edge-selected-extra" not in css
         assert "--hw-edge-active-extra" not in css
 
+    def test_edge_glow_tokens_emitted_only_when_set(self):
+        """The selected-edge glow is optional: unset, canvas.vue's 12px / 60% fallbacks apply."""
+
+        class _WithGlow(BaseTheme):
+            edge_glow_size = "20px"
+            edge_glow_strength = "80%"
+
+        class _WithoutGlow(BaseTheme):
+            edge_selected = "#ff8800"
+
+        css = _WithGlow().to_css_vars()
+        assert css["--hw-edge-glow-size"] == "20px"
+        assert css["--hw-edge-glow-strength"] == "80%"
+
+        css = _WithoutGlow().to_css_vars()
+        assert "--hw-edge-glow-size" not in css
+        assert "--hw-edge-glow-strength" not in css
+
 
 # ---------------------------------------------------------------------------
 # @theme(theme_type='workbench') decorator

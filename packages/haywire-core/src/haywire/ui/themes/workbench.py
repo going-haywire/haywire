@@ -138,6 +138,11 @@ class BaseTheme:
         # canvas.vue falls back to 1px and 2px when a theme sets none.
         "edge_selected_extra": "--hw-edge-selected-extra",
         "edge_active_extra": "--hw-edge-active-extra",
+        # Optional glow around a selected edge: a blur length ("12px") and an
+        # opacity in percent ("60%"), both with their unit in the value.
+        # canvas.vue falls back to 12px and 60% when a theme sets none.
+        "edge_glow_size": "--hw-edge-glow-size",
+        "edge_glow_strength": "--hw-edge-glow-strength",
         # Canvas
         "canvas_bg": "--hw-canvas-bg",
         "canvas_grid": "--hw-canvas-grid",

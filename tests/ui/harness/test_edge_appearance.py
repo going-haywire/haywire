@@ -91,17 +91,17 @@ def test_a_computed_edge_draws_at_the_graph_width(page: Page, harness) -> None:
     assert _computed(page, _DATA, "strokeWidth") == "4px"
 
 
-def test_selected_and_active_widen_relative_to_the_edge_width(page: Page, harness) -> None:
+def test_selected_and_active_keep_the_edge_width(page: Page, harness) -> None:
     _open(page, harness)
     _click(page, "set-width-4")
 
-    assert _with_class(page, _DATA, "connection-selected", "strokeWidth") == "5px"
-    assert _with_class(page, _DATA, "connection-active", "strokeWidth") == "6px"
+    assert _with_class(page, _DATA, "connection-selected", "strokeWidth") == "4px"
+    assert _with_class(page, _DATA, "connection-active", "strokeWidth") == "4px"
 
 
 def test_the_hit_area_is_the_width_plus_the_canvas_padding(page: Page, harness) -> None:
     _open(page, harness)
-    assert _computed(page, _DATA_HIT, "strokeWidth") == "10px"
+    assert _computed(page, _DATA_HIT, "strokeWidth") == "22px"
 
 
 def test_an_invalid_edge_is_drawn_in_the_danger_token(page: Page, harness) -> None:
@@ -352,3 +352,140 @@ def test_the_hit_area_covers_the_heads_span(page: Page, harness) -> None:
 
     assert _distance(_end_point(page, _DATA, "inlet"), pin["edge"]) > 10
     assert _distance(_end_point(page, _DATA_HIT, "inlet"), pin["edge"]) < 0.5
+
+
+_OFF_CURVE_POINT_JS = """() => {
+  for (const path of document.querySelectorAll('path.hw-edge')) {
+    const ctm = path.ownerSVGElement.getScreenCTM();
+    const box = path.getBBox();
+    const toScreen = (x, y) => ({ x: x * ctm.a + ctm.e, y: y * ctm.d + ctm.f });
+    const mid = path.getPointAtLength(path.getTotalLength() / 2);
+    const total = path.getTotalLength();
+    const distance = (p) => {
+        let best = Infinity;
+        for (let i = 0; i <= 200; i++) {
+            const q = path.getPointAtLength((i / 200) * total);
+            best = Math.min(best, Math.hypot((q.x - p.x) * ctm.a, (q.y - p.y) * ctm.d));
+        }
+        return best;
+    };
+    for (const [x, y] of [[box.x, box.y + box.height], [box.x + box.width, box.y]]) {
+        const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+        const inset = { x: x + (cx - x) * 0.1, y: y + (cy - y) * 0.1 };
+        const screen = toScreen(inset.x, inset.y);
+        const hit = document.elementFromPoint(screen.x, screen.y);
+        if (distance(inset) > 25 && hit && !hit.closest('[data-node-id]')) {
+            return { off: screen, on: toScreen(mid.x, mid.y) };
+        }
+    }
+  }
+  return null;
+}"""
+
+
+def test_a_click_selects_an_edge_only_where_the_curve_is(page: Page, harness) -> None:
+    _open(page, harness)
+    # The harness edges are a few dozen px across; zoom in until one has room for an empty spot.
+    # Zoom about the edge itself so it stays in view.
+    anchor = page.evaluate(
+        """(sel) => {
+            const path = document.querySelector(sel);
+            const ctm = path.ownerSVGElement.getScreenCTM();
+            const p = path.getPointAtLength(path.getTotalLength() / 2);
+            return [p.x * ctm.a + ctm.e, p.y * ctm.d + ctm.f];
+        }""",
+        _DATA,
+    )
+    for _ in range(8):
+        page.evaluate(
+            """([x, y]) => document.querySelector('.graph-canvas').dispatchEvent(new WheelEvent('wheel', {
+                deltaY: -100, ctrlKey: true, clientX: x, clientY: y, bubbles: true, cancelable: true,
+            }))""",
+            anchor,
+        )
+        _wait_for_frames(page)
+    points = page.evaluate(_OFF_CURVE_POINT_JS)
+    assert points is not None, "no empty spot inside the edge's bounding box, more than 25px from its curve"
+
+    page.mouse.click(points["off"]["x"], points["off"]["y"])
+    _wait_for_frames(page)
+    assert page.locator(".connection-selected").count() == 0, "a click in the bounding box's empty corner"
+
+    page.mouse.click(points["on"]["x"], points["on"]["y"])
+    page.wait_for_selector(".connection-selected", state="attached", timeout=5000)
+
+
+def _wait_for_frames(page: Page) -> None:
+    page.evaluate("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
+
+
+_HANDLES_JS = """(sel) => {
+    const path = document.querySelector(sel);
+    const id = path.dataset.edgeId;
+    const m = /^(.*)\\[(.*)\\]->(.*)\\[(.*)\\]$/.exec(id);
+    const dot = (end) => document.getElementById(`${id}_handle_${end}`);
+    const pin = (key) => document.getElementById(key);
+    const [a, b] = [dot('start'), dot('end')];
+    if (!a || !b) return null;
+    const centre = (el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    };
+    const off = (dotEl, pinEl) => {
+        const [d, p] = [centre(dotEl), centre(pinEl)];
+        return Math.hypot(d.x - p.x, d.y - p.y);
+    };
+    return {
+        start: off(a, pin(`${m[2]}@${m[1]}`)),
+        end: off(b, pin(`${m[4]}@${m[3]}`)),
+    };
+}"""
+
+
+def test_the_active_edge_shows_a_dot_at_each_end_and_keeps_the_selection_glow(page: Page, harness) -> None:
+    _open(page, harness)
+    mid = page.evaluate(
+        """(sel) => {
+            const path = document.querySelector(sel);
+            const ctm = path.ownerSVGElement.getScreenCTM();
+            const p = path.getPointAtLength(path.getTotalLength() / 2);
+            return [p.x * ctm.a + ctm.e, p.y * ctm.d + ctm.f];
+        }""",
+        _DATA,
+    )
+    page.mouse.click(*mid)
+    page.wait_for_selector(f"{_DATA}.connection-active", state="attached", timeout=5000)
+
+    handles = page.evaluate(_HANDLES_JS, _DATA)
+    assert handles is not None, "no end dots on the active edge"
+    assert handles["start"] < 1.5, "the start dot sits on the outlet pin's centre"
+    assert handles["end"] < 1.5, "the end dot sits on the inlet pin's centre"
+    glow = page.evaluate(
+        """(sel) => {
+            const g = document.getElementById(document.querySelector(sel).dataset.edgeId + '_glow');
+            return g && { d: g.getAttribute('d'), filter: getComputedStyle(g).filter };
+        }""",
+        _DATA,
+    )
+    assert glow is not None, "the active edge is selected, so it glows"
+    assert "blur(6px)" in glow["filter"], "the glow takes its 12px size from the theme token's fallback"
+
+    empty = page.evaluate(
+        """() => {
+            for (let y = 20; y < innerHeight; y += 20) {
+                for (let x = 20; x < innerWidth; x += 20) {
+                    const el = document.elementFromPoint(x, y);
+                    const free = el && el.closest('.graph-canvas') && !el.closest('[data-node-id]');
+                    if (free && el.tagName !== 'path') {
+                        return [x, y];
+                    }
+                }
+            }
+            return null;
+        }"""
+    )
+    assert empty is not None, "no empty canvas spot in view"
+    page.mouse.click(*empty)
+    page.wait_for_selector(f"{_DATA}.connection-active", state="detached", timeout=5000)
+    assert page.evaluate(_HANDLES_JS, _DATA) is None
+    assert page.locator(".hw-edge-glow-path").count() == 0

@@ -36,10 +36,10 @@ level: architectural
     | warning glow | `--hw-warning` |
     | drop targets | `--hw-success` / `--hw-danger` |
     | selected glow | `--hw-edge-selected` |
-    | active | `--hw-edge-active` |
+    | active end dots | `--hw-edge-active` |
     | a missing pin colour | `--hw-edge-default`, through `currentColor` |
 
-- **Widths.** Selected and active widths add the optional tokens `--hw-edge-selected-extra` and `--hw-edge-active-extra` (1px, 2px). The hit area adds `CanvasSettings.edge_hit_padding`, an ergonomic studio setting rather than part of a theme.
+- **Widths.** Selected and active edges keep the edge's own width, so a width set on a styled edge stays judgeable; the tokens `--hw-edge-selected-extra` and `--hw-edge-active-extra` are still defined by themes but no longer applied. A selected edge's glow takes its size and strength from the optional tokens `--hw-edge-glow-size` and `--hw-edge-glow-strength`. The hit area adds `CanvasSettings.edge_hit_padding`, an ergonomic studio setting rather than part of a theme.
 - **Ends and heads.**
     - Every edge end stops at its pin's edge; a head adds its inset × width, so the head's tip touches the pin's edge and the line meets the head glyph's edge.
     - Fifteen heads form one vocabulary. One `context-stroke` marker per head serves both ends (`orient="auto-start-reverse"`), and heads scale with the width (`markerUnits="strokeWidth"`). Hollow heads are hollow.

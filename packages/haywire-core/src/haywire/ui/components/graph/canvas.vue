@@ -23,6 +23,10 @@
         <div id="node-container" ref="nodeContainer" class="node-container" :style="nodeContainerTransform">
             <slot></slot>
 
+            <!-- End dots of the active edge, above the cards so they sit on the pins.
+                 Content space like the cards, so it shares their pan/zoom transform. -->
+            <svg ref="handleSvg" class="hw-edge-handles"></svg>
+
             <!-- Single-node resize gadget (content space; pan/zoom transforms it
                  with the nodes). Wrapper is pointer-events:none so it never eats
                  canvas gestures; only the 8 grips are interactive. -->
@@ -130,7 +134,7 @@ export default {
         // the studio's hit padding and the static head table.
         edgeWidth:      { type: Number, default: 2 },
         edgeArrow:      { type: String, default: 'none' },
-        edgeHitPadding: { type: Number, default: 8 },
+        edgeHitPadding: { type: Number, default: 20 },
     },
 
     data() {
@@ -1451,6 +1455,8 @@ export default {
             // ENHANCED: Use edgeInfo for cleanup
             this.edgePaths.forEach((edgeInfo, edge_id) => {
                 edgeInfo.path.remove();
+                this._setEdgeHandles(edge_id, false);
+                this._setEdgeGlow(edge_id, false);
                 const hitArea = document.getElementById(edge_id + '_hitarea');
                 if (hitArea) hitArea.remove();
                 const gradient = document.getElementById(`gradient_${edge_id}`);
@@ -2538,35 +2544,36 @@ export default {
 
         _findEdgesInRectangle(rect) {
             const intersectingEdges = [];
-            
-            // ENHANCED: Use edgeInfo for more efficient bounds checking
+
+            // Samples the curve; a bezier's bounding box has empty corners.
+            // A plain click is a zero-size rect and gets the hit area's
+            // half-width as tolerance; a marquee gets none. The pad also
+            // covers half the sampling step so a thin rect cannot fall
+            // between two samples.
+            const svg = this.$refs.svg;
+            const ctm = svg && svg.getScreenCTM();
+            const scale = (ctm && ctm.a) || this.zoomState.zoom || 1;
+            const isClick = rect.width * scale < 3 && rect.height * scale < 3;
+            const STEP = 8;
+            const pad = (isClick ? (this.edgeHitPadding / 2) / scale : 0) + STEP / 2;
+            const left = rect.left - pad, right = rect.right + pad;
+            const top = rect.top - pad, bottom = rect.bottom + pad;
+
             this.edgePaths.forEach((edgeInfo, edge_id) => {
                 try {
-                    // Quick bounds check using connection positions
-                    const minX = Math.min(edgeInfo.outletPos.x, edgeInfo.inletPos.x);
-                    const maxX = Math.max(edgeInfo.outletPos.x, edgeInfo.inletPos.x);
-                    const minY = Math.min(edgeInfo.outletPos.y, edgeInfo.inletPos.y);
-                    const maxY = Math.max(edgeInfo.outletPos.y, edgeInfo.inletPos.y);
-
-                    const edgeBounds = {
-                        left: minX,
-                        top: minY,
-                        right: maxX,
-                        bottom: maxY
-                    };
-
-                    if (this._rectanglesIntersect(rect, edgeBounds)) {
-                        // More precise check with actual path bounds if needed
-                        const pathBBox = edgeInfo.path.getBBox();
-                        const pathRect = {
-                            left: pathBBox.x,
-                            top: pathBBox.y,
-                            right: pathBBox.x + pathBBox.width,
-                            bottom: pathBBox.y + pathBBox.height
-                        };
-
-                        if (this._rectanglesIntersect(rect, pathRect)) {
+                    const path = edgeInfo.path;
+                    const box = path.getBBox();
+                    if (right < box.x || left > box.x + box.width
+                        || bottom < box.y || top > box.y + box.height) {
+                        return;
+                    }
+                    const total = path.getTotalLength();
+                    const steps = Math.max(2, Math.ceil(total / STEP));
+                    for (let i = 0; i <= steps; i++) {
+                        const p = path.getPointAtLength((i / steps) * total);
+                        if (p.x >= left && p.x <= right && p.y >= top && p.y <= bottom) {
                             intersectingEdges.push(edge_id);
+                            return;
                         }
                     }
                 } catch (e) {
@@ -3167,6 +3174,8 @@ export default {
 
             if (edgeInfo) {
                 edgeInfo.path.remove();
+                this._setEdgeHandles(edge_id, false);
+                this._setEdgeGlow(edge_id, false);
 
                 const hitArea = document.getElementById(edge_id + '_hitarea');
                 if (hitArea) {
@@ -3339,6 +3348,78 @@ export default {
                 'connection-warning',
                 edgeInfo.hasWarning
             );
+            this._positionEdgeHandles(edge_id, edgeInfo);
+            this._syncEdgeGlow(edge_id, edgeInfo);
+        },
+
+        // ── Selected-edge glow ────────────────────────────────────────────────
+        // A copy of the edge's path, blurred and drawn under it, so the glow has
+        // the edge's own colour (gradient included). Size and strength are CSS
+        // (--hw-edge-glow-size / -strength) on .hw-edge-glow-path.
+
+        _setEdgeGlow(edge_id, on) {
+            const id = edge_id + '_glow';
+            const existing = document.getElementById(id);
+            if (!on) {
+                if (existing) existing.remove();
+                return;
+            }
+            const edgeInfo = this.edgePaths.get(edge_id);
+            if (existing || !edgeInfo || !this.$refs.svg) return;
+            const glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            glow.setAttribute('id', id);
+            glow.setAttribute('fill', 'none');
+            glow.classList.add('hw-edge-glow-path');
+            this.$refs.svg.insertBefore(glow, edgeInfo.path);
+            this._syncEdgeGlow(edge_id, edgeInfo);
+        },
+
+        _syncEdgeGlow(edge_id, edgeInfo) {
+            const glow = document.getElementById(edge_id + '_glow');
+            if (!glow) return;
+            glow.setAttribute('d', edgeInfo.path.getAttribute('d') || '');
+            glow.setAttribute('stroke', edgeInfo.path.getAttribute('stroke') || 'currentColor');
+        },
+
+        // ── Active-edge end handles ───────────────────────────────────────────
+        // The active edge is marked by a dot at each end of its curve, so the
+        // edge itself is drawn exactly as styled.
+
+        _setEdgeHandles(edge_id, on) {
+            const svg = this.$refs.handleSvg;
+            if (!svg) return;
+            for (const end of ['start', 'end']) {
+                const id = `${edge_id}_handle_${end}`;
+                const existing = document.getElementById(id);
+                if (!on) {
+                    if (existing) existing.remove();
+                    continue;
+                }
+                if (existing) continue;
+                const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                dot.setAttribute('id', id);
+                dot.classList.add('hw-edge-handle');
+                dot.setAttribute('r', '5');
+                svg.appendChild(dot);
+            }
+            if (on) {
+                const edgeInfo = this.edgePaths.get(edge_id);
+                if (edgeInfo) this._positionEdgeHandles(edge_id, edgeInfo);
+            }
+        },
+
+        _positionEdgeHandles(edge_id, edgeInfo) {
+            const start = document.getElementById(`${edge_id}_handle_start`);
+            const end = document.getElementById(`${edge_id}_handle_end`);
+            if (!start || !end) return;
+            // On the pin centres, so the dots never cover an arrow head.
+            const a = edgeInfo.outletPos;
+            const b = edgeInfo.inletPos;
+            if (!a || !b) return;
+            start.setAttribute('cx', a.x);
+            start.setAttribute('cy', a.y);
+            end.setAttribute('cx', b.x);
+            end.setAttribute('cy', b.y);
         },
 
         _flushParkedOnReattach() {
@@ -3525,6 +3606,7 @@ export default {
                 } else {
                     edgeInfo.path.classList.remove('connection-selected');
                 }
+                this._setEdgeGlow(edge_id, selected);
             } else if (selected && _retries > 0) {
                 // Edge path may not be registered yet (e.g. just after a paste);
                 // retry shortly until edgePaths has it.
@@ -3553,6 +3635,7 @@ export default {
                 } else {
                     edgeInfo.path.classList.remove('connection-active');
                 }
+                this._setEdgeHandles(edge_id, active);
             } else if (active && _retries > 0) {
                 setTimeout(() => this._updateEdgeVisualActive(edge_id, active, _retries - 1), 50);
             }
@@ -4200,17 +4283,31 @@ export default {
     visibility: visible !important;
 }
 
-.connection-selected {
-    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--hw-edge-selected) 60%, transparent)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
+/* A selected edge glows in its own colour: a blurred copy of its path under it. */
+.hw-edge-glow-path {
+    stroke-width: calc(var(--hw-edge-width, 2px) + var(--hw-edge-glow-size, 12px) / 2);
+    stroke-linecap: round;
+    opacity: var(--hw-edge-glow-strength, 60%);
+    filter: blur(calc(var(--hw-edge-glow-size, 12px) / 2));
+    pointer-events: none;
 }
 
-path.connection-selected {
-    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--hw-edge-selected) 60%, transparent)) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3)) !important;
+.hw-edge-handles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 10002;
 }
 
-.connection-active {
-    stroke: var(--hw-edge-active) !important;
-    stroke-width: calc(var(--hw-edge-width, 2px) + var(--hw-edge-active-extra, 2px)) !important;
+.hw-edge-handle {
+    fill: #fff;
+    stroke: var(--hw-edge-active);
+    stroke-width: 2px;
+    pointer-events: none;
 }
 
 /* Edge state styles - UIEdge visual feedback */
@@ -4250,10 +4347,6 @@ path.hw-edge.edge-arrow-outlet {
 
 path.hw-edge.edge-arrow-none {
     --hw-edge-head-end: none;
-}
-
-path.hw-edge.connection-selected {
-    stroke-width: calc(var(--hw-edge-width, 2px) + var(--hw-edge-selected-extra, 1px));
 }
 
 path.hw-edge-hit {

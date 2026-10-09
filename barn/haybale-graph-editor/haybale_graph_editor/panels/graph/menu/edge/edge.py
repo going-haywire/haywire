@@ -18,11 +18,11 @@ from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_settings
 
-from .....surfaces import EdgeActions, EdgeEditMenu, EdgeMenu
+from .....surfaces import EdgeActions, EdgeEditMenu, EdgeMenu, EdgeStyle, SelectionMenu
 from .....state.edit_state import EditState
 from ..component_rows import component_row
+from ...._edge_style import render_edge_style, selection_shares_style, style_group
 from ....properties.introspect.edge import (
     _state_from_context,
     _has_edge_errors,
@@ -91,17 +91,17 @@ class EdgeWarningsMenuPanel(BasePanel):
 
 @panel(
     surface=EdgeMenu,
+    hosts=(EdgeStyle,),
     label="Style",
     icon=hui.icon.theme,
     order=15,
 )
 class EdgeStyleMenuPanel(BasePanel):
-    """The connection's colour, line and arrow heads, editable in place.
+    """The "Style…" row — a submenu with the connection's colour, line and arrow heads.
 
-    The same fields and writes as the Style panel in the properties editor.
+    A hosting panel: it draws only the row and the flyout. The fields are the
+    same as the Style panel in the properties editor.
     """
-
-    actions: EdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -109,12 +109,54 @@ class EdgeStyleMenuPanel(BasePanel):
         return edge is not None and edge.style is not None
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
-        edge = ctx.data[EditState].active_edge
-        if edge is None or edge.style is None:
+        with layout:
+            with hui.submenu_row("Style", icon=hui.icon.theme, content=True):
+                self.render_surface(EdgeStyle, ctx)
+
+
+@panel(
+    surface=SelectionMenu,
+    hosts=(EdgeStyle,),
+    label="Style",
+    icon=hui.icon.theme,
+    order=36,
+)
+class EdgeStyleSelectionMenuPanel(BasePanel):
+    """The "Style…" row for a selection of edges that share a connection type's style fields.
+
+    Appears on ``SelectionMenu``; a change in the submenu is applied to every selected edge.
+    """
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return selection_shares_style(ctx)
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            with hui.submenu_row("Style", icon=hui.icon.theme, content=True):
+                self.render_surface(EdgeStyle, ctx)
+
+
+@panel(
+    surface=EdgeStyle,
+    label="Style",
+    icon=hui.icon.theme,
+    order=10,
+)
+class EdgeStyleBodyPanel(BasePanel):
+    """The style fields of the active edge, written to the selected edges that share them."""
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return bool(style_group(ctx))
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        group = style_group(ctx)
+        if not group:
             return
         with layout:
             with ui.column().classes("hw-panel gap-0").style("min-width: 240px"):
-                render_settings(ctx, edge.style)
+                render_edge_style(ctx, group)
 
 
 @panel(

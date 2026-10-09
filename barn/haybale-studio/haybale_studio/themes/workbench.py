@@ -74,6 +74,8 @@ class HaywireDarkTheme(BaseTheme):
     # Edges
     edge_default = "#4a4a6a"
     edge_selected = "#4f8ef7"
+    edge_glow_size = "12px"
+    edge_glow_strength = "60%"
     edge_active = "#8fb8ff"
 
     # Canvas
@@ -179,6 +181,8 @@ class HaywireLightTheme(BaseTheme):
     # Edges
     edge_default = "#a0a0c0"
     edge_selected = "#4f8ef7"
+    edge_glow_size = "12px"
+    edge_glow_strength = "60%"
     edge_active = "#1f5fd0"
 
     # Canvas

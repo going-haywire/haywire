@@ -74,3 +74,15 @@ class EdgeEditMenu(Surface):
 
     id = "edge-edit"
     provides = EdgeActions
+
+
+class EdgeStyle(Surface):
+    """The Style submenu: the colour, line and arrow heads of the edges in play.
+
+    A content surface, not a command menu: its panels edit the style bag of the
+    active edge, and of the selected edges when they share its style class, so
+    it declares no ``provides``. Hosted by ``EdgeMenu`` and ``SelectionMenu``;
+    the hosting panels hold the gating, and restating it here would copy it.
+    """
+
+    id = "edge-style"

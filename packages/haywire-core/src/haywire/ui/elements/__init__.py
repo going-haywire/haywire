@@ -41,7 +41,7 @@ from haywire.ui.elements.icons import AppIcon  # noqa: F401
 icon = AppIcon
 
 # hui.flyout(icon, tooltip=...) / hui.dropdown(icon, tooltip=...)
-# / hui.submenu_row(label, icon=None, enabled=True)
+# / hui.submenu_row(label, icon=None, enabled=True, content=False)
 # — classes, not @contextmanager generators (see flyout.py for why).
 # flyout opens beside its anchor and holds commands; dropdown opens below it
 # and holds content (click-open, no auto-close).

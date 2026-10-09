@@ -57,7 +57,7 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         category="ui.canvas",
     )
     edge_hit_padding = setting[INT](
-        8,
+        20,
         label="Edge Hit Padding",
         description="Clickable width around an edge beyond its line, in pixels",
         category="ui.canvas",

@@ -171,9 +171,11 @@ mirroring the one panels get from `.hw-panel`.
 | `--hw-node-shadow`      | Node card drop shadow (only permitted `box-shadow` in the app)                                                             |
 | `--hw-edge-default`        | Edge colour where a pin gives none (the edge SVG's `color`, drawn as `currentColor`) |
 | `--hw-edge-selected`       | Glow of a selected edge |
-| `--hw-edge-selected-extra` | Optional length added to an edge's width while selected (default `1px`) |
-| `--hw-edge-active`         | Stroke of the single *active* edge; mutually exclusive with `--hw-node-active` |
-| `--hw-edge-active-extra`   | Optional length added to an edge's width while active (default `2px`) |
+| `--hw-edge-selected-extra` | Not applied: a selected edge keeps its own width |
+| `--hw-edge-glow-size`      | Optional blur length of a selected edge's glow (default `12px`) |
+| `--hw-edge-glow-strength`  | Optional opacity of a selected edge's glow, in percent (default `60%`) |
+| `--hw-edge-active`         | Ring of the two end dots on the single *active* edge, which keeps its own stroke; mutually exclusive with `--hw-node-active` |
+| `--hw-edge-active-extra`   | Not applied: an active edge keeps its own width |
 | `--hw-canvas-bg`        | Canvas background fill                                                                                                     |
 | `--hw-canvas-grid`      | Canvas grid dot/line colour                                                                                                |
 | `--hw-ghost-pin`        | Ghost/unconnected pin indicator colour (rgba, low opacity)                                                                 |

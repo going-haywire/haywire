@@ -48,7 +48,7 @@ def test_the_bag_defaults_draw_an_end_head_and_no_start_head(page: Page, harness
 def test_a_styled_width_is_the_edges_own_and_widens_its_hit_area(page: Page, harness) -> None:
     _open(page, harness)
     _click_until(page, "style-width-6", _STYLED, "strokeWidth", "v === '6px'")
-    assert _computed(page, _STYLED_HIT, "strokeWidth") == "14px"
+    assert _computed(page, _STYLED_HIT, "strokeWidth") == "26px"
     assert _computed(page, _DATA, "strokeWidth") == "2px", "a computed edge keeps the graph width"
 
 

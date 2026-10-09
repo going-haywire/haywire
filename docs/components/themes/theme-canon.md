@@ -72,7 +72,7 @@ class FooTheme(BaseTheme):
 
 **`_CSS_TOKEN_MAP`.** ~40 named tokens covering backgrounds, borders, text, accents, status colours, node chrome, edges, canvas, top bar, sidebars, panels, status bar, and console. Defined in `_CSS_TOKEN_MAP` mapping `field_name` → `--hw-<token>`. The full list is in [reference/design-guide](../../reference/design-guide.md); examples in §4.
 
-The edge tokens are `--hw-edge-default`, `--hw-edge-selected` and `--hw-edge-active`, plus the optional length tokens `--hw-edge-selected-extra` and `--hw-edge-active-extra` (fallback `1px` / `2px`, added to the edge width). Edge states read the semantic status tokens: an invalid edge `--hw-danger`, a warning glow `--hw-warning`, drop targets `--hw-success` / `--hw-danger`. An edge's width and arrow head are graph settings, not tokens (ADR 0045).
+The edge tokens are `--hw-edge-default`, `--hw-edge-selected` and `--hw-edge-active`, plus the length tokens `--hw-edge-selected-extra` and `--hw-edge-active-extra`, which no longer change the edge width (selected and active keep it), and the optional glow tokens `--hw-edge-glow-size` and `--hw-edge-glow-strength` (fallback `12px` / `60%`). `--hw-edge-active` colours the ring of the end dots on the active edge. Edge states read the semantic status tokens: an invalid edge `--hw-danger`, a warning glow `--hw-warning`, drop targets `--hw-success` / `--hw-danger`. An edge's width and arrow head are graph settings, not tokens (ADR 0045).
 
 **Full token vocabulary at every tier.** A node-flavoured theme may declare any token in `_CSS_TOKEN_MAP`, `text_body`/`bg_input`/`accent` included, not just the `node_*` group:
 

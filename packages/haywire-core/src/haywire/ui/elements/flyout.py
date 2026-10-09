@@ -508,6 +508,12 @@ class SubmenuRow:
     ``enabled=False`` renders the greyed, non-expanding form and creates no
     flyout, so it may be called bare and never entered.
 
+    ``content=True`` marks the body as editable fields rather than commands,
+    with the same two differences as ``hui.dropdown``: no ``auto-close``, so a
+    click into a field does not dismiss the flyout, and menus a field opens
+    (a select's options, a colour picker) are lifted above it. The flyout
+    closes on click-away or when a sibling opens.
+
     A row reads the ambient sibling group to register its own flyout into; it
     never takes a ``siblings`` list from its caller. ``__enter__`` pushes a
     fresh group for its body, which becomes the menu's ``_child_flyouts`` for
@@ -518,9 +524,12 @@ class SubmenuRow:
     Callers do the counting, by bumping ``_leaves_drawn`` inside the block.
     """
 
-    def __init__(self, label: str, *, icon: str | None = None, enabled: bool = True) -> None:
+    def __init__(
+        self, label: str, *, icon: str | None = None, enabled: bool = True, content: bool = False
+    ) -> None:
         self._row = _anchor_row(label, icon, enabled)
         self._enabled = enabled
+        self._content = content
         self._menu: FlyoutMenu | None = None
         self._child: FlyoutSiblings = []
         self._token: Token[FlyoutSiblings] | None = None
@@ -539,7 +548,7 @@ class SubmenuRow:
 
         with self._row:  # inside the anchor — see the module's ANCHORING note
             self._menu = FlyoutMenu()
-        self._menu.props(f"{FLYOUT_PROPS} auto-close").style(FLYOUT_Z)
+        self._menu.props(FLYOUT_PROPS if content else f"{FLYOUT_PROPS} auto-close").style(FLYOUT_Z)
 
         siblings = _flyout_siblings.get()  # ambient: this level's group
         siblings.append(self._menu)
@@ -557,6 +566,8 @@ class SubmenuRow:
 
     def __exit__(self, *exc: object) -> None:
         assert self._menu is not None
+        if self._content:
+            _lift_nested_popups(self._menu)
         self._menu.__exit__(*exc)
         assert self._token is not None
         assert self._count_token is not None
