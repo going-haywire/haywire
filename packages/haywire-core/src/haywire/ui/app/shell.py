@@ -18,9 +18,10 @@ Session and calling AppShell.render().
 """
 
 import logging
+from dataclasses import fields
 from functools import partial
 from pathlib import Path
-from typing import Callable, Literal, TYPE_CHECKING
+from typing import Any, Callable, Literal, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
@@ -33,9 +34,12 @@ from haywire.core.signals import (
     PresenceChanged,
     Reveal,
     RevealSignal,
+    RosterChanged,
 )
 from haywire.ui.app.slot import Slot
+from haywire.ui.components.keymap import KeymapListener
 from haywire.ui.editor.identity import SlotName
+from haywire.ui.keymap import build_keymap, report_new_keymap_problems
 
 logger = logging.getLogger(__name__)
 
@@ -626,6 +630,7 @@ class AppShell:
         self._bottom_divider: ui.element | None = None  # horizontal drag handle above BottomTabBar
         self._presence_row: ui.element | None = None  # TopBar connected-principal chips
         self._account_menu: object | None = None  # AccountMenuProvider, built lazily
+        self._keymap_listener: KeymapListener | None = None  # page-wide key listener
 
         # Bus subscriptions for workspace-mutation commands.
         self._lifecycle_unsubs: list[Callable[[], None]] = []
@@ -959,6 +964,8 @@ class AppShell:
             # ----------------------------------------------------------------
             self._render_statusbar()
 
+        self._mount_keymap_listener()
+
     def _render_topbar(self) -> None:
         """Render the top bar with global controls."""
         with (
@@ -1145,6 +1152,70 @@ class AppShell:
         for slot in self._managed_slots.values():
             slot.cleanup()
         self._managed_slots.clear()
+
+    # ------------------------------------------------------------------
+    # Keyboard shortcuts
+    # ------------------------------------------------------------------
+
+    def _mount_keymap_listener(self) -> None:
+        """Mount the page's key listener and keep its keymap current.
+
+        The keymap is rebuilt whenever the editor registry reports a lifecycle
+        batch and on ``RosterChanged``, since a tier change alters which
+        commands bind. Both subscriptions end with ``cleanup``.
+        """
+        self._keymap_listener = KeymapListener(
+            on_command=self._on_key_command, on_target=self._on_key_target
+        )
+        self._rebuild_keymap()
+        self._editor_registry.add_batch_event_subscriber(self._on_editor_lifecycle)
+        self._lifecycle_unsubs.append(
+            lambda: self._editor_registry.remove_batch_event_subscriber(self._on_editor_lifecycle)
+        )
+        self._lifecycle_unsubs.append(
+            self.session.subscribe(RosterChanged, lambda _s: self._rebuild_keymap())
+        )
+
+    def _on_editor_lifecycle(self, _events: list) -> None:
+        self._rebuild_keymap()
+
+    def _rebuild_keymap(self) -> None:
+        """Build this session's keymap, store it on the context and push it to the key listener."""
+        context = self.session.context
+        editor_classes = {
+            key: cls for key in self._editor_registry.list_names() if (cls := self._editor_registry.get(key))
+        }
+        keymap = build_keymap(editor_classes, context.can_access)
+        report_new_keymap_problems(keymap)
+        context.keymap = keymap
+        if self._keymap_listener is not None:
+            self._keymap_listener.set_keymap(keymap.to_client())
+
+    def _on_key_command(self, payload: dict[str, Any]) -> None:
+        """Publish the ``EditorCommand`` a key press or paste in the browser resolved to.
+
+        Args:
+            payload: ``{"command_id", "binding_id", "position", "text"}`` as
+                reported by ``KeymapListener``.
+        """
+        keymap = self.session.context.keymap
+        command_id: str = payload.get("command_id") or ""
+        command_cls = keymap.commands.get(command_id) if keymap is not None else None
+        if command_cls is None:
+            logger.debug("Key command %r is not in this session's keymap; ignored", command_id)
+            return
+        position = payload.get("position")
+        kwargs: dict[str, Any] = {
+            "binding_id": payload["binding_id"],
+            "position": (float(position[0]), float(position[1])) if position else None,
+        }
+        if any(f.name == "text" for f in fields(command_cls)):
+            kwargs["text"] = payload.get("text") or ""
+        self.session.publish(command_cls(**kwargs))
+
+    def _on_key_target(self, payload: dict[str, Any]) -> None:
+        """Point key commands at the editor binding the browser reports as targeted."""
+        self.session.context.target_binding_id = payload["binding_id"]
 
     def collect_snapshot(self) -> dict:
         """Collect current slot state into a snapshot dict for persistence."""

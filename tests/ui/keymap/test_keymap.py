@@ -10,7 +10,14 @@ from unittest.mock import MagicMock, patch
 from haywire.core.access.tier import AccessTier
 from haywire.core.session.handlers import react_on, redraw_on
 from haywire.core.signals import Copy, EditorCommand, Paste, Redo, Signal, Undo
-from haywire.ui.keymap import KeymapClash, KeymapEntry, build_keymap, report_keymap_problems
+from haywire.ui.keymap import (
+    KeymapClash,
+    KeymapEntry,
+    build_keymap,
+    report_keymap_problems,
+    report_new_keymap_problems,
+    reset_reported_keymap_problems,
+)
 
 
 def _identity(label: str) -> Any:
@@ -258,3 +265,49 @@ def test_report_clean_keymap_logs_nothing():
         report_keymap_problems(keymap)
 
     ledger.record.assert_not_called()
+
+
+def _recorded_messages(ledger: MagicMock) -> list[str]:
+    return [call.args[0].message for call in ledger.record.call_args_list]
+
+
+def test_report_new_logs_each_problem_once_per_process():
+    reset_reported_keymap_problems()
+    keymap = build_keymap({"k": _LibCEditor, "r": _ReservedEditor}, _always)
+
+    ledger = MagicMock()
+    with patch("haywire.core.errors.ledger.get_error_ledger", return_value=ledger):
+        report_new_keymap_problems(keymap)
+        report_new_keymap_problems(build_keymap({"k": _LibCEditor, "r": _ReservedEditor}, _always))
+
+    assert len(_recorded_messages(ledger)) == 2
+    reset_reported_keymap_problems()
+
+
+def test_report_new_logs_only_problems_not_yet_reported():
+    reset_reported_keymap_problems()
+    ledger = MagicMock()
+    with patch("haywire.core.errors.ledger.get_error_ledger", return_value=ledger):
+        report_new_keymap_problems(build_keymap({"r": _ReservedEditor}, _always))
+        report_new_keymap_problems(
+            build_keymap({"r": _ReservedEditor, "a": _DupAEditor, "b": _DupBEditor}, _always)
+        )
+
+    messages = _recorded_messages(ledger)
+    assert len(messages) == 2
+    assert "Mod+W" in messages[0]
+    assert "test.dup" in messages[1]
+    reset_reported_keymap_problems()
+
+
+def test_reset_reported_problems_reports_again():
+    reset_reported_keymap_problems()
+    keymap = build_keymap({"r": _ReservedEditor}, _always)
+    ledger = MagicMock()
+    with patch("haywire.core.errors.ledger.get_error_ledger", return_value=ledger):
+        report_new_keymap_problems(keymap)
+        reset_reported_keymap_problems()
+        report_new_keymap_problems(keymap)
+
+    assert len(_recorded_messages(ledger)) == 2
+    reset_reported_keymap_problems()

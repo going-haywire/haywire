@@ -5,7 +5,8 @@ subscribes to with ``@react_on`` / ``@redraw_on``. ``build_keymap`` resolves
 those claims for one principal's access tier and records the problems that
 keep a key from binding: clashes inside one editor, browser-reserved combos,
 and a ``command_id`` declared by two classes. ``report_keymap_problems`` logs
-those problems to the error ledger.
+those problems to the error ledger; ``report_new_keymap_problems`` logs only
+the ones not yet logged in this process.
 """
 
 from __future__ import annotations
@@ -20,6 +21,9 @@ from haywire.core.signals import EditorCommand
 from haywire.core.signals.keys import RESERVED_COMBOS
 
 _CATEGORY = "Keyboard Shortcuts"
+
+# Identity keys of the problems ``report_new_keymap_problems`` has logged in this process.
+_reported_problems: set[tuple[Any, ...]] = set()
 
 
 @dataclass(frozen=True)
@@ -202,18 +206,66 @@ def build_keymap(
 
 def report_keymap_problems(keymap: Keymap) -> None:
     """Log one warning to the error ledger per clash, reserved combo and duplicate id in ``keymap``."""
+    for _key, message in _problems(keymap):
+        _warn(message)
+
+
+def report_new_keymap_problems(keymap: Keymap) -> None:
+    """Log the problems in ``keymap`` that no earlier call in this process has logged.
+
+    Works like ``report_keymap_problems``, but each problem is logged once per
+    process however many keymaps contain it, so every session can report its
+    own keymap without repeating the warnings of the others. A problem is
+    identified by its kind, combo, editor key and command ids.
+    ``reset_reported_keymap_problems`` forgets what has been logged.
+    """
+    for key, message in _problems(keymap):
+        if key not in _reported_problems:
+            _reported_problems.add(key)
+            _warn(message)
+
+
+def reset_reported_keymap_problems() -> None:
+    """Forget which problems ``report_new_keymap_problems`` has logged, so each is logged again."""
+    _reported_problems.clear()
+
+
+def _problems(keymap: Keymap) -> list[tuple[tuple[Any, ...], str]]:
+    """Return ``(identity key, warning message)`` for each problem in ``keymap``."""
+    problems: list[tuple[tuple[Any, ...], str]] = []
     for clash in keymap.clashes:
         editor_label = keymap.editor_labels.get(clash.editor_key, clash.editor_key)
         losers = ", ".join(_describe(cmd) for cmd in clash.losers)
-        _warn(
-            f"Shortcut {clash.combo} in editor '{editor_label}' is bound to {_describe(clash.winner)}; "
-            f"it shadows {losers}, which also declare it."
+        key = (
+            "clash",
+            clash.editor_key,
+            clash.combo,
+            clash.winner.command_id,
+            tuple(cmd.command_id for cmd in clash.losers),
+        )
+        problems.append(
+            (
+                key,
+                f"Shortcut {clash.combo} in editor '{editor_label}' is bound to {_describe(clash.winner)}; "
+                f"it shadows {losers}, which also declare it.",
+            )
         )
     for combo, cmd in keymap.reserved:
-        _warn(f"Shortcut {combo} of {_describe(cmd)} is reserved by the browser and is not bound.")
+        problems.append(
+            (
+                ("reserved", combo, cmd.command_id),
+                f"Shortcut {combo} of {_describe(cmd)} is reserved by the browser and is not bound.",
+            )
+        )
     for command_id, classes in keymap.duplicate_ids:
         names = ", ".join(_qualified_name(cls) for cls in classes)
-        _warn(f"Command id '{command_id}' is declared by {names}; none of them get keyboard shortcuts.")
+        problems.append(
+            (
+                ("duplicate", command_id),
+                f"Command id '{command_id}' is declared by {names}; none of them get keyboard shortcuts.",
+            )
+        )
+    return problems
 
 
 def _subscribed_commands(cls: type) -> list[type[EditorCommand]]:

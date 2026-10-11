@@ -4,7 +4,15 @@ See ``build_keymap`` for how combos are claimed and ``report_keymap_problems``
 for how unbindable declarations are reported.
 """
 
-from .keymap import Keymap, KeymapClash, KeymapEntry, build_keymap, report_keymap_problems
+from .keymap import (
+    Keymap,
+    KeymapClash,
+    KeymapEntry,
+    build_keymap,
+    report_keymap_problems,
+    report_new_keymap_problems,
+    reset_reported_keymap_problems,
+)
 
 __all__ = [
     "Keymap",
@@ -12,4 +20,6 @@ __all__ = [
     "KeymapEntry",
     "build_keymap",
     "report_keymap_problems",
+    "report_new_keymap_problems",
+    "reset_reported_keymap_problems",
 ]
