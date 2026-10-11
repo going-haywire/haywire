@@ -479,6 +479,14 @@ with `claude mcp add --transport http farmhand http://127.0.0.1:8124/mcp
 --header "Authorization: Bearer <token>"`, or with no header at all when
 authentication is off.
 
+!!! warning "Known gap: the graph canvas does not enforce the view tier yet"
+    In the graph canvas, a `view` principal can still delete, paste and move
+    nodes through the context menus, the selection toolbar and mouse gestures.
+    Keyboard commands are tier-gated (ADR 0050) — Delete, Paste or Undo from a
+    `view` session does nothing — but the menus and gestures are not gated
+    yet. Until they are, treat `view` as "not expected to edit", not as "cannot
+    edit".
+
 ## 10. The security document
 
 Everything in this guide is one axis of `~/.haywire/security.json`: mode

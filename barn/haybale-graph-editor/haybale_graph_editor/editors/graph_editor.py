@@ -32,11 +32,16 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.handlers import react_on
 from haywire.core.signals import (
     ActiveGraphMoved,
+    Copy,
+    Delete,
+    Redo,
     SubgraphNavigation,
     GraphDataMutated,
     Reveal,
     RevealGraphInstance,
+    SelectAll,
     SelectionMoved,
+    Undo,
 )
 
 from ..editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
@@ -411,6 +416,38 @@ class GraphEditor(BaseEditor):
             )
         )
         context.session.publish(SelectionMoved())
+
+    # ------------------------------------------------------------------
+    # keyboard commands (see EditorCommand)
+    # ------------------------------------------------------------------
+
+    @react_on(Copy)
+    def _on_copy(self, context: "SessionContext", event: Copy) -> None:
+        """Copy the selection on the level on screen."""
+        if self._canvas_manager is not None:
+            self._canvas_manager.copy_selection()
+
+    @react_on(Delete)
+    def _on_delete(self, context: "SessionContext", event: Delete) -> None:
+        """Delete the selection on the level on screen."""
+        if self._canvas_manager is not None:
+            self._canvas_manager.delete_selection()
+
+    @react_on(Undo)
+    def _on_undo(self, context: "SessionContext", event: Undo) -> None:
+        """Undo the document's last action."""
+        self._do_undo(context)
+
+    @react_on(Redo)
+    def _on_redo(self, context: "SessionContext", event: Redo) -> None:
+        """Redo the document's last undone action."""
+        self._do_redo(context)
+
+    @react_on(SelectAll)
+    def _on_select_all(self, context: "SessionContext", event: SelectAll) -> None:
+        """Toggle select-all on the level on screen."""
+        if self._canvas_manager is not None:
+            self._canvas_manager.select_all_toggle()
 
     def _open_level_for_graph(self, context: "SessionContext", graph_id: str) -> Optional[_Level]:
         """Open the levels down to the Subgraph with ``graph_id``, or ``None`` if this

@@ -476,3 +476,84 @@ def test_paste_ignores_text_without_source_timestamp(graph, session, edit_state_
         h.process_paste_clipboard(UserPasteClipboardEvent(canvasX=0.0, canvasY=0.0, clipboardText=bad))
     editor.paste_clipboard.assert_not_called()
     notify.assert_called_once()  # "Nothing to paste"
+
+
+def test_copy_uses_clipboard_script(handler):
+    """The OS clipboard write carries the insecure-context fallback."""
+    with patch.object(selection_module.ui, "run_javascript") as run_js:
+        handler.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
+    run_js.assert_called_once()
+    assert "execCommand('copy')" in run_js.call_args.args[0]
+
+
+# ---------------------------------------------------------------------------
+# Select all
+# ---------------------------------------------------------------------------
+
+
+def _select_all_handler(graph, session, locked=()):
+    """A handler over nodes a, b, c with a mock visual layer and the given locked ids."""
+    graph.node_wrappers = {"a": MagicMock(), "b": MagicMock(), "c": MagicMock()}
+    visual_layer = MagicMock()
+    h = SelectionHandlers(
+        graph=graph,
+        editor=MagicMock(),
+        session_id="sess",
+        session=session,
+        visual_layer=visual_layer,
+    )
+    return h, visual_layer, lambda node_id: node_id in locked
+
+
+def test_select_all_selects_every_unlocked_node(graph, session, edit_state_cls):
+    h, visual_layer, is_locked = _select_all_handler(graph, session)
+    edit = session.context.data[edit_state_cls]
+    edit.active_node = MagicMock()
+
+    h.select_all_toggle(is_locked)
+
+    assert h.selected_nodes == {"a", "b", "c"}
+    assert h.selected_edges == set()
+    assert edit.selected_nodes == {"a", "b", "c"}
+    assert edit.selected_edges == set()
+    assert edit.active_node is None
+    assert edit.active_edge is None
+    nodes, edges = visual_layer.sync_selections.call_args.args
+    assert set(nodes) == {"a", "b", "c"}
+    assert set(edges) == set()
+    session.publish.assert_called()
+
+
+def test_select_all_twice_clears(graph, session, edit_state_cls):
+    h, visual_layer, is_locked = _select_all_handler(graph, session)
+
+    h.select_all_toggle(is_locked)
+    h.select_all_toggle(is_locked)
+
+    assert h.selected_nodes == set()
+    assert h.selected_edges == set()
+    assert session.context.data[edit_state_cls].selected_nodes == set()
+    nodes, edges = visual_layer.sync_selections.call_args.args
+    assert set(nodes) == set()
+    assert set(edges) == set()
+
+
+def test_select_all_from_partial_selects_all(graph, session, edit_state_cls):
+    h, _, is_locked = _select_all_handler(graph, session)
+    h.selected_nodes = {"a"}
+    h.selected_edges = {"e1"}
+
+    h.select_all_toggle(is_locked)
+
+    assert h.selected_nodes == {"a", "b", "c"}
+    assert h.selected_edges == set()
+
+
+def test_select_all_skips_locked_nodes(graph, session, edit_state_cls):
+    h, _, is_locked = _select_all_handler(graph, session, locked=("c",))
+
+    h.select_all_toggle(is_locked)
+    assert h.selected_nodes == {"a", "b"}
+
+    h.select_all_toggle(is_locked)
+    assert h.selected_nodes == set()

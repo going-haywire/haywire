@@ -22,7 +22,7 @@ from ...state.edit_state import EditState
 from .event_handlers import build_event_handler_map
 from .graph_load_modal import graph_load_modal
 from .handlers.interaction import InteractionHandlers
-from .handlers.selection import SelectionHandlers
+from .handlers.selection import SelectionHandlers, copy_selection_event, remove_selection_event
 from .handlers.visual_layer import VisualLayerHandlers
 from .handlers.context_menu import ContextMenuHandlers, SessionContextMenuProvider
 from .handlers.selection_toolbar import SelectionToolbarProvider, SelectionToolbarHandlers
@@ -313,6 +313,18 @@ class GraphCanvasManager:
             self.selection.selected_nodes,
             self.selection.selected_edges,
         )
+
+    def copy_selection(self) -> None:
+        """Copy the current selection to the session and OS clipboards."""
+        self._handle_canvas_event(copy_selection_event(self._session.context.data[EditState]))
+
+    def delete_selection(self) -> None:
+        """Remove the current selection as one undoable step, skipping locked nodes."""
+        self._handle_canvas_event(remove_selection_event(self._session.context.data[EditState]))
+
+    def select_all_toggle(self) -> None:
+        """Select every unlocked node, or clear the selection when that is already it."""
+        self.selection.select_all_toggle(self.visual_layer.is_locked)
 
     def clear_all_visuals(self):
         """Clear all visual representations."""

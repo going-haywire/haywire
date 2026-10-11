@@ -39,6 +39,7 @@ from haywire.ui.components.graph.event_definitions import (
     SelectionBoundsHideEvent,
 )
 from ..event_handlers import handles_event
+from .selection import copy_selection_event, remove_selection_event
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -237,36 +238,23 @@ class SelectionToolbarProvider:
     # SelectionActions Protocol implementation
     # ------------------------------------------------------------------
     #
-    # copy/delete are emitted here directly (they predate the delegation and
-    # read the same EditState); the rest forward to the menu provider, which
-    # already implements them. Forwarding rather than duplicating keeps one
-    # definition of each verb.
+    # copy/delete are emitted here directly; the rest forward to the menu
+    # provider, which already implements them. Forwarding keeps one definition
+    # of each verb.
 
     def copy_selection(self) -> None:
         """Emit UserCopySelectedEvent for the current selection."""
-        from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
         from ....state.edit_state import EditState
 
-        edit = self._context.data[EditState]
-        event = UserCopySelectedEvent(
-            selectedNodes=list(edit.selected_nodes),
-            selectedEdges=list(edit.selected_edges),
-        )
         if self._on_emit_event is not None:
-            self._on_emit_event(event)
+            self._on_emit_event(copy_selection_event(self._context.data[EditState]))
 
     def delete_selection(self) -> None:
         """Emit UserRemoveEvent for the current selection."""
-        from haywire.ui.components.graph.event_definitions import UserRemoveEvent
         from ....state.edit_state import EditState
 
-        edit = self._context.data[EditState]
-        event = UserRemoveEvent(
-            nodes=list(edit.selected_nodes),
-            edges=list(edit.selected_edges),
-        )
         if self._on_emit_event is not None:
-            self._on_emit_event(event)
+            self._on_emit_event(remove_selection_event(self._context.data[EditState]))
 
     def paste_at_click(self) -> None:
         self._menu_provider.paste_at_click()

@@ -38,6 +38,7 @@ from haywire.ui.components.graph.event_definitions import (
     ContextMenuPortEvent,
     SyncEdgeConnectResumeEvent,
 )
+from .selection import copy_selection_event, remove_selection_event
 from .visual_layer import VisualLayerHandlers
 from ....state.edit_state import EditState
 from ..event_handlers import handles_event
@@ -540,30 +541,14 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def copy_selection(self) -> None:
         """Emit UserCopySelectedEvent for the current ctx.data[EditState] selection."""
-        from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
-
-        edit = self._context.data[EditState]
-        self._emit(
-            UserCopySelectedEvent(
-                selectedNodes=list(edit.selected_nodes),
-                selectedEdges=list(edit.selected_edges),
-            )
-        )
+        self._emit(copy_selection_event(self._context.data[EditState]))
 
     def delete_selection(self) -> None:
         """Emit UserRemoveEvent for the whole ctx.data[EditState] selection.
 
         Removal is a single undoable operation (editor.remove_elements).
         """
-        from haywire.ui.components.graph.event_definitions import UserRemoveEvent
-
-        edit = self._context.data[EditState]
-        self._emit(
-            UserRemoveEvent(
-                nodes=list(edit.selected_nodes),
-                edges=list(edit.selected_edges),
-            )
-        )
+        self._emit(remove_selection_event(self._context.data[EditState]))
 
     def redraw_selection(self) -> None:
         """Emit ElementRedrawEvent for every node/edge in the selection."""

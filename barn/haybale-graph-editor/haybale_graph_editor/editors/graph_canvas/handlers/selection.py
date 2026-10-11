@@ -7,7 +7,7 @@ Owns: selected_nodes, selected_edges, clipboard.
 import json
 import logging
 import traceback
-from typing import Optional, Set, TYPE_CHECKING
+from typing import Callable, Optional, Set, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -19,7 +19,9 @@ from haywire.ui.components.graph.event_definitions import (
     SelectionChangedEvent,
     UserCopySelectedEvent,
     UserPasteClipboardEvent,
+    UserRemoveEvent,
 )
+from haywire.ui.elements import clipboard_script
 from ..event_handlers import handles_event
 from ....state.edit_state import EditState
 
@@ -30,6 +32,22 @@ if TYPE_CHECKING:
     from .visual_layer import VisualLayerHandlers
 
 logger = logging.getLogger(__name__)
+
+
+def copy_selection_event(edit: EditState) -> UserCopySelectedEvent:
+    """The copy event for the selection recorded in ``edit``."""
+    return UserCopySelectedEvent(
+        selectedNodes=list(edit.selected_nodes),
+        selectedEdges=list(edit.selected_edges),
+    )
+
+
+def remove_selection_event(edit: EditState) -> UserRemoveEvent:
+    """The removal event for the whole selection recorded in ``edit``."""
+    return UserRemoveEvent(
+        nodes=list(edit.selected_nodes),
+        edges=list(edit.selected_edges),
+    )
 
 
 class SelectionHandlers:
@@ -108,11 +126,37 @@ class SelectionHandlers:
                 payload=payload, timestamp=payload["source"]["timestamp"]
             )
             # Write to the OS clipboard as JSON text (cross-process export).
-            ui.run_javascript(f"navigator.clipboard.writeText({json.dumps(json.dumps(payload))})")
+            ui.run_javascript(clipboard_script(json.dumps(payload)))
         except Exception as e:
             logger.error(f"❌ Error during copy operation: {e}")
             ui.notify(f"Copy failed: {e}", type="negative")
             traceback.print_exc()
+
+    def select_all_toggle(self, is_locked: Callable[[str], bool]) -> None:
+        """Select every unlocked node, or clear the selection when that is already it.
+
+        Locked nodes stay out, matching the canvas rule that keeps a locked node
+        out of any multi-selection. The result is a bulk change, so it has no
+        active (primary) element.
+        """
+        candidates = {node_id for node_id in self.graph.node_wrappers if not is_locked(node_id)}
+        if candidates and self.selected_nodes == candidates:
+            self.selected_nodes = set()
+        else:
+            self.selected_nodes = candidates
+        self.selected_edges = set()
+
+        if self._session is not None:
+            ctx = self._session.context
+            edit_state = ctx.data[EditState]
+            edit_state.selected_nodes = self.selected_nodes
+            edit_state.selected_edges = self.selected_edges
+            edit_state.active_node = None
+            edit_state.active_edge = None
+            ctx.active_component = None
+            self._session.publish(SelectionMoved())
+        if self._visual_layer is not None:
+            self._visual_layer.sync_selections(self.selected_nodes, self.selected_edges)
 
     @handles_event(UserPasteClipboardEvent)
     def process_paste_clipboard(self, event: UserPasteClipboardEvent):

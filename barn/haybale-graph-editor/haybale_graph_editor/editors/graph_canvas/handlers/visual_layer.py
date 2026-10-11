@@ -739,7 +739,7 @@ class VisualLayerHandlers:
             if height is not None and abs(height - props.height) > 1.0:
                 props.height = float(height)
 
-    def _is_locked(self, node_id: str) -> bool:
+    def is_locked(self, node_id: str) -> bool:
         """True when the node exists and carries ``props.locked``."""
         wrapper = self.graph.get_node_wrapper(node_id)
         if wrapper is None:
@@ -765,7 +765,7 @@ class VisualLayerHandlers:
         the other direction (see the locked-node design, ADR 0032's successor
         notes in properties.py).
         """
-        nodes = [n for n in event.nodes if not self._is_locked(n)]
+        nodes = [n for n in event.nodes if not self.is_locked(n)]
         skipped = len(event.nodes) - len(nodes)
 
         if not nodes and not event.edges:
