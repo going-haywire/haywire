@@ -16,7 +16,7 @@ from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.session.handlers import discover_handlers
-from haywire.core.signals import Signal
+from haywire.core.signals import EditorCommand, Signal
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 
 from haywire.ui.editor.identity import OpenBehavior
@@ -434,6 +434,12 @@ class EditorWrapper:
             if instance is None:
                 # Hot-reload between subscribe and publish — drop silently;
                 # next instantiate will re-subscribe.
+                return
+            if isinstance(event, EditorCommand) and (
+                event.binding_id != self.editor_binding_id
+                or not self._session.context.can_access(type(event).access)
+            ):
+                # A command addresses one binding and needs its access tier; see ADR 0050.
                 return
             method = getattr(instance, method_name, None)
             if method is None:
