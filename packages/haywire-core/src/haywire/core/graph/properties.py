@@ -10,6 +10,7 @@ on load.
 """
 
 from haywire.barn.builtin.widget_keys import ARROW_HEAD_WIDGET
+from haywire.core.edge.arrow_heads import head_size_choices
 from haywire.core.edge.settings import EdgeDefaultSettings
 from haywire.core.settings.descriptor import shadow
 from haywire.core.settings.settings_graph import GraphSettings
@@ -82,6 +83,15 @@ class GraphProperties(GraphSettings):
         category="appearance",
         order=40,
         widget={"key": ARROW_HEAD_WIDGET},
+    )
+
+    edge_arrow_size = shadow(
+        src=EdgeDefaultSettings.arrow_size,
+        label="Edge Arrow Size",
+        description=("Arrow head size on the computed edges of THIS graph. Overrides the studio default."),
+        category="appearance",
+        order=45,
+        widget_config={"options": head_size_choices},
     )
 
     edge_width = shadow(

@@ -28,6 +28,7 @@ Library for haywire studio
 - **Debug Overlay** — 
 - **Default Skins** — 
 - **Developer mode** — 
+- **Edges** — 
 - **Editing** — 
 - **Execution** — 
 - **Grid** — 

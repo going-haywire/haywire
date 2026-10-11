@@ -5,7 +5,15 @@ draws the ones named here. Heads come from ``haywire.core.edge.arrow_heads``.
 """
 
 #: The style fields the canvas draws, in the order a bag usually declares them.
-STYLE_FIELDS: tuple[str, ...] = ("color", "width", "dash", "arrow_start", "arrow_end")
+STYLE_FIELDS: tuple[str, ...] = (
+    "color",
+    "width",
+    "dash",
+    "arrow_start",
+    "arrow_start_size",
+    "arrow_end",
+    "arrow_end_size",
+)
 
 #: A ``dash`` field's values and the SVG dash pattern each draws, in px.
 DASH_PATTERNS: dict[str, str] = {"solid": "", "dashed": "8,4", "dotted": "2,4"}

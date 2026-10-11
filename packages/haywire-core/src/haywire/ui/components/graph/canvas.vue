@@ -134,6 +134,7 @@ export default {
         // the studio's hit padding and the static head table.
         edgeWidth:      { type: Number, default: 2 },
         edgeArrow:      { type: String, default: 'none' },
+        edgeArrowSize:  { type: String, default: null },
         edgeHitPadding: { type: Number, default: 20 },
     },
 
@@ -227,7 +228,7 @@ export default {
             return {
                 '--hw-edge-width': `${this.edgeWidth}px`,
                 '--hw-edge-hit-padding': `${this.edgeHitPadding}px`,
-                '--hw-edge-head': this._headUrl(this.edgeArrow),
+                '--hw-edge-head': this._headUrl(this.edgeArrow, this.edgeArrowSize),
             };
         },
 
@@ -298,6 +299,7 @@ export default {
         // Primitive props, so these fire only when the value changes.
         edgeWidth() { this._relayoutEdges((info) => this._followsGraphWidth(info) && this._isHeaded(info)); },
         edgeArrow() { this._relayoutEdges((info) => this._followsGraphHead(info)); },
+        edgeArrowSize() { this._relayoutEdges((info) => this._followsGraphHead(info)); },
     },
 
     mounted() {
@@ -3088,27 +3090,36 @@ export default {
             path.classList.add(`edge-arrow-${edgeInfo.arrowAt}`);
         },
 
-        _headMarkerId(name) {
-            return `hw-head-${this.containerId}-${name}`;
+        _headMarkerId(name, size) {
+            return `hw-head-${this.containerId}-${name}-${size}`;
         },
 
-        _headUrl(name) {
-            return this.headInsets[name] === undefined ? 'none' : `url(#${this._headMarkerId(name)})`;
+        _headUrl(name, size) {
+            return this.headInsets[name] === undefined ? 'none' : `url(#${this._headMarkerId(name, size)})`;
+        },
+
+        /** The size step of the head at the end named `end`: its style's, else the graph's. */
+        _headSizeAt(edgeInfo, end) {
+            const style = edgeInfo.style || {};
+            const size = end === 'outlet' ? style.arrowStartSize : style.arrowEndSize;
+            return (window.HwArrowHeadSizes || {})[size] !== undefined ? size : this.edgeArrowSize;
         },
 
         _buildHeadMarkers() {
             const defs = this.$refs.defs;
             if (!defs) return;
             defs.querySelectorAll('marker.hw-edge-head').forEach((marker) => marker.remove());
-            for (const head of window.HwArrowHeads || []) {
+            // One marker per head and size step: a marker's size is its own, not its user's.
+            const sizes = Object.entries(window.HwArrowHeadSizes || {});
+            for (const head of window.HwArrowHeads || []) for (const [size, factor] of sizes) {
                 const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-                marker.setAttribute('id', this._headMarkerId(head.name));
+                marker.setAttribute('id', this._headMarkerId(head.name, size));
                 marker.setAttribute('class', 'hw-edge-head');
                 marker.setAttribute('viewBox', head.view_box);
                 marker.setAttribute('refX', '0');
                 marker.setAttribute('refY', '0');
-                marker.setAttribute('markerWidth', String(head.width));
-                marker.setAttribute('markerHeight', String(head.height));
+                marker.setAttribute('markerWidth', String(head.width * factor));
+                marker.setAttribute('markerHeight', String(head.height * factor));
                 marker.setAttribute('markerUnits', 'strokeWidth');
                 // One definition serves both ends: at marker-start it turns to
                 // point back into the outlet.
@@ -3168,7 +3179,9 @@ export default {
          *  the pin's half-size, plus the head's length at a headed end. */
         _edgeInsets(edgeInfo) {
             const headLength = (end) => this._endIsHeaded(edgeInfo, end)
-                ? this.headInsets[this._headAt(edgeInfo, end)] * this._edgeWidthOf(edgeInfo) : 0;
+                ? this.headInsets[this._headAt(edgeInfo, end)] * this._edgeWidthOf(edgeInfo)
+                    * ((window.HwArrowHeadSizes || {})[this._headSizeAt(edgeInfo, end)] ?? 1)
+                : 0;
             return [
                 edgeInfo.outletPinHalf + headLength('outlet'),
                 edgeInfo.inletPinHalf + headLength('inlet'),
@@ -3186,9 +3199,12 @@ export default {
                 if (width) el.style.setProperty('--hw-edge-width', width);
                 else el.style.removeProperty('--hw-edge-width');
             }
-            const heads = { '--hw-edge-head-start': style.arrowStart, '--hw-edge-head-end': style.arrowEnd };
-            for (const [name, head] of Object.entries(heads)) {
-                if (head !== undefined) edgeInfo.path.style.setProperty(name, this._headUrl(head));
+            const heads = {
+                '--hw-edge-head-start': [style.arrowStart, this._headSizeAt(edgeInfo, 'outlet')],
+                '--hw-edge-head-end': [style.arrowEnd, this._headSizeAt(edgeInfo, 'inlet')],
+            };
+            for (const [name, [head, size]] of Object.entries(heads)) {
+                if (head !== undefined) edgeInfo.path.style.setProperty(name, this._headUrl(head, size));
                 else edgeInfo.path.style.removeProperty(name);
             }
         },

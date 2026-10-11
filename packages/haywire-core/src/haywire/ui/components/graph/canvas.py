@@ -110,9 +110,11 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         for name, prop in _CANVAS_SETTING_PROPS.items():
             self._props[prop] = getattr(self._canvas_settings, name)
 
-    def set_edge_defaults(self, arrow: str, width: float) -> None:
-        """Push the graph's computed-edge arrow head (a head name or ``none``) and width in pixels."""
+    def set_edge_defaults(self, arrow: str, arrow_size: str, width: float) -> None:
+        """Push the graph's computed-edge arrow head (a head name or ``none``), its size (a key of
+        ``HEAD_SIZES``) and width in pixels."""
         self._props["edge-arrow"] = arrow
+        self._props["edge-arrow-size"] = arrow_size
         self._props["edge-width"] = width
         self.update()
 

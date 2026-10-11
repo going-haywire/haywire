@@ -480,7 +480,8 @@ class SyncEdgeAdditionEvent(BaseGraphEvent):
     - opacity: Transparency (0.0-1.0)
     - isValid: Connection validity state
     - hasWarning: Warning indicator
-    - style: A styled edge's declared width and heads (width, arrowStart, arrowEnd)
+    - style: A styled edge's declared width and heads (width, arrowStart, arrowEnd,
+      arrowStartSize, arrowEndSize)
     """
 
     edge_id: str

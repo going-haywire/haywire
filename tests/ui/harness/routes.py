@@ -1231,6 +1231,10 @@ def register_routes(library_service) -> None:
             manager.canvas_vue.emit_sync_event(SyncAllEdgesEvent(edges=[edge_sync_payload(edge, state)]))
 
         ui.button("style-partial", on_click=_send_partial_style).props('data-testid="style-partial"')
+        # Below the canvas, so the canvas keeps its place on the page.
+        ui.button("set-arrow-size-xl", on_click=lambda: setattr(graph.props, "edge_arrow_size", "xl")).props(
+            'data-testid="set-arrow-size-xl"'
+        )
         _stamp_synced()
 
     # -------------------------------------------------------------------------

@@ -2,6 +2,8 @@
 
 import pytest
 
+from haywire.core.edge.arrow_heads import DEFAULT_HEAD_SIZE
+
 from haybale_graph_editor.editors.graph_canvas.ui_edge import edge_visual_state
 from tests.conftest import make_edge, make_node
 
@@ -80,8 +82,14 @@ def test_a_declared_colour_and_dash_replace_gradient_and_chain_dash(graph_with_l
 
 
 def test_declared_width_and_heads_go_to_the_canvas_style(graph_with_library_system):
-    state = edge_visual_state(_styled_edge(graph_with_library_system, width=5.0, arrow_start="open"))
-    assert state.style == {"width": 5.0, "arrowStart": "open", "arrowEnd": "arrow"}
+    edge = _styled_edge(graph_with_library_system, width=5.0, arrow_start="open", arrow_end_size="l")
+    assert edge_visual_state(edge).style == {
+        "width": 5.0,
+        "arrowStart": "open",
+        "arrowEnd": "arrow",
+        "arrowStartSize": DEFAULT_HEAD_SIZE,
+        "arrowEndSize": "l",
+    }
 
 
 def test_an_unknown_dash_keeps_the_chain_dash(graph_with_library_system):

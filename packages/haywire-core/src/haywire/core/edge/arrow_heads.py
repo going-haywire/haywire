@@ -101,6 +101,17 @@ ARROW_HEADS: tuple[ArrowHead, ...] = (
 
 _BY_NAME = {head.name: head for head in ARROW_HEADS}
 
+#: A head's size steps, each a factor on its table size (which already follows the edge width).
+HEAD_SIZES: dict[str, float] = {"xs": 0.75, "s": 1.0, "m": 1.5, "l": 2.0, "xl": 3.0}
+
+#: The size step a head draws at unless its style declares another.
+DEFAULT_HEAD_SIZE = "s"
+
+
+def head_size_choices() -> dict[str, str]:
+    """Return the head size options for a choices widget, value to label."""
+    return {size: size.upper() for size in HEAD_SIZES}
+
 
 def get_arrow_head(name: str | None) -> ArrowHead | None:
     """Return the head called *name*; ``None`` for ``NO_HEAD``, ``None`` or an unknown name."""

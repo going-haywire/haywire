@@ -8,8 +8,13 @@ harness page sets on :root.
 import pytest
 from playwright.sync_api import Page
 
+from haywire.core.edge.arrow_heads import ARROW_HEADS, DEFAULT_HEAD_SIZE, HEAD_SIZES
+
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 from tests.ui.harness.pin_edge import PIN_EDGE_JS
+
+#: The factor every head drawn at the default size takes.
+_SIZE = HEAD_SIZES[DEFAULT_HEAD_SIZE]
 
 _PATH = "/graph-edge-appearance"
 
@@ -31,9 +36,10 @@ def _open(page: Page, harness) -> None:
 #: What each graph-default button changes: the canvas var it sets on every edge, and that var's value.
 _EXPECTED_VAR = {
     "set-width-4": ("--hw-edge-width", "4px"),
-    "set-arrow-open": ("--hw-edge-head", "-open)"),
-    "set-arrow-ring": ("--hw-edge-head", "-circle_hollow)"),
+    "set-arrow-open": ("--hw-edge-head", f"-open-{DEFAULT_HEAD_SIZE})"),
+    "set-arrow-ring": ("--hw-edge-head", f"-circle_hollow-{DEFAULT_HEAD_SIZE})"),
     "set-arrow-none": ("--hw-edge-head", "none"),
+    "set-arrow-size-xl": ("--hw-edge-head", "-open-xl)"),
 }
 
 
@@ -157,9 +163,16 @@ def _pin(page: Page, selector: str, end: str) -> dict:
     )
 
 
-def test_every_head_has_one_marker_in_the_canvas(page: Page, harness) -> None:
+def test_every_head_has_one_marker_per_size_in_the_canvas(page: Page, harness) -> None:
     _open(page, harness)
-    assert page.evaluate("() => document.querySelectorAll('marker.hw-edge-head').length") == 15
+    count = page.evaluate("() => document.querySelectorAll('marker.hw-edge-head').length")
+    assert count == len(ARROW_HEADS) * len(HEAD_SIZES)
+    widths = page.evaluate(
+        """(sizes) => sizes.map((size) => Number(document.querySelector(
+            `marker.hw-edge-head[id$="-arrow-${size}"]`).getAttribute('markerWidth')))""",
+        [DEFAULT_HEAD_SIZE, "xl"],
+    )
+    assert widths[1] == widths[0] * HEAD_SIZES["xl"] / HEAD_SIZES[DEFAULT_HEAD_SIZE]
 
 
 def test_no_head_by_default(page: Page, harness) -> None:
@@ -195,12 +208,22 @@ def test_the_path_stops_short_of_the_inlet_by_the_head_inset(page: Page, harness
     end = _end_point(page, _DATA, "inlet")
     # The unheaded (outlet) end of a headed edge sits on its pin's edge.
     assert _distance(_end_point(page, _DATA, "outlet"), _pin(page, _DATA, "outlet")["edge"]) < 0.5
-    assert abs(_distance(end, full) - 4.0 * 4) < 0.5
+    assert abs(_distance(end, full) - 4.0 * 4 * _SIZE) < 0.5
     # Measured from the pin itself: the head's tip lands on the pin's edge.
-    assert abs(_distance(end, pin) - (4.0 * 4 + pin["half"])) < 0.5
+    assert abs(_distance(end, pin) - (4.0 * 4 * _SIZE + pin["half"])) < 0.5
 
     _click(page, "set-arrow-none")
     assert _distance(_end_point(page, _DATA, "inlet"), full) < 0.5
+
+
+def test_a_graph_head_size_scales_the_inset(page: Page, harness) -> None:
+    _open(page, harness)
+    full = _end_point(page, _DATA, "inlet")
+    _click(page, "set-width-4")
+    _click(page, "set-arrow-open")
+    _click(page, "set-arrow-size-xl")
+    end = _end_point(page, _DATA, "inlet")
+    assert abs(_distance(end, full) - 4.0 * 4 * HEAD_SIZES["xl"]) < 0.5
 
 
 def test_a_callback_head_shortens_the_outlet_end(page: Page, harness) -> None:
@@ -212,15 +235,15 @@ def test_a_callback_head_shortens_the_outlet_end(page: Page, harness) -> None:
     _click(page, "set-arrow-ring")
 
     end = _end_point(page, _CALLBACK, "outlet")
-    assert abs(_distance(end, full) - 4.5 * 2) < 0.5
-    assert abs(_distance(end, pin) - (4.5 * 2 + pin["half"])) < 0.5
+    assert abs(_distance(end, full) - 4.5 * 2 * _SIZE) < 0.5
+    assert abs(_distance(end, pin) - (4.5 * 2 * _SIZE + pin["half"])) < 0.5
 
 
 def test_a_hollow_head_is_hollow(page: Page, harness) -> None:
     _open(page, harness)
     fill = page.evaluate(
-        "() => getComputedStyle("
-        "document.querySelector('marker.hw-edge-head[id$=\"-circle_hollow\"] circle')).fill"
+        "() => getComputedStyle(document.querySelector("
+        f"'marker.hw-edge-head[id$=\"-circle_hollow-{DEFAULT_HEAD_SIZE}\"] circle')).fill"
     )
     assert fill == "none"
 
@@ -251,10 +274,10 @@ def test_a_width_change_moves_a_headed_end(page: Page, harness) -> None:
     assert _distance(full, _pin(page, _DATA, "inlet")["edge"]) < 0.5
 
     _click(page, "set-arrow-open")
-    assert abs(_distance(_end_point(page, _DATA, "inlet"), full) - 4.0 * 2) < 0.5
+    assert abs(_distance(_end_point(page, _DATA, "inlet"), full) - 4.0 * 2 * _SIZE) < 0.5
 
     _click(page, "set-width-4")
-    assert abs(_distance(_end_point(page, _DATA, "inlet"), full) - 4.0 * 4) < 0.5
+    assert abs(_distance(_end_point(page, _DATA, "inlet"), full) - 4.0 * 4 * _SIZE) < 0.5
 
 
 #: Screen px between the callback edge's drawn start and its outlet pin's edge,

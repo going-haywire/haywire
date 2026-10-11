@@ -123,3 +123,10 @@ window.HwArrowHeads = Object.freeze([
     "height": 8
   }
 ]);
+window.HwArrowHeadSizes = Object.freeze({
+  "xs": 0.75,
+  "s": 1.0,
+  "m": 1.5,
+  "l": 2.0,
+  "xl": 3.0
+});

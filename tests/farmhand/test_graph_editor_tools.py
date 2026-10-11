@@ -2,6 +2,8 @@
 
 import pytest
 
+from haywire.core.edge.arrow_heads import DEFAULT_HEAD_SIZE
+
 from tests.farmhand.conftest import call_tool_json
 
 pytestmark = pytest.mark.integration
@@ -246,6 +248,8 @@ def test_query_edge_detail_reports_an_annotation_edges_style(farmhand_call):
             "dash": "solid",
             "arrow_start": "none",
             "arrow_end": "arrow",
+            "arrow_start_size": DEFAULT_HEAD_SIZE,
+            "arrow_end_size": DEFAULT_HEAD_SIZE,
         }
     finally:
         _close(farmhand_call, bid)

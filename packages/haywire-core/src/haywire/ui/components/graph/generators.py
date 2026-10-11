@@ -171,18 +171,21 @@ export interface {interface_name} {{"""
 
 
 def generate_arrow_heads() -> str:
-    """Return the arrow-head table as a JavaScript module that sets ``window.HwArrowHeads``.
+    """Return the arrow-head table as a JavaScript module that sets ``window.HwArrowHeads``
+    and the size steps as ``window.HwArrowHeadSizes``.
 
-    canvas.vue builds one ``<marker>`` per head from it. Shipped as a file rather than a
+    canvas.vue builds one ``<marker>`` per head and size from them. Shipped as a file rather than a
     prop, so it is not re-sent with every canvas update.
     """
-    from haywire.core.edge.arrow_heads import ARROW_HEADS
+    from haywire.core.edge.arrow_heads import ARROW_HEADS, HEAD_SIZES
 
     table = json.dumps([head.to_payload() for head in ARROW_HEADS], indent=2)
+    sizes = json.dumps(HEAD_SIZES, indent=2)
     return (
         "// Auto-generated from haywire.core.edge.arrow_heads.ARROW_HEADS\n"
         "// DO NOT EDIT MANUALLY - Run `python ./scripts/generate_vue_events.py` to update\n\n"
         f"window.HwArrowHeads = Object.freeze({table});\n"
+        f"window.HwArrowHeadSizes = Object.freeze({sizes});\n"
     )
 
 

@@ -32,8 +32,9 @@ class EdgeSettings(Settings):
     canvas draws the fields named in ``haywire.core.edge.style.STYLE_FIELDS``:
     ``color`` (a colour string), ``width`` (px), ``dash`` (a key of
     ``DASH_PATTERNS``), ``arrow_start`` and ``arrow_end`` (a head name, or
-    ``"none"``). A field the bag does not declare falls back to the graph's edge
-    defaults. Other fields are saved but not drawn.
+    ``"none"``), ``arrow_start_size`` and ``arrow_end_size`` (a key of
+    ``HEAD_SIZES``: that end's head size, which already follows the width). A field the bag does not
+    declare falls back to the graph's edge defaults. Other fields are saved but not drawn.
 
     Example::
 

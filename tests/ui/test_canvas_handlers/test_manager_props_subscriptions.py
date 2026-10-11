@@ -65,6 +65,7 @@ def test_cleanup_stops_every_props_push(props_graph: BaseGraph):
     apply_theme.reset_mock()
 
     graph.props.edge_arrow = "filled"
+    graph.props.edge_arrow_size = "xl"
     graph.props.edge_width = 4.0
     graph.props.node_theme = "somewhere-else"
 

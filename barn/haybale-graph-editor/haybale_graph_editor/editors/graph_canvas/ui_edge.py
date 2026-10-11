@@ -51,7 +51,8 @@ class EdgeVisualState:
     has_warning: bool
 
     # A styled edge's declared width and heads, keyed as canvas.vue reads them:
-    # "width", "arrowStart", "arrowEnd"; only the keys its style bag declares.
+    # "width", "arrowStart", "arrowEnd", "arrowStartSize", "arrowEndSize"; only the keys
+    # its style bag declares.
     style: dict[str, Any] = field(default_factory=dict)
 
     def __eq__(self, other) -> bool:
@@ -94,7 +95,7 @@ def _declared_style(wrapper: EdgeWrapper) -> dict[str, Any]:
 
 
 def _canvas_style(style: dict[str, Any]) -> dict[str, Any]:
-    """The width and heads of a declared style, keyed as canvas.vue reads them."""
+    """The width, heads and head sizes of a declared style, keyed as canvas.vue reads them."""
     out: dict[str, Any] = {}
     if "width" in style:
         out["width"] = float(style["width"])
@@ -102,6 +103,10 @@ def _canvas_style(style: dict[str, Any]) -> dict[str, Any]:
         out["arrowStart"] = str(style["arrow_start"])
     if "arrow_end" in style:
         out["arrowEnd"] = str(style["arrow_end"])
+    if "arrow_start_size" in style:
+        out["arrowStartSize"] = str(style["arrow_start_size"])
+    if "arrow_end_size" in style:
+        out["arrowEndSize"] = str(style["arrow_end_size"])
     return out
 
 

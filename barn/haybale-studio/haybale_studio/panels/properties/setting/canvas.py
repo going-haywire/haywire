@@ -12,6 +12,7 @@ CanvasSettingsPanel          — grid, zoom, pan behaviour
 NodeSkinSettingsPanel        — node dimensions, typography, label visibility
 EditorZoomPanSettingsPanel   — zoom/pan behaviour settings
 MinimapSettingsPanel         — minimap position and visibility
+EdgeDefaultSettingsPanel     — computed edges' arrow head, head size and width
 
 Debug HUD visibility moved to ``DebugSurface`` — see debug.py.
 """
@@ -20,6 +21,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.core.edge.settings import EdgeDefaultSettings
 from haywire.ui import elements as hui
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 from haywire.ui.panel import BasePanel, PanelLayout
@@ -110,3 +112,22 @@ class MinimapSettingsPanel(BasePanel):
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(ctx, MinimapSettings, registry)
+
+
+@panel(
+    surface=CanvasSurface,
+    label="Edges",
+    icon=hui.icon.edge,
+    order=30,
+    default_open=False,
+)
+class EdgeDefaultSettingsPanel(BasePanel):
+    """Arrow head, head size and width of computed edges; each graph may override them."""
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        registry = ctx.app.library_service.get_settings_registry()
+        render_schema(ctx, EdgeDefaultSettings, registry)

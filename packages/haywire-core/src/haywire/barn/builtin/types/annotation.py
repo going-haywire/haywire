@@ -5,7 +5,7 @@ the bag's fields need builtin types, and every builtin type imports ``wires.py``
 """
 
 from haywire.barn.builtin import widget_keys
-from haywire.core.edge.arrow_heads import NO_HEAD
+from haywire.core.edge.arrow_heads import DEFAULT_HEAD_SIZE, NO_HEAD, head_size_choices
 from haywire.core.edge.style import dash_choices
 from haywire.core.settings import EdgeSettings, setting
 from haywire.core.types import StoreStrategy, WireRole, WireType, type
@@ -22,7 +22,13 @@ class AnnotationStyle(EdgeSettings):
     width = setting[FLOAT](2.0, label="Width", min=0.5, max=12.0)
     dash = setting[CHOICES]("solid", label="Dash", widget_config={"options": dash_choices})
     arrow_start = setting[STRING](NO_HEAD, label="Start Head", widget={"key": widget_keys.ARROW_HEAD_WIDGET})
+    arrow_start_size = setting[CHOICES](
+        DEFAULT_HEAD_SIZE, label="Start Head Size", widget_config={"options": head_size_choices}
+    )
     arrow_end = setting[STRING]("arrow", label="End Head", widget={"key": widget_keys.ARROW_HEAD_WIDGET})
+    arrow_end_size = setting[CHOICES](
+        DEFAULT_HEAD_SIZE, label="End Head Size", widget_config={"options": head_size_choices}
+    )
 
 
 class AnnotationWire(WireType):

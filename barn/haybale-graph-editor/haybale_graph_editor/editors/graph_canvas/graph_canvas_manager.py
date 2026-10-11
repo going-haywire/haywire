@@ -143,7 +143,7 @@ class GraphCanvasManager:
         # Computed-edge defaults: pushed as canvas props; canvas.vue turns them
         # into CSS vars and path insets, so a change costs one push per canvas.
         self._apply_edge_defaults()
-        for field in ("edge_arrow", "edge_width"):
+        for field in ("edge_arrow", "edge_arrow_size", "edge_width"):
             self.graph.props._subscribe_field(field, self._on_edge_default_changed)
 
     def _on_node_theme_changed(self, _value, _old) -> None:
@@ -153,9 +153,9 @@ class GraphCanvasManager:
         self._apply_edge_defaults()
 
     def _apply_edge_defaults(self) -> None:
-        """Push this graph's computed-edge arrow head and width to the canvas."""
+        """Push this graph's computed-edge arrow head, head size and width to the canvas."""
         props = self.graph.props
-        self.canvas_vue.set_edge_defaults(props.edge_arrow, float(props.edge_width))
+        self.canvas_vue.set_edge_defaults(props.edge_arrow, props.edge_arrow_size, float(props.edge_width))
 
     def _apply_graph_node_theme(self) -> None:
         """Write this graph's node theme onto the canvas as CSS vars.
