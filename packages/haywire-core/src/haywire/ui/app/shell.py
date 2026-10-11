@@ -17,7 +17,9 @@ handler. The haywire-studio package is responsible for constructing the
 Session and calling AppShell.render().
 """
 
+import asyncio
 import logging
+from contextlib import nullcontext
 from dataclasses import fields
 from functools import partial
 from pathlib import Path
@@ -25,6 +27,7 @@ from typing import Any, Callable, Literal, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
+from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.signals import (
     AgentConnected,
     AgentDisconnected,
@@ -74,6 +77,15 @@ def identity_text(principal: "str | None", tier: "AccessTier") -> str:
     why, instead of a padlock on every control (ADR 0027).
     """
     return f"{principal} · {tier.value}" if principal else ""
+
+
+def _canvas_position(value: Any) -> tuple[float, float] | None:
+    """Return ``value`` as an ``(x, y)`` pair, or ``None`` unless it is a two-number list or tuple."""
+    if not isinstance(value, (list, tuple)) or len(value) != 2:
+        return None
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in value):
+        return None
+    return (float(value[0]), float(value[1]))
 
 
 def last_seen_text(seconds: float) -> str:
@@ -631,6 +643,7 @@ class AppShell:
         self._presence_row: ui.element | None = None  # TopBar connected-principal chips
         self._account_menu: object | None = None  # AccountMenuProvider, built lazily
         self._keymap_listener: KeymapListener | None = None  # page-wide key listener
+        self._keymap_loop: asyncio.AbstractEventLoop | None = None  # loop the keymap is rebuilt on
 
         # Bus subscriptions for workspace-mutation commands.
         self._lifecycle_unsubs: list[Callable[[], None]] = []
@@ -1162,8 +1175,14 @@ class AppShell:
 
         The keymap is rebuilt whenever the editor registry reports a lifecycle
         batch and on ``RosterChanged``, since a tier change alters which
-        commands bind. Both subscriptions end with ``cleanup``.
+        commands bind. Both subscriptions end with ``cleanup``. A registry
+        batch arriving off the event loop is rebuilt on the loop the page was
+        built on.
         """
+        try:
+            self._keymap_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self._keymap_loop = None
         self._keymap_listener = KeymapListener(
             on_command=self._on_key_command, on_target=self._on_key_target
         )
@@ -1176,8 +1195,13 @@ class AppShell:
             self.session.subscribe(RosterChanged, lambda _s: self._rebuild_keymap())
         )
 
-    def _on_editor_lifecycle(self, _events: list) -> None:
-        self._rebuild_keymap()
+    def _on_editor_lifecycle(self, _events: list[LifeCycleEvent]) -> None:
+        loop = self._keymap_loop
+        if loop is None or not loop.is_running():
+            self._rebuild_keymap()
+            return
+        # Hot-reload batches arrive on watcher/timer threads; the session bus runs on the loop.
+        loop.call_soon_threadsafe(self._rebuild_keymap)
 
     def _rebuild_keymap(self) -> None:
         """Build this session's keymap, store it on the context and push it to the key listener."""
@@ -1187,9 +1211,11 @@ class AppShell:
         }
         keymap = build_keymap(editor_classes, context.can_access)
         report_new_keymap_problems(keymap)
-        context.keymap = keymap
-        if self._keymap_listener is not None:
-            self._keymap_listener.set_keymap(keymap.to_client())
+        listener = self._keymap_listener
+        with listener.client if listener is not None else nullcontext():
+            context.keymap = keymap
+            if listener is not None:
+                listener.set_keymap(keymap.to_client())
 
     def _on_key_command(self, payload: dict[str, Any]) -> None:
         """Publish the ``EditorCommand`` a key press or paste in the browser resolved to.
@@ -1204,10 +1230,9 @@ class AppShell:
         if command_cls is None:
             logger.debug("Key command %r is not in this session's keymap; ignored", command_id)
             return
-        position = payload.get("position")
         kwargs: dict[str, Any] = {
             "binding_id": payload["binding_id"],
-            "position": (float(position[0]), float(position[1])) if position else None,
+            "position": _canvas_position(payload.get("position")),
         }
         if any(f.name == "text" for f in fields(command_cls)):
             kwargs["text"] = payload.get("text") or ""

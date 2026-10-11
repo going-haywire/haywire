@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import threading
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, Callable, ClassVar, cast
@@ -144,6 +146,16 @@ def test_unknown_command_id_ignored() -> None:
     assert session.published == before
 
 
+@pytest.mark.parametrize("position", [[], [1], [1, 2, 3], ["a", "b"], [True, 2], "12", {"x": 1}, 5])
+def test_malformed_position_becomes_none(position: Any) -> None:
+    session = _FakeSession()
+    shell = _mounted_shell(session)
+
+    shell._on_key_command({"command_id": "paste", "binding_id": "ed::a", "position": position, "text": "t"})
+
+    assert session.published[-1] == Paste(binding_id="ed::a", position=None, text="t")
+
+
 def test_key_command_before_mount_ignored() -> None:
     session = _FakeSession()
     shell = _shell(session)
@@ -194,6 +206,33 @@ def test_keymap_rebuilt_on_editor_reload() -> None:
 
     assert set_keymap.call_count == 2
     assert set_keymap.call_args.args[0] == {"editors": {}, "native": {}}
+    assert session.context.keymap.commands == {}
+
+
+def test_reload_batch_off_the_loop_rebuilds_on_the_loop() -> None:
+    registry = _FakeEditorRegistry({"ed": _ClipboardEditor})
+    session = _FakeSession()
+    rebuild_threads: list[int] = []
+
+    def record_thread(_client_keymap: Any) -> None:
+        rebuild_threads.append(threading.get_ident())
+
+    async def mount_then_reload_from_watcher_thread() -> tuple[list[int], int]:
+        with patch.object(KeymapListener, "set_keymap", side_effect=record_thread):
+            _mounted_shell(session, registry)
+            registry.classes = {}
+            watcher = threading.Thread(target=registry.fire)
+            watcher.start()
+            watcher.join()
+            after_fire = list(rebuild_threads)
+            for _ in range(3):
+                await asyncio.sleep(0)
+        return after_fire, threading.get_ident()
+
+    after_fire, loop_thread = asyncio.run(mount_then_reload_from_watcher_thread())
+
+    assert after_fire == [loop_thread], "the rebuild ran on the watcher thread"
+    assert rebuild_threads == [loop_thread, loop_thread]
     assert session.context.keymap.commands == {}
 
 
