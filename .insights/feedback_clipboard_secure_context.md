@@ -1,13 +1,15 @@
 ---
 name: Clipboard copy buttons are dead on a LAN-exposed studio (secure-context rule)
-description: "FIXED — clipboard_script() falls back to execCommand, so copy buttons DO work over LAN http. Do not cite ANY secure-context symptom as a current consequence of plain HTTP: the clipboard is fixed, and camera/mic never applied (Haywire captures server-side in Python). The rule only bites a future front-end feature."
+description: "FIXED for copy — clipboard_script() falls back to execCommand, so hui copy buttons and graph copy DO work over LAN http; graph keyboard paste reads the native paste event. One gap: the graph context menu's Paste calls readText(), which is absent on a LAN — it pastes only from the session mirror (same-tab copies). Camera/mic never applied (Haywire captures server-side in Python)."
 type: feedback
 ---
 
-> **Status: fixed.** The fallback described under *The fix, as implemented*
-> has landed and is verified on a real LAN-exposed studio. Copy buttons work
-> over `http://<lan-ip>`. Everything above that section is the *original bug*,
-> kept for the rule it teaches — do not quote it as current behaviour.
+> **Status: fixed for copy; one paste path still LAN-limited.** The fallback
+> described under *The fix, as implemented* has landed and is verified on a
+> real LAN-exposed studio. Copy buttons work over `http://<lan-ip>`. Everything
+> above that section is the *original bug*, kept for the rule it teaches — do
+> not quote it as current behaviour. The scope of "fixed" is spelled out under
+> *Graph clipboard paths* below.
 >
 > **Do not substitute another symptom either.** Camera and microphone look
 > like the natural replacement and are wrong: Haywire grabs video *server-side*
@@ -49,6 +51,22 @@ failure message. This bug's whole character was that failure looked identical
 to success; the confirmation is what makes the difference observable.
 Verified against a real LAN-exposed studio: the fallback engages and the
 button now reports success correctly.
+
+**Graph clipboard paths.** The fix above covers every `hui` copy button.
+The graph editor's clipboard has three paths, and only one still depends on
+a secure context:
+
+- **Copy** (keyboard and menu) writes through `clipboard_script()` too, so
+  it inherits the fallback.
+- **Keyboard paste** (`Mod+V`) never calls the Clipboard API: the keymap
+  listener lets the keydown through and reads `clipboardData` off the
+  browser's native `paste` event, which every context delivers.
+- **Context-menu Paste** calls `navigator.clipboard.readText()`
+  (`_handleClipboardPasteRequest` in `canvas.vue`). On a LAN origin that
+  throws, the handler sends empty text, and the paste falls back to the
+  session mirror — so it pastes what this tab copied, but never text copied
+  in another tab or process. No `execCommand('paste')` fallback exists for
+  reading.
 
 **Same trap, other APIs.** The secure-context restriction is not clipboard-
 specific: `navigator.mediaDevices` (camera/mic), geolocation, notifications and

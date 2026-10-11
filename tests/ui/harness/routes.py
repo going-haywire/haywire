@@ -1573,6 +1573,45 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /graph-keymap
+    #
+    # One node on the full editor stack inside an editor root (graph::main),
+    # under a KeymapListener (Control is Mod) holding the graph editor's keymap.
+    # Standing in for the AppShell, the page runs a "copy" command as
+    # copy_selection() and a "paste" command as paste(position, text) on the
+    # canvas manager. #clipboard-json shows the session clipboard after a copy.
+    # Backs test_keymap_listener.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-keymap")
+    async def graph_keymap_page():
+        import json
+
+        from haywire.ui.components.keymap import KeymapListener
+        from haywire.ui.keymap import build_keymap
+        from haybale_graph_editor.editors.graph_editor import GraphEditor
+        from haybale_graph_editor.state.edit_state import EditState
+
+        graph, editor, _ = _build_size_graph(library_service.get_node_factory())
+        clipboard_json = ui.label("").props('id="clipboard-json"').style("display: none")
+
+        with ui.element("div").props('data-hw-binding="graph::main" data-hw-editor="graph"'):
+            manager = _mount_graph_canvas(library_service, graph, editor, testid="keymap")
+
+        def on_command(payload: dict) -> None:
+            if payload["command_id"] == "copy":
+                manager.copy_selection()
+                clipboard = manager._session.context.data[EditState].clipboard
+                clipboard_json.set_text(json.dumps(clipboard.payload) if clipboard is not None else "")
+            elif payload["command_id"] == "paste" and payload["position"] is not None:
+                x, y = payload["position"]
+                manager.paste((x, y), payload["text"])
+
+        listener = KeymapListener(on_command=on_command, on_target=lambda payload: None, platform="other")
+        listener.set_keymap(build_keymap({"graph": GraphEditor}, lambda tier: True).to_client())
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /copy-button
     #
     # A bare hui.code_snippet() with its default copy button. Backs the

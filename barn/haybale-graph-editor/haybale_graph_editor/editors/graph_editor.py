@@ -34,6 +34,7 @@ from haywire.core.signals import (
     ActiveGraphMoved,
     Copy,
     Delete,
+    Paste,
     Redo,
     SubgraphNavigation,
     GraphDataMutated,
@@ -426,6 +427,17 @@ class GraphEditor(BaseEditor):
         """Copy the selection on the level on screen."""
         if self._canvas_manager is not None:
             self._canvas_manager.copy_selection()
+
+    @react_on(Paste)
+    def _on_paste(self, context: "SessionContext", event: Paste) -> None:
+        """Paste at the pointer on the level on screen; without a position, tell the user."""
+        manager = self._canvas_manager
+        if manager is None:
+            return
+        if event.position is None:
+            ui.notify("Nothing to paste here", type="warning")
+            return
+        manager.paste(event.position, event.text)
 
     @react_on(Delete)
     def _on_delete(self, context: "SessionContext", event: Delete) -> None:

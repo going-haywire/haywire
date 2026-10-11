@@ -3,7 +3,7 @@
         dragging: dragState.isDragging,
         'box-selecting': boxSelectionState.isActive,
         'edge-dragging': edgeDrag.mode === 'active'
-    }" :style="[canvasSizeStyle, backgroundStyle]" tabindex="0" @click="handleCanvasClick" @contextmenu="handleContextMenu">
+    }" :style="[canvasSizeStyle, backgroundStyle]" tabindex="0" data-hw-pointer-local @click="handleCanvasClick" @contextmenu="handleContextMenu">
         <!-- Box selection rectangle -->
         <div 
             v-if="boxSelectionState.isActive" 
@@ -334,6 +334,10 @@ export default {
             handleSyncEvent: this.handleSyncEvent,
             handleContextMenu: this.handleContextMenu
         };
+
+        // Read by the keymap listener for a paste's landing point.
+        this._lastPointerClient = null;
+        this.$refs.container.hwPointerLocal = this._pointerLocal;
 
         // Readiness marker: by now the event listeners are attached.
         // Playwright tests wait for [data-canvas-ready] before interacting.
@@ -1647,6 +1651,7 @@ export default {
 
         handleMouseMove(e) {
             this.edgeDrag.lastMousePos = { x: e.clientX, y: e.clientY };
+            this._lastPointerClient = { x: e.clientX, y: e.clientY };
 
             // Hand the resize grips' hit area back to any pin under the cursor.
             // Runs before the early returns below: it must settle while the
@@ -3804,6 +3809,20 @@ export default {
         _pinEdgePoint(pinElement, dir, pos = this._getPinPosition(pinElement)) {
             const half = this._pinHalfExtent(pinElement, dir);
             return { x: pos.x + dir[0] * half, y: pos.y + dir[1] * half };
+        },
+
+        /** Canvas coordinates [x, y] of the last pointer position when it lies over this
+         *  canvas's viewport, else of the viewport's centre; null without a viewport. */
+        _pointerLocal() {
+            const viewport = this.$el.closest('.zoom-pan-container');
+            if (!viewport) return null;
+            const r = viewport.getBoundingClientRect();
+            const p = this._lastPointerClient;
+            const inside = p && p.x >= r.left && p.x <= r.right && p.y >= r.top && p.y <= r.bottom;
+            const at = inside
+                ? this._transformScreenToSVG(p.x, p.y)
+                : this._transformScreenToSVG(r.left + r.width / 2, r.top + r.height / 2);
+            return [at.x, at.y];
         },
 
         _transformScreenToSVG(clientX, clientY) {

@@ -15,7 +15,11 @@ from haywire.core.graph.editor import Editor
 
 from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.components.graph.canvas import GraphCanvasVue
-from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
+from haywire.ui.components.graph.event_definitions import (
+    BaseGraphEvent,
+    GRAPH_EVENT_REGISTRY,
+    UserPasteClipboardEvent,
+)
 from haywire.core.session.session import Session
 
 from ...state.edit_state import EditState
@@ -333,6 +337,18 @@ class GraphCanvasManager:
         nodes, edges = self._own_selection()
         if nodes or edges:
             self._handle_canvas_event(remove_selection_event(nodes, edges))
+
+    def paste(self, position: tuple[float, float], text: str) -> None:
+        """Paste the newer of ``text`` and the session clipboard at ``position`` and select it.
+
+        Notifies the user when neither holds Haywire nodes.
+
+        Args:
+            position: Canvas coordinates for the top-left corner of the pasted nodes.
+            text: OS clipboard text; counts only when it is a Haywire clipboard payload.
+        """
+        x, y = position
+        self._handle_canvas_event(UserPasteClipboardEvent(canvasX=x, canvasY=y, clipboardText=text))
 
     def _own_selection(self) -> tuple[list[str], list[str]]:
         """The session's selected node and edge ids that exist in this canvas's graph."""

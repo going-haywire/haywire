@@ -10,7 +10,7 @@ log holds only that.
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
 pytestmark = pytest.mark.ui
 
@@ -141,3 +141,90 @@ def test_paste_carries_text_and_pointer_position(page: Page, harness):
 
     expect(page.locator("#last-command")).to_have_text("paste@ed::one")
     expect(page.locator("#last-payload")).to_have_text("[12, 34]|hello")
+
+
+def _dispatch_paste(page: Page, text: str, target: str = "document.body") -> bool:
+    """Dispatch a ``paste`` event holding ``text`` on ``target``; return whether it was not prevented."""
+    return page.evaluate(
+        f"""(text) => {{
+            const dt = new DataTransfer();
+            dt.setData('text/plain', text);
+            return {target}.dispatchEvent(new ClipboardEvent('paste', {{
+                clipboardData: dt, bubbles: true, cancelable: true,
+            }}));
+        }}""",
+        text,
+    )
+
+
+def test_mod_v_reaches_paste_event(page: Page, harness):
+    _open(page, harness)
+    page.evaluate(
+        """() => window.addEventListener('keydown', e => {
+            if (e.key === 'v' && e.ctrlKey) window.__hwProbe = e.defaultPrevented;
+        })"""
+    )
+    _click_root(page, _ONE)
+
+    page.keyboard.press("Control+v")
+    _dispatch_paste(page, "hello")
+
+    assert page.evaluate("() => window.__hwProbe") is False
+    expect(page.locator("#last-command")).to_have_text("paste@ed::one")
+    expect(page.locator("#last-payload")).to_have_text("[12, 34]|hello")
+
+
+def test_paste_in_text_field_is_native(page: Page, harness):
+    _open(page, harness)
+    field = page.locator(f"{_ONE} input")
+    field.focus()
+
+    not_prevented = _dispatch_paste(page, "hello", target="document.activeElement")
+
+    assert not_prevented is True
+    _expect_only_sentinel(page)
+
+
+# ---------------------------------------------------------------------------
+# /graph-keymap: a real graph canvas under a KeymapListener with the graph
+# editor's keymap; the page runs copy and paste on the canvas manager.
+# ---------------------------------------------------------------------------
+
+
+def _node_ids(page: Page) -> list[str]:
+    """The ids of the nodes on the canvas (pins carry ``data-node-id`` too, so ids repeat)."""
+    return page.evaluate(
+        """() => [...new Set([...document.querySelectorAll('.graph-canvas [data-node-id]')]
+            .map(el => el.dataset.nodeId))]"""
+    )
+
+
+def test_graph_keyboard_paste_lands_at_pointer(page: Page, harness):
+    goto_ready(page, f"{harness}/graph-keymap")
+    wait_for_canvas_settled(page)
+    (original,) = _node_ids(page)
+    card = page.locator(f'[id="{original}"] .ui-node-slot').bounding_box()
+    assert card is not None
+
+    page.mouse.click(card["x"] + 30, card["y"] + 14)
+    expect(page.locator(".node-selected")).to_have_count(1)
+    page.keyboard.press("Control+c")
+    expect(page.locator("#clipboard-json")).not_to_have_text("")
+    copied = page.locator("#clipboard-json").inner_text()
+
+    target_x, target_y = card["x"] + 40, card["y"] + card["height"] + 120
+    page.mouse.move(target_x, target_y)
+    _dispatch_paste(page, copied)
+
+    page.wait_for_function(
+        "() => new Set([...document.querySelectorAll('.graph-canvas [data-node-id]')]"
+        ".map(el => el.dataset.nodeId)).size === 2"
+    )
+    (pasted,) = [node_id for node_id in _node_ids(page) if node_id != original]
+    selected = page.locator(".node-selected")
+    expect(selected).to_have_count(1)
+    expect(selected).to_have_attribute("data-node-id", pasted)
+    box = page.locator(f'[id="{pasted}"]').bounding_box()
+    assert box is not None
+    assert abs(box["x"] - target_x) < 3, (box, target_x)
+    assert abs(box["y"] - target_y) < 3, (box, target_y)

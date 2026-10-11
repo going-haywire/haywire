@@ -9,7 +9,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from haywire.core.signals import Copy, Delete, GraphDataMutated, Redo, SelectAll, Undo
+from haywire.core.signals import Copy, Delete, GraphDataMutated, Paste, Redo, SelectAll, Undo
+from haybale_graph_editor.editors import graph_editor as graph_editor_module
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor, _Level
 
 pytestmark = pytest.mark.unit
@@ -58,6 +59,21 @@ def test_undo_and_redo_go_through_the_document_history():
 
     editor._on_redo(cast(Any, context), Redo(binding_id=BINDING))
     document.editor.redo.assert_called_once_with()
+
+
+def test_graph_editor_paste_uses_position(monkeypatch):
+    notify = MagicMock()
+    monkeypatch.setattr(graph_editor_module.ui, "notify", notify)
+    manager = MagicMock()
+    editor, context, _ = _editor(manager)
+
+    editor._on_paste(cast(Any, context), Paste(binding_id=BINDING, position=(5.0, 6.0), text="t"))
+    manager.paste.assert_called_once_with((5.0, 6.0), "t")
+
+    manager.paste.reset_mock()
+    editor._on_paste(cast(Any, context), Paste(binding_id=BINDING, position=None, text="t"))
+    manager.paste.assert_not_called()
+    notify.assert_called_once_with("Nothing to paste here", type="warning")
 
 
 def test_commands_no_op_before_the_first_draw():
