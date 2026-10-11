@@ -645,3 +645,150 @@ def test_keyboard_delete_of_only_edges_still_dispatches(session, edit_state_cls)
     assert isinstance(remove_event, UserRemoveEvent)
     assert remove_event.nodes == []
     assert remove_event.edges == ["e1"]
+
+
+# ---------------------------------------------------------------------------
+# Keyboard cut and duplicate
+# ---------------------------------------------------------------------------
+
+
+def _duplicate_handler(graph, session, pasted=(["n2"], [])):
+    """A handler whose editor pastes ``pasted`` (new node ids, new edge ids), with a mock visual layer."""
+    editor = MagicMock()
+    editor.paste_clipboard.return_value = pasted
+    visual_layer = MagicMock()
+    h = SelectionHandlers(
+        graph=graph,
+        editor=editor,
+        session_id="sess",
+        session=session,
+        visual_layer=visual_layer,
+    )
+    return h, editor, visual_layer
+
+
+def test_duplicate_offsets_and_selects_copy(graph, session, edit_state_cls):
+    h, editor, visual_layer = _duplicate_handler(graph, session)
+
+    h.duplicate_selection(["n1"], [])
+
+    payload, x, y = editor.paste_clipboard.call_args.args
+    bbox = payload["bounding_box"]
+    assert (x, y) == (
+        bbox["min_x"] + selection_module.DUPLICATE_OFFSET,
+        bbox["min_y"] + selection_module.DUPLICATE_OFFSET,
+    )
+    assert (x, y) == (140.0, 240.0)
+    assert h.selected_nodes == {"n2"}
+    assert session.context.data[edit_state_cls].selected_nodes == {"n2"}
+    visual_layer.sync_selections.assert_called_once_with(["n2"], [], active={"kind": "node", "id": "n2"})
+
+
+def test_duplicate_leaves_clipboard_untouched(graph, session, edit_state_cls):
+    edit = session.context.data[edit_state_cls]
+    clipboard = MagicMock()
+    edit.clipboard = clipboard
+    h, editor, _ = _duplicate_handler(graph, session)
+
+    with patch.object(selection_module.ui, "run_javascript") as run_js:
+        h.duplicate_selection(["n1"], [])
+
+    editor.paste_clipboard.assert_called_once()
+    assert edit.clipboard is clipboard
+    run_js.assert_not_called()
+
+
+def test_duplicate_nothing_selected_noop(graph, session, edit_state_cls):
+    h, editor, visual_layer = _duplicate_handler(graph, session)
+
+    h.duplicate_selection([], ["e1"])
+
+    editor.paste_clipboard.assert_not_called()
+    visual_layer.sync_selections.assert_not_called()
+    session.publish.assert_not_called()
+
+
+def test_keyboard_duplicate_keeps_only_this_graphs_ids(session, edit_state_cls):
+    edit = session.context.data[edit_state_cls]
+    edit.selected_nodes = {"a", "x"}
+    edit.selected_edges = {"e1", "ex"}
+    manager, _ = _keyboard_manager(session)
+    manager.selection = MagicMock()
+
+    manager.duplicate_selection()
+
+    manager.selection.duplicate_selection.assert_called_once_with(["a"], ["e1"])
+
+
+def test_keyboard_duplicate_ignores_a_selection_from_another_graph(session, edit_state_cls):
+    edit = session.context.data[edit_state_cls]
+    edit.selected_nodes = {"x"}
+    edit.selected_edges = {"e1"}
+    manager, _ = _keyboard_manager(session)
+    manager.selection = MagicMock()
+
+    manager.duplicate_selection()
+
+    manager.selection.duplicate_selection.assert_not_called()
+
+
+def test_cut_copies_then_deletes(session, edit_state_cls):
+    edit = session.context.data[edit_state_cls]
+    edit.selected_nodes = {"a", "x"}
+    edit.selected_edges = {"e1"}
+    manager, dispatch = _keyboard_manager(session)
+
+    manager.cut_selection()
+
+    copy_event, remove_event = (call.args[0] for call in dispatch.call_args_list)
+    assert isinstance(copy_event, UserCopySelectedEvent)
+    assert isinstance(remove_event, UserRemoveEvent)
+    assert copy_event.selectedNodes == remove_event.nodes == ["a"]
+    assert copy_event.selectedEdges == remove_event.edges == ["e1"]
+
+
+@pytest.mark.integration
+def test_cut_is_one_undo_step(graph_with_library_system, library_system, session, edit_state_cls):
+    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+    from haybale_graph_editor.editors.graph_canvas.handlers import visual_layer as visual_layer_module
+    from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
+    from haywire.core.graph.editor import Editor
+    from haywire.core.undo.config import UndoConfig
+    from haywire.core.undo.history_manager import HistoryManager
+    from tests.conftest import make_node
+
+    graph = graph_with_library_system
+    key = TestAddFloatNode.class_identity.registry_key
+    kept = make_node(graph, key, position=(100, 100))
+    cut = make_node(graph, key, position=(300, 100))
+    assert isinstance(kept.node, TestAddFloatNode)
+    assert isinstance(cut.node, TestAddFloatNode)
+    history = HistoryManager(UndoConfig())
+    editor = Editor(graph, library_system.get_node_factory(), history_manager=history)
+
+    selection = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
+    visual_layer: Any = VisualLayerHandlers.__new__(VisualLayerHandlers)
+    visual_layer.graph = graph
+    visual_layer.editor = editor
+    routes = {
+        UserCopySelectedEvent.event_type: selection.process_copy_selection,
+        UserRemoveEvent.event_type: visual_layer.process_element_removal,
+    }
+    manager: Any = object.__new__(GraphCanvasManager)
+    manager.graph = graph
+    manager._session = session
+    manager._handle_canvas_event = lambda event: routes[event.event_type](event)
+    edit = session.context.data[edit_state_cls]
+    edit.selected_nodes = {cut.node_id}
+    edit.selected_edges = set()
+    before = history.get_history_stats()["action_count"]
+
+    with patch.object(visual_layer_module.ui, "notify"):
+        manager.cut_selection()
+
+    assert history.get_history_stats()["action_count"] == before + 1
+    assert set(graph.node_wrappers) == {kept.node_id}
+    assert cut.node_id in edit.clipboard.payload["nodes"]
+    assert editor.undo()
+    assert set(graph.node_wrappers) == {kept.node_id, cut.node_id}

@@ -33,7 +33,9 @@ from haywire.core.session.handlers import react_on
 from haywire.core.signals import (
     ActiveGraphMoved,
     Copy,
+    Cut,
     Delete,
+    Duplicate,
     Paste,
     Redo,
     SubgraphNavigation,
@@ -427,6 +429,18 @@ class GraphEditor(BaseEditor):
         """Copy the selection on the level on screen."""
         if self._canvas_manager is not None:
             self._canvas_manager.copy_selection()
+
+    @react_on(Cut)
+    def _on_cut(self, context: "SessionContext", event: Cut) -> None:
+        """Cut the selection on the level on screen."""
+        if self._canvas_manager is not None:
+            self._canvas_manager.cut_selection()
+
+    @react_on(Duplicate)
+    def _on_duplicate(self, context: "SessionContext", event: Duplicate) -> None:
+        """Duplicate the selection on the level on screen."""
+        if self._canvas_manager is not None:
+            self._canvas_manager.duplicate_selection()
 
     @react_on(Paste)
     def _on_paste(self, context: "SessionContext", event: Paste) -> None:

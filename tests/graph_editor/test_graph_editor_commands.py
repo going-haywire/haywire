@@ -9,7 +9,17 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from haywire.core.signals import Copy, Delete, GraphDataMutated, Paste, Redo, SelectAll, Undo
+from haywire.core.signals import (
+    Copy,
+    Cut,
+    Delete,
+    Duplicate,
+    GraphDataMutated,
+    Paste,
+    Redo,
+    SelectAll,
+    Undo,
+)
 from haybale_graph_editor.editors import graph_editor as graph_editor_module
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor, _Level
 
@@ -45,6 +55,12 @@ def test_graph_editor_routes_commands():
 
     editor._on_select_all(cast(Any, context), SelectAll(binding_id=BINDING))
     manager.select_all_toggle.assert_called_once_with()
+
+    editor._on_cut(cast(Any, context), Cut(binding_id=BINDING))
+    manager.cut_selection.assert_called_once_with()
+
+    editor._on_duplicate(cast(Any, context), Duplicate(binding_id=BINDING))
+    manager.duplicate_selection.assert_called_once_with()
 
 
 def test_undo_and_redo_go_through_the_document_history():
@@ -82,6 +98,8 @@ def test_commands_no_op_before_the_first_draw():
     editor._on_copy(cast(Any, context), Copy(binding_id=BINDING))
     editor._on_delete(cast(Any, context), Delete(binding_id=BINDING))
     editor._on_select_all(cast(Any, context), SelectAll(binding_id=BINDING))
+    editor._on_cut(cast(Any, context), Cut(binding_id=BINDING))
+    editor._on_duplicate(cast(Any, context), Duplicate(binding_id=BINDING))
 
     context.session.publish.assert_not_called()
     context.data.__getitem__.assert_not_called()

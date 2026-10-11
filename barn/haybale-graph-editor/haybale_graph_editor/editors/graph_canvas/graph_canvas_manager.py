@@ -338,6 +338,25 @@ class GraphCanvasManager:
         if nodes or edges:
             self._handle_canvas_event(remove_selection_event(nodes, edges))
 
+    def cut_selection(self) -> None:
+        """Copy the selection in this canvas's graph to the clipboards, then remove it.
+
+        Behaves as ``copy_selection`` followed by ``delete_selection``; the
+        removal is one undoable step.
+        """
+        self.copy_selection()
+        self.delete_selection()
+
+    def duplicate_selection(self) -> None:
+        """Duplicate the selected nodes of this canvas's graph next to them and select the copy.
+
+        Selected ids from other graphs are ignored. The clipboards keep their
+        content. See ``SelectionHandlers.duplicate_selection``.
+        """
+        nodes, edges = self._own_selection()
+        if nodes:
+            self.selection.duplicate_selection(nodes, edges)
+
     def paste(self, position: tuple[float, float], text: str) -> None:
         """Paste the newer of ``text`` and the session clipboard at ``position`` and select it.
 

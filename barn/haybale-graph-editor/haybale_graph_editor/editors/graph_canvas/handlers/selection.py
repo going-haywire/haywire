@@ -33,6 +33,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+DUPLICATE_OFFSET = 40.0
+"""Distance, in canvas units on both axes, from the selection to its duplicate."""
+
 
 def copy_selection_event(nodes: Iterable[str], edges: Iterable[str]) -> UserCopySelectedEvent:
     """The copy event for the given node and edge ids."""
@@ -191,13 +194,38 @@ class SelectionHandlers:
         new_node_ids, new_edge_ids = result
         n = len(new_node_ids)
         ui.notify(f"Pasted {n} node{'s' if n != 1 else ''}", type="positive")
+        self._select_pasted(new_node_ids, new_edge_ids)
 
-        # Auto-select the freshly pasted subgraph so the user can drag it
-        # immediately. A single pasted node also becomes the primary (it is an
-        # unambiguous target, like a freshly created one); a multi-node paste is
-        # a bulk change and gets NO primary — see the Active axis glossary entry.
-        # Update both the local record and the session EditState, then push to
-        # the canvas.
+    def duplicate_selection(self, nodes: list[str], edges: list[str]) -> None:
+        """Paste a copy of the given nodes ``DUPLICATE_OFFSET`` below and right of them, and select it.
+
+        Edges are copied when both their ends are among ``nodes``. The session
+        and OS clipboards keep their content. With no node to copy, nothing
+        happens.
+
+        Args:
+            nodes: Ids of the nodes to duplicate, all in this handler's graph.
+            edges: Ids of the edges to duplicate, all in this handler's graph.
+        """
+        if not nodes:
+            return
+        payload = build_clipboard_payload(self.graph, nodes, edges, self.session_id)
+        if not payload["nodes"]:
+            return
+        bbox = payload["bounding_box"]
+        result = self.editor.paste_clipboard(
+            payload, bbox["min_x"] + DUPLICATE_OFFSET, bbox["min_y"] + DUPLICATE_OFFSET
+        )
+        if result is None:
+            ui.notify("Duplicate failed", type="negative")
+            return
+        self._select_pasted(*result)
+
+    def _select_pasted(self, new_node_ids: list[str], new_edge_ids: list[str]) -> None:
+        """Make freshly pasted nodes and edges the selection, here, in the session and on the canvas."""
+        # A single pasted node also becomes the primary (an unambiguous target,
+        # like a freshly created one); a multi-node paste is a bulk change and
+        # gets no primary — see the Active axis glossary entry.
         self.selected_nodes = set(new_node_ids)
         self.selected_edges = set(new_edge_ids)
         sole_node = self.graph.get_node_wrapper(new_node_ids[0]) if len(new_node_ids) == 1 else None
