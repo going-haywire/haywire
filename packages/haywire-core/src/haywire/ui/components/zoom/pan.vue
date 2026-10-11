@@ -211,14 +211,56 @@ export default {
         }
       };
 
+      // `overflow: hidden` still scrolls programmatically: focusing an off-screen
+      // field scrolls the container to reveal it, which the pan/zoom math (it
+      // reads only _panX/_panY) never sees. Fold that scroll into the pan so
+      // the view stays where the browser put it and the zoom anchor stays true.
+      this._onScroll = () => {
+        const el = this.$el;
+        const dx = el.scrollLeft;
+        const dy = el.scrollTop;
+        if (!dx && !dy) return;
+        el.scrollLeft = 0;
+        el.scrollTop = 0;
+        this._setPanDirect(this._panX - dx, this._panY - dy);
+      };
+      // Native scroll can only reveal content right of / below the view (it
+      // cannot scroll negative), so Shift+Tab to an off-screen field needs this.
+      this._onFocusIn = (e) => {
+        if (!this.$refs.content.contains(e.target)) return;
+        requestAnimationFrame(() => this._revealFocused());
+      };
+
       this.$el.addEventListener('mousedown', this._onMouseDown);
+      this.$el.addEventListener('scroll', this._onScroll);
+      this.$el.addEventListener('focusin', this._onFocusIn);
       document.addEventListener('mousemove', this._onMouseMove);
       document.addEventListener('mouseup', this._onMouseUp);
       window.addEventListener('resize', this._invalidateRectCache);
     },
 
+    /** Pan the keyboard-focused element fully into view, with a small margin. */
+    _revealFocused() {
+      const el = document.activeElement;
+      if (!el || !this.$refs.content.contains(el) || !el.matches(':focus-visible')) return;
+      const r = el.getBoundingClientRect();
+      const c = this.$el.getBoundingClientRect();
+      const M = 16;
+      // An element that cannot fit (the canvas itself, a huge card) is left alone.
+      if (r.width > c.width - 2 * M || r.height > c.height - 2 * M) return;
+      let dx = 0;
+      let dy = 0;
+      if (r.left < c.left + M) dx = c.left + M - r.left;
+      else if (r.right > c.right - M) dx = c.right - M - r.right;
+      if (r.top < c.top + M) dy = c.top + M - r.top;
+      else if (r.bottom > c.bottom - M) dy = c.bottom - M - r.bottom;
+      if (dx || dy) this._setPanDirect(this._panX + dx, this._panY + dy);
+    },
+
     _cleanupListeners() {
       this.$el.removeEventListener('mousedown', this._onMouseDown);
+      this.$el.removeEventListener('scroll', this._onScroll);
+      this.$el.removeEventListener('focusin', this._onFocusIn);
       document.removeEventListener('mousemove', this._onMouseMove);
       document.removeEventListener('mouseup', this._onMouseUp);
       window.removeEventListener('resize', this._invalidateRectCache);

@@ -21,11 +21,15 @@
     >&#9664;</button>
 
     <!-- Center: drag zone / display / edit input -->
+    <!-- Tab stop while displaying; the edit input takes over while editing, so
+         Shift+Tab out of the input does not land back on its own widget. -->
     <div
       ref="dragZone"
       class="number-drag__center"
+      :tabindex="isEditing ? -1 : 0"
       @mousedown.prevent="onMouseDown"
       @dblclick.prevent="enterEditMode"
+      @focus="onFocus"
     >
       <!-- Edit mode input -->
       <input
@@ -194,6 +198,12 @@ export default {
     },
 
     // ── Edit mode ─────────────────────────────────────
+    onFocus() {
+      // Keyboard focus only: the drag zone's mousedown.prevent keeps clicks from focusing it.
+      // A disabled row carries an inherited `pointer-events: none` and stays read-only.
+      if (getComputedStyle(this.$refs.root).pointerEvents === 'none') return;
+      this.enterEditMode();
+    },
     enterEditMode() {
       this.editText = this.formattedValue;
       this.isEditing = true;
@@ -332,6 +342,9 @@ export default {
 }
 .number-drag--editing .number-drag__center {
   cursor: text;
+}
+.number-drag__center:focus {
+  outline: none;
 }
 .number-drag--dragging .number-drag__center {
   cursor: ew-resize;
