@@ -67,6 +67,11 @@ class _FakeContainer:
         self.visible = True
         self.value: object = None
         self.deleted = False
+        self._props: dict[str, Any] = {}
+        self.update_calls = 0
+
+    def update(self) -> None:
+        self.update_calls += 1
 
     def clear(self) -> None:
         self.clear_calls += 1
@@ -475,6 +480,39 @@ def test_add_binding_creates_panel_and_optionally_activates(monkeypatch) -> None
     assert slot.active_key == "a:e:2"
     assert area.value == "a:e:2"
     assert w2.instance is not None
+
+
+def test_panel_carries_binding_and_editor_key_in_dom(monkeypatch) -> None:
+    """Each tab panel exposes its binding id and editor key for the browser key listener."""
+    slot = _make_slot("a:e:1")
+    _install_fake_tab_panels(monkeypatch)
+    _render_into(slot, _FakeContainer())
+
+    wrapper = _add_binding(
+        slot, editor_key="a:e:graph", editor_cls=_FakeEditor, binding_id="graphs/x:'y\".haywire"
+    )
+    bid = wrapper.editor_binding_id
+
+    props = cast(Any, slot._panels[bid])._props
+    assert props["data-hw-binding"] == bid
+    assert props["data-hw-editor"] == "a:e:graph"
+    first = cast(Any, slot._panels["a:e:1"])._props
+    assert first["data-hw-binding"] == "a:e:1"
+    assert first["data-hw-editor"] == "a:e:1"
+
+
+def test_repayload_rewrites_panel_binding_attribute(monkeypatch) -> None:
+    slot = _make_slot()
+    _install_fake_tab_panels(monkeypatch)
+    _render_into(slot, _FakeContainer())
+    wrapper = _add_binding(slot, editor_key="a:e:graph", editor_cls=_FakeEditor, binding_id="old")
+
+    assert slot.repayload_binding("a:e:graph", "old", "new") is True
+
+    panel = cast(Any, slot._panels["a:e:graph::new"])
+    assert panel._props["data-hw-binding"] == "a:e:graph::new" == wrapper.editor_binding_id
+    assert panel._props["data-hw-editor"] == "a:e:graph"
+    assert panel.update_calls == 1
 
 
 # ----------------------------------------------------------------------

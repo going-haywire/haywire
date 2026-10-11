@@ -92,6 +92,9 @@ class _FakeContainer:
     def set_value(self, v):
         self.value = v
 
+    def update(self):
+        pass
+
     def delete(self):
         self.deleted = True
 

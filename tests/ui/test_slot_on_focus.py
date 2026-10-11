@@ -19,6 +19,7 @@ class _FakeContainer:
     def __init__(self) -> None:
         self.value: object = None
         self.visible = True
+        self._props: dict[str, object] = {}
 
     def set_visibility(self, visible: bool) -> None:
         self.visible = visible

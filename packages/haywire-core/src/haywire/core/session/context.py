@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from haywire.core.session.protocols import IAppState
     from haywire.core.session.session import Session
     from haywire.core.state.data_namespace import AppDataNamespace, SessionDataNamespace
+    from haywire.ui.keymap import Keymap
 
 
 class SessionContext(SignalSource):
@@ -69,6 +70,15 @@ class SessionContext(SignalSource):
     # non-editable library regardless of this flag. Do not gate anything on it
     # that a session must not be able to do.
     developer_mode: bool = signal_field(False)
+
+    # The editor binding that receives key commands, as its ``editor_binding_id``;
+    # set from the browser on pointer-down. Per session: each tab points at its
+    # own editor. ``None`` until the first pointer-down lands in an editor.
+    target_binding_id: Optional[str] = signal_field(None)
+
+    # This session's keymap, filtered by the principal's tier; set by the AppShell.
+    # Per session, not app-wide, because the tier filter is per principal.
+    keymap: Optional["Keymap"] = signal_field(None)
 
     def __init__(self, session_id: str, app: "IAppState") -> None:
         # Lazy import: state.data_namespace transitively imports state.base,

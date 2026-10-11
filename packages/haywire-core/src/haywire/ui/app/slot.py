@@ -444,6 +444,9 @@ class Slot(ABC):
             return
         with self._area_panel_container:
             panel = ui.tab_panel(wrapper.editor_binding_id).style("width: 100%; height: 100%; padding: 0;")
+        # Direct _props writes: binding ids can hold quotes, which a .props() string would parse.
+        panel._props["data-hw-binding"] = wrapper.editor_binding_id
+        panel._props["data-hw-editor"] = wrapper.editor_key
         self._panels[wrapper.editor_binding_id] = panel
 
     def _ensure_drawn(self, wrapper: EditorWrapper) -> None:
@@ -839,6 +842,8 @@ class Slot(ABC):
         panel = self._panels.pop(old_id, None)
         if panel is not None:
             panel._props["name"] = new_id
+            panel._props["data-hw-binding"] = new_id
+            panel.update()
             self._panels[new_id] = panel
         drawn = old_id in self._drawn
         self._drawn.discard(old_id)
