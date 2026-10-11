@@ -7,7 +7,7 @@ Owns: selected_nodes, selected_edges, clipboard.
 import json
 import logging
 import traceback
-from typing import Callable, Optional, Set, TYPE_CHECKING
+from typing import Callable, Iterable, Optional, Set, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -34,20 +34,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def copy_selection_event(edit: EditState) -> UserCopySelectedEvent:
-    """The copy event for the selection recorded in ``edit``."""
-    return UserCopySelectedEvent(
-        selectedNodes=list(edit.selected_nodes),
-        selectedEdges=list(edit.selected_edges),
-    )
+def copy_selection_event(nodes: Iterable[str], edges: Iterable[str]) -> UserCopySelectedEvent:
+    """The copy event for the given node and edge ids."""
+    return UserCopySelectedEvent(selectedNodes=list(nodes), selectedEdges=list(edges))
 
 
-def remove_selection_event(edit: EditState) -> UserRemoveEvent:
-    """The removal event for the whole selection recorded in ``edit``."""
-    return UserRemoveEvent(
-        nodes=list(edit.selected_nodes),
-        edges=list(edit.selected_edges),
-    )
+def remove_selection_event(nodes: Iterable[str], edges: Iterable[str]) -> UserRemoveEvent:
+    """The removal event for the given node and edge ids."""
+    return UserRemoveEvent(nodes=list(nodes), edges=list(edges))
 
 
 class SelectionHandlers:
@@ -135,9 +129,8 @@ class SelectionHandlers:
     def select_all_toggle(self, is_locked: Callable[[str], bool]) -> None:
         """Select every unlocked node, or clear the selection when that is already it.
 
-        Locked nodes stay out, matching the canvas rule that keeps a locked node
-        out of any multi-selection. The result is a bulk change, so it has no
-        active (primary) element.
+        Locked nodes are never selected. The result has no active (primary) node
+        or edge.
         """
         candidates = {node_id for node_id in self.graph.node_wrappers if not is_locked(node_id)}
         if candidates and self.selected_nodes == candidates:

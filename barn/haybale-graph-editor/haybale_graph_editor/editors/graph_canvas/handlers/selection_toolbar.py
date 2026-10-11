@@ -40,6 +40,7 @@ from haywire.ui.components.graph.event_definitions import (
 )
 from ..event_handlers import handles_event
 from .selection import copy_selection_event, remove_selection_event
+from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -244,17 +245,15 @@ class SelectionToolbarProvider:
 
     def copy_selection(self) -> None:
         """Emit UserCopySelectedEvent for the current selection."""
-        from ....state.edit_state import EditState
-
         if self._on_emit_event is not None:
-            self._on_emit_event(copy_selection_event(self._context.data[EditState]))
+            edit = self._context.data[EditState]
+            self._on_emit_event(copy_selection_event(edit.selected_nodes, edit.selected_edges))
 
     def delete_selection(self) -> None:
         """Emit UserRemoveEvent for the current selection."""
-        from ....state.edit_state import EditState
-
         if self._on_emit_event is not None:
-            self._on_emit_event(remove_selection_event(self._context.data[EditState]))
+            edit = self._context.data[EditState]
+            self._on_emit_event(remove_selection_event(edit.selected_nodes, edit.selected_edges))
 
     def paste_at_click(self) -> None:
         self._menu_provider.paste_at_click()

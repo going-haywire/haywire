@@ -541,14 +541,16 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def copy_selection(self) -> None:
         """Emit UserCopySelectedEvent for the current ctx.data[EditState] selection."""
-        self._emit(copy_selection_event(self._context.data[EditState]))
+        edit = self._context.data[EditState]
+        self._emit(copy_selection_event(edit.selected_nodes, edit.selected_edges))
 
     def delete_selection(self) -> None:
         """Emit UserRemoveEvent for the whole ctx.data[EditState] selection.
 
         Removal is a single undoable operation (editor.remove_elements).
         """
-        self._emit(remove_selection_event(self._context.data[EditState]))
+        edit = self._context.data[EditState]
+        self._emit(remove_selection_event(edit.selected_nodes, edit.selected_edges))
 
     def redraw_selection(self) -> None:
         """Emit ElementRedrawEvent for every node/edge in the selection."""

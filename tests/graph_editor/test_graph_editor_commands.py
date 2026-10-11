@@ -61,8 +61,12 @@ def test_undo_and_redo_go_through_the_document_history():
 
 
 def test_commands_no_op_before_the_first_draw():
-    editor, context, _ = _editor(None)
+    editor, context, document = _editor(None)
 
     editor._on_copy(cast(Any, context), Copy(binding_id=BINDING))
     editor._on_delete(cast(Any, context), Delete(binding_id=BINDING))
     editor._on_select_all(cast(Any, context), SelectAll(binding_id=BINDING))
+
+    context.session.publish.assert_not_called()
+    context.data.__getitem__.assert_not_called()
+    assert document.editor.method_calls == []

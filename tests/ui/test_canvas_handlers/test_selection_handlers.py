@@ -3,18 +3,22 @@ Tests for SelectionHandlers — manages selected_nodes, selected_edges, and clip
 """
 
 import json
+from typing import Any
+
 import pytest
 from unittest.mock import MagicMock, patch
 
 from haywire.core.graph.clipboard import CLIPBOARD_FORMAT_VERSION
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
+from haywire.core.signals import SelectionMoved
 from haybale_graph_editor.editors.graph_canvas.handlers import selection as selection_module
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 from haywire.ui.components.graph.event_definitions import (
     SelectionChangedEvent,
     UserCopySelectedEvent,
     UserPasteClipboardEvent,
+    UserRemoveEvent,
 )
 from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
 
@@ -509,6 +513,8 @@ def test_select_all_selects_every_unlocked_node(graph, session, edit_state_cls):
     h, visual_layer, is_locked = _select_all_handler(graph, session)
     edit = session.context.data[edit_state_cls]
     edit.active_node = MagicMock()
+    session.context.active_component = "graph-canvas"
+    session.publish.reset_mock()
 
     h.select_all_toggle(is_locked)
 
@@ -521,7 +527,9 @@ def test_select_all_selects_every_unlocked_node(graph, session, edit_state_cls):
     nodes, edges = visual_layer.sync_selections.call_args.args
     assert set(nodes) == {"a", "b", "c"}
     assert set(edges) == set()
-    session.publish.assert_called()
+    published = [call.args[0] for call in session.publish.call_args_list]
+    assert any(isinstance(signal, SelectionMoved) for signal in published)
+    assert session.context.active_component is None
 
 
 def test_select_all_twice_clears(graph, session, edit_state_cls):
@@ -557,3 +565,83 @@ def test_select_all_skips_locked_nodes(graph, session, edit_state_cls):
 
     h.select_all_toggle(is_locked)
     assert h.selected_nodes == set()
+
+
+# ---------------------------------------------------------------------------
+# Keyboard copy/delete act on this canvas's graph only
+# ---------------------------------------------------------------------------
+
+
+def _keyboard_manager(session, node_ids=("a", "b"), edge_ids=("e1",)):
+    """A GraphCanvasManager over a graph holding ``node_ids``/``edge_ids``, with a mock dispatch."""
+    from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+
+    graph = MagicMock()
+    graph.node_wrappers = {node_id: MagicMock() for node_id in node_ids}
+    graph.edge_wrappers = {edge_id: MagicMock() for edge_id in edge_ids}
+    graph.get_node_wrapper.side_effect = graph.node_wrappers.get
+    graph.get_edge_wrapper.side_effect = graph.edge_wrappers.get
+    manager: Any = object.__new__(GraphCanvasManager)
+    manager.graph = graph
+    manager._session = session
+    dispatch = MagicMock()
+    manager._handle_canvas_event = dispatch
+    return manager, dispatch
+
+
+def test_keyboard_copy_ignores_a_selection_from_another_graph(session, edit_state_cls):
+    edit = session.context.data[edit_state_cls]
+    edit.selected_nodes = {"x", "y"}
+    edit.selected_edges = {"ex"}
+    clipboard = MagicMock()
+    edit.clipboard = clipboard
+    manager, dispatch = _keyboard_manager(session)
+
+    manager.copy_selection()
+
+    dispatch.assert_not_called()
+    assert edit.clipboard is clipboard
+
+
+def test_keyboard_delete_ignores_a_selection_from_another_graph(session, edit_state_cls):
+    edit = session.context.data[edit_state_cls]
+    edit.selected_nodes = {"x", "y"}
+    edit.selected_edges = {"ex"}
+    manager, dispatch = _keyboard_manager(session)
+
+    manager.delete_selection()
+
+    dispatch.assert_not_called()
+
+
+def test_keyboard_copy_and_delete_keep_only_this_graphs_ids(session, edit_state_cls):
+    edit = session.context.data[edit_state_cls]
+    edit.selected_nodes = {"a", "x"}
+    edit.selected_edges = {"e1", "ex"}
+    manager, dispatch = _keyboard_manager(session)
+
+    manager.copy_selection()
+    manager.delete_selection()
+
+    copy_event, remove_event = (call.args[0] for call in dispatch.call_args_list)
+    assert isinstance(copy_event, UserCopySelectedEvent)
+    assert copy_event.selectedNodes == ["a"]
+    assert copy_event.selectedEdges == ["e1"]
+    assert isinstance(remove_event, UserRemoveEvent)
+    assert remove_event.nodes == ["a"]
+    assert remove_event.edges == ["e1"]
+
+
+def test_keyboard_delete_of_only_edges_still_dispatches(session, edit_state_cls):
+    edit = session.context.data[edit_state_cls]
+    edit.selected_nodes = {"x"}
+    edit.selected_edges = {"e1"}
+    manager, dispatch = _keyboard_manager(session)
+
+    manager.copy_selection()
+    manager.delete_selection()
+
+    (remove_event,) = (call.args[0] for call in dispatch.call_args_list)
+    assert isinstance(remove_event, UserRemoveEvent)
+    assert remove_event.nodes == []
+    assert remove_event.edges == ["e1"]

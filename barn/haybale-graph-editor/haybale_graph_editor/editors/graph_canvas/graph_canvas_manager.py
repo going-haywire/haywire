@@ -315,12 +315,35 @@ class GraphCanvasManager:
         )
 
     def copy_selection(self) -> None:
-        """Copy the current selection to the session and OS clipboards."""
-        self._handle_canvas_event(copy_selection_event(self._session.context.data[EditState]))
+        """Copy the selected nodes of this canvas's graph to the session and OS clipboards.
+
+        Selected ids from other graphs are ignored. With no node of this graph
+        selected, both clipboards keep their content.
+        """
+        nodes, edges = self._own_selection()
+        if nodes:
+            self._handle_canvas_event(copy_selection_event(nodes, edges))
 
     def delete_selection(self) -> None:
-        """Remove the current selection as one undoable step, skipping locked nodes."""
-        self._handle_canvas_event(remove_selection_event(self._session.context.data[EditState]))
+        """Remove the selection in this canvas's graph as one undoable step, skipping locked nodes.
+
+        Selected ids from other graphs are ignored; with none of this graph's
+        nodes or edges selected, nothing happens.
+        """
+        nodes, edges = self._own_selection()
+        if nodes or edges:
+            self._handle_canvas_event(remove_selection_event(nodes, edges))
+
+    def _own_selection(self) -> tuple[list[str], list[str]]:
+        """The session's selected node and edge ids that exist in this canvas's graph."""
+        edit = self._session.context.data[EditState]
+        nodes = [
+            node_id for node_id in edit.selected_nodes if self.graph.get_node_wrapper(node_id) is not None
+        ]
+        edges = [
+            edge_id for edge_id in edit.selected_edges if self.graph.get_edge_wrapper(edge_id) is not None
+        ]
+        return nodes, edges
 
     def select_all_toggle(self) -> None:
         """Select every unlocked node, or clear the selection when that is already it."""
