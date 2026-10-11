@@ -9,15 +9,23 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from haywire.barn.builtin.types import BOOL, CHOICES, STRING
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, STRING
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.settings import setting
+from haywire.core.settings import NodeSettings, Promotable, setting, settings_fields
 from haywire.core.types import PortOrigin
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
     from haywire.core.types.port import DataPort
+
+
+#: Choices of the horizontal and vertical alignment settings.
+H_ALIGNS = ("left", "center", "right")
+V_ALIGNS = ("top", "middle", "bottom")
+
+#: Font choices, each a family the skin maps to a CSS font stack.
+FONTS = ("sans", "serif", "mono", "handwriting")
 
 
 @node(
@@ -30,8 +38,8 @@ if TYPE_CHECKING:
 class AnnotationNode(BaseNode):
     """A note on the canvas, with arrows to other notes.
 
-    Write the text in the properties panel, or double-click the card to edit it
-    in a larger editor. Line breaks are kept.
+    Double-click the card to write the text in place; the properties panel sets
+    the font, colors and alignment. Line breaks are kept.
 
     Hover the card to show one open pin on each side. Drag from a pin on any side
     to a pin on any side of another annotation: an arrow can leave or arrive at
@@ -55,9 +63,7 @@ class AnnotationNode(BaseNode):
 
     # Subclasses the inherited bag, as RerouteNode does (see its comment).
     class props(BaseNode.props):  # type: ignore[valid-type,misc]
-        """Binds the annotation skin and adds the note's text and the control-pin switch."""
-
-        REDRAW_FIELDS = BaseNode.props.REDRAW_FIELDS + ("text", "show_control_pins")
+        """Binds the annotation skin."""
 
         # Bound by registry-key string: importing the skin would pull nicegui
         # onto the headless execution path.
@@ -68,20 +74,91 @@ class AnnotationNode(BaseNode):
             category="appearance",
             order=10,
         )
+
+    class annotation(NodeSettings):
+        """The note's text, its typography and its arrangement on the card."""
+
         text = setting[STRING](
             "",
             label="Text",
             description="What the note says; double-click the card to edit it",
-            category="annotation",
+            category="text",
             order=1,
+            promotable=Promotable.NONE,
+        )
+        h_align = setting[CHOICES](
+            "center",
+            label="Horizontal Alignment",
+            category="arrangement",
+            order=10,
+            widget_config={"options": list(H_ALIGNS)},
+            promotable=Promotable.NONE,
+        )
+        v_align = setting[CHOICES](
+            "middle",
+            label="Vertical Alignment",
+            category="arrangement",
+            order=11,
+            widget_config={"options": list(V_ALIGNS)},
+            promotable=Promotable.NONE,
+        )
+        font = setting[CHOICES](
+            "sans",
+            label="Font",
+            category="font",
+            order=20,
+            widget_config={"options": list(FONTS)},
+            promotable=Promotable.NONE,
+        )
+        font_size = setting[INT](
+            14,
+            label="Text Size",
+            description="Size of the text in pixels",
+            category="font",
+            order=21,
+            min=6,
+            max=200,
+            promotable=Promotable.NONE,
+        )
+        bold = setting[BOOL](False, label="Bold", category="font", order=22, promotable=Promotable.NONE)
+        italic = setting[BOOL](False, label="Italic", category="font", order=23, promotable=Promotable.NONE)
+        underline = setting[BOOL](
+            False, label="Underline", category="font", order=24, promotable=Promotable.NONE
+        )
+        text_color = setting[COLOR](
+            "",
+            label="Text Color",
+            description="Empty uses the theme's text color",
+            category="colors",
+            order=30,
+            promotable=Promotable.NONE,
+        )
+        highlight_color = setting[COLOR](
+            "",
+            label="Highlight Color",
+            description="Marker behind the text; empty draws none",
+            category="colors",
+            order=31,
+            promotable=Promotable.NONE,
         )
         show_control_pins = setting[BOOL](
             False,
             label="Show Control Pins",
             description="Draw the control pins while they are unlinked",
-            category="annotation",
-            order=2,
+            category="arrangement",
+            order=40,
+            promotable=Promotable.NONE,
         )
+
+    def post_init(self) -> None:
+        # Bag fields are not in REDRAW_FIELDS; the card draws every one of them.
+        bag: Any = self.annotation
+        for field_name in settings_fields(type(bag)):
+            bag._subscribe_field(field_name, self._redraw_card)
+
+    def _redraw_card(self, _value: Any, _old: Any) -> None:
+        if self.wrapper is not None:
+            self.wrapper.redraw()
 
     def init(self) -> None:
         from haywire.barn.builtin.types import ADD, ANNOTATION, EXEC

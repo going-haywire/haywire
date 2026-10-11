@@ -314,7 +314,7 @@ def _build_annotation_graph(node_factory):
         wrapper = graph.create_node_wrapper(key, position=(x, y))
         assert wrapper is not None, "could not create an annotation node"
         ids[name] = wrapper.node_id
-    graph.node_wrappers[ids["a"]].node.props.text = "hello"  # type: ignore[attr-defined]
+    graph.node_wrappers[ids["a"]].node.annotation.text = "hello"  # type: ignore[attr-defined]
     assert editor.create_edge(ids["c"], "right_0", ids["d"], "left_0")
     # The first link grows the `_1` slots it connects to.
     graph.force_validation()
@@ -1265,7 +1265,7 @@ def register_routes(library_service) -> None:
                 ui.button(testid, on_click=on_click).props(f'data-testid="{testid}" dense')
 
         def _show_control_pins() -> None:
-            graph.node_wrappers[ids["a"]].node.props.show_control_pins = True  # type: ignore[attr-defined]
+            graph.node_wrappers[ids["a"]].node.annotation.show_control_pins = True  # type: ignore[attr-defined]
 
         with controls:
             ui.button("show-control", on_click=_show_control_pins).props('data-testid="show-control" dense')

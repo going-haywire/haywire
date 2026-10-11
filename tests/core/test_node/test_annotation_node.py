@@ -298,7 +298,7 @@ def test_a_note_round_trips_with_its_pins_text_and_edge_style(graph):
     from haywire.barn.builtin.types.annotation import AnnotationStyle
 
     a, b = _notes(graph)
-    props: Any = a.node.props
+    props: Any = a.node.annotation
     props.text = "line 1\nline 2"
     edge = make_edge(graph, a.node_id, "right_0", b.node_id, "left_0")
     graph.force_validation()
@@ -312,7 +312,7 @@ def test_a_note_round_trips_with_its_pins_text_and_edge_style(graph):
 
     la = loaded.node_wrappers[a.node_id]
     lb = loaded.node_wrappers[b.node_id]
-    loaded_props: Any = la.node.props
+    loaded_props: Any = la.node.annotation  # type: ignore[attr-defined]
     assert loaded_props.text == "line 1\nline 2"
     assert la.node.ports["right_0"].type_cls is ANNOTATION
     assert la.node.ports["right_0"].is_swinglet()
@@ -328,9 +328,40 @@ def test_a_note_round_trips_with_its_pins_text_and_edge_style(graph):
 def test_the_skin_is_bound_by_key_and_text_redraws(graph):
     a = make_node(graph, _key())
     assert a.node.props.skin == "haywire-core:skin:AnnotationSkin"
-    fields = type(a.node.props).REDRAW_FIELDS
-    assert "text" in fields
-    assert "show_control_pins" in fields
-    assert "skin" in fields
-    props: Any = a.node.props
-    assert props.show_control_pins is False
+    assert "skin" in type(a.node.props).REDRAW_FIELDS
+    bag: Any = a.node.annotation  # type: ignore[attr-defined]
+    assert bag.show_control_pins is False
+
+
+def test_the_annotation_bag_holds_text_and_arrangement_with_defaults(graph):
+    a = make_node(graph, _key())
+    bag: Any = a.node.annotation  # type: ignore[attr-defined]
+    assert (bag.text, bag.h_align, bag.v_align, bag.font, bag.font_size) == (
+        "",
+        "center",
+        "middle",
+        "sans",
+        14,
+    )
+    assert (bag.bold, bag.italic, bag.underline) == (False, False, False)
+    assert (bag.text_color, bag.highlight_color) == ("", "")
+
+
+def test_no_annotation_setting_is_promotable_yet(graph):
+    from haywire.core.node.promotion import eligible_promotion_directions
+    from haywire.core.settings import settings_fields
+
+    a = make_node(graph, _key())
+    bag: Any = a.node.annotation  # type: ignore[attr-defined]
+    for name, descriptor in settings_fields(type(bag)).items():
+        assert not eligible_promotion_directions(descriptor), name
+
+
+@pytest.mark.parametrize(("field", "value"), [("text", "hi"), ("h_align", "right"), ("bold", True)])
+def test_changing_an_annotation_field_redraws_the_card(graph, field, value):
+    from unittest.mock import patch
+
+    a = make_node(graph, _key())
+    with patch.object(type(a), "redraw") as redraw:
+        setattr(a.node.annotation, field, value)  # type: ignore[attr-defined]
+    redraw.assert_called()

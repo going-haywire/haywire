@@ -200,7 +200,7 @@ def test_a_drop_near_a_side_grows_the_slot_on_that_side(page: Page, harness) -> 
     assert f"{ids['a']}[bottom_0]->{ids['b']}[top_0]" in _edge_ids(page)
 
 
-def test_double_click_opens_the_text_modal(page: Page, harness) -> None:
+def test_double_click_edits_the_text_in_place(page: Page, harness) -> None:
     ids = _open(page, harness)
     x, y = _card_centre(page, ids["a"])
     page.mouse.dblclick(x, y)
@@ -208,7 +208,7 @@ def test_double_click_opens_the_text_modal(page: Page, harness) -> None:
     assert area is not None
     assert area.input_value() == "hello"
     area.fill("a\nb")
-    page.get_by_role("button", name="OK").click()
+    area.press("Control+Enter")
     page.wait_for_function(
         """(sel) => {
             const card = document.querySelector(sel)?.closest('.node-card');

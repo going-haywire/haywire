@@ -24,7 +24,6 @@ from nicegui import ui
 
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.enums import LayoutDirection
-from haywire.ui.modals import text_modal
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.decorator import skin
 from haywire.ui.skin.pin_render import (
@@ -86,9 +85,56 @@ def _parse(port_id: str) -> tuple[str, int] | None:
     return side, int(index)
 
 
-def _text_of(props: object) -> str:
-    """The note's text, or ``""`` on a node whose props carry none."""
-    return getattr(props, "text", None) or ""
+#: CSS font stacks of the node's ``font`` choices.
+_FONT_STACKS = {
+    "sans": "inherit",
+    "serif": "Georgia, 'Times New Roman', serif",
+    "mono": "ui-monospace, Menlo, Consolas, monospace",
+    "handwriting": "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive",
+}
+
+#: Flex alignment of each horizontal and vertical alignment choice.
+_JUSTIFY = {"left": "flex-start", "center": "center", "right": "flex-end"}
+_VERTICAL = {"top": "flex-start", "middle": "center", "bottom": "flex-end"}
+
+
+def _bag(node: object) -> Any:
+    """The node's ``annotation`` settings bag."""
+    return node.annotation  # type: ignore[attr-defined]
+
+
+def _text_style(bag: Any) -> str:
+    """CSS for the note's text: font, weight, style, decoration, color and highlight."""
+    parts = [
+        f"font-family: {_FONT_STACKS.get(bag.font, 'inherit')};",
+        f"font-size: {int(bag.font_size)}px;",
+        f"font-weight: {'700' if bag.bold else '400'};",
+        f"font-style: {'italic' if bag.italic else 'normal'};",
+        f"text-decoration: {'underline' if bag.underline else 'none'};",
+        f"text-align: {bag.h_align if bag.h_align in _JUSTIFY else 'left'};",
+    ]
+    if bag.text_color:
+        parts.append(f"color: {bag.text_color};")
+    if bag.highlight_color:
+        parts.append(f"background-color: {bag.highlight_color};")
+    return " ".join(parts)
+
+
+#: Stretches the editor's Quasar field to the card; the field's own sizes are a short strip.
+_EDITOR_CSS = """
+.hw-note-editor .q-field__inner, .hw-note-editor .q-field__control,
+.hw-note-editor .q-field__control-container { height: 100%; min-height: 0; }
+.hw-note-editor .q-field__control-container { padding: 0; }
+.hw-note-editor textarea { height: 100%; min-height: 0; resize: none; padding: 0; }
+"""
+
+
+def _ensure_editor_css() -> None:
+    """Add the editor stylesheet to the current page once."""
+    client = ui.context.client
+    if not getattr(client, "_hw_note_editor_css", False):
+        ui.add_css(_EDITOR_CSS)
+        client._hw_note_editor_css = True  # type: ignore[attr-defined]
 
 
 def _strip(side: str) -> ui.element:
@@ -121,7 +167,7 @@ class AnnotationSkin(BaseSkin):
 
     def render(self, main_card: ui.card, wrapper: NodeWrapper):
         node = wrapper.node
-        props = node.props
+        bag = _bag(node)
 
         # `background`, not `background-color`: --hw-node-bg may hold a gradient.
         main_card.classes("node-card drag-handle zoom-pan-lod0").style(
@@ -131,14 +177,55 @@ class AnnotationSkin(BaseSkin):
             f"position: relative; overflow: visible; padding: {_CARD_PADDING}px; "
             "min-width: 160px; min-height: 80px;"
         )
-        main_card.on("dblclick", lambda _e: self._edit_text(wrapper))
-
         with main_card:
-            text = _text_of(props)
-            label = ui.label(text or "Double-click to write").classes("text-sm zoom-pan-lod1")
-            label.style("white-space: pre-wrap; word-break: break-word; padding: 2px 6px;")
-            if not text:
-                label.style("opacity: 0.5; font-style: italic;")
+            # The text sits in a flex box so vertical alignment follows the card's height.
+            with ui.element("div").style(
+                "flex: 1 1 auto; width: 100%; display: flex; flex-direction: column; "
+                f"justify-content: {_VERTICAL.get(bag.v_align, 'flex-start')}; "
+                f"align-items: {_JUSTIFY.get(bag.h_align, 'flex-start')};"
+            ):
+                text = bag.text
+                label = ui.label(text or "Double-click to write").classes("zoom-pan-lod1")
+                label.style(
+                    "white-space: pre-wrap; word-break: break-word; padding: 2px 6px; "
+                    "max-width: 100%; " + _text_style(bag)
+                )
+                if not text:
+                    label.style("opacity: 0.5; font-style: italic;")
+
+            editor = ui.textarea(value=text, placeholder="Write a note…")
+            _ensure_editor_css()
+            editor.classes("hw-note-editor")
+            editor.props(f'borderless input-style="height: 100%; min-height: 0; {_text_style(bag)}"').style(
+                "position: absolute; inset: 0; z-index: 2; "
+                f"padding: {_CARD_PADDING}px; background: var(--hw-node-bg);"
+            )
+            editor.set_visibility(False)
+            # The card is a drag handle, so keys and presses must stay in the editor.
+            for event in ("mousedown", "pointerdown", "keydown", "wheel"):
+                editor.on(event, lambda _e: None, js_handler="(e) => e.stopPropagation()")
+
+        def _begin_edit(_e: Any = None) -> None:
+            editor.set_value(bag.text)
+            editor.set_visibility(True)
+            # A focus call made while the element is still being shown is dropped.
+            ui.timer(0.1, lambda: editor.run_method("focus"), once=True)
+
+        def _commit(_e: Any = None) -> None:
+            if not editor.visible:
+                return
+            editor.set_visibility(False)
+            if editor.value != bag.text:
+                bag.text = editor.value
+
+        def _cancel(_e: Any = None) -> None:
+            editor.set_value(bag.text)
+            editor.set_visibility(False)
+
+        main_card.on("dblclick", _begin_edit)
+        editor.on("blur", _commit)
+        editor.on("keydown.esc", _cancel)
+        editor.on("keydown.ctrl.enter", lambda _e: editor.run_method("blur"))
 
         pins = self._pins_by_side(wrapper)
         for side in _SIDES:
@@ -168,7 +255,7 @@ class AnnotationSkin(BaseSkin):
 
         for port_id in ("exec", "done"):
             port = node.ports.get(port_id)
-            if port is None or not (getattr(node.props, "show_control_pins", False) or port.is_linked()):
+            if port is None or not (_bag(node).show_control_pins or port.is_linked()):
                 continue
             by_side[node_layout.side_for(port)].append((port, node_layout, False))
 
@@ -227,20 +314,3 @@ class AnnotationSkin(BaseSkin):
                     offset=_CARD_PADDING + GHOST_PIN_SIZE // 2 + _PIN_PROTRUSION,
                 )
                 ghost.classes(_REVEAL)
-
-    @staticmethod
-    def _edit_text(wrapper: NodeWrapper) -> None:
-        """Open the text modal on the note's text; confirming writes it back."""
-        # The text field is the annotation node's own prop, absent from NodeProperties.
-        props: Any = wrapper.node.props
-
-        def _confirm(value: str) -> None:
-            props.text = value
-
-        text_modal(
-            title="Annotation",
-            value=_text_of(props),
-            placeholder="Write a note…",
-            width="560px",
-            on_confirm=_confirm,
-        )
