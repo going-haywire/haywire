@@ -137,6 +137,17 @@ def _ensure_editor_css() -> None:
         client._hw_note_editor_css = True  # type: ignore[attr-defined]
 
 
+_TAB_JS = """(e) => {
+    e.stopPropagation();
+    if (e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();
+        const t = e.target;
+        t.setRangeText('\\t', t.selectionStart, t.selectionEnd, 'end');
+        t.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+}"""
+
+
 def _strip(side: str) -> ui.element:
     """An absolutely positioned strip along *side* that centres its items."""
     return ui.element("div").style(
@@ -201,8 +212,13 @@ class AnnotationSkin(BaseSkin):
                 f"padding: {_CARD_PADDING}px; background: var(--hw-node-bg);"
             )
             editor.set_visibility(False)
-            # The card is a drag handle, so keys and presses must stay in the editor.
-            for event in ("mousedown", "pointerdown", "keydown", "wheel"):
+            # Keys and presses stay in the editor. Tab types a tab; Shift+Tab leaves the field.
+            editor.on(
+                "keydown",
+                lambda _e: None,
+                js_handler=_TAB_JS,
+            )
+            for event in ("mousedown", "pointerdown", "wheel"):
                 editor.on(event, lambda _e: None, js_handler="(e) => e.stopPropagation()")
 
         def _begin_edit(_e: Any = None) -> None:

@@ -1563,6 +1563,17 @@ export default {
             // Invalidate cached container rect at the start of every gesture
             this._cachedNodeContainerRect = null;
 
+            // 0a. A focused text field owns presses inside it, and releases focus on a
+            //     press elsewhere: the gestures below preventDefault their mousedown,
+            //     which would otherwise leave focus (and an open editor) in place.
+            const focused = document.activeElement;
+            if (focused && focused.matches('input, textarea, select, [contenteditable]')) {
+                if (focused.contains(target)) {
+                    return;
+                }
+                focused.blur();
+            }
+
             // 0b. Skip resize-gadget grips — onResizeGripDown owns the gesture.
             //     Grips overlap the node's drag area (negative offsets), and the
             //     body capture listener runs before the grip's bubble-phase

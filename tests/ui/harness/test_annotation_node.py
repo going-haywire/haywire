@@ -219,6 +219,48 @@ def test_double_click_edits_the_text_in_place(page: Page, harness) -> None:
     )
 
 
+def _note_text(page: Page, node_id: str) -> str:
+    return page.evaluate(
+        "(sel) => document.querySelector(sel).closest('.node-card').innerText", _pin(node_id, "top_0")
+    )
+
+
+def test_pressing_outside_the_editor_commits_it(page: Page, harness) -> None:
+    ids = _open(page, harness)
+    x, y = _card_centre(page, ids["a"])
+    page.mouse.dblclick(x, y)
+    area = page.wait_for_selector("textarea", timeout=3000)
+    assert area is not None
+    area.fill("outside")
+    # Bottom-left corner of the canvas, clear of every card.
+    corner = page.evaluate(
+        """() => { const r = document.querySelector('.zoom-pan-container').getBoundingClientRect();
+                  return { x: r.left + 8, y: r.bottom - 8 }; }"""
+    )
+    page.mouse.click(corner["x"], corner["y"])
+    page.wait_for_function(
+        """(sel) => document.querySelector(sel)?.closest('.node-card').innerText.includes('outside')""",
+        arg=_pin(ids["a"], "top_0"),
+        timeout=5000,
+    )
+    assert page.query_selector("textarea:visible") is None
+
+
+def test_tab_types_a_tab_and_a_press_inside_keeps_the_editor_open(page: Page, harness) -> None:
+    ids = _open(page, harness)
+    x, y = _card_centre(page, ids["a"])
+    page.mouse.dblclick(x, y)
+    area = page.wait_for_selector("textarea", timeout=3000)
+    assert area is not None
+    area.press("End")
+    area.press("Tab")
+    area.type("x")
+    assert area.input_value() == "hello\tx"
+    area.click()
+    assert page.evaluate("() => document.activeElement.tagName") == "TEXTAREA"
+    assert page.query_selector("textarea:visible") is not None
+
+
 def test_an_annotation_edge_draws_and_edits_its_style(page: Page, harness) -> None:
     _open(page, harness)
     computed = "(sel, prop) => getComputedStyle(document.querySelector(sel))[prop]"
