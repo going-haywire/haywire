@@ -9,14 +9,12 @@ from haywire.core.settings.settings_framework import FrameworkSettings
 class ExternalToolsSettings(FrameworkSettings, namespace="tools"):
     """Commands Haywire shells out to.
 
-    "Editor" here means the developer's text editor (VS Code, vim, …), NOT the
-    graph editor — the two are unrelated, which is why this does not live
-    beside the canvas/interaction settings. Fields are named from the tool's
-    point of view (``editor_command``), so the namespace supplies the
-    "external" half.
+    "Editor" here means the developer's text editor (VS Code, vim, …); the graph
+    editor is unrelated, which is why this lives apart from the canvas/interaction
+    settings.
     """
 
-    editor_command = setting[STRING](
+    external_editor_command = setting[STRING](
         "code --goto {file}:{line}",
         label="External Editor Command",
         description=(

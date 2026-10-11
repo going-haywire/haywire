@@ -5,7 +5,7 @@ import pytest
 pytestmark = pytest.mark.unit
 
 
-def test_editor_command_default():
+def test_external_editor_command_default():
     from haywire.core.tooling.settings import ExternalToolsSettings
 
-    assert ExternalToolsSettings().editor_command == "code --goto {file}:{line}"
+    assert ExternalToolsSettings().external_editor_command == "code --goto {file}:{line}"
