@@ -33,7 +33,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional, TYPE_CHECKING
 
-from .signal import Signal, CommandSignal
+from haywire.core.access.tier import AccessTier
+
+from .signal import Signal, CommandSignal, EditorCommand
 
 if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor
@@ -455,6 +457,93 @@ class BroadcastClose(Close):
     cross_session: ClassVar[bool] = True
 
 
+# ---------------------------------------------------------------------------
+# Editor commands
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, kw_only=True)
+class Copy(EditorCommand):
+    """Copy the focused editor's selection."""
+
+    command_id: ClassVar[str] = "copy"
+    label: ClassVar[str] = "Copy"
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+C",)
+    access: ClassVar[AccessTier] = AccessTier.VIEW
+
+
+@dataclass(frozen=True, kw_only=True)
+class Cut(EditorCommand):
+    """Cut the focused editor's selection."""
+
+    command_id: ClassVar[str] = "cut"
+    label: ClassVar[str] = "Cut"
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+X",)
+
+
+@dataclass(frozen=True, kw_only=True)
+class Paste(EditorCommand):
+    """Paste clipboard content into the focused editor.
+
+    Attributes:
+        text: Clipboard text delivered by the browser's native paste event;
+            empty when the clipboard held no text.
+    """
+
+    command_id: ClassVar[str] = "paste"
+    label: ClassVar[str] = "Paste"
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+V",)
+    native_event: ClassVar[Optional[str]] = "paste"
+
+    text: str = ""
+
+
+@dataclass(frozen=True, kw_only=True)
+class Duplicate(EditorCommand):
+    """Duplicate the focused editor's selection."""
+
+    command_id: ClassVar[str] = "duplicate"
+    label: ClassVar[str] = "Duplicate"
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+D",)
+
+
+@dataclass(frozen=True, kw_only=True)
+class Delete(EditorCommand):
+    """Delete the focused editor's selection."""
+
+    command_id: ClassVar[str] = "delete"
+    label: ClassVar[str] = "Delete"
+    default_keys: ClassVar[tuple[str, ...]] = ("Delete", "Backspace")
+
+
+@dataclass(frozen=True, kw_only=True)
+class Undo(EditorCommand):
+    """Undo the focused editor's last action."""
+
+    command_id: ClassVar[str] = "undo"
+    label: ClassVar[str] = "Undo"
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+Z",)
+
+
+@dataclass(frozen=True, kw_only=True)
+class Redo(EditorCommand):
+    """Redo the focused editor's last undone action."""
+
+    command_id: ClassVar[str] = "redo"
+    label: ClassVar[str] = "Redo"
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+Shift+Z", "Mod+Y")
+
+
+@dataclass(frozen=True, kw_only=True)
+class SelectAll(EditorCommand):
+    """Select everything in the focused editor."""
+
+    command_id: ClassVar[str] = "select_all"
+    label: ClassVar[str] = "Select All"
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+A",)
+    access: ClassVar[AccessTier] = AccessTier.VIEW
+
+
 __all__ = [
     # Observations
     "ActiveGraphMoved",
@@ -477,4 +566,13 @@ __all__ = [
     "RevealSource",
     "Close",
     "BroadcastClose",
+    # Editor commands
+    "Copy",
+    "Cut",
+    "Paste",
+    "Duplicate",
+    "Delete",
+    "Undo",
+    "Redo",
+    "SelectAll",
 ]

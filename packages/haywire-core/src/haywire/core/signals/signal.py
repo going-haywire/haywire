@@ -11,7 +11,9 @@ special routing.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import ClassVar, Optional
+
+from haywire.core.access.tier import AccessTier
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -36,3 +38,47 @@ class CommandSignal(Signal):
     the bus does not enforce that. Travels through the same bus as every
     other signal; the split is vocabulary for authors.
     """
+
+
+@dataclass(frozen=True, kw_only=True)
+class EditorCommand(CommandSignal):
+    """A keyboard-invokable command addressed to one editor binding.
+
+    A shortcut publishes the command with the ``binding_id`` of the editor that
+    had focus. Only the editor bound to that id receives it, and it is dropped
+    when the session's principal holds less than ``access``. Subclasses declare
+    the class-level metadata; instances carry the target and, for pointer-aware
+    commands, where the pointer was.
+
+    Attributes:
+        command_id: Stable identifier, unique across commands.
+        label: Display name for menus and shortcut lists.
+        default_keys: Canonical combos (see ``normalize_combo``) bound by default.
+        access: Minimum tier needed for the command to be delivered.
+        native_event: Browser event (e.g. ``"paste"``) that must supply the
+            command's data instead of the key press; ``None`` for plain key commands.
+        binding_id: The editor binding the command is addressed to.
+        position: Pointer position in the editor's own coordinates, if known.
+
+    Example::
+
+        @dataclass(frozen=True, kw_only=True)
+        class Rotate(EditorCommand):
+            command_id: ClassVar[str] = "my_lib.rotate"
+            label: ClassVar[str] = "Rotate"
+            default_keys: ClassVar[tuple[str, ...]] = ("Mod+R",)
+
+        class MyEditor(BaseEditor):
+            @react_on(Rotate)
+            def _on_rotate(self, signal: Rotate) -> None:
+                ...
+    """
+
+    command_id: ClassVar[str]
+    label: ClassVar[str]
+    default_keys: ClassVar[tuple[str, ...]] = ()
+    access: ClassVar[AccessTier] = AccessTier.EDIT
+    native_event: ClassVar[Optional[str]] = None
+
+    binding_id: str
+    position: Optional[tuple[float, float]] = None

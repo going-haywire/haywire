@@ -1,14 +1,14 @@
 """Signal-field unification: signals, the bus, the host ABC, the descriptor.
 
 Public surface:
-- Signal, CommandSignal — base classes
+- Signal, CommandSignal, EditorCommand — base classes
 - SignalBus, SignalHandler — the transport
 - SignalSource — the host ABC
 - signal_field — the descriptor factory
 - Concrete signals (SelectionMoved, GraphDataMutated, ...) — the vocabulary
 """
 
-from .signal import Signal, CommandSignal
+from .signal import Signal, CommandSignal, EditorCommand
 from .bus import SignalBus, SignalHandler
 from .host import SignalSource
 from .dispatcher import SignalDispatcher
@@ -36,12 +36,21 @@ from .vocabulary import (
     RevealSource,
     Close,
     BroadcastClose,
+    Copy,
+    Cut,
+    Paste,
+    Duplicate,
+    Delete,
+    Undo,
+    Redo,
+    SelectAll,
 )
 
 __all__ = [
     # Bases
     "Signal",
     "CommandSignal",
+    "EditorCommand",
     # Transport
     "SignalBus",
     "SignalHandler",
@@ -74,4 +83,13 @@ __all__ = [
     "RevealSource",
     "Close",
     "BroadcastClose",
+    # Editor commands
+    "Copy",
+    "Cut",
+    "Paste",
+    "Duplicate",
+    "Delete",
+    "Undo",
+    "Redo",
+    "SelectAll",
 ]
