@@ -1524,6 +1524,55 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /keymap
+    #
+    # One KeymapListener (Control is Mod) over two editor roots, ed::one and
+    # ed::two, in #hw-slot-edit. ed::one holds a text input and a pointer-local
+    # hook answering [12, 34]. #last-command / #command-log record what reached
+    # Python as "<command_id>@<binding_id>". Backs test_keymap_listener.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/keymap")
+    async def keymap_page():
+        from haywire.ui.components.keymap import KeymapListener
+
+        last_command = ui.label("none").props('id="last-command"')
+        last_payload = ui.label("none").props('id="last-payload"')
+        last_target = ui.label("none").props('id="last-target"')
+        command_log = ui.label("").props('id="command-log"')
+        ui.label("outside").props('id="outside"')
+        log: list[str] = []
+
+        def on_command(payload: dict) -> None:
+            entry = f"{payload['command_id']}@{payload['binding_id']}"
+            log.append(entry)
+            last_command.set_text(entry)
+            last_payload.set_text(f"{payload['position']}|{payload['text']}")
+            command_log.set_text(",".join(log))
+
+        def on_target(payload: dict) -> None:
+            last_target.set_text(payload["binding_id"])
+
+        listener = KeymapListener(on_command=on_command, on_target=on_target, platform="other")
+        listener.set_keymap(
+            {
+                "editors": {"ed": {"Mod+A": "select_all", "Delete": "delete", "Mod+V": "paste"}},
+                "native": {"paste": "paste"},
+            }
+        )
+
+        root_style = "width: 300px; min-height: 80px; padding: 16px; border: 1px solid #666;"
+        with ui.element("div").props('id="hw-slot-edit"'):
+            with ui.element("div").props('data-hw-binding="ed::one" data-hw-editor="ed"').style(root_style):
+                ui.element("input").props('type="text"')
+                ui.element("div").props("data-hw-pointer-local").style("width: 40px; height: 20px;")
+            ui.element("div").props('data-hw-binding="ed::two" data-hw-editor="ed"').style(root_style)
+        ui.run_javascript(
+            "document.querySelector('[data-hw-pointer-local]').hwPointerLocal = () => [12, 34]"
+        )
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /copy-button
     #
     # A bare hui.code_snippet() with its default copy button. Backs the
