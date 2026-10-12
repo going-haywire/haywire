@@ -804,7 +804,7 @@ hui.code_snippet(
 )
 ```
 
-### 8.8 `hui.icon_action(icon, tooltip=None, on_click=None, size="xs")`
+### 8.8 `hui.icon_action(icon, tooltip=None, on_click=None, size="xs", command=None)`
 
 A minimal icon-only button for inline actions.
 
@@ -849,7 +849,7 @@ hui.button("Delete Node", icon="delete", on_click=self._delete)
 hui.button("Refresh", icon="refresh", on_click=self._refresh)
 ```
 
-### 8.8b `hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None)`
+### 8.8b `hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None, command=None)`
 
 One command in a menu — the leaf counterpart of `hui.submenu_row`, which *is* one
 (plus a chevron), so a command and the submenu row beside it cannot drift.
@@ -885,7 +885,15 @@ hui.menu_row(                                                 # say why it's gre
     "Detach", icon=hui.icon.delete, enabled=False,
     tooltip="Only a promoted pin can be detached",
 )
+hui.menu_row("Copy", icon=hui.icon.copy, on_click=self._copy, command=Copy)  # ⌘C / Ctrl+C suffix
 ```
+
+`command=` names the `EditorCommand` the row performs, only to draw its first
+default shortcut as the suffix (`hui.key_hint`, §8.23); `on_click` still does the
+work. `hui.icon_action(..., tooltip="Copy", command=Copy)` appends the shortcut to
+the tooltip instead (`Copy (Ctrl+C)`, in the non-macOS spelling on every
+platform, since a tooltip is plain text); without a `tooltip` there is nothing to
+append to.
 
 ### 8.8c `hui.flyout(icon, tooltip=…)` vs `hui.dropdown(icon, tooltip=…, align="left", direction="down")`
 
@@ -1217,7 +1225,12 @@ the `.hw-menu-row` block and its `--hw-menu-row-*` tokens (§2.8a):
 - Text / icon / hover: `--hw-menu-row-*`, falling back to `--hw-text-body`,
   `--hw-text-dim`, `--hw-bg-hover`
 - Disabled: `opacity: 0.4; pointer-events: none`
-- Keyboard shortcut suffix: `text-xs hw-text-dim ml-auto font-mono`
+- Keyboard shortcut suffix: `text-xs hw-text-dim ml-auto font-mono`, drawn by
+  `hui.menu_row(..., command=Copy)` or, outside a menu row, `hui.key_hint(Copy)` /
+  `hui.combo_hint("Mod+Shift+Z")` — never hand-rolled. The helpers draw the
+  macOS (`⌘C`) and other (`Ctrl+C`) spellings and the shell CSS shows the one
+  matching `html[data-hw-platform]`; a hand-written suffix shows one platform's
+  spelling everywhere and drifts from the command's keys.
 - Divider between groups: `hui.separator()`
 
 ### 8.24 `hui.dialog_card(width=None)` and `hui.dialog_actions(...)`

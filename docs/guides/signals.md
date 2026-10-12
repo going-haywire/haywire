@@ -235,6 +235,21 @@ Check this list first. It is **not** a catalogue of every signal in a running ap
 | `Close` | Close every tab bound to `binding_id`, this session | — |
 | `BroadcastClose` | Same, but every session — for facts, not clicks | ✅ |
 
+**Editor commands** — `EditorCommand` subclasses: "do Y in the editor bound to `binding_id`". A key press publishes one; only the wrapper of that binding delivers it, and only when the session's principal holds the command's `access` tier ([ADR 0050](../adr/0050-keyboard-commands-are-editor-addressed-command-signals.md)):
+
+| Signal | `command_id` | Default keys | Access |
+| --- | --- | --- | --- |
+| `Copy` | `copy` | `Mod+C` | view |
+| `Cut` | `cut` | `Mod+X` | edit |
+| `Paste` | `paste` | `Mod+V` (from the browser's `paste` event; carries `text`) | edit |
+| `Duplicate` | `duplicate` | `Mod+D` | edit |
+| `Delete` | `delete` | `Delete`, `Backspace` | edit |
+| `Undo` | `undo` | `Mod+Z` | edit |
+| `Redo` | `redo` | `Mod+Shift+Z`, `Mod+Y` | edit |
+| `SelectAll` | `select_all` | `Mod+A` | view |
+
+`Mod` is Cmd on macOS and Ctrl elsewhere. A command that does not apply in the target editor does nothing.
+
 Two pairs look similar and are not interchangeable:
 
 - **`ErrorLogged` vs `ErrorLedgerChanged`** — the first fires only when a *new* error arrives (so it drives toasts and unseen badges); the second fires on triage mutations. Keying a "new error" indicator off the second makes it flash when the user marks something as read.
@@ -394,6 +409,38 @@ ctx.session.publish(FlashLed(device_id="dev-1", duration_ms=200))
 ```
 
 A single subscriber (typically a device driver editor) handles it. Convention is one subscriber per `CommandSignal` type, but the bus does not enforce that.
+
+### Adding a keyboard command
+
+A keyboard shortcut is an `EditorCommand`. To give your editor a key, subscribe to a command that declares it — one of the eight above, or your own:
+
+```python
+from dataclasses import dataclass
+from typing import ClassVar
+
+from haywire.core.signals import EditorCommand
+from haywire.core.session.handlers import react_on
+
+
+@dataclass(frozen=True, kw_only=True)
+class Rotate(EditorCommand):
+    command_id: ClassVar[str] = "my_lib.rotate"      # unique app-wide
+    label: ClassVar[str] = "Rotate"                  # shown in menus and the Shortcuts editor
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+R",)
+    # access defaults to AccessTier.EDIT; set AccessTier.VIEW for read-only commands
+
+
+class MyEditor(BaseEditor):
+    @react_on(Rotate)
+    def _on_rotate(self, ctx, signal: Rotate) -> None:
+        ...   # call the same verb your menu panel calls
+```
+
+- **Subscribing claims the keys.** The keymap is built from the commands each editor class subscribes to; there is no separate registration. The handler runs only for key presses aimed at this editor's binding, from a principal holding `access`.
+- **The editor root needs no work.** Slot tab panels already carry `data-hw-binding`, so a pointer-down anywhere in your editor makes it the **target editor**. Keys typed into a text field stay with the field.
+- **Clashes are reported, not raised.** Two commands claiming one combo in the same editor, a browser-reserved combo (`Mod+W`, `Mod+T`, …), or a `command_id` declared twice each log a warning to the error ledger; see `build_keymap` in `haywire.ui.keymap` for which one wins.
+- **Show the key on the menu row** with `hui.menu_row(..., command=Rotate)` or `hui.icon_action(..., command=Rotate)`; the row's `on_click` still calls the verb itself.
+- **Alt combinations are unsupported**, and only the first `default_keys` entry is displayed.
 
 ## Constraints
 

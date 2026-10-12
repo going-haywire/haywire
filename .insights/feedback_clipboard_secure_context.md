@@ -14,12 +14,13 @@ type: feedback
 > **Do not substitute another symptom either.** Camera and microphone look
 > like the natural replacement and are wrong: Haywire grabs video *server-side*
 > in Python (`cv2.VideoCapture`, `depthai`), so `navigator.mediaDevices` is
-> never called and no browser permission is involved. As of today **no shipped
-> Haywire feature is broken by plain HTTP** — the only real consequence is that
-> traffic is readable on the wire. The secure-context rule is worth knowing
+> never called and no browser permission is involved. As of today the **only
+> shipped feature plain HTTP limits is the graph context menu's Paste**, which
+> on a LAN origin pastes only what this tab copied (see *Graph clipboard paths*);
+> every copy path and keyboard paste work. Beyond that, the real consequence is
+> that traffic is readable on the wire. The secure-context rule is worth knowing
 > because it will bite the first front-end feature that reaches for
-> `mediaDevices`, geolocation, notifications or a service worker; it is not a
-> present-tense symptom to warn users about.
+> `mediaDevices`, geolocation, notifications or a service worker.
 
 **The rule:** the Clipboard API (`navigator.clipboard`) is **restricted to
 secure contexts**. `localhost` and `127.0.0.1` count as secure even over plain

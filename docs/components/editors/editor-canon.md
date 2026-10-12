@@ -98,6 +98,18 @@ Use `@react_on` when something must happen on every signal reaching this editor 
 
 Handlers run synchronously on every matching publish; keep them cheap. The heavy lifting belongs in `draw()`, gated by the redraw decision.
 
+**Keyboard shortcuts — subscribing to an `EditorCommand` claims its keys.** An `EditorCommand` (`Copy`, `Paste`, `Undo`, … or your own subclass) is a `CommandSignal` addressed to one editor binding. Subscribing to one with `@react_on` is all an editor does to get its shortcut: the AppShell builds each editor class's keymap from the commands it subscribes to, and the command class carries the keys (`default_keys`).
+
+```python
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/editors/graph_editor.py:427:437"
+```
+
+from: `GraphEditor` — registry_key: `haybale-graph-editor:editor:GraphEditor`
+
+Each handler calls the same canvas verb the right-click menu's panel calls.
+
+The wrapper delivers a command only when its `binding_id` is this tab's `editor_binding_id` and the session's principal holds the command's `access` tier, so a handler checks neither — with three graph tabs open, `Mod+C` reaches the one the user last clicked in (the **target editor**). The slot marks each tab's root with `data-hw-binding`; nothing else is needed. A command that does not apply is a silent no-op. To make `Paste` land at the pointer, put a `data-hw-pointer-local` element in your editor whose `hwPointerLocal()` returns `[x, y]` in your own coordinates; without one, `Paste.position` is `None`. Only handler subscriptions on the editor class claim keys and are filtered — a panel's `redraw_on=` does neither. See [guides/signals](../../guides/signals.md#adding-a-keyboard-command) for declaring your own command, and [ADR 0050](../../adr/0050-keyboard-commands-are-editor-addressed-command-signals.md) for the design.
+
 **`@reveal_on(*reveal_signal_types)`** is the class-level one, and the difference is not stylistic. `@redraw_on` / `@react_on` subscribe an **instance**, at instantiation. An `on_payload` editor has no instance until one of its tabs exists — so with no tab open there is no subscriber, and a signal asking it to open a file reaches nobody and silently does nothing. `@reveal_on` is read off the **class** by the AppShell, which is always alive, so it fires whether or not an instance exists and the reveal creates the tab.
 
 Decorate a **classmethod** taking `(cls, context, event)` and returning `bool`:
@@ -213,6 +225,7 @@ from haywire.core.signals import (
     Reveal, Close, BroadcastClose,                        # lifecycle commands
     RevealSignal,                                         # base: reveals naming no editor
     RevealComponentSource, RevealComponentDocs, RevealSource,   # …claimed via @reveal_on
+    EditorCommand, Copy, Cut, Paste, Duplicate, Delete, Undo, Redo, SelectAll,   # keyboard commands
 )
 ```
 
@@ -264,6 +277,7 @@ For the `Surface` and `Panel` extension points the editor hosts, see [components
 - [ ] Inherit from `BaseEditor`; implement `draw(self, context, container)` — required
 - [ ] Decorate handler methods with `@redraw_on(*SignalTypes)` for signals that warrant a full editor redraw — empty body is fine; the framework redraws once per dispatch pass
 - [ ] Decorate handler methods with `@react_on(*SignalTypes)` for pure side effects — no auto-redraw; the body owns any explicit `wrapper.redraw()` / `session.publish(Reveal/Close/...)` calls
+- [ ] Optional: `@react_on(Copy)` (or any `EditorCommand`) to claim that command's keyboard shortcut for this editor — the wrapper delivers only presses aimed at this tab, from a principal holding the command's `access`
 - [ ] Decorate a **classmethod** with `@reveal_on(*RevealSignalTypes)` to claim a reveal aimed at no particular editor — required rather than optional for an `opens='on_payload'` editor, which has no instance (and so no `@react_on` subscriber) until one of its tabs exists
 - [ ] Initialise instance state in `__init__`; container/UI refs re-fetched in `draw()`
 - [ ] Optional: `on_focus(self, context)` — runs *before* `draw()` on the newly-activated wrapper
