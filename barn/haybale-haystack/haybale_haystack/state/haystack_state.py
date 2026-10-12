@@ -9,6 +9,7 @@ from haywire.core.state.decorator import state
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
+from haywire.core.graph.types import ChangeReason
 from haywire.core.graph.validation import ValidationResult
 from haywire.core.node.factory import NodeFactory
 from haywire.core.state import LibraryStateContainer
@@ -189,6 +190,10 @@ class HaystackState(AppState):
         saving, and announcing it as a data mutation has two costs: the graph
         is marked unsaved for a change no save would record, and every panel
         with ``redraw_on=(GraphDataMutated,)`` rebuilds.
+
+        A result whose saved changes are all value edits (``NODE_VALUE_CHANGED``,
+        ``GRAPH_CONTENT_CHANGED``) broadcasts only when it turns the entry
+        unsaved, so the panel being typed into is not rebuilt on every edit.
         """
         if entry.is_executing and result.has_changes() and result.graph is not None:
             if result.graph.requires_graph_reassembly():
@@ -202,8 +207,19 @@ class HaystackState(AppState):
                         )
 
         if result.requires_save():
+            was_unsaved = entry.unsaved
             entry.unsaved = True
-            self._broadcast_data_mutated()
+            if not (was_unsaved and self._only_value_edits(result)):
+                self._broadcast_data_mutated()
+
+    @staticmethod
+    def _only_value_edits(result: "ValidationResult") -> bool:
+        """Return whether every saved change in *result* is a value edit; repaints are ignored."""
+        value_reasons = {ChangeReason.NODE_VALUE_CHANGED, ChangeReason.GRAPH_CONTENT_CHANGED}
+        reasons = [*result.nodes.values(), *result.edges.values()]
+        if result.graph is not None:
+            reasons.append(result.graph)
+        return all(reason in value_reasons for reason in reasons if not reason.is_visual_only())
 
     # ------------------------------------------------------------------
     # Graph factory (private)

@@ -443,6 +443,52 @@ def test_a_repaint_batched_with_a_real_change_still_broadcasts(state_with_mocked
     state._dispatcher.broadcast.assert_called_once()
 
 
+def test_value_edits_broadcast_only_when_the_entry_turns_unsaved(state_with_mocked_deps):
+    """A panel being typed into rebuilds on GraphDataMutated, so a value edit announces only the flip."""
+    state = state_with_mocked_deps
+    entry = state.create_new()
+    entry.unsaved = False
+    state._dispatcher.broadcast.reset_mock()
+
+    value_batch = ValidationResult(
+        nodes={"n1": ChangeReason.NODE_VALUE_CHANGED}, graph=ChangeReason.GRAPH_CONTENT_CHANGED
+    )
+    state._on_entry_validation(entry, value_batch)
+    state._on_entry_validation(entry, ValidationResult(graph=ChangeReason.GRAPH_CONTENT_CHANGED))
+
+    assert entry.unsaved is True
+    assert state._dispatcher.broadcast.call_count == 1
+
+    state._on_entry_validation(entry, ValidationResult(nodes={"n2": ChangeReason.NODE_ADDED}))
+
+    assert state._dispatcher.broadcast.call_count == 2
+
+
+def test_a_value_edit_batched_with_a_repaint_counts_as_a_value_edit(state_with_mocked_deps):
+    state = state_with_mocked_deps
+    entry = state.create_new()
+    entry.unsaved = True
+    state._dispatcher.broadcast.reset_mock()
+
+    result = ValidationResult(
+        nodes={"n1": ChangeReason.NODE_VALUE_CHANGED, "n2": ChangeReason.NODE_REDRAW_REQUESTED}
+    )
+    state._on_entry_validation(entry, result)
+
+    state._dispatcher.broadcast.assert_not_called()
+
+
+def test_a_move_on_an_unsaved_entry_still_broadcasts(state_with_mocked_deps):
+    state = state_with_mocked_deps
+    entry = state.create_new()
+    entry.unsaved = True
+    state._dispatcher.broadcast.reset_mock()
+
+    state._on_entry_validation(entry, _visual_result(ChangeReason.NODE_MOVED))
+
+    state._dispatcher.broadcast.assert_called_once()
+
+
 def test_validation_callback_stops_execution_on_reassembly(state_with_mocked_deps):
     """When reassembly is required and entry is executing, stop_execution is called."""
     state = state_with_mocked_deps
