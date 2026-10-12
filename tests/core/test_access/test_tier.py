@@ -1,4 +1,4 @@
-"""AccessTier — cumulative three-tier access vocabulary (ADR 0027)."""
+"""AccessTier — cumulative four-tier access vocabulary (ADR 0027)."""
 
 import pytest
 
@@ -7,6 +7,7 @@ from haywire.core.access import AccessTier
 
 def test_values_are_the_wire_strings():
     assert AccessTier.VIEW == "view"
+    assert AccessTier.OPERATE == "operate"
     assert AccessTier.EDIT == "edit"
     assert AccessTier.ADMIN == "admin"
 
@@ -21,21 +22,28 @@ def test_unknown_string_raises():
 
 
 def test_ranks_are_ordered():
-    assert AccessTier.VIEW.rank < AccessTier.EDIT.rank < AccessTier.ADMIN.rank
+    assert AccessTier.VIEW.rank < AccessTier.OPERATE.rank < AccessTier.EDIT.rank < AccessTier.ADMIN.rank
 
 
 @pytest.mark.parametrize(
     ("held", "required", "expected"),
     [
-        (AccessTier.ADMIN, AccessTier.VIEW, True),
-        (AccessTier.ADMIN, AccessTier.EDIT, True),
         (AccessTier.ADMIN, AccessTier.ADMIN, True),
-        (AccessTier.EDIT, AccessTier.VIEW, True),
-        (AccessTier.EDIT, AccessTier.EDIT, True),
+        (AccessTier.ADMIN, AccessTier.EDIT, True),
+        (AccessTier.ADMIN, AccessTier.OPERATE, True),
+        (AccessTier.ADMIN, AccessTier.VIEW, True),
         (AccessTier.EDIT, AccessTier.ADMIN, False),
-        (AccessTier.VIEW, AccessTier.VIEW, True),
-        (AccessTier.VIEW, AccessTier.EDIT, False),
+        (AccessTier.EDIT, AccessTier.EDIT, True),
+        (AccessTier.EDIT, AccessTier.OPERATE, True),
+        (AccessTier.EDIT, AccessTier.VIEW, True),
+        (AccessTier.OPERATE, AccessTier.ADMIN, False),
+        (AccessTier.OPERATE, AccessTier.EDIT, False),
+        (AccessTier.OPERATE, AccessTier.OPERATE, True),
+        (AccessTier.OPERATE, AccessTier.VIEW, True),
         (AccessTier.VIEW, AccessTier.ADMIN, False),
+        (AccessTier.VIEW, AccessTier.EDIT, False),
+        (AccessTier.VIEW, AccessTier.OPERATE, False),
+        (AccessTier.VIEW, AccessTier.VIEW, True),
     ],
 )
 def test_satisfies_is_cumulative(held, required, expected):

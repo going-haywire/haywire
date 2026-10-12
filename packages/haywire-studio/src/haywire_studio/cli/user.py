@@ -118,7 +118,7 @@ def _list(args: argparse.Namespace) -> int:
     print(f"Authentication is {state}. {len(roster.principals)} principal(s):")
     for principal in roster.principals:
         scope = f"  workspace={principal.workspace}" if principal.workspace else ""
-        print(f"  {principal.name:<24} {principal.kind:<6} {principal.tier.value:<6}{scope}")
+        print(f"  {principal.name:<24} {principal.kind:<6} {principal.tier.value:<7}{scope}")
     return 0
 
 

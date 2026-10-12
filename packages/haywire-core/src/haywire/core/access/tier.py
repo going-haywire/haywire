@@ -1,13 +1,12 @@
-"""AccessTier — the three cumulative access levels (ADR 0027).
+"""AccessTier — the four cumulative access levels (ADR 0027).
 
 A StrEnum so the member *is* its wire string: it serializes into
 ``~/.haywire/auth.json`` and into ``@panel(access=...)`` declarations with no
 conversion layer, exactly like ``SlotName`` does for slot names.
 
-Cumulative: ``admin`` satisfies every check ``edit`` does, and ``edit``
-satisfies every check ``view`` does. Ordering is expressed through
-:meth:`satisfies` rather than by making this an IntEnum, so the wire values
-stay strings and adding a tier later does not renumber anything.
+Cumulative: ``admin`` satisfies every check ``edit`` does, ``edit`` every
+check ``operate`` does, and ``operate`` every check ``view`` does. Ordering is
+expressed through :meth:`satisfies`, so the wire values stay strings.
 """
 
 from __future__ import annotations
@@ -22,6 +21,7 @@ class AccessTier(StrEnum):
     """What a principal may reach. See ADR 0027 for what these do and do not guarantee."""
 
     VIEW = "view"
+    OPERATE = "operate"
     EDIT = "edit"
     ADMIN = "admin"
 
@@ -37,8 +37,9 @@ class AccessTier(StrEnum):
 
 _RANKS: dict[AccessTier, int] = {
     AccessTier.VIEW: 0,
-    AccessTier.EDIT: 1,
-    AccessTier.ADMIN: 2,
+    AccessTier.OPERATE: 1,
+    AccessTier.EDIT: 2,
+    AccessTier.ADMIN: 3,
 }
 
 
