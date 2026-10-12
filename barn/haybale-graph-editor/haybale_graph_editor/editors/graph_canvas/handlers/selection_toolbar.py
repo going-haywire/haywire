@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
 
+from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.panel.host_rendering import (
     _poll_surface,
@@ -314,17 +315,25 @@ class SelectionToolbarProvider:
 
 
 class SelectionToolbarHandlers:
-    """Route SelectionBounds* events to SelectionToolbarProvider."""
+    """Route SelectionBounds* events to SelectionToolbarProvider.
 
-    def __init__(self, provider: SelectionToolbarProvider):
+    ``allows`` answers whether the session may do what a tier asks on this
+    canvas; the toolbar shows only where it allows ``EDIT``.
+    """
+
+    def __init__(self, provider: SelectionToolbarProvider, allows: Callable[[AccessTier], bool]):
         self._provider = provider
+        self._allows = allows
 
-    @handles_event(SelectionBoundsEvent)
+    @handles_event(SelectionBoundsEvent, access=AccessTier.VIEW)
     def process_selection_bounds(self, event: SelectionBoundsEvent) -> None:
-        """Show or reposition the toolbar above the selection."""
+        """Show or reposition the toolbar above the selection; hide it below edit access."""
+        if not self._allows(AccessTier.EDIT):
+            self._provider.hide()
+            return
         self._provider.show_at((event.left, event.top, event.right, event.bottom))
 
-    @handles_event(SelectionBoundsHideEvent)
+    @handles_event(SelectionBoundsHideEvent, access=AccessTier.VIEW)
     def process_selection_bounds_hide(self, event: SelectionBoundsHideEvent) -> None:
         """Hide the toolbar during pan/zoom/drag gestures."""
         self._provider.hide()

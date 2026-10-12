@@ -8,6 +8,7 @@ internally.  Undo grouping is achieved by the fence pair on drag start/end.
 import logging
 from typing import TYPE_CHECKING, Optional
 
+from haywire.core.access import AccessTier
 from haywire.core.signals import GraphDataMutated
 from haywire.ui.components.graph.event_definitions import (
     UserDragStartEvent,
@@ -87,7 +88,7 @@ class InteractionHandlers:
         if self._session is not None:
             self._session.publish(GraphDataMutated())
 
-    @handles_event(EdgeClickedEvent)
+    @handles_event(EdgeClickedEvent, access=AccessTier.VIEW)
     def process_edge_click(self, event: EdgeClickedEvent):
         """Log edge click; no editor mutation required."""
         logger.debug(f"Connection clicked: {event.edge_id}")

@@ -693,6 +693,8 @@ class GraphEditor(BaseEditor):
             )
         with canvas_area:
             level.canvas_manager = self._build_canvas(context, level.container)
+        if level.canvas_manager is not None:
+            level.canvas_manager.set_locked(level.locked)
 
     def _build_canvas(
         self, context: "SessionContext", entry: "GraphContainer"

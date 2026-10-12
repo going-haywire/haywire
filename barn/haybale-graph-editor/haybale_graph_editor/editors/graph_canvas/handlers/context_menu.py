@@ -24,6 +24,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
 
+from haywire.core.access import AccessTier
 from haywire.core.session.context import SessionContext
 from haywire.core.session.session import Session
 from haywire.ui.panel.registry import PanelRegistry
@@ -836,15 +837,19 @@ class ContextMenuHandlers:
 
     Reads edge data from VisualLayerHandlers (via the get_edge accessor) and
     delegates all menu-surface decisions to an IContextMenuProvider.
+    ``allows`` answers whether the session may do what a tier asks on this
+    canvas; menus open only where it allows ``EDIT``.
     """
 
     def __init__(
         self,
         visual_layer: "VisualLayerHandlers",
         provider: IContextMenuProvider,
+        allows: Callable[[AccessTier], bool],
     ):
         self.visual_layer = visual_layer
         self.provider = provider
+        self._allows = allows
 
     @handles_event(
         ContextMenuCanvasEvent,
@@ -852,9 +857,12 @@ class ContextMenuHandlers:
         ContextMenuSelectedEvent,
         ContextMenuSurfaceEvent,
         ContextMenuPortEvent,
+        access=AccessTier.VIEW,
     )
     def process_context_menu(self, event):
         """Route context-menu events to the provider as intent calls.
+
+        Below edit access (a locked canvas included) no menu opens.
 
         A menu already open is dismissed first, so right-clicking a second node
         swaps menus in one gesture rather than stacking two live popups. This
@@ -870,6 +878,8 @@ class ContextMenuHandlers:
         re-dispatched from there.
         """
         self.provider.close_open_menu()
+        if not self._allows(AccessTier.EDIT):
+            return
 
         if isinstance(event, ContextMenuCanvasEvent):
             logger.debug(f"Canvas context menu at ({event.screenX}, {event.screenY})")

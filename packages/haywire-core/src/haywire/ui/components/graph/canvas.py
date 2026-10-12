@@ -163,6 +163,16 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         self._props["canvasHeight"] = height
         self.update()
 
+    def set_locked(self, locked: bool) -> None:
+        """Lock or unlock the canvas gestures that change the graph.
+
+        While locked, the browser starts no node drag, resize, connection or
+        reconnect and requests no paste; selection, the box select, the context
+        menu and copy stay available.
+        """
+        self._props["locked"] = locked
+        self.update()
+
     def emit_sync_event(self, event: BaseGraphEvent):
         """
         Send sync event to Vue component - THE ONLY COMMUNICATION METHOD

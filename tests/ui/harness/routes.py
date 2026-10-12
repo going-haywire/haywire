@@ -1398,6 +1398,35 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /graph-lock
+    #
+    # One node on a canvas locked for the session, as GraphEditor locks a level
+    # (``GraphCanvasManager.set_locked``). ``lock-node-id`` carries the node id;
+    # ``lock-node-pos`` shows the model's ``props.posX,posY``, polled so it
+    # reflects whichever path changed it. ``?stale=true`` locks the server side
+    # only, as for a page the lock has not reached yet. Backs test_canvas_lock.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-lock")
+    async def graph_lock_page(stale: bool = False):
+        graph, editor, node = _build_size_graph(library_service.get_node_factory())
+        node_id = node.node_id
+        ui.label(node_id).props(f'data-testid="lock-node-id" data-node="{node_id}"')
+        pos = ui.label().props('data-testid="lock-node-pos"')
+
+        def _refresh() -> None:
+            pos.set_text(f"{node.node.props.posX:g},{node.node.props.posY:g}")
+
+        _refresh()
+        ui.timer(0.2, _refresh)
+        manager = _mount_graph_canvas(library_service, graph, editor, testid="lock")
+        if stale:
+            manager.locked = True
+        else:
+            manager.set_locked(True)
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /graph-reroute
     #
     # Two nodes whose exec edge is split by a reroute. A reroute is resizable

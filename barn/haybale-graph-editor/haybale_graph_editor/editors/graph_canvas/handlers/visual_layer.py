@@ -19,10 +19,11 @@ import logging
 import time
 import traceback
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple, TYPE_CHECKING
+from typing import Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.access import AccessTier
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import BaseNode
@@ -216,7 +217,7 @@ class VisualLayerHandlers:
             logger.error(f"❌ Error during initial sync: {e}")
             traceback.print_exc()
 
-    @handles_event(CanvasMountedEvent)
+    @handles_event(CanvasMountedEvent, access=AccessTier.VIEW)
     def process_canvas_mounted(self, event: CanvasMountedEvent) -> None:
         """Send this canvas its edges, because a fresh component has none.
 
@@ -569,6 +570,13 @@ class VisualLayerHandlers:
         sync_event = SyncNodePositionEvent(nodeId=node_id, position={"x": x, "y": y})
         self.canvas_vue.emit_sync_event(sync_event)
 
+    def resync_positions(self, node_ids: Iterable[str]) -> None:
+        """Move each node's visual back to its model position; unknown ids are skipped."""
+        for node_id in node_ids:
+            wrapper = self.graph.get_node_wrapper(node_id)
+            if wrapper is not None:
+                self.update_node_position(node_id, (wrapper.node.props.posX, wrapper.node.props.posY))
+
     # -------------------------------------------------------------------------
     # Edge visual management
     # -------------------------------------------------------------------------
@@ -707,7 +715,7 @@ class VisualLayerHandlers:
     # Event handlers — graph mutation requests
     # -------------------------------------------------------------------------
 
-    @handles_event(NodesMeasuredEvent)
+    @handles_event(NodesMeasuredEvent, access=AccessTier.VIEW)
     def process_nodes_measured(self, event: NodesMeasuredEvent):
         """Write one frame's measured auto-axis sizes back into node props.
 
@@ -885,7 +893,7 @@ class VisualLayerHandlers:
         else:
             ui.notify("Failed to expand Group", type="negative")
 
-    @handles_event(EnterGroupEvent)
+    @handles_event(EnterGroupEvent, access=AccessTier.VIEW)
     def process_enter_group(self, event: EnterGroupEvent):
         """Ask this session's editors to step inside the Group on this node.
 

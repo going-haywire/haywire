@@ -534,7 +534,9 @@ class TestMenuSupersedesTheOpenOne:
             ContextMenuHandlers,
         )
 
-        return ContextMenuHandlers(visual_layer=MagicMock(), provider=provider)
+        return ContextMenuHandlers(
+            visual_layer=MagicMock(), provider=provider, allows=lambda _required: True
+        )
 
     def test_close_open_menu_is_a_noop_without_a_menu(self):
         provider = _make_provider()

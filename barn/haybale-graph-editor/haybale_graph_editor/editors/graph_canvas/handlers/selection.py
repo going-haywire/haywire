@@ -11,6 +11,7 @@ from typing import Callable, Iterable, Optional, Set, TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.access import AccessTier
 from haywire.core.graph.clipboard import build_clipboard_payload, is_haywire_payload
 from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.core.signals import SelectionMoved
@@ -72,7 +73,7 @@ class SelectionHandlers:
         self.selected_nodes: Set[str] = set()
         self.selected_edges: Set[str] = set()
 
-    @handles_event(SelectionChangedEvent)
+    @handles_event(SelectionChangedEvent, access=AccessTier.VIEW)
     def process_selection_change(self, event: SelectionChangedEvent):
         """Update local selection state and write through to SessionContext.
 
@@ -104,7 +105,7 @@ class SelectionHandlers:
 
         self._session.publish(SelectionMoved())
 
-    @handles_event(UserCopySelectedEvent)
+    @handles_event(UserCopySelectedEvent, access=AccessTier.VIEW)
     def process_copy_selection(self, event: UserCopySelectedEvent):
         """Serialize the selection to a payload; mirror it and write the OS clipboard."""
         logger.info(

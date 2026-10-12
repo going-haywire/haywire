@@ -58,7 +58,7 @@ def test_handler_routes_bounds_to_show(monkeypatch):
     prov, _, _ = _provider(monkeypatch)
     prov.show_at = MagicMock()
     prov.hide = MagicMock()
-    handlers = SelectionToolbarHandlers(provider=prov)
+    handlers = SelectionToolbarHandlers(provider=prov, allows=lambda _required: True)
 
     handlers.process_selection_bounds(SelectionBoundsEvent(left=10.0, top=20.0, right=110.0, bottom=70.0))
     prov.show_at.assert_called_once_with((10.0, 20.0, 110.0, 70.0))
@@ -68,7 +68,7 @@ def test_handler_routes_hide(monkeypatch):
     prov, _, _ = _provider(monkeypatch)
     prov.show_at = MagicMock()
     prov.hide = MagicMock()
-    handlers = SelectionToolbarHandlers(provider=prov)
+    handlers = SelectionToolbarHandlers(provider=prov, allows=lambda _required: True)
 
     handlers.process_selection_bounds_hide(SelectionBoundsHideEvent())
     prov.hide.assert_called_once()

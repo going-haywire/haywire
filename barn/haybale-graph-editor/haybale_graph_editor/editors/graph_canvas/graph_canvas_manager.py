@@ -19,13 +19,15 @@ from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.ui.components.graph.event_definitions import (
     BaseGraphEvent,
     GRAPH_EVENT_REGISTRY,
+    UserDragEndEvent,
     UserPasteClipboardEvent,
+    UserResizeEndEvent,
 )
 from haywire.core.session.session import Session
 
 from ...access import allows
 from ...state.edit_state import EditState
-from .event_handlers import build_event_handler_map
+from .event_handlers import build_event_handler_map, handler_access
 from .graph_load_modal import graph_load_modal
 from .handlers.interaction import InteractionHandlers
 from .handlers.selection import SelectionHandlers, copy_selection_event, remove_selection_event
@@ -58,8 +60,9 @@ class GraphCanvasManager:
         return allows(self._session.context.can_access, self.locked, required)
 
     def set_locked(self, locked: bool) -> None:
-        """Lock or unlock this canvas for its session."""
+        """Lock or unlock this canvas for its session, in the browser too."""
         self.locked = locked
+        self.canvas_vue.set_locked(locked)
 
     def __init__(self, editor: Editor, skin_factory, node_factory, panel_registry, session: "Session"):
         self.editor = editor
@@ -109,6 +112,7 @@ class GraphCanvasManager:
         self.context_menu_handlers = ContextMenuHandlers(
             visual_layer=self.visual_layer,
             provider=context_menu_provider,
+            allows=self.allows,
         )
 
         self._toolbar_provider = SelectionToolbarProvider(
@@ -123,7 +127,7 @@ class GraphCanvasManager:
             # canvas. Delegation, not duplication (ADR-0029).
             menu_provider=context_menu_provider,
         )
-        self.toolbar_handlers = SelectionToolbarHandlers(provider=self._toolbar_provider)
+        self.toolbar_handlers = SelectionToolbarHandlers(provider=self._toolbar_provider, allows=self.allows)
 
         # Build dispatch map from all handler sources
         self._event_handlers: Dict[str, Callable] = build_event_handler_map(
@@ -247,9 +251,23 @@ class GraphCanvasManager:
     # =========================================================================
 
     def _handle_canvas_event(self, event: BaseGraphEvent):
-        """Dispatch incoming canvas events to the appropriate handler."""
+        """Dispatch a canvas event to its handler, if this session may run it here.
+
+        A refused event changes nothing in the graph. A refused drag or resize
+        end also moves its nodes on screen back to their model positions.
+        """
         event_type = event.event_type
         handler = self._event_handlers.get(event_type)
+
+        if handler and not self.allows(handler_access(handler)):
+            logger.debug(
+                f"Refused {event_type}: needs {handler_access(handler).value} (locked={self.locked})"
+            )
+            if isinstance(event, UserDragEndEvent):
+                self.visual_layer.resync_positions(event.nodes)
+            elif isinstance(event, UserResizeEndEvent):
+                self.visual_layer.resync_positions([event.nodeId])
+            return
 
         if handler:
             handler_name = getattr(handler, "__name__", repr(handler))

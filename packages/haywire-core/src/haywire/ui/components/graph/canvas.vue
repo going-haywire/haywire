@@ -106,6 +106,18 @@ import 'arrow_heads';
  *
  * Adding one? Follow the data-node-props-* rule if it mirrors a props field,
  * and record it here — this block is the only index of the contract.
+ *
+ * Props with a contract beyond their declaration:
+ *
+ *   locked              The session's canvas lock, from GraphCanvasVue.set_locked.
+ *                       While true no gesture that changes the graph starts:
+ *                       node drag (the click still selects), resize grips,
+ *                       connection drag, reconnect, paste request. Selection,
+ *                       box select, context menu and copy stay live. Distinct
+ *                       from data-node-props-locked, which is per node and
+ *                       also keeps the node out of a multi-selection. The
+ *                       server refuses the same events, so this is the
+ *                       immediate half of the lock, not its enforcement.
  * ------------------------------------------------------------------------ */
 
 export default {
@@ -136,6 +148,8 @@ export default {
         edgeArrow:      { type: String, default: 'none' },
         edgeArrowSize:  { type: String, default: null },
         edgeHitPadding: { type: Number, default: 20 },
+        // The session's canvas lock; see the index at the top of this file.
+        locked: { type: Boolean, default: false },
     },
 
     data() {
@@ -300,6 +314,11 @@ export default {
         edgeWidth() { this._relayoutEdges((info) => this._followsGraphWidth(info) && this._isHeaded(info)); },
         edgeArrow() { this._relayoutEdges((info) => this._followsGraphHead(info)); },
         edgeArrowSize() { this._relayoutEdges((info) => this._followsGraphHead(info)); },
+        locked(isLocked) {
+            // A gesture already under way when the lock lands ends here.
+            if (isLocked && this.edgeDrag.mode !== 'idle') this._returnToIdleEdge();
+            this._fitResizeGadget();
+        },
     },
 
     mounted() {
@@ -629,6 +648,7 @@ export default {
         },
 
         _fitResizeGadget() {
+            if (this.locked) { this.resizeGadget.visible = false; return; }
             const ids = Array.from(this.selectionState.selectedNodes);
             if (ids.length !== 1) { this.resizeGadget.visible = false; return; }
             const nodeId = ids[0];
@@ -712,6 +732,7 @@ export default {
         onResizeGripDown(e, handle) {
             e.preventDefault();
             e.stopPropagation();
+            if (this.locked) return;
             const nodeId = this.resizeGadget.nodeId;
             const parts = this._resizeParts(nodeId);
             if (!parts) return;
@@ -1099,6 +1120,7 @@ export default {
         },
 
         async _handleClipboardPasteRequest(data) {
+            if (this.locked) return;
             let text = "";
             try {
                 text = await navigator.clipboard.readText();
@@ -1165,6 +1187,13 @@ export default {
             const { nodeId, position } = data;
             const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
             if (nodeElement) {
+                // Written here as well as by the server's style update: when the server
+                // restores a position the browser moved on its own (a refused drag), its
+                // style is unchanged, so that update patches nothing.
+                if (position) {
+                    nodeElement.style.left = `${position.x}px`;
+                    nodeElement.style.top = `${position.y}px`;
+                }
                 this._updateEdgesForNode(nodeId);
                 // Server-driven move (undo/redo, arrange, farmhand): keep the
                 // resize gadget glued to the node it tracks.
@@ -1505,6 +1534,8 @@ export default {
         },
 
         _syncEdgeReconnect(data) {
+            // Before the removal below: a refused reconnect keeps its edge.
+            if (this.locked) return;
             const { edge_id, anchorNodeId, anchorPinId, anchorEnd } = data;
             // The server removes the edge only once this reports the drag started, so an
             // anchor that is not in the DOM (a culled node, a ghost end) leaves the edge as it is.
@@ -1994,8 +2025,11 @@ export default {
                 elementId: draggedElement.id
             };
 
-            // Determine what elements to drag
-            this.dragState.draggedElements = this._getDraggedElements(draggedElement, e.shiftKey);
+            // Determine what elements to drag. A locked canvas drags nothing; a
+            // press released without moving still selects.
+            this.dragState.draggedElements = this.locked
+                ? []
+                : this._getDraggedElements(draggedElement, e.shiftKey);
 
             // Store initial positions for all dragged elements.
             // If snap is on, round to the nearest sub-grid point so any
@@ -2015,9 +2049,9 @@ export default {
                 }
             });
 
-            // Calculate drag offset for the primary element
-            if (draggedElement.type === 'node') {
-                const nodePos = this.dragState.startPositions.get(draggedElement.id);
+            // Calculate drag offset for the primary element, when it is dragged at all
+            const nodePos = this.dragState.startPositions.get(draggedElement.id);
+            if (draggedElement.type === 'node' && nodePos) {
                 this.dragState.dragOffset = {
                     x: e.clientX - nodePos.x,
                     y: e.clientY - nodePos.y
@@ -2695,6 +2729,7 @@ export default {
 
         /** Transition to active connection mode from a pin; `anchorEnd` is a reconnect's anchor role. */
         _enterActiveEdge(pin, anchorEnd = null) {
+            if (this.locked) return;
             // A magnified node shifts pins; clear magnify before wiring an edge.
             this._clearAllMagnified();
 

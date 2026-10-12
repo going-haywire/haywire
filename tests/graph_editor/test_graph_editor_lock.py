@@ -94,3 +94,18 @@ def test_claim_publishes_the_lock():
     assert editor.set_level_locked(context, DOCUMENT_LEVEL, True) is True
     assert context.data[EditState].active_locked is True
     assert isinstance(context.session.publish.call_args.args[0], ActiveGraphMoved)
+
+
+def test_a_mounted_canvas_follows_the_level_lock(monkeypatch):
+    from haybale_graph_editor.editors import graph_editor as graph_editor_module
+
+    editor, context, _ = _locked_editor(AccessTier.EDIT)
+    level = editor._levels[DOCUMENT_LEVEL]
+    level.locked = True
+    manager = MagicMock()
+    monkeypatch.setattr(graph_editor_module, "ui", MagicMock())
+    editor._level_panels = MagicMock()
+    editor._build_canvas = MagicMock(return_value=manager)  # type: ignore[method-assign]
+    # The default fixture stubs _mount_level; this test needs the real one.
+    GraphEditor._mount_level(editor, context, level)
+    manager.set_locked.assert_called_once_with(True)

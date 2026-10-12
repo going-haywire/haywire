@@ -59,7 +59,7 @@ def visual_layer():
 
 @pytest.fixture
 def handler(visual_layer, provider):
-    return ContextMenuHandlers(visual_layer=visual_layer, provider=provider)
+    return ContextMenuHandlers(visual_layer=visual_layer, provider=provider, allows=lambda _required: True)
 
 
 # ---------------------------------------------------------------------------

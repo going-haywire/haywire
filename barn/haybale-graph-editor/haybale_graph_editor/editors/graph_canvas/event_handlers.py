@@ -9,20 +9,42 @@ This module provides:
 """
 
 from typing import Callable, Dict, List, Type
+
+from haywire.core.access import AccessTier
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent
 
 
-def handles_event(*event_classes: Type[BaseGraphEvent]):
-    """Decorator to register methods as handlers for specific event classes"""
+def handles_event(*event_classes: Type[BaseGraphEvent], access: AccessTier = AccessTier.EDIT):
+    """Decorator to register methods as handlers for specific event classes.
+
+    Args:
+        access: The tier a session needs on the canvas for the handler to run.
+            A locked canvas caps every session at operate, so only handlers
+            marked ``VIEW`` or ``OPERATE`` run on one. See ``handler_access``.
+
+    Example::
+
+        @handles_event(UserRemoveEvent)  # needs edit
+        def process_element_removal(self, event): ...
+
+        @handles_event(SelectionChangedEvent, access=AccessTier.VIEW)  # runs while locked
+        def process_selection_change(self, event): ...
+    """
 
     def decorator(func: Callable):
         # setattr, not attribute assignment: stamping a marker onto a Callable
         # is invisible to the type system, so the direct form fails mypy with
         # "Callable[..., Any] has no attribute _handles_event_classes".
         setattr(func, "_handles_event_classes", event_classes)  # noqa: B010
+        setattr(func, "_handles_event_access", access)  # noqa: B010
         return func
 
     return decorator
+
+
+def handler_access(handler: Callable) -> AccessTier:
+    """Return the tier ``handler`` needs, as declared by ``@handles_event``; ``EDIT`` if undeclared."""
+    return getattr(handler, "_handles_event_access", AccessTier.EDIT)
 
 
 def build_event_handler_map(sources: List[object]) -> Dict[str, Callable]:
