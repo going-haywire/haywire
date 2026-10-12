@@ -12,7 +12,7 @@ level: ui
 
 - The studio had no keyboard shortcuts. Copy, paste and delete in the graph editor were reachable only through the right-click menu and the selection toolbar.
 - `CommandSignal` already carries imperatives on the session bus ("do X"), and editors already subscribe to signals with `@react_on` / `@redraw_on`.
-- Panels own their verbs through their host's `provides` Protocol (ADR 0029): a menu panel calls `self.actions.copy_selection()`, and the editor implements it. A shortcut has to reach the same verb without a second copy of it.
+- Panels own their verbs through their host's `provides` Protocol (ADR 0029): a menu panel calls `self.actions.copy_selection()`, and the editor implements it. A shortcut has to reach the editor's verbs too.
 - Several editors are open at once, and several tabs of one editor class (one per graph). A key press must reach exactly one of them, and only if the session's principal may perform it (ADR 0027).
 
 **Decision.**
@@ -25,7 +25,7 @@ level: ui
 - **Target editor.** One `KeymapListener` per page tracks the editor root (`[data-hw-binding]`) under the last pointer-down, in the capture phase. A press outside any editor root leaves the target unchanged. When the target is unset or has left the page, the first visible editor root in the EDIT slot receives the command. The target is mirrored to `SessionContext.target_binding_id`.
 - **Text fields keep their keys.** With focus inside `input, textarea, select, [contenteditable], .cm-editor, [data-hw-native-keys]`, the listener does nothing. A combo in the target's keymap has its browser default suppressed; key auto-repeat is ignored.
 - **Paste is native; copy is a signal.** `Paste` declares `native_event = "paste"`: the listener lets `Mod+V` through and reports the browser's `paste` event, whose clipboard text is readable synchronously in any context, plus the pointer position from the editor's `[data-hw-pointer-local]` hook. `Copy` and `Cut` go key press → signal → Python and write the OS clipboard through `clipboard_script()`.
-- **Menus show, handlers act.** A menu row or toolbar button names its command (`hui.menu_row(command=...)`, `hui.icon_action(command=...)`) only to draw the shortcut. The editor's `@react_on` handler calls the same host verb the menu panel calls.
+- **Menus show, handlers act.** A menu row or toolbar button names its command (`hui.menu_row(command=...)`, `hui.icon_action(command=...)`) only to draw the shortcut. The editor's `@react_on` handler calls the editor's own verb. In the graph editor these are the canvas verbs (`GraphCanvasManager.copy_selection`, `cut_selection`, `delete_selection`, `duplicate_selection`); copy and delete build their canvas events with the same builders the context menu and selection toolbar use (`copy_selection_event`, `remove_selection_event`), and additionally keep only the selected ids of the canvas's own graph. Cut and Duplicate have no menu row.
 - **Shortcuts editor.** A CONTEXT-slot editor in haybale-studio lists every editor's keymap, one group per editor, with the target editor's group open.
 
 **Considered options.**
@@ -39,9 +39,9 @@ level: ui
 
 **Consequences.**
 
-- Only `EditorWrapper`'s handler subscriptions are filtered. A panel-hosted bus subscription (`PanelRedrawCoordinator`, which wires `PropertiesEditor`'s panels) subscribes on the session directly and receives every `EditorCommand` unfiltered.
-- The graph canvas's menus and gestures are not tier-gated yet: a `view` principal cannot delete with a key, but can with the context menu or by dragging. the [security guide](../guides/security.md) records the gap; gating them is a follow-up.
+- Only `EditorWrapper`'s handler subscriptions are filtered. A panel-hosted bus subscription (`PanelRedrawCoordinator`, which wires `PropertiesEditor`'s panels) subscribes on the session directly and receives, unfiltered, any `EditorCommand` a panel lists in `redraw_on=`.
+- The graph canvas's menus and gestures are not tier-gated yet: a `view` principal cannot delete with a key, but can still delete and paste through the context menu and the selection toolbar, and move and connect nodes by dragging. The [security guide](../guides/security.md) records the gap; gating them is a follow-up.
 - A command has one set of keys app-wide, and one combination is displayed for it: the first `default_keys` entry. On macOS the Delete row therefore shows `Del`, though `⌫` also deletes.
-- Alt/Option combinations and multi-key sequences are unsupported.
+- No default uses Alt/Option, and Alt combinations are not guaranteed to work across keyboard layouts (on macOS, Option changes `KeyboardEvent.key`). Multi-key sequences are unsupported.
 - `command_id` is the key a future user rebinding would store.
-- Keyboard Copy, Cut, Delete and Duplicate act on the part of the session's selection that belongs to the target canvas's own graph, so a selection left in another graph does nothing.
+- Keyboard Copy, Cut, Delete and Duplicate act on the part of the session's selection that belongs to the target canvas's own graph, so a selection left in another graph does nothing. The context menu and selection toolbar act on the whole, unfiltered selection through their own implementations of the `SelectionActions` protocol; unifying the keyboard and menu verbs into one is an open follow-up.

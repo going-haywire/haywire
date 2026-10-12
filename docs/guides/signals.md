@@ -418,8 +418,11 @@ A keyboard shortcut is an `EditorCommand`. To give your editor a key, subscribe 
 from dataclasses import dataclass
 from typing import ClassVar
 
-from haywire.core.signals import EditorCommand
+from haywire.core.access import AccessTier
 from haywire.core.session.handlers import react_on
+from haywire.core.signals import EditorCommand
+from haywire.ui.editor.base import BaseEditor
+from haywire.ui.editor.decorator import editor
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -427,20 +430,21 @@ class Rotate(EditorCommand):
     command_id: ClassVar[str] = "my_lib.rotate"      # unique app-wide
     label: ClassVar[str] = "Rotate"                  # shown in menus and the Shortcuts editor
     default_keys: ClassVar[tuple[str, ...]] = ("Mod+R",)
-    # access defaults to AccessTier.EDIT; set AccessTier.VIEW for read-only commands
+    access: ClassVar[AccessTier] = AccessTier.EDIT   # the default; AccessTier.VIEW for read-only
 
 
+@editor(label="My Editor")
 class MyEditor(BaseEditor):
     @react_on(Rotate)
     def _on_rotate(self, ctx, signal: Rotate) -> None:
-        ...   # call the same verb your menu panel calls
+        ...   # call the editor's rotate verb
 ```
 
 - **Subscribing claims the keys.** The keymap is built from the commands each editor class subscribes to; there is no separate registration. The handler runs only for key presses aimed at this editor's binding, from a principal holding `access`.
 - **The editor root needs no work.** Slot tab panels already carry `data-hw-binding`, so a pointer-down anywhere in your editor makes it the **target editor**. Keys typed into a text field stay with the field.
 - **Clashes are reported, not raised.** Two commands claiming one combo in the same editor, a browser-reserved combo (`Mod+W`, `Mod+T`, …), or a `command_id` declared twice each log a warning to the error ledger; see `build_keymap` in `haywire.ui.keymap` for which one wins.
 - **Show the key on the menu row** with `hui.menu_row(..., command=Rotate)` or `hui.icon_action(..., command=Rotate)`; the row's `on_click` still calls the verb itself.
-- **Alt combinations are unsupported**, and only the first `default_keys` entry is displayed.
+- **No default uses Alt**, and Alt combinations are not guaranteed across keyboard layouts (on macOS, Option changes `KeyboardEvent.key`). Only the first `default_keys` entry is displayed.
 
 ## Constraints
 
