@@ -195,3 +195,29 @@ def test_resync_positions_restores_model_positions():
     layer.update_node_position = MagicMock()
     layer.resync_positions(["a", "gone"])
     layer.update_node_position.assert_called_once_with("a", (10.0, 20.0))
+
+
+def _lockable_manager() -> Any:
+    manager: Any = object.__new__(GraphCanvasManager)
+    manager.locked = False
+    manager.canvas_vue = MagicMock()
+    manager._toolbar_provider = MagicMock()
+    manager.context_menu_handlers = SimpleNamespace(provider=MagicMock())
+    return manager
+
+
+def test_locking_hides_toolbar_and_closes_open_menu():
+    manager = _lockable_manager()
+    manager.set_locked(True)
+    assert manager.locked is True
+    manager.canvas_vue.set_locked.assert_called_once_with(True)
+    manager._toolbar_provider.hide.assert_called_once()
+    manager.context_menu_handlers.provider.close_open_menu.assert_called_once()
+
+
+def test_unlocking_reopens_nothing():
+    manager = _lockable_manager()
+    manager.set_locked(False)
+    manager._toolbar_provider.hide.assert_not_called()
+    manager._toolbar_provider.show_at.assert_not_called()
+    manager.context_menu_handlers.provider.close_open_menu.assert_not_called()

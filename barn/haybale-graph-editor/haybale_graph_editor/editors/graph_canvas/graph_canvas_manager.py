@@ -60,9 +60,16 @@ class GraphCanvasManager:
         return allows(self._session.context.can_access, self.locked, required)
 
     def set_locked(self, locked: bool) -> None:
-        """Lock or unlock this canvas for its session, in the browser too."""
+        """Lock or unlock this canvas for its session, in the browser too.
+
+        Locking also hides the selection toolbar and closes any open context
+        menu; unlocking reopens nothing.
+        """
         self.locked = locked
         self.canvas_vue.set_locked(locked)
+        if locked:
+            self._toolbar_provider.hide()
+            self.context_menu_handlers.provider.close_open_menu()
 
     def __init__(self, editor: Editor, skin_factory, node_factory, panel_registry, session: "Session"):
         self.editor = editor
