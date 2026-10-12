@@ -3148,7 +3148,7 @@
 <td><code>--hw-edge-selected</code></td>
 </tr>
 <tr>
-<td>active</td>
+<td>active end dots</td>
 <td><code>--hw-edge-active</code></td>
 </tr>
 <tr>
@@ -3159,7 +3159,7 @@
 </table>
 </li>
 <li>
-<p><strong>Widths.</strong> Selected and active widths add the optional tokens <code>--hw-edge-selected-extra</code> and <code>--hw-edge-active-extra</code> (1px, 2px). The hit area adds <code>CanvasSettings.edge_hit_padding</code>, an ergonomic studio setting rather than part of a theme.</p>
+<p><strong>Widths.</strong> Selected and active edges keep the edge's own width, so a width set on a styled edge stays judgeable; the tokens <code>--hw-edge-selected-extra</code> and <code>--hw-edge-active-extra</code> are still defined by themes but no longer applied. A selected edge's glow takes its size and strength from the optional tokens <code>--hw-edge-glow-size</code> and <code>--hw-edge-glow-strength</code>. The hit area adds <code>CanvasSettings.edge_hit_padding</code>, an ergonomic studio setting rather than part of a theme.</p>
 </li>
 <li><strong>Ends and heads.</strong><ul>
 <li>Every edge end stops at its pin's edge; a head adds its inset × width, so the head's tip touches the pin's edge and the line meets the head glyph's edge.</li>

@@ -3432,10 +3432,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs" class="md-nav__link">
+  <a href="#88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs-commandnone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8.8 hui.icon_action(icon, tooltip=None, on_click=None, size="xs")
+        8.8 hui.icon_action(icon, tooltip=None, on_click=None, size="xs", command=None)
       
     </span>
   </a>
@@ -3454,10 +3454,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone" class="md-nav__link">
+  <a href="#88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone-commandnone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8.8b hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None)
+        8.8b hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None, command=None)
       
     </span>
   </a>
@@ -4923,10 +4923,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs" class="md-nav__link">
+  <a href="#88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs-commandnone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8.8 hui.icon_action(icon, tooltip=None, on_click=None, size="xs")
+        8.8 hui.icon_action(icon, tooltip=None, on_click=None, size="xs", command=None)
       
     </span>
   </a>
@@ -4945,10 +4945,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone" class="md-nav__link">
+  <a href="#88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone-commandnone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8.8b hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None)
+        8.8b hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None, command=None)
       
     </span>
   </a>
@@ -5657,15 +5657,23 @@ mirroring the one panels get from <code>.hw-panel</code>.</p>
 </tr>
 <tr>
 <td><code>--hw-edge-selected-extra</code></td>
-<td>Optional length added to an edge's width while selected (default <code>1px</code>)</td>
+<td>Not applied: a selected edge keeps its own width</td>
+</tr>
+<tr>
+<td><code>--hw-edge-glow-size</code></td>
+<td>Optional blur length of a selected edge's glow (default <code>12px</code>)</td>
+</tr>
+<tr>
+<td><code>--hw-edge-glow-strength</code></td>
+<td>Optional opacity of a selected edge's glow, in percent (default <code>60%</code>)</td>
 </tr>
 <tr>
 <td><code>--hw-edge-active</code></td>
-<td>Stroke of the single <em>active</em> edge; mutually exclusive with <code>--hw-node-active</code></td>
+<td>Ring of the two end dots on the single <em>active</em> edge, which keeps its own stroke; mutually exclusive with <code>--hw-node-active</code></td>
 </tr>
 <tr>
 <td><code>--hw-edge-active-extra</code></td>
-<td>Optional length added to an edge's width while active (default <code>2px</code>)</td>
+<td>Not applied: an active edge keeps its own width</td>
 </tr>
 <tr>
 <td><code>--hw-canvas-bg</code></td>
@@ -6651,7 +6659,7 @@ Always pass <code>is_active=True</code> and let the token do the work.</p>
 </span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Import&quot;</span><span class="p">,</span>
 </span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="p">)</span>
 </span></code></pre></div>
-<h3 id="88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs">8.8 <code>hui.icon_action(icon, tooltip=None, on_click=None, size="xs")</code><a class="headerlink" href="#88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs" title="Permanent link">&para;</a></h3>
+<h3 id="88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs-commandnone">8.8 <code>hui.icon_action(icon, tooltip=None, on_click=None, size="xs", command=None)</code><a class="headerlink" href="#88-huiicon_actionicon-tooltipnone-on_clicknone-sizexs-commandnone" title="Permanent link">&para;</a></h3>
 <p>A minimal icon-only button for inline actions.</p>
 <p><strong>Visual rules:</strong></p>
 <ul>
@@ -6686,7 +6694,7 @@ button looks identical. Never "fix" that symptom with a width on the menu.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_delete</span><span class="p">)</span>
 </span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s2">&quot;Refresh&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_refresh</span><span class="p">)</span>
 </span></code></pre></div>
-<h3 id="88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone">8.8b <code>hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None)</code><a class="headerlink" href="#88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone" title="Permanent link">&para;</a></h3>
+<h3 id="88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone-commandnone">8.8b <code>hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None, command=None)</code><a class="headerlink" href="#88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone-commandnone" title="Permanent link">&para;</a></h3>
 <p>One command in a menu — the leaf counterpart of <code>hui.submenu_row</code>, which <em>is</em> one
 (plus a chevron), so a command and the submenu row beside it cannot drift.</p>
 <p><strong>Visual rules:</strong> none are set on the element. Every property comes from the single
@@ -6718,7 +6726,14 @@ which is how one menu ends up with three different colours.</p>
 </span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>    <span class="s2">&quot;Detach&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Only a promoted pin can be detached&quot;</span><span class="p">,</span>
 </span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="p">)</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="n">hui</span><span class="o">.</span><span class="n">menu_row</span><span class="p">(</span><span class="s2">&quot;Copy&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">copy</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_copy</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">Copy</span><span class="p">)</span>  <span class="c1"># ⌘C / Ctrl+C suffix</span>
 </span></code></pre></div>
+<p><code>command=</code> names the <code>EditorCommand</code> the row performs, only to draw its first
+default shortcut as the suffix (<code>hui.key_hint</code>, §8.23); <code>on_click</code> still does the
+work. <code>hui.icon_action(..., tooltip="Copy", command=Copy)</code> appends the shortcut to
+the tooltip instead (<code>Copy (Ctrl+C)</code>, in the non-macOS spelling on every
+platform, since a tooltip is plain text); without a <code>tooltip</code> there is nothing to
+append to.</p>
 <h3 id="88c-huiflyouticon-tooltip-vs-huidropdownicon-tooltip-alignleft-directiondown">8.8c <code>hui.flyout(icon, tooltip=…)</code> vs <code>hui.dropdown(icon, tooltip=…, align="left", direction="down")</code><a class="headerlink" href="#88c-huiflyouticon-tooltip-vs-huidropdownicon-tooltip-alignleft-directiondown" title="Permanent link">&para;</a></h3>
 <p>Two icon anchors that open a hosted surface. Same sibling group (one open path
 at a time), same cascade-close, same retroactive greying of an empty body. Pick
@@ -7041,7 +7056,12 @@ the <code>.hw-menu-row</code> block and its <code>--hw-menu-row-*</code> tokens 
 <li>Text / icon / hover: <code>--hw-menu-row-*</code>, falling back to <code>--hw-text-body</code>,
   <code>--hw-text-dim</code>, <code>--hw-bg-hover</code></li>
 <li>Disabled: <code>opacity: 0.4; pointer-events: none</code></li>
-<li>Keyboard shortcut suffix: <code>text-xs hw-text-dim ml-auto font-mono</code></li>
+<li>Keyboard shortcut suffix: <code>text-xs hw-text-dim ml-auto font-mono</code>, drawn by
+  <code>hui.menu_row(..., command=Copy)</code> or, outside a menu row, <code>hui.key_hint(Copy)</code> /
+  <code>hui.combo_hint("Mod+Shift+Z")</code> — never hand-rolled. The helpers draw the
+  macOS (<code>⌘C</code>) and other (<code>Ctrl+C</code>) spellings and the shell CSS shows the one
+  matching <code>html[data-hw-platform]</code>; a hand-written suffix shows one platform's
+  spelling everywhere and drifts from the command's keys.</li>
 <li>Divider between groups: <code>hui.separator()</code></li>
 </ul>
 <h3 id="824-huidialog_cardwidthnone-and-huidialog_actions">8.24 <code>hui.dialog_card(width=None)</code> and <code>hui.dialog_actions(...)</code><a class="headerlink" href="#824-huidialog_cardwidthnone-and-huidialog_actions" title="Permanent link">&para;</a></h3>

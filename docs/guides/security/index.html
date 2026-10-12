@@ -4123,6 +4123,15 @@ surfaces can never disagree about who's allowed in.</p>
 with <code>claude mcp add --transport http farmhand http://127.0.0.1:8124/mcp
 --header "Authorization: Bearer &lt;token&gt;"</code>, or with no header at all when
 authentication is off.</p>
+<div class="admonition warning">
+<p class="admonition-title">Known gap: the graph canvas does not enforce the view tier yet</p>
+<p>In the graph canvas, a <code>view</code> principal can still delete, paste and move
+nodes through the context menus, the selection toolbar and mouse gestures.
+Keyboard commands are tier-gated (ADR 0050) — Delete, Paste or Undo from a
+<code>view</code> session does nothing — but the menus and gestures are not gated
+yet. Until they are, treat <code>view</code> as "not expected to edit", not as "cannot
+edit".</p>
+</div>
 <h2 id="10-the-security-document">10. The security document<a class="headerlink" href="#10-the-security-document" title="Permanent link">&para;</a></h2>
 <p>Everything in this guide is one axis of <code>~/.haywire/security.json</code>: mode
 <code>0600</code>, three blocks (<code>auth</code>, <code>network</code>, <code>farmhand</code>), one file. It is

@@ -5627,7 +5627,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Selection axis</strong></td>
-<td>The set of currently-selected elements — <code>EditState.selected_nodes</code> / <code>selected_edges</code> (sets of ids). The <strong>command target</strong>: the elements a right-click menu, copy, paste, or delete acts upon. A lone right-clicked element is a selection of one. Distinct from the <strong>Active axis</strong>.</td>
+<td>The set of currently-selected elements — <code>EditState.selected_nodes</code> / <code>selected_edges</code> (sets of ids). The <strong>command target</strong>: the elements a right-click menu, a toolbar verb or a keyboard command (an <strong>EditorCommand</strong> such as Copy, Cut, Duplicate or Delete) acts upon. A lone right-clicked element is a selection of one. A keyboard command acts only on the selected elements that belong to the <strong>Target editor</strong>'s own graph. Distinct from the <strong>Active axis</strong>.</td>
 <td>selection state, current selection</td>
 </tr>
 <tr>
@@ -5642,8 +5642,23 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Floating toolbar</strong></td>
-<td>A persistent, Miro-style command surface anchored above the <strong>Selection axis</strong>'s on-screen bounding box whenever the selection is non-empty. A <em>second</em> command surface alongside the right-click menu, not a replacement. Rendered with <strong>NiceGUI panels</strong> (on the <strong>SelectionToolbar</strong> Surface) into a persistent, no-backdrop <code>Popup</code> by <code>SelectionToolbarProvider</code> — the panel-render sibling of <code>SessionContextMenuProvider</code>. <strong>Python owns both content and the positioned container.</strong> The canvas (Vue) computes the selection's screen bounding box and emits a low-frequency <code>selectionBounds</code> event on selection-change and on pan/zoom/drag <strong>end</strong>, plus <code>selectionBoundsHide</code> on gesture <strong>start</strong> (Miro hide-during-gesture rule — no frame-rate traffic); the provider shows / <code>setPosition</code>s / hides the Popup in response. Its curated face is <strong>Copy · Delete · ⋯</strong>, rendered <strong>horizontally</strong> as icon-only buttons (<code>hui.icon_action</code>) into a <code>ui.row</code> — deliberately unlike the right-click menu, which is a <strong>vertical</strong> column of labelled rows. The ⋯ is a <strong>hosting panel</strong> rendering a Surface that carries the batch ops.</td>
+<td>A persistent, Miro-style command surface anchored above the <strong>Selection axis</strong>'s on-screen bounding box whenever the selection is non-empty. A <em>second</em> command surface alongside the right-click menu, not a replacement. Rendered with <strong>NiceGUI panels</strong> (on the <strong>SelectionToolbar</strong> Surface) into a persistent, no-backdrop <code>Popup</code> by <code>SelectionToolbarProvider</code> — the panel-render sibling of <code>SessionContextMenuProvider</code>. <strong>Python owns both content and the positioned container.</strong> The canvas (Vue) computes the selection's screen bounding box and emits a low-frequency <code>selectionBounds</code> event on selection-change and on pan/zoom/drag <strong>end</strong>, plus <code>selectionBoundsHide</code> on gesture <strong>start</strong> (Miro hide-during-gesture rule — no frame-rate traffic); the provider shows / <code>setPosition</code>s / hides the Popup in response. The bounding box covers the selected nodes' cards and the selected edges' curves, so an edges-only selection gets a toolbar too. Its face is rendered <strong>horizontally</strong> as icon-only buttons (<code>hui.icon_action</code>) into a <code>ui.row</code> — deliberately unlike the right-click menu, which is a <strong>vertical</strong> column of labelled rows: the node verbs (Collapse, Lock), the node <strong>Appearance</strong> and edge <strong>Style</strong> dropdowns, and the ⋯, a <strong>hosting panel</strong> rendering <code>SelectionMenu</code> with the batch ops. Which buttons show follows one rule (ADR 0049): a <strong>form</strong> (Appearance, Style) is hidden on a <strong>Cross-kind selection</strong> and greyed with its reason on a <strong>Non-uniform selection</strong>, and edits a <strong>Neutral form</strong> for two or more elements; a <strong>verb</strong> (Collapse, Copy, Delete) acts on the part of the selection it applies to and says how many.</td>
 <td>selection toolbar, action bar, hover toolbar; do not call it a "context menu" (that is the right-click menu)</td>
+</tr>
+<tr>
+<td><strong>Cross-kind selection</strong></td>
+<td>A selection holding both nodes and edges. A selection <strong>form</strong> (node Appearance, edge Style) does not apply to it and is hidden; a <strong>verb</strong> acts on the elements it applies to.</td>
+<td>mixed selection (ambiguous — also used for a <strong>Non-uniform selection</strong>)</td>
+</tr>
+<tr>
+<td><strong>Non-uniform selection</strong></td>
+<td>A selection of one kind whose elements a selection <strong>form</strong> cannot edit together: edges of different style classes or without a style, or nodes among which is a reroute. The form's button is greyed, and its tooltip gives the reason.</td>
+<td>mixed selection (ambiguous — also used for a <strong>Cross-kind selection</strong>), heterogeneous selection</td>
+</tr>
+<tr>
+<td><strong>Neutral form</strong></td>
+<td>The settings form a selection surface shows for two or more selected elements: a standalone bag of their shared class, opened with defaults (for nodes, the graph's), whose every change is written to each selected element and whose resets reset each one. A header names how many elements it edits. Not used by the properties inspector, which edits the <strong>Active axis</strong> element only.</td>
+<td>multi-edit form, batch form, proxy bag</td>
 </tr>
 <tr>
 <td><strong>SelectionToolbar</strong></td>
@@ -5664,6 +5679,21 @@ Macro is registered and placed.</p>
 <td><strong>Active-promotion</strong></td>
 <td>The shift-click selection law (model B, Blender convention): shift-clicking an element <em>always walks toward it</em> until it is the <strong>active</strong> element, then drops it. Precisely — shift-click an <strong>unselected</strong> element → add it <strong>and</strong> make it active; shift-click a <strong>selected-but-not-active</strong> element → selection unchanged, <strong>promote</strong> it to active; shift-click the <strong>active</strong> element → <strong>deselect</strong> it (active → <code>None</code>). Removing an element from a multi-selection via shift-click is therefore a two-step gesture (promote, then drop). Plain (non-shift) click replaces the selection with the one element, which becomes active. Plain-click on empty canvas clears everything. There is no separate ctrl/alt deselect modifier.</td>
 <td>toggle-select (the pre-active behaviour — removed)</td>
+</tr>
+<tr>
+<td><strong>Keymap</strong></td>
+<td>Per editor class, combination → command, derived from the <code>EditorCommand</code>s the editor subscribes to.</td>
+<td>shortcut table, bindings</td>
+</tr>
+<tr>
+<td><strong>Target editor</strong></td>
+<td>The editor binding that receives key commands: the editor root under the last pointer-down while it is visible, else the EDIT slot's visible editor.</td>
+<td>focused editor, active editor</td>
+</tr>
+<tr>
+<td><strong>Shortcuts editor</strong></td>
+<td>The CONTEXT-slot editor listing every editor's keymap.</td>
+<td>cheat sheet, help panel</td>
 </tr>
 <tr>
 <td><strong>Slot</strong></td>
@@ -5963,6 +5993,16 @@ Macro is registered and placed.</p>
 <td>LifecycleCommand (deprecated; was the old name)</td>
 </tr>
 <tr>
+<td><strong>EditorCommand</strong></td>
+<td>A <code>CommandSignal</code> delivered only to the editor whose binding matches its <code>binding_id</code>, and only when the principal holds its <code>access</code> tier. Distinct from the <code>tools.external_editor_command</code> setting. See <a href="../../adr/0050-keyboard-commands-are-editor-addressed-command-signals/">ADR 0050</a></td>
+<td>key command, shortcut signal</td>
+</tr>
+<tr>
+<td><strong>command_id</strong></td>
+<td>A command's stable app-wide id; keys the keymap and any future rebinding.</td>
+<td>command name</td>
+</tr>
+<tr>
 <td><strong>SignalBus</strong></td>
 <td>Per-peer typed pub/sub. One instance per <strong>SignalPeer</strong> (and therefore one per <strong>Session</strong>); subscribers register a handler for an exact <code>Signal</code> subclass; publishes fan out by <code>type(signal)</code> exact match. See <code>core/signals/bus.py</code></td>
 <td>EventBus (deprecated)</td>
@@ -6071,6 +6111,7 @@ Macro is registered and placed.</p>
 <li>A <strong>Signal</strong> travels on the <strong>SignalBus</strong>; one <strong>SignalBus</strong> per <strong>SignalPeer</strong> — and a <strong>Session</strong> is one kind of peer.</li>
 <li>A <strong>signal_field</strong> lives on a <strong>SignalSource</strong> subclass (<strong>SessionContext</strong>, <strong>SessionState</strong>, <strong>AppState</strong>); writes emit a <strong>synthetic signal class</strong> keyed by the field reference.</li>
 <li><strong>Hand-authored signals</strong> (<code>Signal</code> / <code>CommandSignal</code> subclasses) and synthetic ones from <strong>signal_field</strong> travel the same bus and use the same <code>@redraw_on</code> / <code>@react_on</code> subscription.</li>
+<li>An editor class claims the keys of every <strong>EditorCommand</strong> it subscribes to; together those claims are its <strong>Keymap</strong>. A key press becomes an <strong>EditorCommand</strong> addressed to the <strong>Target editor</strong>, and only that editor's wrapper delivers it.</li>
 <li>A <strong>Signal</strong> subclass with <code>cross_session: ClassVar[bool] = True</code> routes through <strong>SignalDispatcher</strong><code>.broadcast</code> and is received by every registered <strong>SignalPeer</strong> — every active <strong>Session</strong>, plus any non-browser peer.</li>
 <li>A library that subscribes to another library's <strong>Signal</strong> must list the <strong>signal-defining library</strong> in its own <code>LibraryIdentity.dependencies</code>.</li>
 <li>The <strong>Global marketplace</strong> holds only what the user opts into (<code>[[markets]]</code> and <code>[[stalls]]</code> subscriptions, optional inline <code>[[haybales]]</code>); the <strong>Project marketplace</strong> holds the project's own <code>[[heaps]]</code> plus the refresh <code>[[caches]]</code>. <code>haywire init</code> writes only the project marketplace. <em>(new)</em></li>
