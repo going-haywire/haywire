@@ -19,6 +19,12 @@ class ChangeReason(Enum):
     GRAPH_REQUIRE_REASSEMBLY = "graph_require_assembly"
     """Aspects of the graph have changed that require it to be reassembled."""
 
+    GRAPH_CONTENT_CHANGED = "graph_content_changed"
+    """Something a save records changed, and nothing the flow assembler reads.
+
+    A Graph-node reports a value edit inside its Subgraph on the host this way.
+    """
+
     # Node reasons that rebuild or revalidate the node
     NODE_ADDED = "node_added"
     NODE_REMOVED = "node_removed"
@@ -37,6 +43,13 @@ class ChangeReason(Enum):
 
     Distinct from a ``layout_direction`` change, which reaches the card through
     ``NodeProperties.REDRAW_FIELDS`` as ``NODE_REDRAW_REQUESTED``.
+    """
+
+    # Node reason that persists a value without changing structure
+    NODE_VALUE_CHANGED = "node_value_changed"
+    """A user edited a value the node saves — a port value or a setting.
+
+    The graph saves; nothing rebuilds, redraws or reassembles.
     """
 
     # Edge reasons that rebuild or revalidate the edge
@@ -205,13 +218,25 @@ class ValidationResult:
 
         The graph reason counts, which is what carries a change made inside a
         Subgraph out to the host: a Graph-node reports its interior's edits on
-        the host graph as ``GRAPH_REQUIRE_REASSEMBLY``, naming no node of the
-        host's own.
+        the host graph as ``GRAPH_REQUIRE_REASSEMBLY`` or
+        ``GRAPH_CONTENT_CHANGED``, naming no node of the host's own.
         """
+        return any(not reason.is_visual_only() for reason in self._reasons())
+
+    def requires_reassembly(self) -> bool:
+        """Return whether any node, edge or graph reason in this batch requires graph reassembly.
+
+        See ``ChangeReason.requires_graph_reassembly``. A batch that only saves
+        — a move, a port reorder, a value edit — returns False.
+        """
+        return any(reason.requires_graph_reassembly() for reason in self._reasons())
+
+    def _reasons(self) -> list[ChangeReason]:
+        """Every node, edge and graph reason in this batch."""
         reasons = [*self.nodes.values(), *self.edges.values()]
         if self.graph is not None:
             reasons.append(self.graph)
-        return any(not reason.is_visual_only() for reason in reasons)
+        return reasons
 
     def get_nodes_by_reason(self, reason: ChangeReason) -> list[str]:
         """Get all node IDs that changed for a specific reason"""

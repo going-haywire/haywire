@@ -14,12 +14,14 @@ from __future__ import annotations
 
 import time
 from typing import TYPE_CHECKING, cast
+from unittest.mock import patch
 
 import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.subgraph import SubgraphDefinition
+from haywire.core.graph.types import ChangeReason
 
 from tests.conftest import make_node
 
@@ -176,3 +178,47 @@ class TestLoadingIsNotAnEdit:
         time.sleep(_SETTLE_S)
 
         assert [r for r in seen if r.requires_save()] == []
+
+
+class TestAValueEditInsideIsSavedNotReassembled:
+    """A value edit inside a Subgraph dirties the host's file but never its flow.
+
+    Run inline (``SyncScheduler``, which the Subgraph adopts from its host), so
+    each test sees exactly the host batches its own edit caused.
+    """
+
+    @pytest.fixture
+    def inline_card(self, graph_with_library_system: BaseGraph):
+        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY, GraphNode
+
+        graph = graph_with_library_system
+        definition = graph.add_subgraph(SubgraphDefinition(key="sg", label="Group"))
+        make_node(definition, _OUTPUT)
+        interior = make_node(definition, _ADD_FLOAT)
+        card = make_node(graph, _CARD, node_data={"store": {SUBGRAPH_KEY: "sg"}})
+        assert isinstance(card.node, GraphNode)
+        card.node.reconcile_interface()
+        graph.force_validation()
+        return graph, definition, card, interior
+
+    def test_interior_value_edit_forwards_content_changed(self, inline_card):
+        graph, _definition, card, interior = inline_card
+        seen = _record(graph)
+
+        with patch.object(card, "redraw") as redraw:
+            interior.mark_value_edited()
+
+        assert [r.graph for r in seen] == [ChangeReason.GRAPH_CONTENT_CHANGED]
+        assert seen[0].requires_save() is True
+        assert seen[0].requires_reassembly() is False
+        redraw.assert_not_called()
+
+    def test_interior_structure_edit_still_reassembles(self, inline_card):
+        graph, definition, card, _interior = inline_card
+        seen = _record(graph)
+
+        with patch.object(card, "redraw") as redraw:
+            make_node(definition, _ADD_FLOAT)
+
+        assert ChangeReason.GRAPH_REQUIRE_REASSEMBLY in [r.graph for r in seen]
+        redraw.assert_called()

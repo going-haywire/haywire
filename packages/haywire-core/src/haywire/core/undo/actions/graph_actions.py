@@ -970,6 +970,7 @@ class SetPropertyAction(ActionBase):
             bag = getattr(node, accessor)
             self._old_value = getattr(bag, self.name)
             setattr(bag, self.name, self.new_value)
+        node.wrapper.mark_value_edited()
 
     def _undo_impl(self) -> None:
         node, kind, accessor = self._resolve()
@@ -978,6 +979,7 @@ class SetPropertyAction(ActionBase):
         else:
             assert accessor is not None  # kind == "setting" always carries an accessor
             setattr(getattr(node, accessor), self.name, self._old_value)
+        node.wrapper.mark_value_edited()
 
 
 class SetPortMetadataAction(ActionBase):

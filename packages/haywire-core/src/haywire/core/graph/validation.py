@@ -82,10 +82,13 @@ class ValidationManager:
     def mark_graph_dirty(self, reason: ChangeReason) -> None:
         """Mark the whole graph as needing validation and restart the debounce.
 
-        The new reason replaces any reason already recorded for the graph.
+        A lower-priority reason does not replace one already recorded for the
+        graph, so a ``GRAPH_CONTENT_CHANGED`` cannot cancel a pending
+        ``GRAPH_REQUIRE_REASSEMBLY``.
         """
         with self._validation_lock:
-            self._dirty_graph = reason
+            if self._dirty_graph is None or not self._dirty_graph.has_higher_priority_than(reason):
+                self._dirty_graph = reason
             self._schedule_validation()
 
             logger.info(f"Marked graph dirty (reason: {reason.value})")
@@ -292,6 +295,9 @@ class ValidationManager:
             if dirty_graph is not None:
                 if dirty_graph.requires_graph_reassembly():
                     validated_graph = dirty_graph
+                elif dirty_graph is ChangeReason.GRAPH_CONTENT_CHANGED:
+                    # Reported as is: subscribers save; nothing here rebuilds for it.
+                    validated_graph = dirty_graph
             # Validate nodes
             for node_id, reason in dirty_nodes.items():
                 try:
@@ -329,6 +335,11 @@ class ValidationManager:
                             continue
 
                     if reason.requires_redraw():
+                        validated_nodes[node_id] = reason
+                        continue
+
+                    if reason is ChangeReason.NODE_VALUE_CHANGED:
+                        # Reported as is: subscribers save; nothing here rebuilds for it.
                         validated_nodes[node_id] = reason
                         continue
 

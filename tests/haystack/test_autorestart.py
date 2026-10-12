@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock
 
+import pytest
+
 
 def _record(calls: list, name: str, result=None):
     """A zero-arg stub that records the call and returns *result*.
@@ -108,3 +110,38 @@ def test_autorestart_on_stays_stopped_when_compile_fails(monkeypatch):
     # and stop happened first.
     assert calls[0] == "stop"
     assert "start" in calls
+
+
+@pytest.mark.integration
+def test_running_host_not_restarted_by_value_edit(graph_with_library_system, monkeypatch):
+    """An interior value edit marks the running host unsaved and leaves it running."""
+    from haybale_haystack.graph_entry import GraphEntry
+    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY, GraphNode
+    from haywire.barn.builtin.nodes.subgraph_io import SubgraphOutputNode
+    from haywire.core.graph.subgraph import SubgraphDefinition
+
+    from tests.conftest import make_node
+
+    graph = graph_with_library_system
+    definition = graph.add_subgraph(SubgraphDefinition(key="sg", label="Group"))
+    make_node(definition, SubgraphOutputNode.class_identity.registry_key)
+    interior = make_node(definition, TestAddFloatNode.class_identity.registry_key)
+    card = make_node(graph, GraphNode.class_identity.registry_key, node_data={"store": {SUBGRAPH_KEY: "sg"}})
+    assert isinstance(card.node, GraphNode)
+    card.node.reconcile_interface()
+    graph.force_validation()
+
+    entry = GraphEntry(graph=graph, editor=MagicMock())
+    running = MagicMock()
+    running.is_executing = True
+    entry.interpreter = running
+    calls: list = []
+    monkeypatch.setattr(entry, "stop_execution", _record(calls, "stop", None))
+    state = _make_state()
+    state._subscribe_validation(entry)
+
+    interior.mark_value_edited()
+
+    assert calls == []
+    assert entry.unsaved is True
