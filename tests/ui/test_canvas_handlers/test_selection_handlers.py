@@ -719,8 +719,9 @@ def test_duplicate_publishes_selection_moved(graph, session, edit_state_cls):
 
 
 def test_duplicate_without_session_selects_copy(graph):
-    h = SelectionHandlers(graph=graph, editor=MagicMock(), session_id="sess", session=None)
-    h.editor.paste_clipboard.return_value = (["n2"], [])
+    editor = MagicMock()
+    editor.paste_clipboard.return_value = (["n2"], [])
+    h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=None)
 
     h.duplicate_selection(["n1"], [])
 
