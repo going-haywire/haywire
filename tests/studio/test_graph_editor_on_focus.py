@@ -26,6 +26,7 @@ def _make_data_with_edit_state(initial_active_graph=None, initial_active_graph_p
         active_graph=initial_active_graph,
         active_graph_path=initial_active_graph_path,
         active_node=None,
+        active_locked=False,
         active_edge=None,
         active_port=None,
         selected_nodes=set(),
@@ -38,6 +39,13 @@ def _make_data_with_edit_state(initial_active_graph=None, initial_active_graph_p
     # EditState (and re-resolving across reloads).
     data.edit_stub = edit_stub
     return data
+
+
+class _FakeGraph:
+    """Sentinel graph with the ``props.open_locked`` that ``_new_level`` reads."""
+
+    def __init__(self) -> None:
+        self.props = SimpleNamespace(open_locked=False)
 
 
 class _FakeEntry:
@@ -116,7 +124,7 @@ def _make_editor_with_payload(binding_id) -> GraphEditor:
 
 
 def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
-    g = object()
+    g = _FakeGraph()
     entry = _FakeEntry(binding_id="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
     ctx = _make_context(entry)
     ed = _make_editor_with_payload("/tmp/a.haywire")
@@ -129,7 +137,7 @@ def test_on_focus_resolves_entry_and_sets_active_graph() -> None:
 
 
 def test_on_focus_fires_active_graph_moved() -> None:
-    g = object()
+    g = _FakeGraph()
     entry = _FakeEntry(
         binding_id="/tmp/a.haywire",
         graph=g,
@@ -146,7 +154,7 @@ def test_on_focus_fires_active_graph_moved() -> None:
 
 
 def test_on_focus_short_circuits_when_graph_already_active() -> None:
-    g = object()
+    g = _FakeGraph()
     entry = _FakeEntry(binding_id="/tmp/a.haywire", graph=g, path=Path("/tmp/a.haywire"))
     ctx = _make_context(entry, existing_active_graph=g)
     # Also pre-set active_graph_path to match — the short-circuit requires both.
