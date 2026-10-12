@@ -119,7 +119,7 @@ def test_value_change_requires_save_not_reassembly(held_graph: BaseGraph) -> Non
 
     assert result is not None
     assert result.nodes == {wrapper.node_id: ChangeReason.NODE_VALUE_CHANGED}
-    assert result.graph is None
+    assert result.graph is ChangeReason.GRAPH_CONTENT_CHANGED
     assert result.requires_save() is True
     assert result.requires_reassembly() is False
 
@@ -149,12 +149,41 @@ def test_set_property_marks_unsaved(library_system) -> None:
         graph.subscribe_to_validation(seen.append)
 
         assert editor.set_property(wrapper.node_id, "value_a", 3.0) is True
-        assert [r.nodes for r in seen] == [{wrapper.node_id: ChangeReason.NODE_VALUE_CHANGED}]
-        assert seen[-1].requires_save() is True
-        assert seen[-1].requires_reassembly() is False
+        # A synchronous scheduler validates the node mark and the graph mark in two batches.
+        assert [r.nodes for r in seen if r.nodes] == [{wrapper.node_id: ChangeReason.NODE_VALUE_CHANGED}]
+        assert all(r.requires_save() for r in seen)
+        assert not any(r.requires_reassembly() for r in seen)
 
         seen.clear()
         assert editor.undo() is True
-        assert [r.nodes for r in seen] == [{wrapper.node_id: ChangeReason.NODE_VALUE_CHANGED}]
+        assert [r.nodes for r in seen if r.nodes] == [{wrapper.node_id: ChangeReason.NODE_VALUE_CHANGED}]
     finally:
+        graph.cleanup()
+
+
+@pytest.mark.integration
+def test_redraw_prop_edit_marks_unsaved(library_system) -> None:
+    """In one batch a label edit's redraw mark outranks the value mark; the graph mark carries the save."""
+    from haywire.core.graph.editor import Editor
+    from haywire.core.undo.config import UndoConfig
+
+    graph = BaseGraph(
+        filestem="g", validation_scheduler=ThreadingTimerScheduler(), validation_delay_ms=60_000
+    )
+    config = UndoConfig(enable_auto_grouping=False, enable_action_merging=False)
+    editor = Editor(graph, library_system.get_node_factory(), undo_config=config)
+    try:
+        wrapper = make_node(graph, _add_float_key())
+        graph._validation.force_immediate_validation()
+        seen: list[ValidationResult] = []
+        graph.subscribe_to_validation(seen.append)
+
+        assert editor.set_property(wrapper.node_id, "label", "renamed") is True
+        graph._validation.force_immediate_validation()
+
+        assert len(seen) == 1
+        assert seen[0].requires_save() is True
+        assert seen[0].requires_reassembly() is False
+    finally:
+        graph._validation.clear()
         graph.cleanup()

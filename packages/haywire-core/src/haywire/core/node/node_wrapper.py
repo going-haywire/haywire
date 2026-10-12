@@ -625,14 +625,19 @@ class NodeWrapper:
     def mark_value_edited(self) -> None:
         """Mark that a user edited a value this node saves, so the graph becomes unsaved.
 
-        Call it after a user's write to a port value or a setting. The graph
-        reports ``ChangeReason.NODE_VALUE_CHANGED`` for the node: nothing
-        rebuilds, redraws or reassembles. It does nothing until the node is
+        Call it after a user's write to a port value or a setting. The node
+        reports ``ChangeReason.NODE_VALUE_CHANGED`` and the graph
+        ``ChangeReason.GRAPH_CONTENT_CHANGED``: nothing rebuilds, redraws or
+        reassembles. The graph mark keeps the save when a redraw reason already
+        held the node's slot (a label edit). It does nothing until the node is
         registered with the graph.
         """
-        with self._locked():
-            if self._graph and self.state.is_registered:
-                self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_VALUE_CHANGED)
+        # No node lock: it guards no node state here, and held while waiting for
+        # the graph's validation lock it would invert the lock order.
+        graph = self._graph
+        if graph and self.state.is_registered:
+            graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_VALUE_CHANGED)
+            graph._validation.mark_graph_dirty(ChangeReason.GRAPH_CONTENT_CHANGED)
 
     def redraw(self) -> None:
         """Request a redraw of the node in the UI."""

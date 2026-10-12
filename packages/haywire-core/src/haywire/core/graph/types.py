@@ -20,10 +20,7 @@ class ChangeReason(Enum):
     """Aspects of the graph have changed that require it to be reassembled."""
 
     GRAPH_CONTENT_CHANGED = "graph_content_changed"
-    """Something a save records changed, and nothing the flow assembler reads.
-
-    A Graph-node reports a value edit inside its Subgraph on the host this way.
-    """
+    """A graph's saved content changed without needing reassembly."""
 
     # Node reasons that rebuild or revalidate the node
     NODE_ADDED = "node_added"

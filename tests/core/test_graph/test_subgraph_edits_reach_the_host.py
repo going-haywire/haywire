@@ -208,9 +208,10 @@ class TestAValueEditInsideIsSavedNotReassembled:
         with patch.object(card, "redraw") as redraw:
             interior.mark_value_edited()
 
-        assert [r.graph for r in seen] == [ChangeReason.GRAPH_CONTENT_CHANGED]
-        assert seen[0].requires_save() is True
-        assert seen[0].requires_reassembly() is False
+        # A synchronous scheduler validates the interior's node mark and graph mark in
+        # two batches, so the host hears twice; a timer coalesces them.
+        assert {r.graph for r in seen} == {ChangeReason.GRAPH_CONTENT_CHANGED}
+        assert all(r.requires_save() and not r.requires_reassembly() for r in seen)
         redraw.assert_not_called()
 
     def test_interior_structure_edit_still_reassembles(self, inline_card):
