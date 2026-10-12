@@ -9,10 +9,11 @@ Serialized under the ``'props'`` key in graph JSON; restored before nodes
 on load.
 """
 
+from haywire.barn.builtin.types import BOOL
 from haywire.barn.builtin.widget_keys import ARROW_HEAD_WIDGET
 from haywire.core.edge.arrow_heads import head_size_choices
 from haywire.core.edge.settings import EdgeDefaultSettings
-from haywire.core.settings.descriptor import shadow
+from haywire.core.settings.descriptor import setting, shadow
 from haywire.core.settings.settings_graph import GraphSettings
 from haywire.core.skin.settings import (
     NodeDefaultSkinSettings,
@@ -100,4 +101,12 @@ class GraphProperties(GraphSettings):
         description=("Line width of the computed edges in THIS graph. Overrides the studio default."),
         category="appearance",
         order=50,
+    )
+
+    open_locked = setting[BOOL](
+        False,
+        label="Open locked",
+        description="Open this graph with the canvas locked: sessions can operate it but not edit it.",
+        category="behaviour",
+        order=10,
     )

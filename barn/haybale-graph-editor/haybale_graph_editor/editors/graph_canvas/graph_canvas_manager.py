@@ -11,6 +11,7 @@ import traceback
 from typing import Callable, Dict, Optional, Set
 from nicegui import background_tasks, ui
 
+from haywire.core.access import AccessTier
 from haywire.core.graph.editor import Editor
 
 from haywire.ui.components.zoom.pan import ZoomPanContainer
@@ -22,6 +23,7 @@ from haywire.ui.components.graph.event_definitions import (
 )
 from haywire.core.session.session import Session
 
+from ...access import allows
 from ...state.edit_state import EditState
 from .event_handlers import build_event_handler_map
 from .graph_load_modal import graph_load_modal
@@ -51,6 +53,14 @@ class GraphCanvasManager:
     - context_menus → ContextMenuHandlers
     """
 
+    def allows(self, required: AccessTier) -> bool:
+        """Return whether this session may do what ``required`` asks on this canvas."""
+        return allows(self._session.context.can_access, self.locked, required)
+
+    def set_locked(self, locked: bool) -> None:
+        """Lock or unlock this canvas for its session."""
+        self.locked = locked
+
     def __init__(self, editor: Editor, skin_factory, node_factory, panel_registry, session: "Session"):
         self.editor = editor
         self.skin_factory = skin_factory
@@ -60,6 +70,8 @@ class GraphCanvasManager:
         self.session_id = session.session_id[:8]
 
         self.graph = editor.graph
+
+        self.locked = False
 
         # In-flight chunked load, if any — cancelled by cleanup(). See
         # start_chunked_sync.

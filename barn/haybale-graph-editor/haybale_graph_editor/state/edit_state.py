@@ -19,6 +19,8 @@ class EditState(SessionState):
 
     active_graph: Optional["BaseGraph"] = signal_field(None)
     active_graph_path: Optional[Any] = signal_field(None)
+    active_locked: bool = signal_field(False)
+    """Whether the active level's canvas is locked for this session."""
 
     active_node: Optional["NodeWrapper"] = signal_field(None)
     active_edge: Optional["EdgeWrapper"] = signal_field(None)

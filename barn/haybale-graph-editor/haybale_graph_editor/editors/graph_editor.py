@@ -101,6 +101,8 @@ class _Level:
     panel: Optional["Element"] = field(default=None, repr=False)
     watched_props: Optional[Any] = field(default=None, repr=False)
     """The card's ``props`` bag this level's name is read from, while watched."""
+    locked: bool = False
+    """Whether this session's canvas for the level is locked; per session, per level."""
 
 
 @editor(
@@ -227,12 +229,37 @@ class GraphEditor(BaseEditor):
         key = level_key_for(container)
         if key not in self._levels:
             level = _Level(key=key, container=container)
+            level.locked = self._opens_locked(container)
             self._levels[key] = level
             self._watch_level_name(level)
             if self._level_panels is not None:
                 self._mount_level(context, level)
         self._switch_level(context, key)
         return key
+
+    @staticmethod
+    def _opens_locked(container: "GraphContainer") -> bool:
+        """Return the graph's ``open_locked`` default for a level opened on ``container``."""
+        props = getattr(container.editor.graph, "props", None)
+        return bool(getattr(props, "open_locked", False))
+
+    def set_level_locked(self, context: "SessionContext", key: str, locked: bool) -> bool:
+        """Lock or unlock the level under ``key`` for this session.
+
+        Returns ``False`` and changes nothing when ``key`` is not open, or when
+        unlocking without the real edit tier.
+        """
+        level = self._levels.get(key)
+        if level is None:
+            return False
+        if not locked and not context.can_edit():
+            return False
+        level.locked = locked
+        if level.canvas_manager is not None:
+            level.canvas_manager.set_locked(locked)
+        if key == self._active_level:
+            self._claim_session_state(context)
+        return True
 
     def _watch_level_name(self, level: _Level) -> None:
         """Follow the card that names ``level``, so a rename reaches the tab at once.
@@ -549,11 +576,17 @@ class GraphEditor(BaseEditor):
 
         edit_state = context.data[EditState]
         graph = entry.editor.graph
-        if edit_state.active_graph is graph and edit_state.active_graph_path == entry.path:
+        locked = self._levels[self._active_level].locked
+        if (
+            edit_state.active_graph is graph
+            and edit_state.active_graph_path == entry.path
+            and edit_state.active_locked == locked
+        ):
             return
 
         edit_state.active_graph = graph
         edit_state.active_graph_path = entry.path
+        edit_state.active_locked = locked
         context.session.publish(ActiveGraphMoved())
 
         manager = self._canvas_manager
