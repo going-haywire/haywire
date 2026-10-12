@@ -222,7 +222,10 @@ class SelectionHandlers:
         self._select_pasted(*result)
 
     def _select_pasted(self, new_node_ids: list[str], new_edge_ids: list[str]) -> None:
-        """Make freshly pasted nodes and edges the selection, here, in the session and on the canvas."""
+        """Make freshly pasted nodes and edges the selection, here, in the session and on the canvas.
+
+        Publishes ``SelectionMoved`` when a session is bound.
+        """
         # A single pasted node also becomes the primary (an unambiguous target,
         # like a freshly created one); a multi-node paste is a bulk change and
         # gets no primary — see the Active axis glossary entry.
@@ -237,6 +240,7 @@ class SelectionHandlers:
             edit_state.active_node = sole_node
             edit_state.active_edge = None
             ctx.active_component = sole_node.registry_key if sole_node is not None else None
+            self._session.publish(SelectionMoved())
         if self._visual_layer is not None:
             active = (
                 {"kind": "node", "id": new_node_ids[0]} if sole_node is not None else {"kind": "", "id": ""}

@@ -463,6 +463,29 @@ def test_paste_clears_active(graph, session, edit_state_cls):
     assert kwargs.get("active") == {"kind": "", "id": ""}
 
 
+def test_paste_publishes_selection_moved(graph, session, edit_state_cls):
+    """Property panels follow a pasted selection: the paste publishes SelectionMoved."""
+    editor = MagicMock()
+    editor.paste_clipboard.return_value = (["new_n1"], [])
+    h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
+    payload = {
+        "haywire_clipboard": True,
+        "format_version": CLIPBOARD_FORMAT_VERSION,
+        "source": {"session_id": "x", "timestamp": 99.0},
+        "bounding_box": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
+        "nodes": {},
+        "edges": {},
+    }
+    session.publish.reset_mock()
+
+    h.process_paste_clipboard(
+        UserPasteClipboardEvent(canvasX=5.0, canvasY=6.0, clipboardText=json.dumps(payload))
+    )
+
+    published = [call.args[0] for call in session.publish.call_args_list]
+    assert any(isinstance(signal, SelectionMoved) for signal in published)
+
+
 def test_paste_ignores_text_without_source_timestamp(graph, session, edit_state_cls):
     editor = MagicMock()
     h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
@@ -682,6 +705,26 @@ def test_duplicate_offsets_and_selects_copy(graph, session, edit_state_cls):
     assert h.selected_nodes == {"n2"}
     assert session.context.data[edit_state_cls].selected_nodes == {"n2"}
     visual_layer.sync_selections.assert_called_once_with(["n2"], [], active={"kind": "node", "id": "n2"})
+
+
+def test_duplicate_publishes_selection_moved(graph, session, edit_state_cls):
+    """Property panels follow the duplicated selection: duplicate publishes SelectionMoved."""
+    h, _, _ = _duplicate_handler(graph, session)
+    session.publish.reset_mock()
+
+    h.duplicate_selection(["n1"], [])
+
+    published = [call.args[0] for call in session.publish.call_args_list]
+    assert any(isinstance(signal, SelectionMoved) for signal in published)
+
+
+def test_duplicate_without_session_selects_copy(graph):
+    h = SelectionHandlers(graph=graph, editor=MagicMock(), session_id="sess", session=None)
+    h.editor.paste_clipboard.return_value = (["n2"], [])
+
+    h.duplicate_selection(["n1"], [])
+
+    assert h.selected_nodes == {"n2"}
 
 
 def test_duplicate_leaves_clipboard_untouched(graph, session, edit_state_cls):
