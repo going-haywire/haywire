@@ -1115,7 +1115,8 @@ def test_operate_same_value_does_not_mark_unsaved(farmhand_call):
                 {"binding_id": bid, "save_as": "graphs/farmhand_operate_same.haywire"},
             )
         )["binding_id"]
-        _operate(farmhand_call, bid, node_id, "value_a", 0.0)  # the default
+        same = _operate(farmhand_call, bid, node_id, "value_a", 0.0)  # the default
+        assert same.isError is not True
         assert _entry_unsaved(farmhand_call, bid) is False
     finally:
         listing = call_tool_json(_call(farmhand_call, "haybale-haystack_list_graphs", {}))
@@ -1137,12 +1138,31 @@ def test_operate_refuses_a_hidden_widget(farmhand_call):
         _close(farmhand_call, bid)
 
 
+def test_operate_refuses_when_only_the_show_widget_strategy_hides_it(farmhand_call):
+    """value_a has a widget, accepts its own value and is unlinked: only
+    ``should_show_widget()`` (strategy NEVER) can refuse it."""
+    from unittest.mock import patch
+
+    from haywire.core.types.port import DataPort
+
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add_math(farmhand_call, bid)
+        assert _operate(farmhand_call, bid, node_id, "value_a", 1.0).isError is not True  # control
+        with patch.object(DataPort, "should_show_widget", return_value=False):
+            result = _operate(farmhand_call, bid, node_id, "value_a", 2.0)
+        assert result.isError is True
+        assert "[not_operable]" in result.content[0].text
+    finally:
+        _close(farmhand_call, bid)
+
+
 def test_operate_refuses_a_linked_inlet(farmhand_call):
     bid = _new_graph(farmhand_call)
     try:
         src = _add_math(farmhand_call, bid)
         sink = _add_math(farmhand_call, bid)
-        _call(
+        connected = _call(
             farmhand_call,
             "haybale-graph-editor_connect",
             {
@@ -1153,6 +1173,7 @@ def test_operate_refuses_a_linked_inlet(farmhand_call):
                 "inlet": "value_a",
             },
         )
+        assert connected.isError is not True
         result = _operate(farmhand_call, bid, sink, "value_a", 2.0)
         assert result.isError is True
         assert "[not_operable]" in result.content[0].text
