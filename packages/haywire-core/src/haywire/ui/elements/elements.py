@@ -425,7 +425,29 @@ def key_hint(command: type[EditorCommand]) -> ui.element | None:
     """
     if not command.default_keys:
         return None
-    combo = command.default_keys[0]
+    return combo_hint(command.default_keys[0])
+
+
+def combo_hint(combo: str) -> ui.element:
+    """Draw one key combo as a right-aligned suffix, in both platform spellings.
+
+    Draws the same spans as ``key_hint``, for a combo given directly.
+
+    Args:
+        combo: A combo in ``EditorCommand.default_keys`` syntax, such as
+            ``"Mod+Shift+Z"`` or ``"Backspace"``.
+
+    Returns:
+        A ``display: contents`` wrapper holding the two spans.
+
+    Example::
+
+        with ui.row().classes("items-center w-full"):
+            ui.label("Delete")
+            with ui.element("div").classes("ml-auto flex gap-2"):
+                hui.combo_hint("Delete")
+                hui.combo_hint("Backspace")
+    """
     # ``contents`` lets the spans take part in the parent's flex row, so ``ml-auto`` right-aligns them.
     with ui.element("span").classes("contents") as wrapper:
         _TextElement(tag="span", text=_format_combo(combo, mac=True)).classes(

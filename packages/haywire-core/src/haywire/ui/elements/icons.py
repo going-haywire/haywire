@@ -130,6 +130,8 @@ class AppIcon:
     """New Node wizard: write a new node class into a library."""
     node_clone: Final[str] = "file_copy"
     """Clone a node's class into a library, through the New Node wizard."""
+    keyboard: Final[str] = "keyboard"
+    """Keyboard shortcuts editor."""
 
     # ── Edge panels ───────────────────────────────────────────────────────────
     edge_statistics: Final[str] = "line_axis"
