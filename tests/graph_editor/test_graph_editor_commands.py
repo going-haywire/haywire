@@ -177,3 +177,45 @@ def test_save_refused_below_edit(monkeypatch):
     editor._save_graph(ctx)
     document.save.assert_not_called()
     notify.assert_called_once()
+
+
+def _locking_manager(ctx: Any) -> Any:
+    """A canvas manager whose ``allows`` is the real access rule, locked."""
+    from haybale_graph_editor.access import allows
+
+    manager = MagicMock()
+    manager.allows.side_effect = lambda required: allows(ctx.can_access, True, required)
+    return manager
+
+
+def test_locked_level_undo_and_redo_do_nothing():
+    from haywire.core.access import AccessTier
+
+    ctx = _real_context(AccessTier.ADMIN)
+    editor, context, document = _editor(None)
+    editor._levels[DOCUMENT_LEVEL].canvas_manager = _locking_manager(ctx)
+    editor._levels[DOCUMENT_LEVEL].locked = True
+    document.editor.can_undo.return_value = True
+    document.editor.can_redo.return_value = True
+
+    editor._do_undo(cast(Any, context))
+    editor._do_redo(cast(Any, context))
+
+    document.editor.undo.assert_not_called()
+    document.editor.redo.assert_not_called()
+    context.session.publish.assert_not_called()
+
+
+def test_view_principal_lock_button_is_disabled():
+    from haywire.core.access import AccessTier
+
+    editor, _, _ = _editor(MagicMock())
+    editor._active_level = DOCUMENT_LEVEL
+    editor._lock_button = MagicMock()
+
+    editor._update_lock_button(_real_context(AccessTier.VIEW))
+    editor._lock_button.set_enabled.assert_called_once_with(False)
+
+    editor._lock_button.reset_mock()
+    editor._update_lock_button(_real_context(AccessTier.EDIT))
+    editor._lock_button.set_enabled.assert_called_once_with(True)

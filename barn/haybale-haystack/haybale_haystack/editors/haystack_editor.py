@@ -229,6 +229,7 @@ class HaystackEditor(BaseEditor):
 
     def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
         is_active = entry.graph is context.data[EditState].active_graph
+        can_edit = context.can_edit()
         is_unsaved = entry.unsaved or entry.path is None
         is_executing = entry.is_executing
 
@@ -298,7 +299,7 @@ class HaystackEditor(BaseEditor):
                     hui.icon.save,
                     tooltip="Save",
                     on_click=lambda eid=eid: self._on_entry_save(eid, context),
-                )
+                ).set_enabled(can_edit)
 
             # Overflow menu — hidden during execution
             if not is_executing:
@@ -312,7 +313,7 @@ class HaystackEditor(BaseEditor):
                         ui.menu_item(
                             "Save",
                             on_click=lambda eid=eid: self._on_entry_save(eid, context),
-                        )
+                        ).set_enabled(can_edit)
                         # Save-as and Rename change a file's stem. A macro's
                         # stem IS its registry key, so either would orphan
                         # every placement of it — `haywire rename` is the
@@ -321,7 +322,7 @@ class HaystackEditor(BaseEditor):
                             ui.menu_item(
                                 "Save as…",
                                 on_click=lambda eid=eid: self._on_entry_save_as(eid, context),
-                            )
+                            ).set_enabled(can_edit)
                             ui.menu_item(
                                 "Rename…",
                                 on_click=lambda eid=eid: self._on_entry_rename(eid, context),
@@ -352,6 +353,9 @@ class HaystackEditor(BaseEditor):
 
     def _on_entry_save(self, binding_id: str, context: "SessionContext") -> None:
         """Save a graph; opens save-as dialog if untitled."""
+        if not context.can_edit():
+            ui.notify("Saving needs edit access", type="warning", position="top-right")
+            return
         app = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
@@ -393,6 +397,9 @@ class HaystackEditor(BaseEditor):
 
     def _on_entry_save_as(self, binding_id: str, context: "SessionContext") -> None:
         """Always open the save-as dialog."""
+        if not context.can_edit():
+            ui.notify("Saving needs edit access", type="warning", position="top-right")
+            return
         app = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
