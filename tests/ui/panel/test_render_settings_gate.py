@@ -129,6 +129,115 @@ def test_a_stale_row_refuses_at_write_time():
     assert gate.written_calls == 0
 
 
+def _render_with_float_widget(bag, gate, attr_name: str) -> Any:
+    """Render *bag* with *gate*, drawing *attr_name*'s row with a real float widget; return it."""
+    from haywire.ui.widget import globals as widget_globals
+
+    from tests.ui.widget._sync_fixtures import _BaseDefaultFloatWidget
+
+    widgets: list[Any] = []
+    real_resolve = render_utils._resolve_widget_instance
+
+    def _recording(model):
+        widgets.append(_BaseDefaultFloatWidget(model))
+        return widgets[-1]
+
+    def _resolve(defn, on_edit, **kwargs):
+        if defn._attr_name != attr_name:
+            return real_resolve(defn, on_edit, **kwargs)
+        with patch.object(widget_globals, "get_widget_class", lambda _key: _recording):
+            return real_resolve(defn, on_edit, **kwargs)
+
+    client = Client(cast(Any, _noop_page), request=None)
+    with client, patch.object(render_utils, "_resolve_widget_instance", _resolve):
+        with ui.column():
+            render_settings(make_render_ctx(), bag, gate=gate)
+    assert len(widgets) == 1
+    return widgets[0]
+
+
+def test_a_row_drawn_before_the_lock_refuses_its_widgets_edit_and_shows_the_model():
+    bag = _GateSettings()
+    gate = _StubGate(allows=True)
+    widget = _render_with_float_widget(bag, gate, "gain")
+
+    gate.allowed = False
+    widget.el.value = 5.0
+    widget._bindings[0]._sync_to_model(5.0)
+
+    assert bag.gain == 1.0
+    assert widget.el.value == 1.0
+    assert gate.written_calls == 0
+
+
+def test_a_row_widgets_edit_lands_while_the_gate_allows():
+    bag = _GateSettings()
+    gate = _StubGate(allows=True)
+    widget = _render_with_float_widget(bag, gate, "gain")
+
+    widget.el.value = 5.0
+    widget._bindings[0]._sync_to_model(5.0)
+
+    assert bag.gain == 5.0
+    assert gate.written_calls == 1
+
+
+def test_a_row_widget_echoing_the_current_value_is_not_written():
+    bag = _GateSettings()
+    gate = _StubGate(allows=True)
+    widget = _render_with_float_widget(bag, gate, "gain")
+
+    widget._bindings[0]._sync_to_model(1.0)
+
+    assert gate.written_calls == 0
+
+
+def test_an_edit_to_the_current_value_is_not_written():
+    bag = _GateSettings()
+    gate = _StubGate(allows=True)
+    _anchor, on_edits = _render(bag, gate)
+
+    on_edits["gain"](1.0)
+
+    assert gate.written_calls == 0
+
+
+def test_set_to_none_on_an_absent_value_is_not_written():
+    bag = _GateSettings()
+    bag.count = None
+    gate = _StubGate(allows=True)
+    anchor, _ = _render(bag, gate)
+
+    _click(_menu_items(_find_field_row(anchor, "count"))["Set to none"])
+
+    assert bag.count is None
+    assert gate.written_calls == 0
+
+
+def test_resetting_a_field_with_no_local_value_is_not_written():
+    bag = _GateSettings()
+    gate = _StubGate(allows=True)
+    anchor, _ = _render(bag, gate)
+
+    _click(_menu_items(_find_field_row(anchor, "gain"))["Reset to default"])
+
+    assert bag.gain == 1.0
+    assert gate.written_calls == 0
+
+
+def test_resetting_a_local_value_equal_to_the_default_is_written():
+    bag = _GateSettings()
+    bag.gain = 4.0
+    bag.gain = 1.0
+    gate = _StubGate(allows=True)
+    anchor, _ = _render(bag, gate)
+
+    _click(_menu_items(_find_field_row(anchor, "gain"))["Reset to default"])
+
+    assert bag._is_locally_set("gain") is False
+    assert gate.written_calls == 1
+
+
 def test_written_called_after_edit():
     bag = _GateSettings()
     gate = _StubGate(allows=True)

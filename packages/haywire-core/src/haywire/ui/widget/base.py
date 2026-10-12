@@ -8,7 +8,7 @@ from haywire.core.types import WidgetModel
 from haywire.ui.widget.binding import PropertyBinding
 from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter
 from haywire.ui.widget.interface import IWidget
-from haywire.ui.widget.write_gate import WriteGate
+from haywire.ui.widget.write_gate import WriteGate, value_changed
 
 # design-guide.md §2.11: the manual disabled treatment for elements that
 # don't support Quasar :disable. Always applied/removed as a pair via
@@ -75,13 +75,15 @@ class BaseWidget(IWidget, ABC):
         """Write *value* to the model, unless ``accepts_write()`` refuses.
 
         A refused write leaves the model alone and shows its value again. After
-        a write, ``write_gate.written()`` is called.
+        a write that changed the model's value, ``write_gate.written()`` is
+        called.
         """
         if not self.accepts_write():
             self.on_model_changed(self.port.get_value())
             return
+        before = self.port.get_value()
         self.port.set_value(value)
-        if self.write_gate is not None:
+        if self.write_gate is not None and value_changed(before, self.port.get_value()):
             self.write_gate.written()
 
     def _size_overrides(self) -> Mapping[str, Any]:

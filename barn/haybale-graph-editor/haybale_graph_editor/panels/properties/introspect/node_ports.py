@@ -229,18 +229,28 @@ class NodePortsPanel(BasePanel):
             self._render_pen(port, node_id, widget_factory, context)
 
     def _render_pen(self, port, node_id: str, widget_factory, context: "SessionContext") -> None:
-        """The edit affordance, shown only on ports the user can actually edit."""
+        """The edit affordance, shown only on ports the user can actually edit.
+
+        Drawn disabled while the session may not edit the graph on screen (see
+        ``can_edit_graph``).
+        """
         if port.origin is PortOrigin.RESOLVED:
             hui.icon_action(
                 hui.icon.edit,
                 tooltip="Edit name, description and default",
                 on_click=lambda: self._open_editor(port, node_id, context),
-            )
+            ).set_enabled(can_edit_graph(context))
 
     def _open_editor(self, port, node_id: str, context: "SessionContext") -> None:
-        """Open the edit dialog against the graph that is on screen now."""
+        """Open the edit dialog against the graph that is on screen now.
+
+        Opens nothing unless ``context`` may edit the graph on screen, and the
+        dialog's Apply writes nothing once it may not (see ``can_edit_graph``).
+        """
         from .port_edit_dialog import open_port_edit_dialog
 
+        if not can_edit_graph(context):
+            return
         editor = _editor_for(context)
         if editor is None:
             return
@@ -249,6 +259,7 @@ class NodePortsPanel(BasePanel):
             node_id,
             editor,
             on_applied=lambda: context.session.publish(GraphDataMutated()),
+            can_apply=lambda: can_edit_graph(context),
         )
 
     def _render_lane(

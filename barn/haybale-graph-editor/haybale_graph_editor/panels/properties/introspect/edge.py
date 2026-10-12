@@ -16,7 +16,7 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from ....access import GraphWriteGate, session_allows
+from ....access import GraphWriteGate, can_edit_graph, session_allows
 from ....surfaces import EdgeInspector
 from ....state.edit_state import EditState
 
@@ -142,6 +142,9 @@ class EdgePropagationPanel(BasePanel):
     Writes `EdgeWrapper.propagation` directly, like `EdgeStatsPanel` and
     `EdgePathPanel` read it — `EdgeInspector` declares no `provides`, so its
     panels have no action host to route the write through.
+
+    The switch writes only while the session may edit the graph on screen, lock
+    included; a refused switch shows the edge's mode again.
     """
 
     @classmethod
@@ -168,15 +171,24 @@ class EdgePropagationPanel(BasePanel):
                     )
             return
 
+        def _is_lazy() -> bool:
+            return edge_wrapper.propagation is Propagation.LAZY
+
         def _on_change(e) -> None:
+            if e.value == _is_lazy():
+                return
+            if not can_edit_graph(ctx):
+                # Fires _on_change again with the model's value, which returns above.
+                e.sender.value = _is_lazy()
+                return
             edge_wrapper.propagation = Propagation.LAZY if e.value else Propagation.EAGER
             edge_wrapper.redraw()
 
         with layout:
             with ui.row().classes("w-full items-center gap-1 py-0.5"):
                 ui.icon(hui.icon.edge_eager).classes("text-lg")
-                ui.switch(value=edge_wrapper.propagation is Propagation.LAZY, on_change=_on_change).props(
-                    "dense"
+                ui.switch(value=_is_lazy(), on_change=_on_change).props("dense").set_enabled(
+                    can_edit_graph(ctx)
                 )
                 ui.icon(hui.icon.edge_lazy).classes("text-lg")
 

@@ -35,6 +35,7 @@ def open_port_edit_dialog(
     node_id: str,
     editor: "Editor",
     on_applied: Callable[[], None] | None = None,
+    can_apply: Callable[[], bool] | None = None,
 ) -> Popup:
     """Open the edit modal for ``port`` and apply what the user confirms.
 
@@ -44,6 +45,8 @@ def open_port_edit_dialog(
         node_id: The node carrying ``port``, for the undo entry and the write.
         editor: The graph editor whose history the edit is recorded on.
         on_applied: Called after a successful apply, for the caller to redraw.
+        can_apply: Asked when Apply is pressed; ``False`` closes the modal
+            without writing anything. ``None`` always applies.
 
     Returns:
         The opened :class:`Popup`.
@@ -85,6 +88,9 @@ def open_port_edit_dialog(
 
             popup.close()
             if not changes:
+                return
+            if can_apply is not None and not can_apply():
+                ui.notify("This graph is read-only now; the port was not changed", type="warning")
                 return
 
             ok, reason = editor.set_port_metadata(node_id, port.id, **changes)

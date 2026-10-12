@@ -37,6 +37,7 @@ from haywire.ui import elements as hui
 from haywire.ui.panel.host_rendering import drawing_panel
 from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.widget.base import DISABLED_STYLE, BaseWidget
+from haywire.ui.widget.write_gate import value_changed
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
@@ -693,15 +694,16 @@ def _render_reactive_field_row(
         _show_model_again()
         return True
 
-    def _written() -> None:
-        if gate is not None:
+    def _written_if_changed(before: tuple[bool, Any]) -> None:
+        if gate is not None and value_changed(before, _stored(obj, attr_name)):
             gate.written()
 
     def _on_reset_click():
         if _refuse():
             return
+        before = _stored(obj, attr_name)
         obj._reset(attr_name)
-        _written()
+        _written_if_changed(before)
         # reset() discards the local opinion but only writes the cell when the
         # value actually changes (old != new). A field that was locally-set yet
         # already equalled its default — e.g. promoted-then-demoted unchanged —
@@ -747,8 +749,9 @@ def _render_reactive_field_row(
     def _set_to_none() -> None:
         if _refuse():
             return
+        before = _stored(obj, attr_name)
         setattr(obj, attr_name, None)
-        _written()
+        _written_if_changed(before)
 
     # Every wrapper field lists "Set to none", a field defaulting to absence
     # included: Reset greys whenever there is no local opinion, so hiding it
@@ -1055,6 +1058,8 @@ def _bag_on_edit(
     """Write policy for the instance path: gate → validate → setattr → ``gate.written()`` → error chrome.
 
     A write *gate* refuses calls ``on_refused`` and changes nothing.
+    ``gate.written()`` is called only when the write changed what the field
+    stores (see ``_stored``).
     """
 
     def on_edit(value: Any) -> None:
@@ -1070,12 +1075,18 @@ def _bag_on_edit(
                     'data-error="true"'
                 )
             return
+        before = _stored(obj, attr_name)
         setattr(obj, attr_name, value)
-        if gate is not None:
+        if gate is not None and value_changed(before, _stored(obj, attr_name)):
             gate.written()
         error_container.clear()
 
     return on_edit
+
+
+def _stored(obj: "Settings", attr_name: str) -> tuple[bool, Any]:
+    """Return what a field stores: whether it holds a local value, and its value."""
+    return obj._is_locally_set(attr_name), getattr(obj, attr_name)
 
 
 def _registry_on_edit(registry: "SettingsRegistry", key: str, error_container) -> Callable[[Any], None]:

@@ -66,6 +66,16 @@ def test_an_accepted_write_calls_written_once():
     assert gate.written_calls == 2
 
 
+def test_writing_the_current_value_again_is_not_written():
+    port, widget, gate = _gated_widget(allows=True)
+
+    widget._bindings[0]._sync_to_model(4.0)
+    widget.set_value(4.0)
+
+    assert port.get_value() == 4.0
+    assert gate.written_calls == 0
+
+
 def test_a_gate_checked_at_write_time_not_at_render():
     port, widget, gate = _gated_widget(allows=True)
     gate.allowed = False

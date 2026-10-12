@@ -1,6 +1,18 @@
 """The ``WriteGate`` protocol: what a widget or a settings form asks before a user's write lands."""
 
-from typing import Protocol
+from typing import Any, Protocol
+
+
+def value_changed(before: Any, after: Any) -> bool:
+    """Return whether ``after`` differs from ``before`` by ``!=``.
+
+    A comparison that raises, or whose result has no truth value (a NumPy
+    array), counts as changed.
+    """
+    try:
+        return bool(before != after)
+    except Exception:
+        return True
 
 
 class WriteGate(Protocol):
@@ -35,5 +47,5 @@ class WriteGate(Protocol):
         ...
 
     def written(self) -> None:
-        """Called once after each write ``allows()`` let through."""
+        """Called once after each write ``allows()`` let through that changed the stored value."""
         ...

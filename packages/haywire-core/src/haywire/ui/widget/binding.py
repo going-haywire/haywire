@@ -18,6 +18,7 @@ from haywire.ui.widget.converters import (
     BindingMode,
     PrimitiveUnwrappingConverter,
 )
+from haywire.ui.widget.write_gate import value_changed
 
 if TYPE_CHECKING:
     from haywire.ui.widget.base import BaseWidget
@@ -159,9 +160,9 @@ class PropertyBinding:
         """Write a view edit to the model, or show the model again when the write is refused.
 
         With an ``owner``, its ``accepts_write()`` decides, and its write gate
-        hears each write that lands. Without one, the write is refused while an
-        edge's value stands in front of the own value or the field holds no own
-        value.
+        hears each write that changes the model's value. Without one, the write
+        is refused while an edge's value stands in front of the own value or the
+        field holds no own value.
         """
         assert self._element is not None and self.converter is not None
         if not self._accepts_write():
@@ -174,10 +175,12 @@ class PropertyBinding:
         model_value = self.converter.to_model(view_value)
 
         if self.source_property == "value":
+            before = self._element.get_value()
             self._element.set_value(model_value)
+            changed = value_changed(before, self._element.get_value())
         else:
-            self._update_nested_property(self.source_property, model_value)
-        if self.owner is not None and self.owner.write_gate is not None:
+            changed = self._update_nested_property(self.source_property, model_value)
+        if changed and self.owner is not None and self.owner.write_gate is not None:
             self.owner.write_gate.written()
 
     def _accepts_write(self) -> bool:
@@ -208,13 +211,16 @@ class PropertyBinding:
             current = getattr(current, part)
         return current
 
-    def _update_nested_property(self, path: str, value: Any) -> None:
+    def _update_nested_property(self, path: str, value: Any) -> bool:
         """
         Update nested property and notify observers.
 
         Args:
             path: Property path (e.g., 'radius', 'transform.scale')
             value: New value for the property
+
+        Returns:
+            Whether the property changed; ``False`` when it already held ``value``.
 
         Raises:
             ValueError: If field type doesn't support property updates
@@ -243,13 +249,14 @@ class PropertyBinding:
         old_value = getattr(current, final_property, None)
 
         if old_value == value:
-            return  # No change
+            return False
 
         setattr(current, final_property, value)
 
         # Mark dirty and fire observers
         field.is_dirty = True
         field.fire(container)
+        return True
 
     # ========================================================================
     # CLEANUP

@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from nicegui import Client, ui
@@ -280,3 +280,180 @@ def test_an_edge_form_needs_edit():
     subject = FormSubject("own")
     assert _form_gate(_ports_ctx(AccessTier.OPERATE, locked=False, wrapper=None), subject).allows() is False
     assert _form_gate(_ports_ctx(AccessTier.EDIT, locked=False, wrapper=None), subject).allows() is True
+
+
+# =============================================================================
+# Edge propagation switch
+# =============================================================================
+
+
+def _edge_ctx(tier: AccessTier, locked: bool) -> tuple[Any, Any]:
+    from haywire.core.types.enums import Propagation
+
+    edge = SimpleNamespace(propagation=Propagation.EAGER, locked_propagation=None, redraw=MagicMock())
+    edit = SimpleNamespace(active_locked=locked, active_edge=edge)
+    return SimpleNamespace(can_access=tier.satisfies, data={EditState: edit}), edge
+
+
+def _propagation_switch(ctx: Any) -> Any:
+    """Draw the propagation panel for ``ctx``'s active edge and return its switch."""
+    from haybale_graph_editor.panels.properties.introspect.edge import EdgePropagationPanel
+
+    client = Client(cast(Any, _noop_page), request=None)
+    with client:
+        layout = ui.column()
+        EdgePropagationPanel().draw(ctx, cast(Any, layout))
+    return next(el for el in client.elements.values() if isinstance(el, ui.switch))
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("tier", "locked"), [(AccessTier.ADMIN, True), (AccessTier.VIEW, False)], ids=["locked-admin", "view"]
+)
+def test_the_propagation_switch_refuses_below_edit(tier: AccessTier, locked: bool):
+    from haywire.core.types.enums import Propagation
+
+    ctx, edge = _edge_ctx(tier, locked)
+    switch = _propagation_switch(ctx)
+
+    assert switch.enabled is False
+    switch.value = True
+
+    assert edge.propagation is Propagation.EAGER
+    assert switch.value is False
+    edge.redraw.assert_not_called()
+
+
+@pytest.mark.unit
+def test_the_propagation_switch_refuses_once_the_level_is_locked():
+    from haywire.core.types.enums import Propagation
+
+    ctx, edge = _edge_ctx(AccessTier.ADMIN, locked=False)
+    switch = _propagation_switch(ctx)
+
+    ctx.data[EditState].active_locked = True
+    switch.value = True
+
+    assert edge.propagation is Propagation.EAGER
+    assert switch.value is False
+
+
+@pytest.mark.unit
+def test_the_propagation_switch_writes_for_edit():
+    from haywire.core.types.enums import Propagation
+
+    ctx, edge = _edge_ctx(AccessTier.EDIT, locked=False)
+    switch = _propagation_switch(ctx)
+
+    assert switch.enabled is True
+    switch.value = True
+
+    assert edge.propagation is Propagation.LAZY
+    edge.redraw.assert_called_once_with()
+
+
+# =============================================================================
+# Port edit dialog (the Ports panel's pen)
+# =============================================================================
+
+
+def _resolved_port() -> Any:
+    from haywire.core.types.enums import PortOrigin
+
+    return SimpleNamespace(
+        id="p1", label="Gain", description="", widget_key=None, origin=PortOrigin.RESOLVED
+    )
+
+
+def _pen_ctx(tier: AccessTier, locked: bool) -> Any:
+    edit = SimpleNamespace(active_locked=locked, active_node=MagicMock())
+    return SimpleNamespace(can_access=tier.satisfies, data={EditState: edit}, session=MagicMock())
+
+
+def _render_pen(ctx: Any) -> Any:
+    from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
+
+    client = Client(cast(Any, _noop_page), request=None)
+    with client:
+        with ui.column():
+            NodePortsPanel()._render_pen(_resolved_port(), "n1", None, ctx)
+    return next(el for el in client.elements.values() if isinstance(el, ui.button))
+
+
+def _open_dialog(ctx: Any, editor: Any) -> Client:
+    """Open the pen's edit dialog for ``ctx`` against ``editor``; return its client."""
+    from haybale_graph_editor.panels.properties.introspect import node_ports
+
+    client = Client(cast(Any, _noop_page), request=None)
+    with client, patch.object(node_ports, "_editor_for", lambda _ctx: editor):
+        node_ports.NodePortsPanel()._open_editor(_resolved_port(), "n1", ctx)
+    return client
+
+
+def _apply_button(client: Client) -> Any:
+    return next(
+        (el for el in client.elements.values() if isinstance(el, ui.button) and el.text == "Apply"), None
+    )
+
+
+def _apply_relabelled(client: Client, label: str) -> None:
+    """Type ``label`` into the open dialog's Label field and press Apply."""
+    with client:
+        label_input = next(
+            el
+            for el in client.elements.values()
+            if isinstance(el, ui.input) and el.props.get("label") == "Label"
+        )
+        label_input.value = label
+        _fire_click(_apply_button(client))
+
+
+def _fire_click(element: Any) -> None:
+    listener_id = next(iter(element._event_listeners))
+    element._handle_event({"listener_id": listener_id, "args": {}})
+
+
+def _metadata_editor() -> Any:
+    editor = MagicMock()
+    editor.set_port_metadata.return_value = (True, None)
+    return editor
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("tier", "locked"), [(AccessTier.ADMIN, True), (AccessTier.VIEW, False)], ids=["locked-admin", "view"]
+)
+def test_the_port_pen_refuses_below_edit(tier: AccessTier, locked: bool):
+    ctx = _pen_ctx(tier, locked)
+    assert _render_pen(ctx).enabled is False
+
+    editor = _metadata_editor()
+    client = _open_dialog(ctx, editor)
+    if _apply_button(client) is not None:
+        _apply_relabelled(client, "Level")
+
+    editor.set_port_metadata.assert_not_called()
+
+
+@pytest.mark.unit
+def test_an_open_port_dialog_refuses_once_the_level_is_locked():
+    ctx = _pen_ctx(AccessTier.ADMIN, locked=False)
+    editor = _metadata_editor()
+    client = _open_dialog(ctx, editor)
+
+    ctx.data[EditState].active_locked = True
+    _apply_relabelled(client, "Level")
+
+    editor.set_port_metadata.assert_not_called()
+
+
+@pytest.mark.unit
+def test_the_port_pen_applies_for_edit():
+    ctx = _pen_ctx(AccessTier.EDIT, locked=False)
+    assert _render_pen(ctx).enabled is True
+
+    editor = _metadata_editor()
+    client = _open_dialog(ctx, editor)
+    _apply_relabelled(client, "Level")
+
+    editor.set_port_metadata.assert_called_once_with("n1", "p1", label="Level")

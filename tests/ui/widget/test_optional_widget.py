@@ -215,7 +215,8 @@ class TestWriteGate:
         assert gate.written_calls == 0
 
     def test_the_outer_gate_hears_an_accepted_inner_edit_once(self):
-        widget, _, edits = _rendered(INT, initial=5)
+        widget, cell, edits = _rendered(INT, initial=5)
+        cast(Any, widget).port._on_edit = lambda value: (edits.append(value), cell.set_value(value))
         gate = _StubGate(allows=True)
         widget.write_gate = gate
 
@@ -223,6 +224,15 @@ class TestWriteGate:
 
         assert edits == [8]
         assert gate.written_calls == 1
+
+    def test_the_outer_gate_does_not_hear_an_inner_edit_that_changes_nothing(self):
+        widget, _, _ = _rendered(INT, initial=5)
+        gate = _StubGate(allows=True)
+        widget.write_gate = gate
+
+        cast(Any, widget)._inner.set_value(5)
+
+        assert gate.written_calls == 0
 
     def test_the_outer_gate_refuses_restoring_a_value(self):
         widget, _, edits = _rendered(INT, initial=None)
