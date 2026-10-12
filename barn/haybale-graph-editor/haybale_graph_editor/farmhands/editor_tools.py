@@ -1052,6 +1052,59 @@ class GraphEditorSetPropertyTool(Farmhand):
 
 
 @farmhand(
+    label="Operate widget",
+    description="Change the value of a widget that is shown on a node card. Not undo-recorded.",
+    instructions="Change the value of a port whose widget is shown on its node card, the same "
+    "change a person makes by using that widget. Use the exact port id from a "
+    "graph_editor_inspect_node row. A port with no widget, a hidden widget, or an inlet fed by "
+    "an edge raises not_operable. The write is verified by reading the value back: a value the "
+    "port rejects raises set_rejected. Like a widget edit it is not undo-recorded, and it marks "
+    "the graph as unsaved only when the value changed.",
+    registry_id="operate",
+    annotations=_MUTATING,
+    access=AccessTier.OPERATE,
+)
+class GraphEditorOperateTool(Farmhand):
+    async def run(
+        self, ctx: FarmhandContext, binding_id: str, node_id: str, port_id: str, value: Any = None
+    ) -> dict:
+        from haywire.ui.widget.write_gate import value_changed
+
+        editor = _editor(ctx, binding_id)
+        wrapper = _node(editor, node_id)
+        port = wrapper.node.ports.get(port_id)
+        if (
+            port is None
+            or not port.widget_key
+            or not port.should_show_widget()
+            or not port.data.accepts_own_value()
+            or port.data.has_linked_value()
+        ):
+            raise FarmhandError(
+                "not_operable",
+                f"Port '{port_id}' on node '{node_id}' has no widget shown on its card, so it "
+                f"cannot be operated.",
+                ids={"node_id": node_id, "port_id": port_id},
+                help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports'] to see the ports.",
+            )
+        before = port.data.get_own_value()
+        port.set_value(value)
+        actual = port.data.get_own_value()
+        if actual != value:
+            raise FarmhandError(
+                "set_rejected",
+                f"Write to '{port_id}' on '{node_id}' did not take: requested {value!r}, "
+                f"value is still {actual!r}. The port's validator rejected it.",
+                ids={"node_id": node_id, "port_id": port_id},
+                help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports'] for the port's type.",
+            )
+        if value_changed(before, actual):
+            wrapper.mark_value_edited()
+        ctx.broadcast(GraphDataMutated())
+        return {"summary": f"Set '{port_id}' on {node_id} to {actual!r}."}
+
+
+@farmhand(
     label="Promote setting",
     description="Promote a settings field to a data port. Not undo-routed (UI parity; later work).",
     instructions="Promote a settings field to a live data port, so it can be wired instead of "

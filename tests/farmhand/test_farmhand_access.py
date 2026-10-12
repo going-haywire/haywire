@@ -62,3 +62,13 @@ def test_caller_tier_with_no_request_is_admin_when_auth_is_off():
         assert caller_tier(None) is AccessTier.ADMIN
     finally:
         set_access_resolver(previous)
+
+
+def test_operate_listed_for_operate_not_view():
+    from haybale_graph_editor.farmhands.editor_tools import GraphEditorOperateTool
+    from haywire_studio.farmhand.host import tools_for_tier
+
+    tools = {"operate": GraphEditorOperateTool}
+    assert tools_for_tier(tools, AccessTier.OPERATE) == ["operate"]
+    assert tools_for_tier(tools, AccessTier.EDIT) == ["operate"]
+    assert tools_for_tier(tools, AccessTier.VIEW) == []

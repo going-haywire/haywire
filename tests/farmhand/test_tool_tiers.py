@@ -33,6 +33,8 @@ EDIT_TOOLS = {
     "dry_run_install",
 }
 
+OPERATE_TOOLS = {"operate"}
+
 VIEW_TOOLS = {
     "status",
     "list_components",
@@ -115,6 +117,14 @@ def test_edit_tools_require_edit():
 
 
 @pytest.mark.integration
+def test_operate_tools_require_operate():
+    identities = _tool_map()
+    for registry_id, identity in identities.items():
+        if registry_id in OPERATE_TOOLS:
+            assert identity.access is AccessTier.OPERATE, f"{registry_id} should be operate"
+
+
+@pytest.mark.integration
 def test_view_tools_are_view():
     identities = _tool_map()
     for registry_id, identity in identities.items():
@@ -127,7 +137,7 @@ def test_every_tool_is_classified():
     """Every discovered tool must appear in exactly one of the tier buckets above —
     catches a shipped tool nobody looked at when annotating."""
     identities = _tool_map()
-    known = ADMIN_TOOLS | EDIT_TOOLS | VIEW_TOOLS
+    known = ADMIN_TOOLS | EDIT_TOOLS | OPERATE_TOOLS | VIEW_TOOLS
     unclassified = set(identities) - known
     assert not unclassified, f"tools not classified in this test: {unclassified}"
 
