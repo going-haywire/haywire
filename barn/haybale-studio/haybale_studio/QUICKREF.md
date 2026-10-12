@@ -52,6 +52,7 @@
 - `haybale-studio:editor:LazyFileBrowserEditor` — Files — Project file tree, eager-then-lazy: three levels are loaded up front, then 'Click to load children' sentinels appear at deeper folders so the user can pull in three more levels on demand.
 - `haybale-studio:editor:PropertiesEditor` — Properties — Context-sensitive property panels for the active selection.
 - `haybale-studio:editor:RosterEditor` — Accounts — Manage who may reach this studio
+- `haybale-studio:editor:ShortcutsEditor` — Shortcuts — Keyboard shortcuts of every editor, grouped by editor.
 - `haybale-studio:editor:TerminalEditor` — Log — Application output. Captures Python logging and print() output.
 
 ## skin

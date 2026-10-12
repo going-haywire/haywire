@@ -59,6 +59,7 @@ Library for haywire studio
 - **Files** — Project file tree, eager-then-lazy: three levels are loaded up front, then 'Click to load children' sentinels appear at deeper folders so the user can pull in three more levels on demand.
 - **Log** — Application output. Captures Python logging and print() output.
 - **Properties** — Context-sensitive property panels for the active selection.
+- **Shortcuts** — Keyboard shortcuts of every editor, grouped by editor.
 
 ## Skins
 - **Split** — Configs across the top, inlets and outlets in columns side by side
