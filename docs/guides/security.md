@@ -451,11 +451,11 @@ now the only way to fix it.
 ### Managing principals
 
 ```sh
-uv run haywire user add <name> --tier {view,edit,admin}              # a password-holding user
-uv run haywire user add <name> --agent --tier {view,edit,admin}      # a token-holding agent
+uv run haywire user add <name> --tier {view,operate,edit,admin}      # a password-holding user
+uv run haywire user add <name> --agent --tier {view,operate,edit,admin} # a token-holding agent
 uv run haywire user add <name> --agent --tier edit --workspace <path> # scoped to one project
 uv run haywire user list
-uv run haywire user tier <name> {view,edit,admin}
+uv run haywire user tier <name> {view,operate,edit,admin}
 uv run haywire user passwd <name>
 uv run haywire user remove <name>
 uv run haywire auth status
@@ -479,13 +479,20 @@ with `claude mcp add --transport http farmhand http://127.0.0.1:8124/mcp
 --header "Authorization: Bearer <token>"`, or with no header at all when
 authentication is off.
 
-!!! warning "Known gap: the graph canvas does not enforce the view tier yet"
-    In the graph canvas, a `view` principal can still delete, paste and move
-    nodes through the context menus, the selection toolbar and mouse gestures.
-    Keyboard commands are tier-gated (ADR 0050) — Delete, Paste or Undo from a
-    `view` session does nothing — but the menus and gestures are not gated
-    yet. Until they are, treat `view` as "not expected to edit", not as "cannot
-    edit".
+### What each tier and the lock allow
+
+Tiers are cumulative: `view` < `operate` < `edit` < `admin`.
+
+- **`view`** can pan, zoom, select, copy, enter Groups and read the panels. It cannot change a value.
+- **`operate`** can additionally change values on the widgets shown on node cards. It has no context menus, no selection toolbar, no paste, cut, delete or duplicate, no Undo/Redo, no Properties writes, and cannot unlock.
+- **`edit`** can change the graph and its settings, and can save. **`admin`** can also manage principals.
+
+The **lock** is a per-session, per-level switch (the document or an entered Group), never saved. The header lock button or `Mod+E` toggles it; unlocking needs the real `edit` tier. A locked level caps the session's effective tier at `operate` for that level; the cap never raises a lower tier. A graph can ask for a level to start locked (`open_locked`). Save needs the principal's real `edit` tier and ignores the lock; this holds in the graph editor header and in the haystack editor's entry Save and Save-as. Agents are not subject to the lock; the `graph_editor_operate` tool writes a value to a shown widget at `operate`. See [ADR 0051](../adr/0051-operate-tier-and-the-canvas-lock.md).
+
+Enforcement sits at the write: canvas events declare a tier (a refused drag or resize snaps back), context menus and the selection toolbar do not open below effective `edit`, and a write gate on widgets, bindings and settings rows is asked when the write lands. Disabled-looking controls are only the look.
+
+!!! warning "Known gaps"
+    Not tier-gated yet: the fold disclosure of a stacked-skin node card (clickable at `view`), the haystack entry menu's Rename and Remove, and the haystack run settings. These are UI roles against accidents, not a sandbox: do not read `view` as "cannot mutate anything".
 
 ## 10. The security document
 
@@ -520,7 +527,7 @@ alone cannot each independently produce.
 
 The studio is one process, one filesystem, with no sandbox between whoever
 reaches it and the host machine it runs on. Authentication adds *who* a
-connection is — separate view/edit/admin principals with their own
+connection is — separate view/operate/edit/admin principals with their own
 identity — but not *isolation*: there is no "read-only copy of the studio"
 and no per-graph, per-node or per-file permission. Every principal who can
 reach the studio sees the same live graphs, the same running execution and

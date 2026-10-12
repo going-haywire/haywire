@@ -43,6 +43,11 @@ that matters — the wrong click cannot happen because the control is not there.
 The corollary is that the front door carries all the weight, and it has to have
 no side entrances.
 
+> **Amended by [ADR 0051](0051-operate-tier-and-the-canvas-lock.md):** a fourth
+> tier, `operate`, sits between `view` and `edit`, and the canvas menus and
+> gestures are now tier-gated, so the `view` property stated above holds
+> there too, except the gaps listed in the [security guide](../guides/security.md).
+
 ## One gate, two credentials
 
 `AuthGateMiddleware` is a **pure-ASGI callable** on the root app, installed in
@@ -123,7 +128,7 @@ the canvas hot path to catch.
 ## Layering: vocabulary in core, mechanism in studio, UI in a library
 
 - **`haywire.core.access`** — the `AccessTier` enum, `SessionContext.principal`,
-  and `can_view()` / `can_edit()` / `can_admin()` / `can_access(tier)`. No
+  and `can_view()` / `can_edit()` / `can_admin()` / `can_access(tier)` (the ladder is `view` < `operate` < `edit` < `admin` since ADR 0051). No
   files, no crypto, no ASGI. Core must own the vocabulary because
   `@panel(access=…)` and `@editor(access=…)` are core decorators; a studio-owned
   enum would make core import studio.

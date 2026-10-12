@@ -430,7 +430,7 @@ class Rotate(EditorCommand):
     command_id: ClassVar[str] = "my_lib.rotate"      # unique app-wide
     label: ClassVar[str] = "Rotate"                  # shown in menus and the Shortcuts editor
     default_keys: ClassVar[tuple[str, ...]] = ("Mod+R",)
-    access: ClassVar[AccessTier] = AccessTier.EDIT   # the default; AccessTier.VIEW for read-only
+    access: ClassVar[AccessTier] = AccessTier.EDIT   # the default; tiers: VIEW < OPERATE < EDIT < ADMIN
 
 
 @editor(label="My Editor")
