@@ -441,10 +441,10 @@ class MyEditor(BaseEditor):
 ```
 
 - **Subscribing claims the keys.** The keymap is built from the commands each editor class subscribes to; there is no separate registration. The handler runs only for key presses aimed at this editor's binding, from a principal holding `access`.
-- **The editor root needs no work.** Slot tab panels already carry `data-hw-binding`, so a pointer-down anywhere in your editor makes it the **target editor**. Keys typed into a text field stay with the field.
-- **Clashes are reported, not raised.** Two commands claiming one combo in the same editor, a browser-reserved combo (`Mod+W`, `Mod+T`, …), or a `command_id` declared twice each log a warning to the error ledger; see `build_keymap` in `haywire.ui.keymap` for which one wins.
+- **The editor root needs no work.** Slot tab panels already carry `data-hw-binding`, so a pointer-down anywhere in your editor makes it the **target editor**. Keys typed into a text field, or pressed inside an open dialog, stay with the page.
+- **Clashes are reported, not raised.** Two commands claiming one combo in the same editor, a browser-reserved combo (`Mod+W`, `Mod+T`, …), a combo that does not parse (see `normalize_combo`), or a `command_id` declared twice each log a warning to the error ledger; see `build_keymap` in `haywire.ui.keymap` for which one wins.
 - **Show the key on the menu row** with `hui.menu_row(..., command=Rotate)` or `hui.icon_action(..., command=Rotate)`; the row's `on_click` still calls the verb itself.
-- **No default uses Alt**, and Alt combinations are not guaranteed across keyboard layouts (on macOS, Option changes `KeyboardEvent.key`). Only the first `default_keys` entry is displayed.
+- **No default uses Alt**, and Alt combinations are not guaranteed across keyboard layouts (outside macOS, Ctrl+Alt is AltGr and is matched on the character it types). Only the first `default_keys` entry is displayed.
 
 ## Constraints
 

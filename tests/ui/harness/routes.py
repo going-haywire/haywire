@@ -1528,7 +1528,8 @@ def register_routes(library_service) -> None:
     #
     # One KeymapListener (Control is Mod) over two editor roots, ed::one and
     # ed::two, in #hw-slot-edit. ed::one holds a text input and a pointer-local
-    # hook answering [12, 34]. #last-command / #command-log record what reached
+    # hook answering [12, 34]. #fake-dialog (classed .q-dialog) holds a plain
+    # button, #dialog-button. #last-command / #command-log record what reached
     # Python as "<command_id>@<binding_id>". Backs test_keymap_listener.py.
     # -------------------------------------------------------------------------
 
@@ -1556,7 +1557,15 @@ def register_routes(library_service) -> None:
         listener = KeymapListener(on_command=on_command, on_target=on_target, platform="other")
         listener.set_keymap(
             {
-                "editors": {"ed": {"Mod+A": "select_all", "Delete": "delete", "Mod+V": "paste"}},
+                "editors": {
+                    "ed": {
+                        "Mod+A": "select_all",
+                        "Delete": "delete",
+                        "Mod+V": "paste",
+                        "Mod+C": "copy",
+                        "Mod+Alt+L": "alt_l",
+                    }
+                },
                 "native": {"paste": "paste"},
             }
         )
@@ -1567,6 +1576,8 @@ def register_routes(library_service) -> None:
                 ui.element("input").props('type="text"')
                 ui.element("div").props("data-hw-pointer-local").style("width: 40px; height: 20px;")
             ui.element("div").props('data-hw-binding="ed::two" data-hw-editor="ed"').style(root_style)
+        with ui.element("div").classes("q-dialog").props('id="fake-dialog"'):
+            ui.element("button").props('id="dialog-button" type="button"')
         ui.run_javascript(
             "document.querySelector('[data-hw-pointer-local]').hwPointerLocal = () => [12, 34]"
         )

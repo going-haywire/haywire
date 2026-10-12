@@ -228,3 +228,69 @@ def test_graph_keyboard_paste_lands_at_pointer(page: Page, harness):
     assert box is not None
     assert abs(box["x"] - target_x) < 3, (box, target_x)
     assert abs(box["y"] - target_y) < 3, (box, target_y)
+
+
+def test_keys_native_inside_dialog(page: Page, harness):
+    _open(page, harness)
+    _click_root(page, _TWO)
+    page.evaluate(
+        """() => window.addEventListener('keydown', e => {
+            if (e.key === 'a' && e.ctrlKey) window.__hwProbe = e.defaultPrevented;
+        })"""
+    )
+
+    page.locator("#dialog-button").focus()
+    page.keyboard.press("Control+a")
+
+    assert page.evaluate("() => window.__hwProbe") is False
+    _expect_only_sentinel(page)
+
+
+def test_paste_inside_dialog_is_native(page: Page, harness):
+    _open(page, harness)
+    _click_root(page, _ONE)
+    page.locator("#dialog-button").focus()
+
+    not_prevented = _dispatch_paste(page, "hello", target="document.activeElement")
+
+    assert not_prevented is True
+    _expect_only_sentinel(page)
+
+
+def test_hidden_target_falls_back_to_edit_slot(page: Page, harness):
+    _open(page, harness)
+    _click_root(page, _TWO)
+    expect(page.locator("#last-target")).to_have_text("ed::two")
+
+    page.evaluate(f"() => document.querySelector('{_TWO}').style.display = 'none'")
+    page.keyboard.press("Delete")
+
+    expect(page.locator("#last-command")).to_have_text("delete@ed::one")
+
+
+def _dispatch_keydown(page: Page, init: str) -> None:
+    """Dispatch a ``keydown`` on the body with the given ``KeyboardEvent`` init fields (a JS object body)."""
+    page.evaluate(
+        f"""() => document.body.dispatchEvent(new KeyboardEvent('keydown', {{
+            {init}, bubbles: true, cancelable: true,
+        }}))"""
+    )
+
+
+def test_non_latin_layout_uses_physical_key(page: Page, harness):
+    _open(page, harness)
+    _click_root(page, _TWO)
+
+    _dispatch_keydown(page, "key: '\\u0441', code: 'KeyC', ctrlKey: true")
+
+    expect(page.locator("#last-command")).to_have_text("copy@ed::two")
+
+
+def test_altgr_character_keeps_its_glyph(page: Page, harness):
+    """Ctrl+Alt outside macOS is AltGr: the composed character names the key, not the physical one."""
+    _open(page, harness)
+    _click_root(page, _TWO)
+
+    _dispatch_keydown(page, "key: '\\u0142', code: 'KeyL', ctrlKey: true, altKey: true")
+
+    _expect_only_sentinel(page)

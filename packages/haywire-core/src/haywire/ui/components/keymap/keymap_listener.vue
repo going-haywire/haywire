@@ -8,7 +8,7 @@
 // Tracks the target editor (the last [data-hw-binding] root that took a
 // pointerdown), turns key presses into command events for the target's editor
 // keymap, and turns the native `paste` event into the editor's paste command.
-// Keys typed into a text field stay with the field.
+// Keys typed into a text field or pressed inside a dialog stay with the page.
 const NATIVE_SELECTOR =
   'input, textarea, select, [contenteditable], .cm-editor, [data-hw-native-keys]';
 
@@ -26,9 +26,13 @@ function comboFromEvent(e, isMac) {
   if (key === ' ') {
     key = 'Space';
   } else if (key.length === 1) {
-    // Alt+letter on macOS yields a composed glyph (Alt+A -> "å"); the physical key names the combo.
+    // Option+letter on macOS composes a glyph (Option+A -> "å") and a non-Latin layout types its own
+    // letter under Ctrl/Cmd (Ctrl+C -> "с"); the physical key names those combos. Ctrl+Alt outside
+    // macOS is AltGr, whose composed character is the key itself.
     const physical = /^(?:Key([A-Z])|Digit([0-9]))$/.exec(e.code || '');
-    if (e.altKey && physical && key.charCodeAt(0) > 0x7e) key = physical[1] || physical[2];
+    const composed = key.charCodeAt(0) > 0x7e;
+    const byPhysical = (isMac && e.altKey) || ((e.ctrlKey || e.metaKey) && !e.altKey);
+    if (physical && composed && byPhysical) key = physical[1] || physical[2];
     key = key.toUpperCase();
   }
   return [...mods, key].join('+');
@@ -36,6 +40,16 @@ function comboFromEvent(e, isMac) {
 
 function isNativeTarget(el) {
   return el instanceof Element && el.closest(NATIVE_SELECTOR) !== null;
+}
+
+// An open dialog sits over the editors, so keys pressed in it never act on the editor behind.
+function isInDialog(el) {
+  return el instanceof Element && el.closest('.q-dialog') !== null;
+}
+
+function keepsNativeKeys(target) {
+  const active = document.activeElement;
+  return isNativeTarget(active) || isInDialog(active) || isInDialog(target);
 }
 
 function isVisible(el) {
@@ -86,13 +100,13 @@ export default {
       this.$emit('hw-target', { binding_id: bindingId });
     },
 
-    // The target editor's root: the last one clicked while it is still in the page,
+    // The target editor's root: the last one clicked while it is still visible in the page,
     // else the first visible editor root in the fallback slot.
     resolveRoot() {
       if (this.targetBinding !== null) {
         const sel = `[data-hw-binding="${CSS.escape(this.targetBinding)}"]`;
         const current = document.querySelector(sel);
-        if (current) return current;
+        if (current && isVisible(current)) return current;
       }
       const slot = `#hw-slot-${CSS.escape(this.fallbackSlot)} [data-hw-binding]`;
       return [...document.querySelectorAll(slot)].find(isVisible) || null;
@@ -113,7 +127,7 @@ export default {
     },
 
     onKeyDown(e) {
-      if (e.repeat || isNativeTarget(document.activeElement)) return;
+      if (e.repeat || keepsNativeKeys(e.target)) return;
       const combo = comboFromEvent(e, this.isMac);
       if (combo === null) return;
       const root = this.resolveRoot();
@@ -129,7 +143,7 @@ export default {
     },
 
     onPaste(e) {
-      if (isNativeTarget(e.target)) return;
+      if (isNativeTarget(e.target) || keepsNativeKeys(e.target)) return;
       const root = this.resolveRoot();
       if (!root) return;
       const map = this.editorMap(root);
