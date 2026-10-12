@@ -9,6 +9,7 @@ from .identity import EditorIdentity
 if TYPE_CHECKING:
     from haywire.ui.editor.wrapper import EditorWrapper
     from haywire.core.session.context import SessionContext
+    from haywire.core.signals import EditorCommand
     from haywire.core.library.identity import LibraryIdentity
     from nicegui.element import Element
 
@@ -56,6 +57,19 @@ class BaseEditor(ABC):
             context: The current session context.
         """
         pass
+
+    def accepts_command(self, context: "SessionContext", command: "EditorCommand") -> bool:
+        """Return whether this editor takes ``command`` right now.
+
+        Called after the session's access tier has already admitted the
+        command. Default is ``True``; override to refuse commands the editor's
+        current state does not allow.
+
+        Args:
+            context: The current session context.
+            command: The command about to be delivered to this editor.
+        """
+        return True
 
     def on_blur(self, context: "SessionContext") -> None:
         """Called when another wrapper becomes active in the same slot.

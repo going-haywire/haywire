@@ -18,6 +18,7 @@ from haywire.core.signals import (
     Paste,
     Redo,
     SelectAll,
+    ToggleLock,
     Undo,
 )
 from haybale_graph_editor.editors import graph_editor as graph_editor_module
@@ -104,3 +105,75 @@ def test_commands_no_op_before_the_first_draw():
     context.session.publish.assert_not_called()
     context.data.__getitem__.assert_not_called()
     assert document.editor.method_calls == []
+
+
+def _real_context(tier: Any) -> Any:
+    from haywire.core.session.context import SessionContext
+
+    from haywire.core.access import set_access_resolver
+
+    set_access_resolver(lambda name: tier)
+    ctx = SessionContext(session_id="s1", app=MagicMock())
+    ctx.principal = "someone"
+    return ctx
+
+
+@pytest.fixture(autouse=True)
+def _restore_resolver():
+    from haywire.core.access import access_resolver, set_access_resolver
+
+    previous = access_resolver()
+    yield
+    set_access_resolver(previous)
+
+
+def test_locked_level_refuses_undo_delete_paste():
+    from haywire.core.access import AccessTier
+
+    editor, _, _ = _editor(MagicMock())
+    editor._levels[DOCUMENT_LEVEL].locked = True
+    ctx = _real_context(AccessTier.ADMIN)
+    for command in (Undo, Delete, Paste):
+        assert editor.accepts_command(ctx, command(binding_id=BINDING)) is False
+    for allowed in (Copy, SelectAll, ToggleLock):
+        assert editor.accepts_command(ctx, allowed(binding_id=BINDING)) is True
+
+
+def test_toggle_lock_unlocks_for_edit():
+    from haywire.core.access import AccessTier
+
+    editor, _, _ = _editor(MagicMock())
+    editor._claim_session_state = MagicMock()  # type: ignore[method-assign]
+    editor._levels[DOCUMENT_LEVEL].locked = True
+    ctx = _real_context(AccessTier.EDIT)
+    editor._on_toggle_lock(ctx, ToggleLock(binding_id=BINDING))
+    assert editor._levels[DOCUMENT_LEVEL].locked is False
+    editor._on_toggle_lock(ctx, ToggleLock(binding_id=BINDING))
+    assert editor._levels[DOCUMENT_LEVEL].locked is True
+
+
+def test_save_ignores_the_lock(monkeypatch):
+    from haywire.core.access import AccessTier
+
+    monkeypatch.setattr(graph_editor_module.ui, "notify", MagicMock())
+    editor, _, document = _editor(MagicMock())
+    editor._levels[DOCUMENT_LEVEL].locked = True
+    editor._update_header = MagicMock()  # type: ignore[method-assign]
+    document.save = MagicMock(return_value=None)
+    ctx = _real_context(AccessTier.EDIT)
+    ctx.session = MagicMock()
+    editor._save_graph(ctx)
+    document.save.assert_called_once_with()
+
+
+def test_save_refused_below_edit(monkeypatch):
+    from haywire.core.access import AccessTier
+
+    notify = MagicMock()
+    monkeypatch.setattr(graph_editor_module.ui, "notify", notify)
+    editor, _, document = _editor(MagicMock())
+    document.save = MagicMock()
+    ctx = _real_context(AccessTier.OPERATE)
+    editor._save_graph(ctx)
+    document.save.assert_not_called()
+    notify.assert_called_once()

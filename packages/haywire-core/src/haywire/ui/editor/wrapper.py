@@ -441,6 +441,10 @@ class EditorWrapper:
             ):
                 # A command addresses one binding and needs its access tier; see ADR 0050.
                 return
+            if isinstance(event, EditorCommand) and not instance.accepts_command(
+                self._session.context, event
+            ):
+                return
             method = getattr(instance, method_name, None)
             if method is None:
                 logger.warning(

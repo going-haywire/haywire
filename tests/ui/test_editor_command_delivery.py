@@ -104,3 +104,18 @@ def test_plain_signals_unaffected():
 
     assert _calls(a) == [signal]
     assert _calls(b) == [signal]
+
+
+def test_dispatch_asks_the_editor():
+    session = _make_session()
+    wrapper = _make_wrapper(session, "a")
+    editor = cast(Any, wrapper.instance)
+    editor.accepts_command = lambda context, command: False  # type: ignore[method-assign]
+
+    session.publish(Copy(binding_id=wrapper.editor_binding_id))
+    assert _calls(wrapper) == []
+
+    editor.accepts_command = lambda context, command: True  # type: ignore[method-assign]
+    copy = Copy(binding_id=wrapper.editor_binding_id)
+    session.publish(copy)
+    assert _calls(wrapper) == [copy]

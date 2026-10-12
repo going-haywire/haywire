@@ -43,6 +43,7 @@ from .vocabulary import (
     Delete,
     Undo,
     Redo,
+    ToggleLock,
     SelectAll,
 )
 
@@ -91,5 +92,6 @@ __all__ = [
     "Delete",
     "Undo",
     "Redo",
+    "ToggleLock",
     "SelectAll",
 ]

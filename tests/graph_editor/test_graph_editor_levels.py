@@ -113,7 +113,9 @@ def _editor(document: _FakeDocument | None = None) -> tuple[GraphEditor, Any, _F
     editor._update_header = MagicMock()  # type: ignore[method-assign]
     editor._claim_session_state = MagicMock()  # type: ignore[method-assign]
 
-    context = SimpleNamespace(app_data=MagicMock(), session=MagicMock(), data=MagicMock())
+    context = SimpleNamespace(
+        app_data=MagicMock(), session=MagicMock(), data=MagicMock(), can_edit=lambda: True
+    )
     return editor, context, document
 
 

@@ -58,3 +58,12 @@ def test_position_defaults_to_none():
 def test_binding_id_is_required():
     with pytest.raises(TypeError):
         Copy()  # type: ignore[call-arg]
+
+
+def test_toggle_lock_identity():
+    from haywire.core.signals.vocabulary import ToggleLock
+
+    assert ToggleLock.command_id == "toggle_lock"
+    assert ToggleLock.label == "Lock / Unlock"
+    assert ToggleLock.default_keys == ("Mod+E",)
+    assert ToggleLock.access is AccessTier.EDIT

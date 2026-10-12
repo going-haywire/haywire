@@ -544,6 +544,15 @@ class SelectAll(EditorCommand):
     access: ClassVar[AccessTier] = AccessTier.VIEW
 
 
+@dataclass(frozen=True, kw_only=True)
+class ToggleLock(EditorCommand):
+    """Lock or unlock the focused editor's canvas."""
+
+    command_id: ClassVar[str] = "toggle_lock"
+    label: ClassVar[str] = "Lock / Unlock"
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+E",)
+
+
 __all__ = [
     # Observations
     "ActiveGraphMoved",
@@ -575,4 +584,5 @@ __all__ = [
     "Undo",
     "Redo",
     "SelectAll",
+    "ToggleLock",
 ]

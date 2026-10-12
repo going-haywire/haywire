@@ -29,7 +29,9 @@ from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
+from haywire.core.access import AccessTier
 from haywire.core.session.handlers import react_on
+from haywire.core.signals.signal import EditorCommand
 from haywire.core.signals import (
     ActiveGraphMoved,
     Copy,
@@ -44,9 +46,11 @@ from haywire.core.signals import (
     RevealGraphInstance,
     SelectAll,
     SelectionMoved,
+    ToggleLock,
     Undo,
 )
 
+from ..access import allows
 from ..editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from ..editors.graph_save_as import open_graph_save_as_dialog
 from ..state.edit_state import EditState
@@ -158,6 +162,7 @@ class GraphEditor(BaseEditor):
         self._breadcrumb = None  # ui.row — where the active level sits in the tree
         self._undo_button = None  # ui.button — undo
         self._redo_button = None  # ui.button — redo
+        self._lock_button = None  # ui.button — lock toggle
 
     # ------------------------------------------------------------------
     # levels
@@ -484,6 +489,28 @@ class GraphEditor(BaseEditor):
         if self._canvas_manager is not None:
             self._canvas_manager.delete_selection()
 
+    def accepts_command(self, context: "SessionContext", command: EditorCommand) -> bool:
+        """Refuse commands the lock of the level on screen forbids; ``ToggleLock`` always passes."""
+        if isinstance(command, ToggleLock):
+            return True
+        level = self._levels.get(self._active_level)
+        locked = level.locked if level is not None else False
+        return allows(context.can_access, locked, type(command).access)
+
+    @react_on(ToggleLock)
+    def _on_toggle_lock(self, context: "SessionContext", event: ToggleLock) -> None:
+        """Flip the lock of the level on screen; unlocking needs the real edit tier."""
+        level = self._levels.get(self._active_level)
+        if level is None:
+            return
+        if self.set_level_locked(context, self._active_level, not level.locked):
+            self._update_lock_button(context)
+            document = self._document()
+            if document is not None:
+                self._update_undo_redo_buttons(document)
+        else:
+            ui.notify("Unlocking needs edit access", type="warning")
+
     @react_on(Undo)
     def _on_undo(self, context: "SessionContext", event: Undo) -> None:
         """Undo the document's last action."""
@@ -642,6 +669,15 @@ class GraphEditor(BaseEditor):
                     # empty at the document level, so the header looks the same
                     # as it always did for an ordinary graph.
                     self._breadcrumb = ui.row().classes("items-center gap-1 min-w-0 no-wrap overflow-hidden")
+                    self._lock_button = hui.icon_action(
+                        hui.icon.unlocked,
+                        tooltip="Lock",
+                        on_click=lambda: context.session.publish(
+                            ToggleLock(binding_id=self.wrapper.editor_binding_id)
+                        ),
+                        command=ToggleLock,
+                    )
+                    self._update_lock_button(context)
                     self._undo_button = hui.icon_action(
                         "undo", tooltip="Undo", on_click=lambda: self._do_undo(context), command=Undo
                     )
@@ -953,6 +989,7 @@ class GraphEditor(BaseEditor):
             self._set_dirty_marker(True)
             self._graph_name_label.classes(remove="hw-text-body hw-text-dim", add="hw-text-muted")
         self._update_undo_redo_buttons(document)
+        self._update_lock_button(context)
         self._sync_tab_dirty(document)
         self._update_breadcrumb(context)
 
@@ -969,15 +1006,30 @@ class GraphEditor(BaseEditor):
 
     def _update_undo_redo_buttons(self, document: "GraphContainer") -> None:
         """Enable/disable undo and redo buttons from the document's history."""
+        editable = self._edit_allowed()
         if self._undo_button is not None:
-            self._undo_button.set_enabled(document.editor.can_undo())
+            self._undo_button.set_enabled(editable and document.editor.can_undo())
         if self._redo_button is not None:
-            self._redo_button.set_enabled(document.editor.can_redo())
+            self._redo_button.set_enabled(editable and document.editor.can_redo())
+
+    def _edit_allowed(self) -> bool:
+        """Return whether the canvas on screen allows editing, lock included."""
+        manager = self._canvas_manager
+        return True if manager is None else manager.allows(AccessTier.EDIT)
+
+    def _update_lock_button(self, context: "SessionContext") -> None:
+        """Show the lock icon of the level on screen; disabled below the real edit tier."""
+        button = self._lock_button
+        level = self._levels.get(self._active_level)
+        if button is None or level is None:
+            return
+        button.props(f"icon={hui.icon.locked if level.locked else hui.icon.unlocked}")
+        button.set_enabled(context.can_edit())
 
     def _do_undo(self, context: "SessionContext") -> None:
         """Undo the last action anywhere in this document, including inside a Group."""
         document = self._document()
-        if document is None or not document.editor.can_undo():
+        if document is None or not self._edit_allowed() or not document.editor.can_undo():
             return
         document.editor.undo()
         context.session.publish(GraphDataMutated())
@@ -985,7 +1037,7 @@ class GraphEditor(BaseEditor):
     def _do_redo(self, context: "SessionContext") -> None:
         """Redo the last undone action anywhere in this document."""
         document = self._document()
-        if document is None or not document.editor.can_redo():
+        if document is None or not self._edit_allowed() or not document.editor.can_redo():
             return
         document.editor.redo()
         context.session.publish(GraphDataMutated())
@@ -1002,6 +1054,9 @@ class GraphEditor(BaseEditor):
         """
         entry = self._document()
         if entry is None:
+            return
+        if not context.can_edit():
+            ui.notify("Saving needs edit access", type="warning", position="top-right")
             return
 
         if entry.path is not None:
