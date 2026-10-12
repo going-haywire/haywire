@@ -4,7 +4,7 @@ An editor class claims the ``default_keys`` of every ``EditorCommand`` it
 subscribes to with ``@react_on`` / ``@redraw_on``. ``build_keymap`` resolves
 those claims for one principal's access tier and records the problems that
 keep a key from binding: clashes inside one editor, browser-reserved combos,
-and a ``command_id`` declared by two classes. ``report_keymap_problems`` logs
+combos that do not parse, and a ``command_id`` declared by two classes. ``report_keymap_problems`` logs
 those problems to the error ledger; ``report_new_keymap_problems`` logs only
 the ones not yet logged in this process.
 """
@@ -18,7 +18,7 @@ from haywire.core.access.tier import AccessTier
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.session.handlers import discover_handlers
 from haywire.core.signals import EditorCommand
-from haywire.core.signals.keys import RESERVED_COMBOS
+from haywire.core.signals.keys import RESERVED_COMBOS, normalize_combo
 
 _CATEGORY = "Keyboard Shortcuts"
 
@@ -67,6 +67,8 @@ class Keymap:
         clashes: Combos declared by more than one command of the same editor.
         reserved: ``(combo, command)`` pairs left unbound because the browser
             reserves the combo.
+        invalid: ``(combo, command)`` pairs left unbound because ``combo``, as
+            declared in ``default_keys``, is rejected by ``normalize_combo``.
         duplicate_ids: ``(command_id, classes)`` for each id declared by more
             than one class; none of those classes appear in ``commands`` or
             ``editors``.
@@ -77,6 +79,7 @@ class Keymap:
     commands: Mapping[str, type[EditorCommand]]
     clashes: tuple[KeymapClash, ...]
     reserved: tuple[tuple[str, type[EditorCommand]], ...]
+    invalid: tuple[tuple[str, type[EditorCommand]], ...]
     duplicate_ids: tuple[tuple[str, tuple[type[EditorCommand], ...]], ...]
 
     def to_client(self) -> dict[str, Any]:
@@ -120,9 +123,11 @@ def build_keymap(
     """Return the keymap of ``editor_classes`` for a principal allowed ``can_access``.
 
     Each editor binds the ``default_keys`` of the ``EditorCommand`` classes it
-    subscribes to. A command whose ``access`` tier ``can_access`` rejects binds
-    nothing, so its keys keep their browser behaviour. A browser-reserved combo
-    is recorded in ``Keymap.reserved`` and left unbound. When several commands
+    subscribes to, in their ``normalize_combo`` spelling. A command whose
+    ``access`` tier ``can_access`` rejects binds nothing, so its keys keep their
+    browser behaviour. A combo ``normalize_combo`` rejects is recorded in
+    ``Keymap.invalid`` and a browser-reserved combo in ``Keymap.reserved``;
+    neither is bound. When several commands
     of one editor declare the same combo, the command from the editor class's
     own top-level package wins, then the lowest ``command_id``; the contest is
     recorded in ``Keymap.clashes``. A ``command_id`` declared by more than one
@@ -162,6 +167,7 @@ def build_keymap(
     commands: dict[str, type[EditorCommand]] = {}
     clashes: list[KeymapClash] = []
     reserved: set[tuple[str, type[EditorCommand]]] = set()
+    invalid: set[tuple[str, type[EditorCommand]]] = set()
 
     for editor_key, cls in editor_classes.items():
         claims: dict[str, list[type[EditorCommand]]] = {}
@@ -169,7 +175,12 @@ def build_keymap(
             if cmd.command_id in duplicated or not can_access(cmd.access):
                 continue
             commands[cmd.command_id] = cmd
-            for combo in cmd.default_keys:
+            for declared_combo in cmd.default_keys:
+                try:
+                    combo = normalize_combo(declared_combo)
+                except ValueError:
+                    invalid.add((declared_combo, cmd))
+                    continue
                 if combo in RESERVED_COMBOS:
                     reserved.add((combo, cmd))
                     continue
@@ -200,12 +211,13 @@ def build_keymap(
         commands=commands,
         clashes=tuple(sorted(clashes, key=lambda c: (c.editor_key, c.combo))),
         reserved=tuple(sorted(reserved, key=lambda r: (r[0], r[1].command_id))),
+        invalid=tuple(sorted(invalid, key=lambda r: (r[0], r[1].command_id))),
         duplicate_ids=duplicate_ids,
     )
 
 
 def report_keymap_problems(keymap: Keymap) -> None:
-    """Log one warning to the error ledger per clash, reserved combo and duplicate id in ``keymap``."""
+    """Log one warning to the error ledger per clash, reserved or invalid combo and duplicate id."""
     for _key, message in _problems(keymap):
         _warn(message)
 
@@ -255,6 +267,13 @@ def _problems(keymap: Keymap) -> list[tuple[tuple[Any, ...], str]]:
             (
                 ("reserved", combo, cmd.command_id),
                 f"Shortcut {combo} of {_describe(cmd)} is reserved by the browser and is not bound.",
+            )
+        )
+    for combo, cmd in keymap.invalid:
+        problems.append(
+            (
+                ("invalid", combo, cmd.command_id),
+                f"Shortcut {combo!r} of {_describe(cmd)} is not a valid key combo and is not bound.",
             )
         )
     for command_id, classes in keymap.duplicate_ids:

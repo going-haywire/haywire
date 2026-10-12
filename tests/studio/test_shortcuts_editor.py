@@ -82,7 +82,9 @@ def _keymap() -> Keymap:
 
 
 def _empty_keymap() -> Keymap:
-    return Keymap(editors={}, editor_labels={}, commands={}, clashes=(), reserved=(), duplicate_ids=())
+    return Keymap(
+        editors={}, editor_labels={}, commands={}, clashes=(), reserved=(), invalid=(), duplicate_ids=()
+    )
 
 
 @pytest.fixture

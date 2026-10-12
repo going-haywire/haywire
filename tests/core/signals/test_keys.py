@@ -40,3 +40,20 @@ def test_format_named_keys():
 def test_reserved_combos_cover_browser_shortcuts():
     assert "Mod+W" in RESERVED_COMBOS
     assert "Mod+Shift+N" in RESERVED_COMBOS
+
+
+@pytest.mark.parametrize(
+    ("raw", "canonical"), [("f5", "F5"), ("mod+F12", "Mod+F12"), ("shift+f24", "Shift+F24")]
+)
+def test_normalize_accepts_function_keys(raw, canonical):
+    assert normalize_combo(raw) == canonical
+
+
+def test_normalize_named_key_is_case_insensitive():
+    assert normalize_combo("mod+delete") == "Mod+Delete"
+
+
+@pytest.mark.parametrize("bad", ["Hyper", "Mod+Hyper", "F0", "F25", "Mod+Foo"])
+def test_normalize_rejects_unknown_named_keys(bad):
+    with pytest.raises(ValueError, match="key combo"):
+        normalize_combo(bad)

@@ -4,7 +4,8 @@ A combo is ``+``-joined modifiers followed by one key, e.g. ``Mod+Shift+Z``.
 ``Mod`` is the platform command key (Cmd on macOS, Ctrl elsewhere); ``Ctrl``
 is the physical Control key on macOS. Canonical order is ``Mod``, ``Ctrl``,
 ``Alt``, ``Shift``, then the key. A single-character key is upper-cased; a
-named key keeps its ``KeyboardEvent.key`` spelling (``Delete``, ``Escape``).
+named key keeps its ``KeyboardEvent.key`` spelling (``Delete``, ``Escape``,
+``F1`` to ``F24``).
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ _NAMED_KEYS: dict[str, str] = {
         "End",
         "PageUp",
         "PageDown",
+        *(f"F{n}" for n in range(1, 25)),
     )
 }
 
@@ -55,7 +57,8 @@ def normalize_combo(combo: str) -> str:
 
     Raises:
         ValueError: If ``combo`` is empty, has an empty segment (``"Mod+"``),
-            repeats a modifier, or has no key after its modifiers.
+            names an unknown modifier, repeats a modifier, has no key after its
+            modifiers, or ends in a multi-character key that is not a named key.
     """
     parts = combo.split("+")
     if any(not p for p in parts):
@@ -73,8 +76,10 @@ def normalize_combo(combo: str) -> str:
         raise ValueError(f"Key combo {combo!r} has no key after its modifiers")
     if len(key) == 1:
         key = key.upper()
+    elif key.lower() in _NAMED_KEYS:
+        key = _NAMED_KEYS[key.lower()]
     else:
-        key = _NAMED_KEYS.get(key.lower(), key)
+        raise ValueError(f"Unknown key {key!r} in key combo {combo!r}")
     return "+".join([m for m in _MODIFIER_ORDER if m in seen] + [key])
 
 

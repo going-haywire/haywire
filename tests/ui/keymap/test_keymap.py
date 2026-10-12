@@ -73,6 +73,27 @@ class _DupB(EditorCommand):
     default_keys: ClassVar[tuple[str, ...]] = ("Mod+L",)
 
 
+@dataclass(frozen=True, kw_only=True)
+class _LowerK(EditorCommand):
+    command_id: ClassVar[str] = "test.lower_k"
+    label: ClassVar[str] = "Lower K"
+    default_keys: ClassVar[tuple[str, ...]] = ("mod+k",)
+
+
+@dataclass(frozen=True, kw_only=True)
+class _LowerCloseTab(EditorCommand):
+    command_id: ClassVar[str] = "test.lower_close_tab"
+    label: ClassVar[str] = "Lower Close Tab"
+    default_keys: ClassVar[tuple[str, ...]] = ("mod+w",)
+
+
+@dataclass(frozen=True, kw_only=True)
+class _Invalid(EditorCommand):
+    command_id: ClassVar[str] = "test.invalid"
+    label: ClassVar[str] = "Invalid"
+    default_keys: ClassVar[tuple[str, ...]] = ("Hyper+K", "Mod+I")
+
+
 class _CopyRedoEditor:
     class_identity = _identity("Copy Redo")
 
@@ -310,4 +331,79 @@ def test_reset_reported_problems_reports_again():
         report_new_keymap_problems(keymap)
 
     assert len(_recorded_messages(ledger)) == 2
+    reset_reported_keymap_problems()
+
+
+# ---------------------------------------------------------------------------
+# Declared combos are normalised before binding
+# ---------------------------------------------------------------------------
+
+
+class _LowerKEditor:
+    __module__ = "lib_a.editors"
+    class_identity = _identity("Lower K")
+
+    @react_on(_LowerK, _OwnK)
+    def _on_k(self, ctx, signal): ...
+
+
+class _LowerReservedEditor:
+    class_identity = _identity("Lower Reserved")
+
+    @react_on(_LowerCloseTab)
+    def _on_close(self, ctx, signal): ...
+
+
+class _InvalidEditor:
+    class_identity = _identity("Invalid")
+
+    @react_on(_Invalid)
+    def _on_invalid(self, ctx, signal): ...
+
+
+def test_declared_combo_is_normalised_before_binding():
+    keymap = build_keymap({"ed": _LowerKEditor}, _always)
+
+    assert set(keymap.editors["ed"]) == {"Mod+K"}
+    assert keymap.clashes == (KeymapClash(editor_key="ed", combo="Mod+K", winner=_OwnK, losers=(_LowerK,)),)
+
+
+def test_declared_combo_is_normalised_before_reserved_check():
+    keymap = build_keymap({"ed": _LowerReservedEditor}, _always)
+
+    assert keymap.editors == {}
+    assert keymap.reserved == (("Mod+W", _LowerCloseTab),)
+
+
+def test_invalid_combo_recorded_not_claimed():
+    keymap = build_keymap({"ed": _InvalidEditor}, _always)
+
+    assert set(keymap.editors["ed"]) == {"Mod+I"}
+    assert keymap.invalid == (("Hyper+K", _Invalid),)
+    assert keymap.to_client()["editors"] == {"ed": {"Mod+I": "test.invalid"}}
+
+
+def test_report_logs_invalid_combo():
+    keymap = build_keymap({"ed": _InvalidEditor}, _always)
+
+    ledger = MagicMock()
+    with patch("haywire.core.errors.ledger.get_error_ledger", return_value=ledger):
+        report_keymap_problems(keymap)
+
+    (message,) = _recorded_messages(ledger)
+    assert "Hyper+K" in message
+    assert "test.invalid" in message
+
+
+def test_report_new_logs_invalid_combo_once():
+    reset_reported_keymap_problems()
+    ledger = MagicMock()
+    with patch("haywire.core.errors.ledger.get_error_ledger", return_value=ledger):
+        report_new_keymap_problems(build_keymap({"ed": _InvalidEditor}, _always))
+        report_new_keymap_problems(build_keymap({"ed": _InvalidEditor, "r": _ReservedEditor}, _always))
+
+    messages = _recorded_messages(ledger)
+    assert len(messages) == 2
+    assert "Hyper+K" in messages[0]
+    assert "Mod+W" in messages[1]
     reset_reported_keymap_problems()
