@@ -68,6 +68,7 @@ def _ctx(with_node=False, *, nodes=None, edges=()):  # untyped stand-in for Sess
     edit = SimpleNamespace(
         active_node=None,
         active_graph=graph,
+        active_locked=False,
         selected_nodes=set(nodes),
         selected_edges=set(edges),
     )

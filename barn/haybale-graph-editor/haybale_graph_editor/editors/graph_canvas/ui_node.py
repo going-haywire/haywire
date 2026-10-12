@@ -12,6 +12,7 @@ import logging
 from typing import Any, Callable, Optional
 
 from nicegui import ui
+from haywire.core.access import AccessTier
 from haywire.core.graph.types import ChangeReason
 from haywire.core.node.base import BaseNode
 from haywire.core.errors.haywire_exception import HaywireException
@@ -22,6 +23,9 @@ from haywire.ui.skin.nodecard import UINodeCard
 
 from haywire.ui.components.cull.cull import NodeCull
 from haywire.ui.components.graph.event_definitions import SyncNodeRedrawEvent
+from haywire.ui.widget.base import BaseWidget
+
+from ...access import NodeWriteGate
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +42,13 @@ class UINode:
     - Subscribes to NodeWrapper for hot reload support
     """
 
-    def __init__(self, container: ui.element, wrapper: NodeWrapper, factory: SkinFactory):
+    def __init__(
+        self,
+        container: ui.element,
+        wrapper: NodeWrapper,
+        factory: SkinFactory,
+        allows: Callable[[AccessTier], bool],
+    ):
         """
         Initialize UINode with node, factory, and parent component.
 
@@ -46,10 +56,14 @@ class UINode:
             wrapper: NodeWrapper for hot reload support
             component: Parent NiceGUI component to render into
             factory: SkinFactory for creating UI representations
+            allows: Answers whether this session may do what a tier asks on
+                this canvas, lock included. The card's widgets write only
+                while it allows operate.
         """
         self.wrapper: NodeWrapper = wrapper
         self.factory: SkinFactory = factory
         self.container: ui.element = container
+        self._allows = allows
 
         self._position: Optional[tuple[float, float]] = None
 
@@ -204,6 +218,7 @@ class UINode:
                 self.current_ui_card = self.factory.render(
                     renderer_name, self.wrapper, _is_error_render=_is_error_render
                 )
+                self._apply_write_gates()
 
                 if error and self.current_ui_card is not None:
                     self.current_ui_card.append(error)  # Append error details if any
@@ -234,6 +249,14 @@ class UINode:
             ).enrich(registry_key=renderer_name).log()
 
             return False
+
+    def _apply_write_gates(self) -> None:
+        """Give every widget on the card a gate that needs operate and marks the node's value edited."""
+        if self.current_ui_card is None:
+            return
+        for widget in self.current_ui_card.widget_instances.values():
+            if isinstance(widget, BaseWidget):
+                widget.write_gate = NodeWriteGate(AccessTier.OPERATE, self._allows, self.wrapper)
 
     def _on_slot_field_change(self, _value: Any, _old: Any) -> None:
         """A size or appearance prop changed → restyle the slot. NEVER a redraw.

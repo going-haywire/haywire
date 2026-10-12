@@ -36,7 +36,7 @@ from haywire.core.settings import UiState
 from haywire.ui import elements as hui
 from haywire.ui.panel.host_rendering import drawing_panel
 from haywire.ui.utils import anchor_cleanup_to_element
-from haywire.ui.widget.base import DISABLED_STYLE
+from haywire.ui.widget.base import DISABLED_STYLE, BaseWidget
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from haywire.core.settings import Settings, setting
     from haywire.core.types.enums import PortType
     from haywire.core.types.fields import DataField
+    from haywire.ui.widget.write_gate import WriteGate
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,7 @@ def render_settings(
     *,
     categories: Iterable[str] | None = None,
     editor: "Editor | None" = None,
+    gate: "WriteGate | None" = None,
 ) -> None:
     """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
 
@@ -87,6 +89,11 @@ def render_settings(
             renders the empty state.
         editor: The graph editor to record a row's promote and demote on, so each
             is one undo step. Without one they apply directly and cannot be undone.
+        gate: Asked before every edit, reset, set-to-none, promote and demote a
+            row makes; a refused one changes nothing and the row shows the
+            value again. Rows draw disabled while it refuses. ``gate.written()``
+            follows each edit, reset and set-to-none that lands. ``None`` lets
+            every write through.
     """
 
     fields = type(obj)._settings_descriptors()
@@ -133,7 +140,7 @@ def render_settings(
             _refresh_group_visibility(category)
 
         _render_reactive_field_row(
-            ctx, obj, item[0], item[1], updaters, on_ui_state_applied=_on_applied, editor=editor
+            ctx, obj, item[0], item[1], updaters, on_ui_state_applied=_on_applied, editor=editor, gate=gate
         )
 
     column = _render_grouped(
@@ -536,7 +543,7 @@ def _render_field_row(
                         ("Settings source", _component_key(getattr(defn, "_owner_cls", None))),
                         ("Panel source", _component_key(drawing_panel())),
                     )
-        callback, _set_enabled = _resolve_widget_instance(defn, on_edit, cell=cell)
+        callback, _set_enabled, _resync = _resolve_widget_instance(defn, on_edit, cell=cell)
 
     # The registry stores subscriptions as weakrefs, so this closure must be kept
     # alive by something with the row's lifetime — the cleanup callback anchored
@@ -563,6 +570,7 @@ def _render_reactive_field_row(
     updaters: dict[str, Callable[[], None]],
     on_ui_state_applied: Callable[[], None] | None = None,
     editor: "Editor | None" = None,
+    gate: "WriteGate | None" = None,
 ) -> None:
     """Render a single reactive field row (instance path).
 
@@ -665,8 +673,35 @@ def _render_reactive_field_row(
     label: Any = None
     value_apply: Callable[[Any], None] | None = None
 
+    def _no_widget_yet() -> None:
+        pass
+
+    # Shows the model's value in the widget again; replaced once the widget is built.
+    resync_view: Callable[[], None] = _no_widget_yet
+
+    def _gate_allows() -> bool:
+        return gate is None or gate.allows()
+
+    def _show_model_again() -> None:
+        resync_view()
+        _refresh_chrome()
+
+    def _refuse() -> bool:
+        """Return True, and show the model again, when the gate refuses a write now."""
+        if _gate_allows():
+            return False
+        _show_model_again()
+        return True
+
+    def _written() -> None:
+        if gate is not None:
+            gate.written()
+
     def _on_reset_click():
+        if _refuse():
+            return
         obj._reset(attr_name)
+        _written()
         # reset() discards the local opinion but only writes the cell when the
         # value actually changes (old != new). A field that was locally-set yet
         # already equalled its default — e.g. promoted-then-demoted unchanged —
@@ -678,6 +713,8 @@ def _render_reactive_field_row(
     def _promote(direction: "PortType") -> None:
         from haywire.core.node.promotion import bag_accessor, promote_setting
 
+        if _refuse():
+            return
         node = obj._node
         if node is None:
             return
@@ -693,6 +730,8 @@ def _render_reactive_field_row(
     def _demote() -> None:
         from haywire.core.node.promotion import demote_setting
 
+        if _refuse():
+            return
         node = obj._node
         if node is None:
             return
@@ -706,7 +745,10 @@ def _render_reactive_field_row(
     none_item: Any = None
 
     def _set_to_none() -> None:
+        if _refuse():
+            return
         setattr(obj, attr_name, None)
+        _written()
 
     # Every wrapper field lists "Set to none", a field defaulting to absence
     # included: Reset greys whenever there is no local opinion, so hiding it
@@ -717,7 +759,7 @@ def _render_reactive_field_row(
         # Transient entries stay listed and grey while the row is clean or
         # DISABLED. Promote/Demote are per-render constants: a promotion
         # change rebuilds the panel.
-        editable = obj._effective_ui_state(attr_name) is UiState.NORMAL
+        editable = obj._effective_ui_state(attr_name) is UiState.NORMAL and _gate_allows()
         if reset_item is not None:
             reset_item.set_enabled(_has_local_opinion() and editable)
         if none_item is not None:
@@ -740,9 +782,11 @@ def _render_reactive_field_row(
         if node is not None and not is_promoted:
             directions = list(eligible_promotion_directions(defn))
         offers_demote = node is not None and is_promoted
+        # Promotion entries keep their place in the menu and grey while the gate refuses.
+        promotable = _gate_allows()
         with ui.context_menu().props('data-row-menu="true"'):
             if offers_demote:
-                ui.menu_item("Demote", on_click=_demote, auto_close=True)
+                ui.menu_item("Demote", on_click=_demote, auto_close=True).set_enabled(promotable)
             elif directions:
                 # dense=False: the anchor's Quasar density must match the plain
                 # menu_items beside it (Reset et al are not dense), or it renders
@@ -759,7 +803,7 @@ def _render_reactive_field_row(
                             direction.name.lower(),
                             on_click=lambda d=direction: _promote(d),
                             auto_close=True,
-                        ).style("white-space: nowrap")
+                        ).style("white-space: nowrap").set_enabled(promotable)
             # Reset is listed permanently for a writable row — it greys when the
             # row is clean rather than disappearing, so the menu never renders
             # empty and its shape does not depend on the current value.
@@ -827,15 +871,15 @@ def _render_reactive_field_row(
             if promoted_hint:
                 promoted_lbl.tooltip(promoted_hint)
         else:
-            on_edit = _bag_on_edit(obj, attr_name, error_container)
-            value_apply, widget_set_enabled = _resolve_widget_instance(defn, on_edit, bag=obj)
+            on_edit = _bag_on_edit(obj, attr_name, error_container, gate=gate, on_refused=_show_model_again)
+            value_apply, widget_set_enabled, resync_view = _resolve_widget_instance(defn, on_edit, bag=obj)
 
     def _refresh_row_ui_state() -> None:
         state = obj._effective_ui_state(attr_name)
         row_element.set_visibility(state is not UiState.HIDDEN)
         row_element.props(f'data-ui-state="{state.name.lower()}"')
         if widget_set_enabled is not None:
-            widget_set_enabled(state is UiState.NORMAL)
+            widget_set_enabled(state is UiState.NORMAL and _gate_allows())
         _refresh_reset_item()
         if on_ui_state_applied is not None:
             on_ui_state_applied()
@@ -878,7 +922,7 @@ def _resolve_widget_instance(
     on_edit: Callable[[Any], None],
     bag: "Settings | None" = None,
     cell: "DataField | None" = None,
-) -> tuple[Callable[[Any], None] | None, Callable[[bool], None]]:
+) -> tuple[Callable[[Any], None] | None, Callable[[bool], None], Callable[[], None]]:
     """Build the shared ``BaseWidget`` for *defn* via a ``SettingWidgetModel``.
 
     An unknown widget key falls back to a read-only label, so a missing widget
@@ -891,10 +935,11 @@ def _resolve_widget_instance(
             into the cell.
 
     Returns:
-        ``(apply_callback, set_enabled)``. ``apply_callback`` is ``None`` for
-        a real widget, which hears cell writes itself, and the label
-        fallback's ``apply(value)`` otherwise. ``set_enabled`` is never
-        ``None``.
+        ``(apply_callback, set_enabled, resync)``. ``apply_callback`` is
+        ``None`` for a real widget, which hears cell writes itself, and the
+        label fallback's ``apply(value)`` otherwise. ``set_enabled`` is never
+        ``None``. ``resync()`` shows the cell's current value in the widget
+        again, for an edit the write policy refused.
     """
     from haywire.ui.widget.globals import get_widget_class
     from haywire.ui.panel.setting_widget_model import SettingWidgetModel
@@ -904,7 +949,8 @@ def _resolve_widget_instance(
     if widget_cls is None:
         shared_cell = cell if cell is not None else (bag._cell_for(defn) if bag is not None else None)
         value = shared_cell.get_value() if shared_cell is not None else None
-        return _build_label_widget(value)
+        apply_label, set_label_enabled = _build_label_widget(value)
+        return apply_label, set_label_enabled, lambda: None
 
     shared_cell = cell if cell is not None else (bag._cell_for(defn) if bag is not None else None)
     assert shared_cell is not None, f"no cell for setting widget {defn._attr_name!r}"
@@ -940,7 +986,11 @@ def _resolve_widget_instance(
     # of crashing the panel.
     set_enabled = getattr(widget, "set_enabled", lambda _enabled: None)
 
-    return None, set_enabled
+    def _resync() -> None:
+        if isinstance(widget, BaseWidget):
+            widget.on_model_changed(model.get_value())
+
+    return None, set_enabled, _resync
 
 
 def _build_label_widget(value: Any) -> tuple[Callable[[Any], None], Callable[[bool], None]]:
@@ -995,10 +1045,23 @@ def _escape(v: Any) -> str:
 # ===========================================================================
 
 
-def _bag_on_edit(obj: "Settings", attr_name: str, error_container) -> Callable[[Any], None]:
-    """Write policy for the instance path: validate → setattr → error chrome."""
+def _bag_on_edit(
+    obj: "Settings",
+    attr_name: str,
+    error_container,
+    gate: "WriteGate | None" = None,
+    on_refused: Callable[[], None] | None = None,
+) -> Callable[[Any], None]:
+    """Write policy for the instance path: gate → validate → setattr → ``gate.written()`` → error chrome.
+
+    A write *gate* refuses calls ``on_refused`` and changes nothing.
+    """
 
     def on_edit(value: Any) -> None:
+        if gate is not None and not gate.allows():
+            if on_refused is not None:
+                on_refused()
+            return
         descriptor = type(obj)._settings_descriptors().get(attr_name)
         if descriptor is not None and not descriptor.validate(value):
             error_container.clear()
@@ -1008,6 +1071,8 @@ def _bag_on_edit(obj: "Settings", attr_name: str, error_container) -> Callable[[
                 )
             return
         setattr(obj, attr_name, value)
+        if gate is not None:
+            gate.written()
         error_container.clear()
 
     return on_edit

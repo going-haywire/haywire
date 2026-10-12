@@ -8,6 +8,7 @@ from haywire.core.types import WidgetModel
 from haywire.ui.widget.binding import PropertyBinding
 from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter
 from haywire.ui.widget.interface import IWidget
+from haywire.ui.widget.write_gate import WriteGate
 
 # design-guide.md §2.11: the manual disabled treatment for elements that
 # don't support Quasar :disable. Always applied/removed as a pair via
@@ -45,6 +46,8 @@ class BaseWidget(IWidget, ABC):
         # wrong event and raise "x not in list".
         self._dispatch_field: Optional[Any] = None
         self._cleaned_up: bool = False
+        # Asked before every write from this widget; None lets every write through.
+        self.write_gate: Optional[WriteGate] = None
         self.logger = logging.getLogger(__name__)
 
     # ---- FLOOR ----------------------------------------------------------
@@ -56,18 +59,30 @@ class BaseWidget(IWidget, ABC):
     def get_value(self) -> Any:
         return self.port.get_value()
 
-    def set_value(self, value: Any) -> None:
-        """Write *value* to the model, unless the model cannot take it as its own value.
+    def accepts_write(self) -> bool:
+        """Return whether a write from this widget would land now.
 
-        The write is refused, and the view shows the model's value again, while an
-        edge's value stands in front of the own value or the field holds no own
-        value (see ``DataField.accepts_own_value``).
+        False while an edge's value stands in front of the own value, while the
+        field holds no own value (see ``DataField.accepts_own_value``), or while
+        ``write_gate`` refuses.
         """
         data = self.port.data
         if data.has_linked_value() or not data.accepts_own_value():
+            return False
+        return self.write_gate is None or self.write_gate.allows()
+
+    def set_value(self, value: Any) -> None:
+        """Write *value* to the model, unless ``accepts_write()`` refuses.
+
+        A refused write leaves the model alone and shows its value again. After
+        a write, ``write_gate.written()`` is called.
+        """
+        if not self.accepts_write():
             self.on_model_changed(self.port.get_value())
             return
         self.port.set_value(value)
+        if self.write_gate is not None:
+            self.write_gate.written()
 
     def _size_overrides(self) -> Mapping[str, Any]:
         """The port's widget_config — i.e. ``config(min_width=320)`` at the call site.
@@ -132,6 +147,7 @@ class BaseWidget(IWidget, ABC):
             target_event=event,
             converter=converter or PrimitiveUnwrappingConverter(),
             mode=BindingMode.ONE_WAY if one_way else BindingMode.TWO_WAY,
+            owner=self,
         )
         binding._pending_element = element  # activated once, in render()
         self._bindings.append(binding)

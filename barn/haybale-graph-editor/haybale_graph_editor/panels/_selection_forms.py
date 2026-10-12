@@ -11,6 +11,9 @@ The rule shared by node Appearance and edge Style on the selection surfaces:
   element and whose resets reset each one. A header says so.
 
 The properties inspector does not use this: it edits the active element only.
+
+Either form writes only while the session may edit the graph on screen, lock
+included; a node form also marks each node's value edited.
 """
 
 from __future__ import annotations
@@ -20,17 +23,21 @@ from typing import TYPE_CHECKING, Any, Callable, Literal
 
 from nicegui import ui
 
+from haywire.core.access import AccessTier
 from haywire.core.di.context import get_settings_registry
 from haywire.core.node.properties import NodeProperties
 from haywire.ui import elements as hui
 from haywire.ui.panel.render_utils import render_settings
 from haywire.ui.utils import anchor_cleanup_to_element
 
+from ..access import GraphWriteGate, NodeWriteGate, session_allows
 from ..state.edit_state import EditState
 
 if TYPE_CHECKING:
+    from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.core.session.context import SessionContext
     from haywire.core.settings.settings import Settings
+    from haywire.ui.widget.write_gate import WriteGate
 
 Status = Literal["hidden", "greyed", "own", "neutral"]
 
@@ -41,7 +48,8 @@ class FormSubject:
 
     ``status`` is ``hidden`` (not drawn), ``greyed`` (drawn disabled, ``reason`` says
     why), ``own`` (``bags`` holds the one element's bag) or ``neutral`` (``bags``
-    holds every selected element's bag, all of class ``bag_class``).
+    holds every selected element's bag, all of class ``bag_class``). ``nodes``
+    holds the node of each bag for a node form, and is empty for an edge form.
     """
 
     status: Status
@@ -49,6 +57,7 @@ class FormSubject:
     bags: "list[Settings]" = field(default_factory=list)
     bag_class: "type[Settings] | None" = None
     noun: str = ""
+    nodes: "list[NodeWrapper]" = field(default_factory=list)
 
     @property
     def editable(self) -> bool:
@@ -82,25 +91,27 @@ def node_appearance_subject(ctx: "SessionContext") -> FormSubject:
     if graph is None or not edit.selected_nodes or edit.selected_edges:
         return FormSubject("hidden")
     nodes = []
+    wrappers = []
     for node_id in sorted(edit.selected_nodes):
         wrapper = graph.get_node_wrapper(node_id)
         node = getattr(wrapper, "node", None) if wrapper is not None else None
-        if node is None:
+        if wrapper is None or node is None:
             return FormSubject("hidden")
         nodes.append(node)
+        wrappers.append(wrapper)
     reroutes = [n for n in nodes if n.behavior.is_reroute_node]
     if len(nodes) == 1:
         # A lone reroute or locked node has no appearance to edit here.
         if reroutes or nodes[0].props.locked is True:
             return FormSubject("hidden")
-        return FormSubject("own", bags=[nodes[0].props], noun="node")
+        return FormSubject("own", bags=[nodes[0].props], noun="node", nodes=wrappers)
     if reroutes:
         return FormSubject("greyed", reason="Selection contains reroute nodes")
     bags = [n.props for n in nodes]
     # Each node class has its own props subclass; the shared base holds every appearance field.
     classes = {type(b) for b in bags}
     bag_class = classes.pop() if len(classes) == 1 else NodeProperties
-    return FormSubject("neutral", bags=bags, bag_class=bag_class, noun="nodes")
+    return FormSubject("neutral", bags=bags, bag_class=bag_class, noun="nodes", nodes=wrappers)
 
 
 def render_form(
@@ -115,8 +126,9 @@ def render_form(
     *graph* attaches the neutral bag to that graph, so its graph-mirror fields show
     the graph's values — what a reset returns each element to.
     """
+    gate = _form_gate(ctx, subject)
     if subject.status == "own":
-        render_settings(ctx, subject.bags[0], categories=categories)
+        render_settings(ctx, subject.bags[0], categories=categories, gate=gate)
         return
     if subject.status != "neutral" or subject.bag_class is None:
         return
@@ -129,10 +141,32 @@ def render_form(
     with ui.column().classes("w-full gap-0") as column:
         header = f"Editing {len(subject.bags)} {subject.noun} — fields show {default_word}"
         ui.label(f"{header}; a change applies to all.").classes("text-xs hw-text-muted px-2 py-1")
-        render_settings(ctx, neutral, categories=categories)
+        render_settings(ctx, neutral, categories=categories, gate=gate)
     fan_out = fan_out_to(neutral, subject.bags)
     neutral._subscribe(fan_out)
     anchor_cleanup_to_element(column, neutral._cleanup)
+
+
+class _EachNodeWriteGate:
+    """Allows a write while every node's gate does, and tells each node's gate it was written."""
+
+    def __init__(self, gates: "list[NodeWriteGate]") -> None:
+        self._gates = gates
+
+    def allows(self) -> bool:
+        return all(gate.allows() for gate in self._gates)
+
+    def written(self) -> None:
+        for gate in self._gates:
+            gate.written()
+
+
+def _form_gate(ctx: "SessionContext", subject: FormSubject) -> "WriteGate":
+    """Return the write gate for *subject*'s form: edit on the graph on screen, lock included."""
+    allows_fn = session_allows(ctx)
+    if not subject.nodes:
+        return GraphWriteGate(AccessTier.EDIT, allows_fn)
+    return _EachNodeWriteGate([NodeWriteGate(AccessTier.EDIT, allows_fn, node) for node in subject.nodes])
 
 
 def fan_out_to(neutral: "Settings", bags: "list[Settings]") -> "Callable[[str, Any, Any], None]":

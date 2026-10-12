@@ -23,6 +23,7 @@ def _handler():
         editor=MagicMock(),
         skin_factory=MagicMock(),
         canvas_vue=MagicMock(),
+        allows=lambda _required: True,
         context=MagicMock(),
     )
 

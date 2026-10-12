@@ -1,0 +1,282 @@
+"""Value writes from the canvas and the Ports panel are checked against the effective tier.
+
+A node card's widgets need operate; the Ports panel's widgets and its port
+reordering need edit, which a locked level refuses even to an admin.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Iterator
+from dataclasses import dataclass
+from types import SimpleNamespace
+from typing import Any, cast
+from unittest.mock import MagicMock
+
+import pytest
+from nicegui import Client, ui
+
+from haybale_graph_editor.access import GraphWriteGate, NodeWriteGate, allows
+from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
+from haybale_graph_editor.state.edit_state import EditState
+from haywire.core.access import AccessTier
+from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.scheduler import ThreadingTimerScheduler
+from haywire.core.graph.types import ChangeReason
+
+from tests.conftest import make_node
+from tests.ui.widget._sync_fixtures import _BaseDefaultFloatWidget, make_float_port
+
+
+def _noop_page() -> None:  # registration target for a headless Client
+    pass
+
+
+def _allows_fn(tier: AccessTier, locked: bool = False):
+    return lambda required: allows(tier.satisfies, locked, required)
+
+
+def _card_widget(ui_node_wrapper: Any, port: Any, tier: AccessTier) -> _BaseDefaultFloatWidget:
+    """Gate one rendered card widget the way ``UINode`` gates its card."""
+    widget = _BaseDefaultFloatWidget(port)
+    widget.render()
+    ui_node: Any = object.__new__(UINode)
+    ui_node.wrapper = ui_node_wrapper
+    ui_node._allows = _allows_fn(tier)
+    ui_node.current_ui_card = SimpleNamespace(widget_instances={port.id: widget})
+    ui_node._apply_write_gates()
+    return widget
+
+
+# =============================================================================
+# The gates
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_node_write_gate_asks_at_call_time_and_marks_the_node():
+    answers = {AccessTier.EDIT: True}
+    wrapper = MagicMock()
+    gate = NodeWriteGate(AccessTier.EDIT, lambda required: answers[required], wrapper)
+
+    assert gate.allows() is True
+    answers[AccessTier.EDIT] = False
+    assert gate.allows() is False
+
+    gate.written()
+    wrapper.mark_value_edited.assert_called_once_with()
+
+
+@pytest.mark.unit
+def test_graph_write_gate_marks_nothing():
+    gate = GraphWriteGate(AccessTier.EDIT, _allows_fn(AccessTier.EDIT))
+
+    assert gate.allows() is True
+    gate.written()
+    assert GraphWriteGate(AccessTier.EDIT, _allows_fn(AccessTier.OPERATE)).allows() is False
+
+
+# =============================================================================
+# Node card widgets
+# =============================================================================
+
+
+@pytest.fixture
+def held_graph(library_system) -> Iterator[BaseGraph]:
+    """A graph whose debounce never fires on its own, so a test drains it explicitly."""
+    graph = BaseGraph(
+        filestem="g", validation_scheduler=ThreadingTimerScheduler(), validation_delay_ms=60_000
+    )
+    yield graph
+    graph._validation.clear()
+    graph.cleanup()
+
+
+@pytest.mark.integration
+def test_card_widgets_get_an_operate_gate(held_graph: BaseGraph):
+    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+
+    wrapper = make_node(held_graph, TestAddFloatNode.class_identity.registry_key)
+    held_graph._validation.force_immediate_validation()
+    port = wrapper.node.ports["value_a"]
+
+    viewer = _card_widget(wrapper, port, AccessTier.VIEW)
+    viewer.set_value(9.0)
+    assert port.data.get_own_value() == 0.0
+    assert held_graph._validation.force_immediate_validation() is None
+
+    operator = _card_widget(wrapper, port, AccessTier.OPERATE)
+    operator.set_value(9.0)
+    assert port.get_value() == 9.0
+    result = held_graph._validation.force_immediate_validation()
+    assert result is not None
+    assert result.nodes == {wrapper.node_id: ChangeReason.NODE_VALUE_CHANGED}
+    assert result.requires_save() is True
+
+
+@pytest.mark.unit
+def test_card_widgets_stay_writable_for_operate_on_a_locked_level():
+    port = make_float_port()
+    wrapper = MagicMock()
+    widget = _BaseDefaultFloatWidget(port)
+    widget.render()
+    ui_node: Any = object.__new__(UINode)
+    ui_node.wrapper = wrapper
+    ui_node._allows = _allows_fn(AccessTier.ADMIN, locked=True)
+    ui_node.current_ui_card = SimpleNamespace(widget_instances={port.id: widget})
+    ui_node._apply_write_gates()
+
+    widget.set_value(2.0)
+
+    assert port.get_value() == 2.0
+    wrapper.mark_value_edited.assert_called_once_with()
+
+
+# =============================================================================
+# Ports panel
+# =============================================================================
+
+
+class _RecordingWidgetFactory:
+    """Renders a float widget for any port and keeps the instance for the test."""
+
+    def __init__(self) -> None:
+        self.instances: list[_BaseDefaultFloatWidget] = []
+
+    def render_widget(self, registry_key: str, port: Any, node_id: str):
+        widget = _BaseDefaultFloatWidget(port)
+        element = widget.render()
+        self.instances.append(widget)
+        return widget, element
+
+
+def _ports_ctx(tier: AccessTier, locked: bool, wrapper: Any) -> Any:
+    edit = SimpleNamespace(active_locked=locked, active_node=wrapper)
+    return SimpleNamespace(can_access=tier.satisfies, data={EditState: edit})
+
+
+def _ports_panel_widget(ctx: Any) -> _BaseDefaultFloatWidget:
+    from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
+
+    port = make_float_port()
+    port.widget_key = "test:float"
+    factory = _RecordingWidgetFactory()
+    client = Client(cast(Any, _noop_page), request=None)
+    with client:
+        with ui.column():
+            NodePortsPanel()._render_port(port, "n1", factory, ctx)
+    assert len(factory.instances) == 1
+    return factory.instances[0]
+
+
+@pytest.mark.unit
+def test_ports_panel_widgets_need_edit():
+    wrapper = MagicMock()
+    widget = _ports_panel_widget(_ports_ctx(AccessTier.ADMIN, locked=True, wrapper=wrapper))
+
+    widget.set_value(9.0)
+
+    assert widget.port.get_value() == 0.0
+    wrapper.mark_value_edited.assert_not_called()
+
+
+@pytest.mark.unit
+def test_ports_panel_widgets_refuse_operate():
+    wrapper = MagicMock()
+    widget = _ports_panel_widget(_ports_ctx(AccessTier.OPERATE, locked=False, wrapper=wrapper))
+
+    widget.set_value(9.0)
+
+    assert widget.port.get_value() == 0.0
+
+
+@pytest.mark.unit
+def test_ports_panel_widgets_write_and_mark_for_edit():
+    wrapper = MagicMock()
+    widget = _ports_panel_widget(_ports_ctx(AccessTier.EDIT, locked=False, wrapper=wrapper))
+
+    widget.set_value(9.0)
+
+    assert widget.port.get_value() == 9.0
+    wrapper.mark_value_edited.assert_called_once_with()
+
+
+@pytest.mark.unit
+def test_ports_panel_reads_the_lock_at_write_time():
+    wrapper = MagicMock()
+    ctx = _ports_ctx(AccessTier.ADMIN, locked=False, wrapper=wrapper)
+    widget = _ports_panel_widget(ctx)
+
+    ctx.data[EditState].active_locked = True
+    widget.set_value(9.0)
+
+    assert widget.port.get_value() == 0.0
+
+
+@dataclass
+class _Drop:
+    old_index: int
+    new_index: int
+
+
+class _RecordingNode:
+    def __init__(self, ids: list[str]) -> None:
+        self.ids = list(ids)
+
+    def reorder_ports(self, ordered_ids: list[str]) -> None:
+        self.ids = [pid for pid in ordered_ids if pid in self.ids]
+
+
+@pytest.mark.unit
+def test_reordering_ports_refuses_on_a_locked_level():
+    from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
+
+    node = _RecordingNode(["a", "b", "c"])
+    ctx = _ports_ctx(AccessTier.ADMIN, locked=True, wrapper=MagicMock())
+
+    NodePortsPanel()._on_reorder(node, ["a", "b", "c"], _Drop(old_index=2, new_index=0), ctx)
+
+    assert node.ids == ["a", "b", "c"]
+
+
+@pytest.mark.unit
+def test_reordering_ports_applies_for_edit():
+    from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
+
+    node = _RecordingNode(["a", "b", "c"])
+    ctx = _ports_ctx(AccessTier.EDIT, locked=False, wrapper=MagicMock())
+
+    NodePortsPanel()._on_reorder(node, ["a", "b", "c"], _Drop(old_index=2, new_index=0), ctx)
+
+    assert node.ids == ["c", "a", "b"]
+
+
+# =============================================================================
+# Selection forms
+# =============================================================================
+
+
+@pytest.mark.unit
+def test_a_node_form_needs_edit_and_marks_every_node():
+    from haybale_graph_editor.panels._selection_forms import FormSubject, _form_gate
+
+    first, second = MagicMock(), MagicMock()
+    subject = FormSubject("neutral", nodes=[first, second])
+    ctx = _ports_ctx(AccessTier.ADMIN, locked=False, wrapper=None)
+    gate = _form_gate(ctx, subject)
+
+    assert gate.allows() is True
+    gate.written()
+    first.mark_value_edited.assert_called_once_with()
+    second.mark_value_edited.assert_called_once_with()
+
+    ctx.data[EditState].active_locked = True
+    assert gate.allows() is False
+
+
+@pytest.mark.unit
+def test_an_edge_form_needs_edit():
+    from haybale_graph_editor.panels._selection_forms import FormSubject, _form_gate
+
+    subject = FormSubject("own")
+    assert _form_gate(_ports_ctx(AccessTier.OPERATE, locked=False, wrapper=None), subject).allows() is False
+    assert _form_gate(_ports_ctx(AccessTier.EDIT, locked=False, wrapper=None), subject).allows() is True

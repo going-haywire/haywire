@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 from dataclasses import dataclass
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -11,6 +12,7 @@ from nicegui import Client, ui
 from nicegui.elements.sortable.sortable import Sortable
 from nicegui.page import page as page_deco
 
+from haywire.core.access import AccessTier
 from haywire.core.types.enums import PortOrigin
 
 pytestmark = pytest.mark.unit
@@ -46,14 +48,22 @@ def _walk(element):
         yield from _walk(child)
 
 
-def _render_lane(ports: list[_FakePort], lane: str = "inlet"):
+def _ctx(tier: AccessTier = AccessTier.EDIT, locked: bool = False) -> Any:
+    """The session context ``_render_lane`` and ``_on_reorder`` read the tier and lock from."""
+    from haybale_graph_editor.state.edit_state import EditState
+
+    edit = SimpleNamespace(active_locked=locked, active_node=None)
+    return SimpleNamespace(can_access=tier.satisfies, data={EditState: edit})
+
+
+def _render_lane(ports: list[_FakePort], lane: str = "inlet", ctx: Any = None):
     from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
 
     client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()
         with anchor:
-            NodePortsPanel()._render_lane(object(), ports, lane, "n1", None, cast(Any, None))
+            NodePortsPanel()._render_lane(object(), ports, lane, "n1", None, ctx or _ctx())
     return anchor
 
 
@@ -230,6 +240,15 @@ def test_sibling_folds_each_get_their_own_sortable() -> None:
     assert len(groups) == 3
 
 
+def test_the_sortable_is_disabled_on_a_locked_level() -> None:
+    """A drag the model would refuse must not start: the rows would move on screen only."""
+    locked = _sortables(_render_lane([_FakePort("a", "A")], ctx=_ctx(AccessTier.ADMIN, locked=True)))
+    unlocked = _sortables(_render_lane([_FakePort("a", "A")]))
+
+    assert locked[0].options.get("disabled") is True
+    assert not unlocked[0].options.get("disabled")
+
+
 def test_reorder_handler_reads_indices() -> None:
     from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
 
@@ -275,11 +294,11 @@ def test_consecutive_drops_track_the_order_already_applied() -> None:
     rendered = ["a", "b", "c"]
 
     # Drag "c" to the front: a b c -> c a b
-    panel._on_reorder(node, rendered, _Drop(old_index=2, new_index=0))
+    panel._on_reorder(node, rendered, _Drop(old_index=2, new_index=0), _ctx())
     assert node.ids == ["c", "a", "b"]
 
     # Now drag the row sitting at index 2 ("b") to the front: c a b -> b c a
-    panel._on_reorder(node, rendered, _Drop(old_index=2, new_index=0))
+    panel._on_reorder(node, rendered, _Drop(old_index=2, new_index=0), _ctx())
     assert node.ids == ["b", "c", "a"]
 
 
@@ -288,7 +307,7 @@ def test_a_no_op_drop_leaves_the_order_alone() -> None:
 
     panel = NodePortsPanel()
     node = _RecordingNode(["a", "b", "c"])
-    panel._on_reorder(node, ["a", "b", "c"], _Drop(old_index=1, new_index=1))
+    panel._on_reorder(node, ["a", "b", "c"], _Drop(old_index=1, new_index=1), _ctx())
     assert node.ids == ["a", "b", "c"]
 
 
@@ -298,7 +317,7 @@ def test_an_out_of_range_index_is_ignored() -> None:
 
     panel = NodePortsPanel()
     node = _RecordingNode(["a", "b"])
-    panel._on_reorder(node, ["a", "b"], _Drop(old_index=5, new_index=0))
+    panel._on_reorder(node, ["a", "b"], _Drop(old_index=5, new_index=0), _ctx())
     assert node.ids == ["a", "b"]
 
 

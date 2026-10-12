@@ -43,6 +43,7 @@ def handler(graph, canvas_vue):
         editor=MagicMock(),
         skin_factory=MagicMock(),
         canvas_vue=canvas_vue,
+        allows=lambda _required: True,
     )
 
 

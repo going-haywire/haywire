@@ -7,12 +7,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.core.access import AccessTier
 from haywire.core.settings.descriptor import UiState
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
+from ....access import NodeWriteGate, session_allows
 from ....surfaces import NodeInspector
 from ....state.edit_state import EditState
 
@@ -86,7 +88,8 @@ class NodePropertiesPanel(BasePanel):
         node_wrapper = ctx.data[EditState].active_node
         if node_wrapper is None:
             return
-        render_settings(ctx, node_wrapper.node.props)
+        gate = NodeWriteGate(AccessTier.EDIT, session_allows(ctx), node_wrapper)
+        render_settings(ctx, node_wrapper.node.props, gate=gate)
 
 
 @panel(

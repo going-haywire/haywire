@@ -110,6 +110,7 @@ class VisualLayerHandlers:
         editor: "Editor",
         skin_factory: "SkinFactory",
         canvas_vue: "GraphCanvasVue",
+        allows: Callable[[AccessTier], bool],
         context: Optional["SessionContext"] = None,
     ):
         self.graph = graph
@@ -117,6 +118,8 @@ class VisualLayerHandlers:
         self.skin_factory = skin_factory
         self.canvas_vue = canvas_vue
         self.context = context
+        # Handed to every node card; see UINode.
+        self._allows = allows
 
         self.node_panels: Dict[str, UINode] = {}
         # Last visual state emitted per edge. Doubles as the "is this edge
@@ -520,7 +523,7 @@ class VisualLayerHandlers:
                 .style(f"left: {x}px; top: {y}px; z-index: 100; transform-origin: top-left; cursor: move;")
                 .props(f'id="{node_id}" data-node-id="{node_id}" ') as container
             ):
-                ui_node = UINode(container, wrapper, self.skin_factory)
+                ui_node = UINode(container, wrapper, self.skin_factory, self._allows)
                 ui_node.register_sync_event_emitter(self.canvas_vue.emit_sync_event)
                 ui_node.refresh(ChangeReason.NODE_ADDED)
                 ui_node.position = position

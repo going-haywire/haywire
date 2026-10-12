@@ -10,7 +10,7 @@ between data storage and binding logic.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, List, Optional
 
 from haywire.core.types import PrimitiveField, BaseField, WidgetModel
 from haywire.ui.widget.converters import (
@@ -18,6 +18,9 @@ from haywire.ui.widget.converters import (
     BindingMode,
     PrimitiveUnwrappingConverter,
 )
+
+if TYPE_CHECKING:
+    from haywire.ui.widget.base import BaseWidget
 
 
 @dataclass
@@ -44,6 +47,9 @@ class PropertyBinding:
 
     # Behavior
     mode: BindingMode = BindingMode.TWO_WAY
+
+    # The widget whose ``accepts_write()`` decides a view edit; None decides by the field alone.
+    owner: Optional["BaseWidget"] = field(default=None, repr=False, compare=False)
 
     # Internal state
     _element: Optional[WidgetModel] = field(default=None, init=False, repr=False)
@@ -150,11 +156,15 @@ class PropertyBinding:
         return handler
 
     def _sync_to_model(self, view_value: Any) -> None:
-        """Synchronize view value to model."""
+        """Write a view edit to the model, or show the model again when the write is refused.
+
+        With an ``owner``, its ``accepts_write()`` decides, and its write gate
+        hears each write that lands. Without one, the write is refused while an
+        edge's value stands in front of the own value or the field holds no own
+        value.
+        """
         assert self._element is not None and self.converter is not None
-        if self._element.data.has_linked_value() or not self._element.data.accepts_own_value():
-            # An edge's value stands in front of the own value, or there is no
-            # own value to write; show the model again.
+        if not self._accepts_write():
             self.sync_to_view()
             return
         is_valid, _error_msg = self.converter.validate(view_value)
@@ -167,6 +177,15 @@ class PropertyBinding:
             self._element.set_value(model_value)
         else:
             self._update_nested_property(self.source_property, model_value)
+        if self.owner is not None and self.owner.write_gate is not None:
+            self.owner.write_gate.written()
+
+    def _accepts_write(self) -> bool:
+        if self.owner is not None:
+            return self.owner.accepts_write()
+        assert self._element is not None
+        data = self._element.data
+        return not data.has_linked_value() and data.accepts_own_value()
 
     # ========================================================================
     # PROPERTY UPDATE LOGIC (Moved from DataField)

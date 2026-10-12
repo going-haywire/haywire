@@ -48,6 +48,22 @@ class _ElementModel:
         self._outer.set_value(value)
 
 
+class _OuterGate:
+    """The inner widget's write gate: whatever gate the outer widget holds at the time of the write."""
+
+    def __init__(self, outer: BaseWidget) -> None:
+        self._outer = outer
+
+    def allows(self) -> bool:
+        gate = self._outer.write_gate
+        return gate is None or gate.allows()
+
+    def written(self) -> None:
+        gate = self._outer.write_gate
+        if gate is not None:
+            gate.written()
+
+
 @widget(description="Optional value — the wrapped type's widget, plus an absence state")
 class OptionalWidget(BaseWidget):
     """Renders an ``OPTIONAL[T]`` field in whichever of its two states it is in.
@@ -113,6 +129,7 @@ class OptionalWidget(BaseWidget):
                     self._inner_label = None
                     inner_model = _ElementModel(self.port, self._config, self._fallback)
                     self._inner = inner_cls(inner_model)
+                    self._inner.write_gate = _OuterGate(self)
                     self._inner.render()
         return root
 

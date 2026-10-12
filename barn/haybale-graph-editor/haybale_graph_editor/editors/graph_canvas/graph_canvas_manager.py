@@ -96,6 +96,7 @@ class GraphCanvasManager:
             editor=self.editor,
             skin_factory=self.skin_factory,
             canvas_vue=self.canvas_vue,
+            allows=self.allows,
             context=self._session.context,
         )
         self.selection = SelectionHandlers(

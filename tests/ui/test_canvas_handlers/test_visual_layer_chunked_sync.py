@@ -60,6 +60,7 @@ def handler(graph):
         editor=MagicMock(),
         skin_factory=MagicMock(),
         canvas_vue=MagicMock(),
+        allows=lambda _required: True,
     )
     # add_node_visual is NiceGUI-dependent; record calls and register the panel
     # the way the real one does, so the "already mounted" guard is exercised.
@@ -206,6 +207,7 @@ async def test_cancellation_stops_the_load(graph):
         editor=MagicMock(),
         skin_factory=MagicMock(),
         canvas_vue=MagicMock(),
+        allows=lambda _required: True,
     )
     graph.node_wrappers = {f"n{i}": _node_wrapper(f"n{i}") for i in range(200)}
 
@@ -383,7 +385,11 @@ class TestCanvasMounted:
         handlers = build_event_handler_map(
             [
                 VisualLayerHandlers(
-                    graph=MagicMock(), editor=MagicMock(), skin_factory=MagicMock(), canvas_vue=MagicMock()
+                    graph=MagicMock(),
+                    editor=MagicMock(),
+                    skin_factory=MagicMock(),
+                    canvas_vue=MagicMock(),
+                    allows=lambda _required: True,
                 )
             ]
         )
