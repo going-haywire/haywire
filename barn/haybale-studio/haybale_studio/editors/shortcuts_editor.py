@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional
 from nicegui import ui
 
 from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import redraw_on
+from haywire.core.session.handlers import react_on, redraw_on
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
@@ -45,9 +45,31 @@ class ShortcutsEditor(BaseEditor):
         # Group open state by editor key, kept across redraws.
         self._expanded: dict[str, bool] = {}
 
-    @redraw_on(SessionContext.target_binding_id, SessionContext.keymap)
-    def _on_keymap_or_target(self, ctx: SessionContext, signal: object) -> None:
+    @redraw_on(SessionContext.keymap)
+    def _on_keymap(self, ctx: SessionContext, signal: object) -> None:
         pass
+
+    @react_on(SessionContext.target_binding_id)
+    def _on_target(self, ctx: SessionContext, signal: object) -> None:
+        # A pointer-down in this editor retargets it; redrawing then would replace the
+        # header under the pointer and swallow the click, so only a group change redraws.
+        if self._follow(ctx.keymap, ctx.target_binding_id):
+            self.wrapper.redraw()
+
+    def _follow(self, keymap: Optional[Keymap], binding_id: Optional[str]) -> bool:
+        """Open the target editor's group and close the others; return ``True`` if the groups changed.
+
+        A target without a group changes nothing but lets the next target with one take over.
+        """
+        target_key = self._target_key(binding_id)
+        if keymap is None or target_key is None or target_key not in keymap.editors:
+            self._followed = None
+            return False
+        if target_key == self._followed:
+            return False
+        self._followed = target_key
+        self._expanded = {target_key: True}
+        return True
 
     def draw(self, context: SessionContext, container: Element) -> None:
         keymap = context.keymap
@@ -56,10 +78,8 @@ class ShortcutsEditor(BaseEditor):
                 hui.empty_state("No editor declares keyboard shortcuts.", icon=hui.icon.keyboard)
                 return
 
+            self._follow(keymap, context.target_binding_id)
             target_key = self._target_key(context.target_binding_id)
-            if target_key is not None and target_key in keymap.editors and target_key != self._followed:
-                self._followed = target_key
-                self._expanded = {target_key: True}
 
             with ui.column().classes("w-full gap-0"):
                 for editor_key in sorted(keymap.editors, key=lambda k: (keymap.editor_labels[k], k)):

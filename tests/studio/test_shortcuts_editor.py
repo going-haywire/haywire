@@ -14,7 +14,7 @@ from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
 from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import _REDRAW_ON_ATTR, react_on
+from haywire.core.session.handlers import _REACT_ON_ATTR, _REDRAW_ON_ATTR, react_on
 from haywire.core.signals import Copy, Delete, EditorCommand, Undo
 from haywire.core.signals.keys import format_combo
 from haywire.ui.editor.identity import SlotName
@@ -101,7 +101,9 @@ class _Harness:
 
     def __init__(self, keymap: Keymap | None, target: str | None) -> None:
         self.ctx = SimpleNamespace(keymap=keymap, target_binding_id=target)
-        self.editor = ShortcutsEditor(MagicMock())
+        self.wrapper = MagicMock()
+        self.wrapper.redraw.side_effect = self.redraw
+        self.editor = ShortcutsEditor(self.wrapper)
         self.container: ui.element | None = None
 
     def mount(self) -> None:
@@ -112,6 +114,11 @@ class _Harness:
         assert self.container is not None
         self.container.clear()
         self.editor.draw(self.ctx, self.container)  # type: ignore[arg-type]
+
+    def retarget(self, binding_id: str | None) -> None:
+        """Change the target editor and dispatch the change the way the session bus does."""
+        self.ctx.target_binding_id = binding_id
+        self.editor._on_target(self.ctx, None)  # type: ignore[arg-type]
 
     def descendants(self) -> list[ui.element]:
         assert self.container is not None
@@ -142,10 +149,9 @@ def test_editor_identity_is_a_context_slot_editor() -> None:
     assert identity.default_slot is SlotName.CONTEXT
 
 
-def test_editor_redraws_on_keymap_and_target_changes() -> None:
-    declared = getattr(ShortcutsEditor._on_keymap_or_target, _REDRAW_ON_ATTR, ())
-    assert SessionContext.target_binding_id in declared
-    assert SessionContext.keymap in declared
+def test_editor_redraws_on_keymap_changes_and_reacts_to_target_changes() -> None:
+    assert getattr(ShortcutsEditor._on_keymap, _REDRAW_ON_ATTR, ()) == (SessionContext.keymap,)
+    assert getattr(ShortcutsEditor._on_target, _REACT_ON_ATTR, ()) == (SessionContext.target_binding_id,)
 
 
 @pytest.mark.anyio
@@ -173,21 +179,59 @@ async def test_a_new_target_reexpands_its_group(user: User) -> None:
     harness = _Harness(_keymap(), f"{_GRAPH_KEY}::graph-1")
     await _open(user, harness)
 
-    harness.ctx.target_binding_id = _CODE_KEY
+    harness.retarget(_CODE_KEY)
+
+    assert harness.open_groups() == ["Code"]
+
+
+@pytest.mark.anyio
+async def test_a_target_without_shortcuts_keeps_the_groups_without_a_redraw(user: User) -> None:
+    harness = _Harness(_keymap(), f"{_GRAPH_KEY}::graph-1")
+    await _open(user, harness)
+    groups_before = harness.groups()
+
+    harness.retarget("studio:editors:Shortcuts")
+
+    harness.wrapper.redraw.assert_not_called()
+    assert harness.groups() == groups_before
+    assert harness.open_groups() == ["Graph"]
+
+
+@pytest.mark.anyio
+async def test_a_retarget_to_the_followed_editor_does_not_redraw(user: User) -> None:
+    harness = _Harness(_keymap(), f"{_GRAPH_KEY}::graph-1")
+    await _open(user, harness)
+
+    harness.retarget(f"{_GRAPH_KEY}::graph-2")
+
+    harness.wrapper.redraw.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_a_hand_toggled_group_keeps_its_state_across_redraws(user: User) -> None:
+    harness = _Harness(_keymap(), f"{_GRAPH_KEY}::graph-1")
+    await _open(user, harness)
+
+    user.find(kind=ui.expansion, content="Code").trigger("update:modelValue", True)
+    user.find(kind=ui.expansion, content="Graph").trigger("update:modelValue", False)
     harness.redraw()
 
     assert harness.open_groups() == ["Code"]
 
 
 @pytest.mark.anyio
-async def test_a_target_without_shortcuts_keeps_the_followed_group_open(user: User) -> None:
+async def test_following_resumes_after_a_target_without_shortcuts(user: User) -> None:
     harness = _Harness(_keymap(), f"{_GRAPH_KEY}::graph-1")
     await _open(user, harness)
 
-    harness.ctx.target_binding_id = "studio:editors:Shortcuts"
-    harness.redraw()
+    harness.retarget("studio:editors:Shortcuts")
+    user.find(kind=ui.expansion, content="Code").trigger("update:modelValue", True)
+    user.find(kind=ui.expansion, content="Graph").trigger("update:modelValue", False)
+    harness.retarget(f"{_GRAPH_KEY}::graph-1")
 
     assert harness.open_groups() == ["Graph"]
+    graph = harness.groups()["Graph"]
+    assert "active" in [getattr(el, "text", None) for el in graph.descendants()]
 
 
 @pytest.mark.anyio
