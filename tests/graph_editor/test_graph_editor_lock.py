@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
+from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_graph_editor.state.edit_state import EditState
 from haywire.core.access import AccessTier, access_resolver, set_access_resolver
 from haywire.core.session.context import SessionContext
@@ -53,7 +54,8 @@ def _locked_editor(tier: AccessTier, open_locked: bool = True) -> tuple[GraphEdi
 def test_a_document_opens_with_the_graph_default():
     editor, context, document = _locked_editor(AccessTier.EDIT)
     editor._levels.pop(DOCUMENT_LEVEL)
-    editor._open_level(context, document)
+    context.app_data[GraphAppState].get.return_value = document
+    assert editor._ensure_document_level(context) is document
     assert editor._levels[DOCUMENT_LEVEL].locked is True
 
 

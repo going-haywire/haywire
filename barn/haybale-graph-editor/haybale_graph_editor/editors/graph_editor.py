@@ -198,7 +198,7 @@ class GraphEditor(BaseEditor):
             return None
         level = self._levels.get(DOCUMENT_LEVEL)
         if level is None:
-            self._levels[DOCUMENT_LEVEL] = _Level(key=DOCUMENT_LEVEL, container=document)
+            self._levels[DOCUMENT_LEVEL] = self._new_level(DOCUMENT_LEVEL, document)
         else:
             level.container = document
         return document
@@ -228,8 +228,7 @@ class GraphEditor(BaseEditor):
         """
         key = level_key_for(container)
         if key not in self._levels:
-            level = _Level(key=key, container=container)
-            level.locked = self._opens_locked(container)
+            level = self._new_level(key, container)
             self._levels[key] = level
             self._watch_level_name(level)
             if self._level_panels is not None:
@@ -238,10 +237,9 @@ class GraphEditor(BaseEditor):
         return key
 
     @staticmethod
-    def _opens_locked(container: "GraphContainer") -> bool:
-        """Return the graph's ``open_locked`` default for a level opened on ``container``."""
-        props = getattr(container.editor.graph, "props", None)
-        return bool(getattr(props, "open_locked", False))
+    def _new_level(key: str, container: "GraphContainer") -> _Level:
+        """Return a level for ``container``, locked when the graph's ``open_locked`` is set."""
+        return _Level(key=key, container=container, locked=container.editor.graph.props.open_locked)
 
     def set_level_locked(self, context: "SessionContext", key: str, locked: bool) -> bool:
         """Lock or unlock the level under ``key`` for this session.

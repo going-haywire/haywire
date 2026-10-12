@@ -49,6 +49,7 @@ class _FakeGraph:
         self.filestem = graph_id
         self.node_wrappers: dict[str, Any] = {}
         self.subgraphs: dict[str, Any] = {}
+        self.props = SimpleNamespace(open_locked=False)
 
     def get_node_wrapper(self, node_id: str):
         return self.node_wrappers.get(node_id)
