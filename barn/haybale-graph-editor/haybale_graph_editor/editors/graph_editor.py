@@ -612,10 +612,10 @@ class GraphEditor(BaseEditor):
                     # as it always did for an ordinary graph.
                     self._breadcrumb = ui.row().classes("items-center gap-1 min-w-0 no-wrap overflow-hidden")
                     self._undo_button = hui.icon_action(
-                        "undo", tooltip="Undo", on_click=lambda: self._do_undo(context)
+                        "undo", tooltip="Undo", on_click=lambda: self._do_undo(context), command=Undo
                     )
                     self._redo_button = hui.icon_action(
-                        "redo", tooltip="Redo", on_click=lambda: self._do_redo(context)
+                        "redo", tooltip="Redo", on_click=lambda: self._do_redo(context), command=Redo
                     )
                     hui.icon_action(
                         "save", tooltip="Save (Ctrl+S)", on_click=lambda: self._save_graph(context)

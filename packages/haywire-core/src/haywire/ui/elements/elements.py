@@ -21,11 +21,16 @@ from __future__ import annotations
 
 import json as _json
 from contextlib import contextmanager
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from nicegui import ui
+from nicegui.elements.mixins.text_element import TextElement as _TextElement
 
+from haywire.core.signals.keys import format_combo as _format_combo
 from haywire.ui.elements.icons import AppIcon
+
+if TYPE_CHECKING:
+    from haywire.core.signals import EditorCommand
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Colour & style constants (internal)
@@ -397,6 +402,40 @@ MENU_ROW_ICON_CLASS = "hw-menu-row-icon"
 #: differs: its ``pointer-events: none`` is what keeps an empty submenu shut.
 _MENU_ROW_DISABLED_STYLE = "opacity: 0.4; cursor: default"
 
+_KEY_HINT_CLASSES = "text-xs hw-text-dim ml-auto font-mono"
+
+
+def key_hint(command: type[EditorCommand]) -> ui.element | None:
+    """Draw ``command``'s first default shortcut as a right-aligned suffix.
+
+    Both spellings are drawn, ``⌘C`` in a ``.hw-keys-mac`` span and ``Ctrl+C``
+    in a ``.hw-keys-other`` span; the shell CSS hides the one that does not
+    match the ``data-hw-platform`` flag the keymap listener sets on ``<html>``.
+    The hint shows the command's class default, whatever an editor's keymap binds.
+
+    Returns:
+        A ``display: contents`` wrapper holding the two spans, or ``None`` (and
+        nothing drawn) when the command has no default keys.
+
+    Example::
+
+        with ui.row().classes("items-center w-full"):
+            ui.label("Copy")
+            hui.key_hint(Copy)  # ⌘C on macOS, Ctrl+C elsewhere
+    """
+    if not command.default_keys:
+        return None
+    combo = command.default_keys[0]
+    # ``contents`` lets the spans take part in the parent's flex row, so ``ml-auto`` right-aligns them.
+    with ui.element("span").classes("contents") as wrapper:
+        _TextElement(tag="span", text=_format_combo(combo, mac=True)).classes(
+            f"hw-keys-mac {_KEY_HINT_CLASSES}"
+        )
+        _TextElement(tag="span", text=_format_combo(combo, mac=False)).classes(
+            f"hw-keys-other {_KEY_HINT_CLASSES}"
+        )
+    return wrapper
+
 
 def menu_row(
     label: str,
@@ -405,6 +444,7 @@ def menu_row(
     on_click: Callable | None = None,
     enabled: bool = True,
     tooltip: str | None = None,
+    command: type[EditorCommand] | None = None,
 ) -> ui.row:
     """One command in a menu — the leaf counterpart of ``hui.submenu_row``.
 
@@ -422,6 +462,9 @@ def menu_row(
     ``enabled=False`` greys the row rather than removing it, and keeps pointer
     events, so pass ``tooltip`` to say why the command does not apply.
 
+    ``command`` names the keyboard command the row performs; its shortcut is
+    drawn at the right edge (see ``key_hint``), on a disabled row too.
+
     Usage::
 
         hui.menu_row("Delete Node", icon=hui.icon.delete, on_click=self._delete)
@@ -430,12 +473,16 @@ def menu_row(
             "Detach", icon=hui.icon.delete, enabled=False,
             tooltip="Only a promoted pin can be detached",
         )
+        # Shows ⌘C / Ctrl+C at the right edge.
+        hui.menu_row("Copy", icon=hui.icon.copy, on_click=self._copy, command=Copy)
     """
     row = ui.row().classes(f"{MENU_ROW_CLASS} items-center gap-2 w-full")
     with row:
         if icon:
             ui.icon(icon).classes(MENU_ROW_ICON_CLASS)
         ui.label(label).classes("grow")
+        if command is not None:
+            key_hint(command)
     if tooltip:
         row.tooltip(tooltip)
     if not enabled:
@@ -456,6 +503,7 @@ def icon_action(
     tooltip: str | None = None,
     on_click: Callable | None = None,
     size: str = "xs",
+    command: type[EditorCommand] | None = None,
 ) -> ui.button:
     """
     A minimal icon-only button for inline actions (refresh, close, copy).
@@ -466,14 +514,21 @@ def icon_action(
     - Disabled: use ``opacity: 0.4; pointer-events: none`` — never a grey fill
     - Tooltip applied if provided
 
+    ``command`` names the keyboard command the button performs; its first
+    default shortcut is appended to ``tooltip`` as ``"Copy (Ctrl+C)"``. A
+    tooltip is plain text, so it always shows the non-macOS spelling.
+
     Standard icon vocabulary: ``refresh``, ``close``, ``content_copy``,
     ``add``, ``delete``, ``edit``, ``expand_more``, ``expand_less``.
 
     Usage::
 
         hui.icon_action("refresh", tooltip="Refresh tree", on_click=refresh)
+        hui.icon_action(hui.icon.copy, tooltip="Copy", on_click=copy, command=Copy)
     """
     btn = ui.button(icon=icon).props(f"flat round dense size={size}")
+    if tooltip and command is not None and command.default_keys:
+        tooltip = f"{tooltip} ({_format_combo(command.default_keys[0], mac=False)})"
     if tooltip:
         btn.tooltip(tooltip)
     if on_click:

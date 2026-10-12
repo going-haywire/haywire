@@ -125,3 +125,37 @@ def test_copy_and_delete_panels_use_count_aware_labels(monkeypatch):
 
     assert "Delete 3 Nodes" in rendered_labels
     assert "Copy 3 Nodes" in rendered_labels
+
+
+@pytest.mark.parametrize("disabled", [False, True])
+def test_copy_and_delete_rows_carry_their_keyboard_command(monkeypatch, disabled):
+    """Both forms of the Copy/Delete rows name the command whose shortcut they show."""
+    import haybale_graph_editor.panels.graph.menu.selection.selection as sa
+    from haybale_graph_editor.panels.graph.menu.selection.selection import (
+        CopySelectionMenuPanel as CopySelectionPanel,
+    )
+
+    from haywire.core.signals import Copy, Delete
+
+    commands = []
+
+    class _FakeLayout:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def _fake_menu_row(label, **kwargs):
+        commands.append(kwargs.get("command"))
+
+    monkeypatch.setattr(sa.hui, "menu_row", _fake_menu_row)
+
+    ctx = _ctx_with_selection([] if disabled else ["n1"], [])
+    for panel_cls in (CopySelectionPanel, DeleteSelectionPanel):
+        panel = panel_cls()
+        panel.actions = MagicMock()
+        draw = panel.draw_disabled if disabled else panel.draw
+        draw(ctx, cast(Any, _FakeLayout()))
+
+    assert commands == [Copy, Delete]

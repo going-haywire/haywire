@@ -159,6 +159,10 @@ STATIC_CSS = (
     # Quasar keeps a disabled arrow in the layout at 0.3 opacity; hiding it
     # would reflow the whole bar on every scroll to an end.
     " .hw-slot-bar-tabs .q-tabs__arrow--faded { opacity: 0.25 !important; }"
+    # Shortcut hints (hui.key_hint) draw both spellings; the keymap listener
+    # flags the platform on <html>, and an unflagged page reads as non-mac.
+    ' html[data-hw-platform="mac"] .hw-keys-other, html:not([data-hw-platform="mac"]) .hw-keys-mac'
+    " { display: none; }"
     # Generic toolbar buttons (hui.toolbar_button helper).
     " .hw-shell-toolbar-btn {"
     "   color: var(--hw-text-muted) !important;"

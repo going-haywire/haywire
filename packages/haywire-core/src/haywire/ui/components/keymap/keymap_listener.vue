@@ -63,6 +63,8 @@ export default {
   },
 
   mounted() {
+    // Shortcut hints render both spellings; the shell CSS hides the one this flag rules out.
+    document.documentElement.dataset.hwPlatform = this.isMac ? 'mac' : 'other';
     document.addEventListener('pointerdown', this.onPointerDown, true);
     document.addEventListener('keydown', this.onKeyDown, true);
     document.addEventListener('paste', this.onPaste, true);

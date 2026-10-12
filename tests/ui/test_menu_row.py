@@ -20,6 +20,7 @@ from nicegui import ui
 from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
+from haywire.core.signals import Copy
 from haywire.ui import elements as hui
 from haywire.ui.app.shell import STATIC_CSS
 from haywire.ui.elements.elements import MENU_ROW_CLASS, MENU_ROW_ICON_CLASS
@@ -142,6 +143,41 @@ def _menu_row_disabled_block() -> str:
     match = re.search(r"\.hw-menu-row\.hw-disabled\s*\{([^}]*)\}", STATIC_CSS)
     assert match is not None, "the disabled menu-row rule must exist"
     return match.group(1)
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+@pytest.mark.parametrize("enabled", [True, False])
+async def test_menu_row_with_a_command_shows_its_shortcut(user: User, enabled: bool) -> None:
+    captured: dict[str, object] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        captured["row"] = hui.menu_row("Copy", icon="content_copy", command=Copy, enabled=enabled)
+
+    await user.open("/")
+
+    row: ui.row = captured["row"]  # type: ignore[assignment]
+    mac = [el for el in row.descendants() if "hw-keys-mac" in el._classes]
+    other = [el for el in row.descendants() if "hw-keys-other" in el._classes]
+    assert [getattr(el, "text", None) for el in mac] == ["⌘C"]
+    assert [getattr(el, "text", None) for el in other] == ["Ctrl+C"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_menu_row_without_a_command_shows_no_shortcut(user: User) -> None:
+    captured: dict[str, object] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        captured["row"] = hui.menu_row("X")
+
+    await user.open("/")
+
+    row: ui.row = captured["row"]  # type: ignore[assignment]
+    hints = [el for el in row.descendants() if {"hw-keys-mac", "hw-keys-other"} & set(el._classes)]
+    assert hints == []
 
 
 # ---------------------------------------------------------------------------

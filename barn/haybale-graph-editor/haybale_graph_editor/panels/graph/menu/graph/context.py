@@ -18,6 +18,7 @@ from nicegui import ui
 
 from haywire.core.access import AccessTier
 from haywire.core.node.info import NodeInfo
+from haywire.core.signals import Paste
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
@@ -75,7 +76,9 @@ class PastePanel(BasePanel):
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
-            hui.icon_action(hui.icon.paste, tooltip="Paste", on_click=self.actions.paste_at_click)
+            hui.icon_action(
+                hui.icon.paste, tooltip="Paste", on_click=self.actions.paste_at_click, command=Paste
+            )
 
 
 @panel(

@@ -31,6 +31,7 @@ from haybale_graph_editor.panels._gating import (
 from nicegui import ui
 
 from haywire.core.access import AccessTier
+from haywire.core.signals import Copy, Delete
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
@@ -189,12 +190,13 @@ class CopySelectionMenuPanel(BasePanel):
                 selection_label("Copy", n_nodes, n_edges),
                 icon=hui.icon.copy,
                 on_click=self.actions.copy_selection,
+                command=Copy,
             )
 
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
-            hui.menu_row("Copy", icon=hui.icon.copy, enabled=False)
+            hui.menu_row("Copy", icon=hui.icon.copy, enabled=False, command=Copy)
 
 
 def _node_has_errors(ctx: "SessionContext") -> bool:
@@ -606,12 +608,13 @@ class DeleteSelectionMenuPanel(BasePanel):
                 selection_label("Delete", n_nodes, n_edges),
                 icon=hui.icon.delete,
                 on_click=self.actions.delete_selection,
+                command=Delete,
             )
 
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
-            hui.menu_row("Delete", icon=hui.icon.delete, enabled=False)
+            hui.menu_row("Delete", icon=hui.icon.delete, enabled=False, command=Delete)
 
 
 @panel(
