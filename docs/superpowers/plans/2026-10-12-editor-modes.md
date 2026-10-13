@@ -199,8 +199,12 @@ slice lands.
      reassemble a running graph.
    - The `open_locked` default (`open_view` arrives with stage in slice 5), the
      level-bar lock toggle, `ToggleLock`, and `graph_editor_operate`.
-2. **Enter and look inside.** "Enter" for placements, opening locked; the
-   error-ledger reveal takes the same route.
+2. **Enter and look inside:** [2026-10-13-editor-modes-02-enter-and-look-inside.md](2026-10-13-editor-modes-02-enter-and-look-inside.md)
+   - "Enter" for placements, opening locked; the error-ledger reveal takes the
+     same route.
+   - Double-click a Graph-node card to enter. This is the VIEW path, since
+     menus need effective EDIT.
+   - An open placement level follows a `.hwm` reload.
 3. **Edit Instance.** Detach-with-origin on unlock, and the three verbs.
 4. **Position.** Single source, then the layout channel.
 5. **Stage.** Fields, `render_stage()`, on-stage wires, stage view, origin,
