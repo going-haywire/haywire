@@ -145,9 +145,11 @@ class HaystackEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _render_header(self, context: "SessionContext") -> None:
+        """Draw the title, unsaved dot and haystack actions; Save and Save As draw disabled below edit."""
         title = self._get_active_haystack_name(context) or "Haystacks"
         hs = context.app_data[HaystackState]
         is_dirty = hs.is_haystack_dirty
+        can_edit = context.can_edit()
         # The dirty dot (when is_dirty=True) is rendered by panel_header
         # itself between the icon and the title — we only add the save
         # icon and the overflow menu on the action side here.
@@ -158,14 +160,14 @@ class HaystackEditor(BaseEditor):
                     hui.icon.save,
                     tooltip="Save",
                     on_click=lambda: self._on_save_haystack_in_place(context),
-                )
+                ).set_enabled(can_edit)
 
             with ui.button(icon="more_vert").props("flat round dense size=sm").classes("flex-shrink-0"):
                 with ui.menu():
                     ui.menu_item(
                         "Save As…",
                         on_click=lambda: self._on_save_haystack(context),
-                    )
+                    ).set_enabled(can_edit)
                     ui.menu_item(
                         "Load…",
                         on_click=lambda: self._on_load_haystack(context),
@@ -623,7 +625,10 @@ class HaystackEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _on_save_haystack(self, context: "SessionContext") -> None:
-        """Save the current set of open graphs as a haystack ("Save As…")."""
+        """Save the current set of open graphs as a haystack ("Save As…"); refused below edit."""
+        if not context.can_edit():
+            ui.notify("Saving needs edit access", type="warning", position="top-right")
+            return
         app: IAppState = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
@@ -650,8 +655,11 @@ class HaystackEditor(BaseEditor):
 
         Falls through to :meth:`_on_save_haystack` (the Save-As modal) when
         no haystack is loaded — there's nothing to overwrite, so the user
-        has to name it.
+        has to name it. Refused below edit.
         """
+        if not context.can_edit():
+            ui.notify("Saving needs edit access", type="warning", position="top-right")
+            return
         active = self._get_active_haystack_name(context)
         if not active:
             self._on_save_haystack(context)
