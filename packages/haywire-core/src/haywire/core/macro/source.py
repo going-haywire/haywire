@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from haywire.core.library.install_type import InstallType
+from haywire.core.macro.origin import MacroOrigin
 
 if TYPE_CHECKING:
     from haywire.core.node.base import BaseNode
@@ -34,6 +35,19 @@ def is_macro_placement(node: "BaseNode") -> bool:
     """
     class_identity = getattr(type(node), "class_identity", None)
     return bool(getattr(class_identity, "_is_macro_node", False))
+
+
+def modified_instance_origin(node: "BaseNode") -> MacroOrigin | None:
+    """Return the origin of the Group ``node`` stands for, or ``None``.
+
+    ``None`` for a node that is not a Graph-node, an unbound card, and a Group
+    that was not detached from a macro.
+    """
+    resolve = getattr(node, "resolve_definition", None)
+    if resolve is None:
+        return None
+    definition = resolve()
+    return getattr(definition, "origin", None)
 
 
 def macro_source_path(registry_key: str) -> Path | None:

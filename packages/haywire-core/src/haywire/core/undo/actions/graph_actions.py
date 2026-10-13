@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from ...node import NodeWrapper
 from ...graph.base import BaseGraph
+from ...macro.origin import MacroOrigin
 from ...edge.edge_wrapper import EdgeWrapper
 from ...types import Propagation
 from ...graph.utils.node_remap import remap_node_ids
@@ -1829,6 +1830,17 @@ class ExpandGraphNodeAction(CompositeAction):
         super().__init__(actions, description or "Expand Group")
 
 
+def _macro_origin(template_key: str) -> MacroOrigin | None:
+    """Return the origin for ``template_key`` from the macro registry, or ``None`` if its template is absent."""
+    from ...di.config import get_library_system
+
+    try:
+        template = get_library_system().get_macro_registry().template(template_key)
+    except Exception:
+        return None
+    return MacroOrigin(template_key, template.content_hash) if template is not None else None
+
+
 class _AdoptTemplateInteriorAction(ActionBase):
     """Turn a placement's interior into a Subgraph the host file owns.
 
@@ -1849,6 +1861,7 @@ class _AdoptTemplateInteriorAction(ActionBase):
         source_key: str,
         target_key: str,
         template_key: str,
+        origin: MacroOrigin | None = None,
         description: Optional[str] = None,
     ):
         super().__init__(description or f"Adopt interior '{source_key}' as '{target_key}'")
@@ -1856,6 +1869,8 @@ class _AdoptTemplateInteriorAction(ActionBase):
         self.source_key = source_key
         self.target_key = target_key
         self.template_key = template_key
+        self.origin = origin
+        self._previous_origin: MacroOrigin | None = None
 
     def _execute_impl(self) -> None:
         definition = self.graph.detach_subgraph(self.source_key)
@@ -1863,6 +1878,8 @@ class _AdoptTemplateInteriorAction(ActionBase):
             return
         definition.key = self.target_key
         definition.template_key = None
+        self._previous_origin = definition.origin
+        definition.origin = self.origin
         self.graph.add_subgraph(definition)
 
     def _undo_impl(self) -> None:
@@ -1871,6 +1888,7 @@ class _AdoptTemplateInteriorAction(ActionBase):
             return
         definition.key = self.source_key
         definition.template_key = self.template_key
+        definition.origin = self._previous_origin
         self.graph.add_subgraph(definition)
 
 
@@ -1924,6 +1942,8 @@ class DetachPlacementFromMacroAction(CompositeAction):
         if template_key is None:
             raise ValueError(f"Node '{node_id}' is already a Group, not a macro placement")
 
+        origin = _macro_origin(template_key)
+
         serialized = card.serialize(include_data=True)
         raw_position = serialized.get("position") or [0.0, 0.0]
         position = (float(raw_position[0]), float(raw_position[1]))
@@ -1954,6 +1974,7 @@ class DetachPlacementFromMacroAction(CompositeAction):
                 source_key=source_key,
                 target_key=self.subgraph_key,
                 template_key=template_key,
+                origin=origin,
             ),
             RemoveElementsAction(graph=graph, nodes=[node_id]),
             AddNodeAction(

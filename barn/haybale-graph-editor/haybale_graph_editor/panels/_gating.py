@@ -145,6 +145,24 @@ def is_macro_placement(ctx: "SessionContext") -> bool:
     return _is_placement(wrapper.node)
 
 
+def is_modified_instance(ctx: "SessionContext") -> bool:
+    """True when the selection's primary node is a Group detached from a macro.
+
+    Such a card is a Graph-node whose interior records the macro it was copied
+    from; a plain Group and a macro placement are not.
+    """
+    wrapper = ctx.data[EditState].active_node
+    if wrapper is None:
+        return False
+    from haywire.core.macro.source import modified_instance_origin
+
+    try:
+        node = wrapper.node
+    except RuntimeError:
+        return False
+    return modified_instance_origin(node) is not None
+
+
 def is_collapsible_selection(ctx: "SessionContext") -> bool:
     """True when at least two nodes are selected, so there is something to collapse.
 

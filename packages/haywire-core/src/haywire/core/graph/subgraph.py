@@ -27,6 +27,7 @@ import copy
 import logging
 
 from .base import BaseGraph
+from ..macro.origin import MacroOrigin
 from ..types import Propagation
 from .utils.node_remap import remap_node_ids
 
@@ -101,6 +102,12 @@ class SubgraphDefinition(BaseGraph):
 
         A marked definition is runtime state: the host graph does not serialize
         it, because the template's file is what it is rebuilt from on load.
+        """
+
+        self.origin: MacroOrigin | None = None
+        """The macro this definition was detached from, if any.
+
+        Serialized with the definition, so the link to the template survives a save.
         """
 
         # Memo for graph_node_wrapper(); re-validated on every call.
@@ -265,6 +272,8 @@ class SubgraphDefinition(BaseGraph):
         data = super().to_dict(include_data=include_data)
         data["key"] = self.key
         data["label"] = self.label
+        if self.origin is not None:
+            data["origin"] = self.origin.to_dict()
         return data
 
     def load_from_dict(self, data: Dict[str, Any]) -> bool:
@@ -274,6 +283,8 @@ class SubgraphDefinition(BaseGraph):
         table put it, so the table is the authority.
         """
         self.label = data.get("label") or self.label
+        origin = data.get("origin")
+        self.origin = MacroOrigin.from_dict(origin) if origin else None
         return super().load_from_dict(data)
 
     def __repr__(self) -> str:
