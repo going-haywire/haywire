@@ -1,9 +1,8 @@
-"""Opening a macro for editing, and what happens when it cannot be opened.
+"""Opening a macro for editing, and entering a macro placement.
 
-Descending into a placement is refused (decision 12) — a placement's interior
-is runtime state, and there is no read-only editor mode to show it in. The
-macro document is opened instead, and only when its library is editable
-(decision 18).
+Entering a placement opens its live interior as a locked level that cannot be
+unlocked. A Group's interior opens as an ordinary level. The macro document
+opens for editing only when its library is editable (decision 18).
 """
 
 import json
@@ -158,8 +157,8 @@ def test_a_placement_is_descendable(macro_file, graph_with_library_system):
     assert level.locked is True
 
 
-def test_a_group_card_is_still_descendable(graph_with_library_system):
-    """Only a placement redirects; a Group's own Subgraph opens as before."""
+def test_a_group_card_is_not_a_placement(graph_with_library_system):
+    """A Group card is not a placement; its Subgraph opens as an ordinary level."""
     from haywire.barn.builtin.nodes.graph_node import GraphNode
     from haywire.core.graph.scheduler import SyncScheduler
     from haywire.core.graph.subgraph import SubgraphDefinition
