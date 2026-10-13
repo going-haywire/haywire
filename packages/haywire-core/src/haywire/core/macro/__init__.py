@@ -2,6 +2,7 @@
 
 from .registry import MacroRegistry
 from .source import (
+    count_placements,
     is_macro_key,
     is_macro_placement,
     macro_edit_refusal,
@@ -14,6 +15,7 @@ from .template import MacroTemplate
 __all__ = [
     "MacroRegistry",
     "MacroTemplate",
+    "count_placements",
     "is_macro_key",
     "is_macro_placement",
     "macro_edit_refusal",

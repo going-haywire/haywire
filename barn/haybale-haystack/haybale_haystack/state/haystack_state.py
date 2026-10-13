@@ -312,22 +312,61 @@ class HaystackState(AppState):
         """
         return self._open_document(path, EntryKind.MACRO)
 
-    def _open_document(self, path: Path, kind: EntryKind) -> GraphEntry:
-        """Open ``path`` under ``kind``, or return the entry already holding it."""
+    def open_macro_with(self, path: Path, document: dict) -> GraphEntry:
+        """Open the macro at ``path`` holding ``document`` instead of the file's contents.
+
+        The entry is unsaved and nothing is written: a save writes ``document``,
+        as edited since, to ``path``. A clean entry already open for ``path`` is
+        reused, so a tab showing it shows the new contents; its undo history is
+        cleared, since it describes contents that are gone.
+
+        Args:
+            path: The ``.hwm`` file the entry saves to.
+            document: A macro document, as ``macro_document`` returns.
+
+        Raises:
+            ValueError: If the entry open for ``path`` has unsaved edits.
+        """
+        existing = self._entries.get(str(path))
+        if existing is None:
+            return self._open_document(path, EntryKind.MACRO, document=document)
+        if existing.unsaved:
+            raise ValueError(f"'{existing.display_name}' has unsaved edits")
+
+        existing.graph.load_from_dict(document)
+        existing.graph.force_validation()
+        existing.editor.history_manager.clear()
+        existing.unsaved = True
+        self._broadcast_unsaved_changed()
+        self._broadcast_data_mutated()
+        return existing
+
+    def _open_document(self, path: Path, kind: EntryKind, document: Optional[dict] = None) -> GraphEntry:
+        """Open ``path`` under ``kind``, or return the entry already holding it.
+
+        With ``document``, the new entry holds it instead of the file's contents
+        and starts unsaved.
+        """
         binding_id = str(path)
         existing = self._entries.get(binding_id)
         if existing is not None:
             return existing
 
         graph, editor = self._make_graph_and_editor(path.stem)
-        graph.load_from_file(str(path))
+        if document is None:
+            graph.load_from_file(str(path))
+        else:
+            graph.load_from_dict(document)
         graph.force_validation()
-        entry = GraphEntry(graph=graph, editor=editor, path=path, unsaved=False, haystack=self, kind=kind)
+        unsaved = document is not None
+        entry = GraphEntry(graph=graph, editor=editor, path=path, unsaved=unsaved, haystack=self, kind=kind)
         self._entries[binding_id] = entry
         self._subscribe_validation(entry)
         if self._graph_app_state is not None:
             self._graph_app_state.register(entry)
         logger.info(f"HaystackState: opened {kind.value} {path}")
+        if unsaved:
+            self._broadcast_unsaved_changed()
         self._broadcast_data_mutated()
         # Only a member changes the set, so only a member dirties it.
         if kind.is_haystack_member():

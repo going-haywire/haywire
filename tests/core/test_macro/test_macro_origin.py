@@ -126,3 +126,29 @@ def test_a_plain_group_is_not_a_modified_instance(graph_with_library_system, lib
     )
 
     assert is_modified_instance(_ctx(graph.get_node_wrapper(card_id))) is False
+
+
+@pytest.mark.usefixtures("macro_folder")
+def test_count_placements_spans_graphs_and_interiors(graph_with_library_system, library_system):
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.scheduler import SyncScheduler
+    from haywire.core.macro.source import count_placements
+
+    first = graph_with_library_system
+    make_node(first, _MACRO)
+    a, b = make_node(first, _PRINT), make_node(first, _PRINT)
+    first.create_edge_wrapper(a.node_id, "done", b.node_id, "exec")
+    card_id, _ = _editor(first, library_system).collapse_to_group(
+        node_ids=[a.node_id, b.node_id],
+        card_registry_key=_CARD,
+        input_registry_key="haywire-core:node:SubgraphInputNode",
+        output_registry_key="haywire-core:node:SubgraphOutputNode",
+    )
+    make_node(_definition(first, card_id), _MACRO)
+    second = BaseGraph(filestem="second", validation_scheduler=SyncScheduler())
+    make_node(second, _MACRO)
+    empty = BaseGraph(filestem="empty", validation_scheduler=SyncScheduler())
+
+    assert count_placements([first, second, empty], _MACRO) == (3, 2)
+    assert count_placements([empty], _MACRO) == (0, 0)
+    assert count_placements([first], "testlib:macro:Other") == (0, 0)

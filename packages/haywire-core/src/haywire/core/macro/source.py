@@ -6,6 +6,7 @@ surfaces — the placement's context menu, the add-node menu, the library
 overview, ledger navigation — resolve it the same way.
 """
 
+from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -13,6 +14,7 @@ from haywire.core.library.install_type import InstallType
 from haywire.core.macro.origin import MacroOrigin
 
 if TYPE_CHECKING:
+    from haywire.core.graph.base import BaseGraph
     from haywire.core.macro.template import MacroTemplate
     from haywire.core.node.base import BaseNode
 
@@ -89,6 +91,33 @@ def macro_source_path(registry_key: str) -> Path | None:
     except Exception:
         return None
     return template.path if template is not None else None
+
+
+def count_placements(graphs: Iterable["BaseGraph"], registry_key: str) -> tuple[int, int]:
+    """Count the placements of the macro ``registry_key`` across ``graphs``.
+
+    Every Subgraph is searched at any depth, a placement's interior included.
+
+    Returns:
+        ``(placements, graphs)``: how many placements there are, and how many of
+        ``graphs`` hold at least one.
+    """
+    placements = 0
+    holding = 0
+    for graph in graphs:
+        found = _placements_in(graph, registry_key)
+        placements += found
+        if found:
+            holding += 1
+    return placements, holding
+
+
+def _placements_in(graph: "BaseGraph", registry_key: str) -> int:
+    """Placements of ``registry_key`` in ``graph`` and every Subgraph beneath it."""
+    found = sum(1 for wrapper in graph.node_wrappers.values() if wrapper.registry_key == registry_key)
+    for definition in graph.subgraphs.values():
+        found += _placements_in(definition, registry_key)
+    return found
 
 
 def _install_type_of(library_id: str, library_system: Any) -> InstallType | None:
