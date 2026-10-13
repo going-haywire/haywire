@@ -272,11 +272,29 @@ def test_a_group_still_forwards_content_changes(graph_with_library_system):
 
 
 def test_an_interior_value_is_still_live(graph_with_library_system, macro_registry):
-    """The edit is not saved or forwarded, yet the interior port holds the new value."""
-    card = _place(graph_with_library_system)
+    """A card widget on the locked placement level may write; the value changes, the host is not marked."""
+    from haybale_graph_editor.access import NodeWriteGate, allows
+    from haywire.core.access import AccessTier
+
+    graph = graph_with_library_system
+    card = _place(graph)
     interior = _interior_adder(card)
+    graph.force_validation()
+    seen: list = []
+    graph.subscribe_to_validation(seen.append)
 
-    interior.node.ports["value_a"].set_value(2.5)
-    interior.mark_value_edited()
+    def on_locked_level(required: AccessTier) -> bool:
+        return allows(AccessTier.EDIT.satisfies, True, required)
 
-    assert interior.node.ports["value_a"].get_value() == 2.5
+    gate = NodeWriteGate(AccessTier.OPERATE, on_locked_level, interior)
+    assert gate.allows() is True
+    assert NodeWriteGate(AccessTier.EDIT, on_locked_level, interior).allows() is False
+
+    port = interior.node.ports["value_a"]
+    assert port.get_value() != 2.5
+    port.set_value(2.5)
+    gate.written()
+
+    assert port.get_value() == 2.5
+    assert [r for r in seen if r.requires_save()] == []
+    assert [r for r in seen if r.requires_reassembly()] == []
