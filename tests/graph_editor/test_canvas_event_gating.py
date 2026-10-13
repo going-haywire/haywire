@@ -13,7 +13,10 @@ from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import Graph
 from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import ContextMenuHandlers
 from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
-from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import SelectionToolbarHandlers
+from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import (
+    SelectionToolbarHandlers,
+    SelectionToolbarProvider,
+)
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haywire.core.access import AccessTier
 from haywire.ui.components.graph.event_definitions import (
@@ -181,11 +184,18 @@ def test_menu_opens_when_unlocked():
 
 def test_no_toolbar_below_edit():
     manager, _ = _manager(locked=True)
-    provider = MagicMock()
-    handlers = SelectionToolbarHandlers(provider=provider, allows=manager.allows)
+    provider = SelectionToolbarProvider(
+        context=MagicMock(),
+        session=MagicMock(),
+        panel_registry=MagicMock(),
+        menu_provider=MagicMock(),
+        allows=manager.allows,
+    )
+    provider.hide = MagicMock()  # type: ignore[method-assign]
+    handlers = SelectionToolbarHandlers(provider=provider)
     handlers.process_selection_bounds(SelectionBoundsEvent(left=0.0, top=0.0, right=10.0, bottom=10.0))
-    provider.show_at.assert_not_called()
     provider.hide.assert_called_once()
+    assert provider._toolbar_popup is None
 
 
 def test_resync_positions_restores_model_positions():

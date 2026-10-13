@@ -36,7 +36,7 @@ def test_toolbar_handler_keys_present():
 
     # Minimal stub for SelectionToolbarProvider — we only need a valid instance
     provider = MagicMock(spec=SelectionToolbarProvider)
-    handlers = SelectionToolbarHandlers(provider=provider, allows=lambda _required: True)
+    handlers = SelectionToolbarHandlers(provider=provider)
 
     handler_map = build_event_handler_map([handlers])
 

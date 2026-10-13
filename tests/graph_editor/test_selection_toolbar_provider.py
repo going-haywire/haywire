@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from haywire.core.access import AccessTier
 from haywire.ui.components.graph.event_definitions import (
     SelectionBoundsEvent,
     SelectionBoundsHideEvent,
@@ -16,7 +17,7 @@ from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import
 from haybale_graph_editor.surfaces import SelectionActions
 
 
-def _provider(monkeypatch, *, menu_provider=None):
+def _provider(monkeypatch, *, menu_provider=None, allows=lambda _required: True):
     ctx = MagicMock()
     session = MagicMock()
     registry = MagicMock()
@@ -31,6 +32,7 @@ def _provider(monkeypatch, *, menu_provider=None):
         on_emit_event=MagicMock(),
         on_emit_sync_event=MagicMock(),
         menu_provider=menu_provider,
+        allows=allows,
     )
     # The surface gate runs first; default it open so the panel path is reached.
     monkeypatch.setattr(selection_toolbar_module, "_poll_surface", lambda surface, ctx: True)
@@ -54,11 +56,21 @@ def test_show_hides_when_the_surface_does_not_apply(monkeypatch):
     registry.get_panels.assert_not_called()
 
 
+def test_show_hides_below_edit(monkeypatch):
+    """Below edit access nothing is queried or built, whichever path asks to show."""
+    prov, registry, _ = _provider(monkeypatch, allows=lambda required: required is not AccessTier.EDIT)
+    prov.hide = MagicMock()
+    prov.show_at((0.0, 0.0, 100.0, 50.0))
+    prov.hide.assert_called_once()
+    registry.get_panels.assert_not_called()
+    assert prov._toolbar_popup is None
+
+
 def test_handler_routes_bounds_to_show(monkeypatch):
     prov, _, _ = _provider(monkeypatch)
     prov.show_at = MagicMock()
     prov.hide = MagicMock()
-    handlers = SelectionToolbarHandlers(provider=prov, allows=lambda _required: True)
+    handlers = SelectionToolbarHandlers(provider=prov)
 
     handlers.process_selection_bounds(SelectionBoundsEvent(left=10.0, top=20.0, right=110.0, bottom=70.0))
     prov.show_at.assert_called_once_with((10.0, 20.0, 110.0, 70.0))
@@ -68,7 +80,7 @@ def test_handler_routes_hide(monkeypatch):
     prov, _, _ = _provider(monkeypatch)
     prov.show_at = MagicMock()
     prov.hide = MagicMock()
-    handlers = SelectionToolbarHandlers(provider=prov, allows=lambda _required: True)
+    handlers = SelectionToolbarHandlers(provider=prov)
 
     handlers.process_selection_bounds_hide(SelectionBoundsHideEvent())
     prov.hide.assert_called_once()

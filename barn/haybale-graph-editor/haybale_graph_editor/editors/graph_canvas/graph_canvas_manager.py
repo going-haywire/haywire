@@ -134,8 +134,9 @@ class GraphCanvasManager:
             # provider, which already implements them against the same
             # canvas. Delegation, not duplication (ADR-0029).
             menu_provider=context_menu_provider,
+            allows=self.allows,
         )
-        self.toolbar_handlers = SelectionToolbarHandlers(provider=self._toolbar_provider, allows=self.allows)
+        self.toolbar_handlers = SelectionToolbarHandlers(provider=self._toolbar_provider)
 
         # Build dispatch map from all handler sources
         self._event_handlers: Dict[str, Callable] = build_event_handler_map(

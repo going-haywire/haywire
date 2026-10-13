@@ -96,6 +96,57 @@ def test_claim_publishes_the_lock():
     assert isinstance(context.session.publish.call_args.args[0], ActiveGraphMoved)
 
 
+class _Popup:
+    """The parts of the toolbar ``Popup`` the provider drives, with its open state."""
+
+    def __init__(self) -> None:
+        self.is_open = True
+
+    def open(self) -> None:
+        self.is_open = True
+
+    def close(self) -> None:
+        self.is_open = False
+
+    def run_method(self, *_args: Any) -> None:
+        pass
+
+
+def test_locking_with_a_selection_leaves_the_toolbar_hidden(monkeypatch):
+    """Locking hides the toolbar, and the session-state claim that follows does not re-show it."""
+    from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+    from haybale_graph_editor.editors.graph_canvas.handlers import selection_toolbar as toolbar_module
+    from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import SelectionToolbarProvider
+
+    editor, context, _ = _locked_editor(AccessTier.EDIT, open_locked=False)
+    manager: Any = object.__new__(GraphCanvasManager)
+    manager._session = SimpleNamespace(context=SimpleNamespace(can_access=AccessTier.EDIT.satisfies))
+    manager.locked = False
+    manager.canvas_vue = MagicMock()
+    manager.context_menu_handlers = SimpleNamespace(provider=MagicMock())
+    registry = MagicMock()
+    registry.get_panels.return_value = [object()]
+    provider = SelectionToolbarProvider(
+        context=MagicMock(),
+        session=MagicMock(),
+        panel_registry=registry,
+        menu_provider=MagicMock(),
+        allows=manager.allows,
+    )
+    monkeypatch.setattr(toolbar_module, "_poll_surface", lambda surface, ctx: True)
+    monkeypatch.setattr(toolbar_module, "partition_panels", lambda classes, ctx: (classes, []))
+    provider._render_into_popup = lambda applies, disabled: True  # type: ignore[method-assign]
+    popup = _Popup()
+    provider._toolbar_popup = popup  # type: ignore[assignment]
+    provider._last_bounds = (0.0, 0.0, 10.0, 10.0)
+    manager._toolbar_provider = provider
+    editor._levels[DOCUMENT_LEVEL].canvas_manager = manager
+
+    assert editor.set_level_locked(context, DOCUMENT_LEVEL, True) is True
+
+    assert popup.is_open is False
+
+
 def test_a_mounted_canvas_follows_the_level_lock(monkeypatch):
     from haybale_graph_editor.editors import graph_editor as graph_editor_module
 

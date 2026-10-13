@@ -56,6 +56,7 @@ class SelectionToolbarProvider:
     """Floating-toolbar host: panel-driven, persistent across repositions.
 
     On show_at(bounds):
+      0. Hides instead when ``allows`` refuses ``EDIT``.
       1. Gates ``SelectionToolbar`` once, then collects its panels.
       2. Partitions them into applicable / disabled.
       3. Renders the tree into the popup, counting leaves.
@@ -75,6 +76,11 @@ class SelectionToolbarProvider:
     ``render_surface``'s ``isinstance`` is the first thing that would have
     caught it. Delegation, not duplication, is the fix — the ⋯ then hosts
     ``SelectionMenu`` directly and no panel learns anything.
+
+    Args:
+        allows: Answers whether the session may do what a tier asks on this
+            canvas, as ``GraphCanvasManager.allows`` does. Asked at every
+            ``show_at``; the toolbar shows only where it allows ``EDIT``.
     """
 
     def __init__(
@@ -83,9 +89,11 @@ class SelectionToolbarProvider:
         session: "Session",
         panel_registry: "PanelRegistry",
         menu_provider: "SessionContextMenuProvider",
+        allows: Callable[[AccessTier], bool],
         on_emit_event: Optional[Callable] = None,
         on_emit_sync_event: Optional[Callable] = None,
     ):
+        self._allows = allows
         self._context = context
         self._session = session
         self._panel_registry = panel_registry
@@ -102,12 +110,17 @@ class SelectionToolbarProvider:
     def show_at(self, bounds: Tuple[float, float, float, float]) -> None:
         """Position (or reposition) the toolbar above the selection bounding box.
 
-        bounds = (left, top, right, bottom) in viewport CSS px.
+        bounds = (left, top, right, bottom) in viewport CSS px. Hides the
+        toolbar instead while ``allows`` refuses ``EDIT``.
         """
         from haybale_graph_editor.surfaces.toolbar import SelectionToolbar
 
         self._last_bounds = bounds
         left, top, right, bottom = bounds
+
+        if not self._allows(AccessTier.EDIT):
+            self.hide()
+            return
 
         if not _poll_surface(SelectionToolbar, self._context):
             self.hide()
@@ -315,22 +328,14 @@ class SelectionToolbarProvider:
 
 
 class SelectionToolbarHandlers:
-    """Route SelectionBounds* events to SelectionToolbarProvider.
+    """Route SelectionBounds* events to SelectionToolbarProvider."""
 
-    ``allows`` answers whether the session may do what a tier asks on this
-    canvas; the toolbar shows only where it allows ``EDIT``.
-    """
-
-    def __init__(self, provider: SelectionToolbarProvider, allows: Callable[[AccessTier], bool]):
+    def __init__(self, provider: SelectionToolbarProvider):
         self._provider = provider
-        self._allows = allows
 
     @handles_event(SelectionBoundsEvent, access=AccessTier.VIEW)
     def process_selection_bounds(self, event: SelectionBoundsEvent) -> None:
-        """Show or reposition the toolbar above the selection; hide it below edit access."""
-        if not self._allows(AccessTier.EDIT):
-            self._provider.hide()
-            return
+        """Show or reposition the toolbar above the selection. See ``SelectionToolbarProvider.show_at``."""
         self._provider.show_at((event.left, event.top, event.right, event.bottom))
 
     @handles_event(SelectionBoundsHideEvent, access=AccessTier.VIEW)
