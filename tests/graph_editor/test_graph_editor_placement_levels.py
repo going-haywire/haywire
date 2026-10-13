@@ -143,9 +143,13 @@ class TestAReloadedPlacement:
     """A ``.hwm`` reload swaps the placement's interior for a new definition under the same key."""
 
     def test_an_open_placement_level_follows_a_reload(self):
+        from haybale_graph_editor.state.edit_state import EditState
+
         editor, context, document = _editor()
         _open_placement(editor, context)
         old_level = editor._levels[_PLACEMENT_KEY]
+        # The session is on the placement level, so the reload carries it along.
+        context.data = {EditState: SimpleNamespace(active_graph=old_level.container.editor.graph)}
         editor._level_panels = MagicMock()
         _stub(editor._claim_session_state).reset_mock()
 

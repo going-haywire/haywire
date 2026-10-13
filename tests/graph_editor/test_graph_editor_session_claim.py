@@ -15,11 +15,13 @@ from unittest.mock import MagicMock
 import pytest
 
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
+from haybale_graph_editor.protocols import SubgraphContainer
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import _REACT_ON_ATTR
+from haywire.core.signals import SelectionMoved
 
 from .test_graph_editor_levels import _assert_selection_dropped, _select, _two_tabs
-from .test_graph_editor_placement_levels import _PLACEMENT_KEY, _open_placement
+from .test_graph_editor_placement_levels import _PLACEMENT_KEY, _open_placement, _placement_definition
 
 pytestmark = pytest.mark.unit
 
@@ -35,6 +37,10 @@ def _retarget(context: Any, binding_id: str, *editors: GraphEditor) -> None:
     context.target_binding_id = binding_id
     for editor in editors:
         editor._on_target_moved(context, None)
+
+
+def _published(context: Any) -> list[type]:
+    return [type(call.args[0]) for call in context.session.publish.call_args_list]
 
 
 def _split_panes() -> tuple[GraphEditor, GraphEditor, Any, Any]:
@@ -105,3 +111,61 @@ class TestTheEditorAClickLandsInClaims:
         assert edit_state.active_graph is a._levels[DOCUMENT_LEVEL].container.editor.graph
         assert edit_state.active_node is a_node
         context.session.publish.assert_not_called()
+
+
+class TestABackgroundEditorLeavesTheSessionAlone:
+    """A level change in an editor the session is not on updates that editor only."""
+
+    def test_a_reload_repointing_a_background_level_keeps_the_session(self):
+        a, b, context, edit_state = _split_panes()
+        a_graph, a_node = edit_state.active_graph, edit_state.active_node
+        context.session.publish.reset_mock()
+        reloaded = _placement_definition(_PLACEMENT_KEY)
+        b._levels[DOCUMENT_LEVEL].container.editor.graph.subgraphs[_PLACEMENT_KEY] = reloaded
+
+        b._prune_dead_levels(context)
+
+        container = b._levels[_PLACEMENT_KEY].container
+        assert isinstance(container, SubgraphContainer)
+        assert container.definition is reloaded
+        assert b._active_level == _PLACEMENT_KEY
+        assert edit_state.active_graph is a_graph
+        assert edit_state.active_locked is False
+        assert edit_state.active_node is a_node
+        assert SelectionMoved not in _published(context)
+
+    def test_closing_a_background_editors_level_keeps_the_session(self):
+        a, b, context, edit_state = _split_panes()
+        a_graph, a_node = edit_state.active_graph, edit_state.active_node
+        context.session.publish.reset_mock()
+        del b._levels[DOCUMENT_LEVEL].container.editor.graph.subgraphs[_PLACEMENT_KEY]
+
+        b._prune_dead_levels(context)
+
+        assert list(b._levels) == [DOCUMENT_LEVEL]
+        assert b._active_level == DOCUMENT_LEVEL
+        assert edit_state.active_graph is a_graph
+        assert edit_state.active_node is a_node
+        assert SelectionMoved not in _published(context)
+
+    def test_the_background_editor_claims_its_new_level_when_focused(self):
+        _a, b, context, edit_state = _split_panes()
+        reloaded = _placement_definition(_PLACEMENT_KEY)
+        b._levels[DOCUMENT_LEVEL].container.editor.graph.subgraphs[_PLACEMENT_KEY] = reloaded
+        b._prune_dead_levels(context)
+
+        b.on_focus(context)
+
+        assert edit_state.active_graph is reloaded
+        assert edit_state.active_locked is True
+
+    def test_the_editor_the_session_is_on_still_follows_its_reload(self):
+        _a, b, context, edit_state = _split_panes()
+        _retarget(context, b.wrapper.editor_binding_id, b)
+        reloaded = _placement_definition(_PLACEMENT_KEY)
+        b._levels[DOCUMENT_LEVEL].container.editor.graph.subgraphs[_PLACEMENT_KEY] = reloaded
+
+        b._prune_dead_levels(context)
+
+        assert edit_state.active_graph is reloaded
+        assert edit_state.active_locked is True

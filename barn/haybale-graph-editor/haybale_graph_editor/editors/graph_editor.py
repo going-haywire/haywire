@@ -349,11 +349,12 @@ class GraphEditor(BaseEditor):
         self._render_level_bar(context)
         self._update_breadcrumb(context)
 
-    def _switch_level(self, context: "SessionContext", key: str) -> None:
-        """Show the level under ``key`` and hand it the session's graph state.
+    def _switch_level(self, context: "SessionContext", key: str, *, claim: bool = True) -> None:
+        """Show the level under ``key`` and, when ``claim``, hand it the session's graph state.
 
         Showing another level empties the session's selection, which belongs to
-        the level left behind (see ``_claim_session_state``).
+        the level left behind (see ``_claim_session_state``). With ``claim``
+        false the session's graph state and selection are left as they are.
         """
         if key not in self._levels:
             return
@@ -365,7 +366,8 @@ class GraphEditor(BaseEditor):
             # showing, so its canvas mounts from scratch here and asks for its
             # edges itself — see VisualLayerHandlers.process_canvas_mounted.
             self._level_panels.set_value(key)
-        self._claim_session_state(context)
+        if claim:
+            self._claim_session_state(context)
         self._render_level_bar(context)
         self._update_header(context)
 
@@ -380,10 +382,12 @@ class GraphEditor(BaseEditor):
         context.active_component = None
         context.session.publish(SelectionMoved())
 
-    def _close_level(self, context: "SessionContext", key: str) -> None:
+    def _close_level(self, context: "SessionContext", key: str, *, claim: bool = True) -> None:
         """Close the level under ``key`` and every level nested inside it.
 
-        The document level cannot be closed — it is the tab.
+        The document level cannot be closed — it is the tab. Closing the level
+        on screen shows its parent, claiming the session for it when ``claim``
+        (see ``_switch_level``).
         """
         if key == DOCUMENT_LEVEL or key not in self._levels:
             return
@@ -395,7 +399,7 @@ class GraphEditor(BaseEditor):
         if self._active_level not in self._levels:
             # The closed key stays active until the switch, which then leaves it and drops its selection.
             parent = self._parent_key(key)
-            self._switch_level(context, parent if parent in self._levels else DOCUMENT_LEVEL)
+            self._switch_level(context, parent if parent in self._levels else DOCUMENT_LEVEL, claim=claim)
         else:
             self._render_level_bar(context)
 
@@ -408,10 +412,18 @@ class GraphEditor(BaseEditor):
         interior was replaced under the same key, as a macro reload does, is
         re-pointed at the new definition instead, and so is a Group nested in it
         whose key the new interior still holds.
+
+        The session's graph state follows only when it is on this editor's level
+        on screen; an editor the session is not on changes its own levels alone.
         """
+        keys = [k for k in self._levels if k != DOCUMENT_LEVEL]
+        if not keys:
+            return
+        # Read before any level changes: a re-point or close moves the level on screen.
+        claim = self._holds_session(context)
         # Relies on `_levels` holding a parent before the levels nested in it: a
         # parent is re-pointed before its children are checked against it.
-        for key in [k for k in self._levels if k != DOCUMENT_LEVEL]:
+        for key in keys:
             level = self._levels.get(key)
             if level is None:
                 continue  # already closed as a descendant of an earlier one
@@ -423,20 +435,24 @@ class GraphEditor(BaseEditor):
             host = parent.container if parent is not None else container.host
             current = host.editor.graph.get_subgraph(container.definition.key)
             if current is None or current.graph_node_wrapper() is None:
-                self._close_level(context, key)
+                self._close_level(context, key, claim=claim)
             elif current is container.definition and host.editor.graph is container.host.editor.graph:
                 # The card may have been rebuilt under us; follow the new one.
                 self._watch_level_name(level)
             elif level.inside_placement and self._project_state is not None:
                 node_factory = self._project_state.node_factory
-                self._repoint_level(context, level, SubgraphContainer(host, current, node_factory))
+                repointed = SubgraphContainer(host, current, node_factory)
+                self._repoint_level(context, level, repointed, claim=claim)
             else:
-                self._close_level(context, key)
+                self._close_level(context, key, claim=claim)
 
-    def _repoint_level(self, context: "SessionContext", level: _Level, container: SubgraphContainer) -> None:
+    def _repoint_level(
+        self, context: "SessionContext", level: _Level, container: SubgraphContainer, *, claim: bool = True
+    ) -> None:
         """Show ``container`` under ``level``'s key, with a new canvas, in place of ``level``.
 
-        The new canvas keeps the old one's zoom and pan.
+        The new canvas keeps the old one's zoom and pan. A re-pointed level on
+        screen claims the session for the new container when ``claim``.
         """
         replacement = self._new_level(level.key, container)
         viewport = level.canvas_manager.zoom_container.get_viewport() if level.canvas_manager else None
@@ -446,9 +462,14 @@ class GraphEditor(BaseEditor):
         if self._level_panels is not None:
             self._mount_level(context, replacement, viewport=viewport)
         if level.key == self._active_level:
-            self._switch_level(context, level.key)
+            self._switch_level(context, level.key, claim=claim)
         else:
             self._render_level_bar(context)
+
+    def _holds_session(self, context: "SessionContext") -> bool:
+        """Return whether the session's graph state is on this editor's level on screen."""
+        level = self._levels.get(self._active_level)
+        return level is not None and context.data[EditState].active_graph is level.container.editor.graph
 
     # ------------------------------------------------------------------
     # poll / draw
