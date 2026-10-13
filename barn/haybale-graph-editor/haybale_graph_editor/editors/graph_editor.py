@@ -30,6 +30,7 @@ from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.access import AccessTier
+from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import react_on
 from haywire.core.signals.keys import format_combo
 from haywire.core.signals.signal import EditorCommand
@@ -63,7 +64,6 @@ from ..protocols import GraphContainer, SubgraphContainer
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.subgraph import SubgraphDefinition
-    from haywire.core.session.context import SessionContext
     from haywire.core.session.protocols import IAppState
     from nicegui.element import Element
 
@@ -156,9 +156,11 @@ class GraphEditor(BaseEditor):
         ``RevealGraphInstance`` — select a node/edge if one of this editor's
             levels holds that graph, opening the level if it is not open yet.
         ``SubgraphNavigation`` — open a Group of one of this editor's levels.
+        ``SessionContext.target_binding_id`` — claim the session's graph state
+            when a pointer-down lands in this editor.
 
     Signals emitted:
-        ``ActiveGraphMoved`` — on tab focus and on level switch.
+        ``ActiveGraphMoved`` — on tab focus, on a pointer-down in this editor and on level switch.
         ``SelectionMoved``   — node / edge selection.
         ``GraphDataMutated`` — graph structure changes.
         ``Reveal``           — this document's own tab, to bring it forward.
@@ -685,6 +687,18 @@ class GraphEditor(BaseEditor):
             self.wrapper.force_close()
             return
         self._claim_session_state(context)
+
+    @react_on(SessionContext.target_binding_id)
+    def _on_target_moved(self, context: "SessionContext", signal: object) -> None:
+        """Claim the session for the level on screen when a pointer-down lands in this editor.
+
+        Shown side by side with another graph editor, this one is already the
+        focused tab of its slot, so ``on_focus`` does not run when the user turns
+        to it. The pointer-down is reported before the canvas's own events, so
+        the selection the click makes lands after the claim.
+        """
+        if context.target_binding_id == self.wrapper.editor_binding_id:
+            self._claim_session_state(context)
 
     def _claim_session_state(self, context: "SessionContext") -> None:
         """Point the session's graph state at the level on screen.
