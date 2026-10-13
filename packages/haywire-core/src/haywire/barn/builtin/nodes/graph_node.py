@@ -75,6 +75,10 @@ class GraphNode(BaseNode):
     #: moved when the card is re-bound.
     _watched: "SubgraphDefinition | None" = None
 
+    #: Whether an interior edit that only saves (a value edit, a move) marks the
+    #: host unsaved. A card whose interior is never saved turns it off.
+    _forwards_content_changes: bool = True
+
     def init(self) -> None:
         # No ports. They mirror the Subgraph's interface ports, which post_init
         # reads once the store has restored the subgraph key.
@@ -116,7 +120,8 @@ class GraphNode(BaseNode):
         repaint. A batch that reassembles the interior redraws the card and
         reports ``GRAPH_REQUIRE_REASSEMBLY``; one that only saves — a value
         edit, a move, a port reorder — reports ``GRAPH_CONTENT_CHANGED`` and
-        leaves the card as drawn, so a running host keeps running.
+        leaves the card as drawn, so a running host keeps running. A card with
+        ``_forwards_content_changes`` off drops the batches that only save.
         """
         if result.graph is not None and result.graph.requires_graph_reassembly():
             self.reconcile_interface()
@@ -128,7 +133,7 @@ class GraphNode(BaseNode):
             # mark_graph_dirty, not request_graph_reassembly(): that also rebuilds every edge on
             # this card, and reconcile_interface already rebuilt the ones whose pin changed.
             self.wrapper._graph._validation.mark_graph_dirty(ChangeReason.GRAPH_REQUIRE_REASSEMBLY)
-        else:
+        elif self._forwards_content_changes:
             self.wrapper._graph._validation.mark_graph_dirty(ChangeReason.GRAPH_CONTENT_CHANGED)
 
     def _on_label_changed(self, _value: object, _old: object) -> None:

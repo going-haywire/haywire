@@ -200,3 +200,83 @@ def test_a_placement_of_an_absent_macro_loads_as_the_error_node(graph_with_libra
     card = _place(graph, "absent-lib:macro:Gone")
 
     assert card.node.identity._is_error is True
+
+
+# =============================================================================
+# A placement's interior is runtime state: its edits do not mark the host
+# =============================================================================
+
+
+def _interior_adder(card):
+    """The macro's Add node inside a placed card's interior."""
+    definition = card.node.resolve_definition()
+    return next(w for w in definition.node_wrappers.values() if w.registry_key == _ADD)
+
+
+def test_an_interior_value_edit_does_not_mark_the_host(graph_with_library_system, macro_registry):
+    """A value edit inside a placement delivers nothing a save would record, and no reassembly."""
+    graph = graph_with_library_system
+    card = _place(graph)
+    interior = _interior_adder(card)
+    graph.force_validation()
+    seen: list = []
+    graph.subscribe_to_validation(seen.append)
+
+    interior.mark_value_edited()
+
+    assert [r for r in seen if r.requires_save()] == []
+    assert [r for r in seen if r.requires_reassembly()] == []
+
+
+def test_an_interior_structure_edit_still_reassembles_the_host(graph_with_library_system, macro_registry):
+    """Adding a node inside a placement reassembles the running host."""
+    from haywire.core.graph.types import ChangeReason
+    from tests.conftest import make_node
+
+    graph = graph_with_library_system
+    card = _place(graph)
+    graph.force_validation()
+    seen: list = []
+    graph.subscribe_to_validation(seen.append)
+
+    make_node(card.node.resolve_definition(), _ADD)
+
+    assert ChangeReason.GRAPH_REQUIRE_REASSEMBLY in [r.graph for r in seen]
+
+
+def test_a_group_still_forwards_content_changes(graph_with_library_system):
+    """An edit inside a Group's interior still marks the host unsaved."""
+    from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY, GraphNode
+    from haywire.core.graph.scheduler import SyncScheduler
+    from haywire.core.graph.subgraph import SubgraphDefinition
+    from haywire.core.graph.types import ChangeReason
+    from tests.conftest import make_node
+
+    graph = graph_with_library_system
+    definition = graph.add_subgraph(
+        SubgraphDefinition(key="sg", label="Group", validation_scheduler=SyncScheduler())
+    )
+    make_node(definition, _OUTPUT)
+    interior = make_node(definition, _ADD)
+    card = make_node(graph, "haywire-core:node:GraphNode", node_data={"store": {SUBGRAPH_KEY: "sg"}})
+    assert isinstance(card.node, GraphNode)
+    card.node.reconcile_interface()
+    graph.force_validation()
+    seen: list = []
+    graph.subscribe_to_validation(seen.append)
+
+    interior.mark_value_edited()
+
+    assert ChangeReason.GRAPH_CONTENT_CHANGED in [r.graph for r in seen]
+    assert any(r.requires_save() for r in seen)
+
+
+def test_an_interior_value_is_still_live(graph_with_library_system, macro_registry):
+    """The edit is not saved or forwarded, yet the interior port holds the new value."""
+    card = _place(graph_with_library_system)
+    interior = _interior_adder(card)
+
+    interior.node.ports["value_a"].set_value(2.5)
+    interior.mark_value_edited()
+
+    assert interior.node.ports["value_a"].get_value() == 2.5
