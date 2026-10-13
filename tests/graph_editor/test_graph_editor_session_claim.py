@@ -9,16 +9,45 @@ not working in never does.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
 
+from haybale_graph_editor.editors import graph_editor as graph_editor_module
+from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map, handles_event
+from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import (
+    POINTER_GESTURE_EVENTS,
+    GraphCanvasManager,
+)
+from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
 from haybale_graph_editor.protocols import SubgraphContainer
+from haybale_graph_editor.state.edit_state import EditState
+from haywire.core.access import AccessTier
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import _REACT_ON_ATTR
 from haywire.core.signals import SelectionMoved
+from haywire.ui.components.graph.event_definitions import (
+    BaseGraphEvent,
+    CanvasMountedEvent,
+    ContextMenuCanvasEvent,
+    ContextMenuEdgeEvent,
+    ContextMenuPortEvent,
+    ContextMenuSelectedEvent,
+    ContextMenuSurfaceEvent,
+    EdgeClickedEvent,
+    EdgeCreatedEvent,
+    EdgeReconnectStartedEvent,
+    EnterGroupEvent,
+    NodesMeasuredEvent,
+    SelectionBoundsEvent,
+    SelectionBoundsHideEvent,
+    SelectionChangedEvent,
+    UserDragStartEvent,
+    UserResizeEndEvent,
+)
 
 from .test_graph_editor_levels import _assert_selection_dropped, _select, _two_tabs
 from .test_graph_editor_placement_levels import _PLACEMENT_KEY, _open_placement, _placement_definition
@@ -169,3 +198,216 @@ class TestABackgroundEditorLeavesTheSessionAlone:
 
         assert edit_state.active_graph is reloaded
         assert edit_state.active_locked is True
+
+
+_CONTEXT_MENU_EVENTS = [
+    ContextMenuCanvasEvent(screenX=1, screenY=2, canvasX=3, canvasY=4),
+    ContextMenuEdgeEvent(screenX=1, screenY=2, canvasX=3, canvasY=4, edge_id="e1"),
+    ContextMenuSelectedEvent(
+        screenX=1, screenY=2, canvasX=3, canvasY=4, selectedNodes=["b1"], selectedEdges=[]
+    ),
+    ContextMenuSurfaceEvent(screenX=1, screenY=2, canvasX=3, canvasY=4, nodeId="b1", surfaceId="s"),
+    ContextMenuPortEvent(screenX=1, screenY=2, canvasX=3, canvasY=4, nodeId="b1", portId="p"),
+]
+
+_BACKGROUND_EVENTS = [
+    CanvasMountedEvent(),
+    NodesMeasuredEvent(measurements=[{"nodeId": "b1", "width": 10.0, "height": 10.0}]),
+    SelectionBoundsEvent(left=0.0, top=0.0, right=10.0, bottom=10.0),
+    SelectionBoundsHideEvent(),
+]
+
+
+class _Recorder:
+    """Handler source recording the session's ``active_graph`` each event found on arrival."""
+
+    def __init__(self, context: Any) -> None:
+        self._context = context
+        self.seen: list[Any] = []
+
+    @handles_event(
+        ContextMenuCanvasEvent,
+        ContextMenuEdgeEvent,
+        ContextMenuSelectedEvent,
+        ContextMenuSurfaceEvent,
+        ContextMenuPortEvent,
+        CanvasMountedEvent,
+        NodesMeasuredEvent,
+        SelectionBoundsEvent,
+        SelectionBoundsHideEvent,
+        access=AccessTier.VIEW,
+    )
+    def record(self, event: BaseGraphEvent) -> None:
+        self.seen.append(self._context.data[EditState].active_graph)
+
+
+def _mount_canvas(monkeypatch, editor: GraphEditor, context: Any, key: str) -> tuple[Any, _Recorder]:
+    """Build the canvas of ``editor``'s level ``key`` through the real ``_build_canvas``.
+
+    The manager is a real ``GraphCanvasManager`` holding only what
+    ``_handle_canvas_event`` reads; it dispatches selection to real
+    ``SelectionHandlers`` over the level's graph and everything else to a
+    ``_Recorder``. Returns the manager and the recorder.
+    """
+    level = editor._levels[key]
+    graph = level.container.editor.graph
+    session = SimpleNamespace(context=context, publish=lambda signal: context.session.publish(signal))
+    recorder = _Recorder(context)
+
+    def construct(**kwargs: Any) -> Any:
+        manager: Any = object.__new__(GraphCanvasManager)
+        manager._session = session
+        manager.locked = level.locked
+        manager.visual_layer = MagicMock()
+        manager.zoom_container = MagicMock()
+        manager.sync_with_graph = MagicMock()
+        manager._toolbar_provider = None
+        if "on_user_event" in kwargs:
+            manager._on_user_event = kwargs["on_user_event"]
+        selection = SelectionHandlers(
+            graph=graph, editor=MagicMock(), session_id="s1", session=cast(Any, session)
+        )
+        manager._event_handlers = build_event_handler_map([selection, recorder])
+        return manager
+
+    monkeypatch.setattr(graph_editor_module, "GraphCanvasManager", construct)
+    editor._project_state = MagicMock()
+    context.session_id = "session-1"
+    level.canvas_manager = editor._build_canvas(context, level.container)
+    return level.canvas_manager, recorder
+
+
+def _residual_path(monkeypatch) -> tuple[GraphEditor, GraphEditor, Any, Any, Any, _Recorder]:
+    """Split panes after: a click in B (B claims), then a slot-tab click in A's pane (A claims).
+
+    The target stays on B, so a further click in B reports no target move.
+    Returns A, B, the context, the EditState, B's on-screen canvas and its recorder.
+    """
+    a, b, context, edit_state = _split_panes()
+    context.can_access = AccessTier.ADMIN.satisfies
+    _mount_canvas(monkeypatch, b, context, DOCUMENT_LEVEL)
+    manager, recorder = _mount_canvas(monkeypatch, b, context, _PLACEMENT_KEY)
+    _retarget(context, b.wrapper.editor_binding_id, a, b)
+    a.on_focus(context)
+    assert edit_state.active_graph is a._levels[DOCUMENT_LEVEL].container.editor.graph
+    context.session.publish.reset_mock()
+    return a, b, context, edit_state, manager, recorder
+
+
+class TestAGestureOnACanvasClaimsTheSession:
+    """A pointer gesture on a canvas claims the session for its editor, whatever the target says."""
+
+    def test_the_gesture_events_are_the_pointer_initiated_ones(self):
+        assert POINTER_GESTURE_EVENTS == {
+            SelectionChangedEvent,
+            ContextMenuCanvasEvent,
+            ContextMenuEdgeEvent,
+            ContextMenuSelectedEvent,
+            ContextMenuSurfaceEvent,
+            ContextMenuPortEvent,
+            EdgeClickedEvent,
+            EdgeReconnectStartedEvent,
+            EdgeCreatedEvent,
+            UserDragStartEvent,
+            UserResizeEndEvent,
+            EnterGroupEvent,
+        }
+
+    def test_a_click_selection_on_the_other_pane_lands_under_its_level(self, monkeypatch):
+        _a, b, context, edit_state, manager, _ = _residual_path(monkeypatch)
+        b_node = MagicMock(name="b_interior_node")
+        _interior_graph(b).node_wrappers["b1"] = b_node
+
+        manager._handle_canvas_event(
+            SelectionChangedEvent(selectedNodes=["b1"], selectedEdges=[], activeNodeId="b1")
+        )
+
+        assert edit_state.active_graph is _interior_graph(b)
+        assert edit_state.active_locked is True
+        assert edit_state.active_node is b_node
+        assert edit_state.selected_nodes == {"b1"}
+
+    @pytest.mark.parametrize("event", _CONTEXT_MENU_EVENTS, ids=lambda e: e.event_type)
+    def test_a_context_menu_resolves_against_the_canvas_it_opened_on(self, monkeypatch, event):
+        _a, b, _context, edit_state, manager, recorder = _residual_path(monkeypatch)
+
+        manager._handle_canvas_event(event)
+
+        assert recorder.seen == [_interior_graph(b)]
+        assert edit_state.active_locked is True
+
+    @pytest.mark.parametrize("event", _BACKGROUND_EVENTS, ids=lambda e: e.event_type)
+    def test_an_event_the_canvas_sends_on_its_own_claims_nothing(self, monkeypatch, event):
+        a, _b, context, edit_state, manager, recorder = _residual_path(monkeypatch)
+        a_graph = a._levels[DOCUMENT_LEVEL].container.editor.graph
+
+        manager._handle_canvas_event(event)
+
+        assert recorder.seen == [a_graph]
+        assert edit_state.active_graph is a_graph
+        assert edit_state.active_locked is False
+        context.session.publish.assert_not_called()
+
+    def test_a_canvas_of_a_level_not_on_screen_claims_nothing(self, monkeypatch):
+        a, b, context, edit_state, _manager, _ = _residual_path(monkeypatch)
+        hidden = b._levels[DOCUMENT_LEVEL].canvas_manager
+        assert hidden is not None
+
+        hidden._handle_canvas_event(SelectionChangedEvent(selectedNodes=[], selectedEdges=[]))
+
+        assert edit_state.active_graph is a._levels[DOCUMENT_LEVEL].container.editor.graph
+        assert edit_state.active_locked is False
+
+    def test_a_gesture_on_the_canvas_already_holding_the_session_publishes_no_move(self, monkeypatch):
+        from haywire.core.signals import ActiveGraphMoved
+
+        _a, b, context, _edit_state, manager, _ = _residual_path(monkeypatch)
+        b.on_focus(context)
+        context.session.publish.reset_mock()
+
+        manager._handle_canvas_event(SelectionChangedEvent(selectedNodes=[], selectedEdges=[]))
+
+        assert ActiveGraphMoved not in _published(context)
+
+
+def _drawable(monkeypatch, context: Any) -> None:
+    """Let ``GraphEditor.draw`` run without a page: its element factories become mocks."""
+    monkeypatch.setattr(graph_editor_module, "ui", MagicMock())
+    monkeypatch.setattr(graph_editor_module, "hui", MagicMock())
+    context.app = MagicMock()
+
+
+class TestARedrawDropsOnlyItsOwnSelection:
+    def test_a_background_editors_redraw_keeps_the_focused_editors_selection(self, monkeypatch):
+        a, b, context, edit_state = _split_panes()
+        _drawable(monkeypatch, context)
+        a_node = edit_state.active_node
+        context.session.publish.reset_mock()
+
+        b.draw(context, MagicMock())
+
+        assert edit_state.active_graph is a._levels[DOCUMENT_LEVEL].container.editor.graph
+        assert edit_state.active_node is a_node
+        assert edit_state.selected_nodes == {"n1"}
+        assert SelectionMoved not in _published(context)
+
+    def test_the_focused_editors_redraw_drops_its_selection(self, monkeypatch):
+        a, _b, context, edit_state = _split_panes()
+        _drawable(monkeypatch, context)
+        context.session.publish.reset_mock()
+
+        a.draw(context, MagicMock())
+
+        _assert_selection_dropped(context, edit_state)
+
+    def test_a_redraw_after_focusing_the_other_pane_drops_its_selection(self, monkeypatch):
+        _a, b, context, edit_state = _split_panes()
+        _drawable(monkeypatch, context)
+        b.on_focus(context)
+        edit_state.active_node = MagicMock(name="b_interior_node")
+        edit_state.selected_nodes = {"b1"}
+        context.session.publish.reset_mock()
+
+        b.draw(context, MagicMock())
+
+        _assert_selection_dropped(context, edit_state)

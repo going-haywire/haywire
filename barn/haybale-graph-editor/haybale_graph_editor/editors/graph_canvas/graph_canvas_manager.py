@@ -18,8 +18,19 @@ from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.ui.components.graph.event_definitions import (
     BaseGraphEvent,
+    ContextMenuCanvasEvent,
+    ContextMenuEdgeEvent,
+    ContextMenuPortEvent,
+    ContextMenuSelectedEvent,
+    ContextMenuSurfaceEvent,
+    EdgeClickedEvent,
+    EdgeCreatedEvent,
+    EdgeReconnectStartedEvent,
+    EnterGroupEvent,
     GRAPH_EVENT_REGISTRY,
+    SelectionChangedEvent,
     UserDragEndEvent,
+    UserDragStartEvent,
     UserPasteClipboardEvent,
     UserResizeEndEvent,
 )
@@ -36,6 +47,28 @@ from .handlers.context_menu import ContextMenuHandlers, SessionContextMenuProvid
 from .handlers.selection_toolbar import SelectionToolbarProvider, SelectionToolbarHandlers
 
 logger = logging.getLogger(__name__)
+
+POINTER_GESTURE_EVENTS: frozenset[type[BaseGraphEvent]] = frozenset(
+    {
+        SelectionChangedEvent,
+        ContextMenuCanvasEvent,
+        ContextMenuEdgeEvent,
+        ContextMenuSelectedEvent,
+        ContextMenuSurfaceEvent,
+        ContextMenuPortEvent,
+        EdgeClickedEvent,
+        EdgeReconnectStartedEvent,
+        EdgeCreatedEvent,
+        UserDragStartEvent,
+        UserResizeEndEvent,
+        EnterGroupEvent,
+    }
+)
+"""The canvas events only a user's pointer gesture on the canvas sends; each reports ``on_user_event``.
+
+Events the canvas sends on its own (mount, measurement, selection bounds on a
+wheel zoom or a node removal) are not in it.
+"""
 
 
 class GraphCanvasManager:
@@ -73,8 +106,27 @@ class GraphCanvasManager:
             self._toolbar_provider.hide()
             self.context_menu_handlers.provider.close_open_menu()
 
-    def __init__(self, editor: Editor, skin_factory, node_factory, panel_registry, session: "Session"):
+    # Class default too, so an instance built without __init__ dispatches without reporting.
+    _on_user_event: Optional[Callable[[], None]] = None
+
+    def __init__(
+        self,
+        editor: Editor,
+        skin_factory,
+        node_factory,
+        panel_registry,
+        session: "Session",
+        on_user_event: Optional[Callable[[], None]] = None,
+    ):
+        """Build the canvas for ``editor``'s graph into the current slot.
+
+        Args:
+            on_user_event: Called with no arguments before an event in
+                ``POINTER_GESTURE_EVENTS`` is dispatched, whether or not its
+                handler then runs. ``None`` reports nothing.
+        """
         self.editor = editor
+        self._on_user_event = on_user_event
         self.skin_factory = skin_factory
         self.node_factory = node_factory
         self._panel_registry = panel_registry
@@ -266,8 +318,11 @@ class GraphCanvasManager:
 
         A refused event changes nothing in the graph. A refused drag end also
         moves its nodes on screen back to their model positions, and a refused
-        resize end its node back to its model position and size.
+        resize end its node back to its model position and size. An event in
+        ``POINTER_GESTURE_EVENTS`` calls ``on_user_event`` first, refused or not.
         """
+        if self._on_user_event is not None and type(event) in POINTER_GESTURE_EVENTS:
+            self._on_user_event()
         event_type = event.event_type
         handler = self._event_handlers.get(event_type)
 

@@ -160,7 +160,8 @@ class GraphEditor(BaseEditor):
             when a pointer-down lands in this editor.
 
     Signals emitted:
-        ``ActiveGraphMoved`` — on tab focus, on a pointer-down in this editor and on level switch.
+        ``ActiveGraphMoved`` — on tab focus, on a pointer-down in this editor, on a
+            pointer gesture on the canvas on screen and on level switch.
         ``SelectionMoved``   — node / edge selection.
         ``GraphDataMutated`` — graph structure changes.
         ``Reveal``           — this document's own tab, to bring it forward.
@@ -468,8 +469,8 @@ class GraphEditor(BaseEditor):
 
     def _holds_session(self, context: "SessionContext") -> bool:
         """Return whether the session's graph state is on this editor's level on screen."""
-        level = self._levels.get(self._active_level)
-        return level is not None and context.data[EditState].active_graph is level.container.editor.graph
+        entry = self._get_entry(context)
+        return entry is not None and context.data[EditState].active_graph is entry.editor.graph
 
     # ------------------------------------------------------------------
     # poll / draw
@@ -711,14 +712,15 @@ class GraphEditor(BaseEditor):
 
     @react_on(SessionContext.target_binding_id)
     def _on_target_moved(self, context: "SessionContext", signal: object) -> None:
-        """Claim the session for the level on screen when a pointer-down lands in this editor.
-
-        Shown side by side with another graph editor, this one is already the
-        focused tab of its slot, so ``on_focus`` does not run when the user turns
-        to it. The pointer-down is reported before the canvas's own events, so
-        the selection the click makes lands after the claim.
-        """
+        """Claim the session for the level on screen when the session's target moves to this editor."""
+        # The pointer-down that moves the target arrives before the canvas events of the same click.
         if context.target_binding_id == self.wrapper.editor_binding_id:
+            self._claim_session_state(context)
+
+    def _on_canvas_gesture(self, context: "SessionContext", manager: GraphCanvasManager) -> None:
+        """Claim the session for the level on screen when ``manager`` is its canvas; otherwise do nothing."""
+        level = self._levels.get(self._active_level)
+        if level is not None and level.canvas_manager is manager:
             self._claim_session_state(context)
 
     def _claim_session_state(self, context: "SessionContext") -> None:
@@ -771,8 +773,9 @@ class GraphEditor(BaseEditor):
         if self._active_level not in self._levels:
             self._active_level = DOCUMENT_LEVEL
 
-        # The rebuilt canvases select nothing, so neither does the session.
-        self._clear_selection(context)
+        # The rebuilt canvases select nothing, so neither does the session when it is on them.
+        if self._holds_session(context):
+            self._clear_selection(context)
 
         with container:
             with ui.column().classes("w-full gap-0").style("height: 100%; overflow: hidden;"):
@@ -883,6 +886,7 @@ class GraphEditor(BaseEditor):
             node_factory=app.node_factory,
             panel_registry=app.panel_registry,
             session=context.session,
+            on_user_event=lambda: self._on_canvas_gesture(context, manager),
         )
         # Center the viewport once the Vue component signals it is mounted
         # (first transform-changed event). fit_to_content for graphs with nodes;
