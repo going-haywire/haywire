@@ -487,12 +487,17 @@ Tiers are cumulative: `view` < `operate` < `edit` < `admin`.
 - **`operate`** can additionally change values on the widgets shown on node cards. It has no context menus, no selection toolbar, no paste, cut, delete or duplicate, no Undo/Redo, no Properties writes, and cannot unlock.
 - **`edit`** can change the graph and its settings, and can save. **`admin`** can also manage principals.
 
-The **lock** is a per-session, per-level switch (the document or an entered Group), never saved. The header lock button or `Mod+E` toggles it; unlocking needs the real `edit` tier. A locked level caps the session's effective tier at `operate` for that level; the cap never raises a lower tier. A graph can ask for a level to start locked (`open_locked`). Save needs the principal's real `edit` tier and ignores the lock; this holds in the graph editor header and in the haystack editor's entry Save and Save-as. Agents are not subject to the lock; the `graph_editor_operate` tool writes a value to a shown widget at `operate`. See [ADR 0051](../adr/0051-operate-tier-and-the-canvas-lock.md).
+The **lock** is a per-session, per-level switch (the document or an entered Group), never saved. The header lock button or `Mod+E` toggles it; unlocking needs the real `edit` tier. A locked level caps the session's effective tier at `operate` for that level; the cap never raises a lower tier. A graph can ask for a level to start locked (`open_locked`). Save needs the principal's real `edit` tier and ignores the lock; this holds in the graph editor header and in the haystack editor's entry Save and Save-as and its header Save and Save As. Agents are not subject to the lock; the `graph_editor_operate` tool writes a value to a shown widget at `operate`. See [ADR 0051](../adr/0051-operate-tier-and-the-canvas-lock.md).
 
-Enforcement sits at the write: canvas events declare a tier (a refused drag or resize snaps back), context menus and the selection toolbar do not open below effective `edit`, and a write gate on widgets, bindings and settings rows is asked when the write lands. Disabled-looking controls are only the look.
+Enforcement sits at the write: canvas events declare a tier (a refused drag or resize snaps back), the browser canvas starts no editing gesture below effective `edit`, context menus and the selection toolbar do not open below effective `edit`, and a write gate on widgets, bindings and settings rows is asked when the write lands. Disabled-looking controls are only the look.
 
 !!! warning "Known gaps"
-    Not tier-gated yet: the fold disclosure of a stacked-skin node card (clickable at `view`), the haystack entry menu's Rename and Remove, and the haystack run settings. These are UI roles against accidents, not a sandbox: do not read `view` as "cannot mutate anything".
+    Not tier-gated yet:
+
+    - on a node card, the fold disclosure of a stacked-skin node and an annotation's double-click text edit (both work at `view`; skins have no session to ask yet);
+    - in the haystack editor, the entry menu's Rename and Remove, the header menu's Load and Rename, New Graph and Load Graph, Start and Stop execution, and the run settings.
+
+    These are UI roles against accidents, not a sandbox: do not read `view` as "cannot mutate anything".
 
 ## 10. The security document
 
@@ -531,9 +536,10 @@ connection is — separate view/operate/edit/admin principals with their own
 identity — but not *isolation*: there is no "read-only copy of the studio"
 and no per-graph, per-node or per-file permission. Every principal who can
 reach the studio sees the same live graphs, the same running execution and
-the same haystack; a `view` principal simply cannot mutate them. None of the
-settings in this guide add a sandbox around the graph editor — a principal
-who can edit a graph holds the authority of the studio process, by design.
+the same haystack; a `view` principal cannot mutate them, apart from the
+known gaps listed above. None of the settings in this guide add a sandbox
+around the graph editor — a principal who can edit a graph holds the
+authority of the studio process, by design.
 See [ADR-0026](../adr/0026-studio-network-exposure.md#consequences) and
 [ADR-0027's non-goals](../adr/0027-studio-authentication.md#explicit-non-goals)
 for the full framing.

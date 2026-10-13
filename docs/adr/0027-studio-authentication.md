@@ -1,6 +1,6 @@
 ---
 name: studio-authentication
-description: One watertight no-access/access boundary at a pure-ASGI gate, with view/edit/admin tiers inside it that guard against ignorance rather than malice — because an edit principal can author a Python node
+description: One watertight no-access/access boundary at a pure-ASGI gate, with view/operate/edit/admin tiers inside it that guard against ignorance rather than malice — because an edit principal can author a Python node
 status: accepted
 level: architectural
 ---
