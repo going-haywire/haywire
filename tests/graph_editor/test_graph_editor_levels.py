@@ -277,6 +277,105 @@ class TestClosingALevel:
         assert list(editor._levels) == [DOCUMENT_LEVEL]
 
 
+def _select(context: Any, node: Any) -> Any:
+    """Give the session ``node`` as its selection, as a canvas click does; return the session's EditState."""
+    from haybale_graph_editor.state.edit_state import EditState
+
+    edit_state = SimpleNamespace(
+        active_node=node, active_edge=MagicMock(), selected_nodes={"n1"}, selected_edges={"e1"}
+    )
+    context.data = {EditState: edit_state}
+    context.active_component = "lib:node:Blur"
+    context.session = MagicMock()
+    return edit_state
+
+
+def _assert_selection_dropped(context: Any, edit_state: Any) -> None:
+    from haywire.core.signals import SelectionMoved
+
+    assert edit_state.active_node is None
+    assert edit_state.active_edge is None
+    assert edit_state.selected_nodes == set()
+    assert edit_state.selected_edges == set()
+    assert context.active_component is None
+    published = [type(call.args[0]) for call in context.session.publish.call_args_list]
+    assert SelectionMoved in published
+
+
+class TestSelectionStaysOnItsLevel:
+    """The session's selection belongs to the level on screen; leaving that level drops it."""
+
+    def test_going_up_drops_the_selection_made_below(self):
+        editor, context, _document = _editor()
+        _descend(editor, context, _definition(key="sg_a"))
+        edit_state = _select(context, MagicMock(name="interior_node"))
+
+        editor.ascend(context)
+
+        _assert_selection_dropped(context, edit_state)
+
+    def test_going_down_drops_the_selection_made_above(self):
+        editor, context, _document = _editor()
+        definition = _definition(key="sg_a")
+        _descend(editor, context, definition)
+        editor.ascend(context)
+        edit_state = _select(context, MagicMock(name="document_node"))
+
+        editor._switch_level(context, "sg_a")
+
+        _assert_selection_dropped(context, edit_state)
+
+    def test_showing_the_level_already_on_screen_keeps_the_selection(self):
+        editor, context, _document = _editor()
+        _descend(editor, context, _definition(key="sg_a"))
+        node = MagicMock(name="interior_node")
+        edit_state = _select(context, node)
+
+        editor._switch_level(context, "sg_a")
+
+        assert edit_state.active_node is node
+        assert edit_state.selected_nodes == {"n1"}
+
+    def test_closing_the_level_on_screen_drops_its_selection(self):
+        editor, context, _document = _editor()
+        _descend(editor, context, _definition(key="sg_a"))
+        edit_state = _select(context, MagicMock(name="interior_node"))
+
+        editor._close_level(context, "sg_a")
+
+        assert editor._active_level == DOCUMENT_LEVEL
+        _assert_selection_dropped(context, edit_state)
+
+    def test_closing_a_background_level_keeps_the_selection(self):
+        editor, context, _document = _editor()
+        _descend(editor, context, _definition(key="sg_a"))
+        editor.ascend(context)
+        node = MagicMock(name="document_node")
+        edit_state = _select(context, node)
+
+        editor._close_level(context, "sg_a")
+
+        assert edit_state.active_node is node
+
+    def test_revealing_a_node_on_a_background_level_selects_it_there(self):
+        from haywire.core.signals import RevealGraphInstance
+
+        editor, context, _document = _editor()
+        definition = _definition(key="sg_a")
+        _descend(editor, context, definition)
+        editor.ascend(context)
+        edit_state = _select(context, None)
+        revealed = MagicMock(name="interior_node")
+        definition.node_wrappers["n1"] = revealed
+
+        editor._on_reveal_graph_instance(
+            context, RevealGraphInstance(graph_id=definition.graph_id, node_id="n1")
+        )
+
+        assert editor._active_level == "sg_a"
+        assert edit_state.active_node is revealed
+
+
 class TestPruningDeadLevels:
     """What the editor owning its levels buys: a level dies with its Subgraph."""
 

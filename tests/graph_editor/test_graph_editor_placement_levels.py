@@ -18,7 +18,15 @@ from haybale_graph_editor.editors.graph_editor import (
 from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
 from haywire.core.access import AccessTier
 
-from .test_graph_editor_levels import _definition, _descend, _editor, _FakeDocument, _stub
+from .test_graph_editor_levels import (
+    _assert_selection_dropped,
+    _definition,
+    _descend,
+    _editor,
+    _FakeDocument,
+    _select,
+    _stub,
+)
 from .test_graph_editor_lock import _locked_editor, _restore_resolver  # noqa: F401
 
 pytestmark = pytest.mark.unit
@@ -153,6 +161,34 @@ class TestAReloadedPlacement:
         _stub(editor._teardown_level).assert_called_once_with(old_level)
         _stub(editor._mount_level).assert_called_once_with(context, level)
         _stub(editor._claim_session_state).assert_called()
+
+    def test_a_reload_of_the_level_on_screen_drops_its_selection(self):
+        """The selected node is in the replaced interior; nothing on screen holds it any more."""
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        edit_state = _select(context, MagicMock(name="old_interior_node"))
+
+        document.editor.graph.subgraphs[_PLACEMENT_KEY] = _placement_definition(_PLACEMENT_KEY)
+        editor._prune_dead_levels(context)
+
+        assert editor._active_level == _PLACEMENT_KEY
+        _assert_selection_dropped(context, edit_state)
+
+    def test_an_interior_node_selected_on_the_placement_is_not_editable_from_the_document(self):
+        """A placement's node is selectable at view; going up to the document must not make it editable."""
+        from haybale_graph_editor.access import can_edit_graph
+
+        editor, context, document = _locked_editor(AccessTier.EDIT, open_locked=False)
+        _open_placement(editor, context)
+        edit_state = _select(context, MagicMock(name="interior_node"))
+        edit_state.active_graph = None
+        edit_state.active_graph_path = None
+        edit_state.active_locked = True
+
+        editor.ascend(context)
+
+        assert can_edit_graph(context) is True  # the document is unlocked ...
+        assert edit_state.active_node is None  # ... and holds nothing from the placement
 
     def test_a_level_in_the_background_follows_without_coming_forward(self):
         editor, context, document = _editor()

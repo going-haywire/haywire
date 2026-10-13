@@ -347,11 +347,16 @@ class GraphEditor(BaseEditor):
         self._update_breadcrumb(context)
 
     def _switch_level(self, context: "SessionContext", key: str) -> None:
-        """Show the level under ``key`` and hand it the session's graph state."""
+        """Show the level under ``key`` and hand it the session's graph state.
+
+        Showing another level empties the session's selection, which belongs to
+        the level left behind.
+        """
         if key not in self._levels:
             return
         if self._active_level != key:
             self._hide_toolbars()
+            self._clear_selection(context)
         self._active_level = key
         if self._level_panels is not None:
             # The panel for `key` was not rendered while another level was
@@ -361,6 +366,17 @@ class GraphEditor(BaseEditor):
         self._claim_session_state(context)
         self._render_level_bar(context)
         self._update_header(context)
+
+    @staticmethod
+    def _clear_selection(context: "SessionContext") -> None:
+        """Empty the session's node and edge selection and publish ``SelectionMoved``."""
+        edit_state = context.data[EditState]
+        edit_state.active_node = None
+        edit_state.active_edge = None
+        edit_state.selected_nodes = set()
+        edit_state.selected_edges = set()
+        context.active_component = None
+        context.session.publish(SelectionMoved())
 
     def _close_level(self, context: "SessionContext", key: str) -> None:
         """Close the level under ``key`` and every level nested inside it.
@@ -375,7 +391,7 @@ class GraphEditor(BaseEditor):
                 continue
             self._teardown_level(level)
         if self._active_level not in self._levels:
-            self._active_level = DOCUMENT_LEVEL
+            # The closed key stays active until the switch, which then leaves it and drops its selection.
             parent = self._parent_key(key)
             self._switch_level(context, parent if parent in self._levels else DOCUMENT_LEVEL)
         else:
@@ -422,6 +438,7 @@ class GraphEditor(BaseEditor):
         if self._level_panels is not None:
             self._mount_level(context, replacement)
         if level.key == self._active_level:
+            self._clear_selection(context)  # it names nodes of the interior just replaced
             self._switch_level(context, level.key)
         else:
             self._render_level_bar(context)
@@ -489,23 +506,27 @@ class GraphEditor(BaseEditor):
         if level is None:
             return
         graph = level.container.editor.graph
-        edit_state = context.data[EditState]
 
+        node_wrapper = edge_wrapper = None
         if event.node_id is not None:
             node_wrapper = graph.get_node_wrapper(event.node_id)
             if node_wrapper is None:
                 return  # node gone
-            edit_state.active_node = node_wrapper
         elif event.edge_id is not None:
             edge_wrapper = graph.edge_wrappers.get(event.edge_id)
             if edge_wrapper is None:
                 return  # edge gone
-            edit_state.active_edge = edge_wrapper
         else:
             return  # graph_id-only broadcast, nothing to select
 
+        # Switch first: showing another level empties the selection.
         if level.key != self._active_level:
             self._switch_level(context, level.key)
+        edit_state = context.data[EditState]
+        if node_wrapper is not None:
+            edit_state.active_node = node_wrapper
+        else:
+            edit_state.active_edge = edge_wrapper
         document = self._document()
         context.session.publish(
             Reveal(
