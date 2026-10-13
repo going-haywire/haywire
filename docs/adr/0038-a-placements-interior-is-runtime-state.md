@@ -120,3 +120,5 @@ The original decision here was that descending into a placement is refused and o
 - **An open level follows a reload.** When the `.hwm` reloads, the level re-points to the new interior and stays open, active and locked; nested levels follow if their key still resolves and close otherwise; the level closes if the placement is gone.
 
 Changing the macro from a placement (Edit Instance) is not part of this slice; Edit Macro… opens the macro document.
+
+**Amended by [ADR 0052](0052-instance-edit-by-detach-with-origin.md):** Edit Instance is built. Unlocking a placement's own level detaches it into a Group with an origin; deeper levels keep the refusal above.

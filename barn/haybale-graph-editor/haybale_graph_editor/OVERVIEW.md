@@ -38,7 +38,6 @@ Visual graph editor library — host-agnostic
 - **Create Node** — 
 - **Delete Connection** — 
 - **Delete Selection** — 
-- **Detach from Macro** — 
 - **Detach from setting** — 
 - **Detail** — 
 - **Detail Ranks** — 
@@ -46,6 +45,7 @@ Visual graph editor library — host-agnostic
 - **Edit** — 
 - **Edit** — 
 - **Edit** — 
+- **Edit Instance** — 
 - **Enter** — 
 - **Execution Statistics** — 
 - **Focus on Graph** — 
@@ -56,6 +56,7 @@ Visual graph editor library — host-agnostic
 - **Group** — 
 - **Insert Reroute** — 
 - **Lock** — 
+- **Modified instance** — 
 - **More** — 
 - **More Actions** — 
 - **New Node** — 

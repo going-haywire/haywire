@@ -30,7 +30,6 @@
 - `haybale-graph-editor:panel:CreateNodeMenuPanel` — Create Node — 
 - `haybale-graph-editor:panel:DeleteEdgeMenuPanel` — Delete Connection — 
 - `haybale-graph-editor:panel:DeleteSelectionMenuPanel` — Delete Selection — 
-- `haybale-graph-editor:panel:DetachFromMacroMenuPanel` — Detach from Macro — 
 - `haybale-graph-editor:panel:DetachSettingMenuPanel` — Detach from setting — 
 - `haybale-graph-editor:panel:DetailRankMenuPanel` — Detail Ranks — 
 - `haybale-graph-editor:panel:DetailSelectionMenuPanel` — Detail — 
@@ -50,6 +49,7 @@
 - `haybale-graph-editor:panel:EdgeWarningsMenuPanel` — Connection Warnings — 
 - `haybale-graph-editor:panel:EdgeWarningsPanel` — Connection Warnings — 
 - `haybale-graph-editor:panel:EditEdgeMenuPanel` — Edit — 
+- `haybale-graph-editor:panel:EditInstanceMenuPanel` — Edit Instance — 
 - `haybale-graph-editor:panel:EditSelectionMenuPanel` — Edit — 
 - `haybale-graph-editor:panel:EnterMenuPanel` — Enter — 
 - `haybale-graph-editor:panel:FocusGraphPanel` — Focus on Graph — 
@@ -61,6 +61,7 @@
 - `haybale-graph-editor:panel:GroupMenuPanel` — Group — 
 - `haybale-graph-editor:panel:InsertRerouteMenuPanel` — Insert Reroute — 
 - `haybale-graph-editor:panel:LockToolbarPanel` — Lock — 
+- `haybale-graph-editor:panel:ModifiedInstanceMenuPanel` — Modified instance — 
 - `haybale-graph-editor:panel:NewNodeToolbarPanel` — New Node — 
 - `haybale-graph-editor:panel:NodeAppearancePanel` — Appearance — 
 - `haybale-graph-editor:panel:NodeErrorsPanel` — Node Errors — 

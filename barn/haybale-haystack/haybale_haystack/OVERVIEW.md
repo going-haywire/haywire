@@ -23,6 +23,7 @@ File-centric multi-graph manager
 - **Edit Macro** — 
 - **Graph Settings** — 
 - **Load into Haystack** — 
+- **Update Macro** — 
 
 ## Editors
 - **Haystack** — All open graphs. Click to switch; "+" to create a new graph.

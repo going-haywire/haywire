@@ -9,6 +9,6 @@
 
 ## Notes
 
-Expand a Group back into the graph around it, or promote it to a macro.
+Expand a Group back into the graph around it, or save it as a new macro.
 
 Only visible when the right-clicked node is a Graph-node.

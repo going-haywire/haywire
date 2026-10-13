@@ -21,6 +21,7 @@
 - `haybale-haystack:panel:EditMacroMenuPanel` — Edit Macro — 
 - `haybale-haystack:panel:GraphRunSettingsPanel` — Graph Settings — 
 - `haybale-haystack:panel:OpenInHaystackMenuPanel` — Load into Haystack — 
+- `haybale-haystack:panel:UpdateMacroMenuPanel` — Update Macro — 
 
 ## editor
 - `haybale-haystack:editor:HaystackEditor` — Haystack — All open graphs. Click to switch; "+" to create a new graph.

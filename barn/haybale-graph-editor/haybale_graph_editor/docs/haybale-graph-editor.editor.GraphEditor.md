@@ -24,9 +24,12 @@ Signals consumed:
     ``RevealGraphInstance`` — select a node/edge if one of this editor's
         levels holds that graph, opening the level if it is not open yet.
     ``SubgraphNavigation`` — open a Group of one of this editor's levels.
+    ``SessionContext.target_binding_id`` — claim the session's graph state
+        when a pointer-down lands in this editor.
 
 Signals emitted:
-    ``ActiveGraphMoved`` — on tab focus and on level switch.
+    ``ActiveGraphMoved`` — on tab focus, on a pointer-down in this editor, on a
+        pointer gesture on the canvas on screen and on level switch.
     ``SelectionMoved``   — node / edge selection.
     ``GraphDataMutated`` — graph structure changes.
     ``Reveal``           — this document's own tab, to bring it forward.
