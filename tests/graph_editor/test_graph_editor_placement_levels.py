@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 
@@ -17,6 +17,7 @@ from haybale_graph_editor.editors.graph_editor import (
 )
 from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
 from haywire.core.access import AccessTier
+from haywire.ui.components.zoom.pan import Viewport
 
 from .test_graph_editor_levels import (
     _assert_selection_dropped,
@@ -160,8 +161,24 @@ class TestAReloadedPlacement:
         assert level.locked is True
         assert level.inside_placement is True
         _stub(editor._teardown_level).assert_called_once_with(old_level)
-        _stub(editor._mount_level).assert_called_once_with(context, level)
+        _stub(editor._mount_level).assert_called_once_with(context, level, viewport=None)
         _stub(editor._claim_session_state).assert_called()
+
+    def test_the_new_canvas_keeps_the_old_viewport(self):
+        """The user is looking at the interior when it reloads; the new canvas looks at the same spot."""
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        viewport = Viewport(zoom=1.5, pan_x=-4000.0, pan_y=-3500.0)
+        old_canvas = MagicMock()
+        old_canvas.zoom_container.get_viewport.return_value = viewport
+        editor._levels[_PLACEMENT_KEY].canvas_manager = old_canvas
+        editor._level_panels = MagicMock()
+
+        document.editor.graph.subgraphs[_PLACEMENT_KEY] = _placement_definition(_PLACEMENT_KEY)
+        editor._prune_dead_levels(context)
+
+        level = editor._levels[_PLACEMENT_KEY]
+        _stub(editor._mount_level).assert_called_once_with(context, level, viewport=viewport)
 
     def test_a_reload_of_the_level_on_screen_drops_its_selection(self):
         """The selected node is in the replaced interior; nothing on screen holds it any more."""
@@ -284,3 +301,29 @@ class TestAReloadedPlacement:
         editor._prune_dead_levels(context)
 
         assert list(editor._levels) == [DOCUMENT_LEVEL]
+
+
+def _built_canvas(monkeypatch, viewport: Viewport | None) -> MagicMock:
+    """Build a canvas over a one-node graph through the real ``_build_canvas``; return its manager."""
+    editor, context, _ = _editor()
+    editor._project_state = MagicMock()
+    manager = MagicMock()
+    monkeypatch.setattr(graph_editor_module, "GraphCanvasManager", MagicMock(return_value=manager))
+    entry = SimpleNamespace(editor=SimpleNamespace(graph=SimpleNamespace(node_wrappers={"n1": object()})))
+    context.session_id = "session-1"
+    GraphEditor._build_canvas(editor, context, entry, viewport=viewport)  # type: ignore[arg-type]
+    return manager
+
+
+def test_a_canvas_built_with_a_viewport_restores_it_instead_of_fitting(monkeypatch):
+    zoom = _built_canvas(monkeypatch, Viewport(zoom=1.5, pan_x=-4000.0, pan_y=-3500.0)).zoom_container
+    zoom._on_ready()
+    assert zoom.mock_calls == [
+        call.set_zoom(1.5),
+        call.set_pan(-4000.0, -3500.0),
+    ]
+
+
+def test_a_canvas_built_without_a_viewport_fits_its_content(monkeypatch):
+    zoom = _built_canvas(monkeypatch, None).zoom_container
+    assert zoom._on_ready == zoom.center_on_content

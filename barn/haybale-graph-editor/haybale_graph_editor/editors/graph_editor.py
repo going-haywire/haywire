@@ -33,6 +33,7 @@ from haywire.core.access import AccessTier
 from haywire.core.session.handlers import react_on
 from haywire.core.signals.keys import format_combo
 from haywire.core.signals.signal import EditorCommand
+from haywire.ui.components.zoom.pan import Viewport
 from haywire.core.signals import (
     ActiveGraphMoved,
     Copy,
@@ -431,13 +432,17 @@ class GraphEditor(BaseEditor):
                 self._close_level(context, key)
 
     def _repoint_level(self, context: "SessionContext", level: _Level, container: SubgraphContainer) -> None:
-        """Show ``container`` under ``level``'s key, with a new canvas, in place of ``level``."""
+        """Show ``container`` under ``level``'s key, with a new canvas, in place of ``level``.
+
+        The new canvas keeps the old one's zoom and pan.
+        """
         replacement = self._new_level(level.key, container)
+        viewport = level.canvas_manager.zoom_container.get_viewport() if level.canvas_manager else None
         self._teardown_level(level)
         self._levels[level.key] = replacement
         self._watch_level_name(replacement)
         if self._level_panels is not None:
-            self._mount_level(context, replacement)
+            self._mount_level(context, replacement, viewport=viewport)
         if level.key == self._active_level:
             self._switch_level(context, level.key)
         else:
@@ -809,8 +814,13 @@ class GraphEditor(BaseEditor):
     # canvas build / teardown
     # ------------------------------------------------------------------
 
-    def _mount_level(self, context: "SessionContext", level: _Level) -> None:
-        """Give ``level`` a panel in the level panels and build its canvas into it."""
+    def _mount_level(
+        self, context: "SessionContext", level: _Level, viewport: Optional[Viewport] = None
+    ) -> None:
+        """Give ``level`` a panel in the level panels and build its canvas into it.
+
+        The canvas opens on ``viewport``, or fitted to its content when ``None``.
+        """
         if self._level_panels is None:
             return
         with self._level_panels:
@@ -820,14 +830,14 @@ class GraphEditor(BaseEditor):
                 "flex: 1; width: 100%; height: 100%; overflow: hidden; min-height: 0; position: relative;"
             )
         with canvas_area:
-            level.canvas_manager = self._build_canvas(context, level.container)
+            level.canvas_manager = self._build_canvas(context, level.container, viewport=viewport)
         if level.canvas_manager is not None:
             level.canvas_manager.set_locked(level.locked)
 
     def _build_canvas(
-        self, context: "SessionContext", entry: "GraphContainer"
+        self, context: "SessionContext", entry: "GraphContainer", viewport: Optional[Viewport] = None
     ) -> Optional[GraphCanvasManager]:
-        """Instantiate a GraphCanvasManager over ``entry`` in the current slot."""
+        """Instantiate a GraphCanvasManager over ``entry`` in the current slot, opened on ``viewport``."""
         app = self._project_state
         if app is None:
             return None
@@ -844,16 +854,26 @@ class GraphEditor(BaseEditor):
         # center on canvas midpoint (3750, 3750) for empty graphs.
         zoom_container = manager.zoom_container
         node_count = len(entry.editor.graph.node_wrappers)
-        if node_count:
+        if viewport is not None:
+
+            def restore_viewport() -> None:
+                zoom_container.set_zoom(viewport.zoom)
+                zoom_container.set_pan(viewport.pan_x, viewport.pan_y)
+
+            zoom_container._on_ready = restore_viewport
+            on_nodes_mounted = restore_viewport
+        elif node_count:
             zoom_container._on_ready = zoom_container.center_on_content
+            on_nodes_mounted = zoom_container.center_on_content
         else:
             zoom_container._on_ready = lambda: zoom_container.center_on(3750, 3750)
+            on_nodes_mounted = zoom_container.center_on_content
 
         if node_count >= CHUNKED_LOAD_THRESHOLD:
             # Large graph: mount in the background so the server keeps serving
             # every other session while this one fills in.
             manager.start_chunked_sync(
-                on_nodes_mounted=zoom_container.center_on_content,
+                on_nodes_mounted=on_nodes_mounted,
                 graph_name=entry.editor.graph.filestem,
             )
         else:
