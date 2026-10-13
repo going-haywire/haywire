@@ -18,6 +18,7 @@ A slim header inside the tab panel shows the open file name and a Save button.
 """
 
 import logging
+import uuid
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -133,6 +134,10 @@ class _Level:
     """Whether this session's canvas for the level is locked; per session, per level."""
     inside_placement: bool = False
     """Whether the level is a macro placement's interior or nested in one; it cannot be unlocked."""
+    panel_name: str = field(default_factory=lambda: uuid.uuid4().hex)
+    """The name of the level's tab panel. Independent of ``key``: the client caches a panel by
+    name, so a re-key must not rename it (a new name mounts a second canvas, and undo would
+    revive the stale cached one)."""
 
 
 @editor(
@@ -363,10 +368,10 @@ class GraphEditor(BaseEditor):
             self._hide_toolbars()
         self._active_level = key
         if self._level_panels is not None:
-            # The panel for `key` was not rendered while another level was
+            # The panel for this level was not rendered while another level was
             # showing, so its canvas mounts from scratch here and asks for its
             # edges itself — see VisualLayerHandlers.process_canvas_mounted.
-            self._level_panels.set_value(key)
+            self._level_panels.set_value(self._levels[key].panel_name)
         if claim:
             self._claim_session_state(context)
         self._render_level_bar(context)
@@ -489,7 +494,10 @@ class GraphEditor(BaseEditor):
         for key in self._descendant_keys(old_key):
             renames[key] = level_key_for(self._levels[key].container)
         # Rebuilt in order, so a parent still comes before the levels nested in it.
-        self._levels = {renames.get(k, k): v for k, v in self._levels.items()}
+        rebuilt = {renames.get(k, k): v for k, v in self._levels.items()}
+        if len(rebuilt) != len(self._levels):
+            logger.warning(f"GraphEditor: re-keying {sorted(renames.items())} collided with an open level")
+        self._levels = rebuilt
         for old, new in renames.items():
             moved = self._levels[new]
             moved.key = new
@@ -498,9 +506,6 @@ class GraphEditor(BaseEditor):
                 moved.locked = True
                 if moved.canvas_manager is not None:
                     moved.canvas_manager.set_locked(True)
-            if moved.panel is not None:
-                moved.panel._props["name"] = new  # the panel is found by this name
-                moved.panel.update()
             self._watch_level_name(moved)
             if self._active_level == old:
                 self._active_level = new
@@ -879,7 +884,7 @@ class GraphEditor(BaseEditor):
 
                 # ---- canvas area, one panel per level ----
                 self._level_panels = (
-                    ui.tab_panels(value=self._active_level, animated=False)
+                    ui.tab_panels(value=self._levels[self._active_level].panel_name, animated=False)
                     .props("keep-alive")
                     .style("flex: 1; width: 100%; min-height: 0; overflow: hidden;")
                 )
@@ -904,7 +909,7 @@ class GraphEditor(BaseEditor):
         if self._level_panels is None:
             return
         with self._level_panels:
-            level.panel = ui.tab_panel(level.key).style("width: 100%; height: 100%; padding: 0;")
+            level.panel = ui.tab_panel(level.panel_name).style("width: 100%; height: 100%; padding: 0;")
         with level.panel:
             canvas_area = ui.element("div").style(
                 "flex: 1; width: 100%; height: 100%; overflow: hidden; min-height: 0; position: relative;"

@@ -344,24 +344,28 @@ class TestADetachedPlacement:
         assert moved.locked is True
         _stub(editor._claim_session_state).assert_called()
 
-    def test_the_mounted_panel_is_renamed_with_its_level(self):
+    def test_the_panel_keeps_its_name_across_a_re_key(self):
+        """The client caches a panel by name, so a re-key must leave the panel and its name alone."""
         editor, context, document = _editor()
         _open_placement(editor, context)
         level = editor._levels[_PLACEMENT_KEY]
         level.panel = MagicMock()
-        level.panel._props = {"name": _PLACEMENT_KEY}
+        level.panel._props = {"name": level.panel_name}
+        name = level.panel_name
         editor._level_panels = MagicMock()
 
         _detach(document, _shown(editor, _PLACEMENT_KEY).definition, "subgraph_new")
         editor._prune_dead_levels(context)
 
-        assert level.panel._props["name"] == "subgraph_new"
-        level.panel.update.assert_called_once_with()
-        editor._level_panels.set_value.assert_called_with("subgraph_new")
+        assert level.panel_name == name
+        assert level.panel._props["name"] == name
+        level.panel.update.assert_not_called()
+        editor._level_panels.set_value.assert_called_with(name)
 
     def test_undo_of_the_detach_follows_back_and_locks(self):
         editor, context, document = _editor()
         _open_placement(editor, context)
+        manager = editor._levels[_PLACEMENT_KEY].canvas_manager = MagicMock()
         definition = _shown(editor, _PLACEMENT_KEY).definition
         _detach(document, definition, "subgraph_new")
         editor._prune_dead_levels(context)
@@ -375,7 +379,27 @@ class TestADetachedPlacement:
         level = editor._levels[_PLACEMENT_KEY]
         assert level.locked is True
         assert level.inside_placement is True
+        assert level.canvas_manager is manager
         _stub(editor._teardown_level).assert_not_called()
+        _stub(editor._mount_level).assert_not_called()
+
+    def test_undo_locks_a_level_the_user_unlocked_after_the_detach(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        level = editor._levels[_PLACEMENT_KEY]
+        manager = level.canvas_manager = MagicMock()
+        definition = _shown(editor, _PLACEMENT_KEY).definition
+        _detach(document, definition, "subgraph_new")
+        editor._prune_dead_levels(context)
+        level.locked = False
+        manager.set_locked.reset_mock()
+
+        _detach(document, definition, _PLACEMENT_KEY)
+        definition.template_key = "lib:macro:Blur"
+        editor._prune_dead_levels(context)
+
+        assert level.locked is True
+        manager.set_locked.assert_called_once_with(True)
 
     def test_descendant_levels_follow_the_re_key(self):
         editor, context, document = _editor()
