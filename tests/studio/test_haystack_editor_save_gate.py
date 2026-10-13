@@ -58,7 +58,7 @@ def test_save_refused_below_edit(tier, monkeypatch):
 def _haystack_header_setup(tier: AccessTier, monkeypatch: pytest.MonkeyPatch) -> tuple[Any, Any, Any, Any]:
     """An editor with a loaded haystack named ``hs1``, and the modal Save As opens, mocked."""
     editor, context, haystack, _dialog = _setup(tier, monkeypatch)
-    editor._get_active_haystack_name = lambda ctx: "hs1"  # type: ignore[method-assign]
+    monkeypatch.setattr(editor, "_get_active_haystack_name", lambda ctx: "hs1")
     haystack.is_haystack_dirty = True
     context.data[EditState].active_graph_path = None
     modal = MagicMock()

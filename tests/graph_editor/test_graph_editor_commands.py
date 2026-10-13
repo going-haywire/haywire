@@ -219,3 +219,28 @@ def test_view_principal_lock_button_is_disabled():
     editor._lock_button.reset_mock()
     editor._update_lock_button(_real_context(AccessTier.EDIT))
     editor._lock_button.set_enabled.assert_called_once_with(True)
+
+
+def _noop_page() -> None:  # registration target for a headless Client
+    pass
+
+
+def test_lock_button_tooltip_names_the_action_a_click_takes():
+    from nicegui import Client, ui
+
+    from haywire.core.access import AccessTier
+    from haywire.ui import elements as hui
+
+    editor, _, _ = _editor(MagicMock())
+    with Client(cast(Any, _noop_page), request=None):
+        editor._lock_button = hui.icon_action(hui.icon.unlocked)
+        with editor._lock_button:
+            tooltip = editor._lock_tooltip = ui.tooltip()
+
+    editor._levels[DOCUMENT_LEVEL].locked = True
+    editor._update_lock_button(_real_context(AccessTier.EDIT))
+    assert tooltip.text == "Unlock (Ctrl+E)"
+
+    editor._levels[DOCUMENT_LEVEL].locked = False
+    editor._update_lock_button(_real_context(AccessTier.EDIT))
+    assert tooltip.text == "Lock (Ctrl+E)"

@@ -31,6 +31,7 @@ from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.access import AccessTier
 from haywire.core.session.handlers import react_on
+from haywire.core.signals.keys import format_combo
 from haywire.core.signals.signal import EditorCommand
 from haywire.core.signals import (
     ActiveGraphMoved,
@@ -165,6 +166,7 @@ class GraphEditor(BaseEditor):
         self._undo_button = None  # ui.button — undo
         self._redo_button = None  # ui.button — redo
         self._lock_button = None  # ui.button — lock toggle
+        self._lock_tooltip = None  # ui.tooltip — names the action a click on the lock takes
 
     # ------------------------------------------------------------------
     # levels
@@ -678,12 +680,12 @@ class GraphEditor(BaseEditor):
                     self._breadcrumb = ui.row().classes("items-center gap-1 min-w-0 no-wrap overflow-hidden")
                     self._lock_button = hui.icon_action(
                         hui.icon.unlocked,
-                        tooltip="Lock",
                         on_click=lambda: context.session.publish(
                             ToggleLock(binding_id=self.wrapper.editor_binding_id)
                         ),
-                        command=ToggleLock,
                     )
+                    with self._lock_button:
+                        self._lock_tooltip = ui.tooltip()
                     self._update_lock_button(context)
                     self._undo_button = hui.icon_action(
                         "undo", tooltip="Undo", on_click=lambda: self._do_undo(context), command=Undo
@@ -1025,12 +1027,16 @@ class GraphEditor(BaseEditor):
         return True if manager is None else manager.allows(AccessTier.EDIT)
 
     def _update_lock_button(self, context: "SessionContext") -> None:
-        """Show the lock icon of the level on screen; disabled below the real edit tier."""
+        """Show the lock icon of the level on screen, and the action a click takes; disabled below
+        the real edit tier."""
         button = self._lock_button
         level = self._levels.get(self._active_level)
         if button is None or level is None:
             return
         button.props(f"icon={hui.icon.locked if level.locked else hui.icon.unlocked}")
+        if self._lock_tooltip is not None:
+            action = "Unlock" if level.locked else "Lock"
+            self._lock_tooltip.set_text(f"{action} ({format_combo(ToggleLock.default_keys[0], mac=False)})")
         button.set_enabled(context.can_edit())
 
     def _do_undo(self, context: "SessionContext") -> None:

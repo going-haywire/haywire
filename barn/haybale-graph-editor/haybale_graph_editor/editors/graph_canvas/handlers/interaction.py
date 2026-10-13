@@ -34,11 +34,10 @@ class InteractionHandlers:
     events into Editor calls.  The Editor owns the undo history, so every
     mutation is automatically recorded there.
 
-    ``session`` is used only to publish ``GraphDataMutated`` after a mutation
-    that does NOT go through the validation pipeline (a resize writes cosmetic
-    size props that never mark a node dirty, so nothing else broadcasts). That
-    broadcast is what refreshes the toolbar's undo/redo enablement — without it
-    the undo button stays stale until the next validating op.
+    ``session`` is used only to publish ``GraphDataMutated`` after a resize,
+    which is announced as a value edit and so raises no ``GraphDataMutated`` of
+    its own. That broadcast is what refreshes the header's undo/redo
+    enablement.
     """
 
     def __init__(self, editor: "Editor", session: "Optional[Session]" = None):
@@ -81,10 +80,8 @@ class InteractionHandlers:
             self.editor.move_nodes_to({event.nodeId: {"x": event.posX, "y": event.posY}})
         self.editor.add_fence()
 
-        # Size props are cosmetic — they never mark a node dirty, so the
-        # validation pipeline (which is what normally broadcasts
-        # GraphDataMutated) does not run. Publish it explicitly so the toolbar's
-        # undo/redo enablement refreshes now, not on the next validating op.
+        # The size writes mark a value edit, which announces at most the unsaved
+        # flip; publish GraphDataMutated so undo/redo enablement refreshes now.
         if self._session is not None:
             self._session.publish(GraphDataMutated())
 

@@ -116,11 +116,7 @@ class GraphNode(BaseNode):
         repaint. A batch that reassembles the interior redraws the card and
         reports ``GRAPH_REQUIRE_REASSEMBLY``; one that only saves — a value
         edit, a move, a port reorder — reports ``GRAPH_CONTENT_CHANGED`` and
-        leaves the card as drawn, so a running host keeps running. The graph is
-        marked directly rather than through ``request_graph_reassembly()``,
-        which would also rebuild every edge on this card;
-        ``reconcile_interface`` already rebuilds the ones whose pin actually
-        changed.
+        leaves the card as drawn, so a running host keeps running.
         """
         if result.graph is not None and result.graph.requires_graph_reassembly():
             self.reconcile_interface()
@@ -129,6 +125,8 @@ class GraphNode(BaseNode):
             return
         if result.requires_reassembly():
             self.wrapper.redraw()
+            # mark_graph_dirty, not request_graph_reassembly(): that also rebuilds every edge on
+            # this card, and reconcile_interface already rebuilt the ones whose pin changed.
             self.wrapper._graph._validation.mark_graph_dirty(ChangeReason.GRAPH_REQUIRE_REASSEMBLY)
         else:
             self.wrapper._graph._validation.mark_graph_dirty(ChangeReason.GRAPH_CONTENT_CHANGED)
