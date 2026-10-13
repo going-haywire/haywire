@@ -1442,17 +1442,22 @@ def register_routes(library_service) -> None:
 
         graph = _harness_graph("Enter Fixture")
         editor = Editor(graph, library_service.get_node_factory())
-        first = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3700.0))
-        second = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3900.0))
-        assert first is not None and second is not None  # noqa: PT018
+        # A float source feeds the adder's first inlet, so collapsing the adder gives
+        # the Group card an interface inlet. Removing the edge afterwards leaves that
+        # inlet unconnected, which is when a card draws its widget (a number field).
+        source = graph.create_node_wrapper(_ADD_FLOAT_KEY, position=(3400.0, 3700.0))
+        adder = graph.create_node_wrapper(_ADD_FLOAT_KEY, position=(3700.0, 3700.0))
+        assert source is not None and adder is not None  # noqa: PT018
+        assert editor.create_edge(source.node_id, "result", adder.node_id, "value_a")
         card_id, reason = editor.collapse_to_group(
-            node_ids=[first.node_id, second.node_id],
+            node_ids=[adder.node_id],
             card_registry_key="haywire-core:node:GraphNode",
             input_registry_key="haywire-core:node:SubgraphInputNode",
             output_registry_key="haywire-core:node:SubgraphOutputNode",
             label="Enter Fixture Group",
         )
         assert card_id is not None, reason
+        assert editor.remove_elements([], [e.edge_id for e in editor.list_edges()], release_pins=False)
 
         ui.label(card_id).props(f'data-testid="enter-card-id" data-node="{card_id}"')
         log = ui.label("").props('data-testid="enter-log"')
