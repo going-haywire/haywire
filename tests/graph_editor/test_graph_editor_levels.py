@@ -199,21 +199,20 @@ class TestDescending:
 
         assert editor.descend_into(context, "nobody") is False
 
-    def test_a_macro_placement_is_refused(self):
-        """Its interior is rebuilt from the template, so there is nothing to edit here.
-
-        The studio opens the macro document instead; showing a placement's live
-        interior waits on a read-only editor mode.
-        """
+    def test_a_macro_placement_is_entered_locked(self):
         editor, context, _document = _editor()
         definition = _definition(key="macro_card_1")
+        definition.template_key = "lib:macro:Blur"  # type: ignore[attr-defined]
         entry = editor._levels[editor._active_level].container
         graph = entry.editor.graph
         graph.node_wrappers["MacroNode_1"] = _placement_card(definition)
         graph.subgraphs[definition.key] = definition
 
-        assert editor.descend_into(context, "MacroNode_1") is False
-        assert list(editor._levels) == [DOCUMENT_LEVEL]
+        assert editor.descend_into(context, "MacroNode_1") is True
+        assert editor._active_level == "macro_card_1"
+        level = editor._levels["macro_card_1"]
+        assert level.locked is True
+        assert level.inside_placement is True
 
 
 class TestAscending:

@@ -14,7 +14,7 @@ window.GraphEvents = {
     DISSOLVE_REROUTE: 'dissolveReroute', // Dissolve a reroute node and bridge its connections
     COLLAPSE_TO_GROUP: 'collapseToGroup', // Collapse the selected nodes into a Group
     EXPAND_GROUP: 'expandGroup', // Expand a Group back into the graph around it
-    ENTER_GROUP: 'enterGroup', // Step inside a Group to edit its Subgraph
+    ENTER_GROUP: 'enterGroup', // Step inside a Graph-node: a Group or a macro placement
     PROMOTE_TO_MACRO: 'promoteToMacro', // Turn a Group into a macro: its own file, placeable in any graph
     OPEN_NEW_NODE_WIZARD: 'openNewNodeWizard', // Open the New Node wizard: write a new node class into a library
     DETACH_FROM_MACRO: 'detachFromMacro', // Turn one macro placement into a Group that no longer tracks the template

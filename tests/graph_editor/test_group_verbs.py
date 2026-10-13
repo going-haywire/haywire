@@ -209,3 +209,56 @@ class TestMenuGating:
         assert is_macro_placement(placement) is True
         # The Group card carries no macro flag, so Detach never shows on it.
         assert is_macro_placement(self._ctx(active_node=self._placement(is_macro=False))) is False
+
+
+@pytest.mark.unit
+class TestEnterRow:
+    """Enter is its own panel, offered on every Graph-node and macro placement."""
+
+    def _ctx(self, **kwargs):
+        return TestMenuGating()._ctx(**kwargs)
+
+    def _node(self, **kwargs):
+        return TestMenuGating()._node(**kwargs)
+
+    def _placement(self, **kwargs):
+        return TestMenuGating()._placement(**kwargs)
+
+    def test_enter_row_shows_for_groups_and_placements(self):
+        from haybale_graph_editor.panels.graph.menu.selection.selection import EnterMenuPanel
+
+        group = self._ctx(active_node=self._node(is_graph_node=True))
+        card = self._placement(is_macro=True)
+        card.node.identity = MagicMock(_is_graph_node=False)
+        placement = self._ctx(active_node=card)
+        plain = self._ctx(active_node=self._node(is_graph_node=False))
+
+        assert EnterMenuPanel.poll(group) is True
+        assert EnterMenuPanel.poll(placement) is True
+        assert EnterMenuPanel.poll(plain) is False
+
+    def _drawn_labels(self, panel_cls, ctx) -> list[str]:
+        from unittest.mock import patch
+
+        panel = panel_cls.__new__(panel_cls)
+        panel.actions = MagicMock()  # type: ignore[attr-defined]
+        with patch("haybale_graph_editor.panels.graph.menu.selection.selection.hui.menu_row") as row:
+            panel.draw(ctx, MagicMock())
+        return [call.args[0] for call in row.call_args_list]
+
+    def test_group_panel_no_longer_offers_enter(self):
+        from haybale_graph_editor.panels.graph.menu.selection.selection import GroupMenuPanel
+
+        ctx = self._ctx(active_node=self._node(is_graph_node=True))
+
+        labels = self._drawn_labels(GroupMenuPanel, ctx)
+
+        assert "Enter Group" not in labels
+        assert "Expand Group" in labels
+
+    def test_enter_panel_draws_enter(self):
+        from haybale_graph_editor.panels.graph.menu.selection.selection import EnterMenuPanel
+
+        ctx = self._ctx(active_node=self._node(is_graph_node=True))
+
+        assert self._drawn_labels(EnterMenuPanel, ctx) == ["Enter"]

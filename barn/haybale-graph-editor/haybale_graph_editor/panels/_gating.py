@@ -134,8 +134,8 @@ def is_macro_placement(ctx: "SessionContext") -> bool:
     """True when the selection's primary node is a card standing for a macro.
 
     Disjoint from :func:`is_graph_node`: ``MacroNode`` clears ``_is_graph_node``
-    precisely so a placement is not offered the Group verbs, which would act on
-    an interior it does not own.
+    so a placement is not offered the Group verbs that rewrite an interior it
+    does not own. Enter applies to both.
     """
     wrapper = ctx.data[EditState].active_node
     if wrapper is None:

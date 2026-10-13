@@ -849,15 +849,15 @@ class GraphEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def descend_into(self, context: "SessionContext", card_node_id: str) -> bool:
-        """Open the Group on ``card_node_id`` as a level of this editor.
+        """Open the Group or macro placement on ``card_node_id`` as a level of this editor.
 
         ``card_node_id`` names a node of the level on screen. The Subgraph is
         opened as a :class:`SubgraphContainer` over that level's container, so
         Save, the dirty dot and the undo history keep reaching the host file at
-        any depth.
+        any depth. A placement's interior opens locked and stays locked.
 
         Returns:
-            ``False`` when the node is not a Graph-node with a Subgraph bound,
+            ``False`` when the node is not a Graph-node or placement with a Subgraph bound,
             or when there is no level to descend from.
         """
         entry = self._get_entry(context)
@@ -867,15 +867,6 @@ class GraphEditor(BaseEditor):
 
         wrapper = entry.editor.graph.get_node_wrapper(card_node_id)
         if wrapper is None:
-            return False
-
-        from haywire.core.macro.source import is_macro_placement
-
-        if is_macro_placement(wrapper.node):
-            # A placement's interior is runtime state rebuilt from the template,
-            # so there is nothing here to edit in place. Opening the document is
-            # the editing surface; showing the interior needs a read-only mode.
-            logger.info(f"GraphEditor: refused descending into macro placement '{card_node_id}'")
             return False
 
         resolve = getattr(wrapper.node, "resolve_definition", None)

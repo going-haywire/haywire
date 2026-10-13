@@ -655,12 +655,48 @@ class CollapseToGroupMenuPanel(BasePanel):
 
 @panel(
     surface=SelectionMenu,
+    label="Enter",
+    icon=hui.icon.graph,
+    order=35,
+)
+class EnterMenuPanel(BasePanel):
+    """Step inside a Group or a macro placement.
+
+    Visible when the right-clicked node is a Graph-node or a macro placement.
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return is_graph_node(ctx) or is_macro_placement(ctx)
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        wrapper = ctx.data[EditState].active_node
+        if wrapper is None:
+            return
+        node_id = wrapper.node_id
+
+        with layout:
+            hui.menu_row(
+                "Enter",
+                icon=hui.icon.graph,
+                on_click=lambda: self.actions.enter_group(node_id),
+            )
+
+
+@panel(
+    surface=SelectionMenu,
     label="Group",
     icon=hui.icon.graph,
     order=36,
 )
 class GroupMenuPanel(BasePanel):
-    """Step inside a Group, or expand it back into the graph around it.
+    """Expand a Group back into the graph around it, or promote it to a macro.
 
     Only visible when the right-clicked node is a Graph-node.
     """
@@ -682,11 +718,6 @@ class GroupMenuPanel(BasePanel):
         node_id = wrapper.node_id
 
         with layout:
-            hui.menu_row(
-                "Enter Group",
-                icon=hui.icon.graph,
-                on_click=lambda: self.actions.enter_group(node_id),
-            )
             hui.menu_row(
                 "Expand Group",
                 icon=hui.icon.edge,

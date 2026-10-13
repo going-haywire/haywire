@@ -25,9 +25,9 @@ def is_macro_key(registry_key: str) -> bool:
 def is_macro_placement(node: "BaseNode") -> bool:
     """Whether ``node`` is a card standing for a macro.
 
-    Descending into one is refused: its interior is runtime state rebuilt from
-    the template, so there is nothing there a user may edit in place. The
-    document is opened instead.
+    Its interior is runtime state rebuilt from the template, so it can be
+    entered and viewed but not edited in place; the document is the editing
+    surface.
 
     Read off the CLASS identity: a placement's instance ``identity`` is its
     template's, which describes the macro rather than the card standing for it.

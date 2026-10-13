@@ -7,7 +7,7 @@ macro document is opened instead, and only when its library is editable
 """
 
 import json
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
@@ -116,14 +116,46 @@ def test_a_site_packages_library_is_refused_with_its_reason(macro_file, library_
     assert "installed" in refusal.lower()
 
 
-def test_a_placement_is_not_descendable(macro_file, graph_with_library_system):
-    """Decision 12: a placement redirects to its document instead of descending."""
+def test_a_placement_is_descendable(macro_file, graph_with_library_system):
+    """Entering a placement opens its live interior as a level."""
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor, _Level
     from haywire.core.macro.source import is_macro_placement
     from tests.conftest import make_node
 
-    card = make_node(graph_with_library_system, _MACRO)
-
+    graph = graph_with_library_system
+    card = make_node(graph, _MACRO)
     assert is_macro_placement(card.node) is True
+    definition = cast(Any, card.node).resolve_definition()
+    assert definition is not None
+
+    document = MagicMock()
+    document.editor.graph = graph
+    document.binding_id = "doc"
+    wrapper = MagicMock()
+    wrapper._binding_id = "doc"
+    editor = GraphEditor(wrapper)
+    editor._project_state = SimpleNamespace(node_factory=MagicMock())  # type: ignore[assignment]
+    editor._levels[DOCUMENT_LEVEL] = _Level(key=DOCUMENT_LEVEL, container=document)
+    for name in (
+        "_mount_level",
+        "_teardown_level",
+        "_render_level_bar",
+        "_update_header",
+        "_claim_session_state",
+    ):
+        setattr(editor, name, MagicMock())
+    context = SimpleNamespace(
+        app_data=MagicMock(), session=MagicMock(), data=MagicMock(), can_edit=lambda: True
+    )
+
+    assert editor.descend_into(context, card.node_id) is True  # type: ignore[arg-type]
+
+    level = editor._levels[editor._active_level]
+    assert level.container.definition is definition  # type: ignore[attr-defined]
+    assert level.locked is True
 
 
 def test_a_group_card_is_still_descendable(graph_with_library_system):
