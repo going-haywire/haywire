@@ -16,6 +16,7 @@ Visual graph editor library — host-agnostic
 - **Demote setting** — Remove a promoted port, returning the field to a plain setting.
 - **Inspect node** — One node's ports, settings, and health, at a chosen depth.
 - **Move nodes** — Move nodes to absolute positions ({node_id: {x, y}}).
+- **Operate widget** — Change the value of a widget that is shown on a node card. Not undo-recorded.
 - **Promote setting** — Promote a settings field to a data port. Not undo-routed (UI parity; later work).
 - **Query graph** — Nodes (with ports) and edges of an open graph.
 - **Redo** — Redo the last undone change on this graph's SHARED human+agent timeline.
@@ -53,6 +54,7 @@ Visual graph editor library — host-agnostic
 - **Edit** — 
 - **Edit** — 
 - **Edit** — 
+- **Enter** — 
 - **Execution Statistics** — 
 - **Focus on Graph** — 
 - **Graph Context** — 

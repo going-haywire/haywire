@@ -96,10 +96,12 @@ touched them; a pin that is gone drops its edges to the ghost pin.
   inherited, and leaving it set would make a placement the registry's Graph-node
   — so collapsing a selection into a Group would build a macro card instead.
 
-- **Descending into a placement is refused**, and opens the macro document
-  instead. There is nothing in the interior a user may edit in place: it is
-  rebuilt from the template on the next load or save. Looking inside a running
-  placement waits on a read-only editor mode.
+- **Entering a placement opens its live interior, locked.** Enter shows the
+  running interior as a level. Nothing in it may be edited in place — it is
+  rebuilt from the template on the next load or save — so the level opens locked
+  and cannot be unlocked until Edit Instance exists. Interior values stay
+  operable (`operate`) and are never saved. The level follows a `.hwm` reload
+  instead of closing. See the amendment below.
 
 - **Promotion writes a file and swaps a card, in one undoable group.** "Promote to
   Macro…" writes `<library>/macros/<Name>.hwm`, registers it synchronously — the
@@ -107,3 +109,14 @@ touched them; a pin that is gone drops its edges to the ghost pin.
   and its definition and creates a placement at the same position, edges
   re-attaching by pin id. Undo restores the Group; the file stays, because a file
   on disk is not the undo stack's to remove.
+
+## Amendment (2026-10-13) — editor modes, slice 2: Enter and look inside
+
+The original decision here was that descending into a placement is refused and opens the macro document instead, because there was nothing in the interior a user may edit in place, and looking inside a running placement "waits on a read-only editor mode". That reasoning about editing stands. The wait is over: the canvas lock (ADR 0051) is the read-only mode, and slice 2 of the editor-modes work uses it.
+
+- **Enter works on a placement.** The context-menu row **Enter** (it replaces "Enter Group") and a double-click on a Graph-node card both open the interior as a level. The double-click needs only `view` and also works on a locked canvas, unless it lands on an interactive widget or a pin.
+- **One rule decides "inside a placement".** A level whose container chain passes through a definition with `template_key` set is inside a placement. Such a level opens locked, and unlocking it is refused with "Inside a macro placement this level stays locked. Use Edit Macro… to change the macro." The rule is applied where the editor makes a level, so Enter, the error-ledger reveal and a Group nested in a placement all get it.
+- **Interior values are runtime state.** They remain operable on the locked level, are never saved, and do not mark the host unsaved or reassemble it. Structural changes still reassemble the host.
+- **An open level follows a reload.** When the `.hwm` reloads, the level re-points to the new interior and stays open, active and locked; nested levels follow if their key still resolves and close otherwise; the level closes if the placement is gone.
+
+Changing the macro from a placement (Edit Instance) is not part of this slice; Edit Macro… opens the macro document.

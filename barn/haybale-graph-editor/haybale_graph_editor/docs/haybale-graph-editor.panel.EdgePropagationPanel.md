@@ -14,3 +14,6 @@ Switch the active edge between eager and lazy propagation, or show the mode it i
 Writes `EdgeWrapper.propagation` directly, like `EdgeStatsPanel` and
 `EdgePathPanel` read it — `EdgeInspector` declares no `provides`, so its
 panels have no action host to route the write through.
+
+The switch writes only while the session may edit the graph on screen, lock
+included; a refused switch shows the edge's mode again.

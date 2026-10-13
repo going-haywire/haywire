@@ -20,6 +20,7 @@ Groups open inside this document.
 
 Signals consumed:
     ``GraphDataMutated`` — sync canvas from another session.
+    ``GraphUnsavedChanged`` — refresh the unsaved dot and tab marker.
     ``RevealGraphInstance`` — select a node/edge if one of this editor's
         levels holds that graph, opening the level if it is not open yet.
     ``SubgraphNavigation`` — open a Group of one of this editor's levels.

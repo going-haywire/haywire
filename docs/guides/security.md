@@ -483,11 +483,11 @@ authentication is off.
 
 Tiers are cumulative: `view` < `operate` < `edit` < `admin`.
 
-- **`view`** can pan, zoom, select, copy, enter Groups and read the panels. It cannot change a value.
+- **`view`** can pan, zoom, select, copy, enter Groups and macro placements and read the panels. It cannot change a value.
 - **`operate`** can additionally change values on the widgets shown on node cards. It has no context menus, no selection toolbar, no paste, cut, delete or duplicate, no Undo/Redo, no Properties writes, and cannot unlock.
 - **`edit`** can change the graph and its settings, and can save. **`admin`** can also manage principals.
 
-The **lock** is a per-session, per-level switch (the document or an entered Group), never saved. The header lock button or `Mod+E` toggles it; unlocking needs the real `edit` tier. A locked level caps the session's effective tier at `operate` for that level; the cap never raises a lower tier. A graph can ask for a level to start locked (`open_locked`). Save needs the principal's real `edit` tier and ignores the lock; this holds in the graph editor header and in the haystack editor's entry Save and Save-as and its header Save and Save As. Agents are not subject to the lock; the `graph_editor_operate` tool writes a value to a shown widget at `operate`. See [ADR 0051](../adr/0051-operate-tier-and-the-canvas-lock.md).
+The **lock** is a per-session, per-level switch (the document, an entered Group or a macro placement), never saved. The header lock button or `Mod+E` toggles it; unlocking needs the real `edit` tier. A locked level caps the session's effective tier at `operate` for that level; the cap never raises a lower tier. A graph can ask for a level to start locked (`open_locked`); a level inside a macro placement always opens locked and cannot be unlocked. Save needs the principal's real `edit` tier and ignores the lock; this holds in the graph editor header and in the haystack editor's entry Save and Save-as and its header Save and Save As. Agents are not subject to the lock; the `graph_editor_operate` tool writes a value to a shown widget at `operate`. See [ADR 0051](../adr/0051-operate-tier-and-the-canvas-lock.md).
 
 Enforcement sits at the write: canvas events declare a tier (a refused drag or resize snaps back), the browser canvas starts no editing gesture below effective `edit`, context menus and the selection toolbar do not open below effective `edit`, and a write gate on widgets, bindings and settings rows is asked when the write lands. Disabled-looking controls are only the look.
 

@@ -6,6 +6,7 @@
 - `haybale-graph-editor:farmhand:demote_setting` — Demote setting — Remove a promoted port, returning the field to a plain setting.
 - `haybale-graph-editor:farmhand:inspect_node` — Inspect node — One node's ports, settings, and health, at a chosen depth.
 - `haybale-graph-editor:farmhand:move_nodes` — Move nodes — Move nodes to absolute positions ({node_id: {x, y}}).
+- `haybale-graph-editor:farmhand:operate` — Operate widget — Change the value of a widget that is shown on a node card. Not undo-recorded.
 - `haybale-graph-editor:farmhand:promote_setting` — Promote setting — Promote a settings field to a data port. Not undo-routed (UI parity; later work).
 - `haybale-graph-editor:farmhand:query_graph` — Query graph — Nodes (with ports) and edges of an open graph.
 - `haybale-graph-editor:farmhand:redo` — Redo — Redo the last undone change on this graph's SHARED human+agent timeline.
@@ -50,6 +51,7 @@
 - `haybale-graph-editor:panel:EdgeWarningsPanel` — Connection Warnings — 
 - `haybale-graph-editor:panel:EditEdgeMenuPanel` — Edit — 
 - `haybale-graph-editor:panel:EditSelectionMenuPanel` — Edit — 
+- `haybale-graph-editor:panel:EnterMenuPanel` — Enter — 
 - `haybale-graph-editor:panel:FocusGraphPanel` — Focus on Graph — 
 - `haybale-graph-editor:panel:GraphContextPanel` — Graph Context — 
 - `haybale-graph-editor:panel:GraphInfoPanel` — Graph Info — 

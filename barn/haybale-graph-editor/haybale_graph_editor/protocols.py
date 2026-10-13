@@ -78,9 +78,9 @@ class GraphContainer(ABC):
 class SubgraphContainer(GraphContainer):
     """One Subgraph, open in the editor as if it were a document.
 
-    The editor builds these itself when the user steps inside a Group — no
-    source library is involved, because a Group belongs to the host file rather
-    than to one of its own. Everything that belongs to the file therefore
+    The editor builds these itself when the user enters a Group or a macro
+    placement — no source library is involved, because a Graph-node's Subgraph
+    belongs to the host file rather than to one of its own. Everything that belongs to the file therefore
     delegates to the host container: ``path``, ``unsaved`` and ``save()`` are
     the host's answers, and the graph editor records on the host's undo history,
     so Save, the dirty dot and Ctrl+Z all reach the whole file at any depth.
@@ -92,8 +92,9 @@ class SubgraphContainer(GraphContainer):
     Example::
 
         container = SubgraphContainer(host, definition, node_factory)
-        app_state.register(container)
-        wrapper.repayload(container.binding_id, new_label=container.display_name)
+        key = level_key_for(container)
+        if key not in self._levels:
+            self._levels[key] = self._new_level(key, container)
     """
 
     def __init__(
@@ -122,10 +123,10 @@ class SubgraphContainer(GraphContainer):
     def binding_id_for(host: GraphContainer, definition: "SubgraphDefinition") -> str:
         """Return the ``binding_id`` a container over ``definition`` inside ``host`` has.
 
-        Lets a caller look a Subgraph up in :class:`GraphAppState` before
-        building a container for it, so re-entering an open Group finds the
-        container already editing it instead of replacing it with a fresh one
-        (which would drop that Group's undo history).
+        Computable from the host and definition alone, so the id of a
+        Subgraph's container is known without building one. The graph editor
+        does not key its levels by it: ``level_key_for`` is independent of
+        ``binding_id`` so a save-as does not re-key the open levels.
         """
         return f"{host.binding_id}{SUBGRAPH_BINDING_SEPARATOR}{definition.key}"
 
