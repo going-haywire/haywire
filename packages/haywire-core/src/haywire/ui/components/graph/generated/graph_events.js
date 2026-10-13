@@ -49,6 +49,7 @@ window.GraphEvents = {
     SYNC_CANVAS_CLEAR: 'syncCanvasClear', // Clear entire canvas
     SYNC_ALL_EDGES: 'syncAllEdges', // Sync all connections to UI
     SYNC_NODE_REDRAW: 'syncNodeRedraw', // Node DOM was rebuilt — re-attach observer and redraw edges
+    SYNC_NODE_SIZE: 'syncNodeSize', // Sync node size to UI
     SYNC_EDGES_UPDATE: 'syncEdgesUpdate', // Update connections for node
     SYNC_EDGE_RECONNECT: 'syncEdgeReconnect', // Start a new connection drag from the anchor pin, removing the edge once it starts
     SYNC_EDGE_CONNECT_RESUME: 'syncEdgeConnectResume', // Resume a paused pending connection drag (context menu dismissed without action)

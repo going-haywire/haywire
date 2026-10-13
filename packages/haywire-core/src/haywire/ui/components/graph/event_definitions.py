@@ -538,6 +538,22 @@ class SyncNodeRedrawEvent(BaseGraphEvent):
     nodeId: str
 
 
+@graph_event("syncNodeSize", category="sync", description="Sync node size to UI")
+@dataclass
+class SyncNodeSizeEvent(BaseGraphEvent):
+    """Write a node's model size onto its card in the browser.
+
+    ``size_adapt`` is one of ``auto``, ``manual``, ``manual_width`` or
+    ``manual_height``; ``width`` and ``height`` are in canvas px and apply
+    only to a manual axis.
+    """
+
+    nodeId: str
+    size_adapt: str
+    width: float
+    height: float
+
+
 @graph_event("syncEdgesUpdate", category="sync", description="Update connections for node")
 @dataclass
 class SyncEdgesUpdateEvent(BaseGraphEvent):

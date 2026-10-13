@@ -160,3 +160,26 @@ def test_a_mounted_canvas_follows_the_level_lock(monkeypatch):
     # The default fixture stubs _mount_level; this test needs the real one.
     GraphEditor._mount_level(editor, context, level)
     manager.set_locked.assert_called_once_with(True)
+
+
+def test_an_operate_principal_mounts_a_read_only_canvas_on_an_unlocked_level(monkeypatch):
+    """Below edit the browser canvas starts no editing gesture, lock or no lock."""
+    from haybale_graph_editor.editors import graph_editor as graph_editor_module
+    from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+
+    editor, context, _ = _locked_editor(AccessTier.OPERATE, open_locked=False)
+    level = editor._levels[DOCUMENT_LEVEL]
+    manager: Any = object.__new__(GraphCanvasManager)
+    manager._session = SimpleNamespace(context=context)
+    manager.locked = False
+    manager.canvas_vue = MagicMock()
+    manager._toolbar_provider = MagicMock()
+    manager.context_menu_handlers = SimpleNamespace(provider=MagicMock())
+    monkeypatch.setattr(graph_editor_module, "ui", MagicMock())
+    editor._level_panels = MagicMock()
+    editor._build_canvas = MagicMock(return_value=manager)  # type: ignore[method-assign]
+
+    GraphEditor._mount_level(editor, context, level)
+
+    assert manager.locked is False
+    manager.canvas_vue.set_locked.assert_called_once_with(True)

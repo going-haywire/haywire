@@ -27,6 +27,7 @@ from haywire.ui.components.graph.event_definitions import (
     ContextMenuSurfaceEvent,
     SelectionBoundsEvent,
     SelectionChangedEvent,
+    SyncNodeSizeEvent,
     UserDragEndEvent,
     UserRemoveEvent,
     UserResizeEndEvent,
@@ -100,13 +101,31 @@ def test_refused_drag_end_resyncs_positions():
     manager.visual_layer.resync_positions.assert_called_once_with(["a", "b"])
 
 
-def test_refused_resize_end_resyncs_positions():
+def test_refused_resize_end_resyncs_position_and_size():
     manager, stub = _manager(locked=True)
     manager._handle_canvas_event(
         UserResizeEndEvent(nodeId="a", width=200.0, height=100.0, size_adapt="manual")
     )
     assert stub.calls == []
     manager.visual_layer.resync_positions.assert_called_once_with(["a"])
+    manager.visual_layer.resync_size.assert_called_once_with("a")
+
+
+def test_resync_size_restores_the_model_size_in_the_browser():
+    layer: Any = object.__new__(VisualLayerHandlers)
+    props = SimpleNamespace(size_adapt="manual_width", width=140.0, height=80.0)
+    ui_node = MagicMock()
+    ui_node.wrapper = SimpleNamespace(node=SimpleNamespace(props=props))
+    layer.node_panels = {"a": ui_node}
+    layer.canvas_vue = MagicMock()
+
+    layer.resync_size("a")
+    layer.resync_size("gone")
+
+    ui_node._apply_slot_style.assert_called_once_with()
+    (event,), _ = layer.canvas_vue.emit_sync_event.call_args
+    assert event == SyncNodeSizeEvent(nodeId="a", size_adapt="manual_width", width=140.0, height=80.0)
+    layer.canvas_vue.emit_sync_event.assert_called_once()
 
 
 def test_other_refusals_do_not_resync():
@@ -207,8 +226,9 @@ def test_resync_positions_restores_model_positions():
     layer.update_node_position.assert_called_once_with("a", (10.0, 20.0))
 
 
-def _lockable_manager() -> Any:
+def _lockable_manager(tier: AccessTier = AccessTier.ADMIN) -> Any:
     manager: Any = object.__new__(GraphCanvasManager)
+    manager._session = SimpleNamespace(context=SimpleNamespace(can_access=tier.satisfies))
     manager.locked = False
     manager.canvas_vue = MagicMock()
     manager._toolbar_provider = MagicMock()
@@ -223,6 +243,23 @@ def test_locking_hides_toolbar_and_closes_open_menu():
     manager.canvas_vue.set_locked.assert_called_once_with(True)
     manager._toolbar_provider.hide.assert_called_once()
     manager.context_menu_handlers.provider.close_open_menu.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("tier", "locked", "read_only"),
+    [
+        (AccessTier.VIEW, False, True),
+        (AccessTier.OPERATE, False, True),
+        (AccessTier.EDIT, False, False),
+        (AccessTier.EDIT, True, True),
+        (AccessTier.ADMIN, True, True),
+    ],
+)
+def test_the_browser_canvas_is_read_only_wherever_edit_is_refused(tier, locked, read_only):
+    """The browser starts no editing gesture the server would refuse; the lock and the tier both count."""
+    manager = _lockable_manager(tier)
+    manager.set_locked(locked)
+    manager.canvas_vue.set_locked.assert_called_once_with(read_only)
 
 
 def test_unlocking_reopens_nothing():

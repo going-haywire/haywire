@@ -62,11 +62,13 @@ class GraphCanvasManager:
     def set_locked(self, locked: bool) -> None:
         """Lock or unlock this canvas for its session, in the browser too.
 
-        Locking also hides the selection toolbar and closes any open context
-        menu; unlocking reopens nothing.
+        The browser canvas starts no editing gesture while ``allows`` refuses
+        ``EDIT``: on a locked canvas, and below the edit tier on an unlocked
+        one. Locking also hides the selection toolbar and closes any open
+        context menu; unlocking reopens nothing.
         """
         self.locked = locked
-        self.canvas_vue.set_locked(locked)
+        self.canvas_vue.set_locked(not self.allows(AccessTier.EDIT))
         if locked:
             self._toolbar_provider.hide()
             self.context_menu_handlers.provider.close_open_menu()
@@ -262,8 +264,9 @@ class GraphCanvasManager:
     def _handle_canvas_event(self, event: BaseGraphEvent):
         """Dispatch a canvas event to its handler, if this session may run it here.
 
-        A refused event changes nothing in the graph. A refused drag or resize
-        end also moves its nodes on screen back to their model positions.
+        A refused event changes nothing in the graph. A refused drag end also
+        moves its nodes on screen back to their model positions, and a refused
+        resize end its node back to its model position and size.
         """
         event_type = event.event_type
         handler = self._event_handlers.get(event_type)
@@ -276,6 +279,7 @@ class GraphCanvasManager:
                 self.visual_layer.resync_positions(event.nodes)
             elif isinstance(event, UserResizeEndEvent):
                 self.visual_layer.resync_positions([event.nodeId])
+                self.visual_layer.resync_size(event.nodeId)
             return
 
         if handler:

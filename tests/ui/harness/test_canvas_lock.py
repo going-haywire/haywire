@@ -76,6 +76,47 @@ def test_locked_server_snaps_back_a_stale_drag(page: Page, harness):
     assert _model_pos(page) == pos_before
 
 
+def _slot_size_state(page: Page, node_id: str) -> dict:
+    return page.evaluate(
+        """(nid) => {
+            const slot = document.querySelector(`[data-node-id="${nid}"] .ui-node-slot`);
+            return {
+                minWidth: slot.style.minWidth,
+                sizeAdapt: slot.getAttribute('data-node-props-size-adapt'),
+            };
+        }""",
+        node_id,
+    )
+
+
+def test_locked_server_restores_the_size_of_a_stale_resize(page: Page, harness):
+    """A resize the browser still allows is refused by the server, and the card returns to its size."""
+    node_id = _open(page, harness, "?stale=true")
+    before = _slot_size_state(page, node_id)
+
+    x, y = _header(page, node_id)
+    page.mouse.click(x, y)
+    grip = page.locator('.hw-resize-grip[data-handle="right"]')
+    grip.wait_for()
+    box = grip.bounding_box()
+    assert box is not None
+    gx, gy = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+    page.mouse.move(gx, gy)
+    page.mouse.down()
+    page.mouse.move(gx + 60, gy, steps=5)
+    assert _slot_size_state(page, node_id)["minWidth"] != before["minWidth"]
+    page.mouse.up()
+
+    page.wait_for_function(
+        """([nid, minWidth, sizeAdapt]) => {
+            const slot = document.querySelector(`[data-node-id="${nid}"] .ui-node-slot`);
+            return slot.style.minWidth === minWidth
+                && slot.getAttribute('data-node-props-size-adapt') === sizeAdapt;
+        }""",
+        arg=[node_id, before["minWidth"], before["sizeAdapt"]],
+    )
+
+
 def test_locked_canvas_still_selects_without_a_resize_gadget(page: Page, harness):
     """A click selects the node on a locked canvas, and no resize grips appear."""
     node_id = _open(page, harness)

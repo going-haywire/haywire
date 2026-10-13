@@ -109,7 +109,9 @@ import 'arrow_heads';
  *
  * Props with a contract beyond their declaration:
  *
- *   locked              The session's canvas lock, from GraphCanvasVue.set_locked.
+ *   locked              Whether this session may not edit the graph here — the
+ *                       canvas lock, or a tier below edit — from
+ *                       GraphCanvasVue.set_locked.
  *                       While true no gesture that changes the graph starts:
  *                       node drag (the click still selects), resize grips,
  *                       connection drag, reconnect, paste request. Selection,
@@ -1162,6 +1164,9 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_NODE_REDRAW:
                     this._syncNodeRedraw(data);
                     break;
+                case GraphEvents.SyncCommands.SYNC_NODE_SIZE:
+                    this._syncNodeSize(data);
+                    break;
                 case GraphEvents.SyncCommands.SYNC_EDGES_UPDATE:
                     this._syncEdgesUpdate(data);
                     break;
@@ -1523,6 +1528,28 @@ export default {
             }
             // A redraw may have changed the node's measured size; refit the
             // gadget if it's tracking this node.
+            if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
+                this._fitResizeGadget();
+            }
+        },
+
+        /** Put a node's card back to its model size (a resize the server refused).
+         *
+         *  Written here because the resize drag wrote the slot's min size and
+         *  size-adapt stamp straight into the DOM: the server's own style for the
+         *  slot is unchanged, so its update patches nothing.
+         */
+        _syncNodeSize(data) {
+            const { nodeId, size_adapt, width, height } = data;
+            const parts = this._resizeParts(nodeId);
+            if (!parts) return;
+            const { slot } = parts;
+            const manW = size_adapt === 'manual' || size_adapt === 'manual_width';
+            const manH = size_adapt === 'manual' || size_adapt === 'manual_height';
+            slot.setAttribute('data-node-props-size-adapt', size_adapt);
+            slot.style.minWidth = manW ? `${width}px` : '';
+            slot.style.minHeight = manH ? `${height}px` : '';
+            this._updateEdgesForNode(nodeId);
             if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
                 this._fitResizeGadget();
             }

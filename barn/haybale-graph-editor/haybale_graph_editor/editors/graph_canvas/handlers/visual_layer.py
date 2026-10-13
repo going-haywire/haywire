@@ -48,6 +48,7 @@ from haywire.ui.components.graph.event_definitions import (
     ElementRevalidateEvent,
     SyncNodePositionEvent,
     SyncNodeRemovalEvent,
+    SyncNodeSizeEvent,
     SyncEdgeRemovalEvent,
     SyncAllEdgesEvent,
     SyncSelectionsEvent,
@@ -579,6 +580,19 @@ class VisualLayerHandlers:
             wrapper = self.graph.get_node_wrapper(node_id)
             if wrapper is not None:
                 self.update_node_position(node_id, (wrapper.node.props.posX, wrapper.node.props.posY))
+
+    def resync_size(self, node_id: str) -> None:
+        """Put a node's card in the browser back to its model size; an unknown id is skipped."""
+        ui_node = self.node_panels.get(node_id)
+        if ui_node is None:
+            return
+        ui_node._apply_slot_style()
+        props = ui_node.wrapper.node.props
+        self.canvas_vue.emit_sync_event(
+            SyncNodeSizeEvent(
+                nodeId=node_id, size_adapt=props.size_adapt, width=props.width, height=props.height
+            )
+        )
 
     # -------------------------------------------------------------------------
     # Edge visual management

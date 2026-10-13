@@ -168,7 +168,8 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
 
         While locked, the browser starts no node drag, resize, connection or
         reconnect and requests no paste; selection, the box select, the context
-        menu and copy stay available.
+        menu and copy stay available. Pass ``True`` wherever the session may
+        not edit the graph, whatever the reason.
         """
         self._props["locked"] = locked
         self.update()
