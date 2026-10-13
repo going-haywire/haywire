@@ -152,3 +152,57 @@ def test_count_placements_spans_graphs_and_interiors(graph_with_library_system, 
     assert count_placements([first, second, empty], _MACRO) == (3, 2)
     assert count_placements([empty], _MACRO) == (0, 0)
     assert count_placements([first], "testlib:macro:Other") == (0, 0)
+
+
+@pytest.mark.usefixtures("macro_folder")
+def test_clone_to_library_never_polls_on_a_modified_instance(graph_with_library_system, library_system):
+    """Both rows sit at order 39 on the selection menu; they never show together."""
+    from haybale_graph_editor.panels._gating import is_cloneable_selection, is_modified_instance
+
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+    card_id, _ = _detach(editor, placement_id)
+    card = graph.get_node_wrapper(card_id)
+    ctx = _ctx(card)
+    ctx.data[next(iter(ctx.data))].selected_nodes = {card_id}
+
+    assert is_modified_instance(ctx) is True
+    assert is_cloneable_selection(ctx) is False
+
+
+def test_a_malformed_origin_does_not_fail_the_load(caplog):
+    import logging
+
+    from haywire.core.graph.subgraph import SubgraphDefinition
+
+    fresh = SubgraphDefinition(key="fresh")
+    data = {**SubgraphDefinition(key="other").to_dict(), "origin": {"key": "only-a-key"}}
+    with caplog.at_level(logging.WARNING):
+        assert fresh.load_from_dict(data) is True
+
+    assert fresh.origin is None
+    assert any("malformed macro origin" in r.getMessage() for r in caplog.records)
+
+
+@pytest.mark.usefixtures("macro_folder")
+def test_a_failing_registry_still_detaches_with_a_warning(
+    graph_with_library_system, library_system, caplog, monkeypatch
+):
+    import logging
+
+    from haywire.core.macro import source
+
+    def _boom(key):
+        raise ValueError("registry broke")
+
+    monkeypatch.setattr(source, "macro_template", _boom)
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+
+    with caplog.at_level(logging.WARNING):
+        card_id, refusal = _detach(editor, placement_id)
+
+    assert card_id is not None, refusal
+    assert _definition(graph, card_id).origin is None
+    record = next(r for r in caplog.records if "Could not look up macro" in r.getMessage())
+    assert record.exc_info is not None

@@ -21,5 +21,9 @@ class MacroOrigin:
 
     @classmethod
     def from_dict(cls, data: dict[str, str]) -> "MacroOrigin":
-        """Build an origin from the dict ``to_dict`` returns."""
+        """Build an origin from the dict ``to_dict`` returns.
+
+        Raises:
+            KeyError: ``data`` has no ``key`` or no ``hash``.
+        """
         return cls(key=str(data["key"]), hash=str(data["hash"]))

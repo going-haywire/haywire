@@ -102,6 +102,12 @@ class SubgraphNavigation(Signal):
     graph_id: str
     node_id: str
     """Descend into the Graph-node with this id."""
+    unlocked: bool = False
+    """Enter the level unlocked, whether it was already open or not.
+
+    Honored only when the session has edit access; otherwise the level keeps the
+    lock it would have had.
+    """
 
 
 # ---------------------------------------------------------------------------

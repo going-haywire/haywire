@@ -284,7 +284,12 @@ class SubgraphDefinition(BaseGraph):
         """
         self.label = data.get("label") or self.label
         origin = data.get("origin")
-        self.origin = MacroOrigin.from_dict(origin) if origin else None
+        self.origin = None
+        if origin:
+            try:
+                self.origin = MacroOrigin.from_dict(origin)
+            except (KeyError, TypeError, AttributeError):
+                logger.warning("Ignoring malformed macro origin on Subgraph '%s'", self.key, exc_info=True)
         return super().load_from_dict(data)
 
     def __repr__(self) -> str:

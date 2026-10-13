@@ -1831,12 +1831,17 @@ class ExpandGraphNodeAction(CompositeAction):
 
 
 def _macro_origin(template_key: str) -> MacroOrigin | None:
-    """Return the origin for ``template_key`` from the macro registry, or ``None`` if absent."""
-    from ...di.config import get_library_system
+    """Return the origin for ``template_key``, or ``None`` when the macro is not registered.
+
+    A registry that fails to answer also gives ``None``, with a warning, so the
+    detach still goes through.
+    """
+    from ...macro.source import macro_template
 
     try:
-        template = get_library_system().get_macro_registry().template(template_key)
+        template = macro_template(template_key)
     except Exception:
+        logger.warning("Could not look up macro '%s' for the detach's origin", template_key, exc_info=True)
         return None
     return MacroOrigin(template_key, template.content_hash) if template is not None else None
 

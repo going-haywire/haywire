@@ -585,6 +585,9 @@ class GraphEditor(BaseEditor):
         signal that re-keys an open level (detaching a placement publishes one
         straight after the detach), and opening a second level for a Subgraph
         that is already open would orphan the first.
+
+        With ``event.unlocked`` the entered level is unlocked afterwards, which
+        ``set_level_locked`` grants only to a session that may edit.
         """
         self._prune_dead_levels(context)
         level = self._level_holding(event.graph_id)
@@ -592,7 +595,8 @@ class GraphEditor(BaseEditor):
             return
         if level.key != self._active_level:
             self._switch_level(context, level.key)
-        self.descend_into(context, event.node_id)
+        if self.descend_into(context, event.node_id) and event.unlocked:
+            self.set_level_locked(context, self._active_level, False)
 
     @react_on(RevealGraphInstance)
     def _on_reveal_graph_instance(self, context: "SessionContext", event: "RevealGraphInstance") -> None:

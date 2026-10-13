@@ -434,7 +434,7 @@ def _open_dialog(ctx: Any, editor: Any) -> Client:
     from haybale_graph_editor.panels.properties.introspect import node_ports
 
     client = Client(cast(Any, _noop_page), request=None)
-    with client, patch.object(node_ports, "_editor_for", lambda _ctx: editor):
+    with client, patch.object(node_ports, "editor_for", lambda _ctx: editor):
         node_ports.NodePortsPanel()._open_editor(_resolved_port(), "n1", ctx)
     return client
 

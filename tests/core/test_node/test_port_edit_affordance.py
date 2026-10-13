@@ -149,7 +149,7 @@ class TestFindingTheEditor:
         from haywire.core.graph.editor import Editor
         from haywire.core.graph.scheduler import SyncScheduler
         from haywire.core.graph.subgraph import SubgraphDefinition
-        from haybale_graph_editor.panels.properties.introspect.node_ports import _host_history
+        from haybale_graph_editor.state.graph_app_state import _host_history
         from haybale_graph_editor.state.graph_app_state import GraphAppState
 
         graph = graph_with_library_system
@@ -167,7 +167,7 @@ class TestFindingTheEditor:
         from haywire.core.graph.editor import Editor
         from haywire.core.graph.scheduler import SyncScheduler
         from haywire.core.graph.subgraph import SubgraphDefinition
-        from haybale_graph_editor.panels.properties.introspect.node_ports import _host_history
+        from haybale_graph_editor.state.graph_app_state import _host_history
         from haybale_graph_editor.state.graph_app_state import GraphAppState
 
         graph = graph_with_library_system
@@ -187,7 +187,7 @@ class TestFindingTheEditor:
     def test_a_graph_no_document_claims_gets_its_own(self, graph_with_library_system, library_system):
         """Better a private history than silently recording nowhere."""
         from haywire.core.graph.editor import Editor
-        from haybale_graph_editor.panels.properties.introspect.node_ports import _host_history
+        from haybale_graph_editor.state.graph_app_state import _host_history
         from haybale_graph_editor.state.graph_app_state import GraphAppState
 
         graph = graph_with_library_system

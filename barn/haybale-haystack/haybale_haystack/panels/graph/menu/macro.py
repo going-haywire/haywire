@@ -191,7 +191,7 @@ def _update_macro(ctx: "SessionContext", node_id: str) -> None:
     from nicegui import ui
 
     from haybale_graph_editor.access import session_allows
-    from haybale_graph_editor.panels.properties.introspect.node_ports import _editor_for
+    from haybale_graph_editor.state.graph_app_state import editor_for
     from haywire.core.access import AccessTier
     from haywire.core.macro.promote import macro_document
     from haywire.core.macro.source import (
@@ -210,7 +210,7 @@ def _update_macro(ctx: "SessionContext", node_id: str) -> None:
         ui.notify("Updating a macro needs edit access", type="warning")
         return
 
-    editor = _editor_for(ctx)
+    editor = editor_for(ctx)
     wrapper = editor.graph.get_node_wrapper(node_id) if editor is not None else None
     origin = modified_instance_origin(wrapper.node) if wrapper is not None else None
     if editor is None or wrapper is None or origin is None:

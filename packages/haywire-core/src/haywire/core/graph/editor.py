@@ -62,7 +62,7 @@ class Editor:
             inner = Editor(definition, node_factory, history_manager=editor.history_manager)
         """
         self.graph: BaseGraph = graph
-        #: Edges the latest ``promote_to_macro`` left removed (0 unless it dropped unmatched edges).
+        #: Edges removed by the most recent ``promote_to_macro`` call only (0 unless it dropped any).
         self.last_promotion_dropped_edges = 0
         self.history_manager: IHistoryManager = history_manager or HistoryManager(
             undo_config or UndoConfig()

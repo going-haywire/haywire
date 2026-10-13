@@ -20,29 +20,6 @@ from .test_graph_editor_placement_levels import _patched_ui
 pytestmark = pytest.mark.integration
 
 
-@pytest.fixture(autouse=True)
-def _own_ambient_di(library_system):
-    """Point the ambient DI context at the session library system for each test.
-
-    A session-scoped server elsewhere (the farmhand harness) leaves its own factories
-    ambient (library system, factories), so a placement built here would look its macro up in
-    a registry the ``macro_folder`` fixture never touched.
-    """
-    from haywire.core.di import context as di_context
-    from haywire.core.di.config import set_global_injector, set_library_system
-    from tests.conftest import _restore_ambient_di, _snapshot_ambient_di
-
-    snap = _snapshot_ambient_di()
-    set_library_system(library_system)
-    set_global_injector(library_system.injector)
-    di_context.set_node_factory(library_system.get_node_factory())
-    di_context.set_adapter_factory(library_system.get_adapter_factory())
-    di_context.set_type_registry(library_system.get_type_registry())
-    di_context.set_settings_registry(library_system.get_settings_registry())
-    yield
-    _restore_ambient_di(snap)
-
-
 def _open_real_placement(graph, library_system) -> tuple[Editor, Any, GraphEditor, Any, str]:
     real_editor, placement_id = _place(graph, library_system)
     document = _FakeDocument()
@@ -115,3 +92,70 @@ def test_the_menu_route_re_keys_an_open_level_instead_of_opening_a_second(
         for r in caplog.records
         if r.name.startswith("haybale_graph_editor") and r.levelno >= logging.WARNING
     ]
+
+
+def _menu_detach(graph, library_system):
+    real_editor, _, editor, context, placement_id = _open_real_placement(graph, library_system)
+    editor._switch_level(context, DOCUMENT_LEVEL)
+    card_cls = library_system.get_node_factory().get_graph_node()
+    new_card_id, refusal = real_editor.detach_placement_from_macro(
+        placement_id, card_cls.class_identity.registry_key
+    )
+    assert new_card_id is not None, refusal
+    return editor, context, new_card_id
+
+
+@pytest.mark.usefixtures("macro_folder")
+def test_the_menu_route_unlocks_a_level_that_was_already_open(graph_with_library_system, library_system):
+    graph = graph_with_library_system
+    editor, context, card_id = _menu_detach(graph, library_system)
+    editor._on_subgraph_navigation(
+        context, SubgraphNavigation(graph_id=graph.graph_id, node_id=card_id, unlocked=True)
+    )
+
+    level = editor._levels[editor._active_level]
+    assert editor._active_level != DOCUMENT_LEVEL
+    assert level.locked is False
+
+
+@pytest.mark.usefixtures("macro_folder")
+def test_the_menu_route_without_the_request_leaves_the_level_locked(
+    graph_with_library_system, library_system
+):
+    graph = graph_with_library_system
+    editor, context, card_id = _menu_detach(graph, library_system)
+    editor._on_subgraph_navigation(context, SubgraphNavigation(graph_id=graph.graph_id, node_id=card_id))
+
+    assert editor._levels[editor._active_level].locked is True
+
+
+@pytest.mark.usefixtures("macro_folder")
+def test_the_menu_route_unlocks_a_freshly_opened_level(
+    graph_with_library_system, library_system, monkeypatch
+):
+    graph = graph_with_library_system
+    real_editor, placement_id = _place(graph, library_system)
+    document = _FakeDocument()
+    document.editor = real_editor
+    editor, context, _ = _editor(document)
+    editor._project_state = SimpleNamespace(node_factory=library_system.get_node_factory())  # type: ignore[assignment]
+    new_level = GraphEditor._new_level
+
+    def _locked_level(key, container):
+        level = new_level(key, container)
+        level.locked = True
+        return level
+
+    monkeypatch.setattr(GraphEditor, "_new_level", staticmethod(_locked_level))
+    card_cls = library_system.get_node_factory().get_graph_node()
+    card_id, refusal = real_editor.detach_placement_from_macro(
+        placement_id, card_cls.class_identity.registry_key
+    )
+    assert card_id is not None, refusal
+
+    editor._on_subgraph_navigation(
+        context, SubgraphNavigation(graph_id=graph.graph_id, node_id=card_id, unlocked=True)
+    )
+
+    assert editor._active_level != DOCUMENT_LEVEL
+    assert editor._levels[editor._active_level].locked is False

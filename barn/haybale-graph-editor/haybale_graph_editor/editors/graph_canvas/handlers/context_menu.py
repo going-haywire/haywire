@@ -758,10 +758,10 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def remove_port(self, port_id: str) -> None:
         """Remove the user-created port ``port_id`` on the right-clicked node, as one undo step."""
-        from ....panels.properties.introspect.node_ports import _editor_for
+        from ....state.graph_app_state import editor_for
 
         wrapper = self._context.data[EditState].active_node
-        editor = _editor_for(self._context)
+        editor = editor_for(self._context)
         if wrapper is None or editor is None:
             return
         if editor.remove_port(wrapper.node_id, port_id):

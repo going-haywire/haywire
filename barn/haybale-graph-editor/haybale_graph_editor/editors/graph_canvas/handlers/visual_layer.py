@@ -1063,7 +1063,7 @@ class VisualLayerHandlers:
             from haywire.core.signals import SubgraphNavigation
 
             self.context.session.publish(
-                SubgraphNavigation(graph_id=self.editor.graph.graph_id, node_id=card_id)
+                SubgraphNavigation(graph_id=self.editor.graph.graph_id, node_id=card_id, unlocked=True)
             )
 
     @handles_event(RevertToMacroEvent)
