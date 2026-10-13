@@ -580,7 +580,13 @@ class GraphEditor(BaseEditor):
         Self-check by ``graph_id``, like ``RevealGraphInstance``: the signal is
         broadcast to every editor in the session, and only the one holding that
         graph answers.
+
+        Levels are pruned first: a navigation can arrive before the mutation
+        signal that re-keys an open level (detaching a placement publishes one
+        straight after the detach), and opening a second level for a Subgraph
+        that is already open would orphan the first.
         """
+        self._prune_dead_levels(context)
         level = self._level_holding(event.graph_id)
         if level is None:
             return
@@ -727,20 +733,21 @@ class GraphEditor(BaseEditor):
         longer registered.
         """
         definition = cast(SubgraphContainer, level.container).definition
-        try:
-            from haywire.core.di.config import get_library_system
+        from haywire.core.di.config import get_library_system
 
-            template = get_library_system().get_macro_registry().template(definition.template_key or "")
+        try:
+            library_system = get_library_system()
         except Exception:
-            template = None
+            return definition.label
+        template = library_system.get_macro_registry().template(definition.template_key or "")
         return template.class_identity.label if template is not None else definition.label
 
     def _edit_instance(self, context: "SessionContext", level: _Level) -> bool:
         """Detach the placement on ``level`` into a Group and unlock its level.
 
         The Group carries the placement's origin. The level follows its Subgraph
-        to the new key and opens unlocked. Re-checks the edit tier itself, since
-        the confirmation that led here may be stale.
+        to the new key and opens unlocked. Checks the edit tier itself, so a
+        caller without edit access changes nothing.
 
         Returns:
             ``False`` when nothing changed: no edit access, not a placement
@@ -763,7 +770,8 @@ class GraphEditor(BaseEditor):
         if card_id is None:
             ui.notify(refusal or "Could not edit this instance", type="warning", multi_line=True)
             return False
-        # No GraphDataMutated is delivered inside this call, so follow the move explicitly.
+        # The detach has moved the Subgraph but its mutation signal has not arrived
+        # yet, so re-key the level now; the signal published below finds it done.
         self._prune_dead_levels(context)
         unlocked = self.set_level_locked(context, level_key_for(container), False)
         self._update_lock_button(context)
@@ -1307,7 +1315,7 @@ class GraphEditor(BaseEditor):
             return
         button.props(f"icon={hui.icon.locked if level.locked else hui.icon.unlocked}")
         if self._lock_tooltip is not None:
-            if placement_root(level.container):
+            if placement_root(level.container) and context.can_edit():
                 self._lock_tooltip.set_text(_EDIT_INSTANCE_TOOLTIP)
             elif level.inside_placement:
                 self._lock_tooltip.set_text(_PLACEMENT_TOOLTIP)

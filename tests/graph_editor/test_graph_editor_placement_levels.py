@@ -30,7 +30,6 @@ from .test_graph_editor_levels import (
     _stub,
 )
 from .test_graph_editor_lock import _locked_editor, _restore_resolver  # noqa: F401
-from ..core.test_macro.test_detach_placement import macro_folder  # noqa: F401
 
 pytestmark = pytest.mark.unit
 
@@ -536,42 +535,42 @@ def test_a_canvas_built_without_a_viewport_fits_its_content(monkeypatch):
     assert zoom._on_ready == zoom.center_on_content
 
 
-@pytest.mark.integration
-class TestEditInstance:
-    """Confirming the unlock detaches a real placement and the level follows it."""
+def test_the_confirm_names_the_template_by_its_label(monkeypatch):
+    import haywire.core.di.config as di_config
 
-    @pytest.mark.usefixtures("macro_folder")
-    def test_confirming_edits_the_instance(self, graph_with_library_system, library_system, monkeypatch):
-        from haywire.core.graph.editor import Editor
-        from tests.core.test_macro.test_detach_placement import _place
+    editor, context, key = _placement_level(AccessTier.EDIT)
+    registry = MagicMock()
+    registry.template.return_value = SimpleNamespace(class_identity=SimpleNamespace(label="Gaussian Blur"))
+    monkeypatch.setattr(
+        di_config, "get_library_system", lambda: SimpleNamespace(get_macro_registry=lambda: registry)
+    )
+    editor._active_level = key
+    ui, confirm = _patched_ui(monkeypatch)
 
-        graph = graph_with_library_system
-        real_editor, placement_id = _place(graph, library_system)
-        document = _FakeDocument()
-        document.editor = real_editor
-        editor, context, _ = _editor(document)
-        editor._project_state = SimpleNamespace(node_factory=library_system.get_node_factory())  # type: ignore[assignment]
-        assert isinstance(real_editor, Editor)
+    editor._on_toggle_lock(context, MagicMock())
 
-        assert editor.descend_into(context, placement_id) is True
-        key = editor._active_level
-        level = editor._levels[key]
-        assert level.locked is True
-        assert level.inside_placement is True
-        definition = graph.subgraphs[key]
-        ui, confirm = _patched_ui(monkeypatch)
+    registry.template.assert_called_once_with("lib:macro:Blur")
+    assert "modified instance of Gaussian Blur until" in confirm.call_args.kwargs["message"]
 
-        editor._on_toggle_lock(context, MagicMock())
-        assert definition.origin is None  # nothing detached before the confirm
-        confirm.call_args.kwargs["on_confirm"]()
 
-        assert definition.origin is not None
-        assert definition.template_key is None
-        assert editor._active_level != key
-        assert editor._active_level == definition.key
-        assert key not in graph.subgraphs
-        moved = editor._levels[editor._active_level]
-        assert moved is level
-        assert moved.locked is False
-        assert moved.inside_placement is False
-        assert list(editor._levels) == [DOCUMENT_LEVEL, definition.key]
+def test_a_registry_lookup_failure_is_not_swallowed(monkeypatch):
+    import haywire.core.di.config as di_config
+
+    editor, context, key = _placement_level(AccessTier.EDIT)
+    registry = MagicMock()
+    registry.template.side_effect = RuntimeError("lookup bug")
+    monkeypatch.setattr(
+        di_config, "get_library_system", lambda: SimpleNamespace(get_macro_registry=lambda: registry)
+    )
+    with pytest.raises(RuntimeError, match="lookup bug"):
+        editor._template_label(editor._levels[key])
+
+
+def test_lock_button_on_a_placement_root_without_edit_keeps_the_placement_state():
+    editor, context, key = _placement_level(AccessTier.OPERATE)
+    editor._active_level = key
+    editor._lock_button = MagicMock()
+    editor._lock_tooltip = MagicMock()
+    editor._update_lock_button(context)
+    editor._lock_button.set_enabled.assert_called_once_with(False)
+    editor._lock_tooltip.set_text.assert_called_once_with("Locked: inside a macro placement")

@@ -19,3 +19,6 @@ def make_ctx_with_selection():
         return SimpleNamespace(data=data)
 
     return _make
+
+
+from tests.core.test_macro.test_detach_placement import macro_folder  # noqa: E402, F401

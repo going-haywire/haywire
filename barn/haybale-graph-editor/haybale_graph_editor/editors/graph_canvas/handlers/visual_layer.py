@@ -1056,13 +1056,14 @@ class VisualLayerHandlers:
         wrapper = self.editor.graph.get_node_wrapper(card_id)
         if wrapper is not None:
             self._make_sole_active_node(wrapper)
+        # Notify first: entering the Group may redraw this canvas and delete its slot.
+        ui.notify("Editing this instance — Update Macro… or Revert to Macro when done", type="positive")
         if self.context is not None:
             from haywire.core.signals import SubgraphNavigation
 
             self.context.session.publish(
                 SubgraphNavigation(graph_id=self.editor.graph.graph_id, node_id=card_id)
             )
-        ui.notify("Editing this instance — Update Macro… or Revert to Macro when done", type="positive")
 
     def _subgraph_node_classes(self):
         """The Graph-node and two boundary classes, or ``None`` after notifying.
