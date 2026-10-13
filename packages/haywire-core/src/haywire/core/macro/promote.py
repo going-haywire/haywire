@@ -121,14 +121,25 @@ def plan_promotion(
             refusal=f"A macro named '{name}' already exists in this library.",
         )
 
-    document = definition.to_dict()
-    document.pop("key", None)
+    document = macro_document(definition)
 
     containment = _containment_refusal(document)
     if containment is not None:
         return PromotionPlan(path=path, registry_key_stem=name, document=document, refusal=containment)
 
     return PromotionPlan(path=path, registry_key_stem=name, document=document)
+
+
+def macro_document(definition: PromotableSubgraph) -> dict[str, Any]:
+    """Return the ``.hwm`` document for a Group's interior.
+
+    The document carries neither the Subgraph's ``key`` nor its ``origin``: a
+    macro file names itself by filestem and is not a copy of another macro.
+    """
+    document = definition.to_dict()
+    document.pop("key", None)
+    document.pop("origin", None)
+    return document
 
 
 def write_macro_file(plan: PromotionPlan) -> Path:

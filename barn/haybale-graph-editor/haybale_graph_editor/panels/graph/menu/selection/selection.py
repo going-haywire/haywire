@@ -725,7 +725,7 @@ class GroupMenuPanel(BasePanel):
                 on_click=lambda: self.actions.expand_group(node_id),
             )
             hui.menu_row(
-                "Promote to Macro…",
+                "Save new Macro…",
                 icon=hui.icon.node_source,
                 tooltip="Write this Group to its own file so it can be placed in any graph",
                 on_click=lambda: self.actions.promote_to_macro(node_id),

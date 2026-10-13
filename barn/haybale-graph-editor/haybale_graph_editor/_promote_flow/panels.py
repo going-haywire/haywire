@@ -1,4 +1,4 @@
-"""Per-step body content for the Promote to Macro flow."""
+"""Per-step body content for the Save new Macro flow."""
 
 from __future__ import annotations
 

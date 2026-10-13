@@ -930,7 +930,7 @@ class VisualLayerHandlers:
 
     @handles_event(PromoteToMacroEvent)
     def process_promote_to_macro(self, event: PromoteToMacroEvent):
-        """Open the Promote to Macro flow over the Group on this node.
+        """Open the Save new Macro flow over the Group on this node.
 
         The flow itself writes nothing until its last step; everything here is
         resolving what it needs — the Subgraph to serialize and the libraries

@@ -256,6 +256,16 @@ class TestEnterRow:
         assert "Enter Group" not in labels
         assert "Expand Group" in labels
 
+    def test_group_row_says_save_new_macro(self):
+        from haybale_graph_editor.panels.graph.menu.selection.selection import GroupMenuPanel
+
+        ctx = self._ctx(active_node=self._node(is_graph_node=True))
+
+        labels = self._drawn_labels(GroupMenuPanel, ctx)
+
+        assert "Save new Macro…" in labels
+        assert "Promote to Macro…" not in labels
+
     def test_enter_panel_draws_enter(self):
         from haybale_graph_editor.panels.graph.menu.selection.selection import EnterMenuPanel
 

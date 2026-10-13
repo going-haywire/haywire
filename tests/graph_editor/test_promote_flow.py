@@ -1,4 +1,4 @@
-"""The Promote to Macro flow's state machine. UI rendering is not exercised here.
+"""The Save new Macro flow's state machine. UI rendering is not exercised here.
 
 The property under test: nothing is written until the final step, so a user
 who opens the flow, reads the path and closes it has changed nothing.

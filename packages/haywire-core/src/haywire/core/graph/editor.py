@@ -447,7 +447,7 @@ class Editor:
 
         Args:
             description: The undo-history name of the swap; ``None`` names it
-                "Promote to Macro".
+                "Save new Macro".
             drop_unmatched_edges: Leave an edge removed when the placement has
                 no pin for it, instead of re-attaching it. Undo restores it.
                 ``last_promotion_dropped_edges`` reports how many.

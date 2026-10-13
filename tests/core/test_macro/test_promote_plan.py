@@ -110,6 +110,21 @@ def test_the_plan_carries_the_document_that_would_be_written(tmp_path, graph_wit
     assert "key" not in plan.document
 
 
+def test_a_modified_instance_saves_without_its_origin(tmp_path, graph_with_library_system):
+    from haywire.core.macro.origin import MacroOrigin
+    from haywire.core.macro.promote import macro_document, plan_promotion
+
+    definition = _group(graph_with_library_system)
+    definition.origin = MacroOrigin(key="lib:macro:Blur", hash="h")
+    assert "origin" in definition.to_dict()
+
+    plan = plan_promotion(definition, name="Blur2", macros_folder=tmp_path)
+
+    assert "origin" not in plan.document
+    assert "origin" not in macro_document(definition)
+    assert "key" not in macro_document(definition)
+
+
 def test_a_bad_name_is_refused_before_anything_is_read(tmp_path, graph_with_library_system):
     from haywire.core.macro.promote import plan_promotion
 

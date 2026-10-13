@@ -2147,7 +2147,7 @@ class PromoteGroupToMacroAction(CompositeAction):
             else:
                 actions.append(AddEdgeAction(**edge_args))
 
-        super().__init__(actions, description or "Promote to Macro")
+        super().__init__(actions, description or "Save new Macro")
 
     @property
     def dropped_edge_count(self) -> int:

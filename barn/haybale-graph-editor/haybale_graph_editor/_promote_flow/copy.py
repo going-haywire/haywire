@@ -1,4 +1,4 @@
-"""Step vocabulary for the Promote to Macro flow."""
+"""Step vocabulary for the Save new Macro flow."""
 
 from __future__ import annotations
 

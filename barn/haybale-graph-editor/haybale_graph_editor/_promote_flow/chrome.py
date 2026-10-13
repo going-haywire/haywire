@@ -1,4 +1,4 @@
-"""Popup entry point and step→panel wiring for the Promote to Macro flow."""
+"""Popup entry point and step→panel wiring for the Save new Macro flow."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ def show_promote_flow(
     *,
     on_done: Callable[[], None] | None = None,
 ) -> PromoteFlow:
-    """Open the Promote to Macro flow and return its state machine.
+    """Open the Save new Macro flow and return its state machine.
 
     *on_done* fires when the popup closes — the caller resyncs its canvas
     there, since a completed promotion replaced a card.
@@ -73,7 +73,7 @@ def show_promote_flow(
     flow.popup = show_step_flow(
         flow,
         panels,
-        title="Promote to Macro",
+        title="Save new Macro",
         width="560px",
         on_done=on_done,
     )

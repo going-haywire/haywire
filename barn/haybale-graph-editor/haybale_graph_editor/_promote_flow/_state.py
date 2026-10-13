@@ -1,4 +1,4 @@
-"""The Promote to Macro flow's state machine, free of NiceGUI calls.
+"""The Save new Macro flow's state machine, free of NiceGUI calls.
 
 Three steps, of which only the second mutates:
 
@@ -56,7 +56,7 @@ class PromoteSource(Protocol):
 
 
 class PromoteFlow(StepFlow):
-    """Linear, resumable state machine for the Promote to Macro flow."""
+    """Linear, resumable state machine for the Save new Macro flow."""
 
     STEPS = STEPS
     STEP_TITLES = STEP_TITLES
