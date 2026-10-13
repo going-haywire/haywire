@@ -123,10 +123,9 @@ class SubgraphContainer(GraphContainer):
     def binding_id_for(host: GraphContainer, definition: "SubgraphDefinition") -> str:
         """Return the ``binding_id`` a container over ``definition`` inside ``host`` has.
 
-        Computable from the host and definition alone, so the id of a
-        Subgraph's container is known without building one. The graph editor
-        does not key its levels by it: ``level_key_for`` is independent of
-        ``binding_id`` so a save-as does not re-key the open levels.
+        Computed from ``host.binding_id`` and ``definition.key`` alone, so it is
+        known without building a container, and it changes whenever the host's
+        ``binding_id`` does, as on a save-as.
         """
         return f"{host.binding_id}{SUBGRAPH_BINDING_SEPARATOR}{definition.key}"
 

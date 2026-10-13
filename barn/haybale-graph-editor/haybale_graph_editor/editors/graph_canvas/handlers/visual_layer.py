@@ -912,7 +912,7 @@ class VisualLayerHandlers:
 
     @handles_event(EnterGroupEvent, access=AccessTier.VIEW)
     def process_enter_group(self, event: EnterGroupEvent):
-        """Ask this session's editors to step inside the Group on this node.
+        """Ask this session's editors to enter the Group or macro placement on this node.
 
         The canvas knows the node but not which tab is showing it, so the
         descent travels as a signal the owning editor answers — the same

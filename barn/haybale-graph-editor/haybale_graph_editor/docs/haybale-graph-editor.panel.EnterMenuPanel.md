@@ -9,6 +9,6 @@
 
 ## Notes
 
-Step inside a Group or a macro placement.
+Enter a Group or a macro placement: open its inside as a level of the graph editor.
 
 Visible when the right-clicked node is a Graph-node or a macro placement.

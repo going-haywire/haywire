@@ -190,7 +190,7 @@ class ExpandGroupEvent(BaseGraphEvent):
 @graph_event(
     "enterGroup",
     category="user",
-    description="Step inside a Graph-node: a Group or a macro placement",
+    description="Enter a Graph-node: a Group or a macro placement",
 )
 @dataclass
 class EnterGroupEvent(BaseGraphEvent):
