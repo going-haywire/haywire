@@ -113,6 +113,38 @@ def test_card_widgets_get_an_operate_gate(held_graph: BaseGraph):
     assert result.requires_save() is True
 
 
+@pytest.mark.integration
+def test_a_rendered_card_refuses_a_view_principals_write(library_system, held_graph: BaseGraph):
+    """The gate reaches the card through UINode's own render, with the real skin factory."""
+    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+    from haywire.ui.skin.factory import SkinFactory
+    from haywire.ui.widget.base import BaseWidget
+
+    wrapper = make_node(held_graph, TestAddFloatNode.class_identity.registry_key)
+    port = wrapper.node.ports["value_a"]
+    client = Client(cast(Any, _noop_page), request=None)
+    with client:
+        container = ui.element("div")
+        ui_node = UINode(
+            container, wrapper, library_system.injector.get(SkinFactory), _allows_fn(AccessTier.VIEW)
+        )
+        ui_node.refresh(ChangeReason.NODE_ADDED)
+    try:
+        assert ui_node.current_ui_card is not None
+        widgets = [
+            widget
+            for widget in ui_node.current_ui_card.widget_instances.values()
+            if isinstance(widget, BaseWidget) and widget.port is port
+        ]
+        assert len(widgets) == 1
+
+        widgets[0].set_value(9.0)
+
+        assert port.data.get_own_value() == 0.0
+    finally:
+        ui_node.teardown_subscriptions()
+
+
 @pytest.mark.unit
 def test_card_widgets_stay_writable_for_operate_on_a_locked_level():
     port = make_float_port()
@@ -198,6 +230,23 @@ def test_ports_panel_widgets_write_and_mark_for_edit():
 
     assert widget.port.get_value() == 9.0
     wrapper.mark_value_edited.assert_called_once_with()
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("tier", "locked", "enabled"),
+    [
+        (AccessTier.VIEW, False, False),
+        (AccessTier.OPERATE, False, False),
+        (AccessTier.ADMIN, True, False),
+        (AccessTier.EDIT, False, True),
+    ],
+)
+def test_ports_panel_widgets_draw_disabled_below_edit(tier: AccessTier, locked: bool, enabled: bool):
+    with patch.object(_BaseDefaultFloatWidget, "set_enabled", autospec=True) as set_enabled:
+        widget = _ports_panel_widget(_ports_ctx(tier, locked=locked, wrapper=MagicMock()))
+
+    set_enabled.assert_called_once_with(widget, enabled)
 
 
 @pytest.mark.unit

@@ -183,7 +183,8 @@ class NodePortsPanel(BasePanel):
         panel is rebuilt fresh on every redraw.
 
         The widget writes only while the session may edit the graph on screen,
-        lock included, and each write marks the active node's value edited.
+        lock included, and each write marks the active node's value edited. It
+        draws disabled when the session may not edit at render time.
         """
         try:
             container = ui.column().classes("w-full gap-0 compact-fields")
@@ -207,6 +208,7 @@ class NodePortsPanel(BasePanel):
                         if wrapper is not None
                         else GraphWriteGate(AccessTier.EDIT, session_allows(context))
                     )
+                    instance.set_enabled(can_edit_graph(context))
             if shows_widget and instance is not None:
                 # BaseWidget.cleanup() is idempotent, so this composes safely
                 # with the page-disconnect cleanup the widget registers itself.
