@@ -241,3 +241,15 @@ def test_a_node_that_is_not_a_group_is_refused(graph_with_library_system, librar
 
     assert placement_id is None
     assert refusal is not None
+
+
+def test_the_default_undo_description_is_save_new_macro(
+    graph_with_library_system, library_system, macro_folder
+):
+    from haywire.core.undo.actions.graph_actions import PromoteGroupToMacroAction
+
+    _, card_id = _group_card(graph_with_library_system, library_system)
+
+    assert (
+        PromoteGroupToMacroAction(graph_with_library_system, card_id, _MACRO).description == "Save new Macro"
+    )

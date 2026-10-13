@@ -466,7 +466,7 @@ class Editor:
                 drop_unmatched_edges=drop_unmatched_edges,
             )
         except ValueError as e:
-            logger.info(f"Promotion refused: {e}")
+            logger.info(f"Save as macro refused: {e}")
             return (None, str(e))
 
         try:
@@ -474,12 +474,12 @@ class Editor:
             added = self.history_manager.add_action(action)
             self.history_manager.add_fence()
             if not added:
-                return (None, "The Group could not be promoted")
+                return (None, "The Group could not be saved as a macro")
             self.last_promotion_dropped_edges = action.dropped_edge_count
-            logger.info(f"Promoted Group {node_id} to macro '{macro_registry_key}'")
+            logger.info(f"Saved Group {node_id} as macro '{macro_registry_key}'")
             return (action.placement_node_id, None)
         except Exception as e:
-            logger.error(f"Error promoting Group {node_id}: {e}")
+            logger.error(f"Error saving Group {node_id} as a macro: {e}")
             return (None, str(e))
 
     def detach_placement_from_macro(

@@ -13,7 +13,7 @@ from ._state import PromoteFlow
 
 def _panel_name(flow: PromoteFlow, rerender: Callable[[], None]) -> None:
     """The macro's name and the library it goes into. Nothing written yet."""
-    ui.label("Promote this Group into a macro").classes("text-sm font-medium")
+    ui.label("Save this Group as a new macro").classes("text-sm font-medium")
     ui.label(
         "A macro lives in its own file and can be placed in any graph. This Group's card "
         "becomes the first placement."
@@ -99,8 +99,8 @@ def _panel_planned(flow: PromoteFlow, rerender: Callable[[], None]) -> None:
 
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button("Back", on_click=lambda: _back(flow, rerender)).props("flat dense")
-        promote = ui.button("Promote").props("flat dense").style("color: var(--hw-positive);")
-        promote.on_click(lambda: busy_advance(rerender, promote, flow.advance_from_planned))
+        save = ui.button("Save").props("flat dense").style("color: var(--hw-positive);")
+        save.on_click(lambda: busy_advance(rerender, save, flow.advance_from_planned))
 
 
 def _back(flow: PromoteFlow, rerender: Callable[[], None]):

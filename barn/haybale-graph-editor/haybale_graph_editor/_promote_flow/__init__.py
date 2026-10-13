@@ -1,4 +1,4 @@
-"""Save new Macro flow — a stepper over the promote pipeline.
+"""Save new Macro flow — a stepper over the save pipeline.
 
 The state machine (:class:`PromoteFlow`, in ``_state.py``) is free of NiceGUI
 calls: every ``advance_from_*`` does one step's work and updates ``step`` /

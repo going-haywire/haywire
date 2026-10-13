@@ -3,7 +3,7 @@
 Three steps, of which only the second mutates:
 
     name      the macro's name and the library to write it into   -> Plan
-    planned   the file that would be written, and any refusal     -> Promote
+    planned   the file that would be written, and any refusal     -> Save
     promoted  terminal
 
 The plan step is read-only by construction: ``plan_promotion`` answers what
@@ -11,7 +11,7 @@ would be written and why it might be refused without touching disk, which is
 what a stepper needs (``.insights/project_stepper_flows.md``). A user who
 opens the flow, sees the path, and closes it has changed nothing.
 
-The promote step does three things that are one operation, not three: it
+The save step does three things that are one operation, not three: it
 writes the file, registers it so the key resolves immediately, and swaps the
 Group's card for a placement. There is no honest place to stop in between — a
 written-but-unregistered macro is invisible, and a registered one with the
@@ -132,7 +132,7 @@ class PromoteFlow(StepFlow):
         plan = self.plan
         target = self.target
         if plan is None or target is None:  # pragma: no cover — unreachable via the flow
-            self.error = "Nothing planned to promote."
+            self.error = "Nothing planned to save."
             return
         if plan.refusal is not None:
             self.error = plan.refusal

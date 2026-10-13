@@ -154,7 +154,7 @@ def write_macro_file(plan: PromotionPlan) -> Path:
         The path written.
     """
     if plan.refusal is not None:
-        raise ValueError(f"This Group cannot be promoted: {plan.refusal}")
+        raise ValueError(f"This Group cannot be saved as a macro: {plan.refusal}")
 
     plan.path.parent.mkdir(parents=True, exist_ok=True)
     plan.path.write_text(json.dumps(plan.document, indent=2), encoding="utf-8")

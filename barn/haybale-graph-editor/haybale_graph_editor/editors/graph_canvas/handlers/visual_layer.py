@@ -949,7 +949,7 @@ class VisualLayerHandlers:
         resolve = getattr(wrapper.node, "resolve_definition", None)
         definition = resolve() if resolve is not None else None
         if definition is None:
-            ui.notify("This node has no Subgraph to promote", type="warning")
+            ui.notify("This node has no Subgraph to save as a macro", type="warning")
             return
 
         try:
@@ -968,7 +968,7 @@ class VisualLayerHandlers:
             # project-locality.
             workspace_root = None
 
-        logger.info(f"📦 Promoting Group {event.node_id} to a macro")
+        logger.info(f"📦 Saving Group {event.node_id} as a new macro")
         show_promote_flow(
             EditorPromoteSource(self.editor, library_system),
             definition,

@@ -2080,12 +2080,12 @@ class PromoteGroupToMacroAction(CompositeAction):
 
         card = graph.get_node_wrapper(node_id)
         if card is None:
-            raise ValueError(f"Node '{node_id}' not found; cannot promote")
+            raise ValueError(f"Node '{node_id}' not found; cannot save as a macro")
 
         resolve = getattr(card.node, "resolve_definition", None)
         definition = resolve() if resolve is not None else None
         if not isinstance(definition, SubgraphDefinition):
-            raise ValueError(f"Node '{node_id}' is not a Graph-node with a Subgraph; cannot promote")
+            raise ValueError(f"Node '{node_id}' is not a Graph-node with a Subgraph; cannot save as a macro")
 
         serialized = card.serialize(include_data=True)
         raw_position = serialized.get("position") or [0.0, 0.0]
