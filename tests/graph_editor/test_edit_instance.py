@@ -20,6 +20,29 @@ from .test_graph_editor_placement_levels import _patched_ui
 pytestmark = pytest.mark.integration
 
 
+@pytest.fixture(autouse=True)
+def _own_ambient_di(library_system):
+    """Point the ambient DI context at the session library system for each test.
+
+    A session-scoped server elsewhere (the farmhand harness) leaves its own factories
+    ambient (library system, factories), so a placement built here would look its macro up in
+    a registry the ``macro_folder`` fixture never touched.
+    """
+    from haywire.core.di import context as di_context
+    from haywire.core.di.config import set_global_injector, set_library_system
+    from tests.conftest import _restore_ambient_di, _snapshot_ambient_di
+
+    snap = _snapshot_ambient_di()
+    set_library_system(library_system)
+    set_global_injector(library_system.injector)
+    di_context.set_node_factory(library_system.get_node_factory())
+    di_context.set_adapter_factory(library_system.get_adapter_factory())
+    di_context.set_type_registry(library_system.get_type_registry())
+    di_context.set_settings_registry(library_system.get_settings_registry())
+    yield
+    _restore_ambient_di(snap)
+
+
 def _open_real_placement(graph, library_system) -> tuple[Editor, Any, GraphEditor, Any, str]:
     real_editor, placement_id = _place(graph, library_system)
     document = _FakeDocument()
