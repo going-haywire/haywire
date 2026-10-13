@@ -412,7 +412,8 @@ class GraphEditor(BaseEditor):
         more, and the level closes. A level inside a macro placement whose
         interior was replaced under the same key, as a macro reload does, is
         re-pointed at the new definition instead, and so is a Group nested in it
-        whose key the new interior still holds.
+        whose key the new interior still holds. A level whose definition moved to
+        another key, as detaching a placement does, follows it there.
 
         The session's graph state follows only when it is on this editor's level
         on screen; an editor the session is not on changes its own levels alone.
@@ -435,7 +436,9 @@ class GraphEditor(BaseEditor):
             parent = self._levels.get(self._parent_key(key))
             host = parent.container if parent is not None else container.host
             current = host.editor.graph.get_subgraph(container.definition.key)
-            if current is None or current.graph_node_wrapper() is None:
+            if self._moved_to_another_key(host, level) and container.definition.graph_node_wrapper():
+                self._rekey_level(context, level, claim=claim)
+            elif current is None or current.graph_node_wrapper() is None:
                 self._close_level(context, key, claim=claim)
             elif current is container.definition and host.editor.graph is container.host.editor.graph:
                 # The card may have been rebuilt under us; follow the new one.
@@ -464,6 +467,45 @@ class GraphEditor(BaseEditor):
             self._mount_level(context, replacement, viewport=viewport)
         if level.key == self._active_level:
             self._switch_level(context, level.key, claim=claim)
+        else:
+            self._render_level_bar(context)
+
+    def _moved_to_another_key(self, host: "GraphContainer", level: _Level) -> bool:
+        """Return whether ``level``'s definition is in ``host``'s Subgraphs under another key."""
+        definition = cast(SubgraphContainer, level.container).definition
+        own = level.key.rpartition(_LEVEL_SEPARATOR)[2]
+        moved_to = next((k for k, d in host.editor.graph.subgraphs.items() if d is definition), None)
+        return moved_to is not None and moved_to != own
+
+    def _rekey_level(self, context: "SessionContext", level: _Level, *, claim: bool = True) -> None:
+        """Move ``level`` and the levels nested in it to the keys their containers now have.
+
+        The canvas, viewport and selection stay. A level inside a macro placement
+        is locked; any other keeps its lock. The level on screen claims the
+        session when ``claim``.
+        """
+        old_key = level.key
+        renames = {old_key: level_key_for(level.container)}
+        for key in self._descendant_keys(old_key):
+            renames[key] = level_key_for(self._levels[key].container)
+        # Rebuilt in order, so a parent still comes before the levels nested in it.
+        self._levels = {renames.get(k, k): v for k, v in self._levels.items()}
+        for old, new in renames.items():
+            moved = self._levels[new]
+            moved.key = new
+            moved.inside_placement = inside_placement(moved.container)
+            if moved.inside_placement and not moved.locked:
+                moved.locked = True
+                if moved.canvas_manager is not None:
+                    moved.canvas_manager.set_locked(True)
+            if moved.panel is not None:
+                moved.panel._props["name"] = new  # the panel is found by this name
+                moved.panel.update()
+            self._watch_level_name(moved)
+            if self._active_level == old:
+                self._active_level = new
+        if self._active_level in renames.values():
+            self._switch_level(context, self._active_level, claim=claim)
         else:
             self._render_level_bar(context)
 

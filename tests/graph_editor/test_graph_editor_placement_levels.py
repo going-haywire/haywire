@@ -307,6 +307,115 @@ class TestAReloadedPlacement:
         assert list(editor._levels) == [DOCUMENT_LEVEL]
 
 
+def _detach(document: _FakeDocument, definition: Any, key: str) -> None:
+    """Move ``definition`` to ``key`` in the host's table and make it a plain Group, as the detach does."""
+    subgraphs = document.editor.graph.subgraphs
+    subgraphs.pop(definition.key)
+    definition.key = key
+    definition.template_key = None
+    subgraphs[key] = definition
+
+
+class TestADetachedPlacement:
+    """Detaching moves the interior's definition to a new key; the open level follows it there."""
+
+    def test_a_detached_placement_level_follows_the_new_key(self):
+        from haybale_graph_editor.state.edit_state import EditState
+
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        level = editor._levels[_PLACEMENT_KEY]
+        manager = level.canvas_manager = MagicMock()
+        context.data = {EditState: SimpleNamespace(active_graph=level.container.editor.graph)}
+        editor._level_panels = MagicMock()
+
+        _detach(document, _shown(editor, _PLACEMENT_KEY).definition, "subgraph_new")
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL, "subgraph_new"]
+        assert editor._active_level == "subgraph_new"
+        moved = editor._levels["subgraph_new"]
+        assert moved is level
+        assert moved.key == "subgraph_new"
+        assert moved.canvas_manager is manager
+        _stub(editor._teardown_level).assert_not_called()
+        _stub(editor._mount_level).assert_not_called()
+        assert moved.inside_placement is False
+        assert moved.locked is True
+        _stub(editor._claim_session_state).assert_called()
+
+    def test_the_mounted_panel_is_renamed_with_its_level(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        level = editor._levels[_PLACEMENT_KEY]
+        level.panel = MagicMock()
+        level.panel._props = {"name": _PLACEMENT_KEY}
+        editor._level_panels = MagicMock()
+
+        _detach(document, _shown(editor, _PLACEMENT_KEY).definition, "subgraph_new")
+        editor._prune_dead_levels(context)
+
+        assert level.panel._props["name"] == "subgraph_new"
+        level.panel.update.assert_called_once_with()
+        editor._level_panels.set_value.assert_called_with("subgraph_new")
+
+    def test_undo_of_the_detach_follows_back_and_locks(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        definition = _shown(editor, _PLACEMENT_KEY).definition
+        _detach(document, definition, "subgraph_new")
+        editor._prune_dead_levels(context)
+
+        _detach(document, definition, _PLACEMENT_KEY)
+        definition.template_key = "lib:macro:Blur"
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL, _PLACEMENT_KEY]
+        assert editor._active_level == _PLACEMENT_KEY
+        level = editor._levels[_PLACEMENT_KEY]
+        assert level.locked is True
+        assert level.inside_placement is True
+        _stub(editor._teardown_level).assert_not_called()
+
+    def test_descendant_levels_follow_the_re_key(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        _descend(editor, context, _definition("sg_inner"))
+        inner = editor._levels[f"{_PLACEMENT_KEY}#sg_inner"]
+        assert inner.inside_placement is True
+
+        _detach(document, _shown(editor, _PLACEMENT_KEY).definition, "subgraph_new")
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL, "subgraph_new", "subgraph_new#sg_inner"]
+        assert editor._active_level == "subgraph_new#sg_inner"
+        assert editor._levels["subgraph_new#sg_inner"] is inner
+        assert inner.key == "subgraph_new#sg_inner"
+        assert inner.inside_placement is False
+        _stub(editor._teardown_level).assert_not_called()
+
+    def test_a_background_editor_follows_without_claiming(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        _detach(document, _shown(editor, _PLACEMENT_KEY).definition, "subgraph_new")
+        _stub(editor._claim_session_state).reset_mock()
+
+        editor._rekey_level(context, editor._levels[_PLACEMENT_KEY], claim=False)
+
+        assert editor._active_level == "subgraph_new"
+        _stub(editor._claim_session_state).assert_not_called()
+
+    def test_a_re_keyed_level_whose_card_is_gone_closes(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        definition = _shown(editor, _PLACEMENT_KEY).definition
+        _detach(document, definition, "subgraph_new")
+        definition.graph_node_wrapper = lambda: None  # type: ignore[method-assign]
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL]
+
+
 def _built_canvas(monkeypatch, viewport: Viewport | None) -> MagicMock:
     """Build a canvas over a one-node graph through the real ``_build_canvas``; return its manager."""
     editor, context, _ = _editor()
