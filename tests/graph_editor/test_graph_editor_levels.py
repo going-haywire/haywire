@@ -419,6 +419,18 @@ class TestPruningDeadLevels:
 
         assert list(editor._levels) == [DOCUMENT_LEVEL, "sg_a"]
 
+    def test_a_new_document_container_over_the_same_graph_keeps_the_group_open(self):
+        """The document level may be handed a fresh container for the same graph."""
+        editor, context, document = _editor()
+        _descend(editor, context, _definition(key="sg_a"))
+        same_graph = _FakeDocument()
+        same_graph.editor.graph = document.editor.graph
+        editor._levels[DOCUMENT_LEVEL].container = same_graph
+
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL, "sg_a"]
+
     def test_it_runs_on_every_graph_mutation(self):
         """The signal every collapse, expand and delete already publishes."""
         from haywire.core.signals import GraphDataMutated

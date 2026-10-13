@@ -398,15 +398,17 @@ class GraphEditor(BaseEditor):
             self._render_level_bar(context)
 
     def _prune_dead_levels(self, context: "SessionContext") -> None:
-        """Close every level whose Subgraph is no longer in the graph above it.
+        """Close or re-point every level whose Subgraph is no longer in the graph above it.
 
         Expanding a Group, deleting its card, or undoing the collapse that made
         it all leave the level looking at a definition nothing references any
-        more. A level inside a macro placement whose interior was replaced under
-        the same key, as a macro reload does, is re-pointed at the new
-        definition instead, and so is a Group nested in it whose key the new
-        interior still holds.
+        more, and the level closes. A level inside a macro placement whose
+        interior was replaced under the same key, as a macro reload does, is
+        re-pointed at the new definition instead, and so is a Group nested in it
+        whose key the new interior still holds.
         """
+        # Relies on `_levels` holding a parent before the levels nested in it: a
+        # parent is re-pointed before its children are checked against it.
         for key in [k for k in self._levels if k != DOCUMENT_LEVEL]:
             level = self._levels.get(key)
             if level is None:
@@ -420,7 +422,7 @@ class GraphEditor(BaseEditor):
             current = host.editor.graph.get_subgraph(container.definition.key)
             if current is None or current.graph_node_wrapper() is None:
                 self._close_level(context, key)
-            elif current is container.definition and host is container.host:
+            elif current is container.definition and host.editor.graph is container.host.editor.graph:
                 # The card may have been rebuilt under us; follow the new one.
                 self._watch_level_name(level)
             elif level.inside_placement and self._project_state is not None:
