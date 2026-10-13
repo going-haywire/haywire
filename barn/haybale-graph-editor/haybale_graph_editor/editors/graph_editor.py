@@ -386,7 +386,10 @@ class GraphEditor(BaseEditor):
 
         Expanding a Group, deleting its card, or undoing the collapse that made
         it all leave the level looking at a definition nothing references any
-        more.
+        more. A level inside a macro placement whose interior was replaced under
+        the same key, as a macro reload does, is re-pointed at the new
+        definition instead, and so is a Group nested in it whose key the new
+        interior still holds.
         """
         for key in [k for k in self._levels if k != DOCUMENT_LEVEL]:
             level = self._levels.get(key)
@@ -395,15 +398,33 @@ class GraphEditor(BaseEditor):
             container = level.container
             if not isinstance(container, SubgraphContainer):
                 continue
-            definition = container.definition
-            host_graph = container.host.editor.graph
-            if host_graph.get_subgraph(definition.key) is not definition:
+            # The parent level's container, which a re-point earlier in this loop may have replaced.
+            parent = self._levels.get(self._parent_key(key))
+            host = parent.container if parent is not None else container.host
+            current = host.editor.graph.get_subgraph(container.definition.key)
+            if current is None or current.graph_node_wrapper() is None:
                 self._close_level(context, key)
-            elif definition.graph_node_wrapper() is None:
-                self._close_level(context, key)
-            else:
+            elif current is container.definition and host is container.host:
                 # The card may have been rebuilt under us; follow the new one.
                 self._watch_level_name(level)
+            elif level.inside_placement and self._project_state is not None:
+                node_factory = self._project_state.node_factory
+                self._repoint_level(context, level, SubgraphContainer(host, current, node_factory))
+            else:
+                self._close_level(context, key)
+
+    def _repoint_level(self, context: "SessionContext", level: _Level, container: SubgraphContainer) -> None:
+        """Show ``container`` under ``level``'s key, with a new canvas, in place of ``level``."""
+        replacement = self._new_level(level.key, container)
+        self._teardown_level(level)
+        self._levels[level.key] = replacement
+        self._watch_level_name(replacement)
+        if self._level_panels is not None:
+            self._mount_level(context, replacement)
+        if level.key == self._active_level:
+            self._switch_level(context, level.key)
+        else:
+            self._render_level_bar(context)
 
     # ------------------------------------------------------------------
     # poll / draw

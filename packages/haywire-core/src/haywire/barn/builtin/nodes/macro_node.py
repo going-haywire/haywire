@@ -107,10 +107,10 @@ class MacroNode(GraphNode):
     def instantiate_from_template(self) -> None:
         """Build this placement's interior from the template.
 
-        Replaces any interior already standing under the derived key, so a
-        reload swaps the contents without the card noticing a new definition.
-        Does nothing when the template is absent, leaving the pins the host
-        file restored.
+        Replaces any interior already standing under the derived key, and the
+        card then follows the new definition, so an edit inside it still reaches
+        the card and the host. Does nothing when the template is absent, leaving
+        the pins the host file restored.
 
         Public because the promote action calls it to rebuild the interior on
         redo: a redo re-adds the existing wrapper rather than building a new
@@ -141,6 +141,7 @@ class MacroNode(GraphNode):
         definition.template_key = wrapper.registry_key
         host.add_subgraph(definition)
         definition.instantiate(template.nodes, template.edges, template.subgraphs)
+        self._watch_definition()
 
     def _on_label_changed(self, _value: object, _old: object) -> None:
         """A no-op: the interior's name belongs to the template, not to a card.

@@ -9,11 +9,16 @@ from unittest.mock import MagicMock
 import pytest
 
 from haybale_graph_editor.editors import graph_editor as graph_editor_module
-from haybale_graph_editor.editors.graph_editor import GraphEditor, inside_placement, level_key_for
+from haybale_graph_editor.editors.graph_editor import (
+    DOCUMENT_LEVEL,
+    GraphEditor,
+    inside_placement,
+    level_key_for,
+)
 from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
 from haywire.core.access import AccessTier
 
-from .test_graph_editor_levels import _definition, _FakeDocument
+from .test_graph_editor_levels import _definition, _descend, _editor, _FakeDocument, _stub
 from .test_graph_editor_lock import _locked_editor, _restore_resolver  # noqa: F401
 
 pytestmark = pytest.mark.unit
@@ -107,3 +112,121 @@ def test_reveal_opens_a_placement_interior_locked():
     assert level is not None
     assert level.locked is True
     assert level.inside_placement is True
+
+
+_PLACEMENT_KEY = "macro_card_1"
+
+
+def _open_placement(editor: GraphEditor, context: Any) -> None:
+    """Enter a placement whose interior sits under ``_PLACEMENT_KEY``."""
+    assert _descend(editor, context, _placement_definition(_PLACEMENT_KEY), node_id="card_1") is True
+
+
+def _shown(editor: GraphEditor, key: str) -> SubgraphContainer:
+    """The container the level under ``key`` shows."""
+    container = editor._levels[key].container
+    assert isinstance(container, SubgraphContainer)
+    return container
+
+
+class TestAReloadedPlacement:
+    """A ``.hwm`` reload swaps the placement's interior for a new definition under the same key."""
+
+    def test_an_open_placement_level_follows_a_reload(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        old_level = editor._levels[_PLACEMENT_KEY]
+        editor._level_panels = MagicMock()
+        _stub(editor._claim_session_state).reset_mock()
+
+        reloaded = _placement_definition(_PLACEMENT_KEY)
+        document.editor.graph.subgraphs[_PLACEMENT_KEY] = reloaded
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL, _PLACEMENT_KEY]
+        assert editor._active_level == _PLACEMENT_KEY
+        level = editor._levels[_PLACEMENT_KEY]
+        assert _shown(editor, _PLACEMENT_KEY).definition is reloaded
+        assert _shown(editor, _PLACEMENT_KEY).host is document
+        assert level.locked is True
+        assert level.inside_placement is True
+        _stub(editor._teardown_level).assert_called_once_with(old_level)
+        _stub(editor._mount_level).assert_called_once_with(context, level)
+        _stub(editor._claim_session_state).assert_called()
+
+    def test_a_level_in_the_background_follows_without_coming_forward(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        editor.ascend(context)
+
+        reloaded = _placement_definition(_PLACEMENT_KEY)
+        document.editor.graph.subgraphs[_PLACEMENT_KEY] = reloaded
+        editor._prune_dead_levels(context)
+
+        assert editor._active_level == DOCUMENT_LEVEL
+        assert _shown(editor, _PLACEMENT_KEY).definition is reloaded
+
+    def test_a_removed_placement_closes_its_level(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+
+        del document.editor.graph.subgraphs[_PLACEMENT_KEY]
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL]
+        assert editor._active_level == DOCUMENT_LEVEL
+
+    def test_a_reloaded_interior_without_its_card_closes_its_level(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+
+        reloaded = _placement_definition(_PLACEMENT_KEY)
+        reloaded.graph_node_wrapper = lambda: None
+        document.editor.graph.subgraphs[_PLACEMENT_KEY] = reloaded
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL]
+
+    def test_a_group_nested_in_the_placement_follows_when_its_key_survives(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        _descend(editor, context, _definition("sg_inner"))
+        nested_key = f"{_PLACEMENT_KEY}#sg_inner"
+
+        reloaded = _placement_definition(_PLACEMENT_KEY)
+        reloaded_inner = _definition("sg_inner")
+        reloaded.subgraphs["sg_inner"] = reloaded_inner
+        document.editor.graph.subgraphs[_PLACEMENT_KEY] = reloaded
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL, _PLACEMENT_KEY, nested_key]
+        assert editor._active_level == nested_key
+        nested = editor._levels[nested_key]
+        assert _shown(editor, nested_key).definition is reloaded_inner
+        assert _shown(editor, nested_key).host is _shown(editor, _PLACEMENT_KEY)
+        assert nested.locked is True
+        assert nested.inside_placement is True
+
+    def test_a_group_nested_in_the_placement_closes_when_its_key_is_gone(self):
+        """A reload mints fresh keys for the template's own Groups, so this is the usual outcome."""
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        _descend(editor, context, _definition("sg_inner"))
+
+        reloaded = _placement_definition(_PLACEMENT_KEY)
+        document.editor.graph.subgraphs[_PLACEMENT_KEY] = reloaded
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL, _PLACEMENT_KEY]
+        assert editor._active_level == _PLACEMENT_KEY
+        assert _shown(editor, _PLACEMENT_KEY).definition is reloaded
+
+    def test_a_plain_group_replaced_under_its_key_still_closes(self):
+        """Only a placement's interior is replaced in place; a new Group definition is another Group."""
+        editor, context, document = _editor()
+        _descend(editor, context, _definition("sg_a"))
+
+        document.editor.graph.subgraphs["sg_a"] = _definition("sg_a")
+        editor._prune_dead_levels(context)
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL]

@@ -206,6 +206,28 @@ def test_an_unchanged_save_changes_nothing(macro_file, graph_with_library_system
     assert card.node.resolve_definition() is definition_before
 
 
+def test_reload_rewatches_the_new_interior(macro_file, graph_with_library_system):
+    """A structural edit inside the reloaded interior still reaches the card, and through it the host."""
+    from haywire.core.graph.types import ChangeReason
+    from tests.conftest import make_node
+
+    path, identity, registry = macro_file
+    graph = graph_with_library_system
+    card = _place(graph)
+    before = card.node.resolve_definition()
+
+    _save(path, _document(graph, interface_ports=("gain", "radius")))
+    _modified(registry, path, identity)
+    interior = card.node.resolve_definition()
+    assert interior is not before
+
+    seen: list = []
+    graph.subscribe_to_validation(seen.append)
+    make_node(interior, _ADD)
+
+    assert ChangeReason.GRAPH_REQUIRE_REASSEMBLY in [r.graph for r in seen]
+
+
 def test_a_reload_is_not_an_undo_subject(macro_file, graph_with_library_system, library_system):
     """Decision 10: the interface is the template's, never an action's."""
     from haywire.core.graph.editor import Editor
