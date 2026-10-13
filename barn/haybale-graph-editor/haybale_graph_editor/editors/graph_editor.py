@@ -703,6 +703,10 @@ class GraphEditor(BaseEditor):
                 ui.notify("Unlocking needs edit access", type="warning")
                 return
 
+            from haywire.core.macro.source import origin_label
+
+            label = origin_label(cast(SubgraphContainer, level.container).definition)
+
             def confirmed() -> None:
                 self._edit_instance(context, level)
 
@@ -710,7 +714,7 @@ class GraphEditor(BaseEditor):
                 title="Edit Instance",
                 message=(
                     f"Edit this instance? It becomes a modified instance of "
-                    f"{self._template_label(level)} until you Update or Revert."
+                    f"{label} until you Update or Revert."
                 ),
                 confirm_label="Edit Instance",
                 on_confirm=confirmed,
@@ -724,23 +728,6 @@ class GraphEditor(BaseEditor):
         else:
             message = _PLACEMENT_REFUSAL if level.inside_placement else "Unlocking needs edit access"
             ui.notify(message, type="warning")
-
-    @staticmethod
-    def _template_label(level: _Level) -> str:
-        """Return the label of the macro the placement on ``level`` was placed from.
-
-        The template's label, or the definition's own when the template is no
-        longer registered.
-        """
-        definition = cast(SubgraphContainer, level.container).definition
-        from haywire.core.di.config import get_library_system
-
-        try:
-            library_system = get_library_system()
-        except Exception:
-            return definition.label
-        template = library_system.get_macro_registry().template(definition.template_key or "")
-        return template.class_identity.label if template is not None else definition.label
 
     def _edit_instance(self, context: "SessionContext", level: _Level) -> bool:
         """Detach the placement on ``level`` into a Group and unlock its level.

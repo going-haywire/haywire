@@ -555,6 +555,7 @@ def test_the_confirm_names_the_template_by_its_label(monkeypatch):
 
 def test_a_registry_lookup_failure_is_not_swallowed(monkeypatch):
     import haywire.core.di.config as di_config
+    from haywire.core.macro.source import origin_label
 
     editor, context, key = _placement_level(AccessTier.EDIT)
     registry = MagicMock()
@@ -563,7 +564,7 @@ def test_a_registry_lookup_failure_is_not_swallowed(monkeypatch):
         di_config, "get_library_system", lambda: SimpleNamespace(get_macro_registry=lambda: registry)
     )
     with pytest.raises(RuntimeError, match="lookup bug"):
-        editor._template_label(editor._levels[key])
+        origin_label(editor._levels[key].container.definition)
 
 
 def test_lock_button_on_a_placement_root_without_edit_keeps_the_placement_state():

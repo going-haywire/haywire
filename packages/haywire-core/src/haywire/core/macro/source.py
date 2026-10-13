@@ -13,6 +13,7 @@ from haywire.core.library.install_type import InstallType
 from haywire.core.macro.origin import MacroOrigin
 
 if TYPE_CHECKING:
+    from haywire.core.macro.template import MacroTemplate
     from haywire.core.node.base import BaseNode
 
 _MACRO_KIND = "macro"
@@ -50,6 +51,31 @@ def modified_instance_origin(node: "BaseNode") -> MacroOrigin | None:
     return getattr(definition, "origin", None)
 
 
+def macro_template(registry_key: str) -> "MacroTemplate | None":
+    """Return the template registered under ``registry_key``, or ``None`` when absent."""
+    from haywire.core.di.config import get_library_system
+
+    try:
+        library_system = get_library_system()
+    except Exception:
+        return None
+    return library_system.get_macro_registry().template(registry_key)
+
+
+def origin_label(definition: Any) -> str:
+    """Return the label of the macro ``definition`` stands for or was detached from.
+
+    The template's label, or the definition's own when the template is not
+    registered, or the macro's registry key when it has neither.
+    """
+    origin = getattr(definition, "origin", None)
+    key = getattr(definition, "template_key", None) or (origin.key if origin is not None else "")
+    template = macro_template(key) if key else None
+    if template is not None:
+        return str(template.class_identity.label)
+    return str(getattr(definition, "label", "") or key)
+
+
 def macro_source_path(registry_key: str) -> Path | None:
     """The ``.hwm`` file behind a macro key, or ``None``.
 
@@ -59,9 +85,7 @@ def macro_source_path(registry_key: str) -> Path | None:
     if not is_macro_key(registry_key):
         return None
     try:
-        from haywire.core.di.config import get_library_system
-
-        template = get_library_system().get_macro_registry().template(registry_key)
+        template = macro_template(registry_key)
     except Exception:
         return None
     return template.path if template is not None else None

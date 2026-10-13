@@ -1069,7 +1069,7 @@ class VisualLayerHandlers:
     @handles_event(RevertToMacroEvent)
     def process_revert_to_macro(self, event: RevertToMacroEvent):
         """Swap a modified instance for a placement of its origin macro (one undoable op)."""
-        from haywire.core.macro.source import modified_instance_origin
+        from haywire.core.macro.source import macro_template, modified_instance_origin
 
         wrapper = self.editor.graph.get_node_wrapper(event.node_id)
         origin = modified_instance_origin(wrapper.node) if wrapper is not None else None
@@ -1079,7 +1079,7 @@ class VisualLayerHandlers:
 
         logger.info(f"📦 Reverting {event.node_id} to macro {origin.key}")
         placement_id, refusal = self.editor.promote_to_macro(
-            event.node_id, origin.key, description="Revert to Macro"
+            event.node_id, origin.key, description="Revert to Macro", drop_unmatched_edges=True
         )
         if placement_id is None:
             ui.notify(refusal or "Could not revert this card", type="warning", multi_line=True)
@@ -1089,10 +1089,13 @@ class VisualLayerHandlers:
         placement = self.editor.graph.get_node_wrapper(placement_id)
         if placement is not None:
             self._make_sole_active_node(placement)
-        ui.notify(
-            f"Reverted to {placement.node.props.label if placement is not None else origin.key}",
-            type="positive",
-        )
+        template = macro_template(origin.key)
+        label = template.class_identity.label if template is not None else origin.key
+        message = f"Reverted to {label}"
+        dropped = self.editor.last_promotion_dropped_edges
+        if dropped:
+            message += f" — {dropped} connection(s) to pins {label} does not have were removed"
+        ui.notify(message, type="positive")
 
     def _subgraph_node_classes(self):
         """The Graph-node and two boundary classes, or ``None`` after notifying.

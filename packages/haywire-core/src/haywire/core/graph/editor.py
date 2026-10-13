@@ -62,6 +62,8 @@ class Editor:
             inner = Editor(definition, node_factory, history_manager=editor.history_manager)
         """
         self.graph: BaseGraph = graph
+        #: Edges the latest ``promote_to_macro`` left removed (0 unless it dropped unmatched edges).
+        self.last_promotion_dropped_edges = 0
         self.history_manager: IHistoryManager = history_manager or HistoryManager(
             undo_config or UndoConfig()
         )
@@ -430,6 +432,7 @@ class Editor:
         node_id: str,
         macro_registry_key: str,
         description: str | None = None,
+        drop_unmatched_edges: bool = False,
     ) -> Tuple[Optional[str], Optional[str]]:
         """Swap the Group on ``node_id`` for a placement of ``macro_registry_key``.
 
@@ -445,17 +448,22 @@ class Editor:
         Args:
             description: The undo-history name of the swap; ``None`` names it
                 "Promote to Macro".
+            drop_unmatched_edges: Leave an edge removed when the placement has
+                no pin for it, instead of re-attaching it. Undo restores it.
+                ``last_promotion_dropped_edges`` reports how many.
 
         Returns:
             ``(placement_node_id, None)`` on success, or ``(None, reason)``
             when the swap was refused, phrased to be shown to the user.
         """
+        self.last_promotion_dropped_edges = 0
         try:
             action = PromoteGroupToMacroAction(
                 graph=self.graph,
                 node_id=node_id,
                 macro_registry_key=macro_registry_key,
                 description=description,
+                drop_unmatched_edges=drop_unmatched_edges,
             )
         except ValueError as e:
             logger.info(f"Promotion refused: {e}")
@@ -467,6 +475,7 @@ class Editor:
             self.history_manager.add_fence()
             if not added:
                 return (None, "The Group could not be promoted")
+            self.last_promotion_dropped_edges = action.dropped_edge_count
             logger.info(f"Promoted Group {node_id} to macro '{macro_registry_key}'")
             return (action.placement_node_id, None)
         except Exception as e:

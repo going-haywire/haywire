@@ -294,7 +294,9 @@ class TestRevertToMacroRow:
         wrapper = MagicMock()
         wrapper.node_id = "card1"
         wrapper.node.resolve_definition.return_value = MagicMock(
-            origin=MacroOrigin(key=self._KEY, hash="h") if origin else None, label=label
+            origin=MacroOrigin(key=self._KEY, hash="h") if origin else None,
+            label=label,
+            template_key=None,
         )
         return wrapper
 

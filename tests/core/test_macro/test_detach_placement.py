@@ -233,9 +233,20 @@ def test_a_plain_node_cannot_be_detached(graph_with_library_system, library_syst
 # --- Revert to Macro: a modified instance goes back to the current template ---
 
 
+_CHANGED = "changed in the instance"
+
+
+def _message(definition):
+    """The ``message`` value of the interior's first print node."""
+    wrapper = next(w for w in definition.node_wrappers.values() if w.registry_key == _PRINT)
+    return wrapper.node.ports["message"].get_value()
+
+
 def _modify(graph, card_id):
     """Change an interior value and add a node, so the instance differs from the template."""
     definition = graph.get_node_wrapper(card_id).node.resolve_definition()
+    wrapper = next(w for w in definition.node_wrappers.values() if w.registry_key == _PRINT)
+    wrapper.node.ports["message"].set_value(_CHANGED)
     added = make_node(definition, _PRINT)
     return definition, added.node_id
 
@@ -258,9 +269,13 @@ def test_revert_makes_a_placement_of_the_current_template(
 
     graph = graph_with_library_system
     editor, placement_id = _place(graph, library_system)
-    template_size = len(graph.get_node_wrapper(placement_id).node.resolve_definition().node_wrappers)
+    template_interior = graph.get_node_wrapper(placement_id).node.resolve_definition()
+    template_size = len(template_interior.node_wrappers)
+    template_message = _message(template_interior)
     card_id, _ = _detach(editor, placement_id)
-    _modify(graph, card_id)
+    modified, _ = _modify(graph, card_id)
+    assert _message(modified) == _CHANGED
+    assert len(modified.node_wrappers) == template_size + 1
 
     new_id, refusal = _revert(editor, card_id)
 
@@ -272,6 +287,7 @@ def test_revert_makes_a_placement_of_the_current_template(
     interior = placement.node.resolve_definition()
     assert interior.template_key == _MACRO
     assert len(interior.node_wrappers) == template_size
+    assert _message(interior) == template_message != _CHANGED
     assert graph.to_dict()["subgraphs"] == {}
 
 
@@ -306,16 +322,14 @@ def test_revert_history_entry_is_named(graph_with_library_system, library_system
     assert editor.history_manager.get_undo_description() == "Revert to Macro"
 
 
-def test_revert_onto_a_template_missing_the_wired_pin(
-    graph_with_library_system, library_system, macro_folder
-):
-    """Characterization: an edge on a boundary pin the template does not have."""
+def _group_with_stale_boundary(graph, library_system):
+    """A Group whose boundary has pins the macro lacks, wired on both sides, claiming the macro as origin."""
     from haywire.core.macro.origin import MacroOrigin
 
-    graph = graph_with_library_system
-    x, a, b = make_node(graph, _PRINT), make_node(graph, _PRINT), make_node(graph, _PRINT)
+    x, a, b, y = (make_node(graph, _PRINT) for _ in range(4))
     graph.create_edge_wrapper(x.node_id, "done", a.node_id, "exec")
     graph.create_edge_wrapper(a.node_id, "done", b.node_id, "exec")
+    graph.create_edge_wrapper(b.node_id, "done", y.node_id, "exec")
     editor = _editor(graph, library_system)
     card_id, reason = editor.collapse_to_group(
         node_ids=[a.node_id, b.node_id],
@@ -326,20 +340,60 @@ def test_revert_onto_a_template_missing_the_wired_pin(
     assert reason is None
     definition = graph.get_node_wrapper(card_id).node.resolve_definition()
     definition.origin = MacroOrigin(key=_MACRO, hash="stale")
+    return editor, card_id
+
+
+def _formal_errors(graph):
+    return [e for e in graph.edge_wrappers.values() if e.state.error_formal]
+
+
+def test_revert_drops_edges_to_pins_the_macro_lacks(graph_with_library_system, library_system, macro_folder):
+    graph = graph_with_library_system
+    editor, card_id = _group_with_stale_boundary(graph, library_system)
+    card_ports = graph.get_node_wrapper(card_id).node.ports
+    assert "in_exec" in card_ports
     edges_before = len(graph._get_all_edges(card_id))
-    assert edges_before >= 1
+    assert edges_before == 2
 
-    new_id, refusal = editor.promote_to_macro(card_id, _MACRO, description="Revert to Macro")
+    new_id, refusal = editor.promote_to_macro(
+        card_id, _MACRO, description="Revert to Macro", drop_unmatched_edges=True
+    )
 
-    # Neither refused nor raised: the edge re-attaches by its pin id, and the
-    # placement lists no such pin. Undo puts the Group back.
     assert refusal is None
     assert new_id is not None
-    assert len(graph._get_all_edges(new_id)) == edges_before
-    assert "in_exec" not in graph.get_node_wrapper(new_id).node.ports
+    placement_ports = graph.get_node_wrapper(new_id).node.ports
+    dropped = editor.last_promotion_dropped_edges
+    assert dropped == edges_before - len(graph._get_all_edges(new_id))
+    assert dropped == 2
+    assert "in_exec" not in placement_ports
+    assert _formal_errors(graph) == []
+
+
+def test_undo_of_a_revert_that_dropped_edges_restores_them(
+    graph_with_library_system, library_system, macro_folder
+):
+    graph = graph_with_library_system
+    editor, card_id = _group_with_stale_boundary(graph, library_system)
+    edges_before = len(graph._get_all_edges(card_id))
+    new_id, _ = editor.promote_to_macro(card_id, _MACRO, drop_unmatched_edges=True)
+    assert editor.last_promotion_dropped_edges == 2
+
     editor.undo()
-    assert graph.get_node_wrapper(card_id) is not None
+
     assert graph.get_node_wrapper(new_id) is None
+    assert graph.get_node_wrapper(card_id) is not None
+    assert len(graph._get_all_edges(card_id)) == edges_before
+    assert _formal_errors(graph) == []
+
+
+def test_promote_without_the_flag_keeps_every_edge(graph_with_library_system, library_system, macro_folder):
+    graph = graph_with_library_system
+    editor, card_id = _group_with_stale_boundary(graph, library_system)
+
+    new_id, _ = editor.promote_to_macro(card_id, _MACRO)
+
+    assert editor.last_promotion_dropped_edges == 0
+    assert len(graph._get_all_edges(new_id)) == 2
 
 
 def test_a_reloaded_instance_keeps_its_origin_when_the_macro_is_gone(

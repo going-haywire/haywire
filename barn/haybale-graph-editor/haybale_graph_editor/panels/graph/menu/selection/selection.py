@@ -804,15 +804,15 @@ class ModifiedInstanceMenuPanel(BasePanel):
             return
         node_id = wrapper.node_id
 
-        from haywire.core.macro.source import modified_instance_origin
+        from haywire.core.macro.source import macro_template, origin_label
 
-        origin = modified_instance_origin(wrapper.node)
-        template = _origin_template(origin.key) if origin is not None else None
+        definition = getattr(wrapper.node, "resolve_definition", lambda: None)()
+        origin = getattr(definition, "origin", None)
+        template = macro_template(origin.key) if origin is not None else None
+        label = origin_label(definition)
 
         with layout:
             if template is None:
-                definition = getattr(wrapper.node, "resolve_definition", lambda: None)()
-                label = str(getattr(definition, "label", "") or (origin.key if origin else ""))
                 hui.menu_row(
                     "Revert to Macro",
                     icon=hui.icon.edge,
@@ -824,21 +824,11 @@ class ModifiedInstanceMenuPanel(BasePanel):
                 "Revert to Macro",
                 icon=hui.icon.edge,
                 tooltip=(
-                    f"Replace this card with a placement of {template.class_identity.label}. "
+                    f"Replace this card with a placement of {label}. "
                     "The changes made to this instance are dropped."
                 ),
                 on_click=lambda: self.actions.revert_to_macro(node_id),
             )
-
-
-def _origin_template(registry_key: str):
-    """Return the macro template registered under ``registry_key``, or ``None`` when absent."""
-    from haywire.core.di.config import get_library_system
-
-    try:
-        return get_library_system().get_macro_registry().template(registry_key)
-    except Exception:
-        return None
 
 
 @panel(

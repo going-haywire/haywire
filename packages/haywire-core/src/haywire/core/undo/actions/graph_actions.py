@@ -1831,7 +1831,7 @@ class ExpandGraphNodeAction(CompositeAction):
 
 
 def _macro_origin(template_key: str) -> MacroOrigin | None:
-    """Return the origin for ``template_key`` from the macro registry, or ``None`` if its template is absent."""
+    """Return the origin for ``template_key`` from the macro registry, or ``None`` if absent."""
     from ...di.config import get_library_system
 
     try:
@@ -2011,6 +2011,31 @@ class DetachPlacementFromMacroAction(CompositeAction):
         super().__init__(actions, description or "Detach from Macro")
 
 
+class _ReattachEdgeAction(AddEdgeAction):
+    """Re-attach an edge to a placement, or leave it removed if the placement lacks the pin.
+
+    A child of ``PromoteGroupToMacroAction`` with ``drop_unmatched_edges``. The
+    pin is looked up on the placement's card when this runs, after the card has
+    been built, so the answer is the placement's real port set.
+    """
+
+    def __init__(self, *args: Any, placement_node_id: str, placement_pin_id: str, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self._placement_node_id = placement_node_id
+        self._placement_pin_id = placement_pin_id
+        self.dropped = False
+
+    def _execute_impl(self) -> None:
+        placement = self.graph.get_node_wrapper(self._placement_node_id)
+        self.dropped = placement is None or self._placement_pin_id not in placement.node.ports
+        if not self.dropped:
+            super()._execute_impl()
+
+    def _undo_impl(self) -> None:
+        if not self.dropped:
+            super()._undo_impl()
+
+
 class PromoteGroupToMacroAction(CompositeAction):
     """Swap a Group's card for a placement of the macro it was written to.
 
@@ -2024,10 +2049,13 @@ class PromoteGroupToMacroAction(CompositeAction):
        key,
     3. re-attaches each of the card's edges to the placement's matching pin.
 
-    Pin ids survive the swap untouched: both cards derive them from the same
-    boundary ports through ``card_port_id``, and the placement's interior is
-    instantiated from the document the Group's Subgraph just became. So an
+    Pin ids survive the swap when the placement's boundary matches the Group's:
+    both cards derive them from the boundary ports through ``card_port_id``. An
     edge re-attaches by the id it already had.
+
+    With ``drop_unmatched_edges``, an edge whose pin the placement does not have
+    stays removed instead of being re-attached; ``dropped_edge_count`` says how
+    many. Undo restores the Group and every edge.
 
     Undo restores the Group, its definition and its edges. **The file stays** —
     it is not this action's to remove, and a macro that other graphs may
@@ -2043,10 +2071,12 @@ class PromoteGroupToMacroAction(CompositeAction):
         node_id: str,
         macro_registry_key: str,
         description: Optional[str] = None,
+        drop_unmatched_edges: bool = False,
     ):
         from ...graph.subgraph import SubgraphDefinition
 
         self.graph = graph
+        self._reattached: List[_ReattachEdgeAction] = []
 
         card = graph.get_node_wrapper(node_id)
         if card is None:
@@ -2098,28 +2128,31 @@ class PromoteGroupToMacroAction(CompositeAction):
         ]
 
         for source_node_id, outlet_port_id, sink_node_id, inlet_port_id in edges:
-            if sink_node_id == node_id:
-                actions.append(
-                    AddEdgeAction(
-                        graph=graph,
-                        source_node_id=source_node_id,
-                        outlet_pin_id=outlet_port_id,
-                        sink_node_id=self.placement_node_id,
-                        inlet_pin_id=inlet_port_id,
-                    )
+            into_card = sink_node_id == node_id
+            edge_args: Dict[str, Any] = {
+                "graph": graph,
+                "source_node_id": source_node_id if into_card else self.placement_node_id,
+                "outlet_pin_id": outlet_port_id,
+                "sink_node_id": self.placement_node_id if into_card else sink_node_id,
+                "inlet_pin_id": inlet_port_id,
+            }
+            if drop_unmatched_edges:
+                reattach = _ReattachEdgeAction(
+                    placement_node_id=self.placement_node_id,
+                    placement_pin_id=inlet_port_id if into_card else outlet_port_id,
+                    **edge_args,
                 )
+                self._reattached.append(reattach)
+                actions.append(reattach)
             else:
-                actions.append(
-                    AddEdgeAction(
-                        graph=graph,
-                        source_node_id=self.placement_node_id,
-                        outlet_pin_id=outlet_port_id,
-                        sink_node_id=sink_node_id,
-                        inlet_pin_id=inlet_port_id,
-                    )
-                )
+                actions.append(AddEdgeAction(**edge_args))
 
         super().__init__(actions, description or "Promote to Macro")
+
+    @property
+    def dropped_edge_count(self) -> int:
+        """How many edges were left removed because the placement lacks their pin."""
+        return sum(1 for action in self._reattached if action.dropped)
 
 
 #: How far outside the contents' bounding box a boundary node sits.
