@@ -42,6 +42,7 @@ from haywire.core.signals import (
     Redo,
     SubgraphNavigation,
     GraphDataMutated,
+    GraphUnsavedChanged,
     Reveal,
     RevealGraphInstance,
     SelectAll,
@@ -126,6 +127,7 @@ class GraphEditor(BaseEditor):
 
     Signals consumed:
         ``GraphDataMutated`` — sync canvas from another session.
+        ``GraphUnsavedChanged`` — refresh the unsaved dot and tab marker.
         ``RevealGraphInstance`` — select a node/edge if one of this editor's
             levels holds that graph, opening the level if it is not open yet.
         ``SubgraphNavigation`` — open a Group of one of this editor's levels.
@@ -394,6 +396,11 @@ class GraphEditor(BaseEditor):
         """
         self._recover_stale_binding_id(context)
         self._prune_dead_levels(context)
+        self._update_header(context)
+
+    @react_on(GraphUnsavedChanged)
+    def _on_graph_unsaved_changed(self, context: "SessionContext", event: GraphUnsavedChanged) -> None:
+        """Refresh the header, whose unsaved dot and tab marker follow the document's unsaved state."""
         self._update_header(context)
 
     @react_on(SubgraphNavigation)

@@ -19,6 +19,7 @@ from haywire.core.signals import (
     BroadcastClose,
     Close,
     GraphDataMutated,
+    GraphUnsavedChanged,
     Reveal,
     RevealGraphInstance,
 )
@@ -68,7 +69,7 @@ class HaystackEditor(BaseEditor):
     # Signal-bus subscriptions / draw
     # ------------------------------------------------------------------
 
-    @redraw_on(ActiveGraphMoved, GraphDataMutated, HaystackReloaded)
+    @redraw_on(ActiveGraphMoved, GraphDataMutated, GraphUnsavedChanged, HaystackReloaded)
     def _refresh_on_state_move(self, context: "SessionContext", event) -> None:
         """Empty body — the decorator triggers ``wrapper.redraw()`` after
         this returns, which re-runs ``draw`` and ``_render_list``."""
@@ -129,7 +130,7 @@ class HaystackEditor(BaseEditor):
 
     # No on_focus override needed: @redraw_on fires regardless of active-tab
     # state, so backgrounded HaystackEditor instances stay current with
-    # ActiveGraphMoved / GraphDataMutated / HaystackReloaded.
+    # ActiveGraphMoved / GraphDataMutated / GraphUnsavedChanged / HaystackReloaded.
 
     def draw(self, context: "SessionContext", container: ui.element) -> None:
         with container:

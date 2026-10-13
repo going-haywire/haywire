@@ -155,6 +155,18 @@ class HaystackState(AppState):
         except Exception as exc:
             logger.warning(f"HaystackState: GraphDataMutated broadcast failed: {exc}")
 
+    def _broadcast_unsaved_changed(self) -> None:
+        """Fire ``GraphUnsavedChanged`` cross-session."""
+        dispatcher = self._dispatcher()
+        if dispatcher is None:
+            return
+        from haywire.core.signals import GraphUnsavedChanged
+
+        try:
+            dispatcher.broadcast(GraphUnsavedChanged())
+        except Exception as exc:
+            logger.warning(f"HaystackState: GraphUnsavedChanged broadcast failed: {exc}")
+
     def _broadcast_graph_saved(self) -> None:
         """Fire ``GraphSaved`` cross-session.
 
@@ -192,8 +204,9 @@ class HaystackState(AppState):
         with ``redraw_on=(GraphDataMutated,)`` rebuilds.
 
         A result whose saved changes are all value edits (``NODE_VALUE_CHANGED``,
-        ``GRAPH_CONTENT_CHANGED``) broadcasts only when it turns the entry
-        unsaved, so the panel being typed into is not rebuilt on every edit.
+        ``GRAPH_CONTENT_CHANGED``) broadcasts ``GraphUnsavedChanged`` instead,
+        and only when it turns the entry unsaved, so the panel being typed into
+        is never rebuilt by its own edits.
         """
         if entry.is_executing and result.has_changes() and result.graph is not None:
             if result.graph.requires_graph_reassembly():
@@ -209,8 +222,10 @@ class HaystackState(AppState):
         if result.requires_save():
             was_unsaved = entry.unsaved
             entry.unsaved = True
-            if not (was_unsaved and self._only_value_edits(result)):
+            if not self._only_value_edits(result):
                 self._broadcast_data_mutated()
+            elif not was_unsaved:
+                self._broadcast_unsaved_changed()
 
     @staticmethod
     def _only_value_edits(result: "ValidationResult") -> bool:

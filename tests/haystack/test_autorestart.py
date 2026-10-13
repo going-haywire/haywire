@@ -38,6 +38,7 @@ def _make_state():
     # exercise _on_entry_validation, which is self-contained.
     state = object.__new__(HaystackState)
     state._broadcast_data_mutated = MagicMock()  # type: ignore[method-assign]
+    state._broadcast_unsaved_changed = MagicMock()  # type: ignore[method-assign]
     return state
 
 

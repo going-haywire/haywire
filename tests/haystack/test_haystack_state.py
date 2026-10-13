@@ -443,8 +443,14 @@ def test_a_repaint_batched_with_a_real_change_still_broadcasts(state_with_mocked
     state._dispatcher.broadcast.assert_called_once()
 
 
-def test_value_edits_broadcast_only_when_the_entry_turns_unsaved(state_with_mocked_deps):
+def _broadcast_types(state) -> list[type]:
+    return [type(call.args[0]) for call in state._dispatcher.broadcast.call_args_list]
+
+
+def test_value_edits_announce_only_the_unsaved_flip(state_with_mocked_deps):
     """A panel being typed into rebuilds on GraphDataMutated, so a value edit announces only the flip."""
+    from haywire.core.signals import GraphDataMutated, GraphUnsavedChanged
+
     state = state_with_mocked_deps
     entry = state.create_new()
     entry.unsaved = False
@@ -457,11 +463,27 @@ def test_value_edits_broadcast_only_when_the_entry_turns_unsaved(state_with_mock
     state._on_entry_validation(entry, ValidationResult(graph=ChangeReason.GRAPH_CONTENT_CHANGED))
 
     assert entry.unsaved is True
-    assert state._dispatcher.broadcast.call_count == 1
+    assert _broadcast_types(state) == [GraphUnsavedChanged]
 
     state._on_entry_validation(entry, ValidationResult(nodes={"n2": ChangeReason.NODE_ADDED}))
 
-    assert state._dispatcher.broadcast.call_count == 2
+    assert _broadcast_types(state) == [GraphUnsavedChanged, GraphDataMutated]
+
+
+def test_a_structural_edit_on_a_clean_entry_broadcasts_graph_data_mutated(state_with_mocked_deps):
+    from haywire.core.signals import GraphDataMutated
+
+    state = state_with_mocked_deps
+    entry = state.create_new()
+    entry.unsaved = False
+    state._dispatcher.broadcast.reset_mock()
+
+    state._on_entry_validation(
+        entry,
+        ValidationResult(nodes={"n1": ChangeReason.NODE_VALUE_CHANGED, "n2": ChangeReason.NODE_ADDED}),
+    )
+
+    assert _broadcast_types(state) == [GraphDataMutated]
 
 
 def test_a_value_edit_batched_with_a_repaint_counts_as_a_value_edit(state_with_mocked_deps):

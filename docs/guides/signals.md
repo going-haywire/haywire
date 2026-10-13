@@ -220,6 +220,7 @@ Check this list first. It is **not** a catalogue of every signal in a running ap
 | `SelectionMoved` | Node/edge selection moved on the canvas | — |
 | `RevealGraphInstance` | "Is this graph yours? If so, select this node/edge." Every open subscriber self-matches | — |
 | `GraphDataMutated` | Graph contents changed (nodes, edges, props) | ✅ |
+| `GraphUnsavedChanged` | A graph's unsaved state changed and nothing else a panel draws did (a value edit on a saved graph); unsaved markers subscribe to it | ✅ |
 | `LibraryCatalogChanged` | Installed-library set/state changed | ✅ |
 | `ErrorLogged` | A new error was recorded in the process-wide ledger | ✅ |
 | `ErrorLedgerChanged` | A ledger entry's triage state changed (seen/deleted) | ✅ |

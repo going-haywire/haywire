@@ -117,6 +117,18 @@ class GraphDataMutated(Signal):
 
 
 @dataclass(frozen=True)
+class GraphUnsavedChanged(Signal):
+    """A graph's unsaved state changed, and nothing else a panel draws did. Cross-session.
+
+    Published in place of ``GraphDataMutated`` when a value edit turns a saved
+    graph unsaved. Subscribe to it, as well as to ``GraphDataMutated``, to show
+    an unsaved marker; a panel that shows graph contents need not.
+    """
+
+    cross_session: ClassVar[bool] = True
+
+
+@dataclass(frozen=True)
 class GraphSaved(Signal):
     """A graph was written to disk. Cross-session.
 
