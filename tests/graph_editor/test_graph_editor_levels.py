@@ -50,6 +50,7 @@ class _FakeGraph:
         self.node_wrappers: dict[str, Any] = {}
         self.subgraphs: dict[str, Any] = {}
         self.props = SimpleNamespace(open_locked=False)
+        self.template_key: str | None = None
 
     def get_node_wrapper(self, node_id: str):
         return self.node_wrappers.get(node_id)

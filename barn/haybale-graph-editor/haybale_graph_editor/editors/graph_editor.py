@@ -97,6 +97,27 @@ def level_key_for(container: "GraphContainer") -> str:
     return _LEVEL_SEPARATOR.join(reversed(keys))
 
 
+#: Why a level inside a macro placement refuses to unlock (toast).
+_PLACEMENT_REFUSAL = "Inside a macro placement this level stays locked. Use Edit Macro… to change the macro."
+
+#: Lock-button tooltip on a level inside a macro placement.
+_PLACEMENT_TOOLTIP = "Locked: inside a macro placement"
+
+
+def inside_placement(container: "GraphContainer") -> bool:
+    """Return whether ``container`` is a macro placement's interior, or nested in one.
+
+    True for a :class:`SubgraphContainer` whose definition has a ``template_key``,
+    or whose host chain contains one. ``False`` for a document and for a plain Group.
+    """
+    cursor: "GraphContainer" = container
+    while isinstance(cursor, SubgraphContainer):
+        if cursor.definition.template_key is not None:
+            return True
+        cursor = cursor.host
+    return False
+
+
 @dataclass
 class _Level:
     """One graph open in this editor: the document, or a Group inside it."""
@@ -109,6 +130,8 @@ class _Level:
     """The card's ``props`` bag this level's name is read from, while watched."""
     locked: bool = False
     """Whether this session's canvas for the level is locked; per session, per level."""
+    inside_placement: bool = False
+    """Whether the level is a macro placement's interior or nested in one; it cannot be unlocked."""
 
 
 @editor(
@@ -247,17 +270,30 @@ class GraphEditor(BaseEditor):
 
     @staticmethod
     def _new_level(key: str, container: "GraphContainer") -> _Level:
-        """Return a level for ``container``, locked when the graph's ``open_locked`` is set."""
-        return _Level(key=key, container=container, locked=container.editor.graph.props.open_locked)
+        """Return a level for ``container``.
+
+        Locked when the graph's ``open_locked`` is set, or always when the level is
+        inside a macro placement.
+        """
+        inside = inside_placement(container)
+        return _Level(
+            key=key,
+            container=container,
+            locked=inside or container.editor.graph.props.open_locked,
+            inside_placement=inside,
+        )
 
     def set_level_locked(self, context: "SessionContext", key: str, locked: bool) -> bool:
         """Lock or unlock the level under ``key`` for this session.
 
-        Returns ``False`` and changes nothing when ``key`` is not open, or when
-        unlocking without the real edit tier.
+        Returns ``False`` and changes nothing when ``key`` is not open, when
+        unlocking a level inside a macro placement, or when unlocking without the
+        real edit tier.
         """
         level = self._levels.get(key)
         if level is None:
+            return False
+        if not locked and level.inside_placement:
             return False
         if not locked and not context.can_edit():
             return False
@@ -518,7 +554,8 @@ class GraphEditor(BaseEditor):
             if document is not None:
                 self._update_undo_redo_buttons(document)
         else:
-            ui.notify("Unlocking needs edit access", type="warning")
+            message = _PLACEMENT_REFUSAL if level.inside_placement else "Unlocking needs edit access"
+            ui.notify(message, type="warning")
 
     @react_on(Undo)
     def _on_undo(self, context: "SessionContext", event: Undo) -> None:
@@ -1035,9 +1072,13 @@ class GraphEditor(BaseEditor):
             return
         button.props(f"icon={hui.icon.locked if level.locked else hui.icon.unlocked}")
         if self._lock_tooltip is not None:
-            action = "Unlock" if level.locked else "Lock"
-            self._lock_tooltip.set_text(f"{action} ({format_combo(ToggleLock.default_keys[0], mac=False)})")
-        button.set_enabled(context.can_edit())
+            if level.inside_placement:
+                self._lock_tooltip.set_text(_PLACEMENT_TOOLTIP)
+            else:
+                action = "Unlock" if level.locked else "Lock"
+                combo = format_combo(ToggleLock.default_keys[0], mac=False)
+                self._lock_tooltip.set_text(f"{action} ({combo})")
+        button.set_enabled(context.can_edit() and not level.inside_placement)
 
     def _do_undo(self, context: "SessionContext") -> None:
         """Undo the last action anywhere in this document, including inside a Group."""
