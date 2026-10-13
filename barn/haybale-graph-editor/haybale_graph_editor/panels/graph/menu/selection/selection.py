@@ -733,16 +733,16 @@ class GroupMenuPanel(BasePanel):
 
 @panel(
     surface=SelectionMenu,
-    label="Detach from Macro",
+    label="Edit Instance",
     icon=hui.icon.edge,
     order=38,
 )
-class DetachFromMacroMenuPanel(BasePanel):
-    """Turn one macro placement into a Group of its own.
+class EditInstanceMenuPanel(BasePanel):
+    """Turn one macro placement into a modified instance and enter it.
 
-    Only visible on a placement. Named for what it does to this card rather than
-    as the inverse of "Promote to Macro…", which it is not: the macro file stays
-    on disk and every other placement of it keeps tracking the template.
+    Only visible on a placement. The placement becomes a Group of its own that
+    remembers the macro it came from; the macro file and every other placement
+    of it are unchanged.
     """
 
     actions: SelectionActions
@@ -763,11 +763,11 @@ class DetachFromMacroMenuPanel(BasePanel):
 
         with layout:
             hui.menu_row(
-                "Detach from Macro",
+                "Edit Instance",
                 icon=hui.icon.edge,
                 tooltip=(
-                    "Turn this card into a Group of its own. The macro file and "
-                    "its other placements are unchanged."
+                    "Turn this card into a modified instance and open it. The macro "
+                    "file and its other placements are unchanged."
                 ),
                 on_click=lambda: self.actions.detach_from_macro(node_id),
             )

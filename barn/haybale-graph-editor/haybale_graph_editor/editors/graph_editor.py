@@ -30,6 +30,7 @@ from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
+from haywire.ui.modals.confirm_modal import confirm_modal
 from haywire.core.access import AccessTier
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import react_on
@@ -105,6 +106,9 @@ _PLACEMENT_REFUSAL = "Inside a macro placement this level stays locked. Use Edit
 #: Lock-button tooltip on a level inside a macro placement.
 _PLACEMENT_TOOLTIP = "Locked: inside a macro placement"
 
+#: Lock-button tooltip on a macro placement's own level.
+_EDIT_INSTANCE_TOOLTIP = "Unlock to edit this instance"
+
 
 def inside_placement(container: "GraphContainer") -> bool:
     """Return whether ``container`` is a macro placement's interior, or nested in one.
@@ -118,6 +122,20 @@ def inside_placement(container: "GraphContainer") -> bool:
             return True
         cursor = cursor.host
     return False
+
+
+def placement_root(container: "GraphContainer") -> bool:
+    """Return whether ``container`` is a macro placement's own interior.
+
+    True for a :class:`SubgraphContainer` whose definition has a ``template_key``
+    and whose host is not itself inside a placement. A Group nested in the
+    interior is not a placement root.
+    """
+    return (
+        isinstance(container, SubgraphContainer)
+        and container.definition.template_key is not None
+        and not inside_placement(container.host)
+    )
 
 
 @dataclass
@@ -665,9 +683,32 @@ class GraphEditor(BaseEditor):
 
     @react_on(ToggleLock)
     def _on_toggle_lock(self, context: "SessionContext", event: ToggleLock) -> None:
-        """Flip the lock of the level on screen; unlocking needs the real edit tier."""
+        """Flip the lock of the level on screen; unlocking needs the real edit tier.
+
+        Unlocking a macro placement's own level asks first, then detaches the
+        placement into a Group (see ``_edit_instance``). A level deeper inside a
+        placement refuses.
+        """
         level = self._levels.get(self._active_level)
         if level is None:
+            return
+        if level.locked and placement_root(level.container):
+            if not context.can_edit():
+                ui.notify("Unlocking needs edit access", type="warning")
+                return
+
+            def confirmed() -> None:
+                self._edit_instance(context, level)
+
+            confirm_modal(
+                title="Edit Instance",
+                message=(
+                    f"Edit this instance? It becomes a modified instance of "
+                    f"{self._template_label(level)} until you Update or Revert."
+                ),
+                confirm_label="Edit Instance",
+                on_confirm=confirmed,
+            )
             return
         if self.set_level_locked(context, self._active_level, not level.locked):
             self._update_lock_button(context)
@@ -677,6 +718,57 @@ class GraphEditor(BaseEditor):
         else:
             message = _PLACEMENT_REFUSAL if level.inside_placement else "Unlocking needs edit access"
             ui.notify(message, type="warning")
+
+    @staticmethod
+    def _template_label(level: _Level) -> str:
+        """Return the label of the macro the placement on ``level`` was placed from.
+
+        The template's label, or the definition's own when the template is no
+        longer registered.
+        """
+        definition = cast(SubgraphContainer, level.container).definition
+        try:
+            from haywire.core.di.config import get_library_system
+
+            template = get_library_system().get_macro_registry().template(definition.template_key or "")
+        except Exception:
+            template = None
+        return template.class_identity.label if template is not None else definition.label
+
+    def _edit_instance(self, context: "SessionContext", level: _Level) -> bool:
+        """Detach the placement on ``level`` into a Group and unlock its level.
+
+        The Group carries the placement's origin. The level follows its Subgraph
+        to the new key and opens unlocked. Re-checks the edit tier itself, since
+        the confirmation that led here may be stale.
+
+        Returns:
+            ``False`` when nothing changed: no edit access, not a placement
+            root, the card or the Graph-node class is missing, or the detach
+            was refused.
+        """
+        if not context.can_edit():
+            return False
+        container = level.container
+        if not placement_root(container) or self._project_state is None:
+            return False
+        container = cast(SubgraphContainer, container)
+        card = container.definition.graph_node_wrapper()
+        card_cls = self._project_state.node_factory.get_graph_node()
+        if card is None or card_cls is None:
+            return False
+        card_id, refusal = container.host.editor.detach_placement_from_macro(
+            card.node_id, card_cls.class_identity.registry_key
+        )
+        if card_id is None:
+            ui.notify(refusal or "Could not edit this instance", type="warning", multi_line=True)
+            return False
+        # No GraphDataMutated is delivered inside this call, so follow the move explicitly.
+        self._prune_dead_levels(context)
+        unlocked = self.set_level_locked(context, level_key_for(container), False)
+        self._update_lock_button(context)
+        context.session.publish(GraphDataMutated())
+        return unlocked
 
     @react_on(Undo)
     def _on_undo(self, context: "SessionContext", event: Undo) -> None:
@@ -1215,13 +1307,17 @@ class GraphEditor(BaseEditor):
             return
         button.props(f"icon={hui.icon.locked if level.locked else hui.icon.unlocked}")
         if self._lock_tooltip is not None:
-            if level.inside_placement:
+            if placement_root(level.container):
+                self._lock_tooltip.set_text(_EDIT_INSTANCE_TOOLTIP)
+            elif level.inside_placement:
                 self._lock_tooltip.set_text(_PLACEMENT_TOOLTIP)
             else:
                 action = "Unlock" if level.locked else "Lock"
                 combo = format_combo(ToggleLock.default_keys[0], mac=False)
                 self._lock_tooltip.set_text(f"{action} ({combo})")
-        button.set_enabled(context.can_edit() and not level.inside_placement)
+        button.set_enabled(
+            context.can_edit() and (not level.inside_placement or placement_root(level.container))
+        )
 
     def _do_undo(self, context: "SessionContext") -> None:
         """Undo the last action anywhere in this document, including inside a Group."""

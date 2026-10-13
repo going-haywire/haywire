@@ -30,6 +30,7 @@ from .test_graph_editor_levels import (
     _stub,
 )
 from .test_graph_editor_lock import _locked_editor, _restore_resolver  # noqa: F401
+from ..core.test_macro.test_detach_placement import macro_folder  # noqa: F401
 
 pytestmark = pytest.mark.unit
 
@@ -94,18 +95,87 @@ def test_unlock_is_refused_inside_a_placement_even_for_admin():
     assert editor._levels[key].locked is True
 
 
-def test_toggle_lock_inside_a_placement_notifies(monkeypatch):
-    editor, context, key = _placement_level()
-    editor._active_level = key
+def _nested_level(tier: AccessTier = AccessTier.ADMIN):
+    """A Group nested in a placement's interior, open and on screen."""
+    editor, context, document = _locked_editor(tier, open_locked=False)
+    placement = _container(document, _placement_definition())
+    editor._open_level(context, placement)
+    nested = _container(placement, _definition("sg_inner"))
+    key = editor._open_level(context, nested)
+    return editor, context, key
+
+
+def _patched_ui(monkeypatch) -> tuple[MagicMock, MagicMock]:
+    """Replace ``ui`` and ``confirm_modal`` in the editor module; return both."""
     ui = MagicMock()
+    confirm = MagicMock()
     monkeypatch.setattr(graph_editor_module, "ui", ui)
+    monkeypatch.setattr(graph_editor_module, "confirm_modal", confirm)
+    return ui, confirm
+
+
+def test_a_level_deeper_in_a_placement_keeps_the_refusal(monkeypatch):
+    editor, context, key = _nested_level()
+    ui, confirm = _patched_ui(monkeypatch)
     editor._on_toggle_lock(context, MagicMock())
     ui.notify.assert_called_once_with(_REFUSAL, type="warning")
+    confirm.assert_not_called()
 
 
-def test_lock_button_disabled_inside_a_placement():
-    editor, context, key = _placement_level(AccessTier.ADMIN)
+def test_unlocking_a_placement_root_asks_first(monkeypatch):
+    editor, context, key = _placement_level(AccessTier.EDIT)
     editor._active_level = key
+    ui, confirm = _patched_ui(monkeypatch)
+    edit_instance = MagicMock()
+    monkeypatch.setattr(editor, "_edit_instance", edit_instance)
+
+    editor._on_toggle_lock(context, MagicMock())
+
+    confirm.assert_called_once()
+    kwargs = confirm.call_args.kwargs
+    assert kwargs["title"] == "Edit Instance"
+    assert kwargs["confirm_label"] == "Edit Instance"
+    assert kwargs["message"] == (
+        "Edit this instance? It becomes a modified instance of Filter until you Update or Revert."
+    )
+    edit_instance.assert_not_called()
+    assert editor._levels[key].locked is True
+    ui.notify.assert_not_called()
+
+    kwargs["on_confirm"]()
+    edit_instance.assert_called_once_with(context, editor._levels[key])
+
+
+def test_edit_instance_needs_edit(monkeypatch):
+    editor, context, key = _placement_level(AccessTier.OPERATE)
+    editor._active_level = key
+    ui, confirm = _patched_ui(monkeypatch)
+    editor._on_toggle_lock(context, MagicMock())
+    ui.notify.assert_called_once_with("Unlocking needs edit access", type="warning")
+    confirm.assert_not_called()
+
+
+def test_a_stale_confirm_without_edit_detaches_nothing(monkeypatch):
+    editor, context, key = _placement_level(AccessTier.OPERATE)
+    level = editor._levels[key]
+    host = level.container.host  # type: ignore[attr-defined]
+    assert editor._edit_instance(context, level) is False
+    host.editor.detach_placement_from_macro.assert_not_called()
+    assert level.locked is True
+
+
+def test_lock_button_on_a_placement_root():
+    editor, context, key = _placement_level(AccessTier.EDIT)
+    editor._active_level = key
+    editor._lock_button = MagicMock()
+    editor._lock_tooltip = MagicMock()
+    editor._update_lock_button(context)
+    editor._lock_button.set_enabled.assert_called_once_with(True)
+    editor._lock_tooltip.set_text.assert_called_once_with("Unlock to edit this instance")
+
+
+def test_lock_button_disabled_deeper_in_a_placement():
+    editor, context, key = _nested_level(AccessTier.ADMIN)
     editor._lock_button = MagicMock()
     editor._lock_tooltip = MagicMock()
     editor._update_lock_button(context)
@@ -464,3 +534,44 @@ def test_a_canvas_built_with_a_viewport_restores_it_instead_of_fitting(monkeypat
 def test_a_canvas_built_without_a_viewport_fits_its_content(monkeypatch):
     zoom = _built_canvas(monkeypatch, None).zoom_container
     assert zoom._on_ready == zoom.center_on_content
+
+
+@pytest.mark.integration
+class TestEditInstance:
+    """Confirming the unlock detaches a real placement and the level follows it."""
+
+    @pytest.mark.usefixtures("macro_folder")
+    def test_confirming_edits_the_instance(self, graph_with_library_system, library_system, monkeypatch):
+        from haywire.core.graph.editor import Editor
+        from tests.core.test_macro.test_detach_placement import _place
+
+        graph = graph_with_library_system
+        real_editor, placement_id = _place(graph, library_system)
+        document = _FakeDocument()
+        document.editor = real_editor
+        editor, context, _ = _editor(document)
+        editor._project_state = SimpleNamespace(node_factory=library_system.get_node_factory())  # type: ignore[assignment]
+        assert isinstance(real_editor, Editor)
+
+        assert editor.descend_into(context, placement_id) is True
+        key = editor._active_level
+        level = editor._levels[key]
+        assert level.locked is True
+        assert level.inside_placement is True
+        definition = graph.subgraphs[key]
+        ui, confirm = _patched_ui(monkeypatch)
+
+        editor._on_toggle_lock(context, MagicMock())
+        assert definition.origin is None  # nothing detached before the confirm
+        confirm.call_args.kwargs["on_confirm"]()
+
+        assert definition.origin is not None
+        assert definition.template_key is None
+        assert editor._active_level != key
+        assert editor._active_level == definition.key
+        assert key not in graph.subgraphs
+        moved = editor._levels[editor._active_level]
+        assert moved is level
+        assert moved.locked is False
+        assert moved.inside_placement is False
+        assert list(editor._levels) == [DOCUMENT_LEVEL, definition.key]

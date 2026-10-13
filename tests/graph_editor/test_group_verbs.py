@@ -262,3 +262,21 @@ class TestEnterRow:
         ctx = self._ctx(active_node=self._node(is_graph_node=True))
 
         assert self._drawn_labels(EnterMenuPanel, ctx) == ["Enter"]
+
+
+@pytest.mark.unit
+class TestEditInstanceRow:
+    """The placement's row is Edit Instance; it replaced Detach from Macro."""
+
+    def test_edit_instance_row(self):
+        from haybale_graph_editor.panels.graph.menu.selection.selection import EditInstanceMenuPanel
+
+        helper = TestEnterRow()
+        card = helper._placement(is_macro=True)
+        placement = helper._ctx(active_node=card)
+        plain = helper._ctx(active_node=helper._placement(is_macro=False))
+
+        assert EditInstanceMenuPanel.class_identity.label == "Edit Instance"
+        assert EditInstanceMenuPanel.poll(placement) is True
+        assert EditInstanceMenuPanel.poll(plain) is False
+        assert helper._drawn_labels(EditInstanceMenuPanel, placement) == ["Edit Instance"]

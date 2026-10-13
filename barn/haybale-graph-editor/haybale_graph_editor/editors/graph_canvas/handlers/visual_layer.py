@@ -1033,11 +1033,10 @@ class VisualLayerHandlers:
 
     @handles_event(DetachFromMacroEvent)
     def process_detach_from_macro(self, event: DetachFromMacroEvent):
-        """Turn one macro placement into a Group (one undoable op).
+        """Turn one macro placement into a Group (one undoable op) and enter it.
 
-        The macro file and its other placements are untouched, which the
-        notification says out loud: the gesture reads like an undo of promotion
-        and is not one.
+        The Group carries the placement's origin. The macro file and its other
+        placements are untouched.
         """
         card_cls = self.editor._node_factory.get_graph_node()
         if card_cls is None:
@@ -1057,7 +1056,13 @@ class VisualLayerHandlers:
         wrapper = self.editor.graph.get_node_wrapper(card_id)
         if wrapper is not None:
             self._make_sole_active_node(wrapper)
-        ui.notify("Detached into a Group — the macro is unchanged", type="positive")
+        if self.context is not None:
+            from haywire.core.signals import SubgraphNavigation
+
+            self.context.session.publish(
+                SubgraphNavigation(graph_id=self.editor.graph.graph_id, node_id=card_id)
+            )
+        ui.notify("Editing this instance — Update Macro… or Revert to Macro when done", type="positive")
 
     def _subgraph_node_classes(self):
         """The Graph-node and two boundary classes, or ``None`` after notifying.
