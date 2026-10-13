@@ -1427,6 +1427,52 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /graph-enter
+    #
+    # One Group card (two TestPrintNodes collapsed) on a real GraphCanvasManager.
+    # ``enter-card-id`` carries the card's id; ``enter-log`` shows the node id of
+    # the last SubgraphNavigation the session published — what the canvas asks
+    # an editor to open. ``?locked=true`` locks the canvas first. Backs
+    # test_enter_by_double_click.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-enter")
+    async def graph_enter_page(locked: bool = False):
+        from haywire.core.graph.editor import Editor
+
+        graph = _harness_graph("Enter Fixture")
+        editor = Editor(graph, library_service.get_node_factory())
+        first = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3700.0))
+        second = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3900.0))
+        assert first is not None and second is not None  # noqa: PT018
+        card_id, reason = editor.collapse_to_group(
+            node_ids=[first.node_id, second.node_id],
+            card_registry_key="haywire-core:node:GraphNode",
+            input_registry_key="haywire-core:node:SubgraphInputNode",
+            output_registry_key="haywire-core:node:SubgraphOutputNode",
+            label="Enter Fixture Group",
+        )
+        assert card_id is not None, reason
+
+        ui.label(card_id).props(f'data-testid="enter-card-id" data-node="{card_id}"')
+        log = ui.label("").props('data-testid="enter-log"')
+        manager = _mount_graph_canvas(library_service, graph, editor, testid="enter")
+
+        session = manager._session
+        publish = session.publish
+
+        def _record(signal, *args, **kwargs):
+            node_id = getattr(signal, "node_id", None)
+            if node_id is not None:
+                log.set_text(node_id)
+            return publish(signal, *args, **kwargs)
+
+        session.publish = _record  # type: ignore[method-assign]
+        if locked:
+            manager.set_locked(True)
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /graph-reroute
     #
     # Two nodes whose exec edge is split by a reroute. A reroute is resizable

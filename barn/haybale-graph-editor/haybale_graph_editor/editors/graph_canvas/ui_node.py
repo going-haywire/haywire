@@ -86,6 +86,7 @@ class UINode:
         self._subscribe_slot_fields()
         self._apply_locked_attr()
         self._apply_detail_attr()
+        self._apply_enterable_attr()
 
     @property
     def position(self) -> Optional[tuple[float, float]]:
@@ -304,6 +305,19 @@ class UINode:
         else:
             self.container._props.pop("data-node-props-locked", None)
         self.container.update()
+
+    def _apply_enterable_attr(self) -> None:
+        """Stamp ``data-node-enterable`` on the container of a Group or macro placement card.
+
+        canvas.vue enters the card on a double-click. A card's kind is fixed
+        for its lifetime, so one stamp at construction is enough.
+        """
+        from haywire.core.macro.source import is_macro_placement
+
+        node = self.wrapper.node
+        if node.identity._is_graph_node or is_macro_placement(node):
+            self.container._props["data-node-enterable"] = "true"
+            self.container.update()
 
     def _apply_detail_attr(self) -> None:
         """Stamp ``data-node-props-detail`` on the container for canvas.vue to read.

@@ -3,7 +3,7 @@
         dragging: dragState.isDragging,
         'box-selecting': boxSelectionState.isActive,
         'edge-dragging': edgeDrag.mode === 'active'
-    }" :style="[canvasSizeStyle, backgroundStyle]" tabindex="0" data-hw-pointer-local @click="handleCanvasClick" @contextmenu="handleContextMenu">
+    }" :style="[canvasSizeStyle, backgroundStyle]" tabindex="0" data-hw-pointer-local @click="handleCanvasClick" @dblclick="handleDoubleClick" @contextmenu="handleContextMenu">
         <!-- Box selection rectangle -->
         <div 
             v-if="boxSelectionState.isActive" 
@@ -87,6 +87,10 @@ import 'arrow_heads';
  *
  *   data-node-id        The node's id; the container every lookup starts from.
  *                       Written by visual_layer.py and pin_render.py.
+ *   data-node-enterable Present on the [data-node-id] container of a Group or
+ *                       macro placement card. A double-click on it (not on a
+ *                       widget or a pin) emits EnterGroupEvent, locked canvas
+ *                       included: entering only views. Written by ui_node.py.
  *   data-pin-id         A pin's id; drives pin-menu detection.
  *   data-pin-dir        A pin's role in an edge: 'inlet', 'outlet', or
  *                       'swinglet' (either end). A drop links one end that can
@@ -1760,6 +1764,18 @@ export default {
         handleCanvasClick(event) {
             // All click handling is done in handleMouseDown/Up
             return;
+        },
+
+        handleDoubleClick(event) {
+            const target = event.target;
+            const card = target.closest('[data-node-enterable]');
+            if (!card || !card.dataset.nodeId) {
+                return;
+            }
+            if (this._isInteractiveWidgetElement(target) || target.closest('[data-pin-id], [data-port-id]')) {
+                return;
+            }
+            this.emitCanvasEvent(EventCreators.createEnterGroup(card.dataset.nodeId));
         },
 
         handleContextMenu(event) {
