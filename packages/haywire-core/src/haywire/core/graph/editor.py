@@ -429,6 +429,7 @@ class Editor:
         self,
         node_id: str,
         macro_registry_key: str,
+        description: str | None = None,
     ) -> Tuple[Optional[str], Optional[str]]:
         """Swap the Group on ``node_id`` for a placement of ``macro_registry_key``.
 
@@ -441,6 +442,10 @@ class Editor:
         preceding collapse along with itself would take back work the user
         never asked to reverse.
 
+        Args:
+            description: The undo-history name of the swap; ``None`` names it
+                "Promote to Macro".
+
         Returns:
             ``(placement_node_id, None)`` on success, or ``(None, reason)``
             when the swap was refused, phrased to be shown to the user.
@@ -450,6 +455,7 @@ class Editor:
                 graph=self.graph,
                 node_id=node_id,
                 macro_registry_key=macro_registry_key,
+                description=description,
             )
         except ValueError as e:
             logger.info(f"Promotion refused: {e}")

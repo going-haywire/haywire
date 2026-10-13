@@ -45,6 +45,10 @@ class SelectionActions(Protocol):
     # placements are untouched.
     def detach_from_macro(self, node_id: str) -> None: ...
 
+    # Acts on one modified instance: it becomes a placement of the macro it was
+    # copied from, as that macro stands now.
+    def revert_to_macro(self, node_id: str) -> None: ...
+
     # Opens the New Node wizard with this node's class as the source.
     def clone_to_library(self, node_id: str) -> None: ...
 

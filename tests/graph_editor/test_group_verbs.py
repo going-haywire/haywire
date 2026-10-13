@@ -280,3 +280,71 @@ class TestEditInstanceRow:
         assert EditInstanceMenuPanel.poll(placement) is True
         assert EditInstanceMenuPanel.poll(plain) is False
         assert helper._drawn_labels(EditInstanceMenuPanel, placement) == ["Edit Instance"]
+
+
+@pytest.mark.unit
+class TestRevertToMacroRow:
+    """Revert to Macro shows on a modified instance, and greys when the macro is gone."""
+
+    _KEY = "testlib:macro:Blur"
+
+    def _instance(self, *, origin=True, label="Blur copy"):
+        from haywire.core.macro.origin import MacroOrigin
+
+        wrapper = MagicMock()
+        wrapper.node_id = "card1"
+        wrapper.node.resolve_definition.return_value = MagicMock(
+            origin=MacroOrigin(key=self._KEY, hash="h") if origin else None, label=label
+        )
+        return wrapper
+
+    def _drawn(self, ctx, template):
+        from unittest.mock import patch
+
+        from haybale_graph_editor.panels.graph.menu.selection.selection import ModifiedInstanceMenuPanel
+
+        panel = ModifiedInstanceMenuPanel.__new__(ModifiedInstanceMenuPanel)
+        panel.actions = MagicMock()  # type: ignore[attr-defined]
+        library_system = MagicMock()
+        library_system.get_macro_registry.return_value.template.return_value = template
+        with (
+            patch("haywire.core.di.config.get_library_system", return_value=library_system),
+            patch("haybale_graph_editor.panels.graph.menu.selection.selection.hui.menu_row") as row,
+        ):
+            panel.draw(ctx, MagicMock())
+        return panel, row
+
+    def test_row_shows_only_on_a_modified_instance(self):
+        from haybale_graph_editor.panels.graph.menu.selection.selection import ModifiedInstanceMenuPanel
+
+        helper = TestMenuGating()
+        modified = helper._ctx(active_node=self._instance())
+        plain_group = helper._ctx(active_node=self._instance(origin=False))
+        placement = helper._ctx(active_node=helper._placement(is_macro=True))
+
+        assert ModifiedInstanceMenuPanel.class_identity.order == 39
+        assert ModifiedInstanceMenuPanel.poll(modified) is True
+        assert ModifiedInstanceMenuPanel.poll(plain_group) is False
+        assert ModifiedInstanceMenuPanel.poll(placement) is False
+        assert ModifiedInstanceMenuPanel.poll(helper._ctx()) is False
+
+    def test_row_acts_when_the_macro_is_installed(self):
+        template = MagicMock()
+        template.class_identity.label = "Blur"
+        ctx = TestMenuGating()._ctx(active_node=self._instance())
+
+        panel, row = self._drawn(ctx, template)
+
+        assert row.call_args.args[0] == "Revert to Macro"
+        assert row.call_args.kwargs.get("enabled", True) is True
+        row.call_args.kwargs["on_click"]()
+        panel.actions.revert_to_macro.assert_called_once_with("card1")
+
+    def test_revert_row_disabled_when_the_macro_is_gone(self):
+        ctx = TestMenuGating()._ctx(active_node=self._instance(label="Blur copy"))
+
+        panel, row = self._drawn(ctx, None)
+
+        assert row.call_args.args[0] == "Revert to Macro"
+        assert row.call_args.kwargs["enabled"] is False
+        assert row.call_args.kwargs["tooltip"] == "Blur copy is not installed."

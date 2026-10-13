@@ -26,6 +26,7 @@ from haybale_graph_editor.panels._gating import (
     is_collapsible_selection,
     is_graph_node,
     is_macro_placement,
+    is_modified_instance,
     is_reroute_node,
 )
 from nicegui import ui
@@ -771,6 +772,73 @@ class EditInstanceMenuPanel(BasePanel):
                 ),
                 on_click=lambda: self.actions.detach_from_macro(node_id),
             )
+
+
+@panel(
+    surface=SelectionMenu,
+    label="Modified instance",
+    icon=hui.icon.edge,
+    order=39,
+)
+class ModifiedInstanceMenuPanel(BasePanel):
+    """Offer to put a modified instance back to its macro.
+
+    Only visible on a Group that was detached from a macro. Reverting swaps the
+    card for a placement of that macro as it stands now, dropping the changes
+    made to the instance. The row is greyed when the macro is not installed.
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return is_modified_instance(ctx)
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        wrapper = ctx.data[EditState].active_node
+        if wrapper is None:
+            return
+        node_id = wrapper.node_id
+
+        from haywire.core.macro.source import modified_instance_origin
+
+        origin = modified_instance_origin(wrapper.node)
+        template = _origin_template(origin.key) if origin is not None else None
+
+        with layout:
+            if template is None:
+                definition = getattr(wrapper.node, "resolve_definition", lambda: None)()
+                label = str(getattr(definition, "label", "") or (origin.key if origin else ""))
+                hui.menu_row(
+                    "Revert to Macro",
+                    icon=hui.icon.edge,
+                    enabled=False,
+                    tooltip=f"{label} is not installed.",
+                )
+                return
+            hui.menu_row(
+                "Revert to Macro",
+                icon=hui.icon.edge,
+                tooltip=(
+                    f"Replace this card with a placement of {template.class_identity.label}. "
+                    "The changes made to this instance are dropped."
+                ),
+                on_click=lambda: self.actions.revert_to_macro(node_id),
+            )
+
+
+def _origin_template(registry_key: str):
+    """Return the macro template registered under ``registry_key``, or ``None`` when absent."""
+    from haywire.core.di.config import get_library_system
+
+    try:
+        return get_library_system().get_macro_registry().template(registry_key)
+    except Exception:
+        return None
 
 
 @panel(

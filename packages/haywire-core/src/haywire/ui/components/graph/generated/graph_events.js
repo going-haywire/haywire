@@ -18,6 +18,7 @@ window.GraphEvents = {
     PROMOTE_TO_MACRO: 'promoteToMacro', // Turn a Group into a macro: its own file, placeable in any graph
     OPEN_NEW_NODE_WIZARD: 'openNewNodeWizard', // Open the New Node wizard: write a new node class into a library
     DETACH_FROM_MACRO: 'detachFromMacro', // Turn one macro placement into a Group that no longer tracks the template
+    REVERT_TO_MACRO: 'revertToMacro', // Swap a modified instance for a placement of the macro it was copied from
     EDGE_CREATED: 'edgeCreated', // New connection created
     EDGE_CLICKED: 'edgeClicked', // Connection clicked
     EDGE_RECONNECT_STARTED: 'edgeReconnectStarted', // A reconnect drag started from the anchor pin; the edge may now be removed
@@ -193,6 +194,16 @@ window.EventCreators = {
   createDetachFromMacro(node_id, sessionId = 'default') {
     return {
       event_type: 'detachFromMacro',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_id },
+      requires_broadcast: true
+    };
+  },
+
+  createRevertToMacro(node_id, sessionId = 'default') {
+    return {
+      event_type: 'revertToMacro',
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { node_id },
@@ -449,6 +460,11 @@ window.EventValidators = {
   },
 
   validateDetachFromMacro(data) {
+    const requiredFields = ["node_id"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateRevertToMacro(data) {
     const requiredFields = ["node_id"];
     return requiredFields.every(field => field in data);
   },

@@ -299,6 +299,9 @@ class SelectionToolbarProvider:
     def detach_from_macro(self, node_id: str) -> None:
         self._menu_provider.detach_from_macro(node_id)
 
+    def revert_to_macro(self, node_id: str) -> None:
+        self._menu_provider.revert_to_macro(node_id)
+
     def clone_to_library(self, node_id: str) -> None:
         self._menu_provider.clone_to_library(node_id)
 

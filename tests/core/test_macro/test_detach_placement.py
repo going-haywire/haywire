@@ -228,3 +228,142 @@ def test_a_plain_node_cannot_be_detached(graph_with_library_system, library_syst
 
     assert detached_id is None
     assert refusal is not None
+
+
+# --- Revert to Macro: a modified instance goes back to the current template ---
+
+
+def _modify(graph, card_id):
+    """Change an interior value and add a node, so the instance differs from the template."""
+    definition = graph.get_node_wrapper(card_id).node.resolve_definition()
+    added = make_node(definition, _PRINT)
+    return definition, added.node_id
+
+
+def _revert(editor, card_id):
+    origin = graph_origin(editor.graph, card_id)
+    return editor.promote_to_macro(card_id, origin.key, description="Revert to Macro")
+
+
+def graph_origin(graph, card_id):
+    from haywire.core.macro.source import modified_instance_origin
+
+    return modified_instance_origin(graph.get_node_wrapper(card_id).node)
+
+
+def test_revert_makes_a_placement_of_the_current_template(
+    graph_with_library_system, library_system, macro_folder
+):
+    from haywire.core.macro.source import is_macro_placement
+
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+    template_size = len(graph.get_node_wrapper(placement_id).node.resolve_definition().node_wrappers)
+    card_id, _ = _detach(editor, placement_id)
+    _modify(graph, card_id)
+
+    new_id, refusal = _revert(editor, card_id)
+
+    assert refusal is None
+    assert graph.get_node_wrapper(card_id) is None
+    placement = graph.get_node_wrapper(new_id)
+    assert is_macro_placement(placement.node)
+    assert placement.registry_key == _MACRO
+    interior = placement.node.resolve_definition()
+    assert interior.template_key == _MACRO
+    assert len(interior.node_wrappers) == template_size
+    assert graph.to_dict()["subgraphs"] == {}
+
+
+def test_undo_of_revert_restores_the_modified_instance(
+    graph_with_library_system, library_system, macro_folder
+):
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+    card_id, _ = _detach(editor, placement_id)
+    _, added_id = _modify(graph, card_id)
+    editor.history_manager.add_fence()
+
+    new_id, _ = _revert(editor, card_id)
+    editor.undo()
+
+    assert graph.get_node_wrapper(new_id) is None
+    restored = graph.get_node_wrapper(card_id)
+    assert restored is not None
+    origin = graph_origin(graph, card_id)
+    assert origin is not None
+    assert origin.key == _MACRO
+    assert added_id in restored.node.resolve_definition().node_wrappers
+
+
+def test_revert_history_entry_is_named(graph_with_library_system, library_system, macro_folder):
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+    card_id, _ = _detach(editor, placement_id)
+
+    _revert(editor, card_id)
+
+    assert editor.history_manager.get_undo_description() == "Revert to Macro"
+
+
+def test_revert_onto_a_template_missing_the_wired_pin(
+    graph_with_library_system, library_system, macro_folder
+):
+    """Characterization: an edge on a boundary pin the template does not have."""
+    from haywire.core.macro.origin import MacroOrigin
+
+    graph = graph_with_library_system
+    x, a, b = make_node(graph, _PRINT), make_node(graph, _PRINT), make_node(graph, _PRINT)
+    graph.create_edge_wrapper(x.node_id, "done", a.node_id, "exec")
+    graph.create_edge_wrapper(a.node_id, "done", b.node_id, "exec")
+    editor = _editor(graph, library_system)
+    card_id, reason = editor.collapse_to_group(
+        node_ids=[a.node_id, b.node_id],
+        card_registry_key=_CARD,
+        input_registry_key=_INPUT,
+        output_registry_key=_OUTPUT,
+    )
+    assert reason is None
+    definition = graph.get_node_wrapper(card_id).node.resolve_definition()
+    definition.origin = MacroOrigin(key=_MACRO, hash="stale")
+    edges_before = len(graph._get_all_edges(card_id))
+    assert edges_before >= 1
+
+    new_id, refusal = editor.promote_to_macro(card_id, _MACRO, description="Revert to Macro")
+
+    # Neither refused nor raised: the edge re-attaches by its pin id, and the
+    # placement lists no such pin. Undo puts the Group back.
+    assert refusal is None
+    assert new_id is not None
+    assert len(graph._get_all_edges(new_id)) == edges_before
+    assert "in_exec" not in graph.get_node_wrapper(new_id).node.ports
+    editor.undo()
+    assert graph.get_node_wrapper(card_id) is not None
+    assert graph.get_node_wrapper(new_id) is None
+
+
+def test_a_reloaded_instance_keeps_its_origin_when_the_macro_is_gone(
+    graph_with_library_system, library_system, macro_folder
+):
+    """The origin is stored in the host file, so the instance survives its macro."""
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.scheduler import SyncScheduler
+    from haywire.core.macro.source import modified_instance_origin
+
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+    card_id, _ = _detach(editor, placement_id)
+    document = json.loads(json.dumps(graph.to_dict()))
+
+    registry = library_system.get_macro_registry()
+    registry.remove_folder(str(macro_folder), _identity(macro_folder))
+    reloaded = BaseGraph(filestem="Reloaded", validation_scheduler=SyncScheduler())
+    assert reloaded.load_from_dict(document)
+
+    reloaded_card = reloaded.get_node_wrapper(card_id)
+    assert reloaded_card is not None
+    origin = modified_instance_origin(reloaded_card.node)
+    assert origin is not None
+    assert origin.key == _MACRO
+    assert registry.template(_MACRO) is None
+    registry.add_folder(str(macro_folder), _identity(macro_folder))

@@ -39,6 +39,7 @@ from haywire.ui.components.graph.event_definitions import (
     DissolveRerouteEvent,
     EnterGroupEvent,
     DetachFromMacroEvent,
+    RevertToMacroEvent,
     ExpandGroupEvent,
     PromoteToMacroEvent,
     OpenNewNodeWizardEvent,
@@ -1064,6 +1065,34 @@ class VisualLayerHandlers:
             self.context.session.publish(
                 SubgraphNavigation(graph_id=self.editor.graph.graph_id, node_id=card_id)
             )
+
+    @handles_event(RevertToMacroEvent)
+    def process_revert_to_macro(self, event: RevertToMacroEvent):
+        """Swap a modified instance for a placement of its origin macro (one undoable op)."""
+        from haywire.core.macro.source import modified_instance_origin
+
+        wrapper = self.editor.graph.get_node_wrapper(event.node_id)
+        origin = modified_instance_origin(wrapper.node) if wrapper is not None else None
+        if origin is None:
+            ui.notify("This card is not a modified instance", type="warning")
+            return
+
+        logger.info(f"📦 Reverting {event.node_id} to macro {origin.key}")
+        placement_id, refusal = self.editor.promote_to_macro(
+            event.node_id, origin.key, description="Revert to Macro"
+        )
+        if placement_id is None:
+            ui.notify(refusal or "Could not revert this card", type="warning", multi_line=True)
+            return
+
+        self.sync_with_graph()
+        placement = self.editor.graph.get_node_wrapper(placement_id)
+        if placement is not None:
+            self._make_sole_active_node(placement)
+        ui.notify(
+            f"Reverted to {placement.node.props.label if placement is not None else origin.key}",
+            type="positive",
+        )
 
     def _subgraph_node_classes(self):
         """The Graph-node and two boundary classes, or ``None`` after notifying.

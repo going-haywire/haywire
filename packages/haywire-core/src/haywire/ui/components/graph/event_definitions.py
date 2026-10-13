@@ -231,6 +231,16 @@ class DetachFromMacroEvent(BaseGraphEvent):
     node_id: str
 
 
+@graph_event(
+    "revertToMacro",
+    category="user",
+    description="Swap a modified instance for a placement of the macro it was copied from",
+)
+@dataclass
+class RevertToMacroEvent(BaseGraphEvent):
+    node_id: str
+
+
 @graph_event("edgeCreated", category="user", description="New connection created")
 @dataclass
 class EdgeCreatedEvent(BaseGraphEvent):

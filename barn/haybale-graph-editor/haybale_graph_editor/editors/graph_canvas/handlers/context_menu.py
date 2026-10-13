@@ -738,6 +738,12 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
         self._emit(DetachFromMacroEvent(node_id=node_id))
 
+    def revert_to_macro(self, node_id: str) -> None:
+        """Emit RevertToMacroEvent for the given modified instance."""
+        from haywire.ui.components.graph.event_definitions import RevertToMacroEvent
+
+        self._emit(RevertToMacroEvent(node_id=node_id))
+
     def clone_to_library(self, node_id: str) -> None:
         """Emit OpenNewNodeWizardEvent cloning the given node's class."""
         from haywire.ui.components.graph.event_definitions import OpenNewNodeWizardEvent
