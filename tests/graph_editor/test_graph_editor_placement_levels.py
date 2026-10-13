@@ -20,6 +20,7 @@ from haywire.core.access import AccessTier
 
 from .test_graph_editor_levels import (
     _assert_selection_dropped,
+    _claiming,
     _definition,
     _descend,
     _editor,
@@ -166,7 +167,7 @@ class TestAReloadedPlacement:
         """The selected node is in the replaced interior; nothing on screen holds it any more."""
         editor, context, document = _editor()
         _open_placement(editor, context)
-        edit_state = _select(context, MagicMock(name="old_interior_node"))
+        edit_state = _select(editor, context, MagicMock(name="old_interior_node"))
 
         document.editor.graph.subgraphs[_PLACEMENT_KEY] = _placement_definition(_PLACEMENT_KEY)
         editor._prune_dead_levels(context)
@@ -180,15 +181,32 @@ class TestAReloadedPlacement:
 
         editor, context, document = _locked_editor(AccessTier.EDIT, open_locked=False)
         _open_placement(editor, context)
-        edit_state = _select(context, MagicMock(name="interior_node"))
-        edit_state.active_graph = None
-        edit_state.active_graph_path = None
-        edit_state.active_locked = True
+        edit_state = _select(editor, context, MagicMock(name="interior_node"))
 
         editor.ascend(context)
 
         assert can_edit_graph(context) is True  # the document is unlocked ...
         assert edit_state.active_node is None  # ... and holds nothing from the placement
+
+    def test_an_interior_node_selected_on_the_placement_is_not_editable_from_another_tab(self):
+        """Focusing another, unlocked tab must not make the placement's node editable either."""
+        from haybale_graph_editor.access import can_edit_graph
+        from haybale_graph_editor.state.graph_app_state import GraphAppState
+
+        editor, context, document = _locked_editor(AccessTier.EDIT, open_locked=False)
+        _open_placement(editor, context)
+        other_document = _FakeDocument("/tmp/graphs/other.haywire", graph_id="other_graph")
+        other, _context, _ = _editor(other_document)
+        _claiming(other)
+        documents = {document.binding_id: document, other_document.binding_id: other_document}
+        context.app_data[GraphAppState].get.side_effect = documents.get
+        edit_state = _select(editor, context, MagicMock(name="interior_node"))
+
+        other.on_focus(context)
+
+        assert edit_state.active_graph is other_document.editor.graph
+        assert can_edit_graph(context) is True  # the other tab is unlocked ...
+        _assert_selection_dropped(context, edit_state)  # ... and holds nothing from the placement
 
     def test_a_level_in_the_background_follows_without_coming_forward(self):
         editor, context, document = _editor()

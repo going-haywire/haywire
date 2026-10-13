@@ -34,6 +34,7 @@ def _make_editor(*graphs, active: int = 0):
     if graphs:
         editor._active_level = keys[active]
     editor._switch_level = MagicMock()  # type: ignore[method-assign]
+    editor._claim_session_state = MagicMock()  # type: ignore[method-assign]
     return editor
 
 
@@ -137,6 +138,8 @@ def test_a_match_on_the_level_already_on_screen_does_not_switch():
     editor._on_reveal_graph_instance(context, RevealGraphInstance(graph_id="webcam", node_id="n1"))
 
     editor._switch_level.assert_not_called()
+    # Still claims, so a reveal from another tab moves the session here before it selects.
+    cast(Any, editor._claim_session_state).assert_called_once_with(context)
 
 
 class TestOpeningALevelForIt:

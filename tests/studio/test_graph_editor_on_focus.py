@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from typing import Any, Optional, cast
 from unittest.mock import MagicMock
 
-from haywire.core.signals import ActiveGraphMoved
+from haywire.core.signals import ActiveGraphMoved, SelectionMoved
 from haybale_graph_editor.editors.graph_editor import GraphEditor
 
 
@@ -149,8 +149,8 @@ def test_on_focus_fires_active_graph_moved() -> None:
 
     ed.on_focus(ctx)
 
-    assert len(ctx.session.signals) == 1
-    assert isinstance(ctx.session.signals[0], ActiveGraphMoved)
+    # The session moves to another graph, so the selection it held is dropped first.
+    assert [type(signal) for signal in ctx.session.signals] == [SelectionMoved, ActiveGraphMoved]
 
 
 def test_on_focus_short_circuits_when_graph_already_active() -> None:

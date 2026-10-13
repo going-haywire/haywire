@@ -22,10 +22,10 @@ pytestmark = pytest.mark.unit
 class _FakeDocument(GraphContainer):
     """A document container, standing in for a haystack entry."""
 
-    def __init__(self, binding_id: str = "/tmp/graphs/main.haywire"):
+    def __init__(self, binding_id: str = "/tmp/graphs/main.haywire", graph_id: str = "doc_graph"):
         self._binding_id = binding_id
         self.editor = MagicMock()
-        self.editor.graph = _FakeGraph("doc_graph")
+        self.editor.graph = _FakeGraph(graph_id)
         self.path = Path(binding_id)
         self.unsaved = False
 
@@ -277,16 +277,34 @@ class TestClosingALevel:
         assert list(editor._levels) == [DOCUMENT_LEVEL]
 
 
-def _select(context: Any, node: Any) -> Any:
-    """Give the session ``node`` as its selection, as a canvas click does; return the session's EditState."""
+def _claiming(editor: GraphEditor) -> GraphEditor:
+    """Give ``editor`` back the real session-state claim the default fixture stubs."""
+    editor._claim_session_state = GraphEditor._claim_session_state.__get__(editor)  # type: ignore[method-assign]
+    return editor
+
+
+def _select(editor: GraphEditor, context: Any, node: Any) -> Any:
+    """Give the session ``node`` as its selection on ``editor``'s level on screen, as a canvas click does.
+
+    The session's graph state is the one ``editor`` claimed for that level, and
+    ``editor`` claims for real from here on. Returns the session's EditState.
+    """
     from haybale_graph_editor.state.edit_state import EditState
 
+    level = editor._levels[editor._active_level]
     edit_state = SimpleNamespace(
-        active_node=node, active_edge=MagicMock(), selected_nodes={"n1"}, selected_edges={"e1"}
+        active_node=node,
+        active_edge=MagicMock(),
+        selected_nodes={"n1"},
+        selected_edges={"e1"},
+        active_graph=level.container.editor.graph,
+        active_graph_path=level.container.path,
+        active_locked=level.locked,
     )
     context.data = {EditState: edit_state}
     context.active_component = "lib:node:Blur"
     context.session = MagicMock()
+    _claiming(editor)
     return edit_state
 
 
@@ -308,7 +326,7 @@ class TestSelectionStaysOnItsLevel:
     def test_going_up_drops_the_selection_made_below(self):
         editor, context, _document = _editor()
         _descend(editor, context, _definition(key="sg_a"))
-        edit_state = _select(context, MagicMock(name="interior_node"))
+        edit_state = _select(editor, context, MagicMock(name="interior_node"))
 
         editor.ascend(context)
 
@@ -319,7 +337,7 @@ class TestSelectionStaysOnItsLevel:
         definition = _definition(key="sg_a")
         _descend(editor, context, definition)
         editor.ascend(context)
-        edit_state = _select(context, MagicMock(name="document_node"))
+        edit_state = _select(editor, context, MagicMock(name="document_node"))
 
         editor._switch_level(context, "sg_a")
 
@@ -329,7 +347,7 @@ class TestSelectionStaysOnItsLevel:
         editor, context, _document = _editor()
         _descend(editor, context, _definition(key="sg_a"))
         node = MagicMock(name="interior_node")
-        edit_state = _select(context, node)
+        edit_state = _select(editor, context, node)
 
         editor._switch_level(context, "sg_a")
 
@@ -339,7 +357,7 @@ class TestSelectionStaysOnItsLevel:
     def test_closing_the_level_on_screen_drops_its_selection(self):
         editor, context, _document = _editor()
         _descend(editor, context, _definition(key="sg_a"))
-        edit_state = _select(context, MagicMock(name="interior_node"))
+        edit_state = _select(editor, context, MagicMock(name="interior_node"))
 
         editor._close_level(context, "sg_a")
 
@@ -351,7 +369,7 @@ class TestSelectionStaysOnItsLevel:
         _descend(editor, context, _definition(key="sg_a"))
         editor.ascend(context)
         node = MagicMock(name="document_node")
-        edit_state = _select(context, node)
+        edit_state = _select(editor, context, node)
 
         editor._close_level(context, "sg_a")
 
@@ -364,7 +382,7 @@ class TestSelectionStaysOnItsLevel:
         definition = _definition(key="sg_a")
         _descend(editor, context, definition)
         editor.ascend(context)
-        edit_state = _select(context, None)
+        edit_state = _select(editor, context, None)
         revealed = MagicMock(name="interior_node")
         definition.node_wrappers["n1"] = revealed
 
@@ -373,6 +391,61 @@ class TestSelectionStaysOnItsLevel:
         )
 
         assert editor._active_level == "sg_a"
+        assert edit_state.active_node is revealed
+
+
+def _two_tabs() -> tuple[GraphEditor, GraphEditor, Any, _FakeDocument]:
+    """Two GraphEditor tabs on different documents in one session.
+
+    Returns both editors, the session, and the second editor's document.
+    """
+    from haybale_graph_editor.state.graph_app_state import GraphAppState
+
+    editor, context, document = _editor()
+    other_document = _FakeDocument("/tmp/graphs/other.haywire", graph_id="other_graph")
+    other, _context, _ = _editor(other_document)
+    _claiming(other)
+    documents = {document.binding_id: document, other_document.binding_id: other_document}
+    context.app_data[GraphAppState].get.side_effect = documents.get
+    return editor, other, context, other_document
+
+
+class TestSelectionStaysWithItsTab:
+    """The session's selection belongs to the graph on screen; focusing another tab's graph drops it."""
+
+    def test_focusing_a_tab_on_another_graph_drops_the_selection(self):
+        editor, other, context, other_document = _two_tabs()
+        edit_state = _select(editor, context, MagicMock(name="document_node"))
+
+        other.on_focus(context)
+
+        assert edit_state.active_graph is other_document.editor.graph
+        _assert_selection_dropped(context, edit_state)
+
+    def test_refocusing_the_tab_on_screen_keeps_the_selection(self):
+        editor, _other, context, _other_document = _two_tabs()
+        node = MagicMock(name="document_node")
+        edit_state = _select(editor, context, node)
+
+        editor.on_focus(context)
+
+        assert edit_state.active_node is node
+        assert edit_state.selected_nodes == {"n1"}
+        context.session.publish.assert_not_called()
+
+    def test_revealing_a_node_in_another_tab_selects_it_there(self):
+        """The reveal brings its tab forward, and the focus that follows keeps what it selected."""
+        from haywire.core.signals import RevealGraphInstance
+
+        editor, other, context, other_document = _two_tabs()
+        edit_state = _select(editor, context, None)
+        revealed = MagicMock(name="other_node")
+        other_document.editor.graph.node_wrappers["n1"] = revealed
+
+        other._on_reveal_graph_instance(context, RevealGraphInstance(graph_id="other_graph", node_id="n1"))
+        other.on_focus(context)
+
+        assert edit_state.active_graph is other_document.editor.graph
         assert edit_state.active_node is revealed
 
 

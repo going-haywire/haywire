@@ -350,13 +350,12 @@ class GraphEditor(BaseEditor):
         """Show the level under ``key`` and hand it the session's graph state.
 
         Showing another level empties the session's selection, which belongs to
-        the level left behind.
+        the level left behind (see ``_claim_session_state``).
         """
         if key not in self._levels:
             return
         if self._active_level != key:
             self._hide_toolbars()
-            self._clear_selection(context)
         self._active_level = key
         if self._level_panels is not None:
             # The panel for `key` was not rendered while another level was
@@ -440,7 +439,6 @@ class GraphEditor(BaseEditor):
         if self._level_panels is not None:
             self._mount_level(context, replacement)
         if level.key == self._active_level:
-            self._clear_selection(context)  # it names nodes of the interior just replaced
             self._switch_level(context, level.key)
         else:
             self._render_level_bar(context)
@@ -521,9 +519,12 @@ class GraphEditor(BaseEditor):
         else:
             return  # graph_id-only broadcast, nothing to select
 
-        # Switch first: showing another level empties the selection.
+        # Claim first: moving the session to this graph, from another level or
+        # another tab, empties the selection, so the focus that follows keeps it.
         if level.key != self._active_level:
             self._switch_level(context, level.key)
+        else:
+            self._claim_session_state(context)
         edit_state = context.data[EditState]
         if node_wrapper is not None:
             edit_state.active_node = node_wrapper
@@ -665,7 +666,8 @@ class GraphEditor(BaseEditor):
 
         Points ``context.data[EditState].active_graph`` at the level on screen
         and emits ``ActiveGraphMoved`` so panels (properties, minimap,
-        execution controls) refresh.
+        execution controls) refresh. When that moves the session to another
+        graph, the selection is emptied and ``SelectionMoved`` published first.
 
         If the ``binding_id`` no longer resolves to a container (the document
         was concurrently removed from the registry), calls
@@ -682,6 +684,8 @@ class GraphEditor(BaseEditor):
     def _claim_session_state(self, context: "SessionContext") -> None:
         """Point the session's graph state at the level on screen.
 
+        Moving the session to another graph, from another level or another tab,
+        empties its selection, which names nodes of the graph left behind.
         Short-circuits when the context already reflects that level, so a
         redundant call is a no-op.
         """
@@ -699,6 +703,9 @@ class GraphEditor(BaseEditor):
         ):
             return
 
+        if edit_state.active_graph is not graph:
+            # Before the graph moves, so nothing ever sees the new graph with a node of the old one.
+            self._clear_selection(context)
         edit_state.active_graph = graph
         edit_state.active_graph_path = entry.path
         edit_state.active_locked = locked
@@ -724,13 +731,8 @@ class GraphEditor(BaseEditor):
         if self._active_level not in self._levels:
             self._active_level = DOCUMENT_LEVEL
 
-        # Clear selection so PropertiesEditor resets to the graph panel
-        edit_state = context.data[EditState]
-        edit_state.active_node = None
-        edit_state.active_edge = None
-        edit_state.selected_nodes = set()
-        edit_state.selected_edges = set()
-        context.active_component = None
+        # The rebuilt canvases select nothing, so neither does the session.
+        self._clear_selection(context)
 
         with container:
             with ui.column().classes("w-full gap-0").style("height: 100%; overflow: hidden;"):
