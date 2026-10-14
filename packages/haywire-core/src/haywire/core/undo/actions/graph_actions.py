@@ -1971,7 +1971,6 @@ class DetachPlacementFromMacroAction(CompositeAction):
             AddNodeAction(
                 graph=graph,
                 registry_key=card_registry_key,
-                position=position,
                 node_data=node_data,
                 node_id=self.card_node_id,
             ),
@@ -2108,7 +2107,6 @@ class PromoteGroupToMacroAction(CompositeAction):
             AddNodeAction(
                 graph=graph,
                 registry_key=macro_registry_key,
-                position=position,
                 node_data=node_data,
                 node_id=self.placement_node_id,
             ),
