@@ -2,6 +2,7 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.factory import NodeFactory
 from haywire.core.undo.interfaces import IHistoryManager
@@ -120,8 +121,10 @@ class Editor:
             logger.error(f"Error pasting clipboard: {e}")
             return None
 
-    def move_nodes(self, nodes: List[str], deltaX: float, deltaY: float) -> bool:
-        """Move every node in ``nodes`` by ``(deltaX, deltaY)`` as one undoable action.
+    def move_nodes(
+        self, nodes: List[str], deltaX: float, deltaY: float, channel: LayoutChannel = PATCH
+    ) -> bool:
+        """Move every node in ``nodes`` by ``(deltaX, deltaY)`` in ``channel`` as one undoable action.
 
         Returns:
             ``False`` if ``nodes`` is empty or the move failed, otherwise ``True``.
@@ -130,7 +133,7 @@ class Editor:
             return False
 
         try:
-            action = MoveNodesAction(self.graph, nodes, deltaX, deltaY)
+            action = MoveNodesAction(self.graph, nodes, deltaX, deltaY, channel)
             if not self.history_manager.add_action(action):
                 return False
 
@@ -141,8 +144,8 @@ class Editor:
             logger.error(f"Error moving nodes by delta: {e}")
             return False
 
-    def move_nodes_to(self, positions: Dict[str, Dict[str, float]]) -> bool:
-        """Move nodes to absolute positions as one undoable action.
+    def move_nodes_to(self, positions: Dict[str, Dict[str, float]], channel: LayoutChannel = PATCH) -> bool:
+        """Move nodes to absolute positions in ``channel`` as one undoable action.
 
         Args:
             positions: Node ID to ``{"x": ..., "y": ...}`` in canvas coordinates.
@@ -153,7 +156,7 @@ class Editor:
         if not positions:
             return False
         try:
-            action = MoveNodesToAction(self.graph, positions)
+            action = MoveNodesToAction(self.graph, positions, channel)
             if not self.history_manager.add_action(action):
                 return False
             logger.info(f"Moved {len(positions)} nodes to absolute positions")

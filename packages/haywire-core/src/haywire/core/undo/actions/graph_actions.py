@@ -11,7 +11,7 @@ from typing import Any, Optional, Dict, List, Mapping, Tuple
 from dataclasses import dataclass
 
 from ...node import NodeWrapper
-from ...node.layout import position_of, with_position
+from ...node.layout import PATCH, LayoutChannel, position_of, with_position
 from ...graph.base import BaseGraph
 from ...macro.origin import MacroOrigin
 from ...edge.edge_wrapper import EdgeWrapper
@@ -245,6 +245,7 @@ class MoveNodesAction(ActionBase):
         nodes: List[str],
         deltaX: float,
         deltaY: float,
+        channel: LayoutChannel = PATCH,
         description: Optional[str] = None,
     ):
         """
@@ -255,6 +256,7 @@ class MoveNodesAction(ActionBase):
             nodes: List of node IDs to move
             deltaX: Delta X amount to move all nodes
             deltaY: Delta Y amount to move all nodes
+            channel: Layout channel whose position fields are moved
             description: Optional description override
         """
         node_count = len(nodes)
@@ -267,36 +269,30 @@ class MoveNodesAction(ActionBase):
         self.nodes = nodes
         self.deltaX = deltaX
         self.deltaY = deltaY
+        self.channel = channel
 
     def _execute_impl(self) -> None:
         """Move all nodes by their delta amounts."""
         for node_id in self.nodes:
             wrapper = self.graph.get_node_wrapper(node_id)
             if wrapper and wrapper.node:
-                node = wrapper.node
-                self.graph.move_node(
-                    node_id,
-                    node.props.posX + self.deltaX,
-                    node.props.posY + self.deltaY,
-                )
+                x, y = wrapper.node.props.get_position(self.channel)
+                self.graph.move_node(node_id, x + self.deltaX, y + self.deltaY, self.channel)
 
     def _undo_impl(self) -> None:
         """Move all nodes back by subtracting the delta amounts."""
         for node_id in self.nodes:
             wrapper = self.graph.get_node_wrapper(node_id)
             if wrapper and wrapper.node:
-                node = wrapper.node
-                self.graph.move_node(
-                    node_id,
-                    node.props.posX - self.deltaX,
-                    node.props.posY - self.deltaY,
-                )
+                x, y = wrapper.node.props.get_position(self.channel)
+                self.graph.move_node(node_id, x - self.deltaX, y - self.deltaY, self.channel)
 
     def can_merge(self, other) -> bool:
         """Check if this move can be merged with another delta move of the same nodes."""
         return (
             isinstance(other, MoveNodesAction)
             and set(other.nodes) == set(self.nodes)
+            and other.channel == self.channel
             and super().can_merge(other)
         )
 
@@ -316,7 +312,9 @@ class MoveNodesAction(ActionBase):
         else:
             description = f"Move {node_count} nodes"
 
-        merged = MoveNodesAction(self.graph, self.nodes, combined_deltaX, combined_deltaY, description)
+        merged = MoveNodesAction(
+            self.graph, self.nodes, combined_deltaX, combined_deltaY, self.channel, description
+        )
         # Both operands have already moved the nodes, and the combined delta
         # covers both. The merged action therefore enters history as already
         # executed: undoing it subtracts the full delta, and it must never be
@@ -333,6 +331,7 @@ class MoveNodesToAction(ActionBase):
         self,
         graph: BaseGraph,
         positions: Dict[str, Dict[str, float]],
+        channel: LayoutChannel = PATCH,
         description: Optional[str] = None,
     ):
         node_count = len(positions)
@@ -343,22 +342,23 @@ class MoveNodesToAction(ActionBase):
             super().__init__(description or f"Move {node_count} nodes")
 
         self.graph = graph
+        self.channel = channel
         self.target_positions = positions  # {nodeId: {x, y}}
         # Capture originals at construction time so undo is exact.
         self.original_positions: Dict[str, Dict[str, float]] = {}
         for node_id in positions:
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper and wrapper.node:
-                node = wrapper.node
-                self.original_positions[node_id] = {"x": node.props.posX, "y": node.props.posY}
+                x, y = wrapper.node.props.get_position(channel)
+                self.original_positions[node_id] = {"x": x, "y": y}
 
     def _execute_impl(self) -> None:
         for node_id, pos in self.target_positions.items():
-            self.graph.move_node(node_id, pos["x"], pos["y"])
+            self.graph.move_node(node_id, pos["x"], pos["y"], self.channel)
 
     def _undo_impl(self) -> None:
         for node_id, pos in self.original_positions.items():
-            self.graph.move_node(node_id, pos["x"], pos["y"])
+            self.graph.move_node(node_id, pos["x"], pos["y"], self.channel)
 
 
 class RemoveElementsAction(ActionBase):

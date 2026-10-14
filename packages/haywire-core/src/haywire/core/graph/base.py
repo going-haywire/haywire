@@ -28,6 +28,7 @@ from ...ui.utils import generate_edge_uuid
 if TYPE_CHECKING:
     from ..types import DataPort
     from ..edge.edge_wrapper import EdgeWrapper
+    from ..node.layout import LayoutChannel
     from ..node.node_wrapper import NodeWrapper
     from .scheduler import ValidationScheduler
     from ..settings.settings_graph import GraphSettings
@@ -504,8 +505,10 @@ class BaseGraph:
         """Return the wrapper for ``node_id``, or ``None`` if this graph has no such node."""
         return self.node_wrappers.get(node_id)
 
-    def move_node(self, node_id: str, new_x: float, new_y: float) -> bool:
-        """Move a node to ``(new_x, new_y)`` and mark it dirty as ``NODE_MOVED``.
+    def move_node(
+        self, node_id: str, new_x: float, new_y: float, channel: LayoutChannel | None = None
+    ) -> bool:
+        """Move a node to ``(new_x, new_y)`` in ``channel`` and mark it dirty as ``NODE_MOVED``.
 
         Resizes the canvas if the new position needs it.
 
@@ -513,13 +516,16 @@ class BaseGraph:
             ``True`` if the node was moved, ``False`` if this graph has no
             node with ``node_id``.
         """
+        from ..node.layout import PATCH  # a module-level import cycles through haywire.core.node
+
+        channel = channel or PATCH
         wrapper = self.node_wrappers.get(node_id)
         if wrapper is None:
             return False
 
-        wrapper.move(new_x, new_y)
+        wrapper.move(new_x, new_y, channel)
 
-        self._check_canvas_size()
+        self._check_canvas_size(channel)
 
         self._validation.mark_node_dirty(node_id, ChangeReason.NODE_MOVED)
 
@@ -537,8 +543,8 @@ class BaseGraph:
     # CANVAS SIZE MANAGEMENT
     # =========================================================================
 
-    def _check_canvas_size(self) -> bool:
-        """Recompute ``canvas_width``/``canvas_height`` from the current node positions.
+    def _check_canvas_size(self, channel: LayoutChannel | None = None) -> bool:
+        """Recompute ``canvas_width``/``canvas_height`` from the node positions in ``channel``.
 
         Expands or shrinks to the nearest ``_CANVAS_EXPANSION_STEP`` boundary,
         never below ``_CANVAS_MIN_SIZE``. Sets ``_canvas_size_changed`` when the
@@ -547,12 +553,15 @@ class BaseGraph:
         Returns:
             ``True`` if the dimensions changed.
         """
+        from ..node.layout import PATCH  # a module-level import cycles through haywire.core.node
+
+        channel = channel or PATCH
         if not self.node_wrappers:
             new_w = _CANVAS_MIN_SIZE
             new_h = _CANVAS_MIN_SIZE
         else:
-            max_x = max(w.node.props.posX for w in self.node_wrappers.values())
-            max_y = max(w.node.props.posY for w in self.node_wrappers.values())
+            max_x = max(getattr(w.node.props, channel.x) for w in self.node_wrappers.values())
+            max_y = max(getattr(w.node.props, channel.y) for w in self.node_wrappers.values())
             needed_w = max_x + _CANVAS_EDGE_MARGIN
             needed_h = max_y + _CANVAS_EDGE_MARGIN
             steps_w = math.ceil(needed_w / _CANVAS_EXPANSION_STEP)

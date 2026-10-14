@@ -10,6 +10,7 @@ from typing import List, Optional, Any, Dict, Iterator, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from ..graph.types import ChangeReason
+from .layout import PATCH, LayoutChannel
 from haywire.core.node.node_warning import NodeWarning
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
@@ -565,10 +566,10 @@ class NodeWrapper:
     # RUNTIME OPERATIONS
     # =========================================================================
 
-    def move(self, new_x: float, new_y: float):
-        """Move the node to ``(new_x, new_y)`` in canvas coordinates."""
+    def move(self, new_x: float, new_y: float, channel: LayoutChannel = PATCH):
+        """Move the node to ``(new_x, new_y)`` in canvas coordinates, in ``channel``."""
         if self._node_instance:
-            self._node_instance.props.set_position((new_x, new_y))
+            self._node_instance.props.set_position((new_x, new_y), channel)
 
     def _add_runtime_error(self, error: HaywireException) -> None:
         """Record a runtime error, replacing any error already held.

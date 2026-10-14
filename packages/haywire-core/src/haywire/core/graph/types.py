@@ -33,6 +33,7 @@ class ChangeReason(Enum):
 
     # Node reason that changes no structure
     NODE_MOVED = "node_moved"
+    """A node moved in some layout channel; a canvas re-reads the channel it lays out with."""
 
     # Node reason that persists an arrangement without changing structure
     NODE_LAYOUT_CHANGED = "node_layout_changed"
