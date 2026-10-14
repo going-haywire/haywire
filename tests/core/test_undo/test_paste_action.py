@@ -99,12 +99,21 @@ def _payload(nodes, edges):
 
 
 def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch):
+    from haywire.core.node.layout import position_of
     from haywire.core.undo.actions.graph_actions import PasteClipboardAction, AddNodeAction, AddEdgeAction
 
     payload = _payload(
         nodes={
-            "n1": {"node_id": "n1", "registry_key": "k", "position": [100.0, 100.0], "node_data": {"v": 1}},
-            "n2": {"node_id": "n2", "registry_key": "k", "position": [200.0, 100.0], "node_data": {"v": 2}},
+            "n1": {
+                "node_id": "n1",
+                "registry_key": "k",
+                "node_data": {"v": 1, "props": {"values": {"posX": 100.0, "posY": 100.0}}},
+            },
+            "n2": {
+                "node_id": "n2",
+                "registry_key": "k",
+                "node_data": {"v": 2, "props": {"values": {"posX": 200.0, "posY": 100.0}}},
+            },
         },
         edges={
             "e": {
@@ -143,7 +152,10 @@ def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch)
     ea = edge_actions[0]
     assert ea.source_node_id == "new_a"
     assert ea.sink_node_id == "new_b"
-    assert {a.position for a in node_actions} == {(100.0, 100.0), (200.0, 100.0)}
+    assert {position_of({"node_data": a.node_data}) for a in node_actions} == {
+        (100.0, 100.0),
+        (200.0, 100.0),
+    }
 
 
 def test_paste_builds_actions_for_unknown_registry_keys_too():
@@ -152,7 +164,11 @@ def test_paste_builds_actions_for_unknown_registry_keys_too():
 
     payload = _payload(
         nodes={
-            "n1": {"node_id": "n1", "registry_key": "totally.unknown", "position": [0, 0], "node_data": {}}
+            "n1": {
+                "node_id": "n1",
+                "registry_key": "totally.unknown",
+                "node_data": {"props": {"values": {"posX": 0.0, "posY": 0.0}}},
+            }
         },
         edges={},
     )
@@ -167,10 +183,17 @@ def test_paste_builds_actions_for_unknown_registry_keys_too():
 
 
 def test_paste_offsets_positions_to_paste_point():
+    from haywire.core.node.layout import position_of
     from haywire.core.undo.actions.graph_actions import PasteClipboardAction, AddNodeAction
 
     payload = _payload(
-        nodes={"n1": {"node_id": "n1", "registry_key": "k", "position": [100.0, 200.0], "node_data": {}}},
+        nodes={
+            "n1": {
+                "node_id": "n1",
+                "registry_key": "k",
+                "node_data": {"props": {"values": {"posX": 100.0, "posY": 200.0}}},
+            }
+        },
         edges={},
     )
     # bbox.min is (0,0) from _payload; override to make the offset non-trivial:
@@ -185,7 +208,7 @@ def test_paste_offsets_positions_to_paste_point():
     action = PasteClipboardAction(graph=cast(Any, _G)(), payload=payload, paste_x=500.0, paste_y=600.0)
     node_actions = [a for a in action.actions if isinstance(a, AddNodeAction)]
     assert len(node_actions) == 1
-    assert node_actions[0].position == (500.0, 600.0)
+    assert position_of({"node_data": node_actions[0].node_data}) == (500.0, 600.0)
 
 
 def test_editor_paste_clipboard_adds_action_and_returns_new_ids():
@@ -200,7 +223,13 @@ def test_editor_paste_clipboard_adds_action_and_returns_new_ids():
             return True
 
     payload = _payload(
-        nodes={"n1": {"node_id": "n1", "registry_key": "k", "position": [0, 0], "node_data": {}}},
+        nodes={
+            "n1": {
+                "node_id": "n1",
+                "registry_key": "k",
+                "node_data": {"props": {"values": {"posX": 0.0, "posY": 0.0}}},
+            }
+        },
         edges={},
     )
 
@@ -242,8 +271,16 @@ def test_paste_node_actions_carry_pre_minted_ids():
 
     payload = _payload(
         nodes={
-            "n1": {"node_id": "n1", "registry_key": "k", "position": [0, 0], "node_data": {}},
-            "n2": {"node_id": "n2", "registry_key": "k", "position": [10, 0], "node_data": {}},
+            "n1": {
+                "node_id": "n1",
+                "registry_key": "k",
+                "node_data": {"props": {"values": {"posX": 0.0, "posY": 0.0}}},
+            },
+            "n2": {
+                "node_id": "n2",
+                "registry_key": "k",
+                "node_data": {"props": {"values": {"posX": 10.0, "posY": 0.0}}},
+            },
         },
         edges={},
     )
@@ -266,8 +303,16 @@ def test_paste_skips_an_id_already_minted_in_the_same_paste():
 
     payload = _payload(
         nodes={
-            "n1": {"node_id": "n1", "registry_key": "k", "position": [0, 0], "node_data": {}},
-            "n2": {"node_id": "n2", "registry_key": "k", "position": [10, 0], "node_data": {}},
+            "n1": {
+                "node_id": "n1",
+                "registry_key": "k",
+                "node_data": {"props": {"values": {"posX": 0.0, "posY": 0.0}}},
+            },
+            "n2": {
+                "node_id": "n2",
+                "registry_key": "k",
+                "node_data": {"props": {"values": {"posX": 10.0, "posY": 0.0}}},
+            },
         },
         edges={},
     )
@@ -294,8 +339,16 @@ def test_paste_execution_edge_connects_created_nodes():
 
     payload = _payload(
         nodes={
-            "n1": {"node_id": "n1", "registry_key": "k", "position": [0, 0], "node_data": {}},
-            "n2": {"node_id": "n2", "registry_key": "k", "position": [10, 0], "node_data": {}},
+            "n1": {
+                "node_id": "n1",
+                "registry_key": "k",
+                "node_data": {"props": {"values": {"posX": 0.0, "posY": 0.0}}},
+            },
+            "n2": {
+                "node_id": "n2",
+                "registry_key": "k",
+                "node_data": {"props": {"values": {"posX": 10.0, "posY": 0.0}}},
+            },
         },
         edges={
             "e": {
@@ -389,7 +442,13 @@ def test_editor_paste_clipboard_returns_none_on_error():
     from haywire.core.graph.editor import Editor
 
     payload = _payload(
-        nodes={"n1": {"node_id": "n1", "registry_key": "k", "position": [0, 0], "node_data": {}}},
+        nodes={
+            "n1": {
+                "node_id": "n1",
+                "registry_key": "k",
+                "node_data": {"props": {"values": {"posX": 0.0, "posY": 0.0}}},
+            }
+        },
         edges={},
     )
 
@@ -518,3 +577,35 @@ class TestPasteExecutionIntegration:
 
         action._undo_impl()
         assert set(graph.node_wrappers.keys()) == original_ids
+
+
+def test_paste_of_a_node_at_the_origin_lands_at_the_paste_point():
+    from haywire.core.node.layout import position_of
+    from haywire.core.undo.actions.graph_actions import AddNodeAction, PasteClipboardAction
+
+    # Props serialize sparsely: the node at (0, 0) carries no posX/posY at all.
+    payload = _payload(
+        nodes={
+            "n1": {"node_id": "n1", "registry_key": "k", "node_data": {}},
+            "n2": {
+                "node_id": "n2",
+                "registry_key": "k",
+                "node_data": {"props": {"values": {"posX": 300.0, "posY": 200.0}}},
+            },
+        },
+        edges={},
+    )
+    payload["bounding_box"] = {"min_x": 0.0, "min_y": 0.0, "max_x": 300.0, "max_y": 200.0}
+    ids = iter(["new_a", "new_b"])
+
+    class _G:
+        def generate_unique_node_id(self, registry_key="node"):
+            return next(ids)
+
+    action = PasteClipboardAction(graph=cast(Any, _G)(), payload=payload, paste_x=1000.0, paste_y=1000.0)
+    landed = {
+        a.node_id: position_of({"node_data": a.node_data})
+        for a in action.actions
+        if isinstance(a, AddNodeAction)
+    }
+    assert landed == {"new_a": (1000.0, 1000.0), "new_b": (1300.0, 1200.0)}

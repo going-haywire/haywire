@@ -26,8 +26,7 @@ def _fake_graph(boundary_ids: frozenset[str] = frozenset()):
         w.serialize.return_value = {
             "node_id": node_id,
             "registry_key": f"key.{node_id}",
-            "position": [100.0 if node_id == "n1" else 300.0, 200.0],
-            "node_data": {},
+            "node_data": {"props": {"values": {"posX": 100.0 if node_id == "n1" else 300.0, "posY": 200.0}}},
         }
         return w
 
@@ -94,8 +93,7 @@ def test_serialize_called_with_include_data_true():
     wrapper.serialize.return_value = {
         "node_id": "n1",
         "registry_key": "key.n1",
-        "position": [100.0, 200.0],
-        "node_data": {},
+        "node_data": {"props": {"values": {"posX": 100.0, "posY": 200.0}}},
     }
     g.get_node_wrapper.return_value = wrapper
     build_clipboard_payload(g, ["n1"], [], "s")
@@ -141,3 +139,22 @@ def test_a_selection_of_only_boundary_nodes_yields_an_empty_payload():
 
     assert payload["nodes"] == {}
     assert payload["edges"] == {}
+
+
+def test_clipboard_bounding_box_reads_props():
+    g = MagicMock()
+
+    def node_wrapper(node_id):
+        w = MagicMock()
+        w.node.behavior.is_boundary_node = False
+        values = {"n1": {"posX": 100.0, "posY": 200.0}, "n2": {"posX": 300.0}}[node_id]
+        w.serialize.return_value = {
+            "node_id": node_id,
+            "registry_key": f"key.{node_id}",
+            "node_data": {"props": {"values": values}},
+        }
+        return w
+
+    g.get_node_wrapper.side_effect = node_wrapper
+    payload = build_clipboard_payload(g, ["n1", "n2"], [], "s")
+    assert payload["bounding_box"] == {"min_x": 100.0, "min_y": 0.0, "max_x": 300.0, "max_y": 200.0}

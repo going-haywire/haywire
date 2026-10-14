@@ -11,6 +11,7 @@ from typing import Any, Optional, Dict, List, Mapping, Tuple
 from dataclasses import dataclass
 
 from ...node import NodeWrapper
+from ...node.layout import position_of, with_position
 from ...graph.base import BaseGraph
 from ...macro.origin import MacroOrigin
 from ...edge.edge_wrapper import EdgeWrapper
@@ -631,23 +632,13 @@ class PasteClipboardAction(CompositeAction):
         #    types become placeholders, like file load).
         for old_id, node in nodes.items():
             new_id = remap.id_map[old_id]
-            pos = node.get("position") or [0.0, 0.0]
-            new_x = float(pos[0]) + off_x
-            new_y = float(pos[1]) + off_y
+            src_x, src_y = position_of(node)
+            new_x = src_x + off_x
+            new_y = src_y + off_y
 
-            # Copy node_data and force the restored position to the paste
-            # point. NodeWrapper.build() applies position via set_position
-            # early, but _initialize_from_dict() then restores the ORIGINAL
-            # posX/posY from the serialized props, landing the pasted node on
-            # top of its source. Overwriting the props here makes the restored
-            # position the paste point. deepcopy keeps the shared payload dict
-            # (mirror / OS-clipboard) intact for re-paste.
-            node_data = copy.deepcopy(node.get("node_data") or {})
-            # Props serialize in a nested shape — from_dict restores
-            # positions from the "values" block only.
-            props_values = node_data.setdefault("props", {}).setdefault("values", {})
-            props_values["posX"] = new_x
-            props_values["posY"] = new_y
+            # The restore reads posX/posY from the props values, so they carry the paste point.
+            # deepcopy keeps the shared payload dict (mirror / OS-clipboard) intact for re-paste.
+            node_data = with_position(copy.deepcopy(node.get("node_data") or {}), new_x, new_y)
 
             # A pasted card points at the copy of its Subgraph, not the original.
             store = node_data.get("store")
@@ -660,7 +651,6 @@ class PasteClipboardAction(CompositeAction):
                 AddNodeAction(
                     graph=graph,
                     registry_key=node["registry_key"],
-                    position=(new_x, new_y),
                     node_data=node_data,
                     node_id=new_id,
                 )
@@ -1291,10 +1281,9 @@ class _BuildSubgraphAction(ActionBase):
         _move_subgraphs(self.graph, definition, self.nested_keys)
 
         for node_id, node_data in self.nodes.items():
-            position = node_data.get("position") or [0.0, 0.0]
             definition.create_node_wrapper(
                 registry_key=node_data["registry_key"],
-                position=(float(position[0]), float(position[1])),
+                position=position_of(node_data),
                 node_data=node_data.get("node_data", {}),
                 node_id=node_id,
             )
@@ -1640,8 +1629,7 @@ class CollapseToGraphNodeAction(CompositeAction):
             AddNodeAction(
                 graph=graph,
                 registry_key=card_registry_key,
-                position=_centroid(nodes),
-                node_data={"store": {"subgraph_key": self.subgraph_key}},
+                node_data=with_position({"store": {"subgraph_key": self.subgraph_key}}, *_centroid(nodes)),
                 node_id=self.card_node_id,
             ),
         ]
@@ -1769,12 +1757,11 @@ class ExpandGraphNodeAction(CompositeAction):
         ]
 
         for inner_id, node_data in nodes.items():
-            position = node_data.get("position") or [0.0, 0.0]
             actions.append(
                 AddNodeAction(
                     graph=graph,
                     registry_key=node_data["registry_key"],
-                    position=(float(position[0]), float(position[1])),
+                    position=position_of(node_data),
                     node_data=node_data.get("node_data", {}),
                     node_id=inner_id,
                 )
@@ -1949,9 +1936,7 @@ class DetachPlacementFromMacroAction(CompositeAction):
 
         origin = _macro_origin(template_key)
 
-        serialized = card.serialize(include_data=True)
-        raw_position = serialized.get("position") or [0.0, 0.0]
-        position = (float(raw_position[0]), float(raw_position[1]))
+        position = card.node.props.get_position()
 
         # The macro's own name, so the Group opens under the name the user knows
         # it by rather than the generic Graph-node label.
@@ -1972,6 +1957,7 @@ class DetachPlacementFromMacroAction(CompositeAction):
         node_data: Dict[str, Any] = {"store": {SUBGRAPH_KEY: self.subgraph_key}}
         if label:
             node_data["props"] = {"values": {"label": label}}
+        node_data = with_position(node_data, *position)
 
         actions: List[IAction] = [
             _AdoptTemplateInteriorAction(
@@ -2092,9 +2078,7 @@ class PromoteGroupToMacroAction(CompositeAction):
         if not isinstance(definition, SubgraphDefinition):
             raise ValueError(f"Node '{node_id}' is not a Graph-node with a Subgraph; cannot save as a macro")
 
-        serialized = card.serialize(include_data=True)
-        raw_position = serialized.get("position") or [0.0, 0.0]
-        position = (float(raw_position[0]), float(raw_position[1]))
+        position = card.node.props.get_position()
 
         try:
             label = str(card.node.props.label or "")
@@ -2116,6 +2100,7 @@ class PromoteGroupToMacroAction(CompositeAction):
         node_data: Dict[str, Any] = {}
         if label:
             node_data["props"] = {"values": {"label": label}}
+        node_data = with_position(node_data, *position)
 
         actions: List[IAction] = [
             RemoveElementsAction(graph=graph, nodes=[node_id]),
@@ -2177,12 +2162,12 @@ def _boundary_positions(
     Returns:
         ``(input_position, output_position)`` as ``(x, y)`` pairs.
     """
-    positions = [node.get("position") or [0.0, 0.0] for node in nodes.values()]
+    positions = [position_of(node) for node in nodes.values()]
     if not positions:
         return ((3750.0 - _BOUNDARY_MARGIN, 3750.0), (3750.0 + _BOUNDARY_MARGIN, 3750.0))
 
-    xs = [float(p[0]) for p in positions]
-    ys = [float(p[1]) for p in positions]
+    xs = [p[0] for p in positions]
+    ys = [p[1] for p in positions]
     middle_y = (min(ys) + max(ys)) / 2
     return (
         (min(xs) - _BOUNDARY_MARGIN, middle_y),
@@ -2192,12 +2177,12 @@ def _boundary_positions(
 
 def _centroid(nodes: Dict[str, Any]) -> Tuple[float, float]:
     """The average position of the serialized ``nodes``, or the canvas middle if empty."""
-    positions = [node.get("position") or [0.0, 0.0] for node in nodes.values()]
+    positions = [position_of(node) for node in nodes.values()]
     if not positions:
         return (3750.0, 3750.0)
     return (
-        sum(float(p[0]) for p in positions) / len(positions),
-        sum(float(p[1]) for p in positions) / len(positions),
+        sum(p[0] for p in positions) / len(positions),
+        sum(p[1] for p in positions) / len(positions),
     )
 
 

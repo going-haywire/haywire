@@ -421,3 +421,23 @@ def test_a_reloaded_instance_keeps_its_origin_when_the_macro_is_gone(
     assert origin.key == _MACRO
     assert registry.template(_MACRO) is None
     registry.add_folder(str(macro_folder), _identity(macro_folder))
+
+
+def test_detach_keeps_the_card_position(graph_with_library_system, library_system, macro_folder):
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+    graph.get_node_wrapper(placement_id).node.props.set_position((640.0, 480.0))
+
+    card_id, _ = _detach(editor, placement_id)
+
+    assert graph.get_node_wrapper(card_id).node.props.get_position() == (640.0, 480.0)
+
+
+def test_detach_keeps_a_card_at_the_origin(graph_with_library_system, library_system, macro_folder):
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+    graph.get_node_wrapper(placement_id).node.props.set_position((0.0, 0.0))
+
+    card_id, _ = _detach(editor, placement_id)
+
+    assert graph.get_node_wrapper(card_id).node.props.get_position() == (0.0, 0.0)

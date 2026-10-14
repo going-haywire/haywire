@@ -419,6 +419,23 @@ class TestExpand:
         assert _snapshot(graph) == before
         assert graph.subgraphs == {}
 
+    def test_expand_keeps_interior_positions_including_the_origin(self, chain):
+        graph, _begin, first, middle, last = chain
+        # Props serialize sparsely: a node at (0, 0) carries no posX/posY.
+        middle.node.props.set_position((0.0, 0.0))
+        first.node.props.set_position((300.0, 200.0))
+        last.node.props.set_position((-50.0, 75.0))
+        before = {
+            nid: graph.get_node_wrapper(nid).node.props.get_position()
+            for nid in (first.node_id, middle.node_id, last.node_id)
+        }
+
+        action = _collapse(graph, [first.node_id, middle.node_id, last.node_id])
+        ExpandGraphNodeAction(graph=graph, node_id=action.card_node_id).execute()
+
+        after = {nid: graph.get_node_wrapper(nid).node.props.get_position() for nid in before}
+        assert after == before
+
     def test_the_card_and_boundary_nodes_are_gone_after_expanding(self, chain):
         graph, _begin, _first, middle, _last = chain
 

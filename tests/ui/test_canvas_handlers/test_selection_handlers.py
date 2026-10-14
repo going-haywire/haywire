@@ -39,8 +39,7 @@ def graph():
     wrapper.serialize.return_value = {
         "node_id": "n",
         "registry_key": "k",
-        "position": [100.0, 200.0],
-        "node_data": {},
+        "node_data": {"props": {"values": {"posX": 100.0, "posY": 200.0}}},
     }
     g.get_node_wrapper.return_value = wrapper
     # Edges serialize to a dict with endpoints both inside the selection.
@@ -327,8 +326,7 @@ def test_copy_stores_serialized_payload_in_mirror(graph, session, edit_state_cls
     graph.get_node_wrapper.return_value.serialize.return_value = {
         "node_id": "n1",
         "registry_key": "k",
-        "position": [10.0, 20.0],
-        "node_data": {},
+        "node_data": {"props": {"values": {"posX": 10.0, "posY": 20.0}}},
     }
     h = SelectionHandlers(graph=graph, editor=MagicMock(), session_id="sess", session=session)
     with patch.object(selection_module.ui, "run_javascript") as rj:

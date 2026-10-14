@@ -12,6 +12,8 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, TYPE_CHECKING
 
+from ..node.layout import position_of
+
 if TYPE_CHECKING:
     from .base import BaseGraph
 
@@ -55,8 +57,7 @@ def build_clipboard_payload(
             continue
         serialized = wrapper.serialize(include_data=True)
         nodes[node_id] = serialized
-        pos = serialized.get("position") or [0.0, 0.0]
-        positions.append((float(pos[0]), float(pos[1])))
+        positions.append(position_of(serialized))
 
         key = getattr(wrapper.node, "subgraph_key", None)
         if isinstance(key, str):
