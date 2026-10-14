@@ -90,6 +90,7 @@ class UINode:
 
         self.sync_event_emitter: Optional[Callable[[Any], None]] = None
 
+        self._bound_node: Optional[BaseNode] = None
         self._subscribe_slot_fields()
         self._apply_locked_attr()
         self._apply_detail_attr()
@@ -156,6 +157,7 @@ class UINode:
 
         Note: Must be called within a valid NiceGUI client context.
         """
+        self._rebind_props()
         renderer_name: Optional[str] = self.wrapper.node.props.skin
 
         if renderer_name is None:
@@ -278,9 +280,16 @@ class UINode:
         self._apply_slot_style()
 
     def _subscribe_slot_fields(self) -> None:
-        """Watch every prop that restyles the slot rather than redrawing it."""
-        props = self.wrapper.node.props
+        """Watch every prop that restyles the slot rather than redrawing it.
+
+        Binds to the wrapper's current node instance. A rebuild replaces that
+        instance, and its props drop their subscriptions with it, so
+        :meth:`_rebind_props` calls this again for the new one.
+        """
+        node = self.wrapper.node
+        props = node.props
         channel = self.channel
+        self._bound_node = node
         for field_name in (
             channel.width,
             channel.height,
@@ -293,13 +302,43 @@ class UINode:
         # because canvas.vue reads it off `[data-node-id]` when deciding what a
         # drag picks up — and custom attributes, unlike CSS vars, do not
         # inherit down to it from an ancestor.
-        props._subscribe_field("locked", lambda _v, _o: self._apply_locked_attr())
+        props._subscribe_field("locked", self._on_locked_change)
         # `detail` rides its own handler, same as `locked`: it stamps the
         # CONTAINER (not the slot), because canvas.vue's [data-node-props-detail]
         # rules key off it the same way [data-node-props-locked] does — and
         # custom attributes do not inherit down to descendants the way CSS
         # vars do.
-        props._subscribe_field("detail", lambda _v, _o: self._apply_detail_attr())
+        props._subscribe_field("detail", self._on_detail_change)
+
+    def _on_locked_change(self, _value: Any, _old: Any) -> None:
+        self._apply_locked_attr()
+
+    def _on_detail_change(self, _value: Any, _old: Any) -> None:
+        self._apply_detail_attr()
+
+    def _unsubscribe_slot_fields(self) -> None:
+        """Detach this card's prop handlers from the node it is bound to."""
+        node = self._bound_node
+        self._bound_node = None
+        if node is None:
+            return
+        props = node.props
+        for callback in (self._on_slot_field_change, self._on_locked_change, self._on_detail_change):
+            props._unsubscribe(callback)
+
+    def _rebind_props(self) -> None:
+        """Follow the wrapper to its current node instance.
+
+        Does nothing while the card is still bound to the live instance.
+        Otherwise detaches from the old one, subscribes to the new one and
+        restamps the container attributes from its props.
+        """
+        if self._bound_node is self.wrapper.node:
+            return
+        self._unsubscribe_slot_fields()
+        self._subscribe_slot_fields()
+        self._apply_locked_attr()
+        self._apply_detail_attr()
 
     def _apply_locked_attr(self) -> None:
         """Stamp ``data-node-props-locked`` on the container for canvas.vue to read.
@@ -491,6 +530,7 @@ class UINode:
         callbacks. Does NOT touch the DOM. Idempotent.
         """
         logger.debug(f"🔌 Tearing down subscriptions for UINode {self._node_id} ..")
+        self._unsubscribe_slot_fields()
         self.factory._unregister_node(self._node_id)
         self.factory.remove_factory_lifecycle_subscriber(
             self._node_id, self._listen_on_factory_lifecycle_event

@@ -100,6 +100,7 @@ class ChangeReason(Enum):
         """Check if this reason requires full UI redraw"""
         redraw_reasons = {
             ChangeReason.NODE_HOT_RELOADED,
+            ChangeReason.NODE_RESET_REQUESTED,
             ChangeReason.NODE_HOT_RELOAD_ERROR,
             ChangeReason.NODE_MOVED,
             ChangeReason.NODE_LAYOUT_CHANGED,
