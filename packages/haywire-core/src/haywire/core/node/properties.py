@@ -7,6 +7,7 @@ serialized under the ``'props'`` key in the graph JSON.
 from haywire.core.settings import NodeSettings, setting
 from haywire.core.settings.descriptor import graph
 from haywire.core.graph.properties import GraphProperties
+from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.skin.settings import (
     _layout_direction_choices,
     _node_detail_choices,
@@ -171,11 +172,11 @@ class NodeProperties(NodeSettings):
     # Convenience helpers
     # -----------------------------------------------------------------
 
-    def set_position(self, pos: tuple[float, float]) -> None:
-        """Set node position as (x, y) tuple."""
-        self.posX = pos[0]
-        self.posY = pos[1]
+    def set_position(self, pos: tuple[float, float], channel: LayoutChannel = PATCH) -> None:
+        """Set the position, as an ``(x, y)`` tuple, in the channel's fields."""
+        setattr(self, channel.x, pos[0])
+        setattr(self, channel.y, pos[1])
 
-    def get_position(self) -> tuple[float, float]:
-        """Get node position as (x, y) tuple."""
-        return (self.posX, self.posY)
+    def get_position(self, channel: LayoutChannel = PATCH) -> tuple[float, float]:
+        """Return the position, as an ``(x, y)`` tuple, from the channel's fields."""
+        return (getattr(self, channel.x), getattr(self, channel.y))
