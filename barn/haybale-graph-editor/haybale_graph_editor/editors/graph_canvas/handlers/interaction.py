@@ -47,6 +47,11 @@ class InteractionHandlers:
         session: "Optional[Session]" = None,
         channel: LayoutChannel = PATCH,
     ):
+        """Set up the handlers for ``editor``'s graph.
+
+        Args:
+            channel: The props fields this canvas lays its nodes out with.
+        """
         self.editor = editor
         self._session = session
         self.channel = channel

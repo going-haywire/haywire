@@ -219,7 +219,8 @@ def test_no_toolbar_below_edit():
 
 def test_resync_positions_restores_model_positions():
     layer: Any = object.__new__(VisualLayerHandlers)
-    wrapper = SimpleNamespace(node=SimpleNamespace(props=SimpleNamespace(posX=10.0, posY=20.0)))
+    props = SimpleNamespace(posX=10.0, posY=20.0, get_position=lambda channel: (10.0, 20.0))
+    wrapper = SimpleNamespace(node=SimpleNamespace(props=props))
     layer.graph = SimpleNamespace(get_node_wrapper={"a": wrapper}.get)
     layer.update_node_position = MagicMock()
     layer.resync_positions(["a", "gone"])

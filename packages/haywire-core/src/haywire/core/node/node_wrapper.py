@@ -10,7 +10,7 @@ from typing import List, Optional, Any, Dict, Iterator, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from ..graph.types import ChangeReason
-from .layout import PATCH, LayoutChannel
+from .layout import PATCH, LayoutChannel, position_of
 from haywire.core.node.node_warning import NodeWarning
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
@@ -167,6 +167,10 @@ class NodeWrapper:
 
         self._is_dirty_structural: bool = False
 
+        self._pending_position: tuple[float, float] | None = None
+        """Where the node goes once it has an instance; held only while ``_node_instance`` is
+        ``None``, because props are the position's only home. See ADR 0053."""
+
         self._import_node_cls()
 
     @property
@@ -276,7 +280,7 @@ class NodeWrapper:
             self._state.clear_warnings()
 
             if (
-                self._instantiate()
+                self._instantiate(node_info)
                 and self._initialize(node_info)
                 and self._structural_validation()
                 and self._test()
@@ -287,31 +291,41 @@ class NodeWrapper:
 
             self._subscribe_props_redraw()
 
-    def _instantiate(self) -> bool:
+    def _instantiate(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
         """Create the node instance, cleaning up any existing one first.
+
+        A rebuild keeps the node's position, also across a failed construction: the
+        position is held aside until a later instantiation succeeds.
 
         Returns whether it succeeded; a failure lands in ``state.error_instantiate``.
         """
         if self._node_cls is None:
             return False
         node_cls = self._node_cls  # narrowed for the rest of the method
+        carried_position = None
         try:
-            carried_position = None
             if self._node_instance:
                 # A rebuild keeps the node where it is; everything else resets.
                 carried_position = self._node_instance.props.get_position()
                 # TODO: Create Garbage Collection for old instance
                 self._node_instance._cleanup()
                 self._node_instance = None
+            elif self._pending_position is not None:
+                carried_position = self._pending_position
             self._node_instance = node_cls(self._node_id, self)
             if carried_position is not None:
                 self._node_instance.props.set_position(carried_position)
+            self._pending_position = None
             self._state.is_instantiated = True
             self._state.error_instantiate = None
 
             return True
 
         except Exception as e:
+            if carried_position is not None:
+                self._pending_position = carried_position
+            elif node_info:
+                self._pending_position = position_of({"node_data": node_info})
             self._state.error_instantiate = HaywireException.from_exception(
                 exception=e,
                 operation="Instantiate Node",
@@ -570,6 +584,8 @@ class NodeWrapper:
         """Move the node to ``(new_x, new_y)`` in canvas coordinates, in ``channel``."""
         if self._node_instance:
             self._node_instance.props.set_position((new_x, new_y), channel)
+        elif channel is PATCH:
+            self._pending_position = (new_x, new_y)
 
     def _add_runtime_error(self, error: HaywireException) -> None:
         """Record a runtime error, replacing any error already held.

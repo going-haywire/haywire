@@ -19,7 +19,7 @@ import logging
 import time
 import traceback
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING
+from typing import Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -120,6 +120,11 @@ class VisualLayerHandlers:
         context: Optional["SessionContext"] = None,
         channel: LayoutChannel = PATCH,
     ):
+        """Set up the handlers for ``graph``'s canvas.
+
+        Args:
+            channel: The props fields this canvas lays its nodes out with.
+        """
         self.channel = channel
         self.graph = graph
         self.editor = editor
@@ -134,10 +139,6 @@ class VisualLayerHandlers:
         # already drawn?" registry — membership, not the value, is what
         # ``on_validated`` and ``process_start_reconnect`` test.
         self.edge_states: Dict[str, EdgeVisualState] = {}
-
-    def _position_of(self, props: Any) -> Tuple[float, float]:
-        """A node's ``(x, y)`` on this canvas, from its channel's fields."""
-        return (getattr(props, self.channel.x), getattr(props, self.channel.y))
 
     # -------------------------------------------------------------------------
     # Graph sync
@@ -159,7 +160,7 @@ class VisualLayerHandlers:
             if reason == ChangeReason.NODE_ADDED:
                 node_wrapper = self.graph.get_node_wrapper(node_id)
                 if node_wrapper and node_id not in self.node_panels:
-                    position = self._position_of(node_wrapper.node.props)
+                    position = node_wrapper.node.props.get_position(self.channel)
                     self.add_node_visual(node_wrapper.node, position)
                     logger.debug(f"  + Added node UI: {node_id}")
 
@@ -173,7 +174,7 @@ class VisualLayerHandlers:
                 if ui_node:
                     moved_wrapper = self.graph.get_node_wrapper(node_id)
                     if moved_wrapper:
-                        new_position = self._position_of(moved_wrapper.node.props)
+                        new_position = moved_wrapper.node.props.get_position(self.channel)
                         self.update_node_position(node_id, new_position)
                         logger.debug(f"  ↔ Moved node: {node_id}")
 
@@ -310,7 +311,7 @@ class VisualLayerHandlers:
             for index, wrapper in enumerate(list(self.graph.node_wrappers.values()), start=1):
                 node = wrapper.node
                 if node.node_id not in self.node_panels:
-                    self.add_node_visual(node, self._position_of(node.props))
+                    self.add_node_visual(node, node.props.get_position(self.channel))
                 if on_progress is not None:
                     on_progress(index, node_count)
                 await asyncio.sleep(0)
@@ -590,7 +591,7 @@ class VisualLayerHandlers:
         for node_id in node_ids:
             wrapper = self.graph.get_node_wrapper(node_id)
             if wrapper is not None:
-                self.update_node_position(node_id, self._position_of(wrapper.node.props))
+                self.update_node_position(node_id, wrapper.node.props.get_position(self.channel))
 
     def resync_size(self, node_id: str) -> None:
         """Put a node's card in the browser back to its model size; an unknown id is skipped."""
@@ -1017,7 +1018,7 @@ class VisualLayerHandlers:
             if not is_clone_source(source_cls):
                 ui.notify("This node cannot be cloned into a library", type="warning")
                 return
-            x, y = self._position_of(wrapper.node.props)
+            x, y = wrapper.node.props.get_position(self.channel)
             position = (x + _CLONE_OFFSET_X, y)
         if position is None:
             return

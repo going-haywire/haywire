@@ -58,6 +58,16 @@ def handler(graph, canvas_vue):
 # ---------------------------------------------------------------------------
 
 
+def _place(wrapper, x: float, y: float) -> None:
+    """Give a mock node a props whose ``get_position`` reads ``posX``/``posY`` like the real one."""
+    props = wrapper.node.props
+    props.posX, props.posY = x, y
+    props.get_position.side_effect = lambda channel=None: (
+        getattr(props, channel.x),
+        getattr(props, channel.y),
+    )
+
+
 def test_initial_node_panels_empty(handler):
     assert handler.node_panels == {}
 
@@ -73,8 +83,7 @@ def test_initial_edge_states_empty(handler):
 
 def test_on_validated_node_added_calls_add_node_visual(handler, graph):
     wrapper = MagicMock()
-    wrapper.node.props.posX = 100.0
-    wrapper.node.props.posY = 200.0
+    _place(wrapper, 100.0, 200.0)
     graph.get_node_wrapper.return_value = wrapper
 
     with patch.object(handler, "add_node_visual") as mock_add:
@@ -116,8 +125,7 @@ def test_node_moved_reads_the_canvas_channel(graph, canvas_vue):
     )
     handler.node_panels["n1"] = MagicMock()
     wrapper = MagicMock()
-    wrapper.node.props.posX = 100.0
-    wrapper.node.props.posY = 200.0
+    _place(wrapper, 100.0, 200.0)
     graph.get_node_wrapper.return_value = wrapper
 
     with patch.object(handler, "update_node_position") as mock_update:
@@ -142,8 +150,7 @@ def test_resync_positions_and_size_use_the_channel(graph, canvas_vue):
         channel=SWAPPED,
     )
     wrapper = MagicMock()
-    wrapper.node.props.posX = 10.0
-    wrapper.node.props.posY = 20.0
+    _place(wrapper, 10.0, 20.0)
     graph.get_node_wrapper.return_value = wrapper
     with patch.object(handler, "update_node_position") as mock_update:
         handler.resync_positions(["n1"])

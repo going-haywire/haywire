@@ -116,6 +116,26 @@ def test_the_placement_lands_at_a_non_origin_card_position(
     assert graph.get_node_wrapper(placement_id).node.props.get_position() == (240.0, 130.0)
 
 
+def test_an_unlabeled_card_is_promoted_to_a_fully_built_placement(
+    graph_with_library_system, library_system, macro_folder
+):
+    """With no label, the placement is built from position-only node_data (restore path)."""
+    graph = graph_with_library_system
+    editor, card_id = _group_card(graph, library_system, label="")
+    graph.get_node_wrapper(card_id).node.props.set_position((240.0, 130.0))
+
+    placement_id, refusal = editor.promote_to_macro(card_id, _MACRO)
+
+    assert refusal is None
+    placement = graph.get_node_wrapper(placement_id)
+    assert placement.registry_key == _MACRO
+    assert placement.node.props.get_position() == (240.0, 130.0)
+    interior = placement.node.resolve_definition()
+    assert interior is not None
+    assert len(interior.node_wrappers) == len(_document()["nodes"])
+    assert not placement._state.error_initialize
+
+
 def test_the_groups_definition_is_dropped(graph_with_library_system, library_system, macro_folder):
     """The Group's Subgraph served that one card; the placement builds its own."""
     graph = graph_with_library_system

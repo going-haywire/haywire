@@ -74,12 +74,14 @@ def test_a_hot_reload_keeps_the_position(graph_with_library_system):
     graph = graph_with_library_system
     wrapper = graph.create_node_wrapper(_key(), position=(10.0, 10.0))
     wrapper.move(640.0, 320.0)
+    old = wrapper.node
 
     # What NodeWrapper._on_node_lifecycle_event ends with for a class that does
     # not absorb its own reload.
     graph._validation.mark_node_dirty(wrapper.node_id, ChangeReason.NODE_HOT_RELOADED)
     graph._validation.force_immediate_validation()
 
+    assert wrapper.node is not old, "the node was rebuilt"
     assert wrapper.node.props.get_position() == (640.0, 320.0)
 
 
@@ -121,3 +123,91 @@ def test_create_node_wrapper_without_a_position_leaves_the_props_default(graph_w
     wrapper = graph_with_library_system.create_node_wrapper(_key())
 
     assert wrapper.node.props.get_position() == (0.0, 0.0)
+
+
+@pytest.fixture
+def construction_fails(monkeypatch):
+    """Make ``TestPrintNode`` construction raise for the next ``n`` calls (``arm(n)``)."""
+    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+
+    original = TestPrintNode.__init__
+    state = {"left": 0}
+
+    def flaky(self, *args, **kwargs):
+        if state["left"] > 0:
+            state["left"] -= 1
+            raise RuntimeError("construction failed")
+        original(self, *args, **kwargs)
+
+    monkeypatch.setattr(TestPrintNode, "__init__", flaky)
+
+    def arm(n: int = 1) -> None:
+        state["left"] = n
+
+    return arm
+
+
+def _reset(graph, wrapper) -> None:
+    graph.request_node_reset(wrapper.node_id)
+    graph._validation.force_immediate_validation()
+
+
+def test_a_rebuild_whose_construction_fails_keeps_the_position(
+    graph_with_library_system, construction_fails
+):
+    graph = graph_with_library_system
+    wrapper = graph.create_node_wrapper(_key(), position=(10.0, 10.0))
+    wrapper.move(640.0, 320.0)
+
+    construction_fails(1)
+    _reset(graph, wrapper)
+    assert wrapper._node_instance is None, "the rebuild's construction failed"
+
+    _reset(graph, wrapper)
+
+    assert wrapper.node.props.get_position() == (640.0, 320.0)
+
+
+def test_a_position_given_to_a_wrapper_without_an_instance_survives_the_first_build(
+    graph_with_library_system, construction_fails
+):
+    from haywire.core.node.node_wrapper import NodeWrapper
+
+    graph = graph_with_library_system
+    wrapper = NodeWrapper(registry_key=_key(), node_id="flaky_1", graph=graph)
+    construction_fails(1)
+    wrapper.build({})
+    assert wrapper._node_instance is None
+
+    wrapper.move(10.0, 20.0)
+    wrapper.build({})
+
+    assert wrapper.node.props.get_position() == (10.0, 20.0)
+
+
+def test_the_position_in_node_data_survives_a_failed_first_construction(
+    graph_with_library_system, construction_fails
+):
+    from haywire.core.node.layout import with_position
+    from haywire.core.node.node_wrapper import NodeWrapper
+
+    graph = graph_with_library_system
+    wrapper = NodeWrapper(registry_key=_key(), node_id="flaky_2", graph=graph)
+    construction_fails(1)
+    wrapper.build(with_position({}, 700.0, 80.0))
+    assert wrapper._node_instance is None
+
+    wrapper.build()
+
+    assert wrapper.node.props.get_position() == (700.0, 80.0)
+
+
+def test_a_live_instance_ignores_a_stale_pending_position(graph_with_library_system, construction_fails):
+    graph = graph_with_library_system
+    wrapper = graph.create_node_wrapper(_key(), position=(10.0, 10.0))
+    wrapper.move(640.0, 320.0)
+
+    _reset(graph, wrapper)
+
+    assert wrapper._pending_position is None
+    assert wrapper.node.props.get_position() == (640.0, 320.0)
