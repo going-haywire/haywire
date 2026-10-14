@@ -25,11 +25,11 @@ def _identity(folder_path="/lib"):
 
 def _document(description="", extra_nodes=()):
     nodes = {
-        "b_in": {"node_id": "b_in", "registry_key": _INPUT, "position": [0, 0]},
-        "b_out": {"node_id": "b_out", "registry_key": _OUTPUT, "position": [200, 0]},
+        "b_in": {"node_id": "b_in", "registry_key": _INPUT},
+        "b_out": {"node_id": "b_out", "registry_key": _OUTPUT},
     }
     for i, key in enumerate(extra_nodes):
-        nodes[f"x{i}"] = {"node_id": f"x{i}", "registry_key": key, "position": [100, 0]}
+        nodes[f"x{i}"] = {"node_id": f"x{i}", "registry_key": key}
     return {
         "format_version": 1,
         "meta": {"description": description},

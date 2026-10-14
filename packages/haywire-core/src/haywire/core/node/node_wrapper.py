@@ -6,7 +6,7 @@ import time
 import threading
 import logging
 from contextlib import contextmanager
-from typing import List, Optional, Tuple, Any, Dict, Iterator, TYPE_CHECKING
+from typing import List, Optional, Any, Dict, Iterator, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from ..graph.types import ChangeReason
@@ -130,13 +130,8 @@ class NodeWrapper:
         registry_key: str,
         node_id: str,
         graph: "BaseGraph",
-        position: Tuple[float, float] = (3750, 3750),
     ):
-        """Initialize a new NodeWrapper.
-
-        Args:
-            position: Initial (x, y) canvas position of the node.
-        """
+        """Initialize a new NodeWrapper."""
         self.registry_key = registry_key
         """The registry key of the node class, fixed for the wrapper's lifetime."""
         self._node_id = node_id
@@ -162,9 +157,6 @@ class NodeWrapper:
 
         self._node_cls: type["BaseNode"] | None = None
         self._node_instance: Optional["BaseNode"] = None
-
-        # Store initial position for later initialization
-        self._initial_position = position
 
         # Reference to structural validator from graph
         self._structural_validator: "IStructuralValidator" = self._graph._structural
@@ -303,12 +295,16 @@ class NodeWrapper:
             return False
         node_cls = self._node_cls  # narrowed for the rest of the method
         try:
+            carried_position = None
             if self._node_instance:
+                # A rebuild keeps the node where it is; everything else resets.
+                carried_position = self._node_instance.props.get_position()
                 # TODO: Create Garbage Collection for old instance
                 self._node_instance._cleanup()
                 self._node_instance = None
             self._node_instance = node_cls(self._node_id, self)
-            self._node_instance.props.set_position(self._initial_position)
+            if carried_position is not None:
+                self._node_instance.props.set_position(carried_position)
             self._state.is_instantiated = True
             self._state.error_instantiate = None
 
@@ -570,10 +566,9 @@ class NodeWrapper:
     # =========================================================================
 
     def move(self, new_x: float, new_y: float):
-        """Move the node, and record the position a later rebuild restores it to."""
-        self._initial_position = (new_x, new_y)
+        """Move the node to ``(new_x, new_y)`` in canvas coordinates."""
         if self._node_instance:
-            self._node_instance.props.set_position(self._initial_position)
+            self._node_instance.props.set_position((new_x, new_y))
 
     def _add_runtime_error(self, error: HaywireException) -> None:
         """Record a runtime error, replacing any error already held.
@@ -709,7 +704,6 @@ class NodeWrapper:
             result: dict[str, Any] = {
                 "node_id": self._node_id,
                 "registry_key": self.registry_key,
-                "position": list(self._initial_position),
             }
 
             if self._node_instance:

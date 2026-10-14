@@ -43,10 +43,11 @@ class AddNodeAction(ActionBase):
         self,
         graph: BaseGraph,
         registry_key: str,
-        position: Tuple[float, float] = (3750, 3750),
         description: Optional[str] = None,
         node_data: Optional[Dict[str, Any]] = None,
         node_id: Optional[str] = None,
+        *,
+        position: Tuple[float, float] | None = None,
     ):
         """
         Initialize the add node action.
@@ -54,13 +55,15 @@ class AddNodeAction(ActionBase):
         Args:
             graph: The graph to add the node to
             registry_key: Node type to create
-            position: Initial position for the node
             description: Optional description override
             node_data: Optional serialized node state to recreate the node
                 from (used by paste). Only applied on first execution.
             node_id: Optional pre-minted node id to adopt on first execution
                 (used by paste so remapped edges connect to the created node).
                 Only applied on first execution.
+            position: ``(x, y)`` canvas position for a node built blank; with
+                ``node_data`` the position comes from its props. ``None``
+                keeps the props default.
         """
         super().__init__(description or f"Add node '{registry_key}'")
         self.graph = graph
@@ -1283,7 +1286,6 @@ class _BuildSubgraphAction(ActionBase):
         for node_id, node_data in self.nodes.items():
             definition.create_node_wrapper(
                 registry_key=node_data["registry_key"],
-                position=position_of(node_data),
                 node_data=node_data.get("node_data", {}),
                 node_id=node_id,
             )
@@ -1761,7 +1763,6 @@ class ExpandGraphNodeAction(CompositeAction):
                 AddNodeAction(
                     graph=graph,
                     registry_key=node_data["registry_key"],
-                    position=position_of(node_data),
                     node_data=node_data.get("node_data", {}),
                     node_id=inner_id,
                 )

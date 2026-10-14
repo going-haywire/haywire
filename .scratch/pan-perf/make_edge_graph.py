@@ -20,6 +20,8 @@ import json
 import math
 from pathlib import Path
 
+from haywire.core.node.layout import position_of
+
 REPO = Path(__file__).resolve().parents[2]
 SRC = REPO / "graphs" / "10x300nodes.haywire"
 OUT = REPO / "graphs" / "10x300nodes-edges.haywire"
@@ -53,7 +55,7 @@ def main() -> int:
 
     # Nearest-neighbour chain by position, so each edge connects nodes that sit
     # next to each other on the canvas.
-    items = [(nid, n.get("position", [0, 0])) for nid, n in nodes.items()]
+    items = [(nid, position_of(n)) for nid, n in nodes.items()]
     items.sort(key=lambda it: (round(it[1][0] / 400), it[1][1]))
     if args.max_nodes and len(items) > args.max_nodes:
         items = items[: args.max_nodes]

@@ -29,7 +29,6 @@ import logging
 from .base import BaseGraph
 from ..macro.origin import MacroOrigin
 from ..types import Propagation
-from ..node.layout import position_of
 from .utils.node_remap import remap_node_ids
 
 if TYPE_CHECKING:
@@ -208,7 +207,6 @@ class SubgraphDefinition(BaseGraph):
             try:
                 self.create_node_wrapper(
                     registry_key=node["registry_key"],
-                    position=position_of(node),
                     node_data=_rebound(node.get("node_data", {}), key_map),
                     node_id=new_id,
                 )

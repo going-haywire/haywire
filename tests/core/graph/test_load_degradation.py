@@ -13,10 +13,10 @@ def _two_node_graph_dict(graph):
 def test_poisoned_node_skips_only_itself(graph_with_library_system, library_system):
     graph = graph_with_library_system
     data, a_id, b_id = _two_node_graph_dict(graph)
-    # Poison node A: a non-iterable "position" makes `tuple(wrapper_data.get(...))`
-    # raise TypeError inside the loop body (registry_key mismatches are swallowed
+    # Poison node A: a missing "registry_key" makes `wrapper_data["registry_key"]`
+    # raise KeyError inside the loop body (registry_key mismatches are swallowed
     # internally by NodeWrapper and don't propagate out of the loop).
-    data["nodes"][a_id]["position"] = 12345
+    del data["nodes"][a_id]["registry_key"]
     # Force the poisoned node to be iterated first, so this test fails today
     # (pre-fix) when the try/except wraps the whole loop.
     data["nodes"] = {a_id: data["nodes"][a_id], b_id: data["nodes"][b_id]}

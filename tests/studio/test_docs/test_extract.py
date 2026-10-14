@@ -78,8 +78,8 @@ def documented_macro(tmp_path, service):
         "format_version": 1,
         "meta": {"description": "Blurs a frame."},
         "nodes": {
-            "b_in": {"node_id": "b_in", "registry_key": _INPUT, "position": [0, 0]},
-            "b_out": {"node_id": "b_out", "registry_key": _OUTPUT, "position": [200, 0]},
+            "b_in": {"node_id": "b_in", "registry_key": _INPUT},
+            "b_out": {"node_id": "b_out", "registry_key": _OUTPUT},
         },
         "edges": {},
         "variables": {},

@@ -20,8 +20,7 @@ def _graph(path: Path, *registry_keys: str) -> None:
     """Write a minimal .haywire document referencing *registry_keys*."""
     path.parent.mkdir(parents=True, exist_ok=True)
     nodes = {
-        f"Node_{i}": {"node_id": f"Node_{i}", "registry_key": key, "position": {"x": 0, "y": 0}}
-        for i, key in enumerate(registry_keys)
+        f"Node_{i}": {"node_id": f"Node_{i}", "registry_key": key} for i, key in enumerate(registry_keys)
     }
     path.write_text(json.dumps({"graph_id": path.stem, "name": path.stem, "nodes": nodes, "edges": {}}))
 

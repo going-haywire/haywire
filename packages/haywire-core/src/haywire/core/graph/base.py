@@ -135,7 +135,7 @@ class BaseGraph:
         self.modified_at: str | None = None
 
         # Auto-expanded when nodes approach the boundary. Derived from node
-        # positions and not serialized; call estimate_canvas_size() after loading.
+        # positions and not serialized; add_node_wrapper grows it as each node is added.
         self.canvas_width: int = _CANVAS_MIN_SIZE
         self.canvas_height: int = _CANVAS_MIN_SIZE
         self._canvas_size_changed: bool = False
@@ -410,19 +410,22 @@ class BaseGraph:
     def create_node_wrapper(
         self,
         registry_key: str,
-        position: Tuple[float, float] = (3750, 3750),
         node_data: Optional[Dict[str, Any]] = None,
         node_id: Optional[str] = None,
+        *,
+        position: Tuple[float, float] | None = None,
     ) -> Optional["NodeWrapper"]:
         """Create a node of type ``registry_key``, build it, and add it to the graph.
 
         Args:
-            position: ``(x, y)`` in canvas coordinates.
             node_data: Serialized node data to build the node from, as for a
-                paste or a load. When ``None`` the node is built blank.
+                paste or a load; it carries the node's position in its props.
+                When ``None`` the node is built blank.
             node_id: A pre-minted node id to adopt, so edges already remapped
                 to it connect to the node this call creates. When ``None`` a
                 fresh unique id is generated.
+            position: ``(x, y)`` in canvas coordinates for a node built blank.
+                When ``None`` the node keeps its props default, ``(0, 0)``.
 
         Returns:
             The added wrapper.
@@ -434,9 +437,11 @@ class BaseGraph:
 
         if node_id is None:
             node_id = self.generate_unique_node_id(registry_key)
-        wrapper = NodeWrapper(registry_key=registry_key, node_id=node_id, graph=self, position=position)
+        wrapper = NodeWrapper(registry_key=registry_key, node_id=node_id, graph=self)
 
         wrapper.build(node_data or {})
+        if position is not None:
+            wrapper.move(*position)
 
         return self.add_node_wrapper(wrapper)
 
@@ -1023,7 +1028,6 @@ class BaseGraph:
                             registry_key=wrapper_data["registry_key"],
                             node_id=node_id,
                             graph=self,
-                            position=tuple(wrapper_data.get("position", [100, 100])),
                         )
 
                         wrapper.build(wrapper_data.get("node_data", {}))

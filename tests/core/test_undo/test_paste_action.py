@@ -27,7 +27,7 @@ def test_create_node_wrapper_passes_node_data_to_build(monkeypatch):
     monkeypatch.setattr(node_wrapper_module, "NodeWrapper", _FakeWrapper)
     monkeypatch.setattr(g, "add_node_wrapper", lambda w: w)
 
-    g.create_node_wrapper("some.key", position=(0, 0), node_data={"hello": "world"})
+    g.create_node_wrapper("some.key", node_data={"hello": "world"})
     assert captured["node_info"] == {"hello": "world"}
 
 

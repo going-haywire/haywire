@@ -33,9 +33,9 @@ def _document():
         "format_version": 1,
         "meta": {"description": ""},
         "nodes": {
-            "b_in": {"node_id": "b_in", "registry_key": _INPUT, "position": [0, 0]},
-            "b_out": {"node_id": "b_out", "registry_key": _OUTPUT, "position": [200, 0]},
-            "inner": {"node_id": "inner", "registry_key": _PRINT, "position": [100, 0]},
+            "b_in": {"node_id": "b_in", "registry_key": _INPUT},
+            "b_out": {"node_id": "b_out", "registry_key": _OUTPUT},
+            "inner": {"node_id": "inner", "registry_key": _PRINT},
         },
         "edges": {},
         "variables": {},

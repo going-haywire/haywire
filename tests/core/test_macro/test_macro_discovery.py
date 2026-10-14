@@ -26,8 +26,8 @@ def _document(description=""):
         "format_version": 1,
         "meta": {"description": description},
         "nodes": {
-            "n0": {"node_id": "n0", "registry_key": _INPUT, "position": [0, 0]},
-            "n1": {"node_id": "n1", "registry_key": _OUTPUT, "position": [0, 0]},
+            "n0": {"node_id": "n0", "registry_key": _INPUT},
+            "n1": {"node_id": "n1", "registry_key": _OUTPUT},
         },
         "edges": {},
         "variables": {},

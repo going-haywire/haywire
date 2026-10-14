@@ -64,7 +64,7 @@ class TestBaseNodeWithLibraries:
             # Try to create the first available node
             first_node_key = available_nodes[0]
 
-            nodeWrapper = graph.create_node_wrapper(first_node_key, (100, 100))
+            nodeWrapper = graph.create_node_wrapper(first_node_key, position=(100, 100))
 
             assert nodeWrapper is not None
             assert nodeWrapper.node.class_identity.registry_key == first_node_key
@@ -76,7 +76,7 @@ class TestBaseNodeWithLibraries:
         from haybale_testing.nodes.testbed.print_node import TestPrintNode
 
         wrapper = graph_with_library_system.create_node_wrapper(
-            TestPrintNode.class_identity.registry_key, (0, 0)
+            TestPrintNode.class_identity.registry_key, position=(0, 0)
         )
         assert wrapper is not None
         assert wrapper.node.props.label == ""
@@ -87,7 +87,7 @@ class TestBaseNodeWithLibraries:
         from haybale_testing.nodes.testbed.print_node import TestPrintNode
 
         wrapper = graph_with_library_system.create_node_wrapper(
-            TestPrintNode.class_identity.registry_key, (0, 0)
+            TestPrintNode.class_identity.registry_key, position=(0, 0)
         )
         assert wrapper is not None
         wrapper.node.props.label = "Left Motor"
@@ -104,7 +104,7 @@ class TestBaseNodeWithLibraries:
         from haybale_testing.nodes.testbed.print_node import TestPrintNode
 
         wrapper = graph_with_library_system.create_node_wrapper(
-            TestPrintNode.class_identity.registry_key, (0, 0)
+            TestPrintNode.class_identity.registry_key, position=(0, 0)
         )
         assert wrapper is not None
         wrapper.node.props.label = "   "
@@ -126,7 +126,7 @@ class TestBaseNodeWithLibraries:
         if not available_nodes:
             pytest.skip("No nodes available in test libraries")
 
-        wrapper = graph_with_library_system.create_node_wrapper(available_nodes[0], (0, 0))
+        wrapper = graph_with_library_system.create_node_wrapper(available_nodes[0], position=(0, 0))
         assert wrapper is not None
         node_instance = wrapper.node
 
