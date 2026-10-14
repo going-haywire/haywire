@@ -237,7 +237,10 @@ slice lands.
   code, not verified (slice 2).
 - **Position lives in two places until slice 4.** Writing `posX` through
   `set_property` or Farmhand does not update `_initial_position`, which wins on
-  the next rebuild.
+  the next rebuild. **Resolved by slice 4:** props are the single source
+  ([ADR 0053](../../adr/0053-position-lives-in-props.md)).
+- **`canvas_width`/`canvas_height` are the patch's** (slice 5). Decide where the
+  stage's extent lives before `move_node` runs with `STAGE`.
 - **Pins inside an Inset** must be measured with queries scoped to the Inset's
   box, never `document`-wide, and converted for the host canvas's zoom (slice 6;
   see `.insights/project_multi_canvas_dom_globals.md`).

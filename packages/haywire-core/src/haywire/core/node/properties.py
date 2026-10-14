@@ -40,7 +40,7 @@ class NodeProperties(NodeSettings):
     construction, so it does.
 
     Layout fields (posX/posY/width/height) stay out — a position change rides
-    the cheaper NODE_MOVED path and fires on every drag tick, and a size change
+    the cheaper NODE_MOVED path (a drag sends its positions once, at drag end), and a size change
     is a style-write on the host slot. ``detail`` stays out because a rank
     change is a CSS class flip, not a rebuild (ADR 0032), as do ``node_theme``
     and ``color_override``, which resolve to CSS custom properties the browser
@@ -141,7 +141,7 @@ class NodeProperties(NodeSettings):
     )
 
     # -----------------------------------------------------------------
-    # Layout (position & dimensions) — not shown in settings panels
+    # Layout (position & dimensions) — shown in the node Properties panel
     # -----------------------------------------------------------------
 
     posX = setting[FLOAT](0.0, order=10, category="layout")
