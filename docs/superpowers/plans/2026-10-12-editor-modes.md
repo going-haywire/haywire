@@ -141,6 +141,10 @@ two independent switches:
   Menu. Each has an inlet and an outlet of its type, with the widget on the
   outlet set to `ALWAYS`: it shows what flows through, and a user edit sends it
   on. Button is deferred: it fires execution, which makes it an event source.
+- **Stacking order (Decision Q4, 2026-10-14).** Stacking order exists in both
+  views, each with its own field: `z` for the patch, `stage_z` for the stage. The
+  verbs are Bring to Front, Send to Back, Forward and Backward. It lands in slice
+  5 as a channel field.
 
 ### Inset (bpatcher)
 
