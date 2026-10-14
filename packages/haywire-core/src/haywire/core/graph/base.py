@@ -512,13 +512,19 @@ class BaseGraph:
 
         Resizes the canvas if the new position needs it.
 
+        Args:
+            node_id: Id of the node to move.
+            new_x: Target x position.
+            new_y: Target y position.
+            channel: Layout channel to write. ``None`` means ``PATCH``.
+
         Returns:
             ``True`` if the node was moved, ``False`` if this graph has no
             node with ``node_id``.
         """
         from ..node.layout import PATCH  # a module-level import cycles through haywire.core.node
 
-        channel = channel or PATCH
+        channel = channel if channel is not None else PATCH
         wrapper = self.node_wrappers.get(node_id)
         if wrapper is None:
             return False
@@ -550,12 +556,16 @@ class BaseGraph:
         never below ``_CANVAS_MIN_SIZE``. Sets ``_canvas_size_changed`` when the
         size actually changes, so the next ``ValidationResult`` carries it.
 
+        Args:
+            channel: Layout channel whose positions are measured. ``None`` means
+                ``PATCH``.
+
         Returns:
             ``True`` if the dimensions changed.
         """
         from ..node.layout import PATCH  # a module-level import cycles through haywire.core.node
 
-        channel = channel or PATCH
+        channel = channel if channel is not None else PATCH
         if not self.node_wrappers:
             new_w = _CANVAS_MIN_SIZE
             new_h = _CANVAS_MIN_SIZE
