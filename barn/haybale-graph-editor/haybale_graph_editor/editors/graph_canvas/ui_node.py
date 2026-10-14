@@ -15,6 +15,7 @@ from nicegui import ui
 from haywire.core.access import AccessTier
 from haywire.core.graph.types import ChangeReason
 from haywire.core.node.base import BaseNode
+from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.node_wrapper import NodeWrapper
 
@@ -42,12 +43,16 @@ class UINode:
     - Subscribes to NodeWrapper for hot reload support
     """
 
+    # Class default too, so an instance built without __init__ reads the patch.
+    channel: LayoutChannel = PATCH
+
     def __init__(
         self,
         container: ui.element,
         wrapper: NodeWrapper,
         factory: SkinFactory,
         allows: Callable[[AccessTier], bool],
+        channel: LayoutChannel = PATCH,
     ):
         """
         Initialize UINode with node, factory, and parent component.
@@ -59,7 +64,9 @@ class UINode:
             allows: Answers whether this session may do what a tier asks on
                 this canvas, lock included. The card's widgets write only
                 while it allows operate.
+            channel: The layout fields this card's size is read from.
         """
+        self.channel = channel
         self.wrapper: NodeWrapper = wrapper
         self.factory: SkinFactory = factory
         self.container: ui.element = container
@@ -273,7 +280,14 @@ class UINode:
     def _subscribe_slot_fields(self) -> None:
         """Watch every prop that restyles the slot rather than redrawing it."""
         props = self.wrapper.node.props
-        for field_name in ("width", "height", "size_adapt", "node_theme", "color_override"):
+        channel = self.channel
+        for field_name in (
+            channel.width,
+            channel.height,
+            channel.size_adapt,
+            "node_theme",
+            "color_override",
+        ):
             props._subscribe_field(field_name, self._on_slot_field_change)
         # `locked` rides its own handler: it stamps the CONTAINER, not the slot,
         # because canvas.vue reads it off `[data-node-id]` when deciding what a
@@ -409,15 +423,16 @@ class UINode:
         if not self.container_slot:
             return
         props = self.wrapper.node.props
-        mode = props.size_adapt
+        channel = self.channel
+        mode = getattr(props, channel.size_adapt)
         manual_w = mode in ("manual_width", "manual")
         manual_h = mode in ("manual_height", "manual")
 
         decls: list[str] = []
         if manual_w:
-            decls.append(f"min-width: {props.width}px")
+            decls.append(f"min-width: {getattr(props, channel.width)}px")
         if manual_h:
-            decls.append(f"min-height: {props.height}px")
+            decls.append(f"min-height: {getattr(props, channel.height)}px")
 
         decls += self._node_theme_declarations()
 

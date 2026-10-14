@@ -19,7 +19,7 @@ import logging
 import time
 import traceback
 from pathlib import Path
-from typing import Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -27,6 +27,7 @@ from haywire.core.access import AccessTier
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import BaseNode
+from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.types.wire import wires_match
 
 from haywire.ui.components.graph.event_definitions import (
@@ -106,6 +107,9 @@ class VisualLayerHandlers:
     by processing ValidationResult objects from the graph's validation callback.
     """
 
+    # Class default too, so an instance built without __init__ reads the patch.
+    channel: LayoutChannel = PATCH
+
     def __init__(
         self,
         graph: "BaseGraph",
@@ -114,7 +118,9 @@ class VisualLayerHandlers:
         canvas_vue: "GraphCanvasVue",
         allows: Callable[[AccessTier], bool],
         context: Optional["SessionContext"] = None,
+        channel: LayoutChannel = PATCH,
     ):
+        self.channel = channel
         self.graph = graph
         self.editor = editor
         self.skin_factory = skin_factory
@@ -128,6 +134,10 @@ class VisualLayerHandlers:
         # already drawn?" registry — membership, not the value, is what
         # ``on_validated`` and ``process_start_reconnect`` test.
         self.edge_states: Dict[str, EdgeVisualState] = {}
+
+    def _position_of(self, props: Any) -> Tuple[float, float]:
+        """A node's ``(x, y)`` on this canvas, from its channel's fields."""
+        return (getattr(props, self.channel.x), getattr(props, self.channel.y))
 
     # -------------------------------------------------------------------------
     # Graph sync
@@ -149,7 +159,7 @@ class VisualLayerHandlers:
             if reason == ChangeReason.NODE_ADDED:
                 node_wrapper = self.graph.get_node_wrapper(node_id)
                 if node_wrapper and node_id not in self.node_panels:
-                    position = (node_wrapper.node.props.posX, node_wrapper.node.props.posY)
+                    position = self._position_of(node_wrapper.node.props)
                     self.add_node_visual(node_wrapper.node, position)
                     logger.debug(f"  + Added node UI: {node_id}")
 
@@ -163,7 +173,7 @@ class VisualLayerHandlers:
                 if ui_node:
                     moved_wrapper = self.graph.get_node_wrapper(node_id)
                     if moved_wrapper:
-                        new_position = (moved_wrapper.node.props.posX, moved_wrapper.node.props.posY)
+                        new_position = self._position_of(moved_wrapper.node.props)
                         self.update_node_position(node_id, new_position)
                         logger.debug(f"  ↔ Moved node: {node_id}")
 
@@ -300,7 +310,7 @@ class VisualLayerHandlers:
             for index, wrapper in enumerate(list(self.graph.node_wrappers.values()), start=1):
                 node = wrapper.node
                 if node.node_id not in self.node_panels:
-                    self.add_node_visual(node, (node.props.posX, node.props.posY))
+                    self.add_node_visual(node, self._position_of(node.props))
                 if on_progress is not None:
                     on_progress(index, node_count)
                 await asyncio.sleep(0)
@@ -525,7 +535,7 @@ class VisualLayerHandlers:
                 .style(f"left: {x}px; top: {y}px; z-index: 100; transform-origin: top-left; cursor: move;")
                 .props(f'id="{node_id}" data-node-id="{node_id}" ') as container
             ):
-                ui_node = UINode(container, wrapper, self.skin_factory, self._allows)
+                ui_node = UINode(container, wrapper, self.skin_factory, self._allows, channel=self.channel)
                 ui_node.register_sync_event_emitter(self.canvas_vue.emit_sync_event)
                 ui_node.refresh(ChangeReason.NODE_ADDED)
                 ui_node.position = position
@@ -580,7 +590,7 @@ class VisualLayerHandlers:
         for node_id in node_ids:
             wrapper = self.graph.get_node_wrapper(node_id)
             if wrapper is not None:
-                self.update_node_position(node_id, (wrapper.node.props.posX, wrapper.node.props.posY))
+                self.update_node_position(node_id, self._position_of(wrapper.node.props))
 
     def resync_size(self, node_id: str) -> None:
         """Put a node's card in the browser back to its model size; an unknown id is skipped."""
@@ -589,9 +599,13 @@ class VisualLayerHandlers:
             return
         ui_node._apply_slot_style()
         props = ui_node.wrapper.node.props
+        channel = self.channel
         self.canvas_vue.emit_sync_event(
             SyncNodeSizeEvent(
-                nodeId=node_id, size_adapt=props.size_adapt, width=props.width, height=props.height
+                nodeId=node_id,
+                size_adapt=getattr(props, channel.size_adapt),
+                width=getattr(props, channel.width),
+                height=getattr(props, channel.height),
             )
         )
 
@@ -760,10 +774,11 @@ class VisualLayerHandlers:
             props = ui_node.wrapper.node.props
             width = measurement.get("width")
             height = measurement.get("height")
-            if width is not None and abs(width - props.width) > 1.0:
-                props.width = float(width)
-            if height is not None and abs(height - props.height) > 1.0:
-                props.height = float(height)
+            channel = self.channel
+            if width is not None and abs(width - getattr(props, channel.width)) > 1.0:
+                setattr(props, channel.width, float(width))
+            if height is not None and abs(height - getattr(props, channel.height)) > 1.0:
+                setattr(props, channel.height, float(height))
 
     def is_locked(self, node_id: str) -> bool:
         """True when the node exists and carries ``props.locked``."""
@@ -1002,7 +1017,7 @@ class VisualLayerHandlers:
             if not is_clone_source(source_cls):
                 ui.notify("This node cannot be cloned into a library", type="warning")
                 return
-            x, y = wrapper.node.props.get_position()
+            x, y = self._position_of(wrapper.node.props)
             position = (x + _CLONE_OFFSET_X, y)
         if position is None:
             return

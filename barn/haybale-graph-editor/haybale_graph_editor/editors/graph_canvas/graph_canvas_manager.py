@@ -13,6 +13,7 @@ from nicegui import background_tasks, ui
 
 from haywire.core.access import AccessTier
 from haywire.core.graph.editor import Editor
+from haywire.core.node.layout import PATCH, LayoutChannel
 
 from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.components.graph.canvas import GraphCanvasVue
@@ -117,6 +118,7 @@ class GraphCanvasManager:
         panel_registry,
         session: "Session",
         on_user_event: Optional[Callable[[], None]] = None,
+        channel: LayoutChannel = PATCH,
     ):
         """Build the canvas for ``editor``'s graph into the current slot.
 
@@ -124,7 +126,9 @@ class GraphCanvasManager:
             on_user_event: Called with no arguments before an event in
                 ``POINTER_GESTURE_EVENTS`` is dispatched, whether or not its
                 handler then runs. ``None`` reports nothing.
+            channel: The props fields this canvas lays its nodes out with.
         """
+        self.channel = channel
         self.editor = editor
         self._on_user_event = on_user_event
         self.skin_factory = skin_factory
@@ -152,6 +156,7 @@ class GraphCanvasManager:
             canvas_vue=self.canvas_vue,
             allows=self.allows,
             context=self._session.context,
+            channel=self.channel,
         )
         self.selection = SelectionHandlers(
             graph=self.graph,
@@ -160,7 +165,9 @@ class GraphCanvasManager:
             session=self._session,
             visual_layer=self.visual_layer,
         )
-        self.interactions = InteractionHandlers(editor=self.editor, session=self._session)
+        self.interactions = InteractionHandlers(
+            editor=self.editor, session=self._session, channel=self.channel
+        )
 
         context_menu_provider = SessionContextMenuProvider(
             context=self._session.context,

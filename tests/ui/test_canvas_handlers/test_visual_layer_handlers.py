@@ -10,6 +10,7 @@ exercised through the integration/harness tests. Here we verify:
 """
 
 import pytest
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
@@ -19,9 +20,14 @@ from haywire.ui.components.graph.event_definitions import (
     ElementRevalidateEvent,
 )
 from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
+from haywire.core.node.layout import LayoutChannel
 from haywire.core.graph.types import ChangeReason, ValidationResult
 
 pytestmark = pytest.mark.unit
+
+SWAPPED = LayoutChannel(
+    "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt"
+)
 
 
 @pytest.fixture
@@ -97,6 +103,77 @@ def test_on_validated_skips_node_add_if_panel_exists(handler, graph):
         )
         handler.on_validated(result)
         mock_add.assert_not_called()
+
+
+def test_node_moved_reads_the_canvas_channel(graph, canvas_vue):
+    handler = VisualLayerHandlers(
+        graph=graph,
+        editor=MagicMock(),
+        skin_factory=MagicMock(),
+        canvas_vue=canvas_vue,
+        allows=lambda _required: True,
+        channel=SWAPPED,
+    )
+    handler.node_panels["n1"] = MagicMock()
+    wrapper = MagicMock()
+    wrapper.node.props.posX = 100.0
+    wrapper.node.props.posY = 200.0
+    graph.get_node_wrapper.return_value = wrapper
+
+    with patch.object(handler, "update_node_position") as mock_update:
+        handler.on_validated(
+            ValidationResult(
+                nodes={"n1": ChangeReason.NODE_MOVED},
+                edges={},
+                canvas_size=None,
+                validation_time_ms=0.0,
+            )
+        )
+    mock_update.assert_called_once_with("n1", (200.0, 100.0))
+
+
+def test_resync_positions_and_size_use_the_channel(graph, canvas_vue):
+    handler = VisualLayerHandlers(
+        graph=graph,
+        editor=MagicMock(),
+        skin_factory=MagicMock(),
+        canvas_vue=canvas_vue,
+        allows=lambda _required: True,
+        channel=SWAPPED,
+    )
+    wrapper = MagicMock()
+    wrapper.node.props.posX = 10.0
+    wrapper.node.props.posY = 20.0
+    graph.get_node_wrapper.return_value = wrapper
+    with patch.object(handler, "update_node_position") as mock_update:
+        handler.resync_positions(["n1"])
+    mock_update.assert_called_once_with("n1", (20.0, 10.0))
+
+    ui_node = MagicMock()
+    ui_node.wrapper.node.props = SimpleNamespace(size_adapt="manual", width=1.0, height=2.0)
+    handler.node_panels["n1"] = ui_node
+    handler.resync_size("n1")
+    (event,), _ = canvas_vue.emit_sync_event.call_args
+    assert (event.width, event.height) == (2.0, 1.0)
+
+
+def test_nodes_measured_writes_the_channel_size_fields(graph, canvas_vue):
+    handler = VisualLayerHandlers(
+        graph=graph,
+        editor=MagicMock(),
+        skin_factory=MagicMock(),
+        canvas_vue=canvas_vue,
+        allows=lambda _required: True,
+        channel=SWAPPED,
+    )
+    props = SimpleNamespace(size_adapt="auto", width=10.0, height=10.0)
+    ui_node = MagicMock()
+    ui_node.wrapper.node.props = props
+    handler.node_panels["n1"] = ui_node
+    handler.process_nodes_measured(
+        SimpleNamespace(measurements=[{"nodeId": "n1", "width": 300.0, "height": 50.0}])  # type: ignore[arg-type]
+    )
+    assert (props.height, props.width) == (300.0, 50.0)
 
 
 # ---------------------------------------------------------------------------

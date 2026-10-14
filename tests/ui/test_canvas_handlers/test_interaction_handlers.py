@@ -9,6 +9,7 @@ import pytest
 from unittest.mock import MagicMock
 
 from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
+from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.ui.components.graph.event_definitions import (
     UserDragStartEvent,
     UserDragUpdateEvent,
@@ -17,6 +18,10 @@ from haywire.ui.components.graph.event_definitions import (
 from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
 
 pytestmark = pytest.mark.unit
+
+SWAPPED = LayoutChannel(
+    "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt"
+)
 
 
 @pytest.fixture
@@ -55,13 +60,13 @@ def test_drag_update_calls_move_nodes_to(handler, editor):
     """DragUpdate forwards absolute positions to editor.move_nodes_to."""
     positions = {"n1": {"x": 100.0, "y": 80.0}, "n2": {"x": 200.0, "y": 160.0}}
     handler.process_drag_update(UserDragUpdateEvent(positions=positions))
-    editor.move_nodes_to.assert_called_once_with(positions)
+    editor.move_nodes_to.assert_called_once_with(positions, PATCH)
 
 
 def test_drag_update_with_empty_positions(handler, editor):
     """DragUpdate with no positions still forwards the call (editor decides)."""
     handler.process_drag_update(UserDragUpdateEvent(positions={}))
-    editor.move_nodes_to.assert_called_once_with({})
+    editor.move_nodes_to.assert_called_once_with({}, PATCH)
 
 
 # ---------------------------------------------------------------------------
@@ -88,3 +93,11 @@ def test_all_interaction_events_are_registered(handler):
     assert "userDragUpdate" in result
     assert "userDragEnd" in result
     assert "edgeClicked" in result
+
+
+def test_drag_update_moves_through_the_canvas_channel(editor):
+    positions = {"n1": {"x": 100.0, "y": 80.0}}
+    InteractionHandlers(editor=editor, channel=SWAPPED).process_drag_update(
+        UserDragUpdateEvent(positions=positions)
+    )
+    editor.move_nodes_to.assert_called_once_with(positions, SWAPPED)

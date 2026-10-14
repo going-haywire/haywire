@@ -9,6 +9,7 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from haywire.core.access import AccessTier
+from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.signals import GraphDataMutated
 from haywire.ui.components.graph.event_definitions import (
     UserDragStartEvent,
@@ -40,9 +41,15 @@ class InteractionHandlers:
     enablement.
     """
 
-    def __init__(self, editor: "Editor", session: "Optional[Session]" = None):
+    def __init__(
+        self,
+        editor: "Editor",
+        session: "Optional[Session]" = None,
+        channel: LayoutChannel = PATCH,
+    ):
         self.editor = editor
         self._session = session
+        self.channel = channel
 
     @handles_event(UserDragStartEvent)
     def process_drag_start(self, event: UserDragStartEvent):
@@ -53,7 +60,7 @@ class InteractionHandlers:
     def process_drag_update(self, event: UserDragUpdateEvent):
         """Forward absolute positions to editor (records MoveNodesToAction)."""
         logger.debug(f"Dragging {len(event.positions)} nodes to absolute positions")
-        self.editor.move_nodes_to(event.positions)
+        self.editor.move_nodes_to(event.positions, self.channel)
 
     @handles_event(UserDragEndEvent)
     def process_drag_end(self, event: UserDragEndEvent):
@@ -73,11 +80,12 @@ class InteractionHandlers:
         # node exposing a port named "width"/"height" (e.g. a frame-info node's
         # outlets) would swallow the write and the resize would not stick.
         self.editor.add_fence()
-        self.editor.set_property(event.nodeId, "size_adapt", event.size_adapt, prefer_setting=True)
-        self.editor.set_property(event.nodeId, "width", event.width, prefer_setting=True)
-        self.editor.set_property(event.nodeId, "height", event.height, prefer_setting=True)
+        channel = self.channel
+        self.editor.set_property(event.nodeId, channel.size_adapt, event.size_adapt, prefer_setting=True)
+        self.editor.set_property(event.nodeId, channel.width, event.width, prefer_setting=True)
+        self.editor.set_property(event.nodeId, channel.height, event.height, prefer_setting=True)
         if event.posX is not None and event.posY is not None:
-            self.editor.move_nodes_to({event.nodeId: {"x": event.posX, "y": event.posY}})
+            self.editor.move_nodes_to({event.nodeId: {"x": event.posX, "y": event.posY}}, channel)
         self.editor.add_fence()
 
         # The size writes mark a value edit, which announces at most the unsaved
