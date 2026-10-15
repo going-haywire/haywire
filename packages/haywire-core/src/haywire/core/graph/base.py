@@ -137,9 +137,12 @@ class BaseGraph:
 
         # Auto-expanded when nodes approach the boundary. Derived from node
         # positions and not serialized; add_node_wrapper grows it as each node is added.
+        # ``canvas_width``/``canvas_height`` are the PATCH extent; every other channel's
+        # extent is held by name.
         self.canvas_width: int = _CANVAS_MIN_SIZE
         self.canvas_height: int = _CANVAS_MIN_SIZE
-        self._canvas_size_changed: bool = False
+        self._channel_extents: Dict[str, Tuple[int, int]] = {}
+        self._canvas_size_changed: set[str] = set()
 
         # Library-wide compatibility findings from the most recent load_from_dict call.
         # Node-specific findings are written directly onto node state as NodeWarnings.
@@ -464,7 +467,7 @@ class BaseGraph:
 
         wrapper.set_as_registered(True)
 
-        self._check_canvas_size()
+        self._check_all_canvas_sizes()
 
         self._validation.mark_node_dirty(wrapper.node_id, ChangeReason.NODE_ADDED)
 
@@ -490,7 +493,7 @@ class BaseGraph:
 
         wrapper.set_as_registered(False)
 
-        self._check_canvas_size()
+        self._check_all_canvas_sizes()
 
         self._validation.mark_node_dirty(node_id, ChangeReason.NODE_REMOVED)
 
@@ -549,53 +552,86 @@ class BaseGraph:
     # CANVAS SIZE MANAGEMENT
     # =========================================================================
 
-    def _check_canvas_size(self, channel: LayoutChannel | None = None) -> bool:
-        """Recompute ``canvas_width``/``canvas_height`` from the node positions in ``channel``.
+    def canvas_extent(self, channel: LayoutChannel) -> Tuple[int, int]:
+        """Return the ``(width, height)`` of the canvas that lays nodes out in ``channel``.
 
-        Expands or shrinks to the nearest ``_CANVAS_EXPANSION_STEP`` boundary,
-        never below ``_CANVAS_MIN_SIZE``. Sets ``_canvas_size_changed`` when the
-        size actually changes, so the next ``ValidationResult`` carries it.
+        The ``PATCH`` extent is ``canvas_width`` by ``canvas_height``. A channel whose extent
+        has not been measured reads as ``_CANVAS_MIN_SIZE`` on both axes.
+        """
+        if channel.name == "patch":
+            return self.canvas_width, self.canvas_height
+        return self._channel_extents.get(channel.name, (_CANVAS_MIN_SIZE, _CANVAS_MIN_SIZE))
+
+    def _check_canvas_size(self, channel: LayoutChannel | None = None) -> bool:
+        """Recompute the canvas extent of ``channel`` from the nodes it includes.
+
+        Measures the largest position among the nodes ``channel.includes()``, adds
+        ``channel.origin``, and rounds up to the next ``_CANVAS_EXPANSION_STEP`` boundary,
+        never below ``_CANVAS_MIN_SIZE``. Adds the channel's name to ``_canvas_size_changed``
+        when the extent actually changes, so the next ``ValidationResult`` carries it.
 
         Args:
-            channel: Layout channel whose positions are measured. ``None`` means
-                ``PATCH``.
+            channel: Layout channel to measure. ``None`` means ``PATCH``.
 
         Returns:
-            ``True`` if the dimensions changed.
+            ``True`` if the extent changed.
         """
         from ..node.layout import PATCH  # a module-level import cycles through haywire.core.node
 
         channel = channel if channel is not None else PATCH
-        if not self.node_wrappers:
+        members = [w.node.props for w in self.node_wrappers.values() if channel.includes(w.node.props)]
+        if not members:
             new_w = _CANVAS_MIN_SIZE
             new_h = _CANVAS_MIN_SIZE
         else:
-            max_x = max(getattr(w.node.props, channel.x) for w in self.node_wrappers.values())
-            max_y = max(getattr(w.node.props, channel.y) for w in self.node_wrappers.values())
-            needed_w = max_x + _CANVAS_EDGE_MARGIN
-            needed_h = max_y + _CANVAS_EDGE_MARGIN
+            max_x = max(getattr(props, channel.x) for props in members)
+            max_y = max(getattr(props, channel.y) for props in members)
+            needed_w = max_x + channel.origin + _CANVAS_EDGE_MARGIN
+            needed_h = max_y + channel.origin + _CANVAS_EDGE_MARGIN
             steps_w = math.ceil(needed_w / _CANVAS_EXPANSION_STEP)
             steps_h = math.ceil(needed_h / _CANVAS_EXPANSION_STEP)
             new_w = max(_CANVAS_MIN_SIZE, steps_w * _CANVAS_EXPANSION_STEP)
             new_h = max(_CANVAS_MIN_SIZE, steps_h * _CANVAS_EXPANSION_STEP)
 
-        if new_w != self.canvas_width or new_h != self.canvas_height:
+        if (new_w, new_h) == self.canvas_extent(channel):
+            return False
+
+        if channel.name == "patch":
             self.canvas_width = new_w
             self.canvas_height = new_h
-            self._canvas_size_changed = True
-            logger.debug(f"Canvas resized to {new_w}×{new_h}")
-            return True
-        return False
+        else:
+            self._channel_extents[channel.name] = (new_w, new_h)
+        self._canvas_size_changed.add(channel.name)
+        logger.debug(f"Canvas '{channel.name}' resized to {new_w}×{new_h}")
+        return True
+
+    def _check_all_canvas_sizes(self) -> bool:
+        """Run ``_check_canvas_size`` for every layout channel; ``True`` if any extent changed."""
+        from ..node.layout import CHANNELS  # a module-level import cycles through haywire.core.node
+
+        return any([self._check_canvas_size(channel) for channel in CHANNELS])
+
+    def _take_canvas_size_changes(self) -> Dict[str, Tuple[int, int]]:
+        """Return the extent of each channel flagged as changed, and clear the flags."""
+        from ..node.layout import CHANNELS  # a module-level import cycles through haywire.core.node
+
+        changed = {
+            channel.name: self.canvas_extent(channel)
+            for channel in CHANNELS
+            if channel.name in self._canvas_size_changed
+        }
+        self._canvas_size_changed.clear()
+        return changed
 
     def estimate_canvas_size(self) -> None:
-        """Set ``canvas_width``/``canvas_height`` from the current node positions.
+        """Set every channel's canvas extent from the current node positions.
 
         Call after loading a graph from disk, before attaching any UI. Leaves
         ``_canvas_size_changed`` clear, so no ``ValidationResult`` reports the
-        initial size as a resize.
+        initial sizes as a resize.
         """
-        self._check_canvas_size()
-        self._canvas_size_changed = False
+        self._check_all_canvas_sizes()
+        self._canvas_size_changed.clear()
 
     def _get_port(self, node_id: str, port_id: str) -> "DataPort":
         """Convenience method to get a port from a node."""

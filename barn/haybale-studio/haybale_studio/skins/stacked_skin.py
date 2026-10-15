@@ -48,7 +48,7 @@ class StackedNodeSkin(NodeSkin):
     - Automatic port ordering
     """
 
-    def render(self, main_card: ui.card, wrapper: NodeWrapper):
+    def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool):
         """Render the complete node UI with groups."""
         node = wrapper.node
         layout: LayoutDirection = self.layout_of(wrapper)
@@ -70,13 +70,13 @@ class StackedNodeSkin(NodeSkin):
             "backdrop-filter: var(--hw-node-backdrop-blur, none); "
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
-        if self.is_collapsed(wrapper):
+        if self.is_collapsed(wrapper) and not on_stage:
             # Folded, this card is the shared header row — see NodeSkin.
             self._render_collapsed(main_card, node, wrapper, layout, card_style)
         elif layout.is_vertical:
-            self._render_vertical(main_card, node, wrapper, layout, card_style)
+            self._render_vertical(main_card, node, wrapper, layout, card_style, on_stage=on_stage)
         else:
-            self._render_horizontal(main_card, node, wrapper, layout, card_style)
+            self._render_horizontal(main_card, node, wrapper, layout, card_style, on_stage=on_stage)
 
     def _render_vertical(
         self,
@@ -85,6 +85,8 @@ class StackedNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
+        *,
+        on_stage: bool,
     ):
         """Vertical layouts (T2B / B2T): inlets and outlets become bare pin
         strips on the card's top/bottom edges, leaving only configs in the body.
@@ -117,7 +119,7 @@ class StackedNodeSkin(NodeSkin):
             # rather than hardcoding INLET is what keeps the `top: -Npx` offsets
             # pushing outward: a strip rendered at the top of the card but sided
             # "bottom" offsets DOWN, i.e. inward.
-            self._render_edge_strip(node, wrapper, layout, self._top_port_type(layout))
+            self._render_edge_strip(node, wrapper, layout, self._top_port_type(layout), on_stage=on_stage)
 
             # Header with node label. Ghost pins move into the edge strips
             # instead of the header: they are inline flex items, so a
@@ -138,9 +140,10 @@ class StackedNodeSkin(NodeSkin):
                             wrapper=wrapper,
                             port_type=PortType.CONFIG,
                             layout=layout,
+                            on_stage=on_stage,
                         )
 
-            self._render_edge_strip(node, wrapper, layout, self._bottom_port_type(layout))
+            self._render_edge_strip(node, wrapper, layout, self._bottom_port_type(layout), on_stage=on_stage)
 
     def _render_horizontal(
         self,
@@ -149,6 +152,8 @@ class StackedNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
+        *,
+        on_stage: bool,
     ):
         """Horizontal layouts (L2R / R2L): every port type stacks in one
         column, each pin sided by the layout, with ghost pins in the header.
@@ -171,13 +176,17 @@ class StackedNodeSkin(NodeSkin):
                 # still lands on. Not ghost pins: a ghost is the root drop
                 # anchor above, names no entry in node.ports, and is never
                 # linked. See the glossary.
-                self._render_pin_column(node.get_hidden_connected_ports(is_inlet=True), wrapper, layout)
+                self._render_pin_column(
+                    node.get_hidden_connected_ports(is_inlet=True), wrapper, layout, on_stage=on_stage
+                )
 
                 # Node title (centered/flexible)
                 self._render_title(node)
 
                 # Same for outlets — ordinary pins, not ghosts.
-                self._render_pin_column(node.get_hidden_connected_ports(is_inlet=False), wrapper, layout)
+                self._render_pin_column(
+                    node.get_hidden_connected_ports(is_inlet=False), wrapper, layout, on_stage=on_stage
+                )
 
                 self._render_alternates_notice(wrapper, runtime_errors)
 
@@ -193,6 +202,7 @@ class StackedNodeSkin(NodeSkin):
                                 wrapper=wrapper,
                                 port_type=port_type,
                                 layout=layout,
+                                on_stage=on_stage,
                             )
 
     @staticmethod
@@ -211,6 +221,8 @@ class StackedNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         port_type: PortType,
+        *,
+        on_stage: bool,
     ):
         """Collect a direction's visible ports and lay them along a card edge.
 
@@ -230,6 +242,7 @@ class StackedNodeSkin(NodeSkin):
             wrapper,
             layout,
             ghost_for=port_type,
+            on_stage=on_stage,
         )
 
     @staticmethod
@@ -257,6 +270,8 @@ class StackedNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         port_type: PortType,
         layout: LayoutDirection | None = None,
+        *,
+        on_stage: bool,
     ):
         """
         Render ports with hierarchical group structure.
@@ -269,6 +284,7 @@ class StackedNodeSkin(NodeSkin):
             wrapper: NodeWrapper containing the node
             port_type: Which port direction to render
             layout: Resolved layout direction; looked up from the wrapper when omitted
+            on_stage: Draw for a stage view; only on-stage pins are drawn
         """
         layout = self.layout_of(wrapper) if layout is None else layout
         for port in ports:
@@ -283,7 +299,7 @@ class StackedNodeSkin(NodeSkin):
 
             # Render based on port type
             if port.is_fold:
-                self._render_group(port, ports, wrapper, port_type, layout, depth=0)
+                self._render_group(port, ports, wrapper, port_type, layout, depth=0, on_stage=on_stage)
             else:
                 self.render_port(
                     port,
@@ -291,6 +307,7 @@ class StackedNodeSkin(NodeSkin):
                     widget_classes="widget-container zoom-pan-lod2",
                     layout=layout,
                     depth=0,
+                    on_stage=on_stage,
                 )
 
     def _render_group(
@@ -301,6 +318,8 @@ class StackedNodeSkin(NodeSkin):
         port_type: PortType,
         layout: LayoutDirection | None = None,
         depth: int = 0,
+        *,
+        on_stage: bool,
     ):
         """
         Render a collapsible fold with visual hierarchy.
@@ -334,31 +353,36 @@ class StackedNodeSkin(NodeSkin):
             # (it overlaps into the pin gutter), which on a pinless row pulls
             # the header left of the card padding and swallows the per-level
             # step.
-            header_indent = self._config_indent(depth)
-            with (
-                ui.row()
-                .classes("w-full items-center gap-1 cursor-pointer zoom-pan-lod2 hw-detail-label")
-                .style(f"padding-left: {header_indent}px;")
-                .props(
-                    f'data-hw-fold-id="{group_port.id}" data-hw-fold-open="{str(bool(is_expanded)).lower()}"'
-                )
-                .on("click", lambda pid=group_port.id: self._toggle_fold(wrapper, pid))
-            ) as header_row:
-                triangle = ui.icon(hui.icon.fold_open if is_expanded else hui.icon.fold_closed).classes(
-                    "text-sm"
-                )
-                ui.label(group_port.label).classes("text-xs grow")
-                # The fold's value is a real boolean a node can read, so the
-                # header states it as one. Open is checked: the value and the
-                # open state are the same thing.
-                ui.icon(hui.icon.checked if is_expanded else hui.icon.unchecked).classes("text-sm")
+            # On stage the header follows the widget rule through the strategy
+            # half of it: a fold has no widget_key, so should_show_widget() is
+            # the whole question.
+            if not on_stage or group_port.should_show_widget():
+                header_indent = self._config_indent(depth)
+                with (
+                    ui.row()
+                    .classes("w-full items-center gap-1 cursor-pointer zoom-pan-lod2 hw-detail-label")
+                    .style(f"padding-left: {header_indent}px;")
+                    .props(
+                        f'data-hw-fold-id="{group_port.id}" '
+                        f'data-hw-fold-open="{str(bool(is_expanded)).lower()}"'
+                    )
+                    .on("click", lambda pid=group_port.id: self._toggle_fold(wrapper, pid))
+                ) as header_row:
+                    triangle = ui.icon(hui.icon.fold_open if is_expanded else hui.icon.fold_closed).classes(
+                        "text-sm"
+                    )
+                    ui.label(group_port.label).classes("text-xs grow")
+                    # The fold's value is a real boolean a node can read, so the
+                    # header states it as one. Open is checked: the value and the
+                    # open state are the same thing.
+                    ui.icon(hui.icon.checked if is_expanded else hui.icon.unchecked).classes("text-sm")
 
-            # Hosted on the row, triggered by the triangle: a trigger must be
-            # small and must never contain another (see add_pin_tooltip).
-            add_pin_tooltip(header_row, group_port, trigger_el=triangle)
+                # Hosted on the row, triggered by the triangle: a trigger must be
+                # small and must never contain another (see add_pin_tooltip).
+                add_pin_tooltip(header_row, group_port, trigger_el=triangle)
 
-            # Fold children (while open). A fold holds ports, not other folds,
-            # so every child renders as a port row.
+            # Fold children (while open), each following the widget rule on stage.
+            # A fold holds ports, not other folds, so every child is a port row.
             if is_expanded:
                 children = [
                     port
@@ -373,6 +397,7 @@ class StackedNodeSkin(NodeSkin):
                         widget_classes="widget-container zoom-pan-lod2",
                         layout=layout,
                         depth=depth + 1,
+                        on_stage=on_stage,
                     )
 
     def _toggle_fold(self, wrapper: NodeWrapper, fold_id: str) -> None:

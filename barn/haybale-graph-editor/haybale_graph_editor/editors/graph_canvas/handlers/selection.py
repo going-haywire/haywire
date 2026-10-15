@@ -7,12 +7,13 @@ Owns: selected_nodes, selected_edges, clipboard.
 import json
 import logging
 import traceback
-from typing import Callable, Iterable, Optional, Set, TYPE_CHECKING
+from typing import Any, Callable, Iterable, Optional, Set, Tuple, TYPE_CHECKING
 
 from nicegui import ui
 
 from haywire.core.access import AccessTier
 from haywire.core.graph.clipboard import build_clipboard_payload, is_haywire_payload
+from haywire.core.node.layout import PATCH, STAGE, LayoutChannel, layout_position_of, position_of
 from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.core.signals import SelectionMoved
 
@@ -63,7 +64,11 @@ class SelectionHandlers:
         session_id: str,
         session: Optional["Session"] = None,
         visual_layer: Optional["VisualLayerHandlers"] = None,
+        channel: LayoutChannel = PATCH,
+        patch_viewport_centre: Optional[Callable[[], Optional[Tuple[float, float]]]] = None,
     ):
+        self.channel = channel
+        self.patch_viewport_centre = patch_viewport_centre
         self.graph = graph
         self.editor = editor
         self.session_id = session_id
@@ -103,6 +108,25 @@ class SelectionHandlers:
         edit_state.active_edge = active_edge
         ctx.active_component = active_node.registry_key if active_node is not None else None
 
+        self._session.publish(SelectionMoved())
+
+    def prune_node(self, node_id: str) -> None:
+        """Drop ``node_id`` from the selection (it left this canvas); publishes ``SelectionMoved``.
+
+        Does nothing when the node is not selected here.
+        """
+        if node_id not in self.selected_nodes:
+            return
+        self.selected_nodes = self.selected_nodes - {node_id}
+        if self._session is None:
+            return
+        ctx = self._session.context
+        edit_state = ctx.data[EditState]
+        edit_state.selected_nodes = self.selected_nodes
+        active = edit_state.active_node
+        if active is not None and active.node_id == node_id:
+            edit_state.active_node = None
+            ctx.active_component = None
         self._session.publish(SelectionMoved())
 
     @handles_event(UserCopySelectedEvent, access=AccessTier.VIEW)
@@ -185,7 +209,10 @@ class SelectionHandlers:
             ui.notify("Nothing to paste", type="warning")
             return
 
-        result = self.editor.paste_clipboard(chosen, event.canvasX, event.canvasY)
+        stage_args = {"patch_fallback": self._patch_fallback()} if self.channel.stage else {}
+        result = self.editor.paste_clipboard(
+            chosen, event.canvasX, event.canvasY, self.channel, **stage_args
+        )
         if result is None:
             # Unknown node types do NOT cause failure (they paste as placeholders);
             # None here means an unexpected error.
@@ -213,14 +240,51 @@ class SelectionHandlers:
         payload = build_clipboard_payload(self.graph, nodes, edges, self.session_id)
         if not payload["nodes"]:
             return
-        bbox = payload["bounding_box"]
+        patch_anchor = None
+        if self.channel.stage:
+            origins = [layout_position_of(node, self.channel) for node in payload["nodes"].values()]
+            min_x, min_y = self.channel.to_canvas(min(x for x, _ in origins), min(y for _, y in origins))
+            # The copy sits DUPLICATE_OFFSET from the originals in the patch too.
+            patch_origins = [position_of(node, PATCH) for node in payload["nodes"].values()]
+            patch_anchor = (
+                min(x for x, _ in patch_origins) + DUPLICATE_OFFSET,
+                min(y for _, y in patch_origins) + DUPLICATE_OFFSET,
+            )
+        else:
+            bbox = payload["bounding_box"]
+            min_x, min_y = bbox["min_x"], bbox["min_y"]
+        stage_args: dict[str, Any]
+        if self.channel.stage:
+            stage_args = {"patch_anchor": patch_anchor}
+        else:
+            # On-stage copies sit DUPLICATE_OFFSET from their originals on stage too.
+            stage_origins = [
+                position_of(node, STAGE)
+                for node in payload["nodes"].values()
+                if node.get("node_data", {}).get("props", {}).get("values", {}).get("on_stage")
+            ]
+            stage_args = {}
+            if stage_origins:
+                stage_args["stage_anchor"] = (
+                    min(x for x, _ in stage_origins) + DUPLICATE_OFFSET,
+                    min(y for _, y in stage_origins) + DUPLICATE_OFFSET,
+                )
         result = self.editor.paste_clipboard(
-            payload, bbox["min_x"] + DUPLICATE_OFFSET, bbox["min_y"] + DUPLICATE_OFFSET
+            payload, min_x + DUPLICATE_OFFSET, min_y + DUPLICATE_OFFSET, self.channel, **stage_args
         )
         if result is None:
             ui.notify("Duplicate failed", type="negative")
             return
         self._select_pasted(*result)
+
+    # Class default too, so an instance built without __init__ has no patch canvas to ask.
+    patch_viewport_centre: Optional[Callable[[], Optional[Tuple[float, float]]]] = None
+
+    def _patch_fallback(self) -> Optional[Tuple[float, float]]:
+        """The patch anchor of a paste onto an empty stage, or ``None`` without a patch viewport."""
+        if not self.channel.stage or self.patch_viewport_centre is None:
+            return None
+        return self.patch_viewport_centre()
 
     def _select_pasted(self, new_node_ids: list[str], new_edge_ids: list[str]) -> None:
         """Make freshly pasted nodes and edges the selection, here, in the session and on the canvas.

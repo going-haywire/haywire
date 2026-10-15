@@ -9,6 +9,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 from haywire.core.graph.clipboard import CLIPBOARD_FORMAT_VERSION
+from haywire.core.node.layout import PATCH
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
 from haywire.core.signals import SelectionMoved
@@ -381,7 +382,7 @@ def test_paste_falls_back_to_mirror_when_text_empty(graph, session, edit_state_c
     }
     session.context.data[edit_state_cls].clipboard = ClipboardData(payload=mirror_payload, timestamp=1.0)
     h.process_paste_clipboard(UserPasteClipboardEvent(canvasX=0.0, canvasY=0.0, clipboardText=""))
-    editor.paste_clipboard.assert_called_once_with(mirror_payload, 0.0, 0.0)
+    editor.paste_clipboard.assert_called_once_with(mirror_payload, 0.0, 0.0, PATCH)
 
 
 def test_paste_notifies_when_nothing_to_paste(graph, session, edit_state_cls):
@@ -693,7 +694,8 @@ def test_duplicate_offsets_and_selects_copy(graph, session, edit_state_cls):
 
     h.duplicate_selection(["n1"], [])
 
-    payload, x, y = editor.paste_clipboard.call_args.args
+    payload, x, y, channel = editor.paste_clipboard.call_args.args
+    assert channel is PATCH
     bbox = payload["bounding_box"]
     assert (x, y) == (
         bbox["min_x"] + selection_module.DUPLICATE_OFFSET,
@@ -834,3 +836,36 @@ def test_cut_is_one_undo_step(graph_with_library_system, library_system, session
     assert cut.node_id in edit.clipboard.payload["nodes"]
     assert editor.undo()
     assert set(graph.node_wrappers) == {kept.node_id, cut.node_id}
+
+
+# ---------------------------------------------------------------------------
+# prune_node — a node that left the canvas leaves the selection
+# ---------------------------------------------------------------------------
+
+
+def test_prune_node_drops_it_from_both_selections_and_publishes(handler, session, edit_state_cls):
+    wrapper = MagicMock()
+    wrapper.node_id = "n2"
+    handler.graph.get_node_wrapper.return_value = wrapper
+    handler.process_selection_change(
+        SelectionChangedEvent(selectedNodes=["n1", "n2"], selectedEdges=[], activeNodeId="n2")
+    )
+    session.publish.reset_mock()
+
+    handler.prune_node("n2")
+
+    edit = session.context.data[edit_state_cls]
+    assert handler.selected_nodes == {"n1"}
+    assert edit.selected_nodes == {"n1"}
+    assert edit.active_node is None
+    assert any(isinstance(c.args[0], SelectionMoved) for c in session.publish.call_args_list)
+
+
+def test_prune_node_ignores_an_unselected_node(handler, session):
+    handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=[]))
+    session.publish.reset_mock()
+
+    handler.prune_node("other")
+
+    assert handler.selected_nodes == {"n1"}
+    session.publish.assert_not_called()

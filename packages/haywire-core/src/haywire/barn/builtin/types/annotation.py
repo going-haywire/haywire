@@ -37,6 +37,7 @@ class AnnotationWire(WireType):
     role = WireRole.VISUAL
     propagation = ()
     pin_kind = "annotation"
+    on_stage = True
     style = AnnotationStyle
 
 

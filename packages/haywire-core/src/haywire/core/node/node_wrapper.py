@@ -10,7 +10,7 @@ from typing import List, Optional, Any, Dict, Iterator, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from ..graph.types import ChangeReason
-from .layout import PATCH, LayoutChannel, position_of
+from .layout import PATCH, STAGE, LayoutChannel, position_of
 from haywire.core.node.node_warning import NodeWarning
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
@@ -290,6 +290,7 @@ class NodeWrapper:
                 logger.debug(".. building failed with errors.")
 
             self._subscribe_props_redraw()
+            self._subscribe_stage_membership()
 
     def _instantiate(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
         """Create the node instance, cleaning up any existing one first.
@@ -679,6 +680,22 @@ class NodeWrapper:
     def _on_props_redraw_change(self, _value: Any, _old: Any) -> None:
         """Cell-event adapter to request a debounced redraw."""
         self.redraw()
+
+    def _subscribe_stage_membership(self) -> None:
+        """Watch the instance's ``on_stage`` prop and report ``NODE_STAGE_CHANGED`` on change."""
+        if self._node_instance is None:
+            return
+
+        self._node_instance.props._subscribe_field("on_stage", self._on_stage_membership_change)
+
+    def _on_stage_membership_change(self, _value: Any, _old: Any) -> None:
+        """Re-measure the stage canvas and mark the node dirty as ``NODE_STAGE_CHANGED``."""
+        # No node lock: held while waiting for the graph's validation lock, it deadlocks a batch.
+        graph = self._graph
+        if graph is None or not self.state.is_registered:
+            return
+        graph._check_canvas_size(STAGE)
+        graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_STAGE_CHANGED)
 
     def request_graph_reassembly(self) -> None:
         """Ask the graph to regenerate the flow structure, rebuilding and redrawing nothing.

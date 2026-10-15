@@ -23,7 +23,7 @@ def _port(type_cls) -> DataPort:
 
 
 def _render(port):
-    return render_pin(port, "node-1", pin_gutter=20, card_padding=16, pin_protrusion=0)
+    return render_pin(port, "node-1", pin_gutter=20, card_padding=16, pin_protrusion=0, on_stage=False)
 
 
 def test_a_typed_pin_carries_its_wire_types_id(nicegui_slot_context):

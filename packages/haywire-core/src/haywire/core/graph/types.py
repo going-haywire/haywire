@@ -3,7 +3,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 
 class ChangeReason(Enum):
@@ -34,6 +34,14 @@ class ChangeReason(Enum):
     # Node reason that changes no structure
     NODE_MOVED = "node_moved"
     """A node moved in some layout channel; a canvas re-reads the channel it lays out with."""
+
+    # Node reason that moves a node between a graph's patch and its stage
+    NODE_STAGE_CHANGED = "node_stage_changed"
+    """A node was put on, or taken off, the graph's stage.
+
+    A stage canvas mounts or unmounts the node; the patch canvas ignores it. The graph
+    saves; nothing rebuilds or reassembles.
+    """
 
     # Node reason that persists an arrangement without changing structure
     NODE_LAYOUT_CHANGED = "node_layout_changed"
@@ -152,7 +160,7 @@ class ChangeReason(Enum):
 
         Returns:
             100 for a removal, 90 adding, 80 rebuild, 70 validation, 60
-            redraw, 50 graph reassembly, 40 for anything else.
+            redraw and stage change, 50 graph reassembly, 40 for anything else.
         """
         if self.requires_removal():
             return 100
@@ -166,7 +174,7 @@ class ChangeReason(Enum):
         if self.requires_validation():
             return 70
 
-        if self.requires_redraw():
+        if self.requires_redraw() or self is ChangeReason.NODE_STAGE_CHANGED:
             return 60
 
         if self.requires_graph_reassembly():
@@ -192,8 +200,8 @@ class ValidationResult:
     edges: Dict[str, ChangeReason] = field(default_factory=dict)
     """Map of connection_uuid -> reason for change"""
 
-    canvas_size: Optional[Tuple[int, int]] = None
-    """New (width, height) of the canvas if it was resized during this batch, else None."""
+    canvas_sizes: Dict[str, Tuple[int, int]] = field(default_factory=dict)
+    """Map of layout channel name -> new (width, height), for each channel resized in this batch."""
 
     validation_time_ms: float = 0.0
     """Time taken for validation in milliseconds"""
@@ -205,7 +213,7 @@ class ValidationResult:
 
     def has_changes(self) -> bool:
         """Check if this validation found any changes"""
-        return bool(self.nodes or self.edges or self.graph is not None or self.canvas_size is not None)
+        return bool(self.nodes or self.edges or self.graph is not None or bool(self.canvas_sizes))
 
     def requires_save(self) -> bool:
         """Return whether a save would record anything in this batch.

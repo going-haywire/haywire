@@ -11,8 +11,17 @@ from typing import Any, Optional, Dict, List, Mapping, Tuple
 from dataclasses import dataclass
 
 from ...node import NodeWrapper
-from ...node.layout import PATCH, LayoutChannel, position_of, with_position
+from ...node.layout import (
+    PATCH,
+    STAGE,
+    LayoutChannel,
+    layout_position_of,
+    position_of,
+    with_position,
+    with_stage_placement,
+)
 from ...graph.base import BaseGraph
+from ...graph.stage import next_stage_spot, non_negative, patch_position_for_stage, stage_position_for_patch
 from ...macro.origin import MacroOrigin
 from ...edge.edge_wrapper import EdgeWrapper
 from ...types import Propagation
@@ -361,6 +370,87 @@ class MoveNodesToAction(ActionBase):
             self.graph.move_node(node_id, pos["x"], pos["y"], self.channel)
 
 
+class SetStageMembershipAction(ActionBase):
+    """Action for putting nodes on, or taking them off, the graph's stage.
+
+    Adding places the nodes by ``next_stage_spot`` in patch order and sets their stage size
+    to ``"auto"``. Removing changes only ``on_stage``, so the stage rectangle is kept for the
+    next add. Undo restores each node's ``on_stage``, stage position and stage size mode.
+
+    Example::
+
+        history.add_action(SetStageMembershipAction(graph, ["n1", "n2"], on_stage=True))
+        history.add_action(SetStageMembershipAction(graph, ["n1"], on_stage=False))
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        node_ids: List[str],
+        on_stage: bool,
+        description: Optional[str] = None,
+    ):
+        verb = "Add to stage" if on_stage else "Remove from stage"
+        if len(node_ids) == 1:
+            super().__init__(description or f"{verb}: node '{node_ids[0]}'")
+        else:
+            super().__init__(description or f"{verb}: {len(node_ids)} nodes")
+
+        self.graph = graph
+        self.node_ids = list(node_ids)
+        self.on_stage = on_stage
+        # Captured at construction so undo is exact.
+        self.original: Dict[str, Dict[str, Any]] = {}
+        for node_id in self.node_ids:
+            wrapper = graph.get_node_wrapper(node_id)
+            if wrapper and wrapper.node:
+                props = wrapper.node.props
+                self.original[node_id] = {
+                    "on_stage": props.on_stage,
+                    "stage_x": props.stage_x,
+                    "stage_y": props.stage_y,
+                    "stage_size_adapt": props.stage_size_adapt,
+                }
+
+    def _execute_impl(self) -> None:
+        if not self.on_stage:
+            for node_id in self.original:
+                self._write(node_id, on_stage=False)
+            return
+
+        wrappers = [self.graph.node_wrappers[node_id] for node_id in self.original]
+        wrappers.sort(key=lambda w: (w.node.props.posY, w.node.props.posX))
+        spots = next_stage_spot(self.graph, len(wrappers), [w.node.props.stage_height for w in wrappers])
+        for wrapper, (x, y) in zip(wrappers, spots, strict=True):
+            self._write(wrapper.node_id, on_stage=True, stage_x=x, stage_y=y, stage_size_adapt="auto")
+
+    def _undo_impl(self) -> None:
+        for node_id, state in self.original.items():
+            self._write(node_id, **state)
+
+    def _write(
+        self,
+        node_id: str,
+        on_stage: bool,
+        stage_x: Optional[float] = None,
+        stage_y: Optional[float] = None,
+        stage_size_adapt: Optional[str] = None,
+    ) -> None:
+        """Write the given fields, ``on_stage`` last so a canvas mounts the node at its final place."""
+        wrapper = self.graph.node_wrappers[node_id]
+        props = wrapper.node.props
+        if (
+            stage_x is not None
+            and stage_y is not None
+            and (stage_x, stage_y) != (props.stage_x, props.stage_y)
+        ):
+            self.graph.move_node(node_id, stage_x, stage_y, STAGE)
+        if stage_size_adapt is not None and stage_size_adapt != props.stage_size_adapt:
+            props.stage_size_adapt = stage_size_adapt
+        if on_stage != props.on_stage:
+            props.on_stage = on_stage
+
+
 class RemoveElementsAction(ActionBase):
     """
     Action for removing multiple nodes and connections in a single
@@ -569,6 +659,24 @@ class ClipboardData:
     timestamp: float
 
 
+def stage_node_data(
+    graph: BaseGraph,
+    channel: LayoutChannel,
+    position: Tuple[float, float],
+    patch_fallback: Optional[Tuple[float, float]],
+) -> Optional[Dict[str, Any]]:
+    """Return ``node_data`` placing a node made at canvas ``position`` on ``channel``'s canvas.
+
+    ``None`` on a channel that is not the stage. On the stage the node is on stage at the
+    position, and its patch position follows ``patch_position_for_stage``.
+    """
+    if not channel.stage:
+        return None
+    sx, sy = channel.from_canvas(*position)
+    stage_xy = non_negative((sx, sy))  # nothing sits above or left of the stage origin
+    return with_stage_placement(None, *stage_xy, patch_position_for_stage(graph, stage_xy, patch_fallback))
+
+
 class PasteClipboardAction(CompositeAction):
     """Undoable composite that pastes a clipboard payload into a graph.
 
@@ -590,6 +698,10 @@ class PasteClipboardAction(CompositeAction):
         paste_x: float,
         paste_y: float,
         description: Optional[str] = None,
+        channel: LayoutChannel = PATCH,
+        patch_anchor: Optional[Tuple[float, float]] = None,
+        patch_fallback: Optional[Tuple[float, float]] = None,
+        stage_anchor: Optional[Tuple[float, float]] = None,
     ):
         """
         Initialize the paste clipboard action.
@@ -597,9 +709,22 @@ class PasteClipboardAction(CompositeAction):
         Args:
             graph: The graph to paste into
             payload: The clipboard payload (see build_clipboard_payload)
-            paste_x: X position where to paste (upper-left corner)
-            paste_y: Y position where to paste (upper-left corner)
+            paste_x: X canvas position where to paste (upper-left corner)
+            paste_y: Y canvas position where to paste (upper-left corner)
             description: Optional description override
+            channel: The layout channel of the canvas pasted into. On the stage channel the
+                nodes land on stage, keeping their relative layout (a node already on stage
+                by its stage position, any other by its patch position). Their patch positions
+                keep their relative layout too, anchored at ``patch_anchor``.
+            patch_anchor: Stage channel only. The patch position of the pasted selection's
+                upper-left corner. ``None`` derives it from the paste point, as
+                ``patch_position_for_stage`` does with ``patch_fallback``.
+            patch_fallback: Stage channel only. The patch anchor when no node is on stage yet;
+                see ``patch_position_for_stage``.
+            stage_anchor: Patch channel only. The stage position of the upper-left corner of the
+                pasted on-stage nodes. ``None`` derives it from the paste point with
+                ``stage_position_for_patch``, or ``next_stage_spot`` on an empty stage. Nodes
+                that are not on stage stay off stage.
         """
         self.graph = graph
 
@@ -609,8 +734,54 @@ class PasteClipboardAction(CompositeAction):
 
         # 1. Compute paste offset from the stored bounding box.
         bbox = payload.get("bounding_box") or {}
-        off_x = paste_x - bbox.get("min_x", 0.0)
-        off_y = paste_y - bbox.get("min_y", 0.0)
+        if channel.stage:
+            paste_x, paste_y = channel.from_canvas(paste_x, paste_y)
+            paste_x, paste_y = non_negative((paste_x, paste_y))  # the stage has no negative side
+            origins = [layout_position_of(node, channel) for node in nodes.values()]
+            min_x = min((x for x, _ in origins), default=0.0)
+            min_y = min((y for _, y in origins), default=0.0)
+        else:
+            min_x, min_y = bbox.get("min_x", 0.0), bbox.get("min_y", 0.0)
+        off_x = paste_x - min_x
+        off_y = paste_y - min_y
+
+        # On stage the patch layout is anchored apart from the stage numbers (before the add).
+        patch_min_x = patch_min_y = patch_off_x = patch_off_y = 0.0
+        if channel.stage:
+            patch_origins = [position_of(node, PATCH) for node in nodes.values()]
+            patch_min_x = min((x for x, _ in patch_origins), default=0.0)
+            patch_min_y = min((y for _, y in patch_origins), default=0.0)
+            if patch_anchor is None:
+                patch_anchor = patch_position_for_stage(graph, (paste_x, paste_y), patch_fallback)
+            patch_ax, patch_ay = non_negative(patch_anchor)
+            patch_off_x = patch_ax - patch_min_x
+            patch_off_y = patch_ay - patch_min_y
+
+        # In the patch the copies that carry on_stage keep their stage layout, moved to the anchor.
+        stage_min_x = stage_min_y = stage_off_x = stage_off_y = 0.0
+        if not channel.stage:
+            on_stage_nodes = [
+                node
+                for node in nodes.values()
+                if (node.get("node_data") or {}).get("props", {}).get("values", {}).get("on_stage")
+            ]
+            stage_origins = [position_of(node, STAGE) for node in on_stage_nodes]
+            if stage_origins:
+                stage_min_x = min(x for x, _ in stage_origins)
+                stage_min_y = min(y for _, y in stage_origins)
+                if stage_anchor is None:
+                    # The centroid rule maps the on-stage copies' own patch corner, not the selection's.
+                    on_stage_patch = [position_of(node, PATCH) for node in on_stage_nodes]
+                    patch_point = (
+                        min(x for x, _ in on_stage_patch) + off_x,
+                        min(y for _, y in on_stage_patch) + off_y,
+                    )
+                    stage_anchor = (
+                        stage_position_for_patch(graph, patch_point) or next_stage_spot(graph, 1)[0]
+                    )
+                stage_ax, stage_ay = non_negative(stage_anchor)
+                stage_off_x = stage_ax - stage_min_x
+                stage_off_y = stage_ay - stage_min_y
 
         actions: List[IAction] = []
 
@@ -635,13 +806,24 @@ class PasteClipboardAction(CompositeAction):
         #    types become placeholders, like file load).
         for old_id, node in nodes.items():
             new_id = remap.id_map[old_id]
-            src_x, src_y = position_of(node)
+            src_x, src_y = layout_position_of(node, channel)
             new_x = src_x + off_x
             new_y = src_y + off_y
 
             # The restore reads posX/posY from the props values, so they carry the paste point.
             # deepcopy keeps the shared payload dict (mirror / OS-clipboard) intact for re-paste.
-            node_data = with_position(copy.deepcopy(node.get("node_data") or {}), new_x, new_y)
+            node_data = copy.deepcopy(node.get("node_data") or {})
+            if channel.stage:
+                patch_x, patch_y = position_of(node, PATCH)
+                node_data = with_stage_placement(
+                    node_data, new_x, new_y, (patch_x + patch_off_x, patch_y + patch_off_y)
+                )
+            else:
+                node_data = with_position(node_data, new_x, new_y)
+                values = node_data.get("props", {}).get("values", {})
+                if values.get("on_stage"):
+                    stage_x, stage_y = position_of(node, STAGE)
+                    node_data = with_position(node_data, stage_x + stage_off_x, stage_y + stage_off_y, STAGE)
 
             # A pasted card points at the copy of its Subgraph, not the original.
             store = node_data.get("store")
@@ -760,7 +942,14 @@ class SplitEdgeWithRerouteAction(CompositeAction):
         position: Tuple[float, float],
         registry_key: str,
         description: Optional[str] = None,
+        channel: LayoutChannel = PATCH,
+        patch_fallback: Optional[Tuple[float, float]] = None,
     ):
+        """Build the split; ``position`` is canvas coordinates of ``channel``'s canvas.
+
+        On the stage channel the reroute node lands on stage at ``position``, and in the patch
+        near the nodes on stage (``patch_position_for_stage`` with ``patch_fallback``).
+        """
         self.graph = graph
         self.reroute_node_id: Optional[str] = None
 
@@ -793,7 +982,8 @@ class SplitEdgeWithRerouteAction(CompositeAction):
             AddNodeAction(
                 graph=graph,
                 registry_key=registry_key,
-                position=position,
+                position=None if channel.stage else position,
+                node_data=stage_node_data(graph, channel, position, patch_fallback),
                 node_id=new_node_id,
             ),
             _AddReroutePortsAction(

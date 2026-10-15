@@ -169,6 +169,37 @@ class NodeProperties(NodeSettings):
     )
 
     # -----------------------------------------------------------------
+    # Stage — whether the node is on the graph's stage, and where
+    # -----------------------------------------------------------------
+
+    on_stage = setting[BOOL](
+        False,
+        label="On stage",
+        description="Show this node in the graph's stage view.",
+        order=60,
+        category="stage",
+    )
+    stage_x = setting[FLOAT](0.0, order=70, category="stage")
+    stage_y = setting[FLOAT](0.0, order=80, category="stage")
+    stage_width = setting[INT](200, order=90, category="stage")
+    stage_height = setting[INT](200, order=100, category="stage")
+    stage_size_adapt = setting[CHOICES](
+        "auto",
+        widget_config={
+            "options": {
+                "auto": "Auto",
+                "manual_width": "Manual width · auto height",
+                "manual_height": "Manual height · auto width",
+                "manual": "Manual (both)",
+            }
+        },
+        label="Stage Size Adapt",
+        description="Per-axis manual control of the node's stage size",
+        order=110,
+        category="stage",
+    )
+
+    # -----------------------------------------------------------------
     # Convenience helpers
     # -----------------------------------------------------------------
 

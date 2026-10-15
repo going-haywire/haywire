@@ -19,6 +19,7 @@
 - `haybale-graph-editor:state:EditState` — Edit State — 
 
 ## panel
+- `haybale-graph-editor:panel:AddToStageMenuPanel` — Add to Stage — 
 - `haybale-graph-editor:panel:AppearanceToolbarPanel` — Appearance — 
 - `haybale-graph-editor:panel:ClearDetailOverridesMenuPanel` — Reset Detail — 
 - `haybale-graph-editor:panel:ClearSettingMenuPanel` — Set to none — 
@@ -83,6 +84,7 @@
 - `haybale-graph-editor:panel:RebuildSelectionMenuPanel` — Rebuild — 
 - `haybale-graph-editor:panel:ReconnectEdgeMenuPanel` — Reconnect Edge — 
 - `haybale-graph-editor:panel:RedrawSelectionMenuPanel` — Redraw Selection — 
+- `haybale-graph-editor:panel:RemoveFromStageMenuPanel` — Remove from Stage — 
 - `haybale-graph-editor:panel:ResetNodeCardsMenuPanel` — Reset Node Detail — 
 - `haybale-graph-editor:panel:ResetSelectionMenuPanel` — Reset Selection — 
 - `haybale-graph-editor:panel:ResetSettingMenuPanel` — Reset to default — 

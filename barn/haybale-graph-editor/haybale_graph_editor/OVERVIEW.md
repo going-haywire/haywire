@@ -23,6 +23,7 @@ Visual graph editor library — host-agnostic
 ## Panels
 - **Adapter Chain** — 
 - **Adapters** — 
+- **Add to Stage** — 
 - **Appearance** — 
 - **Appearance** — 
 - **Clone to Library** — 
@@ -73,6 +74,7 @@ Visual graph editor library — host-agnostic
 - **Rebuild** — 
 - **Reconnect Edge** — 
 - **Redraw Selection** — 
+- **Remove from Stage** — 
 - **Reset Detail** — 
 - **Reset Node Detail** — 
 - **Reset Selection** — 

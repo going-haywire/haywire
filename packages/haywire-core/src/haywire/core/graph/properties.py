@@ -9,7 +9,7 @@ Serialized under the ``'props'`` key in graph JSON; restored before nodes
 on load.
 """
 
-from haywire.barn.builtin.types import BOOL
+from haywire.barn.builtin.types import BOOL, CHOICES
 from haywire.barn.builtin.widget_keys import ARROW_HEAD_WIDGET
 from haywire.core.edge.arrow_heads import head_size_choices
 from haywire.core.edge.settings import EdgeDefaultSettings
@@ -109,4 +109,13 @@ class GraphProperties(GraphSettings):
         description="Open this graph with the canvas locked: sessions can operate it but not edit it.",
         category="behaviour",
         order=10,
+    )
+
+    open_view = setting[CHOICES](
+        "patch",
+        label="Open view",
+        description="The view each level opens in: the patch, or the stage.",
+        category="behaviour",
+        order=20,
+        widget_config={"options": {"patch": "Patch", "stage": "Stage"}},
     )

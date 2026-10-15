@@ -242,6 +242,12 @@ class EdgeWrapper:
         return wire is None or wire.role is not WireRole.VISUAL
 
     @property
+    def on_stage(self) -> bool:
+        """Whether this edge is drawn in a stage view: its wire type is an ``on_stage`` one."""
+        wire = self.wire_type
+        return wire is not None and wire.on_stage
+
+    @property
     def locked_propagation(self) -> Optional[Propagation]:
         """The mode this edge is fixed to, or ``None`` when the user may choose one.
 

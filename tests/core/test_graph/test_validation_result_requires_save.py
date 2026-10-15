@@ -69,6 +69,6 @@ def test_one_real_change_outweighs_a_repaint() -> None:
 
 def test_a_canvas_resize_alone_does_not_save() -> None:
     """Canvas size is derived from node positions and is not serialized."""
-    result = ValidationResult(canvas_size=(4000, 3000))
+    result = ValidationResult(canvas_sizes={"patch": (4000, 3000)})
 
     assert result.requires_save() is False

@@ -37,11 +37,13 @@ from haywire.ui.components.graph.event_definitions import (
     NodeCreateRequestEvent,
     SplitEdgeWithRerouteEvent,
     CollapseToGroupEvent,
+    AddToStageEvent,
     DissolveRerouteEvent,
     EnterGroupEvent,
     DetachFromMacroEvent,
     RevertToMacroEvent,
     ExpandGroupEvent,
+    RemoveFromStageEvent,
     PromoteToMacroEvent,
     OpenNewNodeWizardEvent,
     EdgeCreatedEvent,
@@ -110,6 +112,17 @@ class VisualLayerHandlers:
     # Class default too, so an instance built without __init__ reads the patch.
     channel: LayoutChannel = PATCH
 
+    reports_compatibility: Optional[bool] = None
+    """Whether this canvas reports the load's compatibility summary; ``None`` leaves it to the
+    patch canvas, which reports, while a stage canvas does not."""
+
+    on_node_unmounted: Optional[Callable[[str], None]] = None
+    """Called with the node id when a node leaves this canvas because its channel membership
+    ended (it left the stage); ``None`` reports nothing."""
+
+    on_canvas_mounted: Optional[Callable[[], None]] = None
+    """Called when the canvas element mounts in the browser; ``None`` reports nothing."""
+
     def __init__(
         self,
         graph: "BaseGraph",
@@ -119,13 +132,18 @@ class VisualLayerHandlers:
         allows: Callable[[AccessTier], bool],
         context: Optional["SessionContext"] = None,
         channel: LayoutChannel = PATCH,
+        patch_viewport_centre: Optional[Callable[[], Optional[Tuple[float, float]]]] = None,
     ):
         """Set up the handlers for ``graph``'s canvas.
 
         Args:
             channel: The props fields this canvas lays its nodes out with.
+            patch_viewport_centre: On a stage canvas, returns the centre of the level's patch
+                canvas's last-known viewport, or ``None`` when that is not mounted. A node made
+                on an empty stage lands there in the patch.
         """
         self.channel = channel
+        self.patch_viewport_centre = patch_viewport_centre
         self.graph = graph
         self.editor = editor
         self.skin_factory = skin_factory
@@ -153,16 +171,29 @@ class VisualLayerHandlers:
         """
         logger.info(f"🔄 Validation: {result.total_changes} changes in {result.validation_time_ms:.2f}ms")
 
-        if result.canvas_size is not None:
-            self._apply_canvas_resize(*result.canvas_size)
+        canvas_size = result.canvas_sizes.get(self.channel.name)
+        if canvas_size is not None:
+            self._apply_canvas_resize(*canvas_size)
+
+        # Adds and redraws collect into one batch; removals stay per-edge
+        # (they are rare, and a removal carries no payload worth batching).
+        batch: list[dict] = []
 
         for node_id, reason in result.nodes.items():
             if reason == ChangeReason.NODE_ADDED:
                 node_wrapper = self.graph.get_node_wrapper(node_id)
-                if node_wrapper and node_id not in self.node_panels:
-                    position = node_wrapper.node.props.get_position(self.channel)
-                    self.add_node_visual(node_wrapper.node, position)
+                if (
+                    node_wrapper
+                    and node_id not in self.node_panels
+                    and self.channel.includes(node_wrapper.node.props)
+                ):
+                    self.add_node_visual(node_wrapper.node, self._canvas_position(node_wrapper.node))
                     logger.debug(f"  + Added node UI: {node_id}")
+
+            elif reason == ChangeReason.NODE_STAGE_CHANGED:
+                # Only a channel with a membership field cares who is in it.
+                if self.channel.member is not None:
+                    self._follow_membership(node_id, batch)
 
             elif reason == ChangeReason.NODE_REMOVED:
                 if node_id in self.node_panels:
@@ -174,8 +205,7 @@ class VisualLayerHandlers:
                 if ui_node:
                     moved_wrapper = self.graph.get_node_wrapper(node_id)
                     if moved_wrapper:
-                        new_position = moved_wrapper.node.props.get_position(self.channel)
-                        self.update_node_position(node_id, new_position)
+                        self.update_node_position(node_id, self._canvas_position(moved_wrapper.node))
                         logger.debug(f"  ↔ Moved node: {node_id}")
 
             elif reason.requires_redraw():
@@ -184,16 +214,14 @@ class VisualLayerHandlers:
                     self.refresh_node_visual(ui_node, reason)
                     logger.debug(f"  🔄 Redrawn node: {node_id} ({reason.value})")
 
-        # Adds and redraws collect into one batch; removals stay per-edge
-        # (they are rare, and a removal carries no payload worth batching).
-        batch: list[dict] = []
-
         for edge_uuid, reason in result.edges.items():
             if reason == ChangeReason.EDGE_ADDED:
                 edge_wrapper = self.graph.get_edge_wrapper(edge_uuid)
                 if edge_wrapper and edge_uuid not in self.edge_states:
-                    batch.append(self._register_edge_visual(edge_wrapper))
-                    logger.debug(f"  + Added edge UI: {edge_uuid}")
+                    payload = self._register_edge_visual(edge_wrapper)
+                    if payload is not None:
+                        batch.append(payload)
+                        logger.debug(f"  + Added edge UI: {edge_uuid}")
 
             elif reason == ChangeReason.EDGE_REMOVED:
                 if edge_uuid in self.edge_states:
@@ -211,6 +239,75 @@ class VisualLayerHandlers:
 
         self.canvas_vue.update()
 
+    def _canvas_position(self, node: BaseNode) -> Tuple[float, float]:
+        """Return the node's position on this canvas, the channel origin included."""
+        position = node.props.get_position(self.channel)
+        if not self.channel.origin:
+            return position
+        return self.channel.to_canvas(*position)
+
+    def _includes_node(self, node_id: str) -> bool:
+        """Whether this canvas shows the node: it exists and its channel includes it."""
+        wrapper = self.graph.get_node_wrapper(node_id)
+        return wrapper is not None and self.channel.includes(wrapper.node.props)
+
+    def shows_node(self, node_id: str) -> bool:
+        """Whether this canvas shows the node (it exists and the channel includes it)."""
+        return self._includes_node(node_id)
+
+    def shows_edge(self, edge_id: str) -> bool:
+        """Whether this canvas draws the edge under ``edge_id``."""
+        wrapper = self.graph.get_edge_wrapper(edge_id)
+        return wrapper is not None and self._includes_edge(wrapper)
+
+    def _includes_edge(self, edge_wrapper: EdgeWrapper) -> bool:
+        """Whether this canvas draws the edge.
+
+        A stage canvas draws an edge only when it is on stage and both end nodes are included.
+        """
+        if not self.channel.stage:
+            return True
+        return (
+            edge_wrapper.on_stage
+            and self._includes_node(edge_wrapper.source_node_id)
+            and self._includes_node(edge_wrapper.sink_node_id)
+        )
+
+    def included_node_count(self) -> int:
+        """Return how many of the graph's nodes this canvas shows."""
+        if self.channel.member is None:
+            return len(self.graph.node_wrappers)
+        return sum(1 for w in self.graph.node_wrappers.values() if self.channel.includes(w.node.props))
+
+    def included_edge_count(self) -> int:
+        """Return how many of the graph's edges this canvas draws."""
+        if not self.channel.stage:
+            return len(self.graph.edge_wrappers)
+        return sum(1 for e in self.graph.edge_wrappers.values() if self._includes_edge(e))
+
+    def _follow_membership(self, node_id: str, batch: list[dict]) -> None:
+        """Mount or unmount a node whose channel membership changed.
+
+        Mounting also registers the node's eligible edges into ``batch``. Unmounting drops the
+        node's edges with it.
+        """
+        wrapper = self.graph.get_node_wrapper(node_id)
+        included = wrapper is not None and self.channel.includes(wrapper.node.props)
+        if included and wrapper is not None and node_id not in self.node_panels:
+            self.add_node_visual(wrapper.node, self._canvas_position(wrapper.node))
+            for edge_wrapper in list(self.graph.edge_wrappers.values()):
+                if node_id not in (edge_wrapper.source_node_id, edge_wrapper.sink_node_id):
+                    continue
+                if edge_wrapper.edge_id in self.edge_states:
+                    continue
+                payload = self._register_edge_visual(edge_wrapper)
+                if payload is not None:
+                    batch.append(payload)
+        elif not included and node_id in self.node_panels:
+            self.remove_node_visual(node_id)
+            if self.on_node_unmounted is not None:
+                self.on_node_unmounted(node_id)
+
     def sync_with_graph(self):
         """Synthesise a full-add ValidationResult and process it via on_validated.
 
@@ -218,8 +315,8 @@ class VisualLayerHandlers:
         event loop for its duration. for a large graphs
         (>=``CHUNKED_LOAD_THRESHOLD`` nodes) — see :meth:`sync_with_graph_chunked`
         """
-        node_count = len(self.graph.node_wrappers)
-        edge_count = len(self.graph.edge_wrappers)
+        node_count = self.included_node_count()
+        edge_count = self.included_edge_count()
         logger.info(f"🔄 Initial sync: {node_count} nodes, {edge_count} edges")
         try:
             # Measure the full node/edge render (on_validated → per-node
@@ -245,6 +342,8 @@ class VisualLayerHandlers:
         were addressed to the component that no longer exists.
         """
         self.resync_edges()
+        if self.on_canvas_mounted is not None:
+            self.on_canvas_mounted()
 
     def resync_edges(self) -> None:
         """Re-emit every edge of this graph as one batch, drawn or not.
@@ -256,9 +355,8 @@ class VisualLayerHandlers:
         """
         if not self.graph.edge_wrappers:
             return
-        batch = [
-            self._register_edge_visual(edge_wrapper) for edge_wrapper in self.graph.edge_wrappers.values()
-        ]
+        payloads = [self._register_edge_visual(e) for e in self.graph.edge_wrappers.values()]
+        batch = [payload for payload in payloads if payload is not None]
         if batch:
             self.canvas_vue.emit_sync_event(SyncAllEdgesEvent(edges=batch))
 
@@ -300,18 +398,19 @@ class VisualLayerHandlers:
         nodes — which is why a graph shows its edges before the overlay says the
         nodes are done. ``on_validated`` then skips them here, as already sent.
         """
-        node_count = len(self.graph.node_wrappers)
-        edge_count = len(self.graph.edge_wrappers)
+        node_count = self.included_node_count()
+        edge_count = self.included_edge_count()
         logger.info(f"🔄 Initial sync (chunked): {node_count} nodes, {edge_count} edges")
         try:
             render_t0 = time.perf_counter()
 
             # Snapshot the wrappers: the loop awaits, so the graph's own dict
             # could be mutated under us by an event that lands mid-load.
-            for index, wrapper in enumerate(list(self.graph.node_wrappers.values()), start=1):
+            wrappers = [w for w in self.graph.node_wrappers.values() if self.channel.includes(w.node.props)]
+            for index, wrapper in enumerate(wrappers, start=1):
                 node = wrapper.node
                 if node.node_id not in self.node_panels:
-                    self.add_node_visual(node, node.props.get_position(self.channel))
+                    self.add_node_visual(node, self._canvas_position(node))
                 if on_progress is not None:
                     on_progress(index, node_count)
                 await asyncio.sleep(0)
@@ -430,7 +529,10 @@ class VisualLayerHandlers:
     # -- shared scaffolding for the two sync paths ----------------------------
 
     def _full_add_result(self, *, include_nodes: bool = True) -> ValidationResult:
-        """Synthesise the "everything was just added" result the sync paths process."""
+        """Synthesise the "everything was just added" result the sync paths process.
+
+        Lists every graph node and edge; ``on_validated`` skips the ones this canvas does not show.
+        """
         return ValidationResult(
             nodes=(
                 {node_id: ChangeReason.NODE_ADDED for node_id in self.graph.node_wrappers.keys()}
@@ -438,7 +540,7 @@ class VisualLayerHandlers:
                 else {}
             ),
             edges={edge_uuid: ChangeReason.EDGE_ADDED for edge_uuid in self.graph.edge_wrappers.keys()},
-            canvas_size=(self.graph.canvas_width, self.graph.canvas_height),
+            canvas_sizes={self.channel.name: self.graph.canvas_extent(self.channel)},
             validation_time_ms=0.0,
         )
 
@@ -475,6 +577,11 @@ class VisualLayerHandlers:
 
     def _notify_compatibility(self) -> None:
         """One-time compatibility summary for this load."""
+        reports = (
+            self.reports_compatibility if self.reports_compatibility is not None else not self.channel.stage
+        )
+        if not reports:
+            return
         node_warning_count = sum(1 for w in self.graph.node_wrappers.values() if w.state.has_warning())
         library_messages = list(getattr(self.graph, "library_compatibility_findings", []))
         summary = summarize_compatibility(node_warning_count, library_messages)
@@ -554,6 +661,7 @@ class VisualLayerHandlers:
         if node_id not in self.node_panels:
             return False
 
+        # Unfiltered: remove_edge_visual skips an edge this canvas never drew.
         edges_to_remove = [
             edge_id
             for edge_id, wrapper in self.graph.edge_wrappers.items()
@@ -591,7 +699,7 @@ class VisualLayerHandlers:
         for node_id in node_ids:
             wrapper = self.graph.get_node_wrapper(node_id)
             if wrapper is not None:
-                self.update_node_position(node_id, wrapper.node.props.get_position(self.channel))
+                self.update_node_position(node_id, self._canvas_position(wrapper.node))
 
     def resync_size(self, node_id: str) -> None:
         """Put a node's card in the browser back to its model size; an unknown id is skipped."""
@@ -614,12 +722,15 @@ class VisualLayerHandlers:
     # Edge visual management
     # -------------------------------------------------------------------------
 
-    def _register_edge_visual(self, edge_wrapper: EdgeWrapper) -> dict:
+    def _register_edge_visual(self, edge_wrapper: EdgeWrapper) -> Optional[dict]:
         """Record an edge's visual state and return its sync payload.
 
         Registers only — the caller batches the returned payload into the
-        pass's single ``SyncAllEdgesEvent``.
+        pass's single ``SyncAllEdgesEvent``. Returns ``None``, registering nothing, for an
+        edge this canvas does not draw.
         """
+        if not self._includes_edge(edge_wrapper):
+            return None
         edge_id = edge_wrapper.edge_id
         logger.debug(
             f"🔗 Creating edge visual: "
@@ -657,6 +768,8 @@ class VisualLayerHandlers:
         pass itself batches through ``_register_edge_visual``.
         """
         payload = self._register_edge_visual(edge_wrapper)
+        if payload is None:
+            return False
         self.canvas_vue.emit_sync_event(SyncAllEdgesEvent(edges=[payload]))
         return True
 
@@ -825,6 +938,15 @@ class VisualLayerHandlers:
         else:
             ui.notify("Failed to delete elements", type="warning")
 
+    # Class default too, so an instance built without __init__ has no patch canvas to ask.
+    patch_viewport_centre: Optional[Callable[[], Optional[Tuple[float, float]]]] = None
+
+    def _patch_fallback(self) -> Optional[Tuple[float, float]]:
+        """The patch position of a node made on an empty stage, or ``None`` without a patch viewport."""
+        if not self.channel.stage or self.patch_viewport_centre is None:
+            return None
+        return self.patch_viewport_centre()
+
     @handles_event(NodeCreateRequestEvent)
     def process_node_creation_request(self, event: NodeCreateRequestEvent):
         """Handle node creation requests."""
@@ -835,6 +957,8 @@ class VisualLayerHandlers:
             wrapper = self.editor.create_wrapper(
                 event.registryKey,
                 (event.position["x"], event.position["y"]),
+                self.channel,
+                self._patch_fallback(),
             )
             if wrapper:
                 ui.notify(f"Created {event.registryKey} node", type="positive")
@@ -866,6 +990,8 @@ class VisualLayerHandlers:
                 event.edge_id,
                 (event.position["x"], event.position["y"]),
                 registry_key=reroute_cls.class_identity.registry_key,
+                channel=self.channel,
+                patch_fallback=self._patch_fallback(),
             )
             if reroute_id:
                 ui.notify("Inserted reroute", type="positive")
@@ -874,6 +1000,20 @@ class VisualLayerHandlers:
         except Exception as e:
             logger.error(f"Error splitting edge with reroute: {e}")
             ui.notify(f"Error inserting reroute: {e}", type="negative")
+
+    @handles_event(AddToStageEvent)
+    def process_add_to_stage(self, event: AddToStageEvent):
+        """Put the nodes on the stage (one undoable op). Runs on a patch canvas only."""
+        logger.info(f"Adding {len(event.node_ids)} nodes to the stage")
+        if not self.editor.add_to_stage(list(event.node_ids)):
+            ui.notify("Nothing to add to the stage", type="warning")
+
+    @handles_event(RemoveFromStageEvent)
+    def process_remove_from_stage(self, event: RemoveFromStageEvent):
+        """Take the nodes off the stage (one undoable op); they stay in the patch."""
+        logger.info(f"Removing {len(event.node_ids)} nodes from the stage")
+        if not self.editor.remove_from_stage(list(event.node_ids)):
+            ui.notify("Nothing to remove from the stage", type="warning")
 
     @handles_event(DissolveRerouteEvent)
     def process_dissolve_reroute(self, event: DissolveRerouteEvent):
@@ -1018,7 +1158,7 @@ class VisualLayerHandlers:
             if not is_clone_source(source_cls):
                 ui.notify("This node cannot be cloned into a library", type="warning")
                 return
-            x, y = wrapper.node.props.get_position(self.channel)
+            x, y = self.channel.to_canvas(*wrapper.node.props.get_position(self.channel))
             position = (x + _CLONE_OFFSET_X, y)
         if position is None:
             return

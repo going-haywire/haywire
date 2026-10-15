@@ -244,7 +244,7 @@ class TestAReloadedPlacement:
         viewport = Viewport(zoom=1.5, pan_x=-4000.0, pan_y=-3500.0)
         old_canvas = MagicMock()
         old_canvas.zoom_container.get_viewport.return_value = viewport
-        editor._levels[_PLACEMENT_KEY].canvas_manager = old_canvas
+        editor._levels[_PLACEMENT_KEY].canvases["patch"] = old_canvas
         editor._level_panels = MagicMock()
 
         document.editor.graph.subgraphs[_PLACEMENT_KEY] = _placement_definition(_PLACEMENT_KEY)
@@ -394,7 +394,7 @@ class TestADetachedPlacement:
         editor, context, document = _editor()
         _open_placement(editor, context)
         level = editor._levels[_PLACEMENT_KEY]
-        manager = level.canvas_manager = MagicMock()
+        manager = level.canvases["patch"] = MagicMock()
         context.data = {EditState: SimpleNamespace(active_graph=level.container.editor.graph)}
         editor._level_panels = MagicMock()
 
@@ -434,7 +434,7 @@ class TestADetachedPlacement:
     def test_undo_of_the_detach_follows_back_and_locks(self):
         editor, context, document = _editor()
         _open_placement(editor, context)
-        manager = editor._levels[_PLACEMENT_KEY].canvas_manager = MagicMock()
+        manager = editor._levels[_PLACEMENT_KEY].canvases["patch"] = MagicMock()
         definition = _shown(editor, _PLACEMENT_KEY).definition
         _detach(document, definition, "subgraph_new")
         editor._prune_dead_levels(context)
@@ -456,7 +456,7 @@ class TestADetachedPlacement:
         editor, context, document = _editor()
         _open_placement(editor, context)
         level = editor._levels[_PLACEMENT_KEY]
-        manager = level.canvas_manager = MagicMock()
+        manager = level.canvases["patch"] = MagicMock()
         definition = _shown(editor, _PLACEMENT_KEY).definition
         _detach(document, definition, "subgraph_new")
         editor._prune_dead_levels(context)

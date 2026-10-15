@@ -72,9 +72,11 @@ def test_canvas_size_reads_the_channel(graph_with_library_system):
     wrapper.node.props.posX = 0.0
 
     graph._check_canvas_size(SWAPPED)
-    assert graph.canvas_width > _CANVAS_MIN_SIZE
-    assert graph.canvas_height == _CANVAS_MIN_SIZE
+    swapped_width, swapped_height = graph.canvas_extent(SWAPPED)
+    assert swapped_width > _CANVAS_MIN_SIZE
+    assert swapped_height == _CANVAS_MIN_SIZE
 
     graph._check_canvas_size(PATCH)
     assert graph.canvas_width == _CANVAS_MIN_SIZE
     assert graph.canvas_height > _CANVAS_MIN_SIZE
+    assert graph.canvas_extent(SWAPPED) == (swapped_width, swapped_height)

@@ -571,6 +571,16 @@ class ToggleLock(EditorCommand):
     default_keys: ClassVar[tuple[str, ...]] = ("Mod+E",)
 
 
+@dataclass(frozen=True, kw_only=True)
+class ToggleStageView(EditorCommand):
+    """Switch the focused graph editor between its patch and its stage."""
+
+    command_id: ClassVar[str] = "toggle_stage_view"
+    label: ClassVar[str] = "Patch / Stage"
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+Shift+E",)
+    access: ClassVar[AccessTier] = AccessTier.VIEW
+
+
 __all__ = [
     # Observations
     "ActiveGraphMoved",
@@ -603,4 +613,5 @@ __all__ = [
     "Redo",
     "SelectAll",
     "ToggleLock",
+    "ToggleStageView",
 ]

@@ -22,7 +22,7 @@ import uuid
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 
 from nicegui import ui
 
@@ -32,6 +32,7 @@ from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.modals.confirm_modal import confirm_modal
 from haywire.core.access import AccessTier
+from haywire.core.node.layout import PATCH, STAGE
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import react_on
 from haywire.core.signals.keys import format_combo
@@ -53,6 +54,7 @@ from haywire.core.signals import (
     SelectAll,
     SelectionMoved,
     ToggleLock,
+    ToggleStageView,
     Undo,
 )
 
@@ -100,6 +102,9 @@ def level_key_for(container: "GraphContainer") -> str:
     return _LEVEL_SEPARATOR.join(reversed(keys))
 
 
+#: The views a level can show, and the layout channel each draws.
+VIEWS = {"patch": PATCH, "stage": STAGE}
+
 #: Why a level inside a macro placement refuses to unlock (toast).
 _PLACEMENT_REFUSAL = "Inside a macro placement this level stays locked. Use Edit Macro… to change the macro."
 
@@ -144,8 +149,13 @@ class _Level:
 
     key: str
     container: "GraphContainer"
-    canvas_manager: Optional[GraphCanvasManager] = None
+    view: str = "patch"
+    """The view on screen: a key of ``VIEWS``."""
+    canvases: dict[str, GraphCanvasManager] = field(default_factory=dict)
+    """The canvas of each view mounted so far; the stage mounts on its first showing."""
     panel: Optional["Element"] = field(default=None, repr=False)
+    view_panels: Optional[Any] = field(default=None, repr=False)
+    """The keep-alive panels inside ``panel``, one per mounted view."""
     watched_props: Optional[Any] = field(default=None, repr=False)
     """The card's ``props`` bag this level's name is read from, while watched."""
     locked: bool = False
@@ -156,6 +166,11 @@ class _Level:
     """The name of the level's tab panel. Independent of ``key``: the client caches a panel by
     name, so a re-key must not rename it (a new name mounts a second canvas, and undo would
     revive the stale cached one)."""
+
+    @property
+    def canvas_manager(self) -> Optional[GraphCanvasManager]:
+        """The canvas of the view on screen, or ``None`` while it is not mounted."""
+        return self.canvases.get(self.view)
 
 
 @editor(
@@ -217,6 +232,7 @@ class GraphEditor(BaseEditor):
         self._redo_button = None  # ui.button — redo
         self._lock_button = None  # ui.button — lock toggle
         self._lock_tooltip = None  # ui.tooltip — names the action a click on the lock takes
+        self._view_buttons: dict[str, Any] = {}  # ui.button per view — the Patch | Stage switch
 
     # ------------------------------------------------------------------
     # levels
@@ -300,13 +316,16 @@ class GraphEditor(BaseEditor):
         """Return a level for ``container``.
 
         Locked when the graph's ``open_locked`` is set, or always when the level is
-        inside a macro placement.
+        inside a macro placement. Opens on the graph's ``open_view``.
         """
         inside = inside_placement(container)
+        props = container.editor.graph.props
+        view = getattr(props, "open_view", "patch")
         return _Level(
             key=key,
             container=container,
-            locked=inside or container.editor.graph.props.open_locked,
+            view=view if view in VIEWS else "patch",
+            locked=inside or props.open_locked,
             inside_placement=inside,
         )
 
@@ -325,8 +344,8 @@ class GraphEditor(BaseEditor):
         if not locked and not context.can_edit():
             return False
         level.locked = locked
-        if level.canvas_manager is not None:
-            level.canvas_manager.set_locked(locked)
+        for canvas in level.canvases.values():
+            canvas.set_locked(locked)
         if key == self._active_level:
             self._claim_session_state(context)
         return True
@@ -372,6 +391,39 @@ class GraphEditor(BaseEditor):
             return
         self._render_level_bar(context)
         self._update_breadcrumb(context)
+
+    def _switch_view(
+        self, context: "SessionContext", level_key: str, view: str, *, claim: bool = True
+    ) -> None:
+        """Show ``view`` of the level under ``level_key``, mounting its canvas on first sight.
+
+        The canvas left empties its selection. When the level is on screen, the session's selection
+        carries over to the canvas shown, pruned to what that canvas draws. Does nothing for an unknown
+        level or view, or when ``view`` is already showing.
+        """
+        level = self._levels.get(level_key)
+        if level is None or view not in VIEWS or view == level.view:
+            return
+        self._hide_toolbars()
+        leaving = level.canvas_manager
+        if leaving is not None:
+            leaving.clear_selection()
+        level.view = view
+        if view not in level.canvases:
+            self._mount_view(context, level, view)
+        else:
+            level.canvases[view].set_locked(level.locked)
+        if level.view_panels is not None:
+            # A panel the client has not rendered yet mounts its canvas from scratch here and asks for its
+            # edges itself, as a level does.
+            level.view_panels.set_value(view)
+        if level_key == self._active_level:
+            shown = level.canvas_manager
+            if shown is not None:
+                shown.show_session_selection()
+            if claim:
+                self._claim_session_state(context)
+        self._update_view_switch(level)
 
     def _switch_level(self, context: "SessionContext", key: str, *, claim: bool = True) -> None:
         """Show the level under ``key`` and, when ``claim``, hand it the session's graph state.
@@ -478,16 +530,21 @@ class GraphEditor(BaseEditor):
     ) -> None:
         """Show ``container`` under ``level``'s key, with a new canvas, in place of ``level``.
 
-        The new canvas keeps the old one's zoom and pan. A re-pointed level on
-        screen claims the session for the new container when ``claim``.
+        The replacement shows the view the old level showed. Each new canvas keeps the zoom and
+        pan of the old canvas of its view. A re-pointed level on screen claims the session for
+        the new container when ``claim``.
         """
         replacement = self._new_level(level.key, container)
-        viewport = level.canvas_manager.zoom_container.get_viewport() if level.canvas_manager else None
+        replacement.view = level.view
+        viewports = {view: canvas.zoom_container.get_viewport() for view, canvas in level.canvases.items()}
         self._teardown_level(level)
         self._levels[level.key] = replacement
         self._watch_level_name(replacement)
         if self._level_panels is not None:
-            self._mount_level(context, replacement, viewport=viewport)
+            self._mount_level(context, replacement, viewport=viewports.get(replacement.view))
+            for view, viewport in viewports.items():
+                if view != replacement.view and viewport is not None:
+                    self._mount_view(context, replacement, view, viewport=viewport)
         if level.key == self._active_level:
             self._switch_level(context, level.key, claim=claim)
         else:
@@ -522,8 +579,8 @@ class GraphEditor(BaseEditor):
             moved.inside_placement = inside_placement(moved.container)
             if moved.inside_placement and not moved.locked:
                 moved.locked = True
-                if moved.canvas_manager is not None:
-                    moved.canvas_manager.set_locked(True)
+                for canvas in moved.canvases.values():
+                    canvas.set_locked(True)
             self._watch_level_name(moved)
             if self._active_level == old:
                 self._active_level = new
@@ -690,6 +747,14 @@ class GraphEditor(BaseEditor):
         level = self._levels.get(self._active_level)
         locked = level.locked if level is not None else False
         return allows(context.can_access, locked, type(command).access)
+
+    @react_on(ToggleStageView)
+    def _on_toggle_stage_view(self, context: "SessionContext", event: ToggleStageView) -> None:
+        """Switch the level on screen between its patch and its stage."""
+        level = self._levels.get(self._active_level)
+        if level is None:
+            return
+        self._switch_view(context, self._active_level, "patch" if level.view == "stage" else "stage")
 
     @react_on(ToggleLock)
     def _on_toggle_lock(self, context: "SessionContext", event: ToggleLock) -> None:
@@ -942,6 +1007,7 @@ class GraphEditor(BaseEditor):
                     # empty at the document level, so the header looks the same
                     # as it always did for an ordinary graph.
                     self._breadcrumb = ui.row().classes("items-center gap-1 min-w-0 no-wrap overflow-hidden")
+                    self._draw_view_switch(context)
                     self._lock_button = hui.icon_action(
                         hui.icon.unlocked,
                         on_click=lambda: context.session.publish(
@@ -995,29 +1061,80 @@ class GraphEditor(BaseEditor):
     ) -> None:
         """Give ``level`` a panel in the level panels and build its canvas into it.
 
-        The canvas opens on ``viewport``, or fitted to its content when ``None``.
+        The level's panel holds a keep-alive container with one panel per view; only the view on
+        screen is built here (see ``_mount_view``). The canvas opens on ``viewport``, or fitted to
+        its content when ``None``.
         """
         if self._level_panels is None:
             return
         with self._level_panels:
             level.panel = ui.tab_panel(level.panel_name).style("width: 100%; height: 100%; padding: 0;")
         with level.panel:
+            level.view_panels = (
+                ui.tab_panels(value=level.view, animated=False)
+                .props("keep-alive")
+                .style("width: 100%; height: 100%; overflow: hidden;")
+            )
+        self._mount_view(context, level, level.view, viewport=viewport)
+
+    def _mount_view(
+        self, context: "SessionContext", level: _Level, view: str, viewport: Optional[Viewport] = None
+    ) -> None:
+        """Build ``view``'s canvas into a panel of ``level``'s keep-alive container.
+
+        The first canvas a level mounts reports the load's compatibility summary; later ones do not.
+        """
+        if level.view_panels is None:
+            return
+        reports = not level.canvases
+        with level.view_panels:
+            panel = ui.tab_panel(view).style("width: 100%; height: 100%; padding: 0;")
+        with panel:
             canvas_area = ui.element("div").style(
                 "flex: 1; width: 100%; height: 100%; overflow: hidden; min-height: 0; position: relative;"
             )
         with canvas_area:
-            level.canvas_manager = self._build_canvas(context, level.container, viewport=viewport)
-        if level.canvas_manager is not None:
-            level.canvas_manager.set_locked(level.locked)
+            manager = self._build_canvas(
+                context,
+                level.container,
+                viewport=viewport,
+                view=view,
+                reports_compatibility=reports,
+                patch_viewport_centre=lambda: self._patch_viewport_centre(level),
+            )
+        if manager is not None:
+            level.canvases[view] = manager
+            manager.set_locked(level.locked)
+
+    @staticmethod
+    def _patch_viewport_centre(level: _Level) -> Optional[tuple[float, float]]:
+        """Where ``level``'s patch canvas is looking, or ``None`` while it is not mounted.
+
+        A stage canvas asks this to place a node made on an empty stage. The patch canvas stays
+        mounted (keep-alive) while the stage shows, so its last-known viewport is current.
+        """
+        patch_canvas = level.canvases.get("patch")
+        return patch_canvas.viewport_centre() if patch_canvas is not None else None
 
     def _build_canvas(
-        self, context: "SessionContext", entry: "GraphContainer", viewport: Optional[Viewport] = None
+        self,
+        context: "SessionContext",
+        entry: "GraphContainer",
+        viewport: Optional[Viewport] = None,
+        view: str = "patch",
+        reports_compatibility: Optional[bool] = None,
+        patch_viewport_centre: Optional[Callable[[], Optional[tuple[float, float]]]] = None,
     ) -> Optional[GraphCanvasManager]:
-        """Instantiate a GraphCanvasManager over ``entry`` in the current slot, opened on ``viewport``."""
+        """Instantiate a GraphCanvasManager over ``entry`` in the current slot, opened on ``viewport``.
+
+        ``view`` picks the layout channel the canvas draws. ``reports_compatibility`` overrides
+        whether it reports the load's compatibility summary; ``None`` leaves that to the patch.
+        """
         app = self._project_state
         if app is None:
             return None
 
+        channel = VIEWS[view]
         manager = GraphCanvasManager(
             editor=entry.editor,
             skin_factory=app.skin_factory,
@@ -1025,12 +1142,20 @@ class GraphEditor(BaseEditor):
             panel_registry=app.panel_registry,
             session=context.session,
             on_user_event=lambda: self._on_canvas_gesture(context, manager),
+            channel=channel,
+            patch_viewport_centre=patch_viewport_centre,
         )
+        if reports_compatibility is not None:
+            manager.visual_layer.reports_compatibility = reports_compatibility
         # Center the viewport once the Vue component signals it is mounted
         # (first transform-changed event). fit_to_content for graphs with nodes;
-        # center on canvas midpoint (3750, 3750) for empty graphs.
+        # center on canvas midpoint (3750, 3750) for empty graphs, and on the stage
+        # origin corner for an empty stage.
         zoom_container = manager.zoom_container
-        node_count = len(entry.editor.graph.node_wrappers)
+        if channel.stage:
+            node_count = manager.visual_layer.included_node_count()
+        else:
+            node_count = len(entry.editor.graph.node_wrappers)
         if viewport is not None:
 
             def restore_viewport() -> None:
@@ -1041,6 +1166,10 @@ class GraphEditor(BaseEditor):
             on_nodes_mounted = restore_viewport
         elif node_count:
             zoom_container._on_ready = zoom_container.center_on_content
+            on_nodes_mounted = zoom_container.center_on_content
+        elif channel.stage:
+            stage_corner = (channel.origin + 400, channel.origin + 300)
+            zoom_container._on_ready = lambda: zoom_container.center_on(*stage_corner)
             on_nodes_mounted = zoom_container.center_on_content
         else:
             zoom_container._on_ready = lambda: zoom_container.center_on(3750, 3750)
@@ -1060,14 +1189,14 @@ class GraphEditor(BaseEditor):
         return manager
 
     def _teardown_canvas(self, level: _Level) -> None:
-        """Release ``level``'s canvas, leaving the level itself in place."""
-        if level.canvas_manager is None:
-            return
-        try:
-            level.canvas_manager.cleanup()
-        except Exception as exc:
-            logger.warning(f"GraphEditor: canvas cleanup raised for level '{level.key}': {exc}")
-        level.canvas_manager = None
+        """Release every canvas of ``level``, leaving the level itself in place."""
+        for view, canvas in level.canvases.items():
+            try:
+                canvas.cleanup()
+            except Exception as exc:
+                logger.warning(f"GraphEditor: {view} canvas cleanup raised for level '{level.key}': {exc}")
+        level.canvases.clear()
+        level.view_panels = None
 
     def _teardown_level(self, level: _Level) -> None:
         """Release ``level`` entirely — its name watch, its canvas and its panel."""
@@ -1081,11 +1210,11 @@ class GraphEditor(BaseEditor):
             level.panel = None
 
     def _hide_toolbars(self) -> None:
-        """Hide every level's floating selection toolbar."""
+        """Hide the floating selection toolbar of every canvas of every level."""
         for level in self._levels.values():
-            manager = level.canvas_manager
-            if manager and manager._toolbar_provider:
-                manager._toolbar_provider.hide()
+            for manager in level.canvases.values():
+                if manager._toolbar_provider:
+                    manager._toolbar_provider.hide()
 
     # ------------------------------------------------------------------
     # descend / ascend
@@ -1270,6 +1399,7 @@ class GraphEditor(BaseEditor):
             self._graph_name_label.classes(remove="hw-text-body hw-text-dim", add="hw-text-muted")
         self._update_undo_redo_buttons(document)
         self._update_lock_button(context)
+        self._update_view_switch(self._levels.get(self._active_level))
         self._sync_tab_dirty(document)
         self._update_breadcrumb(context)
 
@@ -1296,6 +1426,44 @@ class GraphEditor(BaseEditor):
         """Return whether the canvas on screen allows editing, lock included."""
         manager = self._canvas_manager
         return True if manager is None else manager.allows(AccessTier.EDIT)
+
+    def _draw_view_switch(self, context: "SessionContext") -> None:
+        """Draw the Patch | Stage switch into the header row being built."""
+        self._view_buttons = {}
+        with (
+            ui.row()
+            .classes("items-center gap-0 no-wrap flex-shrink-0")
+            .style("border: 1px solid var(--hw-border); border-radius: 4px;")
+        ):
+            for view, label in (("patch", "Patch"), ("stage", "Stage")):
+                button = (
+                    ui.button(label, on_click=lambda _e=None, v=view: self._on_view_button(context, v))
+                    .props("flat dense no-caps size=xs")
+                    .classes("px-2 text-xs hw-shell-toolbar-btn")
+                    .style("border-radius: 3px;")
+                )
+                self._view_buttons[view] = button
+                with button:
+                    ui.tooltip(
+                        f"{label} ({format_combo(ToggleStageView.default_keys[0], mac=False)} toggles)"
+                    )
+        self._update_view_switch(self._levels.get(self._active_level))
+
+    def _on_view_button(self, context: "SessionContext", view: str) -> None:
+        """Show ``view`` of the level on screen."""
+        self._switch_view(context, self._active_level, view)
+
+    def _update_view_switch(self, level: Optional[_Level]) -> None:
+        """Mark the button of the view ``level`` shows; ``level`` is the one on screen."""
+        if level is None or level.key != self._active_level:
+            return
+        for view, button in self._view_buttons.items():
+            shown = view == level.view
+            button.classes(
+                add="hw-shell-toolbar-btn-active font-medium" if shown else None,
+                remove=None if shown else "hw-shell-toolbar-btn-active font-medium",
+            )
+            button.props(f"aria-pressed={'true' if shown else 'false'}")
 
     def _update_lock_button(self, context: "SessionContext") -> None:
         """Show the lock icon of the level on screen, and the action a click takes; disabled below

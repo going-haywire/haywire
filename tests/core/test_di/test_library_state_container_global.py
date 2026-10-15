@@ -5,6 +5,14 @@ from unittest.mock import MagicMock
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _restore_library_state_container(monkeypatch):
+    """Put the ambient container back after each test, whatever it set."""
+    import haywire.core.di.context as ctx_mod
+
+    monkeypatch.setattr(ctx_mod, "_library_state_container", ctx_mod._library_state_container)
+
+
 def test_get_raises_before_set():
     import haywire.core.di.context as ctx_mod
 

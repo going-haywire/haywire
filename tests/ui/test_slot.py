@@ -271,8 +271,9 @@ def test_render_area_creates_tab_panels_and_draws_active(monkeypatch) -> None:
     # Exactly one tab_panels container; one tab_panel per binding.
     assert len(panels_created) == 1
     assert panels_created[0].visible is True
-    assert panels_created[0].value == "a:e:1"
-    assert [name for name, _ in panel_created] == ["a:e:1", "a:e:2"]
+    # Panel names are minted per binding, not derived from the binding id.
+    assert [name for name, _ in panel_created] == [slot._panel_names["a:e:1"], slot._panel_names["a:e:2"]]
+    assert panels_created[0].value == slot._panel_names["a:e:1"]
     # Only the active binding was drawn; the inactive one is still lazy.
     w2 = _binding(slot, "a:e:2")
     assert len(_fake_instance(w1).draw_calls) == 1
@@ -304,7 +305,7 @@ def test_switch_to_toggles_active_panel_without_clearing(monkeypatch) -> None:
     assert changed is True
     assert slot.active_key == "a:e:2"
     # DOM-level: value flipped, container itself untouched.
-    assert area.value == "a:e:2"
+    assert area.value == slot._panel_names["a:e:2"]
     assert area.clear_calls == 0
     # Second binding was lazy-drawn on first activation.
     assert len(_fake_instance(w2).draw_calls) == 1
@@ -421,7 +422,7 @@ def test_switch_to_disambiguates_by_payload(monkeypatch) -> None:
 
     assert changed is True
     assert slot.active_binding is w_b
-    assert area.value == "studio:editor:graph_editor::/b.haywire"
+    assert area.value == slot._panel_names["studio:editor:graph_editor::/b.haywire"]
 
 
 def test_find_binding_warns_on_ambiguous_match(caplog) -> None:
@@ -475,10 +476,10 @@ def test_add_binding_creates_panel_and_optionally_activates(monkeypatch) -> None
     w2 = slot.find_binding("a:e:2")
 
     # BasePanel was created for the new binding.
-    assert [name for name, _ in panel_created] == ["a:e:1", "a:e:2"]
+    assert [name for name, _ in panel_created] == [slot._panel_names["a:e:1"], slot._panel_names["a:e:2"]]
     # Active switched; tab_panels value reflects it.
     assert slot.active_key == "a:e:2"
-    assert area.value == "a:e:2"
+    assert area.value == slot._panel_names["a:e:2"]
     assert w2.instance is not None
 
 
@@ -961,3 +962,46 @@ class TestSlotHotLoadOrdering:
         self._emit_class_added(slot, new_cls)
 
         assert [b.editor_key for b in slot.bindings] == ["ed:req", "ed:graph"]
+
+
+# ----------------------------------------------------------------------
+# repayload_binding keeps the panel
+# ----------------------------------------------------------------------
+
+
+def test_repayload_binding_keeps_the_panel_name(monkeypatch) -> None:
+    """A re-keyed document keeps its tab panel: renaming it would mount a fresh canvas."""
+    slot = _make_slot("a:e:1", active_key="a:e:1")
+    panels_created, panel_created = _install_fake_tab_panels(monkeypatch)
+    _render_into(slot, _FakeContainer())
+    area = panels_created[0]
+    name = panel_created[0][0]
+    wrapper = _binding(slot, "a:e:1")
+    panel = panel_created[0][1]
+    panel._props["name"] = name
+
+    assert slot.repayload_binding("a:e:1", None, "saved")
+
+    assert panel._props["name"] == name
+    assert panel._props["data-hw-binding"] == "a:e:1::saved"
+    assert wrapper.editor_binding_id == "a:e:1::saved"
+    assert area.value == name
+    assert slot._panel_names == {"a:e:1::saved": name}
+
+
+def test_a_re_payloaded_document_still_selects_and_closes_by_its_new_id(monkeypatch) -> None:
+    slot = _make_slot("a:e:1", "a:e:2", active_key="a:e:1")
+    panels_created, _ = _install_fake_tab_panels(monkeypatch)
+    _render_into(slot, _FakeContainer())
+    name_2 = slot._panel_names["a:e:2"]
+    assert slot.repayload_binding("a:e:1", None, "saved")
+
+    assert slot.switch_to("a:e:2")
+    assert panels_created[0].value == name_2
+    assert slot.switch_to("a:e:1", "saved")
+    assert panels_created[0].value == slot._panel_names["a:e:1::saved"]
+
+    removed = slot.remove_binding("a:e:1", "saved")
+    assert removed is not None
+    assert "a:e:1::saved" not in slot._panel_names
+    assert "a:e:1::saved" not in slot._panels

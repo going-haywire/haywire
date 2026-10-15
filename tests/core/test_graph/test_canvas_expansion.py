@@ -5,8 +5,8 @@ Covers:
 - BaseGraph initial canvas state
 - _check_canvas_size() expansion, shrink, and flag logic
 - estimate_canvas_size() (no changed flag side-effect)
-- ValidationResult.canvas_size field and has_changes()
-- canvas_size propagation through the validation pipeline
+- ValidationResult.canvas_sizes field and has_changes()
+- canvas_sizes propagation through the validation pipeline
 """
 
 import math
@@ -33,6 +33,7 @@ def _stub_wrapper(pos_x: float, pos_y: float) -> MagicMock:
     wrapper = MagicMock()
     wrapper.node.props.posX = pos_x
     wrapper.node.props.posY = pos_y
+    wrapper.node.props.on_stage = False
     return wrapper
 
 
@@ -75,7 +76,7 @@ class TestCanvasInitialState:
 
     def test_new_graph_changed_flag_is_false(self):
         graph = BaseGraph(filestem="G")
-        assert graph._canvas_size_changed is False
+        assert graph._canvas_size_changed == set()
 
 
 # ---------------------------------------------------------------------------
@@ -196,14 +197,14 @@ class TestCheckCanvasSize:
         graph = BaseGraph(filestem="G")
         _inject(graph, "n1", 9000, 100)
         graph._check_canvas_size()
-        assert graph._canvas_size_changed is True
+        assert graph._canvas_size_changed == {"patch"}
 
     def test_changed_flag_not_set_when_size_unchanged(self):
         graph = BaseGraph(filestem="G")
         _inject(graph, "n1", 100, 100)
-        graph._canvas_size_changed = False
+        graph._canvas_size_changed = set()
         graph._check_canvas_size()
-        assert graph._canvas_size_changed is False
+        assert graph._canvas_size_changed == set()
 
 
 # ---------------------------------------------------------------------------
@@ -228,41 +229,44 @@ class TestEstimateCanvasSize:
         graph = BaseGraph(filestem="G")
         _inject(graph, "n1", 9500, 100)
         graph.estimate_canvas_size()
-        assert graph._canvas_size_changed is False
+        assert graph._canvas_size_changed == set()
 
     def test_empty_graph_stays_at_min_without_flag(self):
         graph = BaseGraph(filestem="G")
         graph.estimate_canvas_size()
         assert graph.canvas_width == _CANVAS_MIN_SIZE
         assert graph.canvas_height == _CANVAS_MIN_SIZE
-        assert graph._canvas_size_changed is False
+        assert graph._canvas_size_changed == set()
 
 
 # ---------------------------------------------------------------------------
-# ValidationResult.canvas_size
+# ValidationResult.canvas_sizes
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.unit
 @pytest.mark.core
 class TestValidationResultCanvasSize:
-    """ValidationResult.canvas_size field and has_changes()."""
+    """ValidationResult.canvas_sizes field and has_changes()."""
 
-    def test_canvas_size_defaults_to_none(self):
+    def test_canvas_sizes_defaults_to_empty(self):
         result = ValidationResult(nodes={}, edges={}, validation_time_ms=0.0)
-        assert result.canvas_size is None
+        assert result.canvas_sizes == {}
 
     def test_has_changes_false_when_all_empty(self):
         result = ValidationResult(nodes={}, edges={}, validation_time_ms=0.0)
         assert not result.has_changes()
 
     def test_has_changes_true_when_canvas_size_set(self):
-        result = ValidationResult(nodes={}, edges={}, canvas_size=(10000, 8000), validation_time_ms=0.0)
+        result = ValidationResult(
+            nodes={}, edges={}, canvas_sizes={"patch": (10000, 8000)}, validation_time_ms=0.0
+        )
         assert result.has_changes()
 
-    def test_canvas_size_tuple_preserved(self):
-        result = ValidationResult(nodes={}, edges={}, canvas_size=(12000, 10000), validation_time_ms=0.0)
-        assert result.canvas_size == (12000, 10000)
+    def test_canvas_sizes_preserved(self):
+        sizes = {"patch": (12000, 10000), "stage": (6000, 4000)}
+        result = ValidationResult(nodes={}, edges={}, canvas_sizes=sizes, validation_time_ms=0.0)
+        assert result.canvas_sizes == sizes
 
 
 # ---------------------------------------------------------------------------
@@ -273,35 +277,35 @@ class TestValidationResultCanvasSize:
 @pytest.mark.unit
 @pytest.mark.core
 class TestCanvasSizePipelinePropagation:
-    """canvas_size propagates through _validate_batch() and the flag is cleared."""
+    """canvas_sizes propagates through _validate_batch() and the flag is cleared."""
 
-    def test_canvas_size_in_result_when_flag_set(self):
-        """When _canvas_size_changed is True, ValidationResult carries canvas_size."""
+    def test_canvas_sizes_in_result_when_flag_set(self):
+        """When _canvas_size_changed is True, ValidationResult carries canvas_sizes."""
         graph = BaseGraph(filestem="G")
         graph.canvas_width = 10000
         graph.canvas_height = 12000
-        graph._canvas_size_changed = True
+        graph._canvas_size_changed = {"patch"}
 
         result = _trigger_validation(graph)
 
         assert result is not None
-        assert result.canvas_size == (10000, 12000)
+        assert result.canvas_sizes == {"patch": (10000, 12000)}
 
-    def test_canvas_size_none_in_result_when_flag_not_set(self):
-        """ValidationResult.canvas_size is None when _canvas_size_changed is False."""
+    def test_canvas_sizes_empty_in_result_when_flag_not_set(self):
+        """ValidationResult.canvas_sizes is empty when _canvas_size_changed is False."""
         graph = BaseGraph(filestem="G")
-        graph._canvas_size_changed = False
+        graph._canvas_size_changed = set()
 
         result = _trigger_validation(graph)
 
         assert result is not None
-        assert result.canvas_size is None
+        assert result.canvas_sizes == {}
 
     def test_flag_cleared_after_validation(self):
         """_canvas_size_changed is reset to False after the validation batch runs."""
         graph = BaseGraph(filestem="G")
-        graph._canvas_size_changed = True
+        graph._canvas_size_changed = {"patch"}
 
         _trigger_validation(graph)
 
-        assert graph._canvas_size_changed is False
+        assert graph._canvas_size_changed == set()

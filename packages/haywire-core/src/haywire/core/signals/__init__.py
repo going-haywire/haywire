@@ -45,6 +45,7 @@ from .vocabulary import (
     Undo,
     Redo,
     ToggleLock,
+    ToggleStageView,
     SelectAll,
 )
 
@@ -95,5 +96,6 @@ __all__ = [
     "Undo",
     "Redo",
     "ToggleLock",
+    "ToggleStageView",
     "SelectAll",
 ]

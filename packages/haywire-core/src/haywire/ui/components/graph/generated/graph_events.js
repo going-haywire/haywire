@@ -12,6 +12,8 @@ window.GraphEvents = {
     NODE_CREATE_REQUEST: 'nodeCreateRequest', // Request to create node from context menu
     SPLIT_EDGE_WITH_REROUTE: 'splitEdgeWithReroute', // Split a data edge and insert a reroute node from the edge context menu
     DISSOLVE_REROUTE: 'dissolveReroute', // Dissolve a reroute node and bridge its connections
+    ADD_TO_STAGE: 'addToStage', // Put the selected nodes on the stage
+    REMOVE_FROM_STAGE: 'removeFromStage', // Take the selected nodes off the stage
     COLLAPSE_TO_GROUP: 'collapseToGroup', // Collapse the selected nodes into a Group
     EXPAND_GROUP: 'expandGroup', // Expand a Group back into the graph around it
     ENTER_GROUP: 'enterGroup', // Enter a Graph-node: a Group or a macro placement
@@ -137,6 +139,26 @@ window.EventCreators = {
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { node_id },
+      requires_broadcast: true
+    };
+  },
+
+  createAddToStage(node_ids, sessionId = 'default') {
+    return {
+      event_type: 'addToStage',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_ids },
+      requires_broadcast: true
+    };
+  },
+
+  createRemoveFromStage(node_ids, sessionId = 'default') {
+    return {
+      event_type: 'removeFromStage',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_ids },
       requires_broadcast: true
     };
   },
@@ -431,6 +453,16 @@ window.EventValidators = {
 
   validateDissolveReroute(data) {
     const requiredFields = ["node_id"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateAddToStage(data) {
+    const requiredFields = ["node_ids"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateRemoveFromStage(data) {
+    const requiredFields = ["node_ids"];
     return requiredFields.every(field => field in data);
   },
 

@@ -11,6 +11,17 @@
             :style="selectionBoxStyle"
         ></div>
 
+        <!-- Stage origin marker: an L-shaped corner bracket, drawn only when an origin is set. -->
+        <svg
+            v-if="hasOrigin"
+            class="hw-stage-origin"
+            data-testid="stage-origin"
+            :style="{ left: originX + 'px', top: originY + 'px' }"
+            width="24" height="24" viewBox="0 0 24 24"
+        >
+            <path d="M0 0 H24 M0 0 V24" fill="none" :stroke="gridColor" stroke-opacity="0.8" stroke-width="2" />
+        </svg>
+
         <!-- SVG layer for connections -->
         <svg id="connection-svg" ref="svg" class="connection-svg" :style="[canvasSizeStyle, edgeStyleVars]">
             <defs ref="defs">
@@ -134,6 +145,9 @@ export default {
         zoomContainerId: { type: String, default: '' },
         canvasWidth:  { type: Number, default: 8000 },
         canvasHeight: { type: Number, default: 8000 },
+        // Canvas position of the stage origin; 0/0 draws no marker and clamps drags at 0.
+        originX: { type: Number, default: 0 },
+        originY: { type: Number, default: 0 },
         // Canvas appearance settings.
         bgPattern:        { type: String,  default: 'dots' },
         gridColor:        { type: String,  default: '#808080' },
@@ -240,6 +254,10 @@ export default {
     },
 
     computed: {
+        hasOrigin() {
+            return this.originX !== 0 || this.originY !== 0;
+        },
+
         canvasSizeStyle() {
             return { width: this.canvasWidth + 'px', height: this.canvasHeight + 'px' };
         },
@@ -642,11 +660,29 @@ export default {
         // RESIZE GADGET (single-node, 8 handles, content space)
         // =============================================================================
 
+        /** This canvas's own card for `nodeId` (`[data-node-id]`), found even while its panel is
+         *  detached. Never reaches the other view of the same level, which holds the same node ids. */
+        _ownNode(nodeId) {
+            return this.$el ? this.$el.querySelector(`[data-node-id="${nodeId}"]`) : null;
+        },
+
+        /** This canvas's own element whose `id` is `id` (a node holder), found even while detached. */
+        _ownById(id) {
+            return this.$el ? this.$el.querySelector(`[id="${id}"]`) : null;
+        },
+
+        /** This canvas's own element with `id` (pin, edge, hit area, gradient, glow, handle), or null
+         *  while the canvas is detached: its pins have no geometry then, so a miss parks the work
+         *  until `activated()`. Pin and edge ids repeat in the other view of the same level. */
+        _liveById(id) {
+            return this.$el && this.$el.isConnected ? this.$el.querySelector(`[id="${id}"]`) : null;
+        },
+
         /** Return the node's [data-node-id] container and its .ui-node-slot child,
          *  or null if either is missing. Position lives on the container (left/top);
          *  applied size + clip live on the slot. */
         _resizeParts(nodeId) {
-            const container = document.querySelector(`[data-node-id="${nodeId}"]`);
+            const container = this._ownNode(nodeId);
             if (!container) return null;
             const slot = container.querySelector('.ui-node-slot');
             if (!slot) return null;
@@ -798,7 +834,9 @@ export default {
                     // moving edge: the left edge when movesX, else the right edge.
                     if (movesX) {
                         const newLeft = snap(startLeft + dx);
-                        intentW = Math.max(1, fixedRight - newLeft);
+                        // Never past the canvas origin (stage nodes: Q3c) — the
+                        // fixed right edge stays put, the width shrinks instead.
+                        intentW = Math.min(Math.max(1, fixedRight - newLeft), fixedRight - this.originX);
                     } else {
                         intentW = Math.max(1, snap(startLeft + startW + dx) - startLeft);
                     }
@@ -806,7 +844,7 @@ export default {
                 if (affH) {
                     if (movesY) {
                         const newTop = snap(startTop + dy);
-                        intentH = Math.max(1, fixedBottom - newTop);
+                        intentH = Math.min(Math.max(1, fixedBottom - newTop), fixedBottom - this.originY);
                     } else {
                         intentH = Math.max(1, snap(startTop + startH + dy) - startTop);
                     }
@@ -819,8 +857,8 @@ export default {
                 actualW = slot.offsetWidth; actualH = slot.offsetHeight;
                 // Pin the opposite edge using the ACTUAL size, so a resisted
                 // shrink doesn't slide the node.
-                if (movesX) left = startLeft + (startW - actualW);
-                if (movesY) top = startTop + (startH - actualH);
+                if (movesX) left = Math.max(this.originX, startLeft + (startW - actualW));
+                if (movesY) top = Math.max(this.originY, startTop + (startH - actualH));
                 container.style.left = left + 'px';
                 container.style.top = top + 'px';
                 this.resizeGadget.left = left; this.resizeGadget.top = top;
@@ -995,7 +1033,7 @@ export default {
         /** Snap any magnified node back. Called when a gesture (drag / edge
          *  connect) starts, so magnify never interferes mid-operation. */
         _clearAllMagnified() {
-            document.querySelectorAll('.zoom-pan-lod0').forEach((el) => {
+            this.$el.querySelectorAll('.zoom-pan-lod0').forEach((el) => {
                 if (el._magnifyEnterTimer) { clearTimeout(el._magnifyEnterTimer); el._magnifyEnterTimer = null; }
                 if (el._magnifyExitTimer) { clearTimeout(el._magnifyExitTimer); el._magnifyExitTimer = null; }
                 if (el._magnified) this._clearMagnify(el);
@@ -1091,7 +1129,7 @@ export default {
             // Per-slot size observers (see _attachSizeObserver). They would die
             // with their DOM nodes, but teardown reflow can fire them first —
             // disconnect explicitly so no measurement is queued mid-unmount.
-            document.querySelectorAll('.ui-node-slot').forEach(slot => {
+            this.$el.querySelectorAll('.ui-node-slot').forEach(slot => {
                 if (slot.__hwSizeObs) {
                     slot.__hwSizeObs.disconnect();
                     slot.__hwSizeObs = null;
@@ -1194,7 +1232,9 @@ export default {
         // Sync event handlers (keeping these as-is for backward compatibility)
         _syncNodePosition(data) {
             const { nodeId, position } = data;
-            const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
+            // This canvas's own card: a page-wide lookup would find the card of whichever canvas
+            // is attached when this one is the hidden view of a level (same node id in both).
+            const nodeElement = this.$el.querySelector(`[data-node-id="${nodeId}"]`);
             if (nodeElement) {
                 // Written here as well as by the server's style update: when the server
                 // restores a position the browser moved on its own (a refused drag), its
@@ -1501,9 +1541,9 @@ export default {
                 edgeInfo.path.remove();
                 this._setEdgeHandles(edge_id, false);
                 this._setEdgeGlow(edge_id, false);
-                const hitArea = document.getElementById(edge_id + '_hitarea');
+                const hitArea = this._liveById(edge_id + '_hitarea');
                 if (hitArea) hitArea.remove();
-                const gradient = document.getElementById(`gradient_${edge_id}`);
+                const gradient = this._liveById(`gradient_${edge_id}`);
                 if (gradient) gradient.remove();
             });
             
@@ -1571,7 +1611,7 @@ export default {
             // The server removes the edge only once this reports the drag started, so an
             // anchor that is not in the DOM (a culled node, a ghost end) leaves the edge as it is.
             const pinUUID = this._buildPinUUID(anchorNodeId, anchorPinId);
-            const pin = document.getElementById(pinUUID);
+            const pin = this._liveById(pinUUID);
             if (!pin || 'pinGhost' in pin.dataset) {
                 console.warn(`[syncEdgeReconnect] Anchor pin not found: ${pinUUID}; edge kept`);
                 return;
@@ -2118,7 +2158,7 @@ export default {
                 if (isNodeSelected && hasMultipleNodesSelected && !isShiftClick) {
                     // Drag all selected nodes
                     this.selectionState.selectedNodes.forEach(selectedNodeId => {
-                        const nodeElement = document.querySelector(`[data-node-id="${selectedNodeId}"]`);
+                        const nodeElement = this._ownNode(selectedNodeId);
                         if (nodeElement) {
                             elements.push({
                                 type: 'node',
@@ -2189,8 +2229,8 @@ export default {
                 if (element.type === 'node') {
                     const startPos = this.dragState.startPositions.get(element.id);
                     if (startPos) {
-                        const newX = Math.max(0, Math.min(snap(startPos.x + canvasDeltaX), this.canvasWidth - 100));
-                        const newY = Math.max(0, Math.min(snap(startPos.y + canvasDeltaY), this.canvasHeight - 100));
+                        const newX = Math.max(this.originX, Math.min(snap(startPos.x + canvasDeltaX), this.canvasWidth - 100));
+                        const newY = Math.max(this.originY, Math.min(snap(startPos.y + canvasDeltaY), this.canvasHeight - 100));
 
                         element.element.style.left = `${newX}px`;
                         element.element.style.top = `${newY}px`;
@@ -2303,14 +2343,14 @@ export default {
          */
         _shiftWouldMixWithLocked(elementType, elementId) {
             if (elementType === 'node') {
-                const el = document.querySelector(`[data-node-id="${elementId}"]`);
+                const el = this._ownNode(elementId);
                 // Adding a locked node to an existing selection.
                 if (this._isNodeLocked(el) && this._selectionSize() > 0) return true;
             }
             // Adding anything to a selection that is a lone locked node.
             for (const id of this.selectionState.selectedNodes) {
                 if (id === elementId && elementType === 'node') continue;
-                if (this._isNodeLocked(document.querySelector(`[data-node-id="${id}"]`))) return true;
+                if (this._isNodeLocked(this._ownNode(id))) return true;
             }
             return false;
         },
@@ -2629,7 +2669,7 @@ export default {
 
         _findNodesInRectangle(rect) {
             const intersectingNodes = [];
-            const nodeElements = document.querySelectorAll('[data-node-id]');
+            const nodeElements = this.$el.querySelectorAll('[data-node-id]');
 
             nodeElements.forEach(nodeElement => {
                 const nodeId = nodeElement.dataset.nodeId;
@@ -2756,7 +2796,7 @@ export default {
             if (held && held.isConnected) return held;
             if (!held || !held.id) return held;
 
-            const fresh = document.getElementById(held.id);
+            const fresh = this._liveById(held.id);
             if (!fresh) return held;  // node briefly gone; keep the old ref
 
             // Re-apply the active highlight lost when the element was rebuilt.
@@ -2822,12 +2862,11 @@ export default {
                 this.edgeDrag.anchorPin.style.zIndex = '';
             }
             this._clearSuggestions();
-            // Document-wide sweep, deliberately: this runs once on a terminal
-            // transition, not per mousemove, and it is the safety net for any
-            // pin the tracked set lost (a redraw mid-gesture).
-            document.querySelectorAll('.connection-pin').forEach(pin => {
-                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
-            });
+            // Canvas-scoped sweep: runs once on a terminal transition, not per
+            // mousemove, as the safety net for any pin the tracked set lost (a
+            // redraw mid-gesture). Scoped to this canvas so a second mounted
+            // canvas is never touched.
+            this._clearConnectionPinClasses();
             if (this._edgeDragStyled) this._edgeDragStyled.clear();
         },
 
@@ -2847,9 +2886,7 @@ export default {
                 this.edgeDrag.anchorPin.style.zIndex = '';
             }
             this._clearSuggestions();
-            document.querySelectorAll('.connection-pin').forEach(pin => {
-                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
-            });
+            this._clearConnectionPinClasses();
             this.edgeDrag.mode = 'idle';
             this.edgeDrag.anchorPin = null;
             this.edgeDrag.anchorEnd = null;
@@ -2901,7 +2938,7 @@ export default {
          */
         _rebuildPinIndex(anchorPin) {
             const index = [];
-            document.querySelectorAll('.connection-pin').forEach(pin => {
+            this.$el.querySelectorAll('.connection-pin').forEach(pin => {
                 if (pin === anchorPin) return;
                 if ('pinGhost' in pin.dataset) return;
                 const pos = this._getPinPosition(pin);
@@ -3033,6 +3070,14 @@ export default {
 
             this.$refs.svg.appendChild(suggestionPath);
             this.edgeDrag.suggestionPaths.set(targetPin, suggestionPath);
+        },
+
+        /** Strip drag-state classes from every pin of THIS canvas (null-safe). */
+        _clearConnectionPinClasses() {
+            if (!this.$el || !this.$el.querySelectorAll) return;
+            this.$el.querySelectorAll('.connection-pin').forEach(pin => {
+                pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
+            });
         },
 
         _clearSuggestions() {
@@ -3275,7 +3320,7 @@ export default {
          *  edge sets none, so the canvas's vars and the arrow class apply. */
         _applyEdgeStyle(edgeInfo) {
             const style = edgeInfo.style || {};
-            const hitArea = document.getElementById(edgeInfo.path.getAttribute('id') + '_hitarea');
+            const hitArea = this._liveById(edgeInfo.path.getAttribute('id') + '_hitarea');
             const width = style.width !== undefined ? `${style.width}px` : null;
             for (const el of [edgeInfo.path, hitArea]) {
                 if (!el) continue;
@@ -3302,12 +3347,12 @@ export default {
                 this._setEdgeHandles(edge_id, false);
                 this._setEdgeGlow(edge_id, false);
 
-                const hitArea = document.getElementById(edge_id + '_hitarea');
+                const hitArea = this._liveById(edge_id + '_hitarea');
                 if (hitArea) {
                     hitArea.remove();
                 }
 
-                const gradient = document.getElementById(`gradient_${edge_id}`);
+                const gradient = this._liveById(`gradient_${edge_id}`);
                 if (gradient) {
                     gradient.remove();
                 }
@@ -3324,7 +3369,7 @@ export default {
          * present pin up its hierarchy (ending at the node's ghost pin), else null.
          */
         _drawnPin(nodeId, pinUUID, hierarchyString) {
-            return document.getElementById(pinUUID) || this._findPinInHierarchy(nodeId, hierarchyString);
+            return this._liveById(pinUUID) || this._findPinInHierarchy(nodeId, hierarchyString);
         },
 
         _findPinInHierarchy(nodeId, hierarchyString) {
@@ -3358,7 +3403,7 @@ export default {
                 
                 // Build the pin UUID and try to find the element
                 const pinUUID = this._buildPinUUID(nodeId, portId);
-                const pinElement = document.getElementById(pinUUID);
+                const pinElement = this._liveById(pinUUID);
                 
                 if (pinElement) {
                     console.debug(
@@ -3384,7 +3429,7 @@ export default {
          * the card inside it goes — so the answer comes from the cull handle.
          */
         _isNodeCulled(nodeId) {
-            const holder = document.getElementById(nodeId);
+            const holder = this._ownById(nodeId);
             const cull = holder && holder.querySelector(':scope > .hw-node-cull');
             return !!(cull && cull._hwCull && !cull._hwCull.isVisible());
         },
@@ -3450,7 +3495,7 @@ export default {
             const pathData = this._createBezierPathForEdge(edge_id);
 
             edgeInfo.path.setAttribute('d', pathData);
-            const hitArea = document.getElementById(edge_id + '_hitarea');
+            const hitArea = this._liveById(edge_id + '_hitarea');
             if (hitArea) {
                 hitArea.setAttribute('d', this._createBezierPathForEdge(edge_id, { toPins: true }));
             }
@@ -3484,7 +3529,7 @@ export default {
 
         _setEdgeGlow(edge_id, on) {
             const id = edge_id + '_glow';
-            const existing = document.getElementById(id);
+            const existing = this._liveById(id);
             if (!on) {
                 if (existing) existing.remove();
                 return;
@@ -3500,7 +3545,7 @@ export default {
         },
 
         _syncEdgeGlow(edge_id, edgeInfo) {
-            const glow = document.getElementById(edge_id + '_glow');
+            const glow = this._liveById(edge_id + '_glow');
             if (!glow) return;
             glow.setAttribute('d', edgeInfo.path.getAttribute('d') || '');
             glow.setAttribute('stroke', edgeInfo.path.getAttribute('stroke') || 'currentColor');
@@ -3515,7 +3560,7 @@ export default {
             if (!svg) return;
             for (const end of ['start', 'end']) {
                 const id = `${edge_id}_handle_${end}`;
-                const existing = document.getElementById(id);
+                const existing = this._liveById(id);
                 if (!on) {
                     if (existing) existing.remove();
                     continue;
@@ -3534,8 +3579,8 @@ export default {
         },
 
         _positionEdgeHandles(edge_id, edgeInfo) {
-            const start = document.getElementById(`${edge_id}_handle_start`);
-            const end = document.getElementById(`${edge_id}_handle_end`);
+            const start = this._liveById(`${edge_id}_handle_start`);
+            const end = this._liveById(`${edge_id}_handle_end`);
             if (!start || !end) return;
             // On the pin centres, so the dots never cover an arrow head.
             const a = edgeInfo.outletPos;
@@ -3586,7 +3631,7 @@ export default {
                 // An edge headed at both ends has no end on its pin's edge to measure.
                 if (outletHeaded && this._endIsHeaded(info, 'inlet')) continue;
                 const atInlet = outletHeaded;
-                const pin = document.getElementById(atInlet ? info.inletPinUUID : info.outletPinUUID);
+                const pin = this._liveById(atInlet ? info.inletPinUUID : info.outletPinUUID);
                 if (!pin) continue;
                 const rect = pin.getBoundingClientRect();
                 if (!rect.width) continue;
@@ -3647,7 +3692,7 @@ export default {
         },
 
         _addNodeObserver(nodeId) {
-            const nodeElement = document.getElementById(nodeId);
+            const nodeElement = this._ownById(nodeId);
             if (nodeElement) {
                 this._setupHoverObserver(nodeElement);
             } else {
@@ -3678,7 +3723,7 @@ export default {
             console.log(`[PendingObserver] Starting MutationObserver on document.body. nodeContainer.isConnected=${container.isConnected}`);
             this._pendingNodeWatcher = new MutationObserver(() => {
                 for (const nodeId of [...this._pendingNodeIds]) {
-                    const nodeElement = document.getElementById(nodeId);
+                    const nodeElement = this._ownById(nodeId);
                     if (nodeElement) {
                         this._pendingNodeIds.delete(nodeId);
                         this._setupHoverObserver(nodeElement);
@@ -3707,7 +3752,7 @@ export default {
         // =============================================================================
 
         _updateNodeVisualSelection(nodeId, selected, _retries = 6) {
-            const nodeElement = document.getElementById(nodeId);
+            const nodeElement = this._ownById(nodeId);
             if (nodeElement) {
                 if (selected) {
                     nodeElement.classList.add('node-selected');
@@ -3740,7 +3785,7 @@ export default {
         },
 
         _updateNodeVisualActive(nodeId, active, _retries = 6) {
-            const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
+            const nodeElement = this._ownNode(nodeId);
             if (nodeElement) {
                 if (active) {
                     nodeElement.classList.add('node-active');
@@ -4009,7 +4054,7 @@ export default {
             }
 
             const gradientId = `gradient_${edge_id}`;
-            let gradient = document.getElementById(gradientId);
+            let gradient = this._liveById(gradientId);
             if (!gradient) {
                 gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
                 gradient.setAttribute('id', gradientId);
@@ -4086,7 +4131,7 @@ export default {
             this._updateEdgesForNode(nodeId);
 
             if (!nodeElement && nodeId) {
-                nodeElement = document.getElementById(nodeId);
+                nodeElement = this._ownById(nodeId);
             }
 
             if (nodeElement && nodeElement._animationTimers) {
@@ -4170,6 +4215,12 @@ export default {
     border-radius: 4px;
     font-size: 12px;
     z-index: var(--hw-z-canvas-selected, 1000);
+}
+
+.hw-stage-origin {
+    position: absolute;
+    pointer-events: none;
+    overflow: visible;
 }
 
 .connection-svg {

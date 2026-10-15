@@ -9,6 +9,7 @@ from haywire.core.undo.interfaces import IHistoryManager
 from haywire.core.undo.history_manager import HistoryManager
 from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.actions.graph_actions import (
+    stage_node_data,
     AddNodeAction,
     MoveNodesAction,
     MoveNodesToAction,
@@ -25,6 +26,7 @@ from haywire.core.undo.actions.graph_actions import (
     PromoteGroupToMacroAction,
     SetPortMetadataAction,
     SetPropertyAction,
+    SetStageMembershipAction,
 )
 
 logger = logging.getLogger(__name__)
@@ -75,18 +77,34 @@ class Editor:
     # =============================================================================
 
     def create_wrapper(
-        self, registry_key: str, position: Tuple[float, float] = (3750, 3750)
+        self,
+        registry_key: str,
+        position: Tuple[float, float] = (3750, 3750),
+        channel: LayoutChannel = PATCH,
+        patch_fallback: Optional[Tuple[float, float]] = None,
     ) -> Optional[NodeWrapper]:
         """Create a node of type ``registry_key`` as one undoable action.
 
         Args:
             position: ``(x, y)`` in canvas coordinates.
+            channel: The layout channel of the canvas the node is made in. On the stage channel
+                the node is created on stage at ``position``, and in the patch near the nodes
+                already on stage.
+            patch_fallback: Stage channel only. The patch position when no node is on stage yet
+                (the patch canvas's viewport centre); see ``patch_position_for_stage``.
 
         Returns:
             The created wrapper, or ``None`` if creation failed.
         """
         try:
-            action = AddNodeAction(graph=self.graph, registry_key=registry_key, position=position)
+            if channel.stage:
+                action = AddNodeAction(
+                    graph=self.graph,
+                    registry_key=registry_key,
+                    node_data=stage_node_data(self.graph, channel, position, patch_fallback),
+                )
+            else:
+                action = AddNodeAction(graph=self.graph, registry_key=registry_key, position=position)
             if not self.history_manager.add_action(action):
                 return None
 
@@ -99,9 +117,23 @@ class Editor:
             return None
 
     def paste_clipboard(
-        self, payload: Dict[str, Any], paste_x: float, paste_y: float
+        self,
+        payload: Dict[str, Any],
+        paste_x: float,
+        paste_y: float,
+        channel: LayoutChannel = PATCH,
+        patch_anchor: Optional[Tuple[float, float]] = None,
+        patch_fallback: Optional[Tuple[float, float]] = None,
+        stage_anchor: Optional[Tuple[float, float]] = None,
     ) -> Optional[Tuple[List[str], List[str]]]:
-        """Paste a clipboard payload at ``(paste_x, paste_y)`` as one undoable action.
+        """Paste a clipboard payload at canvas position ``(paste_x, paste_y)`` as one undoable action.
+
+        On the stage ``channel`` the pasted nodes land on stage, keeping their relative layout
+        in both views. Their patch anchor is ``patch_anchor`` (a duplicate passes its own), else
+        derived from the paste point with ``patch_fallback``.
+        In a patch canvas the pasted nodes that are on stage keep their stage layout too,
+        anchored at ``stage_anchor`` (a duplicate passes its own), else near the nodes already
+        on stage.
 
         A node type the registry doesn't know pastes as a placeholder error node.
 
@@ -111,7 +143,14 @@ class Editor:
         """
         try:
             action = PasteClipboardAction(
-                graph=self.graph, payload=payload, paste_x=paste_x, paste_y=paste_y
+                graph=self.graph,
+                payload=payload,
+                paste_x=paste_x,
+                paste_y=paste_y,
+                channel=channel,
+                patch_anchor=patch_anchor,
+                patch_fallback=patch_fallback,
+                stage_anchor=stage_anchor,
             )
             if not self.history_manager.add_action(action):
                 return None
@@ -163,6 +202,45 @@ class Editor:
             return True
         except Exception as e:
             logger.error(f"Error moving nodes to absolute positions: {e}")
+            return False
+
+    def add_to_stage(self, node_ids: List[str]) -> bool:
+        """Put nodes on the graph's stage as one undoable action.
+
+        Each node is placed below the nodes already on stage, in patch order. Nodes that are
+        unknown or already on stage are skipped.
+
+        Returns:
+            ``False`` if no node changes or the action failed, otherwise ``True``.
+        """
+        return self._set_stage_membership(node_ids, True)
+
+    def remove_from_stage(self, node_ids: List[str]) -> bool:
+        """Take nodes off the graph's stage as one undoable action, keeping their stage rectangle.
+
+        Nodes that are unknown or already off stage are skipped.
+
+        Returns:
+            ``False`` if no node changes or the action failed, otherwise ``True``.
+        """
+        return self._set_stage_membership(node_ids, False)
+
+    def _set_stage_membership(self, node_ids: List[str], on_stage: bool) -> bool:
+        changing = []
+        for node_id in dict.fromkeys(node_ids):
+            wrapper = self.graph.get_node_wrapper(node_id)
+            if wrapper and wrapper.node and wrapper.node.props.on_stage != on_stage:
+                changing.append(node_id)
+        if not changing:
+            return False
+        try:
+            action = SetStageMembershipAction(self.graph, changing, on_stage)
+            if not self.history_manager.add_action(action):
+                return False
+            logger.info(f"{'Added' if on_stage else 'Removed'} {len(changing)} nodes on the stage")
+            return True
+        except Exception as e:
+            logger.error(f"Error changing stage membership: {e}")
             return False
 
     def set_property(self, node_id: str, name: str, value: Any, prefer_setting: bool = False) -> bool:
@@ -343,6 +421,8 @@ class Editor:
         edge_id: str,
         position: Tuple[float, float],
         registry_key: str,
+        channel: LayoutChannel = PATCH,
+        patch_fallback: Optional[Tuple[float, float]] = None,
     ) -> Optional[str]:
         """Split a data edge and insert a reroute node of type ``registry_key`` at ``position``.
 
@@ -353,6 +433,9 @@ class Editor:
         Args:
             registry_key: The reroute node type to instantiate, chosen by the
                 caller so the core needs no specific library.
+            channel: The layout channel of the canvas; on the stage channel the reroute
+                node lands on stage.
+            patch_fallback: Stage channel only; see ``create_wrapper``.
 
         Returns:
             The new reroute node's id, or ``None`` on failure.
@@ -363,6 +446,8 @@ class Editor:
                 edge_id=edge_id,
                 position=position,
                 registry_key=registry_key,
+                channel=channel,
+                patch_fallback=patch_fallback,
             )
             if not self.history_manager.add_action(action):
                 return None

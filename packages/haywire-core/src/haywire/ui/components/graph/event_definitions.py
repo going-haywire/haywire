@@ -168,6 +168,26 @@ class DissolveRerouteEvent(BaseGraphEvent):
 
 
 @graph_event(
+    "addToStage",
+    category="user",
+    description="Put the selected nodes on the stage",
+)
+@dataclass
+class AddToStageEvent(BaseGraphEvent):
+    node_ids: List[str]
+
+
+@graph_event(
+    "removeFromStage",
+    category="user",
+    description="Take the selected nodes off the stage",
+)
+@dataclass
+class RemoveFromStageEvent(BaseGraphEvent):
+    node_ids: List[str]
+
+
+@graph_event(
     "collapseToGroup",
     category="user",
     description="Collapse the selected nodes into a Group",

@@ -72,7 +72,12 @@ class SkinFactory:
 
     # this method is called by UINode to render the node
     def render(
-        self, skin_registry_key: str, wrapper: NodeWrapper, _is_error_render: bool = False
+        self,
+        skin_registry_key: str,
+        wrapper: NodeWrapper,
+        *,
+        on_stage: bool = False,
+        _is_error_render: bool = False,
     ) -> UINodeCard | None:
         """Render a node with the skin identified by skin_registry_key.
 
@@ -83,6 +88,8 @@ class SkinFactory:
         Args:
             skin_registry_key: The registry key of the skin to use
             wrapper: NodeWrapper instance containing node information
+            on_stage: Draw the card for a stage view (expanded, on-stage pins only);
+                the error-skin fallback applies the same way.
 
         Returns:
             UINodeCard instance or None if rendering failed
@@ -94,7 +101,7 @@ class SkinFactory:
         try:
             skin_instance = self.get_skin_instance(skin_registry_key)
 
-            ui_nodeCard = skin_instance._render(wrapper=wrapper)
+            ui_nodeCard = skin_instance._render(wrapper=wrapper, on_stage=on_stage)
 
         except Exception as error:
             if not isinstance(error, HaywireException):
@@ -144,7 +151,10 @@ class SkinFactory:
 
             # render error (recursive call with error render flag)
             ui_nodeCard = self.render(
-                skin_registry_key=error_skin_registry_key, wrapper=wrapper, _is_error_render=True
+                skin_registry_key=error_skin_registry_key,
+                wrapper=wrapper,
+                on_stage=on_stage,
+                _is_error_render=True,
             )
 
             assert ui_nodeCard is not None, "_is_error_render path always returns a UINodeCard"

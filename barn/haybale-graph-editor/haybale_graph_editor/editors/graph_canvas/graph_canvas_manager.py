@@ -36,6 +36,7 @@ from haywire.ui.components.graph.event_definitions import (
     UserResizeEndEvent,
 )
 from haywire.core.session.session import Session
+from haywire.core.signals import SelectionMoved
 
 from ...access import allows
 from ...state.edit_state import EditState
@@ -107,8 +108,18 @@ class GraphCanvasManager:
             self._toolbar_provider.hide()
             self.context_menu_handlers.provider.close_open_menu()
 
+    def viewport_centre(self) -> Optional[tuple[float, float]]:
+        """The canvas position at the middle of the last-known viewport, or ``None``.
+
+        The viewport is the last one the client reported, so a canvas that never mounted in a
+        browser has none. In this canvas's own coordinates, as ``create_wrapper`` takes them.
+        """
+        return self.zoom_container.get_viewport_centre()
+
     # Class default too, so an instance built without __init__ dispatches without reporting.
     _on_user_event: Optional[Callable[[], None]] = None
+    # Likewise: an instance built without __init__ is a patch canvas.
+    channel: LayoutChannel = PATCH
 
     def __init__(
         self,
@@ -119,6 +130,7 @@ class GraphCanvasManager:
         session: "Session",
         on_user_event: Optional[Callable[[], None]] = None,
         channel: LayoutChannel = PATCH,
+        patch_viewport_centre: Optional[Callable[[], Optional[tuple[float, float]]]] = None,
     ):
         """Build the canvas for ``editor``'s graph into the current slot.
 
@@ -127,6 +139,9 @@ class GraphCanvasManager:
                 ``POINTER_GESTURE_EVENTS`` is dispatched, whether or not its
                 handler then runs. ``None`` reports nothing.
             channel: The props fields this canvas lays its nodes out with.
+            patch_viewport_centre: On a stage canvas, returns where the level's patch canvas
+                is looking (see ``viewport_centre``), or ``None``; places nodes made on an
+                empty stage.
         """
         self.channel = channel
         self.editor = editor
@@ -157,6 +172,7 @@ class GraphCanvasManager:
             allows=self.allows,
             context=self._session.context,
             channel=self.channel,
+            patch_viewport_centre=patch_viewport_centre,
         )
         self.selection = SelectionHandlers(
             graph=self.graph,
@@ -164,7 +180,11 @@ class GraphCanvasManager:
             session_id=self.session_id,
             session=self._session,
             visual_layer=self.visual_layer,
+            channel=self.channel,
+            patch_viewport_centre=patch_viewport_centre,
         )
+        self.visual_layer.on_node_unmounted = self.selection.prune_node
+        self.visual_layer.on_canvas_mounted = self._reshow_selection
         self.interactions = InteractionHandlers(
             editor=self.editor, session=self._session, channel=self.channel
         )
@@ -294,12 +314,14 @@ class GraphCanvasManager:
             .style("height: 100%;")
         )
 
+        canvas_width, canvas_height = self.graph.canvas_extent(self.channel)
         with zoom_container.content_container:
             canvas_vue = GraphCanvasVue(
                 zoom_container=zoom_container,
                 on_canvas_event=self._handle_canvas_event,
-                canvas_width=self.graph.canvas_width,
-                canvas_height=self.graph.canvas_height,
+                canvas_width=canvas_width,
+                canvas_height=canvas_height,
+                origin=self.channel.origin,
             )
         return zoom_container, canvas_vue
 
@@ -394,7 +416,7 @@ class GraphCanvasManager:
         """
         modal = graph_load_modal(
             graph_name=graph_name,
-            total_nodes=len(self.graph.node_wrappers),
+            total_nodes=self.visual_layer.included_node_count(),
         )
 
         async def _run() -> None:
@@ -484,6 +506,58 @@ class GraphCanvasManager:
             edge_id for edge_id in edit.selected_edges if self.graph.get_edge_wrapper(edge_id) is not None
         ]
         return nodes, edges
+
+    def show_session_selection(self) -> None:
+        """Show the session's selection on this canvas, pruned to what it draws.
+
+        The session's selection, active node and active edge are narrowed to the nodes and edges this
+        canvas shows, written back to the session and pushed to the browser, and ``SelectionMoved`` is
+        published. Nothing the canvas does not show stays selected.
+        """
+        context = self._session.context
+        edit = context.data[EditState]
+        nodes = {n for n in edit.selected_nodes if self.visual_layer.shows_node(n)}
+        edges = {e for e in edit.selected_edges if self.visual_layer.shows_edge(e)}
+        active_node = edit.active_node
+        if active_node is not None and active_node.node_id not in nodes:
+            active_node = None
+        active_edge = edit.active_edge
+        if active_edge is not None and active_edge.edge_id not in edges:
+            active_edge = None
+        self.selection.selected_nodes = nodes
+        self.selection.selected_edges = edges
+        edit.selected_nodes = nodes
+        edit.selected_edges = edges
+        edit.active_node = active_node
+        edit.active_edge = active_edge
+        context.active_component = active_node.registry_key if active_node is not None else None
+        self._push_selection()
+        self._session.publish(SelectionMoved())
+
+    def _active_payload(self) -> dict[str, str]:
+        """Return the session's primary element when this canvas shows it, in the browser's payload form."""
+        edit = self._session.context.data[EditState]
+        if edit.active_node is not None and edit.active_node.node_id in self.selection.selected_nodes:
+            return {"kind": "node", "id": edit.active_node.node_id}
+        if edit.active_edge is not None and edit.active_edge.edge_id in self.selection.selected_edges:
+            return {"kind": "edge", "id": edit.active_edge.edge_id}
+        return {"kind": "", "id": ""}
+
+    def _push_selection(self) -> None:
+        self.visual_layer.sync_selections(
+            self.selection.selected_nodes, self.selection.selected_edges, active=self._active_payload()
+        )
+
+    def _reshow_selection(self) -> None:
+        """Send a freshly mounted browser canvas the selection it should show; it starts empty."""
+        if self.selection.selected_nodes or self.selection.selected_edges:
+            self._push_selection()
+
+    def clear_selection(self) -> None:
+        """Empty this canvas's selection, in the browser too. Publishes nothing."""
+        self.selection.selected_nodes = set()
+        self.selection.selected_edges = set()
+        self.visual_layer.sync_selections(set(), set())
 
     def select_all_toggle(self) -> None:
         """Select every unlocked node, or clear the selection when that is already it."""

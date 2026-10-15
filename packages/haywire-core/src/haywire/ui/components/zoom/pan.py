@@ -22,6 +22,9 @@ class Viewport:
     zoom: float
     pan_x: float
     pan_y: float
+    width: Optional[float] = None
+    height: Optional[float] = None
+    """The container's size in pixels when the client reported it; ``None`` if it did not."""
 
 
 class ZoomPanContainer(ui.element, component="pan.vue"):
@@ -150,6 +153,8 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
                 zoom=float(e.args["zoom"]),
                 pan_x=float(e.args["panX"]),
                 pan_y=float(e.args["panY"]),
+                width=float(e.args["width"]) if e.args.get("width") else None,
+                height=float(e.args["height"]) if e.args.get("height") else None,
             )
             if self._on_ready is not None:
                 cb_name = self._on_ready.__name__ if hasattr(self._on_ready, "__name__") else self._on_ready
@@ -181,6 +186,21 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         To put a canvas back, feed it to ``set_zoom`` then ``set_pan``.
         """
         return self._viewport
+
+    def get_viewport_centre(self) -> Optional[tuple[float, float]]:
+        """The content-space point at the middle of the last-reported viewport, or ``None``.
+
+        ``None`` while the client has not reported a viewport or the container's size.
+        Content space is the space nodes are positioned in, as ``center_on`` takes it.
+
+        Example::
+
+            container.get_viewport_centre()   # (3750.0, 3750.0) after center_on(3750, 3750)
+        """
+        v = self._viewport
+        if v is None or not v.width or not v.height or not v.zoom:
+            return None
+        return (v.width / 2 - v.pan_x) / v.zoom, (v.height / 2 - v.pan_y) / v.zoom
 
     def set_canvas_size(self, width: int, height: int) -> None:
         """Push new canvas dimensions to the Vue zoom/pan container and minimap."""

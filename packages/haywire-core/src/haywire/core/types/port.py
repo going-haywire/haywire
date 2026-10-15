@@ -791,6 +791,11 @@ class DataPort(DataTypeIdentity):
             return WILDCARD
         return None
 
+    @property
+    def on_stage(self) -> bool:
+        """Whether this pin appears on a stage: its wire type is an ``on_stage`` one."""
+        return self.wire_type is not None and self.wire_type.on_stage
+
     def has_role(self, role: WireRole) -> bool:
         """True if this port's wire type has *role*; False for a port without a wire type."""
         return self.wire_type is not None and self.wire_type.role is role

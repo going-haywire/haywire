@@ -37,9 +37,16 @@ two independent switches:
 
 | | **Patch view** | **Stage view** |
 | --- | --- | --- |
-| **Unlocked** | today's editor | arrange the stage |
+| **Unlocked** | today's editor | the same editor, showing the stage |
 | **Locked** | look and operate | perform |
 
+- **Two keep-alive views per level (Q2c, 2026-10-14).** Each level holds a canvas
+  per view in an inner keep-alive `ui.tab_panels`. The stage canvas mounts on the
+  first switch and both then stay mounted: no re-render on switch, and a detached
+  deactivated panel keeps page-global pin uuids unique. Switching clears the
+  selection.
+- **The switch sits in the editor header (Q8a)**, next to the lock button. The
+  level bar stays hidden while only one level is open.
 - **Lock** belongs to the session and the level. It is not saved and does not
   affect other sessions viewing the same graph, because the graph and its
   `Editor` are shared across sessions.
@@ -48,7 +55,7 @@ two independent switches:
   in a session. This mirrors Max's "Open in Presentation".
 - **Controls:** a lock toggle and a Patch | Stage switch in each level's bar, plus
   two editor commands: `ToggleLock` (Mod+E, `access=EDIT`) and `ToggleStageView`
-  (Mod+Alt+E, `access=VIEW`).
+  (Mod+Shift+E since 05a-3; originally Mod+Alt+E, Firefox's developer tools; `access=VIEW`).
 
 ### Tiers: view < operate < edit < admin
 
@@ -116,27 +123,36 @@ two independent switches:
 - **The unit is the node.** A node is on stage or not, and has one **stage rect**:
   `stage_x`, `stage_y`, `stage_width`, `stage_height`, `stage_size_adapt` on
   `NodeProperties`, with the patch rect's rules (manual size is a minimum).
-- **`BaseSkin.render_stage(main_card, wrapper)`** draws a node on stage. The
-  `BaseSkin` default draws every widget that `should_show_widget()` allows,
-  whatever the port's direction, with no frame and no lanes, plus the pins of
-  wires that are **on stage** (below). Skins override it to draw their own stage
-  face; the Annotation skin draws its text and side swinglets.
-- **On-stage wires.** A wire type declares `@wire(on_stage=True)`;
+- **Skin contract (Decision 6, 2026-10-15; supersedes the `render_stage()` face).**
+  A node on stage is drawn by its normal `render()`:
+  `BaseSkin.render(main_card, wrapper, *, on_stage: bool)`, with the keyword
+  required. `render_pin(..., on_stage: bool)` is required too and returns `None`
+  for a port that is not on stage when `on_stage` is true; ghost pins are
+  unchanged. A collapsed node is drawn expanded on stage. `render_stage()` and the
+  frameless default face are deleted. See
+  [ADR 0054](../../adr/0054-the-stage-view.md).
+- **On-stage wires.** A wire type sets the class attribute `on_stage = True`;
   `AnnotationWire` does. Pins and edges derive it like they derive the wire key.
   Stage view draws an edge only if its wire is on stage and both end nodes are on
   stage.
-- **Stage origin.** The stage has a fixed (0,0) at its top-left; stage view greys
-  the area left of and above it. **Add to Stage** places a node at the next free
+- **Stage origin.** The stage has a fixed (0,0) at its top-left, and
+  `stage_x`/`stage_y` are relative to it (Decision 3). An L-shaped corner bracket
+  marks the origin, and drags stop at it, so nothing sits above or left of it. **Add to Stage** places a node at the next free
   spot near the origin (below the lowest stage item, at a margin), not at its
   patch position.
 - **Stage view is the existing canvas in stage mode:** a node filter (on stage
-  only), the stage **layout channel**, the filtered edge set, and `render_stage()`
-  in place of `render()`.
-- **Unlocked stage view only arranges:** move, resize, select, Remove from Stage.
-  Delete on a node means Remove from Stage. Exceptions, all for presentation
-  content: draw, reconnect and delete connectors on on-stage wires; edit
-  annotation text; create annotation nodes ("Add Annotation" at the click point).
-  Every other node is created, deleted and wired in patch view only.
+  only), the stage **layout channel**, the filtered edge set, and `render(...,
+  on_stage=True)`.
+- **The stage is a display, not a mode (Decision 1, 2026-10-15; supersedes
+  "unlocked stage view only arranges").** Editing in stage view is exactly editing
+  in patch view: every edit, context menu, toolbar panel and editor command, at the
+  same tier; the lock and the tiers apply to both views alike. **Delete is not
+  remapped** (Decision 7, 2026-10-14): in stage view it deletes the node from the
+  graph; Remove from Stage is its own verb.
+- **Q7a:** a node created, pasted or duplicated while stage view is active lands
+  on stage at the gesture position (stage coordinates); its patch position takes
+  the same numbers; one undo step with the creation. Collapse to Group, macro
+  placement and detach are selection-driven and do not.
 - **Control nodes** in haybale-core: Slider, Number (int/float), Toggle, Text and
   Menu. Each has an inlet and an outlet of its type, with the widget on the
   outlet set to `ALWAYS`: it shows what flows through, and a user edit sends it
@@ -152,14 +168,16 @@ two independent switches:
   interior's stage. Its layout cannot be edited; its widgets can be operated.
 - **A hidden `InsetSkin`**, set on the node tier by the Graph-node menu toggle
   "Show as Inset" (an undoable EDIT action). `render()` draws the border pins
-  (the card stays wireable) and a body that calls each staged interior node's
-  `render_stage()` at its stage rect, in stage-origin coordinates. On a node
+  (the card stays wireable) and a body that draws each staged interior node with the skin's
+  `render(..., on_stage=True)` at its stage rect, in stage-origin coordinates. On a node
   without an interior it falls back to the default card.
 - **Size:** auto-fits from the stage origin to the stage's bottom-right extent.
   A manual size adds space and never crops. Offset and clipping are a later
   opt-in.
-- **Enablers:** a `render_stage_for(wrapper)` composition hook that the skin
-  factory hands to skins (a skin today only has a widget factory), and inset
+- **Enablers:** a composition hook that hands the inset skin a way to draw an
+  interior node (the skin factory's `render(..., on_stage=True)`; the hook
+  design is to be settled in slice 6, since a skin today only has a widget
+  factory), and inset
   widgets registered under the **host** card's node id, so they are built,
   reloaded and cleaned up with the card.
 - **Connectors:** the edge path and marker code moves out of `canvas.vue` into a
@@ -211,9 +229,17 @@ slice lands.
    - An open placement level follows a `.hwm` reload.
 3. **Edit Instance.** Detach-with-origin on unlock, and the three verbs.
 4. **Position.** Single source, then the layout channel.
-5. **Stage.** Fields, `render_stage()`, on-stage wires, stage view, origin,
+5. **Stage.** Fields, the `on_stage` skin keyword, on-stage wires, stage view, origin,
    gestures, Add/Remove, annotation exceptions, control nodes, `open_view`,
-   the Patch | Stage switch, `ToggleStageView`.
+   the Patch | Stage switch, `ToggleStageView`. Split into four plans (Q1,
+   2026-10-14), each merging into `feat/editor-modes-slice1` as it lands:
+   - **5a Stage core:** [2026-10-14-editor-modes-05a-stage-core.md](2026-10-14-editor-modes-05a-stage-core.md).
+     Fields, channel, stage view, origin, Add/Remove, `open_view`, the switch,
+     `ToggleStageView`. Revised by [5a-2](2026-10-15-editor-modes-05a2-stage-is-a-display.md):
+     the stage is a display, not a mode (Decisions 1 and 6, Q7a).
+   - **5b Stage content:** on-stage connector editing, annotation text editing, Add Annotation.
+   - **5c Stacking order:** `z`/`stage_z` and the four verbs.
+   - **5d Control nodes.**
 6. **Inset.** The skin, the two enablers, placement value overrides, and the
    shared edge-drawing module.
 
@@ -244,7 +270,10 @@ slice lands.
   the next rebuild. **Resolved by slice 4:** props are the single source
   ([ADR 0053](../../adr/0053-position-lives-in-props.md)).
 - **`canvas_width`/`canvas_height` are the patch's** (slice 5). Decide where the
-  stage's extent lives before `move_node` runs with `STAGE`.
+  stage's extent lives before `move_node` runs with `STAGE`. **Resolved by slice
+  5a:** one extent per channel, `BaseGraph.canvas_extent(channel)`, carried per
+  channel name on `ValidationResult.canvas_sizes`
+  ([ADR 0054](../../adr/0054-the-stage-view.md)).
 - **Pins inside an Inset** must be measured with queries scoped to the Inset's
   box, never `document`-wide, and converted for the host canvas's zoom (slice 6;
   see `.insights/project_multi_canvas_dom_globals.md`).

@@ -176,7 +176,7 @@ class AnnotationSkin(BaseSkin):
     pin there. Double-click the card to edit the text.
     """
 
-    def render(self, main_card: ui.card, wrapper: NodeWrapper):
+    def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool):
         node = wrapper.node
         bag = _bag(node)
 
@@ -243,7 +243,7 @@ class AnnotationSkin(BaseSkin):
         editor.on("keydown.esc", _cancel)
         editor.on("keydown.ctrl.enter", lambda _e: editor.run_method("blur"))
 
-        pins = self._pins_by_side(wrapper)
+        pins = self._pins_by_side(wrapper, on_stage=on_stage)
         for side in _SIDES:
             with main_card:
                 self._render_ghosts(wrapper, side)
@@ -253,12 +253,16 @@ class AnnotationSkin(BaseSkin):
                     for port, layout, reveal in pins[side]:
                         if reveal:
                             with _slot_box(side, centred=centred):
-                                self._render_pin(port, wrapper.node_id, layout, reveal)
+                                self._render_pin(port, wrapper.node_id, layout, reveal, on_stage=on_stage)
                         else:
-                            self._render_pin(port, wrapper.node_id, layout, reveal)
+                            self._render_pin(port, wrapper.node_id, layout, reveal, on_stage=on_stage)
 
-    def _pins_by_side(self, wrapper: NodeWrapper) -> dict[str, list[tuple[DataPort, LayoutDirection, bool]]]:
+    def _pins_by_side(
+        self, wrapper: NodeWrapper, *, on_stage: bool
+    ) -> dict[str, list[tuple[DataPort, LayoutDirection, bool]]]:
         """Each side's pins in drawing order: control pin, grown pins by index, then the slot.
+
+        With ``on_stage`` a port that is not an on-stage port is left out.
 
         Each entry is the port, the layout it renders with, and whether it is a
         slot, shown only on hover.
@@ -273,13 +277,15 @@ class AnnotationSkin(BaseSkin):
             port = node.ports.get(port_id)
             if port is None or not (_bag(node).show_control_pins or port.is_linked()):
                 continue
+            if on_stage and not port.on_stage:
+                continue
             by_side[node_layout.side_for(port)].append((port, node_layout, False))
 
         grown: list[tuple[int, str, DataPort]] = []
         slots: list[tuple[int, str, DataPort]] = []
         for port in node.ports.values():
             parsed = _parse(port.id)
-            if parsed is None or not port.has_pin():
+            if parsed is None or not port.has_pin() or (on_stage and not port.on_stage):
                 continue
             side, index = parsed
             is_slot = port.type_cls is not None and issubclass(port.type_cls, ADD)
@@ -291,7 +297,9 @@ class AnnotationSkin(BaseSkin):
             by_side[side].append((port, _LAYOUT[side], True))
         return by_side
 
-    def _render_pin(self, port: DataPort, node_id: str, layout: LayoutDirection, reveal: bool) -> None:
+    def _render_pin(
+        self, port: DataPort, node_id: str, layout: LayoutDirection, reveal: bool, *, on_stage: bool
+    ) -> None:
         pin_el = render_pin(
             port,
             node_id,
@@ -302,6 +310,7 @@ class AnnotationSkin(BaseSkin):
             card_padding=_CARD_PADDING,
             pin_protrusion=_PIN_PROTRUSION,
             pin_icons=self.pin_icons,
+            on_stage=on_stage,
         )
         if pin_el is None:
             return

@@ -104,7 +104,7 @@ The two axes are no longer symmetric, so they are not asked the same way.
 comparing yourself:
 
 ```python
-def render(self, main_card: ui.card, wrapper: NodeWrapper):
+def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool):
     show = self.show_of(wrapper)          # NodeSkin helper
 
     if show.collapsed:
@@ -183,7 +183,7 @@ every open graph. A skin therefore has no per-node state, and direction must be 
 the wrapper on each render:
 
 ```python
-def render(self, main_card: ui.card, wrapper: NodeWrapper):
+def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool):
     layout = self.layout_of(wrapper)          # NodeSkin helper
     ...
 ```
@@ -199,7 +199,7 @@ stale or unrecognised stored value must never take a card down.
 ### Pass it to `render_pin` — and let it derive both halves
 
 ```python
-render_pin(port, node_id, layout=layout, pin_gutter=..., card_padding=..., pin_protrusion=...)
+render_pin(port, node_id, layout=layout, pin_gutter=..., card_padding=..., pin_protrusion=..., on_stage=on_stage)
 ```
 
 `render_pin` derives **both** the pin's CSS side and its `data-pin-dir-x/y` vector from
@@ -355,6 +355,17 @@ ghost pins with `data-pin-ghost` (the convention `render_pin` itself follows),
 right-clicking one correctly falls through past the pin check to whatever is next —
 normally the node. Do not expect a ghost pin to carry a menu; it is deliberately excluded,
 not an oversight to work around.
+
+## Stage view: the `on_stage` keyword
+
+Stage view is a display, not a separate face. A node on a graph's stage is drawn by the same `render()` as in patch view, with the same skin and title; the differences are which pins are drawn and which rows (below). `UINode._render` passes `on_stage=self.channel.stage` through `SkinFactory.render(key, wrapper, *, on_stage=False, ...)` (the error-skin fallback forwards it too). See [ADR 0054](../../adr/0054-the-stage-view.md).
+
+- `BaseSkin.render(self, main_card, wrapper, *, on_stage: bool)` (`packages/haywire-core/src/haywire/ui/skin/base.py`). The keyword is **required**, so a skin outside the repo breaks loudly when it is not updated.
+- `render_pin(..., on_stage: bool)` (`pin_render.py`) is required too. With `on_stage=True` it returns `None` for a port whose `port.on_stage` is false (its wire type is not an on-stage wire); a skin must tolerate that `None`. With `on_stage=False` it behaves as in patch view.
+- **Collapse.** A skin's collapse check is `self.is_collapsed(wrapper) and not on_stage`: a node collapsed in the patch is drawn expanded on stage. Fold state is honoured on stage (below).
+- **The row rule.** On stage a default-skin card draws a row only for a port that renders a widget there (`NodeSkin._shows_widget`): label plus widget, as in the patch. A port without a shown widget draws no label and no row. An on-stage pin without a widget is drawn alone in a bare pin row, so it keeps an anchor. Folds work on stage (`StackedSkin`): the fold header draws only when the fold port passes `should_show_widget()` (a `FOLD` port has no `widget_key`, so only the show-widget strategy applies), a closed fold hides its children, and the state is the node's one fold state, shared with the patch. The split skin draws no fold header in either view; its config band honours fold state and is skipped when none of its configs shows a widget. The Annotation skin is unaffected. A custom skin should follow the rule, or its on-stage cards show rows the default skin omits.
+- **Ghost pins stay.** `render_ghost_pin` is unchanged, so an edge whose port is missing keeps its anchor on stage.
+- Everything else about the card (the class-list contract above, `node-card`, `drag-handle`, the frame) holds on stage as in patch view.
 
 ## TODO
 

@@ -281,6 +281,12 @@ class SelectionToolbarProvider:
     def reset_selection(self) -> None:
         self._menu_provider.reset_selection()
 
+    def add_to_stage(self) -> None:
+        self._menu_provider.add_to_stage()
+
+    def remove_from_stage(self) -> None:
+        self._menu_provider.remove_from_stage()
+
     def dissolve_reroute(self, node_id: str) -> None:
         self._menu_provider.dissolve_reroute(node_id)
 

@@ -50,7 +50,7 @@ class SplitNodeSkin(NodeSkin):
         """
         return "split-node-card"
 
-    def render(self, main_card: ui.card, wrapper: NodeWrapper):
+    def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool):
         node: BaseNode = wrapper.node
         layout = self.layout_of(wrapper)
 
@@ -74,15 +74,15 @@ class SplitNodeSkin(NodeSkin):
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
 
-        if self.is_collapsed(wrapper):
+        if self.is_collapsed(wrapper) and not on_stage:
             # Folded, this card is the shared header row — see NodeSkin. The
             # two bands have nothing to say about a single row, so there is no
             # split-specific fold path.
             self._render_collapsed(main_card, node, wrapper, layout, card_style)
         elif layout.is_vertical:
-            self._render_vertical(main_card, node, wrapper, layout, card_style)
+            self._render_vertical(main_card, node, wrapper, layout, card_style, on_stage=on_stage)
         else:
-            self._render_horizontal(main_card, node, wrapper, layout, card_style)
+            self._render_horizontal(main_card, node, wrapper, layout, card_style, on_stage=on_stage)
 
     def _render_vertical(
         self,
@@ -91,6 +91,8 @@ class SplitNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
+        *,
+        on_stage: bool,
     ):
         """Vertical layouts (T2B / B2T): inlets/outlets become pin strips on
         the card's top/bottom edges; only configs stay in the body.
@@ -126,15 +128,15 @@ class SplitNodeSkin(NodeSkin):
             # of the card while its pins are sided "bottom" would offset them
             # DOWN, i.e. inward.
             top_first = layout.inlet_side == "top"
-            self.render_pin_strip(inlets if top_first else outlets, wrapper, layout)
+            self.render_pin_strip(inlets if top_first else outlets, wrapper, layout, on_stage=on_stage)
 
             with ui.row().classes("drag-handle w-full items-center gap-2"):
                 self._render_title(node)
                 self._render_alternates_notice(wrapper, runtime_errors)
 
-            self._render_config_band(configs, wrapper, layout)
+            self._render_config_band(configs, wrapper, layout, on_stage=on_stage)
 
-            self.render_pin_strip(outlets if top_first else inlets, wrapper, layout)
+            self.render_pin_strip(outlets if top_first else inlets, wrapper, layout, on_stage=on_stage)
 
     def _render_horizontal(
         self,
@@ -143,6 +145,8 @@ class SplitNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
+        *,
+        on_stage: bool,
     ):
         """Horizontal layouts (L2R / R2L): configs span the top, inlets and
         outlets sit side by side beneath.
@@ -169,15 +173,19 @@ class SplitNodeSkin(NodeSkin):
                 # still lands on. This skin renders no group hierarchy, but a
                 # node can still arrive with groups collapsed from another skin,
                 # and a linked port with no pin strands its edge.
-                self._render_pin_column(node.get_hidden_connected_ports(is_inlet=True), wrapper, layout)
+                self._render_pin_column(
+                    node.get_hidden_connected_ports(is_inlet=True), wrapper, layout, on_stage=on_stage
+                )
 
                 self._render_title(node)
 
-                self._render_pin_column(node.get_hidden_connected_ports(is_inlet=False), wrapper, layout)
+                self._render_pin_column(
+                    node.get_hidden_connected_ports(is_inlet=False), wrapper, layout, on_stage=on_stage
+                )
 
                 self._render_alternates_notice(wrapper, runtime_errors)
 
-            self._render_config_band(configs, wrapper, layout)
+            self._render_config_band(configs, wrapper, layout, on_stage=on_stage)
 
             # Inlets and outlets side by side beneath. An empty column is
             # omitted rather than rendered blank, so an outlet-only node keeps
@@ -201,13 +209,15 @@ class SplitNodeSkin(NodeSkin):
                         with ui.column().classes("flex-1 gap-1 min-w-0"):
                             ui.label(heading).classes("font-bold text-sm hw-detail-label")
                             for port in group:
-                                self.render_port(port, wrapper, layout=layout)
+                                self.render_port(port, wrapper, layout=layout, on_stage=on_stage)
 
     def _render_config_band(
         self,
         configs,
         wrapper: NodeWrapper,
         layout: LayoutDirection,
+        *,
+        on_stage: bool,
     ):
         """Configs, spanning the whole card.
 
@@ -219,9 +229,13 @@ class SplitNodeSkin(NodeSkin):
         ``[data-node-props-detail]`` rule hides it below LABELS from the DOM
         attribute directly, so nothing needs consulting here.
         """
+        if on_stage:
+            # Only rows that show a widget draw on stage; with none, the band
+            # would be a bare heading over nothing.
+            configs = [port for port in configs if self._shows_widget(port)]
         if not configs:
             return
         with ui.column().classes("w-full gap-1"):
             ui.label("Config").classes("font-bold text-sm hw-detail-label")
             for port in configs:
-                self.render_port(port, wrapper, layout=layout)
+                self.render_port(port, wrapper, layout=layout, on_stage=on_stage)

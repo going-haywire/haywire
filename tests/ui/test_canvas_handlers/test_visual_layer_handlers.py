@@ -90,7 +90,6 @@ def test_on_validated_node_added_calls_add_node_visual(handler, graph):
         result = ValidationResult(
             nodes={"n1": ChangeReason.NODE_ADDED},
             edges={},
-            canvas_size=None,
             validation_time_ms=0.0,
         )
         handler.on_validated(result)
@@ -107,7 +106,6 @@ def test_on_validated_skips_node_add_if_panel_exists(handler, graph):
         result = ValidationResult(
             nodes={"n1": ChangeReason.NODE_ADDED},
             edges={},
-            canvas_size=None,
             validation_time_ms=0.0,
         )
         handler.on_validated(result)
@@ -133,7 +131,6 @@ def test_node_moved_reads_the_canvas_channel(graph, canvas_vue):
             ValidationResult(
                 nodes={"n1": ChangeReason.NODE_MOVED},
                 edges={},
-                canvas_size=None,
                 validation_time_ms=0.0,
             )
         )
@@ -195,7 +192,6 @@ def test_on_validated_node_removed_calls_remove_node_visual(handler):
         result = ValidationResult(
             nodes={"n1": ChangeReason.NODE_REMOVED},
             edges={},
-            canvas_size=None,
             validation_time_ms=0.0,
         )
         handler.on_validated(result)
@@ -207,7 +203,6 @@ def test_on_validated_skips_node_remove_if_no_panel(handler):
         result = ValidationResult(
             nodes={"n_missing": ChangeReason.NODE_REMOVED},
             edges={},
-            canvas_size=None,
             validation_time_ms=0.0,
         )
         handler.on_validated(result)
@@ -229,7 +224,6 @@ def test_on_validated_edge_added_registers_edge_visual(handler, graph):
         result = ValidationResult(
             nodes={},
             edges={"e1": ChangeReason.EDGE_ADDED},
-            canvas_size=None,
             validation_time_ms=0.0,
         )
         handler.on_validated(result)
@@ -243,7 +237,6 @@ def test_on_validated_edge_removed_calls_remove_edge_visual(handler):
         result = ValidationResult(
             nodes={},
             edges={"e1": ChangeReason.EDGE_REMOVED},
-            canvas_size=None,
             validation_time_ms=0.0,
         )
         handler.on_validated(result)
@@ -260,7 +253,7 @@ def test_on_validated_applies_canvas_resize(handler, canvas_vue):
         result = ValidationResult(
             nodes={},
             edges={},
-            canvas_size=(1920, 1080),
+            canvas_sizes={"patch": (1920, 1080)},
             validation_time_ms=0.0,
         )
         handler.on_validated(result)
@@ -278,12 +271,11 @@ def test_apply_canvas_resize_updates_canvas_and_zoom_container(handler, canvas_v
     zoom_container.set_canvas_size.assert_called_once_with(1920, 1080)
 
 
-def test_on_validated_no_resize_when_canvas_size_none(handler):
+def test_on_validated_no_resize_when_no_canvas_sizes(handler):
     with patch.object(handler, "_apply_canvas_resize") as mock_resize:
         result = ValidationResult(
             nodes={},
             edges={},
-            canvas_size=None,
             validation_time_ms=0.0,
         )
         handler.on_validated(result)

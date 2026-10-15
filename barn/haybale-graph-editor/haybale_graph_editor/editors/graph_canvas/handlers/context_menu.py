@@ -695,6 +695,20 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             except Exception as exc:  # pragma: no cover - defensive
                 logger.debug(f"resetting detail failed: {exc}")
 
+    def add_to_stage(self) -> None:
+        """Emit AddToStageEvent for the whole selection."""
+        from haywire.ui.components.graph.event_definitions import AddToStageEvent
+
+        edit = self._context.data[EditState]
+        self._emit(AddToStageEvent(node_ids=list(edit.selected_nodes)))
+
+    def remove_from_stage(self) -> None:
+        """Emit RemoveFromStageEvent for the whole selection."""
+        from haywire.ui.components.graph.event_definitions import RemoveFromStageEvent
+
+        edit = self._context.data[EditState]
+        self._emit(RemoveFromStageEvent(node_ids=list(edit.selected_nodes)))
+
     def dissolve_reroute(self, node_id: str) -> None:
         """Emit DissolveRerouteEvent for the given reroute node.
 

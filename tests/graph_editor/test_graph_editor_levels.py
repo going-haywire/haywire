@@ -678,7 +678,7 @@ class TestEdgesSurviveAHiddenCanvas:
         editor, context, _document = _editor()
         _descend(editor, context, _definition(key="sg_a"))
         for level in editor._levels.values():
-            level.canvas_manager = MagicMock()
+            level.canvases["patch"] = MagicMock()
         shown = _stub(editor._levels[DOCUMENT_LEVEL].canvas_manager)
 
         editor._switch_level(context, DOCUMENT_LEVEL)

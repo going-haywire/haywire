@@ -178,8 +178,12 @@ def render_pin(
     card_padding: int,
     pin_protrusion: int,
     pin_icons: PinIconResolver | None = None,
+    on_stage: bool,
 ) -> ui.element | None:
     """Render a connection-compatible pin and return the created element.
+
+    With ``on_stage=True`` a port whose ``on_stage`` is false draws nothing and
+    this returns ``None``; with ``False`` every port with a glyph draws a pin.
 
     Emits the ``data-*`` attributes the Vue connection layer needs. Geometry is
     passed explicitly (``pin_gutter`` / ``card_padding`` / ``pin_protrusion``)
@@ -210,6 +214,9 @@ def render_pin(
     ``data-hw-menu-surface-id`` exists only for a menu the framework knows
     nothing about, and a skin adds it to its own elements, not to a pin.
     """
+    if on_stage and not pin.on_stage:
+        return None
+
     pin_direction = "swinglet" if pin.is_swinglet() else "inlet" if pin.is_inlet() else "outlet"
     pin_uuid = generate_pin_uuid(node_id, pin.id)
 

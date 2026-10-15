@@ -192,6 +192,8 @@ class NodeSkin(BaseSkin, ABC):
         ports: List[DataPort],
         wrapper: NodeWrapper,
         layout: LayoutDirection,
+        *,
+        on_stage: bool,
     ):
         """Stack bare pins on one card edge — the horizontal twin of a pin strip.
 
@@ -217,7 +219,7 @@ class NodeSkin(BaseSkin, ABC):
             .style(f"position: absolute; {edge}: 0; top: 50%; transform: translateY(-50%);")
         ):
             for port in ports:
-                self._render_pin(port, wrapper, layout=layout)
+                self._render_pin(port, wrapper, layout=layout, on_stage=on_stage)
 
     def header_row(self, extra_classes: str = "") -> ui.row:
         """The card's header row — every skin's title goes here.
@@ -310,9 +312,9 @@ class NodeSkin(BaseSkin, ABC):
         tallest = max(len(inlets), len(outlets))
         with self.header_row().style(f"min-height: {tallest * self.PIN_GUTTER}px;"):
             self._render_root_ghost_pins(wrapper, layout)
-            self._render_pin_column(inlets, wrapper, layout)
+            self._render_pin_column(inlets, wrapper, layout, on_stage=False)
             self._render_title(node)
-            self._render_pin_column(outlets, wrapper, layout)
+            self._render_pin_column(outlets, wrapper, layout, on_stage=False)
 
     def _render_collapsed_vertical(
         self,
@@ -350,6 +352,7 @@ class NodeSkin(BaseSkin, ABC):
             wrapper,
             layout,
             ghost_for=PortType.INLET if top_first else PortType.OUTLET,
+            on_stage=False,
         )
         with self.header_row():
             self._render_title(node)
@@ -358,6 +361,7 @@ class NodeSkin(BaseSkin, ABC):
             wrapper,
             layout,
             ghost_for=PortType.OUTLET if top_first else PortType.INLET,
+            on_stage=False,
         )
 
     def _render_diagnostics_badge(self, wrapper: NodeWrapper) -> List["HaywireException"]:
@@ -410,6 +414,11 @@ class NodeSkin(BaseSkin, ABC):
                 classes
             )
 
+    @staticmethod
+    def _shows_widget(port: DataPort) -> bool:
+        """Whether a port's row draws a widget. The one rule every row builder shares."""
+        return port.widget_key is not None and port.should_show_widget()
+
     def render_port(
         self,
         port: DataPort,
@@ -417,6 +426,8 @@ class NodeSkin(BaseSkin, ABC):
         widget_classes: str = "",
         layout: LayoutDirection | None = None,
         depth: int = 0,
+        *,
+        on_stage: bool,
     ):
         """Render a port according to its port type.
 
@@ -430,8 +441,15 @@ class NodeSkin(BaseSkin, ABC):
         Args:
             depth: Fold nesting level, insetting the content column. The pin
                 column is never inset — see ``FOLD_INDENT``.
+            on_stage: Draw for a stage view: a port draws a row (label and widget)
+                only if it shows a widget, its pin only if it is an on-stage port.
+                An on-stage pin without a widget draws alone, in a bare pin row.
         """
         layout = self.layout_of(wrapper) if layout is None else layout
+        if on_stage and not self._shows_widget(port):
+            if (port.is_inlet() or port.is_outlet()) and port.on_stage and not layout.is_vertical:
+                self._render_bare_pin_row(port, wrapper, layout=layout, side=layout.side_for(port))
+            return
         if port.is_config():
             self._render_config(
                 port,
@@ -447,6 +465,28 @@ class NodeSkin(BaseSkin, ABC):
                 layout=layout,
                 widget_classes="widget-container zoom-pan-lod2",
                 depth=depth,
+                on_stage=on_stage,
+            )
+
+    def _render_bare_pin_row(
+        self, port: DataPort, wrapper: NodeWrapper, *, layout: LayoutDirection, side: str
+    ) -> None:
+        """A pin with no label or widget, seated in the same gutter column a full row uses."""
+        g, h = self.PIN_GUTTER, self.PIN_ROW_HEIGHT
+        columns = f"{g}px 1fr" if side == "left" else f"1fr {g}px"
+        column = 1 if side == "left" else 2
+        with ui.element("div").style(
+            f"display: grid; grid-template-columns: {columns}; width: 100%; align-items: start; "
+            "overflow: visible;"
+        ):
+            self._render_pin(
+                port,
+                wrapper,
+                layout=layout,
+                cell_style=(
+                    f"grid-column: {column}; justify-self: center; align-self: center; min-height: {h}px;"
+                ),
+                on_stage=True,
             )
 
     def _render_port_horizontal(
@@ -458,6 +498,7 @@ class NodeSkin(BaseSkin, ABC):
         layout: LayoutDirection,
         widget_classes: str = "",
         depth: int = 0,
+        on_stage: bool,
     ):
         """Render a port as `pin column | content`, or the mirror of it.
 
@@ -502,6 +543,7 @@ class NodeSkin(BaseSkin, ABC):
                         f"grid-column: {pin_column}; justify-self: center; "
                         f"align-self: center; min-height: {h}px;"
                     ),
+                    on_stage=on_stage,
                 )
 
             with (
@@ -513,7 +555,7 @@ class NodeSkin(BaseSkin, ABC):
                 )
             ):
                 ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
-                if port.widget_key is not None and port.should_show_widget():
+                if self._shows_widget(port):
                     self.render_widget(port, wrapper.node_id, classes=f"{widget_classes} hw-detail-widget")
 
             # No tooltip on this content column. The port's own PIN carries it
@@ -530,6 +572,7 @@ class NodeSkin(BaseSkin, ABC):
                         f"grid-column: {pin_column}; justify-self: center; "
                         f"align-self: center; min-height: {h}px;"
                     ),
+                    on_stage=on_stage,
                 )
 
     def render_pin_strip(
@@ -538,6 +581,8 @@ class NodeSkin(BaseSkin, ABC):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         ghost_for: "PortType | None" = None,
+        *,
+        on_stage: bool,
     ):
         """Render bare pins in a row along one card edge, for vertical layouts.
 
@@ -582,6 +627,7 @@ class NodeSkin(BaseSkin, ABC):
                     wrapper,
                     layout=layout,
                     cell_style=f"flex: 0 0 auto; min-width: {w}px; text-align: center;",
+                    on_stage=on_stage,
                 )
 
     def _render_config(
@@ -608,7 +654,7 @@ class NodeSkin(BaseSkin, ABC):
         ) as config_row:
             ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
             widget_el = None
-            if port.widget_key is not None and port.should_show_widget():
+            if self._shows_widget(port):
                 widget_el = self.render_widget(
                     port, wrapper.node_id, classes=f"{widget_classes} hw-detail-widget"
                 )
@@ -629,8 +675,12 @@ class NodeSkin(BaseSkin, ABC):
         wrapper: NodeWrapper,
         layout: LayoutDirection | None = None,
         cell_style: str = "",
+        *,
+        on_stage: bool,
     ):
         """Render a pin, supplying this skin's geometry to the framework helper.
+
+        Draws nothing when ``on_stage`` is true and the port is not an on-stage port.
 
         ``card_padding`` must be the padding on the axis this pin CROSSES —
         left/right for horizontal pins, top/bottom for vertical. The wrong one
@@ -647,6 +697,7 @@ class NodeSkin(BaseSkin, ABC):
             card_padding=self.CARD_V_PADDING if layout.is_vertical else self.CARD_H_PADDING,
             pin_protrusion=self.PIN_PROTRUSION,
             pin_icons=self.pin_icons,
+            on_stage=on_stage,
         )
         if pin_el is not None:
             # No menu attribute: the pin menu is structural now. The canvas

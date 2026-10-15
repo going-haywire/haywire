@@ -27,11 +27,49 @@ class LayoutChannel:
     width: str
     height: str
     size_adapt: str
+    member: str | None = None
+    origin: float = 0.0
+    stage: bool = False
+
+    def includes(self, props: Any) -> bool:
+        """Whether a node with these props is laid out on this channel.
+
+        A channel with no ``member`` includes every node; otherwise the node's ``member``
+        field must be truthy.
+
+        Example::
+
+            STAGE.includes(node.props)   # node.props.on_stage
+        """
+        return self.member is None or bool(getattr(props, self.member))
+
+    def to_canvas(self, x: float, y: float) -> tuple[float, float]:
+        """Return the canvas position of a channel position: ``origin`` added to both axes."""
+        return x + self.origin, y + self.origin
+
+    def from_canvas(self, x: float, y: float) -> tuple[float, float]:
+        """Return the channel position of a canvas position: ``origin`` taken from both axes."""
+        return x - self.origin, y - self.origin
 
 
 PATCH = LayoutChannel(
     name="patch", x="posX", y="posY", width="width", height="height", size_adapt="size_adapt"
 )
+
+STAGE = LayoutChannel(
+    name="stage",
+    x="stage_x",
+    y="stage_y",
+    width="stage_width",
+    height="stage_height",
+    size_adapt="stage_size_adapt",
+    member="on_stage",
+    origin=200.0,
+    stage=True,
+)
+
+#: Every layout channel, patch first.
+CHANNELS = (PATCH, STAGE)
 
 
 def _values(node_data: Mapping[str, Any] | None) -> Mapping[str, Any]:
@@ -73,3 +111,42 @@ def with_position(
     props["values"] = values
     result["props"] = props
     return result
+
+
+def with_stage_placement(
+    node_data: Mapping[str, Any] | None,
+    x: float,
+    y: float,
+    patch_xy: tuple[float, float] | None = None,
+) -> dict[str, Any]:
+    """Return a copy of ``node_data`` that puts the node on the stage at stage position ``(x, y)``.
+
+    The node is on stage with ``stage_size_adapt`` ``"auto"``. Its patch position is ``patch_xy``,
+    or the same numbers as the stage position when that is ``None``. ``node_data`` is not
+    mutated; other props values are kept.
+
+    Example::
+
+        node_data = with_stage_placement(None, 40.0, 60.0)                  # stage_x == posX == 40.0
+        node_data = with_stage_placement(None, 40.0, 60.0, (900.0, 700.0))  # posX == 900.0
+    """
+    px, py = (x, y) if patch_xy is None else patch_xy
+    result = with_position(with_position(node_data, px, py, PATCH), x, y, STAGE)
+    values = result["props"]["values"]
+    values["on_stage"] = True
+    values[STAGE.size_adapt] = "auto"
+    return result
+
+
+def layout_position_of(node: Mapping[str, Any], channel: LayoutChannel = PATCH) -> tuple[float, float]:
+    """Return the ``(x, y)`` a serialized node has on ``channel``.
+
+    On a channel with a ``member`` field, a node that is not a member reads its patch position.
+
+    Example::
+
+        layout_position_of(payload_node, STAGE)   # stage position if on stage, else posX/posY
+    """
+    if channel.member is not None and not _values(node.get("node_data")).get(channel.member):
+        return position_of(node, PATCH)
+    return position_of(node, channel)

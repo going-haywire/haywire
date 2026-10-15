@@ -56,6 +56,14 @@ class InteractionHandlers:
         self._session = session
         self.channel = channel
 
+    def _to_channel(self, positions: dict[str, dict[str, float]]) -> dict[str, dict[str, float]]:
+        """Return ``positions`` from canvas coordinates in this canvas's channel coordinates."""
+        out: dict[str, dict[str, float]] = {}
+        for node_id, pos in positions.items():
+            x, y = self.channel.from_canvas(pos["x"], pos["y"])
+            out[node_id] = {"x": x, "y": y}
+        return out
+
     @handles_event(UserDragStartEvent)
     def process_drag_start(self, event: UserDragStartEvent):
         """Place an undo fence before a drag sequence begins."""
@@ -65,7 +73,7 @@ class InteractionHandlers:
     def process_drag_update(self, event: UserDragUpdateEvent):
         """Forward absolute positions to editor (records MoveNodesToAction)."""
         logger.debug(f"Dragging {len(event.positions)} nodes to absolute positions")
-        self.editor.move_nodes_to(event.positions, self.channel)
+        self.editor.move_nodes_to(self._to_channel(event.positions), self.channel)
 
     @handles_event(UserDragEndEvent)
     def process_drag_end(self, event: UserDragEndEvent):
@@ -90,7 +98,9 @@ class InteractionHandlers:
         self.editor.set_property(event.nodeId, channel.width, event.width, prefer_setting=True)
         self.editor.set_property(event.nodeId, channel.height, event.height, prefer_setting=True)
         if event.posX is not None and event.posY is not None:
-            self.editor.move_nodes_to({event.nodeId: {"x": event.posX, "y": event.posY}}, channel)
+            self.editor.move_nodes_to(
+                self._to_channel({event.nodeId: {"x": event.posX, "y": event.posY}}), channel
+            )
         self.editor.add_fence()
 
         # The size writes mark a value edit, which announces at most the unsaved

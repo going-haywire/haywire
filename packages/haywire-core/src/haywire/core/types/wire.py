@@ -81,6 +81,7 @@ class WireType:
             see ``ArrowAt``.
         holds_absence: Fields of types declared on this wire type can hold ``None``,
             meaning "no value", and pools of them drop an absent entry.
+        on_stage: Whether pins and edges of this wire type appear in a graph's stage view.
         style: The ``EdgeSettings`` subclass each edge of this wire type carries,
             holding what the user may set per edge, or ``None`` for a computed
             edge whose look comes from its pins and the graph's edge defaults.
@@ -108,6 +109,7 @@ class WireType:
     pin_kind: ClassVar[str] = ""
     arrow_at: ClassVar[ArrowAt] = ArrowAt.INLET
     holds_absence: ClassVar[bool] = False
+    on_stage: ClassVar[bool] = False
     style: ClassVar[type[EdgeSettings] | None] = None
     id: ClassVar[str]
 

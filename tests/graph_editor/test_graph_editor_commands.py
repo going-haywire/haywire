@@ -38,7 +38,9 @@ def _editor(canvas_manager: Any = None) -> tuple[GraphEditor, Any, Any]:
     wrapper._binding_id = BINDING
     editor = GraphEditor(cast(EditorWrapper, wrapper))
     editor._levels[DOCUMENT_LEVEL] = _Level(
-        key=DOCUMENT_LEVEL, container=cast(Any, document), canvas_manager=canvas_manager
+        key=DOCUMENT_LEVEL,
+        container=cast(Any, document),
+        canvases={"patch": canvas_manager} if canvas_manager is not None else {},
     )
     context = SimpleNamespace(session=MagicMock(), data=MagicMock())
     return editor, context, document
@@ -193,7 +195,7 @@ def test_locked_level_undo_and_redo_do_nothing():
 
     ctx = _real_context(AccessTier.ADMIN)
     editor, context, document = _editor(None)
-    editor._levels[DOCUMENT_LEVEL].canvas_manager = _locking_manager(ctx)
+    editor._levels[DOCUMENT_LEVEL].canvases["patch"] = _locking_manager(ctx)
     editor._levels[DOCUMENT_LEVEL].locked = True
     document.editor.can_undo.return_value = True
     document.editor.can_redo.return_value = True

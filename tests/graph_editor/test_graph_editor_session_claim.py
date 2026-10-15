@@ -273,8 +273,10 @@ def _mount_canvas(monkeypatch, editor: GraphEditor, context: Any, key: str) -> t
     monkeypatch.setattr(graph_editor_module, "GraphCanvasManager", construct)
     editor._project_state = MagicMock()
     context.session_id = "session-1"
-    level.canvas_manager = editor._build_canvas(context, level.container)
-    return level.canvas_manager, recorder
+    manager = editor._build_canvas(context, level.container)
+    assert manager is not None
+    level.canvases["patch"] = manager
+    return manager, recorder
 
 
 def _residual_path(monkeypatch) -> tuple[GraphEditor, GraphEditor, Any, Any, Any, _Recorder]:

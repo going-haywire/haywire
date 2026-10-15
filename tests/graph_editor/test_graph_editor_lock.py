@@ -140,7 +140,7 @@ def test_locking_with_a_selection_leaves_the_toolbar_hidden(monkeypatch):
     provider._toolbar_popup = popup  # type: ignore[assignment]
     provider._last_bounds = (0.0, 0.0, 10.0, 10.0)
     manager._toolbar_provider = provider
-    editor._levels[DOCUMENT_LEVEL].canvas_manager = manager
+    editor._levels[DOCUMENT_LEVEL].canvases["patch"] = manager
 
     assert editor.set_level_locked(context, DOCUMENT_LEVEL, True) is True
 

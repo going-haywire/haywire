@@ -197,6 +197,10 @@ class AppIcon:
     """Unfold a folded node card. Paired with ``node_collapse``: a toggle shows
     whichever of the two it would DO next, so the icon reads as the verb the
     row's label already says, never as a state indicator contradicting it."""
+    stage_add: Final[str] = "playlist_add"
+    """Put the selected nodes on the stage."""
+    stage_remove: Final[str] = "playlist_remove"
+    """Take the selected nodes off the stage; they stay in the patch."""
     node_detail: Final[str] = "tune"
     """Node density rank (NodeDetail) — the Detail submenu and its rows."""
     fold_open: Final[str] = "expand_more"

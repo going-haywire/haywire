@@ -54,7 +54,13 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         zoom_container=None,
         canvas_width: int = 8000,
         canvas_height: int = 8000,
+        origin: float = 0.0,
     ):
+        """Create the canvas element.
+
+        Args:
+            origin: Canvas position, on both axes, of the stage origin. ``0`` draws no marker.
+        """
         super().__init__()
 
         self._on_canvas_event = on_canvas_event
@@ -69,6 +75,8 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         self._props["data-hw-canvas-id"] = self._props["containerId"]
         self._props["canvasWidth"] = canvas_width
         self._props["canvasHeight"] = canvas_height
+        self._props["originX"] = origin
+        self._props["originY"] = origin
         self._props["data-graph_canvas"] = True
         # The sibling ZoomPanContainer broadcasts ``zoom-pan-state`` events on
         # ``document``; canvas.vue uses this id to ignore events from other

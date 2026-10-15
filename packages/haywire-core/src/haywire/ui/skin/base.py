@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import Callable, ClassVar
 import logging
 
 import nicegui.ui as ui
@@ -56,13 +56,20 @@ class BaseSkin(ABC):
         self._widget_factory: IWidgetFactory = widget_factory
         self._nodeids_widget_instances: dict[str, dict[str, IWidget]] = {}
 
-    def _render(self, wrapper: NodeWrapper) -> UINodeCard:
+    def _render(self, wrapper: NodeWrapper, *, on_stage: bool = False) -> UINodeCard:
+        """Draw *wrapper*'s card: :meth:`render` into a fresh card.
+
+        ``on_stage`` is forwarded to :meth:`render`.
+        """
+        return self._render_into_card(wrapper, lambda card: self.render(card, wrapper, on_stage=on_stage))
+
+    def _render_into_card(self, wrapper: NodeWrapper, draw: Callable[[ui.card], object]) -> UINodeCard:
         ui_nodeCard: UINodeCard = UINodeCard()
         try:
             # Initialize node_id storage for widget instances
             self._nodeids_widget_instances[wrapper.node_id] = {}
 
-            self.render(ui_nodeCard.get_card(), wrapper)
+            draw(ui_nodeCard.get_card())
 
             ui_nodeCard.set_widget_instances(self._nodeids_widget_instances[wrapper.node_id])
 
@@ -86,7 +93,7 @@ class BaseSkin(ABC):
             raise
 
     @abstractmethod
-    def render(self, main_card: ui.card, wrapper: NodeWrapper) -> UINodeCard:
+    def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool) -> UINodeCard:
         """
         Render a node into the main_card.
 
@@ -101,6 +108,9 @@ class BaseSkin(ABC):
         Args:
             main_card: The NiceGUI ui.card() element to render the node into
             wrapper: The NodeWrapper containing the HaywireNode to render
+            on_stage: True when drawing for a stage view. Draw the same card, expanded
+                even if the node is collapsed, and pass it to every ``render_pin`` call
+                so only on-stage pins are drawn.
 
         """
         pass

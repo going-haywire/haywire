@@ -43,9 +43,9 @@ CLASS_FLIP_FIELDS = {"detail"}
 class TestRedrawFieldsSchema:
     """Pure schema contract — no graph or library system needed."""
 
-    def test_redraw_fields_are_the_non_layout_props_minus_style_writes(self):
+    def test_redraw_fields_are_the_non_layout_non_stage_props_minus_style_writes(self):
         fields = NodeProperties._settings_descriptors()
-        non_layout = {name for name, desc in fields.items() if desc._category != "layout"}
+        non_layout = {name for name, desc in fields.items() if desc._category not in ("layout", "stage")}
         assert set(NodeProperties.REDRAW_FIELDS) == non_layout - STYLE_WRITE_FIELDS - CLASS_FLIP_FIELDS
 
     def test_style_write_fields_exist_and_are_excluded(self):

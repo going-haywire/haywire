@@ -33,7 +33,7 @@ _CARD_PADDING = 4
 class RerouteSkin(BaseSkin):
     """Renders a reroute node as a small box with its two pins inline."""
 
-    def render(self, main_card: ui.card, wrapper: NodeWrapper):
+    def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool):
         node = wrapper.node
 
         # A reroute is a dot on a wire, so it follows the GRAPH's layout
@@ -107,9 +107,9 @@ class RerouteSkin(BaseSkin):
                     "position: absolute; display: flex; overflow: visible; "
                     f"{cross} {edge}: {_CARD_PADDING}px;"
                 ):
-                    self._render_reroute_pin(pin, wrapper.node_id, layout)
+                    self._render_reroute_pin(pin, wrapper.node_id, layout, on_stage=on_stage)
 
-    def _render_reroute_pin(self, port, node_id: str, layout: LayoutDirection) -> None:
+    def _render_reroute_pin(self, port, node_id: str, layout: LayoutDirection, *, on_stage: bool) -> None:
         render_pin(
             port,
             node_id,
@@ -118,4 +118,5 @@ class RerouteSkin(BaseSkin):
             card_padding=_CARD_PADDING,
             pin_protrusion=_PIN_PROTRUSION,
             pin_icons=self.pin_icons,
+            on_stage=on_stage,
         )

@@ -172,7 +172,7 @@ export default {
       }
       // Automatic (minZoom == 0): most zoomed-out is when the canvas exactly
       // fills the viewport.
-      const rect = this.$el.getBoundingClientRect();
+      const rect = this._getContainerRect();
       if (rect.width > 0 && rect.height > 0) {
         this._minZoom = Math.max(rect.width / this.canvasWidth, rect.height / this.canvasHeight);
       }
@@ -689,7 +689,10 @@ export default {
         this.updateTimeout = null;
       }
       this._transformDirty = false;
-      this.$emit('transform-changed', { panX: this._panX, panY: this._panY, zoom: this._zoom });
+      const rect = this._getContainerRect();
+      this.$emit('transform-changed', {
+        panX: this._panX, panY: this._panY, zoom: this._zoom, width: rect.width, height: rect.height,
+      });
     },
 
     /**

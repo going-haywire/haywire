@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 import logging
+import uuid
 from typing import Any, Callable, ClassVar, Literal, Optional, TYPE_CHECKING
 
 from nicegui import ui
@@ -75,6 +76,10 @@ class Slot(ABC):
         self._area_panel_container: Optional[ui.tab_panels] = None
         self._area_parent_box: Optional[ui.element] = None
         self._panels: dict[str, ui.element] = {}
+        # binding_id -> tab-panel name. Independent of the binding id: the client caches a
+        # panel by name, so a re-payload must not rename it (a new name mounts a fresh
+        # canvas, and the editor's ref then points at the old detached instance).
+        self._panel_names: dict[str, str] = {}
         self._drawn: set[str] = set()
         self._on_visibility_change = on_visibility_change
         self._bar_place = bar_place
@@ -413,7 +418,9 @@ class Slot(ABC):
         active panel without rebuilding anything.
         """
         self._capture_tab_client()
-        initial_value = self._active.editor_binding_id if self._active is not None else None
+        initial_value = (
+            self._panel_name_for(self._active.editor_binding_id) if self._active is not None else None
+        )
         with parent:
             self._area_panel_container = (
                 ui.tab_panels(value=initial_value, animated=False)
@@ -438,12 +445,22 @@ class Slot(ABC):
             self._active = None
             self._activate(initial)
 
+    def _panel_name_for(self, binding_id: str) -> str:
+        """The stable tab-panel name for ``binding_id`` (minted on first use)."""
+        name = self._panel_names.get(binding_id)
+        if name is None:
+            name = uuid.uuid4().hex
+            self._panel_names[binding_id] = name
+        return name
+
     def _create_panel(self, wrapper: EditorWrapper) -> None:
         """Create a ``ui.tab_panel`` shell for ``wrapper``. Draw is deferred."""
         if self._area_panel_container is None:
             return
         with self._area_panel_container:
-            panel = ui.tab_panel(wrapper.editor_binding_id).style("width: 100%; height: 100%; padding: 0;")
+            panel = ui.tab_panel(self._panel_name_for(wrapper.editor_binding_id)).style(
+                "width: 100%; height: 100%; padding: 0;"
+            )
         # Direct _props writes: binding ids can hold quotes, which a .props() string would parse.
         panel._props["data-hw-binding"] = wrapper.editor_binding_id
         panel._props["data-hw-editor"] = wrapper.editor_key
@@ -500,7 +517,7 @@ class Slot(ABC):
         wrapper.on_focus()
         self._ensure_drawn(wrapper)
         if self._area_panel_container is not None:
-            self._area_panel_container.set_value(wrapper.editor_binding_id)
+            self._area_panel_container.set_value(self._panel_name_for(wrapper.editor_binding_id))
 
     # ------------------------------------------------------------------
     # Switching
@@ -794,6 +811,7 @@ class Slot(ABC):
         target.cleanup()
 
         panel = self._panels.pop(target.editor_binding_id, None)
+        self._panel_names.pop(target.editor_binding_id, None)
         if panel is not None:
             panel.delete()
         self._drawn.discard(target.editor_binding_id)
@@ -841,16 +859,16 @@ class Slot(ABC):
 
         panel = self._panels.pop(old_id, None)
         if panel is not None:
-            panel._props["name"] = new_id
+            # The panel's ``name`` stays: renaming it remounts the canvas (see _panel_names).
             panel._props["data-hw-binding"] = new_id
             panel.update()
             self._panels[new_id] = panel
+        if old_id in self._panel_names:
+            self._panel_names[new_id] = self._panel_names.pop(old_id)
         drawn = old_id in self._drawn
         self._drawn.discard(old_id)
         if drawn:
             self._drawn.add(new_id)
-        if self._active is target and self._area_panel_container is not None:
-            self._area_panel_container.set_value(new_id)
         return True
 
     # ------------------------------------------------------------------

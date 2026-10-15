@@ -47,8 +47,7 @@ def graph():
     g.node_wrappers = {f"n{i}": _node_wrapper(f"n{i}") for i in range(5)}
     g.edge_wrappers = {}
     g.get_edge_wrapper.return_value = MagicMock(style=None)
-    g.canvas_width = 8000
-    g.canvas_height = 8000
+    g.canvas_extent.return_value = (8000, 8000)
     g.library_compatibility_findings = []
     return g
 

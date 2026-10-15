@@ -88,3 +88,20 @@ def test_a_malformed_report_leaves_the_last_good_viewport(container):
         events.GenericEventArguments(sender=container, client=container.client, args={})
     )
     assert container.get_viewport() == Viewport(zoom=0.5, pan_x=10.0, pan_y=20.0)
+
+
+def test_viewport_centre_is_the_content_point_at_the_middle_of_the_container(container):
+    container._handle_transform_changed(
+        events.GenericEventArguments(
+            sender=container,
+            client=container.client,
+            args={"zoom": 2.0, "panX": -3000.0, "panY": -2000.0, "width": 1000.0, "height": 600.0},
+        )
+    )
+    assert container.get_viewport_centre() == (1750.0, 1150.0)
+
+
+def test_viewport_centre_is_unknown_without_a_reported_size(container):
+    assert container.get_viewport_centre() is None
+    _report(container, 1.0, 0.0, 0.0)
+    assert container.get_viewport_centre() is None

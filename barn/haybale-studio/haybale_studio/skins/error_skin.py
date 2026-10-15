@@ -51,7 +51,7 @@ class ErrorNodeSkin(NodeSkin):
         """
         return "error-node-card"
 
-    def render(self, main_card: ui.card, wrapper: NodeWrapper):
+    def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool):
         node: BaseNode = wrapper.node
 
         # Generate unique node ID for CSS scoping
@@ -128,7 +128,7 @@ class ErrorNodeSkin(NodeSkin):
                         if group:
                             ui.label(heading).classes("font-bold text-sm")
                             for port in group:
-                                self.render_port(port, wrapper, layout=layout)
+                                self.render_port(port, wrapper, layout=layout, on_stage=on_stage)
 
             # Config ports carry no pin, so they belong to neither column.
             # Rendering them full width beneath keeps them visible — this is
@@ -138,7 +138,7 @@ class ErrorNodeSkin(NodeSkin):
             if configs:
                 with ui.column().classes("w-full gap-1"):
                     for config in configs:
-                        self.render_port(config, wrapper, layout=layout)
+                        self.render_port(config, wrapper, layout=layout, on_stage=on_stage)
 
             # Footer with port counts
             with ui.row().classes("w-full justify-between mt-2"):

@@ -226,7 +226,10 @@ class UINode:
                     )
 
                 self.current_ui_card = self.factory.render(
-                    renderer_name, self.wrapper, _is_error_render=_is_error_render
+                    renderer_name,
+                    self.wrapper,
+                    on_stage=self.channel.stage,
+                    _is_error_render=_is_error_render,
                 )
                 self._apply_write_gates()
 

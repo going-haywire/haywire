@@ -67,3 +67,25 @@ def test_toggle_lock_identity():
     assert ToggleLock.label == "Lock / Unlock"
     assert ToggleLock.default_keys == ("Mod+E",)
     assert ToggleLock.access is AccessTier.EDIT
+
+
+def test_toggle_stage_view_identity():
+    from haywire.core.signals.keys import RESERVED_COMBOS
+    from haywire.core.signals.vocabulary import ToggleStageView
+
+    assert ToggleStageView.command_id == "toggle_stage_view"
+    assert ToggleStageView.label == "Patch / Stage"
+    assert ToggleStageView.default_keys == ("Mod+Shift+E",)
+    assert ToggleStageView.access is AccessTier.VIEW
+    assert not set(ToggleStageView.default_keys) & RESERVED_COMBOS
+
+
+def test_the_graph_editor_keymap_binds_toggle_stage_view_without_conflict():
+    from haybale_graph_editor.editors.graph_editor import GraphEditor
+    from haywire.core.signals.vocabulary import ToggleStageView
+    from haywire.ui.keymap import build_keymap
+
+    keymap = build_keymap({"graph": GraphEditor}, lambda tier: True)
+
+    assert ToggleStageView in keymap.editor_commands("graph")
+    assert (keymap.reserved, keymap.invalid, keymap.duplicate_ids) == ((), (), ())

@@ -504,6 +504,7 @@ class _HarnessProjectState:
         self.node_registry = library_service.get_node_registry()
         self.node_factory = library_service.get_node_factory()
         self.panel_registry = library_service.get_panel_registry()
+        self.skin_factory = library_service.get_skin_factory()
         self.widget_factory = library_service.get_widget_factory()
         self.library_state_container = library_service.injector.get(LibraryStateContainer)
 
@@ -511,22 +512,32 @@ class _HarnessProjectState:
         pass
 
 
-def _mount_graph_canvas(library_service, graph, editor, testid: str, sync: bool = True):
-    """Boot a real GraphCanvasManager over (graph, editor) inside the page.
+def _build_stage_graph(node_factory):
+    """One node on the stage at stage ``(0, 0)``, for the stage-origin tests.
 
-    Wires the full editor stack — session, handlers, context-menu provider —
-    exactly as the studio does, so canvas interactions (connect, reconnect,
-    context menus) run end-to-end. Returns the GraphCanvasManager.
+    Returns (graph, editor, node).
+    """
+    from haywire.core.graph.editor import Editor
 
-    Args:
-        sync: Mount the graph synchronously. Pass ``False`` for a page that
-            drives ``start_chunked_sync`` itself.
+    graph = _harness_graph("Stage Fixture")
+    editor = Editor(graph, node_factory)
+    node = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(300.0, 300.0))
+    assert node is not None, f"could not create {_RECONNECT_SINK_KEY}"
+    node.node.props.on_stage = True
+    node.node.props.stage_x = 0.0
+    node.node.props.stage_y = 0.0
+    return graph, editor, node
+
+
+def _harness_session(library_service, graph):
+    """Create a real Session over a harness app state, with ``graph`` as the active graph.
+
+    Returns (session, app_state).
     """
     from haywire.core.di.context import get_workspace_root
     from haywire.core.session.session_manager import SessionManager
     from haywire.core.signals import SignalDispatcher
     from haywire.core.session.workspace.manager import WorkspaceManager
-    from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
     from haybale_graph_editor.state.edit_state import EditState
 
     app_state = _HarnessProjectState(library_service)
@@ -540,6 +551,24 @@ def _mount_graph_canvas(library_service, graph, editor, testid: str, sync: bool 
     )
     # Context-menu providers resolve wrappers off active_graph.
     session.context.data[EditState].active_graph = graph
+    return session, app_state
+
+
+def _mount_graph_canvas(library_service, graph, editor, testid: str, sync: bool = True, channel=None):
+    """Boot a real GraphCanvasManager over (graph, editor) inside the page.
+
+    Wires the full editor stack — session, handlers, context-menu provider —
+    exactly as the studio does, so canvas interactions (connect, reconnect,
+    context menus) run end-to-end. Returns the GraphCanvasManager.
+
+    Args:
+        sync: Mount the graph synchronously. Pass ``False`` for a page that
+            drives ``start_chunked_sync`` itself.
+        channel: The layout channel of the canvas; the patch when ``None``.
+    """
+    from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+
+    session, _app_state = _harness_session(library_service, graph)
 
     with ui.element("div").style("width: 800px; height: 600px; position: relative; border: 1px solid #666;"):
         manager = GraphCanvasManager(
@@ -548,6 +577,7 @@ def _mount_graph_canvas(library_service, graph, editor, testid: str, sync: bool 
             node_factory=library_service.get_node_factory(),
             panel_registry=library_service.get_panel_registry(),
             session=session,
+            **({"channel": channel} if channel is not None else {}),
         )
         manager.zoom_container.props(f'data-testid="{testid}-zoom"')
         manager.canvas_vue.props(f'data-testid="{testid}-canvas"')
@@ -1367,6 +1397,18 @@ def register_routes(library_service) -> None:
     # reaching into the editor from JS. Backs test_node_sizing.py.
     # -------------------------------------------------------------------------
 
+    @ui.page("/graph-stage")
+    async def graph_stage_page(channel: str = "stage"):
+        from haywire.core.node.layout import CHANNELS
+
+        graph, editor, node = _build_stage_graph(library_service.get_node_factory())
+        ui.label(node.node_id).props(
+            f'id="stage-node-id" data-testid="stage-node-id" data-node="{node.node_id}"'
+        )
+        chosen = next(c for c in CHANNELS if c.name == channel)
+        _mount_graph_canvas(library_service, graph, editor, testid="stage", channel=chosen)
+        _stamp_synced()
+
     @ui.page("/graph-size")
     async def graph_size_page():
         graph, editor, node = _build_size_graph(library_service.get_node_factory())
@@ -1406,6 +1448,149 @@ def register_routes(library_service) -> None:
     # reflects whichever path changed it. ``?stale=true`` locks the server side
     # only, as for a page the lock has not reached yet. Backs test_canvas_lock.py.
     # -------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------
+    # GET /graph-views
+    #
+    # A real GraphEditor level over the annotation graph, with two of its
+    # linked nodes on the stage, and the editor's own Patch | Stage switch. The
+    # level's keep-alive panels, lazy stage mount and view switch all run for
+    # real. Backs test_graph_views.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-views")
+    async def graph_views_page(view: str = "patch"):
+        from types import SimpleNamespace
+
+        from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
+        from haybale_graph_editor.protocols import GraphContainer
+
+        if theme_css:
+            ui.add_css(theme_css)
+        graph, editor, ids = _build_annotation_graph(library_service.get_node_factory())
+        for name, x in (("c", 40.0), ("d", 360.0)):
+            props = graph.node_wrappers[ids[name]].node.props
+            props.on_stage = True
+            props.stage_x = x
+            props.stage_y = 40.0
+
+        class _Container(GraphContainer):
+            binding_id = "graph::views"
+            display_name = "views"
+            path = None
+            unsaved = False
+
+            def __init__(self) -> None:
+                self.editor = editor
+
+            def save(self, save_as=None):
+                return None
+
+        graph_editor = GraphEditor(
+            SimpleNamespace(_binding_id="graph::views", editor_binding_id="graph::views")
+        )  # type: ignore[arg-type]
+        session, app_state = _harness_session(library_service, graph)
+        context = session.context
+        graph_editor._context = context
+        graph_editor._project_state = app_state  # type: ignore[assignment]
+        level = graph_editor._new_level(DOCUMENT_LEVEL, _Container())
+        level.view = view
+        graph_editor._levels[DOCUMENT_LEVEL] = level
+
+        def _mutate_stage() -> None:
+            # Membership, stage position and deletion, applied through the editor while whichever
+            # view is showing; ``views-expected`` then lists every on-stage node and its stage pos.
+            import json
+
+            from haywire.core.node.layout import STAGE
+
+            assert editor.add_to_stage([ids["a"]])
+            graph.force_validation()
+            assert editor.create_edge(ids["a"], "right_0", ids["d"], "left_2")
+            graph.force_validation()
+            assert editor.move_nodes_to({ids["d"]: {"x": 300.0, "y": 120.0}}, STAGE)
+            graph.force_validation()
+            assert editor.remove_elements([ids["c"]], [])
+            graph.force_validation()
+            expected = {
+                nid: list(w.node.props.get_position(STAGE))
+                for nid, w in graph.node_wrappers.items()
+                if w.node.props.on_stage
+            }
+            expected_label.set_text(json.dumps(expected))
+
+        ui.button("views-mutate", on_click=_mutate_stage).props('data-testid="views-mutate"')
+        expected_label = ui.label("").props('data-testid="views-expected"')
+
+        graph_editor._draw_view_switch(context)
+        graph_editor._level_panels = (
+            ui.tab_panels(value=level.panel_name, animated=False)
+            .props("keep-alive")
+            .style("width: 800px; height: 600px; position: relative; border: 1px solid #666;")
+        )
+        graph_editor._mount_level(context, level)
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-slot
+    #
+    # A real TabSlot hosting a real GraphEditor document with edges. The
+    # ``slot-repayload`` button re-payloads the document the way a Save-As does
+    # (``Slot.repayload``), moving it in GraphAppState first. Backs
+    # test_slot_repayload.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-slot")
+    async def graph_slot_page(edges: int = 4):
+        from haybale_graph_editor.editors.graph_editor import GraphEditor
+        from haybale_graph_editor.protocols import GraphContainer
+        from haybale_graph_editor.state.graph_app_state import GraphAppState
+        from haywire.ui.app.tab_slot import TabSlot
+        from haywire.ui.editor.identity import SlotName
+        from haywire.ui.editor.registry import EditorTypeRegistry
+
+        graph, editor = _build_edge_batch_graph(library_service.get_node_factory(), edges)
+        session, _app_state = _harness_session(library_service, graph)
+
+        class _Container(GraphContainer):
+            display_name = "slot"
+            path = None
+            unsaved = False
+
+            def __init__(self) -> None:
+                self.editor = editor
+                self.id = "graph::slot-before"
+
+            @property
+            def binding_id(self) -> str:  # type: ignore[override]
+                return self.id
+
+            def save(self, save_as=None):
+                return None
+
+        container = _Container()
+        graph_state = session.context.app_data[GraphAppState]
+        graph_state.register(container)
+
+        slot = TabSlot(
+            session=session,  # type: ignore[arg-type]
+            name=SlotName.EDIT,
+            registry=library_service.injector.get(EditorTypeRegistry),
+        )
+        wrapper = slot.add_binding(
+            GraphEditor.class_identity.registry_key, GraphEditor, binding_id=container.id, activate=True
+        )
+        assert wrapper is not None
+        with ui.element("div").style("width: 900px; height: 700px; position: relative;"):
+            slot.render(ui.column().classes("w-full h-full"))
+
+        def _repayload() -> None:
+            graph_state.rekey(container.id, "graph::slot-after")
+            container.id = "graph::slot-after"
+            assert slot.repayload(wrapper, container.id)
+
+        ui.button("slot-repayload", on_click=_repayload).props('data-testid="slot-repayload"')
+        _stamp_synced()
 
     @ui.page("/graph-lock")
     async def graph_lock_page(stale: bool = False):

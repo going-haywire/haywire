@@ -71,13 +71,30 @@ worked. `resync_edges()` exists precisely to bypass that guard.
 
 The fix is mount-driven, not timing-driven: `canvas.vue`'s `mounted()` emits
 `CanvasMountedEvent`, and `process_canvas_mounted` sends the edges back. Every
-re-mount is covered by construction — first reveal of a Group level, a tab panel
-re-keyed by a save-as, anything future. Do not try to push edges at a canvas
+re-mount is covered by construction — first reveal of a Group level, anything future. (A save-as no longer
+re-keys the panel; see the Save-As section.) Do not try to push edges at a canvas
 from the switch that reveals it: at that moment it does not exist yet.
 
 The *reactivation* path needs nothing from Python — the component still holds
 its edges. What it needs is `activated()`, which flushes edges parked while the
 tree was detached and checks the geometry (below).
+
+## Save-As renamed the panel, and `$refs` kept the detached canvas
+
+`Slot.repayload_binding` (Save-As) used to set the document's `q-tab-panel` name
+to the new binding id. A keep-alive treats a new name as a new panel and mounts
+a fresh canvas, while NiceGUI's `$refs['r'+id]` keeps pointing at the old,
+detached instance. The edge resync then landed on the detached canvas and the
+live one drew no edges (viewport reset too). Plain Save never renamed and was
+fine.
+
+Fix: `Slot` names every document panel by a stable uuid (`Slot._panel_names`,
+like `_Level.panel_name`); `ui.tab_panel`, `initial_value`, `set_value` and
+`_panels` key on it, and a re-payload changes only `data-hw-binding` and the
+wrapper's binding id. Rule: never rename a keep-alive panel; name panels by
+identity that outlives rebinding, not by the binding id. The reliable symptom
+on the old code was the viewport transform resetting to identity (edges
+sometimes redrew anyway).
 
 ## A Graph-node reshaped while its canvas was hidden needs a belt-and-braces redraw
 
@@ -156,7 +173,8 @@ check.
 
 Three bug reports were this one thing: a Group edited in the background came back
 without the edges that changed, a save-as redrew the graph with no edges at all,
-and both needed the tab closed and reopened.
+and both needed the tab closed and reopened. (The save-as one had a second
+cause, below.)
 
 **Edges also fail to draw for a reason that is not about panels**: geometry comes
 from `getBoundingClientRect()` on the two pin elements, so an edge whose pins are
@@ -173,11 +191,11 @@ tick, and `_await_client_drawn` waits for that counter to move.
 
 ## Still global, and what each one does when it bites
 
+The canvas's own node, pin and edge lookups, the marquee and the observer cleanup are now scoped to `this.$el` (05a-3). What remains:
+
 | Where | What happens with more than one canvas mounted |
 |---|---|
-| `_findNodesInRectangle` — `document.querySelectorAll('[data-node-id]')` ([canvas.vue:2368](../packages/haywire-core/src/haywire/ui/components/graph/canvas.vue#L2368)) | A marquee sweeps every mounted canvas. `_getNodeBoundingRect` reads inline `left`/`top` and falls back to 100×50 when `offsetWidth` is 0, so a hidden card reports its real canvas coordinates: ids from another graph at overlapping coordinates ride along with the selection. |
-| `_cleanupObservers` — `document.querySelectorAll('.ui-node-slot')` ([canvas.vue:986](../packages/haywire-core/src/haywire/ui/components/graph/canvas.vue#L986)) | One canvas unmounting disconnects **every** canvas's per-slot size observers. Closing a background Group tab stops node re-measure on the canvas the user is looking at. |
-| `document.getElementById(nodeId / pinUUID / edge_id)` throughout `canvas.vue` | Correct only because node ids are unique across a whole graph tree and pin/edge ids derive from them. Nothing enforces that across two open documents: ids are `uuid4().hex[:6]`, so a collision is improbable per pair and not structurally excluded (`BaseGraph.generate_unique_node_id`). |
+| `document.getElementById(pinUUID / edge_id)` residue in `canvas.vue` (two `.connection-pin` class sweeps in edge-drag cleanup, `zoomContainerId`) | Idempotent class removals and a unique id: harmless. Node, pin and edge element lookups are scoped to the canvas's own `$el` (`_ownNode`, `_ownById`, `_liveById`), since Patch and Stage of one level share pin and edge ids. Node ids are still only unique per graph tree (`uuid4().hex[:6]`, `BaseGraph.generate_unique_node_id`), so two open documents could collide there, but scoped lookups no longer let one canvas resolve the other's element. |
 | `SkinFactory`, keyed by `node_id` alone (`_nodeid_to_factory_subscriber`, `_nodeid_to_skin_regkey`) | App-wide, one instance for every session and every canvas. Two canvases showing the same node id share one subscriber set, and `_nodeid_to_skin_regkey` keeps only the last writer's. |
 | `GraphEditor.draw()` clearing `EditState` selection | Selection state is per session, not per canvas. A first draw of any canvas clears the selection of whichever canvas the user was working in. |
 | The graph-load overlay (`graph_load_modal`) | A full-viewport `Popup` backdrop at `z-index: 5000`. Opening a large graph blocks interaction with every already-drawn canvas, not just the one loading. |

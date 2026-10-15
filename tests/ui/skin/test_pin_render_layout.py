@@ -54,6 +54,7 @@ def _render(port, layout):
         pin_gutter=_PIN_GUTTER,
         card_padding=_CARD_PADDING,
         pin_protrusion=_PIN_PROTRUSION,
+        on_stage=False,
     )
 
 
@@ -65,6 +66,7 @@ def _render_default(port):
         pin_gutter=_PIN_GUTTER,
         card_padding=_CARD_PADDING,
         pin_protrusion=_PIN_PROTRUSION,
+        on_stage=False,
     )
 
 

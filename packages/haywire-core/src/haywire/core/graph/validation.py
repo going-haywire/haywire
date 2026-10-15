@@ -338,7 +338,7 @@ class ValidationManager:
                         validated_nodes[node_id] = reason
                         continue
 
-                    if reason is ChangeReason.NODE_VALUE_CHANGED:
+                    if reason in (ChangeReason.NODE_VALUE_CHANGED, ChangeReason.NODE_STAGE_CHANGED):
                         # Reported as is: subscribers save; nothing here rebuilds for it.
                         validated_nodes[node_id] = reason
                         continue
@@ -389,17 +389,14 @@ class ValidationManager:
 
             validation_time_ms = (time.perf_counter() - start_time) * 1000.0
 
-            # Report a canvas resize that BaseGraph flagged during this window.
-            canvas_size = None
-            if self._graph._canvas_size_changed:
-                canvas_size = (self._graph.canvas_width, self._graph.canvas_height)
-                self._graph._canvas_size_changed = False
+            # Report each channel's canvas resize that BaseGraph flagged during this window.
+            canvas_sizes = self._graph._take_canvas_size_changes()
 
             result = ValidationResult(
                 nodes=validated_nodes,
                 edges=validated_edges,
                 graph=validated_graph,
-                canvas_size=canvas_size,
+                canvas_sizes=canvas_sizes,
                 validation_time_ms=validation_time_ms,
             )
 

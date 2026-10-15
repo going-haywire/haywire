@@ -66,7 +66,7 @@ def test_the_menu_route_re_keys_an_open_level_instead_of_opening_a_second(
     real_editor, _, editor, context, placement_id = _open_real_placement(graph, library_system)
     old_key = editor._active_level
     level = editor._levels[old_key]
-    manager = level.canvas_manager = MagicMock()
+    manager = level.canvases["patch"] = MagicMock()
     editor._switch_level(context, DOCUMENT_LEVEL)
     _stub(editor._teardown_level).reset_mock()
 
