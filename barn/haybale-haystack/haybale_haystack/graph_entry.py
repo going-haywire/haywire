@@ -67,6 +67,11 @@ class GraphEntry(GraphContainer):
                       persisted in the haystack TOML under ``[graphs.run]``.
         kind:         Which category this entry belongs to. See
                       :class:`EntryKind`.
+        last_undo_availability: ``(can_undo, can_redo, undo_redo_count)`` as
+                      of the last validation result that changed saved state;
+                      ``None`` before the first. Lets the validation handler
+                      broadcast only when availability changes, counting an
+                      undo or redo in between as a change.
     """
 
     graph: "HaywireGraph"
@@ -77,6 +82,7 @@ class GraphEntry(GraphContainer):
     haystack: "Optional[HaystackState]" = field(default=None, repr=False)
     run_settings: GraphRunSettings = field(default_factory=GraphRunSettings)
     kind: EntryKind = EntryKind.GRAPH
+    last_undo_availability: Optional[tuple[bool, bool, int]] = field(default=None, repr=False)
 
     @property
     def binding_id(self) -> str:

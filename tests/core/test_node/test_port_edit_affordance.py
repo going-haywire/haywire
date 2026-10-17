@@ -20,7 +20,6 @@ from haybale_graph_editor.panels.properties.introspect.node_ports import _identi
 from tests.conftest import make_node
 
 if TYPE_CHECKING:
-    from haybale_graph_editor.protocols import GraphContainer
     from haywire.ui.widget.base import BaseWidget
 
 pytestmark = [pytest.mark.integration]
@@ -120,94 +119,6 @@ class TestTheDefaultValueModel:
         model.set_value(0.25)
 
         assert model.as_default() == {"value": 0.25}
-
-
-class TestFindingTheEditor:
-    """The panel is handed a graph; the editor has to be found from it.
-
-    Only documents are registered in ``GraphAppState`` — the container for an
-    open Group is the graph editor's own — so a Group's graph finds none, and
-    the panel must still produce an editor or the pen does nothing.
-    """
-
-    def test_a_subgraph_is_not_in_the_app_state(self, graph_with_library_system: BaseGraph):
-        """The premise: this is why looking the container up is not enough."""
-        from haywire.core.graph.scheduler import SyncScheduler
-        from haywire.core.graph.subgraph import SubgraphDefinition
-        from haybale_graph_editor.state.graph_app_state import GraphAppState
-
-        graph = graph_with_library_system
-        definition = graph.add_subgraph(
-            SubgraphDefinition(key="sg", label="G", validation_scheduler=SyncScheduler())
-        )
-        app_state = GraphAppState()
-
-        assert app_state.get_by_graph(definition) is None
-
-    def test_the_host_history_is_found_for_a_subgraph(self, graph_with_library_system, library_system):
-        """An edit inside a Group records on the document's history."""
-        from haywire.core.graph.editor import Editor
-        from haywire.core.graph.scheduler import SyncScheduler
-        from haywire.core.graph.subgraph import SubgraphDefinition
-        from haybale_graph_editor.state.graph_app_state import _host_history
-        from haybale_graph_editor.state.graph_app_state import GraphAppState
-
-        graph = graph_with_library_system
-        definition = graph.add_subgraph(
-            SubgraphDefinition(key="sg", label="G", validation_scheduler=SyncScheduler())
-        )
-        document_editor = Editor(graph, library_system.get_node_factory())
-
-        app_state = GraphAppState()
-        app_state.register(cast("GraphContainer", _FakeContainer(document_editor)))
-
-        assert _host_history(app_state, definition) is document_editor.history_manager
-
-    def test_a_nested_subgraph_reaches_the_same_history(self, graph_with_library_system, library_system):
-        from haywire.core.graph.editor import Editor
-        from haywire.core.graph.scheduler import SyncScheduler
-        from haywire.core.graph.subgraph import SubgraphDefinition
-        from haybale_graph_editor.state.graph_app_state import _host_history
-        from haybale_graph_editor.state.graph_app_state import GraphAppState
-
-        graph = graph_with_library_system
-        outer = graph.add_subgraph(
-            SubgraphDefinition(key="outer", label="O", validation_scheduler=SyncScheduler())
-        )
-        inner = outer.add_subgraph(
-            SubgraphDefinition(key="inner", label="I", validation_scheduler=SyncScheduler())
-        )
-        document_editor = Editor(graph, library_system.get_node_factory())
-
-        app_state = GraphAppState()
-        app_state.register(cast("GraphContainer", _FakeContainer(document_editor)))
-
-        assert _host_history(app_state, inner) is document_editor.history_manager
-
-    def test_a_graph_no_document_claims_gets_its_own(self, graph_with_library_system, library_system):
-        """Better a private history than silently recording nowhere."""
-        from haywire.core.graph.editor import Editor
-        from haybale_graph_editor.state.graph_app_state import _host_history
-        from haybale_graph_editor.state.graph_app_state import GraphAppState
-
-        graph = graph_with_library_system
-        Editor(graph, library_system.get_node_factory())
-
-        assert _host_history(GraphAppState(), graph) is None
-
-
-class _FakeContainer:
-    """The two attributes ``_host_history`` reads off a container."""
-
-    def __init__(self, editor) -> None:
-        self.editor = editor
-        self.binding_id = "doc"
-        self.display_name = "doc"
-        self.path = None
-        self.unsaved = False
-
-    def save(self, save_as=None):
-        return None
 
 
 class TestTheWidgetActuallyBuilds:

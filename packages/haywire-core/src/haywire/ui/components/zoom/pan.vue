@@ -723,6 +723,8 @@ export default {
     setPan(x, y) { this._setPanDirect(x, y); },
     centerOn(contentX, contentY) {
       const rect = this._getContainerRect();
+      // A hidden canvas (an unselected tab or level) measures 0×0; panning on that would misplace it.
+      if (!rect.width || !rect.height) return;
       this._setPanDirect(
         rect.width  / 2 - contentX * this._zoom,
         rect.height / 2 - contentY * this._zoom

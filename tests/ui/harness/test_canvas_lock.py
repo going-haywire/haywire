@@ -1,7 +1,7 @@
 """Browser tests for the canvas lock: no gesture that changes the graph starts.
 
 Drives the ``/graph-lock`` harness route: one node on a real GraphCanvasManager
-locked through ``set_locked``, which pushes the ``locked`` prop to canvas.vue.
+dropped to level mode operate; ``refresh_mode`` pushes the ``levelMode`` prop to canvas.vue.
 """
 
 import pytest
@@ -117,13 +117,12 @@ def test_locked_server_restores_the_size_of_a_stale_resize(page: Page, harness):
     )
 
 
-def test_locked_canvas_still_selects_without_a_resize_gadget(page: Page, harness):
-    """A click selects the node on a locked canvas, and no resize grips appear."""
+def test_a_locked_canvas_selects_without_resize_grips(page: Page, harness):
+    """A click selects on a locked canvas, and no resize grips appear."""
     node_id = _open(page, harness)
 
     x, y = _header(page, node_id)
     page.mouse.click(x, y)
     page.wait_for_selector(f'[id="{node_id}"].node-selected')
 
-    page.wait_for_timeout(300)
     assert page.locator('[data-testid="resize-gadget"]').count() == 0

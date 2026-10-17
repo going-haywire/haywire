@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, ClassVar
+from typing import TYPE_CHECKING, Callable, ClassVar
 import logging
 
 import nicegui.ui as ui
 
+from haywire.core.access import LevelMode
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.types import DataPort
 from haywire.core.node.node_wrapper import NodeWrapper
@@ -15,6 +18,10 @@ from ..widget.factory_interface import IWidgetFactory
 from ..widget.sizing import stamp_size_declaration
 from .nodecard import UINodeCard
 from .pin_icons import DEFAULT_PIN_ICONS, PinIconResolver
+
+if TYPE_CHECKING:
+    from haywire.core.graph.edit_route import EditRoute
+    from haywire.core.settings.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -55,13 +62,25 @@ class BaseSkin(ABC):
         """
         self._widget_factory: IWidgetFactory = widget_factory
         self._nodeids_widget_instances: dict[str, dict[str, IWidget]] = {}
+        # The route each node's card widgets write through, held for the length of one render.
+        self._nodeids_routes: dict[str, EditRoute | None] = {}
 
-    def _render(self, wrapper: NodeWrapper, *, on_stage: bool = False) -> UINodeCard:
+    def _render(
+        self, wrapper: NodeWrapper, *, on_stage: bool = False, route: EditRoute | None = None
+    ) -> UINodeCard:
         """Draw *wrapper*'s card: :meth:`render` into a fresh card.
 
-        ``on_stage`` is forwarded to :meth:`render`.
+        ``on_stage`` is forwarded to :meth:`render`. Every widget :meth:`render_widget`
+        draws for this card writes through *route*, at level mode ``OPERATE``;
+        ``None`` refuses every write.
         """
-        return self._render_into_card(wrapper, lambda card: self.render(card, wrapper, on_stage=on_stage))
+        self._nodeids_routes[wrapper.node_id] = route
+        try:
+            return self._render_into_card(
+                wrapper, lambda card: self.render(card, wrapper, on_stage=on_stage)
+            )
+        finally:
+            self._nodeids_routes.pop(wrapper.node_id, None)
 
     def _render_into_card(self, wrapper: NodeWrapper, draw: Callable[[ui.card], object]) -> UINodeCard:
         ui_nodeCard: UINodeCard = UINodeCard()
@@ -124,18 +143,26 @@ class BaseSkin(ABC):
             node_id: The unique identifier of the node
             classes: Additional CSS classes to apply to the widget ui_element container
         Returns:
-            The rendered widget ui_element container, or None if no widget was rendered
+            The rendered widget ui_element container, or None if no widget was rendered. An
+            operable port's container is marked ``data-hw-operable``, so it takes pointer input
+            on a canvas in level mode ``OPERATE``.
         """
         if port.widget_key is None:
             return None  # Port has no widget configured
 
         widget_instance, ui_element = self._widget_factory.render_widget(
-            registry_key=port.widget_key, port=port, node_id=node_id
+            registry_key=port.widget_key,
+            port=port,
+            node_id=node_id,
+            route=self._nodeids_routes.get(node_id),
+            minimum=LevelMode.OPERATE,
         )
 
         # Apply styling to the UI element if possible
         if ui_element and hasattr(ui_element, "classes") and callable(ui_element.classes):
             ui_element.classes(classes)
+        if ui_element is not None and getattr(port, "operable", True):
+            ui_element.props("data-hw-operable")
 
         # Carry the widget's declared size box (@widget(min_width=, min_height=))
         # onto the same element. Every skin funnels through here, so a custom
@@ -145,5 +172,54 @@ class BaseSkin(ABC):
 
         if widget_instance:
             self._nodeids_widget_instances.setdefault(node_id, {})[port.id] = widget_instance
+
+        return ui_element
+
+    def render_setting_widget(
+        self,
+        bag: Settings,
+        name: str,
+        node_id: str,
+        *,
+        widget_key: str | None = None,
+        classes: str = "",
+    ) -> ui.element | None:
+        """Render the widget of settings field *name* of *bag* on the card of node *node_id*.
+
+        The widget writes through the card's route at level mode ``OPERATE``, or ``EDIT``
+        for a field that is not operable; with no route it is read-only.
+
+        Args:
+            widget_key: The registry key of the widget to draw; ``None`` draws the field's own.
+            classes: Additional CSS classes for the widget's container.
+
+        Returns:
+            The rendered widget container, or ``None`` if the field has no widget. An
+            operable field's container is marked ``data-hw-operable``.
+
+        Raises:
+            KeyError: If *bag* has no field *name*.
+
+        Example::
+
+            # The note's text, drawn by a widget of the skin's choosing.
+            self.render_setting_widget(node.annotation, "text", wrapper.node_id, widget_key=NOTE_TEXT_WIDGET)
+        """
+        from haywire.ui.widget.factory import setting_widget_model
+
+        descriptor = type(bag)._settings_descriptors()[name]
+        key = widget_key or descriptor.widget_key
+        if not key:
+            return None
+        model = setting_widget_model(bag, name, self._nodeids_routes.get(node_id), LevelMode.OPERATE)
+        widget_instance, ui_element = self._widget_factory.render_widget(key, model, node_id)
+
+        if ui_element is not None and hasattr(ui_element, "classes") and callable(ui_element.classes):
+            ui_element.classes(classes)
+        if ui_element is not None and descriptor.operable:
+            ui_element.props("data-hw-operable")
+        if widget_instance is not None:
+            stamp_size_declaration(ui_element, widget_instance)
+            self._nodeids_widget_instances.setdefault(node_id, {})[descriptor.storage_key] = widget_instance
 
         return ui_element

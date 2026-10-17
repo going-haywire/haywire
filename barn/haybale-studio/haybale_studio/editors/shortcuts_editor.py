@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
+from haywire.core.access import AccessTier
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import react_on, redraw_on
 from haywire.ui import elements as hui
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     default_slot=SlotName.CONTEXT,
     description="Keyboard shortcuts of every editor, grouped by editor.",
     order=60,
+    access=AccessTier.VIEW,
 )
 class ShortcutsEditor(BaseEditor):
     """Lists the keyboard shortcuts of every editor, one collapsible group per editor.

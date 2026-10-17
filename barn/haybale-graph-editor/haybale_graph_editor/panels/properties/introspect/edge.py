@@ -9,16 +9,15 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.access import AccessTier
 from haywire.core.types.enums import Propagation
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from ....access import GraphWriteGate, can_edit_graph, session_allows
 from ....surfaces import EdgeInspector
 from ....state.edit_state import EditState
+from ....state.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapperState
@@ -126,8 +125,11 @@ class EdgeStylePanel(BasePanel):
         edge = ctx.data[EditState].active_edge
         if edge is None or edge.style is None:
             return
+        route = route_for(ctx)
+        if route is None:
+            return  # no level open: a graph-document bag is never drawn writable
         with layout:
-            render_settings(ctx, edge.style, gate=GraphWriteGate(AccessTier.EDIT, session_allows(ctx)))
+            render_settings(ctx, edge.style, route=route)
 
 
 @panel(
@@ -177,19 +179,20 @@ class EdgePropagationPanel(BasePanel):
         def _on_change(e) -> None:
             if e.value == _is_lazy():
                 return
-            if not can_edit_graph(ctx):
-                # Fires _on_change again with the model's value, which returns above.
+            route = route_for(ctx)
+            editor = route.editor() if route is not None else None
+            if editor is not None:
+                editor.set_edge_propagation(
+                    edge_wrapper.edge_id, Propagation.LAZY if e.value else Propagation.EAGER
+                )
+            if e.value != _is_lazy():
+                # Refused: fires _on_change again with the model's value, which returns above.
                 e.sender.value = _is_lazy()
-                return
-            edge_wrapper.propagation = Propagation.LAZY if e.value else Propagation.EAGER
-            edge_wrapper.redraw()
 
         with layout:
             with ui.row().classes("w-full items-center gap-1 py-0.5"):
                 ui.icon(hui.icon.edge_eager).classes("text-lg")
-                ui.switch(value=_is_lazy(), on_change=_on_change).props("dense").set_enabled(
-                    can_edit_graph(ctx)
-                )
+                ui.switch(value=_is_lazy(), on_change=_on_change).props("dense")
                 ui.icon(hui.icon.edge_lazy).classes("text-lg")
 
 

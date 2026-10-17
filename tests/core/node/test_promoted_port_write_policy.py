@@ -20,16 +20,26 @@ Resolved once at widget-build time rather than checked inside
 """
 
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
+from haywire.core.access import LevelMode
 from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.editor import Editor
 from haywire.core.node.promotion import promote_setting
 from haywire.core.types.enums import PortType
 from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 from haywire.ui.widget.factory import _widget_model_for
 
+from tests.conftest import edit_route
+
 SETTINGS_NODE = "haybale-testing:node:SettingsNode"
+
+
+def _card_model(graph: BaseGraph, port: Any) -> Any:
+    """The model a node card's widget for ``port`` writes through, at level mode operate."""
+    return _widget_model_for(port, edit_route(Editor(graph, MagicMock())), LevelMode.OPERATE)
 
 
 def _promoted(graph: BaseGraph, field: str, direction: PortType) -> tuple[Any, Any]:
@@ -49,17 +59,22 @@ class TestPromotedPortWritesThroughTheSetting:
         _node, port = _promoted(graph_with_library_system, "example_float", PortType.OUTLET)
         assert isinstance(_widget_model_for(port), SettingWidgetModel)
 
-    def test_an_unpromoted_port_still_binds_the_port_itself(self, graph_with_library_system: BaseGraph):
+    def test_an_unpromoted_port_writes_the_port_itself(self, graph_with_library_system: BaseGraph):
         wrapper = graph_with_library_system.create_node_wrapper(SETTINGS_NODE, position=(0, 0))
         assert wrapper is not None
         port = wrapper.node.ports["settings"]
-        assert _widget_model_for(port) is port
+        model = _card_model(graph_with_library_system, port)
+        assert model.data is port.data
+
+        model.set_value("edited")
+
+        assert port.data.get_own_value() == "edited"
 
     def test_a_card_edit_marks_the_opinion(self, graph_with_library_system: BaseGraph):
         node, port = _promoted(graph_with_library_system, "example_float", PortType.OUTLET)
         assert node.example._is_locally_set("example_float") is False
 
-        _widget_model_for(port).set_value(0.25)
+        _card_model(graph_with_library_system, port).set_value(0.25)
 
         assert node.example.example_float == 0.25
         assert node.example._is_locally_set("example_float") is True
@@ -68,7 +83,7 @@ class TestPromotedPortWritesThroughTheSetting:
         # The defect that mattered most: the value changed on screen and was
         # silently absent from the saved graph.
         node, port = _promoted(graph_with_library_system, "example_float", PortType.OUTLET)
-        _widget_model_for(port).set_value(0.25)
+        _card_model(graph_with_library_system, port).set_value(0.25)
         assert node.example._to_dict()["values"] == {"example_float": 0.25}
 
     def test_promotion_alone_marks_nothing(self, graph_with_library_system: BaseGraph):
@@ -94,7 +109,7 @@ class TestOptionalStaysClearable:
         node, port = _promoted(graph_with_library_system, "optional_int", PortType.OUTLET)
         assert node.example.optional_int is None
 
-        _widget_model_for(port).set_value(42)
+        _card_model(graph_with_library_system, port).set_value(42)
 
         assert node.example.optional_int == 42
         # Reset's enablement is exactly this predicate — previously False here.
@@ -102,7 +117,7 @@ class TestOptionalStaysClearable:
 
     def test_reset_returns_an_absent_default_field_to_absence(self, graph_with_library_system: BaseGraph):
         node, port = _promoted(graph_with_library_system, "optional_int", PortType.OUTLET)
-        _widget_model_for(port).set_value(42)
+        _card_model(graph_with_library_system, port).set_value(42)
         node.example._reset("optional_int")
         assert node.example.optional_int is None
 
@@ -110,5 +125,5 @@ class TestOptionalStaysClearable:
         # Routing through the descriptor means the card gets validation too —
         # writing the cell directly would have bypassed it.
         node, port = _promoted(graph_with_library_system, "optional_float", PortType.OUTLET)
-        _widget_model_for(port).set_value(5.0)  # outside 0.0..1.0
+        _card_model(graph_with_library_system, port).set_value(5.0)  # outside 0.0..1.0
         assert node.example.optional_float is None

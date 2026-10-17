@@ -9,7 +9,7 @@ import pytest
 from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
-from tests.ui.harness.probe import attr
+from tests.ui.harness.probe import attr, box
 
 _PATH = "/graph-enter"
 
@@ -44,10 +44,12 @@ def test_double_click_enters_a_group(page: Page, harness):
 
 
 def test_double_click_enters_on_a_locked_level(page: Page, harness):
-    """A locked canvas still lets a double-click enter: entering only views."""
-    node_id = _open(page, harness, "?locked=true")
+    """A canvas in level mode operate still lets a double-click enter."""
+    node_id = _open(page, harness, "?mode=operate")
 
-    _title(page, node_id).dblclick()
+    # The title takes no pointer input below edit, so the press lands on the card under it.
+    found = box(_title(page, node_id), "card title")
+    page.mouse.dblclick(found["x"] + found["width"] / 2, found["y"] + found["height"] / 2)
 
     page.wait_for_function(
         "(nid) => document.querySelector('[data-testid=\"enter-log\"]').innerText === nid",

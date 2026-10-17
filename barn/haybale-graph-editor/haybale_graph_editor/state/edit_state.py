@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional, Set
 
+from haywire.core.access import LevelMode
 from haywire.core.signals import signal_field
 from haywire.core.state import SessionState, state
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
+    from haywire.core.graph.edit_route import EditRoute
     from haywire.core.graph.base import BaseGraph
     from haywire.core.types import DataPort
     from haywire.core.node.node_wrapper import NodeWrapper
@@ -19,8 +21,10 @@ class EditState(SessionState):
 
     active_graph: Optional["BaseGraph"] = signal_field(None)
     active_graph_path: Optional[Any] = signal_field(None)
-    active_locked: bool = signal_field(False)
-    """Whether the active level's canvas is locked for this session."""
+    active_mode: LevelMode = signal_field(LevelMode.VIEW)
+    """The level mode of the level on screen, as last claimed."""
+    active_route: Optional["EditRoute"] = signal_field(None)
+    """The edit route of the active level for this session; ``None`` before a level is on screen."""
 
     active_node: Optional["NodeWrapper"] = signal_field(None)
     active_edge: Optional["EdgeWrapper"] = signal_field(None)

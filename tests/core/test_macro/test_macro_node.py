@@ -272,28 +272,26 @@ def test_a_group_still_forwards_content_changes(graph_with_library_system):
 
 
 def test_an_interior_value_is_still_live(graph_with_library_system, macro_registry):
-    """A card widget on the locked placement level may write; the value changes, the host is not marked."""
-    from haybale_graph_editor.access import NodeWriteGate, allows
-    from haywire.core.access import AccessTier
+    """A card widget on the placement level, which works in operate, may write; the host is not marked."""
+    from unittest.mock import MagicMock
+
+    from haywire.core.access import LevelMode
+    from haywire.core.graph.edit_route import EditRoute
+    from haywire.core.graph.editor import Editor
 
     graph = graph_with_library_system
     card = _place(graph)
     interior = _interior_adder(card)
+    interior_editor = Editor(card.node.resolve_definition(), MagicMock())
+    route = EditRoute(lambda: interior_editor, lambda: LevelMode.OPERATE)
     graph.force_validation()
     seen: list = []
     graph.subscribe_to_validation(seen.append)
 
-    def on_locked_level(required: AccessTier) -> bool:
-        return allows(AccessTier.EDIT.satisfies, True, required)
-
-    gate = NodeWriteGate(AccessTier.OPERATE, on_locked_level, interior)
-    assert gate.allows() is True
-    assert NodeWriteGate(AccessTier.EDIT, on_locked_level, interior).allows() is False
-
     port = interior.node.ports["value_a"]
     assert port.get_value() != 2.5
-    port.set_value(2.5)
-    gate.written()
+    assert route.set_port(interior.node_id, "value_a", 2.5, minimum=LevelMode.OPERATE) is True
+    assert route.set_port(interior.node_id, "value_a", 3.5, minimum=LevelMode.EDIT) is False
 
     assert port.get_value() == 2.5
     assert [r for r in seen if r.requires_save()] == []

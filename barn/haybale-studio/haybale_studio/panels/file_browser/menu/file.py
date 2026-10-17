@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING
 
 from haybale_studio.surfaces import FileActions, FileMenu
 from haybale_studio.state.file_browser_state import FileBrowserState
+from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
@@ -83,6 +84,7 @@ class OpenInCodeEditorMenuPanel(BasePanel):
     label="Open in File Viewer",
     icon=hui.icon.library_component,
     order=30,
+    access=AccessTier.VIEW,
 )
 class OpenInFileViewerMenuPanel(BasePanel):
     """Open any file in the read-only FileViewerEditor (catch-all fallback)."""

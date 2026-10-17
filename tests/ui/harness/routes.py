@@ -12,6 +12,7 @@ Routes:
 from __future__ import annotations
 
 import importlib
+from dataclasses import dataclass
 from typing import Any, TYPE_CHECKING
 
 from fastapi import Request
@@ -19,6 +20,7 @@ from fastapi.responses import JSONResponse
 from nicegui import app as nicegui_app
 from nicegui import ui
 
+from haywire.core.access import LevelMode
 from haywire.ui import elements as hui
 from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.ui.components.zoom.pan import ZoomPanContainer
@@ -554,7 +556,22 @@ def _harness_session(library_service, graph):
     return session, app_state
 
 
-def _mount_graph_canvas(library_service, graph, editor, testid: str, sync: bool = True, channel=None):
+@dataclass
+class _HarnessLevel:
+    """The level mode a harness canvas's route reads; a page changes ``mode`` to move the canvas."""
+
+    mode: LevelMode = LevelMode.EDIT
+
+
+def _mount_graph_canvas(
+    library_service,
+    graph,
+    editor,
+    testid: str,
+    sync: bool = True,
+    channel=None,
+    level: _HarnessLevel | None = None,
+):
     """Boot a real GraphCanvasManager over (graph, editor) inside the page.
 
     Wires the full editor stack — session, handlers, context-menu provider —
@@ -565,14 +582,22 @@ def _mount_graph_canvas(library_service, graph, editor, testid: str, sync: bool 
         sync: Mount the graph synchronously. Pass ``False`` for a page that
             drives ``start_chunked_sync`` itself.
         channel: The layout channel of the canvas; the patch when ``None``.
+        level: The level whose ``mode`` the canvas's route reads; ``None`` is a level in
+            ``EDIT``.
     """
     from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
+    from haybale_graph_editor.state.edit_state import EditState
+    from haywire.core.graph.edit_route import EditRoute
 
     session, _app_state = _harness_session(library_service, graph)
+    level = level if level is not None else _HarnessLevel()
+    route = EditRoute(lambda: editor, lambda: level.mode)
+    # The level on screen, as the graph editor makes it: the context menu's forms write through it.
+    session.context.data[EditState].active_route = route
 
     with ui.element("div").style("width: 800px; height: 600px; position: relative; border: 1px solid #666;"):
         manager = GraphCanvasManager(
-            editor=editor,
+            route=route,
             skin_factory=library_service.get_skin_factory(),
             node_factory=library_service.get_node_factory(),
             panel_registry=library_service.get_panel_registry(),
@@ -585,6 +610,48 @@ def _mount_graph_canvas(library_service, graph, editor, testid: str, sync: bool 
             manager.sync_with_graph()
         manager.zoom_container._on_ready = manager.zoom_container.center_on_content
     return manager
+
+
+def _build_enter_graph(library_service):
+    """A graph holding one Group card whose interface inlet draws a number widget.
+
+    Returns ``(graph, editor, card_id)``.
+    """
+    from haywire.core.graph.editor import Editor
+
+    graph = _harness_graph("Enter Fixture")
+    editor = Editor(graph, library_service.get_node_factory())
+    # A float source feeds the adder's first inlet, so collapsing the adder gives
+    # the Group card an interface inlet. Removing the edge afterwards leaves that
+    # inlet unconnected, which is when a card draws its widget (a number field).
+    source = graph.create_node_wrapper(_ADD_FLOAT_KEY, position=(3400.0, 3700.0))
+    adder = graph.create_node_wrapper(_ADD_FLOAT_KEY, position=(3700.0, 3700.0))
+    assert source is not None and adder is not None  # noqa: PT018
+    assert editor.create_edge(source.node_id, "result", adder.node_id, "value_a")
+    card_id, reason = editor.collapse_to_group(
+        node_ids=[adder.node_id],
+        card_registry_key="haywire-core:node:GraphNode",
+        input_registry_key="haywire-core:node:SubgraphInputNode",
+        output_registry_key="haywire-core:node:SubgraphOutputNode",
+        label="Enter Fixture Group",
+    )
+    assert card_id is not None, reason
+    assert editor.remove_elements([], [e.edge_id for e in editor.list_edges()], release_pins=False)
+    return graph, editor, card_id
+
+
+def _record_navigation(manager, log) -> None:
+    """Write the node id of each signal ``manager``'s session publishes with one into ``log``."""
+    session = manager._session
+    publish = session.publish
+
+    def _record(signal, *args, **kwargs):
+        node_id = getattr(signal, "node_id", None)
+        if node_id is not None:
+            log.set_text(node_id)
+        return publish(signal, *args, **kwargs)
+
+    session.publish = _record
 
 
 def _build_theme_css(registry: "SettingsRegistry", theme_registry) -> str:
@@ -674,7 +741,7 @@ def register_routes(library_service) -> None:
                 node_cls = _resolve_class(class_path)
                 settings_cls = getattr(node_cls, bag_name)
                 settings_instance = settings_cls(registry=registry)
-                render_settings(_harness_session_context(library_service), settings_instance)
+                render_settings(_harness_session_context(library_service), settings_instance, route=None)
             except Exception as exc:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
         _stamp_synced()
@@ -698,7 +765,9 @@ def register_routes(library_service) -> None:
         fields = ("color_override",)
 
         with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
-            render_settings(_harness_session_context(library_service), props, categories=("appearance",))
+            render_settings(
+                _harness_session_context(library_service), props, categories=("appearance",), route=None
+            )
 
             # Echo the model, not the widget: a label per field, refreshed from
             # the bag itself. Emptiness IS the unset signal — a cleared colour
@@ -735,6 +804,7 @@ def register_routes(library_service) -> None:
 
         from haybale_example.types.fill import FILL
         from haywire.core.node.data import NodeData
+        from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
         if theme_css:
             ui.add_css(theme_css)
@@ -757,7 +827,9 @@ def register_routes(library_service) -> None:
                 # The port carries its widget key (FILL declares one on the
                 # type), so the factory is told which widget rather than
                 # inferring it.
-                library_service.get_widget_factory().render_widget(port.widget_key, port, node.node_id)
+                # A port of no graph has no route, so the page hands the widget a model that writes the port.
+                model = SettingWidgetModel(port.id, port.widget_config, port.data, port.set_value)
+                library_service.get_widget_factory().render_widget(port.widget_key, model, node.node_id)
 
             echo = ui.label().props('data-testid="echo-fill"')
 
@@ -799,7 +871,7 @@ def register_routes(library_service) -> None:
                 node_cls = _resolve_class(class_path)
                 settings_cls = getattr(node_cls, bag_name)
                 settings_instance = settings_cls(registry=registry)
-                render_settings(_harness_session_context(library_service), settings_instance)
+                render_settings(_harness_session_context(library_service), settings_instance, route=None)
 
                 # External-write triggers. Each button mutates the model only.
                 def _ext_set(field: str, value):
@@ -835,9 +907,9 @@ def register_routes(library_service) -> None:
     #
     # A settings bag belonging to a REAL graph node, unlike /node and /node-live
     # which build a standalone instance. Promotion entries are structural: they
-    # render only when the bag has an owning node, so the "Promote to" flyout —
-    # and everything reachable through it — is invisible on every other settings
-    # route. Backs test_promote_flyout.py.
+    # render only for a bag with an owning node, drawn with a level's edit route,
+    # so the "Promote to" flyout — and everything reachable through it — is
+    # invisible on every other settings route. Backs test_promote_flyout.py.
     #
     # The flyout in particular CANNOT be covered in-process: a nested ui.menu
     # that never opens, or an anchor that greys itself, renders identically in
@@ -865,7 +937,14 @@ def register_routes(library_service) -> None:
                     node_cls.class_identity.registry_key, position=(0.0, 0.0)
                 )
                 assert wrapper is not None, "could not create the attached-fixture node"
-                render_settings(_harness_session_context(library_service), getattr(wrapper.node, bag_name))
+                from haywire.core.graph.edit_route import EditRoute
+                from haywire.core.graph.editor import Editor
+
+                editor = Editor(graph, library_service.get_node_factory())
+                route = EditRoute(lambda: editor, lambda: LevelMode.EDIT)
+                render_settings(
+                    _harness_session_context(library_service), getattr(wrapper.node, bag_name), route=route
+                )
             except Exception as exc:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
         _stamp_synced()
@@ -940,6 +1019,7 @@ def register_routes(library_service) -> None:
                     canvas_height=400,
                 )
                 canvas.props('data-testid="graph-canvas-test"')
+                canvas.set_level_mode(LevelMode.EDIT)
         _stamp_synced()
 
     # -------------------------------------------------------------------------
@@ -1443,10 +1523,11 @@ def register_routes(library_service) -> None:
     # GET /graph-lock
     #
     # One node on a canvas locked for the session, as GraphEditor locks a level
-    # (``GraphCanvasManager.set_locked``). ``lock-node-id`` carries the node id;
-    # ``lock-node-pos`` shows the model's ``props.posX,posY``, polled so it
-    # reflects whichever path changed it. ``?stale=true`` locks the server side
-    # only, as for a page the lock has not reached yet. Backs test_canvas_lock.py.
+    # (the level mode drops to operate and ``GraphCanvasManager.refresh_mode`` pushes it).
+    # ``lock-node-id`` carries the node id; ``lock-node-pos`` shows the model's
+    # ``props.posX,posY``, polled so it reflects whichever path changed it.
+    # ``?stale=true`` locks the server side only, as for a page the lock has not
+    # reached yet. Backs test_canvas_lock.py.
     # -------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------
@@ -1493,7 +1574,7 @@ def register_routes(library_service) -> None:
         context = session.context
         graph_editor._context = context
         graph_editor._project_state = app_state  # type: ignore[assignment]
-        level = graph_editor._new_level(DOCUMENT_LEVEL, _Container())
+        level = graph_editor._new_level(context, DOCUMENT_LEVEL, _Container())
         level.view = view
         graph_editor._levels[DOCUMENT_LEVEL] = level
 
@@ -1604,62 +1685,91 @@ def register_routes(library_service) -> None:
 
         _refresh()
         ui.timer(0.2, _refresh)
-        manager = _mount_graph_canvas(library_service, graph, editor, testid="lock")
-        if stale:
-            manager.locked = True
-        else:
-            manager.set_locked(True)
+        level = _HarnessLevel()
+        manager = _mount_graph_canvas(library_service, graph, editor, testid="lock", level=level)
+        level.mode = LevelMode.OPERATE
+        if not stale:
+            manager.refresh_mode()
         _stamp_synced()
 
     # -------------------------------------------------------------------------
-    # GET /graph-enter
+    # GET /graph-enter?mode=view|operate|edit
     #
     # One Group card (two TestPrintNodes collapsed) on a real GraphCanvasManager.
     # ``enter-card-id`` carries the card's id; ``enter-log`` shows the node id of
     # the last SubgraphNavigation the session published — what the canvas asks
-    # an editor to open. ``?locked=true`` locks the canvas first. Backs
+    # an editor to open. ``mode`` is the canvas's level mode. Backs
     # test_enter_by_double_click.py.
     # -------------------------------------------------------------------------
 
     @ui.page("/graph-enter")
-    async def graph_enter_page(locked: bool = False):
-        from haywire.core.graph.editor import Editor
-
-        graph = _harness_graph("Enter Fixture")
-        editor = Editor(graph, library_service.get_node_factory())
-        # A float source feeds the adder's first inlet, so collapsing the adder gives
-        # the Group card an interface inlet. Removing the edge afterwards leaves that
-        # inlet unconnected, which is when a card draws its widget (a number field).
-        source = graph.create_node_wrapper(_ADD_FLOAT_KEY, position=(3400.0, 3700.0))
-        adder = graph.create_node_wrapper(_ADD_FLOAT_KEY, position=(3700.0, 3700.0))
-        assert source is not None and adder is not None  # noqa: PT018
-        assert editor.create_edge(source.node_id, "result", adder.node_id, "value_a")
-        card_id, reason = editor.collapse_to_group(
-            node_ids=[adder.node_id],
-            card_registry_key="haywire-core:node:GraphNode",
-            input_registry_key="haywire-core:node:SubgraphInputNode",
-            output_registry_key="haywire-core:node:SubgraphOutputNode",
-            label="Enter Fixture Group",
-        )
-        assert card_id is not None, reason
-        assert editor.remove_elements([], [e.edge_id for e in editor.list_edges()], release_pins=False)
-
+    async def graph_enter_page(mode: str = "edit"):
+        graph, editor, card_id = _build_enter_graph(library_service)
         ui.label(card_id).props(f'data-testid="enter-card-id" data-node="{card_id}"')
         log = ui.label("").props('data-testid="enter-log"')
-        manager = _mount_graph_canvas(library_service, graph, editor, testid="enter")
+        level = _HarnessLevel(mode=LevelMode(mode))
+        manager = _mount_graph_canvas(library_service, graph, editor, testid="enter", level=level)
+        _record_navigation(manager, log)
+        _stamp_synced()
 
-        session = manager._session
-        publish = session.publish
+    # -------------------------------------------------------------------------
+    # GET /graph-level-mode?mode=view|operate|edit
+    #
+    # The ``/graph-enter`` Group card, whose interface inlet shows a number
+    # widget, a Fold Probe card (stacked skin, with fold headers), and a plain
+    # card with a comment and a warning (so it draws the comment and the
+    # diagnostics badge), on a canvas in level mode ``mode``.
+    # An annotation card with the text "Harness note" sits beside them.
+    # ``level-card-id``, ``level-fold-id``, ``level-badge-id`` and ``level-note-id``
+    # carry the card ids; ``enter-log`` records an Enter; F9 drops the level to ``operate``,
+    # F10 lifts it back to ``edit``.
+    # Backs test_level_mode_gate.py.
+    # -------------------------------------------------------------------------
 
-        def _record(signal, *args, **kwargs):
-            node_id = getattr(signal, "node_id", None)
-            if node_id is not None:
-                log.set_text(node_id)
-            return publish(signal, *args, **kwargs)
+    @ui.page("/graph-level-mode")
+    async def graph_level_mode_page(mode: str = "view"):
+        from haybale_testing.nodes.testbed.fold_probe import FoldProbeNode
 
-        session.publish = _record  # type: ignore[method-assign]
-        if locked:
-            manager.set_locked(True)
+        from haywire.core.node.node_warning import NodeWarning
+
+        graph, editor, card_id = _build_enter_graph(library_service)
+        fold = graph.create_node_wrapper(
+            FoldProbeNode.class_identity.registry_key, position=(3400.0, 3950.0)
+        )
+        assert fold is not None
+        badged = graph.create_node_wrapper(_ADD_FLOAT_KEY, position=(3750.0, 3950.0))
+        assert badged is not None
+        badged.node.props.comment = "Harness comment"
+        badged.state.add_warning(NodeWarning(message="Harness warning", source_version=None))
+        from haywire.barn.builtin.nodes.annotation import AnnotationNode
+
+        note_key = AnnotationNode.class_identity.registry_key
+        note = graph.create_node_wrapper(note_key, position=(4100.0, 3950.0))
+        assert note is not None
+        note.node.annotation.text = "Harness note"  # type: ignore[attr-defined]
+        # A look apart from Quasar's field defaults, so the editor's inheritance shows.
+        note.node.annotation.font_size = 30  # type: ignore[attr-defined]
+        note.node.annotation.text_color = "#ff0000"  # type: ignore[attr-defined]
+        note.node.annotation.underline = True  # type: ignore[attr-defined]
+        ui.label(note.node_id).props(f'data-testid="level-note-id" data-node="{note.node_id}"')
+        ui.label(card_id).props(f'data-testid="level-card-id" data-node="{card_id}"')
+        ui.label(fold.node_id).props(f'data-testid="level-fold-id" data-node="{fold.node_id}"')
+        ui.label(badged.node_id).props(f'data-testid="level-badge-id" data-node="{badged.node_id}"')
+        log = ui.label("").props('data-testid="enter-log"')
+        level = _HarnessLevel(mode=LevelMode(mode))
+        manager = _mount_graph_canvas(library_service, graph, editor, testid="level", level=level)
+        _record_navigation(manager, log)
+
+        def _lock(event) -> None:
+            # A key, not a button: a click would end the gesture the lock has to interrupt.
+            if event.key == "F9" and event.action.keydown:
+                level.mode = LevelMode.OPERATE
+                manager.refresh_mode()
+            elif event.key == "F10" and event.action.keydown:
+                level.mode = LevelMode.EDIT
+                manager.refresh_mode()
+
+        ui.keyboard(on_key=_lock)
         _stamp_synced()
 
     # -------------------------------------------------------------------------

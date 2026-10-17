@@ -26,7 +26,7 @@ splitter position intact when the list changes underneath the user.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from nicegui import ui
 
@@ -35,6 +35,7 @@ from haybale_studio.editors.error_navigation import (
     open_file_in_studio,
     reveal_instance,
 )
+from haywire.core.access import AccessTier
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.session.handlers import react_on
@@ -82,6 +83,7 @@ def _severity_value(error: HaywireException) -> str:
     icon=hui.icon.debug,
     default_slot=SlotName.INFO,
     description="Error ledger. Lists HaywireExceptions logged since startup; click one for details.",
+    access=AccessTier.VIEW,
 )
 class ErrorsEditor(BaseEditor):
     """Renders the process-wide error ledger as a clickable list with a detail pane."""
@@ -208,16 +210,18 @@ class ErrorsEditor(BaseEditor):
         """Right-click context menu for a row: show details, toggle seen, delete."""
         seq = entry.ledger_seq
         seen = entry.seen
+        # The code editor and the component source editor both need edit.
+        can_open = self._can_open_source()
         with ui.context_menu():
             ui.menu_item("Show details", on_click=lambda s=seq: self._show_details(s), auto_close=True)
             ui.separator()
-            if entry.has_source_location():
+            if can_open and entry.has_source_location():
                 ui.menu_item(
                     "Open file",
                     on_click=lambda s=seq: self._open_file(s),
                     auto_close=True,
                 )
-            if entry.can_open_component():
+            if can_open and entry.can_open_component():
                 ui.menu_item(
                     "Open component",
                     on_click=lambda s=seq: self._open_component(s),
@@ -288,9 +292,7 @@ class ErrorsEditor(BaseEditor):
                 render_error_details(
                     entry,
                     ui.column().classes("w-full gap-4"),
-                    on_open_in_studio=lambda fp, ln: open_file_in_studio(fp, ln, self._context)
-                    if self._context is not None
-                    else None,
+                    on_open_in_studio=self._open_in_studio_callback(),
                 )
                 with (
                     ui.row()
@@ -354,6 +356,21 @@ class ErrorsEditor(BaseEditor):
         self._selected_seq = None
         self._render_detail()
         self._publish_changed()
+
+    def _can_open_source(self) -> bool:
+        """Return whether this session may open the editors that show an error's source."""
+        return self._context is not None and self._context.can_edit()
+
+    def _open_in_studio_callback(self) -> "Callable[[str, int | None], None] | None":
+        """Return the details popup's "Open in Studio" action, or ``None`` if this session may not use it."""
+        context = self._context
+        if context is None or not self._can_open_source():
+            return None
+
+        def _open(filepath: str, line_number: "int | None") -> None:
+            open_file_in_studio(filepath, line_number, context)
+
+        return _open
 
     def _open_file(self, seq: int) -> None:
         """Open this error's source file in the studio's MAIN-slot CodeEditor."""

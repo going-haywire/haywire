@@ -23,6 +23,8 @@ from unittest.mock import MagicMock
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haywire.ui.components.graph.event_definitions import CanvasMountedEvent, SyncAllEdgesEvent
 
+from tests.conftest import edit_route
+
 pytestmark = pytest.mark.unit
 
 
@@ -56,10 +58,9 @@ def graph():
 def handler(graph):
     h = VisualLayerHandlers(
         graph=graph,
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         skin_factory=MagicMock(),
         canvas_vue=MagicMock(),
-        allows=lambda _required: True,
     )
     # add_node_visual is NiceGUI-dependent; record calls and register the panel
     # the way the real one does, so the "already mounted" guard is exercised.
@@ -203,10 +204,9 @@ async def test_cancellation_stops_the_load(graph):
     """Cancelling mid-load must propagate, leaving the rest unmounted."""
     h = VisualLayerHandlers(
         graph=graph,
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         skin_factory=MagicMock(),
         canvas_vue=MagicMock(),
-        allows=lambda _required: True,
     )
     graph.node_wrappers = {f"n{i}": _node_wrapper(f"n{i}") for i in range(200)}
 
@@ -385,10 +385,9 @@ class TestCanvasMounted:
             [
                 VisualLayerHandlers(
                     graph=MagicMock(),
-                    editor=MagicMock(),
+                    route=edit_route(MagicMock()),
                     skin_factory=MagicMock(),
                     canvas_vue=MagicMock(),
-                    allows=lambda _required: True,
                 )
             ]
         )

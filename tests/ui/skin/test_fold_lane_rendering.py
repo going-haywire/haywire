@@ -40,12 +40,14 @@ def _labels(container: ui.element) -> list[str]:
 
 
 def _fold_headers(container: ui.element) -> dict[str, int]:
-    """Each fold header's left padding in px, by fold id."""
-    return {
-        el._props["data-hw-fold-id"]: int(el._style["padding-left"].removesuffix("px"))
-        for el in container.descendants()
-        if "data-hw-fold-id" in el._props
-    }
+    """Each fold header row's left padding in px, by fold id: the row around the fold's widget."""
+    headers = {}
+    for el in container.descendants():
+        if "data-hw-fold-id" in el._props:
+            assert el.parent_slot is not None
+            row = el.parent_slot.parent
+            headers[el._props["data-hw-fold-id"]] = int(row._style["padding-left"].removesuffix("px"))
+    return headers
 
 
 @pytest.fixture

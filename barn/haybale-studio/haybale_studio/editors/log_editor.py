@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Callable, Optional
 from nicegui import ui
 from nicegui.timer import Timer
 
+from haywire.core.access import AccessTier
 from haywire.core.debug.debug_settings import DebugSettings, LOG_SCROLLBACK_LINES_KEY
 from haywire.ui import elements as hui
 from haywire.ui.console_bridge import get_stdout_tee
@@ -58,6 +59,7 @@ class _LogHandler(logging.Handler):
     icon=hui.icon.terminal,
     default_slot=SlotName.INFO,
     description="Application output. Captures Python logging and print() output.",
+    access=AccessTier.VIEW,
 )
 class LogEditor(BaseEditor):
     """

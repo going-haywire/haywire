@@ -37,7 +37,7 @@ def _render(bag, **kwargs) -> "ui.column":
     with client:
         anchor = ui.column()
         with anchor:
-            render_settings(make_render_ctx(), bag, **kwargs)
+            render_settings(make_render_ctx(), bag, **kwargs, route=None)
     return anchor
 
 

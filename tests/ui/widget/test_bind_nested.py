@@ -58,7 +58,7 @@ def test_nested_field_path_model_to_view_update():
 
 
 def test_nested_field_path_view_to_model():
-    """bind(to='x') view→model path: writing the element fires _update_nested_property."""
+    """bind(to='x') view→model path: writing the element sends the model a value with x changed."""
     port = _vec2_port()
     port.set_value(_Vec2(x=0.0, y=0.0))
     w = _Vec2Widget(port)

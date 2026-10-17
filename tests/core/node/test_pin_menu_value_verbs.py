@@ -25,11 +25,15 @@ from haybale_graph_editor.panels.graph.menu.port.port import (
     ClearSettingMenuPanel,
     ResetSettingMenuPanel,
 )
+from haywire.core.access import LevelMode
 from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.editor import Editor
 from haywire.core.node.promotion import promote_setting
 from haywire.core.session.context import SessionContext
 from haywire.core.types.enums import PortType
 from haywire.ui.widget.factory import _widget_model_for
+
+from tests.conftest import edit_route
 
 SETTINGS_NODE = "haybale-testing:node:SettingsNode"
 
@@ -65,20 +69,31 @@ def promoted(graph_with_library_system: BaseGraph):
     return _make
 
 
+@pytest.fixture
+def card_edit(graph_with_library_system: BaseGraph):
+    """Write a value into a port's widget as a node card does, at level mode operate."""
+    route = edit_route(Editor(graph_with_library_system, MagicMock()))
+
+    def _edit(port: Any, value: Any) -> None:
+        assert _widget_model_for(port, route, LevelMode.OPERATE).set_value(value) is not False
+
+    return _edit
+
+
 @pytest.mark.integration
 class TestResetRow:
     def test_greys_while_the_field_is_clean(self, promoted):
         ctx, _node, _port = promoted("example_float")
         assert ResetSettingMenuPanel.poll(ctx) is False
 
-    def test_enables_once_the_field_carries_an_opinion(self, promoted):
+    def test_enables_once_the_field_carries_an_opinion(self, promoted, card_edit):
         ctx, _node, port = promoted("example_float")
-        _widget_model_for(port).set_value(0.25)  # the card edit
+        card_edit(port, 0.25)  # the card edit
         assert ResetSettingMenuPanel.poll(ctx) is True
 
-    def test_the_verb_restores_the_declared_default(self, promoted):
+    def test_the_verb_restores_the_declared_default(self, promoted, card_edit):
         ctx, node, port = promoted("optional_with_default")
-        _widget_model_for(port).set_value(7)
+        card_edit(port, 7)
         assert node.example.optional_with_default == 7
 
         bag, descriptor = _resolve(node, port)
@@ -96,19 +111,19 @@ class TestSetToNoneRow:
         ctx, _node, _port = promoted("optional_int")
         assert ClearSettingMenuPanel.poll(ctx) is False
 
-    def test_enables_on_an_optional_field_holding_a_value(self, promoted):
+    def test_enables_on_an_optional_field_holding_a_value(self, promoted, card_edit):
         # The exact reported sequence: promote to outlet, show the pin widget,
         # enter a value. Previously this left NO enabled route back to absence,
         # because the field's default is itself absence.
         ctx, _node, port = promoted("optional_int")
-        _widget_model_for(port).set_value(42)
+        card_edit(port, 42)
         assert ClearSettingMenuPanel.poll(ctx) is True
 
-    def test_the_two_verbs_differ_where_the_default_is_a_value(self, promoted):
+    def test_the_two_verbs_differ_where_the_default_is_a_value(self, promoted, card_edit):
         # optional_with_default rests at -1: Reset goes back to -1, Set to none
         # goes to absence. Both enabled, landing in different places.
         ctx, node, port = promoted("optional_with_default")
-        _widget_model_for(port).set_value(7)
+        card_edit(port, 7)
         assert ResetSettingMenuPanel.poll(ctx) is True
         assert ClearSettingMenuPanel.poll(ctx) is True
 

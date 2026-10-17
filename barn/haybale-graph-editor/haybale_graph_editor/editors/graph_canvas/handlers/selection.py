@@ -11,7 +11,7 @@ from typing import Any, Callable, Iterable, Optional, Set, Tuple, TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.access import AccessTier
+from haywire.core.access import LevelMode
 from haywire.core.graph.clipboard import build_clipboard_payload, is_haywire_payload
 from haywire.core.node.layout import PATCH, STAGE, LayoutChannel, layout_position_of, position_of
 from haywire.core.undo.actions.graph_actions import ClipboardData
@@ -28,7 +28,7 @@ from ..event_handlers import handles_event
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.core.graph.editor import Editor
+    from haywire.core.graph.edit_route import EditRoute
     from haywire.core.graph.base import BaseGraph
     from haywire.core.session.session import Session
     from .visual_layer import VisualLayerHandlers
@@ -60,7 +60,7 @@ class SelectionHandlers:
     def __init__(
         self,
         graph: "BaseGraph",
-        editor: "Editor",
+        route: "EditRoute",
         session_id: str,
         session: Optional["Session"] = None,
         visual_layer: Optional["VisualLayerHandlers"] = None,
@@ -70,7 +70,7 @@ class SelectionHandlers:
         self.channel = channel
         self.patch_viewport_centre = patch_viewport_centre
         self.graph = graph
-        self.editor = editor
+        self.route = route
         self.session_id = session_id
         self._session = session
         self._visual_layer = visual_layer
@@ -78,7 +78,8 @@ class SelectionHandlers:
         self.selected_nodes: Set[str] = set()
         self.selected_edges: Set[str] = set()
 
-    @handles_event(SelectionChangedEvent, access=AccessTier.VIEW)
+    # Selection changes no document, so it is taken in every level mode.
+    @handles_event(SelectionChangedEvent, access=LevelMode.VIEW)
     def process_selection_change(self, event: SelectionChangedEvent):
         """Update local selection state and write through to SessionContext.
 
@@ -129,7 +130,7 @@ class SelectionHandlers:
             ctx.active_component = None
         self._session.publish(SelectionMoved())
 
-    @handles_event(UserCopySelectedEvent, access=AccessTier.VIEW)
+    @handles_event(UserCopySelectedEvent)
     def process_copy_selection(self, event: UserCopySelectedEvent):
         """Serialize the selection to a payload; mirror it and write the OS clipboard."""
         logger.info(
@@ -185,6 +186,9 @@ class SelectionHandlers:
         if self._session is None:
             logger.warning("Paste ignored: no session bound to handler")
             return
+        editor = self.route.editor()
+        if editor is None:
+            return
 
         os_payload = None
         if event.clipboardText:
@@ -210,9 +214,7 @@ class SelectionHandlers:
             return
 
         stage_args = {"patch_fallback": self._patch_fallback()} if self.channel.stage else {}
-        result = self.editor.paste_clipboard(
-            chosen, event.canvasX, event.canvasY, self.channel, **stage_args
-        )
+        result = editor.paste_clipboard(chosen, event.canvasX, event.canvasY, self.channel, **stage_args)
         if result is None:
             # Unknown node types do NOT cause failure (they paste as placeholders);
             # None here means an unexpected error.
@@ -228,14 +230,15 @@ class SelectionHandlers:
         """Paste a copy of the given nodes ``DUPLICATE_OFFSET`` below and right of them, and select it.
 
         Edges are copied when both their ends are among ``nodes``. The session
-        and OS clipboards keep their content. With no node to copy, nothing
-        happens.
+        and OS clipboards keep their content. With no node to copy, or below
+        level mode edit, nothing happens.
 
         Args:
             nodes: Ids of the nodes to duplicate, all in this handler's graph.
             edges: Ids of the edges to duplicate, all in this handler's graph.
         """
-        if not nodes:
+        editor = self.route.editor()
+        if not nodes or editor is None:
             return
         payload = build_clipboard_payload(self.graph, nodes, edges, self.session_id)
         if not payload["nodes"]:
@@ -269,7 +272,7 @@ class SelectionHandlers:
                     min(x for x, _ in stage_origins) + DUPLICATE_OFFSET,
                     min(y for _, y in stage_origins) + DUPLICATE_OFFSET,
                 )
-        result = self.editor.paste_clipboard(
+        result = editor.paste_clipboard(
             payload, min_x + DUPLICATE_OFFSET, min_y + DUPLICATE_OFFSET, self.channel, **stage_args
         )
         if result is None:

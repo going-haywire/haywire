@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
+from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
@@ -54,6 +55,7 @@ _BATCH_DEPTH = 3
         " folders so the user can pull in three more levels on demand."
     ),
     order=10,
+    access=AccessTier.VIEW,
 )
 class LazyFileBrowserEditor(BaseEditor):
     """File tree that loads three levels at a time on demand."""

@@ -31,11 +31,11 @@ def nicegui_slot_context():
         yield
 
 
-def _render(factory: SkinFactory, wrapper, *, on_stage: bool):
+def _render(factory: SkinFactory, wrapper, *, on_stage: bool, route=None):
     key = factory._skin_registry.get_default_skin_registry_key()
     assert key
     with ui.element("div"):
-        card = factory.render(key, wrapper, on_stage=on_stage)
+        card = factory.render(key, wrapper, on_stage=on_stage, route=route)
     assert card is not None
     return card.get_card()
 
@@ -70,7 +70,13 @@ def test_toggling_a_fold_on_a_stage_card_changes_the_node_and_the_patch_follows(
     fold_id = _header(_render(factory, wrapper, on_stage=True))._props["data-hw-fold-id"]
     assert wrapper.node.value(fold_id) is False
 
-    stage_card = _render(factory, wrapper, on_stage=True)
+    from haywire.core.access import LevelMode
+    from haywire.core.graph.edit_route import EditRoute
+    from haywire.core.graph.editor import Editor
+
+    editor = Editor(graph, library_system.get_node_factory())
+    route = EditRoute(lambda: editor, lambda: LevelMode.EDIT)
+    stage_card = _render(factory, wrapper, on_stage=True, route=route)
     click = next(h for h in _header(stage_card)._event_listeners.values() if h.type == "click")
     click.handler()
 

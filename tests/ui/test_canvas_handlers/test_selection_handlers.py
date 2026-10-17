@@ -23,6 +23,8 @@ from haywire.ui.components.graph.event_definitions import (
 )
 from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
 
+from tests.conftest import edit_route
+
 pytestmark = pytest.mark.unit
 
 
@@ -101,7 +103,7 @@ def _stub_nicegui_io():
 def handler(graph, session):
     return SelectionHandlers(
         graph=graph,
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         session_id="test-session",
         session=session,
     )
@@ -161,7 +163,7 @@ def test_selection_changed_notifies_session(register_edit_state):
     graph.get_edge_wrapper.return_value = MagicMock()
     handler = SelectionHandlers(
         graph=graph,
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         session_id=sid,
         session=session,
     )
@@ -329,7 +331,7 @@ def test_copy_stores_serialized_payload_in_mirror(graph, session, edit_state_cls
         "registry_key": "k",
         "node_data": {"props": {"values": {"posX": 10.0, "posY": 20.0}}},
     }
-    h = SelectionHandlers(graph=graph, editor=MagicMock(), session_id="sess", session=session)
+    h = SelectionHandlers(graph=graph, route=edit_route(MagicMock()), session_id="sess", session=session)
     with patch.object(selection_module.ui, "run_javascript") as rj:
         h.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
     clip = session.context.data[edit_state_cls].clipboard
@@ -348,7 +350,7 @@ def test_copy_stores_serialized_payload_in_mirror(graph, session, edit_state_cls
 def test_paste_uses_event_text_when_valid(graph, session, edit_state_cls):
     editor = MagicMock()
     editor.paste_clipboard.return_value = ([], [])  # (new_node_ids, new_edge_ids)
-    h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
+    h = SelectionHandlers(graph=graph, route=edit_route(editor), session_id="sess", session=session)
     payload = {
         "haywire_clipboard": True,
         "format_version": CLIPBOARD_FORMAT_VERSION,
@@ -371,7 +373,7 @@ def test_paste_falls_back_to_mirror_when_text_empty(graph, session, edit_state_c
 
     editor = MagicMock()
     editor.paste_clipboard.return_value = ([], [])  # (new_node_ids, new_edge_ids)
-    h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
+    h = SelectionHandlers(graph=graph, route=edit_route(editor), session_id="sess", session=session)
     mirror_payload = {
         "haywire_clipboard": True,
         "format_version": CLIPBOARD_FORMAT_VERSION,
@@ -387,7 +389,7 @@ def test_paste_falls_back_to_mirror_when_text_empty(graph, session, edit_state_c
 
 def test_paste_notifies_when_nothing_to_paste(graph, session, edit_state_cls):
     editor = MagicMock()
-    h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
+    h = SelectionHandlers(graph=graph, route=edit_route(editor), session_id="sess", session=session)
     with patch.object(selection_module.ui, "notify") as notify:
         h.process_paste_clipboard(UserPasteClipboardEvent(canvasX=0.0, canvasY=0.0, clipboardText=""))
     editor.paste_clipboard.assert_not_called()
@@ -402,7 +404,7 @@ def test_paste_auto_selects_pasted_elements(graph, session, edit_state_cls):
     visual_layer = MagicMock()
     h = SelectionHandlers(
         graph=graph,
-        editor=editor,
+        route=edit_route(editor),
         session_id="sess",
         session=session,
         visual_layer=visual_layer,
@@ -434,7 +436,7 @@ def test_paste_clears_active(graph, session, edit_state_cls):
     visual_layer = MagicMock()
     h = SelectionHandlers(
         graph=graph,
-        editor=editor,
+        route=edit_route(editor),
         session_id="sess",
         session=session,
         visual_layer=visual_layer,
@@ -466,7 +468,7 @@ def test_paste_publishes_selection_moved(graph, session, edit_state_cls):
     """Property panels follow a pasted selection: the paste publishes SelectionMoved."""
     editor = MagicMock()
     editor.paste_clipboard.return_value = (["new_n1"], [])
-    h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
+    h = SelectionHandlers(graph=graph, route=edit_route(editor), session_id="sess", session=session)
     payload = {
         "haywire_clipboard": True,
         "format_version": CLIPBOARD_FORMAT_VERSION,
@@ -487,7 +489,7 @@ def test_paste_publishes_selection_moved(graph, session, edit_state_cls):
 
 def test_paste_ignores_text_without_source_timestamp(graph, session, edit_state_cls):
     editor = MagicMock()
-    h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
+    h = SelectionHandlers(graph=graph, route=edit_route(editor), session_id="sess", session=session)
     # passes flag+version but is_haywire_payload now rejects it (no source.timestamp)
     bad = json.dumps(
         {
@@ -523,7 +525,7 @@ def _select_all_handler(graph, session, locked=()):
     visual_layer = MagicMock()
     h = SelectionHandlers(
         graph=graph,
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         session_id="sess",
         session=session,
         visual_layer=visual_layer,
@@ -681,7 +683,7 @@ def _duplicate_handler(graph, session, pasted=(["n2"], [])):
     visual_layer = MagicMock()
     h = SelectionHandlers(
         graph=graph,
-        editor=editor,
+        route=edit_route(editor),
         session_id="sess",
         session=session,
         visual_layer=visual_layer,
@@ -721,7 +723,7 @@ def test_duplicate_publishes_selection_moved(graph, session, edit_state_cls):
 def test_duplicate_without_session_selects_copy(graph):
     editor = MagicMock()
     editor.paste_clipboard.return_value = (["n2"], [])
-    h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=None)
+    h = SelectionHandlers(graph=graph, route=edit_route(editor), session_id="sess", session=None)
 
     h.duplicate_selection(["n1"], [])
 
@@ -811,10 +813,10 @@ def test_cut_is_one_undo_step(graph_with_library_system, library_system, session
     history = HistoryManager(UndoConfig())
     editor = Editor(graph, library_system.get_node_factory(), history_manager=history)
 
-    selection = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
+    selection = SelectionHandlers(graph=graph, route=edit_route(editor), session_id="sess", session=session)
     visual_layer: Any = VisualLayerHandlers.__new__(VisualLayerHandlers)
     visual_layer.graph = graph
-    visual_layer.editor = editor
+    visual_layer.route = edit_route(editor)
     routes = {
         UserCopySelectedEvent.event_type: selection.process_copy_selection,
         UserRemoveEvent.event_type: visual_layer.process_element_removal,

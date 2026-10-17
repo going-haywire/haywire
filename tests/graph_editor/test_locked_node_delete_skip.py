@@ -22,6 +22,8 @@ from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import (
     VisualLayerHandlers,
 )
 
+from tests.conftest import edit_route
+
 pytestmark = pytest.mark.unit
 
 
@@ -48,8 +50,9 @@ def _handlers(
 
     handlers = VisualLayerHandlers.__new__(VisualLayerHandlers)
     handlers.graph = graph
-    handlers.editor = MagicMock()
-    handlers.editor.remove_elements.return_value = True
+    editor = MagicMock()
+    editor.remove_elements.return_value = True
+    handlers.route = edit_route(editor)
     return handlers
 
 
@@ -59,7 +62,7 @@ def _remove_mock(handlers) -> MagicMock:
     Untyped parameter on purpose: read off the real ``Editor`` attribute,
     mypy resolves the declared method signature and rejects the mock verbs.
     """
-    return handlers.editor.remove_elements
+    return handlers.route.editor().remove_elements
 
 
 def _removed(handlers) -> tuple[list[str], list[str]]:

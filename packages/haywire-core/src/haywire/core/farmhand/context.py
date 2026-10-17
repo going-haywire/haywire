@@ -43,6 +43,7 @@ class FarmhandContext:
         #: gate stamped; ``None`` when authentication is off, which resolves to
         #: ADMIN exactly as it does for a browser session.
         self.principal = principal
+        self._fenced: list[Any] = []
 
     # -- access (ADR 0027) ----------------------------------------------
 
@@ -98,8 +99,22 @@ class FarmhandContext:
             await self._progress_reporter(message)
 
     def fence(self, editor: Any) -> None:
-        """Open the undo fence for this tool call: one call = one undo gesture."""
+        """Open the undo fence for this tool call: one call = one undo gesture.
+
+        ``close_fences`` closes the step, so nothing written after the call joins it.
+        """
         editor.add_fence()
+        if not any(fenced is editor for fenced in self._fenced):
+            self._fenced.append(editor)
+
+    def close_fences(self) -> None:
+        """Close the undo step of every editor ``fence`` opened during this call.
+
+        Adds a fence to each, so the call's actions form their own step and end any merge run.
+        """
+        for editor in self._fenced:
+            editor.add_fence()
+        self._fenced.clear()
 
     def workspace_root(self) -> Path:
         return Path(get_workspace_root())

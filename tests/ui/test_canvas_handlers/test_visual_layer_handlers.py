@@ -23,6 +23,8 @@ from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event
 from haywire.core.node.layout import LayoutChannel
 from haywire.core.graph.types import ChangeReason, ValidationResult
 
+from tests.conftest import edit_route
+
 pytestmark = pytest.mark.unit
 
 SWAPPED = LayoutChannel(
@@ -46,10 +48,9 @@ def graph():
 def handler(graph, canvas_vue):
     return VisualLayerHandlers(
         graph=graph,
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         skin_factory=MagicMock(),
         canvas_vue=canvas_vue,
-        allows=lambda _required: True,
     )
 
 
@@ -115,10 +116,9 @@ def test_on_validated_skips_node_add_if_panel_exists(handler, graph):
 def test_node_moved_reads_the_canvas_channel(graph, canvas_vue):
     handler = VisualLayerHandlers(
         graph=graph,
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         skin_factory=MagicMock(),
         canvas_vue=canvas_vue,
-        allows=lambda _required: True,
         channel=SWAPPED,
     )
     handler.node_panels["n1"] = MagicMock()
@@ -140,10 +140,9 @@ def test_node_moved_reads_the_canvas_channel(graph, canvas_vue):
 def test_resync_positions_and_size_use_the_channel(graph, canvas_vue):
     handler = VisualLayerHandlers(
         graph=graph,
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         skin_factory=MagicMock(),
         canvas_vue=canvas_vue,
-        allows=lambda _required: True,
         channel=SWAPPED,
     )
     wrapper = MagicMock()
@@ -164,10 +163,9 @@ def test_resync_positions_and_size_use_the_channel(graph, canvas_vue):
 def test_nodes_measured_writes_the_channel_size_fields(graph, canvas_vue):
     handler = VisualLayerHandlers(
         graph=graph,
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         skin_factory=MagicMock(),
         canvas_vue=canvas_vue,
-        allows=lambda _required: True,
         channel=SWAPPED,
     )
     props = SimpleNamespace(size_adapt="auto", width=10.0, height=10.0)

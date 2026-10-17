@@ -14,7 +14,7 @@ identity routing: "which container does this binding_id point to?"
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Iterator, Optional
+from typing import TYPE_CHECKING, Optional
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.state.base import AppState
@@ -23,6 +23,7 @@ from haywire.core.state.decorator import state
 from haybale_graph_editor.protocols import GraphContainer
 
 if TYPE_CHECKING:
+    from haywire.core.graph.edit_route import EditRoute
     from haywire.core.session.context import SessionContext
 
 logger = logging.getLogger(__name__)
@@ -88,56 +89,16 @@ class GraphAppState(AppState):
         return list(self._graphs.values())
 
 
-def editor_for(context: "SessionContext"):
-    """An ``Editor`` over the graph on screen, or ``None`` before one is open.
+def route_for(context: "SessionContext") -> "EditRoute | None":
+    """Return the edit route of the level this session has on screen, or ``None`` before one is open.
 
-    A panel is handed the graph, never the container that owns its undo
-    history, so the container is found by graph identity — the same way
-    ``GraphEditor`` recovers one whose binding_id moved.
+    Example::
 
-    Only *documents* are registered in :class:`GraphAppState`; the
-    ``SubgraphContainer`` for an open Group is the graph editor's own and never
-    goes in there. So a Group's graph finds no container, and this builds an
-    ``Editor`` over it that records on the document's history — which is what
-    ``SubgraphContainer`` does too, so an edit inside a Group undoes in order
-    with the edits around it. Construction is inert (field assignment only).
+        route = route_for(ctx)
+        editor = route.editor() if route is not None else None  # None below level mode edit
+        if editor is not None:
+            editor.remove_port(node_id, port_id)
     """
-    from haywire.core.graph.editor import Editor
-
     from haybale_graph_editor.state.edit_state import EditState
 
-    graph = context.data[EditState].active_graph
-    if graph is None:
-        return None
-
-    app_state = context.app_data[GraphAppState]
-    container = app_state.get_by_graph(graph)
-    if container is not None:
-        return container.editor
-
-    node_factory = getattr(context.app, "node_factory", None)
-    if node_factory is None:
-        return None
-    return Editor(graph, node_factory, history_manager=_host_history(app_state, graph))
-
-
-def _host_history(app_state: GraphAppState, graph) -> Any:
-    """The history of the document holding ``graph``, or ``None`` for its own.
-
-    A Subgraph belongs to the file that holds it, so an edit inside one is an
-    edit to that file and records on its history. ``None`` when no open
-    document claims it, which leaves the new editor a private history rather
-    than silently recording nowhere.
-    """
-    for container in app_state.all_containers():
-        document = container.editor.graph
-        if any(definition is graph for definition in _subgraphs_of(document)):
-            return container.editor.history_manager
-    return None
-
-
-def _subgraphs_of(graph) -> "Iterator[Any]":
-    """Every Subgraph beneath ``graph``, at any depth."""
-    for definition in getattr(graph, "subgraphs", {}).values():
-        yield definition
-        yield from _subgraphs_of(definition)
+    return context.data[EditState].active_route

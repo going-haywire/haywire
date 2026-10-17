@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from haywire.core.access import AccessTier
+from haywire.core.access import LevelMode
 from haywire.ui.components.graph.event_definitions import (
     SelectionBoundsEvent,
     SelectionBoundsHideEvent,
@@ -58,7 +58,7 @@ def test_show_hides_when_the_surface_does_not_apply(monkeypatch):
 
 def test_show_hides_below_edit(monkeypatch):
     """Below edit access nothing is queried or built, whichever path asks to show."""
-    prov, registry, _ = _provider(monkeypatch, allows=lambda required: required is not AccessTier.EDIT)
+    prov, registry, _ = _provider(monkeypatch, allows=lambda required: required is not LevelMode.EDIT)
     prov.hide = MagicMock()
     prov.show_at((0.0, 0.0, 100.0, 50.0))
     prov.hide.assert_called_once()
@@ -110,6 +110,39 @@ def test_reposition_renders_unconditionally(monkeypatch):
     prov.show_at((40.0, 40.0, 140.0, 90.0))
     assert prov._render_into_popup.call_count == 2
     prov._toolbar_popup.run_method.assert_called_with("setPosition", 90.0, 0.0)
+
+
+def test_refresh_rerenders_an_open_toolbar(monkeypatch):
+    prov, _, _ = _provider(monkeypatch)
+
+    class PanelA:
+        pass
+
+    monkeypatch.setattr(selection_toolbar_module, "partition_panels", lambda classes, ctx: ([PanelA], []))
+    prov._build_popup = MagicMock(return_value=MagicMock())
+    prov._render_into_popup = MagicMock(return_value=True)
+    prov.show_at((0.0, 0.0, 100.0, 50.0))
+    assert prov._render_into_popup.call_count == 1
+
+    prov.refresh()
+    assert prov._render_into_popup.call_count == 2
+
+
+def test_refresh_does_nothing_when_hidden_or_never_shown(monkeypatch):
+    prov, _, _ = _provider(monkeypatch)
+    prov.show_at = MagicMock()
+
+    prov.refresh()  # never shown: no popup, no bounds
+    prov.show_at.assert_not_called()
+
+    prov._last_bounds = (0.0, 0.0, 100.0, 50.0)
+    prov._toolbar_popup = MagicMock(is_open=False)  # hidden
+    prov.refresh()
+    prov.show_at.assert_not_called()
+
+    prov._toolbar_popup = MagicMock(is_open=True)
+    prov.refresh()
+    prov.show_at.assert_called_once_with((0.0, 0.0, 100.0, 50.0))
 
 
 def test_toolbar_hides_when_nothing_drew(monkeypatch):

@@ -205,8 +205,11 @@ class HaystackState(AppState):
 
         A result whose saved changes are all value edits (``NODE_VALUE_CHANGED``,
         ``GRAPH_CONTENT_CHANGED``) broadcasts ``GraphUnsavedChanged`` instead,
-        and only when it turns the entry unsaved, so the panel being typed into
-        is never rebuilt by its own edits.
+        and only when it turns the entry unsaved or changes its undo/redo
+        availability or an undo or redo happened since
+        (:attr:`GraphEntry.last_undo_availability`), so the panel
+        being typed into is never rebuilt by its own edits and a drag that
+        amends one step broadcasts nothing.
         """
         if entry.is_executing and result.has_changes() and result.graph is not None:
             if result.graph.requires_graph_reassembly():
@@ -222,9 +225,18 @@ class HaystackState(AppState):
         if result.requires_save():
             was_unsaved = entry.unsaved
             entry.unsaved = True
+            # An undo that restored a value already in place runs no validation, so the
+            # availability it changed is only visible through the count.
+            availability = (
+                entry.editor.can_undo(),
+                entry.editor.can_redo(),
+                entry.editor.history_manager.undo_redo_count,
+            )
+            availability_changed = availability != entry.last_undo_availability
+            entry.last_undo_availability = availability
             if not self._only_value_edits(result):
                 self._broadcast_data_mutated()
-            elif not was_unsaved:
+            elif not was_unsaved or availability_changed:
                 self._broadcast_unsaved_changed()
 
     @staticmethod
@@ -393,6 +405,7 @@ class HaystackState(AppState):
         Side effects on success:
             - writes the graph TOML to disk
             - clears ``entry.unsaved``
+            - adds a fence to the entry's history, ending any value-edit merge run
             - on rename: rekeys ``self._entries`` AND
               ``self._graph_app_state``
             - broadcasts ``GraphDataMutated`` AND ``GraphSaved``
@@ -415,6 +428,8 @@ class HaystackState(AppState):
             return False
 
         entry.unsaved = False
+        # The file now holds this state: a value edit after the save is a new step.
+        entry.editor.add_fence()
         renamed_to: Optional[str] = None
 
         if save_as is not None and save_as != entry.path:

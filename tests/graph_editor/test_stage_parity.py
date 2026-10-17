@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from haybale_graph_editor.access import level_mode
 from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
 from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
@@ -29,6 +30,7 @@ from haybale_graph_editor.panels.graph.menu.selection.stage import (
 from haybale_graph_editor.state.edit_state import EditState
 from haybale_graph_editor.surfaces import SelectionMenu
 from haywire.core.access import AccessTier
+from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.editor import Editor
 from haywire.core.node.layout import PATCH, STAGE
 from haywire.ui.components.graph.event_definitions import (
@@ -47,6 +49,8 @@ from haywire.ui.components.graph.event_definitions import (
     UserRemoveEvent,
     UserResizeEndEvent,
 )
+
+from tests.conftest import edit_route
 
 pytestmark = pytest.mark.unit
 
@@ -82,8 +86,7 @@ def _recording_map(calls: list[str]) -> dict[str, Callable]:
 def _manager(channel, tier: AccessTier = AccessTier.EDIT) -> tuple[Any, list[str]]:
     calls: list[str] = []
     manager: Any = object.__new__(GraphCanvasManager)
-    manager._session = SimpleNamespace(context=SimpleNamespace(can_access=tier.satisfies))
-    manager.locked = False
+    manager.route = EditRoute(lambda: MagicMock(), lambda: level_mode(tier.satisfies, False))
     manager.channel = channel
     manager.visual_layer = MagicMock()
     manager._event_handlers = _recording_map(calls)
@@ -127,8 +130,9 @@ def test_a_locked_stage_canvas_is_capped_at_operate_as_in_patch_view():
     for channel in (STAGE, PATCH):
         manager, calls = _manager(channel, tier=AccessTier.OPERATE)
         manager._handle_canvas_event(UserRemoveEvent(nodes=["a"], edges=[]))
+        assert calls == [], channel
         manager._handle_canvas_event(SelectionChangedEvent(selectedNodes=["a"], selectedEdges=[]))
-        assert calls == ["selectionChanged"], channel
+        assert calls == ["selectionChanged"], channel  # selecting is looking
 
 
 def test_a_refused_stage_drag_snaps_back():
@@ -262,7 +266,7 @@ def test_delete_in_stage_view_deletes_the_node(graph_with_library_system, librar
     editor.add_to_stage([node_id])
 
     layer: Any = object.__new__(VisualLayerHandlers)
-    layer.editor = editor
+    layer.route = edit_route(editor)
     layer.graph = graph
     layer.channel = STAGE
     layer.node_panels = {}

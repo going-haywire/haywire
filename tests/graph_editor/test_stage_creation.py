@@ -21,7 +21,7 @@ from haywire.ui.components.graph.event_definitions import (
     UserPasteClipboardEvent,
 )
 
-from tests.conftest import make_node
+from tests.conftest import edit_route, make_node
 
 pytestmark = pytest.mark.unit
 
@@ -36,7 +36,7 @@ def editor(graph_with_library_system: BaseGraph, library_system) -> Editor:
 def _visual(editor: Editor, channel: LayoutChannel, viewport_centre=None) -> VisualLayerHandlers:
     handler = object.__new__(VisualLayerHandlers)
     handler.patch_viewport_centre = (lambda: viewport_centre) if viewport_centre else None
-    handler.editor = editor
+    handler.route = edit_route(editor)
     handler.graph = editor.graph
     handler.channel = channel
     handler._make_sole_active_node = MagicMock()  # type: ignore[method-assign]
@@ -48,7 +48,7 @@ def _selection(editor: Editor, channel: LayoutChannel, viewport_centre=None) -> 
     session.context.data.__getitem__.return_value.clipboard = None
     handler = SelectionHandlers(
         graph=editor.graph,
-        editor=editor,
+        route=edit_route(editor),
         session_id="s",
         session=session,
         channel=channel,

@@ -11,7 +11,9 @@ from typing import Any, Callable, Generator, TYPE_CHECKING
 import pytest
 from injector import Injector
 
+from haywire.core.access import LevelMode
 from haywire.core.di.test_config import create_test_injector, create_test_library_system
+from haywire.core.graph.edit_route import EditRoute
 
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.node.factory import NodeFactory
@@ -572,6 +574,11 @@ def make_node(graph: "BaseGraph", registry_key: str, **kwargs: Any) -> "NodeWrap
     wrapper = graph.create_node_wrapper(registry_key, **kwargs)
     assert wrapper is not None, f"node creation failed for {registry_key!r}"
     return wrapper
+
+
+def edit_route(editor: Any, mode: LevelMode = LevelMode.EDIT) -> EditRoute:
+    """An ``EditRoute`` over ``editor`` at a fixed level mode."""
+    return EditRoute(lambda: editor, lambda: mode)
 
 
 def make_edge(

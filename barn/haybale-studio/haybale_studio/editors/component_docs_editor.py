@@ -8,6 +8,7 @@ Displays identifiers with copy buttons, usage snippets, and a Docs tab (markdown
 import inspect
 from typing import TYPE_CHECKING
 
+from haywire.core.access import AccessTier
 from haywire.core.library.utils import split_reg_key
 from nicegui import ui
 
@@ -37,6 +38,7 @@ class _WidgetPreviewPort:
     default_slot=SlotName.CONTEXT,
     description="Detailed documentation for the selected component.",
     order=30,
+    access=AccessTier.VIEW,
 )
 class ComponentDocsEditor(BaseEditor):
     """

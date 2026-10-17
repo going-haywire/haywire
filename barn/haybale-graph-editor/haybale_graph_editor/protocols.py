@@ -94,7 +94,7 @@ class SubgraphContainer(GraphContainer):
         container = SubgraphContainer(host, definition, node_factory)
         key = level_key_for(container)
         if key not in self._levels:
-            self._levels[key] = self._new_level(key, container)
+            self._levels[key] = self._new_level(context, key, container)
     """
 
     def __init__(

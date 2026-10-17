@@ -75,6 +75,8 @@ def editor_and_context():
         active_graph_path=None,
         data=data,
         app_data=app_data,
+        # An edit principal: removing an entry needs edit.
+        can_access=lambda _required: True,
     )
     return editor, context, app, haystack
 

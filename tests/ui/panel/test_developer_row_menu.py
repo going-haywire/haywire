@@ -52,7 +52,7 @@ def _render(bag, developer_mode: bool):
     with client:
         anchor = ui.column()
         with anchor:
-            render_settings(_ctx(developer_mode), bag)
+            render_settings(_ctx(developer_mode), bag, route=None)
     return anchor
 
 
@@ -356,7 +356,7 @@ def test_settings_source_entry_nests_view_and_edit_leaves(make_node_with_setting
     with client:
         column = ui.column()
         with column:
-            render_settings(ctx, node.filter)
+            render_settings(ctx, node.filter, route=None)
 
     anchor = next(
         leaf
@@ -379,7 +379,7 @@ def test_clicking_view_source_publishes_reveal_with_context_target(make_node_wit
     with client:
         column = ui.column()
         with column:
-            render_settings(ctx, node.filter)
+            render_settings(ctx, node.filter, route=None)
 
     anchor = next(
         leaf
@@ -414,7 +414,7 @@ def test_clicking_open_in_code_editor_publishes_reveal_source(make_node_with_set
     with client:
         column = ui.column()
         with column:
-            render_settings(ctx, node.filter)
+            render_settings(ctx, node.filter, route=None)
 
     anchor = next(
         leaf

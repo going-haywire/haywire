@@ -470,6 +470,70 @@ def test_value_edits_announce_only_the_unsaved_flip(state_with_mocked_deps):
     assert _broadcast_types(state) == [GraphUnsavedChanged, GraphDataMutated]
 
 
+def _availability_entry(state, can_undo: bool, can_redo: bool):
+    """An unsaved entry whose editor reports a settable (can_undo, can_redo) pair."""
+    from unittest.mock import MagicMock
+
+    entry = state.create_new()
+    entry.unsaved = True
+    entry.editor = MagicMock()
+    entry.editor.can_undo.return_value = can_undo
+    entry.editor.can_redo.return_value = can_redo
+    return entry
+
+
+def test_a_value_edit_after_an_undo_announces_the_availability_change(state_with_mocked_deps):
+    """Undo available, undone, then a new value step: Undo and Redo both flip, so the header must hear it."""
+    from haywire.core.signals import GraphUnsavedChanged
+
+    state = state_with_mocked_deps
+    entry = _availability_entry(state, can_undo=True, can_redo=False)
+    value = ValidationResult(nodes={"n1": ChangeReason.NODE_VALUE_CHANGED})
+    state._on_entry_validation(entry, value)  # first write: availability seen for the first time
+
+    entry.editor.can_undo.return_value, entry.editor.can_redo.return_value = False, True
+    state._on_entry_validation(entry, value)  # the undo's own validation run
+
+    entry.editor.can_undo.return_value, entry.editor.can_redo.return_value = True, False
+    state._dispatcher.broadcast.reset_mock()
+    state._on_entry_validation(entry, value)  # the next value write
+
+    assert _broadcast_types(state) == [GraphUnsavedChanged]
+
+
+def test_an_undo_that_changed_nothing_still_counts_for_the_next_announcement(state_with_mocked_deps):
+    """Fold, unfold, Undo, fold: the undone step restores a value already in place, so no
+    validation runs between the undo and the next write, and only the undo count tells."""
+    from haywire.core.signals import GraphUnsavedChanged
+
+    state = state_with_mocked_deps
+    entry = _availability_entry(state, can_undo=True, can_redo=False)
+    entry.editor.history_manager.undo_redo_count = 0
+    value = ValidationResult(nodes={"n1": ChangeReason.NODE_VALUE_CHANGED})
+    state._on_entry_validation(entry, value)  # fold (and the unfold amending its step)
+
+    entry.editor.history_manager.undo_redo_count = 1  # the undo: no validation run
+
+    state._dispatcher.broadcast.reset_mock()
+    state._on_entry_validation(entry, value)  # fold again: the same (True, False) as before
+
+    assert _broadcast_types(state) == [GraphUnsavedChanged]
+
+
+def test_writes_amending_one_step_broadcast_nothing_after_the_first(state_with_mocked_deps):
+    """A slider drag amends one step, so availability stays put and no tick broadcasts."""
+    state = state_with_mocked_deps
+    entry = _availability_entry(state, can_undo=True, can_redo=False)
+    value = ValidationResult(nodes={"n1": ChangeReason.NODE_VALUE_CHANGED})
+    state._on_entry_validation(entry, value)
+    state._dispatcher.broadcast.reset_mock()
+
+    state._on_entry_validation(entry, value)
+    state._on_entry_validation(entry, value)
+
+    state._dispatcher.broadcast.assert_not_called()
+
+
 def test_a_structural_edit_on_a_clean_entry_broadcasts_graph_data_mutated(state_with_mocked_deps):
     from haywire.core.signals import GraphDataMutated
 
@@ -490,6 +554,11 @@ def test_a_value_edit_batched_with_a_repaint_counts_as_a_value_edit(state_with_m
     state = state_with_mocked_deps
     entry = state.create_new()
     entry.unsaved = True
+    entry.last_undo_availability = (
+        entry.editor.can_undo(),
+        entry.editor.can_redo(),
+        entry.editor.history_manager.undo_redo_count,
+    )
     state._dispatcher.broadcast.reset_mock()
 
     result = ValidationResult(

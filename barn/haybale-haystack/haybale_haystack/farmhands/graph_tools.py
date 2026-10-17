@@ -231,7 +231,7 @@ class HaystackCompileGraphTool(Farmhand):
     "haystack_stop_graph when done.",
     registry_id="start_graph",
     annotations=ToolAnnotations(destructive_hint=True),
-    access=AccessTier.EDIT,
+    access=AccessTier.OPERATE,
 )
 class HaystackStartGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:
@@ -253,7 +253,7 @@ class HaystackStartGraphTool(Farmhand):
     "currently running.",
     registry_id="stop_graph",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
+    access=AccessTier.OPERATE,
 )
 class HaystackStopGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:

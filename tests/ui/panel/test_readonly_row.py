@@ -8,7 +8,7 @@ from nicegui import Client, ui
 
 from haywire.ui.panel.render_utils import render_settings
 
-from tests.ui.panel.render_ctx import make_render_ctx
+from tests.ui.panel.render_ctx import make_render_ctx, node_route
 
 pytestmark = pytest.mark.integration
 
@@ -59,7 +59,7 @@ def _render(node, accessor="filter"):
     with client:
         anchor = ui.column()
         with anchor:
-            render_settings(make_render_ctx(), getattr(node, accessor))
+            render_settings(make_render_ctx(), getattr(node, accessor), route=node_route(node))
     return anchor
 
 

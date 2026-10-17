@@ -185,14 +185,12 @@ def _update_macro(ctx: "SessionContext", node_id: str) -> None:
 
     The swap is one undoable step on the host graph. The macro's tab holds the
     instance's contents, unsaved; nothing is written until the user saves it.
-    Refused with a notice, before anything changes, below EDIT or when
+    Refused with a notice, before anything changes, below level mode edit or when
     ``_update_refusal`` gives a reason.
     """
     from nicegui import ui
 
-    from haybale_graph_editor.access import session_allows
-    from haybale_graph_editor.state.graph_app_state import editor_for
-    from haywire.core.access import AccessTier
+    from haybale_graph_editor.state.graph_app_state import route_for
     from haywire.core.macro.promote import macro_document
     from haywire.core.macro.source import (
         count_placements,
@@ -206,14 +204,15 @@ def _update_macro(ctx: "SessionContext", node_id: str) -> None:
     # Opening the macro redraws panels; the notices must not depend on this row's slot.
     client = ui.context.client
 
-    if not session_allows(ctx)(AccessTier.EDIT):
+    route = route_for(ctx)
+    editor = route.editor() if route is not None else None
+    if editor is None:
         ui.notify("Updating a macro needs edit access", type="warning")
         return
 
-    editor = editor_for(ctx)
-    wrapper = editor.graph.get_node_wrapper(node_id) if editor is not None else None
+    wrapper = editor.graph.get_node_wrapper(node_id)
     origin = modified_instance_origin(wrapper.node) if wrapper is not None else None
-    if editor is None or wrapper is None or origin is None:
+    if wrapper is None or origin is None:
         ui.notify("This card is not a modified instance", type="warning")
         return
 

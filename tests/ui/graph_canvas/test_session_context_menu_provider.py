@@ -31,6 +31,7 @@ def _make_provider(
         active_node=None,
         active_edge=None,
         active_port=None,
+        active_route=None,
         selected_nodes=set(),
         selected_edges=set(),
         clipboard=None,
@@ -623,6 +624,28 @@ def test_no_interface_stub_shadows_a_real_implementation():
     )
 
 
+class _RecordingRoute:
+    """Stands in for an ``EditRoute`` at level mode edit, writing stub bags directly."""
+
+    def set_setting(self, bag, name, value, *, minimum):
+        setattr(bag, name, value)
+        return True
+
+    def reset_setting(self, bag, name, *, minimum):
+        bag._reset(name)
+        return True
+
+    def set_settings(self, bags, name, value, *, minimum):
+        for bag in bags:
+            setattr(bag, name, value)
+        return True
+
+    def reset_settings(self, bags, name, *, minimum):
+        for bag in bags:
+            bag._reset(name)
+        return True
+
+
 class TestCollapseToggle:
     """The collapse row toggles on EVERY click, not just the first.
 
@@ -641,6 +664,7 @@ class TestCollapseToggle:
         graph.get_node_wrapper.return_value = wrapper
         stub = cast(Any, provider)._test_edit_stub
         stub.active_graph = graph
+        stub.active_route = _RecordingRoute()
         stub.selected_nodes = {"n1"}
         return provider, props
 
@@ -668,6 +692,7 @@ class TestCollapseToggle:
         graph.get_node_wrapper.side_effect = lambda nid: {"a": folded, "b": loose}[nid]
         stub = cast(Any, provider)._test_edit_stub
         stub.active_graph = graph
+        stub.active_route = _RecordingRoute()
         stub.selected_nodes = {"a", "b"}
 
         assert provider.selection_is_collapsed() is False
@@ -708,10 +733,11 @@ class TestGraphWideCardReset:
         wrappers = {}
         for i, is_set in enumerate(locally_set):
             props = MagicMock()
-            props.is_locally_set.side_effect = lambda field, s=is_set: s
+            props._is_locally_set.side_effect = lambda field, s=is_set: s
             wrappers[f"n{i}"] = SimpleNamespace(node=SimpleNamespace(props=props))
         graph = SimpleNamespace(node_wrappers=wrappers)
         cast(Any, provider)._test_edit_stub.active_graph = graph
+        cast(Any, provider)._test_edit_stub.active_route = _RecordingRoute()
         return wrappers
 
     def test_it_resets_detail_on_every_node_that_has_an_opinion(self):
@@ -720,7 +746,7 @@ class TestGraphWideCardReset:
 
         assert provider.clear_node_card_overrides() == 2
         for wrapper in wrappers.values():
-            reset_fields = {c.args[0] for c in wrapper.node.props.reset.call_args_list}
+            reset_fields = {c.args[0] for c in wrapper.node.props._reset.call_args_list}
             assert reset_fields == {"detail"}
 
     def test_it_leaves_tracking_nodes_alone(self):
@@ -731,7 +757,7 @@ class TestGraphWideCardReset:
 
         assert provider.clear_node_card_overrides() == 0
         for wrapper in wrappers.values():
-            wrapper.node.props.reset.assert_not_called()
+            wrapper.node.props._reset.assert_not_called()
 
     def test_the_count_is_nodes_touched_not_fields_reset(self):
         """The caller reports it to the user, so it has to mean "nodes"."""
@@ -744,24 +770,6 @@ class TestGraphWideCardReset:
         provider = _make_provider()
         cast(Any, provider)._test_edit_stub.active_graph = None
         assert provider.clear_node_card_overrides() == 0
-
-    def test_one_exploding_node_does_not_abort_the_rest(self):
-        """A stale wrapper must not leave the graph half-reset."""
-        provider = _make_provider()
-        bad = MagicMock()
-        bad.is_locally_set.return_value = True
-        bad.reset.side_effect = RuntimeError("stale bag")
-        good = MagicMock()
-        good.is_locally_set.return_value = True
-        cast(Any, provider)._test_edit_stub.active_graph = SimpleNamespace(
-            node_wrappers={
-                "bad": SimpleNamespace(node=SimpleNamespace(props=bad)),
-                "good": SimpleNamespace(node=SimpleNamespace(props=good)),
-            }
-        )
-
-        provider.clear_node_card_overrides()  # must not raise
-        assert good.reset.call_count == 1
 
 
 class _FakeEdge:
@@ -784,9 +792,20 @@ class _FakeEdge:
         self.redraws += 1
 
 
-def _provider_with_edge(edge: _FakeEdge) -> SessionContextMenuProvider:
+def _provider_with_edge(edge: _FakeEdge, mode=None) -> SessionContextMenuProvider:
+    """A provider over ``edge``, routed at level mode ``mode`` (default edit)."""
+    from haywire.core.access import LevelMode
+    from haywire.core.graph.edit_route import EditRoute
+
+    def set_edge_propagation(edge_id, propagation):
+        edge.propagation = propagation
+        edge.redraw()
+        return True
+
+    editor = SimpleNamespace(set_edge_propagation=set_edge_propagation)
     provider = _make_provider()
     stub = cast(Any, provider)._test_edit_stub
+    stub.active_route = EditRoute(lambda: cast(Any, editor), lambda: mode or LevelMode.EDIT)
     stub.active_graph = SimpleNamespace(get_edge_wrapper=lambda edge_id: edge if edge_id == "e1" else None)
     return provider
 
@@ -800,6 +819,18 @@ def test_toggle_edge_propagation_switches_eager_to_lazy():
     assert provider.toggle_edge_propagation("e1") is Propagation.LAZY
     assert edge.chosen is Propagation.LAZY
     assert edge.redraws == 1
+
+
+def test_toggle_edge_propagation_refuses_below_edit():
+    from haywire.core.access import LevelMode
+    from haywire.core.types import Propagation
+
+    edge = _FakeEdge(Propagation.EAGER)
+    provider = _provider_with_edge(edge, LevelMode.OPERATE)
+
+    assert provider.toggle_edge_propagation("e1") is Propagation.EAGER
+    assert edge.chosen is Propagation.EAGER
+    assert edge.redraws == 0
 
 
 def test_toggle_edge_propagation_leaves_a_locked_edge_alone():

@@ -1,7 +1,8 @@
 """graph_editor_* MCP tools: query, inspect, structural edits, set_property, promotion, undo/redo.
 
-Every mutating tool opens exactly one undo fence FIRST (ctx.fence(editor)) so one
-tool call is one undo gesture, then broadcasts GraphDataMutated after success.
+Every mutating tool opens exactly one undo fence FIRST (ctx.fence(editor)); the host
+closes it when the call ends, so one tool call is one undo gesture. The tool then
+broadcasts GraphDataMutated after success.
 undo/redo drive the SHARED human+agent timeline.
 
 Read tools split by breadth: query_graph is the MAP (topology of every node and
@@ -15,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from haywire.core.access import AccessTier
+from haywire.core.access import AccessTier, LevelMode
 from haywire.core.farmhand import (
     Farmhand,
     FarmhandContext,
@@ -25,7 +26,8 @@ from haywire.core.farmhand import (
     truncation_note,
 )
 from haywire.core.node.inspector import NodeInstanceInspector, PortInfo, SettingInfo, _port_type_key
-from haywire.core.node.promotion import demote_setting, promote_setting
+from haywire.core.graph.edit_route import EditRoute
+from haywire.core.graph.setting_owner import SettingOwner
 from haywire.core.signals import GraphDataMutated
 from haywire.core.types.enums import PortType
 
@@ -1057,8 +1059,9 @@ class GraphEditorSetPropertyTool(Farmhand):
     instructions="Change the value of a port whose widget is shown on its node card, the same "
     "change a person makes by using that widget. Use the exact port id from a "
     "graph_editor_inspect_node row. A port with no widget, a hidden widget, or an inlet fed by "
-    "an edge raises not_operable. The write is verified by reading the value back: a value the "
-    "port rejects raises set_rejected. Like a widget edit it is not undo-recorded, and it marks "
+    "an edge raises not_operable, and so does a port marked as needing edit access to change. "
+    "The write is verified by reading the value back: a value the port rejects raises "
+    "set_rejected. Like a widget edit it is not undo-recorded, and it marks "
     "the graph as unsaved only when the value changed.",
     registry_id="operate",
     annotations=_MUTATING,
@@ -1068,14 +1071,13 @@ class GraphEditorOperateTool(Farmhand):
     async def run(
         self, ctx: FarmhandContext, binding_id: str, node_id: str, port_id: str, value: Any = None
     ) -> dict:
-        from haywire.ui.widget.write_gate import value_changed
-
         editor = _editor(ctx, binding_id)
         wrapper = _node(editor, node_id)
         port = wrapper.node.ports.get(port_id)
         if (
             port is None
             or not port.widget_key
+            or not port.operable
             or not port.should_show_widget()
             or not port.data.accepts_own_value()
             or port.data.has_linked_value()
@@ -1087,8 +1089,16 @@ class GraphEditorOperateTool(Farmhand):
                 ids={"node_id": node_id, "port_id": port_id},
                 help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports'] to see the ports.",
             )
-        before = port.data.get_own_value()
-        port.set_value(value)
+        # Agents have no level and no lock: the route's mode is a constant OPERATE.
+        if not EditRoute(lambda: editor, lambda: LevelMode.OPERATE).set_port(
+            node_id, port_id, value, minimum=LevelMode.OPERATE
+        ):
+            raise FarmhandError(
+                "operate_refused",
+                f"The edit route refused the write to '{port_id}' on '{node_id}'; nothing changed.",
+                ids={"node_id": node_id, "port_id": port_id},
+                help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports'] to see the ports.",
+            )
         actual = port.data.get_own_value()
         if actual != value:
             raise FarmhandError(
@@ -1098,21 +1108,19 @@ class GraphEditorOperateTool(Farmhand):
                 ids={"node_id": node_id, "port_id": port_id},
                 help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports'] for the port's type.",
             )
-        if value_changed(before, actual):
-            wrapper.mark_value_edited()
         ctx.broadcast(GraphDataMutated())
         return {"summary": f"Set '{port_id}' on {node_id} to {actual!r}."}
 
 
 @farmhand(
     label="Promote setting",
-    description="Promote a settings field to a data port. Not undo-routed (UI parity; later work).",
+    description="Promote a settings field to a data port. One undo step.",
     instructions="Promote a settings field to a live data port, so it can be wired instead of "
     "just set directly. accessor is the settings-bag accessor (e.g. 'depth') and field the "
     "field name within it — both come from a graph_editor_inspect_node settings row. direction "
     "is one of inlet/outlet/config (default inlet); an invalid direction raises bad_direction, "
-    "and a field that can't be promoted raises not_promotable. NOT undo-routed — this does not "
-    "join the undo timeline (UI parity gap, tracked for later work).",
+    "and a field that can't be promoted raises not_promotable. One undo step on the shared "
+    "undo timeline.",
     registry_id="promote_setting",
     annotations=_MUTATING,
     access=AccessTier.EDIT,
@@ -1136,23 +1144,26 @@ class GraphEditorPromoteSettingTool(Farmhand):
                 f"direction must be one of inlet/outlet/config; got '{direction}'.",
                 ids={"direction": direction},
             ) from exc
-        node = _node(editor, node_id).node
-        try:
-            promote_setting(node, accessor, field, port_type)
-        except ValueError as exc:
+        _node(editor, node_id)
+        ctx.fence(editor)
+        if not editor.promote_setting(node_id, accessor, field, port_type):
             raise FarmhandError(
-                "not_promotable", str(exc), ids={"node_id": node_id, "field": field}
-            ) from exc
+                "not_promotable",
+                f"Cannot promote {accessor}.{field} on node '{node_id}' as {direction}: the field is "
+                f"unknown, or its settings do not allow that direction.",
+                ids={"node_id": node_id, "field": field},
+                help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['settings'] for the fields.",
+            )
         ctx.broadcast(GraphDataMutated())
         return {"summary": f"Promoted {accessor}.{field} on {node_id} as {direction}."}
 
 
 @farmhand(
     label="Demote setting",
-    description="Remove a promoted port, returning the field to a plain setting.",
+    description="Remove a promoted port, returning the field to a plain setting. One undo step.",
     instructions="Reverse graph_editor_promote_setting: remove a promoted port by its port_id, "
     "returning the underlying field to a plain (non-port) setting. Any edges on that port are "
-    "removed along with it. Broadcasts to open studio UIs on success.",
+    "removed along with it. One undo step. Broadcasts to open studio UIs on success.",
     registry_id="demote_setting",
     annotations=_MUTATING,
     access=AccessTier.EDIT,
@@ -1160,8 +1171,16 @@ class GraphEditorPromoteSettingTool(Farmhand):
 class GraphEditorDemoteSettingTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str, node_id: str, port_id: str) -> dict:
         editor = _editor(ctx, binding_id)
-        node = _node(editor, node_id).node
-        demote_setting(node, port_id)
+        _node(editor, node_id)
+        ctx.fence(editor)
+        if not editor.remove_port(node_id, port_id):
+            raise FarmhandError(
+                "demote_failed",
+                f"Cannot demote port '{port_id}' on node '{node_id}': the port is unknown or was "
+                f"declared by the node's author, not promoted.",
+                ids={"node_id": node_id, "port_id": port_id},
+                help=f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports'] to see the ports.",
+            )
         ctx.broadcast(GraphDataMutated())
         return {"summary": f"Demoted port {port_id} on {node_id}."}
 
@@ -1214,13 +1233,13 @@ class GraphEditorRedoTool(Farmhand):
 
 @farmhand(
     label="Set graph metadata",
-    description="Set a graph's document metadata (label, description, author, version).",
+    description="Set a graph's document metadata (label, description, author, version). One undo step.",
     instructions="Set one or more of a graph's document metadata fields — label (free-text "
     "title), description (what the graph is for), author, version (the author's own version "
     "string, NOT the file format version). Omitted fields are left alone; pass several at once "
     "when describing a graph you just built. Read the current values from graph_editor_"
-    "query_graph's 'metadata' key. Metadata is not undoable and does not mark the graph dirty "
-    "(matching graph settings), so an edit is only persisted by a later save.",
+    "query_graph's 'metadata' key. One undo step; it marks the graph unsaved, and a later save "
+    "persists it.",
     registry_id="set_metadata",
     annotations=_MUTATING,
     access=AccessTier.EDIT,
@@ -1239,10 +1258,8 @@ class GraphEditorSetMetadataTool(Farmhand):
         # ports and bags: unknown fields are impossible by signature, and the
         # read-only stamps (filestem/created_at/modified_at) plus the transient
         # graph_id are structurally unreachable.
-        #
-        # No ctx.fence(): that exists to make one tool call one undo gesture,
-        # and metadata has no undo.
-        graph = _editor(ctx, binding_id).graph
+        editor = _editor(ctx, binding_id)
+        graph = editor.graph
         requested = {
             "label": label,
             "description": description,
@@ -1261,8 +1278,10 @@ class GraphEditorSetMetadataTool(Farmhand):
                 ),
             )
 
+        ctx.fence(editor)
+        owner = SettingOwner("graph", "meta")
         for field, value in writes.items():
-            setattr(graph.meta, field, value)
+            editor.set_setting(owner, field, value)
 
         # Post-condition check. Load-bearing for a settings bag: a
         # validator-rejected write is dropped SILENTLY, so only a read-back
@@ -1284,7 +1303,7 @@ class GraphEditorSetMetadataTool(Farmhand):
             "summary": f"Set {', '.join(sorted(writes))} on {binding_id}.",
             "metadata": _metadata_row(graph),
             "help": (
-                "Metadata does not mark the graph dirty — run haystack_save_graph "
+                "The graph is marked unsaved — run haystack_save_graph "
                 f"binding_id={binding_id!r} to persist it."
             ),
         }

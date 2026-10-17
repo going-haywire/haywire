@@ -12,9 +12,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from haywire.core.access import AccessTier
 from haywire.core.signals import SubgraphNavigation
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haywire.ui.components.graph.event_definitions import EnterGroupEvent
+
+from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL
 
 from tests.graph_editor.test_graph_editor_levels import _card, _definition, _editor
 
@@ -30,7 +33,7 @@ def test_the_enter_event_publishes_the_navigation_the_editor_answers():
     # The canvas side: the handler turns EnterGroupEvent into the signal.
     handlers = MagicMock()
     handlers.context = MagicMock()
-    handlers.editor.graph.graph_id = document.editor.graph.graph_id
+    handlers.graph.graph_id = document.editor.graph.graph_id
     VisualLayerHandlers.process_enter_group(handlers, EnterGroupEvent(node_id="GraphNode_1"))
     (signal,), _ = handlers.context.session.publish.call_args
     assert isinstance(signal, SubgraphNavigation)
@@ -44,3 +47,17 @@ def test_the_enter_event_publishes_the_navigation_the_editor_answers():
     assert [level.container.display_name for level in editor._descent_stack()] == ["main.haywire", "Filter"]
     editor._render_level_bar.assert_called()  # type: ignore[attr-defined]
     editor._update_header.assert_called()  # type: ignore[attr-defined]
+
+
+def test_subgraph_navigation_is_refused_in_view():
+    editor, context, document = _editor(tier=AccessTier.VIEW)
+    definition = _definition(key="sg_a", label="Filter")
+    document.editor.graph.node_wrappers["GraphNode_1"] = _card(definition)
+    document.editor.graph.subgraphs["sg_a"] = definition
+
+    editor._on_subgraph_navigation(
+        context, SubgraphNavigation(graph_id=document.editor.graph.graph_id, node_id="GraphNode_1")
+    )
+
+    assert list(editor._levels) == [DOCUMENT_LEVEL]
+    assert editor._active_level == DOCUMENT_LEVEL

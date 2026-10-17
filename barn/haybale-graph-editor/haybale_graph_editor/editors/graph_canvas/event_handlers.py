@@ -10,24 +10,23 @@ This module provides:
 
 from typing import Callable, Dict, List, Type
 
-from haywire.core.access import AccessTier
+from haywire.core.access import LevelMode
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent
 
 
-def handles_event(*event_classes: Type[BaseGraphEvent], access: AccessTier = AccessTier.EDIT):
+def handles_event(*event_classes: Type[BaseGraphEvent], access: LevelMode = LevelMode.EDIT):
     """Decorator to register methods as handlers for specific event classes.
 
     Args:
-        access: The tier a session needs on the canvas for the handler to run.
-            A locked canvas caps every session at operate, so only handlers
-            marked ``VIEW`` or ``OPERATE`` run on one. See ``handler_access``.
+        access: The lowest level mode a session needs on the canvas for the
+            handler to run. See ``handler_access``.
 
     Example::
 
         @handles_event(UserRemoveEvent)  # needs edit
         def process_element_removal(self, event): ...
 
-        @handles_event(SelectionChangedEvent, access=AccessTier.VIEW)  # runs while locked
+        @handles_event(SelectionChangedEvent, access=LevelMode.VIEW)  # runs in every mode
         def process_selection_change(self, event): ...
     """
 
@@ -42,9 +41,9 @@ def handles_event(*event_classes: Type[BaseGraphEvent], access: AccessTier = Acc
     return decorator
 
 
-def handler_access(handler: Callable) -> AccessTier:
-    """Return the tier ``handler`` needs, as declared by ``@handles_event``; ``EDIT`` if undeclared."""
-    return getattr(handler, "_handles_event_access", AccessTier.EDIT)
+def handler_access(handler: Callable) -> LevelMode:
+    """Return the level mode ``handler`` needs, as declared by ``@handles_event``; ``EDIT`` if undeclared."""
+    return getattr(handler, "_handles_event_access", LevelMode.EDIT)
 
 
 def build_event_handler_map(sources: List[object]) -> Dict[str, Callable]:

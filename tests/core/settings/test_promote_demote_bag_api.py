@@ -106,3 +106,17 @@ def test_promoting_through_the_action_is_undoable(make_node_with_setting):
 
     action.execute()
     assert node.ports[pid].is_inlet()
+
+
+def test_a_promoted_port_inherits_operable():
+    from haywire.barn.builtin.types import FLOAT
+    from haywire.core.node.promotion import _metadata_to_port_kwargs
+    from haywire.core.settings import setting
+
+    locked = setting(1.0, label="Locked", type_=FLOAT, operable=False)
+    plain = setting(1.0, label="Plain", type_=FLOAT)
+
+    assert locked.operable is False
+    assert plain.operable is True
+    assert _metadata_to_port_kwargs(locked)["operable"] is False
+    assert "operable" not in _metadata_to_port_kwargs(plain)

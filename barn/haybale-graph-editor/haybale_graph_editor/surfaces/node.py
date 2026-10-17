@@ -24,9 +24,10 @@ class NodeInspector(Surface):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
+        from haybale_graph_editor.access import can_edit_graph
         from haybale_graph_editor.state.edit_state import EditState
 
-        return ctx.data[EditState].active_node is not None
+        return can_edit_graph(ctx) and ctx.data[EditState].active_node is not None
 
 
 class SettingsInspector(Surface):
@@ -38,6 +39,7 @@ class SettingsInspector(Surface):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
+        from haybale_graph_editor.access import can_edit_graph
         from haybale_graph_editor.state.edit_state import EditState
 
-        return ctx.data[EditState].active_node is not None
+        return can_edit_graph(ctx) and ctx.data[EditState].active_node is not None

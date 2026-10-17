@@ -983,6 +983,14 @@ class AppShell:
 
         self._mount_keymap_listener()
 
+    def _save_workspace_layout(self) -> None:
+        """Save the workspace layout, or tell a principal below edit that saving needs edit access."""
+        if not self.session.context.can_edit():
+            ui.notify("Saving the layout needs edit access", type="warning", position="top-right")
+            return
+        self.session.app_state.save_workspace(shell=self)
+        ui.notify("Workspace saved", position="top-right")
+
     def _render_topbar(self) -> None:
         """Render the top bar with global controls."""
         with (
@@ -995,14 +1003,12 @@ class AppShell:
         ):
             ui.label("Haywire").classes("font-bold text-lg hw-text-body")
 
-            def _on_save() -> None:
-                self.session.app_state.save_workspace(shell=self)
-                ui.notify("Workspace saved", position="top-right")
-
-            ui.button(
-                icon=hui.icon.save,
-                on_click=_on_save,
-            ).props("flat round dense").tooltip("Save workspace layout")
+            # The layout file is one per project, so saving it is an edit.
+            if self.session.context.can_edit():
+                ui.button(
+                    icon=hui.icon.save,
+                    on_click=self._save_workspace_layout,
+                ).props("flat round dense").tooltip("Save workspace layout")
 
             def _on_check_updates() -> None:
                 from haywire.ui.modals.update_dialog import open_update_dialog

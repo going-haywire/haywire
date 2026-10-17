@@ -58,8 +58,8 @@ class PanelIdentity(BaseIdentity):
         access: Minimum AccessTier a principal needs to see this panel.
                 Below it, the panel is filtered out of visible_panels() —
                 it vanishes rather than rendering disabled, and never
-                renders ``draw_disabled()`` either. Default VIEW, i.e.
-                visible to every authenticated principal.
+                renders ``draw_disabled()`` either. Default EDIT, so a panel
+                that does not declare is hidden below edit.
     """
 
     icon: Optional[str] = None
@@ -68,4 +68,4 @@ class PanelIdentity(BaseIdentity):
     surface: Optional[type["Surface"]] = None
     hosts: Tuple[type["Surface"], ...] = ()
     redraw_on: Tuple[type["Signal"], ...] = ()
-    access: AccessTier = AccessTier.VIEW
+    access: AccessTier = AccessTier.EDIT

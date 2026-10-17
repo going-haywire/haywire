@@ -12,6 +12,7 @@ from pathlib import Path
 
 from nicegui import ui
 
+from haywire.core.access import LevelMode
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
@@ -171,15 +172,16 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         self._props["canvasHeight"] = height
         self.update()
 
-    def set_locked(self, locked: bool) -> None:
-        """Lock or unlock the canvas gestures that change the graph.
+    def set_level_mode(self, mode: LevelMode) -> None:
+        """Show the canvas in level mode ``mode`` in the browser.
 
-        While locked, the browser starts no node drag, resize, connection or
-        reconnect and requests no paste; selection, the box select, the context
-        menu and copy stay available. Pass ``True`` wherever the session may
-        not edit the graph, whatever the reason.
+        Below ``EDIT`` the browser starts no node drag, resize, connection,
+        reconnect, selection or box select and requests no paste, and card
+        content takes no pointer input except operable elements in
+        ``OPERATE``. A double-click enters a card in ``OPERATE`` and ``EDIT``.
+        A canvas that was never given a mode shows ``VIEW``.
         """
-        self._props["locked"] = locked
+        self._props["levelMode"] = mode.value
         self.update()
 
     def emit_sync_event(self, event: BaseGraphEvent):

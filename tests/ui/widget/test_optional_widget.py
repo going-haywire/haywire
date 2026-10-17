@@ -191,58 +191,6 @@ class TestInnerModel:
         assert edits == [8]
 
 
-class _StubGate:
-    def __init__(self, allows: bool) -> None:
-        self.allowed = allows
-        self.written_calls = 0
-
-    def allows(self) -> bool:
-        return self.allowed
-
-    def written(self) -> None:
-        self.written_calls += 1
-
-
-class TestWriteGate:
-    def test_the_outer_gate_refuses_an_inner_widget_edit(self):
-        widget, _, edits = _rendered(INT, initial=5)
-        gate = _StubGate(allows=False)
-        widget.write_gate = gate
-
-        cast(Any, widget)._inner.set_value(8)
-
-        assert edits == []
-        assert gate.written_calls == 0
-
-    def test_the_outer_gate_hears_an_accepted_inner_edit_once(self):
-        widget, cell, edits = _rendered(INT, initial=5)
-        cast(Any, widget).port._on_edit = lambda value: (edits.append(value), cell.set_value(value))
-        gate = _StubGate(allows=True)
-        widget.write_gate = gate
-
-        cast(Any, widget)._inner.set_value(8)
-
-        assert edits == [8]
-        assert gate.written_calls == 1
-
-    def test_the_outer_gate_does_not_hear_an_inner_edit_that_changes_nothing(self):
-        widget, _, _ = _rendered(INT, initial=5)
-        gate = _StubGate(allows=True)
-        widget.write_gate = gate
-
-        cast(Any, widget)._inner.set_value(5)
-
-        assert gate.written_calls == 0
-
-    def test_the_outer_gate_refuses_restoring_a_value(self):
-        widget, _, edits = _rendered(INT, initial=None)
-        widget.write_gate = _StubGate(allows=False)
-
-        cast(Any, widget)._on_restore()
-
-        assert edits == []
-
-
 class TestCleanup:
     def test_cleanup_releases_the_inner_widget(self):
         widget, _, _ = _rendered(INT, initial=5)

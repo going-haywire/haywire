@@ -80,3 +80,67 @@ def test_reveal_instance_action_delegates_to_helper(monkeypatch):
     editor._reveal_instance(3)
 
     assert called["error"] is err
+
+
+def _noop_page() -> None:
+    pass
+
+
+@pytest.mark.parametrize(("can_edit", "offered"), [(False, False), (True, True)])
+def test_open_file_and_component_are_offered_only_for_edit(can_edit, offered):
+    """Both open an editor that needs edit; below it the entries would do nothing."""
+    from typing import Any, cast
+
+    from nicegui import Client, ui
+
+    import haybale_studio.editors.errors_editor as mod
+
+    editor = mod.ErrorsEditor.__new__(mod.ErrorsEditor)
+    editor._context = MagicMock()
+    editor._context.can_edit.return_value = can_edit
+    err = HaywireException.create("x", registry_key="lib:node:Foo")
+    err.enrich(filename="/tmp/thing.py", line_number=12)
+    err.ledger_seq = 9
+
+    client = Client(cast(Any, _noop_page), request=None)
+    with client:
+        with ui.column():
+            editor._build_row_menu(err)
+    texts = {
+        child.text
+        for el in client.elements.values()
+        if isinstance(el, ui.menu_item)
+        for child in el.descendants()
+        if hasattr(child, "text")
+    } | {getattr(el, "text", None) for el in client.elements.values() if isinstance(el, ui.menu_item)}
+
+    assert ("Open file" in texts) is offered
+    assert ("Open component" in texts) is offered
+    assert "Show details" in texts
+
+
+@pytest.mark.parametrize(("can_edit", "offered"), [(False, False), (True, True)])
+def test_the_details_popup_offers_open_in_studio_only_for_edit(can_edit, offered, monkeypatch):
+    import haybale_studio.editors.errors_editor as mod
+
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(mod, "Popup", MagicMock())
+    monkeypatch.setattr(
+        mod,
+        "render_error_details",
+        lambda _e, _c, on_open_in_studio=None: captured.update(cb=on_open_in_studio),
+    )
+    monkeypatch.setattr(mod.ui, "column", MagicMock())
+    monkeypatch.setattr(mod.ui, "row", MagicMock())
+    monkeypatch.setattr(mod.ui, "button", MagicMock())
+
+    editor = mod.ErrorsEditor.__new__(mod.ErrorsEditor)
+    editor._context = MagicMock()
+    editor._context.can_edit.return_value = can_edit
+    err = HaywireException.create("x")
+    err.ledger_seq = 4
+    editor._entries_by_seq = {4: err}
+
+    editor._show_details(4)
+
+    assert (captured["cb"] is not None) is offered

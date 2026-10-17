@@ -263,10 +263,11 @@ class NodeData:
     def fold(self, label: str, *, default: bool = True, **kwargs):
         """Add a collapsible fold; every port added inside becomes its child.
 
-        The fold is a port with no pin and no widget: the disclosure triangle on
-        the node card is its only control, and its value is the open state. It
-        persists, so a node reopens as the user left it, and a node may read it
-        or pass ``on_change=`` to reconfigure itself when the user folds.
+        The fold is a port with no pin: its widget is the header on the node
+        card, which the user clicks to open or close it, and its value is the
+        open state. It persists, so a node reopens as the user left it, and a
+        node may read it or pass ``on_change=`` to reconfigure itself when the
+        user folds.
 
         Its id is derived from ``label``. The fold takes the direction of the
         ports inside it, so that it renders in their lane; mixing directions

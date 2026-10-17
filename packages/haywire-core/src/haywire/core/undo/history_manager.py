@@ -8,9 +8,10 @@ and action merging.
 
 import time
 import logging
-from typing import List, Optional, Union, cast
+from typing import Any, List, Optional, Union, cast
 from dataclasses import dataclass
 
+from .actions.graph_actions import VALUE_EDIT_MERGE_IDLE_S
 from .interfaces import IAction, IHistoryManager
 from .config import UndoConfig
 
@@ -111,6 +112,21 @@ class HistoryManager(IHistoryManager):
 
         self._action_count = 0
 
+        # The step the current value-edit merge run writes into: the last step
+        # add_value_action recorded or amended, until anything else touches the history.
+        self._amendable: Any = None
+
+        self._undo_redo_count = 0
+
+    @property
+    def undo_redo_count(self) -> int:
+        """Return how many undos and redos this history has performed; it grows with each one.
+
+        An undo or redo may restore a value already in place, so it is not always visible as a
+        change; this count is.
+        """
+        return self._undo_redo_count
+
     def add_action(self, action: IAction) -> bool:
         """
         Execute ``action`` and add it to the history.
@@ -124,6 +140,7 @@ class HistoryManager(IHistoryManager):
             including what can be redone, is left unchanged.
         """
         current_time = time.time()
+        self._amendable = None
 
         try:
             action.execute()
@@ -133,15 +150,99 @@ class HistoryManager(IHistoryManager):
             logger.error(f"Failed to execute action {action.description}: {e}", exc_info=True)
             return False
 
+        self._record_executed(action, current_time)
+        return True
+
+    def add_value_action(
+        self, action: IAction, merge_owner: object | None, idle_s: float = VALUE_EDIT_MERGE_IDLE_S
+    ) -> bool:
+        """
+        Execute a value write and record it, amending the run's step while a merge run lasts.
+
+        A write that changed nothing records nothing and leaves the redo branch and the merge run
+        alone. Otherwise the write amends the step this method last recorded or amended, while
+        that step is still the newest (the pending tail, else the history tip; in a group, its
+        last action) and nothing else has touched the history since — any other action, a fence,
+        an undo or a redo ends the run. It amends when both share a merge key — the action's
+        ``value_key()`` plus ``merge_owner`` — and the step was written less than ``idle_s`` ago. A
+        ``merge_owner`` of ``None`` never amends and is never amended. The amended step stays
+        the executed action it was; the amend writes nothing.
+
+        Args:
+            action: A value-write action (``SetPropertyAction``, ``SetSettingAction``, ...).
+            merge_owner: The session token a run belongs to, or ``None`` for no merging.
+            idle_s: Seconds after a step's last write beyond which a write starts a new step.
+
+        Returns:
+            ``False`` if the action's execution raised (logged, history unchanged), else ``True``.
+        """
+        value_action: Any = action
+        try:
+            value_action.execute()
+        except Exception as e:
+            logger.error(f"Failed to execute action {action.description}: {e}", exc_info=True)
+            return False
+
+        if not value_action.changed:
+            action.cleanup()
+            return True
+
+        value_key = value_action.value_key()
+        key = None if merge_owner is None or value_key is None else (value_key, merge_owner)
+        value_action.merge_key = key
+
+        if key is not None:
+            candidate = self._amend_candidate()
+            if (
+                candidate is not None
+                and getattr(candidate, "merge_key", None) == key
+                and time.monotonic() - candidate.last_write < idle_s
+            ):
+                candidate.amend_from(value_action)
+                action.cleanup()
+                return True
+
+        self._record_executed(action, time.time())
+        self._amendable = action
+        return True
+
+    def _amend_candidate(self) -> Any:
+        """The current merge run's step, or ``None`` when no run is open.
+
+        That is the step ``add_value_action`` last recorded or amended, provided it is still the
+        newest step: the pending tail if anything is pending, else the history tip, where a group
+        stands for its last action.
+        """
+        if self._amendable is None:
+            return None
+        item: Any
+        if self._pending_actions:
+            item = self._pending_actions[-1]
+        elif self.history:
+            item = self.history[-1]
+        else:
+            return None
+        while isinstance(item, ActionGroup):
+            if not item.actions:
+                return None
+            item = item.actions[-1]
+        return item if item is self._amendable else None
+
+    def _record_executed(self, action: IAction, current_time: float) -> None:
+        """Record an already executed action: end the redo branch, merge, group, flush, trim."""
         # A new action ends the redo branch, once it has actually changed the graph.
         self._clear_redo_history()
 
         # Try to merge with the last action if merging is enabled
-        if self.config.enable_action_merging and self._should_merge_action(action, current_time):
-            self._merge_with_last_action(action)
+        # A merge() that returns None merged nothing, so the action takes the append path below.
+        if (
+            self.config.enable_action_merging
+            and self._should_merge_action(action, current_time)
+            and self._merge_with_last_action(action)
+        ):
             self._maintain_history_limits()
             self._action_count += 1
-            return True
+            return
 
         # Every action is a merge candidate for the next one, so the window is
         # measured from the last action added — not only from the last actual
@@ -173,8 +274,6 @@ class HistoryManager(IHistoryManager):
             logger.debug(f"History state: {len(self.history)} items, current_index: {self.current_index}")
             logger.debug(f"Can undo: {self.can_undo()}, Can redo: {self.can_redo()}")
 
-        return True
-
     def add_fence(self) -> None:
         """
         Add a fence to group related actions together.
@@ -183,6 +282,7 @@ class HistoryManager(IHistoryManager):
         a boundary for future grouping operations.
         """
         current_time = time.time()
+        self._amendable = None
 
         # Flush any pending actions first
         if self._pending_actions:
@@ -207,6 +307,8 @@ class HistoryManager(IHistoryManager):
         Returns:
             True if undo was successful, False if nothing to undo
         """
+        self._amendable = None
+
         # Flush pending actions first
         if self._pending_actions:
             self._flush_pending_actions()
@@ -230,6 +332,7 @@ class HistoryManager(IHistoryManager):
 
             # Move the current index
             self._move_to_previous_action()
+            self._undo_redo_count += 1
 
             if self.config.show_undo_notifications:
                 self._show_notification(f"Undid: {self._get_item_description(item)}")
@@ -247,6 +350,8 @@ class HistoryManager(IHistoryManager):
         Returns:
             True if redo was successful, False if nothing to redo
         """
+        self._amendable = None
+
         if not self.can_redo():
             return False
 
@@ -267,6 +372,7 @@ class HistoryManager(IHistoryManager):
 
             # Move the current index forward after successful execution
             self._move_to_next_action()
+            self._undo_redo_count += 1
 
             if self.config.show_undo_notifications:
                 self._show_notification(f"Redid: {self._get_item_description(item)}")
@@ -304,6 +410,7 @@ class HistoryManager(IHistoryManager):
         self.current_index = -1
         self._pending_actions.clear()
         self._action_count = 0
+        self._amendable = None
 
         if self.config.enable_debug_logging:
             logger.debug("Cleared all history")
@@ -346,10 +453,11 @@ class HistoryManager(IHistoryManager):
         # Check if actions can merge
         return last_action.can_merge(action)
 
-    def _merge_with_last_action(self, action: IAction) -> None:
-        """Merge the action with the last action.
+    def _merge_with_last_action(self, action: IAction) -> bool:
+        """Merge the action into the last pending action; return ``True`` if a merge happened.
 
-        Both operands are superseded by the merged action and can never be
+        Returns ``False`` when ``merge()`` returns ``None``, leaving the pending tail unchanged.
+        On a merge, both operands are superseded by the merged action and can never be
         undone or redone again, so each is cleaned up — the same contract
         eviction and redo-branch discard honour.
         """
@@ -365,6 +473,8 @@ class HistoryManager(IHistoryManager):
 
                 if self.config.enable_debug_logging:
                     logger.debug(f"Merged actions: {action.description}")
+                return True
+        return False
 
     def _should_flush_pending_actions(self, current_time: float) -> bool:
         """Check if pending actions should be flushed to history."""
@@ -525,6 +635,8 @@ class HistoryManager(IHistoryManager):
         Args:
             item: The history item to cleanup
         """
+        if self._amendable is not None and self._holds(item, self._amendable):
+            self._amendable = None
         if isinstance(item, Fence):
             # Fences have no cleanup
             return
@@ -538,6 +650,13 @@ class HistoryManager(IHistoryManager):
         else:
             # Regular action
             item.cleanup()
+
+    @staticmethod
+    def _holds(item: Union[IAction, ActionGroup, Fence], action: Any) -> bool:
+        """Whether ``item`` is ``action`` or a group containing it at any depth."""
+        if isinstance(item, ActionGroup):
+            return any(HistoryManager._holds(child, action) for child in item.actions)
+        return item is action
 
     # Debug and monitoring methods
 

@@ -198,3 +198,52 @@ def test_undo_on_a_linked_inlet_restores_the_own_value_not_the_edges(graph_and_e
     assert editor.undo() is True
     assert inlet.data.get_own_value() == 0.0
     assert inlet.get_value() == 7.0  # the edge's value is untouched
+
+
+@pytest.fixture
+def held_editor(library_system):
+    """An editor on a graph whose debounce never fires on its own, so a test drains it explicitly."""
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+    from haywire.core.graph.scheduler import ThreadingTimerScheduler
+    from haywire.core.undo.config import UndoConfig
+
+    graph = BaseGraph(
+        filestem="g", validation_scheduler=ThreadingTimerScheduler(), validation_delay_ms=60_000
+    )
+    config = UndoConfig(enable_auto_grouping=False, enable_action_merging=False)
+    yield graph, Editor(graph, library_system.get_node_factory(), undo_config=config)
+    graph._validation.clear()
+    graph.cleanup()
+
+
+def test_setting_the_current_value_marks_nothing(held_editor):
+    from haywire.core.graph.types import ChangeReason
+
+    graph, editor = held_editor
+    port_node = _add_node(editor)
+    settings_node = _add_node(editor, SETTINGS_NODE_KEY)
+    settings_node.node.example.persistent_value = 5.0
+    current = port_node.node.ports["value_a"].data.get_own_value()
+    graph._validation.force_immediate_validation()
+
+    assert editor.set_property(port_node.node_id, "value_a", current) is True
+    assert editor.set_property(settings_node.node_id, "persistent_value", 5.0) is True
+    assert graph._validation.force_immediate_validation() is None
+
+    assert editor.set_property(port_node.node_id, "value_a", current + 1) is True
+    result = graph._validation.force_immediate_validation()
+    assert result is not None
+    assert result.nodes == {port_node.node_id: ChangeReason.NODE_VALUE_CHANGED}
+
+
+def test_record_false_leaves_no_undo_step(held_editor):
+    from tests.conftest import make_node
+
+    graph, editor = held_editor
+    wrapper = make_node(graph, PORT_NODE_KEY)
+
+    assert editor.set_property(wrapper.node_id, "value_a", 42.0, record=False) is True
+
+    assert wrapper.node.ports["value_a"].get_value() == 42.0
+    assert editor.can_undo() is False

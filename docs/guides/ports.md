@@ -215,7 +215,7 @@ a new version of a library appends rather than landing at its declared
 position — so reordering a node's `init()` calls does not move ports on graphs
 already saved.
 
-Reordering is not undoable. A bad drop is repaired by dragging back.
+Reordering is one undo step per drop.
 
 ### Swinglets
 
@@ -298,7 +298,7 @@ What this example covers for worker access:
 | Worker named parameter binding | `custom_name`, `sequential_mode`, `edge_callbacks`, etc. |
 | `context.emit_callback(event_name=..., payload=...)` | dispatches to all or one listener |
 
-For declarative settings instead of config ports, see [components/settings](../components/settings/setting-canon.md). For the lifecycle hooks that surround `worker()` (`init`, `post_init`, `on_validate`, etc.), see [components/nodes](../components/nodes/node-canon.md). For the dynamic `rejig()` pattern that adds and removes ports based on a config value, see [components/nodes §3](../components/nodes/node-canon.md#3-important-concepts).
+For declarative settings instead of config ports, see [components/settings](../components/settings/setting-canon.md). For the lifecycle hooks that surround `worker()` (`init`, `post_init`, `on_validate`, etc.), see [components/nodes](../components/nodes/node-canon.md). For the dynamic `rejig()` pattern that adds and removes ports based on a config value, see [components/nodes §7](../components/nodes/node-canon.md#7-changing-ports-at-runtime).
 
 ---
 

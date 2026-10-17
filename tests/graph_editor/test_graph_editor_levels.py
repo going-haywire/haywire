@@ -15,6 +15,7 @@ import pytest
 
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor, level_key_for
 from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
+from haywire.core.access import AccessTier
 
 pytestmark = pytest.mark.unit
 
@@ -94,17 +95,25 @@ def _placement_card(definition) -> Any:
     return wrapper
 
 
-def _editor(document: _FakeDocument | None = None) -> tuple[GraphEditor, Any, _FakeDocument]:
-    """A GraphEditor holding ``document`` as its only level, drawn far enough to switch."""
+def _editor(
+    document: _FakeDocument | None = None, tier: AccessTier = AccessTier.ADMIN
+) -> tuple[GraphEditor, Any, _FakeDocument]:
+    """A GraphEditor holding ``document`` as its only level for a ``tier`` principal, ready to switch."""
     from haywire.ui.editor.wrapper import EditorWrapper
-    from haybale_graph_editor.editors.graph_editor import _Level
 
     document = document or _FakeDocument()
     wrapper = MagicMock()
     wrapper._binding_id = document.binding_id
     editor = GraphEditor(cast(EditorWrapper, wrapper))
     editor._project_state = cast(Any, SimpleNamespace(node_factory=MagicMock()))
-    editor._levels[DOCUMENT_LEVEL] = _Level(key=DOCUMENT_LEVEL, container=document)
+    context = SimpleNamespace(
+        app_data=MagicMock(),
+        session=MagicMock(),
+        data=MagicMock(),
+        can_edit=lambda: True,
+        can_access=tier.satisfies,
+    )
+    editor._levels[DOCUMENT_LEVEL] = editor._new_level(cast(Any, context), DOCUMENT_LEVEL, document)
 
     # Nothing is mounted in a unit test, so the DOM-touching half is stubbed;
     # what is under test is which levels exist and which one is on screen.
@@ -113,10 +122,6 @@ def _editor(document: _FakeDocument | None = None) -> tuple[GraphEditor, Any, _F
     editor._render_level_bar = MagicMock()  # type: ignore[method-assign]
     editor._update_header = MagicMock()  # type: ignore[method-assign]
     editor._claim_session_state = MagicMock()  # type: ignore[method-assign]
-
-    context = SimpleNamespace(
-        app_data=MagicMock(), session=MagicMock(), data=MagicMock(), can_edit=lambda: True
-    )
     return editor, context, document
 
 
@@ -215,6 +220,22 @@ class TestDescending:
         assert level.inside_placement is True
 
 
+class TestDescendingNeedsOperate:
+    def test_a_view_session_cannot_descend(self):
+        editor, context, _document = _editor(tier=AccessTier.VIEW)
+
+        assert _descend(editor, context, _definition(key="sg_a")) is False
+        assert list(editor._levels) == [DOCUMENT_LEVEL]
+
+    def test_an_operate_session_descends(self):
+        from haywire.core.access import LevelMode
+
+        editor, context, _document = _editor(tier=AccessTier.OPERATE)
+
+        assert _descend(editor, context, _definition(key="sg_a")) is True
+        assert editor._levels["sg_a"].route.mode() is LevelMode.OPERATE
+
+
 class TestAscending:
     def test_it_shows_the_level_above(self):
         editor, context, _document = _editor()
@@ -299,7 +320,8 @@ def _select(editor: GraphEditor, context: Any, node: Any) -> Any:
         selected_edges={"e1"},
         active_graph=level.container.editor.graph,
         active_graph_path=level.container.path,
-        active_locked=level.locked,
+        active_mode=level.route.mode(),
+        active_route=level.route,
     )
     context.data = {EditState: edit_state}
     context.active_component = "lib:node:Blur"
@@ -392,6 +414,117 @@ class TestSelectionStaysOnItsLevel:
 
         assert editor._active_level == "sg_a"
         assert edit_state.active_node is revealed
+
+
+class TestRevealNeedsLevelModeEdit:
+    def test_an_edit_reveal_selects(self):
+        from haywire.core.signals import RevealGraphInstance, SelectionMoved
+
+        editor, context, document = _editor()
+        edit_state = _select(editor, context, None)
+        revealed = MagicMock(name="node")
+        document.editor.graph.node_wrappers["n1"] = revealed
+        context.session.publish.reset_mock()
+
+        editor._on_reveal_graph_instance(
+            context, RevealGraphInstance(graph_id=document.editor.graph.graph_id, node_id="n1")
+        )
+
+        assert edit_state.active_node is revealed
+        published = [type(call.args[0]) for call in context.session.publish.call_args_list]
+        assert SelectionMoved in published
+
+    def test_an_operate_reveal_selects(self):
+        from haywire.core.access import LevelMode
+        from haywire.core.signals import Reveal, RevealGraphInstance, SelectionMoved
+
+        editor, context, document = _editor()
+        editor._levels[DOCUMENT_LEVEL].locked = True
+        edit_state = _select(editor, context, None)
+        edit_state.active_node = None
+        edit_state.active_edge = None
+        document.editor.graph.node_wrappers["n1"] = MagicMock(name="node")
+        context.session.publish.reset_mock()
+        assert editor._levels[DOCUMENT_LEVEL].route.mode() is LevelMode.OPERATE
+
+        editor._on_reveal_graph_instance(
+            context, RevealGraphInstance(graph_id=document.editor.graph.graph_id, node_id="n1")
+        )
+
+        assert edit_state.active_node is document.editor.graph.node_wrappers["n1"]
+        published = [type(call.args[0]) for call in context.session.publish.call_args_list]
+        assert Reveal in published
+        assert SelectionMoved in published
+
+
+def _group_with_node(document: _FakeDocument, node: Any) -> Any:
+    """Put a Subgraph holding ``node`` as ``n1`` in ``document``; returns the Subgraph."""
+    definition = _definition(key="sg_a")
+    definition.node_wrappers["n1"] = node
+    document.editor.graph.subgraphs["sg_a"] = definition
+    return definition
+
+
+def _reveal_state(context: Any) -> Any:
+    """Give the session an empty EditState and return it."""
+    edit_state = SimpleNamespace(active_node=None, active_edge=None)
+    context.data.__getitem__.return_value = edit_state
+    return edit_state
+
+
+class TestRevealInsideAGroup:
+    def test_a_view_reveal_opens_no_interior_level(self):
+        from haywire.core.signals import RevealGraphInstance
+
+        editor, context, document = _editor(tier=AccessTier.VIEW)
+        definition = _group_with_node(document, MagicMock(name="node"))
+        edit_state = _reveal_state(context)
+        context.session.publish.reset_mock()
+
+        editor._on_reveal_graph_instance(
+            context, RevealGraphInstance(graph_id=definition.graph_id, node_id="n1")
+        )
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL]
+        assert editor._active_level == DOCUMENT_LEVEL
+        assert edit_state.active_node is None
+        context.session.publish.assert_not_called()
+
+    def test_an_operate_reveal_opens_the_level_and_selects(self):
+        from haywire.core.signals import Reveal, RevealGraphInstance, SelectionMoved
+
+        editor, context, document = _editor(tier=AccessTier.OPERATE)
+        definition = _group_with_node(document, MagicMock(name="node"))
+        edit_state = _reveal_state(context)
+        context.session.publish.reset_mock()
+
+        editor._on_reveal_graph_instance(
+            context, RevealGraphInstance(graph_id=definition.graph_id, node_id="n1")
+        )
+
+        assert list(editor._levels) == [DOCUMENT_LEVEL, "sg_a"]
+        assert editor._active_level == "sg_a"
+        assert edit_state.active_node is definition.node_wrappers["n1"]
+        published = [type(call.args[0]) for call in context.session.publish.call_args_list]
+        assert Reveal in published
+        assert SelectionMoved in published
+
+    def test_a_view_reveal_of_a_document_node_shows_the_tab_and_selects(self):
+        from haywire.core.signals import Reveal, RevealGraphInstance, SelectionMoved
+
+        editor, context, document = _editor(tier=AccessTier.VIEW)
+        document.editor.graph.node_wrappers["n1"] = MagicMock(name="node")
+        edit_state = _reveal_state(context)
+        context.session.publish.reset_mock()
+
+        editor._on_reveal_graph_instance(
+            context, RevealGraphInstance(graph_id=document.editor.graph.graph_id, node_id="n1")
+        )
+
+        assert edit_state.active_node is document.editor.graph.node_wrappers["n1"]
+        published = [type(call.args[0]) for call in context.session.publish.call_args_list]
+        assert Reveal in published
+        assert SelectionMoved in published
 
 
 def _two_tabs() -> tuple[GraphEditor, GraphEditor, Any, _FakeDocument]:
@@ -577,7 +710,9 @@ class TestFirstActivation:
         edit_stub = SimpleNamespace(active_graph=None, active_graph_path=None)
         data = MagicMock()
         data.__getitem__.return_value = edit_stub
-        context = SimpleNamespace(app_data=app_data, session=MagicMock(), data=data)
+        context = SimpleNamespace(
+            app_data=app_data, session=MagicMock(), data=data, can_access=AccessTier.ADMIN.satisfies
+        )
         return editor, context, document, edit_stub
 
     def test_it_opens_the_document_level_with_nothing_drawn(self):

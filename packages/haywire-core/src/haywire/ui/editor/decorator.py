@@ -47,7 +47,8 @@ def editor(**kwargs: Any):
             editor author.
         access: Minimum AccessTier needed to see this editor — an
             :class:`AccessTier` or its string value ('view', 'edit', 'admin').
-            Defaults to 'view'. An unknown value raises ``ValueError`` at
+            Defaults to 'edit', so an editor that does not declare is hidden
+            below edit. An unknown value raises ``ValueError`` at
             class-definition time.
         order: Sort priority within a slot (lower = earlier in the bar).
             Defaults to 100. Editors with equal order fall back to
@@ -92,7 +93,7 @@ def editor(**kwargs: Any):
         )
 
         # Coerce access to enum; raises ValueError at class-definition time on typo.
-        access: Union[AccessTier, str] = identity_kwargs.pop("access", AccessTier.VIEW)
+        access: Union[AccessTier, str] = identity_kwargs.pop("access", AccessTier.EDIT)
         identity_kwargs["access"] = AccessTier(access) if isinstance(access, str) else access
 
         _registry_id = identity_kwargs.pop("registry_id", None) or inner_cls.__name__

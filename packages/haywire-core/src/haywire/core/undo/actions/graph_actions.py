@@ -7,6 +7,8 @@ including node and edge manipulation, positioning, and selection.
 
 import copy
 import logging
+import time
+from collections.abc import Hashable, Sequence
 from typing import Any, Optional, Dict, List, Mapping, Tuple
 from dataclasses import dataclass
 
@@ -25,6 +27,7 @@ from ...graph.stage import next_stage_spot, non_negative, patch_position_for_sta
 from ...macro.origin import MacroOrigin
 from ...edge.edge_wrapper import EdgeWrapper
 from ...types import Propagation
+from ...graph.setting_owner import SettingOwner
 from ...graph.utils.node_remap import remap_node_ids
 from ..base_action import ActionBase, CompositeAction
 from ..interfaces import IAction
@@ -35,6 +38,10 @@ logger = logging.getLogger(__name__)
 #: core never imports the card's class.
 SUBGRAPH_KEY = "subgraph_key"
 
+#: Seconds a value step stays open to amending: a write more than this long after the step's
+#: last write starts a new step. Measured with ``time.monotonic()``.
+VALUE_EDIT_MERGE_IDLE_S: float = 3.0
+
 # Default port ids the split action stamps onto a reroute node. The reroute is
 # port-less until split; these ids are an implementation detail of the split
 # (the node discovers whatever it is given via introspection), so they live here
@@ -43,6 +50,18 @@ _REROUTE_INLET_ID = "in"
 _REROUTE_OUTLET_ID = "out"
 #: The reroute node's handler its inlet calls on change; it forwards immediate values.
 _REROUTE_FORWARD_HANDLER = "forward_immediate"
+
+
+def value_changed(before: Any, after: Any) -> bool:
+    """Return whether ``after`` differs from ``before`` by ``!=``.
+
+    A comparison that raises, or whose result has no truth value (a NumPy
+    array), counts as changed.
+    """
+    try:
+        return bool(before != after)
+    except Exception:
+        return True
 
 
 class AddNodeAction(ActionBase):
@@ -1081,9 +1100,11 @@ class SetPropertyAction(ActionBase):
     """Undoable set of a node property addressed by (node_id, name).
 
     ``name`` resolves against the node's ports first (port id -> port value),
-    then against its settings bags (field name -> settings-bag write). This is
-    the one deliberate new core mutation surface mandated by the Farmhand spec:
-    the raw settings/port write paths are non-undoable and not id-addressable.
+    then against its settings bags (field name -> settings-bag write). It is the
+    value action a port write takes.
+
+    The graph becomes unsaved only when what the field stores changed: a port's
+    own value, or a setting's local override and value.
 
     A port whose field holds no own value (a pooled inlet, an ``ADD`` slot) is
     refused with a ``ValueError`` naming why; a linked port that does accept
@@ -1093,16 +1114,25 @@ class SetPropertyAction(ActionBase):
     for callers that mean a settings field even when a port shares the name —
     e.g. the resize commit writing ``props.width`` on a node that also has a
     ``width`` outlet.
+
+    Attributes:
+        changed: Whether the latest execute or undo changed what the field stores.
+        merge_key: What a later write must share with this step to amend it; ``None`` never amends.
+        last_write: ``time.monotonic()`` of the latest write this step stands for.
     """
 
     def __init__(self, graph: BaseGraph, node_id: str, name: str, value: Any, prefer_setting: bool = False):
         super().__init__(description=f"Set '{name}' on {node_id}")
+        self.changed = False
+        self.merge_key: Hashable | None = None
+        self.last_write = 0.0
         self.graph = graph
         self.node_id = node_id
         self.name = name
         self.new_value = value
         self.prefer_setting = prefer_setting
         self._old_value: Any = None
+        self._old_was_set = False
 
     def _resolve(self) -> Tuple[Any, str, Optional[str]]:
         """Return (node, kind, accessor) where kind is 'port' or 'setting'."""
@@ -1143,27 +1173,358 @@ class SetPropertyAction(ActionBase):
                 f"from its edges (a pooled inlet or an ADD slot)."
             )
 
+    def value_key(self) -> Hashable | None:
+        """Return what this write addresses: ``("port", node_id, name)``."""
+        return ("port", self.node_id, self.name)
+
+    def amend_from(self, newer: "SetPropertyAction") -> None:
+        """Adopt ``newer``'s new value and ``last_write``, keeping this step's old value.
+
+        ``newer`` has already been executed; this step stays the executed action it was and
+        nothing is written.
+
+        Raises:
+            ValueError: If the two steps' ``merge_key`` differ.
+        """
+        _require_same_run(self, newer)
+        self.new_value = newer.new_value
+        self.last_write = newer.last_write
+
     def _execute_impl(self) -> None:
         node, kind, accessor = self._resolve()
+        self.last_write = time.monotonic()
         if kind == "port":
+            data = node.ports[self.name].data
             # The own value, not the one an edge puts in front of it: undo restores the slot written.
-            self._old_value = node.ports[self.name].data.get_own_value()
+            self._old_value = data.get_own_value()
             node.ports[self.name].set_value(self.new_value)
+            changed = value_changed(self._old_value, data.get_own_value())
         else:
             assert accessor is not None  # kind == "setting" always carries an accessor
             bag = getattr(node, accessor)
-            self._old_value = getattr(bag, self.name)
+            self._old_was_set, self._old_value = _stored(bag, self.name)
             setattr(bag, self.name, self.new_value)
-        node.wrapper.mark_value_edited()
+            changed = _stored_changed((self._old_was_set, self._old_value), _stored(bag, self.name))
+        self.changed = changed
+        if changed:
+            node.wrapper.mark_value_edited()
 
     def _undo_impl(self) -> None:
         node, kind, accessor = self._resolve()
         if kind == "port":
+            data = node.ports[self.name].data
+            before = data.get_own_value()
             node.ports[self.name].set_value(self._old_value)
+            changed = value_changed(before, data.get_own_value())
         else:
             assert accessor is not None  # kind == "setting" always carries an accessor
-            setattr(getattr(node, accessor), self.name, self._old_value)
-        node.wrapper.mark_value_edited()
+            bag = getattr(node, accessor)
+            before_pair = _stored(bag, self.name)
+            _restore(bag, self.name, self._old_was_set, self._old_value)
+            changed = _stored_changed(before_pair, _stored(bag, self.name))
+        self.changed = changed
+        if changed:
+            node.wrapper.mark_value_edited()
+
+
+def _require_same_run(step: Any, newer: Any) -> None:
+    """Raise ``ValueError`` unless ``newer`` carries ``step``'s merge key."""
+    if step.merge_key != newer.merge_key:
+        raise ValueError("Cannot amend a value step from a write of another run")
+
+
+def _stored(bag: Any, name: str) -> Tuple[bool, Any]:
+    """What a setting field stores: whether it is set locally, and its value."""
+    return bag._is_locally_set(name), getattr(bag, name)
+
+
+def _stored_changed(before: Tuple[bool, Any], after: Tuple[bool, Any]) -> bool:
+    return before[0] != after[0] or value_changed(before[1], after[1])
+
+
+def _restore(bag: Any, name: str, was_set: bool, value: Any) -> None:
+    """Put a setting field back to ``value`` set locally, or to unset."""
+    if was_set:
+        setattr(bag, name, value)
+    else:
+        bag._reset(name)
+
+
+class _SettingWriteAction(ActionBase):
+    """Base of the undoable writes to one settings field, addressed by ``SettingOwner``.
+
+    Attributes:
+        changed: Whether the latest execute or undo changed what the field stores.
+        merge_key: What a later write must share with this step to amend it; ``None`` never amends.
+        last_write: ``time.monotonic()`` of the latest write this step stands for.
+    """
+
+    def __init__(self, graph: BaseGraph, owner: SettingOwner, name: str, description: str):
+        super().__init__(description=description)
+        self.changed = False
+        self.merge_key: Hashable | None = None
+        self.last_write = 0.0
+        self.graph = graph
+        self.owner = owner
+        self.name = name
+        self._old_was_set = False
+        self._old_value: Any = None
+
+    def _bag(self) -> Any:
+        """Return the owner's current bag; raise ``ValueError`` if it is gone or has no field ``name``."""
+        bag = self.owner.resolve(self.graph)
+        if bag is None:
+            raise ValueError(f"No settings bag at {self.owner}")
+        if self.name not in type(bag)._settings_descriptors():
+            raise ValueError(f"{type(bag).__name__} has no setting '{self.name}'")
+        return bag
+
+    def value_key(self) -> Hashable | None:
+        """Return what this write addresses, or ``None`` if it never amends or is amended."""
+        return None
+
+    def _write(self, bag: Any) -> None:
+        raise NotImplementedError
+
+    def _execute_impl(self) -> None:
+        bag = self._bag()
+        self.last_write = time.monotonic()
+        self._old_was_set, self._old_value = _stored(bag, self.name)
+        self._write(bag)
+        self._mark_if_changed((self._old_was_set, self._old_value), _stored(bag, self.name))
+
+    def _undo_impl(self) -> None:
+        bag = self._bag()
+        before = _stored(bag, self.name)
+        _restore(bag, self.name, self._old_was_set, self._old_value)
+        self._mark_if_changed(before, _stored(bag, self.name))
+
+    def _mark_if_changed(self, before: Tuple[bool, Any], after: Tuple[bool, Any]) -> None:
+        """Record whether the stored pair changed and, if so, mark the graph unsaved."""
+        self.changed = _stored_changed(before, after)
+        if not self.changed:
+            return
+        if self.owner.kind == "node":
+            assert self.owner.owner_id is not None  # a node owner always names its node
+            wrapper = self.graph.get_node_wrapper(self.owner.owner_id)
+            if wrapper is not None:
+                wrapper.mark_value_edited()
+        else:
+            from ...graph.types import ChangeReason
+
+            self.graph._validation.mark_graph_dirty(ChangeReason.GRAPH_CONTENT_CHANGED)
+
+
+class SetSettingAction(_SettingWriteAction):
+    """Undoable write of one settings field, on a node, the graph or an edge.
+
+    Undo restores the field as it was, including whether it was set locally. The
+    graph becomes unsaved only when the field's local override or value changed.
+
+    Raises:
+        ValueError: On execute or undo, if ``owner`` no longer resolves in the
+            graph or its bag has no field ``name``.
+
+    Example::
+
+        owner = setting_owner(graph, graph.meta)
+        editor.history_manager.add_action(SetSettingAction(graph, owner, "label", "Rig A"))
+    """
+
+    def __init__(self, graph: BaseGraph, owner: SettingOwner, name: str, value: Any):
+        super().__init__(graph, owner, name, f"Set '{name}'")
+        self.new_value = value
+
+    def value_key(self) -> Hashable | None:
+        """Return what this write addresses: ``("setting", owner, name)``."""
+        return ("setting", self.owner, self.name)
+
+    def amend_from(self, newer: "SetSettingAction") -> None:
+        """Adopt ``newer``'s new value and ``last_write``, keeping this step's old value.
+
+        ``newer`` has already been executed; this step stays the executed action it was and
+        nothing is written.
+
+        Raises:
+            ValueError: If the two steps' ``merge_key`` differ.
+        """
+        _require_same_run(self, newer)
+        self.new_value = newer.new_value
+        self.last_write = newer.last_write
+
+    def _write(self, bag: Any) -> None:
+        setattr(bag, self.name, self.new_value)
+
+
+class ResetSettingAction(_SettingWriteAction):
+    """Undoable reset of one settings field to the value it takes when not set locally.
+
+    Undo puts the local value back. Marks the graph unsaved as
+    :class:`SetSettingAction` does.
+
+    Raises:
+        ValueError: On execute or undo, if ``owner`` no longer resolves in the
+            graph or its bag has no field ``name``.
+    """
+
+    def __init__(self, graph: BaseGraph, owner: SettingOwner, name: str):
+        super().__init__(graph, owner, name, f"Reset '{name}'")
+
+    def _write(self, bag: Any) -> None:
+        bag._reset(self.name)
+
+
+class _SettingsFormAction(CompositeAction):
+    """Base of one write to the same field on several bags, one child action per owner."""
+
+    def __init__(self, children: Sequence[_SettingWriteAction], description: str):
+        super().__init__(list(children), description)
+        self._children = list(children)
+        self.changed = False
+        self.merge_key: Hashable | None = None
+        self.last_write = 0.0
+
+    def value_key(self) -> Hashable | None:
+        """Return what this write addresses, or ``None`` if it never amends or is amended."""
+        return None
+
+    def _execute_impl(self) -> None:
+        self.last_write = time.monotonic()
+        super()._execute_impl()
+        self.changed = any(child.changed for child in self._children)
+
+    def _undo_impl(self) -> None:
+        super()._undo_impl()
+        self.changed = any(child.changed for child in self._children)
+
+
+class SetSettingsAction(_SettingsFormAction):
+    """Undoable write of one settings field on several bags as one step.
+
+    Undo restores each bag's own old value, including whether it was set locally.
+    ``changed`` is true when any bag's stored pair changed.
+
+    Raises:
+        ValueError: On execute or undo, as :class:`SetSettingAction` does for any owner.
+    """
+
+    def __init__(self, graph: BaseGraph, owners: Sequence[SettingOwner], name: str, value: Any):
+        self._set_children = [SetSettingAction(graph, owner, name, value) for owner in owners]
+        super().__init__(self._set_children, f"Set '{name}'")
+        self.name = name
+        self.new_value = value
+
+    def value_key(self) -> Hashable | None:
+        """Return what this write addresses: ``("settings", frozenset(owners), name)``."""
+        return ("settings", frozenset(child.owner for child in self._set_children), self.name)
+
+    def amend_from(self, newer: "SetSettingsAction") -> None:
+        """Adopt ``newer``'s new value and ``last_write`` on every bag, keeping each old value.
+
+        ``newer`` has already been executed; this step stays the executed action it was and
+        nothing is written.
+
+        Raises:
+            ValueError: If the two steps' ``merge_key`` differ.
+        """
+        _require_same_run(self, newer)
+        self.new_value = newer.new_value
+        for child in self._set_children:
+            child.new_value = newer.new_value
+        self.last_write = newer.last_write
+
+
+class ResetSettingsAction(_SettingsFormAction):
+    """Undoable reset of one settings field on several bags as one step.
+
+    Undo puts each bag's own local value back. Never amends and is never amended.
+
+    Raises:
+        ValueError: On execute or undo, as :class:`ResetSettingAction` does for any owner.
+    """
+
+    def __init__(self, graph: BaseGraph, owners: Sequence[SettingOwner], name: str):
+        super().__init__([ResetSettingAction(graph, owner, name) for owner in owners], f"Reset '{name}'")
+
+
+class ReorderPortsAction(ActionBase):
+    """Undoable reorder of one sibling group of a node's ports; see ``NodeData.reorder_ports``.
+
+    Raises:
+        ValueError: On execute or undo, if the node is not in the graph.
+    """
+
+    def __init__(self, graph: BaseGraph, node_id: str, ordered_ids: List[str]):
+        """
+        Args:
+            ordered_ids: Port ids of the group, in the order they should display.
+        """
+        super().__init__(description=f"Reorder pins on {node_id}")
+        self.graph = graph
+        self.node_id = node_id
+        self.ordered_ids = list(ordered_ids)
+        self._previous: List[str] = []
+
+    def _node(self) -> Any:
+        wrapper = self.graph.get_node_wrapper(self.node_id)
+        if wrapper is None:
+            raise ValueError(f"Node '{self.node_id}' not found")
+        return wrapper.node
+
+    def _execute_impl(self) -> None:
+        node = self._node()
+        known = [pid for pid in self.ordered_ids if pid in node.ports]
+        self._previous = sorted(known, key=lambda pid: node.ports[pid].order)
+        node.reorder_ports(self.ordered_ids)
+
+    def _undo_impl(self) -> None:
+        self._node().reorder_ports(self._previous)
+
+
+class SetEdgePropagationAction(ActionBase):
+    """Undoable change of an edge's propagation mode; the edge redraws.
+
+    Raises:
+        ValueError: If the edge is not in the graph, or on execute when the edge
+            refuses ``propagation`` (see ``EdgeWrapper.propagation``).
+    """
+
+    def __init__(self, graph: BaseGraph, edge_id: str, propagation: Propagation):
+        super().__init__(description=f"Set propagation of {edge_id} to {propagation.value}")
+        self.graph = graph
+        self.edge_id = edge_id
+        self.propagation = propagation
+        self._old: Optional[Propagation] = None
+
+    def _edge(self) -> EdgeWrapper:
+        wrapper = self.graph.get_edge_wrapper(self.edge_id)
+        if wrapper is None:
+            raise ValueError(f"Edge '{self.edge_id}' not found")
+        return wrapper
+
+    def _execute_impl(self) -> None:
+        wrapper = self._edge()
+        self._old = wrapper.propagation
+        wrapper.propagation = self.propagation
+        wrapper.redraw()
+        self._mark_if_changed(self._old, wrapper.propagation)
+
+    def _undo_impl(self) -> None:
+        wrapper = self._edge()
+        before = wrapper.propagation
+        # The setter takes only a Propagation: an edge that started with none stays as it is.
+        if self._old is not None:
+            wrapper.propagation = self._old
+        wrapper.redraw()
+        self._mark_if_changed(before, wrapper.propagation)
+
+    def _mark_if_changed(self, before: Optional[Propagation], after: Optional[Propagation]) -> None:
+        """Mark the graph unsaved (the edge's propagation is saved in it) when the mode changed."""
+        if before is after:
+            return
+        from ...graph.types import ChangeReason
+
+        self.graph._validation.mark_graph_dirty(ChangeReason.GRAPH_CONTENT_CHANGED)
 
 
 class SetPortMetadataAction(ActionBase):

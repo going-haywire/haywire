@@ -10,11 +10,12 @@ from nicegui import Client, ui
 
 from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
 from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.types import ChangeReason
 from haywire.ui.skin.factory import SkinFactory
 
-from tests.conftest import make_node
+from tests.conftest import edit_route, make_node
 
 
 def _noop_page() -> None:
@@ -44,7 +45,7 @@ def card(library_system, held_graph: BaseGraph) -> Iterator[tuple[UINode, Any, B
             container,
             wrapper,
             library_system.injector.get(SkinFactory),
-            lambda required: True if required is not None else False,
+            edit_route(Editor(held_graph, library_system.get_node_factory())),
         )
         ui_node.refresh(ChangeReason.NODE_ADDED)
     yield ui_node, wrapper, held_graph

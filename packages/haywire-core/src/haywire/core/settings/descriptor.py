@@ -158,6 +158,10 @@ class setting(SettingDescriptor, Generic[T]):
             ``post_init()``, which runs on graph load too — after promotions are
             restored — so a promote there re-applies on every load and the
             user's demotion never sticks.
+        operable: Whether operating this field's widget on a node card may change
+            it (default ``True``). ``False`` makes every write to it need level
+            mode ``edit``, so a locked canvas shows the widget without letting it
+            change the value.
     """
 
     def __init__(
@@ -179,6 +183,7 @@ class setting(SettingDescriptor, Generic[T]):
         ui_state: UiState = UiState.NORMAL,
         promotable: Promotable = Promotable.ALL,
         promote_default: "PortType | None" = None,
+        operable: bool = True,
     ) -> None:
         self._default = default
         # With type_ absent, _type stays the sentinel ``object`` so __set_name__
@@ -203,6 +208,7 @@ class setting(SettingDescriptor, Generic[T]):
         self._ui_state: UiState = ui_state
         self._promotable: Promotable = promotable
         self._promote_default: "PortType | None" = promote_default
+        self._operable: bool = operable
         self._validator_lifted: bool = False
         self._attr_name: str = ""  # set by __set_name__
         """the literal attribute name you'd write as ``self.<bag>.<attr_name>``"""
@@ -297,6 +303,11 @@ class setting(SettingDescriptor, Generic[T]):
     @_mirror_key.setter
     def _mirror_key(self, value: str) -> None:
         self.__mirror_key = value
+
+    @property
+    def operable(self) -> bool:
+        """Whether a write to this field from a node card's widget needs only level mode ``operate``."""
+        return self._operable
 
     @property
     def is_mirror(self) -> bool:

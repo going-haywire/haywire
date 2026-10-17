@@ -77,7 +77,8 @@ def panel(**kwargs: Any):
                       editor to redraw on. Empty tuple means no subscriptions.
         access:       Minimum AccessTier needed to see this panel — an
             :class:`AccessTier` or its string value ('view', 'edit', 'admin').
-            Defaults to 'view'. An unknown value raises ``ValueError`` at
+            Defaults to 'edit', so a panel that does not declare is hidden
+            below edit. An unknown value raises ``ValueError`` at
             class-definition time.
         deprecation_warning: Optional human-readable message shown when this
             panel is listed anywhere. Empty string means not deprecated.
@@ -116,7 +117,7 @@ def panel(**kwargs: Any):
     )
 
     # Coerce access to enum; raises ValueError at class-definition time on typo.
-    access: Union[AccessTier, str] = identity_kwargs.pop("access", AccessTier.VIEW)
+    access: Union[AccessTier, str] = identity_kwargs.pop("access", AccessTier.EDIT)
     identity_kwargs["access"] = AccessTier(access) if isinstance(access, str) else access
 
     def decorator(inner_cls):

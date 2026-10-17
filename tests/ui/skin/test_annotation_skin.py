@@ -27,3 +27,35 @@ def test_the_skin_and_the_node_parse_port_ids_alike() -> None:
         assert _parse(port_id) == AnnotationNode._parse(port_id)
         parsed = _parse(port_id)
         assert (parsed[0] if parsed else None) == AnnotationNode.side_of(port_id)
+
+
+@pytest.mark.integration
+def test_the_card_has_no_editor_of_its_own(library_system, nicegui_slot_context) -> None:
+    from nicegui import ui
+
+    from haywire.barn.builtin.nodes.annotation import AnnotationNode
+    from haywire.barn.builtin.widgets.note_text_widget import NoteTextWidget
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.scheduler import SyncScheduler
+    from haywire.ui.skin.factory import SkinFactory
+
+    from tests.conftest import make_node
+
+    factory = library_system.injector.get(SkinFactory)
+    graph = BaseGraph(filestem="note card", validation_scheduler=SyncScheduler())
+    try:
+        wrapper = make_node(graph, AnnotationNode.class_identity.registry_key)
+        with ui.element("div"):
+            node_card = factory.render(wrapper.node.props.skin, wrapper)
+        assert node_card is not None
+        card = node_card.get_card()
+
+        assert not any(lis.type == "dblclick" for lis in card._event_listeners.values())
+        widgets = list(node_card.widget_instances.values())
+        assert [type(w) for w in widgets] == [NoteTextWidget]
+        note_root = widgets[0].ui_element
+        textareas = [e for e in card.descendants() if isinstance(e, ui.textarea)]
+        assert len(textareas) == 1
+        assert textareas[0] in note_root.descendants()
+    finally:
+        graph.cleanup()

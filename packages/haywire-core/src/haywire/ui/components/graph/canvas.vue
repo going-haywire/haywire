@@ -3,7 +3,7 @@
         dragging: dragState.isDragging,
         'box-selecting': boxSelectionState.isActive,
         'edge-dragging': edgeDrag.mode === 'active'
-    }" :style="[canvasSizeStyle, backgroundStyle]" tabindex="0" data-hw-pointer-local @click="handleCanvasClick" @dblclick="handleDoubleClick" @contextmenu="handleContextMenu">
+    }" :style="[canvasSizeStyle, backgroundStyle]" :data-hw-level-mode="levelMode" tabindex="0" data-hw-pointer-local @click="handleCanvasClick" @dblclick="handleDoubleClick" @contextmenu="handleContextMenu">
         <!-- Box selection rectangle -->
         <div 
             v-if="boxSelectionState.isActive" 
@@ -100,8 +100,19 @@ import 'arrow_heads';
  *                       Written by visual_layer.py and pin_render.py.
  *   data-node-enterable Present on the [data-node-id] container of a Group or
  *                       macro placement card. A double-click on it (not on a
- *                       widget or a pin) emits EnterGroupEvent, locked canvas
- *                       included: entering only views. Written by ui_node.py.
+ *                       widget or a pin) emits EnterGroupEvent in level mode
+ *                       operate and edit. Written by ui_node.py.
+ *   data-hw-operable    Present on an element inside a card that takes pointer
+ *                       input in level mode operate: the root of every operable
+ *                       card widget (BaseSkin.render_widget and
+ *                       render_setting_widget in ui/skin/base.py). Read by the
+ *                       level-mode rules in the global style block.
+ *   data-hw-readable    Present on a read-only affordance inside a card that
+ *                       takes pointer input in every level mode: the studio
+ *                       skin's diagnostics badge and comment badge, and a pin
+ *                       that carries its own tooltip (add_pin_tooltip in
+ *                       ui/skin/pin_render.py). A press on one arms no drag
+ *                       and selects nothing below 'edit'.
  *   data-pin-id         A pin's id; drives pin-menu detection.
  *   data-pin-dir        A pin's role in an edge: 'inlet', 'outlet', or
  *                       'swinglet' (either end). A drop links one end that can
@@ -124,17 +135,22 @@ import 'arrow_heads';
  *
  * Props with a contract beyond their declaration:
  *
- *   locked              Whether this session may not edit the graph here — the
- *                       canvas lock, or a tier below edit — from
- *                       GraphCanvasVue.set_locked.
- *                       While true no gesture that changes the graph starts:
- *                       node drag (the click still selects), resize grips,
- *                       connection drag, reconnect, paste request. Selection,
- *                       box select, context menu and copy stay live. Distinct
- *                       from data-node-props-locked, which is per node and
- *                       also keeps the node out of a multi-selection. The
- *                       server refuses the same events, so this is the
- *                       immediate half of the lock, not its enforcement.
+ *   levelMode           The session's level mode here, 'view' | 'operate' |
+ *                       'edit', from GraphCanvasVue.set_level_mode; mirrored
+ *                       on the root as data-hw-level-mode. Defaults to 'view'.
+ *                       Below 'edit' no gesture that changes the graph starts:
+ *                       node drag, resize grips, connection drag, reconnect,
+ *                       paste request, the context menu's replace-then-act
+ *                       selection. Click, Shift-click and box select work in
+ *                       every mode; selecting changes no document. Card
+ *                       content takes no pointer input below 'edit', except
+ *                       [data-hw-readable] elements in every mode and
+ *                       [data-hw-operable] elements in 'operate'. Double-click
+ *                       enters a card in 'operate' and 'edit'. Distinct from
+ *                       data-node-props-locked, which is per node and also
+ *                       keeps the node out of a multi-selection. The server
+ *                       refuses the same events, so this is the immediate
+ *                       half of the level mode, not its enforcement.
  * ------------------------------------------------------------------------ */
 
 export default {
@@ -168,8 +184,9 @@ export default {
         edgeArrow:      { type: String, default: 'none' },
         edgeArrowSize:  { type: String, default: null },
         edgeHitPadding: { type: Number, default: 20 },
-        // The session's canvas lock; see the index at the top of this file.
-        locked: { type: Boolean, default: false },
+        // The session's level mode; see the index at the top of this file.
+        // 'view' until told otherwise, so a canvas never starts more permissive than its level.
+        levelMode: { type: String, default: 'view' },
     },
 
     data() {
@@ -254,6 +271,10 @@ export default {
     },
 
     computed: {
+        editing() {
+            return this.levelMode === 'edit';
+        },
+
         hasOrigin() {
             return this.originX !== 0 || this.originY !== 0;
         },
@@ -338,10 +359,12 @@ export default {
         edgeWidth() { this._relayoutEdges((info) => this._followsGraphWidth(info) && this._isHeaded(info)); },
         edgeArrow() { this._relayoutEdges((info) => this._followsGraphHead(info)); },
         edgeArrowSize() { this._relayoutEdges((info) => this._followsGraphHead(info)); },
-        locked(isLocked) {
-            // A gesture already under way when the lock lands ends here.
-            if (isLocked && this.edgeDrag.mode !== 'idle') this._returnToIdleEdge();
+        editing(isEditing) {
+            // An edge drag under way when edit ends, ends here; a box selection is looking and goes on.
+            if (!isEditing && this.edgeDrag.mode !== 'idle') this._returnToIdleEdge();
             this._fitResizeGadget();
+            // The selection outlives the mode change, so the toolbar comes back for it.
+            if (isEditing && this._selectionSize() > 0) this._emitSelectionBounds();
         },
     },
 
@@ -690,7 +713,7 @@ export default {
         },
 
         _fitResizeGadget() {
-            if (this.locked) { this.resizeGadget.visible = false; return; }
+            if (!this.editing) { this.resizeGadget.visible = false; return; }
             const ids = Array.from(this.selectionState.selectedNodes);
             if (ids.length !== 1) { this.resizeGadget.visible = false; return; }
             const nodeId = ids[0];
@@ -774,7 +797,7 @@ export default {
         onResizeGripDown(e, handle) {
             e.preventDefault();
             e.stopPropagation();
-            if (this.locked) return;
+            if (!this.editing) return;
             const nodeId = this.resizeGadget.nodeId;
             const parts = this._resizeParts(nodeId);
             if (!parts) return;
@@ -1164,7 +1187,7 @@ export default {
         },
 
         async _handleClipboardPasteRequest(data) {
-            if (this.locked) return;
+            if (!this.editing) return;
             let text = "";
             try {
                 text = await navigator.clipboard.readText();
@@ -1606,7 +1629,7 @@ export default {
 
         _syncEdgeReconnect(data) {
             // Before the removal below: a refused reconnect keeps its edge.
-            if (this.locked) return;
+            if (!this.editing) return;
             const { edge_id, anchorNodeId, anchorPinId, anchorEnd } = data;
             // The server removes the edge only once this reports the drag started, so an
             // anchor that is not in the DOM (a culled node, a ghost end) leaves the edge as it is.
@@ -1743,6 +1766,11 @@ export default {
             // 5. Check for elements that can be dragged (nodes)
             const draggableElement = this._findDraggableElement(target);
             if (draggableElement) {
+                // Below edit a press on a card or edge arms a click that selects and drags
+                // nothing; a readable element keeps its press, and so does an operable one in operate.
+                const keepsPress = !this.editing && (target.closest('[data-hw-readable]')
+                    || (this.levelMode === 'operate' && target.closest('[data-hw-operable]')));
+                if (keepsPress) return;
                 this._startUnifiedDrag(event, draggableElement);
                 return;
             }
@@ -1807,6 +1835,7 @@ export default {
         },
 
         handleDoubleClick(event) {
+            if (this.levelMode === 'view') return;
             const target = event.target;
             const card = target.closest('[data-node-enterable]');
             if (!card || !card.dataset.nodeId) {
@@ -1914,7 +1943,7 @@ export default {
                 // the selection (incl. a lone selected node), leave selection
                 // intact. Either way the menu is always the unified selection
                 // menu — there is no separate single-node menu.
-                if (!this.selectionState.selectedNodes.has(nodeId)) {
+                if (this.editing && !this.selectionState.selectedNodes.has(nodeId)) {
                     this._setSelectionState([nodeId], []);
                     this.emitCanvasEvent(EventCreators.createSelectionChanged(
                         [nodeId], []
@@ -1938,7 +1967,7 @@ export default {
                 } else {
                     // Replace-then-act, as for a node: the edge menu always concerns
                     // a selection of exactly this edge, which the Style flyout reads.
-                    if (!isEdgeSelected) {
+                    if (this.editing && !isEdgeSelected) {
                         this._clearSelection();
                         this._selectElement('edge', edge_id, false);
                         this._setActive('edge', edge_id);
@@ -2108,11 +2137,10 @@ export default {
                 elementId: draggedElement.id
             };
 
-            // Determine what elements to drag. A locked canvas drags nothing; a
-            // press released without moving still selects.
-            this.dragState.draggedElements = this.locked
-                ? []
-                : this._getDraggedElements(draggedElement, e.shiftKey);
+            // Determine what elements to drag; below edit nothing drags.
+            this.dragState.draggedElements = this.editing
+                ? this._getDraggedElements(draggedElement, e.shiftKey)
+                : [];
 
             // Store initial positions for all dragged elements.
             // If snap is on, round to the nearest sub-grid point so any
@@ -2254,7 +2282,8 @@ export default {
         _handleUnifiedDragEnd(e) {
             console.log('Ending unified drag, hasActuallyMoved:', this.dragState.hasActuallyMoved);
 
-            if (this.dragState.hasActuallyMoved) {
+            // A press that moved but dragged nothing (below edit) is still a click.
+            if (this.dragState.hasActuallyMoved && this.dragState.draggedElements.length > 0) {
                 // Remove visual feedback
                 this.dragState.draggedElements.forEach(element => {
                     if (element.type === 'node') {
@@ -2566,9 +2595,9 @@ export default {
         // =============================================================================
 
         _startBoxSelection(e) {
-            console.log('🔲 Starting box selection');
             e.preventDefault();
             e.stopPropagation();
+            console.log('🔲 Starting box selection');
 
             const canvasPos = this._transformScreenToCanvas(e.clientX, e.clientY);
             
@@ -2607,6 +2636,14 @@ export default {
             // Bulk selection has no primary element.
             this._setActive('', '');
             this._emitSelectionChanged();
+        },
+
+        /** End a box selection without selecting anything, and tell no one: the server already refuses it. */
+        _cancelBoxSelection() {
+            this.boxSelectionState.isActive = false;
+            this.boxSelectionState.startPos = { x: 0, y: 0 };
+            this.boxSelectionState.currentPos = { x: 0, y: 0 };
+            this._clearSelection();
         },
 
         _updateBoxSelectionTargets(multiSelect) {
@@ -2812,7 +2849,7 @@ export default {
 
         /** Transition to active connection mode from a pin; `anchorEnd` is a reconnect's anchor role. */
         _enterActiveEdge(pin, anchorEnd = null) {
-            if (this.locked) return;
+            if (!this.editing) return;
             // A magnified node shifts pins; clear magnify before wiring an edge.
             this._clearAllMagnified();
 
@@ -4390,6 +4427,31 @@ export default {
 </style>
 
 <style>
+/* Level mode gate: below edit, card content takes no pointer input, except
+ * readable elements (diagnostics badge, comment, pin tooltips) in every mode and
+ * operable elements (operable card widgets) in operate. Keyed on
+ * .ui-node-slot descendants so the card root and the slot keep taking presses (a
+ * double-click on the card body still enters); pins sit inside the slot and are
+ * gated too. !important plus the extra selectors out-specify .connection-pin's
+ * rule below. The gate never matches inside an exempt subtree, so a widget's
+ * own pointer-events rules (a disabled widget's none) stay in force. */
+.graph-canvas[data-hw-level-mode="view"] .ui-node-slot *:not([data-hw-readable]):not([data-hw-readable] *),
+.graph-canvas[data-hw-level-mode="operate"] .ui-node-slot *:not([data-hw-readable]):not([data-hw-readable] *):not([data-hw-operable]):not([data-hw-operable] *) {
+    pointer-events: none !important;
+}
+/* pointer-events inherits, so an exempt root would take the gated ancestors'
+ * none; :where() gives it auto at zero specificity, so its own rules still win. */
+:where(.graph-canvas[data-hw-level-mode="view"] .ui-node-slot [data-hw-readable],
+       .graph-canvas[data-hw-level-mode="operate"] .ui-node-slot [data-hw-readable],
+       .graph-canvas[data-hw-level-mode="operate"] .ui-node-slot [data-hw-operable]) { pointer-events: auto; }
+
+/* Below edit a card selects but does not move: drop the move cursor its container
+ * sets inline (and the grab cursor of the rules below); children keep their own. */
+.graph-canvas[data-hw-level-mode="view"] [data-node-id],
+.graph-canvas[data-hw-level-mode="operate"] [data-node-id] {
+    cursor: default !important;
+}
+
 /* Global styles for connection pins */
 .connection-pin {
     /* Named properties, never `all`: these four are the only ones the rules

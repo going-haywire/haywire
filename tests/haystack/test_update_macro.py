@@ -112,11 +112,16 @@ def _ctx(haystack, entry, card_id):
     from haybale_graph_editor.state.edit_state import EditState
     from haybale_graph_editor.state.graph_app_state import GraphAppState
     from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_graph_editor.access import level_mode
+    from haywire.core.access import LevelMode
+    from haywire.core.graph.edit_route import EditRoute
 
     edit = MagicMock()
     edit.active_graph = entry.graph
     edit.active_node = entry.graph.get_node_wrapper(card_id)
-    edit.active_locked = False
+    edit.active_mode = LevelMode.EDIT
+    # The level's route, reading the session's tier as a graph editor level does.
+    edit.active_route = EditRoute(lambda: entry.editor, lambda: level_mode(ctx.can_access, False))
     edit.selected_nodes = {card_id}
     ctx = MagicMock()
     ctx.data = {EditState: edit}

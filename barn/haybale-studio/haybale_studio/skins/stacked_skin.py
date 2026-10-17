@@ -11,9 +11,7 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types import DataPort
 
 from haywire.core.types.enums import LayoutDirection, PortType
-from haywire.ui import elements as hui
 from haywire.ui.skin.decorator import skin
-from haywire.ui.skin.pin_render import add_pin_tooltip
 
 from .node_skin import NodeSkin
 
@@ -325,7 +323,7 @@ class StackedNodeSkin(NodeSkin):
         Render a collapsible fold with visual hierarchy.
 
         Folds are rendered with:
-        - A disclosure-triangle header (no widget — a fold carries none)
+        - A header row holding the fold's widget, which opens and closes it
         - Children indented via their own content column, never the container
         - Child ports only while open
 
@@ -345,41 +343,19 @@ class StackedNodeSkin(NodeSkin):
         # taking a nested pin off the card border. Depth reaches the row's
         # CONTENT column instead, via render_port(depth=...).
         with ui.column().classes("w-full gap-1"):
-            # Fold header: a disclosure triangle and the label. A fold carries
-            # no widget — the triangle is the whole control — so nothing here
-            # consults widget_key.
-            # _config_indent, not _content_inset: a fold header has no pin
-            # column, so it indents like a config row. CONTENT_GAP is negative
-            # (it overlaps into the pin gutter), which on a pinless row pulls
-            # the header left of the card padding and swallows the per-level
-            # step.
-            # On stage the header follows the widget rule through the strategy
-            # half of it: a fold has no widget_key, so should_show_widget() is
-            # the whole question.
-            if not on_stage or group_port.should_show_widget():
-                header_indent = self._config_indent(depth)
+            # On stage the header follows the widget rule, like any row.
+            if not on_stage or self._shows_widget(group_port):
+                # _config_indent, not _content_inset: a fold header has no pin
+                # column, so it indents like a config row. CONTENT_GAP is negative
+                # (it overlaps into the pin gutter), which on a pinless row pulls
+                # the header left of the card padding and swallows the per-level
+                # step.
                 with (
                     ui.row()
-                    .classes("w-full items-center gap-1 cursor-pointer zoom-pan-lod2 hw-detail-label")
-                    .style(f"padding-left: {header_indent}px;")
-                    .props(
-                        f'data-hw-fold-id="{group_port.id}" '
-                        f'data-hw-fold-open="{str(bool(is_expanded)).lower()}"'
-                    )
-                    .on("click", lambda pid=group_port.id: self._toggle_fold(wrapper, pid))
-                ) as header_row:
-                    triangle = ui.icon(hui.icon.fold_open if is_expanded else hui.icon.fold_closed).classes(
-                        "text-sm"
-                    )
-                    ui.label(group_port.label).classes("text-xs grow")
-                    # The fold's value is a real boolean a node can read, so the
-                    # header states it as one. Open is checked: the value and the
-                    # open state are the same thing.
-                    ui.icon(hui.icon.checked if is_expanded else hui.icon.unchecked).classes("text-sm")
-
-                # Hosted on the row, triggered by the triangle: a trigger must be
-                # small and must never contain another (see add_pin_tooltip).
-                add_pin_tooltip(header_row, group_port, trigger_el=triangle)
+                    .classes("w-full items-center zoom-pan-lod2 hw-detail-label")
+                    .style(f"padding-left: {self._config_indent(depth)}px;")
+                ):
+                    self.render_widget(group_port, wrapper.node_id, classes="w-full")
 
             # Fold children (while open), each following the widget rule on stage.
             # A fold holds ports, not other folds, so every child is a port row.
@@ -399,14 +375,3 @@ class StackedNodeSkin(NodeSkin):
                         depth=depth + 1,
                         on_stage=on_stage,
                     )
-
-    def _toggle_fold(self, wrapper: NodeWrapper, fold_id: str) -> None:
-        """Flip a fold's open state and redraw.
-
-        The redraw is unconditional: set_value() only fires a redraw through
-        the port's own on_change, and most folds declare none — the triangle
-        is the only affordance, so it cannot depend on the node opting in.
-        """
-        node = wrapper.node
-        node.ports[fold_id].set_value(not node.value(fold_id))
-        wrapper.redraw()

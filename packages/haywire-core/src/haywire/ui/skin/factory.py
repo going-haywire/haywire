@@ -7,8 +7,10 @@ that looks up skins from the skin registry.
 Enhanced with customer notification system for UINode hot reload support.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Callable, Dict
+from typing import TYPE_CHECKING, Callable, Dict
 
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
@@ -19,6 +21,8 @@ from .base import BaseSkin
 from .registry import SkinRegistry
 from .nodecard import UINodeCard
 
+if TYPE_CHECKING:
+    from haywire.core.graph.edit_route import EditRoute
 
 FactoryEventCallback = Callable[[], None]  # Function signature for factory event callbacks
 
@@ -77,6 +81,7 @@ class SkinFactory:
         wrapper: NodeWrapper,
         *,
         on_stage: bool = False,
+        route: EditRoute | None = None,
         _is_error_render: bool = False,
     ) -> UINodeCard | None:
         """Render a node with the skin identified by skin_registry_key.
@@ -90,6 +95,8 @@ class SkinFactory:
             wrapper: NodeWrapper instance containing node information
             on_stage: Draw the card for a stage view (expanded, on-stage pins only);
                 the error-skin fallback applies the same way.
+            route: Where the card's widgets write; ``None`` refuses every write to a
+                port's widget. The error-skin fallback gets the same route.
 
         Returns:
             UINodeCard instance or None if rendering failed
@@ -101,7 +108,7 @@ class SkinFactory:
         try:
             skin_instance = self.get_skin_instance(skin_registry_key)
 
-            ui_nodeCard = skin_instance._render(wrapper=wrapper, on_stage=on_stage)
+            ui_nodeCard = skin_instance._render(wrapper=wrapper, on_stage=on_stage, route=route)
 
         except Exception as error:
             if not isinstance(error, HaywireException):
@@ -154,6 +161,7 @@ class SkinFactory:
                 skin_registry_key=error_skin_registry_key,
                 wrapper=wrapper,
                 on_stage=on_stage,
+                route=route,
                 _is_error_render=True,
             )
 

@@ -11,7 +11,7 @@ import pytest
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
 from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_graph_editor.state.edit_state import EditState
-from haywire.core.access import AccessTier, access_resolver, set_access_resolver
+from haywire.core.access import AccessTier, LevelMode, access_resolver, set_access_resolver
 from haywire.core.session.context import SessionContext
 from haywire.core.signals import ActiveGraphMoved
 
@@ -36,8 +36,10 @@ def _session_context(tier: AccessTier) -> SessionContext:
     return ctx
 
 
-def _locked_editor(tier: AccessTier, open_locked: bool = True) -> tuple[GraphEditor, Any, _FakeDocument]:
-    document = _FakeDocument()
+def _locked_editor(
+    tier: AccessTier, open_locked: bool = True, document: _FakeDocument | None = None
+) -> tuple[GraphEditor, Any, _FakeDocument]:
+    document = document or _FakeDocument()
     document.editor.graph.props = SimpleNamespace(open_locked=open_locked)  # type: ignore[attr-defined,assignment]
     editor, context, document = _editor(document)
     real = _session_context(tier)
@@ -46,8 +48,12 @@ def _locked_editor(tier: AccessTier, open_locked: bool = True) -> tuple[GraphEdi
     # The default fixture stubs the claim; the lock tests need the real one.
     editor._claim_session_state = GraphEditor._claim_session_state.__get__(editor)  # type: ignore[method-assign]
     context.data = {
-        EditState: SimpleNamespace(active_graph=None, active_graph_path=None, active_locked=False)
+        EditState: SimpleNamespace(
+            active_graph=None, active_graph_path=None, active_mode=LevelMode.VIEW, active_route=None
+        )
     }
+    # Built through _new_level, so the level carries this session's route.
+    editor._levels[DOCUMENT_LEVEL] = editor._new_level(context, DOCUMENT_LEVEL, document)
     return editor, context, document
 
 
@@ -87,13 +93,50 @@ def test_unlock_needs_real_edit():
     assert editor._levels[DOCUMENT_LEVEL].locked is False
 
 
-def test_claim_publishes_the_lock():
+def test_claim_publishes_the_level_mode():
     editor, context, _ = _locked_editor(AccessTier.EDIT, open_locked=False)
     editor._claim_session_state(context)
+    assert context.data[EditState].active_mode is LevelMode.EDIT
     context.session.publish.reset_mock()
+
     assert editor.set_level_locked(context, DOCUMENT_LEVEL, True) is True
-    assert context.data[EditState].active_locked is True
+    assert context.data[EditState].active_mode is LevelMode.OPERATE
     assert isinstance(context.session.publish.call_args.args[0], ActiveGraphMoved)
+    context.session.publish.reset_mock()
+
+    assert editor.set_level_locked(context, DOCUMENT_LEVEL, False) is True
+    assert context.data[EditState].active_mode is LevelMode.EDIT
+    assert isinstance(context.session.publish.call_args.args[0], ActiveGraphMoved)
+
+
+def test_a_level_route_follows_the_lock():
+    editor, context, _ = _locked_editor(AccessTier.EDIT, open_locked=False)
+    route = editor._levels[DOCUMENT_LEVEL].route
+    assert route.mode() is LevelMode.EDIT
+
+    assert editor.set_level_locked(context, DOCUMENT_LEVEL, True) is True
+
+    assert route.mode() is LevelMode.OPERATE
+    assert route.editor() is None
+
+
+def test_each_session_reads_its_own_lock():
+    document = _FakeDocument()
+    locked_editor, locked_context, _ = _locked_editor(AccessTier.EDIT, open_locked=False, document=document)
+    open_editor, _open_context, _ = _locked_editor(AccessTier.EDIT, open_locked=False, document=document)
+
+    assert locked_editor.set_level_locked(locked_context, DOCUMENT_LEVEL, True) is True
+
+    assert locked_editor._levels[DOCUMENT_LEVEL].route.mode() is LevelMode.OPERATE
+    assert open_editor._levels[DOCUMENT_LEVEL].route.mode() is LevelMode.EDIT
+
+
+def test_claiming_publishes_the_active_route():
+    editor, context, _ = _locked_editor(AccessTier.EDIT, open_locked=False)
+
+    editor._claim_session_state(context)
+
+    assert context.data[EditState].active_route is editor._levels[DOCUMENT_LEVEL].route
 
 
 class _Popup:
@@ -120,9 +163,10 @@ def test_locking_with_a_selection_leaves_the_toolbar_hidden(monkeypatch):
 
     editor, context, _ = _locked_editor(AccessTier.EDIT, open_locked=False)
     manager: Any = object.__new__(GraphCanvasManager)
-    manager._session = SimpleNamespace(context=SimpleNamespace(can_access=AccessTier.EDIT.satisfies))
-    manager.locked = False
+    manager.route = editor._levels[DOCUMENT_LEVEL].route
     manager.canvas_vue = MagicMock()
+    manager.selection = MagicMock()
+    manager.visual_layer = MagicMock()
     manager.context_menu_handlers = SimpleNamespace(provider=MagicMock())
     registry = MagicMock()
     registry.get_panels.return_value = [object()]
@@ -131,7 +175,7 @@ def test_locking_with_a_selection_leaves_the_toolbar_hidden(monkeypatch):
         session=MagicMock(),
         panel_registry=registry,
         menu_provider=MagicMock(),
-        allows=manager.allows,
+        allows=manager.route.allows,
     )
     monkeypatch.setattr(toolbar_module, "_poll_surface", lambda surface, ctx: True)
     monkeypatch.setattr(toolbar_module, "partition_panels", lambda classes, ctx: (classes, []))
@@ -159,27 +203,26 @@ def test_a_mounted_canvas_follows_the_level_lock(monkeypatch):
     editor._build_canvas = MagicMock(return_value=manager)  # type: ignore[method-assign]
     # The default fixture stubs _mount_level; this test needs the real one.
     GraphEditor._mount_level(editor, context, level)
-    manager.set_locked.assert_called_once_with(True)
+
+    # The canvas pushes its route's mode when built (see test_a_canvas_pushes_its_mode_when_built).
+    route = editor._build_canvas.call_args.args[1]
+    assert route is level.route
+    assert route.mode() is LevelMode.OPERATE
 
 
 def test_an_operate_principal_mounts_a_read_only_canvas_on_an_unlocked_level(monkeypatch):
     """Below edit the browser canvas starts no editing gesture, lock or no lock."""
     from haybale_graph_editor.editors import graph_editor as graph_editor_module
-    from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 
     editor, context, _ = _locked_editor(AccessTier.OPERATE, open_locked=False)
     level = editor._levels[DOCUMENT_LEVEL]
-    manager: Any = object.__new__(GraphCanvasManager)
-    manager._session = SimpleNamespace(context=context)
-    manager.locked = False
-    manager.canvas_vue = MagicMock()
-    manager._toolbar_provider = MagicMock()
-    manager.context_menu_handlers = SimpleNamespace(provider=MagicMock())
+    manager = MagicMock()
     monkeypatch.setattr(graph_editor_module, "ui", MagicMock())
     editor._level_panels = MagicMock()
     editor._build_canvas = MagicMock(return_value=manager)  # type: ignore[method-assign]
 
     GraphEditor._mount_level(editor, context, level)
 
-    assert manager.locked is False
-    manager.canvas_vue.set_locked.assert_called_once_with(True)
+    route = editor._build_canvas.call_args.args[1]
+    assert route is level.route
+    assert route.mode() is LevelMode.OPERATE

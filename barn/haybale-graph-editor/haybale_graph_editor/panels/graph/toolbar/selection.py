@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 from haybale_graph_editor.panels._gating import is_reroute_node
 from nicegui import ui
 
+from haywire.core.access import LevelMode
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
@@ -28,6 +29,7 @@ from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, Selec
 from ..._gating import locked_bag, selection_has_locked
 from ..menu.selection.selection import selection_label
 from ....state.edit_state import EditState
+from ....state.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -140,8 +142,12 @@ class LockToolbarPanel(BasePanel):
             bag = locked_bag(ctx)
             if bag is None:
                 return
+            route = route_for(ctx)
+            if route is None:
+                return
             now = not bool(bag.locked)
-            bag.locked = now
+            if not route.set_setting(bag, "locked", now, minimum=LevelMode.EDIT):
+                return
             btn.props(f"icon={self._icon(now)}")
             btn.update()
             tip.set_text(self._tip(now))

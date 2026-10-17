@@ -85,6 +85,7 @@ class AnnotationNode(BaseNode):
             category="text",
             order=1,
             promotable=Promotable.NONE,
+            operable=False,
         )
         h_align = setting[CHOICES](
             "center",

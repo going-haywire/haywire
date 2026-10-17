@@ -28,6 +28,10 @@ class _ElementModel:
     presented to the inner widget as the restore value, because a ``NumberDrag``
     or ``ui.select`` has no way to display "nothing". The absence state is
     communicated visually by hiding that widget, never by feeding it ``None``.
+
+    Writes go to the outer model unchanged, so the inner widget's writes take
+    the same edit route as the outer widget's, and a refusal reaches it as
+    ``False``.
     """
 
     def __init__(self, outer: Any, widget_config: dict, fallback: Any) -> None:
@@ -44,24 +48,8 @@ class _ElementModel:
         value = self._outer.get_value()
         return self._fallback if value is None else value
 
-    def set_value(self, value: Any) -> None:
-        self._outer.set_value(value)
-
-
-class _OuterGate:
-    """The inner widget's write gate: whatever gate the outer widget holds at the time of the write."""
-
-    def __init__(self, outer: BaseWidget) -> None:
-        self._outer = outer
-
-    def allows(self) -> bool:
-        gate = self._outer.write_gate
-        return gate is None or gate.allows()
-
-    def written(self) -> None:
-        gate = self._outer.write_gate
-        if gate is not None:
-            gate.written()
+    def set_value(self, value: Any) -> bool | None:
+        return self._outer.set_value(value)
 
 
 @widget(description="Optional value — the wrapped type's widget, plus an absence state")
@@ -129,7 +117,6 @@ class OptionalWidget(BaseWidget):
                     self._inner_label = None
                     inner_model = _ElementModel(self.port, self._config, self._fallback)
                     self._inner = inner_cls(inner_model)
-                    self._inner.write_gate = _OuterGate(self)
                     self._inner.render()
         return root
 

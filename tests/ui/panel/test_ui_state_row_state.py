@@ -103,7 +103,7 @@ def _render(bag) -> "ui.column":
     with client:
         anchor = ui.column()
         with anchor:
-            render_settings(make_render_ctx(), bag)
+            render_settings(make_render_ctx(), bag, route=None)
     return anchor
 
 

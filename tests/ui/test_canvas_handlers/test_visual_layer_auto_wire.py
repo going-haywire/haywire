@@ -6,6 +6,8 @@ import pytest
 
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 
+from tests.conftest import edit_route
+
 pytestmark = pytest.mark.unit
 
 
@@ -20,10 +22,9 @@ def _port(wire_key: str):
 def _handler():
     return VisualLayerHandlers(
         graph=MagicMock(),
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         skin_factory=MagicMock(),
         canvas_vue=MagicMock(),
-        allows=lambda _required: True,
         context=MagicMock(),
     )
 
@@ -42,19 +43,19 @@ def _pending(wire):
 def test_an_empty_pending_wire_matches_no_port_and_falls_back_to_the_ghost_pin():
     h = _handler()
     h._try_auto_wire(_wrapper({"a": _port("w.one")}), _pending(""))
-    h.editor.create_edge.assert_called_once_with("src", "out", "new", "root_in")
+    h.route.editor().create_edge.assert_called_once_with("src", "out", "new", "root_in")
 
 
 def test_a_matching_wire_is_wired():
     h = _handler()
     h._try_auto_wire(_wrapper({"a": _port("w.one")}), _pending("w.one"))
-    h.editor.create_edge.assert_called_once_with("src", "out", "new", "a")
+    h.route.editor().create_edge.assert_called_once_with("src", "out", "new", "a")
 
 
 def test_a_pending_swinglet_is_wired_as_the_outlet_end():
     h = _handler()
     h._try_auto_wire(_wrapper({"a": _port("w.one")}), {**_pending("w.one"), "pin_dir": "swinglet"})
-    h.editor.create_edge.assert_called_once_with("src", "out", "new", "a")
+    h.route.editor().create_edge.assert_called_once_with("src", "out", "new", "a")
 
 
 def test_a_pending_inlet_is_wired_as_the_inlet_end():
@@ -63,4 +64,4 @@ def test_a_pending_inlet_is_wired_as_the_inlet_end():
     outlet.is_inlet.return_value = False
     outlet.is_outlet.return_value = True
     h._try_auto_wire(_wrapper({"a": outlet}), {**_pending("w.one"), "pin_dir": "inlet"})
-    h.editor.create_edge.assert_called_once_with("new", "a", "src", "out")
+    h.route.editor().create_edge.assert_called_once_with("new", "a", "src", "out")

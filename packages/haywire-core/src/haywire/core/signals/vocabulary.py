@@ -124,11 +124,13 @@ class GraphDataMutated(Signal):
 
 @dataclass(frozen=True)
 class GraphUnsavedChanged(Signal):
-    """A graph's unsaved state changed, and nothing else a panel draws did. Cross-session.
+    """A graph's unsaved or undo/redo state changed, and nothing else a panel draws did. Cross-session.
 
     Published in place of ``GraphDataMutated`` when a value edit turns a saved
     graph unsaved. Subscribe to it, as well as to ``GraphDataMutated``, to show
-    an unsaved marker; a panel that shows graph contents need not.
+    an unsaved marker or the Undo/Redo buttons; a panel that shows graph
+    contents need not. Also published when a value edit changes the document's
+    undo/redo availability.
     """
 
     cross_session: ClassVar[bool] = True

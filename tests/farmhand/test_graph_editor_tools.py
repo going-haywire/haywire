@@ -1181,3 +1181,216 @@ def test_operate_refuses_a_linked_inlet(farmhand_call):
         assert _operate(farmhand_call, bid, sink, "value_b", 2.0).isError is not True
     finally:
         _close(farmhand_call, bid)
+
+
+def test_operate_reports_a_write_the_route_refused(farmhand_call):
+    from unittest.mock import patch
+
+    from haywire.core.graph.edit_route import EditRoute
+
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add_math(farmhand_call, bid)
+        with patch.object(EditRoute, "set_port", return_value=False):
+            result = _operate(farmhand_call, bid, node_id, "value_a", 2.0)
+        assert result.isError is True
+        assert "[operate_refused]" in result.content[0].text
+    finally:
+        _close(farmhand_call, bid)
+
+
+# ---------------------------------------------------------------------------
+# writes through the edit route / Editor verbs: undo and unsaved behaviour
+# ---------------------------------------------------------------------------
+
+
+def _live_editor(bid):
+    """The studio-side Editor for an open graph (the server runs in this process)."""
+    from haybale_graph_editor.state.graph_app_state import GraphAppState
+
+    from haywire.core.di.context import get_library_state_container
+
+    state = get_library_state_container().get(GraphAppState)
+    assert state is not None
+    container = state.get(bid)
+    assert container is not None
+    return container.editor
+
+
+def _save_as(farmhand_call, bid, name):
+    return call_tool_json(
+        _call(farmhand_call, "haybale-haystack_save_graph", {"binding_id": bid, "save_as": name})
+    )["binding_id"]
+
+
+def _close_all(farmhand_call):
+    listing = call_tool_json(_call(farmhand_call, "haybale-haystack_list_graphs", {}))
+    for row in listing["open"]:
+        _close(farmhand_call, row["binding_id"])
+
+
+def test_operate_marks_unsaved_and_records_nothing(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add_math(farmhand_call, bid)
+        bid = _save_as(farmhand_call, bid, "graphs/farmhand_operate_norecord.haywire")
+        editor = _live_editor(bid)
+        editor.history_manager.clear()  # drop the recorded add_node so only the operate write is in question
+        assert editor.can_undo() is False
+        assert _operate(farmhand_call, bid, node_id, "value_a", 3.5).isError is not True
+        assert _entry_unsaved(farmhand_call, bid) is True
+        assert editor.can_undo() is False
+        assert editor.get_node_wrapper(node_id).node.ports["value_a"].data.get_own_value() == 3.5
+    finally:
+        _close_all(farmhand_call)
+
+
+def _promote(farmhand_call, bid, node_id):
+    return _call(
+        farmhand_call,
+        "haybale-graph-editor_promote_setting",
+        {"binding_id": bid, "node_id": node_id, "accessor": "example", "field": "example_int"},
+    )
+
+
+def test_promote_is_one_undo_step(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = call_tool_json(
+            _call(
+                farmhand_call,
+                "haybale-graph-editor_add_node",
+                {"binding_id": bid, "registry_key": "haybale-testing:node:SettingsNode"},
+            )
+        )["node_id"]
+        editor = _live_editor(bid)
+        node = editor.get_node_wrapper(node_id).node
+        before = set(node.ports.keys())
+        assert _promote(farmhand_call, bid, node_id).isError is not True
+        added = set(node.ports.keys()) - before
+        assert len(added) == 1
+        assert editor.undo() is True
+        assert set(node.ports.keys()) == before
+        assert _promote(farmhand_call, bid, node_id).isError is not True
+        unknown = _call(
+            farmhand_call,
+            "haybale-graph-editor_promote_setting",
+            {"binding_id": bid, "node_id": node_id, "accessor": "example", "field": "no_such_field"},
+        )
+        assert unknown.isError is True
+        assert "[not_promotable]" in unknown.content[0].text
+    finally:
+        _close_all(farmhand_call)
+
+
+def test_demote_is_one_undo_step(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = call_tool_json(
+            _call(
+                farmhand_call,
+                "haybale-graph-editor_add_node",
+                {"binding_id": bid, "registry_key": "haybale-testing:node:SettingsNode"},
+            )
+        )["node_id"]
+        editor = _live_editor(bid)
+        node = editor.get_node_wrapper(node_id).node
+        before = set(node.ports.keys())
+        assert _promote(farmhand_call, bid, node_id).isError is not True
+        port_id = next(iter(set(node.ports.keys()) - before))
+        demoted = _call(
+            farmhand_call,
+            "haybale-graph-editor_demote_setting",
+            {"binding_id": bid, "node_id": node_id, "port_id": port_id},
+        )
+        assert demoted.isError is not True
+        assert port_id not in node.ports
+        assert editor.undo() is True
+        assert port_id in node.ports
+        missing = _call(
+            farmhand_call,
+            "haybale-graph-editor_demote_setting",
+            {"binding_id": bid, "node_id": node_id, "port_id": "no_such_port"},
+        )
+        assert missing.isError is True
+        assert "[demote_failed]" in missing.content[0].text
+    finally:
+        _close_all(farmhand_call)
+
+
+def test_set_metadata_marks_unsaved_and_undoes(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        bid = _save_as(farmhand_call, bid, "graphs/farmhand_meta_undo.haywire")
+        assert _entry_unsaved(farmhand_call, bid) is False
+        editor = _live_editor(bid)
+        before = (editor.graph.meta.label, editor.graph.meta.description)
+        result = _call(
+            farmhand_call,
+            "haybale-graph-editor_set_metadata",
+            {"binding_id": bid, "label": "Face Tracker", "description": "Tracks faces"},
+        )
+        assert result.isError is not True
+        assert _entry_unsaved(farmhand_call, bid) is True
+        assert editor.undo() is True
+        assert (editor.graph.meta.label, editor.graph.meta.description) == before
+    finally:
+        _close_all(farmhand_call)
+
+
+def test_a_farmhand_call_ends_before_the_users_next_edit(farmhand_call):
+    """A Farmhand value write is its own step even when the user writes right after it."""
+    from haywire.core.graph.setting_owner import setting_owner
+
+    bid = _new_graph(farmhand_call)
+    try:
+        agent_node, user_node = (
+            call_tool_json(
+                _call(
+                    farmhand_call,
+                    "haybale-graph-editor_add_node",
+                    {"binding_id": bid, "registry_key": SETTINGS_NODE_KEY},
+                )
+            )["node_id"]
+            for _ in range(2)
+        )
+        editor = _live_editor(bid)
+        editor.history_manager.clear()
+        agent_bag = editor.get_node_wrapper(agent_node).node.example
+        user_bag = editor.get_node_wrapper(user_node).node.example
+        agent_before, user_before = agent_bag.example_int, user_bag.example_float
+
+        result = _call(
+            farmhand_call,
+            "haybale-graph-editor_set_property",
+            {"binding_id": bid, "node_id": agent_node, "name": "example_int", "value": agent_before + 7},
+        )
+        assert result.isError is not True
+        owner = setting_owner(editor.graph, user_bag)
+        assert owner is not None
+        assert editor.set_setting(owner, "example_float", user_before + 1.5, merge_owner=object()) is True
+
+        assert editor.undo() is True
+        assert user_bag.example_float == user_before
+        assert agent_bag.example_int == agent_before + 7
+        assert editor.undo() is True
+        assert agent_bag.example_int == agent_before
+    finally:
+        _close_all(farmhand_call)
+
+
+def test_operate_refuses_a_non_operable_port(farmhand_call):
+    """value_a is shown, unlinked and accepts its own value: only ``operable=False`` refuses it."""
+    from unittest.mock import PropertyMock, patch
+
+    from haywire.core.types.port import DataPort
+
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add_math(farmhand_call, bid)
+        with patch.object(DataPort, "operable", new_callable=PropertyMock, return_value=False):
+            result = _operate(farmhand_call, bid, node_id, "value_a", 2.0)
+        assert result.isError is True
+        assert "[not_operable]" in result.content[0].text
+    finally:
+        _close(farmhand_call, bid)

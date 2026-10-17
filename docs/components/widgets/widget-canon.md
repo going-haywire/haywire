@@ -111,6 +111,15 @@ The `super()` contract is the lever:
 - **Call `super().on_model_changed(value)`** to refresh every `bind()`-registered element, then add your own custom sync on top. Use this when you mix `bind()`-ed elements with hand-driven ones.
 - **Omit the `super()` call** to take full ownership of model → view sync (a floor-only widget with no `bind()` calls — e.g. an image preview that pushes frames).
 
+### The model, and where its writes go
+
+A widget never sees the port or the setting directly. It sees a **`WidgetModel`** (`haywire.core.types.WidgetModel`), as `self.port`: `id`, `widget_config`, `data` (the `DataField` cell, which carries the change subscription), `get_value()` and `set_value(value)`.
+
+- **The host builds the model, and its writes go through the host's edit route.** A card, the stage, the Ports panel or a settings row hands its [edit route](../../reference/glossary.md) to the widget factory, which builds a routed model: it reads the cell, and each `set_value` goes through that route at the level mode the host needs (`operate` for card and stage widgets, `edit` for panels). The route decides whether the edit is allowed and marks the graph unsaved. A widget writes no access, unsaved or undo code of its own.
+- **A refused write shows the model again.** When the route refuses (the level mode is below what the host needs, e.g. a Properties or Ports panel on a locked level, or any write at `view`), the model's `set_value` returns `False` and the widget shows `get_value()` again. The same happens while an edge's value stands in front of the own value, or the field holds no own value. `self.set_value(...)` and every `bind()`-ed element follow this rule, so a widget needs no handling of its own.
+- **A port or field declared `operable=False` needs a full editor.** The route then needs level mode `edit` for its writes, even from a card, and the card's widget takes no pointer input on a locked level. The annotation's text is one.
+- **A widget rendered with no route is read-only.** Its model refuses every write. A host that builds its own model (a dialog editing a port's default) passes it to the factory, which uses it as given.
+
 ### `converter`
 
 A `BindingConverter` translates between the model value and the view value in both directions.
@@ -193,7 +202,7 @@ element = self.port.data.get_stored_type().element_type_cls   # the wrapped ITyp
 inner_cls = WIDGET_REGISTRY.get(element.class_identity.widget_key)
 ```
 
-- **Share the cell, adjust only the read.** The inner widget receives a thin `WidgetModel` whose `data` returns the *same* `DataField`, so its own `on_changed` subscription and bindings stay live. The only override is `get_value()`, which substitutes a fallback for `None` — a `NumberDrag` has no way to display "nothing", so absence is communicated by *hiding* that widget, never by feeding it `None`.
+- **Share the cell, adjust only the read.** The inner widget receives a thin `WidgetModel` whose `data` returns the *same* `DataField`, so its own `on_changed` subscription and bindings stay live. The only override is `get_value()`, which substitutes a fallback for `None` — a `NumberDrag` has no way to display "nothing", so absence is communicated by *hiding* that widget, never by feeding it `None`. Its `set_value()` forwards to the outer model unchanged, so the inner widget's writes take the outer widget's edit route, and a refusal reaches it as `False`.
 - **Forward cleanup.** The outer `_on_cleanup()` must call the inner widget's `cleanup()`; the base class only tears down its own subscription.
 
 A stand-in state should be **framed like the widget it replaces** — `hw-optional-none` reuses the same `--hw-compact-field-h` height and input framing as `NumberDrag`, so the value column doesn't jump when a field is cleared, and differs only in muted italic text plus an always-visible action icon — hover-revealing that icon would hide the only signal the cell is a control. And don't add a control the Setting-row menu already offers: `OptionalWidget` has no clear button because clearing is reset-shaped, and the menu owns those verbs.

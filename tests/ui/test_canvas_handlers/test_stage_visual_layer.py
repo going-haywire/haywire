@@ -16,6 +16,8 @@ from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node.layout import PATCH, STAGE
 from haywire.ui.components.graph.event_definitions import SyncAllEdgesEvent, UserDragUpdateEvent
 
+from tests.conftest import edit_route
+
 pytestmark = pytest.mark.unit
 
 
@@ -78,10 +80,9 @@ def _layer(graph, channel=STAGE):
     canvas_vue = MagicMock()
     h = VisualLayerHandlers(
         graph=graph,
-        editor=MagicMock(),
+        route=edit_route(MagicMock()),
         skin_factory=MagicMock(),
         canvas_vue=canvas_vue,
-        allows=lambda _r: True,
         channel=channel,
     )
     h.mounted_at = {}  # type: ignore[attr-defined]
@@ -236,14 +237,14 @@ def test_positions_are_translated_by_the_origin(graph):
 
 def test_a_drag_update_is_translated_back_into_stage_coordinates():
     editor = MagicMock()
-    handlers = InteractionHandlers(editor, channel=STAGE)
+    handlers = InteractionHandlers(edit_route(editor), channel=STAGE)
     handlers.process_drag_update(UserDragUpdateEvent(positions={"a": {"x": 260.0, "y": 300.0}}))
     editor.move_nodes_to.assert_called_once_with({"a": {"x": 60.0, "y": 100.0}}, STAGE)
 
 
 def test_a_patch_drag_update_is_untouched():
     editor = MagicMock()
-    handlers = InteractionHandlers(editor)
+    handlers = InteractionHandlers(edit_route(editor))
     handlers.process_drag_update(UserDragUpdateEvent(positions={"a": {"x": 260.0, "y": 300.0}}))
     editor.move_nodes_to.assert_called_once_with({"a": {"x": 260.0, "y": 300.0}}, PATCH)
 

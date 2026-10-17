@@ -26,6 +26,10 @@ class NoOpHistoryManager(IHistoryManager):
         """No-op: the action is ignored and never runs, so this returns ``False``."""
         return False
 
+    def add_value_action(self, action: IAction, merge_owner: object | None, idle_s: float = 3.0) -> bool:
+        """No-op: the action is ignored and never runs, so this returns ``False``."""
+        return False
+
     def add_fence(self) -> None:
         """No-op: fence is ignored."""
         pass

@@ -13,6 +13,14 @@ import pytest
 pytestmark = pytest.mark.unit
 
 
+def _edit_route(container: Any):
+    """A level route at level mode ``EDIT`` over ``container``."""
+    from haywire.core.access import LevelMode
+    from haywire.core.graph.edit_route import EditRoute
+
+    return EditRoute(lambda: container.editor, lambda: LevelMode.EDIT)
+
+
 def _make_editor(*graphs, active: int = 0):
     """A GraphEditor with one level per graph, the ``active``-th on screen."""
     from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor, _Level
@@ -30,7 +38,9 @@ def _make_editor(*graphs, active: int = 0):
             display_name=graph.filestem,
             path=None,
         )
-        editor._levels[key] = _Level(key=key, container=cast(Any, container))
+        level = _Level(key=key, container=cast(Any, container))
+        level.route = _edit_route(container)
+        editor._levels[key] = level
     if graphs:
         editor._active_level = keys[active]
     editor._switch_level = MagicMock()  # type: ignore[method-assign]
@@ -126,6 +136,34 @@ def test_a_match_on_a_background_level_switches_to_it():
 
     editor._switch_level.assert_called_once_with(context, "sg_1")
     assert editor._active_level == DOCUMENT_LEVEL  # the stub does not move it
+
+
+def test_a_node_reveal_centres_the_canvas_on_the_node():
+    from haywire.core.signals import RevealGraphInstance
+
+    graph = _graph("webcam", get_node_wrapper=MagicMock(return_value=MagicMock()))
+    editor = _make_editor(graph)
+    canvas = MagicMock()
+    editor._levels[editor._active_level].canvases["patch"] = canvas
+    context, _edit = _context()
+
+    editor._on_reveal_graph_instance(context, RevealGraphInstance(graph_id="webcam", node_id="n1"))
+
+    canvas.center_on_node.assert_called_once_with("n1")
+
+
+def test_an_edge_reveal_leaves_the_viewport():
+    from haywire.core.signals import RevealGraphInstance
+
+    graph = _graph("webcam", edge_wrappers={"a[o]->b[i]": MagicMock()})
+    editor = _make_editor(graph)
+    canvas = MagicMock()
+    editor._levels[editor._active_level].canvases["patch"] = canvas
+    context, _edit = _context()
+
+    editor._on_reveal_graph_instance(context, RevealGraphInstance(graph_id="webcam", edge_id="a[o]->b[i]"))
+
+    canvas.center_on_node.assert_not_called()
 
 
 def test_a_match_on_the_level_already_on_screen_does_not_switch():

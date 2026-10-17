@@ -62,7 +62,8 @@ def test_a_placement_interior_opens_locked():
     document = _FakeDocument()
     container = _container(document, _placement_definition())
     assert container.editor.graph.props.open_locked is False
-    level = GraphEditor._new_level(level_key_for(container), container)
+    editor, context, _ = _editor()
+    level = editor._new_level(context, level_key_for(container), container)
     assert level.locked is True
     assert level.inside_placement is True
 
@@ -71,7 +72,8 @@ def test_a_group_nested_in_a_placement_opens_locked():
     placement = _container(_FakeDocument(), _placement_definition())
     nested = _container(placement, _definition("sg_inner"))
     assert inside_placement(nested) is True
-    level = GraphEditor._new_level(level_key_for(nested), nested)
+    editor, context, _ = _editor()
+    level = editor._new_level(context, level_key_for(nested), nested)
     assert level.locked is True
     assert level.inside_placement is True
 
@@ -81,7 +83,8 @@ def test_a_plain_group_is_not_inside_a_placement():
     group = _container(document, _definition())
     assert inside_placement(document) is False
     assert inside_placement(group) is False
-    level = GraphEditor._new_level(level_key_for(group), group)
+    editor, context, _ = _editor()
+    level = editor._new_level(context, level_key_for(group), group)
     assert level.locked is False
     assert level.inside_placement is False
 
@@ -461,14 +464,50 @@ class TestADetachedPlacement:
         _detach(document, definition, "subgraph_new")
         editor._prune_dead_levels(context)
         level.locked = False
-        manager.set_locked.reset_mock()
+        manager.refresh_mode.reset_mock()
 
         _detach(document, definition, _PLACEMENT_KEY)
         definition.template_key = "lib:macro:Blur"
         editor._prune_dead_levels(context)
 
         assert level.locked is True
-        manager.set_locked.assert_called_once_with(True)
+        manager.refresh_mode.assert_called_once_with()
+
+    def test_a_re_key_that_locks_the_level_on_screen_keeps_the_selection(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        level = editor._levels[_PLACEMENT_KEY]
+        definition = _shown(editor, _PLACEMENT_KEY).definition
+        _detach(document, definition, "subgraph_new")
+        editor._prune_dead_levels(context)
+        level.locked = False
+        edit_state = _select(editor, context, MagicMock(name="interior_node"))
+
+        _detach(document, definition, _PLACEMENT_KEY)
+        definition.template_key = "lib:macro:Blur"
+        editor._prune_dead_levels(context)
+
+        assert level.locked is True
+        assert edit_state.selected_nodes == {"n1"}
+        assert edit_state.active_node is not None
+
+    def test_a_re_key_that_locks_without_claiming_leaves_the_selection(self):
+        editor, context, document = _editor()
+        _open_placement(editor, context)
+        level = editor._levels[_PLACEMENT_KEY]
+        definition = _shown(editor, _PLACEMENT_KEY).definition
+        _detach(document, definition, "subgraph_new")
+        editor._prune_dead_levels(context)
+        level.locked = False
+        edit_state = _select(editor, context, MagicMock(name="interior_node"))
+
+        _detach(document, definition, _PLACEMENT_KEY)
+        definition.template_key = "lib:macro:Blur"
+        editor._rekey_level(context, level, claim=False)
+
+        assert level.locked is True
+        assert edit_state.selected_nodes == {"n1"}
+        assert edit_state.active_node is not None
 
     def test_descendant_levels_follow_the_re_key(self):
         editor, context, document = _editor()
@@ -515,9 +554,9 @@ def _built_canvas(monkeypatch, viewport: Viewport | None) -> MagicMock:
     editor._project_state = MagicMock()
     manager = MagicMock()
     monkeypatch.setattr(graph_editor_module, "GraphCanvasManager", MagicMock(return_value=manager))
-    entry = SimpleNamespace(editor=SimpleNamespace(graph=SimpleNamespace(node_wrappers={"n1": object()})))
+    route = SimpleNamespace(graph=SimpleNamespace(node_wrappers={"n1": object()}))
     context.session_id = "session-1"
-    GraphEditor._build_canvas(editor, context, entry, viewport=viewport)  # type: ignore[arg-type]
+    GraphEditor._build_canvas(editor, context, route, viewport=viewport)  # type: ignore[arg-type]
     return manager
 
 

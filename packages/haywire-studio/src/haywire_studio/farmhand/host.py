@@ -339,6 +339,7 @@ class FarmhandHost(SignalPeer):
                 # that no-op case nothing is broadcast either, because the
                 # tracker only notifies on a real state change.
                 tracker.finish_if_running(token)
+                ctx.close_fences()
 
         @self._server.list_resources()
         async def list_resources() -> list[types.Resource]:

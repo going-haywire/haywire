@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
+from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
@@ -47,6 +48,7 @@ _LANGUAGE_MAP: dict = {
     default_slot=SlotName.EDIT,
     opens=OpenBehavior.ON_PAYLOAD,
     description="Displays the contents of a file selected in the Files browser.",
+    access=AccessTier.VIEW,
 )
 class FileViewerEditor(BaseEditor):
     """

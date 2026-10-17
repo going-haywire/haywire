@@ -15,7 +15,7 @@ from nicegui import ui
 # bare specifier then fails to resolve.
 from nicegui.elements.sortable.sortable import Sortable as _Sortable  # noqa: F401
 
-from haywire.core.access import AccessTier
+from haywire.core.access import LevelMode
 from haywire.core.signals import (
     ActiveGraphMoved,
     GraphDataMutated,
@@ -26,12 +26,10 @@ from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.utils import anchor_cleanup_to_element
-from haywire.ui.widget.base import BaseWidget
 
-from ....access import GraphWriteGate, NodeWriteGate, can_edit_graph, session_allows
 from ....surfaces import PortInspector
 from ....state.edit_state import EditState
-from ....state.graph_app_state import editor_for
+from ....state.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -129,9 +127,8 @@ class NodePortsPanel(BasePanel):
         ``_anchor_cleanup_to_element``), not to this panel instance, because the
         panel is rebuilt fresh on every redraw.
 
-        The widget writes only while the session may edit the graph on screen,
-        lock included, and each write marks the active node's value edited. It
-        draws disabled when the session may not edit at render time.
+        The widget writes through the session's edit route at the level on screen,
+        at level mode edit; a write is refused once that route drops below it.
         """
         try:
             container = ui.column().classes("w-full gap-0 compact-fields")
@@ -143,19 +140,14 @@ class NodePortsPanel(BasePanel):
                 )
                 if not shows_widget:
                     return
+                route = route_for(context)
                 instance, _element = widget_factory.render_widget(
                     registry_key=port.widget_key,
                     port=port,
                     node_id=f"panel:{node_id}",
+                    route=route,
+                    minimum=LevelMode.EDIT,
                 )
-                if isinstance(instance, BaseWidget):
-                    wrapper = context.data[EditState].active_node
-                    instance.write_gate = (
-                        NodeWriteGate(AccessTier.EDIT, session_allows(context), wrapper)
-                        if wrapper is not None
-                        else GraphWriteGate(AccessTier.EDIT, session_allows(context))
-                    )
-                    instance.set_enabled(can_edit_graph(context))
             if shows_widget and instance is not None:
                 # BaseWidget.cleanup() is idempotent, so this composes safely
                 # with the page-disconnect cleanup the widget registers itself.
@@ -178,37 +170,33 @@ class NodePortsPanel(BasePanel):
             self._render_pen(port, node_id, widget_factory, context)
 
     def _render_pen(self, port, node_id: str, widget_factory, context: "SessionContext") -> None:
-        """The edit affordance, shown only on ports the user can actually edit.
-
-        Drawn disabled while the session may not edit the graph on screen (see
-        ``can_edit_graph``).
-        """
+        """The edit affordance, shown only on ports the user can actually edit."""
         if port.origin is PortOrigin.RESOLVED:
             hui.icon_action(
                 hui.icon.edit,
                 tooltip="Edit name, description and default",
                 on_click=lambda: self._open_editor(port, node_id, context),
-            ).set_enabled(can_edit_graph(context))
+            )
 
     def _open_editor(self, port, node_id: str, context: "SessionContext") -> None:
         """Open the edit dialog against the graph that is on screen now.
 
-        Opens nothing unless ``context`` may edit the graph on screen, and the
-        dialog's Apply writes nothing once it may not (see ``can_edit_graph``).
+        Opens nothing unless the session's edit route at the level on screen hands out
+        an ``Editor`` (level mode edit), and the dialog's Apply writes nothing once
+        that route's level mode drops below edit.
         """
         from .port_edit_dialog import open_port_edit_dialog
 
-        if not can_edit_graph(context):
-            return
-        editor = editor_for(context)
-        if editor is None:
+        route = route_for(context)
+        editor = route.editor() if route is not None else None
+        if route is None or editor is None:
             return
         open_port_edit_dialog(
             port,
             node_id,
             editor,
             on_applied=lambda: context.session.publish(GraphDataMutated()),
-            can_apply=lambda: can_edit_graph(context),
+            can_apply=lambda: route.allows(LevelMode.EDIT),
         )
 
     def _render_lane(
@@ -271,13 +259,11 @@ class NodePortsPanel(BasePanel):
                     if port.is_fold:
                         child_slots.append((port, ui.column().classes("w-full gap-0")))
 
-        sortable = container.make_sortable(
+        container.make_sortable(
             group=self._sortable_group(node_id, lane, parent_fold),
             handle=f".{_DRAG_HANDLE_CLASS}",
             on_end=lambda e, n=node, ids=sibling_ids: self._on_reorder(n, ids, e, context),
         )
-        if not can_edit_graph(context):
-            sortable.disable()
 
         for port, slot in child_slots:
             with slot:
@@ -295,8 +281,8 @@ class NodePortsPanel(BasePanel):
     def _on_reorder(self, node, sibling_ids: list[str], event, context: "SessionContext") -> None:
         """Apply a completed drop: move one id and hand the new order to the node.
 
-        Refused, leaving the node's order alone, unless ``context`` may edit the
-        graph on screen (see ``can_edit_graph``).
+        Refused, leaving the node's order alone, unless the session's edit route
+        hands out an ``Editor`` (level mode edit). The drop is one undo step.
 
         NiceGUI's own ``on_end`` has already re-parented the element before this
         runs, so the DOM is correct and this only writes the model to match. No
@@ -312,7 +298,9 @@ class NodePortsPanel(BasePanel):
             event: A ``SortableEventArguments``, whose indices address
                 ``sibling_ids``.
         """
-        if not can_edit_graph(context):
+        route = route_for(context)
+        editor = route.editor() if route is not None else None
+        if editor is None:
             return
         old_index = event.old_index
         new_index = event.new_index
@@ -321,7 +309,7 @@ class NodePortsPanel(BasePanel):
         if not (0 <= old_index < len(sibling_ids)) or not (0 <= new_index < len(sibling_ids)):
             return
         sibling_ids.insert(new_index, sibling_ids.pop(old_index))
-        node.reorder_ports(list(sibling_ids))
+        editor.reorder_ports(node.node_id, list(sibling_ids))
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

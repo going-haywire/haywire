@@ -28,12 +28,10 @@ EDIT_TOOLS = {
     "save_graph",
     "rename_graph",
     "close_graph",
-    "start_graph",
-    "stop_graph",
     "dry_run_install",
 }
 
-OPERATE_TOOLS = {"operate"}
+OPERATE_TOOLS = {"operate", "start_graph", "stop_graph"}
 
 VIEW_TOOLS = {
     "status",

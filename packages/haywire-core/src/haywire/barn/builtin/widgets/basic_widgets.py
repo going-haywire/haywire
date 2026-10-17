@@ -30,7 +30,7 @@ class NumberWidget(BaseWidget):
     - ``precision`` (int): Decimal places to display (-1 = auto from step).
       Bound to an ``INT`` port, this defaults to ``0`` (no decimal point)
       instead of the usual auto-from-step behaviour; pass ``precision``
-      explicitly to override.
+      explicitly to override. An ``INT`` port's ``step`` defaults to ``1``.
     - ``prefix`` (str): Text shown before the value (e.g. ``'$'``).
     - ``suffix`` (str): Text shown after the value (e.g. ``'kg'``).
     - ``sensitivity`` (float): Drag sensitivity multiplier (default 1.0).
@@ -48,12 +48,13 @@ class NumberWidget(BaseWidget):
             if prop in props:
                 kwargs[prop] = props[prop]
 
-        # Int-typed ports render whole numbers — no decimal point — unless the
-        # caller explicitly configured a precision. NumberDrag's own "auto"
-        # default (-1) derives precision from `step` alone, so a bare INT port
-        # (step 0.1) would otherwise still show one decimal digit.
-        if "precision" not in kwargs and self.port.data.get_stored_type() is INT:
-            kwargs["precision"] = 0
+        # Int-typed ports render and step in whole numbers unless the caller
+        # configured otherwise. NumberDrag's own defaults (step 0.1, precision
+        # derived from it) would show "5.0", and an arrow press would emit 14.1,
+        # which the INT field truncates back to 14.
+        if self.port.data.get_stored_type() is INT:
+            kwargs.setdefault("precision", 0)
+            kwargs.setdefault("step", 1)
 
         return self.bind(
             NumberDrag(**kwargs).classes("w-full"),

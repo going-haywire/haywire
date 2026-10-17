@@ -119,6 +119,27 @@ def test_the_menu_route_unlocks_a_level_that_was_already_open(graph_with_library
 
 
 @pytest.mark.usefixtures("macro_folder")
+def test_the_menu_route_refreshes_the_lock_and_undo_buttons_after_unlocking(
+    graph_with_library_system, library_system
+):
+    graph = graph_with_library_system
+    editor, context, card_id = _menu_detach(graph, library_system)
+    seen: list[tuple[str, bool]] = []
+
+    def _record(name):
+        return lambda *_: seen.append((name, editor._levels[editor._active_level].locked))
+
+    editor._update_lock_button = MagicMock(side_effect=_record("lock"))  # type: ignore[method-assign]
+    editor._update_undo_redo_buttons = MagicMock(side_effect=_record("undo"))  # type: ignore[method-assign]
+    editor._on_subgraph_navigation(
+        context, SubgraphNavigation(graph_id=graph.graph_id, node_id=card_id, unlocked=True)
+    )
+
+    assert ("lock", False) in seen
+    assert ("undo", False) in seen
+
+
+@pytest.mark.usefixtures("macro_folder")
 def test_the_menu_route_without_the_request_leaves_the_level_locked(
     graph_with_library_system, library_system
 ):
@@ -141,12 +162,12 @@ def test_the_menu_route_unlocks_a_freshly_opened_level(
     editor._project_state = SimpleNamespace(node_factory=library_system.get_node_factory())  # type: ignore[assignment]
     new_level = GraphEditor._new_level
 
-    def _locked_level(key, container):
-        level = new_level(key, container)
+    def _locked_level(self, context, key, container):
+        level = new_level(self, context, key, container)
         level.locked = True
         return level
 
-    monkeypatch.setattr(GraphEditor, "_new_level", staticmethod(_locked_level))
+    monkeypatch.setattr(GraphEditor, "_new_level", _locked_level)
     card_cls = library_system.get_node_factory().get_graph_node()
     card_id, refusal = real_editor.detach_placement_from_macro(
         placement_id, card_cls.class_identity.registry_key

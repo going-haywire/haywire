@@ -24,7 +24,7 @@ decides *who* is reaching it. This adds that, off by default.
 ## The boundary, and the thing that is not a boundary
 
 **There is exactly one watertight line: `no-access` vs `access`.** Everything
-behind it — `view`, `edit`, `admin` — is a guard against ignorance, not
+behind it — `view`, `operate`, `edit`, `admin` — is a guard against ignorance, not
 against malice.
 
 This is not modesty about the implementation; it follows from what the product
@@ -35,18 +35,19 @@ already `admin` at the machine level, and any design that spent effort
 enforcing `edit < admin` as a containment boundary would be spending it on a
 wall with no building attached.
 
-What the tiers *do* buy is real and worth building: a `view` principal cannot
-mutate anything, because every mutating path is server-side and every
-affordance that reaches one is hidden. During a live show, that is the property
-that matters — the wrong click cannot happen because the control is not there.
+What the tiers *do* buy is real and worth building: a `view` principal changes
+nothing through the studio's main surfaces. User edits take the edit route,
+which refuses below the level mode it needs, except the few edits
+[ADR 0055](0055-every-user-edit-takes-the-edit-route.md) lists as still writing
+directly, and the browser gates card content as a second layer
+([ADR 0051](0051-operate-tier-and-the-canvas-lock.md)). Editors and panels need `edit` unless they declare
+`view`, so a surface that forgets to declare is hidden.
+During a live show, that is the property that matters — the wrong click cannot
+happen because the control is not there. The tiers guard against accidents, not
+malice (see the [security guide](../guides/security.md)).
 
 The corollary is that the front door carries all the weight, and it has to have
 no side entrances.
-
-> **Amended by [ADR 0051](0051-operate-tier-and-the-canvas-lock.md):** a fourth
-> tier, `operate`, sits between `view` and `edit`, and the canvas menus and
-> gestures are now tier-gated, so the `view` property stated above holds
-> there too, except the gaps listed in the [security guide](../guides/security.md).
 
 ## One gate, two credentials
 

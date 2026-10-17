@@ -107,6 +107,24 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
+    def add_value_action(self, action: IAction, merge_owner: object | None, idle_s: float = ...) -> bool:
+        """
+        Execute a value write and record it, amending the newest step while a merge run lasts.
+
+        A write that changed nothing records nothing. ``merge_owner`` is the session token a
+        merge run belongs to; ``None`` never amends and is never amended.
+
+        Args:
+            action: A value-write action (a port or settings-field write).
+            merge_owner: The session token a run belongs to, or ``None`` for no merging.
+            idle_s: Seconds after a step's last write beyond which a write starts a new step.
+
+        Returns:
+            ``False`` if the action did not run or its execution raised, else ``True``.
+        """
+        pass
+
+    @abstractmethod
     def add_fence(self) -> None:
         """
         Add a fence to group related actions together.
@@ -135,6 +153,11 @@ class IHistoryManager(ABC):
             True if redo was successful, False if nothing to redo
         """
         pass
+
+    @property
+    def undo_redo_count(self) -> int:
+        """Return how many undos and redos this history has performed; it grows with each one."""
+        return 0
 
     @abstractmethod
     def can_undo(self) -> bool:

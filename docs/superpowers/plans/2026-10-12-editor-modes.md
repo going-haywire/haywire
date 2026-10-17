@@ -59,6 +59,11 @@ two independent switches:
 
 ### Tiers: view < operate < edit < admin
 
+> Revised by [2026-10-16-edit-route.md](2026-10-16-edit-route.md): `view` only pans
+> and zooms on the document level, selection needs `edit`, and the Properties
+> editor's writable panels show only in `edit`. Where this section disagrees, that
+> design wins.
+
 - **OPERATE** is a new tier. An operate principal may **change values on widgets
   that are shown** (on cards, and on the stage), and nothing else: no context
   menus, no selection toolbar, no edit actions (paste, cut, delete, duplicate),
@@ -237,12 +242,12 @@ slice lands.
      Fields, channel, stage view, origin, Add/Remove, `open_view`, the switch,
      `ToggleStageView`. Revised by [5a-2](2026-10-15-editor-modes-05a2-stage-is-a-display.md):
      the stage is a display, not a mode (Decisions 1 and 6, Q7a).
-   - **5b Skin interaction gates:** the stacked skin's fold toggle and the annotation's
-     double-click text edit honour the lock and the session tier (today both work at
-     `view`, see `docs/guides/security.md`). Re-scoped 2026-10-16: since 5a-2,
-     on-stage connector and annotation text editing already work, and a dedicated
-     Add Annotation verb is dropped, because the background menu and node search already
-     place an annotation on stage. Waits for the `NodeWriteGate` redesign.
+   - **5b The edit route:** [2026-10-16-edit-route.md](2026-10-16-edit-route.md).
+     Replaces the write gates with one route for every user edit, adds level mode
+     and undo for values, and closes the skin gaps (fold toggle, annotation text)
+     by making them widgets. Built as five sub-plans, 5b-1 to 5b-5. A dedicated Add
+     Annotation verb stays dropped: the background menu and node search already
+     place an annotation on stage.
    - **5c Stacking order:** `z`/`stage_z` and the four verbs.
    - **5d Control nodes.**
 6. **Inset.** The skin, the two enablers, placement value overrides, and the

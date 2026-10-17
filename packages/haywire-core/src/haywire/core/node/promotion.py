@@ -89,7 +89,8 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
     Wrapper types are replaced by their element type (``OPTIONAL[INT]`` gives
     an ``INT`` port), returned under ``type_cls``. ``label`` falls back to the
     attribute name, and ``widget_key``/``widget_config`` are included only when
-    set, so the port carries the setting's own widget contract.
+    set, so the port carries the setting's own widget contract. A setting that is
+    not operable gives ``operable=False``.
     """
     # Wrapper settings promote as their element type (OPTIONAL[INT] -> INT pin).
     # Unset values still cross OPTIONAL -> OPTIONAL edges; see DataField.accepts_absence.
@@ -110,6 +111,8 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
     widget_config = getattr(descriptor, "widget_config", None)
     if widget_config:
         kwargs["widget_config"] = widget_config
+    if not getattr(descriptor, "operable", True):
+        kwargs["operable"] = False
     return kwargs
 
 

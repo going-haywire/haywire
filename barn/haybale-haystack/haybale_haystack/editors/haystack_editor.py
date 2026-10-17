@@ -6,6 +6,7 @@ from typing import Optional
 
 from nicegui import ui
 
+from haywire.core.access import AccessTier, LevelMode
 from haywire.ui import elements as hui
 from haywire.ui.editor import BaseEditor, SlotName, editor
 from haywire.core.session import (
@@ -37,12 +38,21 @@ from ..graph_entry import EntryKind, GraphEntry
 logger = logging.getLogger(__name__)
 
 
+def _refused(context: "SessionContext", required: AccessTier, action: str) -> bool:
+    """Return whether the principal lacks ``required``, telling them ``"<action> needs <tier> access"``."""
+    if context.can_access(required):
+        return False
+    ui.notify(f"{action} needs {required.value} access", type="warning", position="top-right")
+    return True
+
+
 @editor(
     label="Haystack",
     icon=hui.icon.haystack,
     default_slot=SlotName.ACTION,
     description='All open graphs. Click to switch; "+" to create a new graph.',
     order=20,
+    access=AccessTier.VIEW,
 )
 class HaystackEditor(BaseEditor):
     """
@@ -145,29 +155,30 @@ class HaystackEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _render_header(self, context: "SessionContext") -> None:
-        """Draw the title, unsaved dot and haystack actions; Save and Save As draw disabled below edit."""
+        """Draw the title, unsaved dot and haystack actions; the actions are drawn only for edit."""
         title = self._get_active_haystack_name(context) or "Haystacks"
         hs = context.app_data[HaystackState]
         is_dirty = hs.is_haystack_dirty
-        can_edit = context.can_edit()
         # The dirty dot (when is_dirty=True) is rendered by panel_header
         # itself between the icon and the title — we only add the save
         # icon and the overflow menu on the action side here.
         with hui.panel_header(title, icon=hui.icon.haystack, is_dirty=is_dirty):
+            if not context.can_edit():
+                return
             # Save icon — paired with the dirty dot; only when dirty.
             if is_dirty:
                 hui.icon_action(
                     hui.icon.save,
                     tooltip="Save",
                     on_click=lambda: self._on_save_haystack_in_place(context),
-                ).set_enabled(can_edit)
+                )
 
             with ui.button(icon="more_vert").props("flat round dense size=sm").classes("flex-shrink-0"):
                 with ui.menu():
                     ui.menu_item(
                         "Save As…",
                         on_click=lambda: self._on_save_haystack(context),
-                    ).set_enabled(can_edit)
+                    )
                     ui.menu_item(
                         "Load…",
                         on_click=lambda: self._on_load_haystack(context),
@@ -228,11 +239,13 @@ class HaystackEditor(BaseEditor):
                 for entry in macros:
                     self._render_entry(entry, context)
 
-            self._render_add_bar(context)
+            if context.can_edit():
+                self._render_add_bar(context)
 
     def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
         is_active = entry.graph is context.data[EditState].active_graph
         can_edit = context.can_edit()
+        can_operate = context.can_access(AccessTier.OPERATE)
         is_unsaved = entry.unsaved or entry.path is None
         is_executing = entry.is_executing
 
@@ -268,6 +281,9 @@ class HaystackEditor(BaseEditor):
                 ui.icon(hui.icon.node_source, size="16px").classes("hw-text-dim").tooltip(
                     "A macro is run by placing it in a graph"
                 )
+            elif not can_operate:
+                # The row's execution border still shows a running graph.
+                pass
             elif is_executing:
                 hui.icon_action(
                     hui.icon.execution_stop,
@@ -297,15 +313,15 @@ class HaystackEditor(BaseEditor):
                     ui.label("not saved").classes("text-xs hw-text-warning-dim")
 
             # Save icon — paired with the dirty dot; only when unsaved.
-            if is_unsaved:
+            if is_unsaved and can_edit:
                 hui.icon_action(
                     hui.icon.save,
                     tooltip="Save",
                     on_click=lambda eid=eid: self._on_entry_save(eid, context),
-                ).set_enabled(can_edit)
+                )
 
             # Overflow menu — hidden during execution
-            if not is_executing:
+            if can_edit and not is_executing:
                 with (
                     ui.button(icon="more_vert")
                     .props("flat round dense size=xs")
@@ -316,7 +332,7 @@ class HaystackEditor(BaseEditor):
                         ui.menu_item(
                             "Save",
                             on_click=lambda eid=eid: self._on_entry_save(eid, context),
-                        ).set_enabled(can_edit)
+                        )
                         # Save-as and Rename change a file's stem. A macro's
                         # stem IS its registry key, so either would orphan
                         # every placement of it — `haywire rename` is the
@@ -325,7 +341,7 @@ class HaystackEditor(BaseEditor):
                             ui.menu_item(
                                 "Save as…",
                                 on_click=lambda eid=eid: self._on_entry_save_as(eid, context),
-                            ).set_enabled(can_edit)
+                            )
                             ui.menu_item(
                                 "Rename…",
                                 on_click=lambda eid=eid: self._on_entry_rename(eid, context),
@@ -426,6 +442,8 @@ class HaystackEditor(BaseEditor):
 
     def _on_entry_rename(self, binding_id: str, context: "SessionContext") -> None:
         """Rename: inline edit for file-backed graphs, save-as for untitled."""
+        if _refused(context, AccessTier.EDIT, "Renaming"):
+            return
         entry = self._resolve_entry(binding_id, context)
         if entry is None:
             return
@@ -445,6 +463,8 @@ class HaystackEditor(BaseEditor):
         confirmation that warns about losing unsaved work. Clean entries
         get a milder confirm that calls out that the file stays on disk.
         """
+        if _refused(context, AccessTier.EDIT, "Removing"):
+            return
         entry = self._resolve_entry(binding_id, context)
         if entry is None:
             return
@@ -508,6 +528,8 @@ class HaystackEditor(BaseEditor):
             edit_state = context.data[EditState]
             edit_state.active_graph = None
             edit_state.active_graph_path = None
+            edit_state.active_route = None
+            edit_state.active_mode = LevelMode.VIEW
             if session:
                 session.publish(ActiveGraphMoved())
 
@@ -562,6 +584,8 @@ class HaystackEditor(BaseEditor):
 
     def _on_new(self, context: "SessionContext") -> None:
         """Create a new unnamed graph and activate it."""
+        if _refused(context, AccessTier.EDIT, "A new graph"):
+            return
         app: IAppState = context.app
         session = context.session
         if app is None or session is None:
@@ -599,6 +623,8 @@ class HaystackEditor(BaseEditor):
 
     def _on_start_execution(self, binding_id: str, context: "SessionContext") -> None:
         """Start execution on a graph entry."""
+        if _refused(context, AccessTier.OPERATE, "Starting and stopping"):
+            return
         entry = self._resolve_entry(binding_id, context)
         if entry is None:
             return
@@ -613,6 +639,8 @@ class HaystackEditor(BaseEditor):
 
     def _on_stop_execution(self, binding_id: str, context: "SessionContext") -> None:
         """Stop execution on a graph entry."""
+        if _refused(context, AccessTier.OPERATE, "Starting and stopping"):
+            return
         entry = self._resolve_entry(binding_id, context)
         if entry is None:
             return
@@ -683,6 +711,8 @@ class HaystackEditor(BaseEditor):
 
     def _on_load_haystack(self, context: "SessionContext") -> None:
         """Load a haystack, replacing all currently open graphs."""
+        if _refused(context, AccessTier.EDIT, "Loading a haystack"):
+            return
         app: IAppState = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
@@ -747,6 +777,8 @@ class HaystackEditor(BaseEditor):
         a GraphEditor tab. The user opens it in an editor by selecting the
         new entry from the list once it appears.
         """
+        if _refused(context, AccessTier.EDIT, "Loading a graph"):
+            return
         app = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
@@ -806,6 +838,8 @@ class HaystackEditor(BaseEditor):
 
     def _on_rename_haystack(self, context: "SessionContext") -> None:
         """Open a modal to rename the current haystack."""
+        if _refused(context, AccessTier.EDIT, "Renaming"):
+            return
         old_name = self._get_active_haystack_name(context)
         if not old_name:
             ui.notify("No haystack is currently loaded", type="warning")

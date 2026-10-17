@@ -66,6 +66,14 @@ class _Props:
         self.locked = locked
 
 
+class _DirectRoute:
+    """A route that writes straight to the bag (the stub bag has no graph)."""
+
+    def set_setting(self, bag, name, value, *, minimum) -> bool:
+        setattr(bag, name, value)
+        return True
+
+
 def _ctx(props: _Props | None, *, n_selected: int = 1, locked_ids: set[str] = frozenset()):  # type: ignore[assignment]
     """A context whose EditState answers with `props` for the active node.
 
@@ -94,6 +102,8 @@ def _ctx(props: _Props | None, *, n_selected: int = 1, locked_ids: set[str] = fr
     graph = MagicMock()
     graph.get_node_wrapper.side_effect = get_node_wrapper
     edit.active_graph = graph
+
+    edit.active_route = _DirectRoute()
 
     ctx = MagicMock()
     ctx.data = {EditState: edit}
@@ -215,3 +225,75 @@ class TestCollapseGatesOnLockedNotOnSelectionSize:
         correct on its own terms rather than on that invariant."""
         ctx = _ctx(None, n_selected=3, locked_ids={"n1"})
         assert CollapseToolbarPanel.poll(ctx) is False
+
+
+class TestTheButtonIsAnUndoableEdit:
+    """The click goes through the session's route: a recorded step in level mode edit."""
+
+    @pytest.fixture
+    def live(self, library_system):
+        from haywire.core.access import LevelMode
+        from haywire.core.graph.base import BaseGraph
+        from haywire.core.graph.edit_route import EditRoute
+        from haywire.core.graph.editor import Editor
+        from haywire.core.graph.scheduler import ThreadingTimerScheduler
+        from haywire.core.undo.config import UndoConfig
+        from tests.conftest import make_node
+
+        graph = BaseGraph(
+            filestem="g", validation_scheduler=ThreadingTimerScheduler(), validation_delay_ms=60_000
+        )
+        editor = Editor(
+            graph,
+            library_system.get_node_factory(),
+            undo_config=UndoConfig(enable_auto_grouping=False, enable_action_merging=True),
+        )
+        mode = [LevelMode.EDIT]
+        route = EditRoute(lambda: editor, lambda: mode[0])
+        wrapper = make_node(graph, "haybale-testing:node:TestAddFloatNode")
+        yield editor, route, mode, wrapper.node.props
+        graph._validation.clear()
+        graph.cleanup()
+
+    def _ctx_with_route(self, props, route):
+        ctx = _ctx(cast(Any, props))
+        ctx.data[next(iter(ctx.data))].active_route = route
+        return ctx
+
+    def test_the_lock_button_marks_unsaved_and_undoes(self, nicegui_slot_context, live):
+        editor, route, _mode, props = live
+        assert props.locked is False
+        button = _draw(self._ctx_with_route(props, route))
+
+        _click(button)
+
+        assert props.locked is True
+        assert editor.can_undo() is True
+        editor.undo()
+        assert props.locked is False
+
+    def test_the_lock_button_without_edit_changes_nothing(self, nicegui_slot_context, live):
+        from haywire.core.access import LevelMode
+
+        editor, route, mode, props = live
+        mode[0] = LevelMode.OPERATE
+        button = _draw(self._ctx_with_route(props, route))
+
+        _click(button)
+
+        assert props.locked is False
+        assert editor.can_undo() is False
+        assert button._props["icon"] == hui.icon.unlocked
+        tooltips = [el for el in button.descendants() if isinstance(el, ui.tooltip)]
+        assert tooltips[0].text == "unlocked"
+
+    def test_the_lock_button_without_a_route_changes_nothing(self, nicegui_slot_context):
+        props = _Props(locked=False)
+        ctx = _ctx(props)
+        ctx.data[next(iter(ctx.data))].active_route = None
+        button = _draw(ctx)
+
+        _click(button)
+
+        assert props.locked is False
+        assert button._props["icon"] == hui.icon.unlocked

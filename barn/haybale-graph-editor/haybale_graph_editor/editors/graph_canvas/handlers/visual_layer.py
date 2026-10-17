@@ -23,7 +23,7 @@ from typing import Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.access import AccessTier
+from haywire.core.access import LevelMode
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import BaseNode
@@ -68,7 +68,7 @@ from ..ui_edge import EdgeVisualState, edge_sync_payload, edge_visual_state
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
-    from haywire.core.graph.editor import Editor
+    from haywire.core.graph.edit_route import EditRoute
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.ui.skin.factory import SkinFactory
@@ -126,10 +126,9 @@ class VisualLayerHandlers:
     def __init__(
         self,
         graph: "BaseGraph",
-        editor: "Editor",
+        route: "EditRoute",
         skin_factory: "SkinFactory",
         canvas_vue: "GraphCanvasVue",
-        allows: Callable[[AccessTier], bool],
         context: Optional["SessionContext"] = None,
         channel: LayoutChannel = PATCH,
         patch_viewport_centre: Optional[Callable[[], Optional[Tuple[float, float]]]] = None,
@@ -137,6 +136,8 @@ class VisualLayerHandlers:
         """Set up the handlers for ``graph``'s canvas.
 
         Args:
+            route: This session's edit route at the level. Every structure edit takes its
+                Editor and does nothing while there is none; every node card writes through it.
             channel: The props fields this canvas lays its nodes out with.
             patch_viewport_centre: On a stage canvas, returns the centre of the level's patch
                 canvas's last-known viewport, or ``None`` when that is not mounted. A node made
@@ -145,12 +146,10 @@ class VisualLayerHandlers:
         self.channel = channel
         self.patch_viewport_centre = patch_viewport_centre
         self.graph = graph
-        self.editor = editor
+        self.route = route
         self.skin_factory = skin_factory
         self.canvas_vue = canvas_vue
         self.context = context
-        # Handed to every node card; see UINode.
-        self._allows = allows
 
         self.node_panels: Dict[str, UINode] = {}
         # Last visual state emitted per edge. Doubles as the "is this edge
@@ -330,7 +329,7 @@ class VisualLayerHandlers:
             logger.error(f"❌ Error during initial sync: {e}")
             traceback.print_exc()
 
-    @handles_event(CanvasMountedEvent, access=AccessTier.VIEW)
+    @handles_event(CanvasMountedEvent, access=LevelMode.VIEW)
     def process_canvas_mounted(self, event: CanvasMountedEvent) -> None:
         """Send this canvas its edges, because a fresh component has none.
 
@@ -643,7 +642,7 @@ class VisualLayerHandlers:
                 .style(f"left: {x}px; top: {y}px; z-index: 100; transform-origin: top-left; cursor: move;")
                 .props(f'id="{node_id}" data-node-id="{node_id}" ') as container
             ):
-                ui_node = UINode(container, wrapper, self.skin_factory, self._allows, channel=self.channel)
+                ui_node = UINode(container, wrapper, self.skin_factory, self.route, channel=self.channel)
                 ui_node.register_sync_event_emitter(self.canvas_vue.emit_sync_event)
                 ui_node.refresh(ChangeReason.NODE_ADDED)
                 ui_node.position = position
@@ -861,7 +860,7 @@ class VisualLayerHandlers:
     # Event handlers — graph mutation requests
     # -------------------------------------------------------------------------
 
-    @handles_event(NodesMeasuredEvent, access=AccessTier.VIEW)
+    @handles_event(NodesMeasuredEvent, access=LevelMode.VIEW)
     def process_nodes_measured(self, event: NodesMeasuredEvent):
         """Write one frame's measured auto-axis sizes back into node props.
 
@@ -920,6 +919,9 @@ class VisualLayerHandlers:
         the other direction (see the locked-node design, ADR 0032's successor
         notes in properties.py).
         """
+        editor = self.route.editor()
+        if editor is None:
+            return
         nodes = [n for n in event.nodes if not self.is_locked(n)]
         skipped = len(event.nodes) - len(nodes)
 
@@ -930,7 +932,7 @@ class VisualLayerHandlers:
 
         total = len(nodes) + len(event.edges)
         logger.info(f"🗑️ Removing {total} elements: {len(nodes)} nodes, {len(event.edges)} connections")
-        if self.editor.remove_elements(nodes, event.edges):
+        if editor.remove_elements(nodes, event.edges):
             msg = f"Deleted {total} element(s)"
             if skipped:
                 msg += f" — {skipped} locked node(s) skipped"
@@ -950,11 +952,14 @@ class VisualLayerHandlers:
     @handles_event(NodeCreateRequestEvent)
     def process_node_creation_request(self, event: NodeCreateRequestEvent):
         """Handle node creation requests."""
+        editor = self.route.editor()
+        if editor is None:
+            return
         logger.info(
             f"📝 Creating node: {event.registryKey} at ({event.position['x']}, {event.position['y']})"
         )
         try:
-            wrapper = self.editor.create_wrapper(
+            wrapper = editor.create_wrapper(
                 event.registryKey,
                 (event.position["x"], event.position["y"]),
                 self.channel,
@@ -979,14 +984,17 @@ class VisualLayerHandlers:
         flag so this handler carries no import dependency on any concrete
         reroute implementation.
         """
-        reroute_cls = self.editor._node_factory.get_reroute_node()
+        editor = self.route.editor()
+        if editor is None:
+            return
+        reroute_cls = editor._node_factory.get_reroute_node()
         if reroute_cls is None:
             ui.notify("No reroute node available", type="negative")
             return
 
         logger.info(f"✂️ Splitting edge {event.edge_id} with reroute")
         try:
-            reroute_id = self.editor.split_edge_with_reroute(
+            reroute_id = editor.split_edge_with_reroute(
                 event.edge_id,
                 (event.position["x"], event.position["y"]),
                 registry_key=reroute_cls.class_identity.registry_key,
@@ -1004,22 +1012,31 @@ class VisualLayerHandlers:
     @handles_event(AddToStageEvent)
     def process_add_to_stage(self, event: AddToStageEvent):
         """Put the nodes on the stage (one undoable op). Runs on a patch canvas only."""
+        editor = self.route.editor()
+        if editor is None:
+            return
         logger.info(f"Adding {len(event.node_ids)} nodes to the stage")
-        if not self.editor.add_to_stage(list(event.node_ids)):
+        if not editor.add_to_stage(list(event.node_ids)):
             ui.notify("Nothing to add to the stage", type="warning")
 
     @handles_event(RemoveFromStageEvent)
     def process_remove_from_stage(self, event: RemoveFromStageEvent):
         """Take the nodes off the stage (one undoable op); they stay in the patch."""
+        editor = self.route.editor()
+        if editor is None:
+            return
         logger.info(f"Removing {len(event.node_ids)} nodes from the stage")
-        if not self.editor.remove_from_stage(list(event.node_ids)):
+        if not editor.remove_from_stage(list(event.node_ids)):
             ui.notify("Nothing to remove from the stage", type="warning")
 
     @handles_event(DissolveRerouteEvent)
     def process_dissolve_reroute(self, event: DissolveRerouteEvent):
         """Dissolve a reroute node (one undoable op)."""
+        editor = self.route.editor()
+        if editor is None:
+            return
         logger.info(f"🔗 Dissolving reroute {event.node_id}")
-        if self.editor.dissolve_reroute(event.node_id):
+        if editor.dissolve_reroute(event.node_id):
             ui.notify("Dissolved reroute", type="positive")
         else:
             ui.notify("Failed to dissolve reroute", type="negative")
@@ -1035,13 +1052,16 @@ class VisualLayerHandlers:
         A refusal (a non-convex selection) is surfaced with the reason the
         action gives, which names the nodes that would have to be added.
         """
+        editor = self.route.editor()
+        if editor is None:
+            return
         classes = self._subgraph_node_classes()
         if classes is None:
             return
         card_cls, input_cls, output_cls = classes
 
         logger.info(f"📦 Collapsing {len(event.node_ids)} nodes into a Group")
-        card_id, reason = self.editor.collapse_to_group(
+        card_id, reason = editor.collapse_to_group(
             node_ids=list(event.node_ids),
             card_registry_key=card_cls.class_identity.registry_key,
             input_registry_key=input_cls.class_identity.registry_key,
@@ -1052,7 +1072,7 @@ class VisualLayerHandlers:
             return
 
         self.sync_with_graph()
-        wrapper = self.editor.graph.get_node_wrapper(card_id)
+        wrapper = self.graph.get_node_wrapper(card_id)
         if wrapper is not None:
             self._make_sole_active_node(wrapper)
         ui.notify("Collapsed to Group", type="positive")
@@ -1060,14 +1080,17 @@ class VisualLayerHandlers:
     @handles_event(ExpandGroupEvent)
     def process_expand_group(self, event: ExpandGroupEvent):
         """Expand a Group back into the graph around it (one undoable op)."""
+        editor = self.route.editor()
+        if editor is None:
+            return
         logger.info(f"📦 Expanding Group {event.node_id}")
-        if self.editor.expand_group(event.node_id):
+        if editor.expand_group(event.node_id):
             self.sync_with_graph()
             ui.notify("Expanded Group", type="positive")
         else:
             ui.notify("Failed to expand Group", type="negative")
 
-    @handles_event(EnterGroupEvent, access=AccessTier.VIEW)
+    @handles_event(EnterGroupEvent, access=LevelMode.OPERATE)
     def process_enter_group(self, event: EnterGroupEvent):
         """Ask this session's editors to enter the Group or macro placement on this node.
 
@@ -1080,9 +1103,7 @@ class VisualLayerHandlers:
         from haywire.core.signals import SubgraphNavigation
 
         logger.info(f"📦 Entering Group {event.node_id}")
-        self.context.session.publish(
-            SubgraphNavigation(graph_id=self.editor.graph.graph_id, node_id=event.node_id)
-        )
+        self.context.session.publish(SubgraphNavigation(graph_id=self.graph.graph_id, node_id=event.node_id))
 
     @handles_event(PromoteToMacroEvent)
     def process_promote_to_macro(self, event: PromoteToMacroEvent):
@@ -1092,13 +1113,16 @@ class VisualLayerHandlers:
         resolving what it needs — the Subgraph to serialize and the libraries
         that could receive it.
         """
+        editor = self.route.editor()
+        if editor is None:
+            return
         from haywire.core.authoring.targets import authoring_targets
         from haywire.core.di.config import get_library_system
         from haywire.core.macro.registry import MacroRegistry
 
         from ...._promote_flow import EditorPromoteSource, show_promote_flow
 
-        wrapper = self.editor.graph.get_node_wrapper(event.node_id)
+        wrapper = self.graph.get_node_wrapper(event.node_id)
         if wrapper is None:
             return
 
@@ -1126,7 +1150,7 @@ class VisualLayerHandlers:
 
         logger.info(f"📦 Saving Group {event.node_id} as a new macro")
         show_promote_flow(
-            EditorPromoteSource(self.editor, library_system),
+            EditorPromoteSource(editor, library_system),
             definition,
             event.node_id,
             authoring_targets(library_system, MacroRegistry, workspace_root),
@@ -1140,6 +1164,9 @@ class VisualLayerHandlers:
         Place puts the new node at the right-click point, or beside the
         cloned node. The wizard writes nothing until its Create step.
         """
+        editor = self.route.editor()
+        if editor is None:
+            return
         from haywire.core.authoring import is_clone_source
         from haywire.core.di.config import get_library_system
 
@@ -1151,7 +1178,7 @@ class VisualLayerHandlers:
         source_cls = None
         position = (event.position["x"], event.position["y"]) if event.position else None
         if event.node_id is not None:
-            wrapper = self.editor.graph.get_node_wrapper(event.node_id)
+            wrapper = self.graph.get_node_wrapper(event.node_id)
             if wrapper is None:
                 return
             source_cls = type(wrapper.node)
@@ -1184,7 +1211,7 @@ class VisualLayerHandlers:
 
         host = EditorNewNodeHost(self.context, position, _create)
         flow = new_node_flow(
-            host, library_system, self.editor._node_factory, workspace_root, source_cls=source_cls
+            host, library_system, editor._node_factory, workspace_root, source_cls=source_cls
         )
         show_new_node_flow(flow)
 
@@ -1195,13 +1222,16 @@ class VisualLayerHandlers:
         The Group carries the placement's origin. The macro file and its other
         placements are untouched.
         """
-        card_cls = self.editor._node_factory.get_graph_node()
+        editor = self.route.editor()
+        if editor is None:
+            return
+        card_cls = editor._node_factory.get_graph_node()
         if card_cls is None:
             ui.notify("Groups are unavailable: no Graph-node in the registry", type="negative")
             return
 
         logger.info(f"📦 Detaching placement {event.node_id} from its macro")
-        card_id, refusal = self.editor.detach_placement_from_macro(
+        card_id, refusal = editor.detach_placement_from_macro(
             event.node_id,
             card_cls.class_identity.registry_key,
         )
@@ -1210,7 +1240,7 @@ class VisualLayerHandlers:
             return
 
         self.sync_with_graph()
-        wrapper = self.editor.graph.get_node_wrapper(card_id)
+        wrapper = self.graph.get_node_wrapper(card_id)
         if wrapper is not None:
             self._make_sole_active_node(wrapper)
         # Notify first: entering the Group may redraw this canvas and delete its slot.
@@ -1219,22 +1249,25 @@ class VisualLayerHandlers:
             from haywire.core.signals import SubgraphNavigation
 
             self.context.session.publish(
-                SubgraphNavigation(graph_id=self.editor.graph.graph_id, node_id=card_id, unlocked=True)
+                SubgraphNavigation(graph_id=self.graph.graph_id, node_id=card_id, unlocked=True)
             )
 
     @handles_event(RevertToMacroEvent)
     def process_revert_to_macro(self, event: RevertToMacroEvent):
         """Swap a modified instance for a placement of its origin macro (one undoable op)."""
+        editor = self.route.editor()
+        if editor is None:
+            return
         from haywire.core.macro.source import macro_template, modified_instance_origin
 
-        wrapper = self.editor.graph.get_node_wrapper(event.node_id)
+        wrapper = self.graph.get_node_wrapper(event.node_id)
         origin = modified_instance_origin(wrapper.node) if wrapper is not None else None
         if origin is None:
             ui.notify("This card is not a modified instance", type="warning")
             return
 
         logger.info(f"📦 Reverting {event.node_id} to macro {origin.key}")
-        placement_id, refusal = self.editor.promote_to_macro(
+        placement_id, refusal = editor.promote_to_macro(
             event.node_id, origin.key, description="Revert to Macro", drop_unmatched_edges=True
         )
         if placement_id is None:
@@ -1242,13 +1275,13 @@ class VisualLayerHandlers:
             return
 
         self.sync_with_graph()
-        placement = self.editor.graph.get_node_wrapper(placement_id)
+        placement = self.graph.get_node_wrapper(placement_id)
         if placement is not None:
             self._make_sole_active_node(placement)
         template = macro_template(origin.key)
         label = template.class_identity.label if template is not None else origin.key
         message = f"Reverted to {label}"
-        dropped = self.editor.last_promotion_dropped_edges
+        dropped = editor.last_promotion_dropped_edges
         if dropped:
             message += f" — {dropped} connection(s) to pins {label} does not have were removed"
         ui.notify(message, type="positive")
@@ -1260,9 +1293,12 @@ class VisualLayerHandlers:
         one means that library did not load — worth saying out loud rather than
         failing silently at the first use.
         """
-        card_cls = self.editor._node_factory.get_graph_node()
-        input_cls = self.editor._node_factory.get_subgraph_input_node()
-        output_cls = self.editor._node_factory.get_subgraph_output_node()
+        editor = self.route.editor()
+        if editor is None:
+            return None
+        card_cls = editor._node_factory.get_graph_node()
+        input_cls = editor._node_factory.get_subgraph_input_node()
+        output_cls = editor._node_factory.get_subgraph_output_node()
         if card_cls is None or input_cls is None or output_cls is None:
             ui.notify("Groups are unavailable: no Graph-node in the registry", type="negative")
             return None
@@ -1278,6 +1314,9 @@ class VisualLayerHandlers:
 
         TODO: Static port-type introspection (before instantiation) is not yet supported.
         """
+        editor = self.route.editor()
+        if editor is None:
+            return
         if self.context is None:
             return
 
@@ -1322,10 +1361,10 @@ class VisualLayerHandlers:
 
         if as_outlet:
             # dragged from outlet (or swinglet) → new node inlet
-            success = self.editor.create_edge(pending_node_id, pending_pin_id, new_node_id, target_port_id)
+            success = editor.create_edge(pending_node_id, pending_pin_id, new_node_id, target_port_id)
         else:
             # dragged from inlet → new node outlet
-            success = self.editor.create_edge(new_node_id, target_port_id, pending_node_id, pending_pin_id)
+            success = editor.create_edge(new_node_id, target_port_id, pending_node_id, pending_pin_id)
 
         if success:
             logger.info(f"Auto-wired {pending_node_id}:{pending_pin_id} → {new_node_id}:{target_port_id}")
@@ -1338,11 +1377,14 @@ class VisualLayerHandlers:
     @handles_event(EdgeCreatedEvent)
     def process_edge_creation(self, event: EdgeCreatedEvent):
         """Handle connection creation."""
+        editor = self.route.editor()
+        if editor is None:
+            return
         logger.debug(
             f"Creating connection: {event.sourceNodeId}:{event.outletPinId} -> "
             f"{event.sinkNodeId}:{event.inletPinId}"
         )
-        if self.editor.create_edge(
+        if editor.create_edge(
             event.sourceNodeId,
             event.outletPinId,
             event.sinkNodeId,
@@ -1393,5 +1435,8 @@ class VisualLayerHandlers:
         2. Remove the edge from the graph so a subsequent edgeCreated for the same
            pins is not rejected as a duplicate.
         """
+        editor = self.route.editor()
+        if editor is None:
+            return
         self.edge_states.pop(event.edge_id, None)
-        self.editor.remove_elements([], [event.edge_id], release_pins=False)
+        editor.remove_elements([], [event.edge_id], release_pins=False)

@@ -120,7 +120,8 @@ def test_a_placement_is_descendable(macro_file, graph_with_library_system):
     from types import SimpleNamespace
     from unittest.mock import MagicMock
 
-    from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor, _Level
+    from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
+    from haywire.core.access import AccessTier
     from haywire.core.macro.source import is_macro_placement
     from tests.conftest import make_node
 
@@ -137,7 +138,14 @@ def test_a_placement_is_descendable(macro_file, graph_with_library_system):
     wrapper._binding_id = "doc"
     editor = GraphEditor(wrapper)
     editor._project_state = SimpleNamespace(node_factory=MagicMock())  # type: ignore[assignment]
-    editor._levels[DOCUMENT_LEVEL] = _Level(key=DOCUMENT_LEVEL, container=document)
+    context = SimpleNamespace(
+        app_data=MagicMock(),
+        session=MagicMock(),
+        data=MagicMock(),
+        can_edit=lambda: True,
+        can_access=AccessTier.ADMIN.satisfies,
+    )
+    editor._levels[DOCUMENT_LEVEL] = editor._new_level(context, DOCUMENT_LEVEL, document)  # type: ignore[arg-type]
     for name in (
         "_mount_level",
         "_teardown_level",
@@ -146,9 +154,6 @@ def test_a_placement_is_descendable(macro_file, graph_with_library_system):
         "_claim_session_state",
     ):
         setattr(editor, name, MagicMock())
-    context = SimpleNamespace(
-        app_data=MagicMock(), session=MagicMock(), data=MagicMock(), can_edit=lambda: True
-    )
 
     assert editor.descend_into(context, card.node_id) is True  # type: ignore[arg-type]
 

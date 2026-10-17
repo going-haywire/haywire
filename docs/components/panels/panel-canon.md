@@ -126,7 +126,7 @@ Two consequences worth knowing when authoring a host: `_open_menu()` refuses to 
 | `description` | no | `''` | Tooltip / accessibility text. |
 | `registry_id` | no | class name | Unique short ID within the library. |
 | `redraw_on` | no | `()` | Tuple of `Signal` subclasses the panel wants its host editor to redraw on. |
-| `access` | no | `AccessTier.VIEW` | Minimum `AccessTier` (`VIEW` < `OPERATE` < `EDIT` < `ADMIN`) to see this panel — see [ADR 0027](../../adr/0027-studio-authentication.md). |
+| `access` | no | `AccessTier.EDIT` | Minimum `AccessTier` (`VIEW` < `OPERATE` < `EDIT` < `ADMIN`) to see this panel — see [ADR 0027](../../adr/0027-studio-authentication.md). A panel that does not declare is hidden below `edit`; declare `view` for a panel a principal below `edit` must reach, such as an account-menu entry. |
 
 **Two orthogonal facets.** A panel has two independent facets that compose freely:
 

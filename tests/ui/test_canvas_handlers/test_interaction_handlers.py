@@ -17,6 +17,8 @@ from haywire.ui.components.graph.event_definitions import (
 )
 from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map
 
+from tests.conftest import edit_route
+
 pytestmark = pytest.mark.unit
 
 SWAPPED = LayoutChannel(
@@ -31,7 +33,7 @@ def editor():
 
 @pytest.fixture
 def handler(editor):
-    return InteractionHandlers(editor=editor)
+    return InteractionHandlers(route=edit_route(editor))
 
 
 # ---------------------------------------------------------------------------
@@ -97,7 +99,7 @@ def test_all_interaction_events_are_registered(handler):
 
 def test_drag_update_moves_through_the_canvas_channel(editor):
     positions = {"n1": {"x": 100.0, "y": 80.0}}
-    InteractionHandlers(editor=editor, channel=SWAPPED).process_drag_update(
+    InteractionHandlers(route=edit_route(editor), channel=SWAPPED).process_drag_update(
         UserDragUpdateEvent(positions=positions)
     )
     editor.move_nodes_to.assert_called_once_with(positions, SWAPPED)

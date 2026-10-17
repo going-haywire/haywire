@@ -17,6 +17,7 @@ from nicegui import ui
 from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
+from haywire.core.access import LevelMode
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.node.properties import NodeProperties
 from haywire.ui import elements as hui
@@ -68,7 +69,8 @@ def _ctx(with_node=False, *, nodes=None, edges=()):  # untyped stand-in for Sess
     edit = SimpleNamespace(
         active_node=None,
         active_graph=graph,
-        active_locked=False,
+        active_mode=LevelMode.EDIT,
+        active_route=MagicMock(),  # a level is open; the form draws only with a route
         selected_nodes=set(nodes),
         selected_edges=set(edges),
     )

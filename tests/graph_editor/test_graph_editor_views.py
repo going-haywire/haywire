@@ -8,12 +8,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from haybale_graph_editor.access import level_mode
 from haybale_graph_editor.editors import graph_editor as graph_editor_module
 from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map, handles_event
 from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
 from haybale_graph_editor.state.edit_state import EditState
-from haywire.core.access import AccessTier, access_resolver, set_access_resolver
+from haywire.core.access import AccessTier, LevelMode, access_resolver, set_access_resolver
+from haywire.core.graph.edit_route import EditRoute
 from haywire.core.node.layout import STAGE
 from haywire.core.session.handlers import _REACT_ON_ATTR
 from haywire.core.signals import (
@@ -57,11 +59,18 @@ def _real_context(tier: AccessTier) -> Any:
     return ctx
 
 
-def _canvas(locked: bool = False) -> Any:
-    """A stand-in canvas that records its lock and selection."""
+def _canvas(level: Any) -> Any:
+    """A stand-in canvas that records the level mode it last showed, as ``refresh_mode`` reads it.
+
+    Like the real canvas, it keeps its selection in every mode.
+    """
     canvas = MagicMock()
-    canvas.locked = locked
-    canvas.set_locked.side_effect = lambda value: setattr(canvas, "locked", value)
+    canvas.mode = level.route.mode()
+
+    def refresh_mode() -> None:
+        canvas.mode = level.route.mode()
+
+    canvas.refresh_mode.side_effect = refresh_mode
     return canvas
 
 
@@ -73,14 +82,15 @@ def _views_editor(open_view: str = "patch", mounted: tuple[str, ...] | None = No
     document = _FakeDocument()
     document.editor.graph.props = SimpleNamespace(open_locked=False, open_view=open_view)  # type: ignore[assignment]
     editor, context, _ = _editor(document)
-    editor._levels[DOCUMENT_LEVEL] = editor._new_level(DOCUMENT_LEVEL, document)
+    context.can_access = AccessTier.ADMIN.satisfies
+    editor._levels[DOCUMENT_LEVEL] = editor._new_level(context, DOCUMENT_LEVEL, document)
     level = editor._levels[DOCUMENT_LEVEL]
     level.view_panels = MagicMock()
     mounts: list[str] = []
 
     def mount_view(_context: Any, lvl: Any, view: str, viewport: Any = None) -> None:
         mounts.append(view)
-        lvl.canvases[view] = _canvas(lvl.locked)
+        lvl.canvases[view] = _canvas(lvl)
 
     editor._mount_view = mount_view  # type: ignore[method-assign,assignment]
     editor.mounts = mounts  # type: ignore[attr-defined]
@@ -94,11 +104,18 @@ def _views_editor(open_view: str = "patch", mounted: tuple[str, ...] | None = No
             selected_nodes=set(),
             selected_edges=set(),
             active_edge=None,
-            active_locked=False,
+            active_mode=LevelMode.VIEW,
+            active_route=None,
         )
     }
     context.active_component = None
     return editor, context
+
+
+def _route_for(editor: Any, ctx: Any) -> None:
+    """Give the document level a route whose mode follows ``ctx`` and the level's lock."""
+    level = editor._levels[DOCUMENT_LEVEL]
+    level.route = EditRoute(lambda: level.container.editor, lambda: level_mode(ctx.can_access, level.locked))
 
 
 class _FakeButton:
@@ -230,6 +247,63 @@ class TestTwoCanvasesPerLevel:
         provider.hide.assert_called_once_with()
 
 
+def _select_node(editor: Any, context: Any) -> Any:
+    """Select node ``n1`` for the session on the document level, which the session is on."""
+    level = editor._levels[DOCUMENT_LEVEL]
+    edit_state = context.data[EditState]
+    edit_state.active_graph = level.container.editor.graph
+    edit_state.active_node = MagicMock(name="node")
+    edit_state.selected_nodes = {"n1"}
+    edit_state.selected_edges = {"e1"}
+    context.active_component = "lib:node:Blur"
+    context.session = MagicMock()
+    context.can_edit = lambda: True
+    return edit_state
+
+
+def _published(context: Any, kind: type) -> int:
+    return sum(isinstance(call.args[0], kind) for call in context.session.publish.call_args_list)
+
+
+class TestLockingKeepsTheSelection:
+    def test_locking_the_level_on_screen_keeps_the_selection(self):
+        """Selection is looking; only acting on it needs edit."""
+        editor, context = _views_editor(mounted=("patch", "stage"))
+        edit_state = _select_node(editor, context)
+        level = editor._levels[DOCUMENT_LEVEL]
+
+        assert editor.set_level_locked(context, DOCUMENT_LEVEL, True) is True
+
+        assert edit_state.selected_nodes == {"n1"}
+        assert edit_state.selected_edges == {"e1"}
+        assert edit_state.active_node is not None
+        assert context.active_component == "lib:node:Blur"
+        level.canvases["patch"].clear_selection.assert_not_called()
+        level.canvases["stage"].clear_selection.assert_not_called()
+
+    def test_locking_a_level_off_screen_leaves_the_session_selection(self):
+        editor, context = _views_editor(mounted=("patch", "stage"))
+        edit_state = _select_node(editor, context)
+        editor._active_level = "elsewhere"
+
+        assert editor.set_level_locked(context, DOCUMENT_LEVEL, True) is True
+
+        assert edit_state.selected_nodes == {"n1"}
+        assert edit_state.active_node is not None
+        assert _published(context, SelectionMoved) == 0
+
+    def test_unlocking_keeps_the_selection(self):
+        editor, context = _views_editor(mounted=("patch", "stage"))
+        _select_node(editor, context)
+        editor.set_level_locked(context, DOCUMENT_LEVEL, True)
+
+        assert editor.set_level_locked(context, DOCUMENT_LEVEL, False) is True
+
+        edit_state = context.data[EditState]
+        assert edit_state.selected_nodes == {"n1"}
+        assert edit_state.active_node is not None
+
+
 class TestTheLockReachesBothCanvases:
     def test_lock_applies_to_both_canvases(self):
         editor, context = _views_editor(mounted=("patch", "stage"))
@@ -238,15 +312,15 @@ class TestTheLockReachesBothCanvases:
 
         assert editor.set_level_locked(context, DOCUMENT_LEVEL, True) is True
 
-        assert level.canvases["patch"].locked is True
-        assert level.canvases["stage"].locked is True
+        assert level.canvases["patch"].mode is LevelMode.OPERATE
+        assert level.canvases["stage"].mode is LevelMode.OPERATE
 
     def test_a_stage_mounted_after_the_lock_is_locked(self):
         editor, context = _views_editor()
         context.can_edit = lambda: True
         editor.set_level_locked(context, DOCUMENT_LEVEL, True)
         editor._switch_view(context, DOCUMENT_LEVEL, "stage")
-        assert editor._levels[DOCUMENT_LEVEL].canvases["stage"].locked is True
+        assert editor._levels[DOCUMENT_LEVEL].canvases["stage"].mode is LevelMode.OPERATE
 
 
 class TestOpenView:
@@ -302,6 +376,7 @@ class TestCommandsInStageView:
         level = editor._levels[DOCUMENT_LEVEL]
         level.locked = True
         ctx = _real_context(AccessTier.VIEW)
+        _route_for(editor, ctx)
 
         assert ToggleStageView.access is AccessTier.VIEW
         assert editor.accepts_command(ctx, ToggleStageView(binding_id=BINDING)) is True
@@ -318,6 +393,8 @@ class TestCommandsInStageView:
         stage, _ = _views_editor("stage")
         patch_, _ = _views_editor("patch")
         ctx = _real_context(AccessTier.ADMIN)
+        _route_for(stage, ctx)
+        _route_for(patch_, ctx)
 
         for command in (
             Paste,
@@ -337,6 +414,7 @@ class TestCommandsInStageView:
     def test_patch_view_still_accepts_paste(self):
         editor, _ = _views_editor("patch")
         ctx = _real_context(AccessTier.ADMIN)
+        _route_for(editor, ctx)
         assert editor.accepts_command(ctx, Paste(binding_id=BINDING)) is True
 
     def test_a_locked_stage_view_is_capped_exactly_as_a_locked_patch_view(self):
@@ -344,9 +422,11 @@ class TestCommandsInStageView:
         for view in ("stage", "patch"):
             editor, _ = _views_editor(view)
             editor._levels[DOCUMENT_LEVEL].locked = True
-            for command in (Delete, Paste, Duplicate, Cut):
+            _route_for(editor, ctx)
+            for command in (Delete, Paste, Duplicate, Cut, Copy):
                 assert editor.accepts_command(ctx, command(binding_id=BINDING)) is False, (view, command)
-            assert editor.accepts_command(ctx, Copy(binding_id=BINDING)) is True, view
+            for allowed in (ToggleStageView, SelectAll):
+                assert editor.accepts_command(ctx, allowed(binding_id=BINDING)) is True, (view, allowed)
 
 
 class TestTeardownAndRepoint:
@@ -396,8 +476,8 @@ class TestTeardownAndRepoint:
         editor._rekey_level(context, level)
 
         assert level.locked is True
-        assert level.canvases["patch"].locked is True
-        assert level.canvases["stage"].locked is True
+        assert level.canvases["patch"].mode is LevelMode.OPERATE
+        assert level.canvases["stage"].mode is LevelMode.OPERATE
 
     def test_hiding_toolbars_reaches_both_canvases(self):
         editor, _ = _views_editor(mounted=("patch", "stage"))
@@ -428,15 +508,14 @@ class TestAPointerGestureOnTheStageClaimsTheSession:
         """Through ``_handle_canvas_event``: the stage canvas calls ``on_user_event`` for a pointer event."""
 
         class _Source:
-            @handles_event(SelectionChangedEvent, access=AccessTier.VIEW)
+            @handles_event(SelectionChangedEvent, access=LevelMode.VIEW)
             def seen(self, event: BaseGraphEvent) -> None:
                 pass
 
         reported: list[bool] = []
         manager: Any = object.__new__(GraphCanvasManager)
         manager.channel = STAGE
-        manager.locked = False
-        manager._session = SimpleNamespace(context=SimpleNamespace(can_access=AccessTier.ADMIN.satisfies))
+        manager.route = SimpleNamespace(allows=lambda minimum: True, mode=lambda: LevelMode.EDIT)
         manager._on_user_event = lambda: reported.append(True)
         manager._event_handlers = build_event_handler_map([_Source()])
 
@@ -450,8 +529,9 @@ class TestTheNewLevelFakeStillOpens:
         document = _FakeDocument()
         group = _FakeGraph("g")
         assert not hasattr(group.props, "open_view")
-        editor, _, _ = _editor(document)
-        assert editor._new_level("sg", SimpleNamespace(editor=SimpleNamespace(graph=group))).view == "patch"  # type: ignore[arg-type]
+        editor, context, _ = _editor(document)
+        level = editor._new_level(context, "sg", SimpleNamespace(editor=SimpleNamespace(graph=group)))  # type: ignore[arg-type]
+        assert level.view == "patch"
 
 
 class TestTheEmptyStageViewport:
@@ -464,11 +544,9 @@ class TestTheEmptyStageViewport:
         manager = MagicMock()
         manager.visual_layer.included_node_count.return_value = on_stage
         monkeypatch.setattr(graph_editor_module, "GraphCanvasManager", MagicMock(return_value=manager))
-        entry = SimpleNamespace(
-            editor=SimpleNamespace(graph=SimpleNamespace(node_wrappers={"n1": object()}))
-        )
+        route = SimpleNamespace(graph=SimpleNamespace(node_wrappers={"n1": object()}))
         context.session_id = "session-1"
-        GraphEditor._build_canvas(editor, context, entry, view=view)  # type: ignore[arg-type]
+        GraphEditor._build_canvas(editor, context, route, view=view)  # type: ignore[arg-type]
         return manager.zoom_container
 
     def test_an_empty_stage_centres_on_the_origin_corner(self, monkeypatch):
@@ -485,9 +563,9 @@ class TestTheEmptyStageViewport:
         editor._project_state = MagicMock()
         manager = MagicMock()
         monkeypatch.setattr(graph_editor_module, "GraphCanvasManager", MagicMock(return_value=manager))
-        entry = SimpleNamespace(editor=SimpleNamespace(graph=SimpleNamespace(node_wrappers={})))
+        route = SimpleNamespace(graph=SimpleNamespace(node_wrappers={}))
         context.session_id = "session-1"
-        GraphEditor._build_canvas(editor, context, entry)  # type: ignore[arg-type]
+        GraphEditor._build_canvas(editor, context, route)  # type: ignore[arg-type]
         manager.zoom_container._on_ready()
         manager.zoom_container.center_on.assert_called_once_with(3750, 3750)
 

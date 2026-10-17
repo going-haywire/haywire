@@ -24,7 +24,7 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
 
-from haywire.core.access import AccessTier
+from haywire.core.access import LevelMode
 from haywire.core.session.context import SessionContext
 from haywire.core.session.session import Session
 from haywire.ui.panel.registry import PanelRegistry
@@ -46,6 +46,7 @@ from ..event_handlers import handles_event
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
+    from haywire.core.graph.edit_route import EditRoute
     from haywire.core.types.enums import Propagation
 
 logger = logging.getLogger(__name__)
@@ -523,15 +524,19 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         Decided here, on each click, for the same reason as
         ``toggle_selection_collapsed``: the menu stays open after the row's
         click, so a value captured at draw time would only ever apply once.
-        Returns a locked edge's mode unchanged, or ``None`` when there is no
-        such edge.
+        The switch is one undo step through the session's edit route. Returns the
+        edge's mode unchanged when it is locked or the route hands out no
+        ``Editor`` (below level mode edit), or ``None`` when there is no such edge.
         """
+        from ....state.graph_app_state import route_for
+
         wrapper = self._active_edge_wrapper(edge_id)
         if wrapper is None:
             return None
-        if wrapper.propagation is not None and wrapper.locked_propagation is None:
-            wrapper.propagation = wrapper.propagation.toggled()
-            wrapper.redraw()
+        route = route_for(self._context)
+        editor = route.editor() if route is not None else None
+        if editor is not None and wrapper.propagation is not None and wrapper.locked_propagation is None:
+            editor.set_edge_propagation(edge_id, wrapper.propagation.toggled())
         return wrapper.propagation
 
     def _active_edge_wrapper(self, edge_id: str) -> "EdgeWrapper | None":
@@ -608,17 +613,21 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
                     bags.append(props)
         return bags
 
-    def set_selection_collapsed(self, collapsed: bool) -> None:
-        """Fold or unfold every selected node (ADR 0032).
+    def _route(self) -> "EditRoute | None":
+        from ....state.graph_app_state import route_for
 
-        A plain prop write, not an event: ``collapsed`` is in
-        ``REDRAW_FIELDS``, so the redraw rides the existing subscription.
-        Writing the value a node already resolves to is a no-op that leaves it
-        TRACKING its graph — which is the behaviour we want from a toggle, not
-        a bug to work around.
+        return route_for(self._context)
+
+    def set_selection_collapsed(self, collapsed: bool) -> None:
+        """Fold or unfold every selected node as one undo step through the session's edit route (ADR 0032).
+
+        Does nothing below level mode edit, or before a level is open. A node
+        redraws because ``collapsed`` is in ``REDRAW_FIELDS``.
         """
-        for props in self._selected_props():
-            props.collapsed = collapsed
+        route = self._route()
+        if route is None:
+            return
+        route.set_settings(self._selected_props(), "collapsed", collapsed, minimum=LevelMode.EDIT)
 
     def selection_is_collapsed(self) -> bool:
         """True when every selected node is folded.
@@ -643,9 +652,15 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         return collapsed
 
     def set_selection_detail(self, detail: str) -> None:
-        """Set the density rank on every selected node (ADR 0032)."""
-        for props in self._selected_props():
-            props.detail = detail
+        """Set the density rank on every selected node as one undo step (ADR 0032).
+
+        Goes through the session's edit route. Does nothing below level mode
+        edit, or before a level is open.
+        """
+        route = self._route()
+        if route is None:
+            return
+        route.set_settings(self._selected_props(), "detail", detail, minimum=LevelMode.EDIT)
 
     def clear_node_card_overrides(self) -> int:
         """Make EVERY node in the graph follow the graph's detail rank again.
@@ -660,23 +675,25 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         change gradually covers fewer and fewer nodes with no indication why.
         Collapse is NOT reset here: it is no longer inherited from the graph,
         so there is nothing for a node's own collapse state to fall back to.
+        The resets go through the session's edit route as one undo step, so below
+        level mode edit, or before a level is open, nothing is reset and it returns 0.
         """
         edit = self._context.data[EditState]
         graph = edit.active_graph
-        if graph is None:
+        route = self._route()
+        if graph is None or route is None:
             return 0
 
-        cleared = 0
+        overridden = []
         for wrapper in graph.node_wrappers.values():
             props = getattr(getattr(wrapper, "node", None), "props", None)
-            if props is None:
-                continue
-            try:
-                if props.is_locally_set("detail"):
-                    props.reset("detail")
-                    cleared += 1
-            except Exception as exc:  # pragma: no cover - defensive
-                logger.debug(f"resetting detail failed: {exc}")
+            if props is not None and props._is_locally_set("detail"):
+                overridden.append(props)
+        if not overridden:
+            return 0
+        cleared = (
+            len(overridden) if route.reset_settings(overridden, "detail", minimum=LevelMode.EDIT) else 0
+        )
         logger.info(f"cleared detail overrides on {cleared} node(s)")
         return cleared
 
@@ -687,13 +704,14 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         ever been given a rank by hand is pinned forever, and the graph tier
         can never reassert over it ("unset tracks, set ignores"). Collapse is
         NOT reset here: it is no longer inherited from the graph, so there is
-        nothing for a node's own collapse state to fall back to.
+        nothing for a node's own collapse state to fall back to. The resets go
+        through the session's edit route as one undo step: below level mode
+        edit, or before a level is open, nothing changes.
         """
-        for props in self._selected_props():
-            try:
-                props.reset("detail")
-            except Exception as exc:  # pragma: no cover - defensive
-                logger.debug(f"resetting detail failed: {exc}")
+        route = self._route()
+        if route is None:
+            return
+        route.reset_settings(self._selected_props(), "detail", minimum=LevelMode.EDIT)
 
     def add_to_stage(self) -> None:
         """Emit AddToStageEvent for the whole selection."""
@@ -772,47 +790,51 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def remove_port(self, port_id: str) -> None:
         """Remove the user-created port ``port_id`` on the right-clicked node, as one undo step."""
-        from ....state.graph_app_state import editor_for
+        from ....state.graph_app_state import route_for
 
         wrapper = self._context.data[EditState].active_node
-        editor = editor_for(self._context)
+        route = route_for(self._context)
+        editor = route.editor() if route is not None else None
         if wrapper is None or editor is None:
             return
         if editor.remove_port(wrapper.node_id, port_id):
             self._redraw_node(wrapper.node_id)
 
     def reset_setting(self, port_id: str) -> None:
-        """Reset the setting behind ``port_id`` to its declared default.
+        """Reset the setting behind the promoted port ``port_id`` to the value it takes when not set locally.
 
-        The same act as the Properties row's Reset, reached from the pin — so a
-        value typed into a pin's own widget can be undone where it was typed.
-        Routed through the bag rather than the port: the port would write only
-        the cell, leaving the bag believing nobody had an opinion.
+        The same act as the Properties row's Reset, reached from the pin, and
+        written to the setting, so the setting no longer counts as set locally.
+        Goes through the session's edit route: below level mode edit, before a
+        level is open, or for a port matching no setting, nothing changes.
         """
-        self._with_promoted_setting(port_id, lambda bag, desc: bag._reset(desc._attr_name))
+        self._with_promoted_setting(
+            port_id, lambda route, bag, name: route.reset_setting(bag, name, minimum=LevelMode.EDIT)
+        )
 
     def clear_setting(self, port_id: str) -> None:
-        """Set the setting behind ``port_id`` to absence (``OPTIONAL[T]`` only)."""
-        self._with_promoted_setting(port_id, lambda bag, desc: setattr(bag, desc._attr_name, None))
+        """Set the setting behind ``port_id`` to absence (``OPTIONAL[T]`` only), through the edit route."""
+        self._with_promoted_setting(
+            port_id, lambda route, bag, name: route.set_setting(bag, name, None, minimum=LevelMode.EDIT)
+        )
 
-    def _with_promoted_setting(self, port_id: str, act) -> None:
-        """Resolve ``port_id`` to its (bag, descriptor) and apply *act*, then redraw.
+    def _with_promoted_setting(self, port_id: str, write: "Callable[[EditRoute, Any, str], bool]") -> None:
+        """Resolve ``port_id`` to its bag and field, apply *write* through the route, and redraw if it wrote.
 
-        A port matching no setting is ignored rather than raising — the same
-        tolerance ``demote_setting`` shows for a library changed under a saved
-        graph.
+        Ignores a port matching no setting, an absent route and a refused write.
         """
         from haywire.core.node.promotion import _resolve_promoted
 
         wrapper = self._context.data[EditState].active_node
-        if wrapper is None:
+        route = self._route()
+        if wrapper is None or route is None:
             return
         try:
             bag, descriptor = _resolve_promoted(wrapper.node, port_id)
         except KeyError:
             return
-        act(bag, descriptor)
-        self._redraw_node(wrapper.node_id)
+        if write(route, bag, descriptor._attr_name):
+            self._redraw_node(wrapper.node_id)
 
     def set_port_show_widget(self, port_id: str, strategy: str) -> None:
         """Set a promoted port's widget-visibility strategy from the pin menu.
@@ -822,14 +844,17 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         than raised: the only caller builds its rows from the enum itself, so
         a bad value means a coding error, not user input worth a dialog.
 
-        Not undoable — matching ``demote_setting`` beside it, the other
-        promoted-port verb on this menu.
+        Needs level mode edit, and does nothing below it or before a level is
+        open. The strategy is presentation kept in the promotion record, not a
+        settings field, so it is written directly: not undoable, and it marks
+        nothing unsaved (ADR 0055).
         """
         from haywire.core.node.promotion import set_promoted_show_widget
         from haywire.core.types.enums import ShowWidgetStrategy
 
         wrapper = self._context.data[EditState].active_node
-        if wrapper is None:
+        route = self._route()
+        if wrapper is None or route is None or not route.allows(LevelMode.EDIT):
             return
         try:
             resolved = ShowWidgetStrategy(strategy)
@@ -857,7 +882,7 @@ class ContextMenuHandlers:
 
     Reads edge data from VisualLayerHandlers (via the get_edge accessor) and
     delegates all menu-surface decisions to an IContextMenuProvider.
-    ``allows`` answers whether the session may do what a tier asks on this
+    ``allows`` answers whether the level's mode is at least a given one on this
     canvas; menus open only where it allows ``EDIT``.
     """
 
@@ -865,7 +890,7 @@ class ContextMenuHandlers:
         self,
         visual_layer: "VisualLayerHandlers",
         provider: IContextMenuProvider,
-        allows: Callable[[AccessTier], bool],
+        allows: Callable[[LevelMode], bool],
     ):
         self.visual_layer = visual_layer
         self.provider = provider
@@ -877,12 +902,12 @@ class ContextMenuHandlers:
         ContextMenuSelectedEvent,
         ContextMenuSurfaceEvent,
         ContextMenuPortEvent,
-        access=AccessTier.VIEW,
+        access=LevelMode.VIEW,
     )
     def process_context_menu(self, event):
         """Route context-menu events to the provider as intent calls.
 
-        Below edit access (a locked canvas included) no menu opens.
+        Below level mode ``EDIT`` no menu opens.
 
         A menu already open is dismissed first, so right-clicking a second node
         swaps menus in one gesture rather than stacking two live popups. This
@@ -898,7 +923,7 @@ class ContextMenuHandlers:
         re-dispatched from there.
         """
         self.provider.close_open_menu()
-        if not self._allows(AccessTier.EDIT):
+        if not self._allows(LevelMode.EDIT):
             return
 
         if isinstance(event, ContextMenuCanvasEvent):

@@ -1,14 +1,18 @@
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.graph.setting_owner import SettingOwner
 from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.factory import NodeFactory
-from haywire.core.undo.interfaces import IHistoryManager
+from haywire.core.types import Propagation
+from haywire.core.undo.interfaces import IAction, IHistoryManager
 from haywire.core.undo.history_manager import HistoryManager
 from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.actions.graph_actions import (
+    ResetSettingsAction,
+    SetSettingsAction,
     stage_node_data,
     AddNodeAction,
     MoveNodesAction,
@@ -24,8 +28,12 @@ from haywire.core.undo.actions.graph_actions import (
     DetachPlacementFromMacroAction,
     ExpandGraphNodeAction,
     PromoteGroupToMacroAction,
+    ReorderPortsAction,
+    ResetSettingAction,
+    SetEdgePropagationAction,
     SetPortMetadataAction,
     SetPropertyAction,
+    SetSettingAction,
     SetStageMembershipAction,
 )
 
@@ -37,6 +45,8 @@ class Editor:
 
     Every mutating method records one action on the history manager and
     reports a failure by returning ``False`` or ``None``; it does not raise.
+    A value write given ``record=False`` applies its action without recording
+    it, and fences the history after it.
     """
 
     def __init__(
@@ -243,25 +253,166 @@ class Editor:
             logger.error(f"Error changing stage membership: {e}")
             return False
 
-    def set_property(self, node_id: str, name: str, value: Any, prefer_setting: bool = False) -> bool:
-        """Set a port value or settings-bag field on a node, undo-recorded.
+    def set_property(
+        self,
+        node_id: str,
+        name: str,
+        value: Any,
+        prefer_setting: bool = False,
+        *,
+        record: bool = True,
+        merge_owner: object | None = None,
+    ) -> bool:
+        """Set a port value or settings-bag field on a node; see ``SetPropertyAction``.
 
         ``name`` resolves to a port id first, then a settings-bag field name;
         ``prefer_setting=True`` flips that order, for a ``name`` that must mean
         the settings field even though a port shares it. Returns ``False``
         without mutating anything if the node or the name is unknown, or the port
         holds no own value (a pooled inlet or an ``ADD`` slot).
+
+        Args:
+            record: Record the write as an undo step. ``False`` applies it and
+                adds a fence, so it joins no undo step.
+            merge_owner: The session token a run of writes belongs to; writes with the
+                same token amend one step while the run lasts. ``None`` never merges.
+                A write that changes nothing adds no step and no fence.
         """
         try:
             action = SetPropertyAction(self.graph, node_id, name, value, prefer_setting=prefer_setting)
             # Resolve up front so a miss is refused before the action runs.
             action._resolve()
-            if not self.history_manager.add_action(action):
-                return False
-            logger.info(f"Set property {name!r} on node {node_id}")
-            return True
         except Exception as e:
             logger.error(f"Error setting property {name!r} on {node_id}: {e}")
+            return False
+        if not self._apply_value(action, record, merge_owner):
+            return False
+        # An unrecorded write arrives per widget tick, so it logs at debug.
+        (logger.info if record else logger.debug)(f"Set property {name!r} on node {node_id}")
+        return True
+
+    def set_setting(
+        self,
+        owner: SettingOwner,
+        name: str,
+        value: Any,
+        *,
+        record: bool = True,
+        merge_owner: object | None = None,
+    ) -> bool:
+        """Set one settings field on a node, the graph or an edge; see ``SetSettingAction``.
+
+        Args:
+            record: Record the write as an undo step. ``False`` applies it and
+                adds a fence, so it joins no undo step.
+            merge_owner: As for ``set_property``.
+
+        Returns:
+            ``False`` without writing if ``owner`` does not resolve in this graph or
+            its bag has no field ``name``.
+        """
+        return self._apply_value(SetSettingAction(self.graph, owner, name, value), record, merge_owner)
+
+    def reset_setting(
+        self, owner: SettingOwner, name: str, *, record: bool = True, merge_owner: object | None = None
+    ) -> bool:
+        """Reset one settings field to the value it takes when not set locally; see ``ResetSettingAction``.
+
+        Args:
+            record: As for ``set_setting``.
+            merge_owner: As for ``set_property``.
+
+        Returns:
+            ``False`` without writing if ``owner`` does not resolve in this graph or
+            its bag has no field ``name``.
+        """
+        return self._apply_value(ResetSettingAction(self.graph, owner, name), record, merge_owner)
+
+    def set_settings(
+        self,
+        owners: Sequence[SettingOwner],
+        name: str,
+        value: Any,
+        *,
+        record: bool = True,
+        merge_owner: object | None = None,
+    ) -> bool:
+        """Set one settings field on every owner as one step; see ``SetSettingsAction``.
+
+        Args:
+            record: As for ``set_setting``.
+            merge_owner: As for ``set_property``; a run amends every child of the step.
+
+        Returns:
+            ``False`` without writing if an owner does not resolve or lacks the field.
+        """
+        return self._apply_value(SetSettingsAction(self.graph, owners, name, value), record, merge_owner)
+
+    def reset_settings(
+        self,
+        owners: Sequence[SettingOwner],
+        name: str,
+        *,
+        record: bool = True,
+        merge_owner: object | None = None,
+    ) -> bool:
+        """Reset one settings field on every owner as one step; see ``ResetSettingsAction``.
+
+        Args:
+            record: As for ``set_setting``.
+            merge_owner: As for ``set_property``.
+
+        Returns:
+            ``False`` without writing if an owner does not resolve or lacks the field.
+        """
+        return self._apply_value(ResetSettingsAction(self.graph, owners, name), record, merge_owner)
+
+    def reorder_ports(self, node_id: str, ordered_ids: List[str]) -> bool:
+        """Reorder one sibling group of a node's ports as one undoable action.
+
+        Args:
+            ordered_ids: Port ids of the group, in display order; see ``NodeData.reorder_ports``.
+
+        Returns:
+            ``False`` if the node is unknown or the reorder failed.
+        """
+        return self._apply(ReorderPortsAction(self.graph, node_id, ordered_ids), record=True)
+
+    def set_edge_propagation(self, edge_id: str, propagation: Propagation) -> bool:
+        """Change an edge's propagation mode as one undoable action.
+
+        Returns:
+            ``False`` if the edge is unknown, or refuses the mode (its wire type
+            does not allow it, or the edge is locked to another).
+        """
+        return self._apply(SetEdgePropagationAction(self.graph, edge_id, propagation), record=True)
+
+    def _apply_value(self, action: IAction, record: bool, merge_owner: object | None) -> bool:
+        """Run a value write: recorded (and merged) on the history, or applied and fenced if it changed.
+
+        A write that changes nothing adds no step and no fence. ``False`` if it raised.
+        """
+        try:
+            if record:
+                return self.history_manager.add_value_action(action, merge_owner)
+            action.execute()
+            if cast(Any, action).changed:
+                self.history_manager.add_fence()
+            return True
+        except Exception as e:
+            logger.error(f"Error applying {action.description}: {e}")
+            return False
+
+    def _apply(self, action: IAction, record: bool) -> bool:
+        """Run ``action``: recorded on the history, or applied and fenced; ``False`` if it raised."""
+        try:
+            if record:
+                return self.history_manager.add_action(action)
+            action.execute()
+            self.history_manager.add_fence()
+            return True
+        except Exception as e:
+            logger.error(f"Error applying {action.description}: {e}")
             return False
 
     def set_port_metadata(self, node_id: str, port_id: str, **changes: Any) -> Tuple[bool, Optional[str]]:

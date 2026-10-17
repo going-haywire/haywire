@@ -25,14 +25,37 @@ def test_surface_identities_have_access(cls):
     assert "access" in _fields(cls)
 
 
-def test_panel_identity_defaults_to_view():
+def test_panel_identity_defaults_to_edit():
     identity = PanelIdentity(registry_id="p", registry_key="k", label="L")
-    assert identity.access is AccessTier.VIEW
+    assert identity.access is AccessTier.EDIT
 
 
-def test_editor_identity_defaults_to_view():
+def test_editor_identity_defaults_to_edit():
     identity = EditorIdentity(registry_id="e", registry_key="k", label="L")
-    assert identity.access is AccessTier.VIEW
+    assert identity.access is AccessTier.EDIT
+
+
+def test_editor_decorator_without_access_gives_edit():
+    from haywire.ui.editor.base import BaseEditor
+    from haywire.ui.editor.decorator import editor
+
+    @editor(label="Z")
+    class _Z(BaseEditor):
+        def draw(self, context, container): ...
+
+    assert _Z.class_identity.access is AccessTier.EDIT
+
+
+def test_panel_decorator_without_access_gives_edit():
+    from haywire.barn.builtin.surfaces import AppSettings
+    from haywire.ui.panel.base import BasePanel
+    from haywire.ui.panel.decorator import panel
+
+    @panel(label="P", surface=AppSettings)
+    class _P(BasePanel):
+        def draw(self, ctx, container): ...
+
+    assert _P.class_identity.access is AccessTier.EDIT
 
 
 def test_farmhand_identity_defaults_to_view():

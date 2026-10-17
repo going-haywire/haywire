@@ -80,7 +80,8 @@ class EditorIdentity(BaseIdentity):
             to registration order.
         access: Minimum AccessTier needed to see this editor — an
             :class:`AccessTier` or its string value ('view', 'edit', 'admin').
-            Defaults to 'view'. An unknown value raises ``ValueError`` at
+            Defaults to 'edit', so an editor that does not declare is hidden
+            below edit. An unknown value raises ``ValueError`` at
             class-definition time.
     """
 
@@ -88,4 +89,4 @@ class EditorIdentity(BaseIdentity):
     default_slot: SlotName = SlotName.EDIT
     opens: OpenBehavior = field(default=OpenBehavior.REQUIRED)
     order: int = 100
-    access: AccessTier = AccessTier.VIEW
+    access: AccessTier = AccessTier.EDIT

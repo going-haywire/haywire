@@ -213,11 +213,11 @@ def _on_scale(self, value: float, old: float):
 
 `unsubscribe(callback)` and `cleanup()` detach it; registration is idempotent per (field, callback), and one callback may watch several fields.
 
-**Panel rendering rules.** When the properties panel calls `render_settings(node.filter)`:
+**Panel rendering rules.** When the properties panel calls `render_settings(ctx, node.filter, route=route_for(ctx))`:
 
 - Every field renders a row, sorted by `(category, order, attr_name)` and grouped under collapsible category headers.
 - A field's `effective_ui_state()` controls chrome: `DISABLED` renders the widget non-interactive (greyed), `HIDDEN` removes the row entirely. `watch()` seeds `DISABLED`.
-- Mirror fields (`shadow()` / `watch()`) that are locally overridden show a `•` prefix and a reset button (`restart_alt` icon) that calls `obj._reset(attr_name)`.
+- Mirror fields (`shadow()` / `watch()`) that are locally overridden show a `•` prefix and a reset button (`restart_alt` icon) that resets the field through the route (with `route=None`, through `obj._reset(attr_name)`).
 - Each row produces this DOM structure (useful for tests):
 
 ```text

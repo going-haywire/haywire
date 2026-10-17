@@ -228,6 +228,10 @@ class DataPort(DataTypeIdentity):
     defaults (inlet NOT_LINKED, outlet NEVER, config ALWAYS) are injected by
     as_inlet/as_outlet/as_config; override per-port via kwargs."""
 
+    operable: bool = True
+    """Whether operating this port's widget on a node card may change its value.
+    ``False`` makes every write to it need level mode ``edit``."""
+
     # Runtime reference (not serialized)
     _wrapper: Optional["NodeWrapper"] = field(default=None, repr=False, metadata={"serialize": False})
 

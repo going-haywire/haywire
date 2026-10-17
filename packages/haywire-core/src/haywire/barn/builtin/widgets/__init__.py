@@ -9,6 +9,8 @@ from .basic_widgets import (
     TextWidget,
 )
 from .color_widget import ColorWidget
+from .fold_widget import FoldWidget
+from .note_text_widget import NoteTextWidget
 from .optional_widget import OptionalWidget
 from .vec_widget import VecWidget
 
@@ -24,4 +26,6 @@ __all__ = [
     "ColorWidget",
     "OptionalWidget",
     "ArrowHeadWidget",
+    "FoldWidget",
+    "NoteTextWidget",
 ]

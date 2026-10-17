@@ -1,7 +1,7 @@
 """Which GraphEditor's level the session's graph state describes, with two editors shown at once.
 
 Split panes show two graph editors side by side, each the focused tab of its
-own slot. The session's ``active_graph`` / ``active_locked`` are what the
+own slot. The session's ``active_graph`` / ``active_mode`` are what the
 panels gate on, so they must describe the graph the selection lives in: the
 editor a pointer-down lands in claims the session, and an editor the user is
 not working in never does.
@@ -25,7 +25,7 @@ from haybale_graph_editor.editors.graph_canvas.handlers.selection import Selecti
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
 from haybale_graph_editor.protocols import SubgraphContainer
 from haybale_graph_editor.state.edit_state import EditState
-from haywire.core.access import AccessTier
+from haywire.core.access import AccessTier, LevelMode
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import _REACT_ON_ATTR
 from haywire.core.signals import SelectionMoved
@@ -103,7 +103,7 @@ class TestTheEditorAClickLandsInClaims:
         _retarget(context, b.wrapper.editor_binding_id, a, b)
 
         assert edit_state.active_graph is _interior_graph(b)
-        assert edit_state.active_locked is True
+        assert edit_state.active_mode is LevelMode.OPERATE
         _assert_selection_dropped(context, edit_state)
 
     def test_the_click_selection_lands_after_the_claim_and_stays(self):
@@ -116,7 +116,7 @@ class TestTheEditorAClickLandsInClaims:
 
         assert edit_state.active_node is b_node
         assert edit_state.active_graph is _interior_graph(b)
-        assert edit_state.active_locked is True
+        assert edit_state.active_mode is LevelMode.OPERATE
 
     def test_clicking_back_in_the_first_pane_drops_the_other_panes_selection(self):
         a, b, context, edit_state = _split_panes()
@@ -127,7 +127,7 @@ class TestTheEditorAClickLandsInClaims:
         _retarget(context, a.wrapper.editor_binding_id, a, b)
 
         assert edit_state.active_graph is a._levels[DOCUMENT_LEVEL].container.editor.graph
-        assert edit_state.active_locked is False
+        assert edit_state.active_mode is LevelMode.EDIT
         _assert_selection_dropped(context, edit_state)
 
     def test_a_pointer_down_in_another_editor_claims_nothing(self):
@@ -159,7 +159,7 @@ class TestABackgroundEditorLeavesTheSessionAlone:
         assert container.definition is reloaded
         assert b._active_level == _PLACEMENT_KEY
         assert edit_state.active_graph is a_graph
-        assert edit_state.active_locked is False
+        assert edit_state.active_mode is LevelMode.EDIT
         assert edit_state.active_node is a_node
         assert SelectionMoved not in _published(context)
 
@@ -186,7 +186,7 @@ class TestABackgroundEditorLeavesTheSessionAlone:
         b.on_focus(context)
 
         assert edit_state.active_graph is reloaded
-        assert edit_state.active_locked is True
+        assert edit_state.active_mode is LevelMode.OPERATE
 
     def test_the_editor_the_session_is_on_still_follows_its_reload(self):
         _a, b, context, edit_state = _split_panes()
@@ -197,7 +197,7 @@ class TestABackgroundEditorLeavesTheSessionAlone:
         b._prune_dead_levels(context)
 
         assert edit_state.active_graph is reloaded
-        assert edit_state.active_locked is True
+        assert edit_state.active_mode is LevelMode.OPERATE
 
 
 _CONTEXT_MENU_EVENTS = [
@@ -235,7 +235,7 @@ class _Recorder:
         NodesMeasuredEvent,
         SelectionBoundsEvent,
         SelectionBoundsHideEvent,
-        access=AccessTier.VIEW,
+        access=LevelMode.VIEW,
     )
     def record(self, event: BaseGraphEvent) -> None:
         self.seen.append(self._context.data[EditState].active_graph)
@@ -257,7 +257,7 @@ def _mount_canvas(monkeypatch, editor: GraphEditor, context: Any, key: str) -> t
     def construct(**kwargs: Any) -> Any:
         manager: Any = object.__new__(GraphCanvasManager)
         manager._session = session
-        manager.locked = level.locked
+        manager.route = level.route
         manager.visual_layer = MagicMock()
         manager.zoom_container = MagicMock()
         manager.sync_with_graph = MagicMock()
@@ -265,7 +265,7 @@ def _mount_canvas(monkeypatch, editor: GraphEditor, context: Any, key: str) -> t
         if "on_user_event" in kwargs:
             manager._on_user_event = kwargs["on_user_event"]
         selection = SelectionHandlers(
-            graph=graph, editor=MagicMock(), session_id="s1", session=cast(Any, session)
+            graph=graph, route=MagicMock(), session_id="s1", session=cast(Any, session)
         )
         manager._event_handlers = build_event_handler_map([selection, recorder])
         return manager
@@ -273,7 +273,7 @@ def _mount_canvas(monkeypatch, editor: GraphEditor, context: Any, key: str) -> t
     monkeypatch.setattr(graph_editor_module, "GraphCanvasManager", construct)
     editor._project_state = MagicMock()
     context.session_id = "session-1"
-    manager = editor._build_canvas(context, level.container)
+    manager = editor._build_canvas(context, level.route)
     assert manager is not None
     level.canvases["patch"] = manager
     return manager, recorder
@@ -315,18 +315,18 @@ class TestAGestureOnACanvasClaimsTheSession:
             EnterGroupEvent,
         }
 
-    def test_a_click_selection_on_the_other_pane_lands_under_its_level(self, monkeypatch):
+    def test_a_click_on_the_other_pane_claims_its_level_and_selects_there_below_edit(self, monkeypatch):
         _a, b, context, edit_state, manager, _ = _residual_path(monkeypatch)
-        b_node = MagicMock(name="b_interior_node")
-        _interior_graph(b).node_wrappers["b1"] = b_node
+        interior_node = MagicMock(name="b_interior_node")
+        _interior_graph(b).node_wrappers["b1"] = interior_node
 
         manager._handle_canvas_event(
             SelectionChangedEvent(selectedNodes=["b1"], selectedEdges=[], activeNodeId="b1")
         )
 
         assert edit_state.active_graph is _interior_graph(b)
-        assert edit_state.active_locked is True
-        assert edit_state.active_node is b_node
+        assert edit_state.active_mode is LevelMode.OPERATE
+        assert edit_state.active_node is interior_node
         assert edit_state.selected_nodes == {"b1"}
 
     @pytest.mark.parametrize("event", _CONTEXT_MENU_EVENTS, ids=lambda e: e.event_type)
@@ -336,7 +336,7 @@ class TestAGestureOnACanvasClaimsTheSession:
         manager._handle_canvas_event(event)
 
         assert recorder.seen == [_interior_graph(b)]
-        assert edit_state.active_locked is True
+        assert edit_state.active_mode is LevelMode.OPERATE
 
     @pytest.mark.parametrize("event", _BACKGROUND_EVENTS, ids=lambda e: e.event_type)
     def test_an_event_the_canvas_sends_on_its_own_claims_nothing(self, monkeypatch, event):
@@ -347,7 +347,7 @@ class TestAGestureOnACanvasClaimsTheSession:
 
         assert recorder.seen == [a_graph]
         assert edit_state.active_graph is a_graph
-        assert edit_state.active_locked is False
+        assert edit_state.active_mode is LevelMode.EDIT
         context.session.publish.assert_not_called()
 
     def test_a_canvas_of_a_level_not_on_screen_claims_nothing(self, monkeypatch):
@@ -358,7 +358,7 @@ class TestAGestureOnACanvasClaimsTheSession:
         hidden._handle_canvas_event(SelectionChangedEvent(selectedNodes=[], selectedEdges=[]))
 
         assert edit_state.active_graph is a._levels[DOCUMENT_LEVEL].container.editor.graph
-        assert edit_state.active_locked is False
+        assert edit_state.active_mode is LevelMode.EDIT
 
     def test_a_gesture_on_the_canvas_already_holding_the_session_publishes_no_move(self, monkeypatch):
         from haywire.core.signals import ActiveGraphMoved

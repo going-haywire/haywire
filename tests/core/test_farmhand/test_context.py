@@ -49,6 +49,23 @@ def test_fence_delegates_to_editor():
     assert editor.fences == 1
 
 
+def test_close_fences_closes_each_fenced_editor_once():
+    class FakeEditor:
+        def __init__(self):
+            self.fences = 0
+
+        def add_fence(self):
+            self.fences += 1
+
+    fenced, other = FakeEditor(), FakeEditor()
+    ctx = FarmhandContext()
+    ctx.fence(fenced)
+    ctx.fence(fenced)
+    ctx.close_fences()
+    ctx.close_fences()
+    assert (fenced.fences, other.fences) == (3, 0)
+
+
 def test_broadcast_uses_ambient_signal_dispatcher(monkeypatch):
     from haywire.core.di import context as di_context
 

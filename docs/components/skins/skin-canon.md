@@ -356,6 +356,52 @@ right-clicking one correctly falls through past the pin check to whatever is nex
 normally the node. Do not expect a ghost pin to carry a menu; it is deliberately excluded,
 not an oversight to work around.
 
+## A skin draws, widgets write
+
+A skin writes nothing: it never sets a port value or a setting, never calls `Editor`, and
+never redraws a card itself. Every control on a card is a widget, and a widget's writes take
+the card's [edit route](../../reference/glossary.md), which checks the level mode, marks the
+graph unsaved and records the undo step (see
+[ADR 0055](../../adr/0055-every-user-edit-takes-the-edit-route.md)).
+`tests/ui/skin/test_skins_write_nothing.py` checks the in-repo skins.
+
+- **A port's widget:** `BaseSkin.render_widget(port, node_id, classes="")` draws the port's own
+  widget. The fold header is one: the `FOLD` type declares the `FoldWidget`, so the stacked
+  skin draws it inside its indented fold row, and the split skin, which draws a fold as an
+  ordinary row, draws the same toggle.
+- **A setting's widget:** `BaseSkin.render_setting_widget(bag, name, node_id, *, widget_key=None,
+  classes="")` draws the widget of a settings field on the card, through the same routed
+  model. `widget_key` picks a widget other than the field's own: the annotation skin draws
+  `NoteTextWidget` on `annotation.text`, so the Properties panel keeps the plain text widget.
+  The skin keeps the look by wrapping the widget in an element whose CSS the widget inherits.
+- **Operable or not:** both calls stamp `data-hw-operable` on an operable widget (below). A port
+  or field declared `operable=False` is not stamped, and the route needs level mode `edit` for
+  its writes.
+
+**Skin instances are app-wide singletons.** One instance of each skin draws every card, for
+every session and canvas. A skin keeps no per-card or per-session state between renders; what
+it needs during one render is keyed by node id, the way `BaseSkin._render` holds the card's
+route.
+
+## Pointer input below level mode `edit`
+
+Below level mode `edit` the canvas takes pointer input away from everything inside a card's
+`.ui-node-slot` (see [ADR 0055](../../adr/0055-every-user-edit-takes-the-edit-route.md), "The
+browser layer"). Two attributes give it back:
+
+- **A control** a skin draws must be a widget drawn through `BaseSkin.render_widget` or
+  `BaseSkin.render_setting_widget`, which stamp `data-hw-operable` on an operable one. It then
+  takes input in level mode `operate` as well as `edit`. A widget for an `operable=False` port
+  or field is not stamped and takes input only in `edit`.
+- **A read-only affordance** (a tooltip trigger, an info menu, a badge) carries
+  `data-hw-readable` and takes input in every level mode. `add_pin_tooltip` stamps it on a pin
+  that triggers its own tooltip; the studio skin stamps it on the diagnostics badge and the
+  comment badge. It must not offer a write: `view` reaches it too.
+
+Anything else on a card takes no pointer input below `edit`. The gate does not touch the
+inside of a marked element, so its own `pointer-events` rules (a disabled widget's `none`)
+stay in force.
+
 ## Stage view: the `on_stage` keyword
 
 Stage view is a display, not a separate face. A node on a graph's stage is drawn by the same `render()` as in patch view, with the same skin and title; the differences are which pins are drawn and which rows (below). `UINode._render` passes `on_stage=self.channel.stage` through `SkinFactory.render(key, wrapper, *, on_stage=False, ...)` (the error-skin fallback forwards it too). See [ADR 0054](../../adr/0054-the-stage-view.md).
@@ -363,7 +409,7 @@ Stage view is a display, not a separate face. A node on a graph's stage is drawn
 - `BaseSkin.render(self, main_card, wrapper, *, on_stage: bool)` (`packages/haywire-core/src/haywire/ui/skin/base.py`). The keyword is **required**, so a skin outside the repo breaks loudly when it is not updated.
 - `render_pin(..., on_stage: bool)` (`pin_render.py`) is required too. With `on_stage=True` it returns `None` for a port whose `port.on_stage` is false (its wire type is not an on-stage wire); a skin must tolerate that `None`. With `on_stage=False` it behaves as in patch view.
 - **Collapse.** A skin's collapse check is `self.is_collapsed(wrapper) and not on_stage`: a node collapsed in the patch is drawn expanded on stage. Fold state is honoured on stage (below).
-- **The row rule.** On stage a default-skin card draws a row only for a port that renders a widget there (`NodeSkin._shows_widget`): label plus widget, as in the patch. A port without a shown widget draws no label and no row. An on-stage pin without a widget is drawn alone in a bare pin row, so it keeps an anchor. Folds work on stage (`StackedSkin`): the fold header draws only when the fold port passes `should_show_widget()` (a `FOLD` port has no `widget_key`, so only the show-widget strategy applies), a closed fold hides its children, and the state is the node's one fold state, shared with the patch. The split skin draws no fold header in either view; its config band honours fold state and is skipped when none of its configs shows a widget. The Annotation skin is unaffected. A custom skin should follow the rule, or its on-stage cards show rows the default skin omits.
+- **The row rule.** On stage a default-skin card draws a row only for a port that renders a widget there (`NodeSkin._shows_widget`): label plus widget, as in the patch. A port without a shown widget draws no label and no row. An on-stage pin without a widget is drawn alone in a bare pin row, so it keeps an anchor. Folds work on stage: the fold header is the fold's widget, so it follows the same row rule, a closed fold hides its children, and the state is the node's one fold state, shared with the patch. The split skin's config band honours fold state and is skipped when none of its configs shows a widget. The Annotation skin is unaffected. A custom skin should follow the rule, or its on-stage cards show rows the default skin omits.
 - **Ghost pins stay.** `render_ghost_pin` is unchanged, so an edge whose port is missing keeps its anchor on stage.
 - Everything else about the card (the class-list contract above, `node-card`, `drag-handle`, the frame) holds on stage as in patch view.
 

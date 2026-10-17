@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
 
-from haywire.core.access import AccessTier
+from haywire.core.access import LevelMode
 from haywire.ui import elements as hui
 from haywire.ui.panel.host_rendering import (
     _poll_surface,
@@ -78,9 +78,9 @@ class SelectionToolbarProvider:
     ``SelectionMenu`` directly and no panel learns anything.
 
     Args:
-        allows: Answers whether the session may do what a tier asks on this
-            canvas, as ``GraphCanvasManager.allows`` does. Asked at every
-            ``show_at``; the toolbar shows only where it allows ``EDIT``.
+        allows: Answers whether the level's mode is at least a given one, as
+            ``EditRoute.allows`` does. Asked at every ``show_at``; the toolbar
+            shows only where it allows ``EDIT``.
     """
 
     def __init__(
@@ -89,7 +89,7 @@ class SelectionToolbarProvider:
         session: "Session",
         panel_registry: "PanelRegistry",
         menu_provider: "SessionContextMenuProvider",
-        allows: Callable[[AccessTier], bool],
+        allows: Callable[[LevelMode], bool],
         on_emit_event: Optional[Callable] = None,
         on_emit_sync_event: Optional[Callable] = None,
     ):
@@ -118,7 +118,7 @@ class SelectionToolbarProvider:
         self._last_bounds = bounds
         left, top, right, bottom = bounds
 
-        if not self._allows(AccessTier.EDIT):
+        if not self._allows(LevelMode.EDIT):
             self.hide()
             return
 
@@ -158,6 +158,13 @@ class SelectionToolbarProvider:
         drew = self._render_into_popup(applies, disabled)
         if not drew:
             self.hide()
+
+    def refresh(self) -> None:
+        """Re-render an open toolbar for the last known selection bounds; does nothing while hidden."""
+        popup = self._toolbar_popup
+        if popup is None or not popup.is_open or self._last_bounds is None:
+            return
+        self.show_at(self._last_bounds)
 
     def hide(self) -> None:
         """Hide the toolbar without destroying it.
@@ -342,12 +349,12 @@ class SelectionToolbarHandlers:
     def __init__(self, provider: SelectionToolbarProvider):
         self._provider = provider
 
-    @handles_event(SelectionBoundsEvent, access=AccessTier.VIEW)
+    @handles_event(SelectionBoundsEvent, access=LevelMode.VIEW)
     def process_selection_bounds(self, event: SelectionBoundsEvent) -> None:
         """Show or reposition the toolbar above the selection. See ``SelectionToolbarProvider.show_at``."""
         self._provider.show_at((event.left, event.top, event.right, event.bottom))
 
-    @handles_event(SelectionBoundsHideEvent, access=AccessTier.VIEW)
+    @handles_event(SelectionBoundsHideEvent, access=LevelMode.VIEW)
     def process_selection_bounds_hide(self, event: SelectionBoundsHideEvent) -> None:
         """Hide the toolbar during pan/zoom/drag gestures."""
         self._provider.hide()

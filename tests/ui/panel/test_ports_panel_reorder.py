@@ -12,7 +12,8 @@ from nicegui import Client, ui
 from nicegui.elements.sortable.sortable import Sortable
 from nicegui.page import page as page_deco
 
-from haywire.core.access import AccessTier
+from haywire.core.access import AccessTier, LevelMode
+from haywire.core.graph.edit_route import EditRoute
 from haywire.core.types.enums import PortOrigin
 
 pytestmark = pytest.mark.unit
@@ -48,11 +49,20 @@ def _walk(element):
         yield from _walk(child)
 
 
-def _ctx(tier: AccessTier = AccessTier.EDIT, locked: bool = False) -> Any:
-    """The session context ``_render_lane`` and ``_on_reorder`` read the tier and lock from."""
+def _ctx(
+    tier: AccessTier = AccessTier.EDIT,
+    node: Any = None,
+    mode: LevelMode = LevelMode.EDIT,
+) -> Any:
+    """The session context ``_render_lane`` and ``_on_reorder`` read the route from.
+
+    ``tier`` is for the port pen, which reads it; the route's editor writes through ``node``.
+    """
     from haybale_graph_editor.state.edit_state import EditState
 
-    edit = SimpleNamespace(active_locked=locked, active_node=None)
+    editor = SimpleNamespace(reorder_ports=lambda node_id, ids: node.reorder_ports(ids))
+    route = EditRoute(lambda: cast(Any, editor), lambda: mode)
+    edit = SimpleNamespace(active_mode=mode, active_node=None, active_route=route)
     return SimpleNamespace(can_access=tier.satisfies, data={EditState: edit})
 
 
@@ -240,15 +250,6 @@ def test_sibling_folds_each_get_their_own_sortable() -> None:
     assert len(groups) == 3
 
 
-def test_the_sortable_is_disabled_on_a_locked_level() -> None:
-    """A drag the model would refuse must not start: the rows would move on screen only."""
-    locked = _sortables(_render_lane([_FakePort("a", "A")], ctx=_ctx(AccessTier.ADMIN, locked=True)))
-    unlocked = _sortables(_render_lane([_FakePort("a", "A")]))
-
-    assert locked[0].options.get("disabled") is True
-    assert not unlocked[0].options.get("disabled")
-
-
 def test_reorder_handler_reads_indices() -> None:
     from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
 
@@ -272,6 +273,7 @@ class _RecordingNode:
     """A node that applies each ``reorder_ports`` call to a live id list."""
 
     def __init__(self, ids: list[str]) -> None:
+        self.node_id = "n1"
         self.ids = list(ids)
 
     def reorder_ports(self, ordered_ids: list[str]) -> None:
@@ -294,11 +296,11 @@ def test_consecutive_drops_track_the_order_already_applied() -> None:
     rendered = ["a", "b", "c"]
 
     # Drag "c" to the front: a b c -> c a b
-    panel._on_reorder(node, rendered, _Drop(old_index=2, new_index=0), _ctx())
+    panel._on_reorder(node, rendered, _Drop(old_index=2, new_index=0), _ctx(node=node))
     assert node.ids == ["c", "a", "b"]
 
     # Now drag the row sitting at index 2 ("b") to the front: c a b -> b c a
-    panel._on_reorder(node, rendered, _Drop(old_index=2, new_index=0), _ctx())
+    panel._on_reorder(node, rendered, _Drop(old_index=2, new_index=0), _ctx(node=node))
     assert node.ids == ["b", "c", "a"]
 
 
@@ -307,7 +309,7 @@ def test_a_no_op_drop_leaves_the_order_alone() -> None:
 
     panel = NodePortsPanel()
     node = _RecordingNode(["a", "b", "c"])
-    panel._on_reorder(node, ["a", "b", "c"], _Drop(old_index=1, new_index=1), _ctx())
+    panel._on_reorder(node, ["a", "b", "c"], _Drop(old_index=1, new_index=1), _ctx(node=node))
     assert node.ids == ["a", "b", "c"]
 
 
@@ -317,7 +319,7 @@ def test_an_out_of_range_index_is_ignored() -> None:
 
     panel = NodePortsPanel()
     node = _RecordingNode(["a", "b"])
-    panel._on_reorder(node, ["a", "b"], _Drop(old_index=5, new_index=0), _ctx())
+    panel._on_reorder(node, ["a", "b"], _Drop(old_index=5, new_index=0), _ctx(node=node))
     assert node.ids == ["a", "b"]
 
 

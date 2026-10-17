@@ -33,8 +33,13 @@ class SettingWidgetModel:
         field_id: str,
         widget_config: dict[str, Any],
         cell: DataField,
-        on_edit: Callable[[Any], None],
+        on_edit: Callable[[Any], bool | None],
     ) -> None:
+        """
+        Args:
+            on_edit: Called with each raw value the widget produces. Returns ``False`` to
+                refuse the write; any other result counts as accepted.
+        """
         self.id = field_id
         self.widget_config = widget_config or {}
         # ALWAYS the shared cell — the bag's instance cell or the registry-owned
@@ -50,11 +55,12 @@ class SettingWidgetModel:
     def get_value(self) -> Any:
         return self._cell.get_value()
 
-    def set_value(self, value: Any) -> None:
+    def set_value(self, value: Any) -> bool:
+        """Hand *value* to ``on_edit``; return ``False`` only if ``on_edit`` returned ``False``."""
         # Widget → model. Forward the raw value verbatim to the injected
         # on_edit policy (descriptor setattr / registry set_global). The
         # model never writes the cell itself: the write lands in the SHARED
         # cell only if on_edit's policy accepts it (validate passes), and
         # doing it here too would flip the value while leaving the field
         # "unset", and the next registry sync would clobber the edit.
-        self._on_edit(value)
+        return self._on_edit(value) is not False

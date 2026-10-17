@@ -1,4 +1,4 @@
-"""HaystackEditor Save and Save-as need the principal's real edit tier."""
+"""HaystackEditor actions need the principal's real tier: view selects, operate runs, edit does the rest."""
 
 from __future__ import annotations
 
@@ -88,29 +88,114 @@ def _noop_page() -> None:  # registration target for a headless Client
     pass
 
 
-@pytest.mark.parametrize(("tier", "enabled"), [(AccessTier.OPERATE, False), (AccessTier.EDIT, True)])
-def test_haystack_save_controls_draw_disabled_below_edit(tier, enabled, monkeypatch):
+def _render(fn) -> list[Any]:
+    """Run ``fn`` inside a headless client and return every element it created."""
     from nicegui import Client, ui
 
-    editor, context, _haystack, _modal = _haystack_header_setup(tier, monkeypatch)
     client = Client(cast(Any, _noop_page), request=None)
     with client:
         with ui.column():
-            editor._render_header(context)
+            fn()
+    return list(client.elements.values())
 
-    save_icons = [
-        el for el in client.elements.values() if isinstance(el, ui.button) and el.props.get("icon") == "save"
-    ]
-    save_as = [
-        el
-        for el in client.elements.values()
-        if isinstance(el, ui.menu_item)
-        and any(getattr(child, "text", None) == "Save As…" for child in el.descendants())
-    ]
-    assert len(save_icons) == 1
-    assert len(save_as) == 1
-    assert save_icons[0].enabled is enabled
-    assert save_as[0].enabled is enabled
+
+def _icon_buttons(elements: list[Any], icon: str) -> list[Any]:
+    from nicegui import ui
+
+    return [el for el in elements if isinstance(el, ui.button) and el.props.get("icon") == icon]
+
+
+def _entry(*, executing: bool = False) -> SimpleNamespace:
+    from haybale_haystack.graph_entry import EntryKind
+
+    return SimpleNamespace(
+        binding_id="id",
+        path=Path("/tmp/a.haywire"),
+        unsaved=True,
+        graph=object(),
+        is_executing=executing,
+        kind=EntryKind.GRAPH,
+        display_name="a",
+    )
+
+
+@pytest.mark.parametrize(
+    ("tier", "shown"), [(AccessTier.VIEW, False), (AccessTier.OPERATE, False), (AccessTier.EDIT, True)]
+)
+def test_haystack_controls_are_hidden_below_edit(tier, shown, monkeypatch):
+    editor, context, haystack, _modal = _haystack_header_setup(tier, monkeypatch)
+    entry = _entry()
+    haystack.entries_of_kind = MagicMock(side_effect=lambda kind: [entry] if kind.is_executable() else [])
+    editor._list_container = None
+
+    def _draw() -> None:
+        from nicegui import ui
+
+        editor._render_header(context)
+        editor._list_container = ui.column()
+        editor._render_list(context)
+
+    elements = _render(_draw)
+
+    assert bool(_icon_buttons(elements, "save")) is shown  # header and entry Save icons
+    assert bool(_icon_buttons(elements, "more_vert")) is shown  # header and entry menus
+    assert bool(_icon_buttons(elements, "add")) is shown  # the add bar
+    assert any("bg-amber-400" in el._classes for el in elements)  # the unsaved dot stays
+
+
+@pytest.mark.parametrize(("tier", "runs"), [(AccessTier.VIEW, False), (AccessTier.OPERATE, True)])
+def test_operate_draws_start_stop_and_no_entry_menu(tier, runs, monkeypatch):
+    from haywire.ui import elements as hui
+
+    editor, context, _haystack, _modal = _haystack_header_setup(tier, monkeypatch)
+    elements = _render(lambda: editor._render_entry(cast(Any, _entry(executing=True)), context))
+
+    assert bool(_icon_buttons(elements, hui.icon.execution_stop)) is runs
+    assert _icon_buttons(elements, "more_vert") == []
+
+
+@pytest.mark.parametrize("tier", [AccessTier.VIEW, AccessTier.OPERATE])
+def test_each_edit_handler_refuses_below_edit(tier, monkeypatch):
+    editor, context, haystack, modal = _haystack_header_setup(tier, monkeypatch)
+    confirm, pick = MagicMock(), MagicMock()
+    monkeypatch.setattr(haystack_editor_module, "confirm_modal", confirm)
+    monkeypatch.setattr(haystack_editor_module, "pick_modal", pick)
+    haystack.get_by_id = MagicMock(return_value=_entry())
+
+    editor._on_entry_rename("id", context)
+    editor._on_entry_delete("id", context)
+    editor._on_new(context)
+    editor._on_open_graph(context)
+    editor._on_load_haystack(context)
+    editor._on_rename_haystack(context)
+
+    for name in (
+        "create_new",
+        "remove_entry",
+        "open_graph",
+        "load_haystack",
+        "rename_haystack",
+        "rename_graph",
+    ):
+        getattr(haystack, name).assert_not_called()
+    confirm.assert_not_called()
+    pick.assert_not_called()
+    modal.assert_not_called()
+    assert haystack_editor_module.ui.notify.call_count == 6  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize(("tier", "runs"), [(AccessTier.VIEW, False), (AccessTier.OPERATE, True)])
+def test_start_and_stop_need_operate(tier, runs, monkeypatch):
+    editor, context, haystack, _dialog = _setup(tier, monkeypatch)
+    haystack.get_by_id = MagicMock(return_value=_entry())
+    haystack.start_execution = MagicMock(return_value=SimpleNamespace(ok=True, error=None))
+    monkeypatch.setattr(editor, "_notify_data_mutated", lambda ctx: None)
+
+    editor._on_start_execution("id", context)
+    editor._on_stop_execution("id", context)
+
+    assert haystack.start_execution.called is runs
+    assert haystack.stop_execution.called is runs
 
 
 def test_save_allowed_for_edit(monkeypatch):

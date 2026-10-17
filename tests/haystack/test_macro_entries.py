@@ -177,3 +177,57 @@ def test_a_plain_save_on_a_macro_still_works(state, tmp_path):
 
     assert state._save_entry(entry) is None
     assert entry.unsaved is False
+
+
+# ---------------------------------------------------------------------------
+# A save ends a value-edit merge run
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+def test_saving_ends_the_merge_run(state, tmp_path, library_system):
+    from haywire.core.access import LevelMode
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.edit_route import EditRoute
+    from haywire.core.graph.editor import Editor
+    from haywire.core.graph.scheduler import ThreadingTimerScheduler
+    from haywire.core.undo.config import UndoConfig
+    from tests.conftest import make_node
+
+    graph = BaseGraph(
+        filestem="g", validation_scheduler=ThreadingTimerScheduler(), validation_delay_ms=60_000
+    )
+    try:
+        editor = Editor(
+            graph,
+            library_system.get_node_factory(),
+            undo_config=UndoConfig(enable_auto_grouping=False, enable_action_merging=True),
+        )
+        wrapper = make_node(graph, "haybale-testing:node:TestAddFloatNode")
+        port = wrapper.node.ports["value_a"]
+        route = EditRoute(lambda: editor, lambda: LevelMode.EDIT)
+        entry = MagicMock()
+        entry.graph = graph
+        entry.editor = editor
+        entry.path = tmp_path / "g.haywire"
+        entry.kind.is_haystack_member.return_value = False
+
+        assert route.set_port(wrapper.node_id, "value_a", 2.0, minimum=LevelMode.EDIT)
+        assert route.set_port(wrapper.node_id, "value_a", 5.0, minimum=LevelMode.EDIT)
+        assert state._save_entry(entry) is None
+        assert route.set_port(wrapper.node_id, "value_a", 8.0, minimum=LevelMode.EDIT)
+
+        editor.undo()
+        assert port.data.get_own_value() == 5.0
+    finally:
+        graph._validation.clear()
+        graph.cleanup()
+
+
+def test_a_failed_save_adds_no_fence(state, tmp_path):
+    entry = _open(state, tmp_path / "g.haywire", macro=False)
+    entry.path = None  # untitled with no explicit path
+
+    assert state._save_entry(entry) is False
+
+    entry.editor.add_fence.assert_not_called()

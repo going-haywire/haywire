@@ -23,9 +23,9 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from ....access import GraphWriteGate, session_allows
 from ....surfaces import GraphInspector
 from ....state.edit_state import EditState
+from ....state.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -56,5 +56,8 @@ class GraphMetadataPanel(BasePanel):
         graph_obj = ctx.data[EditState].active_graph
         if graph_obj is None:
             return
+        route = route_for(ctx)
+        if route is None:
+            return  # no level open: a graph-document bag is never drawn writable
         with layout:
-            render_settings(ctx, graph_obj.meta, gate=GraphWriteGate(AccessTier.EDIT, session_allows(ctx)))
+            render_settings(ctx, graph_obj.meta, route=route)

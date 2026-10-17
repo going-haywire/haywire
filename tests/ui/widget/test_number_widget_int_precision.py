@@ -1,4 +1,4 @@
-"""NumberWidget bound to an INT port must render without a decimal point.
+"""NumberWidget bound to an INT port must render without a decimal point and step by one.
 
 NumberDrag's own "auto" precision (-1) derives decimal places from `step`
 alone, so a bare INT port (default step 0.1) would otherwise still show one
@@ -51,3 +51,22 @@ def test_explicit_precision_overrides_int_default(nicegui_slot_context):
         w = NumberWidget(port)
         el = w.render()
     assert el._props["precision"] == 2
+
+
+def test_int_port_steps_by_one(nicegui_slot_context):
+    """With NumberDrag's 0.1 step an arrow emits 14.1, which an INT field truncates back to 14."""
+    with ui.card():
+        el = NumberWidget(_make_port(INT)).render()
+    assert el._props["step"] == 1
+
+
+def test_float_port_keeps_the_default_step(nicegui_slot_context):
+    with ui.card():
+        el = NumberWidget(_make_port(FLOAT)).render()
+    assert "step" not in el._props or el._props["step"] == 0.1
+
+
+def test_explicit_step_overrides_int_default(nicegui_slot_context):
+    with ui.card():
+        el = NumberWidget(_make_port(INT, widget_config={"properties": {"step": 5}})).render()
+    assert el._props["step"] == 5

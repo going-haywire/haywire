@@ -25,4 +25,10 @@ class WidgetModel(Protocol):
 
     def get_value(self) -> Any: ...
 
-    def set_value(self, value: Any) -> None: ...
+    def set_value(self, value: Any) -> bool | None:
+        """Write a value the widget produced.
+
+        Returns ``False`` if the model refused the write; the widget then shows
+        ``get_value()`` again. ``True`` or ``None`` means the write was accepted.
+        """
+        ...

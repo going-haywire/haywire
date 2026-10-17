@@ -80,11 +80,79 @@ def test_an_inlet_fold_still_draws_no_pin(graph_with_library_system) -> None:
     assert fold.has_pin() is False
 
 
-def test_fold_carries_no_widget(graph_with_library_system) -> None:
-    """The disclosure triangle is the whole control, so FOLD overrides the
-    SWITCH_WIDGET it would otherwise inherit from BOOL."""
+def test_a_fold_carries_the_fold_widget_and_its_label(graph_with_library_system) -> None:
+    """The header is the fold's widget, so FOLD overrides the SWITCH_WIDGET it
+    would otherwise inherit from BOOL, and the widget learns the label from its config."""
+    from haywire.barn.builtin.widget_keys import FOLD_WIDGET
+
     probe = _make_probe(graph_with_library_system)
-    assert probe.ports["solver"].widget_key is None
+    fold = probe.ports["solver"]
+    assert fold.widget_key == FOLD_WIDGET
+    assert fold.widget_config["properties"]["text"] == "Solver"
+    assert fold.should_show_widget() is True
+
+
+def test_a_fold_saved_without_a_widget_loads_with_the_fold_widget(graph_with_library_system) -> None:
+    from haywire.barn.builtin.widget_keys import FOLD_WIDGET
+    from haywire.core.types.port import DataPort
+
+    probe = _make_probe(graph_with_library_system)
+    spec = probe.ports["advanced"].to_dict()
+    spec["kwargs"].pop("widget_key", None)
+    spec["kwargs"].pop("widget_config", None)
+
+    loaded = DataPort.from_spec(spec, probe._type_registry, probe.wrapper, probe)
+
+    assert loaded.widget_key == FOLD_WIDGET
+    assert loaded.widget_config["properties"]["text"] == "Advanced"
+
+
+def _registered_probe(library_system):
+    from haybale_testing.nodes.testbed.fold_probe import FoldProbeNode
+
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.scheduler import ThreadingTimerScheduler
+
+    graph = BaseGraph(
+        filestem="folds", validation_scheduler=ThreadingTimerScheduler(), validation_delay_ms=60_000
+    )
+    wrapper = graph.create_node_wrapper(FoldProbeNode.class_identity.registry_key, position=(0.0, 0.0))
+    assert wrapper is not None
+    graph._validation.force_immediate_validation()
+    return graph, wrapper
+
+
+def test_a_fold_value_change_requests_a_redraw(library_system) -> None:
+    from haywire.core.graph.types import ChangeReason
+
+    graph, wrapper = _registered_probe(library_system)
+    try:
+        wrapper.node.ports["solver"].set_value(False)
+        result = graph._validation.force_immediate_validation()
+        assert result is not None
+        assert result.nodes.get(wrapper.node_id) is ChangeReason.NODE_REDRAW_REQUESTED
+    finally:
+        graph._validation.clear()
+        graph.cleanup()
+
+
+def test_a_rejigged_fold_redraws_once(library_system) -> None:
+    from unittest.mock import patch
+
+    from haywire.barn.builtin.types import FLOAT
+
+    graph, wrapper = _registered_probe(library_system)
+    node = wrapper.node
+    try:
+        with node.rejig(include=["advanced", "epsilon"]):
+            with node.fold("Advanced", default=False):
+                node.add(FLOAT.as_config("epsilon", default=1e-6))
+        with patch.object(wrapper, "redraw") as redraw:
+            node.ports["advanced"].set_value(True)
+        assert redraw.call_count == 1
+    finally:
+        graph._validation.clear()
+        graph.cleanup()
 
 
 def test_a_fold_describes_itself_without_the_author(graph_with_library_system) -> None:

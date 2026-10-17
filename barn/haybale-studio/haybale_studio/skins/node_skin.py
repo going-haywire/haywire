@@ -554,7 +554,9 @@ class NodeSkin(BaseSkin, ABC):
                     f"flex-direction: column; {content_align} {content_margins} min-width: 0;"
                 )
             ):
-                ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
+                # A fold's widget is its header and carries the label itself.
+                if not port.is_fold:
+                    ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
                 if self._shows_widget(port):
                     self.render_widget(port, wrapper.node_id, classes=f"{widget_classes} hw-detail-widget")
 
@@ -652,7 +654,9 @@ class NodeSkin(BaseSkin, ABC):
                 f"padding-left: {left_indent}px; padding-right: {right_indent}px;"
             )
         ) as config_row:
-            ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
+            # A fold's widget is its header and carries the label itself.
+            if not port.is_fold:
+                ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
             widget_el = None
             if self._shows_widget(port):
                 widget_el = self.render_widget(
@@ -788,7 +792,8 @@ class NodeSkin(BaseSkin, ABC):
         # right — so a node with both shows them side by side rather than
         # stacked on top of each other.
         btn.style("position: absolute; top: -25px; right: 32px;")
-        btn.props(f'data-node-id="{wrapper.node_id}"')
+        # Readable: the comment shows in every level mode.
+        btn.props(f'data-node-id="{wrapper.node_id}" data-hw-readable')
         with btn:
             ui.tooltip(comment).classes("text-xs whitespace-normal").style("max-width: 22rem")
 
@@ -822,7 +827,8 @@ class NodeSkin(BaseSkin, ABC):
         btn = ui.button(icon=hui.icon.warning, color=color).props("flat dense round")
         btn.classes("text-xl px-2 py-1")
         btn.style("position: absolute; top: -25px;")
-        btn.props(f'data-node-id="{node_id}"')
+        # Readable: the menu only reads, so it opens in every level mode.
+        btn.props(f'data-node-id="{node_id}" data-hw-readable')
         with btn:
             ui.badge(str(total), color=color).props("floating")
 

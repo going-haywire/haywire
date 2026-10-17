@@ -9,6 +9,7 @@ PropertyBinding rather than DataField, creating a cleaner separation
 between data storage and binding logic.
 """
 
+import copy
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Callable, List, Optional
 
@@ -18,7 +19,6 @@ from haywire.ui.widget.converters import (
     BindingMode,
     PrimitiveUnwrappingConverter,
 )
-from haywire.ui.widget.write_gate import value_changed
 
 if TYPE_CHECKING:
     from haywire.ui.widget.base import BaseWidget
@@ -159,10 +159,14 @@ class PropertyBinding:
     def _sync_to_model(self, view_value: Any) -> None:
         """Write a view edit to the model, or show the model again when the write is refused.
 
-        With an ``owner``, its ``accepts_write()`` decides, and its write gate
-        hears each write that changes the model's value. Without one, the write
+        With an ``owner``, its ``accepts_write()`` decides. Without one, the write
         is refused while an edge's value stands in front of the own value or the
-        field holds no own value.
+        field holds no own value. A model whose ``set_value`` returns ``False``
+        (a routed model whose edit route refused) refuses the write too.
+
+        A nested ``source_property`` (``"x"``, ``"transform.scale"``) writes a
+        copy of the model's value with that path changed; the value the model
+        holds is never changed in place.
         """
         assert self._element is not None and self.converter is not None
         if not self._accepts_write():
@@ -174,14 +178,15 @@ class PropertyBinding:
 
         model_value = self.converter.to_model(view_value)
 
+        before = self._element.get_value()
         if self.source_property == "value":
-            before = self._element.get_value()
-            self._element.set_value(model_value)
-            changed = value_changed(before, self._element.get_value())
+            new_value = model_value
+        elif self._navigate_path(before, self.source_property) == model_value:
+            return
         else:
-            changed = self._update_nested_property(self.source_property, model_value)
-        if changed and self.owner is not None and self.owner.write_gate is not None:
-            self.owner.write_gate.written()
+            new_value = self._with_nested_property(before, self.source_property, model_value)
+        if self._element.set_value(new_value) is False:
+            self.sync_to_view()
 
     def _accepts_write(self) -> bool:
         if self.owner is not None:
@@ -211,52 +216,27 @@ class PropertyBinding:
             current = getattr(current, part)
         return current
 
-    def _update_nested_property(self, path: str, value: Any) -> bool:
-        """
-        Update nested property and notify observers.
-
-        Args:
-            path: Property path (e.g., 'radius', 'transform.scale')
-            value: New value for the property
-
-        Returns:
-            Whether the property changed; ``False`` when it already held ``value``.
+    def _with_nested_property(self, container: Any, path: str, value: Any) -> Any:
+        """Return a deep copy of *container* with the property at *path* set to *value*.
 
         Raises:
-            ValueError: If field type doesn't support property updates
+            ValueError: If the model's field is not a ``BaseField``.
         """
         assert self._element is not None
         field = self._element.data
-
-        # Only works for BaseField
         if not isinstance(field, BaseField):
             raise ValueError(
                 f"Property updates only supported for BaseField, got {type(field).__name__}. "
                 f"Use source_property='value' for other field types."
             )
 
-        # Get container (the BaseType instance)
-        container = field.get_own_value()
-
-        # Navigate to parent of final property
-        parts = path.split(".")
-        current = container
-        for part in parts[:-1]:
+        *parents, final_property = path.split(".")
+        updated = copy.deepcopy(container)
+        current = updated
+        for part in parents:
             current = getattr(current, part)
-
-        # Update final property
-        final_property = parts[-1]
-        old_value = getattr(current, final_property, None)
-
-        if old_value == value:
-            return False
-
         setattr(current, final_property, value)
-
-        # Mark dirty and fire observers
-        field.is_dirty = True
-        field.fire(container)
-        return True
+        return updated
 
     # ========================================================================
     # CLEANUP

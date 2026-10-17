@@ -73,8 +73,8 @@ the allowed range:
 
 - **The studio UI itself.** Full graph editing is **arbitrary code
   execution** — a graph runs Python in-process. Anyone who can reach the UI
-  and authenticate as an  `view`, `edit` or `admin` principal is a full operator.
-  There is no sandbox around what a graph can do. `view`, `edit` or `admin` are only UI roles, not fine granular execution permissions. They are meant to prevent accidental changes, not to prevent malicious intent.
+  and authenticate as a `view`, `operate`, `edit` or `admin` principal can run
+  arbitrary code. There is no sandbox around what a graph can do. `view`, `operate`, `edit` and `admin` are only UI roles, not fine granular execution permissions. They are meant to prevent accidental changes, not to prevent malicious intent.
 - **`/api/code-intel/complete`, `/info`, `/hover`.** Unauthenticated by
   design (they back inline editor autocomplete). `_confined_path()`
   (`code_intelligence.py`) restricts the `path` argument to the current
@@ -483,21 +483,17 @@ authentication is off.
 
 Tiers are cumulative: `view` < `operate` < `edit` < `admin`.
 
-- **`view`** can pan, zoom, select, copy, enter Groups and macro placements and read the panels. It cannot change a value.
-- **`operate`** can additionally change values on the widgets shown on node cards. It has no context menus, no selection toolbar, no paste, cut, delete or duplicate, no Undo/Redo, no Properties writes, and cannot unlock.
-- **`edit`** can change the graph and its settings, and can save. **`admin`** can also manage principals.
+- **`view`** sees the graph, haystack, component docs, errors, log, shortcuts, activity and file editors. It can pan and zoom on the document level and select a haystack entry to look at it. It can select nodes and edges on the canvas (click, Shift-click, box select, `Mod+A`), which points Component Docs at the selected node, but cannot act on the selection, enter a Group, change a value, or start a graph; the Properties editor needs `edit`. The read-only affordances on cards (the diagnostics badge and its menu, the comment, pin tooltips) work at every tier.
+- **`operate`** can additionally enter Groups and macro placements, change values on the operable widgets on node cards and the stage, and start and stop a graph in the haystack. It can select but cannot copy, has no context menus, no selection toolbar, no paste, cut, delete or duplicate, no Undo/Redo, no Properties writes, and cannot unlock.
+- **`edit`** can copy and act on the selection, change the graph and its settings, use the Properties editor's writable panels, and save, the workspace layout included (one file per project). **`admin`** can also manage principals.
 
-The **lock** is a per-session, per-level switch (the document, an entered Group or a macro placement), never saved. The header lock button or `Mod+E` toggles it; unlocking needs the real `edit` tier. A locked level caps the session's effective tier at `operate` for that level; the cap never raises a lower tier. A graph can ask for a level to start locked (`open_locked`); a level inside a macro placement always opens locked, and a placement's own level unlocks only through Edit Instance (which detaches the placement and needs `edit`); deeper levels stay refused. Revert to Macro, Update Macro… and Save new Macro… also need `edit`. Save needs the principal's real `edit` tier and ignores the lock; this holds in the graph editor header and in the haystack editor's entry Save and Save-as and its header Save and Save As. Stage view adds no rule of its own: the lock and the tiers apply in both views alike. An unlocked stage view allows every edit patch view allows, at the same tier, and a locked stage view caps the session at `operate` like a locked patch view. The view switch itself needs only `view`. Delete is not remapped: in stage view it deletes the node from the graph. See [ADR 0054](../adr/0054-the-stage-view.md). Agents are not subject to the lock; the `graph_editor_operate` tool writes a value to a shown widget at `operate`. See [ADR 0051](../adr/0051-operate-tier-and-the-canvas-lock.md) and [ADR 0052](../adr/0052-instance-edit-by-detach-with-origin.md).
+The **lock** is a per-session, per-level switch (the document, an entered Group or a macro placement), never saved. The header lock button or `Mod+E` toggles it; unlocking needs the real `edit` tier. A locked level caps the session's level mode at `operate` for that level and keeps its selection; the cap never raises a lower tier. A graph can ask for a level to start locked (`open_locked`); a level inside a macro placement always opens locked, and a placement's own level unlocks only through Edit Instance (which detaches the placement and needs `edit`); deeper levels stay refused. Revert to Macro, Update Macro… and Save new Macro… also need `edit`. Save needs the principal's real `edit` tier and ignores the lock; this holds in the graph editor header and in the haystack editor's entry Save and Save-as and its header Save and Save As. Stage view adds no rule of its own: the lock and the tiers apply in both views alike. An unlocked stage view allows every edit patch view allows, at the same level mode, and a locked stage view caps the session at `operate` like a locked patch view. The view switch itself needs only `view`. Delete is not remapped: in stage view it deletes the node from the graph. See [ADR 0054](../adr/0054-the-stage-view.md). Agents are not subject to the lock; the `graph_editor_operate` tool writes a value to a shown widget at `operate`. See [ADR 0051](../adr/0051-operate-tier-and-the-canvas-lock.md) and [ADR 0052](../adr/0052-instance-edit-by-detach-with-origin.md).
 
-Enforcement sits at the write: canvas events declare a tier (a refused drag or resize snaps back), the browser canvas starts no editing gesture below effective `edit`, context menus and the selection toolbar do not open below effective `edit`, and a write gate on widgets, bindings and settings rows is asked when the write lands. Disabled-looking controls are only the look.
+Enforcement has two layers. On the server, canvas handlers declare a level mode (a refused drag or resize snaps back), context menus and the selection toolbar do not open below level mode `edit`, and every user edit takes the edit route, which refuses an edit the session's level mode does not allow (see [ADR 0055](../adr/0055-every-user-edit-takes-the-edit-route.md)). In the browser, each canvas carries its level mode: below `edit` it starts no editing gesture and card content takes no pointer input, except the read-only affordances (diagnostics badge, comment, pin tooltips) in every mode and, from `operate` on, the operable widgets. The route is the refusal that counts; the browser gate is a second layer against accidents, and it is not access control: `pointer-events` does not stop keyboard focus. A fold opens and closes from `operate` on; an annotation's text needs `edit`, because it is declared `operable=False`.
 
-!!! warning "Known gaps"
-    Not tier-gated yet:
+Editors and panels need `edit` unless they declare otherwise, so a surface that forgets to declare is hidden below `edit`. In the haystack editor, every action other than selecting an entry needs `edit`, except Start and Stop, which need `operate`; a control is not drawn below its tier, and its handler refuses too.
 
-    - on a node card, the fold disclosure of a stacked-skin node and an annotation's double-click text edit (both work at `view`; skins have no session to ask yet);
-    - in the haystack editor, the entry menu's Rename and Remove, the header menu's Load and Rename, New Graph and Load Graph, Start and Stop execution, and the run settings.
-
-    These are UI roles against accidents, not a sandbox: do not read `view` as "cannot mutate anything".
+These are UI roles against accidents, not a sandbox: do not read `view` as "cannot mutate anything".
 
 ## 10. The security document
 
@@ -536,8 +532,8 @@ connection is — separate view/operate/edit/admin principals with their own
 identity — but not *isolation*: there is no "read-only copy of the studio"
 and no per-graph, per-node or per-file permission. Every principal who can
 reach the studio sees the same live graphs, the same running execution and
-the same haystack; a `view` principal cannot mutate them, apart from the
-known gaps listed above. None of the settings in this guide add a sandbox
+the same haystack; a `view` principal cannot mutate them through the
+studio's surfaces. None of the settings in this guide add a sandbox
 around the graph editor — a principal who can edit a graph holds the
 authority of the studio process, by design.
 See [ADR-0026](../adr/0026-studio-network-exposure.md#consequences) and

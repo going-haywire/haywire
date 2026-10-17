@@ -51,6 +51,7 @@ Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they 
 | `opens` | no | `'required'` | `'required'` / `'on_context'` / `'on_payload'` — see below |
 | `description` | no | `''` | Tooltip / accessibility text |
 | `registry_id` | no | class name | Unique short ID within the library |
+| `access` | no | `AccessTier.EDIT` | Minimum `AccessTier` to see this editor — see [ADR 0027](../../adr/0027-studio-authentication.md). An editor that does not declare is hidden below `edit`; a read-only editor, or one that gates its own actions, declares `view` |
 
 `@editor()` must be invoked with parentheses; the bare `@editor` form raises at class-definition time.
 
@@ -274,6 +275,7 @@ For the `Surface` and `Panel` extension points the editor hosts, see [components
 
 - [ ] `@editor(label='...', default_slot=SlotName.…)` — both have sensible defaults; set them deliberately
 - [ ] Choose `opens='required'` / `'on_context'` / `'on_payload'`
+- [ ] Choose `access=`: leave the `edit` default for an editor that writes; declare `view` for one that only reads or gates its own actions
 - [ ] Inherit from `BaseEditor`; implement `draw(self, context, container)` — required
 - [ ] Decorate handler methods with `@redraw_on(*SignalTypes)` for signals that warrant a full editor redraw — empty body is fine; the framework redraws once per dispatch pass
 - [ ] Decorate handler methods with `@react_on(*SignalTypes)` for pure side effects — no auto-redraw; the body owns any explicit `wrapper.redraw()` / `session.publish(Reveal/Close/...)` calls

@@ -12,6 +12,8 @@ from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.core.session.context import SessionContext
 
+from tests.conftest import edit_route
+
 
 def _make_ctx_with_edit_state(register_edit_state):
     """Build a SessionContext with EditState registered for one session.
@@ -57,7 +59,7 @@ def test_copy_selection_handler_writes_to_session_context(register_edit_state):
     graph = MagicMock()
     graph.get_node_wrapper.return_value = wrapper
 
-    handlers = SelectionHandlers(graph=graph, editor=MagicMock(), session_id="t", session=session)
+    handlers = SelectionHandlers(graph=graph, route=edit_route(MagicMock()), session_id="t", session=session)
 
     edit = ctx.data[EditStateCls]
     # Initially clipboard is None
@@ -88,7 +90,9 @@ def test_paste_clipboard_handler_reads_from_session_context(register_edit_state)
 
     editor = MagicMock()
     editor.paste_clipboard.return_value = (["a_new"], [])  # (new_node_ids, new_edge_ids)
-    handlers = SelectionHandlers(graph=MagicMock(), editor=editor, session_id="t", session=session)
+    handlers = SelectionHandlers(
+        graph=MagicMock(), route=edit_route(editor), session_id="t", session=session
+    )
 
     # Mock ui.notify for the whole test: both paths call it and require a NiceGUI context.
     with patch("nicegui.ui.notify") as mock_notify:

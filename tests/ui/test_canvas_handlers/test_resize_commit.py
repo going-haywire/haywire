@@ -7,6 +7,8 @@ from haywire.core.signals import GraphDataMutated
 from haywire.ui.components.graph.event_definitions import UserResizeEndEvent
 from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
 
+from tests.conftest import edit_route
+
 SWAPPED = LayoutChannel(
     "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt"
 )
@@ -23,7 +25,7 @@ def test_resize_commit_publishes_graph_data_mutated():
     undo button stayed stale until the next validating op)."""
     editor = MagicMock()
     session = MagicMock()
-    h = InteractionHandlers(editor, session=session)
+    h = InteractionHandlers(edit_route(editor), session=session)
     h.process_resize_end(
         UserResizeEndEvent(nodeId="n1", width=300.0, height=180.0, size_adapt="manual_width")
     )
@@ -35,14 +37,14 @@ def test_resize_commit_publishes_graph_data_mutated():
 def test_resize_commit_without_session_does_not_raise():
     """Session is optional (default None); the guard must skip the publish."""
     editor = MagicMock()
-    h = InteractionHandlers(editor)  # no session
+    h = InteractionHandlers(edit_route(editor))  # no session
     h.process_resize_end(UserResizeEndEvent(nodeId="n1", width=300.0, height=180.0, size_adapt="manual"))
     assert editor.add_fence.call_count == 2  # still commits normally
 
 
 def test_size_only_commit_is_one_fence_no_move():
     editor = MagicMock()
-    h = InteractionHandlers(editor)
+    h = InteractionHandlers(edit_route(editor))
     h.process_resize_end(
         UserResizeEndEvent(nodeId="n1", width=300.0, height=180.0, size_adapt="manual_width")
     )
@@ -59,7 +61,7 @@ def test_size_only_commit_is_one_fence_no_move():
 
 def test_top_left_commit_fences_size_and_move_together():
     editor = MagicMock()
-    h = InteractionHandlers(editor)
+    h = InteractionHandlers(edit_route(editor))
     h.process_resize_end(
         UserResizeEndEvent(
             nodeId="n1",
@@ -77,7 +79,7 @@ def test_top_left_commit_fences_size_and_move_together():
 
 def test_resize_writes_the_channel_size_fields():
     editor = MagicMock()
-    h = InteractionHandlers(editor, channel=SWAPPED)
+    h = InteractionHandlers(edit_route(editor), channel=SWAPPED)
     h.process_resize_end(
         UserResizeEndEvent(nodeId="n1", width=260.0, height=160.0, size_adapt="manual", posX=40.0, posY=20.0)
     )

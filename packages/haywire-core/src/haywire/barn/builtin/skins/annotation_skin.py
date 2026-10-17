@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 
+from haywire.barn.builtin.widget_keys import NOTE_TEXT_WIDGET
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.enums import LayoutDirection
 from haywire.ui.skin.base import BaseSkin
@@ -104,7 +105,10 @@ def _bag(node: object) -> Any:
 
 
 def _text_style(bag: Any) -> str:
-    """CSS for the note's text: font, weight, style, decoration, color and highlight."""
+    """CSS the note's text inherits: font, weight, style, decoration, alignment, color and highlight.
+
+    The highlight and the text's place on the card are custom properties the text widget reads.
+    """
     parts = [
         f"font-family: {_FONT_STACKS.get(bag.font, 'inherit')};",
         f"font-size: {int(bag.font_size)}px;",
@@ -112,40 +116,13 @@ def _text_style(bag: Any) -> str:
         f"font-style: {'italic' if bag.italic else 'normal'};",
         f"text-decoration: {'underline' if bag.underline else 'none'};",
         f"text-align: {bag.h_align if bag.h_align in _JUSTIFY else 'left'};",
+        f"--hw-note-highlight: {bag.highlight_color or 'transparent'};",
+        f"--hw-note-justify: {_VERTICAL.get(bag.v_align, 'flex-start')};",
+        f"--hw-note-align: {_JUSTIFY.get(bag.h_align, 'flex-start')};",
     ]
     if bag.text_color:
         parts.append(f"color: {bag.text_color};")
-    if bag.highlight_color:
-        parts.append(f"background-color: {bag.highlight_color};")
     return " ".join(parts)
-
-
-#: Stretches the editor's Quasar field to the card; the field's own sizes are a short strip.
-_EDITOR_CSS = """
-.hw-note-editor .q-field__inner, .hw-note-editor .q-field__control,
-.hw-note-editor .q-field__control-container { height: 100%; min-height: 0; }
-.hw-note-editor .q-field__control-container { padding: 0; }
-.hw-note-editor textarea { height: 100%; min-height: 0; resize: none; padding: 0; }
-"""
-
-
-def _ensure_editor_css() -> None:
-    """Add the editor stylesheet to the current page once."""
-    client = ui.context.client
-    if not getattr(client, "_hw_note_editor_css", False):
-        ui.add_css(_EDITOR_CSS)
-        client._hw_note_editor_css = True  # type: ignore[attr-defined]
-
-
-_TAB_JS = """(e) => {
-    e.stopPropagation();
-    if (e.key === 'Tab' && !e.shiftKey) {
-        e.preventDefault();
-        const t = e.target;
-        t.setRangeText('\\t', t.selectionStart, t.selectionEnd, 'end');
-        t.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-}"""
 
 
 def _strip(side: str) -> ui.element:
@@ -173,7 +150,7 @@ class AnnotationSkin(BaseSkin):
     """Draws an annotation node: its text, and pins centred along each card edge.
 
     Hover a card to show the open pin on each side; connect to one to grow a
-    pin there. Double-click the card to edit the text.
+    pin there. Double-click the text to edit it.
     """
 
     def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool):
@@ -189,59 +166,11 @@ class AnnotationSkin(BaseSkin):
             "min-width: 160px; min-height: 80px;"
         )
         with main_card:
-            # The text sits in a flex box so vertical alignment follows the card's height.
+            # The text widget fills this box and inherits the note's look from it.
             with ui.element("div").style(
-                "flex: 1 1 auto; width: 100%; display: flex; flex-direction: column; "
-                f"justify-content: {_VERTICAL.get(bag.v_align, 'flex-start')}; "
-                f"align-items: {_JUSTIFY.get(bag.h_align, 'flex-start')};"
+                "flex: 1 1 auto; width: 100%; display: flex; flex-direction: column; " + _text_style(bag)
             ):
-                text = bag.text
-                label = ui.label(text or "Double-click to write").classes("zoom-pan-lod1")
-                label.style(
-                    "white-space: pre-wrap; word-break: break-word; padding: 2px 6px; "
-                    "max-width: 100%; " + _text_style(bag)
-                )
-                if not text:
-                    label.style("opacity: 0.5; font-style: italic;")
-
-            editor = ui.textarea(value=text, placeholder="Write a note…")
-            _ensure_editor_css()
-            editor.classes("hw-note-editor")
-            editor.props(f'borderless input-style="height: 100%; min-height: 0; {_text_style(bag)}"').style(
-                "position: absolute; inset: 0; z-index: 2; "
-                f"padding: {_CARD_PADDING}px; background: var(--hw-node-bg);"
-            )
-            editor.set_visibility(False)
-            # Keys and presses stay in the editor. Tab types a tab; Shift+Tab leaves the field.
-            editor.on(
-                "keydown",
-                lambda _e: None,
-                js_handler=_TAB_JS,
-            )
-            for event in ("mousedown", "pointerdown", "wheel"):
-                editor.on(event, lambda _e: None, js_handler="(e) => e.stopPropagation()")
-
-        def _begin_edit(_e: Any = None) -> None:
-            editor.set_value(bag.text)
-            editor.set_visibility(True)
-            # A focus call made while the element is still being shown is dropped.
-            ui.timer(0.1, lambda: editor.run_method("focus"), once=True)
-
-        def _commit(_e: Any = None) -> None:
-            if not editor.visible:
-                return
-            editor.set_visibility(False)
-            if editor.value != bag.text:
-                bag.text = editor.value
-
-        def _cancel(_e: Any = None) -> None:
-            editor.set_value(bag.text)
-            editor.set_visibility(False)
-
-        main_card.on("dblclick", _begin_edit)
-        editor.on("blur", _commit)
-        editor.on("keydown.esc", _cancel)
-        editor.on("keydown.ctrl.enter", lambda _e: editor.run_method("blur"))
+                self.render_setting_widget(bag, "text", wrapper.node_id, widget_key=NOTE_TEXT_WIDGET)
 
         pins = self._pins_by_side(wrapper, on_stage=on_stage)
         for side in _SIDES:

@@ -31,7 +31,7 @@ from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.modals.confirm_modal import confirm_modal
-from haywire.core.access import AccessTier
+from haywire.core.access import AccessTier, LevelMode
 from haywire.core.node.layout import PATCH, STAGE
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import react_on
@@ -58,7 +58,9 @@ from haywire.core.signals import (
     Undo,
 )
 
-from ..access import allows
+from haywire.core.graph.edit_route import EditRoute
+
+from ..access import level_mode
 from ..editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from ..editors.graph_save_as import open_graph_save_as_dialog
 from ..state.edit_state import EditState
@@ -66,6 +68,7 @@ from ..state.graph_app_state import GraphAppState
 from ..protocols import GraphContainer, SubgraphContainer
 
 if TYPE_CHECKING:
+    from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import SelectionToolbarProvider
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.subgraph import SubgraphDefinition
     from haywire.core.session.protocols import IAppState
@@ -166,6 +169,8 @@ class _Level:
     """The name of the level's tab panel. Independent of ``key``: the client caches a panel by
     name, so a re-key must not rename it (a new name mounts a second canvas, and undo would
     revive the stale cached one)."""
+    route: EditRoute = field(init=False, repr=False)
+    """This session's edit route at the level; set by ``GraphEditor._new_level``."""
 
     @property
     def canvas_manager(self) -> Optional[GraphCanvasManager]:
@@ -179,6 +184,7 @@ class _Level:
     default_slot=SlotName.EDIT,
     opens=OpenBehavior.ON_PAYLOAD,
     description="Visual node graph editor for wiring data processing pipelines.",
+    access=AccessTier.VIEW,
 )
 class GraphEditor(BaseEditor):
     """
@@ -273,7 +279,7 @@ class GraphEditor(BaseEditor):
             return None
         level = self._levels.get(DOCUMENT_LEVEL)
         if level is None:
-            self._levels[DOCUMENT_LEVEL] = self._new_level(DOCUMENT_LEVEL, document)
+            self._levels[DOCUMENT_LEVEL] = self._new_level(context, DOCUMENT_LEVEL, document)
         else:
             level.container = document
         return document
@@ -303,7 +309,7 @@ class GraphEditor(BaseEditor):
         """
         key = level_key_for(container)
         if key not in self._levels:
-            level = self._new_level(key, container)
+            level = self._new_level(context, key, container)
             self._levels[key] = level
             self._watch_level_name(level)
             if self._level_panels is not None:
@@ -311,26 +317,31 @@ class GraphEditor(BaseEditor):
         self._switch_level(context, key)
         return key
 
-    @staticmethod
-    def _new_level(key: str, container: "GraphContainer") -> _Level:
-        """Return a level for ``container``.
+    def _new_level(self, context: "SessionContext", key: str, container: "GraphContainer") -> _Level:
+        """Return a level for ``container``, with ``context``'s edit route at it.
 
         Locked when the graph's ``open_locked`` is set, or always when the level is
-        inside a macro placement. Opens on the graph's ``open_view``.
+        inside a macro placement. Opens on the graph's ``open_view``. The route reads
+        the level's container and lock at each call, so it follows a container swap
+        and a lock toggle.
         """
         inside = inside_placement(container)
         props = container.editor.graph.props
         view = getattr(props, "open_view", "patch")
-        return _Level(
+        level = _Level(
             key=key,
             container=container,
             view=view if view in VIEWS else "patch",
             locked=inside or props.open_locked,
             inside_placement=inside,
         )
+        level.route = EditRoute(
+            lambda: level.container.editor, lambda: level_mode(context.can_access, level.locked)
+        )
+        return level
 
     def set_level_locked(self, context: "SessionContext", key: str, locked: bool) -> bool:
-        """Lock or unlock the level under ``key`` for this session.
+        """Lock or unlock the level under ``key`` for this session; the selection stays.
 
         Returns ``False`` and changes nothing when ``key`` is not open, when
         unlocking a level inside a macro placement, or when unlocking without the
@@ -345,7 +356,7 @@ class GraphEditor(BaseEditor):
             return False
         level.locked = locked
         for canvas in level.canvases.values():
-            canvas.set_locked(locked)
+            canvas.refresh_mode()
         if key == self._active_level:
             self._claim_session_state(context)
         return True
@@ -412,7 +423,7 @@ class GraphEditor(BaseEditor):
         if view not in level.canvases:
             self._mount_view(context, level, view)
         else:
-            level.canvases[view].set_locked(level.locked)
+            level.canvases[view].refresh_mode()
         if level.view_panels is not None:
             # A panel the client has not rendered yet mounts its canvas from scratch here and asks for its
             # edges itself, as a level does.
@@ -534,7 +545,7 @@ class GraphEditor(BaseEditor):
         pan of the old canvas of its view. A re-pointed level on screen claims the session for
         the new container when ``claim``.
         """
-        replacement = self._new_level(level.key, container)
+        replacement = self._new_level(context, level.key, container)
         replacement.view = level.view
         viewports = {view: canvas.zoom_container.get_viewport() for view, canvas in level.canvases.items()}
         self._teardown_level(level)
@@ -560,9 +571,8 @@ class GraphEditor(BaseEditor):
     def _rekey_level(self, context: "SessionContext", level: _Level, *, claim: bool = True) -> None:
         """Move ``level`` and the levels nested in it to the keys their containers now have.
 
-        The canvas, viewport and selection stay. A level inside a macro placement
-        is locked; any other keeps its lock. The level on screen claims the
-        session when ``claim``.
+        The canvas, viewport and selection stay. A level inside a macro placement is
+        locked; any other keeps its lock. The level on screen claims the session when ``claim``.
         """
         old_key = level.key
         renames = {old_key: level_key_for(level.container)}
@@ -580,7 +590,7 @@ class GraphEditor(BaseEditor):
             if moved.inside_placement and not moved.locked:
                 moved.locked = True
                 for canvas in moved.canvases.values():
-                    canvas.set_locked(True)
+                    canvas.refresh_mode()
             self._watch_level_name(moved)
             if self._active_level == old:
                 self._active_level = new
@@ -652,16 +662,23 @@ class GraphEditor(BaseEditor):
             return
         if level.key != self._active_level:
             self._switch_level(context, level.key)
-        if self.descend_into(context, event.node_id) and event.unlocked:
-            self.set_level_locked(context, self._active_level, False)
+        if (
+            self.descend_into(context, event.node_id)
+            and event.unlocked
+            and self.set_level_locked(context, self._active_level, False)
+        ):
+            self._refresh_lock_buttons(context)
 
     @react_on(RevealGraphInstance)
     def _on_reveal_graph_instance(self, context: "SessionContext", event: "RevealGraphInstance") -> None:
-        """Select a node/edge when this document holds the graph it names.
+        """Show the node/edge a reveal names, and select it.
 
-        The graph may be a Subgraph that is not open yet, in which case the
-        levels down to it are opened first. Silent no-op when the graph is not
-        in this document, or the node/edge inside it is gone.
+        A revealed node is
+        panned to the middle of its canvas; a canvas that is not on screen yet when the
+        browser gets the request keeps its viewport. The graph may be
+        a Subgraph that is not open yet, in which case the levels down to it are
+        opened first. Silent no-op when the graph is not in this document, or the
+        node/edge inside it is gone.
         """
         level = self._level_holding(event.graph_id) or self._open_level_for_graph(context, event.graph_id)
         if level is None:
@@ -700,6 +717,9 @@ class GraphEditor(BaseEditor):
             )
         )
         context.session.publish(SelectionMoved())
+        canvas = level.canvas_manager
+        if event.node_id is not None and canvas is not None:
+            canvas.center_on_node(event.node_id)
 
     # ------------------------------------------------------------------
     # keyboard commands (see EditorCommand)
@@ -741,12 +761,10 @@ class GraphEditor(BaseEditor):
             self._canvas_manager.delete_selection()
 
     def accepts_command(self, context: "SessionContext", command: EditorCommand) -> bool:
-        """Refuse commands the lock of the level on screen forbids; ``ToggleLock`` always passes."""
-        if isinstance(command, ToggleLock):
+        """Accept a command only in level mode ``EDIT``; the two toggles and Select All always pass."""
+        if isinstance(command, (ToggleLock, ToggleStageView, SelectAll)):
             return True
-        level = self._levels.get(self._active_level)
-        locked = level.locked if level is not None else False
-        return allows(context.can_access, locked, type(command).access)
+        return self._level_mode() is LevelMode.EDIT
 
     @react_on(ToggleStageView)
     def _on_toggle_stage_view(self, context: "SessionContext", event: ToggleStageView) -> None:
@@ -790,13 +808,17 @@ class GraphEditor(BaseEditor):
             )
             return
         if self.set_level_locked(context, self._active_level, not level.locked):
-            self._update_lock_button(context)
-            document = self._document()
-            if document is not None:
-                self._update_undo_redo_buttons(document)
+            self._refresh_lock_buttons(context)
         else:
             message = _PLACEMENT_REFUSAL if level.inside_placement else "Unlocking needs edit access"
             ui.notify(message, type="warning")
+
+    def _refresh_lock_buttons(self, context: "SessionContext") -> None:
+        """Redraw the buttons that follow the lock of the level on screen: Lock, Undo and Redo."""
+        self._update_lock_button(context)
+        document = self._document()
+        if document is not None:
+            self._update_undo_redo_buttons(document)
 
     def _edit_instance(self, context: "SessionContext", level: _Level) -> bool:
         """Detach the placement on ``level`` into a Group and unlock its level.
@@ -851,11 +873,17 @@ class GraphEditor(BaseEditor):
             self._canvas_manager.select_all_toggle()
 
     def _open_level_for_graph(self, context: "SessionContext", graph_id: str) -> Optional[_Level]:
-        """Open the levels down to the Subgraph with ``graph_id``, or ``None`` if this
-        document has no such Subgraph."""
+        """Open the levels down to the Subgraph with ``graph_id``.
+
+        Returns ``None`` and opens nothing when this document has no such Subgraph,
+        or when the document level is in level mode ``VIEW``.
+        """
         document = self._document()
         app = self._project_state
         if document is None or app is None:
+            return None
+        document_level = self._levels.get(DOCUMENT_LEVEL)
+        if document_level is None or document_level.route.mode() is LevelMode.VIEW:
             return None
         path = _definition_path(document.editor.graph, graph_id)
         if path is None:
@@ -940,11 +968,13 @@ class GraphEditor(BaseEditor):
 
         edit_state = context.data[EditState]
         graph = entry.editor.graph
-        locked = self._levels[self._active_level].locked
+        level = self._levels[self._active_level]
+        mode = level.route.mode()
         if (
             edit_state.active_graph is graph
             and edit_state.active_graph_path == entry.path
-            and edit_state.active_locked == locked
+            and edit_state.active_mode is mode
+            and edit_state.active_route is level.route
         ):
             return
 
@@ -953,13 +983,18 @@ class GraphEditor(BaseEditor):
             self._clear_selection(context)
         edit_state.active_graph = graph
         edit_state.active_graph_path = entry.path
-        edit_state.active_locked = locked
+        edit_state.active_mode = mode
+        edit_state.active_route = level.route
         context.session.publish(ActiveGraphMoved())
 
-        manager = self._canvas_manager
-        provider = manager._toolbar_provider if manager else None
+        provider = self._toolbar_provider()
         if provider and provider._last_bounds is not None:
             provider.show_at(provider._last_bounds)
+
+    def _toolbar_provider(self) -> "SelectionToolbarProvider | None":
+        """Return the selection toolbar provider of the canvas on screen, if any."""
+        manager = self._canvas_manager
+        return manager._toolbar_provider if manager else None
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._context = context
@@ -1096,7 +1131,7 @@ class GraphEditor(BaseEditor):
         with canvas_area:
             manager = self._build_canvas(
                 context,
-                level.container,
+                level.route,
                 viewport=viewport,
                 view=view,
                 reports_compatibility=reports,
@@ -1104,7 +1139,6 @@ class GraphEditor(BaseEditor):
             )
         if manager is not None:
             level.canvases[view] = manager
-            manager.set_locked(level.locked)
 
     @staticmethod
     def _patch_viewport_centre(level: _Level) -> Optional[tuple[float, float]]:
@@ -1119,13 +1153,13 @@ class GraphEditor(BaseEditor):
     def _build_canvas(
         self,
         context: "SessionContext",
-        entry: "GraphContainer",
+        route: EditRoute,
         viewport: Optional[Viewport] = None,
         view: str = "patch",
         reports_compatibility: Optional[bool] = None,
         patch_viewport_centre: Optional[Callable[[], Optional[tuple[float, float]]]] = None,
     ) -> Optional[GraphCanvasManager]:
-        """Instantiate a GraphCanvasManager over ``entry`` in the current slot, opened on ``viewport``.
+        """Instantiate a GraphCanvasManager over ``route``'s graph in the current slot, at ``viewport``.
 
         ``view`` picks the layout channel the canvas draws. ``reports_compatibility`` overrides
         whether it reports the load's compatibility summary; ``None`` leaves that to the patch.
@@ -1136,7 +1170,7 @@ class GraphEditor(BaseEditor):
 
         channel = VIEWS[view]
         manager = GraphCanvasManager(
-            editor=entry.editor,
+            route=route,
             skin_factory=app.skin_factory,
             node_factory=app.node_factory,
             panel_registry=app.panel_registry,
@@ -1155,7 +1189,7 @@ class GraphEditor(BaseEditor):
         if channel.stage:
             node_count = manager.visual_layer.included_node_count()
         else:
-            node_count = len(entry.editor.graph.node_wrappers)
+            node_count = len(route.graph.node_wrappers)
         if viewport is not None:
 
             def restore_viewport() -> None:
@@ -1180,7 +1214,7 @@ class GraphEditor(BaseEditor):
             # every other session while this one fills in.
             manager.start_chunked_sync(
                 on_nodes_mounted=on_nodes_mounted,
-                graph_name=entry.editor.graph.filestem,
+                graph_name=route.graph.filestem,
             )
         else:
             manager.sync_with_graph()
@@ -1230,8 +1264,11 @@ class GraphEditor(BaseEditor):
 
         Returns:
             ``False`` when the node is not a Graph-node or placement with a Subgraph bound,
-            or when there is no level to descend from.
+            when there is no level to descend from, or when the level on screen is in
+            level mode ``VIEW``.
         """
+        if self._level_mode() is LevelMode.VIEW:
+            return False
         entry = self._get_entry(context)
         app = self._project_state
         if entry is None or app is None:
@@ -1415,17 +1452,23 @@ class GraphEditor(BaseEditor):
         self.wrapper.set_unsaved(document.path is None, refresh=True)
 
     def _update_undo_redo_buttons(self, document: "GraphContainer") -> None:
-        """Enable/disable undo and redo buttons from the document's history."""
+        """Show undo and redo only where the canvas allows editing; enable them from the history."""
         editable = self._edit_allowed()
         if self._undo_button is not None:
-            self._undo_button.set_enabled(editable and document.editor.can_undo())
+            self._undo_button.set_visibility(editable)
+            self._undo_button.set_enabled(document.editor.can_undo())
         if self._redo_button is not None:
-            self._redo_button.set_enabled(editable and document.editor.can_redo())
+            self._redo_button.set_visibility(editable)
+            self._redo_button.set_enabled(document.editor.can_redo())
+
+    def _level_mode(self) -> LevelMode:
+        """Return the level mode of the level on screen; ``VIEW`` when no level is open."""
+        level = self._levels.get(self._active_level)
+        return LevelMode.VIEW if level is None else level.route.mode()
 
     def _edit_allowed(self) -> bool:
-        """Return whether the canvas on screen allows editing, lock included."""
-        manager = self._canvas_manager
-        return True if manager is None else manager.allows(AccessTier.EDIT)
+        """Return whether the level on screen is in level mode ``EDIT``, lock included."""
+        return self._level_mode() is LevelMode.EDIT
 
     def _draw_view_switch(self, context: "SessionContext") -> None:
         """Draw the Patch | Stage switch into the header row being built."""

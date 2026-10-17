@@ -230,3 +230,22 @@ def test_close_lifecycle_command_closes_matching_wrappers_in_every_slot() -> Non
 
 def test_graph_editor_module_imports_without_circular() -> None:
     assert graph_editor_module is not None
+
+
+def test_saving_the_workspace_layout_needs_edit(monkeypatch):
+    """The layout file is one per project: a session below edit would drop the editors it cannot see."""
+    from unittest.mock import MagicMock
+
+    import haywire.ui.app.shell as shell_module
+
+    monkeypatch.setattr(shell_module.ui, "notify", MagicMock())
+    for can_edit, saves in ((False, 0), (True, 1)):
+        shell = AppShell.__new__(AppShell)
+        app_state = MagicMock()
+        shell.session = cast(
+            Any, SimpleNamespace(context=SimpleNamespace(can_edit=lambda v=can_edit: v), app_state=app_state)
+        )
+
+        shell._save_workspace_layout()
+
+        assert app_state.save_workspace.call_count == saves

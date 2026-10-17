@@ -172,6 +172,58 @@ def test_incompatible_actions_are_not_merged():
     assert _names(h._pending_actions) == ["a", "b"]
 
 
+class PlainAction(ActionBase):
+    """A fake that keeps ``ActionBase``'s ``can_merge``/``merge``: same class merges, ``merge`` is None."""
+
+    def __init__(self, name: str, log: list):
+        super().__init__(name)
+        self.name = name
+        self.log = log
+
+    def _execute_impl(self) -> None:
+        self.log.append(("exec", self.name))
+
+    def _undo_impl(self) -> None:
+        self.log.append(("undo", self.name))
+
+
+def test_a_merge_that_merges_nothing_records_both_actions():
+    """``can_merge`` True with ``merge`` None leaves both actions undoable."""
+    log: list = []
+    h = HistoryManager(_merging_config())
+
+    h.add_action(PlainAction("a", log))
+    h.add_action(PlainAction("b", log))
+
+    while h.undo():
+        pass
+    assert sorted(entry for entry in log if entry[0] == "undo") == [("undo", "a"), ("undo", "b")]
+
+
+def test_two_setting_writes_on_the_default_config_both_undo():
+    """Two back-to-back ``SetSettingAction``s with merging on are both reversed by undo."""
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.setting_owner import SettingOwner
+    from haywire.core.undo.actions.graph_actions import SetSettingAction
+
+    graph = BaseGraph(filestem="g")
+    try:
+        before = (graph.meta.label, graph.meta.description)
+        owner = SettingOwner(kind="graph", accessor="meta")
+        h = HistoryManager(UndoConfig())
+        assert h.config.enable_action_merging is True
+
+        h.add_action(SetSettingAction(graph, owner, "label", "Rig A"))
+        h.add_action(SetSettingAction(graph, owner, "description", "Two cameras"))
+        assert (graph.meta.label, graph.meta.description) == ("Rig A", "Two cameras")
+
+        while h.undo():
+            pass
+        assert (graph.meta.label, graph.meta.description) == before
+    finally:
+        graph.cleanup()
+
+
 # ---------------------------------------------------------------------------
 # History limits
 # ---------------------------------------------------------------------------
@@ -358,3 +410,18 @@ def test_a_failed_action_keeps_what_can_be_redone():
     assert undone.cleaned is False
     assert h.redo() is True
     assert log[-1] == ("exec", "undone")
+
+
+def test_the_undo_redo_count_grows_with_each_undo_and_redo_only():
+    log: list = []
+    history = HistoryManager(_plain_config())
+    history.add_action(RecordingAction("a", log))
+    assert history.undo_redo_count == 0
+
+    assert history.undo() is True
+    assert history.undo_redo_count == 1
+    assert history.undo() is False  # nothing left: no count
+    assert history.redo() is True
+    assert history.undo_redo_count == 2
+    history.add_action(RecordingAction("b", log))
+    assert history.undo_redo_count == 2

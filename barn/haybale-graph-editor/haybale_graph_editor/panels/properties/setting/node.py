@@ -10,7 +10,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 
-from haywire.core.access import AccessTier
 from haywire.core.signals import (
     ActiveGraphMoved,
     GraphDataMutated,
@@ -22,9 +21,8 @@ from haywire.ui.panel.decorator import panel
 
 from haywire.ui.panel.render_utils import render_settings
 
-from haybale_graph_editor.access import NodeWriteGate, session_allows
 from haybale_graph_editor.panels._gating import is_reroute_node
-from haybale_graph_editor.state.graph_app_state import editor_for
+from haybale_graph_editor.state.graph_app_state import route_for
 from haybale_graph_editor.surfaces import SettingsInspector
 from haybale_graph_editor.state.edit_state import EditState
 
@@ -64,16 +62,18 @@ class NodeSettingsPanel(BasePanel):
         if node is None:
             return
 
+        route = route_for(ctx)
+        if route is None:
+            return  # no level open: a graph-document bag is never drawn writable
         bags = node.node.list_setting_bags()
         if not bags:
             with layout:
                 hui.empty_state("No settings bags found.", icon=hui.icon.node_settings)
             return
 
-        gate = NodeWriteGate(AccessTier.EDIT, session_allows(ctx), node)
         for bag_name, bag in bags.items():
             if bag_name == "props":
                 continue  # skip props bag, rendered separately in NodePropertiesPanel
             header = bag_name.replace("_", " ").title()
             with hui.category_group(header):
-                render_settings(ctx, bag, editor=editor_for(ctx), gate=gate)
+                render_settings(ctx, bag, route=route)

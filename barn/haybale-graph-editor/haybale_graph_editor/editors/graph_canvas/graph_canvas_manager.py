@@ -11,8 +11,9 @@ import traceback
 from typing import Callable, Dict, Optional, Set
 from nicegui import background_tasks, ui
 
-from haywire.core.access import AccessTier
-from haywire.core.graph.editor import Editor
+from haywire.core.access import LevelMode
+from haywire.core.graph.edit_route import EditRoute
+from haywire.core.graph.types import ValidationResult
 from haywire.core.node.layout import PATCH, LayoutChannel
 
 from haywire.ui.components.zoom.pan import ZoomPanContainer
@@ -38,7 +39,6 @@ from haywire.ui.components.graph.event_definitions import (
 from haywire.core.session.session import Session
 from haywire.core.signals import SelectionMoved
 
-from ...access import allows
 from ...state.edit_state import EditState
 from .event_handlers import build_event_handler_map, handler_access
 from .graph_load_modal import graph_load_modal
@@ -90,21 +90,16 @@ class GraphCanvasManager:
     - context_menus → ContextMenuHandlers
     """
 
-    def allows(self, required: AccessTier) -> bool:
-        """Return whether this session may do what ``required`` asks on this canvas."""
-        return allows(self._session.context.can_access, self.locked, required)
+    def refresh_mode(self) -> None:
+        """Push the level mode of this canvas's route to the browser.
 
-    def set_locked(self, locked: bool) -> None:
-        """Lock or unlock this canvas for its session, in the browser too.
-
-        The browser canvas starts no editing gesture while ``allows`` refuses
-        ``EDIT``: on a locked canvas, and below the edit tier on an unlocked
-        one. Locking also hides the selection toolbar and closes any open
-        context menu; unlocking reopens nothing.
+        Below ``EDIT`` the selection toolbar is hidden and an open context menu is
+        closed; the selection stays. Reaching ``EDIT`` reopens nothing here: the
+        browser re-reports the selection's bounds, which shows the toolbar.
         """
-        self.locked = locked
-        self.canvas_vue.set_locked(not self.allows(AccessTier.EDIT))
-        if locked:
+        mode = self.route.mode()
+        self.canvas_vue.set_level_mode(mode)
+        if mode is not LevelMode.EDIT:
             self._toolbar_provider.hide()
             self.context_menu_handlers.provider.close_open_menu()
 
@@ -123,7 +118,7 @@ class GraphCanvasManager:
 
     def __init__(
         self,
-        editor: Editor,
+        route: EditRoute,
         skin_factory,
         node_factory,
         panel_registry,
@@ -132,9 +127,11 @@ class GraphCanvasManager:
         channel: LayoutChannel = PATCH,
         patch_viewport_centre: Optional[Callable[[], Optional[tuple[float, float]]]] = None,
     ):
-        """Build the canvas for ``editor``'s graph into the current slot.
+        """Build the canvas for ``route``'s graph into the current slot, in ``route``'s level mode.
 
         Args:
+            route: This session's edit route at the level; every edit the canvas makes goes
+                through it.
             on_user_event: Called with no arguments before an event in
                 ``POINTER_GESTURE_EVENTS`` is dispatched, whether or not its
                 handler then runs. ``None`` reports nothing.
@@ -144,7 +141,7 @@ class GraphCanvasManager:
                 empty stage.
         """
         self.channel = channel
-        self.editor = editor
+        self.route = route
         self._on_user_event = on_user_event
         self.skin_factory = skin_factory
         self.node_factory = node_factory
@@ -152,9 +149,7 @@ class GraphCanvasManager:
         self._session = session
         self.session_id = session.session_id[:8]
 
-        self.graph = editor.graph
-
-        self.locked = False
+        self.graph = route.graph
 
         # In-flight chunked load, if any — cancelled by cleanup(). See
         # start_chunked_sync.
@@ -166,17 +161,16 @@ class GraphCanvasManager:
         # Build handler objects
         self.visual_layer = VisualLayerHandlers(
             graph=self.graph,
-            editor=self.editor,
+            route=self.route,
             skin_factory=self.skin_factory,
             canvas_vue=self.canvas_vue,
-            allows=self.allows,
             context=self._session.context,
             channel=self.channel,
             patch_viewport_centre=patch_viewport_centre,
         )
         self.selection = SelectionHandlers(
             graph=self.graph,
-            editor=self.editor,
+            route=self.route,
             session_id=self.session_id,
             session=self._session,
             visual_layer=self.visual_layer,
@@ -186,7 +180,7 @@ class GraphCanvasManager:
         self.visual_layer.on_node_unmounted = self.selection.prune_node
         self.visual_layer.on_canvas_mounted = self._reshow_selection
         self.interactions = InteractionHandlers(
-            editor=self.editor, session=self._session, channel=self.channel
+            route=self.route, session=self._session, channel=self.channel
         )
 
         context_menu_provider = SessionContextMenuProvider(
@@ -201,7 +195,7 @@ class GraphCanvasManager:
         self.context_menu_handlers = ContextMenuHandlers(
             visual_layer=self.visual_layer,
             provider=context_menu_provider,
-            allows=self.allows,
+            allows=self.route.allows,
         )
 
         self._toolbar_provider = SelectionToolbarProvider(
@@ -215,7 +209,7 @@ class GraphCanvasManager:
             # provider, which already implements them against the same
             # canvas. Delegation, not duplication (ADR-0029).
             menu_provider=context_menu_provider,
-            allows=self.allows,
+            allows=self.route.allows,
         )
         self.toolbar_handlers = SelectionToolbarHandlers(provider=self._toolbar_provider)
 
@@ -234,10 +228,43 @@ class GraphCanvasManager:
 
         # Subscribe for incremental validation updates
         self.graph.subscribe_to_validation(self.visual_layer.on_validated)
+        self.graph.subscribe_to_validation(self._refresh_toolbar_for)
 
         self._follow_graph_props()
 
+        # A canvas first mounted on a level below edit starts in that mode, not in the browser's default.
+        self.refresh_mode()
+
         logger.info(f"🔧 GraphCanvasManager for {self.session_id} is setup")
+
+    def center_on_node(self, node_id: str) -> None:
+        """Pan this canvas so the middle of the node's card sits in the middle of the viewport.
+
+        The zoom stays. Does nothing when this canvas does not show the node, and the browser
+        does nothing while the canvas is not on screen.
+        """
+        wrapper = self.graph.get_node_wrapper(node_id)
+        if wrapper is None or not self.visual_layer.shows_node(node_id):
+            return
+        props = wrapper.node.props
+        channel = self.channel
+        x, y = channel.to_canvas(getattr(props, channel.x), getattr(props, channel.y))
+        width = getattr(props, channel.width) or 0.0
+        height = getattr(props, channel.height) or 0.0
+        self.zoom_container.center_on(x + width / 2, y + height / 2)
+
+    def _refresh_toolbar_for(self, result: ValidationResult) -> None:
+        """Re-render the selection toolbar when ``result`` names a node or edge selected here.
+
+        Every user edit of a node or edge, by any session, an agent, an undo or a redo,
+        reaches a validation batch, so the toolbar shows what is true now.
+        """
+        selection = self.selection
+        if selection.selected_nodes.isdisjoint(result.nodes) and selection.selected_edges.isdisjoint(
+            result.edges
+        ):
+            return
+        self._toolbar_provider.refresh()
 
     def _follow_graph_props(self) -> None:
         """Apply the graph's canvas-level props and follow later edits to them.
@@ -355,10 +382,9 @@ class GraphCanvasManager:
         event_type = event.event_type
         handler = self._event_handlers.get(event_type)
 
-        if handler and not self.allows(handler_access(handler)):
-            logger.debug(
-                f"Refused {event_type}: needs {handler_access(handler).value} (locked={self.locked})"
-            )
+        if handler and not self.route.allows(handler_access(handler)):
+            needed, mode = handler_access(handler), self.route.mode()
+            logger.debug(f"Refused {event_type}: needs {needed.value} (mode={mode.value})")
             if isinstance(event, UserDragEndEvent):
                 self.visual_layer.resync_positions(event.nodes)
             elif isinstance(event, UserResizeEndEvent):
@@ -603,6 +629,7 @@ class GraphCanvasManager:
 
         try:
             self.graph.unsubscribe_from_validation(self.visual_layer.on_validated)
+            self.graph.unsubscribe_from_validation(self._refresh_toolbar_for)
         except Exception as exc:
             logger.warning(f"GraphCanvasManager: unsubscribe error: {exc}")
 

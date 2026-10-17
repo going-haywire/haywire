@@ -32,14 +32,15 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from nicegui import ui
 
+from haywire.core.access import LevelMode
 from haywire.core.settings import UiState
 from haywire.ui import elements as hui
 from haywire.ui.panel.host_rendering import drawing_panel
 from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.widget.base import DISABLED_STYLE, BaseWidget
-from haywire.ui.widget.write_gate import value_changed
 
 if TYPE_CHECKING:
+    from haywire.core.graph.edit_route import EditRoute
     from haywire.core.graph.editor import Editor
     from haywire.core.node.data import NodeData
     from haywire.core.session.context import SessionContext
@@ -47,7 +48,6 @@ if TYPE_CHECKING:
     from haywire.core.settings import Settings, setting
     from haywire.core.types.enums import PortType
     from haywire.core.types.fields import DataField
-    from haywire.ui.widget.write_gate import WriteGate
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +66,7 @@ def render_settings(
     obj: "Settings",
     *,
     categories: Iterable[str] | None = None,
-    editor: "Editor | None" = None,
-    gate: "WriteGate | None" = None,
+    route: "EditRoute | None",
 ) -> None:
     """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
 
@@ -88,13 +87,18 @@ def render_settings(
             order, grouping, headers, chrome and the subscription are what an
             unfiltered render gives. An unknown name selects nothing and
             renders the empty state.
-        editor: The graph editor to record a row's promote and demote on, so each
-            is one undo step. Without one they apply directly and cannot be undone.
-        gate: Asked before every edit, reset, set-to-none, promote and demote a
-            row makes; a refused one changes nothing and the row shows the
-            value again. Rows draw disabled while it refuses. ``gate.written()``
-            follows each edit, reset and set-to-none that lands. ``None`` lets
-            every write through.
+        route: The edit route of the level the bag belongs to. Every edit, reset
+            and set-to-none a row makes goes through it, needing level mode
+            ``EDIT``; a refused one changes nothing and the row shows the value
+            again. Promote and demote are offered for a node's bag and need the
+            route's editor; each is one undo step.
+            ``None`` is for a bag no graph level owns, such as a run's
+            settings: rows write the bag directly and offer no promotion.
+
+    Example::
+
+        render_settings(ctx, node.props, route=route_for(ctx))  # a graph level's bag
+        render_settings(ctx, entry.run_settings, route=None)  # a bag no level owns
     """
 
     fields = type(obj)._settings_descriptors()
@@ -141,7 +145,7 @@ def render_settings(
             _refresh_group_visibility(category)
 
         _render_reactive_field_row(
-            ctx, obj, item[0], item[1], updaters, on_ui_state_applied=_on_applied, editor=editor, gate=gate
+            ctx, obj, item[0], item[1], updaters, on_ui_state_applied=_on_applied, route=route
         )
 
     column = _render_grouped(
@@ -570,8 +574,8 @@ def _render_reactive_field_row(
     defn: "setting",
     updaters: dict[str, Callable[[], None]],
     on_ui_state_applied: Callable[[], None] | None = None,
-    editor: "Editor | None" = None,
-    gate: "WriteGate | None" = None,
+    *,
+    route: "EditRoute | None",
 ) -> None:
     """Render a single reactive field row (instance path).
 
@@ -680,30 +684,16 @@ def _render_reactive_field_row(
     # Shows the model's value in the widget again; replaced once the widget is built.
     resync_view: Callable[[], None] = _no_widget_yet
 
-    def _gate_allows() -> bool:
-        return gate is None or gate.allows()
-
     def _show_model_again() -> None:
         resync_view()
         _refresh_chrome()
 
-    def _refuse() -> bool:
-        """Return True, and show the model again, when the gate refuses a write now."""
-        if _gate_allows():
-            return False
-        _show_model_again()
-        return True
-
-    def _written_if_changed(before: tuple[bool, Any]) -> None:
-        if gate is not None and value_changed(before, _stored(obj, attr_name)):
-            gate.written()
-
     def _on_reset_click():
-        if _refuse():
+        if route is None:
+            obj._reset(attr_name)
+        elif not route.reset_setting(obj, attr_name, minimum=LevelMode.EDIT):
+            _show_model_again()
             return
-        before = _stored(obj, attr_name)
-        obj._reset(attr_name)
-        _written_if_changed(before)
         # reset() discards the local opinion but only writes the cell when the
         # value actually changes (old != new). A field that was locally-set yet
         # already equalled its default — e.g. promoted-then-demoted unchanged —
@@ -712,46 +702,38 @@ def _render_reactive_field_row(
         # row's chrome directly so it clears regardless of whether the value moved.
         _refresh_chrome()
 
-    def _promote(direction: "PortType") -> None:
-        from haywire.core.node.promotion import bag_accessor, promote_setting
+    def _structure_editor() -> "Editor | None":
+        return route.editor() if route is not None else None
 
-        if _refuse():
-            return
+    def _promote(direction: "PortType") -> None:
+        from haywire.core.node.promotion import bag_accessor
+
+        editor = _structure_editor()
         node = obj._node
-        if node is None:
+        if editor is None or node is None:
             return
         accessor = bag_accessor(node, obj)
         if accessor is None:
             return
-        if editor is not None:
-            editor.promote_setting(node.node_id, accessor, attr_name, direction)
-        else:
-            promote_setting(node, accessor, attr_name, direction)
+        editor.promote_setting(node.node_id, accessor, attr_name, direction)
         _request_canvas_redraw(node)
 
     def _demote() -> None:
-        from haywire.core.node.promotion import demote_setting
-
-        if _refuse():
-            return
+        editor = _structure_editor()
         node = obj._node
-        if node is None:
+        if editor is None or node is None:
             return
-        if editor is not None:
-            editor.remove_port(node.node_id, defn.storage_key)
-        else:
-            demote_setting(node, defn.storage_key)
+        editor.remove_port(node.node_id, defn.storage_key)
         _request_canvas_redraw(node)
 
     reset_item: Any = None
     none_item: Any = None
 
     def _set_to_none() -> None:
-        if _refuse():
-            return
-        before = _stored(obj, attr_name)
-        setattr(obj, attr_name, None)
-        _written_if_changed(before)
+        if route is None:
+            setattr(obj, attr_name, None)
+        elif not route.set_setting(obj, attr_name, None, minimum=LevelMode.EDIT):
+            _show_model_again()
 
     # Every wrapper field lists "Set to none", a field defaulting to absence
     # included: Reset greys whenever there is no local opinion, so hiding it
@@ -762,7 +744,7 @@ def _render_reactive_field_row(
         # Transient entries stay listed and grey while the row is clean or
         # DISABLED. Promote/Demote are per-render constants: a promotion
         # change rebuilds the panel.
-        editable = obj._effective_ui_state(attr_name) is UiState.NORMAL and _gate_allows()
+        editable = obj._effective_ui_state(attr_name) is UiState.NORMAL
         if reset_item is not None:
             reset_item.set_enabled(_has_local_opinion() and editable)
         if none_item is not None:
@@ -776,7 +758,8 @@ def _render_reactive_field_row(
         nonlocal reset_item, none_item
         from haywire.core.node.promotion import eligible_promotion_directions
 
-        node = obj._node
+        # Promotion edits the graph's structure, so it is offered only on a level's route.
+        node = obj._node if route is not None else None
         # Promotion collapses to ONE top-level entry: "Demote" once promoted,
         # else a "Promote to" flyout holding the eligible directions. Always a
         # flyout, even at one eligible direction, so the entry keeps a fixed
@@ -785,11 +768,9 @@ def _render_reactive_field_row(
         if node is not None and not is_promoted:
             directions = list(eligible_promotion_directions(defn))
         offers_demote = node is not None and is_promoted
-        # Promotion entries keep their place in the menu and grey while the gate refuses.
-        promotable = _gate_allows()
         with ui.context_menu().props('data-row-menu="true"'):
             if offers_demote:
-                ui.menu_item("Demote", on_click=_demote, auto_close=True).set_enabled(promotable)
+                ui.menu_item("Demote", on_click=_demote, auto_close=True)
             elif directions:
                 # dense=False: the anchor's Quasar density must match the plain
                 # menu_items beside it (Reset et al are not dense), or it renders
@@ -806,7 +787,7 @@ def _render_reactive_field_row(
                             direction.name.lower(),
                             on_click=lambda d=direction: _promote(d),
                             auto_close=True,
-                        ).style("white-space: nowrap").set_enabled(promotable)
+                        ).style("white-space: nowrap")
             # Reset is listed permanently for a writable row — it greys when the
             # row is clean rather than disappearing, so the menu never renders
             # empty and its shape does not depend on the current value.
@@ -874,7 +855,7 @@ def _render_reactive_field_row(
             if promoted_hint:
                 promoted_lbl.tooltip(promoted_hint)
         else:
-            on_edit = _bag_on_edit(obj, attr_name, error_container, gate=gate, on_refused=_show_model_again)
+            on_edit = _bag_on_edit(obj, attr_name, error_container, route, on_refused=_show_model_again)
             value_apply, widget_set_enabled, resync_view = _resolve_widget_instance(defn, on_edit, bag=obj)
 
     def _refresh_row_ui_state() -> None:
@@ -882,7 +863,7 @@ def _render_reactive_field_row(
         row_element.set_visibility(state is not UiState.HIDDEN)
         row_element.props(f'data-ui-state="{state.name.lower()}"')
         if widget_set_enabled is not None:
-            widget_set_enabled(state is UiState.NORMAL and _gate_allows())
+            widget_set_enabled(state is UiState.NORMAL)
         _refresh_reset_item()
         if on_ui_state_applied is not None:
             on_ui_state_applied()
@@ -1052,21 +1033,17 @@ def _bag_on_edit(
     obj: "Settings",
     attr_name: str,
     error_container,
-    gate: "WriteGate | None" = None,
+    route: "EditRoute | None",
     on_refused: Callable[[], None] | None = None,
 ) -> Callable[[Any], None]:
-    """Write policy for the instance path: gate → validate → setattr → ``gate.written()`` → error chrome.
+    """Write policy for the instance path: validate → write through *route* → error chrome.
 
-    A write *gate* refuses calls ``on_refused`` and changes nothing.
-    ``gate.written()`` is called only when the write changed what the field
-    stores (see ``_stored``).
+    A value the field's validator rejects shows ``Invalid value`` in *error_container*
+    and writes nothing. A write *route* refuses calls ``on_refused`` and changes
+    nothing. Without a route the value is set on the bag directly.
     """
 
     def on_edit(value: Any) -> None:
-        if gate is not None and not gate.allows():
-            if on_refused is not None:
-                on_refused()
-            return
         descriptor = type(obj)._settings_descriptors().get(attr_name)
         if descriptor is not None and not descriptor.validate(value):
             error_container.clear()
@@ -1075,18 +1052,15 @@ def _bag_on_edit(
                     'data-error="true"'
                 )
             return
-        before = _stored(obj, attr_name)
-        setattr(obj, attr_name, value)
-        if gate is not None and value_changed(before, _stored(obj, attr_name)):
-            gate.written()
+        if route is None:
+            setattr(obj, attr_name, value)
+        elif not route.set_setting(obj, attr_name, value, minimum=LevelMode.EDIT):
+            if on_refused is not None:
+                on_refused()
+            return
         error_container.clear()
 
     return on_edit
-
-
-def _stored(obj: "Settings", attr_name: str) -> tuple[bool, Any]:
-    """Return what a field stores: whether it holds a local value, and its value."""
-    return obj._is_locally_set(attr_name), getattr(obj, attr_name)
 
 
 def _registry_on_edit(registry: "SettingsRegistry", key: str, error_container) -> Callable[[Any], None]:
