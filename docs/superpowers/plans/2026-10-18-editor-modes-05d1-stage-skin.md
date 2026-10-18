@@ -22,6 +22,16 @@
 - **Every skin stays selectable in both chains (Q14 D),** filtered only by tags (Q30). Writes are not validated against the lists: `CHOICES` options are UI-only.
 - **Tests and docs:** use the smallest test tier while iterating, then the full gates at the end. Docs follow `.claude/rules/python-docs.md`, and glossary/ADR edits land with the code (Task 4).
 
+## Amendment (2026-10-18, after the build, Q32/Q37/Q38)
+
+The user reversed Q14 D: `on_stage` stays in the skin contract. This supersedes Decisions 3, 5 (contract), 6 and 7 (detail) below; Decisions 1, 2, 4, 8 and the factory per-card fix stand.
+
+- **Contract (ADR 0054, unchanged):** `render(main_card, wrapper, *, on_stage)`, `_render(wrapper, *, on_stage=False, route=None)`, `SkinFactory.render(key, wrapper, *, on_stage=False, ...)`, `render_pin(..., on_stage)`. `render_pin` stamps `data-pin-on-stage` (Decision 8).
+- **UINode** picks `props.stage_skin` on a stage canvas and `props.skin` on a patch canvas, falling back to the registry's default skin, and passes `on_stage=channel.stage`.
+- **No twins:** no `StackedStageSkin`, no `NodeSkin.stage_twin`, no `_is_default_stage` or registry default-stage tracking. `studio_stage_skin` defaults to `_default_skin` (Stacked), fixed.
+- **Default skins on stage** ignore collapse (`is_collapsed(...) and not on_stage`), layout direction (`NodeSkin.layout_of(wrapper, *, on_stage=False)` returns `LEFT_TO_RIGHT` on stage) and detail (`BaseSkin.honours_detail(*, on_stage) -> bool`, default `True`; `NodeSkin` returns `not on_stage`; UINode stamps full detail when the skin says no). Annotation and Reroute keep their ADR 0054 stage behaviour.
+- Dropped after discussion (Q33–Q36): no reroute gating, no affordance changes for reroutes.
+
 ## Decisions
 
 1. **Tags.**
@@ -207,10 +217,10 @@
 
 ### Live check (user, studio started from the worktree)
 
-1. Open a graph with nodes and annotations on stage. The stage looks as before: cards with widget rows, annotation links, collapsed nodes drawn expanded. Saving without edits leaves the file unchanged (`git diff`).
-2. Node properties → Stage Skin offers *Stacked Stage*, *Stacked* and *Split*. Patch Skin offers *Stacked* and *Split*, not *Stacked Stage*.
-3. Set one on-stage node's Stage Skin to *Stacked*. Its stage card gains pins and a full card, and its patch card is unchanged. Undo restores it.
-4. On that card, drag from a data pin on stage: nothing starts. Drag between two annotations on stage: they connect.
-5. Graph properties → Default Stage Skin = *Stacked*. Every on-stage node without its own stage skin follows; annotations keep their face.
-6. Set Node Detail to "Pins" on an on-stage node: the patch card thins and the stage card is unchanged.
-7. Studio settings → Default Studio Skin = *Split*. The patch changes and the stage does not.
+1. Open a graph with nodes and annotations on stage. The stage looks as before: cards with one row per shown widget, annotation links and pins, collapsed nodes drawn expanded. Saving without edits leaves the file unchanged (`git diff`).
+2. On a graph with a vertical layout direction, stage cards read left to right; the patch keeps its direction.
+3. Set Node Detail to "Pins" on an on-stage node: the patch card thins, the stage card does not.
+4. Node properties → Stage Skin offers *Stacked* and *Split*. Set one on-stage node's Stage Skin to *Split*: its stage card redraws as a Split stage card, its patch card is unchanged. Undo restores it.
+5. Graph properties → Default Stage Skin = *Split*: every on-stage node without its own stage skin follows; annotations keep their face.
+6. On stage, drag between two annotations: they connect.
+7. Studio settings → Default Studio Skin = *Split*: the patch changes, the stage does not.

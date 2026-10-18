@@ -11,7 +11,8 @@ from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.skin.settings import (
     _layout_direction_choices,
     _node_detail_choices,
-    _node_skin_choices,
+    _patch_skin_choices,
+    _stage_skin_choices,
     _node_theme_choices,
 )
 from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, FLOAT, STRING
@@ -29,6 +30,7 @@ class NodeProperties(NodeSettings):
         "collapsed",
         "locked",
         "skin",
+        "stage_skin",
         "layout_direction",
         "comment",
         "label",
@@ -99,7 +101,16 @@ class NodeProperties(NodeSettings):
         order=10,
         # A mirror inherits its IType (-> CHOICES/SELECT_WIDGET) from src but not
         # src's widget_config, so the options are re-supplied here.
-        widget_config={"options": _node_skin_choices},
+        widget_config={"options": _patch_skin_choices},
+    )
+
+    stage_skin = graph(
+        src=GraphProperties.default_stage_skin,
+        label="Stage Skin",
+        description="Skin for THIS node on the stage",
+        category="appearance",
+        order=11,
+        widget_config={"options": _stage_skin_choices},
     )
 
     layout_direction = graph(

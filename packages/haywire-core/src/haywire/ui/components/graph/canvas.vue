@@ -125,6 +125,8 @@ import 'arrow_heads';
  *   data-pin-wire       A pin's wire key: its wire type's id, or '*' for a bare
  *                       ADD slot. Two pins may link when _wiresMatch says so,
  *                       the mirror of wires_match in core/types/wire.py.
+ *   data-pin-on-stage   Present on a pin of an on-stage wire (an annotation link).
+ *                       On a stage canvas only such a pin starts an edge drag.
  *   data-pin-ghost      Present on a node's root ghost pins. A ghost is the
  *                       fallback anchor for an edge whose port is missing: it
  *                       never starts, ends or joins a drag.
@@ -132,7 +134,8 @@ import 'arrow_heads';
  *
  *   data-hw-stage       Present on the canvas root of a stage view. Hover,
  *                       selection and drag lift a card only on a canvas without
- *                       it; a stage paints by stacking order alone. Written by
+ *                       it; a stage paints by stacking order alone, and starts
+ *                       an edge drag only from a data-pin-on-stage pin. Written by
  *                       GraphCanvasVue (canvas.py).
  *
  * A card's inline z-index is its stacking order, written by UINode
@@ -1757,6 +1760,8 @@ export default {
             const pin = target.closest('.connection-pin');
             if (pin) {
                 if ('pinGhost' in pin.dataset) return;
+                // Saves a drag the server would refuse: a stage draws only on-stage edges.
+                if (this.$el.hasAttribute('data-hw-stage') && !('pinOnStage' in pin.dataset)) return;
                 event.preventDefault();
                 event.stopPropagation();
                 this._enterActiveEdge(pin);

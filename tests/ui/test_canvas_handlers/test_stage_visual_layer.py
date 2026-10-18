@@ -260,3 +260,84 @@ def test_each_canvas_applies_only_its_own_extent(graph):
         patch_layer.on_validated(result)
     s.assert_called_once_with(700, 600)
     p.assert_not_called()
+
+
+_REFUSED = "This connection would not show on the stage. Make it in the patch view."
+
+
+def _with_ports(graph, ports: dict[str, dict[str, bool]]) -> None:
+    """Give the mocked nodes real-looking ports: ``{node_id: {port_id: on_stage}}``."""
+    for node_id, by_id in ports.items():
+        graph.node_wrappers[node_id].node.ports = {
+            pid: SimpleNamespace(on_stage=on) for pid, on in by_id.items()
+        }
+
+
+def _create(h, editor, src="a", outlet="o", dst="b", inlet="i"):
+    from haywire.ui.components.graph.event_definitions import EdgeCreatedEvent
+
+    with patch.object(vl_module.ui, "notify") as notify:
+        h.process_edge_creation(
+            EdgeCreatedEvent(sourceNodeId=src, outletPinId=outlet, sinkNodeId=dst, inletPinId=inlet)
+        )
+    return notify
+
+
+def _gated_layer(graph, channel):
+    h = _layer(graph, channel)
+    editor = MagicMock()
+    editor.create_edge.return_value = True
+    h.route = edit_route(editor)
+    return h, editor
+
+
+def test_a_data_edge_is_refused_on_a_stage_canvas(graph):
+    _with_ports(graph, {"a": {"o": False}, "b": {"i": False}})
+
+    stage, stage_editor = _gated_layer(graph, STAGE)
+    notify = _create(stage, stage_editor)
+    stage_editor.create_edge.assert_not_called()
+    notify.assert_called_once_with(_REFUSED, type="warning")
+
+    patch_layer, patch_editor = _gated_layer(graph, PATCH)
+    _create(patch_layer, patch_editor)
+    patch_editor.create_edge.assert_called_once_with("a", "o", "b", "i")
+
+
+def test_an_annotation_link_is_created_on_stage(graph):
+    _with_ports(graph, {"a": {"bottom_0": True}, "b": {"top_0": True}})
+    stage, editor = _gated_layer(graph, STAGE)
+
+    _create(stage, editor, outlet="bottom_0", inlet="top_0")
+
+    editor.create_edge.assert_called_once_with("a", "bottom_0", "b", "top_0")
+
+
+def test_a_drop_on_an_annotation_open_slot_is_created_on_stage(graph):
+    # A side's open slot is an ADD[ANNOTATION] port, which travels on the annotation wire.
+    _with_ports(graph, {"a": {"bottom_0": True}, "b": {"left_3": True}})
+    stage, editor = _gated_layer(graph, STAGE)
+
+    _create(stage, editor, outlet="bottom_0", inlet="left_3")
+
+    editor.create_edge.assert_called_once()
+
+
+def test_an_auto_wire_from_a_data_pin_is_refused_on_stage(graph):
+    from haywire.ui.components.graph.event_definitions import SyncEdgeConnectCancelEvent
+
+    _with_ports(graph, {"a": {"o": False}})
+    stage, editor = _gated_layer(graph, STAGE)
+    stage.context = MagicMock()
+    new_node = MagicMock()
+    new_node.node_id = "new"
+    new_node.node.ports = {}
+    pending = {"pin_dir": "outlet", "wire": "", "data_type": "", "node_id": "a", "pin_id": "o"}
+
+    with patch.object(vl_module.ui, "notify") as notify:
+        stage._try_auto_wire(new_node, pending)
+
+    editor.create_edge.assert_not_called()
+    notify.assert_called_once_with(_REFUSED, type="warning")
+    sent = [call.args[0] for call in stage.canvas_vue.emit_sync_event.call_args_list]
+    assert any(isinstance(e, SyncEdgeConnectCancelEvent) for e in sent)

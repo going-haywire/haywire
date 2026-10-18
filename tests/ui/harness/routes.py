@@ -531,6 +531,29 @@ def _build_stage_graph(node_factory):
     return graph, editor, node
 
 
+def _build_stage_gate_graph(node_factory):
+    """Two annotations on stage, for the stage edge-gate tests.
+
+    Returns (graph, editor, ids) where *ids* maps "a" and "b" to node ids.
+    """
+    from haywire.barn.builtin.nodes.annotation import AnnotationNode
+    from haywire.core.graph.editor import Editor
+
+    graph = _harness_graph("Stage Gate Fixture")
+    editor = Editor(graph, node_factory)
+    ids = {}
+    for name, (x, y) in (("a", (40.0, 60.0)), ("b", (420.0, 60.0))):
+        wrapper = graph.create_node_wrapper(
+            AnnotationNode.class_identity.registry_key, position=(x + 300.0, y)
+        )
+        assert wrapper is not None, "could not create an annotation node"
+        wrapper.node.props.on_stage = True
+        wrapper.node.props.stage_x = x
+        wrapper.node.props.stage_y = y
+        ids[name] = wrapper.node_id
+    return graph, editor, ids
+
+
 def _build_stack_graph(node_factory):
     """Two overlapping on-stage nodes, ``back`` (z 0) under ``front`` (z 1), in both views.
 
@@ -1510,6 +1533,32 @@ def register_routes(library_service) -> None:
         )
         chosen = next(c for c in CHANNELS if c.name == channel)
         _mount_graph_canvas(library_service, graph, editor, testid="stage", channel=chosen)
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-stage-gate
+    #
+    # Two annotations on a stage canvas. Backs test_stage_edge_gate.py: a pin
+    # off the on-stage wires starts no drag on stage, an annotation pin does. Node ids are on
+    # `probe-<name>` labels; `server-edges` lists the graph's edge ids, sorted
+    # and joined by `|`.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-stage-gate")
+    async def graph_stage_gate_page():
+        from haywire.core.node.layout import STAGE
+
+        graph, editor, ids = _build_stage_gate_graph(library_service.get_node_factory())
+        with ui.row():
+            for name, node_id in ids.items():
+                ui.label(node_id).props(f'data-testid="probe-{name}"')
+            server_edges = ui.label().props('data-testid="server-edges"')
+
+        def _refresh() -> None:
+            server_edges.set_text("|".join(sorted(graph.edge_wrappers)))
+
+        ui.timer(0.2, _refresh)
+        _mount_graph_canvas(library_service, graph, editor, testid="stage-gate", channel=STAGE)
         _stamp_synced()
 
     @ui.page("/graph-stack")

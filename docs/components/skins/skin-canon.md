@@ -402,16 +402,36 @@ Anything else on a card takes no pointer input below `edit`. The gate does not t
 inside of a marked element, so its own `pointer-events` rules (a disabled widget's `none`)
 stay in force.
 
-## Stage view: the `on_stage` keyword
+## Stage view: the stage skin and the `on_stage` keyword
 
-Stage view is a display, not a separate face. A node on a graph's stage is drawn by the same `render()` as in patch view, with the same skin and title; the differences are which pins are drawn and which rows (below). `UINode._render` passes `on_stage=self.channel.stage` through `SkinFactory.render(key, wrapper, *, on_stage=False, ...)` (the error-skin fallback forwards it too). See [ADR 0054](../../adr/0054-the-stage-view.md).
+A node has a patch skin (`props.skin`) and a stage skin (`props.stage_skin`), each resolved framework < graph < node (`studio_skin` / `studio_stage_skin`, `GraphProperties.default_skin` / `default_stage_skin`); nothing crosses between the two chains. `UINode._render` draws with the stage skin on a stage canvas and the patch skin on a patch canvas, and passes `on_stage=self.channel.stage` through `SkinFactory.render(key, wrapper, *, on_stage=False, ...)` (the error-skin fallback forwards it too). See [ADR 0054](../../adr/0054-the-stage-view.md) and [ADR 0056](../../adr/0056-the-view-picks-the-skin.md).
 
-- `BaseSkin.render(self, main_card, wrapper, *, on_stage: bool)` (`packages/haywire-core/src/haywire/ui/skin/base.py`). The keyword is **required**, so a skin outside the repo breaks loudly when it is not updated.
-- `render_pin(..., on_stage: bool)` (`pin_render.py`) is required too. With `on_stage=True` it returns `None` for a port whose `port.on_stage` is false (its wire type is not an on-stage wire); a skin must tolerate that `None`. With `on_stage=False` it behaves as in patch view.
-- **Collapse.** A skin's collapse check is `self.is_collapsed(wrapper) and not on_stage`: a node collapsed in the patch is drawn expanded on stage. Fold state is honoured on stage (below).
-- **The row rule.** On stage a default-skin card draws a row only for a port that renders a widget there (`NodeSkin._shows_widget`): label plus widget, as in the patch. A port without a shown widget draws no label and no row. An on-stage pin without a widget is drawn alone in a bare pin row, so it keeps an anchor. Folds work on stage: the fold header is the fold's widget, so it follows the same row rule, a closed fold hides its children, and the state is the node's one fold state, shared with the patch. The split skin's config band honours fold state and is skipped when none of its configs shows a widget. The Annotation skin is unaffected. A custom skin should follow the rule, or its on-stage cards show rows the default skin omits.
+- `BaseSkin.render(self, main_card, wrapper, *, on_stage: bool)` (`packages/haywire-core/src/haywire/ui/skin/base.py`). The keyword is **required**, so a skin outside the repo breaks loudly when it is not updated. A skin that suits both views draws its stage card when it is true; a skin made for the stage alone (tagged `stage-only`) may ignore it.
+- `render_pin(..., on_stage: bool)` (`pin_render.py`) is required too. With `on_stage=True` it returns `None` for a port whose `port.on_stage` is false (its wire type is not an on-stage wire); a skin must tolerate that `None`. A drawn pin on an on-stage wire carries `data-pin-on-stage`; a stage canvas starts an edge drag only from such a pin, and refuses server-side any new edge it would not draw.
+- **The default skins on stage** (Stacked, Split, and every `NodeSkin`) ignore three node settings:
+  - **Collapse.** The collapse check is `self.is_collapsed(wrapper) and not on_stage`: a node collapsed in the patch is drawn expanded.
+  - **Layout direction.** `self.layout_of(wrapper, on_stage=on_stage)` is `LEFT_TO_RIGHT` on stage. Pin side and direction vector both come from it.
+  - **Detail.** `BaseSkin.honours_detail(*, on_stage)` (default `True`) says whether the node's Detail setting thins the skin's cards in a view; `NodeSkin` returns `not on_stage`, and `UINode` then stamps full detail on the stage card.
+- **The row rule.** On stage a default-skin card draws a row only for a port that renders a widget there (`NodeSkin._shows_widget`): label plus widget, as in the patch. A port without a shown widget draws no label and no row. An on-stage pin without a widget is drawn alone in a bare pin row, so it keeps an anchor. Folds work on stage: the fold header is the fold's widget, so it follows the same row rule, a closed fold hides its children, and the state is the node's one fold state, shared with the patch. The split skin's config band honours fold state and is skipped when none of its configs shows a widget. A custom skin should follow the rule, or its on-stage cards show rows the default skin omits.
 - **Ghost pins stay.** `render_ghost_pin` is unchanged, so an edge whose port is missing keeps its anchor on stage.
 - Everything else about the card (the class-list contract above, `node-card`, `drag-handle`, the frame) holds on stage as in patch view.
+
+### Tags: which lists offer a skin
+
+`@skin(tags=[...])` says what a skin is for; untagged, a skin is `general`. Every skin list is built by `skin_choices(include=..., exclude=...)` (`haywire.core.skin.settings`): a listed skin carries every tag in `include` and none in `exclude`.
+
+| Tag | Meaning |
+|---|---|
+| `general` | For any node. |
+| `stage-only` | Meant for a stage; patch lists leave it out. |
+| `special` | For one kind of node only, named by a second tag (e.g. `widget-node`); general lists leave it out. |
+
+| List | Include | Exclude |
+|---|---|---|
+| Patch skin (studio, graph, node) | `general` | `special`, `stage-only` |
+| Stage skin (studio, graph, node) | `general` | `special` |
+
+A skin made for the stage alone is tagged `["general", "stage-only"]`. A skin for one node kind is tagged `["special", "stage-only", "<kind>"]` (drop `stage-only` if it suits the patch too), and that node class overrides its `stage_skin` (or `skin`) field with `skin_choices(include=["special", "<kind>"], exclude=["general"])` as its options. The lists decide only what is offered: a write naming any skin is accepted.
 
 ## TODO
 

@@ -87,6 +87,7 @@ class TestPropsChangeTriggersRedraw:
             "collapsed": True,
             "locked": True,
             "skin": "some:skin:key",
+            "stage_skin": "some:stage:skin",
             "layout_direction": "t2b",
             "comment": "hello",
             "label": "My Node",

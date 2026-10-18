@@ -155,10 +155,7 @@ class UINode:
         Note: Must be called within a valid NiceGUI client context.
         """
         self._rebind_props()
-        renderer_name: Optional[str] = self.wrapper.node.props.skin
-
-        if renderer_name is None:
-            renderer_name = self.factory._skin_registry.get_default_skin_registry_key()
+        renderer_name = self._skin_key()
 
         try:
             # Clean up old widgets before clearing UI
@@ -235,6 +232,8 @@ class UINode:
 
                 self._emit_sync_event_redraw()
                 self._apply_slot_style()
+                # A skin change may change whether the card honours the node's detail.
+                self._apply_detail_attr()
 
                 return True  # Render successful
         except Exception as e:
@@ -383,6 +382,29 @@ class UINode:
             self.container._props["data-node-enterable"] = "true"
             self.container.update()
 
+    def _skin_key(self) -> Optional[str]:
+        """Return the registry key of the skin this view draws the node with.
+
+        A stage canvas reads ``props.stage_skin``, a patch canvas ``props.skin``.
+        An unset value falls back to the registry's default skin; ``None`` when the
+        registry has none.
+        """
+        props = self.wrapper.node.props
+        key = props.stage_skin if self.channel.stage else props.skin
+        return key or self.factory._skin_registry.get_default_skin_registry_key()
+
+    def _skin_honours_detail(self) -> bool:
+        """Whether the skin this view draws with follows the node's Detail setting here.
+
+        ``True`` when the skin cannot be resolved.
+        """
+        key = self._skin_key()
+        try:
+            skin = self.factory.get_skin_instance(key) if key else None
+        except Exception:
+            return True
+        return skin is None or bool(skin.honours_detail(on_stage=self.channel.stage))
+
     def _apply_detail_attr(self) -> None:
         """Stamp ``data-node-props-detail`` on the container for canvas.vue to read.
 
@@ -401,6 +423,8 @@ class UINode:
         from haywire.core.types import NodeDetail
 
         detail = NodeDetail.coerce(self.wrapper.node.props.detail)
+        if not self._skin_honours_detail():
+            detail = NodeDetail.FULL
         self.container._props["data-node-props-detail"] = detail.value
         self.container.update()
 

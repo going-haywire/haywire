@@ -136,6 +136,12 @@ two independent switches:
   unchanged. A collapsed node is drawn expanded on stage. `render_stage()` and the
   frameless default face are deleted. See
   [ADR 0054](../../adr/0054-the-stage-view.md).
+  **Amended by slice 5d-1:** the view picks the skin. A node has a stage skin
+  (`props.stage_skin`, framework < graph < node) beside its patch skin; a stage canvas
+  draws with it and still passes `on_stage`, and the default skins on stage ignore
+  collapse, layout direction and detail. See
+  [ADR 0056](../../adr/0056-the-view-picks-the-skin.md) and
+  [5d-1](2026-10-18-editor-modes-05d1-stage-skin.md).
 - **On-stage wires.** A wire type sets the class attribute `on_stage = True`;
   `AnnotationWire` does. Pins and edges derive it like they derive the wire key.
   Stage view draws an edge only if its wire is on stage and both end nodes are on
@@ -146,8 +152,8 @@ two independent switches:
   spot near the origin (below the lowest stage item, at a margin), not at its
   patch position.
 - **Stage view is the existing canvas in stage mode:** a node filter (on stage
-  only), the stage **layout channel**, the filtered edge set, and `render(...,
-  on_stage=True)`.
+  only), the stage **layout channel**, the filtered edge set, and each node's
+  stage skin (ADR 0056).
 - **The stage is a display, not a mode (Decision 1, 2026-10-15; supersedes
   "unlocked stage view only arranges").** Editing in stage view is exactly editing
   in patch view: every edit, context menu, toolbar panel and editor command, at the
@@ -158,7 +164,8 @@ two independent switches:
   on stage at the gesture position (stage coordinates); its patch position takes
   the same numbers; one undo step with the creation. Collapse to Group, macro
   placement and detach are selection-driven and do not.
-- **Control nodes** in haybale-core: Slider, Number (int/float), Toggle, Text and
+- **Widget nodes** (named "control nodes" until 2026-10-18, renamed because a
+  CONTROL node is the EXEC-sequenced kind) in haybale-core: Slider, Number (int/float), Toggle, Text and
   Menu. Each has an inlet and an outlet of its type, with the widget on the
   outlet set to `ALWAYS`: it shows what flows through, and a user edit sends it
   on. Button is deferred: it fires execution, which makes it an event source.
@@ -173,14 +180,14 @@ two independent switches:
   interior's stage. Its layout cannot be edited; its widgets can be operated.
 - **A hidden `InsetSkin`**, set on the node tier by the Graph-node menu toggle
   "Show as Inset" (an undoable EDIT action). `render()` draws the border pins
-  (the card stays wireable) and a body that draws each staged interior node with the skin's
-  `render(..., on_stage=True)` at its stage rect, in stage-origin coordinates. On a node
+  (the card stays wireable) and a body that draws each staged interior node with its
+  stage skin at its stage rect, in stage-origin coordinates. On a node
   without an interior it falls back to the default card.
 - **Size:** auto-fits from the stage origin to the stage's bottom-right extent.
   A manual size adds space and never crops. Offset and clipping are a later
   opt-in.
 - **Enablers:** a composition hook that hands the inset skin a way to draw an
-  interior node (the skin factory's `render(..., on_stage=True)`; the hook
+  interior node (the skin factory rendering the node's stage skin; the hook
   design is to be settled in slice 6, since a skin today only has a widget
   factory), and inset
   widgets registered under the **host** card's node id, so they are built,
@@ -251,7 +258,11 @@ slice lands.
    - **5c Stacking order:** [2026-10-17-editor-modes-05c-stacking-order.md](2026-10-17-editor-modes-05c-stacking-order.md).
      `z`/`stage_z` and the four verbs, in an Arrange submenu; the stage never lifts a card
      for hover or selection.
-   - **5d Control nodes.**
+   - **5d Widget nodes.** Split by the 2026-10-18 inquisition into three plans:
+     - **5d-1 Stage skin:** [2026-10-18-editor-modes-05d1-stage-skin.md](2026-10-18-editor-modes-05d1-stage-skin.md).
+       The view picks the skin ([ADR 0056](../../adr/0056-the-view-picks-the-skin.md)), skin tags, the stage edge gate.
+     - **5d-2 List widget:** an `ArrayType` setting and an opt-in list widget; a commit mode for `TextWidget`.
+     - **5d-3 Widget nodes:** the seven nodes, their widget-node stage skin, `port.set_widget_config`.
 6. **Inset.** The skin, the two enablers, placement value overrides, and the
    shared edge-drawing module.
 

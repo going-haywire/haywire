@@ -49,7 +49,7 @@ class StackedNodeSkin(NodeSkin):
     def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool):
         """Render the complete node UI with groups."""
         node = wrapper.node
-        layout: LayoutDirection = self.layout_of(wrapper)
+        layout: LayoutDirection = self.layout_of(wrapper, on_stage=on_stage)
 
         padding = self.CARD_H_PADDING
         # Pure var() consumption — no per-node branching, ever. A graph or a
@@ -284,7 +284,7 @@ class StackedNodeSkin(NodeSkin):
             layout: Resolved layout direction; looked up from the wrapper when omitted
             on_stage: Draw for a stage view; only on-stage pins are drawn
         """
-        layout = self.layout_of(wrapper) if layout is None else layout
+        layout = self.layout_of(wrapper, on_stage=on_stage) if layout is None else layout
         for port in ports:
             # Skip ports of wrong direction. A fold carries the direction of
             # the ports it holds, so it lands in their lane.
@@ -335,7 +335,7 @@ class StackedNodeSkin(NodeSkin):
             layout: Resolved layout direction; looked up from the wrapper when omitted
             depth: This fold's own level. Children render at ``depth + 1``.
         """
-        layout = self.layout_of(wrapper) if layout is None else layout
+        layout = self.layout_of(wrapper, on_stage=on_stage) if layout is None else layout
         node = wrapper.node
         is_expanded = node.value(group_port.id)
 

@@ -88,7 +88,7 @@ class ErrorNodeSkin(NodeSkin):
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
 
-        layout = self.layout_of(wrapper)
+        layout = self.layout_of(wrapper, on_stage=on_stage)
 
         with main_card:
             # Header. The badge call is the shared one, so this card cannot pick

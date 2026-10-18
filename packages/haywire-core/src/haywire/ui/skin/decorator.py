@@ -1,6 +1,7 @@
 from typing import Any, Callable, Type, TypeVar
 
 from haywire.core.library.utils import SKIN, derive_library_identity, reg_key
+from haywire.core.skin.tags import SKIN_TAG_GENERAL
 
 from .base import BaseSkin, SkinIdentity
 
@@ -29,6 +30,8 @@ def skin(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             Defaults to False.
         is_error (bool, optional): Whether this skin should handle error cases.
             Defaults to False.
+        tags (list[str], optional): What the skin is for, which decides the skin lists
+            it is offered in (see ``haywire.core.skin.tags``). Defaults to ``["general"]``.
         deprecation_warning (str, optional): Deprecation warning message for the skin.
             Defaults to empty string.
         registry_id (str, optional): Unique identifier for the skin within its library.
@@ -69,6 +72,8 @@ def skin(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         # Set defaults from class name if not provided
         kwargs.setdefault("registry_id", inner_cls.__name__)
         kwargs.setdefault("label", inner_cls.__name__)
+        # A copy per class, so no two skins share one list.
+        kwargs["tags"] = list(kwargs.get("tags", [SKIN_TAG_GENERAL]))
 
         # Get library identity (survives hot-reload)
         library_identity = derive_library_identity(inner_cls)

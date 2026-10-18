@@ -195,6 +195,8 @@ def test_the_stage_render_in_a_vertical_layout_has_only_on_stage_pins(
 
     # a stage card draws the on-stage pins only; the note swinglet is the node's one
     assert [e._props["data-pin-id"] for e in _pins(stage)] == ["note"]
+    # a stage card reads left to right whatever the node's layout direction
+    assert {e._props["data-hw-layout"] for e in _pins(stage)} == {LayoutDirection.LEFT_TO_RIGHT.value}
     assert _ghosts(stage)
     assert {"x", "flow", "note"} <= patch_before
     assert patch_after == patch_before
@@ -455,3 +457,33 @@ def test_the_split_skin_draws_no_empty_config_band_on_stage(ctx) -> None:
 
     assert "Config" not in _labels(stage_card)
     assert "Config" in _labels(patch_card)
+
+
+def test_render_pin_marks_on_stage_pins(ctx) -> None:
+    wrapper = _wrapper(ctx[1])
+    ports = wrapper.node.ports
+
+    def draw(port_id: str):
+        return render_pin(
+            ports[port_id], wrapper.node_id, pin_gutter=18, card_padding=0, pin_protrusion=0, on_stage=False
+        )
+
+    assert "data-pin-on-stage" in draw("note")._props
+    assert "data-pin-on-stage" not in draw("x")._props
+    assert "data-pin-on-stage" not in draw("flow")._props
+
+
+def test_the_default_skins_ignore_detail_on_stage_only(ctx) -> None:
+    skin_factory, _graph = ctx
+    for key in (_stacked_key(), _split_key()):
+        skin = skin_factory.get_skin_instance(key)
+        assert skin.honours_detail(on_stage=False) is True
+        assert skin.honours_detail(on_stage=True) is False
+
+
+def test_a_skin_honours_detail_in_both_views_by_default() -> None:
+    from haywire.barn.builtin.skins.annotation_skin import AnnotationSkin
+
+    skin = AnnotationSkin(widget_factory=None)  # type: ignore[arg-type]
+    assert skin.honours_detail(on_stage=True) is True
+    assert skin.honours_detail(on_stage=False) is True

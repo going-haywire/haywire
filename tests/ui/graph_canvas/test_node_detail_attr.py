@@ -10,6 +10,7 @@ from unittest.mock import MagicMock
 
 from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
 
+from haywire.core.node.layout import PATCH
 from haywire.core.types import NodeDetail
 
 
@@ -17,6 +18,10 @@ def _ui_node_with_detail(detail: str) -> UINode:
     node = UINode.__new__(UINode)  # bypass __init__; we only exercise _apply_detail_attr
     node.wrapper = MagicMock()
     node.wrapper.node.props.detail = detail
+    # A skin that follows the node's Detail setting.
+    node.factory = MagicMock()
+    node.factory.get_skin_instance.return_value.honours_detail.return_value = True
+    node.channel = PATCH
     container = MagicMock()
     container._props = {}
     node.container = container

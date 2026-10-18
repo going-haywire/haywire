@@ -140,13 +140,19 @@ class NodeSkin(BaseSkin, ABC):
         base = self.PIN_GUTTER + self.CONTENT_GAP
         return max(0, base) + max(0, depth) * self.FOLD_INDENT
 
-    def layout_of(self, wrapper: NodeWrapper) -> LayoutDirection:
-        """This node's layout direction.
+    def layout_of(self, wrapper: NodeWrapper, *, on_stage: bool = False) -> LayoutDirection:
+        """This node's layout direction: always ``LEFT_TO_RIGHT`` on a stage.
 
         Never cache the result on ``self``: SkinFactory shares ONE skin
         instance across every node in every open graph.
         """
+        if on_stage:
+            return LayoutDirection.LEFT_TO_RIGHT
         return resolve_layout_direction(wrapper)
+
+    def honours_detail(self, *, on_stage: bool) -> bool:
+        """Return whether the node's Detail setting thins this card: in the patch only."""
+        return not on_stage
 
     def is_collapsed(self, wrapper: NodeWrapper) -> bool:
         """Whether THIS node's card is folded (ADR 0032, Node collapse).
@@ -445,7 +451,7 @@ class NodeSkin(BaseSkin, ABC):
                 only if it shows a widget, its pin only if it is an on-stage port.
                 An on-stage pin without a widget draws alone, in a bare pin row.
         """
-        layout = self.layout_of(wrapper) if layout is None else layout
+        layout = self.layout_of(wrapper, on_stage=on_stage) if layout is None else layout
         if on_stage and not self._shows_widget(port):
             if (port.is_inlet() or port.is_outlet()) and port.on_stage and not layout.is_vertical:
                 self._render_bare_pin_row(port, wrapper, layout=layout, side=layout.side_for(port))
@@ -691,7 +697,7 @@ class NodeSkin(BaseSkin, ABC):
         seats every pin slightly off its edge, identically on every node, which
         reads as a design choice rather than a bug.
         """
-        layout = self.layout_of(wrapper) if layout is None else layout
+        layout = self.layout_of(wrapper, on_stage=on_stage) if layout is None else layout
         pin_el = render_pin(
             pin,
             wrapper.node_id,

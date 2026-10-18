@@ -240,6 +240,9 @@ def render_pin(
         f'data-pin-dir-y="{dir_y}" '
         f'data-hw-layout="{layout.value}"'
     )
+    if pin.on_stage:
+        # A stage canvas starts an edge drag only from such a pin.
+        common_props += " data-pin-on-stage"
 
     pin_size = f"{pin_gutter}px"
     # offset = card padding + half gutter (pin's natural inset) + desired protrusion

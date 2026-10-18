@@ -2,7 +2,7 @@
 Base identity class for all registry components
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -17,3 +17,5 @@ class BaseIdentity:
     hidden: bool = False  # Exclude from author-facing selection UIs (still registered/usable)
     class_name: str = ""  # Python class name - set by decorator
     module: str = ""  # Python module name - set by decorator
+    # Machine classification that lists filter on (e.g. a skin's "stage-only"); not search words.
+    tags: list[str] = field(default_factory=list)

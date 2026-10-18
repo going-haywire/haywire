@@ -61,7 +61,7 @@ class RerouteNode(BaseNode):
     # mypy sees BaseNode.props as the `props: NodeProperties` instance
     # annotation from BaseNode's TYPE_CHECKING branch, hence the ignore.
     class props(BaseNode.props):  # type: ignore[valid-type,misc]
-        """Overrides the framework ``skin`` prop; inherits every other field.
+        """Overrides the framework ``skin`` and ``stage_skin`` props; inherits every other field.
 
         A reroute renders in exactly one skin — that is a constraint of what the
         node IS, not a preference, so this replaces ``NodeProperties.skin``'s
@@ -80,6 +80,13 @@ class RerouteNode(BaseNode):
             description="Reroute nodes always use the minimal reroute skin",
             category="appearance",
             order=10,
+        )
+        stage_skin = setting[CHOICES](
+            "haywire-core:skin:RerouteSkin",
+            label="Stage Skin",
+            description="Reroute nodes use the minimal reroute skin on the stage too",
+            category="appearance",
+            order=11,
         )
 
     def init(self) -> None:

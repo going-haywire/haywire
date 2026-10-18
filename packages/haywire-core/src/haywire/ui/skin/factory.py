@@ -68,9 +68,9 @@ class SkinFactory:
         # Mapping from skin registry key to the wrapper node id that uses that skin
         self._skin_regkey_to_node_id: dict[str, set[str]] = {}
 
-        # Mapping from node id to the skin registry key it uses
-        # this is used to help cleaning up the _skin_regkey_to_node_id mapping
-        self._nodeid_to_skin_regkey: dict[str, str] = {}
+        # Per node, the skin registry key each subscribed card draws with: a node's patch
+        # and stage cards may use different skins. _skin_regkey_to_node_id is its index.
+        self._nodeid_to_skin_regkeys: dict[str, dict[FactoryEventCallback, str]] = {}
 
         self.logger = logging.getLogger(__name__)
 
@@ -93,8 +93,8 @@ class SkinFactory:
         Args:
             skin_registry_key: The registry key of the skin to use
             wrapper: NodeWrapper instance containing node information
-            on_stage: Draw the card for a stage view (expanded, on-stage pins only);
-                the error-skin fallback applies the same way.
+            on_stage: Draw the card for a stage view; the error-skin fallback applies the
+                same way.
             route: Where the card's widgets write; ``None`` refuses every write to a
                 port's widget. The error-skin fallback gets the same route.
 
@@ -233,23 +233,20 @@ class SkinFactory:
             skin_registry_key: The registry key of the skin the node uses
             callback: Function with signature FactoryEventCallback
         """
-        # Cleanup previous skin mappings if re-subscribing with different skin
-        if node_id in self._nodeid_to_skin_regkey:
-            previous_regkey = self._nodeid_to_skin_regkey[node_id]
-            if node_id in self._skin_regkey_to_node_id.get(previous_regkey, set()):
-                self._skin_regkey_to_node_id[previous_regkey].remove(node_id)
-                self.logger.debug(
-                    f"  -> Cleanup skin_key to node_id mapping: '{previous_regkey}' -> '{node_id}'"
-                )
-
-        # Setup skin to node_id mappings for hot reload tracking
-        # one to many mapping
-        self._skin_regkey_to_node_id.setdefault(skin_registry_key, set()).add(node_id)
-        # one to one mapping
-        self._nodeid_to_skin_regkey[node_id] = skin_registry_key
+        self._nodeid_to_skin_regkeys.setdefault(node_id, {})[callback] = skin_registry_key
+        self._reindex_node(node_id)
         self.logger.debug(f"  -> Setup skin_key to node_id mapping: '{skin_registry_key}' -> '{node_id}'")
 
         self._nodeid_to_factory_subscriber.setdefault(node_id, set()).add(callback)
+
+    def _reindex_node(self, node_id: str) -> None:
+        """Make ``_skin_regkey_to_node_id`` list *node_id* under exactly the skins its cards use."""
+        used = set(self._nodeid_to_skin_regkeys.get(node_id, {}).values())
+        for reg_key, node_ids in self._skin_regkey_to_node_id.items():
+            if reg_key not in used:
+                node_ids.discard(node_id)
+        for reg_key in used:
+            self._skin_regkey_to_node_id.setdefault(reg_key, set()).add(node_id)
 
     def remove_factory_lifecycle_subscriber(self, node_id: str, callback: FactoryEventCallback) -> None:
         """
@@ -265,12 +262,11 @@ class SkinFactory:
 
             if len(self._nodeid_to_factory_subscriber[node_id]) == 0:
                 del self._nodeid_to_factory_subscriber[node_id]
-                # Also cleanup skin mappings when no more subscribers for this node
-                if node_id in self._nodeid_to_skin_regkey:
-                    reg_key = self._nodeid_to_skin_regkey[node_id]
-                    if node_id in self._skin_regkey_to_node_id.get(reg_key, set()):
-                        self._skin_regkey_to_node_id[reg_key].remove(node_id)
-                    del self._nodeid_to_skin_regkey[node_id]
+
+        self._nodeid_to_skin_regkeys.get(node_id, {}).pop(callback, None)
+        if not self._nodeid_to_skin_regkeys.get(node_id):
+            self._nodeid_to_skin_regkeys.pop(node_id, None)
+        self._reindex_node(node_id)
 
     def _notify_factory_subscribers(self, node_id: str) -> None:
         """
@@ -339,13 +335,9 @@ class SkinFactory:
         Args:
             node_id: The node ID to unregister
         """
-        reg_key = self._nodeid_to_skin_regkey.get(node_id, None)
-        self.logger.debug(f" -> Unregister node for rendering '{node_id}' with skin '{reg_key}'")
-        if reg_key:
-            if self._skin_regkey_to_node_id[reg_key]:
-                if node_id in self._skin_regkey_to_node_id[reg_key]:
-                    self._skin_regkey_to_node_id[reg_key].remove(node_id)
-            del self._nodeid_to_skin_regkey[node_id]
+        reg_keys = set(self._nodeid_to_skin_regkeys.pop(node_id, {}).values())
+        self.logger.debug(f" -> Unregister node for rendering '{node_id}' with skins {sorted(reg_keys)}")
+        self._reindex_node(node_id)
         self._widget_factory.unregister_widget_for_node(node_id)
 
     def cleanup(self):

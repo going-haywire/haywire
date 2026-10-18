@@ -127,12 +127,20 @@ class BaseSkin(ABC):
         Args:
             main_card: The NiceGUI ui.card() element to render the node into
             wrapper: The NodeWrapper containing the HaywireNode to render
-            on_stage: True when drawing for a stage view. Draw the same card, expanded
-                even if the node is collapsed, and pass it to every ``render_pin`` call
-                so only on-stage pins are drawn.
+            on_stage: True when drawing for a stage view. A stage canvas draws the node's
+                stage skin (``props.stage_skin``); a skin that suits both views draws its
+                stage card here, e.g. expanded and with only the on-stage pins.
 
         """
         pass
+
+    def honours_detail(self, *, on_stage: bool) -> bool:
+        """Return whether the node's Detail setting thins this skin's cards in this view.
+
+        ``False`` draws the card at full detail whatever the setting. Override to opt out
+        in a view; the default honours it in both.
+        """
+        return True
 
     def render_widget(self, port: DataPort, node_id: str, classes: str = "") -> ui.element | None:
         """

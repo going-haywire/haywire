@@ -63,7 +63,7 @@ class AnnotationNode(BaseNode):
 
     # Subclasses the inherited bag, as RerouteNode does (see its comment).
     class props(BaseNode.props):  # type: ignore[valid-type,misc]
-        """Binds the annotation skin."""
+        """Binds the annotation skin, in the patch and on the stage."""
 
         # Bound by registry-key string: importing the skin would pull nicegui
         # onto the headless execution path.
@@ -73,6 +73,13 @@ class AnnotationNode(BaseNode):
             description="Annotation nodes use the annotation skin",
             category="appearance",
             order=10,
+        )
+        stage_skin = setting[CHOICES](
+            "haywire-core:skin:AnnotationSkin",
+            label="Stage Skin",
+            description="Annotation nodes use the annotation skin on the stage too",
+            category="appearance",
+            order=11,
         )
 
     class annotation(NodeSettings):

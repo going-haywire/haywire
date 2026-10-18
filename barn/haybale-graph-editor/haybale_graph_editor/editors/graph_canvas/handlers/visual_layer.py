@@ -26,6 +26,7 @@ from nicegui import ui
 from haywire.core.access import LevelMode
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.stacking import Restack
+from haywire.core.graph.stage import stage_takes_edge
 from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import BaseNode
 from haywire.core.node.layout import PATCH, LayoutChannel
@@ -78,6 +79,9 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 logger = logging.getLogger(__name__)
+
+#: The notice when a stage canvas refuses an edge it would not draw.
+STAGE_EDGE_REFUSED = "This connection would not show on the stage. Make it in the patch view."
 
 #: Canvas units to the right of a cloned node where Place puts its clone.
 _CLONE_OFFSET_X = 280.0
@@ -1370,11 +1374,13 @@ class VisualLayerHandlers:
         new_node_id = wrapper.node_id
 
         if as_outlet:
-            # dragged from outlet (or swinglet) → new node inlet
-            success = editor.create_edge(pending_node_id, pending_pin_id, new_node_id, target_port_id)
+            ends = (pending_node_id, pending_pin_id, new_node_id, target_port_id)
         else:
-            # dragged from inlet → new node outlet
-            success = editor.create_edge(new_node_id, target_port_id, pending_node_id, pending_pin_id)
+            ends = (new_node_id, target_port_id, pending_node_id, pending_pin_id)
+        if self._refuses_off_stage_edge(*ends):
+            self.canvas_vue.emit_sync_event(SyncEdgeConnectCancelEvent())
+            return
+        success = editor.create_edge(*ends)
 
         if success:
             logger.info(f"Auto-wired {pending_node_id}:{pending_pin_id} → {new_node_id}:{target_port_id}")
@@ -1384,11 +1390,29 @@ class VisualLayerHandlers:
                 f"Auto-wire failed for {pending_node_id}:{pending_pin_id} → {new_node_id}:{target_port_id}"
             )
 
+    def _refuses_off_stage_edge(
+        self, source_node_id: str, outlet_port_id: str, sink_node_id: str, inlet_port_id: str
+    ) -> bool:
+        """On a stage canvas, refuse with a notice an edge this canvas would not draw.
+
+        Returns ``True`` when refused. A patch canvas never refuses. See ``stage_takes_edge``.
+        """
+        if not self.channel.stage or stage_takes_edge(
+            self.graph, source_node_id, outlet_port_id, sink_node_id, inlet_port_id
+        ):
+            return False
+        ui.notify(STAGE_EDGE_REFUSED, type="warning")
+        return True
+
     @handles_event(EdgeCreatedEvent)
     def process_edge_creation(self, event: EdgeCreatedEvent):
-        """Handle connection creation."""
+        """Handle connection creation; a stage canvas refuses an edge it would not draw."""
         editor = self.route.editor()
         if editor is None:
+            return
+        if self._refuses_off_stage_edge(
+            event.sourceNodeId, event.outletPinId, event.sinkNodeId, event.inletPinId
+        ):
             return
         logger.debug(
             f"Creating connection: {event.sourceNodeId}:{event.outletPinId} -> "

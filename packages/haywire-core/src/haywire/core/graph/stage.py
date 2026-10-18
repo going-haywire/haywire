@@ -116,3 +116,24 @@ def stage_position_for_patch(
     scx, scy = _centroid([p.get_position(STAGE) for p in on_stage])
     pcx, pcy = _centroid([p.get_position(PATCH) for p in on_stage])
     return non_negative((scx + (px - pcx), scy + (py - pcy)))
+
+
+def stage_takes_edge(
+    graph: "BaseGraph", source_node_id: str, outlet_port_id: str, sink_node_id: str, inlet_port_id: str
+) -> bool:
+    """Return whether a stage view may create this edge: both its ends are on-stage pins.
+
+    An end naming a port that does not exist (a placeholder pin such as ``root_in``)
+    does not count against the edge; an existing port off an on-stage wire does.
+
+    Example::
+
+        stage_takes_edge(graph, note_a, "bottom_0", note_b, "top_0")  # True: an annotation link
+        stage_takes_edge(graph, adder, "result", other, "value_a")  # False: a data edge
+    """
+    for node_id, port_id in ((source_node_id, outlet_port_id), (sink_node_id, inlet_port_id)):
+        wrapper = graph.get_node_wrapper(node_id)
+        port = wrapper.node.ports.get(port_id) if wrapper is not None and wrapper.node is not None else None
+        if port is not None and not port.on_stage:
+            return False
+    return True

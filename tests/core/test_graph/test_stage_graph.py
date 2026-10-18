@@ -254,3 +254,23 @@ def test_remove_from_stage_keeps_the_stage_rect(graph_with_library_system, libra
     assert props.on_stage is False
     assert (props.stage_x, props.stage_y, props.stage_width, props.stage_height) == (40.0, 40.0, 321, 123)
     assert editor.remove_from_stage([wrapper.node_id]) is False
+
+
+def test_stage_takes_annotation_edges_only(graph_with_library_system):
+    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+
+    from haywire.barn.builtin.nodes.annotation import AnnotationNode
+    from haywire.core.graph.stage import stage_takes_edge
+
+    graph = graph_with_library_system
+    a = graph.create_node_wrapper(AnnotationNode.class_identity.registry_key, position=(0, 0))
+    b = graph.create_node_wrapper(AnnotationNode.class_identity.registry_key, position=(400, 0))
+    x = graph.create_node_wrapper(TestAddFloatNode.class_identity.registry_key, position=(0, 300))
+    y = graph.create_node_wrapper(TestAddFloatNode.class_identity.registry_key, position=(400, 300))
+    for wrapper in (a, b, x, y):
+        assert wrapper is not None
+
+    assert stage_takes_edge(graph, a.node_id, "bottom_0", b.node_id, "top_0")
+    assert not stage_takes_edge(graph, x.node_id, "result", y.node_id, "value_a")
+    assert not stage_takes_edge(graph, x.node_id, "result", y.node_id, "root_in")
+    assert stage_takes_edge(graph, a.node_id, "bottom_0", b.node_id, "root_in")

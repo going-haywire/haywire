@@ -52,7 +52,7 @@ class SplitNodeSkin(NodeSkin):
 
     def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool):
         node: BaseNode = wrapper.node
-        layout = self.layout_of(wrapper)
+        layout = self.layout_of(wrapper, on_stage=on_stage)
 
         padding = self.CARD_H_PADDING
         # Pure var() consumption, same as the stacked skin: the look belongs to
