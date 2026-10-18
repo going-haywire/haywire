@@ -26,3 +26,6 @@ Fundamental components for haywire graphs
 
 ## Adapters
 - **Array to Array** — Transform array elements (ArrayType[X] → ArrayType[Y])
+
+## Widgets
+- **ArrayWidget** — List editor — one row per item, each drawn by the item type's widget

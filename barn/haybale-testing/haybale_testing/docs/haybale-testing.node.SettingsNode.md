@@ -48,6 +48,9 @@ Test the Settings for debugging
 | optional_bool | example | None | Tri-state without a tri-state: True, False, or nothing. |
 | optional_with_default | example | -1 | Rests at a VALUE and can still be cleared — so Reset and 'Set to none' differ. |
 | optional_restore | example | None | Absent by default, but clicking 'none' enters 42 (per-use restore=). |
+| example_string_list | example | ['One', 'Two', 'Three'] |  |
+| example_int_list | example | [1, 2, 3] |  |
+| example_float_list | example | [0.5, 1.5] |  |
 
 ## Notes
 

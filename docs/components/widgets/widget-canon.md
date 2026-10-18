@@ -209,6 +209,24 @@ A stand-in state should be **framed like the widget it replaces** — `hw-option
 
 This doesn't breach the stamped-widget contract of [ADR 0017](../../adr/0017-widget-selection-port-contract.md): the row's `widget_key` is still stamped once (to `OptionalWidget`). Only the *inner* class is resolved at build time, from another stamped key — the same thing `SelectWidget` already does with callable `options`.
 
+### Delegating per item: `ArrayWidget`
+
+`ArrayWidget` (haybale-core) is the list counterpart of `OptionalWidget`: it edits an `ArrayType[T]` value with one row per item, and each row is the item type's own declared widget. It is **opt-in**. `ArrayType` declares no `widget_key`, so a port or setting names it:
+
+```python
+options = setting[ArrayType[STRING]](["One", "Two", "Three"], label="Options", widget=ArrayWidget.config())
+self.add(ArrayType[FLOAT].as_inlet("weights", default={"value": [1.0]}, widget=ArrayWidget.config()))
+```
+
+A compound port's `default` is constructor kwargs (`{"value": [...]}`); a setting's default is the plain list.
+
+- **One index per row.** Each row widget gets a `WidgetModel` that reads item *i* of the list and writes a new list with item *i* replaced, through the list widget's own model, so a row edit takes the same edit route as the list and a refusal reaches the row as `False`. The write coerces through a field of the item type, so an `INT` row stores an `int`. Add, remove and move also build a new list: `ArrayField` stores the list it is handed, so mutating the current one in place would change nothing anyone hears about.
+- **A narrow `data`.** A row's `data` presents the list cell as a field of the item type: `type_cls` and `get_stored_type()` are the item type (so `NumberWidget` steps an `INT` row in whole numbers), and `has_linked_value()` / `accepts_own_value()` come from the list cell, so a linked list refuses row edits. Its `on_changed` is the row's own event, fired by `ArrayWidget`; the list cell has exactly one subscriber per `ArrayWidget`. A rebuild therefore never edits the cell's handler list while the cell dispatches, which would make it skip another widget on the same list (the properties panel and the card).
+- **Rows rebuild only on a count change** — add, remove, or an outside write such as Reset or undo — as `FillWidget` rebuilds its stops. An edit, or a reorder from elsewhere (undo), keeps the rows, and each re-reads its index, so the field being typed in keeps focus.
+- **Reorder by grip.** Each row has a grip; the rows column is a SortableJS list (`make_sortable(handle=...)`, a group of its own per widget) with the same grip-only drag as the Ports panel, so the row's widget stays editable. A drop writes the moved list and then redraws the rows from the model, accepted or refused: SortableJS has already moved the row in the DOM, and each row widget reads a fixed index. The grip carries `data-interactive="true"` so a canvas card never drags the node from it; it must not use the class `drag-handle`, which the canvas reads as the node's own drag handle.
+- **`properties.item`** is handed to every row's widget, on top of the item type's own widget config: `ArrayWidget.config(properties={"item": {"commit": True}})` gives text rows in **commit mode** (`TextWidget` writes on Enter or blur only).
+- **No item widget**, no rows: an item type without a registered widget shows a read-only `"N items"` label.
+
 ### Hot-reload
 
 `WidgetRegistry` re-registers widget classes when a library reloads. Widgets already mounted in the running UI are **not** swapped (tearing down a connected NiceGUI element is risky); newly-created widgets pick up the new class.

@@ -77,39 +77,59 @@ class TextWidget(BaseWidget):
     - ``label`` (str): Input label shown above the field.
     - ``placeholder`` (str): Placeholder text shown when the field is empty.
     - ``password`` (bool): If ``True``, input is masked as a password field.
+    - ``commit`` (bool): If ``True``, write only on Enter or when the field
+      loses focus. While typing, nothing is written. Default ``False``: every
+      keystroke is written.
 
     Example::
 
         TextWidget.config(properties={'label': 'Name', 'placeholder': 'Enter name...'})
+        # A path field whose consumer should never see a half-typed value
+        TextWidget.config(properties={'commit': True})
     """
 
     def build(self) -> Any:
         props = self._config.get("properties", {})
         self._label: str = props.get("label", "")
         self._placeholder: str = props.get("placeholder", "")
+        commit = bool(props.get("commit", False))
 
         # The row is the widget root; the bound input is the model→view target,
         # so binding still drives the input exactly as before. The expand button
         # is chrome beside it (view-only — it writes through set_value on confirm).
         with ui.row().classes("w-full flex-nowrap items-center gap-1") as root:
+            self._input = ui.input(
+                value="",
+                label=self._label,
+                placeholder=self._placeholder,
+                password=props.get("password", False),
+            ).classes("flex-1 min-w-0")
             self.bind(
-                ui.input(
-                    value="",
-                    label=self._label,
-                    placeholder=self._placeholder,
-                    password=props.get("password", False),
-                ).classes("flex-1 min-w-0"),
+                self._input,
                 # NiceGUI's ``ui.input`` emits ``update:value`` for its value sync (not
                 # the ``update:modelValue`` used by custom Vue components like NumberDrag
                 # and Quasar passthroughs). Binding to the wrong event silently drops all
                 # user edits in-browser, so the keystroke event must match the element.
                 event="update:value",
                 converter=PrimitiveUnwrappingConverter(default_value=""),
+                one_way=commit,
             )
+            if commit:
+                # The input's own value still follows each keystroke server-side;
+                # only these two events hand it to the model.
+                self._input.on("keydown.enter", self._commit)
+                self._input.on("blur", self._commit)
             ui.button(icon=hui.icon.expand_full, on_click=self._open_modal).props(
                 "flat dense size=xs"
             ).tooltip("Edit in full")
         return root
+
+    def _commit(self) -> None:
+        """Write the input's text, unless it equals the model's value."""
+        text = "" if self._input.value is None else str(self._input.value)
+        current = self.get_value()
+        if text != ("" if current is None else str(current)):
+            self.set_value(text)
 
     def _open_modal(self) -> None:
         """Open the full-size text editor, seeded from the current value.

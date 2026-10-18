@@ -15,6 +15,8 @@ from haywire.barn.builtin.types import (
     VEC3F,
     VEC4F,
 )
+from haybale_core.types import ArrayType
+from haybale_core.widgets.array_widget import ArrayWidget
 from haybale_testing.types.test_types import TEST_STRING
 
 
@@ -199,6 +201,26 @@ class SettingsNode(BaseNode):
             description="Absent by default, but clicking 'none' enters 42 (per-use restore=).",
             category="optional",
             widget_config={"restore": 42},
+        )
+
+        # --- array ---
+        example_string_list = setting[ArrayType[STRING]](
+            ["One", "Two", "Three"],
+            label="Example String List",
+            category="array",
+            widget=ArrayWidget.config(),
+        )
+        example_int_list = setting[ArrayType[INT]](
+            [1, 2, 3],
+            label="Example Int List",
+            category="array",
+            widget=ArrayWidget.config(),
+        )
+        example_float_list = setting[ArrayType[FLOAT]](
+            [0.5, 1.5],
+            label="Example Float List",
+            category="array",
+            widget=ArrayWidget.config(),
         )
 
     # --8<-- [end:settings_node_class]

@@ -21,7 +21,12 @@ Config options (via ``TextWidget.config(properties={...})``):
 - ``label`` (str): Input label shown above the field.
 - ``placeholder`` (str): Placeholder text shown when the field is empty.
 - ``password`` (bool): If ``True``, input is masked as a password field.
+- ``commit`` (bool): If ``True``, write only on Enter or when the field
+  loses focus. While typing, nothing is written. Default ``False``: every
+  keystroke is written.
 
 Example::
 
     TextWidget.config(properties={'label': 'Name', 'placeholder': 'Enter name...'})
+    # A path field whose consumer should never see a half-typed value
+    TextWidget.config(properties={'commit': True})

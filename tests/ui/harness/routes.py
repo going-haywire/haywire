@@ -892,6 +892,79 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /list-widget
+    #
+    # TextWidget's commit mode and ArrayWidget, each on a node port, with a
+    # polled echo of what the model holds. The text echo also counts the
+    # writes, so a commit that writes twice (or a blur that writes at all)
+    # shows. Backs test_list_widget.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/list-widget")
+    async def list_widget_page():
+        from unittest.mock import MagicMock
+        from uuid import uuid4
+
+        from haybale_core.types import ArrayType
+        from haybale_core.widgets.array_widget import ArrayWidget
+        from haywire.barn.builtin.types import FLOAT, INT, STRING
+        from haywire.barn.builtin.widgets import TextWidget
+        from haywire.core.node.data import NodeData
+        from haywire.ui.panel.setting_widget_model import SettingWidgetModel
+
+        if theme_css:
+            ui.add_css(theme_css)
+
+        array: Any = ArrayType  # subscripted with runtime values below
+        # A fresh node id per page load, as on /fill-widget.
+        node = NodeData(f"list-demo-{uuid4().hex[:8]}", MagicMock())
+        ports = [
+            node.add(
+                STRING.as_config(
+                    id="text_commit", label="Text", widget=TextWidget.config(properties={"commit": True})
+                )
+            ),
+            *(
+                node.add(
+                    array[item].as_config(
+                        id=pid, label=pid, default={"value": default}, widget=ArrayWidget.config()
+                    )
+                )
+                for pid, item, default in (
+                    ("strings", STRING, ["One", "Two", "Three"]),
+                    ("ints", INT, [1, 2, 3]),
+                    ("floats", FLOAT, [0.5, 1.5]),
+                )
+            ),
+        ]
+        writes: dict[str, int] = {port.id: 0 for port in ports}
+
+        def _writer(port):
+            def on_edit(value):
+                writes[port.id] += 1
+                return port.set_value(value)
+
+            return on_edit
+
+        with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
+            echoes = {}
+            for port in ports:
+                with ui.column().classes("w-full").props(f'data-field="{port.id}"'):
+                    model = SettingWidgetModel(port.id, port.widget_config, port.data, _writer(port))
+                    library_service.get_widget_factory().render_widget(port.widget_key, model, node.node_id)
+                echoes[port.id] = ui.label().props(f'data-testid="echo-{port.id}"')
+
+            def _refresh() -> None:
+                for port in ports:
+                    value = port.get_value()
+                    text = f"{value}|{writes[port.id]}" if port.id == "text_commit" else repr(value)
+                    echoes[port.id].set_text(text)
+
+            _refresh()
+            ui.timer(0.2, _refresh)
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /node-live?class=<dotted.ClassName>&bag=<bag_name>
     #
     # Like /node, but additionally mounts a server-side "external write" button
@@ -1980,6 +2053,37 @@ def register_routes(library_service) -> None:
             )
 
         _mount_graph_canvas(library_service, graph, editor, testid="widgetbox")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-list-widget
+    #
+    # A SettingsNode on a canvas with Example String List promoted to config, so
+    # its ArrayWidget draws on the card. A polled echo shows the setting's value.
+    # Backs the card test in test_list_widget.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-list-widget")
+    async def graph_list_widget_page():
+        from haywire.core.graph.editor import Editor
+        from haywire.core.node.promotion import promote_setting
+        from haywire.core.types.enums import PortType
+
+        graph = _harness_graph("List Widget Fixture")
+        editor = Editor(graph, library_service.get_node_factory())
+        wrapper = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(3600.0, 3700.0))
+        assert wrapper is not None, "could not create SettingsNode"
+        promote_setting(wrapper.node, "example", "example_string_list", direction=PortType.CONFIG)
+
+        ui.label(wrapper.node_id).props(f'data-testid="node-id" data-node="{wrapper.node_id}"')
+        echo = ui.label().props('data-testid="echo-list"')
+
+        def _refresh() -> None:
+            echo.set_text(repr(wrapper.node.example.example_string_list))
+
+        _refresh()
+        ui.timer(0.2, _refresh)
+        _mount_graph_canvas(library_service, graph, editor, testid="listwidget")
         _stamp_synced()
 
     # -------------------------------------------------------------------------

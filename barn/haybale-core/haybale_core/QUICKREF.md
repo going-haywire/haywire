@@ -19,3 +19,6 @@
 
 ## adapter
 - `haybale-core:adapter:ArrayArrayAdapter` — Array to Array — Transform array elements (ArrayType[X] → ArrayType[Y])
+
+## widget
+- `haybale-core:widget:ArrayWidget` — ArrayWidget — List editor — one row per item, each drawn by the item type's widget
