@@ -91,6 +91,7 @@ class UINode:
         self._apply_locked_attr()
         self._apply_detail_attr()
         self._apply_enterable_attr()
+        self._apply_stacking()
 
     @property
     def position(self) -> Optional[tuple[float, float]]:
@@ -300,12 +301,16 @@ class UINode:
         # custom attributes do not inherit down to descendants the way CSS
         # vars do.
         props._subscribe_field("detail", self._on_detail_change)
+        props._subscribe_field(channel.z, self._on_stacking_change)
 
     def _on_locked_change(self, _value: Any, _old: Any) -> None:
         self._apply_locked_attr()
 
     def _on_detail_change(self, _value: Any, _old: Any) -> None:
         self._apply_detail_attr()
+
+    def _on_stacking_change(self, _value: Any, _old: Any) -> None:
+        self._apply_stacking()
 
     def _unsubscribe_slot_fields(self) -> None:
         """Detach this card's prop handlers from the node it is bound to."""
@@ -314,7 +319,12 @@ class UINode:
         if node is None:
             return
         props = node.props
-        for callback in (self._on_slot_field_change, self._on_locked_change, self._on_detail_change):
+        for callback in (
+            self._on_slot_field_change,
+            self._on_locked_change,
+            self._on_detail_change,
+            self._on_stacking_change,
+        ):
             props._unsubscribe(callback)
 
     def _rebind_props(self) -> None:
@@ -330,6 +340,7 @@ class UINode:
         self._subscribe_slot_fields()
         self._apply_locked_attr()
         self._apply_detail_attr()
+        self._apply_stacking()
 
     def _apply_locked_attr(self) -> None:
         """Stamp ``data-node-props-locked`` on the container for canvas.vue to read.
@@ -348,6 +359,15 @@ class UINode:
             self.container._props["data-node-props-locked"] = "true"
         else:
             self.container._props.pop("data-node-props-locked", None)
+        self.container.update()
+
+    def _apply_stacking(self) -> None:
+        """Write the node's stacking order in this card's channel as the container's z-index.
+
+        Cards that share a value paint in DOM order. See ``haywire.core.graph.stacking``.
+        """
+        z = getattr(self.wrapper.node.props, self.channel.z)
+        self.container.style(f"z-index: {z}")
         self.container.update()
 
     def _apply_enterable_attr(self) -> None:

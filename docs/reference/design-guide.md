@@ -282,6 +282,15 @@ Local to the graph canvas and ordered *within its own stacking context*, so it
 never competes with the overlay ladder despite larger raw numbers. Edge SVG <
 node container < selected node < resize gadget < marquee < canvas overlays.
 
+Inside the node container a card's z-index is its **stacking order** rank
+(`0` up, written by `UINode`), so the lifts above the cards start high:
+`--hw-z-canvas-selected` 1000000, `--hw-z-canvas-hover` 1000001,
+`--hw-z-canvas-gadget` 1000002, the edge handles 1000003. A stage canvas
+(`data-hw-stage`) skips the selected, hover and drag lifts.
+
+**Rule:** never write a z-index on a card from JS or a skin — it is the
+stacking rank. Lift with a class, as `.dragging-node` does.
+
 Pin-interior values (`10000`+ on `.connection-pin`) are **trapped inside a
 node** and rank nothing outside it — a pin's 10000 does not beat the resize
 gadget's 1002. Magnitude here implies no cross-context rank; see the comments

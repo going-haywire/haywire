@@ -25,6 +25,7 @@ from nicegui import ui
 
 from haywire.core.access import LevelMode
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.graph.stacking import Restack
 from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import BaseNode
 from haywire.core.node.layout import PATCH, LayoutChannel
@@ -44,6 +45,7 @@ from haywire.ui.components.graph.event_definitions import (
     RevertToMacroEvent,
     ExpandGroupEvent,
     RemoveFromStageEvent,
+    RestackEvent,
     PromoteToMacroEvent,
     OpenNewNodeWizardEvent,
     EdgeCreatedEvent,
@@ -639,7 +641,7 @@ class VisualLayerHandlers:
             with (
                 ui.element("div")
                 .classes("absolute")
-                .style(f"left: {x}px; top: {y}px; z-index: 100; transform-origin: top-left; cursor: move;")
+                .style(f"left: {x}px; top: {y}px; transform-origin: top-left; cursor: move;")
                 .props(f'id="{node_id}" data-node-id="{node_id}" ') as container
             ):
                 ui_node = UINode(container, wrapper, self.skin_factory, self.route, channel=self.channel)
@@ -686,7 +688,7 @@ class VisualLayerHandlers:
 
         x, y = position
         container = self.node_panels[node_id].container
-        container.style(f"left: {x}px; top: {y}px; z-index: 100;")
+        container.style(f"left: {x}px; top: {y}px;")
         container.update()
         self.node_panels[node_id].position = position
 
@@ -1028,6 +1030,14 @@ class VisualLayerHandlers:
         logger.info(f"Removing {len(event.node_ids)} nodes from the stage")
         if not editor.remove_from_stage(list(event.node_ids)):
             ui.notify("Nothing to remove from the stage", type="warning")
+
+    @handles_event(RestackEvent)
+    def process_restack(self, event: RestackEvent):
+        """Change the stacking order of the nodes in this canvas's view (one undoable op)."""
+        editor = self.route.editor()
+        if editor is None:
+            return
+        editor.restack_nodes(list(event.node_ids), Restack(event.how), self.channel)
 
     @handles_event(DissolveRerouteEvent)
     def process_dissolve_reroute(self, event: DissolveRerouteEvent):

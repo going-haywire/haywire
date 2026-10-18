@@ -8,7 +8,7 @@ from haywire.core.node.layout import PATCH, LayoutChannel, position_of, with_pos
 from haywire.core.node.properties import NodeProperties
 
 SWAPPED = LayoutChannel(
-    "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt"
+    "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt", z="z"
 )
 
 

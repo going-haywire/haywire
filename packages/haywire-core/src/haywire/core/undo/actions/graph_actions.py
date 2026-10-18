@@ -14,6 +14,7 @@ from dataclasses import dataclass
 
 from ...node import NodeWrapper
 from ...node.layout import (
+    CHANNELS,
     PATCH,
     STAGE,
     LayoutChannel,
@@ -21,9 +22,11 @@ from ...node.layout import (
     position_of,
     with_position,
     with_stage_placement,
+    with_z,
 )
 from ...graph.base import BaseGraph
 from ...graph.stage import next_stage_spot, non_negative, patch_position_for_stage, stage_position_for_patch
+from ...graph.stacking import top_z
 from ...macro.origin import MacroOrigin
 from ...edge.edge_wrapper import EdgeWrapper
 from ...types import Propagation
@@ -52,6 +55,29 @@ _REROUTE_OUTLET_ID = "out"
 _REROUTE_FORWARD_HANDLER = "forward_immediate"
 
 
+def stacked_on_top(graph: BaseGraph, node_datas: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    """Return copies of ``node_datas`` stacked above every node already in ``graph``.
+
+    For each layout channel, the entries that channel would show get consecutive stacking values
+    from ``top_z(graph, channel)`` up, in the order of the values they carry (then list order),
+    so nodes about to be added keep their relative order. The inputs are not mutated.
+
+    Example::
+
+        # two copies carrying z 5 and 2; the highest z in the graph is 3
+        stacked_on_top(graph, [five, two])   # z 5 and 4: the first stays above the second
+    """
+    result = [dict(node_data) for node_data in node_datas]
+    for channel in CHANNELS:
+        values = [((nd.get("props") or {}).get("values") or {}) for nd in result]
+        members = [i for i, v in enumerate(values) if channel.member is None or v.get(channel.member)]
+        members.sort(key=lambda i: (values[i].get(channel.z, 0), i))
+        base = top_z(graph, channel)
+        for rank, index in enumerate(members):
+            result[index] = with_z(result[index], base + rank, channel)
+    return result
+
+
 def value_changed(before: Any, after: Any) -> bool:
     """Return whether ``after`` differs from ``before`` by ``!=``.
 
@@ -76,6 +102,7 @@ class AddNodeAction(ActionBase):
         node_id: Optional[str] = None,
         *,
         position: Tuple[float, float] | None = None,
+        on_top: bool = True,
     ):
         """
         Initialize the add node action.
@@ -92,11 +119,15 @@ class AddNodeAction(ActionBase):
             position: ``(x, y)`` canvas position for a node built blank; with
                 ``node_data`` the position comes from its props. ``None``
                 keeps the props default.
+            on_top: On first execution, put the node above every other node in each view
+                that shows it (see ``top_z``). ``False`` keeps the stacking values it was
+                given.
         """
         super().__init__(description or f"Add node '{registry_key}'")
         self.graph = graph
         self.registry_key = registry_key
         self.position = position
+        self.on_top = on_top
         self.node_data = node_data
         self.node_id = node_id
         self.wrapper: "NodeWrapper | None" = None
@@ -113,6 +144,11 @@ class AddNodeAction(ActionBase):
                 node_data=self.node_data,
                 node_id=self.node_id,
             )
+            if self.on_top and self.wrapper and self.wrapper.node:
+                props = self.wrapper.node.props
+                for channel in CHANNELS:
+                    if channel.includes(props):
+                        setattr(props, channel.z, top_z(self.graph, channel, exclude={self.wrapper.node_id}))
         else:
             # Redo: Re-add existing wrapper
             self.wrapper = self.graph.add_node_wrapper(self.wrapper)
@@ -392,9 +428,11 @@ class MoveNodesToAction(ActionBase):
 class SetStageMembershipAction(ActionBase):
     """Action for putting nodes on, or taking them off, the graph's stage.
 
-    Adding places the nodes by ``next_stage_spot`` in patch order and sets their stage size
-    to ``"auto"``. Removing changes only ``on_stage``, so the stage rectangle is kept for the
-    next add. Undo restores each node's ``on_stage``, stage position and stage size mode.
+    Adding places the nodes by ``next_stage_spot`` in patch order, sets their stage size
+    to ``"auto"`` and stacks them above every node already on stage, in the same order.
+    Removing changes only ``on_stage``, so the stage rectangle is kept for the next add.
+    Undo restores each node's ``on_stage``, stage position, stage size mode and stage
+    stacking order.
 
     Example::
 
@@ -429,6 +467,7 @@ class SetStageMembershipAction(ActionBase):
                     "stage_x": props.stage_x,
                     "stage_y": props.stage_y,
                     "stage_size_adapt": props.stage_size_adapt,
+                    "stage_z": props.stage_z,
                 }
 
     def _execute_impl(self) -> None:
@@ -440,8 +479,16 @@ class SetStageMembershipAction(ActionBase):
         wrappers = [self.graph.node_wrappers[node_id] for node_id in self.original]
         wrappers.sort(key=lambda w: (w.node.props.posY, w.node.props.posX))
         spots = next_stage_spot(self.graph, len(wrappers), [w.node.props.stage_height for w in wrappers])
-        for wrapper, (x, y) in zip(wrappers, spots, strict=True):
-            self._write(wrapper.node_id, on_stage=True, stage_x=x, stage_y=y, stage_size_adapt="auto")
+        base = top_z(self.graph, STAGE)
+        for rank, (wrapper, (x, y)) in enumerate(zip(wrappers, spots, strict=True)):
+            self._write(
+                wrapper.node_id,
+                on_stage=True,
+                stage_x=x,
+                stage_y=y,
+                stage_size_adapt="auto",
+                stage_z=base + rank,
+            )
 
     def _undo_impl(self) -> None:
         for node_id, state in self.original.items():
@@ -454,6 +501,7 @@ class SetStageMembershipAction(ActionBase):
         stage_x: Optional[float] = None,
         stage_y: Optional[float] = None,
         stage_size_adapt: Optional[str] = None,
+        stage_z: Optional[int] = None,
     ) -> None:
         """Write the given fields, ``on_stage`` last so a canvas mounts the node at its final place."""
         wrapper = self.graph.node_wrappers[node_id]
@@ -466,8 +514,62 @@ class SetStageMembershipAction(ActionBase):
             self.graph.move_node(node_id, stage_x, stage_y, STAGE)
         if stage_size_adapt is not None and stage_size_adapt != props.stage_size_adapt:
             props.stage_size_adapt = stage_size_adapt
+        if stage_z is not None and stage_z != props.stage_z:
+            props.stage_z = stage_z
         if on_stage != props.on_stage:
             props.on_stage = on_stage
+
+
+class RestackNodesAction(ActionBase):
+    """Action for setting the stacking value of nodes in one layout channel.
+
+    Writes ``channel.z`` of each node and marks each node it changes as edited, so the graph
+    becomes unsaved. Undo restores the values captured at construction.
+
+    Example::
+
+        changes = restacked(graph, ["n1"], Restack.FRONT, PATCH)
+        history.add_action(RestackNodesAction(graph, changes, PATCH))
+    """
+
+    def __init__(
+        self,
+        graph: BaseGraph,
+        z_by_node: Mapping[str, int],
+        channel: LayoutChannel = PATCH,
+        description: Optional[str] = None,
+    ):
+        """Capture the current values of the nodes in ``z_by_node``.
+
+        Args:
+            z_by_node: The new stacking value per node id. Unknown ids are skipped.
+        """
+        super().__init__(description or f"Change stacking order of {len(z_by_node)} nodes")
+        self.graph = graph
+        self.channel = channel
+        self.target: Dict[str, int] = {}
+        self.original: Dict[str, int] = {}
+        for node_id, z in z_by_node.items():
+            wrapper = graph.get_node_wrapper(node_id)
+            if wrapper and wrapper.node:
+                self.target[node_id] = z
+                self.original[node_id] = getattr(wrapper.node.props, channel.z)
+
+    def _execute_impl(self) -> None:
+        self._write(self.target)
+
+    def _undo_impl(self) -> None:
+        self._write(self.original)
+
+    def _write(self, values: Mapping[str, int]) -> None:
+        for node_id, z in values.items():
+            wrapper = self.graph.get_node_wrapper(node_id)
+            if wrapper is None or wrapper.node is None:
+                continue
+            props = wrapper.node.props
+            if getattr(props, self.channel.z) != z:
+                setattr(props, self.channel.z, z)
+                wrapper.mark_value_edited()
 
 
 class RemoveElementsAction(ActionBase):
@@ -823,6 +925,7 @@ class PasteClipboardAction(CompositeAction):
 
         # 3. Build child AddNodeActions (no registry_key validation — unknown
         #    types become placeholders, like file load).
+        placed: List[Tuple[Dict[str, Any], str, Dict[str, Any]]] = []
         for old_id, node in nodes.items():
             new_id = remap.id_map[old_id]
             src_x, src_y = layout_position_of(node, channel)
@@ -851,12 +954,19 @@ class PasteClipboardAction(CompositeAction):
                 if isinstance(source_key, str) and source_key in subgraph_key_map:
                     store[SUBGRAPH_KEY] = subgraph_key_map[source_key]
 
+            placed.append((node, new_id, node_data))
+
+        # 3b. The copies land above every node in each view that shows them, in their source order.
+        stacked = stacked_on_top(graph, [node_data for _, _, node_data in placed])
+
+        for (node, new_id, _), node_data in zip(placed, stacked, strict=True):
             actions.append(
                 AddNodeAction(
                     graph=graph,
                     registry_key=node["registry_key"],
                     node_data=node_data,
                     node_id=new_id,
+                    on_top=False,
                 )
             )
 
@@ -2309,13 +2419,16 @@ class ExpandGraphNodeAction(CompositeAction):
             _LiftNestedSubgraphsAction(graph=graph, subgraph_key=definition.key, keys=nested_keys)
         ]
 
-        for inner_id, node_data in nodes.items():
+        # The contents land above the host's nodes in each view, keeping their order.
+        lifted = stacked_on_top(graph, [node.get("node_data") or {} for node in nodes.values()])
+        for (inner_id, node), node_data in zip(nodes.items(), lifted, strict=True):
             actions.append(
                 AddNodeAction(
                     graph=graph,
-                    registry_key=node_data["registry_key"],
-                    node_data=node_data.get("node_data", {}),
+                    registry_key=node["registry_key"],
+                    node_data=node_data,
                     node_id=inner_id,
+                    on_top=False,
                 )
             )
 

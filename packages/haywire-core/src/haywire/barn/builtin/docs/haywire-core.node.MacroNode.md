@@ -12,3 +12,7 @@ Differs from a Group's card in what owns the interior: a Group's Subgraph
 lives in the host file and is the card's alone, while a macro's lives in
 its own file and is shared by every placement as a template. The card still
 owns its port values.
+
+The interior is runtime state, so an interior edit that only saves never
+marks the host unsaved; an edit that reassembles the interior still
+reassembles the host.

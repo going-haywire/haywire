@@ -3,15 +3,15 @@
 ## farmhand
 - `haybale-graph-editor:farmhand:add_node` — Add node — Add a node by registry key. Call studio_describe_component first to learn its ports.
 - `haybale-graph-editor:farmhand:connect` — Connect — Connect an outlet to an inlet.
-- `haybale-graph-editor:farmhand:demote_setting` — Demote setting — Remove a promoted port, returning the field to a plain setting.
+- `haybale-graph-editor:farmhand:demote_setting` — Demote setting — Remove a promoted port, returning the field to a plain setting. One undo step.
 - `haybale-graph-editor:farmhand:inspect_node` — Inspect node — One node's ports, settings, and health, at a chosen depth.
 - `haybale-graph-editor:farmhand:move_nodes` — Move nodes — Move nodes to absolute positions ({node_id: {x, y}}).
 - `haybale-graph-editor:farmhand:operate` — Operate widget — Change the value of a widget that is shown on a node card. Not undo-recorded.
-- `haybale-graph-editor:farmhand:promote_setting` — Promote setting — Promote a settings field to a data port. Not undo-routed (UI parity; later work).
+- `haybale-graph-editor:farmhand:promote_setting` — Promote setting — Promote a settings field to a data port. One undo step.
 - `haybale-graph-editor:farmhand:query_graph` — Query graph — Nodes (with ports) and edges of an open graph.
 - `haybale-graph-editor:farmhand:redo` — Redo — Redo the last undone change on this graph's SHARED human+agent timeline.
 - `haybale-graph-editor:farmhand:remove_elements` — Remove elements — Remove nodes and/or edges (also the way to disconnect).
-- `haybale-graph-editor:farmhand:set_metadata` — Set graph metadata — Set a graph's document metadata (label, description, author, version).
+- `haybale-graph-editor:farmhand:set_metadata` — Set graph metadata — Set a graph's document metadata (label, description, author, version). One undo step.
 - `haybale-graph-editor:farmhand:set_property` — Set property — Set a node property (port value or settings field) by name. Undo-recorded.
 - `haybale-graph-editor:farmhand:undo` — Undo — Undo the last change on this graph's SHARED human+agent timeline.
 
@@ -21,6 +21,9 @@
 ## panel
 - `haybale-graph-editor:panel:AddToStageMenuPanel` — Add to Stage — 
 - `haybale-graph-editor:panel:AppearanceToolbarPanel` — Appearance — 
+- `haybale-graph-editor:panel:ArrangeSelectionMenuPanel` — Arrange — 
+- `haybale-graph-editor:panel:BringForwardMenuPanel` — Bring Forward — 
+- `haybale-graph-editor:panel:BringToFrontMenuPanel` — Bring to Front — 
 - `haybale-graph-editor:panel:ClearDetailOverridesMenuPanel` — Reset Detail — 
 - `haybale-graph-editor:panel:ClearSettingMenuPanel` — Set to none — 
 - `haybale-graph-editor:panel:CloneToLibraryMenuPanel` — Clone to Library — 
@@ -90,6 +93,8 @@
 - `haybale-graph-editor:panel:ResetSettingMenuPanel` — Reset to default — 
 - `haybale-graph-editor:panel:RevalidateSelectionMenuPanel` — Revalidate Selection — 
 - `haybale-graph-editor:panel:SelectionOverflowPanel` — More — 
+- `haybale-graph-editor:panel:SendBackwardMenuPanel` — Send Backward — 
+- `haybale-graph-editor:panel:SendToBackMenuPanel` — Send to Back — 
 
 ## editor
 - `haybale-graph-editor:editor:GraphEditor` — Graph Editor — Visual node graph editor for wiring data processing pipelines.

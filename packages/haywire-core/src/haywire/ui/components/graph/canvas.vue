@@ -130,6 +130,14 @@ import 'arrow_heads';
  *                       never starts, ends or joins a drag.
  *                       All of these written by ui/skin/pin_render.py.
  *
+ *   data-hw-stage       Present on the canvas root of a stage view. Hover,
+ *                       selection and drag lift a card only on a canvas without
+ *                       it; a stage paints by stacking order alone. Written by
+ *                       GraphCanvasVue (canvas.py).
+ *
+ * A card's inline z-index is its stacking order, written by UINode
+ * (ui_node.py); this file never writes one on a card.
+ *
  * Adding one? Follow the data-node-props-* rule if it mirrors a props field,
  * and record it here — this block is the only index of the contract.
  *
@@ -749,8 +757,8 @@ export default {
          *  pins they overlap, and no offset separates them (measured: pins at
          *  x 230-257 / 575-602 against grips at 238-249 / 583-594). z-index
          *  cannot arbitrate either: a pin's `z-index: 10000` is trapped inside
-         *  the selected node's own stacking context (`.node-selected` is
-         *  `z-index: 1000`), so it orders the pin only WITHIN its node, never
+         *  the selected node's own stacking context (the card's z-index), so
+         *  it orders the pin only WITHIN its node, never
          *  against the gadget — which is a sibling of that node's container.
          *
          *  Nor can the grip simply decline the event in its own mousedown: the
@@ -2238,7 +2246,6 @@ export default {
                 this.dragState.draggedElements.forEach(element => {
                     if (element.type === 'node') {
                         element.element.style.cursor = 'grabbing';
-                        element.element.style.zIndex = '1000';
                         element.element.classList.add('dragging-node');
                     }
                 });
@@ -2288,7 +2295,6 @@ export default {
                 this.dragState.draggedElements.forEach(element => {
                     if (element.type === 'node') {
                         element.element.style.cursor = 'grab';
-                        element.element.style.zIndex = '100';
                         element.element.classList.remove('dragging-node');
                     }
                 });
@@ -4223,8 +4229,12 @@ export default {
  * ladder never compares with the overlay ladder in app/shell.py despite the
  * larger raw numbers here. See design-guide.md §2.9.
  *
+ * Cards inside the node container carry their stacking order as z-index
+ * (0 upward, one per card), so every lift above them (selected, hover, gadget,
+ * edge handles) starts at 1000000.
+ *
  * NOT tokenised, deliberately: the `.connection-pin` values (10000+) inside a
- * node card, and the transient values the drag paths write from JS. Both are
+ * node card, and the transient values the edge-drag paths write from JS. Both are
  * trapped in a node's own stacking context and rank nothing at this level — a
  * pin's 10000 does not beat the resize gadget's `--hw-z-canvas-gadget`. The
  * comments at those sites carry the reasoning; a token name would only make
@@ -4237,9 +4247,9 @@ export default {
     --hw-z-canvas-edges: 1;
     --hw-z-canvas-nodes: 2;
     --hw-z-canvas-marquee: 999;
-    --hw-z-canvas-selected: 1000;
-    --hw-z-canvas-hover: 1001;
-    --hw-z-canvas-gadget: 1002;
+    --hw-z-canvas-selected: 1000000;
+    --hw-z-canvas-hover: 1000001;
+    --hw-z-canvas-gadget: 1000002;
 }
 
 .debug-info {
@@ -4295,10 +4305,9 @@ export default {
    blues (design rule). */
 .hw-resize-gadget {
     --hw-grip: var(--hw-node-selected, var(--hw-accent, #4a90e2));
-    /* Above the node it tracks, which is necessarily SELECTED (the gadget only
-       shows for a single-node selection) and so carries
-       `[data-node-id].node-selected { z-index: 1000 !important }` — 1001 on
-       hover. The gadget is a sibling of that node's container in the same
+    /* Above the node it tracks, whatever that node's z-index: its stacking
+       order, or in the patch the selected lift (`--hw-z-canvas-selected`, one
+       more on hover). The gadget is a sibling of that node's container in the same
        stacking context, so at any lower value the node paints over it and the
        EDGE grips stop hit-testing: they sit at -4px, half over the card, so
        elementFromPoint at a grip's centre returns the card and the mousedown
@@ -4309,7 +4318,7 @@ export default {
        onResizeGripDown, which hands the gesture back to any pin under the
        cursor. The gadget itself is pointer-events:none, so only the grips
        take pointer events. */
-    z-index: var(--hw-z-canvas-gadget, 1002);
+    z-index: var(--hw-z-canvas-gadget, 1000002);
     outline: 1px solid color-mix(in srgb, var(--hw-grip) 70%, transparent);
     outline-offset: 0;
 }
@@ -4368,14 +4377,24 @@ export default {
 
 /* Hover — subtle accent border; distinct from selected glow and active ring */
 [data-node-id]:hover {
-    z-index: var(--hw-z-canvas-hover, 1001) !important;
     cursor: grab;
     outline: 1px solid var(--hw-accent-hover) !important;
     outline-offset: 1px;
 }
 
+/* A card's own z-index is its stacking order (UINode). The patch lifts a hovered,
+   selected or dragged card above every other; a stage canvas (data-hw-stage) keeps the
+   order, so a card dragged behind others stays behind them. */
+.graph-canvas:not([data-hw-stage]) [data-node-id].node-selected {
+    z-index: var(--hw-z-canvas-selected, 1000000) !important;
+}
+
+.graph-canvas:not([data-hw-stage]) [data-node-id]:hover,
+.graph-canvas:not([data-hw-stage]) [data-node-id].dragging-node {
+    z-index: var(--hw-z-canvas-hover, 1000001) !important;
+}
+
 [data-node-id].dragging-node {
-    z-index: var(--hw-z-canvas-hover, 1001) !important;
     cursor: grabbing !important;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
     transform: translateZ(0);
@@ -4388,7 +4407,6 @@ export default {
 
 /* Selected — soft shadow glow ring; suppress default outline */
 [data-node-id].node-selected {
-    z-index: var(--hw-z-canvas-selected, 1000) !important;
     outline: none !important;
     box-shadow: 0 8px 25px var(--hw-node-shadow),
         0 0 0 2px var(--hw-node-selected) !important;
@@ -4552,7 +4570,7 @@ export default {
     height: 1px;
     overflow: visible;
     pointer-events: none;
-    z-index: 10002;
+    z-index: 1000003;
 }
 
 .hw-edge-handle {

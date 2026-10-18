@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 from haywire.ui.surface import Surface
 
 if TYPE_CHECKING:
+    from haywire.core.graph.stacking import Restack
     from haywire.core.session.context import SessionContext
 
 
@@ -67,6 +68,9 @@ class SelectionActions(Protocol):
     def add_to_stage(self) -> None: ...
     def remove_from_stage(self) -> None: ...
 
+    # Stacking order of the whole selection, in the view the menu opened in.
+    def restack_selection(self, how: "Restack") -> None: ...
+
 
 class SelectionMenu(Surface):
     """The selection right-click menu."""
@@ -93,6 +97,17 @@ class SelectionRebuildMenu(Surface):
     """
 
     id = "selection-rebuild"
+    provides = SelectionActions
+
+
+class SelectionArrangeMenu(Surface):
+    """The "Arrange" submenu of ``SelectionMenu`` — the four stacking-order verbs.
+
+    Declares no ``poll`` for the same reason ``SelectionRebuildMenu`` does not: the hosting
+    panel already gates on the selection.
+    """
+
+    id = "selection-arrange"
     provides = SelectionActions
 
 

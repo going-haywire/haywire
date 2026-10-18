@@ -14,6 +14,7 @@ window.GraphEvents = {
     DISSOLVE_REROUTE: 'dissolveReroute', // Dissolve a reroute node and bridge its connections
     ADD_TO_STAGE: 'addToStage', // Put the selected nodes on the stage
     REMOVE_FROM_STAGE: 'removeFromStage', // Take the selected nodes off the stage
+    RESTACK_NODES: 'restackNodes', // Change the stacking order of the selected nodes
     COLLAPSE_TO_GROUP: 'collapseToGroup', // Collapse the selected nodes into a Group
     EXPAND_GROUP: 'expandGroup', // Expand a Group back into the graph around it
     ENTER_GROUP: 'enterGroup', // Enter a Graph-node: a Group or a macro placement
@@ -159,6 +160,16 @@ window.EventCreators = {
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { node_ids },
+      requires_broadcast: true
+    };
+  },
+
+  createRestack(node_ids, how, sessionId = 'default') {
+    return {
+      event_type: 'restackNodes',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_ids, how },
       requires_broadcast: true
     };
   },
@@ -463,6 +474,11 @@ window.EventValidators = {
 
   validateRemoveFromStage(data) {
     const requiredFields = ["node_ids"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateRestack(data) {
+    const requiredFields = ["node_ids", "how"];
     return requiredFields.every(field => field in data);
   },
 

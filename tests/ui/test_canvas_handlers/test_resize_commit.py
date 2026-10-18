@@ -10,7 +10,7 @@ from haybale_graph_editor.editors.graph_canvas.handlers.interaction import Inter
 from tests.conftest import edit_route
 
 SWAPPED = LayoutChannel(
-    "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt"
+    "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt", z="z"
 )
 
 

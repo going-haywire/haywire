@@ -47,6 +47,7 @@ from ..event_handlers import handles_event
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
     from haywire.core.graph.edit_route import EditRoute
+    from haywire.core.graph.stacking import Restack
     from haywire.core.types.enums import Propagation
 
 logger = logging.getLogger(__name__)
@@ -726,6 +727,13 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
         edit = self._context.data[EditState]
         self._emit(RemoveFromStageEvent(node_ids=list(edit.selected_nodes)))
+
+    def restack_selection(self, how: "Restack") -> None:
+        """Emit RestackEvent for the whole selection; the canvas the menu opened on applies it."""
+        from haywire.ui.components.graph.event_definitions import RestackEvent
+
+        edit = self._context.data[EditState]
+        self._emit(RestackEvent(node_ids=list(edit.selected_nodes), how=how.value))
 
     def dissolve_reroute(self, node_id: str) -> None:
         """Emit DissolveRerouteEvent for the given reroute node.

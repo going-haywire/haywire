@@ -7,7 +7,7 @@ all client-side graph canvas interactions with the enhanced event system.
 """
 
 import logging
-from typing import Optional, Callable
+from typing import Any, Callable, Optional
 from pathlib import Path
 
 from nicegui import ui
@@ -56,11 +56,15 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         canvas_width: int = 8000,
         canvas_height: int = 8000,
         origin: float = 0.0,
+        stage: bool = False,
     ):
         """Create the canvas element.
 
         Args:
             origin: Canvas position, on both axes, of the stage origin. ``0`` draws no marker.
+            stage: Whether this canvas shows a stage view. A stage canvas paints its cards by
+                stacking order alone: hovering, selecting or dragging a card does not raise it.
+                It never magnifies a card on hover, whatever the hover-magnifier settings say.
         """
         super().__init__()
 
@@ -78,6 +82,9 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         self._props["canvasHeight"] = canvas_height
         self._props["originX"] = origin
         self._props["originY"] = origin
+        self._stage = stage
+        if stage:
+            self._props["data-hw-stage"] = True
         self._props["data-graph_canvas"] = True
         # The sibling ZoomPanContainer broadcasts ``zoom-pan-state`` events on
         # ``document``; canvas.vue uses this id to ignore events from other
@@ -137,14 +144,18 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
     def _apply_hover_setting_props(self) -> None:
         """Push current hover-magnifier settings to Vue props."""
         for name, prop in _HOVER_SETTING_PROPS.items():
-            self._props[prop] = getattr(self._pz_settings, name)
+            self._props[prop] = self._hover_value(name, getattr(self._pz_settings, name))
 
     def _on_setting_changed(self, name: str, value, old) -> None:
         """Propagate a hover-magnifier settings change to the Vue component."""
         prop = _HOVER_SETTING_PROPS.get(name)
         if prop is not None:
-            self._props[prop] = value
+            self._props[prop] = self._hover_value(name, value)
             self.update()
+
+    def _hover_value(self, name: str, value: Any) -> Any:
+        """The value a hover-magnifier setting takes on this canvas: off on a stage."""
+        return False if self._stage and name == "hover_scale_enabled" else value
 
     def _handle_canvas_event(self, event_data):
         """Unified canvas event handler - routes to GraphCanvasManager"""

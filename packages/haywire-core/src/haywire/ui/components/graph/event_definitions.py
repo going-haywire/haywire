@@ -188,6 +188,18 @@ class RemoveFromStageEvent(BaseGraphEvent):
 
 
 @graph_event(
+    "restackNodes",
+    category="user",
+    description="Change the stacking order of the selected nodes",
+)
+@dataclass
+class RestackEvent(BaseGraphEvent):
+    node_ids: List[str]
+    how: str
+    """A ``Restack`` value: ``"front"``, ``"back"``, ``"forward"`` or ``"backward"``."""
+
+
+@graph_event(
     "collapseToGroup",
     category="user",
     description="Collapse the selected nodes into a Group",

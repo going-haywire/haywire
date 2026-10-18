@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.setting_owner import SettingOwner
+from haywire.core.graph.stacking import Restack, restacked
 from haywire.core.node.layout import PATCH, LayoutChannel
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.factory import NodeFactory
@@ -35,6 +36,7 @@ from haywire.core.undo.actions.graph_actions import (
     SetPropertyAction,
     SetSettingAction,
     SetStageMembershipAction,
+    RestackNodesAction,
 )
 
 logger = logging.getLogger(__name__)
@@ -234,6 +236,32 @@ class Editor:
             ``False`` if no node changes or the action failed, otherwise ``True``.
         """
         return self._set_stage_membership(node_ids, False)
+
+    def restack_nodes(self, node_ids: List[str], how: Restack, channel: LayoutChannel = PATCH) -> bool:
+        """Change the stacking order of nodes in ``channel``'s view as one undoable action.
+
+        Ids that are unknown or not in the view are ignored. See ``Restack`` for the verbs.
+
+        Returns:
+            ``False`` if the order does not change or the action failed, otherwise ``True``.
+
+        Example::
+
+            editor.restack_nodes(["n1", "n2"], Restack.FRONT)            # patch view
+            editor.restack_nodes(["n1"], Restack.BACKWARD, STAGE)        # stage view
+        """
+        changes = restacked(self.graph, node_ids, how, channel)
+        if not changes:
+            return False
+        try:
+            action = RestackNodesAction(self.graph, changes, channel)
+            if not self.history_manager.add_action(action):
+                return False
+            logger.info(f"Restacked {len(node_ids)} nodes ({how.value}, {channel.name})")
+            return True
+        except Exception as e:
+            logger.error(f"Error changing stacking order: {e}")
+            return False
 
     def _set_stage_membership(self, node_ids: List[str], on_stage: bool) -> bool:
         changing = []

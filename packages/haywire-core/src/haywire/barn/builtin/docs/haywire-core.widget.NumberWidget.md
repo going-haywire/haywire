@@ -22,7 +22,7 @@ Config options (via ``NumberWidget.config(properties={...})``):
 - ``precision`` (int): Decimal places to display (-1 = auto from step).
   Bound to an ``INT`` port, this defaults to ``0`` (no decimal point)
   instead of the usual auto-from-step behaviour; pass ``precision``
-  explicitly to override.
+  explicitly to override. An ``INT`` port's ``step`` defaults to ``1``.
 - ``prefix`` (str): Text shown before the value (e.g. ``'$'``).
 - ``suffix`` (str): Text shown after the value (e.g. ``'kg'``).
 - ``sensitivity`` (float): Drag sensitivity multiplier (default 1.0).

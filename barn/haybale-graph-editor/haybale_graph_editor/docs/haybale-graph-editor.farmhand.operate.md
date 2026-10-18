@@ -6,7 +6,7 @@ Change the value of a widget that is shown on a node card. Not undo-recorded.
 
 ## Agent Instructions
 
-Change the value of a port whose widget is shown on its node card, the same change a person makes by using that widget. Use the exact port id from a graph_editor_inspect_node row. A port with no widget, a hidden widget, or an inlet fed by an edge raises not_operable. The write is verified by reading the value back: a value the port rejects raises set_rejected. Like a widget edit it is not undo-recorded, and it marks the graph as unsaved only when the value changed.
+Change the value of a port whose widget is shown on its node card, the same change a person makes by using that widget. Use the exact port id from a graph_editor_inspect_node row. A port with no widget, a hidden widget, or an inlet fed by an edge raises not_operable, and so does a port marked as needing edit access to change. The write is verified by reading the value back: a value the port rejects raises set_rejected. Like a widget edit it is not undo-recorded, and it marks the graph as unsaved only when the value changed.
 
 ## Details
 

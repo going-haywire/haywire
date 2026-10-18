@@ -531,6 +531,29 @@ def _build_stage_graph(node_factory):
     return graph, editor, node
 
 
+def _build_stack_graph(node_factory):
+    """Two overlapping on-stage nodes, ``back`` (z 0) under ``front`` (z 1), in both views.
+
+    ``front`` sits 80 right and 60 down of ``back``, so it covers ``back``'s lower right. It is
+    made first, so it mounts first and only its z puts it on top.
+    Returns (graph, editor, back, front).
+    """
+    from haywire.core.graph.editor import Editor
+
+    graph = _harness_graph("Stack Fixture")
+    editor = Editor(graph, node_factory)
+    placed = {}
+    for name, (x, y), z in (("front", (380.0, 360.0), 1), ("back", (300.0, 300.0), 0)):
+        node = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(x, y))
+        assert node is not None, f"could not create {_RECONNECT_SINK_KEY}"
+        props = node.node.props
+        props.on_stage = True
+        props.stage_x, props.stage_y = x - 300.0, y - 300.0
+        props.z = props.stage_z = z
+        placed[name] = node
+    return graph, editor, placed["back"], placed["front"]
+
+
 def _harness_session(library_service, graph):
     """Create a real Session over a harness app state, with ``graph`` as the active graph.
 
@@ -1487,6 +1510,18 @@ def register_routes(library_service) -> None:
         )
         chosen = next(c for c in CHANNELS if c.name == channel)
         _mount_graph_canvas(library_service, graph, editor, testid="stage", channel=chosen)
+        _stamp_synced()
+
+    @ui.page("/graph-stack")
+    async def graph_stack_page(channel: str = "patch"):
+        from haywire.core.node.layout import CHANNELS
+
+        graph, editor, back, front = _build_stack_graph(library_service.get_node_factory())
+        ui.label("stack").props(
+            f'id="stack-ids" data-testid="stack-ids" data-back="{back.node_id}" data-front="{front.node_id}"'
+        )
+        chosen = next(c for c in CHANNELS if c.name == channel)
+        _mount_graph_canvas(library_service, graph, editor, testid="stack", channel=chosen)
         _stamp_synced()
 
     @ui.page("/graph-size")

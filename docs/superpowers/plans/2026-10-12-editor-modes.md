@@ -248,7 +248,9 @@ slice lands.
      by making them widgets. Built as five sub-plans, 5b-1 to 5b-5. A dedicated Add
      Annotation verb stays dropped: the background menu and node search already
      place an annotation on stage.
-   - **5c Stacking order:** `z`/`stage_z` and the four verbs.
+   - **5c Stacking order:** [2026-10-17-editor-modes-05c-stacking-order.md](2026-10-17-editor-modes-05c-stacking-order.md).
+     `z`/`stage_z` and the four verbs, in an Arrange submenu; the stage never lifts a card
+     for hover or selection.
    - **5d Control nodes.**
 6. **Inset.** The skin, the two enablers, placement value overrides, and the
    shared edge-drawing module.

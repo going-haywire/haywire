@@ -349,6 +349,7 @@ class GraphCanvasManager:
                 canvas_width=canvas_width,
                 canvas_height=canvas_height,
                 origin=self.channel.origin,
+                stage=self.channel.stage,
             )
         return zoom_container, canvas_vue
 

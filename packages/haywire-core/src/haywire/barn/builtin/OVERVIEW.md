@@ -40,6 +40,8 @@ Framework-owned primitive types and adapters
 - **ArrowHeadWidget** — Arrow head picker
 - **CheckboxWidget** — checkbox widget
 - **ColorWidget** — Color picker widget
+- **FoldWidget** — Fold header
+- **NoteTextWidget** — Note text
 - **NumberWidget** — Fast number input widget
 - **OptionalWidget** — Optional value — the wrapped type's widget, plus an absence state
 - **SelectWidget** — select widget

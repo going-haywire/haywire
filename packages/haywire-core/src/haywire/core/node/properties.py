@@ -167,6 +167,13 @@ class NodeProperties(NodeSettings):
         order=50,
         category="layout",
     )
+    z = setting[INT](
+        0,
+        label="Stacking order",
+        description="Paint order in the patch view; higher draws on top.",
+        order=55,
+        category="layout",
+    )
 
     # -----------------------------------------------------------------
     # Stage — whether the node is on the graph's stage, and where
@@ -196,6 +203,13 @@ class NodeProperties(NodeSettings):
         label="Stage Size Adapt",
         description="Per-axis manual control of the node's stage size",
         order=110,
+        category="stage",
+    )
+    stage_z = setting[INT](
+        0,
+        label="Stage stacking order",
+        description="Paint order in the stage view; higher draws on top.",
+        order=115,
         category="stage",
     )
 

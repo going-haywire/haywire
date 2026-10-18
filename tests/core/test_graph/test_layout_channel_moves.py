@@ -12,7 +12,7 @@ from haywire.core.undo.actions.graph_actions import MoveNodesAction
 pytestmark = pytest.mark.integration
 
 SWAPPED = LayoutChannel(
-    "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt"
+    "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt", z="z"
 )
 
 

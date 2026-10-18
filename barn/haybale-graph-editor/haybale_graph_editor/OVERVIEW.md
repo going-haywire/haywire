@@ -5,15 +5,15 @@ Visual graph editor library — host-agnostic
 ## Farmhands
 - **Add node** — Add a node by registry key. Call studio_describe_component first to learn its ports.
 - **Connect** — Connect an outlet to an inlet.
-- **Demote setting** — Remove a promoted port, returning the field to a plain setting.
+- **Demote setting** — Remove a promoted port, returning the field to a plain setting. One undo step.
 - **Inspect node** — One node's ports, settings, and health, at a chosen depth.
 - **Move nodes** — Move nodes to absolute positions ({node_id: {x, y}}).
 - **Operate widget** — Change the value of a widget that is shown on a node card. Not undo-recorded.
-- **Promote setting** — Promote a settings field to a data port. Not undo-routed (UI parity; later work).
+- **Promote setting** — Promote a settings field to a data port. One undo step.
 - **Query graph** — Nodes (with ports) and edges of an open graph.
 - **Redo** — Redo the last undone change on this graph's SHARED human+agent timeline.
 - **Remove elements** — Remove nodes and/or edges (also the way to disconnect).
-- **Set graph metadata** — Set a graph's document metadata (label, description, author, version).
+- **Set graph metadata** — Set a graph's document metadata (label, description, author, version). One undo step.
 - **Set property** — Set a node property (port value or settings field) by name. Undo-recorded.
 - **Undo** — Undo the last change on this graph's SHARED human+agent timeline.
 
@@ -26,6 +26,9 @@ Visual graph editor library — host-agnostic
 - **Add to Stage** — 
 - **Appearance** — 
 - **Appearance** — 
+- **Arrange** — 
+- **Bring Forward** — 
+- **Bring to Front** — 
 - **Clone to Library** — 
 - **Collapse** — 
 - **Collapse** — 
@@ -80,6 +83,8 @@ Visual graph editor library — host-agnostic
 - **Reset Selection** — 
 - **Reset to default** — 
 - **Revalidate Selection** — 
+- **Send Backward** — 
+- **Send to Back** — 
 - **Set to none** — 
 - **Show widget** — 
 - **Skin** — 

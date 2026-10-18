@@ -28,7 +28,7 @@ from tests.conftest import edit_route
 pytestmark = pytest.mark.unit
 
 SWAPPED = LayoutChannel(
-    "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt"
+    "swapped", x="posY", y="posX", width="height", height="width", size_adapt="size_adapt", z="z"
 )
 
 
@@ -314,3 +314,15 @@ def test_visual_layer_events_are_registered(handler):
     assert "elementRedraw" in result
     assert "elementReset" in result
     assert "elementRevalidate" in result
+
+
+def test_a_move_leaves_the_z_index_alone(handler, canvas_vue):
+    """The card's z-index is its stacking order, written by the card; a move writes position only."""
+    ui_node = MagicMock()
+    handler.node_panels["n1"] = ui_node
+
+    handler.update_node_position("n1", (10.0, 20.0))
+
+    styles = [call.args[0] for call in ui_node.container.style.call_args_list if call.args]
+    assert styles, "the move should restyle the container"
+    assert all("z-index" not in style for style in styles)

@@ -1,5 +1,6 @@
 """Unit tests for node_data-carrying creation and the paste action."""
 
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -37,11 +38,15 @@ def test_add_node_action_forwards_node_data():
     seen = {}
 
     class _G:
+        node_wrappers: dict = {}
+
         def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None):
             seen["node_data"] = node_data
             return object()
 
-    action = AddNodeAction(graph=cast(Any, _G)(), registry_key="k", position=(0, 0), node_data={"a": 1})
+    action = AddNodeAction(
+        graph=cast(Any, _G)(), registry_key="k", position=(0, 0), node_data={"a": 1}, on_top=False
+    )
     action._execute_impl()
     assert seen["node_data"] == {"a": 1}
 
@@ -52,11 +57,13 @@ def test_add_node_action_default_node_data_is_none():
     seen = {}
 
     class _G:
+        node_wrappers: dict = {}
+
         def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None):
             seen["node_data"] = node_data
             return object()
 
-    action = AddNodeAction(graph=cast(Any, _G)(), registry_key="k", position=(0, 0))
+    action = AddNodeAction(graph=cast(Any, _G)(), registry_key="k", position=(0, 0), on_top=False)
     action._execute_impl()
     assert seen["node_data"] is None
 
@@ -70,6 +77,8 @@ def test_add_node_action_redo_reuses_wrapper_without_recreating():
     sentinel = object()
 
     class _G:
+        node_wrappers: dict = {}
+
         def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None):
             calls["create"] += 1
             return sentinel
@@ -79,7 +88,9 @@ def test_add_node_action_redo_reuses_wrapper_without_recreating():
             assert wrapper is sentinel  # redo re-adds the SAME built wrapper
             return wrapper
 
-    action = AddNodeAction(graph=cast(Any, _G)(), registry_key="k", position=(0, 0), node_data={"a": 1})
+    action = AddNodeAction(
+        graph=cast(Any, _G)(), registry_key="k", position=(0, 0), node_data={"a": 1}, on_top=False
+    )
     action._execute_impl()  # first execution -> create
     action._execute_impl()  # redo -> add, NOT create
     assert calls["create"] == 1
@@ -131,6 +142,8 @@ def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch)
 
     class _G:
         # No node_factory needed — paste does not pre-validate registry_keys.
+        node_wrappers: dict = {}
+
         def generate_unique_node_id(self, registry_key="node"):
             return next(ids)
 
@@ -174,6 +187,8 @@ def test_paste_builds_actions_for_unknown_registry_keys_too():
     )
 
     class _G:
+        node_wrappers: dict = {}
+
         def generate_unique_node_id(self, registry_key="node"):
             return "new_x"
 
@@ -200,6 +215,8 @@ def test_paste_offsets_positions_to_paste_point():
     payload["bounding_box"] = {"min_x": 100.0, "min_y": 200.0, "max_x": 100.0, "max_y": 200.0}
 
     class _G:
+        node_wrappers: dict = {}
+
         def generate_unique_node_id(self, registry_key="node"):
             return "new_x"
 
@@ -239,6 +256,7 @@ def test_editor_paste_clipboard_adds_action_and_returns_new_ids():
         (),
         {
             "generate_unique_node_id": lambda self, registry_key="node": "new_x",
+            "node_wrappers": {},
         },
     )()
     ed.history_manager = cast(Any, _HM())
@@ -256,9 +274,11 @@ def test_add_node_action_forwards_node_id():
     seen = {}
 
     class _G:
+        node_wrappers: dict = {}
+
         def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None):
             seen["node_id"] = node_id
-            return object()
+            return SimpleNamespace(node=None)
 
     action = AddNodeAction(graph=cast(Any, _G)(), registry_key="k", position=(0, 0), node_id="pre_minted_1")
     action._execute_impl()
@@ -287,6 +307,8 @@ def test_paste_node_actions_carry_pre_minted_ids():
     ids = iter(["mint_a", "mint_b"])
 
     class _G:
+        node_wrappers: dict = {}
+
         def generate_unique_node_id(self, registry_key="node"):
             return next(ids)
 
@@ -320,6 +342,8 @@ def test_paste_skips_an_id_already_minted_in_the_same_paste():
     ids = iter(["dup", "dup", "fresh"])
 
     class _G:
+        node_wrappers: dict = {}
+
         def generate_unique_node_id(self, registry_key="node"):
             return next(ids)
 
@@ -599,6 +623,8 @@ def test_paste_of_a_node_at_the_origin_lands_at_the_paste_point():
     ids = iter(["new_a", "new_b"])
 
     class _G:
+        node_wrappers: dict = {}
+
         def generate_unique_node_id(self, registry_key="node"):
             return next(ids)
 

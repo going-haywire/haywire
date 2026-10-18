@@ -100,7 +100,8 @@ def test_subscribe_slot_fields_wires_size_and_appearance():
     # both stamp a `data-node-props-*` attribute on the CONTAINER (canvas.vue
     # reads locked off `[data-node-id]` to decide what a drag picks up; detail
     # the same way for its own CSS rules), so each runs its own handler rather
-    # than _on_slot_field_change. Listed separately to keep that distinction
+    # than _on_slot_field_change. `z` (the channel's stacking field) writes the
+    # CONTAINER's z-index the same way. Listed separately to keep that distinction
     # visible rather than letting it blur into the style-write set.
     assert watched == {
         "width",
@@ -110,6 +111,7 @@ def test_subscribe_slot_fields_wires_size_and_appearance():
         "color_override",
         "locked",
         "detail",
+        "z",
     }
 
 

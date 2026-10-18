@@ -18,6 +18,7 @@ class LayoutChannel:
     Example::
 
         PATCH.x                                  # "posX"
+        PATCH.z                                  # "z", the stacking order
         props.set_position((10.0, 20.0), PATCH)  # writes props.posX / props.posY
     """
 
@@ -27,6 +28,7 @@ class LayoutChannel:
     width: str
     height: str
     size_adapt: str
+    z: str
     member: str | None = None
     origin: float = 0.0
     stage: bool = False
@@ -53,7 +55,7 @@ class LayoutChannel:
 
 
 PATCH = LayoutChannel(
-    name="patch", x="posX", y="posY", width="width", height="height", size_adapt="size_adapt"
+    name="patch", x="posX", y="posY", width="width", height="height", size_adapt="size_adapt", z="z"
 )
 
 STAGE = LayoutChannel(
@@ -63,6 +65,7 @@ STAGE = LayoutChannel(
     width="stage_width",
     height="stage_height",
     size_adapt="stage_size_adapt",
+    z="stage_z",
     member="on_stage",
     origin=200.0,
     stage=True,
@@ -108,6 +111,25 @@ def with_position(
     values = dict(props.get("values") or {})
     values[channel.x] = x
     values[channel.y] = y
+    props["values"] = values
+    result["props"] = props
+    return result
+
+
+def with_z(node_data: Mapping[str, Any] | None, z: int, channel: LayoutChannel = PATCH) -> dict[str, Any]:
+    """Return a copy of ``node_data`` with the channel's stacking field set to ``z``.
+
+    ``node_data`` is not mutated; ``None`` is treated as empty. Other props values are kept.
+
+    Example::
+
+        node_data = with_z(saved["node_data"], 4)            # patch stacking order
+        node_data = with_z(node_data, 2, STAGE)              # stage stacking order
+    """
+    result = dict(node_data or {})
+    props = dict(result.get("props") or {})
+    values = dict(props.get("values") or {})
+    values[channel.z] = z
     props["values"] = values
     result["props"] = props
     return result

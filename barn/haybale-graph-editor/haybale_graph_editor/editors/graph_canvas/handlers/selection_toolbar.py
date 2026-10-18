@@ -44,6 +44,7 @@ from .selection import copy_selection_event, remove_selection_event
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
+    from haywire.core.graph.stacking import Restack
     from haywire.core.session.context import SessionContext
     from haywire.core.session.session import Session
     from haywire.ui.panel import BasePanel
@@ -293,6 +294,9 @@ class SelectionToolbarProvider:
 
     def remove_from_stage(self) -> None:
         self._menu_provider.remove_from_stage()
+
+    def restack_selection(self, how: "Restack") -> None:
+        self._menu_provider.restack_selection(how)
 
     def dissolve_reroute(self, node_id: str) -> None:
         self._menu_provider.dissolve_reroute(node_id)

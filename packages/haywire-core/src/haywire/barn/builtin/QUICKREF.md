@@ -35,6 +35,8 @@
 - `haywire-core:widget:ArrowHeadWidget` — ArrowHeadWidget — Arrow head picker
 - `haywire-core:widget:CheckboxWidget` — CheckboxWidget — checkbox widget
 - `haywire-core:widget:ColorWidget` — ColorWidget — Color picker widget
+- `haywire-core:widget:FoldWidget` — FoldWidget — Fold header
+- `haywire-core:widget:NoteTextWidget` — NoteTextWidget — Note text
 - `haywire-core:widget:NumberWidget` — NumberWidget — Fast number input widget
 - `haywire-core:widget:OptionalWidget` — OptionalWidget — Optional value — the wrapped type's widget, plus an absence state
 - `haywire-core:widget:SelectWidget` — SelectWidget — select widget

@@ -20,6 +20,7 @@ from .pin import PinEditMenu, PinMenu, PinWidgetMenu, PortActions
 from .ports import PortInspector
 from .selection import (
     SelectionActions,
+    SelectionArrangeMenu,
     SelectionDetailMenu,
     SelectionEditMenu,
     SelectionMenu,
@@ -47,6 +48,7 @@ __all__ = [
     "PortActions",
     "PortInspector",
     "SelectionActions",
+    "SelectionArrangeMenu",
     "SelectionMenu",
     "SelectionRebuildMenu",
     "SelectionDetailMenu",
