@@ -59,3 +59,36 @@ def test_a_removed_card_hears_nothing_while_the_other_card_still_does() -> None:
 
     patch_card.assert_not_called()
     stage_card.assert_called()
+
+
+def test_widget_tracking_ends_with_the_last_card() -> None:
+    factory = _factory()
+    patch_card, stage_card = MagicMock(), MagicMock()
+    factory.add_factory_lifecycle_subscriber("n1", "lib:skin:Split", patch_card)
+    factory.add_factory_lifecycle_subscriber("n1", "lib:skin:StackedStage", stage_card)
+
+    factory.remove_factory_lifecycle_subscriber("n1", patch_card)
+    factory._widget_factory.unregister_widget_for_node.assert_not_called()  # type: ignore[attr-defined]
+
+    factory.remove_factory_lifecycle_subscriber("n1", stage_card)
+    factory._widget_factory.unregister_widget_for_node.assert_called_once_with("n1")  # type: ignore[attr-defined]
+
+
+def test_tearing_down_one_card_keeps_the_other_cards_reloads(monkeypatch) -> None:
+    from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
+
+    factory = _factory()
+    ui_node = UINode.__new__(UINode)
+    ui_node.factory = factory
+    ui_node._node_id = "n1"
+    ui_node.current_ui_card = None
+    monkeypatch.setattr(ui_node, "_unsubscribe_slot_fields", lambda: None)
+    other_card = MagicMock()
+    own_card = ui_node._listen_on_factory_lifecycle_event
+    factory.add_factory_lifecycle_subscriber("n1", "lib:skin:Split", own_card)
+    factory.add_factory_lifecycle_subscriber("n1", "lib:skin:StackedStage", other_card)
+
+    ui_node.teardown_subscriptions()
+    _reloaded(factory, "lib:skin:StackedStage")
+
+    other_card.assert_called()

@@ -250,7 +250,10 @@ class SkinFactory:
 
     def remove_factory_lifecycle_subscriber(self, node_id: str, callback: FactoryEventCallback) -> None:
         """
-        Unregister a customer callback and clean up skin mappings.
+        Release one card: unregister its callback and the skin it draws with.
+
+        The node's other cards keep hearing reloads. The node's widget tracking
+        ends with its last card.
 
         Args:
             node_id: The ID of the node associated with the callback
@@ -262,6 +265,7 @@ class SkinFactory:
 
             if len(self._nodeid_to_factory_subscriber[node_id]) == 0:
                 del self._nodeid_to_factory_subscriber[node_id]
+                self._widget_factory.unregister_widget_for_node(node_id)
 
         self._nodeid_to_skin_regkeys.get(node_id, {}).pop(callback, None)
         if not self._nodeid_to_skin_regkeys.get(node_id):
@@ -327,18 +331,6 @@ class SkinFactory:
         """
         for node_id in node_ids:
             self._notify_factory_subscribers(node_id)
-
-    def _unregister_node(self, node_id: str):
-        """
-        Remove node ID tracking from both skin and widget factories
-        when node is destroyed.
-        Args:
-            node_id: The node ID to unregister
-        """
-        reg_keys = set(self._nodeid_to_skin_regkeys.pop(node_id, {}).values())
-        self.logger.debug(f" -> Unregister node for rendering '{node_id}' with skins {sorted(reg_keys)}")
-        self._reindex_node(node_id)
-        self._widget_factory.unregister_widget_for_node(node_id)
 
     def cleanup(self):
         """Cleanup resources and unregister from registries."""

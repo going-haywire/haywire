@@ -566,7 +566,6 @@ class UINode:
         """
         logger.debug(f"🔌 Tearing down subscriptions for UINode {self._node_id} ..")
         self._unsubscribe_slot_fields()
-        self.factory._unregister_node(self._node_id)
         self.factory.remove_factory_lifecycle_subscriber(
             self._node_id, self._listen_on_factory_lifecycle_event
         )
