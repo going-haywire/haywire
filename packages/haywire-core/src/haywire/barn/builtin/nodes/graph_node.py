@@ -37,7 +37,7 @@ from haywire.core.graph.subgraph_crossing import (
 from haywire.core.graph.types import ChangeReason, ValidationResult
 from haywire.core.node import node, BaseNode, NodeType
 from haywire.core.types.wire import WireRole
-from haywire.core.types.enums import PortType
+from haywire.core.types.enums import PortOrigin, PortType
 
 if TYPE_CHECKING:
     from haywire.core.graph.subgraph import SubgraphDefinition
@@ -195,8 +195,9 @@ class GraphNode(BaseNode):
         on it stay in the graph unlinked, drawn to this node's ghost pin.
 
         A pin this card already carries keeps the order it has — the card's pin
-        order is its own (ADR 0036). Does nothing when no Subgraph is bound,
-        leaving whatever pins the node already carries.
+        order is its own (ADR 0036). A setting promoted to a pin is left alone.
+        Does nothing when no Subgraph is bound, leaving whatever pins the node
+        already carries.
 
         Ends by copying every immediate pair once, in both directions (see
         ``hb_relay``).
@@ -208,10 +209,10 @@ class GraphNode(BaseNode):
         input_node = definition.input_node
         output_node = definition.output_node
 
-        # One rejig over every port: an interface port that disappeared must
-        # lose its pin, which only happens for ports left un-re-added inside
-        # the block.
-        with self.rejig():
+        # One rejig over every interface pin: one whose port disappeared must lose
+        # its pin, which only happens for pins left un-re-added inside the block.
+        # A setting promoted to a pin is the card's own, not the interface's.
+        with self.rejig(exclude=[PortOrigin.PROMOTED]):
             if input_node is not None:
                 for outlet in self._boundary_ports(input_node, PortType.OUTLET):
                     self._mirror(outlet, as_inlet=True)

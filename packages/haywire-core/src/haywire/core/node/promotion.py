@@ -233,15 +233,16 @@ def demote_setting(node: "NodeData", port_id: str) -> None:
     """Remove the promoted port ``port_id``, release its cell binding, and clear the
     settings-side promotion record. The setting shows its own value again.
 
-    No-op if the node has no such port. A port matching no setting — the library
-    changed under a saved graph — is still removed."""
-    if port_id not in node.ports:
-        return
+    A promotion whose port is gone is still cleared, so the setting can always be
+    released. A port matching no setting — the library changed under a saved
+    graph — is still removed."""
     try:
         bag, desc = _resolve_promoted(node, port_id)
         bag._clear_promoted(desc._attr_name)
     except KeyError:
         pass  # port matches no setting (library changed) — just remove the port
+    if port_id not in node.ports:
+        return
     # Before releasing the cell: once the port and its edges are gone, nothing clears it.
     node.ports[port_id].data.clear_linked()
     node.ports[port_id].unbind_field()
