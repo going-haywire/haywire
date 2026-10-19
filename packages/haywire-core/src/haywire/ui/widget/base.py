@@ -171,7 +171,7 @@ class BaseWidget(IWidget, ABC):
             self.on_model_changed(self.port.get_value())
 
             if hasattr(self.ui_element, "client"):
-                self.ui_element.client.on_disconnect(self.cleanup)
+                self.ui_element.client.on_delete(self.cleanup)
 
         return self.ui_element
 

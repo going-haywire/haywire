@@ -21,7 +21,7 @@ import traceback
 from pathlib import Path
 from typing import Callable, Dict, Iterable, Optional, Tuple, TYPE_CHECKING
 
-from nicegui import ui
+from nicegui import Client, ui
 
 from haywire.core.access import LevelMode
 from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -162,6 +162,15 @@ class VisualLayerHandlers:
         # already drawn?" registry — membership, not the value, is what
         # ``on_validated`` and ``process_start_reconnect`` test.
         self.edge_states: Dict[str, EdgeVisualState] = {}
+
+        if hasattr(canvas_vue, "client"):
+            self._release_on_client_delete(canvas_vue.client)
+
+    def _release_on_client_delete(self, client: Client) -> None:
+        """Tear this canvas's cards down when *client*'s page is discarded."""
+        # on_delete, not on_disconnect: NiceGUI also runs disconnect handlers on a
+        # websocket drop the browser reconnects from, with the cards still on screen.
+        client.on_delete(self.cleanup)
 
     # -------------------------------------------------------------------------
     # Graph sync

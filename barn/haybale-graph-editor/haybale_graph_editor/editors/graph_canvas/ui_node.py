@@ -38,6 +38,9 @@ class UINode:
     - Delegates all rendering logic to the factory
     - Has no knowledge of skins or widgets (clean separation)
     - Subscribes to NodeWrapper for hot reload support
+
+    Whoever creates a UINode tears it down (``teardown_subscriptions``); it
+    registers nothing on the client.
     """
 
     # Class default too, so an instance built without __init__ reads the patch.
@@ -81,8 +84,6 @@ class UINode:
 
         self._node_id = self.wrapper.node_id
         """Store the id for cleanup purposes"""
-
-        self.container.client.on_disconnect(lambda: self.cleanup())
 
         self.sync_event_emitter: Optional[Callable[[Any], None]] = None
 
