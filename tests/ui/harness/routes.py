@@ -339,7 +339,7 @@ def _build_error_skin_graph(node_factory):
 
     node = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3700.0, 3700.0))
     assert node is not None, f"could not create {_RECONNECT_SOURCE_KEY}"
-    node.node.props.skin = "haybale-studio:skin:ErrorNodeSkin"
+    node.node.props.skin = "haybale-graph-editor:skin:ErrorNodeSkin"
     return graph, editor, node
 
 
@@ -350,9 +350,9 @@ def _build_swinglet_skins_graph(node_factory):
     "default" (no skin set), "split", "stacked", "error" to the probe's node id,
     and "glyphs" to a probe that also carries an `EXEC` and a `CALLBACK` swinglet.
     """
-    from haybale_studio.skins.error_skin import ErrorNodeSkin
-    from haybale_studio.skins.split_skin import SplitNodeSkin
-    from haybale_studio.skins.stacked_skin import StackedNodeSkin
+    from haybale_graph_editor.skins.error_skin import ErrorNodeSkin
+    from haybale_graph_editor.skins.split_skin import SplitNodeSkin
+    from haybale_graph_editor.skins.stacked_skin import StackedNodeSkin
     from haybale_testing.nodes.testbed.swinglet_probe import SwingletPassProbeNode
     from haywire.barn.builtin.types import CALLBACK, EXEC
     from haywire.core.graph.editor import Editor
@@ -431,7 +431,7 @@ def _build_two_column_graph(node_factory):
     # outlet to compare their columns, and a source node has no inlets.
     node = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3700.0))
     assert node is not None, f"could not create {_RECONNECT_SINK_KEY}"
-    node.node.props.skin = "haybale-studio:skin:SplitNodeSkin"
+    node.node.props.skin = "haybale-graph-editor:skin:SplitNodeSkin"
     return graph, editor
 
 
@@ -1867,6 +1867,98 @@ def register_routes(library_service) -> None:
         level = _HarnessLevel(mode=LevelMode(mode))
         manager = _mount_graph_canvas(library_service, graph, editor, testid="enter", level=level)
         _record_navigation(manager, log)
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-inset?mode=view|operate|edit&size=auto|manual&cull=0|1&view=patch|stage
+    #
+    # The ``/graph-enter`` Group card drawn with the Inset skin, its interior
+    # holding a Float Slider on stage at (20, 20) and an annotation at (20, 90),
+    # on a canvas in level mode ``mode`` (the card is on stage too; ``view=stage``
+    # mounts the stage canvas). ``size=manual`` sizes the card 600 x 400 in both views
+    # by hand; ``cull=1`` adds an ``enable-culling`` button (culling for any node
+    # count and zoom). ``inset-card-id`` / ``inset-slider-id`` carry the ids; polled
+    # echoes show the slider's ``value`` (``echo-inset-value``) and whether the
+    # host history can undo (``echo-undo``, cleared after setup).
+    # Backs test_inset.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-inset")
+    async def graph_inset_page(mode: str = "edit", size: str = "auto", cull: int = 0, view: str = "patch"):
+        from haybale_core.nodes.widgets.slider import FloatSliderNode
+        from haybale_graph_editor.skins.inset_skin import InsetSkin
+        from haywire.barn.builtin.nodes.annotation import AnnotationNode
+
+        if theme_css:
+            ui.add_css(theme_css)
+
+        graph, editor, card_id = _build_enter_graph(library_service)
+        card = graph.get_node_wrapper(card_id)
+        assert card is not None
+        definition = card.node.resolve_definition()  # type: ignore[attr-defined]
+        slider = definition.create_node_wrapper(FloatSliderNode.class_identity.registry_key)
+        assert slider is not None
+        slider.node.props.on_stage = True
+        slider.node.props.stage_x = 20.0
+        slider.node.props.stage_y = 20.0
+        # An annotation's on-stage pins carry data-node-id inside the Inset body.
+        note = definition.create_node_wrapper(AnnotationNode.class_identity.registry_key)
+        assert note is not None
+        note.node.props.on_stage = True
+        note.node.props.stage_x = 20.0
+        note.node.props.stage_y = 90.0
+        card.node.props.skin = InsetSkin.class_identity.registry_key
+        card.node.props.stage_skin = InsetSkin.class_identity.registry_key
+        card.node.props.on_stage = True
+        if size == "manual":
+            card.node.props.size_adapt = "manual"
+            card.node.props.width = 600
+            card.node.props.height = 400
+            card.node.props.stage_size_adapt = "manual"
+            card.node.props.stage_width = 600
+            card.node.props.stage_height = 400
+        editor.history_manager.clear()
+        if cull:
+            from haywire.ui.components.zoom.settings import EditorPanZoomSettings
+
+            pz = EditorPanZoomSettings()
+            # Armed only on the OFF->ON transition; see /graph-detail-culled.
+            pz.cull_enabled = False
+            pz.cull_min_nodes = 1
+            pz.cull_min_zoom = 0.0
+
+            def _enable_culling() -> None:
+                pz.cull_enabled = True
+
+            ui.button("enable-culling", on_click=_enable_culling).props('data-testid="enable-culling"')
+
+        ui.label(card_id).props(f'data-testid="inset-card-id" data-node="{card_id}"')
+        ui.label(slider.node_id).props(f'data-testid="inset-slider-id" data-node="{slider.node_id}"')
+        value = ui.label().props('data-testid="echo-inset-value"')
+        undo = ui.label().props('data-testid="echo-undo"')
+        selection = ui.label().props('data-testid="echo-selection"')
+        managers: list = []
+
+        def _refresh() -> None:
+            value.set_text(repr(slider.node.ports["value"].get_value()))
+            undo.set_text(str(editor.history_manager.can_undo()))
+            if managers:
+                selection.set_text(",".join(sorted(managers[0].selected_nodes)))
+
+        _refresh()
+        ui.timer(0.2, _refresh)
+        from haywire.core.node.layout import PATCH, STAGE
+
+        managers.append(
+            _mount_graph_canvas(
+                library_service,
+                graph,
+                editor,
+                testid="inset",
+                channel=STAGE if view == "stage" else PATCH,
+                level=_HarnessLevel(mode=LevelMode(mode)),
+            )
+        )
         _stamp_synced()
 
     # -------------------------------------------------------------------------

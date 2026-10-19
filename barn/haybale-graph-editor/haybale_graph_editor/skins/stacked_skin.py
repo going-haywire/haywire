@@ -51,23 +51,7 @@ class StackedNodeSkin(NodeSkin):
         node = wrapper.node
         layout: LayoutDirection = self.layout_of(wrapper, on_stage=on_stage)
 
-        padding = self.CARD_H_PADDING
-        # Pure var() consumption — no per-node branching, ever. A graph or a
-        # node overrides the look via a @theme(theme_type='node') class);
-        # the browser re-resolves them without this skin being re-rendered.
-        #
-        # `background`, not `background-color`: a token may hold a gradient
-        card_style = (
-            "background: var(--hw-node-bg); "
-            "border: var(--hw-node-border-width) solid var(--hw-node-border-color); "
-            "border-radius: var(--hw-node-border-radius); "
-            "color: var(--hw-node-text-color); "
-            # Tokenised, and the fallback is `none` deliberately: a backdrop
-            # blur is expensive enough (1.90x on zoomed-out pan) that a theme
-            # should have to ask for it. See _CSS_TOKEN_MAP.
-            "backdrop-filter: var(--hw-node-backdrop-blur, none); "
-            f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
-        )
+        card_style = self.card_style()
         if self.is_collapsed(wrapper) and not on_stage:
             # Folded, this card is the shared header row — see NodeSkin.
             self._render_collapsed(main_card, node, wrapper, layout, card_style)

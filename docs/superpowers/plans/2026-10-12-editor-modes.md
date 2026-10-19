@@ -112,7 +112,8 @@ two independent switches:
     It replaces the label "Promote to Macro…" on plain Groups too: one action.
   - **Revert to Macro** discards the instance's changes and makes the card a
     placement of the *current* template. Writes nothing.
-- **Placement value overrides.** A placement saves the own values its interior
+- **Placement value overrides** (deferred by the slice-6 inquisition, not in
+  scope). A placement saves the own values its interior
   holds that differ from the template, as a sparse recursive map keyed by
   template node id:
   `{template_node_id: {"ports": {port_id: value}, "interior": {...}}}`. On load
@@ -176,25 +177,43 @@ two independent switches:
 
 ### Inset (bpatcher)
 
+Settled by the slice-6 inquisition of 2026-10-19, which replaced the first
+sketch (hidden skin and menu toggle, auto-fit, connectors, value overrides).
+
 - **An Inset** is a Graph-node card (Group or placement) whose body shows its
-  interior's stage. Its layout cannot be edited; its widgets can be operated.
-- **A hidden `InsetSkin`**, set on the node tier by the Graph-node menu toggle
-  "Show as Inset" (an undoable EDIT action). `render()` draws the border pins
-  (the card stays wireable) and a body that draws each staged interior node with its
-  stage skin at its stage rect, in stage-origin coordinates. On a node
-  without an interior it falls back to the default card.
-- **Size:** auto-fits from the stage origin to the stage's bottom-right extent.
-  A manual size adds space and never crops. Offset and clipping are a later
-  opt-in.
-- **Enablers:** a composition hook that hands the inset skin a way to draw an
-  interior node (the skin factory rendering the node's stage skin; the hook
-  design is to be settled in slice 6, since a skin today only has a widget
-  factory), and inset
-  widgets registered under the **host** card's node id, so they are built,
-  reloaded and cleaned up with the card.
-- **Connectors:** the edge path and marker code moves out of `canvas.vue` into a
-  shared JS module. An Inset component uses it to draw a read-only SVG layer from
-  pins measured inside its own box.
+  interior's **stage**, always, in every level mode; the interior needs no
+  opt-in. Its layout cannot be edited; its widgets can be operated.
+- **`InsetSkin`** is a `NodeSkin` subclass in haybale-graph-editor (the default
+  skins live there, [ADR 0057](../../adr/0057-the-default-skins-live-in-the-graph-editor.md)),
+  tagged `special` + `graph-node`. The core `_graph_node_patch_skin_choices()` and
+  `_graph_node_stage_skin_choices()` list it in
+  Graph-nodes' patch and stage skin lists, so it is set per view like any skin.
+  There is no menu toggle.
+- **Patch face:** the title, then the body as the card body, with bare pin
+  columns (L2R/R2L) or pin strips (T2B/B2T) on the layout's edges plus root
+  ghost pins. Layout direction and collapse are honoured. Folds, detail, port
+  labels, port widgets and config ports are not drawn. **Stage face:** the body
+  only.
+- **Body:** an InsetView builds one ordinary `UINode` per staged interior node,
+  drawn with its stage skin and absolutely positioned at `stage_x/y` (stage (0,0)
+  at the body's top-left). The interior cards' containers carry no
+  `data-node-id`. The body is clipped and has a fixed 240 × 160 floor, and a manual
+  resize is a minimum, as on any card. An interior with nothing on stage shows
+  "Nothing on stage — Enter to arrange".
+- **Writes:** an interior route, `Editor(definition, node_factory, host history)`,
+  at the **host route's mode**: `edit` records an undoable value step,
+  `operate` writes plainly, `view` writes nothing. A placement's interior values
+  stay runtime state ([ADR 0038](../../adr/0038-a-placements-interior-is-runtime-state.md)).
+- **Redraw:** `GraphNode._on_definition_validated` redraws the card when any
+  interior node reason `requires_redraw()` or is `NODE_STAGE_CHANGED`. It does so
+  unconditionally, so builtin never knows about Insets. A value write redraws
+  nothing, so a slider survives its drag.
+- **Input:** one CSS rule. Inside `[data-hw-inset]`, only `[data-hw-operable]`
+  subtrees take pointer input and pins are hidden, so any other press lands on
+  the host card (drag, select, menu, double-click to Enter). Box select skips
+  Inset contents.
+- **References:** code reaches a Graph-node's interior by duck typing
+  (`resolve_definition`). Builtin references nothing outside core.
 
 ### Agents (Farmhand)
 
@@ -266,8 +285,19 @@ slice lands.
      - **5d-3 Widget nodes:** [2026-10-18-editor-modes-05d3-widget-nodes.md](2026-10-18-editor-modes-05d3-widget-nodes.md).
        The seven nodes, their widget-node stage skin, `port.set_widget_config`. Styled per node by
        [2026-10-19-editor-modes-05d3b-widget-node-style.md](2026-10-19-editor-modes-05d3b-widget-node-style.md).
-6. **Inset.** The skin, the two enablers, placement value overrides, and the
-   shared edge-drawing module.
+6. **Inset.** Split by the 2026-10-19 inquisition into three plans:
+   - **6a The default skins move:** [2026-10-19-editor-modes-06a-default-skins-to-graph-editor.md](2026-10-19-editor-modes-06a-default-skins-to-graph-editor.md).
+     NodeSkin, Stacked, Split, Error, `NodeSkinSettings` and the Skin panel go to
+     haybale-graph-editor ([ADR 0057](../../adr/0057-the-default-skins-live-in-the-graph-editor.md)).
+   - **6b Groundwork:** [2026-10-19-editor-modes-06b-inset-groundwork.md](2026-10-19-editor-modes-06b-inset-groundwork.md).
+     The Graph-node redraw on interior visual changes, the `graph-node` tag and the
+     Graph-node skin lists, and a card's teardown releasing only its own hot-reload
+     tracking (the all-cards bug was confirmed).
+   - **6c Inset:** [2026-10-19-editor-modes-06c-inset.md](2026-10-19-editor-modes-06c-inset.md).
+     InsetSkin, InsetView, the interior route (`EditRoute.for_subgraph`), skin-owned
+     card cleanups, the CSS rule, the box-select guard, the placeholder; and the
+     canvas owning its cards' client teardown (`on_delete`), so a websocket drop no
+     longer tears down the cards on screen.
 
 ---
 
@@ -300,9 +330,10 @@ slice lands.
   5a:** one extent per channel, `BaseGraph.canvas_extent(channel)`, carried per
   channel name on `ValidationResult.canvas_sizes`
   ([ADR 0054](../../adr/0054-the-stage-view.md)).
-- **Pins inside an Inset** must be measured with queries scoped to the Inset's
-  box, never `document`-wide, and converted for the host canvas's zoom (slice 6;
-  see `.insights/project_multi_canvas_dom_globals.md`).
+- **Pins inside an Inset** would need measuring with queries scoped to the
+  Inset's box and converted for the host canvas's zoom
+  (`.insights/project_multi_canvas_dom_globals.md`). Slice 6 hides them and draws
+  no Inset edges, so this applies only if Inset connectors are ever built.
 - **Mod+E** focuses the address bar in Chrome on Windows and Linux. It is not a
   reserved key, so the keymap's `preventDefault` should take it. Check live.
 
@@ -322,7 +353,9 @@ to **Enter**; replace "Promote to Macro" with **Save new Macro**.
 
 - **Operate tier and the lock cap** (amends 0027): slice 1.
 - **Instance edit by detach with origin** (amends 0038): slice 3.
-- **Placement value overrides** (amends 0038): slice 6.
+- **Placement value overrides** (amends 0038): deferred, not in scope.
+- **The default skins live in the graph editor:** slice 6a,
+  [ADR 0057](../../adr/0057-the-default-skins-live-in-the-graph-editor.md).
 - **Stage: its own origin and the layout channel:** slice 5.
 - **Dropping `"position"` from saved files:** slice 4.
 
@@ -347,7 +380,10 @@ to **Enter**; replace "Promote to Macro" with **Save new Macro**.
 - Persisting lock and view per principal (blocked on
   `workspace_state.json` being per project).
 - Per-port access tiers (escape hatch noted above).
-- Inset offset and clipping.
+- Inset offset (an Inset clips at its card and shows the stage from its origin).
+- Placement value overrides: a placement's interior values stay runtime state.
+- Inset auto-fit: the Inset has a fixed floor and is resized by hand.
+- Inset edges, and the shared edge-drawing JS module they would need.
 - Agent tools for Edit Instance, Update Macro…, Save new Macro… and Revert to
   Macro (need a dry-run/confirm design).
 - A fullscreen perform mode for a stage.

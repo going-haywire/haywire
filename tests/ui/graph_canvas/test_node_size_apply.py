@@ -193,7 +193,7 @@ def test_appearance_change_restyles_slot_without_redraw():
 
 
 def test_dead_resize_handle_stub_removed():
-    from haybale_studio.skins.node_skin import NodeSkin
+    from haybale_graph_editor.skins.node_skin import NodeSkin
 
     assert not hasattr(NodeSkin, "_add_resize_handle")
 

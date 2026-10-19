@@ -1,5 +1,5 @@
-# haybale_core/settings/ui_node.py
-"""Node layout and visibility settings for the haybale-core skin implementations."""
+# haybale_graph_editor/settings/node_skin_settings.py
+"""Node layout and pin geometry settings for the default node skins."""
 
 from haywire.core.settings.settings_library import LibrarySettings
 from haywire.core.settings import setting

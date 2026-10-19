@@ -305,3 +305,44 @@ def test_a_setting_reached_through_set_port_keeps_its_operable_rule(
 
     assert route.set_port(wrapper.node_id, "text", "Sneaked", minimum=LevelMode.OPERATE) is False
     assert cast(Any, wrapper.node).annotation.text == ""
+
+
+# =============================================================================
+# A route to a Subgraph's nodes at the host route's level mode (the Inset's)
+# =============================================================================
+
+
+@pytest.fixture
+def interior(held_graph: BaseGraph):
+    """A Subgraph of the held graph with one adder inside."""
+    from haywire.core.graph.subgraph import SubgraphDefinition
+
+    definition = held_graph.add_subgraph(SubgraphDefinition(key="sg", label="Group"))
+    return definition, make_node(definition, _ADD)
+
+
+def test_an_interior_route_follows_the_host_mode(route: EditRoute, editor: Editor, mode: _Mode, interior):
+    definition, adder = interior
+    inner = route.for_subgraph(definition)
+
+    assert inner.set_port(adder.node_id, "value_a", 1.0, minimum=LevelMode.OPERATE) is True
+    assert editor.history_manager.can_undo() is True
+
+    editor.history_manager.clear()
+    mode.value = LevelMode.OPERATE
+    assert inner.mode() is LevelMode.OPERATE
+    assert inner.set_port(adder.node_id, "value_a", 2.0, minimum=LevelMode.OPERATE) is True
+    assert editor.history_manager.can_undo() is False
+
+    mode.value = LevelMode.VIEW
+    assert inner.set_port(adder.node_id, "value_a", 3.0, minimum=LevelMode.OPERATE) is False
+    assert adder.node.ports["value_a"].data.get_own_value() == 2.0
+
+
+def test_an_interior_route_reaches_only_interior_nodes(route: EditRoute, held_graph: BaseGraph, interior):
+    definition, _adder = interior
+    host_node = make_node(held_graph, _ADD)
+
+    inner = route.for_subgraph(definition)
+
+    assert inner.set_port(host_node.node_id, "value_a", 1.0, minimum=LevelMode.EDIT) is False

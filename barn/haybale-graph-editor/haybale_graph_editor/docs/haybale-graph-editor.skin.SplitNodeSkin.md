@@ -1,6 +1,6 @@
 # Split
 
-`haybale-studio:skin:SplitNodeSkin` · kind: skin
+`haybale-graph-editor:skin:SplitNodeSkin` · kind: skin
 
 Configs across the top, inlets and outlets in columns side by side
 

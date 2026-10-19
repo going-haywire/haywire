@@ -1,6 +1,6 @@
 # Skin
 
-`haybale-studio:panel:NodeSkinSettingsPanel` · kind: panel
+`haybale-graph-editor:panel:NodeSkinSettingsPanel` · kind: panel
 
 Skin Configuration:Node dimensions, typography and label visibility.
 

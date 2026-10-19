@@ -54,25 +54,7 @@ class SplitNodeSkin(NodeSkin):
         node: BaseNode = wrapper.node
         layout = self.layout_of(wrapper, on_stage=on_stage)
 
-        padding = self.CARD_H_PADDING
-        # Pure var() consumption, same as the stacked skin: the look belongs to
-        # the theme tier, not to the skin. A skin that hardcodes its palette
-        # cannot be restyled by a @theme(theme_type='node') class.
-        #
-        # `background`, not `background-color`: a token may hold a gradient,
-        # which is an <image> and so is dropped wholesale by the -color
-        # longhand.
-        card_style = (
-            "background: var(--hw-node-bg); "
-            "border: var(--hw-node-border-width) solid var(--hw-node-border-color); "
-            "border-radius: var(--hw-node-border-radius); "
-            "color: var(--hw-node-text-color); "
-            # Tokenised, and the fallback is `none` deliberately: a backdrop
-            # blur is expensive enough (1.90x on zoomed-out pan) that a theme
-            # should have to ask for it. See _CSS_TOKEN_MAP.
-            "backdrop-filter: var(--hw-node-backdrop-blur, none); "
-            f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
-        )
+        card_style = self.card_style()
 
         if self.is_collapsed(wrapper) and not on_stage:
             # Folded, this card is the shared header row — see NodeSkin. The

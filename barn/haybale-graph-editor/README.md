@@ -10,6 +10,9 @@ The graph editor haybale library provides the editor functionality for the haywi
 
 Visual graph editor library — host-agnostic
 
+## Settings
+- **Node Skin** — 
+
 ## Farmhands
 - **Add node** — Add a node by registry key. Call studio_describe_component first to learn its ports.
 - **Connect** — Connect an outlet to an inlet.
@@ -96,6 +99,7 @@ Visual graph editor library — host-agnostic
 - **Set to none** — 
 - **Show widget** — 
 - **Skin** — 
+- **Skin** — Skin Configuration:Node dimensions, typography and label visibility.
 - **Status** — 
 - **Strategy** — 
 - **Style** — 
@@ -108,3 +112,8 @@ Visual graph editor library — host-agnostic
 
 ## Editors
 - **Graph Editor** — Visual node graph editor for wiring data processing pipelines.
+
+## Skins
+- **Inset** — The interior's stage, operable in the card
+- **Split** — Configs across the top, inlets and outlets in columns side by side
+- **Stacked** — One port column, outlets over configs over inlets, with collapsible groups

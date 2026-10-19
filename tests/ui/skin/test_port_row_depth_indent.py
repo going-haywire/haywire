@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, cast
 import pytest
 
 if TYPE_CHECKING:
-    from haybale_studio.settings.node_skin_settings import NodeSkinSettings
+    from haybale_graph_editor.settings.node_skin_settings import NodeSkinSettings
 
 pytestmark = pytest.mark.unit
 
@@ -29,7 +29,7 @@ def skin():
     ``NodeSkinSettings``. The geometry accessors are ``@property`` reads off
     ``_ui_settings``, so stubbing that bag is what makes them answer.
     """
-    from haybale_studio.skins.stacked_skin import StackedNodeSkin
+    from haybale_graph_editor.skins.stacked_skin import StackedNodeSkin
 
     instance = StackedNodeSkin.__new__(StackedNodeSkin)
     instance._ui_settings = cast(
@@ -52,7 +52,7 @@ def skin():
 
 def test_fold_indent_is_a_declared_setting() -> None:
     """Node geometry is user-tunable; the fold indent is geometry like the rest."""
-    from haybale_studio.settings.node_skin_settings import NodeSkinSettings
+    from haybale_graph_editor.settings.node_skin_settings import NodeSkinSettings
 
     assert "fold_indent" in NodeSkinSettings._settings_descriptors()
 
@@ -63,7 +63,7 @@ def test_geometry_accessors_are_properties() -> None:
     Reading them off the class yields the descriptor, and arithmetic on that
     raises TypeError.
     """
-    from haybale_studio.skins.node_skin import NodeSkin
+    from haybale_graph_editor.skins.node_skin import NodeSkin
 
     assert isinstance(NodeSkin.CONTENT_GAP, property)
     assert isinstance(NodeSkin.PIN_GUTTER, property)
@@ -101,7 +101,7 @@ def test_pin_cell_style_is_depth_invariant() -> None:
     """The pin column's grid placement must not vary with depth."""
     import inspect
 
-    from haybale_studio.skins.node_skin import NodeSkin
+    from haybale_graph_editor.skins.node_skin import NodeSkin
 
     source = inspect.getsource(NodeSkin._render_port_horizontal)
 
@@ -121,7 +121,7 @@ def test_pin_cell_style_is_depth_invariant() -> None:
 def test_render_port_accepts_depth() -> None:
     import inspect
 
-    from haybale_studio.skins.node_skin import NodeSkin
+    from haybale_graph_editor.skins.node_skin import NodeSkin
 
     assert "depth" in inspect.signature(NodeSkin.render_port).parameters
     assert "depth" in inspect.signature(NodeSkin._render_port_horizontal).parameters
@@ -130,7 +130,7 @@ def test_render_port_accepts_depth() -> None:
 def test_render_config_accepts_depth() -> None:
     import inspect
 
-    from haybale_studio.skins.node_skin import NodeSkin
+    from haybale_graph_editor.skins.node_skin import NodeSkin
 
     assert "depth" in inspect.signature(NodeSkin._render_config).parameters
 
@@ -159,7 +159,7 @@ def test_group_container_does_not_indent_the_row() -> None:
     """
     import inspect
 
-    from haybale_studio.skins.stacked_skin import StackedNodeSkin
+    from haybale_graph_editor.skins.stacked_skin import StackedNodeSkin
 
     source = inspect.getsource(StackedNodeSkin._render_group)
     assert "pl-2" not in source
@@ -169,6 +169,6 @@ def test_group_container_does_not_indent_the_row() -> None:
 def test_render_group_threads_depth() -> None:
     import inspect
 
-    from haybale_studio.skins.stacked_skin import StackedNodeSkin
+    from haybale_graph_editor.skins.stacked_skin import StackedNodeSkin
 
     assert "depth" in inspect.signature(StackedNodeSkin._render_group).parameters

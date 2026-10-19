@@ -228,6 +228,38 @@ def test_an_interior_value_edit_does_not_mark_the_host(graph_with_library_system
     assert [r for r in seen if r.requires_reassembly()] == []
 
 
+def _card_redraws(seen: list, card) -> bool:
+    return any(card.node_id in r.nodes and r.nodes[card.node_id].requires_redraw() for r in seen)
+
+
+def test_a_placement_interior_move_redraws_the_card(graph_with_library_system, macro_registry):
+    """A move inside a placement redraws its card, which an Inset draws the interior in."""
+    graph = graph_with_library_system
+    card = _place(graph)
+    interior = _interior_adder(card)
+    graph.force_validation()
+    seen: list = []
+    graph.subscribe_to_validation(seen.append)
+
+    card.node.resolve_definition().move_node(interior.node_id, 10.0, 20.0)
+
+    assert _card_redraws(seen, card)
+
+
+def test_a_placement_value_edit_does_not_redraw_the_card(graph_with_library_system, macro_registry):
+    """A value edit inside a placement leaves its card as drawn."""
+    graph = graph_with_library_system
+    card = _place(graph)
+    interior = _interior_adder(card)
+    graph.force_validation()
+    seen: list = []
+    graph.subscribe_to_validation(seen.append)
+
+    interior.mark_value_edited()
+
+    assert not _card_redraws(seen, card)
+
+
 def test_an_interior_structure_edit_still_reassembles_the_host(graph_with_library_system, macro_registry):
     """Adding a node inside a placement reassembles the running host."""
     from haywire.core.graph.types import ChangeReason

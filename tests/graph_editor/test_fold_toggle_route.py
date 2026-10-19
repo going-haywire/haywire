@@ -135,7 +135,7 @@ def test_undoing_a_fold_toggle_redraws_the_card(setup) -> None:
 
 
 def test_the_split_skin_draws_a_fold_as_one_toggle_row(setup) -> None:
-    from haybale_studio.skins.split_skin import SplitNodeSkin
+    from haybale_graph_editor.skins.split_skin import SplitNodeSkin
 
     graph, wrapper, _editor, _mode, route, factory = setup
     split_key = SplitNodeSkin.class_identity.registry_key

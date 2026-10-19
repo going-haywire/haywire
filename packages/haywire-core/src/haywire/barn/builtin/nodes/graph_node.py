@@ -27,6 +27,9 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING
 
 from haywire.core.execution.execution_context import ExecutionContext
+from haywire.core.graph.properties import GraphProperties
+from haywire.core.settings.descriptor import graph
+from haywire.core.skin.settings import _graph_node_patch_skin_choices, _graph_node_stage_skin_choices
 from haywire.core.graph.subgraph_crossing import (
     RELAY_HANDLER,
     boundary_port_id,
@@ -79,6 +82,26 @@ class GraphNode(BaseNode):
     #: host unsaved. A card whose interior is never saved turns it off.
     _forwards_content_changes: bool = True
 
+    class props(BaseNode.props):  # type: ignore[valid-type,misc]
+        """Offers the skins tagged for Graph-nodes on top of the general ones; inherits every other field."""
+
+        skin = graph(
+            src=GraphProperties.default_skin,
+            label="Skin",
+            category="appearance",
+            order=10,
+            widget_config={"options": _graph_node_patch_skin_choices},
+        )
+
+        stage_skin = graph(
+            src=GraphProperties.default_stage_skin,
+            label="Stage Skin",
+            description="Skin for THIS node on the stage",
+            category="appearance",
+            order=11,
+            widget_config={"options": _graph_node_stage_skin_choices},
+        )
+
     def init(self) -> None:
         # No ports. They mirror the Subgraph's interface ports, which post_init
         # reads once the store has restored the subgraph key.
@@ -119,12 +142,23 @@ class GraphNode(BaseNode):
         Passed on for anything a save would record, and never for a bare
         repaint. A batch that reassembles the interior redraws the card and
         reports ``GRAPH_REQUIRE_REASSEMBLY``; one that only saves — a value
-        edit, a move, a port reorder — reports ``GRAPH_CONTENT_CHANGED`` and
-        leaves the card as drawn, so a running host keeps running. A card with
-        ``_forwards_content_changes`` off drops the batches that only save.
+        edit, a move, a port reorder — reports ``GRAPH_CONTENT_CHANGED``, so a
+        running host keeps running. A card with ``_forwards_content_changes``
+        off drops the batches that only save.
+
+        A batch that repaints an interior node — a move, a stage change, a
+        redraw request, a reload — also redraws the card, whatever else it
+        carries, since a skin may draw the interior inside the card. A value
+        edit leaves the card as drawn.
         """
         if result.graph is not None and result.graph.requires_graph_reassembly():
             self.reconcile_interface()
+
+        if any(
+            reason.requires_redraw() or reason is ChangeReason.NODE_STAGE_CHANGED
+            for reason in result.nodes.values()
+        ):
+            self.wrapper.redraw()
 
         if not result.requires_save():
             return

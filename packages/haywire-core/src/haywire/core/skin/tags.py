@@ -11,3 +11,5 @@ SKIN_TAG_SPECIAL = "special"
 SKIN_TAG_STAGE_ONLY = "stage-only"
 #: A skin for widget nodes; offered only in a widget node's stage skin list.
 SKIN_TAG_WIDGET_NODE = "widget-node"
+#: A skin for Graph-nodes (Groups and macro placements); offered only in their skin lists.
+SKIN_TAG_GRAPH_NODE = "graph-node"

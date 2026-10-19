@@ -64,6 +64,8 @@ class BaseSkin(ABC):
         self._nodeids_widget_instances: dict[str, dict[str, IWidget]] = {}
         # The route each node's card widgets write through, held for the length of one render.
         self._nodeids_routes: dict[str, EditRoute | None] = {}
+        # Cleanups a render registers, handed to its card when the render ends.
+        self._nodeids_cleanups: dict[str, list[Callable[[], None]]] = {}
 
     def _render(
         self, wrapper: NodeWrapper, *, on_stage: bool = False, route: EditRoute | None = None
@@ -87,10 +89,13 @@ class BaseSkin(ABC):
         try:
             # Initialize node_id storage for widget instances
             self._nodeids_widget_instances[wrapper.node_id] = {}
+            self._nodeids_cleanups[wrapper.node_id] = []
 
             draw(ui_nodeCard.get_card())
 
             ui_nodeCard.set_widget_instances(self._nodeids_widget_instances[wrapper.node_id])
+            for callback in self._nodeids_cleanups.pop(wrapper.node_id, []):
+                ui_nodeCard.add_cleanup(callback)
 
             # Clear widget instances for next render
             self._nodeids_widget_instances[wrapper.node_id] = {}
@@ -98,6 +103,9 @@ class BaseSkin(ABC):
             return ui_nodeCard
 
         except Exception:
+            # What the failed render registered still has to be released.
+            for callback in self._nodeids_cleanups.pop(wrapper.node_id, []):
+                callback()
             # Clean up any partially created UI elements
             if ui_nodeCard is not None:
                 try:
@@ -133,6 +141,22 @@ class BaseSkin(ABC):
 
         """
         pass
+
+    def on_card_cleanup(self, node_id: str, callback: Callable[[], None]) -> None:
+        """Run *callback* when the card being drawn for *node_id* is cleaned up.
+
+        Call it from :meth:`render` for anything the skin builds that outlives the
+        draw call and must be released when the card is redrawn or torn down, as
+        widgets are. Each callback runs once, after the card's widgets. If the
+        render fails, the callback runs at once.
+
+        Example::
+
+            def render(self, main_card, wrapper, *, on_stage):
+                view = build_view(...)
+                self.on_card_cleanup(wrapper.node_id, view.cleanup)
+        """
+        self._nodeids_cleanups.setdefault(node_id, []).append(callback)
 
     def honours_detail(self, *, on_stage: bool) -> bool:
         """Return whether the node's Detail setting thins this skin's cards in this view.

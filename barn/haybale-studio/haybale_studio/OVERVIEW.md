@@ -3,7 +3,6 @@
 Library for haywire studio
 
 ## Settings
-- **Node Skin** — 
 - **Node Theme** — 
 - **Workbench Theme** — 
 
@@ -40,7 +39,6 @@ Library for haywire studio
 - **Security** — 
 - **Sign everyone out** — 
 - **Sign out** — 
-- **Skin** — Skin Configuration:Node dimensions, typography and label visibility.
 - **Workbench** — 
 - **Zoom & Pan** — 
 
@@ -56,10 +54,6 @@ Library for haywire studio
 - **Log** — Application output. Captures Python logging and print() output.
 - **Properties** — Context-sensitive property panels for the active selection.
 - **Shortcuts** — Keyboard shortcuts of every editor, grouped by editor.
-
-## Skins
-- **Split** — Configs across the top, inlets and outlets in columns side by side
-- **Stacked** — One port column, outlets over configs over inlets, with collapsible groups
 
 ## Themes
 - **Default Node Theme** — 

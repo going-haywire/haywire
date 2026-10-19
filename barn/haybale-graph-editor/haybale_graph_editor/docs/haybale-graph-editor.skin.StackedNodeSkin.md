@@ -1,6 +1,6 @@
 # Stacked
 
-`haybale-studio:skin:StackedNodeSkin` · kind: skin
+`haybale-graph-editor:skin:StackedNodeSkin` · kind: skin
 
 One port column, outlets over configs over inlets, with collapsible groups
 

@@ -113,6 +113,10 @@ import 'arrow_heads';
  *                       that carries its own tooltip (add_pin_tooltip in
  *                       ui/skin/pin_render.py). A press on one arms no drag
  *                       and selects nothing below 'edit'.
+ *   data-hw-inset       The body of an Inset card (a Graph-node drawn with the
+ *                       Inset skin, haybale_graph_editor/skins/inset_skin.py).
+ *                       Inside it only operable widgets take pointer input and
+ *                       pins are hidden (global style block); box select skips it.
  *   data-pin-id         A pin's id; drives pin-menu detection.
  *   data-pin-dir        A pin's role in an edge: 'inlet', 'outlet', or
  *                       'swinglet' (either end). A drop links one end that can
@@ -2722,6 +2726,8 @@ export default {
             nodeElements.forEach(nodeElement => {
                 const nodeId = nodeElement.dataset.nodeId;
                 if (!nodeId) return;
+                // Inside an Inset: an interior node's pin or badge, not a node of this canvas.
+                if (nodeElement.closest('[data-hw-inset]')) return;
 
                 // A locked node is not marquee-selectable (the Miro rule). It
                 // is skipped HERE rather than filtered out of each command,
@@ -3910,6 +3916,12 @@ export default {
                 return false;
             }
 
+            // An operable widget keeps its press inside a drag handle too: a widget
+            // node's whole card is one, and so is an Inset's interior card.
+            if (element.closest('[data-hw-operable]')) {
+                return true;
+            }
+
             // Node drag handles are NOT interactive widgets - they should be draggable
             if (element.closest('.drag-handle')) {
                 return false;
@@ -4468,6 +4480,14 @@ export default {
        .graph-canvas[data-hw-level-mode="operate"] .ui-node-slot [data-hw-readable],
        .graph-canvas[data-hw-level-mode="operate"] .ui-node-slot [data-hw-operable]) { pointer-events: auto; }
 
+/* An Inset's interior takes input only on its operable widgets, in every mode the
+ * gate above allows; any other press lands on the host card. Its pins are hidden. */
+.graph-canvas [data-hw-inset] *:not([data-hw-operable]):not([data-hw-operable] *) {
+    pointer-events: none !important;
+}
+:where(.graph-canvas [data-hw-inset] [data-hw-operable]) { pointer-events: auto; }
+.graph-canvas [data-hw-inset] [data-pin-id] { display: none !important; }
+
 /* Below edit a card selects but does not move: drop the move cursor its container
  * sets inline (and the grab cursor of the rules below); children keep their own. */
 .graph-canvas[data-hw-level-mode="view"] [data-node-id],
@@ -4641,15 +4661,16 @@ path.hw-edge-preview {
    grows the card into a min-height slot without ever shrinking below its
    content. */
 /* --8<-- [start:node-card-manual-resize] */
-.ui-node-slot[data-node-props-size-adapt="manual"] .node-card,
-.ui-node-slot[data-node-props-size-adapt="manual_width"] .node-card {
+/* `>`: the slot's own card only, never the cards an Inset draws inside it. */
+.ui-node-slot[data-node-props-size-adapt="manual"] > .node-card,
+.ui-node-slot[data-node-props-size-adapt="manual_width"] > .node-card {
     align-self: stretch !important;
     width: auto !important;
     min-width: 0 !important;
     max-width: none !important;
 }
-.ui-node-slot[data-node-props-size-adapt="manual"] .node-card,
-.ui-node-slot[data-node-props-size-adapt="manual_height"] .node-card {
+.ui-node-slot[data-node-props-size-adapt="manual"] > .node-card,
+.ui-node-slot[data-node-props-size-adapt="manual_height"] > .node-card {
     flex: 1 0 auto !important;
 }
 /* --8<-- [end:node-card-manual-resize] */

@@ -91,6 +91,25 @@ class NodeSkin(BaseSkin, ABC):
     def CARD_V_PADDING(self) -> int:  # noqa: N802
         return self._ui_settings.card_padding_block
 
+    def card_style(self) -> str:
+        """The card's frame CSS, all from theme tokens: background, border, text colour, padding.
+
+        Pure ``var()`` consumption, so a graph or node theme restyles the card
+        without the skin redrawing it.
+        """
+        padding = self.CARD_H_PADDING
+        # `background`, not `background-color`: a token may hold a gradient.
+        return (
+            "background: var(--hw-node-bg); "
+            "border: var(--hw-node-border-width) solid var(--hw-node-border-color); "
+            "border-radius: var(--hw-node-border-radius); "
+            "color: var(--hw-node-text-color); "
+            # Fallback `none`: a backdrop blur is expensive enough (1.90x on
+            # zoomed-out pan) that a theme should have to ask for it. See _CSS_TOKEN_MAP.
+            "backdrop-filter: var(--hw-node-backdrop-blur, none); "
+            f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
+        )
+
     def vertical_card_style(self) -> str:
         """Extra card CSS a vertical layout needs, for skins to append.
 

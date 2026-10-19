@@ -14,8 +14,8 @@ import inspect
 
 import pytest
 
-from haybale_studio.skins.node_skin import NodeSkin
-from haybale_studio.skins.stacked_skin import StackedNodeSkin
+from haybale_graph_editor.skins.node_skin import NodeSkin
+from haybale_graph_editor.skins.stacked_skin import StackedNodeSkin
 
 
 def _render_source() -> str:
@@ -73,9 +73,9 @@ def test_badge_fires_when_only_deprecation_set():
 @pytest.mark.parametrize(
     ("skin_module", "skin_name"),
     [
-        ("haybale_studio.skins.stacked_skin", "StackedNodeSkin"),
-        ("haybale_studio.skins.split_skin", "SplitNodeSkin"),
-        ("haybale_studio.skins.error_skin", "ErrorNodeSkin"),
+        ("haybale_graph_editor.skins.stacked_skin", "StackedNodeSkin"),
+        ("haybale_graph_editor.skins.split_skin", "SplitNodeSkin"),
+        ("haybale_graph_editor.skins.error_skin", "ErrorNodeSkin"),
     ],
 )
 def test_every_skin_calls_the_shared_badge(skin_module, skin_name):

@@ -161,11 +161,9 @@ code that deliberately goes around the route is outside what they promise.
   (`GraphNode` forwarding, unchanged).
 - A placement's interior values are runtime state that no document saves, so
   they mark nothing ([ADR 0038](../../adr/0038-a-placements-interior-is-runtime-state.md)).
-  Slice 6's placement value overrides are saved in the host, so from then on
-  the host is marked. The rule stays the same; only the answer to "who saves it"
-  changes.
+  Placement value overrides are deferred (slice-6 inquisition, 2026-10-19).
 - An Inset widget on a host card follows the host level's mode. In `edit` it
-  records a step that writes an override (slice 6).
+  records an ordinary value step on the host's history (slice 6).
 
 ### Widgets: the host hands the widget a routed model
 

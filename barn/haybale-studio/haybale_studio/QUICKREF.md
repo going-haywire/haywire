@@ -1,7 +1,6 @@
 # haybale-studio — component index (v0.2.4)
 
 ## setting
-- `haybale-studio:setting:NodeSkinSettings` — Node Skin — 
 - `haybale-studio:setting:NodeThemeSettings` — Node Theme — 
 - `haybale-studio:setting:WorkbenchThemeSettings` — Workbench Theme — 
 
@@ -33,7 +32,6 @@
 - `haybale-studio:panel:LogoutPanel` — Sign out — 
 - `haybale-studio:panel:MinimapSettingsPanel` — Minimap — 
 - `haybale-studio:panel:NodeSkinDefaultPanel` — Default Skins — 
-- `haybale-studio:panel:NodeSkinSettingsPanel` — Skin — Skin Configuration:Node dimensions, typography and label visibility.
 - `haybale-studio:panel:OpenActivityPanel` — Agent activity — 
 - `haybale-studio:panel:OpenInCodeEditorMenuPanel` — Open in Code Editor — 
 - `haybale-studio:panel:OpenInFileViewerMenuPanel` — Open in File Viewer — 
@@ -54,10 +52,6 @@
 - `haybale-studio:editor:RosterEditor` — Accounts — Manage who may reach this studio
 - `haybale-studio:editor:ShortcutsEditor` — Shortcuts — Keyboard shortcuts of every editor, grouped by editor.
 - `haybale-studio:editor:TerminalEditor` — Log — Application output. Captures Python logging and print() output.
-
-## skin
-- `haybale-studio:skin:SplitNodeSkin` — Split — Configs across the top, inlets and outlets in columns side by side
-- `haybale-studio:skin:StackedNodeSkin` — Stacked — One port column, outlets over configs over inlets, with collapsible groups
 
 ## theme
 - `haybale-studio:theme:DefaultNodeTheme` — Default Node Theme — 

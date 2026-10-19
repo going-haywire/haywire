@@ -12,7 +12,7 @@
 
 ## 1. Scope & Purpose
 
-Where [haybale-core](haybale-core.md) provides nodes/types for graphs, `haybale-studio` provides the **studio's UI furniture**: concrete editors (graph editor wrapper, file viewer, etc.), the file-focus model, panels (library overview, properties editor, file browser), the workbench/state container, and the studio's default theme/skin set. Removing it would leave the studio with no editors or panels registered.
+Where [haybale-core](haybale-core.md) provides nodes/types for graphs, `haybale-studio` provides the **studio's UI furniture**: concrete editors (graph editor wrapper, file viewer, etc.), the file-focus model, panels (library overview, properties editor, file browser), the workbench/state container, and the studio's default themes. The default node skins live in [haybale-graph-editor](haybale-graph-editor.md) (ADR 0057). Removing it would leave the studio with no editors or panels registered.
 
 ## 2. Folder Architecture
 
@@ -29,8 +29,6 @@ haybale_studio/
 │   ├── context_menu/        ← file/node actions
 │   └── …
 ├── settings/                ← studio settings descriptors
-├── skins/
-│   └── node_skin.py (major rewrite) ← widget rendering per node type
 ├── state/                   ← state container (edit/runtime, focuses)
 ├── themes/                  ← studio themes
 ├── types/                   ← studio value/port types
@@ -51,11 +49,10 @@ haybale_studio/
 ### On-demand
 
 - `editors/` — when adding/changing an editor; pair with `haywire/ui/editor/wrapper.py`.
-- **`skins/node_skin.py`** (major rewrite) — renders node skin (widget layout, colors, icons). Pair with [widget unification](haywire-core-ui.md) (ADR 0007).
 - `panels/canvas_settings.py` (new) — canvas zoom/pan preferences.
 - `panels/` — when modifying built-in panels (file browser, properties, etc.).
 - `themes/` — when touching visual presentation.
-- `settings/` — when surfacing studio settings; `node_skin_settings.py` and `theme_settings.py` use typed-setting markers (`setting[BOOL]`, `setting[INT]`, `setting[CHOICES]`, `setting[STRING]` from `haywire.barn.builtin.types`), not raw Python types.
+- `settings/` — when surfacing studio settings; `theme_settings.py` uses typed-setting markers (`setting[BOOL]`, `setting[INT]`, `setting[CHOICES]`, `setting[STRING]` from `haywire.barn.builtin.types`), not raw Python types.
 - `loop_scheduler.py` — when changing validation debouncing; implements `ValidationScheduler` (ADR 0002).
 
 ## 4. Rules & Boundaries

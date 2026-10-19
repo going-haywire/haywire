@@ -45,7 +45,12 @@ haybale_graph_editor/
 │   │   └── toolbar/selection.py
 │   └── properties/
 │       ├── introspect/{node,edge,graph,node_ports}.py  ← read-only inspector panels
-│       └── setting/node.py          ← node settings panel
+│       └── setting/node.py, skin.py ← node settings panel; Skin geometry panel (CanvasSettings)
+├── settings/
+│   └── node_skin_settings.py ← NodeSkinSettings (namespace ui.node.skin)
+├── skins/                   ← the default node skins (ADR 0057)
+│   ├── node_skin.py         ← NodeSkin base: card layout, pin columns/strips, collapse, detail
+│   └── stacked_skin.py (default), split_skin.py, error_skin.py (error fallback)
 └── state/
     ├── graph_app_state.py   ← GraphAppState registry (binding_id → container)
     └── edit_state.py        ← EditState (selection, active node/port/graph)

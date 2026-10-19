@@ -425,15 +425,32 @@ A node has a patch skin (`props.skin`) and a stage skin (`props.stage_skin`), ea
 | `general` | For any node. |
 | `stage-only` | Meant for a stage; patch lists leave it out. |
 | `special` | For one kind of node only, named by a second tag (e.g. `widget-node`); general lists leave it out. |
+| `graph-node` | With `special`: for Graph-nodes (Groups and macro placements). Their lists add these to the general ones. |
 
 | List | Include | Exclude |
 |---|---|---|
 | Patch skin (studio, graph, node) | `general` | `special`, `stage-only` |
 | Stage skin (studio, graph, node) | `general` | `special` |
+| Graph-node patch skin | `general`, or `special` + `graph-node` | `special` without `graph-node`; `stage-only` |
+| Graph-node stage skin | `general`, or `special` + `graph-node` | `special` without `graph-node` |
 
 A skin made for the stage alone is tagged `["general", "stage-only"]`. A skin for one node kind is tagged `["special", "stage-only", "<kind>"]` (drop `stage-only` if it suits the patch too), and that node class overrides its `stage_skin` (or `skin`) field with `skin_choices(include=["special", "<kind>"], exclude=["general"])` as its options. The lists decide only what is offered: a write naming any skin is accepted.
 
 **Widget nodes** are the worked example. `WidgetNodeSkin` (haybale-core) is tagged `["special", "stage-only", "widget-node"]`, and `WidgetNode.props.stage_skin` takes its options from `_widget_node_stage_skin_choices()`, which is `skin_choices(include=["special", "widget-node"], exclude=["general"])`. A third-party skin for widget nodes joins that list by carrying the same three tags; it needs no change to the nodes. The skin draws only the widget of each outlet the node declares (`port.is_outlet() and port.origin is PortOrigin.DECLARED`), so a setting promoted to a port never shows on the stage face. Its look per node comes from the widget node's `style` settings bag (label typography, card background and border, label position, maximum label width): the node owns the bag and the skin reads it, and a node without one draws the default face.
+
+## The Inset
+
+`InsetSkin` (haybale-graph-editor, tagged `special`, `graph-node`) draws a Graph-node card whose body shows the interior's stage, so a Group or placement works as an operable module. Only the Graph-node skin lists offer it.
+
+- **Faces.** In the patch: the title, then the body, with the card's pins on the layout's edges (pin columns for L2R/R2L, pin strips for T2B/B2T) and its root ghost pins. On a stage: the body alone. Collapsed: the shared folded card. It honours no Detail and draws no port labels, widgets or config ports.
+- **Body.** An `InsetView` builds one ordinary `UINode` per staged interior node, with its stage skin, at its raw stage position (`props.get_position(STAGE)`), so stage (0, 0) is the body's top-left. The containers carry `data-hw-inset-node`, never `data-node-id`. The body has a 240 × 160 floor and clips; an empty stage shows a placeholder.
+- **Writes.** The cards write through `EditRoute.for_subgraph(definition)`: the host route's level mode, recorded on the host's history.
+- **Lifetime.** The host card redraws on any interior visual change (`GraphNode`), which rebuilds the view. The skin hands `view.cleanup` to `BaseSkin.on_card_cleanup`, so the old cards are released with the card. A skin that builds anything outliving its draw call does the same.
+- **Input.** `canvas.vue` makes everything inside `[data-hw-inset]` inert except `[data-hw-operable]` subtrees, and hides its pins, so a press acts on the host card; box select skips the body. The Inset draws no edges.
+
+## Where the default skins live
+
+Stacked (the default skin), Split, Error, their `NodeSkin` base and the `NodeSkinSettings` geometry bag (namespace `ui.node.skin`) ship in **haybale-graph-editor**, the library that draws node cards: `haybale_graph_editor.skins.node_skin.NodeSkin`. A skin that subclasses `NodeSkin` depends on haybale-graph-editor. A skin built on `BaseSkin` (as `WidgetNodeSkin` and the builtin reroute and annotation skins are) depends on haywire-core only. See [ADR 0057](../../adr/0057-the-default-skins-live-in-the-graph-editor.md).
 
 ## TODO
 

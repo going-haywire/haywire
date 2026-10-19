@@ -64,7 +64,7 @@ def _labels(el: ui.element) -> list[str]:
 
 
 def _stacked_key() -> str:
-    from haybale_studio.skins.stacked_skin import StackedNodeSkin
+    from haybale_graph_editor.skins.stacked_skin import StackedNodeSkin
 
     return StackedNodeSkin.class_identity.registry_key
 
@@ -357,7 +357,7 @@ def test_the_error_fallback_forwards_on_stage(ctx, on_stage: bool) -> None:
 
 
 def _split_key() -> str:
-    from haybale_studio.skins.split_skin import SplitNodeSkin
+    from haybale_graph_editor.skins.split_skin import SplitNodeSkin
 
     return SplitNodeSkin.class_identity.registry_key
 

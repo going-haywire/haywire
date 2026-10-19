@@ -11,6 +11,7 @@ from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
 from haywire.core.farmhand import FarmhandRegistry
 from haywire.core.node.registry import NodeRegistry
+from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.state import LibraryStateRegistry
 from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.skin.registry import SkinRegistry
@@ -31,6 +32,11 @@ class Library(BaseLibrary):
 
     def register_components(self):
         base_path = Path(__file__).parent
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "settings"),
+            registry_cls=SettingsRegistry,
+        )
 
         self.add_folder_to_registry(
             folder_path=str(base_path / "state"),

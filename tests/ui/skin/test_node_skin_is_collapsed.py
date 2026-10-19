@@ -39,7 +39,7 @@ def _wrapper(collapsed):
 
 @pytest.fixture
 def skin():
-    from haybale_studio.skins.stacked_skin import StackedNodeSkin
+    from haybale_graph_editor.skins.stacked_skin import StackedNodeSkin
 
     # is_collapsed reads nothing off self — a bare instance is fine, and
     # avoids pulling in a real widget factory just to read one prop.
@@ -83,7 +83,7 @@ class TestErrorSkinNeverFolds:
     def test_render_never_calls_is_collapsed(self):
         import inspect
 
-        from haybale_studio.skins.error_skin import ErrorNodeSkin
+        from haybale_graph_editor.skins.error_skin import ErrorNodeSkin
 
         source = inspect.getsource(ErrorNodeSkin.render)
         assert "is_collapsed" not in source
@@ -106,7 +106,7 @@ class TestSkinsHonourNodeCollapse:
     # being listed here is invisible to this check, which is what
     # `test_every_known_skin_dir_exists` is for.
     _SKIN_DIRS = (
-        _ROOT / "barn/haybale-studio/haybale_studio/skins",
+        _ROOT / "barn/haybale-graph-editor/haybale_graph_editor/skins",
         _ROOT / "packages/haywire-core/src/haywire/barn/builtin/skins",
     )
 
@@ -174,7 +174,7 @@ class TestAgainstRealNodes:
         return graph_obj.create_node_wrapper(TestPrintNode.class_identity.registry_key, position=(100, 100))
 
     def test_resolves_a_real_wrapper_at_the_default(self, graph):
-        from haybale_studio.skins.stacked_skin import StackedNodeSkin
+        from haybale_graph_editor.skins.stacked_skin import StackedNodeSkin
 
         wrapper = self._add_node(graph)
         skin_instance = StackedNodeSkin.__new__(StackedNodeSkin)
@@ -184,7 +184,7 @@ class TestAgainstRealNodes:
     def test_node_writes_reach_it(self, graph):
         """Collapse is node-only now (no graph tier to mirror through), so
         the write that must reach the skin is the node's own."""
-        from haybale_studio.skins.stacked_skin import StackedNodeSkin
+        from haybale_graph_editor.skins.stacked_skin import StackedNodeSkin
 
         wrapper = self._add_node(graph)
         skin_instance = StackedNodeSkin.__new__(StackedNodeSkin)

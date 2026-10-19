@@ -1,6 +1,6 @@
 # Node Skin
 
-`haybale-studio:setting:NodeSkinSettings` · kind: setting
+`haybale-graph-editor:setting:NodeSkinSettings` · kind: setting
 
 ## Notes
 

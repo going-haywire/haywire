@@ -182,7 +182,7 @@ class TestSplitSkinHonoursTheAxes:
 
     @pytest.fixture
     def example_ctx(self, render_ctx):
-        from haybale_studio.skins.split_skin import SplitNodeSkin
+        from haybale_graph_editor.skins.split_skin import SplitNodeSkin
 
         skin_factory, graph, wrapper, _default_key = render_ctx
         return skin_factory, graph, wrapper, SplitNodeSkin.class_identity.registry_key

@@ -11,6 +11,7 @@ from haywire.core.graph.setting_owner import SettingOwner, setting_owner
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
+    from haywire.core.graph.subgraph import SubgraphDefinition
     from haywire.core.settings.settings import Settings
 
 
@@ -60,6 +61,34 @@ class EditRoute:
     def editor(self) -> Editor | None:
         """Return the level's ``Editor`` for structure edits, or ``None`` below level mode ``EDIT``."""
         return self._editor() if self._mode() is LevelMode.EDIT else None
+
+    def for_subgraph(self, definition: SubgraphDefinition) -> EditRoute:
+        """Return a route to *definition*'s nodes at this route's level mode.
+
+        Its writes record on this route's history, so they undo in order with the
+        level's own edits. It follows this route: a new level ``Editor`` gives it a
+        new one over *definition*, and a mode change applies at once. A node outside
+        *definition* is unknown to it.
+
+        Example::
+
+            inner = route.for_subgraph(card.node.resolve_definition())
+            inner.set_port(interior_node_id, "value", 0.5, minimum=LevelMode.OPERATE)
+        """
+        from haywire.core.graph.editor import Editor
+
+        built: dict[str, Any] = {}
+
+        def inner_editor() -> Editor:
+            host = self._editor()
+            if built.get("host") is not host:
+                built["host"] = host
+                built["editor"] = Editor(
+                    definition, host._node_factory, history_manager=host.history_manager
+                )
+            return built["editor"]
+
+        return EditRoute(inner_editor, self._mode)
 
     def set_port(self, node_id: str, port_id: str, value: Any, *, minimum: LevelMode) -> bool:
         """Set a port's own value.

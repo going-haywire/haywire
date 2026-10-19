@@ -528,7 +528,9 @@ export default {
       const items = [];
       content.querySelectorAll('.hw-node-cull').forEach((cull) => {
         const holder = cull.parentElement;   // the positioned [data-node-id] wrapper
-        if (!holder) return;
+        // A card an Inset draws sits at stage coordinates inside its host, not on the
+        // canvas; it is shown and hidden with the host card.
+        if (!holder || !holder.hasAttribute('data-node-id')) return;
         items.push({
           cull,
           nodeId: holder.id,

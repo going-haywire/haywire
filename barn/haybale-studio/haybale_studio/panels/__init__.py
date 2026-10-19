@@ -3,7 +3,6 @@ from .properties.setting.app import NodeSkinDefaultPanel
 from .properties.setting.app import EditingSettingsPanel
 from .properties.setting.app import ActivitySettingsPanel
 from .properties.setting.canvas import CanvasSettingsPanel
-from .properties.setting.canvas import NodeSkinSettingsPanel
 from .properties.setting.canvas import EditorZoomPanSettingsPanel
 from .properties.setting.canvas import MinimapSettingsPanel
 from .properties.setting.canvas import EdgeDefaultSettingsPanel
@@ -28,7 +27,6 @@ __all__ = [
     "MinimapSettingsPanel",
     "EdgeDefaultSettingsPanel",
     "NodeSkinDefaultPanel",
-    "NodeSkinSettingsPanel",
     "OpenInCodeEditorMenuPanel",
     "OpenInCodeEditorPanel",
     "OpenInFileViewerMenuPanel",

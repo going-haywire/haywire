@@ -1,5 +1,8 @@
 # haybale-graph-editor — component index (v0.2.4)
 
+## setting
+- `haybale-graph-editor:setting:NodeSkinSettings` — Node Skin — 
+
 ## farmhand
 - `haybale-graph-editor:farmhand:add_node` — Add node — Add a node by registry key. Call studio_describe_component first to learn its ports.
 - `haybale-graph-editor:farmhand:connect` — Connect — Connect an outlet to an inlet.
@@ -75,6 +78,7 @@
 - `haybale-graph-editor:panel:NodePropertiesPanel` — Node Properties — 
 - `haybale-graph-editor:panel:NodeSettingsPanel` — Node Settings — 
 - `haybale-graph-editor:panel:NodeSkinMenuPanel` — Skin — 
+- `haybale-graph-editor:panel:NodeSkinSettingsPanel` — Skin — Skin Configuration:Node dimensions, typography and label visibility.
 - `haybale-graph-editor:panel:NodeSourceMenuPanel` — Node — 
 - `haybale-graph-editor:panel:NodeStatusPanel` — Status — 
 - `haybale-graph-editor:panel:NodeThemeMenuPanel` — Theme — 
@@ -98,3 +102,8 @@
 
 ## editor
 - `haybale-graph-editor:editor:GraphEditor` — Graph Editor — Visual node graph editor for wiring data processing pipelines.
+
+## skin
+- `haybale-graph-editor:skin:InsetSkin` — Inset — The interior's stage, operable in the card
+- `haybale-graph-editor:skin:SplitNodeSkin` — Split — Configs across the top, inlets and outlets in columns side by side
+- `haybale-graph-editor:skin:StackedNodeSkin` — Stacked — One port column, outlets over configs over inlets, with collapsible groups

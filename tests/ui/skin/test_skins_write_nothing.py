@@ -10,7 +10,7 @@ import pytest
 
 pytestmark = pytest.mark.unit
 
-_PACKAGES = ("haywire.barn.builtin.skins", "haybale_studio.skins")
+_PACKAGES = ("haywire.barn.builtin.skins", "haybale_graph_editor.skins")
 _WRITES = (".set_value(", "setattr(", ".redraw()")
 
 
@@ -27,7 +27,7 @@ def _skin_sources() -> dict[str, str]:
 
 def test_the_scan_finds_the_skins() -> None:
     names = _skin_sources()
-    assert "haybale_studio.skins.stacked_skin" in names
+    assert "haybale_graph_editor.skins.stacked_skin" in names
     assert "haywire.barn.builtin.skins.annotation_skin" in names
 
 

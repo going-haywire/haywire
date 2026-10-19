@@ -70,8 +70,8 @@ def _pin_ids(ui_node: UINode) -> set[str]:
 
 
 def _key(name: str) -> str:
-    import haybale_studio.skins.split_skin as split
-    import haybale_studio.skins.stacked_skin as stacked
+    import haybale_graph_editor.skins.split_skin as split
+    import haybale_graph_editor.skins.stacked_skin as stacked
 
     cls = {"stacked": stacked.StackedNodeSkin, "split": split.SplitNodeSkin}[name]
     return cls.class_identity.registry_key

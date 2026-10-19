@@ -18,14 +18,14 @@ from pathlib import Path
 
 import pytest
 
-from haybale_studio.settings.node_skin_settings import NodeSkinSettings
+from haybale_graph_editor.settings.node_skin_settings import NodeSkinSettings
 
 pytestmark = pytest.mark.unit
 
 # Skins are the declared consumer ("consumed directly by NodeSkin and its
 # subclasses"). Accessors on NodeSkin (CARD_H_PADDING and friends) live here
 # too, so this directory is the whole read surface.
-_SKIN_DIR = Path(__file__).resolve().parents[3] / "barn/haybale-studio/haybale_studio/skins"
+_SKIN_DIR = Path(__file__).resolve().parents[3] / "barn/haybale-graph-editor/haybale_graph_editor/skins"
 
 
 def _declared_fields() -> set[str]:

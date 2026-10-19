@@ -51,7 +51,7 @@ class UINode:
         container: ui.element,
         wrapper: NodeWrapper,
         factory: SkinFactory,
-        route: EditRoute,
+        route: EditRoute | None,
         channel: LayoutChannel = PATCH,
     ):
         """
@@ -62,7 +62,8 @@ class UINode:
             component: Parent NiceGUI component to render into
             factory: SkinFactory for creating UI representations
             route: This session's edit route at the card's level. The card's
-                widgets write through it, at level mode operate.
+                widgets write through it, at level mode operate; ``None`` refuses
+                every write.
             channel: The layout fields this card's size is read from.
         """
         self.channel = channel

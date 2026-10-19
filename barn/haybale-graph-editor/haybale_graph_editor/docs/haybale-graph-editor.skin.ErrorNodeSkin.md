@@ -1,6 +1,6 @@
 # Error
 
-`haybale-studio:skin:ErrorNodeSkin` · kind: skin
+`haybale-graph-editor:skin:ErrorNodeSkin` · kind: skin
 
 Error skin that provides error styling for nodes
 

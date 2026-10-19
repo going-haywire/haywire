@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 from nicegui import ui
 
 from haywire.core.errors.haywire_exception import HaywireException
@@ -25,6 +25,7 @@ class UINodeCard:
         """
         self.ui_card: ui.card = ui.card()
         self.widget_instances = {}
+        self._cleanups: list[Callable[[], None]] = []
 
     def get_card(self):
         """Get the main NiceGUI card element."""
@@ -44,8 +45,15 @@ class UINodeCard:
             with self.ui_card:
                 error_render_detail(error)
 
+    def add_cleanup(self, callback: Callable[[], None]) -> None:
+        """Run *callback* when this card is cleaned up, after its widgets, once."""
+        self._cleanups.append(callback)
+
     def cleanup(self):
-        """Clean up all widget instances by calling their cleanup methods."""
+        """Clean up all widget instances, then run the added cleanups once each."""
         for _element_id, widget in self.widget_instances.items():
             if widget:
                 widget.cleanup()
+        cleanups, self._cleanups = self._cleanups, []
+        for callback in cleanups:
+            callback()

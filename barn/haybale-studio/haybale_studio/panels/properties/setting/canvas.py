@@ -9,7 +9,6 @@ settings *bag* one of these panels renders — already holds the plain name in
 this module.
 
 CanvasSettingsPanel          — grid, zoom, pan behaviour
-NodeSkinSettingsPanel        — node dimensions, typography, label visibility
 EditorZoomPanSettingsPanel   — zoom/pan behaviour settings
 MinimapSettingsPanel         — minimap position and visibility
 EdgeDefaultSettingsPanel     — computed edges' arrow head, head size and width
@@ -30,8 +29,6 @@ from haywire.ui.panel.render_utils import render_schema
 from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.barn.builtin.surfaces import CanvasSettings as CanvasSurface
-
-from ....settings.node_skin_settings import NodeSkinSettings
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -54,26 +51,6 @@ class CanvasSettingsPanel(BasePanel):
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(ctx, CanvasSettings, registry)
-
-
-@panel(
-    surface=CanvasSurface,
-    label="Skin",
-    description="Skin Configuration:Node dimensions, typography and label visibility.",
-    icon=hui.icon.skin,
-    order=20,
-    default_open=False,
-)
-class NodeSkinSettingsPanel(BasePanel):
-    """Node dimensions, typography and label visibility."""
-
-    def draw(
-        self,
-        ctx: "SessionContext",
-        layout: PanelLayout,
-    ) -> None:
-        registry = ctx.app.library_service.get_settings_registry()
-        render_schema(ctx, NodeSkinSettings, registry)
 
 
 @panel(

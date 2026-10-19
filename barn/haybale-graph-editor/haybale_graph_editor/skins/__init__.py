@@ -1,1 +1,1 @@
-"""Skins shipped by the graph-editor library (currently the reroute skin)."""
+"""The default node skins: Stacked (default), Split, Error, and their NodeSkin base."""

@@ -188,3 +188,49 @@ def test_widget_node_skins_are_only_in_the_widget_node_list(registry) -> None:
     assert key not in _patch_skin_choices()
     assert key not in _stage_skin_choices()
     assert general.class_identity.registry_key not in _widget_node_stage_skin_choices()
+
+
+def test_graph_node_lists_add_graph_node_skins_to_the_general_ones(registry) -> None:
+    from haywire.core.skin.settings import _graph_node_patch_skin_choices, _graph_node_stage_skin_choices
+
+    general = _skin_cls("General", tags=["general"])
+    stage_only = _skin_cls("StageOnly", tags=["general", "stage-only"])
+    inset = _skin_cls("Inset", tags=["special", "graph-node"])
+    stage_inset = _skin_cls("StageInset", tags=["special", "graph-node", "stage-only"])
+    widget = _skin_cls("Widget", tags=["special", "stage-only", "widget-node"])
+    for cls in (general, stage_only, inset, stage_inset, widget):
+        registry._register_class(cls)
+
+    def key(cls: type[BaseSkin]) -> str:
+        return cls.class_identity.registry_key
+
+    assert set(_graph_node_patch_skin_choices()) == {key(general), key(inset)}
+    assert set(_graph_node_stage_skin_choices()) == {
+        key(general),
+        key(stage_only),
+        key(inset),
+        key(stage_inset),
+    }
+
+
+def test_graph_nodes_offer_graph_node_skins() -> None:
+    from haywire.barn.builtin.nodes.graph_node import GraphNode
+    from haywire.barn.builtin.nodes.macro_node import MacroNode
+    from haywire.core.skin.settings import _graph_node_patch_skin_choices, _graph_node_stage_skin_choices
+
+    for cls in (GraphNode, MacroNode):
+        fields = cls.props._settings_descriptors()
+        assert fields["skin"].widget_config["properties"]["options"] is _graph_node_patch_skin_choices
+        assert fields["stage_skin"].widget_config["properties"]["options"] is _graph_node_stage_skin_choices
+
+
+def test_a_graph_node_skin_still_follows_the_graph_default(graph_with_library_system) -> None:
+    from tests.conftest import make_node
+
+    graph = graph_with_library_system
+    card = make_node(graph, "haywire-core:node:GraphNode")
+    graph.props.default_skin = "skin-graph"
+    graph.props.default_stage_skin = "stage-graph"
+
+    assert card.node.props.skin == "skin-graph"
+    assert card.node.props.stage_skin == "stage-graph"
