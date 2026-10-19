@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
 
+from haywire.core.skin.fonts import FONT_STACKS
 from haywire.barn.builtin.widget_keys import NOTE_TEXT_WIDGET
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types.enums import LayoutDirection
@@ -86,14 +87,6 @@ def _parse(port_id: str) -> tuple[str, int] | None:
     return side, int(index)
 
 
-#: CSS font stacks of the node's ``font`` choices.
-_FONT_STACKS = {
-    "sans": "inherit",
-    "serif": "Georgia, 'Times New Roman', serif",
-    "mono": "ui-monospace, Menlo, Consolas, monospace",
-    "handwriting": "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive",
-}
-
 #: Flex alignment of each horizontal and vertical alignment choice.
 _JUSTIFY = {"left": "flex-start", "center": "center", "right": "flex-end"}
 _VERTICAL = {"top": "flex-start", "middle": "center", "bottom": "flex-end"}
@@ -110,7 +103,7 @@ def _text_style(bag: Any) -> str:
     The highlight and the text's place on the card are custom properties the text widget reads.
     """
     parts = [
-        f"font-family: {_FONT_STACKS.get(bag.font, 'inherit')};",
+        f"font-family: {FONT_STACKS.get(bag.font, 'inherit')};",
         f"font-size: {int(bag.font_size)}px;",
         f"font-weight: {'700' if bag.bold else '400'};",
         f"font-style: {'italic' if bag.italic else 'normal'};",

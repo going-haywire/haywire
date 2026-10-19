@@ -433,6 +433,8 @@ A node has a patch skin (`props.skin`) and a stage skin (`props.stage_skin`), ea
 
 A skin made for the stage alone is tagged `["general", "stage-only"]`. A skin for one node kind is tagged `["special", "stage-only", "<kind>"]` (drop `stage-only` if it suits the patch too), and that node class overrides its `stage_skin` (or `skin`) field with `skin_choices(include=["special", "<kind>"], exclude=["general"])` as its options. The lists decide only what is offered: a write naming any skin is accepted.
 
+**Widget nodes** are the worked example. `WidgetNodeSkin` (haybale-core) is tagged `["special", "stage-only", "widget-node"]`, and `WidgetNode.props.stage_skin` takes its options from `_widget_node_stage_skin_choices()`, which is `skin_choices(include=["special", "widget-node"], exclude=["general"])`. A third-party skin for widget nodes joins that list by carrying the same three tags; it needs no change to the nodes. The skin draws only the widget of each outlet the node declares (`port.is_outlet() and port.origin is PortOrigin.DECLARED`), so a setting promoted to a port never shows on the stage face. Its look per node comes from the widget node's `style` settings bag (label typography, card background and border, label position, maximum label width): the node owns the bag and the skin reads it, and a node without one draws the default face.
+
 ## TODO
 
 - [ ] Write content

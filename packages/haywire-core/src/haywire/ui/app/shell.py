@@ -524,15 +524,11 @@ STATIC_CSS = (
     " .sf-field-list { display: flex !important; flex-direction: column;"
     "   gap: var(--hw-field-gap, 0.15rem) !important; }"
     " .sf-field-list > .nicegui-row { min-height: 0 !important; }"
-    # ── settings-field responsive layout ──
-    # .sf-label / .sf-widget respond to their @container settings-panel.
-    # Below 280px: 50/50 split.  Above: label is fixed 8rem, widget grows.
-    " .sf-label  { width: 50%; flex: none; }"
-    " .sf-widget { width: 50%; }"
-    " @container settings-panel (min-width: 320px) {"
-    "   .sf-label  { width: 9rem; flex: none; }"
-    "   .sf-widget { width: auto; flex: 1; }"
-    " }"
+    # ── settings-field label/control split ──
+    # The label takes half the row up to --hw-max-label-width (9rem), the control
+    # the rest: 50/50 until the row is twice the maximum, then the label stops.
+    " .sf-label  { width: min(50%, var(--hw-max-label-width, 9rem)); flex: none; }"
+    " .sf-widget { flex: 1 1 0; min-width: 0; }"
     # ── hui list-item hover + semantic text utilities ──
     " .hw-list-item-hover { transition: background-color 0.15s ease; }"
     " .hw-list-item-hover:hover { background-color: var(--hw-bg-surface) !important; }"

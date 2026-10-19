@@ -13,6 +13,7 @@ from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, STRING
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import NodeSettings, Promotable, setting, settings_fields
+from haywire.core.skin.fonts import FONTS
 from haywire.core.types import PortOrigin
 
 if TYPE_CHECKING:
@@ -23,9 +24,6 @@ if TYPE_CHECKING:
 #: Choices of the horizontal and vertical alignment settings.
 H_ALIGNS = ("left", "center", "right")
 V_ALIGNS = ("top", "middle", "bottom")
-
-#: Font choices, each a family the skin maps to a CSS font stack.
-FONTS = ("sans", "serif", "mono", "handwriting")
 
 
 @node(

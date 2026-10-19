@@ -609,6 +609,41 @@ class DataPort(DataTypeIdentity):
         """
         self.show_widget = strategy
 
+    def set_widget_config(self, key: str, value: Any) -> bool:
+        """Set one property of this port's widget config, e.g. a slider's ``max``.
+
+        The node's card is redrawn when the property changed, and its widgets are
+        built again from the new config. Live reconfiguration of a drawn widget is
+        not part of this method yet.
+
+        Args:
+            key: The widget property, one the port's widget documents (``"max"``).
+            value: The new value; ``None`` removes the property, so the widget
+                falls back to its own default.
+
+        Returns:
+            Whether the config changed. An unchanged value redraws nothing.
+
+        Example::
+
+            self.ports["value"].set_widget_config("max", 10.0)   # the slider ends at 10
+            self.ports["value"].set_widget_config("min", None)   # no lower bound
+        """
+        current = self.widget_config.get("properties", {})
+        if value is None:
+            if key not in current:
+                return False
+        elif key in current and current[key] == value:
+            return False
+        # A copy: the declaration's properties dict may be shared with other ports.
+        properties = {k: v for k, v in current.items() if k != key}
+        if value is not None:
+            properties[key] = value
+        self.widget_config = {**self.widget_config, "properties": properties}
+        if self._wrapper is not None:
+            self._wrapper.redraw()
+        return True
+
     @classmethod
     def _refreshable_fields(cls) -> tuple[str, ...]:
         """The field names ``refresh_from`` copies, computed once per class."""

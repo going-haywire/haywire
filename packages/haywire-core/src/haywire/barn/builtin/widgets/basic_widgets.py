@@ -215,10 +215,14 @@ class SliderWidget(BaseWidget):
         }
 
         default = float(props.get("min", 0))
-        return self.bind(
+        slider = self.bind(
             ui.slider(**kwargs).classes("w-full text-xs").props("label-always"),
             converter=PrimitiveUnwrappingConverter(default_value=default),
         )
+        # ui.slider updates its own value through a throttle, so the binding's read
+        # can lag a fast drag; the drag-end event carries the final value.
+        slider.on("change", lambda e: self.set_value(e.args))
+        return slider
 
 
 @widget(description="select widget")

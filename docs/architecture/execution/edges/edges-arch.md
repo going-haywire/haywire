@@ -199,7 +199,7 @@ A linked outlet owns one `Pipes`, which holds a `Pipe` per valid edge, keyed by 
 
 `Pipe.pull()` reads the outlet's current value, transforms it through the chain and stores it with `sink.set_value(converted, edge_id=...)`. When the outlet holds `None`, the pull forwards absence only to a sink that accepts it; any other sink keeps its last value.
 
-Pipes are rebuilt whenever the outlet is structurally dirty (`_refresh_pipes()` during housekeeping). After a rebuild the outlet pushes its current value through every pipe at once (`DataPort._housekeeping`), so a newly linked edge, or one rebuilt on load or hot reload, delivers the source's value without any node running. That is why setting `EdgeWrapper.propagation` on a live edge marks its outlet dirty: the existing `Pipe` keeps the mode it was built with.
+Pipes are rebuilt whenever the outlet is structurally dirty (`_refresh_pipes()` during housekeeping). After a rebuild the outlet pushes its current value through every pipe at once (`DataPort._housekeeping`), so a newly linked edge, or one rebuilt on load or hot reload, delivers the source's value without any node running. A widget's write to an outlet runs its pipes at once too, on the UI thread: an eager edge stores the value in the sink's inlet then, and the sink's node acts on it (its `on_change` and worker) in its next frame; a lazy edge only marks the inlet dirty. That is why setting `EdgeWrapper.propagation` on a live edge marks its outlet dirty: the existing `Pipe` keeps the mode it was built with.
 
 ### 3.6 ValidationManager — debounced batch processing
 

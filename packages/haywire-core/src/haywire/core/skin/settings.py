@@ -16,7 +16,12 @@ from haywire.barn.builtin.widgets.basic_widgets import SimpleLabelWidget
 from haywire.core.namespaces import CATEGORY_NODE_SKINS, NAMESPACE_UI_NODE_DEFAULT_SKIN
 from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.core.settings import setting
-from haywire.core.skin.tags import SKIN_TAG_GENERAL, SKIN_TAG_SPECIAL, SKIN_TAG_STAGE_ONLY
+from haywire.core.skin.tags import (
+    SKIN_TAG_GENERAL,
+    SKIN_TAG_SPECIAL,
+    SKIN_TAG_STAGE_ONLY,
+    SKIN_TAG_WIDGET_NODE,
+)
 from haywire.core.types.enums import LayoutDirection, NodeDetail
 
 
@@ -45,7 +50,7 @@ def skin_choices(*, include: Collection[str], exclude: Collection[str] = ()) -> 
         skin_choices(include=[SKIN_TAG_GENERAL], exclude=[SKIN_TAG_SPECIAL])
 
         # The skins for one kind of node only.
-        skin_choices(include=[SKIN_TAG_SPECIAL, "widget-node"], exclude=[SKIN_TAG_GENERAL])
+        skin_choices(include=[SKIN_TAG_SPECIAL, SKIN_TAG_WIDGET_NODE], exclude=[SKIN_TAG_GENERAL])
     """
     try:
         from haywire.core.di.config import get_skin_registry
@@ -73,6 +78,11 @@ def _patch_skin_choices() -> dict[str, str]:
 def _stage_skin_choices() -> dict[str, str]:
     """The skins offered for a node's stage skin: general ones, stage-only included."""
     return skin_choices(include=[SKIN_TAG_GENERAL], exclude=[SKIN_TAG_SPECIAL])
+
+
+def _widget_node_stage_skin_choices() -> dict[str, str]:
+    """The skins offered for a widget node's stage skin: those tagged for widget nodes only."""
+    return skin_choices(include=[SKIN_TAG_SPECIAL, SKIN_TAG_WIDGET_NODE], exclude=[SKIN_TAG_GENERAL])
 
 
 def _default_skin():

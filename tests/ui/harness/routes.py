@@ -2087,6 +2087,104 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /graph-widget-nodes
+    #
+    # A stage canvas in level mode operate: a Float Slider (Max promoted to an
+    # inlet) and a Menu on stage, the slider wired into a Float Number off stage.
+    # Polled echoes show what the number's inlet and the menu's outlet hold.
+    # Backs test_widget_nodes.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-widget-nodes")
+    async def graph_widget_nodes_page():
+        from haybale_core.nodes.widgets.menu import MenuNode
+        from haybale_core.nodes.widgets.number import FloatNumberNode
+        from haybale_core.nodes.widgets.slider import FloatSliderNode
+        from haywire.core.graph.editor import Editor
+        from haywire.core.node.layout import STAGE
+        from haywire.core.node.promotion import promote_setting
+        from haywire.core.types.enums import PortType
+
+        # The studio's static CSS: the face uses its settings-row rules.
+        if theme_css:
+            ui.add_css(theme_css)
+
+        graph = _harness_graph("Widget Nodes Fixture")
+        editor = Editor(graph, library_service.get_node_factory())
+
+        def _make(cls, x: float, y: float):
+            wrapper = graph.create_node_wrapper(cls.class_identity.registry_key, position=(x, y))
+            assert wrapper is not None, f"could not create {cls.__name__}"
+            return wrapper
+
+        slider = _make(FloatSliderNode, 3600.0, 3700.0)
+        menu = _make(MenuNode, 3600.0, 3800.0)
+        number = _make(FloatNumberNode, 4000.0, 3700.0)
+        narrow = _make(FloatSliderNode, 3600.0, 3900.0)
+        styled = _make(FloatSliderNode, 3600.0, 4000.0)
+        capped = _make(FloatSliderNode, 3600.0, 4100.0)
+        capped_narrow = _make(FloatSliderNode, 3600.0, 4200.0)
+        promote_setting(slider.node, "range", "max", direction=PortType.INLET)
+        placed = (
+            (slider, (40.0, 40.0)),
+            (menu, (40.0, 200.0)),
+            (narrow, (40.0, 280.0)),
+            (styled, (480.0, 40.0)),
+            (capped, (480.0, 200.0)),
+            (capped_narrow, (480.0, 280.0)),
+        )
+        for wrapper, (sx, sy) in placed:
+            wrapper.node.props.on_stage = True
+            wrapper.node.props.stage_x = sx
+            wrapper.node.props.stage_y = sy
+        assert graph.create_edge_wrapper(slider.node_id, "value", number.node_id, "in") is not None
+        # A manually sized stage card: the face is centred in it and split 50/50.
+        slider.node.props.stage_size_adapt = "manual"
+        slider.node.props.stage_width = 400
+        slider.node.props.stage_height = 120
+        narrow.node.props.stage_size_adapt = "manual"
+        narrow.node.props.stage_width = 260
+        narrow.node.props.stage_height = 40
+        for wrapper, (w, h) in ((styled, (400, 120)), (capped, (400, 60)), (capped_narrow, (140, 60))):
+            wrapper.node.props.stage_size_adapt = "manual"
+            wrapper.node.props.stage_width = w
+            wrapper.node.props.stage_height = h
+        styled.node.style.label_position = "above"
+        styled.node.style.bold = True
+        styled.node.style.background = "#203040"
+        capped.node.style.max_label_width = 80
+        capped_narrow.node.style.max_label_width = 80
+
+        named = (
+            ("slider", slider),
+            ("menu", menu),
+            ("narrow", narrow),
+            ("styled", styled),
+            ("capped", capped),
+            ("capped_narrow", capped_narrow),
+        )
+        for name, wrapper in named:
+            ui.label(wrapper.node_id).props(f'data-testid="{name}-node-id" data-node="{wrapper.node_id}"')
+        downstream = ui.label().props('data-testid="echo-downstream"')
+        picked = ui.label().props('data-testid="echo-menu"')
+
+        def _refresh() -> None:
+            downstream.set_text(repr(number.node.ports["in"].get_value()))
+            picked.set_text(str(menu.node.ports["value"].get_value()))
+
+        _refresh()
+        ui.timer(0.2, _refresh)
+        _mount_graph_canvas(
+            library_service,
+            graph,
+            editor,
+            testid="widgetnodes",
+            channel=STAGE,
+            level=_HarnessLevel(mode=LevelMode.OPERATE),
+        )
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /keymap
     #
     # One KeymapListener (Control is Mod) over two editor roots, ed::one and

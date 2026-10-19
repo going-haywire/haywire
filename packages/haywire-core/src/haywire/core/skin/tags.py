@@ -9,3 +9,5 @@ SKIN_TAG_GENERAL = "general"
 SKIN_TAG_SPECIAL = "special"
 #: A skin meant for the stage view; the patch skin lists leave it out.
 SKIN_TAG_STAGE_ONLY = "stage-only"
+#: A skin for widget nodes; offered only in a widget node's stage skin list.
+SKIN_TAG_WIDGET_NODE = "widget-node"

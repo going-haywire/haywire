@@ -478,16 +478,16 @@ the shell geometry is predictable.
 
 ### 4.5 Compact-Fields System
 
-Settings panels use a container-query–based responsive layout system that
-compresses label/widget rows for dense display. This is distinct from ordinary
-`gap-1` padding — it activates a CSS container context and responsive classes.
+Settings panels use a compact layout system for dense label/widget rows: tight
+Quasar fields, and a label that takes half the row up to a maximum width
+(`--hw-max-label-width`, default 9rem) while the widget takes the rest. So a row
+is split 50/50 until it is twice the maximum wide, then only the widget grows.
+A widget node's stage face uses the same rule and sets the maximum per node.
 
 **How to use:**
 
 ```python
-with ui.column().classes("w-full gap-0 compact-fields").style(
-    "container-type: inline-size; container-name: settings-panel;"
-):
+with ui.column().classes("w-full gap-0 compact-fields"):
     # Each row uses _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
     with ui.row().classes("w-full items-center justify-between gap-0 px-2"):
         ui.label("My Field").classes("text-xs truncate sf-label")
@@ -498,15 +498,16 @@ with ui.column().classes("w-full gap-0 compact-fields").style(
 
 | Class            | Purpose                                                     |
 | ---------------- | ----------------------------------------------------------- |
-| `compact-fields` | Applied to the outer column. Activates container context.   |
-| `sf-label`       | Label cell. Responsive width — shrinks at narrow container. |
-| `sf-widget`      | Widget cell. Takes remaining space; right-aligned.          |
+| `compact-fields` | Applied to the outer column. Tightens the Quasar fields inside. |
+| `sf-label`       | Label cell: `min(50%, var(--hw-max-label-width, 9rem))` wide. |
+| `sf-widget`      | Widget cell. Takes the remaining space.                     |
 
 **CSS tokens for this system:**
 
 | Token                    | Default | Purpose                                 |
 | ------------------------ | ------- | --------------------------------------- |
 | `--hw-compact-field-h`   | 26px    | Fixed input height for compact widgets. |
+| `--hw-max-label-width`   | 9rem    | The widest an `sf-label` gets; set on a row or any ancestor. |
 | `--hw-compact-gap`       | 1px     | Vertical gap between compact rows.      |
 | `--hw-compact-row-min-h` | 28px    | Minimum row height in compact mode.     |
 

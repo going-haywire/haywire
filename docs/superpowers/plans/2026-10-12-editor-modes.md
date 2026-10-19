@@ -263,7 +263,9 @@ slice lands.
        The view picks the skin ([ADR 0056](../../adr/0056-the-view-picks-the-skin.md)), skin tags, the stage edge gate.
      - **5d-2 List widget:** [2026-10-18-editor-modes-05d2-list-widget.md](2026-10-18-editor-modes-05d2-list-widget.md).
        An `ArrayType` setting and an opt-in list widget (`ArrayWidget`); a commit mode for `TextWidget`.
-     - **5d-3 Widget nodes:** the seven nodes, their widget-node stage skin, `port.set_widget_config`.
+     - **5d-3 Widget nodes:** [2026-10-18-editor-modes-05d3-widget-nodes.md](2026-10-18-editor-modes-05d3-widget-nodes.md).
+       The seven nodes, their widget-node stage skin, `port.set_widget_config`. Styled per node by
+       [2026-10-19-editor-modes-05d3b-widget-node-style.md](2026-10-19-editor-modes-05d3b-widget-node-style.md).
 6. **Inset.** The skin, the two enablers, placement value overrides, and the
    shared edge-drawing module.
 

@@ -169,3 +169,22 @@ def test_a_built_port_saves_no_tags_key(library_system) -> None:
     node.add(FLOAT.as_inlet("x_tags", default=1.0))
 
     assert "tags" not in node.ports["x_tags"].to_dict()["kwargs"]
+
+
+def test_widget_node_skins_are_only_in_the_widget_node_list(registry) -> None:
+    from haywire.core.skin.settings import (
+        _patch_skin_choices,
+        _stage_skin_choices,
+        _widget_node_stage_skin_choices,
+    )
+
+    widget_node = _skin_cls("WidgetNodeFace", tags=["special", "stage-only", "widget-node"])
+    general = _skin_cls("GeneralFace", tags=["general"])
+    for cls in (widget_node, general):
+        registry._register_class(cls)
+
+    key = widget_node.class_identity.registry_key
+    assert key in _widget_node_stage_skin_choices()
+    assert key not in _patch_skin_choices()
+    assert key not in _stage_skin_choices()
+    assert general.class_identity.registry_key not in _widget_node_stage_skin_choices()
