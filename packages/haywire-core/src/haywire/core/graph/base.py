@@ -418,6 +418,7 @@ class BaseGraph:
         node_id: Optional[str] = None,
         *,
         position: Tuple[float, float] | None = None,
+        props: Mapping[str, Any] | None = None,
     ) -> Optional["NodeWrapper"]:
         """Create a node of type ``registry_key``, build it, and add it to the graph.
 
@@ -430,6 +431,9 @@ class BaseGraph:
                 fresh unique id is generated.
             position: ``(x, y)`` in canvas coordinates for a node built blank.
                 When ``None`` the node keeps its props default, ``(0, 0)``.
+            props: Values of ``NodeProperties`` fields to set once the node is
+                built, e.g. ``{"on_stage": True, "stage_x": 40.0}``. A blank node
+                still runs its ``init()``; ``node_data`` is for a saved node.
 
         Returns:
             The added wrapper.
@@ -446,6 +450,8 @@ class BaseGraph:
         wrapper.build(node_data or {})
         if position is not None:
             wrapper.move(*position)
+        if props:
+            wrapper.set_props(props)
 
         return self.add_node_wrapper(wrapper)
 

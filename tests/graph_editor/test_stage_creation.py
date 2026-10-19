@@ -125,6 +125,48 @@ def test_create_on_patch_canvas_is_unchanged(editor):
     _assert_patch(editor, node_id, 500.0, 340.0)
 
 
+_ANNOTATION = "haywire-core:node:AnnotationNode"
+_SLIDER = "haybale-core:node:FloatSliderNode"
+
+
+@pytest.mark.parametrize("registry_key", [_ADD, _ANNOTATION, _SLIDER])
+def test_a_node_made_on_the_stage_canvas_has_the_ports_its_init_declares(editor, registry_key):
+    # A stage-made node used to skip init(): its placement rode in as saved node data.
+    patch_made = editor.create_wrapper(registry_key, position=(0.0, 0.0))
+    stage_made = editor.create_wrapper(registry_key, position=(300.0, 300.0), channel=STAGE)
+    assert patch_made is not None
+    assert stage_made is not None
+    assert type(stage_made.node).__name__ != "ErrorNode"
+    assert sorted(stage_made.node.ports) == sorted(patch_made.node.ports)
+    assert stage_made.node.ports, "every one of these declares ports"
+
+
+def test_a_stage_made_node_keeps_its_ports_through_undo_redo_and_a_reload(editor):
+    wrapper = editor.create_wrapper(_ANNOTATION, position=(300.0, 300.0), channel=STAGE)
+    assert wrapper is not None
+    ports = sorted(wrapper.node.ports)
+    assert "left_0" in ports
+    assert editor.undo()
+    assert editor.redo()
+    assert sorted(editor.graph.node_wrappers[wrapper.node_id].node.ports) == ports
+
+    data = editor.graph.to_dict()
+    editor.graph.clear()
+    editor.graph.load_from_dict(data)
+    assert sorted(editor.graph.node_wrappers[wrapper.node_id].node.ports) == ports
+
+
+def test_create_node_wrapper_applies_props_after_init(graph_with_library_system):
+    wrapper = graph_with_library_system.create_node_wrapper(
+        _ANNOTATION, props={"on_stage": True, "stage_x": 40.0, "posX": 7.0}
+    )
+    assert wrapper is not None
+    assert "left_0" in wrapper.node.ports
+    assert wrapper.node.props.on_stage is True
+    assert wrapper.node.props.stage_x == 40.0
+    assert wrapper.node.props.posX == 7.0
+
+
 def test_create_from_edge_drop_on_stage_lands_on_stage(editor):
     # Drop-to-create is the same event with a pending connection.
     source = make_node(editor.graph, _ADD, position=(0, 0))
@@ -583,6 +625,7 @@ def test_split_with_reroute_places_the_reroute_per_channel(editor, channel):
     )
 
     (reroute_id,) = _new_ids(editor, before)
+    assert len(editor.graph.node_wrappers[reroute_id].node.ports) == 2, "the reroute's inlet and outlet"
     if channel.stage:
         _assert_on_stage(editor, reroute_id, 150.0, 40.0, patch=(150.0, 0.0))
     else:

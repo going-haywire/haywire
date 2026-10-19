@@ -102,6 +102,7 @@ class AddNodeAction(ActionBase):
         node_id: Optional[str] = None,
         *,
         position: Tuple[float, float] | None = None,
+        props: Optional[Mapping[str, Any]] = None,
         on_top: bool = True,
     ):
         """
@@ -119,6 +120,8 @@ class AddNodeAction(ActionBase):
             position: ``(x, y)`` canvas position for a node built blank; with
                 ``node_data`` the position comes from its props. ``None``
                 keeps the props default.
+            props: ``NodeProperties`` values set once the node is built, e.g. its
+                stage placement (see ``stage_placement``). Only applied on first execution.
             on_top: On first execution, put the node above every other node in each view
                 that shows it (see ``top_z``). ``False`` keeps the stacking values it was
                 given.
@@ -127,6 +130,7 @@ class AddNodeAction(ActionBase):
         self.graph = graph
         self.registry_key = registry_key
         self.position = position
+        self.props = props
         self.on_top = on_top
         self.node_data = node_data
         self.node_id = node_id
@@ -141,6 +145,7 @@ class AddNodeAction(ActionBase):
             self.wrapper = self.graph.create_node_wrapper(
                 registry_key=self.registry_key,
                 position=self.position,
+                props=self.props,
                 node_data=self.node_data,
                 node_id=self.node_id,
             )
@@ -780,22 +785,24 @@ class ClipboardData:
     timestamp: float
 
 
-def stage_node_data(
+def stage_placement(
     graph: BaseGraph,
     channel: LayoutChannel,
     position: Tuple[float, float],
     patch_fallback: Optional[Tuple[float, float]],
 ) -> Optional[Dict[str, Any]]:
-    """Return ``node_data`` placing a node made at canvas ``position`` on ``channel``'s canvas.
+    """Return the ``NodeProperties`` values placing a node made at canvas ``position`` on ``channel``.
 
     ``None`` on a channel that is not the stage. On the stage the node is on stage at the
-    position, and its patch position follows ``patch_position_for_stage``.
+    position, and its patch position follows ``patch_position_for_stage``. Pass the result as
+    ``props`` to ``AddNodeAction``: the node is built fresh, through its ``init()``.
     """
     if not channel.stage:
         return None
     sx, sy = channel.from_canvas(*position)
     stage_xy = non_negative((sx, sy))  # nothing sits above or left of the stage origin
-    return with_stage_placement(None, *stage_xy, patch_position_for_stage(graph, stage_xy, patch_fallback))
+    placed = with_stage_placement(None, *stage_xy, patch_position_for_stage(graph, stage_xy, patch_fallback))
+    return dict(placed["props"]["values"])
 
 
 class PasteClipboardAction(CompositeAction):
@@ -1112,7 +1119,7 @@ class SplitEdgeWithRerouteAction(CompositeAction):
                 graph=graph,
                 registry_key=registry_key,
                 position=None if channel.stage else position,
-                node_data=stage_node_data(graph, channel, position, patch_fallback),
+                props=stage_placement(graph, channel, position, patch_fallback),
                 node_id=new_node_id,
             ),
             _AddReroutePortsAction(

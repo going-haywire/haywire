@@ -14,7 +14,7 @@ from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.actions.graph_actions import (
     ResetSettingsAction,
     SetSettingsAction,
-    stage_node_data,
+    stage_placement,
     AddNodeAction,
     MoveNodesAction,
     MoveNodesToAction,
@@ -113,7 +113,7 @@ class Editor:
                 action = AddNodeAction(
                     graph=self.graph,
                     registry_key=registry_key,
-                    node_data=stage_node_data(self.graph, channel, position, patch_fallback),
+                    props=stage_placement(self.graph, channel, position, patch_fallback),
                 )
             else:
                 action = AddNodeAction(graph=self.graph, registry_key=registry_key, position=position)

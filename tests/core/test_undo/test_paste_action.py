@@ -40,7 +40,7 @@ def test_add_node_action_forwards_node_data():
     class _G:
         node_wrappers: dict = {}
 
-        def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None):
+        def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None, props=None):
             seen["node_data"] = node_data
             return object()
 
@@ -59,7 +59,7 @@ def test_add_node_action_default_node_data_is_none():
     class _G:
         node_wrappers: dict = {}
 
-        def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None):
+        def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None, props=None):
             seen["node_data"] = node_data
             return object()
 
@@ -79,7 +79,7 @@ def test_add_node_action_redo_reuses_wrapper_without_recreating():
     class _G:
         node_wrappers: dict = {}
 
-        def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None):
+        def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None, props=None):
             calls["create"] += 1
             return sentinel
 
@@ -276,7 +276,7 @@ def test_add_node_action_forwards_node_id():
     class _G:
         node_wrappers: dict = {}
 
-        def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None):
+        def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None, props=None):
             seen["node_id"] = node_id
             return SimpleNamespace(node=None)
 
@@ -400,7 +400,7 @@ def test_paste_execution_edge_connects_created_nodes():
             self._counter += 1
             return f"minted_{self._counter}"
 
-        def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None):
+        def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None, props=None):
             # The real base.py mints its OWN id when node_id is None.
             if node_id is None:
                 node_id = self.generate_unique_node_id(registry_key)

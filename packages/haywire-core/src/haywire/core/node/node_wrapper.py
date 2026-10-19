@@ -6,6 +6,7 @@ import time
 import threading
 import logging
 from contextlib import contextmanager
+from collections.abc import Mapping
 from typing import List, Optional, Any, Dict, Iterator, TYPE_CHECKING
 from dataclasses import dataclass, field
 
@@ -587,6 +588,18 @@ class NodeWrapper:
             self._node_instance.props.set_position((new_x, new_y), channel)
         elif channel is PATCH:
             self._pending_position = (new_x, new_y)
+
+    def set_props(self, values: Mapping[str, Any]) -> None:
+        """Set ``NodeProperties`` fields from ``{name: value}``, e.g. a new node's stage placement.
+
+        A node that failed to build keeps only its patch position (``posX``/``posY``),
+        for the next successful build.
+        """
+        if self._node_instance is not None:
+            for name, value in values.items():
+                setattr(self._node_instance.props, name, value)
+        elif "posX" in values or "posY" in values:
+            self.move(float(values.get("posX", 0.0)), float(values.get("posY", 0.0)))
 
     def _add_runtime_error(self, error: HaywireException) -> None:
         """Record a runtime error, replacing any error already held.
