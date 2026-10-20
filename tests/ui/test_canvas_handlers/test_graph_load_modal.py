@@ -46,6 +46,17 @@ def test_popup_is_not_dismissable_by_the_user():
     assert kwargs["escape_close"] is False
 
 
+def test_the_overlay_does_not_dim_the_canvas():
+    """The canvas fills in behind the overlay, so the backdrop is clear; it still swallows input."""
+    with (
+        patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.Popup") as popup_cls,
+        patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.ui"),
+    ):
+        graph_load_modal(graph_name="big", total_nodes=200)
+
+    assert popup_cls.call_args.kwargs["backdrop_color"] == "transparent"
+
+
 def test_popup_is_opened_immediately():
     """The block must be in place before the first node mounts, not after."""
     with (

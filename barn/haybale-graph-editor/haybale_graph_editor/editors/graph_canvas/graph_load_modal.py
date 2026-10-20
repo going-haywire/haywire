@@ -18,8 +18,9 @@ Python loop alone handed back a canvas with every node and zero edges.
 
 The block is structural rather than policed: :class:`Popup` renders a
 full-viewport backdrop (``inset: 0``, ``z-index: 5000``) above every canvas
-layer (the canvas tops out at 1002), and with ``backdrop_click_close=False``
-that backdrop swallows clicks rather than passing them through. Keyboard and
+layer, and with ``backdrop_click_close=False`` that backdrop swallows clicks
+rather than passing them through. The backdrop is transparent, so the canvas
+stays visible while it fills in. Keyboard and
 wheel are covered the same way — the overlay handles ``@wheel.self``, so
 scroll-zoom over the backdrop does not reach the canvas.
 
@@ -106,6 +107,7 @@ def graph_load_modal(*, graph_name: str, total_nodes: int) -> GraphLoadModal:
         closable=False,
         backdrop_click_close=False,
         escape_close=False,
+        backdrop_color="transparent",
     )
 
     with popup:
