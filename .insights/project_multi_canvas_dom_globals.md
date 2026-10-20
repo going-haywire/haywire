@@ -200,6 +200,20 @@ The canvas's own node, pin and edge lookups, the marquee and the observer cleanu
 | `GraphEditor.draw()` clearing `EditState` selection | Selection state is per session, not per canvas. A first draw of any canvas clears the selection of whichever canvas the user was working in. |
 | The graph-load overlay (`graph_load_modal`) | A full-viewport `Popup` backdrop at `z-index: 5000`. Opening a large graph blocks interaction with every already-drawn canvas, not just the one loading. |
 
+## Scoping a lookup must not mean scanning (Firefox)
+
+`this.$el.querySelector('[id="…"]')` is how a canvas first scoped its pin,
+edge, hit-area and gradient lookups. Chrome answers that selector from its id
+index, so it measured as free. Firefox walks the whole subtree: about 0.7 ms per
+call on the 512-node graph, 45,000 calls per load, 34 s of a 52 s open, with
+the edge batch one 21 s task that painted nothing until it ended. The symptom was
+"Firefox shows no edges until the last two seconds", and Chrome looked fine.
+`_lookupById` uses `document.getElementById` and checks `this.$el.contains()`;
+it scans only when the first match belongs to the other view of the level.
+Never time a DOM-lookup change in Chrome alone. `.scratch/draw-perf/browser_probe.py firefox`
+counts and times the calls per engine, and `test_edge_batch_cost.py` pins the
+scan count.
+
 ## The standing cost of keeping them mounted
 
 The page is one Vue component with no memoization, and the render walk scales
