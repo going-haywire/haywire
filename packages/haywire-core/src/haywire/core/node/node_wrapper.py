@@ -643,10 +643,15 @@ class NodeWrapper:
         with self._locked():
             # Notify graph of redraw request
             if self._graph and not self._is_dirty_structural and self.state.is_registered:
-                self._graph._validation.mark_node_dirty(
-                    self._node_id, ChangeReason.NODE_VALIDATION_REQUESTED
-                )
+                # Set before the call: an inline scheduler validates inside it and clears the flag.
                 self._is_dirty_structural = True
+                try:
+                    self._graph._validation.mark_node_dirty(
+                        self._node_id, ChangeReason.NODE_VALIDATION_REQUESTED
+                    )
+                except BaseException:
+                    self._is_dirty_structural = False
+                    raise
 
     def mark_value_edited(self) -> None:
         """Mark that a user edited a value this node saves, so the graph becomes unsaved.

@@ -216,7 +216,8 @@ class TestTheEditIsPublished:
         flag is still set from an earlier rejig — and that flag is cleared by
         the very housekeeping pass this call is trying to cause."""
         graph, wrapper = node_with_a_resolved_port
-        assert wrapper._is_dirty_structural is True  # left set by the fixture's rejig
+        # A rejig whose pass has not run yet, as on the studio's debounced scheduler.
+        wrapper._is_dirty_structural = True
         seen: list = []
         graph.subscribe_to_validation(lambda r: seen.append(dict(r.nodes)))
 

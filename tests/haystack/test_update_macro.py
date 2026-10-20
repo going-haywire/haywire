@@ -13,6 +13,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from haywire.core.graph.scheduler import SyncScheduler
+
 from tests.conftest import make_node
 from tests.core.test_macro.test_macro_reload import _ADD, _MACRO, _identity, _modified
 from tests.core.test_macro.test_macro_reload import _document as _reload_document
@@ -340,19 +342,11 @@ def test_saving_the_opened_document_updates_the_placements(haystack, macro_file,
     assert _prints(placement) == 1
 
 
-class _ParkedScheduler:
-    """Holds every scheduled validation until the test calls ``force_validation``."""
-
-    def schedule(self, delay_seconds, fn):
-        return MagicMock()
-
-
 def test_an_added_wired_pin_is_connected_after_the_save(haystack, macro_file, tmp_path):
     """The swap precedes the save, so the edge waits on a pin the reload brings.
 
-    The host validates on a debounce, as the running studio's graphs do: a
-    scheduler that validates inline mid-reload clears the card's structural
-    flag before the new pin exists, and the edge is not revisited.
+    The host validates inline, so the card's structural flag is cleared inside
+    each pass and the reload's new pin is still validated.
     """
     path, identity, registry = macro_file
     host = _open_graph(haystack, tmp_path, "host")
@@ -360,7 +354,7 @@ def test_an_added_wired_pin_is_connected_after_the_save(haystack, macro_file, tm
     sibling = make_node(other.graph, _MACRO)
     other.graph.force_validation()
     card_id, _ = _modified_instance(host, grow_pin=True)
-    host.graph._validation._scheduler = _ParkedScheduler()
+    host.graph._validation._scheduler = SyncScheduler()
 
     _update(_ctx(haystack, host, card_id), card_id)
     host.graph.force_validation()
