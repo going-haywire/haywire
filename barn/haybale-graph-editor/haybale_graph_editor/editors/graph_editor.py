@@ -772,7 +772,7 @@ class GraphEditor(BaseEditor):
     def accepts_command(self, context: "SessionContext", command: EditorCommand) -> bool:
         """Accept a command only in level mode ``EDIT``; the two toggles, Select All and Save always pass.
 
-        Save ignores the lock; ``_save_graph`` refuses it below real edit access.
+        Save passes at every level mode; ``_save_graph`` refuses it without edit access.
         """
         if isinstance(command, (ToggleLock, ToggleStageView, SelectAll, Save)):
             return True
