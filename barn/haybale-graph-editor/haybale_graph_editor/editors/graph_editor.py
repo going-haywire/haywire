@@ -234,6 +234,7 @@ class GraphEditor(BaseEditor):
         self._level_panels = None  # ui.tab_panels — one canvas per open level
         self._graph_name_label = None  # ui.label in the header
         self._dirty_marker = None  # ui.label — the unsaved dot beside the path
+        self._save_button: Optional[ui.button] = None  # shown only while the document has unsaved edits
         self._breadcrumb = None  # ui.row — where the active level sits in the tree
         self._undo_button = None  # ui.button — undo
         self._redo_button = None  # ui.button — redo
@@ -1072,7 +1073,7 @@ class GraphEditor(BaseEditor):
                     self._redo_button = hui.icon_action(
                         "redo", tooltip="Redo", on_click=lambda: self._do_redo(context), command=Redo
                     )
-                    hui.icon_action(
+                    self._save_button = hui.icon_action(
                         "save", tooltip="Save", on_click=lambda: self._save_graph(context), command=Save
                     )
 
@@ -1452,6 +1453,8 @@ class GraphEditor(BaseEditor):
             self._graph_name_label.update()
             self._set_dirty_marker(True)
             self._graph_name_label.classes(remove="hw-text-body hw-text-dim", add="hw-text-muted")
+        if self._save_button is not None:
+            self._save_button.set_visibility(document.unsaved)
         self._update_undo_redo_buttons(document)
         self._update_lock_button(context)
         self._update_view_switch(self._levels.get(self._active_level))

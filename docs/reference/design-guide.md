@@ -707,6 +707,11 @@ rail icon with `--hw-slot-bar-bg-active`. An editor toolbar never lights.
   Docs) shows the active slot through its rail icon alone.
 - `panel_header` stays the header of a panel *inside* an editor.
 
+**Rule:** a Save icon in a slot header or editor toolbar shows only while its
+document has something to save — unsaved edits, or text that differs from the
+file — and hides again after a save. A document never saved shows no Save
+until it is edited; Save As stays available. Ctrl+S works either way.
+
 **Rule:** never use a bare Tailwind `border`, `border-b`, `border-t` … class.
 Tailwind 4's preflight leaves its colour `currentColor`, so the line is drawn
 in the text colour — near-white on the dark theme. Write

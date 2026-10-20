@@ -182,14 +182,8 @@ class CodeEditor(BaseEditor):
                     else:
                         self._mode_button = None
 
-                    self._save_button = (
-                        ui.button(
-                            "Save",
-                            icon="save",
-                            on_click=self._save,
-                        )
-                        .props("flat dense size=sm")
-                        .tooltip("Save (overwrites the open file)")
+                    self._save_button = hui.icon_action(
+                        hui.icon.save, tooltip="Save", on_click=self._save, command=Save
                     )
                     (
                         ui.button(
@@ -294,6 +288,8 @@ class CodeEditor(BaseEditor):
     def _update_save_state(self) -> None:
         is_dirty = self._content != self._original
         self.wrapper.set_dirty(is_dirty, refresh=True)
+        if self._save_button is not None:
+            self._save_button.set_visibility(is_dirty)
 
     # ------------------------------------------------------------------
     # save / save-as

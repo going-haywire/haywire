@@ -237,6 +237,7 @@ class ComponentSourceEditor(BaseEditor):
             self._render_pin_banner()
             self._render_conflict_banner()
             self._render_editor(context)
+        self._refresh_chrome()
 
     def _render_header(self) -> None:
         with hui.slot_header():
@@ -259,10 +260,8 @@ class ComponentSourceEditor(BaseEditor):
                 )
             else:
                 self._readonly_badge = None
-                self._save_button = (
-                    ui.button("", icon=hui.icon.save, on_click=self._save)
-                    .props("flat dense size=sm")
-                    .tooltip("Save changes to disk")
+                self._save_button = hui.icon_action(
+                    hui.icon.save, tooltip="Save", on_click=self._save, command=Save
                 )
 
     def _render_pin_banner(self) -> None:
@@ -340,7 +339,7 @@ class ComponentSourceEditor(BaseEditor):
         self._content = new_value
         if not self._pinned and self._content != self._original:
             self._pinned = True
-            self._refresh_chrome()
+        self._refresh_chrome()
 
     @react_on(Save)
     def _on_save(self, context: SessionContext, event: Save) -> None:
@@ -474,3 +473,5 @@ class ComponentSourceEditor(BaseEditor):
             self._pin_banner.set_visibility(self._pinned)
         if self._conflict_banner is not None:
             self._conflict_banner.set_visibility(self._conflict)
+        if self._save_button is not None:
+            self._save_button.set_visibility(self._content != self._original)
