@@ -463,6 +463,9 @@ class VisualLayerHandlers:
                 self.mounting = False
 
             nodes_t = time.perf_counter()
+            # Recounted: the batch below sends the edges the graph has now, and the
+            # client wait must expect exactly those or it runs out its deadline.
+            edge_count = self.included_edge_count()
             if on_nodes_mounted is not None:
                 on_nodes_mounted()
 

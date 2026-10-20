@@ -500,6 +500,27 @@ class TestEdgesWaitForTheNodes:
         assert [e["id"] for e in _edge_batches(handler)[0].edges] == ["e0"]
 
     @pytest.mark.anyio
+    async def test_the_load_waits_for_the_edges_it_sent(self, handler, graph):
+        """An edge removed mid-load is neither drawn nor waited for, so the overlay is not held."""
+        _with_edges(handler, graph, ["e0", "gone"])
+        waited: list[int] = []
+        phases: list[str] = []
+
+        async def _confirm(edge_count):
+            waited.append(edge_count)
+
+        handler._await_client_drawn = _confirm  # type: ignore[method-assign]
+
+        def _progress(mounted: int, _total: int) -> None:
+            if mounted == 2:
+                del graph.edge_wrappers["gone"]
+
+        await handler.sync_with_graph_chunked(on_progress=_progress, on_phase=phases.append)
+
+        assert waited == [1]
+        assert phases == ["Drawing 1 edges…"]
+
+    @pytest.mark.anyio
     async def test_mounting_clears_after_success_and_after_cancellation(self, handler, graph):
         seen: list[bool] = []
         await handler.sync_with_graph_chunked(on_progress=lambda *_: seen.append(handler.mounting))
