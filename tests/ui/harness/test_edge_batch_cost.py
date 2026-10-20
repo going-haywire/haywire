@@ -153,3 +153,40 @@ def test_edge_batch_measures_before_it_draws(page: Page, harness) -> None:
         f"{many} layout reads followed an edge write for {_MANY} edges, against {few} for {_FEW}: "
         f"the batch is measuring and drawing edge by edge (canvas.vue _updateEdges)."
     )
+
+
+#: Counts scans of the form ``querySelector('[id="…"]')``: a full subtree walk in
+#: Firefox (~0.7 ms each on a 512-node canvas), where ``getElementById`` is a lookup.
+ID_SCAN_COUNTER = """
+(() => {
+  window.__idScans = 0;
+  const qs = Element.prototype.querySelector;
+  Element.prototype.querySelector = function (selector) {
+    if (typeof selector === 'string' && selector.startsWith('[id=')) window.__idScans++;
+    return qs.call(this, selector);
+  };
+})();
+"""
+
+
+def _id_scans(page: Page, harness, edges: int) -> int:
+    """Open the fixture with `edges` edges and wait for them; return the id scans it took."""
+    _open_and_count(page, harness, edges)
+    return page.evaluate("() => window.__idScans")
+
+
+def test_drawing_edges_finds_its_elements_without_scanning(page: Page, harness) -> None:
+    """Pins, hit areas and gradients are found by id lookup, not by scanning the canvas.
+
+    Firefox walks the whole subtree for an ``[id="…"]`` selector; on the 512-node graph
+    the edge batch spent 34 s in those scans, drawing nothing until it was done.
+    """
+    page.add_init_script(COUNTER + ID_SCAN_COUNTER)
+
+    few = _id_scans(page, harness, _FEW)
+    many = _id_scans(page, harness, _MANY)
+
+    assert many <= few + 2, (
+        f"{many} [id=…] scans for {_MANY} edges, against {few} for {_FEW}: an edge's elements "
+        f"are being found by scanning the canvas (canvas.vue _liveById / _ownById)."
+    )

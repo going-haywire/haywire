@@ -706,14 +706,25 @@ export default {
 
         /** This canvas's own element whose `id` is `id` (a node holder), found even while detached. */
         _ownById(id) {
-            return this.$el ? this.$el.querySelector(`[id="${id}"]`) : null;
+            if (!this.$el) return null;
+            return this.$el.isConnected ? this._lookupById(id) : this.$el.querySelector(`[id="${id}"]`);
         },
 
         /** This canvas's own element with `id` (pin, edge, hit area, gradient, glow, handle), or null
          *  while the canvas is detached: its pins have no geometry then, so a miss parks the work
          *  until `activated()`. Pin and edge ids repeat in the other view of the same level. */
         _liveById(id) {
-            return this.$el && this.$el.isConnected ? this.$el.querySelector(`[id="${id}"]`) : null;
+            return this.$el && this.$el.isConnected ? this._lookupById(id) : null;
+        },
+
+        /** This attached canvas's element with `id`, or null. `getElementById` is an index
+         *  lookup, while an `[id="…"]` selector walks the subtree (in Firefox, ~0.7 ms per call
+         *  on a large graph); the walk runs only when the document's first match belongs to
+         *  another canvas, since the other view of the same level repeats this canvas's ids. */
+        _lookupById(id) {
+            const hit = document.getElementById(id);
+            if (!hit) return null;
+            return this.$el.contains(hit) ? hit : this.$el.querySelector(`[id="${id}"]`);
         },
 
         /** Return the node's [data-node-id] container and its .ui-node-slot child,
