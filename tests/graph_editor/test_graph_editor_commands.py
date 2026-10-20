@@ -328,15 +328,19 @@ def test_save_is_accepted_on_a_locked_canvas():
     editor._save_graph.assert_called_once_with(context)
 
 
-def test_the_three_saving_editors_bind_mod_s():
+def test_the_four_saving_editors_bind_mod_s():
     from haybale_haystack.editors.haystack_editor import HaystackEditor
     from haybale_studio.editors.code_editor import CodeEditor
+    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
     from haywire.core.signals import Save
     from haywire.ui.keymap import build_keymap
 
-    keymap = build_keymap({"g": GraphEditor, "h": HaystackEditor, "c": CodeEditor}, lambda _tier: True)
+    keymap = build_keymap(
+        {"g": GraphEditor, "h": HaystackEditor, "c": CodeEditor, "s": ComponentSourceEditor},
+        lambda _tier: True,
+    )
 
-    for key in ("g", "h", "c"):
+    for key in ("g", "h", "c", "s"):
         assert keymap.editors[key]["Mod+S"].command is Save
 
 
@@ -355,3 +359,44 @@ def test_haystack_and_code_editors_save_on_the_command():
     code._save = MagicMock()
     code._on_save(context, Save(binding_id="/tmp/a.py"))
     code._save.assert_called_once_with()
+
+
+def _component_source(path, monkeypatch, *, editable: bool) -> Any:
+    from nicegui import ui
+
+    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
+
+    monkeypatch.setattr(ui, "notify", MagicMock())
+
+    path.write_text("old", encoding="utf-8")
+    source: Any = object.__new__(ComponentSourceEditor)
+    source._path = path
+    source._is_editable = editable
+    source._content = "new"
+    source._original = "old"
+    source._pinned = True
+    source._conflict = False
+    source._refresh_chrome = MagicMock()
+    return source
+
+
+def test_component_source_saves_on_the_command(tmp_path, monkeypatch):
+    from haywire.core.signals import Save
+
+    source = _component_source(tmp_path / "toggle.py", monkeypatch, editable=True)
+
+    source._on_save(SimpleNamespace(), Save(binding_id="source"))
+
+    assert (tmp_path / "toggle.py").read_text(encoding="utf-8") == "new"
+    assert source._pinned is False
+
+
+def test_a_read_only_component_source_is_not_saved(tmp_path, monkeypatch):
+    """An installed library's source has no Save button; the key must not write it either."""
+    from haywire.core.signals import Save
+
+    source = _component_source(tmp_path / "toggle.py", monkeypatch, editable=False)
+
+    source._on_save(SimpleNamespace(), Save(binding_id="source"))
+
+    assert (tmp_path / "toggle.py").read_text(encoding="utf-8") == "old"

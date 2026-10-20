@@ -29,8 +29,8 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.core.library.utils import get_registry_id_from_key
 from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import redraw_on, reveal_on
-from haywire.core.signals import RevealComponentSource, Signal
+from haywire.core.session.handlers import react_on, redraw_on, reveal_on
+from haywire.core.signals import RevealComponentSource, Save, Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
@@ -341,6 +341,12 @@ class ComponentSourceEditor(BaseEditor):
         if not self._pinned and self._content != self._original:
             self._pinned = True
             self._refresh_chrome()
+
+    @react_on(Save)
+    def _on_save(self, context: SessionContext, event: Save) -> None:
+        """Write the source to its file, unless it is read-only."""
+        if self._is_editable:
+            self._save()
 
     def _save(self) -> None:
         if self._path is None:

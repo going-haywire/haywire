@@ -212,6 +212,7 @@ Tokens for named shell regions that need colours beyond the generic set.
 | `--hw-statusbar-text`      | StatusBar text colour                       |
 | `--hw-console-bg`          | Console editor background                   |
 | `--hw-console-text`        | Console editor text colour                  |
+| `--hw-slot-bar-bg-active`  | Bars of the active slot (optional; falls back to `--hw-bg-elevated`) |
 | `--hw-popup-shadow`        | Drop shadow for floating popups and menus   |
 
 ### 2.8a Menu-Row Tokens
@@ -473,6 +474,8 @@ the shell geometry is predictable.
 | ActivityBar width    | 48px    | inline style              |
 | ContextBar width     | 48px    | inline style              |
 | Middle tab bar       | 36px    | `min-height` inline style |
+| Slot bar             | 36px    | tab bar row, `hui.slot_header` |
+| Editor toolbar       | 32px    | `hui.editor_toolbar`      |
 | Scope toolbar button | 36×36px | inline style              |
 | Compact field input  | 26px    | `--hw-compact-field-h`    |
 
@@ -683,6 +686,39 @@ Action buttons should be placed inside the `with` block.
 ```python
 with hui.panel_header("Files", icon="folder") as header:
     hui.icon_action("refresh", tooltip="Refresh", on_click=self._refresh)
+```
+
+### 8.1a `hui.slot_header(title=None, icon=None, is_dirty=False)` and `hui.editor_toolbar()`
+
+Every slot has one **slot bar** on top: the shell's tab bar in EDIT and INFO,
+the editor's `hui.slot_header` in ACTION and CONTEXT. Both are 36px,
+`var(--hw-bg-surface)`, with a `--hw-border` line beneath. A second row an
+EDIT or INFO editor draws under the tab bar is an **editor toolbar**:
+`hui.editor_toolbar`, 32px, same background and line.
+
+The **active slot** — the last slot clicked that shows an editor, which takes
+the key presses — lights its slot bar and, in ACTION and CONTEXT, its selected
+rail icon with `--hw-slot-bar-bg-active`. An editor toolbar never lights.
+
+- `slot_header` holds `panel_header`'s icon, dirty dot and title, then the
+  actions inside the `with` block; with no `title` it is empty for the caller
+  to fill (Component Source draws its path there).
+- An ACTION or CONTEXT editor with no header (Properties, Shortcuts, Component
+  Docs) shows the active slot through its rail icon alone.
+- `panel_header` stays the header of a panel *inside* an editor.
+
+**Rule:** never use a bare Tailwind `border`, `border-b`, `border-t` … class.
+Tailwind 4's preflight leaves its colour `currentColor`, so the line is drawn
+in the text colour — near-white on the dark theme. Write
+`border-bottom: 1px solid var(--hw-border)` (`_BORDER` in `elements.py`).
+`tests/ui/test_slot_bars.py` fails on a bare one in an editor or the shell.
+
+```python
+with hui.slot_header("Files", icon="folder"):
+    hui.icon_action("refresh", tooltip="Refresh", on_click=self._refresh)
+
+with hui.editor_toolbar():
+    ui.label(str(path)).classes("text-xs hw-text-muted truncate flex-1")
 ```
 
 ### 8.2 `hui.info_bar(label, badge=None, suffix=None)`
