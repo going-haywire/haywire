@@ -52,6 +52,15 @@ function keepsNativeKeys(target) {
   return isNativeTarget(active) || isInDialog(active) || isInDialog(target);
 }
 
+// Blur and refocus a focused input or textarea, so a field that commits on blur sends its
+// value ahead of the command; the websocket keeps the order. A code editor streams every
+// change and keeps its caret, so it is left alone.
+function commitField(el) {
+  if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return;
+  el.blur();
+  el.focus();
+}
+
 function isVisible(el) {
   return el.offsetParent !== null;
 }
@@ -127,7 +136,10 @@ export default {
     },
 
     onKeyDown(e) {
-      if (e.repeat || keepsNativeKeys(e.target)) return;
+      if (e.repeat) return;
+      const active = document.activeElement;
+      if (isInDialog(active) || isInDialog(e.target)) return;
+      const inField = isNativeTarget(active);
       const combo = comboFromEvent(e, this.isMac);
       if (combo === null) return;
       const root = this.resolveRoot();
@@ -135,10 +147,14 @@ export default {
       const map = this.editorMap(root);
       const commandId = map ? map[combo] : undefined;
       if (!commandId) return;
+      // In a text field only the commands marked `in_text_fields` act; every other key stays the field's.
+      const textFieldCommands = (this.keymap && this.keymap.text_fields) || [];
+      if (inField && !textFieldCommands.includes(commandId)) return;
       // A native-event command runs from its browser event (e.g. `paste`), which needs the default.
       const native = (this.keymap && this.keymap.native) || {};
       if (commandId in native) return;
       e.preventDefault();
+      if (inField) commitField(active);
       this.emitCommand(commandId, root, null, '');
     },
 

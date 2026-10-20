@@ -12,8 +12,8 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import redraw_on, reveal_on
-from haywire.core.signals import RevealSource, Signal
+from haywire.core.session.handlers import react_on, redraw_on, reveal_on
+from haywire.core.signals import RevealSource, Save, Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
@@ -115,6 +115,11 @@ class CodeEditor(BaseEditor):
         Empty body — the decorator triggers wrapper.redraw() after return.
         """
         pass
+
+    @react_on(Save)
+    def _on_save(self, context: "SessionContext", event: Save) -> None:
+        """Save the open file, or ask for a name when it has none."""
+        self._save()
 
     @reveal_on(RevealSource)
     @classmethod

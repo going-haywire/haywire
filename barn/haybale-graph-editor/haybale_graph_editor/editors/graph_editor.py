@@ -51,6 +51,7 @@ from haywire.core.signals import (
     GraphUnsavedChanged,
     Reveal,
     RevealGraphInstance,
+    Save,
     SelectAll,
     SelectionMoved,
     ToggleLock,
@@ -769,8 +770,11 @@ class GraphEditor(BaseEditor):
             self._canvas_manager.delete_selection()
 
     def accepts_command(self, context: "SessionContext", command: EditorCommand) -> bool:
-        """Accept a command only in level mode ``EDIT``; the two toggles and Select All always pass."""
-        if isinstance(command, (ToggleLock, ToggleStageView, SelectAll)):
+        """Accept a command only in level mode ``EDIT``; the two toggles, Select All and Save always pass.
+
+        Save ignores the lock; ``_save_graph`` refuses it below real edit access.
+        """
+        if isinstance(command, (ToggleLock, ToggleStageView, SelectAll, Save)):
             return True
         return self._level_mode() is LevelMode.EDIT
 
@@ -863,6 +867,11 @@ class GraphEditor(BaseEditor):
         self._update_lock_button(context)
         context.session.publish(GraphDataMutated())
         return unlocked
+
+    @react_on(Save)
+    def _on_save(self, context: "SessionContext", event: Save) -> None:
+        """Save the document."""
+        self._save_graph(context)
 
     @react_on(Undo)
     def _on_undo(self, context: "SessionContext", event: Undo) -> None:
@@ -1067,7 +1076,7 @@ class GraphEditor(BaseEditor):
                         "redo", tooltip="Redo", on_click=lambda: self._do_redo(context), command=Redo
                     )
                     hui.icon_action(
-                        "save", tooltip="Save (Ctrl+S)", on_click=lambda: self._save_graph(context)
+                        "save", tooltip="Save", on_click=lambda: self._save_graph(context), command=Save
                     )
 
                 # ---- level bar ----

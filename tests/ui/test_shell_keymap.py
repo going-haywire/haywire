@@ -205,7 +205,7 @@ def test_keymap_rebuilt_on_editor_reload() -> None:
         registry.fire()
 
     assert set_keymap.call_count == 2
-    assert set_keymap.call_args.args[0] == {"editors": {}, "native": {}}
+    assert set_keymap.call_args.args[0] == {"editors": {}, "native": {}, "text_fields": []}
     assert session.context.keymap.commands == {}
 
 

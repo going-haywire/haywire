@@ -57,6 +57,9 @@ class EditorCommand(CommandSignal):
         access: Minimum tier needed for the command to be delivered.
         native_event: Browser event (e.g. ``"paste"``) that must supply the
             command's data instead of the key press; ``None`` for plain key commands.
+        in_text_fields: Whether the command fires while a text field or code
+            editor has focus. A focused ``input`` or ``textarea`` is blurred and
+            refocused first, so its pending value is committed before the command.
         binding_id: The editor binding the command is addressed to.
         position: Pointer position in the editor's own coordinates, if known.
 
@@ -79,6 +82,7 @@ class EditorCommand(CommandSignal):
     default_keys: ClassVar[tuple[str, ...]] = ()
     access: ClassVar[AccessTier] = AccessTier.EDIT
     native_event: ClassVar[Optional[str]] = None
+    in_text_fields: ClassVar[bool] = False
 
     binding_id: str
     position: Optional[tuple[float, float]] = None

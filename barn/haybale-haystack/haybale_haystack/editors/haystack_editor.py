@@ -23,6 +23,7 @@ from haywire.core.signals import (
     GraphUnsavedChanged,
     Reveal,
     RevealGraphInstance,
+    Save,
 )
 from haywire.ui.modals import confirm_modal, pick_modal, rename_modal
 
@@ -95,6 +96,11 @@ class HaystackEditor(BaseEditor):
         ``Close`` lifecycle commands.
         """
         self._on_haystack_teardown(context, event)
+
+    @react_on(Save)
+    def _on_save(self, context: "SessionContext", event: Save) -> None:
+        """Save the loaded haystack in place, or ask for a name when none is loaded."""
+        self._on_save_haystack_in_place(context)
 
     @react_on(RevealGraphInstance)
     def _on_reveal_graph_instance_reopen(

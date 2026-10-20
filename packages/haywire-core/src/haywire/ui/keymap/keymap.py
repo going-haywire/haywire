@@ -87,8 +87,11 @@ class Keymap:
 
         Returns:
             ``{"editors": {editor_key: {combo: command_id}}, "native":
-            {command_id: event_name}}``; ``native`` lists the commands whose data
-            comes from a browser event (see ``EditorCommand.native_event``).
+            {command_id: event_name}, "text_fields": [command_id, ...]}``;
+            ``native`` lists the commands whose data comes from a browser event
+            (see ``EditorCommand.native_event``), ``text_fields`` the commands
+            that fire while a text field has focus (see
+            ``EditorCommand.in_text_fields``), sorted.
         """
         return {
             "editors": {
@@ -100,6 +103,9 @@ class Keymap:
                 for command_id, cmd in self.commands.items()
                 if cmd.native_event is not None
             },
+            "text_fields": sorted(
+                command_id for command_id, cmd in self.commands.items() if cmd.in_text_fields
+            ),
         }
 
     def editor_commands(self, editor_key: str) -> list[type[EditorCommand]]:

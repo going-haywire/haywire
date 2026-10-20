@@ -248,6 +248,7 @@ Check this list first. It is **not** a catalogue of every signal in a running ap
 | `Undo` | `undo` | `Mod+Z` | edit |
 | `Redo` | `redo` | `Mod+Shift+Z`, `Mod+Y` | edit |
 | `SelectAll` | `select_all` | `Mod+A` | view |
+| `Save` | `save` | `Mod+S` (also from a focused text field) | edit |
 
 `Mod` is Cmd on macOS and Ctrl elsewhere. A command that does not apply in the target editor does nothing.
 
@@ -413,7 +414,7 @@ A single subscriber (typically a device driver editor) handles it. Convention is
 
 ### Adding a keyboard command
 
-A keyboard shortcut is an `EditorCommand`. To give your editor a key, subscribe to a command that declares it — one of the eight above, or your own:
+A keyboard shortcut is an `EditorCommand`. To give your editor a key, subscribe to a command that declares it — one of the nine above, or your own:
 
 ```python
 from dataclasses import dataclass
@@ -442,7 +443,7 @@ class MyEditor(BaseEditor):
 ```
 
 - **Subscribing claims the keys.** The keymap is built from the commands each editor class subscribes to; there is no separate registration. The handler runs only for key presses aimed at this editor's binding, from a principal holding `access`.
-- **The editor root needs no work.** Slot tab panels already carry `data-hw-binding`, so a pointer-down anywhere in your editor makes it the **target editor**. Keys typed into a text field, or pressed inside an open dialog, stay with the page.
+- **The editor root needs no work.** Slot tab panels already carry `data-hw-binding`, so a pointer-down anywhere in your editor makes it the **target editor**. Keys typed into a text field, or pressed inside an open dialog, stay with the page; the one exception is a command with `in_text_fields = True` (`Save`), which also fires from a text field, after blurring and refocusing it so a pending value commits first.
 - **Clashes are reported, not raised.** Two commands claiming one combo in the same editor, a browser-reserved combo (`Mod+W`, `Mod+T`, …), a combo that does not parse (see `normalize_combo`), or a `command_id` declared twice each log a warning to the error ledger; see `build_keymap` in `haywire.ui.keymap` for which one wins.
 - **Show the key on the menu row** with `hui.menu_row(..., command=Rotate)` or `hui.icon_action(..., command=Rotate)`; the row's `on_click` still calls the verb itself.
 - **No default uses Alt**, and Alt combinations are not guaranteed across keyboard layouts (outside macOS, Ctrl+Alt is AltGr and is matched on the character it types). Only the first `default_keys` entry is displayed.

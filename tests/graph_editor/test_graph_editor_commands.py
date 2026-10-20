@@ -312,3 +312,46 @@ def test_lock_button_tooltip_names_the_action_a_click_takes():
     editor._levels[DOCUMENT_LEVEL].locked = False
     editor._update_lock_button(_real_context(AccessTier.EDIT))
     assert tooltip.text == "Lock (Ctrl+E)"
+
+
+def test_save_is_accepted_on_a_locked_canvas():
+    """Save needs real edit access, which ``_save_graph`` checks, and ignores the lock."""
+    from haywire.core.signals import Save
+
+    editor, context, document = _editor(MagicMock())
+    editor._levels[DOCUMENT_LEVEL].route = EditRoute(lambda: document.editor, lambda: LevelMode.OPERATE)
+    editor._save_graph = MagicMock()  # type: ignore[method-assign]
+
+    assert editor.accepts_command(cast(Any, context), Save(binding_id=BINDING)) is True
+    editor._on_save(cast(Any, context), Save(binding_id=BINDING))
+
+    editor._save_graph.assert_called_once_with(context)
+
+
+def test_the_three_saving_editors_bind_mod_s():
+    from haybale_haystack.editors.haystack_editor import HaystackEditor
+    from haybale_studio.editors.code_editor import CodeEditor
+    from haywire.core.signals import Save
+    from haywire.ui.keymap import build_keymap
+
+    keymap = build_keymap({"g": GraphEditor, "h": HaystackEditor, "c": CodeEditor}, lambda _tier: True)
+
+    for key in ("g", "h", "c"):
+        assert keymap.editors[key]["Mod+S"].command is Save
+
+
+def test_haystack_and_code_editors_save_on_the_command():
+    from haybale_haystack.editors.haystack_editor import HaystackEditor
+    from haybale_studio.editors.code_editor import CodeEditor
+    from haywire.core.signals import Save
+
+    haystack: Any = object.__new__(HaystackEditor)
+    haystack._on_save_haystack_in_place = MagicMock()
+    context = SimpleNamespace()
+    haystack._on_save(context, Save(binding_id="haystack"))
+    haystack._on_save_haystack_in_place.assert_called_once_with(context)
+
+    code: Any = object.__new__(CodeEditor)
+    code._save = MagicMock()
+    code._on_save(context, Save(binding_id="/tmp/a.py"))
+    code._save.assert_called_once_with()

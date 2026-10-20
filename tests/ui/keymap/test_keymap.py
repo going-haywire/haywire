@@ -252,6 +252,7 @@ def test_to_client_shape():
     assert keymap.to_client() == {
         "editors": {"ed": {"Mod+C": "copy", "Mod+V": "paste"}},
         "native": {"paste": "paste"},
+        "text_fields": [],
     }
 
 
@@ -407,3 +408,36 @@ def test_report_new_logs_invalid_combo_once():
     assert "Hyper+K" in messages[0]
     assert "Mod+W" in messages[1]
     reset_reported_keymap_problems()
+
+
+def test_text_field_commands_reach_the_client():
+    from haywire.core.signals import Save
+
+    class _SaveCopyEditor:
+        identity = _identity("Save Copy")
+
+        @react_on(Save)
+        def _on_save(self, ctx, signal): ...
+
+        @react_on(Copy)
+        def _on_copy(self, ctx, signal): ...
+
+    keymap = build_keymap({"e": _SaveCopyEditor}, _always)
+
+    assert keymap.to_client()["text_fields"] == ["save"]
+
+
+def test_save_is_bound_to_mod_s_only_at_edit():
+    from haywire.core.signals import Save
+
+    class _SaveEditor:
+        identity = _identity("Save")
+
+        @react_on(Save)
+        def _on_save(self, ctx, signal): ...
+
+    editing = build_keymap({"e": _SaveEditor}, _always)
+    viewing = build_keymap({"e": _SaveEditor}, lambda tier: tier is AccessTier.VIEW)
+
+    assert editing.editors["e"]["Mod+S"].command is Save
+    assert "e" not in viewing.editors

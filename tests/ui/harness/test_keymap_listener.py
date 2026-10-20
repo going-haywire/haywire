@@ -91,12 +91,12 @@ def test_unclaimed_key_not_prevented(page: Page, harness):
     _open(page, harness)
     page.evaluate(
         """() => window.addEventListener('keydown', e => {
-            if (e.key === 's') window.__hwProbe = e.defaultPrevented;
+            if (e.key === 'k') window.__hwProbe = e.defaultPrevented;
         })"""
     )
     _click_root(page, _TWO)
 
-    page.keyboard.press("Control+s")
+    page.keyboard.press("Control+k")
 
     assert page.evaluate("() => window.__hwProbe") is False
     _expect_only_sentinel(page)
@@ -292,5 +292,57 @@ def test_altgr_character_keeps_its_glyph(page: Page, harness):
     _click_root(page, _TWO)
 
     _dispatch_keydown(page, "key: '\\u0142', code: 'KeyL', ctrlKey: true, altKey: true")
+
+    _expect_only_sentinel(page)
+
+
+def _probe_default_prevented(page: Page, key: str) -> None:
+    page.evaluate(
+        """(key) => window.addEventListener('keydown', e => {
+            if (e.key === key && e.ctrlKey) window.__hwProbe = e.defaultPrevented;
+        })""",
+        key,
+    )
+
+
+def test_save_fires_inside_a_text_field(page: Page, harness):
+    _open(page, harness)
+    _probe_default_prevented(page, "s")
+
+    page.locator(f"{_ONE} input").first.focus()
+    page.keyboard.press("Control+s")
+
+    expect(page.locator("#last-command")).to_have_text("save@ed::one")
+    assert page.evaluate("() => window.__hwProbe") is True
+
+
+def test_save_blurs_the_field_before_the_command(page: Page, harness):
+    _open(page, harness)
+    field = page.locator("#commit-field")
+
+    field.focus()
+    page.keyboard.type("new value")
+    page.keyboard.press("Control+s")
+
+    expect(page.locator("#command-log")).to_have_text("blur,save@ed::one")
+    assert field.evaluate("el => document.activeElement === el")
+
+
+def test_save_keeps_focus_in_a_code_editor(page: Page, harness):
+    _open(page, harness)
+    code = page.locator("#code-field")
+
+    code.focus()
+    page.keyboard.press("Control+s")
+
+    expect(page.locator("#command-log")).to_have_text("save@ed::one")
+    assert code.evaluate("el => document.activeElement === el")
+
+
+def test_save_inside_a_dialog_is_native(page: Page, harness):
+    _open(page, harness)
+
+    page.locator("#dialog-button").focus()
+    page.keyboard.press("Control+s")
 
     _expect_only_sentinel(page)

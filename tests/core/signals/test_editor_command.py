@@ -89,3 +89,14 @@ def test_the_graph_editor_keymap_binds_toggle_stage_view_without_conflict():
 
     assert ToggleStageView in keymap.editor_commands("graph")
     assert (keymap.reserved, keymap.invalid, keymap.duplicate_ids) == ((), (), ())
+
+
+def test_save_is_an_edit_command_that_fires_in_text_fields():
+    from haywire.core.access.tier import AccessTier
+    from haywire.core.signals import EditorCommand, Save
+
+    assert issubclass(Save, EditorCommand)
+    assert (Save.command_id, Save.label, Save.default_keys) == ("save", "Save", ("Mod+S",))
+    assert Save.access is AccessTier.EDIT
+    assert Save.in_text_fields is True
+    assert EditorCommand.in_text_fields is False

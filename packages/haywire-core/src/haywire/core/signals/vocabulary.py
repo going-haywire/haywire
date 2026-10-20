@@ -555,6 +555,16 @@ class Redo(EditorCommand):
 
 
 @dataclass(frozen=True, kw_only=True)
+class Save(EditorCommand):
+    """Save the focused editor's document; it also fires from a focused text field."""
+
+    command_id: ClassVar[str] = "save"
+    label: ClassVar[str] = "Save"
+    default_keys: ClassVar[tuple[str, ...]] = ("Mod+S",)
+    in_text_fields: ClassVar[bool] = True
+
+
+@dataclass(frozen=True, kw_only=True)
 class SelectAll(EditorCommand):
     """Select everything in the focused editor."""
 
@@ -613,6 +623,7 @@ __all__ = [
     "Delete",
     "Undo",
     "Redo",
+    "Save",
     "SelectAll",
     "ToggleLock",
     "ToggleStageView",

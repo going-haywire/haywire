@@ -2317,9 +2317,11 @@ def register_routes(library_service) -> None:
                         "Mod+V": "paste",
                         "Mod+C": "copy",
                         "Mod+Alt+L": "alt_l",
+                        "Mod+S": "save",
                     }
                 },
                 "native": {"paste": "paste"},
+                "text_fields": ["save"],
             }
         )
 
@@ -2328,6 +2330,17 @@ def register_routes(library_service) -> None:
             with ui.element("div").props('data-hw-binding="ed::one" data-hw-editor="ed"').style(root_style):
                 ui.element("input").props('type="text"')
                 ui.element("div").props("data-hw-pointer-local").style("width: 40px; height: 20px;")
+                # A field that commits on blur, as a commit-mode TextWidget does; its blur reaches the log.
+                commit_field = ui.element("textarea").props('id="commit-field"')
+
+                def on_blur() -> None:
+                    log.append("blur")
+                    command_log.set_text(",".join(log))
+
+                commit_field.on("blur", on_blur)
+                ui.element("div").classes("cm-editor").props('contenteditable="true" id="code-field"').style(
+                    "min-height: 20px;"
+                )
             ui.element("div").props('data-hw-binding="ed::two" data-hw-editor="ed"').style(root_style)
         with ui.element("div").classes("q-dialog").props('id="fake-dialog"'):
             ui.element("button").props('id="dialog-button" type="button"')
