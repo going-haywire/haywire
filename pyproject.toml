@@ -109,7 +109,7 @@ check_untyped_defs = true
 
 [tool.ruff]
 line-length = 109
-exclude = ["playground/"]
+exclude = ["playground/", ".scratch/"]
 
 [tool.ruff.lint]
 # PT (flake8-pytest-style) and B (bugbear) catch problems neither mypy nor the

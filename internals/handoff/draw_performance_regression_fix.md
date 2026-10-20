@@ -3,12 +3,14 @@ name: draw-performance-regression-fix
 description: Handoff — opening the 512-node graph got ~5 s slower (17 s → 22 s) at edd6ee50, where _claim_session_state started clearing the selection and publishing SelectionMoved; NodeWriteGate and the canvas.vue lookup scoping are cleared
 metadata:
   type: project
-  status: open
+  status: done
 ---
 
 # Handoff — draw-performance regression: the selection clear in `_claim_session_state`
 
-**Status:** diagnosed by bisection on 2026-10-16. The mechanism is not yet proven and nothing is fixed. The work is on branch `feat/editor-modes-slice1` (head `83a65e8f`, slice 5a squashed). It does not block slice 5b.
+**Resolved 2026-10-20** on branch `fix/session-lifetime-and-large-graph-load`. The hypothesis held: `_clear_selection` published `SelectionMoved` even when the selection was already empty, and every subscribing panel redrew for it during the load. It now publishes only when it cleared something (`90542797`). Metric A on the 512-node graph went from 23.0 s to 16.7 s; the same branch then took it to about 12 s in Chrome and Firefox (edges after nodes, a measure-then-draw edge batch, and id lookups that Firefox does not turn into subtree scans). The 17 s baseline item below (step 5) was not part of the fix; what remains of the load is the per-message Vue render walk.
+
+**Status (original):** diagnosed by bisection on 2026-10-16. The mechanism is not yet proven and nothing is fixed. The work is on branch `feat/editor-modes-slice1` (head `83a65e8f`, slice 5a squashed). It does not block slice 5b.
 
 Line references are from 2026-10-16. Check them before you rely on them.
 
