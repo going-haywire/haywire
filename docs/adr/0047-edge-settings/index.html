@@ -3128,7 +3128,7 @@
 <p><strong>Consequences.</strong></p>
 <ul>
 <li>A library defines a styled wire with two classes: an <code>EdgeSettings</code> subclass and a wire type naming it.</li>
-<li>Style edits are not undoable, like node and graph settings edits.</li>
+<li>Style edits are undoable in level mode <code>edit</code>: one step per edit, and a form edit across many edges is one step (ADR 0055).</li>
 <li>Splitting or dissolving a reroute on a styled edge does not carry its style.</li>
 <li>An edge that fails validation draws unstyled until it validates again.</li>
 </ul>

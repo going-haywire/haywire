@@ -3118,6 +3118,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-2026-10-13-editor-modes-slice-2-enter-and-look-inside" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (2026-10-13) — editor modes, slice 2: Enter and look inside
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3221,10 +3232,12 @@ touched them; a pin that is gone drops its edges to the ghost pin.</p>
   — so collapsing a selection into a Group would build a macro card instead.</p>
 </li>
 <li>
-<p><strong>Descending into a placement is refused</strong>, and opens the macro document
-  instead. There is nothing in the interior a user may edit in place: it is
-  rebuilt from the template on the next load or save. Looking inside a running
-  placement waits on a read-only editor mode.</p>
+<p><strong>Entering a placement opens its live interior, locked.</strong> Enter shows the
+  running interior as a level. Nothing in it may be edited in place — it is
+  rebuilt from the template on the next load or save — so the level opens locked
+  and cannot be unlocked until Edit Instance exists. Interior values stay
+  operable (<code>operate</code>) and are never saved. The level follows a <code>.hwm</code> reload
+  instead of closing. See the amendment below.</p>
 </li>
 <li>
 <p><strong>Promotion writes a file and swaps a card, in one undoable group.</strong> "Promote to
@@ -3235,6 +3248,16 @@ touched them; a pin that is gone drops its edges to the ghost pin.</p>
   on disk is not the undo stack's to remove.</p>
 </li>
 </ul>
+<h2 id="amendment-2026-10-13-editor-modes-slice-2-enter-and-look-inside">Amendment (2026-10-13) — editor modes, slice 2: Enter and look inside<a class="headerlink" href="#amendment-2026-10-13-editor-modes-slice-2-enter-and-look-inside" title="Permanent link">&para;</a></h2>
+<p>The original decision here was that descending into a placement is refused and opens the macro document instead, because there was nothing in the interior a user may edit in place, and looking inside a running placement "waits on a read-only editor mode". That reasoning about editing stands. The wait is over: the canvas lock (ADR 0051) is the read-only mode, and slice 2 of the editor-modes work uses it.</p>
+<ul>
+<li><strong>Enter works on a placement.</strong> The context-menu row <strong>Enter</strong> (it replaces "Enter Group") and a double-click on a Graph-node card both open the interior as a level. The double-click needs level mode <code>operate</code> (a locked canvas is <code>operate</code>, so it works there; a <code>view</code> session stays on the document level), unless it lands on an interactive widget or a pin.</li>
+<li><strong>One rule decides "inside a placement".</strong> A level whose container chain passes through a definition with <code>template_key</code> set is inside a placement. Such a level opens locked, and unlocking it is refused with "Inside a macro placement this level stays locked. Use Edit Macro… to change the macro." The rule is applied where the editor makes a level, so Enter, the error-ledger reveal and a Group nested in a placement all get it.</li>
+<li><strong>Interior values are runtime state.</strong> They remain operable on the locked level, are never saved, and do not mark the host unsaved or reassemble it. Structural changes still reassemble the host.</li>
+<li><strong>An open level follows a reload.</strong> When the <code>.hwm</code> reloads, the level re-points to the new interior and stays open, active and locked; nested levels follow if their key still resolves and close otherwise; the level closes if the placement is gone.</li>
+</ul>
+<p>Changing the macro from a placement (Edit Instance) is not part of this slice; Edit Macro… opens the macro document.</p>
+<p><strong>Amended by <a href="../0052-instance-edit-by-detach-with-origin/">ADR 0052</a>:</strong> Edit Instance is built. Unlocking a placement's own level detaches it into a Group with an origin; deeper levels keep the refusal above.</p>
 
 
 

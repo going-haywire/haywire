@@ -5885,6 +5885,13 @@ does not appear), so it reports itself the first time anyone hits it.</p>
 <p>Local to the graph canvas and ordered <em>within its own stacking context</em>, so it
 never competes with the overlay ladder despite larger raw numbers. Edge SVG &lt;
 node container &lt; selected node &lt; resize gadget &lt; marquee &lt; canvas overlays.</p>
+<p>Inside the node container a card's z-index is its <strong>stacking order</strong> rank
+(<code>0</code> up, written by <code>UINode</code>), so the lifts above the cards start high:
+<code>--hw-z-canvas-selected</code> 1000000, <code>--hw-z-canvas-hover</code> 1000001,
+<code>--hw-z-canvas-gadget</code> 1000002, the edge handles 1000003. A stage canvas
+(<code>data-hw-stage</code>) skips the selected, hover and drag lifts.</p>
+<p><strong>Rule:</strong> never write a z-index on a card from JS or a skin — it is the
+stacking rank. Lift with a class, as <code>.dragging-node</code> does.</p>
 <p>Pin-interior values (<code>10000</code>+ on <code>.connection-pin</code>) are <strong>trapped inside a
 node</strong> and rank nothing outside it — a pin's 10000 does not beat the resize
 gadget's 1002. Magnitude here implies no cross-context rank; see the comments
@@ -6263,17 +6270,17 @@ the shell geometry is predictable.</p>
 </tbody>
 </table>
 <h3 id="45-compact-fields-system">4.5 Compact-Fields System<a class="headerlink" href="#45-compact-fields-system" title="Permanent link">&para;</a></h3>
-<p>Settings panels use a container-query–based responsive layout system that
-compresses label/widget rows for dense display. This is distinct from ordinary
-<code>gap-1</code> padding — it activates a CSS container context and responsive classes.</p>
+<p>Settings panels use a compact layout system for dense label/widget rows: tight
+Quasar fields, and a label that takes half the row up to a maximum width
+(<code>--hw-max-label-width</code>, default 9rem) while the widget takes the rest. So a row
+is split 50/50 until it is twice the maximum wide, then only the widget grows.
+A widget node's stage face uses the same rule and sets the maximum per node.</p>
 <p><strong>How to use:</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full gap-0 compact-fields&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">style</span><span class="p">(</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="s2">&quot;container-type: inline-size; container-name: settings-panel;&quot;</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p">):</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="c1"># Each row uses _ROW_CLASSES = &quot;w-full items-center justify-between gap-0 px-2&quot;</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">row</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full items-center justify-between gap-0 px-2&quot;</span><span class="p">):</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">ui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">&quot;My Field&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;text-xs truncate sf-label&quot;</span><span class="p">)</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">my_widget</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;sf-widget&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full gap-0 compact-fields&quot;</span><span class="p">):</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="c1"># Each row uses _ROW_CLASSES = &quot;w-full items-center justify-between gap-0 px-2&quot;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">row</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full items-center justify-between gap-0 px-2&quot;</span><span class="p">):</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        <span class="n">ui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">&quot;My Field&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;text-xs truncate sf-label&quot;</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="n">my_widget</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;sf-widget&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p><strong>CSS classes in this system:</strong></p>
 <table>
@@ -6286,15 +6293,15 @@ compresses label/widget rows for dense display. This is distinct from ordinary
 <tbody>
 <tr>
 <td><code>compact-fields</code></td>
-<td>Applied to the outer column. Activates container context.</td>
+<td>Applied to the outer column. Tightens the Quasar fields inside.</td>
 </tr>
 <tr>
 <td><code>sf-label</code></td>
-<td>Label cell. Responsive width — shrinks at narrow container.</td>
+<td>Label cell: <code>min(50%, var(--hw-max-label-width, 9rem))</code> wide.</td>
 </tr>
 <tr>
 <td><code>sf-widget</code></td>
-<td>Widget cell. Takes remaining space; right-aligned.</td>
+<td>Widget cell. Takes the remaining space.</td>
 </tr>
 </tbody>
 </table>
@@ -6312,6 +6319,11 @@ compresses label/widget rows for dense display. This is distinct from ordinary
 <td><code>--hw-compact-field-h</code></td>
 <td>26px</td>
 <td>Fixed input height for compact widgets.</td>
+</tr>
+<tr>
+<td><code>--hw-max-label-width</code></td>
+<td>9rem</td>
+<td>The widest an <code>sf-label</code> gets; set on a row or any ancestor.</td>
 </tr>
 <tr>
 <td><code>--hw-compact-gap</code></td>

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="One watertight no-access/access boundary at a pure-ASGI gate, with view/edit/admin tiers inside it that guard against ignorance rather than malice — because an edit principal can author a Python node">
+        <meta name="description" content="One watertight no-access/access boundary at a pure-ASGI gate, with view/operate/edit/admin tiers inside it that guard against ignorance rather than malice — because an edit principal can author a Python node">
       
       
       
@@ -3251,7 +3251,7 @@ allowlist (ADR 0026) decide <em>from where</em> the studio can be reached; nothi
 decides <em>who</em> is reaching it. This adds that, off by default.</p>
 <h2 id="the-boundary-and-the-thing-that-is-not-a-boundary">The boundary, and the thing that is not a boundary<a class="headerlink" href="#the-boundary-and-the-thing-that-is-not-a-boundary" title="Permanent link">&para;</a></h2>
 <p><strong>There is exactly one watertight line: <code>no-access</code> vs <code>access</code>.</strong> Everything
-behind it — <code>view</code>, <code>edit</code>, <code>admin</code> — is a guard against ignorance, not
+behind it — <code>view</code>, <code>operate</code>, <code>edit</code>, <code>admin</code> — is a guard against ignorance, not
 against malice.</p>
 <p>This is not modesty about the implementation; it follows from what the product
 is. A graph executes arbitrary Python in-process. A principal who can add a
@@ -3260,10 +3260,16 @@ node can therefore read <code>~/.haywire/auth.json</code>, rewrite the hashes, r
 already <code>admin</code> at the machine level, and any design that spent effort
 enforcing <code>edit &lt; admin</code> as a containment boundary would be spending it on a
 wall with no building attached.</p>
-<p>What the tiers <em>do</em> buy is real and worth building: a <code>view</code> principal cannot
-mutate anything, because every mutating path is server-side and every
-affordance that reaches one is hidden. During a live show, that is the property
-that matters — the wrong click cannot happen because the control is not there.</p>
+<p>What the tiers <em>do</em> buy is real and worth building: a <code>view</code> principal changes
+nothing through the studio's main surfaces. User edits take the edit route,
+which refuses below the level mode it needs, except the few edits
+<a href="../0055-every-user-edit-takes-the-edit-route/">ADR 0055</a> lists as still writing
+directly, and the browser gates card content as a second layer
+(<a href="../0051-operate-tier-and-the-canvas-lock/">ADR 0051</a>). Editors and panels need <code>edit</code> unless they declare
+<code>view</code>, so a surface that forgets to declare is hidden.
+During a live show, that is the property that matters — the wrong click cannot
+happen because the control is not there. The tiers guard against accidents, not
+malice (see the <a href="../../guides/security/">security guide</a>).</p>
 <p>The corollary is that the front door carries all the weight, and it has to have
 no side entrances.</p>
 <h2 id="one-gate-two-credentials">One gate, two credentials<a class="headerlink" href="#one-gate-two-credentials" title="Permanent link">&para;</a></h2>
@@ -3332,7 +3338,7 @@ the canvas hot path to catch.</p>
 <h2 id="layering-vocabulary-in-core-mechanism-in-studio-ui-in-a-library">Layering: vocabulary in core, mechanism in studio, UI in a library<a class="headerlink" href="#layering-vocabulary-in-core-mechanism-in-studio-ui-in-a-library" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong><code>haywire.core.access</code></strong> — the <code>AccessTier</code> enum, <code>SessionContext.principal</code>,
-  and <code>can_view()</code> / <code>can_edit()</code> / <code>can_admin()</code> / <code>can_access(tier)</code>. No
+  and <code>can_view()</code> / <code>can_edit()</code> / <code>can_admin()</code> / <code>can_access(tier)</code> (the ladder is <code>view</code> &lt; <code>operate</code> &lt; <code>edit</code> &lt; <code>admin</code> since ADR 0051). No
   files, no crypto, no ASGI. Core must own the vocabulary because
   <code>@panel(access=…)</code> and <code>@editor(access=…)</code> are core decorators; a studio-owned
   enum would make core import studio.</li>

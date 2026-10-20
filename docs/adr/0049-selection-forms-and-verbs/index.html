@@ -3121,7 +3121,7 @@
 </ul>
 <p><strong>Consequences.</strong></p>
 <ul>
-<li>Editing a setting is not undoable; with the neutral form one edit reaches many elements. This is a framework-wide gap, not addressed here.</li>
+<li>Editing a setting in level mode <code>edit</code> is undoable: one step per edit, and an edit through the neutral form across many elements is one step (ADR 0055).</li>
 <li>Right-clicking an edge outside the selection now replaces the selection with that edge, as it already did for a node, so the edge menu's Style flyout always concerns that one edge.</li>
 <li>A toolbar icon (<code>hui.flyout</code> / <code>hui.dropdown</code>) at a host's top level counts as content once its body drew something, so a toolbar of hosting icons alone (an edge selection) still shows.</li>
 </ul>

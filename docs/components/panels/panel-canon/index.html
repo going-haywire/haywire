@@ -3686,8 +3686,8 @@
 <tr>
 <td><code>access</code></td>
 <td>no</td>
-<td><code>AccessTier.VIEW</code></td>
-<td>Minimum <code>AccessTier</code> to see this panel — see <a href="../../../adr/0027-studio-authentication/">ADR 0027</a>.</td>
+<td><code>AccessTier.EDIT</code></td>
+<td>Minimum <code>AccessTier</code> (<code>VIEW</code> &lt; <code>OPERATE</code> &lt; <code>EDIT</code> &lt; <code>ADMIN</code>) to see this panel — see <a href="../../../adr/0027-studio-authentication/">ADR 0027</a>. A panel that does not declare is hidden below <code>edit</code>; declare <code>view</code> for a panel a principal below <code>edit</code> must reach, such as an account-menu entry.</td>
 </tr>
 </tbody>
 </table>

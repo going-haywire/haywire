@@ -1900,6 +1900,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#what-each-tier-and-the-lock-allow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What each tier and the lock allow
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3653,6 +3664,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#what-each-tier-and-the-lock-allow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What each tier and the lock allow
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3777,8 +3799,8 @@ the allowed range:</p>
 <ul>
 <li><strong>The studio UI itself.</strong> Full graph editing is <strong>arbitrary code
   execution</strong> — a graph runs Python in-process. Anyone who can reach the UI
-  and authenticate as an  <code>view</code>, <code>edit</code> or <code>admin</code> principal is a full operator.
-  There is no sandbox around what a graph can do. <code>view</code>, <code>edit</code> or <code>admin</code> are only UI roles, not fine granular execution permissions. They are meant to prevent accidental changes, not to prevent malicious intent.</li>
+  and authenticate as a <code>view</code>, <code>operate</code>, <code>edit</code> or <code>admin</code> principal can run
+  arbitrary code. There is no sandbox around what a graph can do. <code>view</code>, <code>operate</code>, <code>edit</code> and <code>admin</code> are only UI roles, not fine granular execution permissions. They are meant to prevent accidental changes, not to prevent malicious intent.</li>
 <li><strong><code>/api/code-intel/complete</code>, <code>/info</code>, <code>/hover</code>.</strong> Unauthenticated by
   design (they back inline editor autocomplete). <code>_confined_path()</code>
   (<code>code_intelligence.py</code>) restricts the <code>path</code> argument to the current
@@ -4099,11 +4121,11 @@ hand). It makes the realistic failure unreachable: turning on authentication
 with a roster whose passwords nobody remembers, on a machine whose UI is
 now the only way to fix it.</p>
 <h3 id="managing-principals">Managing principals<a class="headerlink" href="#managing-principals" title="Permanent link">&para;</a></h3>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--tier<span class="w"> </span><span class="o">{</span>view,edit,admin<span class="o">}</span><span class="w">              </span><span class="c1"># a password-holding user</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--agent<span class="w"> </span>--tier<span class="w"> </span><span class="o">{</span>view,edit,admin<span class="o">}</span><span class="w">      </span><span class="c1"># a token-holding agent</span>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--tier<span class="w"> </span><span class="o">{</span>view,operate,edit,admin<span class="o">}</span><span class="w">      </span><span class="c1"># a password-holding user</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--agent<span class="w"> </span>--tier<span class="w"> </span><span class="o">{</span>view,operate,edit,admin<span class="o">}</span><span class="w"> </span><span class="c1"># a token-holding agent</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--agent<span class="w"> </span>--tier<span class="w"> </span>edit<span class="w"> </span>--workspace<span class="w"> </span>&lt;path&gt;<span class="w"> </span><span class="c1"># scoped to one project</span>
 </span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>list
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>tier<span class="w"> </span>&lt;name&gt;<span class="w"> </span><span class="o">{</span>view,edit,admin<span class="o">}</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>tier<span class="w"> </span>&lt;name&gt;<span class="w"> </span><span class="o">{</span>view,operate,edit,admin<span class="o">}</span>
 </span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>passwd<span class="w"> </span>&lt;name&gt;
 </span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>remove<span class="w"> </span>&lt;name&gt;
 </span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>auth<span class="w"> </span>status
@@ -4123,15 +4145,17 @@ surfaces can never disagree about who's allowed in.</p>
 with <code>claude mcp add --transport http farmhand http://127.0.0.1:8124/mcp
 --header "Authorization: Bearer &lt;token&gt;"</code>, or with no header at all when
 authentication is off.</p>
-<div class="admonition warning">
-<p class="admonition-title">Known gap: the graph canvas does not enforce the view tier yet</p>
-<p>In the graph canvas, a <code>view</code> principal can still delete, paste and move
-nodes through the context menus, the selection toolbar and mouse gestures.
-Keyboard commands are tier-gated (ADR 0050) — Delete, Paste or Undo from a
-<code>view</code> session does nothing — but the menus and gestures are not gated
-yet. Until they are, treat <code>view</code> as "not expected to edit", not as "cannot
-edit".</p>
-</div>
+<h3 id="what-each-tier-and-the-lock-allow">What each tier and the lock allow<a class="headerlink" href="#what-each-tier-and-the-lock-allow" title="Permanent link">&para;</a></h3>
+<p>Tiers are cumulative: <code>view</code> &lt; <code>operate</code> &lt; <code>edit</code> &lt; <code>admin</code>.</p>
+<ul>
+<li><strong><code>view</code></strong> sees the graph, haystack, component docs, errors, log, shortcuts, activity and file editors. It can pan and zoom on the document level and select a haystack entry to look at it. It can select nodes and edges on the canvas (click, Shift-click, box select, <code>Mod+A</code>), which points Component Docs at the selected node, but cannot act on the selection, enter a Group, change a value, or start a graph; the Properties editor needs <code>edit</code>. The read-only affordances on cards (the diagnostics badge and its menu, the comment, pin tooltips) work at every tier.</li>
+<li><strong><code>operate</code></strong> can additionally enter Groups and macro placements, change values on the operable widgets on node cards and the stage, and start and stop a graph in the haystack. It can select but cannot copy, has no context menus, no selection toolbar, no paste, cut, delete or duplicate, no Undo/Redo, no Properties writes, and cannot unlock.</li>
+<li><strong><code>edit</code></strong> can copy and act on the selection, change the graph and its settings, use the Properties editor's writable panels, and save, the workspace layout included (one file per project). <strong><code>admin</code></strong> can also manage principals.</li>
+</ul>
+<p>The <strong>lock</strong> is a per-session, per-level switch (the document, an entered Group or a macro placement), never saved. The header lock button or <code>Mod+E</code> toggles it; unlocking needs the real <code>edit</code> tier. A locked level caps the session's level mode at <code>operate</code> for that level and keeps its selection; the cap never raises a lower tier. A graph can ask for a level to start locked (<code>open_locked</code>); a level inside a macro placement always opens locked, and a placement's own level unlocks only through Edit Instance (which detaches the placement and needs <code>edit</code>); deeper levels stay refused. Revert to Macro, Update Macro… and Save new Macro… also need <code>edit</code>. Save needs the principal's real <code>edit</code> tier and ignores the lock; this holds in the graph editor header and in the haystack editor's entry Save and Save-as and its header Save and Save As. Stage view adds no rule of its own: the lock and the tiers apply in both views alike. An unlocked stage view allows every edit patch view allows, at the same level mode, and a locked stage view caps the session at <code>operate</code> like a locked patch view. The view switch itself needs only <code>view</code>. Delete is not remapped: in stage view it deletes the node from the graph. See <a href="../../adr/0054-the-stage-view/">ADR 0054</a>. Agents are not subject to the lock; the <code>graph_editor_operate</code> tool writes a value to a shown widget at <code>operate</code>. See <a href="../../adr/0051-operate-tier-and-the-canvas-lock/">ADR 0051</a> and <a href="../../adr/0052-instance-edit-by-detach-with-origin/">ADR 0052</a>.</p>
+<p>Enforcement has two layers. On the server, canvas handlers declare a level mode (a refused drag or resize snaps back), context menus and the selection toolbar do not open below level mode <code>edit</code>, and every user edit takes the edit route, which refuses an edit the session's level mode does not allow (see <a href="../../adr/0055-every-user-edit-takes-the-edit-route/">ADR 0055</a>). In the browser, each canvas carries its level mode: below <code>edit</code> it starts no editing gesture and card content takes no pointer input, except the read-only affordances (diagnostics badge, comment, pin tooltips) in every mode and, from <code>operate</code> on, the operable widgets. The route is the refusal that counts; the browser gate is a second layer against accidents, and it is not access control: <code>pointer-events</code> does not stop keyboard focus. A fold opens and closes from <code>operate</code> on; an annotation's text needs <code>edit</code>, because it is declared <code>operable=False</code>.</p>
+<p>Editors and panels need <code>edit</code> unless they declare otherwise, so a surface that forgets to declare is hidden below <code>edit</code>. In the haystack editor, every action other than selecting an entry needs <code>edit</code>, except Start and Stop, which need <code>operate</code>; a control is not drawn below its tier, and its handler refuses too.</p>
+<p>These are UI roles against accidents, not a sandbox: do not read <code>view</code> as "cannot mutate anything".</p>
 <h2 id="10-the-security-document">10. The security document<a class="headerlink" href="#10-the-security-document" title="Permanent link">&para;</a></h2>
 <p>Everything in this guide is one axis of <code>~/.haywire/security.json</code>: mode
 <code>0600</code>, three blocks (<code>auth</code>, <code>network</code>, <code>farmhand</code>), one file. It is
@@ -4158,13 +4182,14 @@ alone cannot each independently produce.</p>
 <h2 id="11-no-sandbox-no-multi-tenancy">11. No sandbox, no multi-tenancy<a class="headerlink" href="#11-no-sandbox-no-multi-tenancy" title="Permanent link">&para;</a></h2>
 <p>The studio is one process, one filesystem, with no sandbox between whoever
 reaches it and the host machine it runs on. Authentication adds <em>who</em> a
-connection is — separate view/edit/admin principals with their own
+connection is — separate view/operate/edit/admin principals with their own
 identity — but not <em>isolation</em>: there is no "read-only copy of the studio"
 and no per-graph, per-node or per-file permission. Every principal who can
 reach the studio sees the same live graphs, the same running execution and
-the same haystack; a <code>view</code> principal simply cannot mutate them. None of the
-settings in this guide add a sandbox around the graph editor — a principal
-who can edit a graph holds the authority of the studio process, by design.
+the same haystack; a <code>view</code> principal cannot mutate them through the
+studio's surfaces. None of the settings in this guide add a sandbox
+around the graph editor — a principal who can edit a graph holds the
+authority of the studio process, by design.
 See <a href="../../adr/0026-studio-network-exposure/#consequences">ADR-0026</a> and
 <a href="../../adr/0027-studio-authentication/#explicit-non-goals">ADR-0027's non-goals</a>
 for the full framing.</p>

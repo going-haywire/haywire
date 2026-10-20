@@ -3738,7 +3738,7 @@ through <code>rejig()</code> keeps whatever arrangement the user set, and a port
 a new version of a library appends rather than landing at its declared
 position — so reordering a node's <code>init()</code> calls does not move ports on graphs
 already saved.</p>
-<p>Reordering is not undoable. A bad drop is repaired by dragging back.</p>
+<p>Reordering is one undo step per drop.</p>
 <h3 id="swinglets">Swinglets<a class="headerlink" href="#swinglets" title="Permanent link">&para;</a></h3>
 <p>A swinglet is a port that may be either end of an edge, on any wire type: <code>T.as_swinglet(id, **kwargs)</code>. A link can leave it or arrive at it, so a card needs one pin where an inlet/outlet pair would need two. Compound and wrapper types are subscripted first (<code>ArrayType[FLOAT].as_swinglet('numbers')</code>); a pooled type refuses it. <code>as_swinglet</code> defaults to <code>store_strategy = HAS_WIDGET | NODE_SET</code> and <code>show_widget = NOT_LINKED</code>; a type's own declaration wins. The design is in <a href="../../adr/0048-swinglets/">ADR 0048</a>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_swinglet</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
@@ -4055,7 +4055,7 @@ already saved.</p>
 </tr>
 </tbody>
 </table>
-<p>For declarative settings instead of config ports, see <a href="../../components/settings/setting-canon/">components/settings</a>. For the lifecycle hooks that surround <code>worker()</code> (<code>init</code>, <code>post_init</code>, <code>on_validate</code>, etc.), see <a href="../../components/nodes/node-canon/">components/nodes</a>. For the dynamic <code>rejig()</code> pattern that adds and removes ports based on a config value, see <a href="../../components/nodes/node-canon/#3-important-concepts">components/nodes §3</a>.</p>
+<p>For declarative settings instead of config ports, see <a href="../../components/settings/setting-canon/">components/settings</a>. For the lifecycle hooks that surround <code>worker()</code> (<code>init</code>, <code>post_init</code>, <code>on_validate</code>, etc.), see <a href="../../components/nodes/node-canon/">components/nodes</a>. For the dynamic <code>rejig()</code> pattern that adds and removes ports based on a config value, see <a href="../../components/nodes/node-canon/#7-changing-ports-at-runtime">components/nodes §7</a>.</p>
 <hr />
 <h2 id="quick-reference">Quick reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
 <h3 id="port-creation">Port creation<a class="headerlink" href="#port-creation" title="Permanent link">&para;</a></h3>

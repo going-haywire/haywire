@@ -4011,7 +4011,7 @@
 </tr>
 <tr>
 <td><strong>Fold</strong></td>
-<td>A pin-less, widget-less boolean port that contains other ports and is opened or closed by a disclosure triangle. Declared with <code>with self.fold("Name"):</code>, which mints a <code>FOLD</code> port (a <code>BOOL</code> subtype carrying the no-widget and always-store rules) — the author chooses no type, widget, direction or pin. Its header shows the triangle, the label, and a checkbox stating the same boolean: checked while open. Hovering the triangle shows the label and <code>description=</code>. Its value is a <strong>disclosure state</strong>, not a decision, and it persists; a node may still read it or hook <code>on_change=</code> to reconfigure itself. Scoped to one direction: a fold renders in the lane its children belong to (config band, inlet lane, or outlet lane) and may not mix directions. <strong>One level deep</strong>: a fold holds ports, not other folds — nesting one raises. Depth indents a port row's <em>content column</em> only, never its pin column, so a pin stays on the card border. Replaces both <code>group()</code> and <code>section()</code></td>
+<td>A pin-less boolean port that contains other ports and is opened or closed by clicking its header. Declared with <code>with self.fold("Name"):</code>, which mints a <code>FOLD</code> port (a <code>BOOL</code> subtype carrying the fold-header widget and the always-store rule) — the author chooses no type, widget, direction or pin. Its header is its widget (<code>FoldWidget</code>): the triangle, the label, and a checkbox stating the same boolean, checked while open. A click writes through the edit route like any card widget, so it toggles in level mode <code>operate</code> and <code>edit</code>, marks the graph unsaved, and is an undo step in <code>edit</code>. Hovering the triangle shows the label and <code>description=</code>. Its value is a <strong>disclosure state</strong>, not a decision, and it persists; a node may still read it or hook <code>on_change=</code> to reconfigure itself. Scoped to one direction: a fold renders in the lane its children belong to (config band, inlet lane, or outlet lane) and may not mix directions. <strong>One level deep</strong>: a fold holds ports, not other folds — nesting one raises. Depth indents a port row's <em>content column</em> only, never its pin column, so a pin stays on the card border. Replaces both <code>group()</code> and <code>section()</code></td>
 <td>Port group (the superseded <code>GROUP</code>-port spelling), section (removed), collapsible, expander. <strong>Not</strong> "Group" unqualified — that now names a <strong>Graph-node</strong> variant</td>
 </tr>
 <tr>
@@ -4101,14 +4101,34 @@ Macro is registered and placed.</p>
 <td>Macro format (it is not a separate format)</td>
 </tr>
 <tr>
-<td><strong>Promote to Macro</strong></td>
-<td>The action turning a <strong>Group</strong> into a macro: it writes the Group's Subgraph to <code>&lt;library&gt;/macros/&lt;Name&gt;.hwm</code>, registers it, and swaps the Group card for a placement. One undoable group; undo restores the Group and leaves the file</td>
-<td>Extract, export, convert</td>
+<td><strong>Save new Macro…</strong></td>
+<td>The action turning a <strong>Group</strong> into a macro: it writes the Group's Subgraph to <code>&lt;library&gt;/macros/&lt;Name&gt;.hwm</code> (no <strong>Origin</strong>), registers it, and swaps the Group card for a placement. One undoable group; undo restores the Group and leaves the file</td>
+<td>Promote to Macro (the former name), extract, export, convert</td>
 </tr>
 <tr>
-<td><strong>Detach from Macro</strong></td>
-<td>The action turning one <strong>placement</strong> into a <strong>Group</strong> of its own: its interior stops being template-instantiated (<code>template_key</code> cleared, so the host file serializes it) and a later save of the <code>.hwm</code> no longer reaches the card. <strong>Not the inverse of Promote to Macro</strong> — the file stays on disk and every other placement keeps tracking the template, whereas promotion consumed the only card standing for its Subgraph</td>
-<td>Demote (implies the macro stops being a macro, which it does not); unlink, revert</td>
+<td><strong>Edit Instance</strong></td>
+<td>Turning one <strong>placement</strong> into a <strong>Group</strong> of its own so its interior can differ from the macro: <code>template_key</code> is cleared (the host file serializes the interior) and an <strong>Origin</strong> is stamped. Offered by unlocking a placement's own level (asks first) and by the selection-menu row; only a placement's own level offers it, deeper levels stay refused. Needs <code>edit</code>. Not the inverse of Save new Macro…: the file stays and other placements keep tracking it. See <a href="../../adr/0052-instance-edit-by-detach-with-origin/">ADR 0052</a></td>
+<td>Detach from Macro (the former name), demote, unlink</td>
+</tr>
+<tr>
+<td><strong>Origin</strong></td>
+<td><code>MacroOrigin(key, hash)</code> on a detached Group's <code>SubgraphDefinition</code>: the macro's registry key and the template's <code>content_hash</code> at detach. Saved as <code>"origin"</code>. Makes the Group a <strong>Modified instance</strong></td>
+<td>Source, parent (<strong>Library Origin</strong> is a different thing)</td>
+</tr>
+<tr>
+<td><strong>Modified instance</strong></td>
+<td>A Group that has an <strong>Origin</strong>. It offers three verbs, each one undo step and each needing <code>edit</code>: <strong>Revert to Macro</strong> (swap to a placement of the current template; connections to pins the template lacks are dropped), <strong>Update Macro…</strong> (swap, then open the origin <code>.hwm</code> in a macro tab with the instance's contents, unsaved; the user's Save writes it and every placement reloads) and <strong>Save new Macro…</strong></td>
+<td>Overridden placement, fork</td>
+</tr>
+<tr>
+<td><strong>Revert to Macro</strong></td>
+<td>The <strong>Modified instance</strong> verb that swaps the card back to a placement of the current template, writing nothing</td>
+<td>Reset, discard</td>
+</tr>
+<tr>
+<td><strong>Update Macro…</strong></td>
+<td>The <strong>Modified instance</strong> verb (haystack editor) that sends the instance's contents back to its macro through the macro tab's own Save. Greyed out when the macro is not installed, on a read-only install, or while its tab has unsaved edits; warns when the template changed since the detach</td>
+<td>Push, sync</td>
 </tr>
 <tr>
 <td><strong>Function</strong></td>
@@ -4144,7 +4164,7 @@ Macro is registered and placed.</p>
 <tbody>
 <tr>
 <td><strong>Wire type</strong></td>
-<td>How a port's values travel and what the framework does with its edges. A data type declares one with <code>@type(wire_type=…)</code> and derived types inherit it; a container takes its element's. A class never instantiated, identified by the id <code>"&lt;library&gt;:wire:&lt;ClassName&gt;"</code>. Builtin ships <code>DataWire</code>, <code>ControlWire</code>, <code>CallbackWire</code> and <code>AnnotationWire</code> (a <code>VISUAL</code> wire with a <strong>Style bag</strong>, used by the <strong>Annotation node</strong>); <code>holds_absence</code> lets the types on a wire hold <code>None</code> (<code>CallbackWire</code> only). Ports and edges derive theirs and never save it; a config port has none. See <a href="../../adr/0042-wire-types-replace-flowtype/">ADR 0042</a>; <code>arrow_at</code> names the end a <strong>Computed edge</strong> draws its arrow head at (<code>CallbackWire</code>: the outlet); <code>style</code> names the <strong>Style bag</strong> of a <strong>Styled edge</strong></td>
+<td>How a port's values travel and what the framework does with its edges. A data type declares one with <code>@type(wire_type=…)</code> and derived types inherit it; a container takes its element's. A class never instantiated, identified by the id <code>"&lt;library&gt;:wire:&lt;ClassName&gt;"</code>. Builtin ships <code>DataWire</code>, <code>ControlWire</code>, <code>CallbackWire</code> and <code>AnnotationWire</code> (a <code>VISUAL</code> wire with a <strong>Style bag</strong>, used by the <strong>Annotation node</strong>); <code>holds_absence</code> lets the types on a wire hold <code>None</code> (<code>CallbackWire</code> only). Ports and edges derive theirs and never save it; a config port has none. See <a href="../../adr/0042-wire-types-replace-flowtype/">ADR 0042</a>; <code>arrow_at</code> names the end a <strong>Computed edge</strong> draws its arrow head at (<code>CallbackWire</code>: the outlet); <code>style</code> names the <strong>Style bag</strong> of a <strong>Styled edge</strong>; <code>on_stage</code> (default <code>False</code>, <code>True</code> on <code>AnnotationWire</code>) makes its pins and edges <strong>on-stage wires</strong></td>
 <td>FlowType (removed), flow type, edge kind</td>
 </tr>
 <tr>
@@ -4264,6 +4284,11 @@ Macro is registered and placed.</p>
 <td><strong>CONTROL node</strong></td>
 <td>A sequenced node with both EXEC inlet and EXEC outlet; runs in explicit execution order</td>
 <td>Active node</td>
+</tr>
+<tr>
+<td><strong>Widget node</strong></td>
+<td>A DATA node in haybale-core whose outlet's widget is the node: it shows what flows into its inlet and sends what the operator sets. Float/Int Slider, Float/Int Number, Toggle, Text, Menu (<code>haybale_core.nodes.widgets</code>). An edge's value at <code>in</code> goes out of <code>value</code> while the edge feeds it, and an unlink keeps the last value; last write wins, so a fed widget node is a display. On a stage it draws with the <strong>Widget-node skin</strong>. Not a <strong>CONTROL node</strong>, which is EXEC-sequenced</td>
+<td>control node, UI node (collides with <code>UINode</code>), value node</td>
 </tr>
 <tr>
 <td><strong>EVENT node</strong></td>
@@ -4651,7 +4676,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Authoring target</strong></td>
-<td>A library a component may be written into: <code>InstallType.is_editable()</code> and registered the kind's folder (<code>nodes/</code>, <code>macros/</code>) with that kind's registry — <code>authoring_targets(library_system, registry_cls, workspace_root)</code> in <code>haywire.core.authoring</code>, project library first. For nodes it must also run a file watcher (<code>AuthoringTarget.is_watched</code>), because the New Node wizard waits for the watcher to register what it writes. Shared by Promote to Macro and the New Node wizard</td>
+<td>A library a component may be written into: <code>InstallType.is_editable()</code> and registered the kind's folder (<code>nodes/</code>, <code>macros/</code>) with that kind's registry — <code>authoring_targets(library_system, registry_cls, workspace_root)</code> in <code>haywire.core.authoring</code>, project library first. For nodes it must also run a file watcher (<code>AuthoringTarget.is_watched</code>), because the New Node wizard waits for the watcher to register what it writes. Shared by Save new Macro… and the New Node wizard</td>
 <td>Writable library (that is <strong>project_writable_libraries()</strong>, which does not check the folder)</td>
 </tr>
 <tr>
@@ -5206,18 +5231,53 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Access Tier</strong></td>
-<td>One of <code>view</code> ⊂ <code>edit</code> ⊂ <code>admin</code>, cumulative — an <code>admin</code> passes every <code>view</code> check. Carried by a <strong>Principal</strong> and required by an <strong>Access-Gated Surface</strong></td>
+<td>One of <code>view</code> ⊂ <code>operate</code> ⊂ <code>edit</code> ⊂ <code>admin</code>, cumulative — an <code>admin</code> passes every <code>view</code> check. Carried by a <strong>Principal</strong> and required by an <strong>Access-Gated Surface</strong></td>
 <td>Role, permission, access rights (plural — implies a set, not one level)</td>
 </tr>
 <tr>
 <td><strong>Access-Gated Surface</strong></td>
-<td>A component whose identity declares <code>access=</code> and which is therefore hidden from <strong>Principals</strong> below that tier: <strong>Panels</strong>, <strong>Editors</strong>, and <strong>Farmhands</strong>. Nodes, skins, widgets and themes are never access-gated — hiding their identity would not restrict the graph that already uses them</td>
+<td>A component whose identity declares <code>access=</code> and which is therefore hidden from <strong>Principals</strong> below that tier: <strong>Panels</strong>, <strong>Editors</strong>, and <strong>Farmhands</strong>. Nodes, skins, widgets and themes are never access-gated — hiding their identity would not restrict the graph that already uses them The default is <code>edit</code>, so a panel or editor that does not declare is hidden below it; read-only editors declare <code>view</code></td>
 <td>Protected component, secured panel</td>
 </tr>
 <tr>
 <td><strong>Gate</strong></td>
 <td>The pure-ASGI middleware wrapping the whole studio app, which accepts a valid cookie or a valid bearer token and rejects everything else on both <code>http</code> and <code>websocket</code> scopes. App-owned, never library-owned</td>
 <td>Auth middleware, login check</td>
+</tr>
+<tr>
+<td><strong>Operate (tier)</strong></td>
+<td>The <strong>Access Tier</strong> between <code>view</code> and <code>edit</code>: may change values on the <strong>Operable widgets</strong> on node cards and the stage, and <strong>Enter</strong> a level, and Start and Stop a graph in the haystack, and select on the canvas, and nothing else — no menus, no structural edits, no Undo/Redo, no Properties writes, no unlock. See <a href="../../adr/0051-operate-tier-and-the-canvas-lock/">ADR-0051</a></td>
+<td>Player, performer role, run mode</td>
+</tr>
+<tr>
+<td><strong>Enter</strong></td>
+<td>Open a Graph-node's interior as a level of the graph editor: double-click its card (needs <code>operate</code>) or use the context-menu row (needs <code>edit</code>). A <code>view</code> session stays on the document level. A <strong>Group</strong> opens as an ordinary level; a <strong>Placement</strong> opens its live interior <strong>locked</strong>, because it is runtime state (ADR 0038)</td>
+<td>Descend, step into, open Group</td>
+</tr>
+<tr>
+<td><strong>Lock</strong></td>
+<td>A per-session, per-level switch (the document or an entered Group or placement) that caps the <strong>Level mode</strong> at <code>operate</code> for that level. Never saved; unlocking needs the real <code>edit</code> tier. A graph may ask for a level to open locked (<code>open_locked</code>); a level <strong>inside a placement</strong> always opens locked and cannot be unlocked directly: a placement's own level unlocks through <strong>Edit Instance</strong>, deeper levels stay refused</td>
+<td>Read-only mode, freeze, protect</td>
+</tr>
+<tr>
+<td><strong>Level mode</strong></td>
+<td><code>view</code>, <code>operate</code> or <code>edit</code>: the mode a session works one graph level in, per session and level. It is the <strong>Principal</strong>'s tier, capped at <code>operate</code> while the level is locked (<code>edit</code> and <code>admin</code> give <code>edit</code>); the cap never raises a lower tier. Selection works in every level mode; copying and every other action on the selection need <code>edit</code>. Save uses the real tier instead; agents have no level and no lock. See <a href="../../adr/0055-every-user-edit-takes-the-edit-route/">ADR-0055</a></td>
+<td>Effective tier, mode (bare), canvas mode</td>
+</tr>
+<tr>
+<td><strong>Operable widget</strong></td>
+<td>A card widget whose port or settings field is operable: operating it may change the value in <strong>Level mode</strong> <code>operate</code>. Its container carries <code>data-hw-operable</code> (stamped by <code>BaseSkin.render_widget</code> and <code>render_setting_widget</code>), which lifts the browser's pointer gate on card content. A port or field declared <code>operable=False</code> (the annotation's text) needs level mode <code>edit</code> for every write, and its widget takes no pointer input in <code>operate</code></td>
+<td>Live widget, performance control</td>
+</tr>
+<tr>
+<td><strong>User edit</strong></td>
+<td>One change a person or an agent makes to something a document saves: a value, a setting, or the structure. Measured node sizes are derived, not user edits</td>
+<td>Write (bare), mutation</td>
+</tr>
+<tr>
+<td><strong>Edit route</strong></td>
+<td>The one way every <strong>User edit</strong> reaches <code>Editor</code> (<code>EditRoute</code>), per session and level. It refuses an edit the <strong>Level mode</strong> does not allow, marks unsaved the document that saves the changed value, and hands out the level's <code>Editor</code> for structure edits only in level mode <code>edit</code>. Cards, the stage, the Ports panel, settings rows and Farmhand all write through it. Writable Properties panels show only in level mode <code>edit</code>; the route is the enforcement. See <a href="../../adr/0055-every-user-edit-takes-the-edit-route/">ADR-0055</a></td>
+<td>Gate (that is the ASGI middleware, <strong>Gate</strong>), write path</td>
 </tr>
 </tbody>
 </table>
@@ -5294,6 +5354,21 @@ Macro is registered and placed.</p>
 <td><strong>live widget_config callable</strong></td>
 <td>A callable placed in a port's or field's <code>widget_config</code> (e.g. <code>{"options": lambda: ...}</code>), resolved at widget render time (<code>SelectWidget.build()</code>: <code>if callable(options): options = options()</code>). Safe on a <strong><code>setting()</code> field</strong> and on a <strong>promoted port</strong> — <code>Settings.to_dict()</code> never serializes <code>widget_config</code>, and a promoted port is not serialized at all (regenerated from settings on load, ADR 0019), so the callable never needs to survive a save/load cycle. <strong>Unsafe on a plain (non-promoted) port</strong> — the port has no descriptor to fall back on, so the callable IS the only copy; <code>DataPort.__post_init__</code> raises <code>TypeError</code> at construction time (via <code>is_cattrs_serializable</code>) rather than letting it reach <code>to_dict()</code>/<code>json.dumps</code> later. See <a href="../../adr/0018-port-widget-config-serialization-boundary/">ADR 0018</a> (plain-port raise) and <a href="../../adr/0019-settings-owned-promotion/">ADR 0019</a> (promoted ports never serialize)</td>
 <td>dynamic options callable</td>
+</tr>
+<tr>
+<td><strong>set_widget_config</strong></td>
+<td><code>DataPort.set_widget_config(key, value)</code>: the one way a node changes a property of its port's widget config (a slider's <code>max</code>, a menu's <code>options</code>); <code>None</code> removes the property. It redraws the node's card when the property changed, and the card builds its widgets from the new config. Live reconfiguration of a drawn widget is a later design round behind the same call</td>
+<td>rejig (rebuilds the port)</td>
+</tr>
+<tr>
+<td><strong>List widget</strong></td>
+<td><code>ArrayWidget</code> (haybale-core): edits an <code>ArrayType[T]</code> value one row per item, each row drawn by the item type's own widget, with add, remove, and reorder by dragging a row's grip. Opt-in: a port or setting names it with <code>widget=ArrayWidget.config()</code>, since <code>ArrayType</code> declares no widget of its own. <code>properties.item</code> configures every row. See <a href="../../components/widgets/widget-canon/">components/widgets</a></td>
+<td>array widget (the class name is fine; the concept is the list widget), list editor</td>
+</tr>
+<tr>
+<td><strong>Commit mode</strong></td>
+<td><code>TextWidget</code>'s <code>commit</code> property (<code>TextWidget.config(properties={"commit": True})</code>): the text is written on Enter or when the field loses focus, not per keystroke, and a commit equal to the current value writes nothing</td>
+<td>debounce (a debounce still writes on a typing pause), submit mode</td>
 </tr>
 <tr>
 <td><strong>mirrors</strong></td>
@@ -5415,13 +5490,18 @@ Macro is registered and placed.</p>
 <tbody>
 <tr>
 <td><strong>Fence</strong></td>
-<td>A <strong>boundary</strong> in the action history that groups the actions between two of them into one logical operation, so a single undo reverses a whole gesture. It does <strong>not block</strong> undo — undo walks straight past it. Fences are not actions: they do not count towards <code>max_actions</code>, because a canvas drag emits two per gesture and counting them evicted real undo steps long before the user's limit; repeated fences at the tail collapse, since a gesture that produced nothing still brackets itself</td>
+<td>A <strong>boundary</strong> in the action history that groups the actions between two of them into one logical operation, so a single undo reverses a whole gesture. It does <strong>not block</strong> undo — undo walks straight past it. Fences are not actions: they do not count towards <code>max_actions</code>, because a canvas drag emits two per gesture and counting them evicted real undo steps long before the user's limit; a save and an unrecorded write add one too; repeated fences at the tail collapse, since a gesture that produced nothing still brackets itself</td>
 <td>Barrier, checkpoint, undo stop (it stops nothing)</td>
 </tr>
 <tr>
 <td><strong>Action group</strong></td>
 <td>The unit a fence delimits: a list of actions (or nested groups) executed and undone in order, as one operation</td>
 <td>Transaction, batch</td>
+</tr>
+<tr>
+<td><strong>Merge run</strong></td>
+<td>Consecutive writes by one session to one field that amend a single undo step, until another step, a <strong>fence</strong>, an undo or a 3 s idle gap ends it. Not the same as a <strong>Mergeable action</strong>'s 100 ms merge, which a value edit does not use</td>
+<td>Coalescing window, burst</td>
 </tr>
 <tr>
 <td><strong>Mergeable action</strong></td>
@@ -5498,7 +5578,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>graph metadata</strong></td>
-<td>The descriptive facts a graph carries about <em>itself</em>. Split by who owns them: <strong>user-editable</strong> — <code>label</code> (free-text title), <code>description</code>, <code>author</code>, <code>version</code>, which live in the <strong><code>graph.meta</code></strong> settings bag (a <code>GraphSettings</code> flavour serialized under <code>meta</code>, so the settings framework owns editing, serialization and change propagation); <strong>machine-maintained, read-only</strong> — <strong><code>filestem</code></strong>, <code>created_at</code>, <code>modified_at</code>, persisted at the file's top level and deliberately kept OUT of the bag (they have no setter, and a bag renderer draws every field as editable). Edited through the Graph Metadata panel or the <code>set_metadata</code> Farmhand tool — <strong>not undoable</strong>, and a metadata edit <strong>does not mark the graph dirty</strong>, matching <code>graph.props</code>. Distinct from <strong><code>graph.props</code></strong> (the <strong>GraphProperties</strong> bag), which carries <em>behavioural</em> opinions the graph tier imposes on its nodes. Metadata describes the document; props configure the program.</td>
+<td>The descriptive facts a graph carries about <em>itself</em>. Split by who owns them: <strong>user-editable</strong> — <code>label</code> (free-text title), <code>description</code>, <code>author</code>, <code>version</code>, which live in the <strong><code>graph.meta</code></strong> settings bag (a <code>GraphSettings</code> flavour serialized under <code>meta</code>, so the settings framework owns editing, serialization and change propagation); <strong>machine-maintained, read-only</strong> — <strong><code>filestem</code></strong>, <code>created_at</code>, <code>modified_at</code>, persisted at the file's top level and deliberately kept OUT of the bag (they have no setter, and a bag renderer draws every field as editable). Edited through the Graph Metadata panel or the <code>set_metadata</code> Farmhand tool; a metadata edit <strong>marks the graph unsaved</strong>, like an edit of <code>graph.props</code>. The Farmhand tool's edit is one undo step; a panel edit in level mode <code>edit</code> is one undo step. Distinct from <strong><code>graph.props</code></strong> (the <strong>GraphProperties</strong> bag), which carries <em>behavioural</em> opinions the graph tier imposes on its nodes. Metadata describes the document; props configure the program.</td>
 <td>Graph props / graph settings (that is the <code>GraphProperties</code> bag); graph info (that is one panel that renders metadata)</td>
 </tr>
 <tr>
@@ -5587,7 +5667,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Canvas ladder</strong></td>
-<td>The stacking scale local to the graph canvas — edge SVG, node container, selected node, resize gadget, marquee, canvas overlays. Ordered within the canvas's own stacking context, so it never competes with the <strong>overlay ladder</strong> despite larger raw numbers. Pin-interior values (<code>10000</code>+) are trapped inside a node and rank nothing outside it</td>
+<td>The stacking scale local to the graph canvas — edge SVG, node container, selected node, resize gadget, marquee, canvas overlays. Ordered within the canvas's own stacking context, so it never competes with the <strong>overlay ladder</strong> despite larger raw numbers. Cards in the node container carry their <strong>Stacking order</strong> as z-index (<code>0</code> up), so every lift above them starts at <code>1000000</code>. Pin-interior values (<code>10000</code>+) are trapped inside a node and rank nothing outside it</td>
 <td>—</td>
 </tr>
 <tr>
@@ -5621,13 +5701,23 @@ Macro is registered and placed.</p>
 <td>per-pin menu scope, PinFocus</td>
 </tr>
 <tr>
+<td><strong>Tags</strong></td>
+<td><code>BaseIdentity.tags</code>: words that classify a registered component for code to filter on, e.g. a skin's <code>general</code>, <code>stage-only</code>, <code>special</code> and a node-kind tag, which decide the skin lists that offer it. An untagged skin is <code>general</code>. Not shown to people and not searched: contrast <strong>Search tags</strong>. See <a href="../../adr/0056-the-view-picks-the-skin/">ADR 0056</a></td>
+<td>Labels, categories</td>
+</tr>
+<tr>
+<td><strong>Search tags</strong></td>
+<td><code>NodeIdentity.search_tags</code>: words a person types in node search to find a node, also shown in node-menu tooltips and the generated docs. Contrast <strong>Tags</strong>, which code filters on</td>
+<td>Tags (that is the machine field), keywords</td>
+</tr>
+<tr>
 <td><strong>Hidden component</strong></td>
 <td>A registered component (node, skin, theme, etc.) whose <code>hidden=True</code> field on its <code>BaseIdentity</code> excludes it from author-facing <strong>selection</strong> UIs (Add-Nodes menu, node search, skin/theme pickers). It stays fully registered, resolvable by registry key, and functional in existing graphs — <code>hidden</code> affects <em>presentation as a choice</em>, not existence. Browsing/debugging surfaces (marketplace, component editor) ignore <code>hidden</code> and still show it. <code>hidden</code> is the single canonical hide-from-selection mechanism. Primary use: framework-internal and testing components.</td>
 <td>Internal component, invisible component (avoid — it's not invisible everywhere), unlisted component</td>
 </tr>
 <tr>
 <td><strong>Selection axis</strong></td>
-<td>The set of currently-selected elements — <code>EditState.selected_nodes</code> / <code>selected_edges</code> (sets of ids). The <strong>command target</strong>: the elements a right-click menu, a toolbar verb or a keyboard command (an <strong>EditorCommand</strong> such as Copy, Cut, Duplicate or Delete) acts upon. A lone right-clicked element is a selection of one. A keyboard command acts only on the selected elements that belong to the <strong>Target editor</strong>'s own graph. Distinct from the <strong>Active axis</strong>.</td>
+<td>The set of currently-selected elements — <code>EditState.selected_nodes</code> / <code>selected_edges</code> (sets of ids). The <strong>command target</strong>: the elements a right-click menu, a toolbar verb or a keyboard command (an <strong>EditorCommand</strong> such as Copy, Cut, Duplicate or Delete) acts upon. A lone right-clicked element is a selection of one. A keyboard command acts only on the selected elements that belong to the <strong>Target editor</strong>'s own graph. Selecting works in every <strong>Level mode</strong>, because it changes no document; acting on the selection needs <code>edit</code>, and locking a level keeps it. Distinct from the <strong>Active axis</strong>.</td>
 <td>selection state, current selection</td>
 </tr>
 <tr>
@@ -5839,6 +5929,71 @@ Macro is registered and placed.</p>
 <td><strong>Resize gadget</strong></td>
 <td>The single-node, 8-handle JS transform box drawn in <code>canvas.vue</code> (content space, inside <code>#node-container</code>) around a lone-node selection. Fixes node size by dragging a grip — <strong>zero per-node DOM</strong> (one gadget total). A top/left drag pins the opposite edge (resize + move composition). On release it emits <code>UserResizeEndEvent</code>, committed by <code>process_resize_end</code> as one undoable fence (size + optional move). Replaces the old per-node <code>_add_resize_handle</code> (removed).</td>
 <td>resize handle (removed), size box</td>
+</tr>
+<tr>
+<td><strong>Layout channel</strong></td>
+<td>A <code>LayoutChannel</code> (<code>haywire.core.node.layout</code>): the names of the <code>NodeProperties</code> fields one canvas lays a node out with (<code>x</code>, <code>y</code>, <code>width</code>, <code>height</code>, <code>size_adapt</code>). <code>PATCH</code> is the patch canvas's channel (<code>posX</code>/<code>posY</code>/<code>width</code>/<code>height</code>/<code>size_adapt</code>, and <code>z</code> for the <strong>Stacking order</strong>); <code>STAGE</code> names the <code>stage_*</code> fields and adds <code>member</code> (<code>on_stage</code>: which nodes it includes), <code>origin</code> (where its origin is drawn) and <code>stage</code> (the canvas draws with each node's <strong>Stage skin</strong> and creates and draws only edges on <strong>on-stage wires</strong>), and <code>CHANNELS = (PATCH, STAGE)</code>. A node's position lives only in props <code>posX</code>/<code>posY</code>, and a position equal to the default <code>0.0</code> is omitted from a saved file, so a missing value reads as <code>0.0</code>. Moves, the canvas-size check and the canvas itself take a channel; <code>NODE_MOVED</code> carries none, each canvas re-reads its own fields. See <a href="../../adr/0053-position-lives-in-props/">ADR 0053</a>, <a href="../../adr/0054-the-stage-view/">ADR 0054</a></td>
+<td>position key, layout mode</td>
+</tr>
+<tr>
+<td><strong>Stacking order</strong></td>
+<td>The order a view paints its overlapping cards in, bottom to top: the view's nodes sorted by their channel's stacking field (<code>z</code> in the patch, <code>stage_z</code> on the stage), then by when they joined the graph. Changed by the Arrange submenu of the node menu — Bring to Front, Bring Forward, Send Backward, Send to Back (Forward and Backward move one step, without looking at overlap); a created, pasted or Add-to-Stage node lands on top. In patch view a hovered, selected or dragged card still lifts above the rest; stage view never lifts a card, not even while dragging, and never magnifies one on hover. See <a href="../../adr/0054-the-stage-view/">ADR 0054</a></td>
+<td>z-order (fine in code), layer</td>
+</tr>
+<tr>
+<td><strong>Patch view</strong></td>
+<td>One of an open level's two views: the graph editor as it is, showing every node at its patch position (<code>posX</code>/<code>posY</code>). The other is <strong>Stage view</strong>. Switched in the editor header or with <code>ToggleStageView</code> (<code>Mod+Shift+E</code>)</td>
+<td>Edit mode, graph view</td>
+</tr>
+<tr>
+<td><strong>Stage view</strong></td>
+<td>The second view of an open level: a canvas on the <code>STAGE</code> <strong>Layout channel</strong> that shows only <strong>on stage</strong> nodes at their <strong>stage rect</strong>, each drawn with its <strong>Stage skin</strong>, told <code>on_stage</code> (a default skin draws its card with only <strong>on-stage</strong> pins and a row only for a port that shows a widget, left to right and at full detail), and only <strong>on-stage wire</strong> edges. It is a display, not a mode: editing is the same as in patch view, at the same tier, and a node created, pasted or duplicated there lands on stage at the gesture position (its patch position follows its siblings there; a paste or duplicate of on-stage nodes in the patch lands on stage the same way, mirrored). The selection carries over when switching views, pruned to what the new view shows. A node collapsed in the patch is drawn expanded under a default skin; folds keep their header (when its widget shows) and their state, shared with the patch; ghost pins stay. Locked it lets OPERATE change shown widgets, as in patch view. Both views of a level stay mounted (keep-alive); the stage mounts on first switch. See <a href="../../adr/0054-the-stage-view/">ADR 0054</a></td>
+<td>Presentation (a Surface's chrome), performance mode</td>
+</tr>
+<tr>
+<td><strong>Stage</strong></td>
+<td>A graph's second arrangement of its nodes: the set of on-stage nodes with their stage rects. Not a node kind and not a separate graph</td>
+<td>Presentation, layout</td>
+</tr>
+<tr>
+<td><strong>Inset</strong></td>
+<td>A <strong>Graph-node</strong> card (Group or macro placement) drawn with the Inset skin: its body shows the interior's <strong>Stage</strong>, each on-stage node with its own stage skin at its stage position. Its widgets can be operated at the host level's mode; its layout changes only by entering the interior. In the patch it has its title, its pins on the edges and the body; on a stage, the body alone. The body is at least 240 × 160 px and clips what lies beyond it; nothing on stage shows "Nothing on stage — Enter to arrange". A press anywhere but on a widget acts on the host card</td>
+<td>bpatcher (Max's word), presentation (a Surface's chrome)</td>
+</tr>
+<tr>
+<td><strong>On stage</strong></td>
+<td>A node is on stage when its props field <code>on_stage</code> is true. Writing it raises <code>NODE_STAGE_CHANGED</code>; Add to Stage places the node at the next free spot, Remove from Stage clears the flag and keeps the rect</td>
+<td>In stage, staged</td>
+</tr>
+<tr>
+<td><strong>Stage rect</strong></td>
+<td>A node's <code>stage_x</code>, <code>stage_y</code>, <code>stage_width</code>, <code>stage_height</code> and <code>stage_size_adapt</code> on <code>NodeProperties</code> (category <code>"stage"</code>), with the patch rect's rules (a manual size is a minimum). Position is relative to the <strong>Stage origin</strong></td>
+<td>Stage position (position only)</td>
+</tr>
+<tr>
+<td><strong>Stage origin</strong></td>
+<td>The fixed stage <code>(0, 0)</code>: the corner a stage rect is measured from. It cannot be edited; <code>STAGE.origin</code> is only the canvas margin it is drawn at. A corner bracket marks it and drags stop at it</td>
+<td>Stage offset</td>
+</tr>
+<tr>
+<td><strong>On-stage wire</strong></td>
+<td>A wire type with <code>on_stage = True</code> (<code>AnnotationWire</code>). Stage view draws an edge only if its wire is on stage and both end nodes are on stage; a stage canvas creates and draws only edges on on-stage wires, and starts an edge drag only from their pins (<code>data-pin-on-stage</code>). See <a href="../../adr/0056-the-view-picks-the-skin/">ADR 0056</a></td>
+<td>Presentation wire</td>
+</tr>
+<tr>
+<td><strong>Stage skin</strong></td>
+<td>The skin a node is drawn with in <strong>Stage view</strong>: <code>props.stage_skin</code>, resolved framework &lt; graph &lt; node (<code>studio_stage_skin</code> &lt; <code>GraphProperties.default_stage_skin</code> &lt; the node's own), independent of the patch skin (<code>props.skin</code>); the studio default is the default skin. The view picks the skin and still tells it the view (<code>on_stage</code>): the default skins on stage draw a row only for a port that shows a widget and only on-stage pins, and ignore collapse, layout direction and detail. See <a href="../../adr/0056-the-view-picks-the-skin/">ADR 0056</a></td>
+<td>Presentation skin</td>
+</tr>
+<tr>
+<td><strong>Widget-node skin</strong></td>
+<td><code>WidgetNodeSkin</code> (haybale-core), tagged <code>special</code>, <code>stage-only</code>, <code>widget-node</code>: a frameless card with the node label on the left and the widget of each outlet the node declares (never a promoted setting's), styled per node by the widget node's <code>style</code> bag (label typography, card background and border, label position, maximum label width). Widget nodes bind it as their stage skin, and their Stage Skin list offers only skins carrying those tags; no other list offers it</td>
+<td>frameless skin</td>
+</tr>
+<tr>
+<td><strong>Open-in default</strong></td>
+<td>A graph's saved starting state for a level a session first opens: <code>open_view</code> (<code>patch</code> or <code>stage</code>) and <code>open_locked</code>. Applied once per session and level; the session may then switch freely. Mirrors Max's "Open in Presentation"</td>
+<td>Default view</td>
 </tr>
 <tr>
 <td><strong>hui</strong></td>

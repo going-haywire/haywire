@@ -3441,7 +3441,7 @@
 </tr>
 <tr>
 <td><code>ctx.fence(editor)</code></td>
-<td>Open the undo fence for this tool call, so the whole call collapses into one undo gesture in the studio UI. Use for any tool that mutates a graph through an editor.</td>
+<td>Open the undo fence for this tool call, so the whole call collapses into one undo gesture in the studio UI. The host closes it when the call ends, so nothing written after the call joins its step. Use for any tool that mutates a graph through an editor.</td>
 </tr>
 <tr>
 <td><code>ctx.workspace_root()</code></td>

@@ -958,6 +958,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#the-model-and-where-its-writes-go" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The model, and where its writes go
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#converter" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1006,6 +1017,17 @@
     <span class="md-ellipsis">
       
         Delegating to another type's widget
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delegating-per-item-arraywidget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delegating per item: ArrayWidget
       
     </span>
   </a>
@@ -3459,6 +3481,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#the-model-and-where-its-writes-go" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The model, and where its writes go
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#converter" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3507,6 +3540,17 @@
     <span class="md-ellipsis">
       
         Delegating to another type's widget
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delegating-per-item-arraywidget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delegating per item: ArrayWidget
       
     </span>
   </a>
@@ -3706,6 +3750,14 @@
 <li><strong>Call <code>super().on_model_changed(value)</code></strong> to refresh every <code>bind()</code>-registered element, then add your own custom sync on top. Use this when you mix <code>bind()</code>-ed elements with hand-driven ones.</li>
 <li><strong>Omit the <code>super()</code> call</strong> to take full ownership of model → view sync (a floor-only widget with no <code>bind()</code> calls — e.g. an image preview that pushes frames).</li>
 </ul>
+<h3 id="the-model-and-where-its-writes-go">The model, and where its writes go<a class="headerlink" href="#the-model-and-where-its-writes-go" title="Permanent link">&para;</a></h3>
+<p>A widget never sees the port or the setting directly. It sees a <strong><code>WidgetModel</code></strong> (<code>haywire.core.types.WidgetModel</code>), as <code>self.port</code>: <code>id</code>, <code>widget_config</code>, <code>data</code> (the <code>DataField</code> cell, which carries the change subscription), <code>get_value()</code> and <code>set_value(value)</code>.</p>
+<ul>
+<li><strong>The host builds the model, and its writes go through the host's edit route.</strong> A card, the stage, the Ports panel or a settings row hands its <a href="../../../reference/glossary/">edit route</a> to the widget factory, which builds a routed model: it reads the cell, and each <code>set_value</code> goes through that route at the level mode the host needs (<code>operate</code> for card and stage widgets, <code>edit</code> for panels). The route decides whether the edit is allowed and marks the graph unsaved. A widget writes no access, unsaved or undo code of its own.</li>
+<li><strong>A refused write shows the model again.</strong> When the route refuses (the level mode is below what the host needs, e.g. a Properties or Ports panel on a locked level, or any write at <code>view</code>), the model's <code>set_value</code> returns <code>False</code> and the widget shows <code>get_value()</code> again. The same happens while an edge's value stands in front of the own value, or the field holds no own value. <code>self.set_value(...)</code> and every <code>bind()</code>-ed element follow this rule, so a widget needs no handling of its own.</li>
+<li><strong>A port or field declared <code>operable=False</code> needs a full editor.</strong> The route then needs level mode <code>edit</code> for its writes, even from a card, and the card's widget takes no pointer input on a locked level. The annotation's text is one.</li>
+<li><strong>A widget rendered with no route is read-only.</strong> Its model refuses every write. A host that builds its own model (a dialog editing a port's default) passes it to the factory, which uses it as given.</li>
+</ul>
 <h3 id="converter"><code>converter</code><a class="headerlink" href="#converter" title="Permanent link">&para;</a></h3>
 <p>A <code>BindingConverter</code> translates between the model value and the view value in both directions.</p>
 <ul>
@@ -3782,63 +3834,77 @@
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">inner_cls</span> <span class="o">=</span> <span class="n">WIDGET_REGISTRY</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">class_identity</span><span class="o">.</span><span class="n">widget_key</span><span class="p">)</span>
 </span></code></pre></div>
 <ul>
-<li><strong>Share the cell, adjust only the read.</strong> The inner widget receives a thin <code>WidgetModel</code> whose <code>data</code> returns the <em>same</em> <code>DataField</code>, so its own <code>on_changed</code> subscription and bindings stay live. The only override is <code>get_value()</code>, which substitutes a fallback for <code>None</code> — a <code>NumberDrag</code> has no way to display "nothing", so absence is communicated by <em>hiding</em> that widget, never by feeding it <code>None</code>.</li>
+<li><strong>Share the cell, adjust only the read.</strong> The inner widget receives a thin <code>WidgetModel</code> whose <code>data</code> returns the <em>same</em> <code>DataField</code>, so its own <code>on_changed</code> subscription and bindings stay live. The only override is <code>get_value()</code>, which substitutes a fallback for <code>None</code> — a <code>NumberDrag</code> has no way to display "nothing", so absence is communicated by <em>hiding</em> that widget, never by feeding it <code>None</code>. Its <code>set_value()</code> forwards to the outer model unchanged, so the inner widget's writes take the outer widget's edit route, and a refusal reaches it as <code>False</code>.</li>
 <li><strong>Forward cleanup.</strong> The outer <code>_on_cleanup()</code> must call the inner widget's <code>cleanup()</code>; the base class only tears down its own subscription.</li>
 </ul>
 <p>A stand-in state should be <strong>framed like the widget it replaces</strong> — <code>hw-optional-none</code> reuses the same <code>--hw-compact-field-h</code> height and input framing as <code>NumberDrag</code>, so the value column doesn't jump when a field is cleared, and differs only in muted italic text plus an always-visible action icon — hover-revealing that icon would hide the only signal the cell is a control. And don't add a control the Setting-row menu already offers: <code>OptionalWidget</code> has no clear button because clearing is reset-shaped, and the menu owns those verbs.</p>
 <p>This doesn't breach the stamped-widget contract of <a href="../../../adr/0017-widget-selection-port-contract/">ADR 0017</a>: the row's <code>widget_key</code> is still stamped once (to <code>OptionalWidget</code>). Only the <em>inner</em> class is resolved at build time, from another stamped key — the same thing <code>SelectWidget</code> already does with callable <code>options</code>.</p>
+<h3 id="delegating-per-item-arraywidget">Delegating per item: <code>ArrayWidget</code><a class="headerlink" href="#delegating-per-item-arraywidget" title="Permanent link">&para;</a></h3>
+<p><code>ArrayWidget</code> (haybale-core) is the list counterpart of <code>OptionalWidget</code>: it edits an <code>ArrayType[T]</code> value with one row per item, and each row is the item type's own declared widget. It is <strong>opt-in</strong>. <code>ArrayType</code> declares no <code>widget_key</code>, so a port or setting names it:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">options</span> <span class="o">=</span> <span class="n">setting</span><span class="p">[</span><span class="n">ArrayType</span><span class="p">[</span><span class="n">STRING</span><span class="p">]]([</span><span class="s2">&quot;One&quot;</span><span class="p">,</span> <span class="s2">&quot;Two&quot;</span><span class="p">,</span> <span class="s2">&quot;Three&quot;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Options&quot;</span><span class="p">,</span> <span class="n">widget</span><span class="o">=</span><span class="n">ArrayWidget</span><span class="o">.</span><span class="n">config</span><span class="p">())</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ArrayType</span><span class="p">[</span><span class="n">FLOAT</span><span class="p">]</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span><span class="s2">&quot;weights&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]},</span> <span class="n">widget</span><span class="o">=</span><span class="n">ArrayWidget</span><span class="o">.</span><span class="n">config</span><span class="p">()))</span>
+</span></code></pre></div>
+<p>A compound port's <code>default</code> is constructor kwargs (<code>{"value": [...]}</code>); a setting's default is the plain list.</p>
+<ul>
+<li><strong>One index per row.</strong> Each row widget gets a <code>WidgetModel</code> that reads item <em>i</em> of the list and writes a new list with item <em>i</em> replaced, through the list widget's own model, so a row edit takes the same edit route as the list and a refusal reaches the row as <code>False</code>. The write coerces through a field of the item type, so an <code>INT</code> row stores an <code>int</code>. Add, remove and move also build a new list: <code>ArrayField</code> stores the list it is handed, so mutating the current one in place would change nothing anyone hears about.</li>
+<li><strong>A narrow <code>data</code>.</strong> A row's <code>data</code> presents the list cell as a field of the item type: <code>type_cls</code> and <code>get_stored_type()</code> are the item type (so <code>NumberWidget</code> steps an <code>INT</code> row in whole numbers), and <code>has_linked_value()</code> / <code>accepts_own_value()</code> come from the list cell, so a linked list refuses row edits. Its <code>on_changed</code> is the row's own event, fired by <code>ArrayWidget</code>; the list cell has exactly one subscriber per <code>ArrayWidget</code>. A rebuild therefore never edits the cell's handler list while the cell dispatches, which would make it skip another widget on the same list (the properties panel and the card).</li>
+<li><strong>Rows rebuild only on a count change</strong> — add, remove, or an outside write such as Reset or undo — as <code>FillWidget</code> rebuilds its stops. An edit, or a reorder from elsewhere (undo), keeps the rows, and each re-reads its index, so the field being typed in keeps focus.</li>
+<li><strong>Reorder by grip.</strong> Each row has a grip; the rows column is a SortableJS list (<code>make_sortable(handle=...)</code>, a group of its own per widget) with the same grip-only drag as the Ports panel, so the row's widget stays editable. A drop writes the moved list and then redraws the rows from the model, accepted or refused: SortableJS has already moved the row in the DOM, and each row widget reads a fixed index. The grip carries <code>data-interactive="true"</code> so a canvas card never drags the node from it; it must not use the class <code>drag-handle</code>, which the canvas reads as the node's own drag handle.</li>
+<li><strong><code>properties.item</code></strong> is handed to every row's widget, on top of the item type's own widget config: <code>ArrayWidget.config(properties={"item": {"commit": True}})</code> gives text rows in <strong>commit mode</strong> (<code>TextWidget</code> writes on Enter or blur only).</li>
+<li><strong>No item widget</strong>, no rows: an item type without a registered widget shows a read-only <code>"N items"</code> label.</li>
+</ul>
 <h3 id="hot-reload">Hot-reload<a class="headerlink" href="#hot-reload" title="Permanent link">&para;</a></h3>
 <p><code>WidgetRegistry</code> re-registers widget classes when a library reloads. Widgets already mounted in the running UI are <strong>not</strong> swapped (tearing down a connected NiceGUI element is risky); newly-created widgets pick up the new class.</p>
 <h3 id="the-imports-you-need">The imports you need<a class="headerlink" href="#the-imports-you-need" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseWidget</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">widget</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.converters</span><span class="w"> </span><span class="kn">import</span> <span class="n">Converters</span><span class="p">,</span> <span class="n">BindingConverter</span><span class="p">,</span> <span class="n">PrimitiveUnwrappingConverter</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseWidget</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">widget</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.converters</span><span class="w"> </span><span class="kn">import</span> <span class="n">Converters</span><span class="p">,</span> <span class="n">BindingConverter</span><span class="p">,</span> <span class="n">PrimitiveUnwrappingConverter</span>
 </span></code></pre></div>
 <h2 id="4-live-example-from-the-codebase">4. Live example from the codebase<a class="headerlink" href="#4-live-example-from-the-codebase" title="Permanent link">&para;</a></h2>
 <p>Source: <code>barn/haybale-example/haybale_example/widgets/knob_widget.py</code></p>
 <p><code>KnobWidget</code> is a <code>BaseWidget</code> that binds a <code>ui.knob</code> to <code>FLOAT</code> or <code>INT</code> ports. It shows the common single-value path: <code>build()</code> reads <code>self._config</code>, constructs the element, and returns it through <code>self.bind()</code> with a default-bearing converter.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nd">@widget</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;knob widget&quot;</span><span class="p">)</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">KnobWidget</span><span class="p">(</span><span class="n">BaseWidget</span><span class="p">):</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="sd">    Rotary knob widget for numeric ports.</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="sd">    Config options (via ``KnobWidget.config(properties={...})``):</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="sd">    - ``min`` (int | float): Minimum value.</span>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="sd">    - ``max`` (int | float): Maximum value.</span>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="sd">    - ``step`` (int | float): Step increment.</span>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="sd">    - ``color`` (str): Quasar color name for the knob arc (e.g. ``&#39;primary&#39;``, ``&#39;green&#39;``).</span>
-</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="sd">    - ``size`` (str): CSS size of the knob element (e.g. ``&#39;60px&#39;``).</span>
-</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>
-</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="sd">    Example::</span>
-</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>
-</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="sd">        KnobWidget.config(properties={&#39;min&#39;: 0, &#39;max&#39;: 360, &#39;step&#39;: 1, &#39;color&#39;: &#39;teal&#39;})</span>
-</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>
-</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>        <span class="n">props</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;properties&quot;</span><span class="p">,</span> <span class="p">{})</span>
-</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>        <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">row</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full justify-center text-xs&quot;</span><span class="p">):</span>
-</span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>            <span class="n">knob</span> <span class="o">=</span> <span class="n">ui</span><span class="o">.</span><span class="n">knob</span><span class="p">(</span>
-</span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>                <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-</span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a>                <span class="n">show_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>                <span class="nb">min</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-</span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>                <span class="nb">max</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;max&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-</span><span id="__span-12-27"><a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>                <span class="n">step</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span>
-</span><span id="__span-12-28"><a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>                <span class="n">color</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;primary&quot;</span><span class="p">),</span>
-</span><span id="__span-12-29"><a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>                <span class="n">size</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">,</span> <span class="s2">&quot;60px&quot;</span><span class="p">),</span>
-</span><span id="__span-12-30"><a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>            <span class="p">)</span>
-</span><span id="__span-12-31"><a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-</span><span id="__span-12-32"><a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>            <span class="n">knob</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-32 h-32&quot;</span><span class="p">),</span>
-</span><span id="__span-12-33"><a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a>            <span class="n">converter</span><span class="o">=</span><span class="n">PrimitiveUnwrappingConverter</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">),</span>
-</span><span id="__span-12-34"><a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a>        <span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nd">@widget</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;knob widget&quot;</span><span class="p">)</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">KnobWidget</span><span class="p">(</span><span class="n">BaseWidget</span><span class="p">):</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="sd">    Rotary knob widget for numeric ports.</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="sd">    Config options (via ``KnobWidget.config(properties={...})``):</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="sd">    - ``min`` (int | float): Minimum value.</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="sd">    - ``max`` (int | float): Maximum value.</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="sd">    - ``step`` (int | float): Step increment.</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="sd">    - ``color`` (str): Quasar color name for the knob arc (e.g. ``&#39;primary&#39;``, ``&#39;green&#39;``).</span>
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="sd">    - ``size`` (str): CSS size of the knob element (e.g. ``&#39;60px&#39;``).</span>
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="sd">    Example::</span>
+</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>
+</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="sd">        KnobWidget.config(properties={&#39;min&#39;: 0, &#39;max&#39;: 360, &#39;step&#39;: 1, &#39;color&#39;: &#39;teal&#39;})</span>
+</span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-13-18"><a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>
+</span><span id="__span-13-19"><a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span id="__span-13-20"><a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a>        <span class="n">props</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;properties&quot;</span><span class="p">,</span> <span class="p">{})</span>
+</span><span id="__span-13-21"><a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a>        <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">row</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full justify-center text-xs&quot;</span><span class="p">):</span>
+</span><span id="__span-13-22"><a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a>            <span class="n">knob</span> <span class="o">=</span> <span class="n">ui</span><span class="o">.</span><span class="n">knob</span><span class="p">(</span>
+</span><span id="__span-13-23"><a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a>                <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-13-24"><a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a>                <span class="n">show_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-13-25"><a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a>                <span class="nb">min</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+</span><span id="__span-13-26"><a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a>                <span class="nb">max</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;max&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span><span id="__span-13-27"><a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a>                <span class="n">step</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span>
+</span><span id="__span-13-28"><a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a>                <span class="n">color</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;primary&quot;</span><span class="p">),</span>
+</span><span id="__span-13-29"><a id="__codelineno-13-29" name="__codelineno-13-29" href="#__codelineno-13-29"></a>                <span class="n">size</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">,</span> <span class="s2">&quot;60px&quot;</span><span class="p">),</span>
+</span><span id="__span-13-30"><a id="__codelineno-13-30" name="__codelineno-13-30" href="#__codelineno-13-30"></a>            <span class="p">)</span>
+</span><span id="__span-13-31"><a id="__codelineno-13-31" name="__codelineno-13-31" href="#__codelineno-13-31"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+</span><span id="__span-13-32"><a id="__codelineno-13-32" name="__codelineno-13-32" href="#__codelineno-13-32"></a>            <span class="n">knob</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-32 h-32&quot;</span><span class="p">),</span>
+</span><span id="__span-13-33"><a id="__codelineno-13-33" name="__codelineno-13-33" href="#__codelineno-13-33"></a>            <span class="n">converter</span><span class="o">=</span><span class="n">PrimitiveUnwrappingConverter</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">),</span>
+</span><span id="__span-13-34"><a id="__codelineno-13-34" name="__codelineno-13-34" href="#__codelineno-13-34"></a>        <span class="p">)</span>
 </span></code></pre></div>
 <p>from: <code>KnobWidget</code> — registry_key: <code>haybale-example:widget:KnobWidget</code></p>
 <p>Using it from a node's <code>init()</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="s2">&quot;angle&quot;</span><span class="p">,</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Angle&quot;</span><span class="p">,</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="n">widget</span><span class="o">=</span><span class="n">KnobWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">360</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;teal&quot;</span><span class="p">}),</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="s2">&quot;angle&quot;</span><span class="p">,</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Angle&quot;</span><span class="p">,</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">widget</span><span class="o">=</span><span class="n">KnobWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">360</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;teal&quot;</span><span class="p">}),</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="p">))</span>
 </span></code></pre></div>
 <p><strong>Multiple elements.</strong> A widget can bind several elements to one port. A <code>Vector3</code> widget calls <code>bind()</code> three times, each with a different <code>to=</code> field path (<code>"x"</code>, <code>"y"</code>, <code>"z"</code>); for a worked example that mixes a two-way input with a read-only derived label, see <code>TemperatureWidget</code> in <code>barn/haybale-example/haybale_example/widgets/example_widget.py</code> — it binds a <code>ui.number</code> (custom converter, two-way) alongside a <code>ui.label</code> (<code>prop="text"</code>, <code>one_way=True</code>).</p>
 <p>What this example exercises:</p>
@@ -3891,9 +3957,9 @@
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Override <code>_on_cleanup()</code> to release subclass-owned resources — never override <code>cleanup()</code></li>
 </ul>
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseWidget</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">widget</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.converters</span><span class="w"> </span><span class="kn">import</span> <span class="n">Converters</span><span class="p">,</span> <span class="n">BindingConverter</span><span class="p">,</span> <span class="n">PrimitiveUnwrappingConverter</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseWidget</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">widget</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.converters</span><span class="w"> </span><span class="kn">import</span> <span class="n">Converters</span><span class="p">,</span> <span class="n">BindingConverter</span><span class="p">,</span> <span class="n">PrimitiveUnwrappingConverter</span>
 </span></code></pre></div>
 <h3 id="common-prop-event-pairs">Common <code>prop</code> / <code>event</code> pairs<a class="headerlink" href="#common-prop-event-pairs" title="Permanent link">&para;</a></h3>
 <table>
@@ -3923,18 +3989,18 @@
 </tbody>
 </table>
 <h3 id="per-port-override-at-the-call-site">Per-port override at the call site<a class="headerlink" href="#per-port-override-at-the-call-site" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Preferred: config() builds the {key, config} dict for you.</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">,</span>
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="n">widget</span><span class="o">=</span><span class="n">NumberWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}),</span>
-</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="p">))</span>
-</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
-</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1"># Lower-level: pass the registry key and config explicitly.</span>
-</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
-</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">,</span>
-</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>    <span class="n">widget_key</span><span class="o">=</span><span class="s2">&quot;my_lib:widget:NumberWidget&quot;</span><span class="p">,</span>
-</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>    <span class="n">widget_config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}},</span>
-</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Preferred: config() builds the {key, config} dict for you.</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">,</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="n">widget</span><span class="o">=</span><span class="n">NumberWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}),</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="p">))</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1"># Lower-level: pass the registry key and config explicitly.</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">,</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>    <span class="n">widget_key</span><span class="o">=</span><span class="s2">&quot;my_lib:widget:NumberWidget&quot;</span><span class="p">,</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>    <span class="n">widget_config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}},</span>
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="p">))</span>
 </span></code></pre></div>
 <p>The <code>widget_key</code> is <code>&lt;library_id&gt;:widget:&lt;registry_id&gt;</code>. Register the class once with <code>@widget</code> and reference it from any node.</p>
 
