@@ -740,6 +740,13 @@ export default {
       requestAnimationFrame(() => requestAnimationFrame(() => this._doFitToContent()));
     },
 
+    fitToRect(minX, minY, maxX, maxY) {
+      const rect = this._getContainerRect();
+      // A hidden canvas (an unselected tab or level) measures 0×0; fitting on that would misplace it.
+      if (!rect.width || !rect.height) return;
+      this._fitRect(minX, minY, maxX, maxY);
+    },
+
     _doFitToContent() {
       const content = this.$refs.content;
       // Only top-level node containers: [data-node-id] elements that are NOT nested
@@ -770,6 +777,11 @@ export default {
         console.log('[ZoomPan] _doFitToContent: no nodes, centering on canvas midpoint');
       }
 
+      this._fitRect(minX, minY, maxX, maxY);
+    },
+
+    _fitRect(minX, minY, maxX, maxY) {
+      const rect = this._getContainerRect();
       const PADDING = 80;
       const contentW = maxX - minX + PADDING * 2;
       const contentH = maxY - minY + PADDING * 2;
@@ -783,7 +795,7 @@ export default {
       const newPanX = rect.width / 2 - contentCenterX * newZoom;
       const newPanY = rect.height / 2 - contentCenterY * newZoom;
 
-      console.log(`[ZoomPan] _doFitToContent: bbox=(${Math.round(minX)},${Math.round(minY)})→(${Math.round(maxX)},${Math.round(maxY)}) zoom=${newZoom.toFixed(3)} pan=(${Math.round(newPanX)},${Math.round(newPanY)})`);
+      console.log(`[ZoomPan] _fitRect: bbox=(${Math.round(minX)},${Math.round(minY)})→(${Math.round(maxX)},${Math.round(maxY)}) zoom=${newZoom.toFixed(3)} pan=(${Math.round(newPanX)},${Math.round(newPanY)})`);
       this._zoom = newZoom;
       this._panX = newPanX;
       this._panY = newPanY;

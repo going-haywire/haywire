@@ -570,6 +570,44 @@ class TestTheEmptyStageViewport:
         manager.zoom_container.center_on.assert_called_once_with(3750, 3750)
 
 
+class TestTheLargeGraphViewport:
+    """A graph loaded in batches is fitted to its saved positions before the first node arrives."""
+
+    @staticmethod
+    def _built(monkeypatch: Any, node_count: int) -> Any:
+        editor, context, _ = _editor()
+        editor._project_state = MagicMock()
+        manager = MagicMock()
+        manager.visual_layer.content_bounds.return_value = (10.0, 20.0, 700.0, 400.0)
+        monkeypatch.setattr(graph_editor_module, "GraphCanvasManager", MagicMock(return_value=manager))
+        route = SimpleNamespace(
+            graph=SimpleNamespace(node_wrappers={f"n{i}": object() for i in range(node_count)}, filestem="g")
+        )
+        context.session_id = "session-1"
+        GraphEditor._build_canvas(editor, context, route)  # type: ignore[arg-type]
+        return manager
+
+    def test_a_large_graph_fits_its_bounds_when_the_canvas_mounts(self, monkeypatch):
+        manager = self._built(monkeypatch, graph_editor_module.CHUNKED_LOAD_THRESHOLD)
+        zoom = manager.zoom_container
+
+        zoom._on_ready()
+
+        zoom.fit_to_rect.assert_called_once_with(10.0, 20.0, 700.0, 400.0)
+        zoom.center_on_content.assert_not_called()
+
+    def test_a_large_graph_still_fits_its_drawn_cards_once_mounted(self, monkeypatch):
+        manager = self._built(monkeypatch, graph_editor_module.CHUNKED_LOAD_THRESHOLD)
+
+        kwargs = manager.start_chunked_sync.call_args.kwargs
+        assert kwargs["on_nodes_mounted"] == manager.zoom_container.center_on_content
+
+    def test_a_small_graph_fits_its_drawn_cards(self, monkeypatch):
+        manager = self._built(monkeypatch, graph_editor_module.CHUNKED_LOAD_THRESHOLD - 1)
+
+        assert manager.zoom_container._on_ready == manager.zoom_container.center_on_content
+
+
 class TestShowSessionSelection:
     """``show_session_selection`` prunes the session's selection to what the canvas draws."""
 

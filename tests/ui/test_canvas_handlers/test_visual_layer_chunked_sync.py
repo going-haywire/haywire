@@ -259,6 +259,22 @@ async def test_a_load_cancelled_before_the_last_node_centres_nothing(handler, gr
     assert called == []
 
 
+class TestContentBounds:
+    """The box a large graph's saved positions span, for the viewport fit before any card exists."""
+
+    def test_content_bounds_span_every_included_node(self, handler, graph):
+        graph.node_wrappers = {"a": _node_wrapper("a"), "b": _node_wrapper("b")}
+        graph.node_wrappers["a"].node.props.get_position.return_value = (10.0, 20.0)
+        graph.node_wrappers["b"].node.props.get_position.return_value = (500.0, 300.0)
+
+        assert handler.content_bounds() == (10.0, 20.0, 700.0, 400.0)
+
+    def test_content_bounds_of_an_empty_canvas_is_none(self, handler, graph):
+        graph.node_wrappers = {}
+
+        assert handler.content_bounds() is None
+
+
 class TestResyncEdges:
     """A canvas that came back without its edges gets the batch again."""
 

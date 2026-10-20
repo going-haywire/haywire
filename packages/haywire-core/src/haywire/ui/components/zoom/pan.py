@@ -226,6 +226,14 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         """Automatically fit the content to the container."""
         self.run_method("fitToContent")
 
+    def fit_to_rect(self, min_x: float, min_y: float, max_x: float, max_y: float) -> None:
+        """Zoom and pan so the given content-space rectangle fills the viewport.
+
+        Uses the same padding and zoom limits as :meth:`center_on_content`. Does
+        nothing while the container is not on screen (it measures zero).
+        """
+        self.run_method("fitToRect", min_x, min_y, max_x, max_y)
+
     def center_on_content(self) -> None:
         """Fit all content into view. Must be called after Vue component is mounted."""
         _log.info("[ZoomPan] center_on_content → run_method('fitToContent')")

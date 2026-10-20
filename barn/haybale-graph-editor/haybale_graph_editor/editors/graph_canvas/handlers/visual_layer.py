@@ -86,6 +86,9 @@ STAGE_EDGE_REFUSED = "This connection would not show on the stage. Make it in th
 #: Canvas units to the right of a cloned node where Place puts its clone.
 _CLONE_OFFSET_X = 280.0
 
+#: The card size assumed for a node not yet drawn, in canvas units; matches ``pan.vue``'s fit fallback.
+_FIT_CARD_SIZE = (200.0, 100.0)
+
 
 def summarize_compatibility(node_warning_count: int, library_messages: list[str]) -> str | None:
     """Build the on-open compatibility summary text, or None if nothing to report.
@@ -297,6 +300,27 @@ class VisualLayerHandlers:
         if self.channel.member is None:
             return len(self.graph.node_wrappers)
         return sum(1 for w in self.graph.node_wrappers.values() if self.channel.includes(w.node.props))
+
+    def content_bounds(self) -> Optional[Tuple[float, float, float, float]]:
+        """Return ``(min_x, min_y, max_x, max_y)`` around this canvas's nodes, in canvas units.
+
+        Reads saved positions, so it works before any card is drawn; each card is
+        taken as ``_FIT_CARD_SIZE``. Returns ``None`` when the canvas shows no nodes.
+        """
+        positions = [
+            self._canvas_position(w.node)
+            for w in self.graph.node_wrappers.values()
+            if self.channel.includes(w.node.props)
+        ]
+        if not positions:
+            return None
+        width, height = _FIT_CARD_SIZE
+        return (
+            min(x for x, _ in positions),
+            min(y for _, y in positions),
+            max(x for x, _ in positions) + width,
+            max(y for _, y in positions) + height,
+        )
 
     def included_edge_count(self) -> int:
         """Return how many of the graph's edges this canvas draws."""

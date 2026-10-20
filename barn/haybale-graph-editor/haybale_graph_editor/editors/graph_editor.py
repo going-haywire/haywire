@@ -1209,6 +1209,10 @@ class GraphEditor(BaseEditor):
         elif node_count:
             zoom_container._on_ready = zoom_container.center_on_content
             on_nodes_mounted = zoom_container.center_on_content
+            bounds = manager.visual_layer.content_bounds()
+            if node_count >= CHUNKED_LOAD_THRESHOLD and bounds is not None:
+                # The cards arrive in batches; fit their saved positions now so each batch lands in view.
+                zoom_container._on_ready = lambda: zoom_container.fit_to_rect(*bounds)
         elif channel.stage:
             stage_corner = (channel.origin + 400, channel.origin + 300)
             zoom_container._on_ready = lambda: zoom_container.center_on(*stage_corner)
