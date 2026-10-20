@@ -5,7 +5,7 @@ the canvas fills in progressively because the load yields between nodes so the
 server keeps serving other sessions. That progressive fill is exactly why this
 modal has to BLOCK: for most of the load the canvas holds a partial graph —
 some nodes mounted, the rest missing, and no edges at all, since those are
-emitted in one batch at the very end. Dragging a node, drawing an edge, or
+sent in one batch after the last node. Dragging a node, drawing an edge, or
 opening a context menu against that half-built state acts on a graph the user
 can see is incomplete, and against Python-side registries (``node_panels``,
 ``edge_states``) still being written.

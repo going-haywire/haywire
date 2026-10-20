@@ -3168,12 +3168,7 @@ export default {
             const inletPin = this._drawnPin(sinkNodeId, inletPinUUID, inletPinFallback);
 
             if (!outletPin || !inletPin) {
-                console.error(`🔗 Vue could not find pins:`, {
-                    outletPinUUID: outletPinUUID,
-                    inletPinUUID: inletPinUUID,
-                    outletPinExists: !!outletPin,
-                    inletPinExists: !!inletPin
-                });
+                // Absent pins are the normal parked case; the caller parks the edge and retries.
                 return { success: false, pathElement: null };
             }
 

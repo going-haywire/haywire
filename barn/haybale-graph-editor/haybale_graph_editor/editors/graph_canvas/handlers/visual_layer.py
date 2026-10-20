@@ -162,6 +162,8 @@ class VisualLayerHandlers:
         # already drawn?" registry — membership, not the value, is what
         # ``on_validated`` and ``process_start_reconnect`` test.
         self.edge_states: Dict[str, EdgeVisualState] = {}
+        # True while sync_with_graph_chunked mounts nodes; edges wait until it ends.
+        self.mounting = False
 
         if hasattr(canvas_vue, "client"):
             self._release_on_client_delete(canvas_vue.client)
@@ -230,6 +232,9 @@ class VisualLayerHandlers:
 
         for edge_uuid, reason in result.edges.items():
             if reason == ChangeReason.EDGE_ADDED:
+                if self.mounting:
+                    # The chunked load sends every edge once its nodes exist.
+                    continue
                 edge_wrapper = self.graph.get_edge_wrapper(edge_uuid)
                 if edge_wrapper and edge_uuid not in self.edge_states:
                     payload = self._register_edge_visual(edge_wrapper)
@@ -366,8 +371,10 @@ class VisualLayerHandlers:
         already in ``edge_states``, which every edge here is — the state is the
         server's record of having sent the edge, and this method exists for the
         case where the client no longer has what was sent.
+
+        Sends nothing while a chunked load is mounting nodes; the load sends the edges itself.
         """
-        if not self.graph.edge_wrappers:
+        if self.mounting or not self.graph.edge_wrappers:
             return
         payloads = [self._register_edge_visual(e) for e in self.graph.edge_wrappers.values()]
         batch = [payload for payload in payloads if payload is not None]
@@ -405,12 +412,10 @@ class VisualLayerHandlers:
             on_nodes_mounted: Called once after the last node is mounted, so the
                 viewport can be placed over content that exists.
 
-        The edge pass at the end is a fallback, and usually finds nothing to do.
-        Loading a file marks every edge ``EDGE_ADDED`` and the validation
-        scheduler is a daemon timer (``ThreadingTimerScheduler``), so a pass
-        fires ~50 ms in and emits the edges while this loop is still mounting
-        nodes — which is why a graph shows its edges before the overlay says the
-        nodes are done. ``on_validated`` then skips them here, as already sent.
+        The edges go out in one batch after the last node. While nodes mount,
+        ``mounting`` is True, so a validation pass (the scheduler's timer fires
+        ~50 ms into a file load) or a canvas mount sends no edges, whose pins
+        would not exist yet.
         """
         node_count = self.included_node_count()
         edge_count = self.included_edge_count()
@@ -421,13 +426,17 @@ class VisualLayerHandlers:
             # Snapshot the wrappers: the loop awaits, so the graph's own dict
             # could be mutated under us by an event that lands mid-load.
             wrappers = [w for w in self.graph.node_wrappers.values() if self.channel.includes(w.node.props)]
-            for index, wrapper in enumerate(wrappers, start=1):
-                node = wrapper.node
-                if node.node_id not in self.node_panels:
-                    self.add_node_visual(node, self._canvas_position(node))
-                if on_progress is not None:
-                    on_progress(index, node_count)
-                await asyncio.sleep(0)
+            self.mounting = True
+            try:
+                for index, wrapper in enumerate(wrappers, start=1):
+                    node = wrapper.node
+                    if node.node_id not in self.node_panels:
+                        self.add_node_visual(node, self._canvas_position(node))
+                    if on_progress is not None:
+                        on_progress(index, node_count)
+                    await asyncio.sleep(0)
+            finally:
+                self.mounting = False
 
             nodes_t = time.perf_counter()
             if on_nodes_mounted is not None:
@@ -478,13 +487,10 @@ class VisualLayerHandlers:
         * Not drawn-paths-against-the-total. An edge whose node is culled
           off-viewport, or whose pins have not mounted, is parked and drawn
           later, so that count is unreachable on any graph large enough to cull.
-        * Not "wait for a new batch". The batch has usually gone out ALREADY:
-          loading a file marks every edge ``EDGE_ADDED``, and the validation
-          scheduler is a daemon timer, so it fires ~50 ms in and emits the edges
-          while the node loop is still running. The loop's own pass then emits
-          nothing, because ``on_validated`` skips edges already in
-          ``edge_states``. A condition that is satisfied on the first frame is
-          the correct answer, not a missed event.
+        * Not "wait for a new batch". The batch may already have been drawn
+          by the time this runs (a re-mount resends it, and a small batch
+          lands in one frame). A condition that is satisfied on the first frame
+          is the correct answer, not a missed event.
 
         The root is resolved by ``GraphCanvasVue.dom_selector``, not by
         ``getElementById``: the canvas's ``containerId`` never reaches the DOM,

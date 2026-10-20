@@ -395,39 +395,109 @@ class TestCanvasMounted:
         assert CanvasMountedEvent.event_type in handlers
 
 
-class TestTheValidationTimerBeatsTheLoop:
-    """The edge batch normally goes out DURING the node loop, not after it.
+def _edge_batches(handler) -> list[SyncAllEdgesEvent]:
+    return [
+        c.args[0]
+        for c in handler.canvas_vue.emit_sync_event.call_args_list
+        if isinstance(c.args[0], SyncAllEdgesEvent)
+    ]
 
-    ``ThreadingTimerScheduler`` is a daemon timer, so the validation pass a file
-    load schedules fires on its own thread ~50 ms in, while the chunked loop is
-    still mounting. Its result carries every edge, so the loop's own pass at the
-    end finds them all registered and emits nothing at all — which is why a load
-    gate waiting for a batch to arrive after it starts waits for ever.
+
+def _with_edges(handler, graph, ids) -> None:
+    """Give ``graph`` an edge per id, each registered under its own id when sent."""
+    graph.edge_wrappers = {i: MagicMock(style=None, edge_id=i) for i in ids}
+    graph.get_edge_wrapper.side_effect = lambda edge_id: graph.edge_wrappers.get(edge_id)
+
+    def _register(wrapper):
+        handler.edge_states[wrapper.edge_id] = MagicMock()
+        return {"id": wrapper.edge_id}
+
+    handler._register_edge_visual = MagicMock(side_effect=_register)  # type: ignore[method-assign]
+    handler._await_client_drawn = _noop_confirm  # type: ignore[method-assign]
+
+
+class TestEdgesWaitForTheNodes:
+    """A chunked load sends its edges once, after the last node is mounted.
+
+    The validation pass a file load schedules runs on a timer thread while the
+    nodes are still mounting, and a canvas mount asks for every edge; both would
+    send edges whose pins do not exist yet, which the browser then retries on
+    every DOM change.
     """
 
-    def test_a_validation_pass_emits_the_edges(self, handler, graph):
-        graph.edge_wrappers = {"e0": MagicMock(style=None), "e1": MagicMock(style=None)}
-        graph.get_edge_wrapper.return_value = MagicMock(style=None)
-        handler._register_edge_visual = MagicMock(  # type: ignore[method-assign]
-            side_effect=lambda w: handler.edge_states.setdefault("e", MagicMock()) and {"id": "e"}
-        )
+    def test_a_validation_pass_during_the_mount_sends_no_edges(self, handler, graph):
+        _with_edges(handler, graph, ["e0", "e1"])
+        handler.mounting = True
 
         handler.on_validated(handler._full_add_result(include_nodes=False))
 
-        assert handler.canvas_vue.emit_sync_event.called
+        assert _edge_batches(handler) == []
+        assert handler.edge_states == {}
+
+    def test_a_canvas_mount_during_the_load_sends_no_edges(self, handler, graph):
+        _with_edges(handler, graph, ["e0", "e1"])
+        handler.mounting = True
+
+        handler.process_canvas_mounted(CanvasMountedEvent())
+
+        assert _edge_batches(handler) == []
 
     @pytest.mark.anyio
-    async def test_the_loops_own_pass_then_emits_nothing(self, handler, graph):
-        graph.edge_wrappers = {"e0": MagicMock(style=None), "e1": MagicMock(style=None)}
-        graph.get_edge_wrapper.return_value = MagicMock(style=None)
-        # What the timer thread already did: every edge recorded as sent.
-        handler.edge_states.update({"e0": MagicMock(), "e1": MagicMock()})
-        handler._await_client_drawn = _noop_confirm  # type: ignore[method-assign]
+    async def test_the_load_sends_every_edge_once_after_the_last_node(self, handler, graph):
+        _with_edges(handler, graph, ["e0", "e1", "e2", "e3"])
+        sent_while_mounting: list[int] = []
 
-        await handler.sync_with_graph_chunked()
+        def _progress(mounted: int, _total: int) -> None:
+            handler.on_validated(handler._full_add_result(include_nodes=False))
+            handler.process_canvas_mounted(CanvasMountedEvent())
+            sent_while_mounting.append(len(_edge_batches(handler)))
 
-        events = [c.args[0] for c in handler.canvas_vue.emit_sync_event.call_args_list]
-        assert [e for e in events if isinstance(e, SyncAllEdgesEvent)] == []
+        await handler.sync_with_graph_chunked(on_progress=_progress)
+
+        assert set(sent_while_mounting) == {0}
+        batches = _edge_batches(handler)
+        assert len(batches) == 1
+        assert sorted(e["id"] for e in batches[0].edges) == ["e0", "e1", "e2", "e3"]
+
+    @pytest.mark.anyio
+    async def test_an_edge_added_mid_load_is_in_the_final_batch(self, handler, graph):
+        _with_edges(handler, graph, ["e0"])
+
+        def _progress(mounted: int, _total: int) -> None:
+            if mounted == 2:
+                graph.edge_wrappers["late"] = MagicMock(style=None, edge_id="late")
+
+        await handler.sync_with_graph_chunked(on_progress=_progress)
+
+        assert sorted(e["id"] for e in _edge_batches(handler)[0].edges) == ["e0", "late"]
+
+    @pytest.mark.anyio
+    async def test_an_edge_removed_mid_load_is_not_sent(self, handler, graph):
+        _with_edges(handler, graph, ["e0", "gone"])
+
+        def _progress(mounted: int, _total: int) -> None:
+            if mounted == 2:
+                del graph.edge_wrappers["gone"]
+
+        await handler.sync_with_graph_chunked(on_progress=_progress)
+
+        assert [e["id"] for e in _edge_batches(handler)[0].edges] == ["e0"]
+
+    @pytest.mark.anyio
+    async def test_mounting_clears_after_success_and_after_cancellation(self, handler, graph):
+        seen: list[bool] = []
+        await handler.sync_with_graph_chunked(on_progress=lambda *_: seen.append(handler.mounting))
+        assert seen and all(seen)
+        assert handler.mounting is False
+
+        def _cancel_midway(mounted: int, _total: int) -> None:
+            if mounted == 2:
+                raise asyncio.CancelledError
+
+        handler.node_panels.clear()
+        with pytest.raises(asyncio.CancelledError):
+            await handler.sync_with_graph_chunked(on_progress=_cancel_midway)
+        assert handler.mounting is False
 
 
 async def _noop_confirm(edge_count):
