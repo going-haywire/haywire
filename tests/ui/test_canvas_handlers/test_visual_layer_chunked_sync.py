@@ -16,6 +16,7 @@ What must hold, and is asserted here:
 """
 
 import asyncio
+import logging
 
 import pytest
 from unittest.mock import MagicMock
@@ -24,6 +25,8 @@ from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import Visu
 from haywire.ui.components.graph.event_definitions import CanvasMountedEvent, SyncAllEdgesEvent
 
 from tests.conftest import edit_route
+
+_VISUAL_LAYER_LOGGER = "haybale_graph_editor.editors.graph_canvas.handlers.visual_layer"
 
 pytestmark = pytest.mark.unit
 
@@ -362,11 +365,18 @@ class TestTheEdgeDrawGate:
         assert "accounted for 0 of 2 edges" in caplog.text
 
     @pytest.mark.anyio
-    async def test_parked_edges_are_reported_and_release_the_load(self, handler, caplog):
-        """Culled nodes leave edges parked; that is normal, not a failure."""
+    async def test_parked_edges_are_reported_and_release_the_load(self, handler, caplog, request):
+        """Culled nodes leave edges parked; that is normal, not a failure.
+
+        The library's namespace is held at WARNING, as the debug configurator sets
+        it when another test in the worker initialised a library system.
+        """
+        library_logger = logging.getLogger("haybale_graph_editor")
+        request.addfinalizer(lambda level=library_logger.level: library_logger.setLevel(level))
+        library_logger.setLevel(logging.WARNING)
         self._replies(handler, {"drawn": 120, "parked": 440, "timedOut": False})
 
-        with caplog.at_level("INFO"):
+        with caplog.at_level("INFO", logger=_VISUAL_LAYER_LOGGER):
             await handler._await_client_drawn(560)
 
         assert "440 waiting" in caplog.text
