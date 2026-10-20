@@ -1,0 +1,117 @@
+{
+  "graph_id": "__unsaved_11__",
+  "name": "Untitled 11",
+  "description": "",
+  "version": "1.0.0",
+  "author": "",
+  "created_at": null,
+  "modified_at": "2026-08-13T15:43:05.859319",
+  "nodes": {
+    "SettingsNode_1db88375": {
+      "node_id": "SettingsNode_1db88375",
+      "registry_key": "haybale-testing:node:SettingsNode",
+      "position": [
+        3114.703137525242,
+        3614.817583062898
+      ],
+      "node_data": {
+        "node_id": "SettingsNode_1db88375",
+        "ports": {
+          "settings": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Settings",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": "default value"
+              },
+              "store_strategy": 14,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:TextWidget",
+              "id": "settings",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "default value"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3114.703137525242,
+              "posY": 3614.817583062898,
+              "width": 263,
+              "height": 104
+            },
+            "promoted": {}
+          },
+          "example": {
+            "values": {},
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3114.703137525242,
+            "posY": 3614.817583062898,
+            "width": 263,
+            "height": 104
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "SettingsNode",
+          "registry_key": "haybale-testing:node:SettingsNode",
+          "label": "Settings Test Node",
+          "description": "Test the Settings for debugging",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "SettingsNode",
+          "module": "haybale_testing.nodes.testbed.settings_node",
+          "search_tags": [
+            "settings",
+            "debug",
+            "test",
+            "example"
+          ],
+          "menu": "testing/testbed",
+          "help_md": null,
+          "help_url": "https://haywire.io/internals/node-help",
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false
+        },
+        "library": {
+          "label": "Testing",
+          "version": "0.1.1",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
+          "module_name": "haybale_testing",
+          "name": "haybale-testing",
+          "linked_libraries": [
+            "haybale_core",
+            "haybale_graph_editor"
+          ],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    }
+  },
+  "edges": {},
+  "variables": {},
+  "props": {
+    "values": {},
+    "promoted": {}
+  }
+}

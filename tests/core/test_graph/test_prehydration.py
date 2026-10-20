@@ -1,8 +1,8 @@
 """Tests for the .haywire format migration chain.
 
-The shipped fixtures under graphs/ are the real regression test: they are
-v0-shaped on disk and upgraded on every load, so a broken upgrader fails
-the suite rather than silently corrupting a load.
+The fixtures under ``fixtures/prehydration/`` are real saved graphs frozen at
+older format versions (v0, v2, v3), so a broken upgrader fails the suite
+rather than silently corrupting a load.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.graph.prehydration import CURRENT_FORMAT_VERSION, prehydrate
 from haywire.core.graph.prehydration.upgrader import UnknownGraphFormat, validate
 
-FIXTURES = Path(__file__).resolve().parents[3] / "graphs"
+FIXTURES = Path(__file__).resolve().parent / "fixtures" / "prehydration"
 
 
 def _base(**extra):
@@ -202,10 +202,10 @@ def test_validate_checks_presence_not_truthiness():
 
 @pytest.mark.parametrize(
     "name",
-    ["empty", "webcam", "loop", "settings", "oakNwebCam", "10x200nodes", "any_and_nonde"],
+    ["empty", "loop", "settings", "v2_two_nodes", "webcam", "any_and_nonde"],
 )
 def test_shipped_fixture_upgrades(name: str):
-    """Every graph in graphs/ migrates cleanly to the current format."""
+    """Every frozen fixture migrates cleanly to the current format."""
     data = json.loads((FIXTURES / f"{name}.haywire").read_text())
     out = prehydrate(data)
 
@@ -277,7 +277,7 @@ def test_v4_tolerates_a_node_without_ports():
 
 
 def test_the_fixture_that_carries_fold_keys_migrates_them():
-    """``graphs/any_and_nonde.haywire`` is written with the pre-v4 keys."""
+    """``any_and_nonde.haywire`` is written with the pre-v4 keys."""
     raw = (FIXTURES / "any_and_nonde.haywire").read_text()
     assert '"is_group"' in raw, "fixture no longer exercises the v4 rename"
 
