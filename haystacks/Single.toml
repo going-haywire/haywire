@@ -8,4 +8,4 @@ execute = false
 
 [haystack]
 name = "Single"
-active_graph = "graphs/10x64n_sub.haywire"
+active_graph = "graphs/any_and_nonde.haywire"
