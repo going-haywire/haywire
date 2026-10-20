@@ -1314,13 +1314,16 @@ class VisualLayerHandlers:
         editor = self.route.editor()
         if editor is None:
             return
-        from haywire.core.macro.source import macro_template, modified_instance_origin
+        from haywire.core.macro.source import modified_instance_origin, origin_label
 
         wrapper = self.graph.get_node_wrapper(event.node_id)
         origin = modified_instance_origin(wrapper.node) if wrapper is not None else None
-        if origin is None:
+        if wrapper is None or origin is None:
             ui.notify("This card is not a modified instance", type="warning")
             return
+        # Read before the swap, which replaces the card and its definition.
+        definition = getattr(wrapper.node, "resolve_definition", lambda: None)()
+        label = origin_label(definition) if definition is not None else origin.key
 
         logger.info(f"📦 Reverting {event.node_id} to macro {origin.key}")
         placement_id, refusal = editor.promote_to_macro(
@@ -1334,8 +1337,6 @@ class VisualLayerHandlers:
         placement = self.graph.get_node_wrapper(placement_id)
         if placement is not None:
             self._make_sole_active_node(placement)
-        template = macro_template(origin.key)
-        label = template.class_identity.label if template is not None else origin.key
         message = f"Reverted to {label}"
         dropped = editor.last_promotion_dropped_edges
         if dropped:
