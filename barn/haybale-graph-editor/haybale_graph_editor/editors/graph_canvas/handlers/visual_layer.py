@@ -86,9 +86,6 @@ STAGE_EDGE_REFUSED = "This connection would not show on the stage. Make it in th
 #: Canvas units to the right of a cloned node where Place puts its clone.
 _CLONE_OFFSET_X = 280.0
 
-#: Nodes mounted per event-loop yield. Each yield costs the browser one full page re-render.
-CHUNKED_LOAD_BATCH = 25
-
 
 def summarize_compatibility(node_warning_count: int, library_messages: list[str]) -> str | None:
     """Build the on-open compatibility summary text, or None if nothing to report.
@@ -390,16 +387,16 @@ class VisualLayerHandlers:
         on_phase: Optional[Callable[[str], None]] = None,
         on_nodes_mounted: Optional[Callable[[], None]] = None,
     ) -> None:
-        """Mount the graph ``CHUNKED_LOAD_BATCH`` nodes at a time, yielding to the event loop between.
+        """Mount the graph a node at a time, yielding to the event loop between.
 
         Same end state as :meth:`sync_with_graph` — identical element tree — but
-        the batches are interleaved with ``await asyncio.sleep(0)`` so the
-        server keeps serving everyone else while a large graph opens, and the
-        browser draws each batch as it arrives.
+        the node mounts are interleaved with ``await asyncio.sleep(0)`` so the
+        server keeps serving everyone else while a large graph opens.
 
-        Edges go out as one ``SyncAllEdgesEvent``: every message the browser
-        receives re-renders the whole page, so splitting them would cost one
-        re-render per part.
+        Edges are NOT chunked: they already go out as a single batched
+        ``SyncAllEdgesEvent``, so there is nothing to interleave. To the contrary,
+        a chuncked edge batch would be a performance regression: after every
+        chunck the vue component tree walk would be er-run.
 
         Cancellation: the caller's task is cancelled by
         :meth:`GraphCanvasManager.cleanup` when the editor closes mid-load.
@@ -407,11 +404,11 @@ class VisualLayerHandlers:
         torn down anyway, and ``cleanup`` clears ``node_panels`` after.
 
         Args:
-            on_progress: Called after each batch as ``(mounted, total)``, for the
+            on_progress: Called after each node as ``(mounted, total)``, for the
                 load overlay's readout. Runs inside the loop, so it must stay
-                cheap — anything slow here is paid once per batch.
+                cheap — anything slow here is paid once per node.
             on_phase: Called once with a status line when the load moves off
-                node mounting and onto the edge batch.
+                per-node mounting and onto the edge batch.
             on_nodes_mounted: Called once after the last node is mounted, so the
                 viewport can be placed over content that exists.
 
@@ -435,8 +432,6 @@ class VisualLayerHandlers:
                     node = wrapper.node
                     if node.node_id not in self.node_panels:
                         self.add_node_visual(node, self._canvas_position(node))
-                    if index % CHUNKED_LOAD_BATCH and index < len(wrappers):
-                        continue
                     if on_progress is not None:
                         on_progress(index, node_count)
                     await asyncio.sleep(0)

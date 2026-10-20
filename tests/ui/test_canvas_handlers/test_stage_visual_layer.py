@@ -118,8 +118,7 @@ async def test_only_on_stage_nodes_mount_in_chunked_sync(graph):
     progress = []
     await h.sync_with_graph_chunked(on_progress=lambda i, n: progress.append((i, n)))
     assert set(h.node_panels) == {"a", "b"}
-    # Both on-stage nodes fit one batch; the total counts only them.
-    assert progress == [(2, 2)]
+    assert progress == [(1, 2), (2, 2)]
 
 
 def test_only_on_stage_edges_between_mounted_nodes_register(graph):
