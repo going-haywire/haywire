@@ -411,6 +411,31 @@ def test_a_hidden_active_editor_falls_back_to_the_edit_slot(page: Page, harness)
     assert _active_slot(page) == "edit"
 
 
+def test_a_hidden_active_editor_lights_the_edit_slot_at_once(page: Page, harness):
+    """Folding or closing the active slot's editor moves the highlight without waiting for a key."""
+    _open(page, harness)
+    _click_root(page, "#ctx-root")
+
+    page.locator("#ctx-root").evaluate("el => { el.style.display = 'none'; }")
+
+    page.wait_for_function("() => document.documentElement.dataset.hwActiveSlot === 'edit'", timeout=2000)
+
+
+def test_a_bar_click_moves_no_target_until_a_key(page: Page, harness):
+    """A bar click activates the slot only: the server's target editor stays until a key resolves it."""
+    _open(page, harness)
+    _click_root(page, _ONE)
+    expect(page.locator("#last-target")).to_have_text("ed::one")
+
+    page.locator("#ctx-bar").click()
+    page.wait_for_timeout(300)
+    expect(page.locator("#last-target")).to_have_text("ed::one")
+
+    page.keyboard.press("Delete")
+    expect(page.locator("#last-command")).to_have_text("delete@ed::ctx")
+    expect(page.locator("#last-target")).to_have_text("ed::ctx")
+
+
 def test_a_click_in_a_popup_keeps_the_active_slot(page: Page, harness):
     _open(page, harness)
     _click_root(page, "#ctx-root")

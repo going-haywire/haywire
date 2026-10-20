@@ -94,6 +94,8 @@ export default {
   mounted() {
     // Shortcut hints render both spellings; the shell CSS hides the one this flag rules out.
     document.documentElement.dataset.hwPlatform = this.isMac ? 'mac' : 'other';
+    // Folding or closing the active slot's editor resizes it; the highlight then moves to the fallback.
+    this.slotObserver = new ResizeObserver(() => this.checkActiveSlot());
     this.setActiveSlot(this.fallbackSlot);
     document.addEventListener('pointerdown', this.onPointerDown, true);
     document.addEventListener('keydown', this.onKeyDown, true);
@@ -101,6 +103,7 @@ export default {
   },
 
   unmounted() {
+    this.slotObserver.disconnect();
     document.removeEventListener('pointerdown', this.onPointerDown, true);
     document.removeEventListener('keydown', this.onKeyDown, true);
     document.removeEventListener('paste', this.onPaste, true);
@@ -110,6 +113,23 @@ export default {
     setActiveSlot(name) {
       this.activeSlot = name;
       document.documentElement.dataset.hwActiveSlot = name;
+      this.slotObserver.disconnect();
+      const slotEl = this.slotElement(name);
+      if (!slotEl) return;
+      this.slotObserver.observe(slotEl);
+      slotEl.querySelectorAll('[data-hw-binding]').forEach((root) => this.slotObserver.observe(root));
+    },
+
+    checkActiveSlot() {
+      if (this.activeSlot === this.fallbackSlot) return;
+      if (!this.firstVisibleRoot(this.slotElement(this.activeSlot))) this.setActiveSlot(this.fallbackSlot);
+    },
+
+    retarget(root) {
+      const bindingId = root.dataset.hwBinding;
+      if (bindingId === this.targetBinding) return;
+      this.targetBinding = bindingId;
+      this.$emit('hw-target', { binding_id: bindingId });
     },
 
     slotElement(name) {
@@ -120,34 +140,34 @@ export default {
       return slotEl ? [...slotEl.querySelectorAll('[data-hw-binding]')].find(isVisible) || null : null;
     },
 
-    // A pointer-down in a slot that shows an editor makes it the active slot; the editor root
-    // under the pointer, else the slot's visible one, becomes the target.
+    // A pointer-down in a slot that shows an editor makes it the active slot; one on an editor
+    // root also makes that editor the target. A bar click leaves the target to the next key.
     onPointerDown(e) {
       if (!(e.target instanceof Element)) return;
       const slotEl = e.target.closest('[data-hw-slot]');
       if (!slotEl) return;
-      const root = e.target.closest('[data-hw-binding]') || this.firstVisibleRoot(slotEl);
-      if (!root) return;
+      const hit = e.target.closest('[data-hw-binding]');
+      if (!hit && !this.firstVisibleRoot(slotEl)) return;
       this.setActiveSlot(slotEl.dataset.hwSlot);
-      const bindingId = root.dataset.hwBinding;
-      if (bindingId === this.targetBinding) return;
-      this.targetBinding = bindingId;
-      this.$emit('hw-target', { binding_id: bindingId });
+      if (hit) this.retarget(hit);
     },
 
     // The target editor's root: the last one clicked while it is still visible in the active slot,
     // else the slot's first visible root, else the fallback slot's, which then becomes active.
+    // A root other than the last target becomes the target.
     resolveRoot() {
       const slotEl = this.slotElement(this.activeSlot);
       if (slotEl && this.targetBinding !== null) {
         const current = slotEl.querySelector(`[data-hw-binding="${CSS.escape(this.targetBinding)}"]`);
         if (current && isVisible(current)) return current;
       }
-      const inSlot = this.firstVisibleRoot(slotEl);
-      if (inSlot) return inSlot;
-      const fallback = this.firstVisibleRoot(this.slotElement(this.fallbackSlot));
-      if (fallback) this.setActiveSlot(this.fallbackSlot);
-      return fallback;
+      let root = this.firstVisibleRoot(slotEl);
+      if (!root) {
+        root = this.firstVisibleRoot(this.slotElement(this.fallbackSlot));
+        if (root) this.setActiveSlot(this.fallbackSlot);
+      }
+      if (root) this.retarget(root);
+      return root;
     },
 
     editorMap(root) {
