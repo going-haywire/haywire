@@ -85,6 +85,7 @@ class NoteTextWidget(BaseWidget):
             for event in ("mousedown", "pointerdown", "wheel"):
                 self._editor.on(event, lambda _e: None, js_handler="(e) => e.stopPropagation()")
             self._editor.on("blur", self._commit)
+            self._editor.on("hw-commit", self._commit)
             self._editor.on("keydown.esc", self._cancel)
             self._editor.on("keydown.ctrl.enter", lambda _e: self._editor.run_method("blur"))
         root.on("dblclick", self._begin_edit)

@@ -20,8 +20,12 @@ class KeymapListener(ui.element, component="keymap_listener.vue"):
     left to the browser and reported from that event instead. Keys and pastes
     inside a text field (``input``, ``textarea``, ``select``,
     ``[contenteditable]``, ``.cm-editor``, ``[data-hw-native-keys]``) stay with
-    the field. When the target editor's root has left the page, the first
-    visible editor root in ``fallback_slot`` receives the command.
+    the field, except a command marked ``EditorCommand.in_text_fields``. Before
+    reporting one, the listener sends a focused ``input`` or ``textarea`` a
+    bubbling ``hw-commit`` DOM event, so a widget that commits on blur listens
+    for ``hw-commit`` too. Keys inside a dialog or a ``Popup`` stay with the
+    page. When the target editor's root has left the page, the first visible
+    editor root in ``fallback_slot`` receives the command.
 
     Args:
         on_command: Called with ``{"command_id", "binding_id", "position",
@@ -53,7 +57,7 @@ class KeymapListener(ui.element, component="keymap_listener.vue"):
         super().__init__()
         self._on_command = on_command
         self._on_target = on_target
-        self._props["keymap"] = {"editors": {}, "native": {}}
+        self._props["keymap"] = {"editors": {}, "native": {}, "text_fields": []}
         self._props["fallback-slot"] = fallback_slot
         self._props["platform"] = platform
         self.on("hw-command", self._handle_command)

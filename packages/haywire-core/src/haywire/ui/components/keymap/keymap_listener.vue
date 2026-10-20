@@ -8,7 +8,8 @@
 // Tracks the target editor (the last [data-hw-binding] root that took a
 // pointerdown), turns key presses into command events for the target's editor
 // keymap, and turns the native `paste` event into the editor's paste command.
-// Keys typed into a text field or pressed inside a dialog stay with the page.
+// Keys typed into a text field stay with the field, except the commands marked
+// `in_text_fields`; keys pressed inside a dialog or a Popup stay with the page.
 const NATIVE_SELECTOR =
   'input, textarea, select, [contenteditable], .cm-editor, [data-hw-native-keys]';
 
@@ -42,9 +43,9 @@ function isNativeTarget(el) {
   return el instanceof Element && el.closest(NATIVE_SELECTOR) !== null;
 }
 
-// An open dialog sits over the editors, so keys pressed in it never act on the editor behind.
+// An open dialog or Popup sits over the editors, so keys pressed in it never act on the editor behind.
 function isInDialog(el) {
-  return el instanceof Element && el.closest('.q-dialog') !== null;
+  return el instanceof Element && el.closest('.q-dialog, .hw-popup-overlay') !== null;
 }
 
 function keepsNativeKeys(target) {
@@ -52,11 +53,13 @@ function keepsNativeKeys(target) {
   return isNativeTarget(active) || isInDialog(active) || isInDialog(target);
 }
 
-// Blur and refocus a focused input or textarea, so a field that commits on blur sends its
-// value ahead of the command; the websocket keeps the order. A code editor streams every
-// change and keeps its caret, so it is left alone.
+// Ask a focused input or textarea to commit its value ahead of the command; the websocket keeps
+// the order. `hw-commit` goes out synchronously, where a Quasar field's own blur event is deferred
+// and cancelled by the refocus. The blur and refocus still commit a native-blur field. A code
+// editor streams every change and keeps its caret, so it is left alone.
 function commitField(el) {
   if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return;
+  el.dispatchEvent(new CustomEvent('hw-commit', { bubbles: true }));
   el.blur();
   el.focus();
 }

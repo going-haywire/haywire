@@ -2,9 +2,8 @@
 
 ``SyncScheduler``, and ``LoopScheduler`` with no running loop, run the
 validation pass inside ``mark_node_dirty``. The pass housekeeps the node and
-clears its flag, so a flag set after that call stays set, and every later
-``mark_as_structuraly_dirty`` is skipped: the node is never re-checked
-structurally, nor are the edges on its pins.
+clears its flag, so every ``mark_as_structuraly_dirty`` re-checks the node
+and the edges on its pins, and a pass that raises leaves the flag clear.
 """
 
 from __future__ import annotations

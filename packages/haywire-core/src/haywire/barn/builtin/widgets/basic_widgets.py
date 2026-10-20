@@ -116,9 +116,10 @@ class TextWidget(BaseWidget):
             )
             if commit:
                 # The input's own value still follows each keystroke server-side;
-                # only these two events hand it to the model.
+                # only these events hand it to the model. ``hw-commit`` is the save key's.
                 self._input.on("keydown.enter", self._commit)
                 self._input.on("blur", self._commit)
+                self._input.on("hw-commit", self._commit)
             ui.button(icon=hui.icon.expand_full, on_click=self._open_modal).props(
                 "flat dense size=xs"
             ).tooltip("Edit in full")

@@ -339,6 +339,20 @@ def test_save_keeps_focus_in_a_code_editor(page: Page, harness):
     assert code.evaluate("el => document.activeElement === el")
 
 
+def test_save_in_a_popup_field_is_native(page: Page, harness):
+    """A haywire Popup is a dialog too, though it carries no ``.q-dialog``."""
+    _open(page, harness)
+    page.locator("#open-popup").click()
+    field = page.locator(".popup-field input")
+    expect(field).to_be_visible()
+
+    field.focus()
+    page.keyboard.press("Control+s")
+    page.locator("#close-popup").click()
+
+    _expect_only_sentinel(page)
+
+
 def test_save_inside_a_dialog_is_native(page: Page, harness):
     _open(page, harness)
 

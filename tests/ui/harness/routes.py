@@ -910,6 +910,7 @@ def register_routes(library_service) -> None:
         from haywire.barn.builtin.types import FLOAT, INT, STRING
         from haywire.barn.builtin.widgets import TextWidget
         from haywire.core.node.data import NodeData
+        from haywire.ui.components.keymap import KeymapListener
         from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
         if theme_css:
@@ -946,7 +947,21 @@ def register_routes(library_service) -> None:
 
             return on_edit
 
-        with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
+        # Ctrl+S under a KeymapListener records what the text port held when the save arrived.
+        saved = ui.label("none").props('data-testid="saved-value"')
+
+        def on_command(payload: dict) -> None:
+            if payload["command_id"] == "save":
+                saved.set_text(str(ports[0].get_value()))
+
+        listener = KeymapListener(on_command=on_command, on_target=lambda payload: None, platform="other")
+        listener.set_keymap({"editors": {"list": {"Mod+S": "save"}}, "text_fields": ["save"]})
+
+        with (
+            ui.element("div").props('id="hw-slot-edit"'),
+            ui.element("div").props('data-hw-binding="list::one" data-hw-editor="list"'),
+            ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"),
+        ):
             echoes = {}
             for port in ports:
                 with ui.column().classes("w-full").props(f'data-field="{port.id}"'):
@@ -2289,6 +2304,7 @@ def register_routes(library_service) -> None:
     @ui.page("/keymap")
     async def keymap_page():
         from haywire.ui.components.keymap import KeymapListener
+        from haywire.ui.components.popup import Popup
 
         last_command = ui.label("none").props('id="last-command"')
         last_payload = ui.label("none").props('id="last-payload"')
@@ -2344,6 +2360,12 @@ def register_routes(library_service) -> None:
             ui.element("div").props('data-hw-binding="ed::two" data-hw-editor="ed"').style(root_style)
         with ui.element("div").classes("q-dialog").props('id="fake-dialog"'):
             ui.element("button").props('id="dialog-button" type="button"')
+        # Opened on demand: an open Popup's backdrop takes every click on the page.
+        popup = Popup(backdrop_color="transparent")
+        with popup:
+            ui.input().classes("popup-field")
+            ui.button("close popup", on_click=popup.close).props('id="close-popup"')
+        ui.button("open popup", on_click=popup.open).props('id="open-popup"')
         ui.run_javascript(
             "document.querySelector('[data-hw-pointer-local]').hwPointerLocal = () => [12, 34]"
         )

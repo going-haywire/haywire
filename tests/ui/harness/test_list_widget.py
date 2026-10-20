@@ -55,6 +55,19 @@ def test_blur_commits(page: Page, harness):
     expect(_echo(page, "text_commit")).to_have_text("abc|1")
 
 
+def test_the_save_key_commits_before_the_save(page: Page, harness):
+    """Ctrl+S in the field saves the text just typed, without Enter or a click away."""
+    _open(page, harness)
+    field = _text_input(page)
+    field.click()
+    field.press_sequentially("typed")
+
+    field.press("Control+s")
+
+    expect(page.locator('[data-testid="saved-value"]')).to_have_text("typed")
+    expect(_echo(page, "text_commit")).to_have_text("typed|1")
+
+
 def test_a_blur_without_change_writes_nothing(page: Page, harness):
     _open(page, harness)
     field = _text_input(page)

@@ -68,6 +68,19 @@ def test_commit_writes_the_new_text_once(nicegui_slot_context) -> None:
     assert editor.visible is False
 
 
+def test_the_save_key_commits(nicegui_slot_context) -> None:
+    """The keymap listener sends ``hw-commit`` before Ctrl+S, where a Quasar blur never arrives."""
+    writes: list[Any] = []
+    root = NoteTextWidget(_model("Hello", writes.append)).render()
+    editor = _editor(root)
+    _fire(root, "dblclick")
+    editor.value = "Hello world"
+
+    _fire(editor, "hwCommit")  # NiceGUI stores ``.on("hw-commit")`` camel-cased
+
+    assert writes == ["Hello world"]
+
+
 def test_cancel_and_unchanged_commit_write_nothing(nicegui_slot_context) -> None:
     writes: list[Any] = []
     root = NoteTextWidget(_model("Hello", writes.append)).render()
