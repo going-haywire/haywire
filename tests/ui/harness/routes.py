@@ -491,7 +491,7 @@ class _HarnessProjectState:
     """Minimal IProjectState stand-in for harness routes that need a Session.
 
     The studio's HaywireApp is the real app_state; sessions read only a few
-    attributes off it (``library_state_container`` and ``on_disconnect`` on the
+    attributes off it (``library_state_container`` and ``on_client_deleted`` on the
     session path, plus the factories on ``IProjectState``). This pulls those
     from the booted library_service so a session can be created without the full
     studio app.
@@ -510,7 +510,7 @@ class _HarnessProjectState:
         self.widget_factory = library_service.get_widget_factory()
         self.library_state_container = library_service.injector.get(LibraryStateContainer)
 
-    def on_disconnect(self, *args, **kwargs) -> None:  # session teardown hook
+    def on_client_deleted(self, *args, **kwargs) -> None:  # session teardown hook
         pass
 
 

@@ -133,3 +133,16 @@ mutation, `with client:` after (case 2). Deferred timers created during a draw
 that may be invoked from a container that redraws on selection/state change →
 re-parent the timer to a stable element, guard the body on
 `has_socket_connection` — the fix belongs in the helper, not each caller.
+
+## Teardown belongs on `on_delete`, never `on_disconnect`
+
+NiceGUI 3.x runs `app.on_disconnect` and `client.on_disconnect` on every
+websocket drop, including one the page reconnects from with everything still
+on screen (`Client.handle_disconnect`). The client is deleted, and
+`on_delete` runs, only after `reconnect_timeout` passes with no reconnect.
+Tearing a page down on disconnect left a reconnected page talking to a dead
+session (the studio's shell and session, 2026-10-20) or to cards that no longer
+heard their node (the canvas, 6c). Page-, session- and card-level teardown goes
+on `on_delete`; `reconnect_timeout` (`app.py`) is then how long a closed tab's
+session lingers, and must still exceed the longest main-thread stall a load can
+cause, or a busy browser loses its session mid-load.

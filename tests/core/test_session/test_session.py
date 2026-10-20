@@ -2,7 +2,7 @@
 
 Replaces tests/ui/test_session.py. Verifies that Session has no
 AppShell back-reference. Per Q7A (shell-upstream model), AppShell
-teardown is driven by studio.app.on_disconnect — Session itself
+teardown is driven by studio.app.on_client_deleted — Session itself
 only manages its own bus subscriptions.
 """
 

@@ -79,7 +79,7 @@ class Session(SignalPeer):
 
         Leaves the fan-out and drops every subscription (both from
         ``SignalPeer``). AppShell teardown is driven upstream by
-        ``studio.app.on_disconnect`` — Session is not involved in chrome cleanup.
+        ``studio.app.on_client_deleted`` — Session is not involved in chrome cleanup.
         """
         super().cleanup()
         logger.info(f"Session cleaned up: {self.session_id}")

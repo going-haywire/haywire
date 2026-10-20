@@ -56,7 +56,7 @@ class HaywireApp:
         # defensively (getattr(..., None)) for exactly that window.
         self.security_document: Optional[SecurityDocument] = None
         self._shells: dict[str, "AppShell"] = {}
-        # Maps NiceGUI client.id → haywire session_id so on_disconnect can
+        # Maps NiceGUI client.id → haywire session_id so on_client_deleted can
         # resolve which session to tear down without monkey-patching the
         # Client object.
         self._client_to_session: dict[str, str] = {}
@@ -67,13 +67,19 @@ class HaywireApp:
         self._error_ledger_listener: Optional[Callable[[], None]] = None
         self._activity_tracker_listener: Optional[Callable[[], None]] = None
 
-        app.on_disconnect(self.on_disconnect)
-        app.on_shutdown(self.on_app_shutdown)
-        app.on_startup(self._wire_store_broadcasts)
+        self._register_lifecycle()
 
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
+
+    def _register_lifecycle(self) -> None:
+        """Register the app's NiceGUI lifecycle handlers: page deletion, shutdown and startup."""
+        # on_delete, not on_disconnect: NiceGUI runs disconnect handlers on every websocket
+        # drop, also one the page reconnects from.
+        app.on_delete(self.on_client_deleted)
+        app.on_shutdown(self.on_app_shutdown)
+        app.on_startup(self._wire_store_broadcasts)
 
     def _wire_store_broadcasts(self) -> None:
         """Bridge each process-wide observable store to its cross-session signal.
@@ -139,10 +145,12 @@ class HaywireApp:
 
         print("Application shutdown complete")
 
-    def on_disconnect(self, client):
-        """Handle client disconnect.
+    def on_client_deleted(self, client):
+        """Tear down the shell and session of a discarded page.
 
-        Tears down the AppShell first, then detaches the session.
+        A page is discarded when its tab is closed or reloaded and does not
+        reconnect within ``reconnect_timeout``. Tears down the AppShell first,
+        then detaches the session.
         SessionManager.remove_session does only state cleanup — UI cleanup
         is the shell's responsibility.
         """
@@ -151,7 +159,7 @@ class HaywireApp:
         session_id = self._client_to_session.pop(client.id, None)
         if not session_id:
             return
-        print(f"Client disconnected, cleaning up session {session_id[:8]}")
+        print(f"Client deleted, cleaning up session {session_id[:8]}")
 
         shell = self._shells.pop(session_id, None)
         if shell is not None:
@@ -316,7 +324,7 @@ class HaywireApp:
             haywire_session.context.principal = request.scope.get(PRINCIPAL_SCOPE_KEY)
             haywire_session.publish(PresenceChanged())
 
-            # Map this client to its session so on_disconnect can resolve
+            # Map this client to its session so on_client_deleted can resolve
             # which session to tear down.
             self._client_to_session[context.client.id] = haywire_session.session_id
 
@@ -402,8 +410,9 @@ class HaywireApp:
                 show=open_browser,
                 title="Haywire",
                 reload=False,
-                # Sized for opening a LARGE graphs.
-                reconnect_timeout=60.0,
+                # How long a dropped page keeps its session. A 512-node graph load
+                # holds the browser's main thread for at most ~2 s.
+                reconnect_timeout=15.0,
                 **ssl_kwargs,  # type: ignore[arg-type]
             )
         except KeyboardInterrupt:

@@ -104,7 +104,7 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 
 ### Framework gotchas (NiceGUI / Quasar / Vue 3)
 
-- [feedback_nicegui_async.md](.insights/feedback_nicegui_async.md) — slot stack is per-asyncio-task; `asyncio.ensure_future()` makes `ui.notify()` crash (return the coroutine instead). Also: a handler that redraws its own container deletes its slot mid-flight — capture `ui.context.client` first, `ui.notify()` under `with client:`; and a `ui.timer` created during a draw can outlive a redrawn slot — re-parent it to a stable element.
+- [feedback_nicegui_async.md](.insights/feedback_nicegui_async.md) — slot stack is per-asyncio-task; `asyncio.ensure_future()` makes `ui.notify()` crash (return the coroutine instead). Also: a handler that redraws its own container deletes its slot mid-flight — capture `ui.context.client` first, `ui.notify()` under `with client:`; and a `ui.timer` created during a draw can outlive a redrawn slot — re-parent it to a stable element. And page/session/card teardown belongs on `on_delete`: `on_disconnect` fires on every websocket drop, also one the page reconnects from.
 - [feedback_nicegui_dialog_theming.md](.insights/feedback_nicegui_dialog_theming.md) — `.style()` color doesn't reach Quasar pseudo-elements; use `hui.dialog_card()` (carries `hw-panel`).
 - [feedback_nicegui_compact_panels.md](.insights/feedback_nicegui_compact_panels.md) — `compact-fields` utility class for dense field layouts.
 - [feedback_nicegui_headless_tab_panels.md](.insights/feedback_nicegui_headless_tab_panels.md) — `ui.tab_panels` works without `ui.tabs`; keep-alive container pattern.
