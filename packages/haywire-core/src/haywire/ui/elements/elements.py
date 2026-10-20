@@ -84,13 +84,67 @@ def panel_header(title: str, *, icon: str | None = None, is_dirty: bool = False)
     """
     row = ui.row().classes("w-full items-center px-2 py-1.5 flex-shrink-0 gap-1").style(_BORDER)
     with row:
-        if icon:
-            ui.icon(icon, size="16px").classes("hw-text-dim")
-        if is_dirty:
-            ui.element("div").classes("w-2 h-2 rounded-full flex-shrink-0 bg-amber-400").style(
-                "border: 1px solid var(--hw-border);"
-            )
-        ui.label(title).classes("text-sm font-medium hw-text-body truncate flex-1")
+        _header_title(title, icon=icon, is_dirty=is_dirty)
+        yield row
+
+
+def _header_title(title: str, *, icon: str | None, is_dirty: bool) -> None:
+    """Draw a header's icon, dirty dot and title label into the current row."""
+    if icon:
+        ui.icon(icon, size="16px").classes("hw-text-dim")
+    if is_dirty:
+        ui.element("div").classes("w-2 h-2 rounded-full flex-shrink-0 bg-amber-400").style(
+            "border: 1px solid var(--hw-border);"
+        )
+    ui.label(title).classes("text-sm font-medium hw-text-body truncate flex-1")
+
+
+@contextmanager
+def slot_header(title: str | None = None, *, icon: str | None = None, is_dirty: bool = False):
+    """The slot bar of an editor in an ACTION or CONTEXT slot. Use as a context manager.
+
+    The same height, background and separator as the tab bar of the EDIT and
+    INFO slots, and lit with it when its slot is the active slot. The row holds
+    ``panel_header``'s icon, dirty dot and title, then the action buttons placed
+    inside the ``with`` block; without ``title`` it is empty for the caller to fill.
+
+    Example::
+
+        with hui.slot_header("Files", icon="folder"):
+            hui.icon_action("refresh", tooltip="Refresh", on_click=self._refresh)
+
+        with hui.slot_header():
+            ui.label(str(path)).classes("text-xs hw-text-muted truncate flex-1")
+    """
+    row = (
+        ui.row()
+        .classes("w-full items-center px-2 flex-shrink-0 gap-1 hw-slot-header")
+        .style(f"min-height: 36px; {_BG_SURFACE} {_BORDER}")
+    )
+    with row:
+        if title is not None:
+            _header_title(title, icon=icon, is_dirty=is_dirty)
+        yield row
+
+
+@contextmanager
+def editor_toolbar():
+    """A toolbar row an editor draws below its slot's tab bar. Use as a context manager.
+
+    Never lit with the active slot: only the slot bar above it is.
+
+    Example::
+
+        with hui.editor_toolbar():
+            ui.label(str(path)).classes("text-xs hw-text-muted truncate flex-1")
+            hui.icon_action("save", tooltip="Save", on_click=save, command=Save)
+    """
+    row = (
+        ui.row()
+        .classes("w-full items-center px-3 flex-shrink-0 gap-2 hw-editor-toolbar")
+        .style(f"min-height: 32px; {_BG_SURFACE} {_BORDER}")
+    )
+    with row:
         yield row
 
 

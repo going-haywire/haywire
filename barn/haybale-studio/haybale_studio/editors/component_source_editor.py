@@ -239,11 +239,7 @@ class ComponentSourceEditor(BaseEditor):
             self._render_editor(context)
 
     def _render_header(self) -> None:
-        with (
-            ui.row()
-            .classes("w-full items-center px-3 gap-2 flex-shrink-0 border-b")
-            .style("min-height: 32px; background: var(--hw-bg-surface);")
-        ):
+        with hui.slot_header():
             (
                 ui.button(icon="arrow_back", on_click=self._open_in_code_editor)
                 .props("flat dense round size=sm")

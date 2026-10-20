@@ -161,11 +161,7 @@ class CodeEditor(BaseEditor):
 
         with container:
             with ui.column().classes("w-full h-full gap-0"):
-                with (
-                    ui.row()
-                    .classes("w-full items-center px-3 gap-2 flex-shrink-0 border-b")
-                    .style("min-height: 32px; background: var(--hw-bg-surface);")
-                ):
+                with hui.editor_toolbar():
                     ui.icon("description", size="14px").classes("hw-text-dim")
                     label_text = str(path) if path is not None else "Untitled"
                     self._path_label = ui.label(label_text).classes(

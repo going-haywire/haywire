@@ -99,11 +99,7 @@ class FileViewerEditor(BaseEditor):
         with container:
             with ui.column().classes("w-full h-full gap-0"):
                 # Slim header showing the open file path
-                with (
-                    ui.row()
-                    .classes("w-full items-center px-3 gap-2 flex-shrink-0 border-b")
-                    .style("min-height: 32px; background: var(--hw-bg-page);")
-                ):
+                with hui.editor_toolbar():
                     ui.icon("description", size="14px").classes("hw-text-dim")
                     label_text = str(self._last_file) if self._last_file else "No file open"
                     label_cls = "hw-text-body" if self._last_file else "hw-text-muted"
@@ -153,8 +149,9 @@ class FileViewerEditor(BaseEditor):
         # File info bar
         with (
             ui.row()
-            .classes("w-full items-center gap-2 px-3 py-1 border-b flex-shrink-0")
+            .classes("w-full items-center gap-2 px-3 py-1 flex-shrink-0")
             .style("background: var(--hw-bg-surface); min-height: 28px;")
+            .style("border-bottom: 1px solid var(--hw-border);")
         ):
             ui.label(path.name).classes("text-xs font-medium hw-text-body")
             if lang:

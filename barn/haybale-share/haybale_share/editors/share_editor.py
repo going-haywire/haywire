@@ -44,7 +44,7 @@ class ShareEditor(BaseEditor):
         self._context = context
         with container:
             with ui.column().classes("w-full h-full gap-0"):
-                with hui.panel_header("Share", icon=hui.icon.promote):
+                with hui.slot_header("Share", icon=hui.icon.promote):
                     hui.icon_action(hui.icon.refresh, tooltip="Refresh", on_click=self._redraw)
                 with ui.scroll_area().classes("flex-1 w-full"):
                     self._body = ui.column().classes("w-full gap-2 p-2")

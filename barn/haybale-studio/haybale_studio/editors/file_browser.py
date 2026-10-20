@@ -105,7 +105,7 @@ class LazyFileBrowserEditor(BaseEditor):
         with container:
             with ui.column().classes("w-full h-full gap-0"):
                 name = self._root_path.name if self._root_path else "No project"
-                with hui.panel_header(name, icon=hui.icon.folder_open):
+                with hui.slot_header(name, icon=hui.icon.folder_open):
                     # Burger menu — matches the Marketplace header pattern.
                     with (
                         ui.button(icon="more_vert")

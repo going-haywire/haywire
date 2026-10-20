@@ -1035,11 +1035,8 @@ class GraphEditor(BaseEditor):
         with container:
             with ui.column().classes("w-full gap-0").style("height: 100%; overflow: hidden;"):
                 # ---- slim header bar ----
-                with (
-                    ui.row()
-                    .classes("w-full items-center px-3 gap-2 flex-shrink-0 border-b no-wrap")
-                    .style("min-height: 32px; background: var(--hw-bg-surface);")
-                ):
+                with hui.editor_toolbar() as toolbar:
+                    toolbar.classes("no-wrap")
                     ui.icon(hui.icon.graph, size="14px").classes("hw-text-dim flex-shrink-0")
                     # The unsaved marker sits outside the label: the label
                     # truncates from the left, which would eat a leading mark

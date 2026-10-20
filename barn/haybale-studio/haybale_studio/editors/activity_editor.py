@@ -148,11 +148,7 @@ class ActivityEditor(BaseEditor):
     # -- header -----------------------------------------------------------
 
     def _render_header(self) -> None:
-        with (
-            ui.row()
-            .classes("w-full items-center px-3 gap-2 flex-shrink-0 border-b")
-            .style("min-height: 32px; background: var(--hw-bg-surface);")
-        ):
+        with hui.editor_toolbar():
             ui.space()
             (
                 ui.button(icon=hui.icon.clear, on_click=self._clear)

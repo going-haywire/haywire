@@ -107,12 +107,10 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _build_ui(self, context: "SessionContext") -> None:
         with ui.column().classes("w-full h-full gap-0"):
-            # Header: editor icon + title + inline actions, with the standard
-            # panel separator beneath. Three actions is few enough to show
-            # directly — panel_header's documented anatomy floats icon_actions
-            # right, and a burger for three items costs a click to reveal what
-            # fits in the bar anyway.
-            with hui.panel_header("Marketplace", icon=hui.icon.library):
+            # Header: editor icon + title + inline actions. Three actions is few
+            # enough to show directly; a burger for three items costs a click to
+            # reveal what fits in the bar anyway.
+            with hui.slot_header("Marketplace", icon=hui.icon.library):
                 hui.icon_action(
                     hui.icon.refresh,
                     tooltip="Refresh libraries",
@@ -129,9 +127,7 @@ class LibraryBrowserEditor(BaseEditor):
                     on_click=lambda c=context: self._on_edit_file_click(c),
                 )
 
-            # Filter row: "Show:" toggles + search toggle. Uses the same
-            # full-width 1px var(--hw-border) separator as panel_header so the
-            # line matches the header and the main-slot editor's tab divider.
+            # Filter row: "Show:" toggles + search toggle, with the slot bar's separator.
             with (
                 ui.column()
                 .classes("w-full px-2 py-1.5 gap-1 flex-shrink-0")

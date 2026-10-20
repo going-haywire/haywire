@@ -165,10 +165,10 @@ class HaystackEditor(BaseEditor):
         title = self._get_active_haystack_name(context) or "Haystacks"
         hs = context.app_data[HaystackState]
         is_dirty = hs.is_haystack_dirty
-        # The dirty dot (when is_dirty=True) is rendered by panel_header
+        # The dirty dot (when is_dirty=True) is rendered by slot_header
         # itself between the icon and the title — we only add the save
         # icon and the overflow menu on the action side here.
-        with hui.panel_header(title, icon=hui.icon.haystack, is_dirty=is_dirty):
+        with hui.slot_header(title, icon=hui.icon.haystack, is_dirty=is_dirty):
             if not context.can_edit():
                 return
             # Save icon — paired with the dirty dot; only when dirty.
