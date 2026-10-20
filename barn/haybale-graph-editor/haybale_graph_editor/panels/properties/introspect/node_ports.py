@@ -150,7 +150,7 @@ class NodePortsPanel(BasePanel):
                 )
             if shows_widget and instance is not None:
                 # BaseWidget.cleanup() is idempotent, so this composes safely
-                # with the page-disconnect cleanup the widget registers itself.
+                # with the client-delete cleanup the widget registers itself.
                 anchor_cleanup_to_element(container, instance.cleanup)
         except Exception:
             hui.error_label(f"Error rendering port '{getattr(port, 'id', '?')}'")

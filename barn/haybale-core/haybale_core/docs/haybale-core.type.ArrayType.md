@@ -18,7 +18,7 @@ All elements must be the same type (or compatible via adapters).
 
 Usage:
     # Array of floats
-    ArrayType[FLOAT].as_inlet(id='numbers', default=[1.0, 2.0, 3.0])
+    ArrayType[FLOAT].as_inlet(id='numbers', default={'value': [1.0, 2.0, 3.0]})
 
     # Array of meshes
     ArrayType[MeshData].as_outlet(id='meshes')

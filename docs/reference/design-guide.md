@@ -294,7 +294,7 @@ stacking rank. Lift with a class, as `.dragging-node` does.
 
 Pin-interior values (`10000`+ on `.connection-pin`) are **trapped inside a
 node** and rank nothing outside it — a pin's 10000 does not beat the resize
-gadget's 1002. Magnitude here implies no cross-context rank; see the comments
+gadget's `--hw-z-canvas-gadget`. Magnitude here implies no cross-context rank; see the comments
 in `canvas.vue` for the cases where that tie had to be broken in JS instead.
 
 See .insights/feedback_nicegui_nested_menu_flyouts.md (#2) for the original diagnosis.

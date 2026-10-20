@@ -239,7 +239,7 @@ class IType(ABC):
             self.add(FLOAT.as_inlet('value', default=1.0))
             self.add(FLOAT.as_inlet('threshold', default=0.5,
                      widget=SliderWidget.config(min=0.0, max=1.0)))
-            self.add(ArrayType[FLOAT].as_inlet('numbers', default=[1.0, 2.0]))
+            self.add(ArrayType[FLOAT].as_inlet('numbers', default={'value': [1.0, 2.0]}))
             self.add(PooledType[FLOAT].as_inlet('values'))
             self.add(FLOAT.as_inlet('param', on_change='on_param_changed'))
         """
@@ -445,7 +445,7 @@ class IType(ABC):
             self.add(FLOAT.as_config('threshold', default=0.5))
             self.add(FLOAT.as_config('speed', default=1.0,
                      widget=SliderWidget.config(min=0.0, max=10.0)))
-            self.add(ArrayType[STRING].as_config('tags', default=['a', 'b']))
+            self.add(ArrayType[STRING].as_config('tags', default={'value': ['a', 'b']}))
         """
         from haywire.core.types.utils import create_port_spec
 

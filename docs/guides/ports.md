@@ -89,7 +89,7 @@ Defaults are per-direction and usually correct without setting anything: **inlet
 FLOAT.as_inlet('threshold', default=0.5)
 
 # Array of typed values (one connection, multiple values)
-ArrayType[FLOAT].as_inlet('numbers', default=[1.0, 2.0, 3.0])
+ArrayType[FLOAT].as_inlet('numbers', default={'value': [1.0, 2.0, 3.0]})
 
 # Pooled — accepts MULTIPLE connections; values arrive as a dict
 PooledType[FLOAT].as_inlet('values')
@@ -316,7 +316,7 @@ MeshData.as_inlet('mesh', default={'vertices': [], 'faces': []})
 MeshData.as_outlet('combined')
 
 # Array (one connection, list of typed values)
-ArrayType[FLOAT].as_inlet('weights', default=[1.0, 1.0])
+ArrayType[FLOAT].as_inlet('weights', default={'value': [1.0, 1.0]})
 ArrayType[FLOAT].as_outlet('filtered')
 
 # Pooled (inlet only, multiple connections)

@@ -17,7 +17,7 @@ level: library
 
 - **The family moves to haybale-graph-editor:** `NodeSkin`, `StackedNodeSkin` (the default skin), `SplitNodeSkin`, `ErrorNodeSkin`, `NodeSkinSettings` and `NodeSkinSettingsPanel`. Import them from `haybale_graph_editor.skins.*` and `haybale_graph_editor.settings.node_skin_settings`.
 - **Keys change, namespaces do not.** The registry keys become `haybale-graph-editor:skin:*` and `haybale-graph-editor:panel:NodeSkinSettingsPanel`. `NodeSkinSettings` keeps the namespace `ui.node.skin`, so stored geometry values still apply. The registry picks the default and error skins by flag (`_is_default`, `_is_error`), so it needs no change.
-- **No alias.** A stored `haybale-studio:skin:*` key (a node's `skin`/`stage_skin`, a graph default, `studio_skin`/`studio_stage_skin`) renders the error card, "Failed to use skin …", the framework's normal signal for a missing skin. Picking the skin again fixes it.
+- **No alias.** A stored `haybale-studio:skin:*` key (a node's `skin`/`stage_skin`, a graph default, `studio_skin`/`studio_stage_skin`) renders the error card and reports "Skin '…' not found, using error skin as fallback", the framework's normal signal for a missing skin. Picking the skin again fixes it.
 - **Direction of references.** haybale-graph-editor may import builtin types and surfaces (`haywire.barn.builtin`) like any library. Builtin references nothing outside core. `NodeDefaultSkinSettings` and its panel stay where they are: core and haybale-studio.
 
 **Considered.**

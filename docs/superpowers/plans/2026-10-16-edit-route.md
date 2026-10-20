@@ -20,7 +20,7 @@ path that misses that wiring misses all three. `NodeWriteGate`, `GraphWriteGate`
 `_EachNodeWriteGate` and `_OuterGate` are that wiring. Two skin controls show the
 result:
 
-- The stacked skin's fold toggle ([stacked_skin.py:403-412](../../../barn/haybale-studio/haybale_studio/skins/stacked_skin.py#L403-L412)) and the annotation's text edit ([annotation_skin.py:224-244](../../../packages/haywire-core/src/haywire/barn/builtin/skins/annotation_skin.py#L224-L244)) work at `view`.
+- The stacked skin's fold toggle ([stacked_skin.py](../../../barn/haybale-graph-editor/haybale_graph_editor/skins/stacked_skin.py)) and the annotation's text edit ([annotation_skin.py:224-244](../../../packages/haywire-core/src/haywire/barn/builtin/skins/annotation_skin.py#L224-L244)) work at `view`.
 - Neither marks the graph unsaved: both only call `redraw()`, and `NODE_REDRAW_REQUESTED` is visual-only.
 - Neither is undoable.
 
@@ -211,7 +211,7 @@ code that deliberately goes around the route is outside what they promise.
   - Agents can operate folds, since `graph_editor_operate` requires a widget
     key.
   - On stage the header follows the ordinary widget rule, so the special case at
-    [stacked_skin.py:356-359](../../../barn/haybale-studio/haybale_studio/skins/stacked_skin.py#L356-L359)
+    [stacked_skin.py](../../../barn/haybale-graph-editor/haybale_graph_editor/skins/stacked_skin.py)
     goes.
   - The Ports panel is unaffected: it checks `is_fold` before rendering a widget
     and shows only the label

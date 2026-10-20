@@ -70,7 +70,7 @@ From the 2026-09-11 four-way benchmark on `core/marketstall` (see
 | `barn/haybale-studio/haybale_studio/editors` | 54 | sonnet | pending | — |
 | `packages/haywire-core/src/haywire/ui/app` | 49 | sonnet | pending | — |
 | `packages/haywire-core/src/haywire/core/publishing/pipeline/steps` | 47 | sonnet | pending | — |
-| `barn/haybale-studio/haybale_studio/skins` | 46 | sonnet | pending | — |
+| `barn/haybale-graph-editor/haybale_graph_editor/skins` | 46 | sonnet | pending | — |
 | `barn/haybale-marketplace/haybale_marketplace/editors` | 43 | sonnet | pending | — |
 | `barn/haybale-marketplace/haybale_marketplace` | 42 | sonnet | pending | — |
 | `barn/haybale-share/haybale_share/_flow` | 36 | sonnet | pending | — |
