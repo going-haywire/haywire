@@ -13,100 +13,221 @@ see-also:
 
 # Node — Canonical Example
 
-## 1. What it solves
+**Where you are.** This is the first chapter of *Make a node*. It assumes only
+what you know from using the studio: cards on a canvas, the pins on them, the
+edges you draw between pins.
 
-A **node** is a unit of work in a haywire graph. As a node author, you define a Python class that inherits from `BaseNode`, decorate it with `@node(...)`, declare its ports in `init()`, and implement a `worker()` method that does the actual computation. Once registered (your library's `register_components()` picks it up automatically), it appears in the canvas menu, is connectable to other nodes, hot-reloads on file save, and runs inside the VM.
+**New terms in this chapter:** node class, `@node`, `init()`, `worker()`,
+DATA and CONTROL nodes, lifecycle hooks, `rejig()`.
 
-Three node roles exist; you pick one at decoration time:
+## 1. What a node is
 
-- **CONTROL** — has at least one EXEC inlet *and* outlet; participates in execution flow.
-- **DATA** — no EXEC ports; runs only when its outputs are demanded by downstream control nodes.
-- **EVENT / OUTPUT / LOOPBACK** — special CONTROL-flavoured roles (entry, exit, loops).
+Think of a guitar effects pedal: jacks to plug cables into, knobs to turn by
+hand, and circuitry inside that turns what comes in into what goes out.
 
-See [reference/glossary](../../reference/glossary.md) for the full **NodeType** taxonomy.
+A **node** is the same idea in code. Its jacks are **ports** — *inlets* that
+receive values, *outlets* that send them; a card's pins are its ports. Its
+knobs are the **widgets** a port shows when nothing is connected to it. Its
+circuitry is the **worker**, a method that computes outputs from inputs.
 
-## 2. How it fits
+As a node author you write one Python class, and in it three things:
+
+| You write | What it is | Where |
+|---|---|---|
+| the decorator | the node's name, menu entry and kind | `@node(...)` above the class |
+| the ports | what the node receives and sends | `init()` |
+| the worker | the computation | `worker()` |
+
+Everything else — the menu entry, placing the node on a canvas, saving it with
+the graph, rebuilding it when you save the file (hot-reload), running it — the
+framework does.
+
+**Your node lives in a library.** A node class is found because the library it
+belongs to registers its `nodes/` folder in `register_components()`. To start,
+use a library you already have, or let the New Node wizard (canvas right-click
+→ new-node icon) copy a template into one. Creating and shipping a library of
+your own is the last chapter: [haybale](../../haybale/haybale-canon.md).
+
+## 2. The class and the placed node
+
+The class you write describes a kind of node. The node on a canvas is one
+placed instance of it — a graph can hold three of your nodes, each with its
+own values.
 
 ```text
-@node decoration         Class registry          Runtime
-─────────────────        ──────────────          ────────
-BaseNode subclass   →    NodeRegistry      →    NodeWrapper
-+ @node metadata          (registry_key)         (live instance + lifecycle state)
-+ init() declares ports                          + ports[] (DataPort objects)
-+ worker() does work                             + behavior (NodeType, flags)
-                                                 + executed by VM
+you write                       the framework builds
+─────────                       ────────────────────
+BaseNode subclass  ──registers──►  NodeRegistry  ──places──►  NodeWrapper
+(the node class)                   (every class,              (one placed node:
+                                    by registry key)           live ports, lifecycle,
+                                                               run by the VM)
 ```
 
-The class you write is the *blueprint*. At runtime, a `NodeWrapper` owns the live instance, manages its lifecycle, and proxies it into the VM. You never instantiate `NodeWrapper` directly — the framework does, when a node is added to a graph or hot-reloaded.
+You write only the left column. The framework builds a `NodeWrapper` each time
+a node is placed, loaded or hot-reloaded; you never create one yourself.
 
-**Boundaries.** Port creation primitives (`as_inlet`, `as_outlet`, `as_config`, primitive vs array vs pooled access) live in [guides/ports](../../guides/ports.md). Datatypes (`@type`, IType subclasses) live in [components/datatypes](../datatypes/datatype-canon.md). Settings declared on a node go in [components/settings](../settings/setting-canon.md). The VM that runs your worker lives in [architecture/execution/virtual-machine](../../architecture/execution/virtual-machine/virtual-machine-arch.md).
-
-## 3. Important concepts
-
-**The `@node` decorator.** Attaches identity metadata: `label`, `description`, `menu` (canvas menu path), `search_tags`, `node_type` (`NodeType.CONTROL` / `NodeType.DATA` / etc.). The decorator's `node_type` argument sets the default execution role; the actual role is inferred from the EXEC ports declared in `init()`.
-
-**`hidden` — keep a node out of the create menu.** Set `@node(..., hidden=True)` to register a node normally (usable in code, hot-reloaded, functional in existing graphs) while *excluding it from the Add-Nodes menu and node search*. This is the canonical way to hide a node from selection — used by framework-internal nodes (e.g. the reroute node) and testing/example nodes that shouldn't clutter an author's real palette. It affects *presentation as a choice only*; it does not deregister the node or hide it from browsing/debug surfaces. Note an **empty** `menu=""` no longer hides a node — it now routes the node to the top-level `Misc` category; use `hidden=True` to hide. See the glossary term **Hidden component**.
-
-**`template` — ship a starting point for new nodes.** Set `@node(..., template=True)` to make a class a **Node template**: a node the New Node wizard (canvas right-click → the new-node icon) and Farmhand's `studio_scaffold_component` copy into a library as the start of a new node class. `template=True` implies `hidden=True`, so a template is never placed from the add-node menu; `NodeFactory.list_templates()` lists them. A clone never follows its template — it is new code the user edits. Any library may ship templates in its `nodes/` folder. A template must hold **only absolute imports** and **no module-level names besides imports**, so its clone imports nothing from the template's library; `tests/core/test_authoring/test_templates_and_targets.py` holds every registered template to that. The clone's `@node(...)` states `label`, `description`, `menu` and `search_tags` explicitly and drops `template`, `hidden`, `registry_id` and `deprecation_warning`; every other keyword (such as `node_type`) is kept as written. Builtin ships the Data template:
+## 3. A complete node
 
 ```python
---8<-- "packages/haywire-core/src/haywire/barn/builtin/nodes/templates/data_node.py:9:39"
+--8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:12:61"
+```
+from: `MathOP` — registry_key: `haybale-example:node:MathOP`
+
+**The decorator — `@node(...)`.** `label`, `description`, `menu` (the canvas
+menu path), `search_tags`, `node_type`. Section 4 explains `node_type`.
+
+**The ports — `init()`.** Each `self.add(...)` adds one port. `FLOAT` is a
+**datatype** — what kind of value the port carries; `as_inlet` / `as_outlet`
+picks the side; `id` names the port; `widget=` and `default=` give an inlet its
+widget and starting value. Here you *use* the built-in `FLOAT` and
+`NumberWidget`; writing your own is the subject of the
+[datatype](../datatypes/datatype-canon.md) and
+[widget](../widgets/widget-canon.md) chapters. Everything a port accepts:
+[guides/ports](../../guides/ports.md).
+
+**The worker — `worker()`.** One rule: **a worker parameter named like an inlet
+receives that inlet's value.** `value_a: float` gets the value of the port with
+`id="value_a"`, already unwrapped. To send a result, call
+`self.out('outlet_id', value)`.
+
+That is a whole node. Most nodes override `init()` and `worker()` and nothing
+else.
+
+!!! note "Binding details"
+    A parameter with a default is optional — the default applies when no port
+    of that name exists. A required parameter (no default) with no matching
+    port raises `ValueError` when the worker's signature is analysed. Outside
+    the worker — in a callback, say — read an inlet with `self.value('inlet_id')`.
+    (Older docs say `self.inlet(...)` / `self.set_outlet(...)`; those names are
+    gone.)
+
+## 4. Data and control
+
+The edges you draw in the studio come in two kinds, and so do ports.
+
+**Data ports carry a value.** `FLOAT`, `INT`, an image — the value sits on the
+port and anyone connected can read it.
+
+**Control ports carry the moment to run.** Their type is `EXEC`. An edge
+between two control ports says "when this one finishes, run that one next".
+
+Every node is one of two kinds, chosen by its ports:
+
+**A DATA node has only data ports.** It computes outputs from inputs. `MathOP`
+is one. DATA nodes are *pulled, not pushed*: one runs only when a node
+downstream needs its output, and if none of its inputs changed since its last
+run, it skips its worker — the answer would be the same. Its worker returns
+`None`.
+
+**A CONTROL node has at least one `EXEC` inlet and one `EXEC` outlet.** It runs
+when control reaches its inlet, reading whatever data ports it has at that
+moment, and then decides where control goes next: **its worker returns the id
+of the `EXEC` outlet to continue through.**
+
+```python
+def worker(self, context: ExecutionContext, condition: bool) -> str | None:
+    return 'true' if condition else 'false'   # continue through one of two outlets
 ```
 
-**`init()` declares ports.** Called once when the node is first instantiated. Use `self.add(...)` with port specs from the type system: `EXEC.as_inlet('trigger')`, `FLOAT.as_inlet('value', default=0.0)`, `MyComplexType.as_outlet('result')`. Port creation surface lives in [guides/ports](../../guides/ports.md).
+Returning `None` ends that path.
 
-**IMPORTANT**: When a node is deserialized (loaded for a graph) its ports are instantiated from disc and the **`init()`** method is **NOT** called. What is called though is the **`post_init()`** method. Thus the **`init()`** should only define those ports that are needed when the node is instantiated awnew or reset.
+| Role | Ports | Runs when | Worker returns |
+|---|---|---|---|
+| **DATA** | data only | a consumer needs its output and an input changed | `None` |
+| **CONTROL** | `EXEC` in *and* out, plus any data ports | control reaches it | the `EXEC` outlet id to follow, or `None` to stop |
+| **EVENT / OUTPUT / LOOPBACK** | special CONTROL roles | where a flow starts, ends, or loops | as CONTROL |
 
-**`post_init()`** should be used to perform any additional setup that cannot be done through deserialization, such as instantiating classes. Do not use it for performative operations or as a preparation for the worker execution - the on_startup() method should be used for that purpose.
+`@node(node_type=...)` sets the default role; the `EXEC` ports you declare in
+`init()` decide the actual one. Worked examples of every role:
+[guides/node-roles](../../guides/node-roles.md). Full taxonomy:
+[reference/glossary](../../reference/glossary.md) (**NodeType**).
 
+## 5. Why `init()` is skipped when a graph is loaded
 
-**Lifecycle hooks (called by the VM in this order).**
+When a user saves a graph and opens it again, **your node's `init()` is not
+called.** The ports are there anyway.
 
-| Hook | When | Purpose |
+Think of `init()` as the **factory settings**: the ports and starting values a
+new node comes with. By the time a graph is saved, the user has changed those
+values — and the node may even have changed its ports (Section 7). Running the
+factory setup again on load would wipe all of that.
+
+So a saved graph stores **the ports themselves**, values included, and loading
+restores them directly. That gives one rule with two parts:
+
+- **`init()`** declares the ports a *new* (or reset) node starts with — and
+  only that. Anything else done here is lost on load, because it does not run.
+- **`post_init()`** runs in both cases: right after `init()` for a new node,
+  right after loading for a saved one. Put here what saving cannot carry —
+  helper objects, a parser, a lookup table built in code.
+
+Neither hook is the place to open a camera or a file. That waits until the
+graph runs — the next section.
+
+## 6. The lifecycle
+
+From creation to removal, the framework calls these hooks in this order:
+
+```text
+created          flow starts        each frame                                     flow stops    saved       removed
+───────          ───────────        ───────────────────────────────────────        ──────────    ─────       ───────
+init()*          on_startup()       on_frame_start → on_validate → worker →        on_shutdown   on_saved    on_teardown
+post_init()                                                         on_frame_end
+* new nodes only — Section 5
+```
+
+| Hook | When | Use it to |
 |---|---|---|
-| `init(self)` | Once at node creation | Declare ports |
-| `post_init(self)` | Once after init | Set up state that cannot be serialized |
-| `on_startup(self, context)` | Once when the flow starts | Acquire resources |
-| `on_frame_start(self, context)` | Each frame, before workers run | Per-frame setup |
-| `on_validate(self, context)` | Each frame, before this node's worker | Pre-flight input validation |
-| `worker(self, context, ...)` | Each frame this node executes | The main computation |
-| `on_frame_end(self, context)` | Each frame, after workers run | Per-frame teardown |
-| `on_shutdown(self, context)` | Once when the flow stops | Release resources |
-| `on_saved(self)` | Just before the graph is saved | Capture last-moment state |
-| `on_teardown(self)` | When the node is destroyed/unloaded | Clean up |
+| `init(self)` | a node is created or reset — never on load | declare ports |
+| `post_init(self)` | after `init()`, or after loading | build what saving cannot carry |
+| `on_startup(self, context)` | once, before the first worker run | acquire resources (devices, files) |
+| `on_frame_start(self, context)` | each frame, before any node runs | per-frame setup |
+| `on_validate(self, context)` | each frame, right before this worker | check inlet values |
+| `worker(self, context, ...)` | each frame this node executes | compute |
+| `on_frame_end(self, context)` | each frame, after every node ran | per-frame cleanup |
+| `on_shutdown(self, context)` | the flow stops | release resources |
+| `on_saved(self)` | the graph is saved, before serializing | capture last-moment state |
+| `on_teardown(self)` | the node is removed or unloaded | clean up |
 
-Override only what you need. Most nodes override `init()` and `worker()` and nothing else.
+Override only what you need.
 
-**The worker function.** The heart of every node. Signature: `def worker(self, context: ExecutionContext, *args, **kwargs) -> str | None`. Return value:
+## 7. Changing ports at runtime
 
-- `None` — for DATA nodes, or when no further control flow continues.
-- `'outlet_id'` — trigger control flow through that EXEC outlet (CONTROL nodes only).
+So far a node's ports were fixed by `init()`. They need not be. A node can
+change its ports *while placed, with edges connected* — and keep the edges that
+still fit. This is what makes a "compare INTs or FLOATs" selector, or a node
+with "N inputs", possible.
 
-Inlet values arrive as named parameters: parameter names must match inlet IDs declared in `init()`. The framework reads the inlets, unwraps the values, and binds them by name. Use type hints for clarity; defaults make the parameter optional.
-
-```python
-def worker(self, context: ExecutionContext, value: float, multiplier: float = 1.0) -> str | None:
-    self.out('result', value * multiplier)
-    return 'next'   # CONTROL nodes only — DATA nodes return None
-```
-
-**Reading and writing values inside `worker`.** `self.value('inlet_id')` returns the unwrapped value of an inlet. `self.out('outlet_id', value)` writes the unwrapped value to an outlet. These are the canonical accessors. (Some older docs reference `self.inlet(...)` / `self.set_outlet(...)` — those names are out of date.)
-
-**Dynamic reconfiguration via `rejig()`.** When a config port changes (e.g. a "data type" selector), call `self.rejig()` from a `hb_*` callback. Inside the `with self.rejig(...)` block, every port not re-added is destroyed; ports re-added by ID keep their connections.
+The tool is `rejig()`, and it rests on two things you already have: ports are
+added with `self.add(...)` and named by `id` (Section 3), and the ports a node
+has right now are what is saved (Section 5).
 
 ```python
-with self.rejig(exclude=['exec', 'true', 'false', 'DataType']):
-    if self.value('DataType') == 'int':
-        self.add(INT.as_inlet('compare'))
-        self.add(INT.as_inlet('with'))
-    else:
-        self.add(FLOAT.as_inlet('compare'))
-        self.add(FLOAT.as_inlet('with'))
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py:13:65"
 ```
+from: `DynamicPortTestNode` — registry_key: `haybale-testing:node:DynamicPortTestNode`
 
-`rejig()` accepts `include=` and `exclude=`, each a regex string or a list mixing exact port IDs, `PortOrigin` values and compiled patterns. A list's criteria are OR'd; a port is flagged when it matches `include` and does **not** match `exclude`, so a port named by both is spared. `include=None` means every port, `include=[]` means none.
+Follow the chain:
 
-A bare `rejig()` flags **every** port, the ones declared in `init()` included. Static ports — declared once and never changing — must be excluded so the system doesn't tear them down. `exclude=[PortOrigin.DECLARED]` says that in one criterion, and is what a node whose ports come from two owners needs: an interface stamped from outside plus a growing slot of its own. Naming the slot by an ID pattern works only as long as the naming convention holds; the origin is the property that actually distinguishes them.
+1. `port_count` declares `on_change="hb_reconfigure"` — changing its value
+   calls the method.
+2. `hb_reconfigure` opens `with self.rejig(include=r"^dynamic_"):` — the ports
+   whose id starts with `dynamic_` are up for replacement.
+3. Inside the block it re-adds the ports it wants. **Flagged ports not re-added
+   are destroyed; a port re-added under the same id keeps its edges** — ports
+   are matched by id. `bool_inlet` / `bool_outlet` never match the pattern, so
+   they are never touched.
+
+### Choosing which ports are up for replacement
+
+`rejig()` takes `include=` and `exclude=`. Each is a regex string, or a list
+mixing exact port ids, `PortOrigin` values and compiled patterns (a list's
+entries are OR'd). A port is flagged when it matches `include` and does *not*
+match `exclude` — named by both, it is spared. `include=None` means every port;
+`include=[]` means none.
+
+A bare `rejig()` flags **every** port, including the ones `init()` declared.
+To protect those, say so by origin rather than by name:
 
 ```python
 with self.rejig(exclude=[PortOrigin.DECLARED]):
@@ -114,53 +235,138 @@ with self.rejig(exclude=[PortOrigin.DECLARED]):
         self.add(port.spec())
 ```
 
-**Growing slot.** A node that should gain ports as the user wires them declares a bare `ADD` port in `init()` — the **growing slot**. Connecting to it grows a real port of the incoming type in its place — of any flow, since a bare `ADD` accepts data, control and callback edges alike — (`PortOrigin.RESOLVED`, so the user may remove it again) and puts a fresh slot below. The slot itself stays `DECLARED`: it is part of what the node is, so it cannot be removed or renamed. `AddPortTestNode` ships the idiom, and the Subgraph boundary nodes use it to make an interface growable. Because the slot and the grown ports have different origins, code that rebuilds the grown set spares the slot with `exclude=[PortOrigin.DECLARED]`. See [ADR 0034](../../adr/0034-add-is-a-type.md) and the **Growing slot** entry in [reference/glossary](../../reference/glossary.md).
+`PortOrigin` records where a port came from; `PortOrigin.DECLARED` means
+"declared by the class itself". It is sturdier than an id pattern, which only
+works as long as a naming convention holds.
 
-**Folds.** `with self.fold('Advanced'):` organises ports into a collapsible UI container without changing the worker contract — the author supplies only a label; the framework mints the container port. Child ports are hidden when collapsed but connections are preserved via ghost pins. Every port inside one takes the same direction, and a fold holds ports rather than other folds — nesting one raises. See [guides/ports](../../guides/ports.md) and [ADR 0035](../../adr/0035-fold-replaces-group-and-section.md).
+### The growing slot
 
-**Custom instance attributes — the `hb_*` convention.** Methods or attributes you add to a node class should start with `hb_`, `my_`, `custom_`, or `ext_` so they don't collide with future framework additions. The `hb_*` prefix is the project convention for "this is a node-author hook."
+A **growing slot** is a port that, when the user connects an edge to it, turns
+into a real port of the edge's type and adds a fresh empty slot below. Declare
+a bare `ADD` port in `init()`. A bare `ADD` accepts data, control and callback
+edges alike.
 
-**Settings inner classes.** A node can declare one or more `NodeSettings` inner classes for declarative settings (with `setting()`, `shadow()`, `watch()`). Full coverage in [components/settings](../settings/setting-canon.md).
+The two ports carry different origins — exactly what the previous subsection's
+filter is for:
 
-**Props changes redraw the node card automatically.** Changing an appearance-affecting field on `self.props` (`skin`, `layout_direction`, `collapsed`, `detail`, `locked`, `comment`, `label` — the set is `NodeProperties.REDRAW_FIELDS`) triggers a debounced redraw of the node card; no manual `self.wrapper.redraw()` is needed. `collapsed` and `detail` are there for a reason specific to them: both are *construction* gates, so a change has to rebuild the card rather than restyle it (see [ADR 0032](../../adr/0032-node-detail-and-collapse.md)). Layout fields (`posX`/`posY`/`width`/`height`) are excluded — position updates ride a cheaper path. So are the two appearance fields **`node_theme` and `color_override`**: both resolve to CSS custom properties written onto the node's host slot, which the browser re-resolves without rebuilding the card (see [components/themes](../themes/theme-canon.md)). Redrawing the card for a colour is what destroyed the input being typed into. This applies only to `self.props`; if a field in a custom settings bag affects your card, subscribe yourself: `self.settings._subscribe_field('field', lambda v, o: self.wrapper.redraw())`. A node's position lives only in `props.posX`/`props.posY` (see [ADR 0053](../../adr/0053-position-lives-in-props.md)).
+- the grown port is `PortOrigin.RESOLVED` — the user may remove it again;
+- the slot itself stays `DECLARED` — it is part of what the node *is*, so it
+  cannot be removed or renamed.
 
-**Linking or unlinking an edge redraws BOTH endpoint nodes.** Not a props change, and easy to miss when reading the props path above: `EdgeWrapper.link()` / `unlink()` / `detach()` each call `_request_endpoint_redraw()`, which marks the source and sink nodes `NODE_REDRAW_REQUESTED`. The reason is `ShowWidgetStrategy` — a port's `show_widget` mode (`NOT_LINKED` is the inlet default) is resolved *at render time* against `is_linked()`, so a card that was not rebuilt on connect would keep showing the widget of a port that now has an edge. The redraw is routed through `mark_node_dirty`, so a stronger reason already in the batch (`NODE_ADDED` on paste, `NODE_REMOVED` on clear) wins over it. Anything else that reads link state while rendering — a folded card's linked-pin set, for one — gets its freshness from this same call.
+Code that rebuilds the grown set therefore spares the slot with
+`exclude=[PortOrigin.DECLARED]`. The idiom ships in `AddPortTestNode`
+(`barn/haybale-testing/haybale_testing/nodes/testbed/add_port_test.py`); the
+Subgraph boundary nodes use it to make an interface growable. See
+[ADR 0034](../../adr/0034-add-is-a-type.md) and **Growing slot** in the
+[glossary](../../reference/glossary.md).
 
-**Node size — the host slot owns it; skins are size-agnostic.** Every node carries three size props on `self.props`: `width` and `height` (both default `200.0`), and `size_adapt` (`"auto"` · `"manual_width"` · `"manual_height"` · `"manual"`, default `"auto"`). `size_adapt` decides, **per axis**, whether the card size is *measured from render* (an `auto` axis — a `ResizeObserver` on the host slot writes the measured offset back into `props`) or *set by the user* (a `manual` axis — set by dragging the resize gadget). A manual size is a **minimum**: the node draws at the user size, but content needing more space (e.g. widgets revealed on selection) expands the node — nothing is ever clipped, so pins, widgets, and attached edges stay intact. The size is applied to the node's **host slot** (`.ui-node-slot`, one `ui.column` per node owned by the graph-editor) as a style-write of `min-width`/`min-height` on manual axes — never as a card rebuild, so the measure→write loop cannot form. Under a manual mode the card-fill CSS in `canvas.vue` (keyed off the slot's `data-node-props-size-adapt` stamp) releases the skin's own clamps (`min-w-64 max-w-sm`) so the card tracks the slot in both directions. **A skin never sets card width/height**: size and measurement live on the host slot, not in skin code. Changing `size_adapt` back to `"auto"` clears the inline minimum and the observer re-populates props from content. `width`/`height`/`size_adapt` are deliberately **outside** `REDRAW_FIELDS` — a size change restyles the slot, it does not redraw the card.
+### Folds
 
-**Graph-nodes are not authored — they are minted.** Three node classes exist that
-no library author writes or places: the **Graph-node** (a Group's card) and the
-two **boundary nodes** (`Subgraph Input` / `Subgraph Output`) that define a
-Subgraph's interface. All three ship in the framework-owned `builtin` library,
-are `hidden=True` so they never appear in the add-node menu, and are born
-**port-less** — the collapse action stamps their ports from the edges crossing
-the selection. The boundary pair carries `NodeType.BOUNDARY`, which holds
-neither the DATA nor the CONTROL bit: one pair of classes serves both kinds of
-crossing, and the type also keeps them out of `_execute`'s data-node shortcut, so
-a node with nothing feeding it still runs its worker. The Graph-node's own type
-is **derived per instance** from its interface — DATA when only data crosses,
-CONTROL otherwise — which is why it overrides the `behavior` property rather than
-declaring a type. If you are writing a node, none of this applies to you; see
-[ADR 0036](../../adr/0036-groups-execute-through-their-boundary-nodes.md) if you
-are changing how a Group runs.
+`with self.fold('Advanced'):` puts the ports declared inside it under a
+collapsible header. It changes only the card, not the worker. Collapsed ports
+keep their edges — they show as ghost pins. Every port in one fold faces the
+same way, and a fold holds ports, not other folds (nesting raises). See
+[guides/ports](../../guides/ports.md) and
+[ADR 0035](../../adr/0035-fold-replaces-group-and-section.md).
 
-## 4. Live examples from the codebase
+## 8. How the node is offered — menu, hidden, templates
 
-**DATA node — `MathOP`** from `barn/haybale-example/haybale_example/nodes/math_op.py`. Demonstrates the minimal node skeleton: `@node` decorator, `init()` declaring ports, and `worker()` reading named inlet parameters and writing an outlet:
+Three `@node(...)` options decide how a node appears in the add-node menu:
+
+- **`menu="a/b/c"`** — its path in the menu. An empty `menu=""` puts it under
+  the top-level **Misc** category.
+- **`hidden=True`** — registered and fully working (in code, in existing
+  graphs, on hot-reload), but left out of the add-node menu and node search.
+  Framework-internal nodes (the reroute node) and test/example nodes use it.
+  It hides the node *as a choice* only — not from browsing or debug surfaces.
+  See **Hidden component** in the glossary.
+- **`template=True`** — the node becomes a **Node template**: a starting point
+  that the New Node wizard and Farmhand's `studio_scaffold_component` *copy*
+  into a library as a new class. It implies `hidden=True`.
+  `NodeFactory.list_templates()` lists them.
+
+The copy never follows its template later — it is new code the user edits. Two
+rules keep the copy standalone, and
+`tests/core/test_authoring/test_templates_and_targets.py` enforces both for
+every registered template — **only absolute imports**, and **no module-level
+names besides imports**. The copy's `@node(...)` states `label`, `description`,
+`menu` and `search_tags` explicitly and drops `template`, `hidden`,
+`registry_id` and `deprecation_warning`; every other keyword (`node_type`, …)
+is kept as written. Any library may ship templates in its `nodes/` folder.
+Builtin ships the Data template:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:12:64"
+--8<-- "packages/haywire-core/src/haywire/barn/builtin/nodes/templates/data_node.py:9:39"
 ```
-from: `MathOP` — registry_key: `haybale-example:node:MathOP`
 
-**Dynamic ports — `DynamicPortTestNode`** from `barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py`. Demonstrates `on_change` triggering a `hb_*` helper, `with self.rejig(include=...)` for pattern-matched port replacement, and building dynamic port sets in a helper method:
+## 9. Finer points — read when you need them
 
-```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py:13:68"
-```
-from:`DynamicPortTestNode` — registry_key: `haybale-testing:node:DynamicPortTestNode`
+**Name your own additions with a prefix.** Methods and attributes you add start
+with `hb_`, `my_`, `custom_` or `ext_`, so a future framework attribute cannot
+collide with them. `hb_` is the project convention for "node-author hook".
 
-What these examples exercise:
+**Settings instead of config ports.** A node can declare `NodeSettings` inner
+classes (`setting()`, `shadow()`, `watch()`) instead of config ports. See
+[components/settings](../settings/setting-canon.md).
+
+**The card redraws itself when its looks change.** Writing an appearance field
+on `self.props` — `skin`, `layout_direction`, `collapsed`, `detail`, `locked`,
+`comment`, `label` (the set is `NodeProperties.REDRAW_FIELDS`) — schedules a
+debounced card redraw; never call `self.wrapper.redraw()` for these.
+`collapsed` and `detail` decide what the card *contains*, so they rebuild it
+([ADR 0032](../../adr/0032-node-detail-and-collapse.md)). Three groups are
+deliberately *not* redraws:
+
+- position (`posX` / `posY`) rides a cheaper path; a node's position lives only
+  there ([ADR 0053](../../adr/0053-position-lives-in-props.md));
+- `node_theme` and `color_override` become CSS custom properties on the node's
+  host slot, which the browser re-resolves — redrawing for a colour used to
+  destroy the input being typed into ([components/themes](../themes/theme-canon.md));
+- size (`width` / `height` / `size_adapt`, below) restyles the slot.
+
+This covers `self.props` only. If a field in your own settings bag affects the
+card, subscribe yourself:
+`self.settings._subscribe_field('field', lambda v, o: self.wrapper.redraw())`.
+
+**Connecting or disconnecting an edge redraws both nodes.** `EdgeWrapper.link()`
+/ `unlink()` / `detach()` mark source and sink `NODE_REDRAW_REQUESTED`. The
+reason is the widget: a port's `show_widget` mode (inlet default `NOT_LINKED`)
+is decided at render time from `is_linked()`, so a card not rebuilt on connect
+would keep showing a widget for a port that now has an edge. The redraw goes
+through `mark_node_dirty`, so a stronger reason in the same batch (`NODE_ADDED`
+on paste, `NODE_REMOVED` on clear) wins. Anything else that reads link state
+while rendering — a folded card's linked-pin set, for one — relies on this same
+call.
+
+**Size belongs to the host slot, not the skin.** `self.props` carries `width`,
+`height` (default `200.0`) and `size_adapt` (`"auto"`, `"manual_width"`,
+`"manual_height"`, `"manual"`; default `"auto"`). Per axis, `auto` *measures*
+the rendered card (a `ResizeObserver` on the host slot writes it back into
+`props`) and `manual` *uses* what the user dragged. A manual size is a
+**minimum**: content that needs more room grows the node, so nothing — pins,
+widgets, edges — is ever clipped. The size is written as `min-width` /
+`min-height` on the host slot (`.ui-node-slot`), never as a card rebuild, so
+measure → write cannot loop. Under a manual mode, CSS in `canvas.vue` (keyed
+off the slot's `data-node-props-size-adapt`) releases the skin's own clamps
+(`min-w-64 max-w-sm`). **A skin never sets card width or height.** Switching
+back to `"auto"` clears the minimum and the observer refills `props`.
+
+**Graph-nodes are created by the framework, not written.** The **Graph-node**
+(a Group's card) and the two **boundary nodes** (`Subgraph Input` /
+`Subgraph Output`) live in the framework's `builtin` library, are
+`hidden=True`, and start with no ports — collapsing a selection stamps their
+ports from the edges that cross it. The boundary pair carries
+`NodeType.BOUNDARY`, which is neither DATA nor CONTROL: one pair of classes
+serves both kinds of crossing, and it keeps them out of the DATA shortcut from
+Section 4, so they run even with nothing feeding them. The Graph-node *derives*
+its role per instance — DATA when only data crosses, CONTROL otherwise — by
+overriding the `behavior` property. If you are writing a node, none of this
+applies to you; if you are changing how a Group runs, see
+[ADR 0036](../../adr/0036-groups-execute-through-their-boundary-nodes.md).
+
+## 10. Next
+
+What the two embedded examples exercise:
 
 | Concept | Where it shows up |
 |---|---|
@@ -173,9 +379,16 @@ What these examples exercise:
 | `hb_*` prefix for custom helpers | `DynamicPortTestNode` — `hb_reconfigure` |
 | `self.value('id')` inside a callback | `DynamicPortTestNode` — `self.value("port_count")` |
 
-For the port creation surface (everything `as_inlet` / `as_outlet` / `as_config` accepts, primitive vs array vs pooled, worker access patterns), see [guides/ports](../../guides/ports.md). For declarative settings on the node (instead of config ports), see [components/settings](../settings/setting-canon.md).
+**Next in *Make a node*:** [ports](../../guides/ports.md) — everything a port
+accepts, and the edges the user connects to it. Then
+[datatypes](../datatypes/datatype-canon.md),
+[settings](../settings/setting-canon.md),
+[widgets](../widgets/widget-canon.md) and
+[adapters](../adapters/adapter-canon.md).
 
-For worked examples of each role — CONTROL multi-pin dispatch, DATA pure compute, EVENT with the matching emitter, LOOPBACK round-trip with break — see [guides/node-roles](../../guides/node-roles.md).
+Worked examples of every node role: [guides/node-roles](../../guides/node-roles.md).
+How the VM runs your worker:
+[architecture/execution/virtual-machine](../../architecture/execution/virtual-machine/virtual-machine-arch.md).
 
 ---
 
@@ -184,16 +397,18 @@ For worked examples of each role — CONTROL multi-pin dispatch, DATA pure compu
 | Return value | Meaning |
 |---|---|
 | `None` | DATA node, or no further control flow |
-| `'outlet_id'` | Trigger control flow through that EXEC outlet |
+| `'outlet_id'` | continue control through that `EXEC` outlet |
 
-Parameter binding rule: `worker` parameter names must match inlet IDs declared in `init()`. The framework extracts and unwraps inlet values automatically. Type hints document expected types; defaults make the parameter optional. A required parameter (no default) without a matching port raises `ValueError`.
+Parameter binding: a `worker` parameter named like an inlet receives that
+inlet's unwrapped value. Defaults make a parameter optional. A required
+parameter with no matching port raises `ValueError`.
 
 ## Lifecycle hook reference
 
 | Hook | Signature | Purpose |
 |---|---|---|
-| `init` | `(self)` | Declare ports via `self.add(...)` |
-| `post_init` | `(self)` | Non-serializable setup |
+| `init` | `(self)` | Declare ports via `self.add(...)` — new/reset nodes only |
+| `post_init` | `(self)` | Setup saving cannot carry — runs after `init()` and after load |
 | `on_startup` | `(self, context)` | Once when flow starts |
 | `on_frame_start` | `(self, context)` | Each frame, before workers |
 | `on_validate` | `(self, context)` | Each frame, before this worker |
