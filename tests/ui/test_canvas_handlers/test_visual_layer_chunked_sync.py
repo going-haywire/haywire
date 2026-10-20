@@ -7,9 +7,9 @@ which a second session's HTTP request measured 4.3 s to be served.
 
 What must hold, and is asserted here:
   * it mounts every node, exactly once, like the synchronous path;
-  * it yields between nodes (that is the whole point — a version that mounted
-    everything before its first await would pass a "did it mount?" test while
-    fixing nothing);
+  * it yields between batches of nodes (that is the whole point — a version
+    that mounted everything before its first await would pass a "did it
+    mount?" test while fixing nothing);
   * edges still go out in ONE batched event, not one per edge;
   * cancelling mid-load stops it, so a closing editor does not keep mounting
     into a torn-down canvas.
@@ -20,6 +20,7 @@ import asyncio
 import pytest
 from unittest.mock import MagicMock
 
+from haybale_graph_editor.editors.graph_canvas.handlers import visual_layer
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haywire.ui.components.graph.event_definitions import CanvasMountedEvent, SyncAllEdgesEvent
 
@@ -32,6 +33,12 @@ pytestmark = pytest.mark.unit
 def anyio_backend() -> str:
     """Run async tests on the asyncio backend."""
     return "asyncio"
+
+
+@pytest.fixture(autouse=True)
+def small_batches(monkeypatch):
+    """Mount two nodes per yield, so the five-node fixture graph loads in three batches."""
+    monkeypatch.setattr(visual_layer, "CHUNKED_LOAD_BATCH", 2)
 
 
 def _node_wrapper(node_id: str) -> MagicMock:
@@ -95,32 +102,29 @@ async def test_skips_nodes_already_mounted(handler, graph):
 
 
 @pytest.mark.anyio
-async def test_yields_between_nodes(handler, graph):
-    """The load must be interleavable — not merely correct at the end.
+async def test_yields_between_batches(handler, graph):
+    """The load is interleavable, a batch at a time.
 
-    A competing task counts how many times it gets to run while the load is in
-    flight. Mounting everything in one go before the first await would leave it
-    at zero, which is exactly the bug this method exists to prevent.
+    A competing task records how many nodes are mounted each time it runs. It
+    must only ever see whole batches: mounting everything before the first
+    await would leave it nothing to see, and yielding per node would show it
+    the counts inside a batch.
     """
-    ticks = 0
+    seen: list[int] = []
+    progress: list[tuple[int, int]] = []
 
     async def competitor():
-        nonlocal ticks
         while True:
+            seen.append(len(handler.mounted))
             await asyncio.sleep(0)
-            ticks += 1
 
     task = asyncio.create_task(competitor())
-    await handler.sync_with_graph_chunked()
+    await handler.sync_with_graph_chunked(on_progress=lambda m, t: progress.append((m, t)))
     task.cancel()
 
-    # One fewer than the node count: the competitor is scheduled after the
-    # first node's mount, so it interleaves in each of the remaining gaps.
-    expected = len(graph.node_wrappers) - 1
-    assert ticks >= expected, (
-        f"competing task ran only {ticks}x while mounting {len(graph.node_wrappers)} nodes — "
-        "the load is not yielding per node, so it still blocks every other session"
-    )
+    assert set(seen) <= {2, 4, 5}
+    assert {2, 4} <= set(seen)
+    assert progress == [(2, 5), (4, 5), (5, 5)]
 
 
 @pytest.mark.anyio
@@ -487,7 +491,8 @@ class TestEdgesWaitForTheNodes:
     async def test_mounting_clears_after_success_and_after_cancellation(self, handler, graph):
         seen: list[bool] = []
         await handler.sync_with_graph_chunked(on_progress=lambda *_: seen.append(handler.mounting))
-        assert seen and all(seen)
+        assert seen
+        assert all(seen)
         assert handler.mounting is False
 
         def _cancel_midway(mounted: int, _total: int) -> None:
