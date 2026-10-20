@@ -137,6 +137,44 @@ def test_node_moved_reads_the_canvas_channel(graph, canvas_vue):
     mock_update.assert_called_once_with("n1", (200.0, 100.0))
 
 
+@pytest.mark.parametrize(
+    "reason",
+    [
+        ChangeReason.NODE_VALIDATION_REQUESTED,
+        ChangeReason.NODE_LAYOUT_CHANGED,
+        ChangeReason.NODE_REDRAW_REQUESTED,
+        ChangeReason.NODE_STAGE_CHANGED,
+    ],
+)
+def test_a_move_batched_with_another_reason_still_moves_the_card(handler, graph, reason):
+    """A batch keeps one reason per node; a higher or later one must not lose the move."""
+    handler.node_panels["n1"] = MagicMock(position=(0.0, 0.0))
+    wrapper = MagicMock()
+    _place(wrapper, 100.0, 200.0)
+    graph.get_node_wrapper.return_value = wrapper
+
+    with patch.object(handler, "update_node_position") as mock_update:
+        handler.on_validated(ValidationResult(nodes={"n1": reason}, edges={}, validation_time_ms=0.0))
+
+    mock_update.assert_called_once_with("n1", (100.0, 200.0))
+
+
+def test_a_card_already_in_place_is_not_repositioned(handler, graph):
+    handler.node_panels["n1"] = MagicMock(position=(100.0, 200.0))
+    wrapper = MagicMock()
+    _place(wrapper, 100.0, 200.0)
+    graph.get_node_wrapper.return_value = wrapper
+
+    with patch.object(handler, "update_node_position") as mock_update:
+        handler.on_validated(
+            ValidationResult(
+                nodes={"n1": ChangeReason.NODE_VALIDATION_REQUESTED}, edges={}, validation_time_ms=0.0
+            )
+        )
+
+    mock_update.assert_not_called()
+
+
 def test_resync_positions_and_size_use_the_channel(graph, canvas_vue):
     handler = VisualLayerHandlers(
         graph=graph,

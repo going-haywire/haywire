@@ -209,11 +209,6 @@ class VisualLayerHandlers:
                     self.add_node_visual(node_wrapper.node, self._canvas_position(node_wrapper.node))
                     logger.debug(f"  + Added node UI: {node_id}")
 
-            elif reason == ChangeReason.NODE_STAGE_CHANGED:
-                # Only a channel with a membership field cares who is in it.
-                if self.channel.member is not None:
-                    self._follow_membership(node_id, batch)
-
             elif reason == ChangeReason.NODE_REMOVED:
                 if node_id in self.node_panels:
                     self.remove_node_visual(node_id)
@@ -227,11 +222,18 @@ class VisualLayerHandlers:
                         self.update_node_position(node_id, self._canvas_position(moved_wrapper.node))
                         logger.debug(f"  ↔ Moved node: {node_id}")
 
-            elif reason.requires_redraw():
-                ui_node = self.node_panels.get(node_id)
-                if ui_node:
-                    self.refresh_node_visual(ui_node, reason)
-                    logger.debug(f"  🔄 Redrawn node: {node_id} ({reason.value})")
+            else:
+                if reason == ChangeReason.NODE_STAGE_CHANGED:
+                    # Only a channel with a membership field cares who is in it.
+                    if self.channel.member is not None:
+                        self._follow_membership(node_id, batch)
+                elif reason.requires_redraw():
+                    ui_node = self.node_panels.get(node_id)
+                    if ui_node:
+                        self.refresh_node_visual(ui_node, reason)
+                        logger.debug(f"  🔄 Redrawn node: {node_id} ({reason.value})")
+                # A batch keeps one reason per node, so a move can hide behind this one.
+                self._sync_position(node_id)
 
         for edge_uuid, reason in result.edges.items():
             if reason == ChangeReason.EDGE_ADDED:
@@ -740,6 +742,16 @@ class VisualLayerHandlers:
 
         sync_event = SyncNodePositionEvent(nodeId=node_id, position={"x": x, "y": y})
         self.canvas_vue.emit_sync_event(sync_event)
+
+    def _sync_position(self, node_id: str) -> None:
+        """Move a node's card to its model position if it is elsewhere; an unmounted node is skipped."""
+        ui_node = self.node_panels.get(node_id)
+        wrapper = self.graph.get_node_wrapper(node_id)
+        if ui_node is None or wrapper is None:
+            return
+        position = self._canvas_position(wrapper.node)
+        if ui_node.position != position:
+            self.update_node_position(node_id, position)
 
     def resync_positions(self, node_ids: Iterable[str]) -> None:
         """Move each node's visual back to its model position; unknown ids are skipped."""
