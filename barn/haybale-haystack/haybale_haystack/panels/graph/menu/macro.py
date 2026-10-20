@@ -12,6 +12,7 @@ instead, because it only mutates the graph being edited.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from haybale_graph_editor.editors.graph_editor import GraphEditor
@@ -28,6 +29,8 @@ from haybale_haystack.state.haystack_state import HaystackState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
+
+logger = logging.getLogger(__name__)
 
 
 @panel(
@@ -238,13 +241,26 @@ def _update_macro(ctx: "SessionContext", node_id: str) -> None:
         ui.notify(refusal or "Could not update the macro", type="warning", multi_line=True)
         return
 
-    entry = hs.open_macro_with(template.path, document)
+    try:
+        entry = hs.open_macro_with(template.path, document)
+    except Exception as exc:
+        # The swap stands: it is one undoable step, so nothing of the instance is lost.
+        logger.warning("Update Macro: could not open %s", template.path, exc_info=True)
+        with client:
+            ui.notify(
+                f"Could not open {label}: {exc}. Undo restores the instance.",
+                type="warning",
+                multi_line=True,
+            )
+        return
     ctx.session.publish(Reveal(editor=GraphEditor, binding_id=entry.binding_id, label=entry.display_name))
 
     graphs = [graph_entry.graph for graph_entry in hs.entries_of_kind(EntryKind.GRAPH)]
     placements, holding = count_placements(graphs, origin.key)
+    placements_text = f"{placements} placement{'' if placements == 1 else 's'}"
+    graphs_text = f"{holding} open graph{'' if holding == 1 else 's'}"
     with client:
-        ui.notify(f"Save {label} to update {placements} placements in {holding} open graphs.", type="info")
+        ui.notify(f"Save {label} to update {placements_text} in {graphs_text}.", type="info")
         if origin.hash != template.content_hash:
             ui.notify(
                 f"{label} changed since this instance was made; saving replaces those changes.",

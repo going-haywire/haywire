@@ -226,6 +226,43 @@ def test_open_macro_with_refuses_an_unsaved_entry(haystack, macro_file, graph_wi
     assert set(entry.graph.node_wrappers) == before
 
 
+def test_a_failed_load_into_an_open_macro_restores_it(haystack, macro_file, graph_with_library_system):
+    """A document that fails to load leaves the open macro as its file has it, clean."""
+    path, _, _ = macro_file
+    entry = haystack.open_macro(path)
+    entry.graph.force_validation()
+    on_disk = set(entry.graph.node_wrappers)
+    real_load = entry.graph.load_from_dict
+    document = _document(graph_with_library_system, interface_ports=("gain", "radius"))
+
+    def _fail_on_the_document(data):
+        return False if data is document else real_load(data)
+
+    with (
+        patch.object(entry.graph, "load_from_dict", side_effect=_fail_on_the_document),
+        pytest.raises(ValueError, match="could not be loaded"),
+    ):
+        haystack.open_macro_with(path, document)
+
+    assert entry.unsaved is False
+    assert set(entry.graph.node_wrappers) == on_disk
+
+
+def test_a_failed_load_into_a_new_entry_registers_nothing(haystack, macro_file, graph_with_library_system):
+    from haywire.core.graph.base import BaseGraph
+
+    path, _, _ = macro_file
+    document = _document(graph_with_library_system)
+
+    with (
+        patch.object(BaseGraph, "load_from_dict", return_value=False),
+        pytest.raises(ValueError, match="could not be loaded"),
+    ):
+        haystack.open_macro_with(path, document)
+
+    assert haystack.get_by_path(path) is None
+
+
 def test_saving_an_entry_opened_with_a_document_writes_its_path(
     haystack, macro_file, graph_with_library_system
 ):
@@ -266,7 +303,35 @@ def test_update_swaps_the_card_and_opens_the_document(haystack, macro_file, tmp_
     assert reveal.editor is GraphEditor
     assert reveal.binding_id == entry.binding_id
     messages = [call.args[0] for call in notify.call_args_list]
-    assert messages == ["Save Blur to update 1 placements in 1 open graphs."]
+    assert messages == ["Save Blur to update 1 placement in 1 open graph."]
+
+
+def test_an_error_opening_the_macro_after_the_swap_is_reported(haystack, macro_file, tmp_path):
+    """The swap stands as one undoable step, and the user is told how to get the instance back."""
+    from haybale_haystack.state.haystack_state import HaystackState
+
+    host = _open_graph(haystack, tmp_path, "host")
+    card_id, _ = _modified_instance(host)
+
+    with patch.object(
+        HaystackState, "open_macro_with", side_effect=ValueError("'Blur' could not be loaded")
+    ):
+        notify = _update(_ctx(haystack, host, card_id), card_id)
+
+    assert host.graph.get_node_wrapper(card_id) is None
+    assert len(_placements(host.graph)) == 1
+    assert host.editor.history_manager.can_undo() is True
+    warnings = [c.args[0] for c in notify.call_args_list if c.kwargs.get("type") == "warning"]
+    assert warnings == ["Could not open Blur: 'Blur' could not be loaded. Undo restores the instance."]
+
+
+def test_one_placement_reads_in_the_singular(haystack, macro_file, tmp_path):
+    host = _open_graph(haystack, tmp_path, "host")
+    card_id, _ = _modified_instance(host)
+
+    notify = _update(_ctx(haystack, host, card_id), card_id)
+
+    assert [c.args[0] for c in notify.call_args_list] == ["Save Blur to update 1 placement in 1 open graph."]
 
 
 def test_update_warns_when_the_macro_changed_since_the_detach(haystack, macro_file, tmp_path):

@@ -337,7 +337,10 @@ class HaystackState(AppState):
             document: A macro document, as ``macro_document`` returns.
 
         Raises:
-            ValueError: If the entry open for ``path`` has unsaved edits.
+            ValueError: If the entry open for ``path`` has unsaved edits, or
+                ``document`` could not be loaded. After a failed load an entry
+                already open for ``path`` holds the file's contents again, clean;
+                otherwise no entry is opened.
         """
         existing = self._entries.get(str(path))
         if existing is None:
@@ -345,7 +348,13 @@ class HaystackState(AppState):
         if existing.unsaved:
             raise ValueError(f"'{existing.display_name}' has unsaved edits")
 
-        existing.graph.load_from_dict(document)
+        if not existing.graph.load_from_dict(document):
+            # The failed load cleared the graph; the entry is clean, so its file is its content.
+            existing.graph.load_from_file(str(path))
+            existing.graph.force_validation()
+            existing.unsaved = False
+            self._broadcast_data_mutated()
+            raise ValueError(f"'{existing.display_name}' could not be loaded")
         existing.graph.force_validation()
         existing.editor.history_manager.clear()
         existing.unsaved = True
@@ -358,6 +367,9 @@ class HaystackState(AppState):
 
         With ``document``, the new entry holds it instead of the file's contents
         and starts unsaved.
+
+        Raises:
+            ValueError: If ``document`` could not be loaded; no entry is opened.
         """
         binding_id = str(path)
         existing = self._entries.get(binding_id)
@@ -367,8 +379,8 @@ class HaystackState(AppState):
         graph, editor = self._make_graph_and_editor(path.stem)
         if document is None:
             graph.load_from_file(str(path))
-        else:
-            graph.load_from_dict(document)
+        elif not graph.load_from_dict(document):
+            raise ValueError(f"'{path.stem}' could not be loaded")
         graph.force_validation()
         unsaved = document is not None
         entry = GraphEntry(graph=graph, editor=editor, path=path, unsaved=unsaved, haystack=self, kind=kind)
