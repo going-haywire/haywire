@@ -105,3 +105,51 @@ def test_edge_sync_message_count_does_not_grow_with_edge_count(page: Page, harne
         f"should emit one batched event; more than a couple means edges are "
         f"being synced in several passes."
     )
+
+
+#: Records layout reads (``getBoundingClientRect``) and edge path writes (``d`` on a
+#: ``path.hw-edge``) in order, so a test can see whether they interleave.
+LAYOUT_TRACE = """
+(() => {
+  window.__trace = [];
+  const read = Element.prototype.getBoundingClientRect;
+  Element.prototype.getBoundingClientRect = function () {
+    window.__trace.push('R');
+    return read.call(this);
+  };
+  const write = Element.prototype.setAttribute;
+  Element.prototype.setAttribute = function (name, value) {
+    if (name === 'd' && this.classList && this.classList.contains('hw-edge')) window.__trace.push('W');
+    return write.call(this, name, value);
+  };
+})();
+"""
+
+
+def _reads_after_writes(page: Page, harness, edges: int) -> int:
+    """Open the fixture with `edges` edges; return how often a layout read followed an edge write."""
+    goto_ready(page, f"{harness}{_PATH}?edges={edges}")
+    page.wait_for_function(
+        """(n) => (window.__trace || []).filter((e) => e === 'W').length >= n""",
+        arg=edges,
+    )
+    trace = "".join(page.evaluate("() => window.__trace"))
+    return trace.count("WR")
+
+
+def test_edge_batch_measures_before_it_draws(page: Page, harness) -> None:
+    """Every edge in a batch is measured before any is drawn.
+
+    A layout read after a DOM write forces the browser to lay the whole page out
+    again, so a batch that alternates measure and draw per edge pays one full
+    layout per edge: on the 512-node graph that was 2.4 s of a 5.9 s edge phase.
+    """
+    page.add_init_script(LAYOUT_TRACE)
+
+    few = _reads_after_writes(page, harness, _FEW)
+    many = _reads_after_writes(page, harness, _MANY)
+
+    assert many <= few + 2, (
+        f"{many} layout reads followed an edge write for {_MANY} edges, against {few} for {_FEW}: "
+        f"the batch is measuring and drawing edge by edge (canvas.vue _updateEdges)."
+    )

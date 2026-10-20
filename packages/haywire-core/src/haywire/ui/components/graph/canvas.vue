@@ -1322,9 +1322,7 @@ export default {
             }
 
             this.$nextTick(() => {
-                for (const edge_id of touched) {
-                    if (this.edgePaths.has(edge_id)) this._updateEdge(edge_id);
-                }
+                this._updateEdges(touched.filter((edge_id) => this.edgePaths.has(edge_id)));
                 // Published only once the batch has been through a render tick,
                 // so a loader waiting on it is waiting for drawn edges rather
                 // than for the message having been received.
@@ -3172,14 +3170,18 @@ export default {
                 return { success: false, pathElement: null };
             }
 
-            const outletPos = this._getPinPosition(outletPin);
-            const inletPos = this._getPinPosition(inletPin);
+            // Inside a batch the caller's _updateEdges pass measures every edge at once; a
+            // layout read here, between the previous edge's DOM writes and this one's,
+            // would force a full page layout per edge.
+            const measure = !this._batchingEdges;
+            const outletPos = measure ? this._getPinPosition(outletPin) : null;
+            const inletPos = measure ? this._getPinPosition(inletPin) : null;
             const outletColor = outletPin.dataset.pinColor || 'currentColor';
             const inletColor = inletPin.dataset.pinColor || 'currentColor';
             const outletConnectDir = this._getPinDirectionVector(outletPin);
             const inletConnectDir = this._getPinDirectionVector(inletPin);
-            const outletPinHalf = this._pinHalfExtent(outletPin, outletConnectDir);
-            const inletPinHalf = this._pinHalfExtent(inletPin, inletConnectDir);
+            const outletPinHalf = measure ? this._pinHalfExtent(outletPin, outletConnectDir) : 0;
+            const inletPinHalf = measure ? this._pinHalfExtent(inletPin, inletConnectDir) : 0;
 
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             // edge_id contains [ ] and > — a valid DOM id, but NOT a valid CSS
@@ -3309,9 +3311,11 @@ export default {
 
         /** Re-lay-out every edge, or only those `keep(edgeInfo)` accepts. */
         _relayoutEdges(keep = null) {
+            const ids = [];
             for (const [edge_id, edgeInfo] of this.edgePaths) {
-                if (keep === null || keep(edgeInfo)) this._updateEdge(edge_id);
+                if (keep === null || keep(edgeInfo)) ids.push(edge_id);
             }
+            this._updateEdges(ids);
         },
 
         /** Whether the edge is drawn at the graph's width (its style declares none). */
@@ -3484,16 +3488,33 @@ export default {
         },
 
         _updateEdge(edge_id) {
+            if (this._measureEdge(edge_id)) this._drawEdge(edge_id);
+        },
+
+        /** Re-measure and redraw the edges under `ids`: every measurement first, then every
+         *  draw. Interleaving them forces a full page layout per edge, since each draw
+         *  invalidates the layout the next measurement reads. */
+        _updateEdges(ids) {
+            const measured = [];
+            for (const edge_id of ids) {
+                if (this._measureEdge(edge_id)) measured.push(edge_id);
+            }
+            for (const edge_id of measured) this._drawEdge(edge_id);
+        },
+
+        /** Read the edge's pins from the layout into its edgeInfo, writing nothing to the DOM.
+         *  Returns whether the edge has anything on screen to draw. */
+        _measureEdge(edge_id) {
             const edgeInfo = this.edgePaths.get(edge_id);
             if (!edgeInfo) {
                 console.error(`Edge not found: ${edge_id}`);
-                return;
+                return false;
             }
 
             // If either endpoint node is pending (canvas detached), skip silently —
             // _updateEdgesForNode will be called once the node appears in the live DOM.
             if (this._pendingNodeIds.has(edgeInfo.outletNodeId) || this._pendingNodeIds.has(edgeInfo.inletNodeId)) {
-                return;
+                return false;
             }
 
             const outletPin = this._drawnPin(edgeInfo.outletNodeId, edgeInfo.outletPinUUID, edgeInfo.outletPinFallback);
@@ -3516,10 +3537,10 @@ export default {
 
             if ((!outletPin && !outletCulled) || (!inletPin && !inletCulled)) {
                 console.error(`Failed to find pins for connection: ${edge_id}`);
-                return;
+                return false;
             }
             if (!outletPin && !inletPin) {
-                return;   // both ends culled — nothing on screen to refresh
+                return false;   // both ends culled — nothing on screen to refresh
             }
 
             // Positions, colours, and the direction vectors. The vectors are
@@ -3540,7 +3561,13 @@ export default {
                 edgeInfo.inletConnectDir = this._getPinDirectionVector(inletPin);
                 edgeInfo.inletPinHalf = this._pinHalfExtent(inletPin, edgeInfo.inletConnectDir);
             }
+            return true;
+        },
 
+        /** Write the edge's path, stroke and state classes from its measured edgeInfo. */
+        _drawEdge(edge_id) {
+            const edgeInfo = this.edgePaths.get(edge_id);
+            if (!edgeInfo) return;
             const pathData = this._createBezierPathForEdge(edge_id);
 
             edgeInfo.path.setAttribute('d', pathData);
@@ -3732,12 +3759,11 @@ export default {
             // coords are invariant under both.
             this._pinIndexDirty = true;
 
-            // ENHANCED: More efficient iteration using edgeInfo
+            const ids = [];
             this.edgePaths.forEach((edgeInfo, edge_id) => {
-                if (edgeInfo.outletNodeId === nodeId || edgeInfo.inletNodeId === nodeId) {
-                    this._updateEdge(edge_id);
-                }
+                if (edgeInfo.outletNodeId === nodeId || edgeInfo.inletNodeId === nodeId) ids.push(edge_id);
             });
+            this._updateEdges(ids);
         },
 
         _addNodeObserver(nodeId) {
