@@ -460,14 +460,22 @@ class GraphEditor(BaseEditor):
 
     @staticmethod
     def _clear_selection(context: "SessionContext") -> None:
-        """Empty the session's node and edge selection and publish ``SelectionMoved``."""
+        """Empty the session's node and edge selection; publish ``SelectionMoved`` if it held anything."""
         edit_state = context.data[EditState]
+        had_selection = bool(
+            getattr(edit_state, "active_node", None) is not None
+            or getattr(edit_state, "active_edge", None) is not None
+            or getattr(edit_state, "selected_nodes", None)
+            or getattr(edit_state, "selected_edges", None)
+            or getattr(context, "active_component", None) is not None
+        )
         edit_state.active_node = None
         edit_state.active_edge = None
         edit_state.selected_nodes = set()
         edit_state.selected_edges = set()
         context.active_component = None
-        context.session.publish(SelectionMoved())
+        if had_selection:
+            context.session.publish(SelectionMoved())
 
     def _close_level(self, context: "SessionContext", key: str, *, claim: bool = True) -> None:
         """Close the level under ``key`` and every level nested inside it.

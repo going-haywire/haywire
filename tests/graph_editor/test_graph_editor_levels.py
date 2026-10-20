@@ -820,3 +820,56 @@ class TestEdgesSurviveAHiddenCanvas:
 
         assert editor._active_level == DOCUMENT_LEVEL
         shown.resync_edges.assert_not_called()
+
+
+def _clearing_context(**edit_fields: Any) -> Any:
+    """A context whose session holds an empty selection, overridden by ``edit_fields``."""
+    from haybale_graph_editor.state.edit_state import EditState
+
+    fields: dict[str, Any] = {
+        "active_node": None,
+        "active_edge": None,
+        "selected_nodes": set(),
+        "selected_edges": set(),
+    }
+    fields.update(edit_fields)
+    context = SimpleNamespace(data={EditState: SimpleNamespace(**fields)}, active_component=None)
+    context.session = MagicMock()
+    return context
+
+
+def _published(context: Any) -> list[type]:
+    return [type(call.args[0]) for call in context.session.publish.call_args_list]
+
+
+class TestClearSelection:
+    """Clearing the selection tells the session only when there was one to clear."""
+
+    def test_clearing_an_empty_selection_publishes_nothing(self):
+        context = _clearing_context()
+
+        GraphEditor._clear_selection(context)
+
+        context.session.publish.assert_not_called()
+
+    def test_clearing_a_selection_publishes_once(self):
+        from haybale_graph_editor.state.edit_state import EditState
+        from haywire.core.signals import SelectionMoved
+
+        context = _clearing_context(selected_nodes={"n1"})
+
+        GraphEditor._clear_selection(context)
+
+        assert _published(context) == [SelectionMoved]
+        assert context.data[EditState].selected_nodes == set()
+
+    def test_an_active_component_alone_counts_as_a_selection(self):
+        from haywire.core.signals import SelectionMoved
+
+        context = _clearing_context()
+        context.active_component = object()
+
+        GraphEditor._clear_selection(context)
+
+        assert _published(context) == [SelectionMoved]
+        assert context.active_component is None
