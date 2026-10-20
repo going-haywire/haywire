@@ -13,8 +13,11 @@ from haywire.ui.editor.identity import SlotName
 class KeymapListener(ui.element, component="keymap_listener.vue"):
     """Listen for key presses and pastes anywhere on the page and report them as editor commands.
 
-    The target editor is the last ``[data-hw-binding]`` root that took a
-    pointer-down. A key combo found in the target editor's keymap is reported
+    The active slot is the last ``[data-hw-slot]`` that took a pointer-down
+    and shows an editor root; the listener writes it to ``<html
+    data-hw-active-slot>``, where the shell CSS lights its bars. The target
+    editor is the root under that pointer-down, else the slot's visible root.
+    A key combo found in the target editor's keymap is reported
     through ``on_command`` and its browser default is suppressed; a combo whose
     command is a native-event command (see ``EditorCommand.native_event``) is
     left to the browser and reported from that event instead. Keys and pastes
@@ -24,8 +27,10 @@ class KeymapListener(ui.element, component="keymap_listener.vue"):
     reporting one, the listener sends a focused ``input`` or ``textarea`` a
     bubbling ``hw-commit`` DOM event, so a widget that commits on blur listens
     for ``hw-commit`` too. Keys inside a dialog or a ``Popup`` stay with the
-    page. When the target editor's root has left the page, the first visible
-    editor root in ``fallback_slot`` receives the command.
+    page. A key goes to the target editor while it is visible in the active
+    slot, else to the slot's visible root; when the active slot shows none, the
+    first visible root in ``fallback_slot`` receives it and that slot becomes
+    active. ``fallback_slot`` is also the active slot at load.
 
     Args:
         on_command: Called with ``{"command_id", "binding_id", "position",
@@ -34,8 +39,8 @@ class KeymapListener(ui.element, component="keymap_listener.vue"):
             ``text`` is the pasted plain text, else ``""``.
         on_target: Called with ``{"binding_id"}`` when a pointer-down moves the
             target to another editor.
-        fallback_slot: ``SlotName`` value of the slot searched when the target
-            editor is gone.
+        fallback_slot: ``SlotName`` value of the slot active at load and
+            whenever the active slot shows no editor.
         platform: ``"mac"`` (Cmd is ``Mod``, Control is ``Ctrl``), any other
             value for Control as ``Mod``, or ``"auto"`` to detect from the
             browser.

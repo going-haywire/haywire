@@ -431,3 +431,23 @@ def test_clean_wrapper_renders_no_dirty_marker(monkeypatch):
     slot._render_bar_contents()
 
     assert not _dirty_icon_calls(created), "Clean wrapper should draw no dirty marker"
+
+
+def test_the_slot_wrapper_carries_its_name(monkeypatch):
+    """The keymap listener finds a slot, and the shell CSS lights its bar, by ``data-hw-slot``."""
+    created = _install_ui_fakes(monkeypatch)
+
+    def recording_props(self, *args, **_kwargs):
+        if args:
+            self._props["text"] = args[0]
+        return self
+
+    monkeypatch.setattr(_FakeContainer, "props", recording_props)
+    slot = _slot(
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT), name=SlotName.INFO, registry=_FakeRegistry()
+    )
+
+    _render(slot, _FakeContainer())
+
+    wrapper = created[0][1]
+    assert wrapper._props.get("text") == 'data-hw-slot="info"'

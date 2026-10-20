@@ -958,7 +958,7 @@ def register_routes(library_service) -> None:
         listener.set_keymap({"editors": {"list": {"Mod+S": "save"}}, "text_fields": ["save"]})
 
         with (
-            ui.element("div").props('id="hw-slot-edit"'),
+            ui.element("div").props('id="hw-slot-edit" data-hw-slot="edit"'),
             ui.element("div").props('data-hw-binding="list::one" data-hw-editor="list"'),
             ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"),
         ):
@@ -2294,17 +2294,24 @@ def register_routes(library_service) -> None:
     # -------------------------------------------------------------------------
     # GET /keymap
     #
-    # One KeymapListener (Control is Mod) over two editor roots, ed::one and
-    # ed::two, in #hw-slot-edit. ed::one holds a text input and a pointer-local
-    # hook answering [12, 34]. #fake-dialog (classed .q-dialog) holds a plain
+    # One KeymapListener (Control is Mod) over three slots: "edit" (bar
+    # #edit-bar, editor roots ed::one and ed::two), "context" (header #ctx-bar,
+    # root ed::ctx = #ctx-root) and "info" (bar #info-bar, no editor). ed::one
+    # holds a text input and a pointer-local hook answering [12, 34]. The bars
+    # carry the shell's ACTIVE_SLOT_CSS over a surface of #101010 and an
+    # elevated of #505050. #fake-dialog (classed .q-dialog) holds a plain
     # button, #dialog-button. #last-command / #command-log record what reached
     # Python as "<command_id>@<binding_id>". Backs test_keymap_listener.py.
     # -------------------------------------------------------------------------
 
     @ui.page("/keymap")
     async def keymap_page():
+        from haywire.ui.app.shell import ACTIVE_SLOT_CSS
         from haywire.ui.components.keymap import KeymapListener
         from haywire.ui.components.popup import Popup
+
+        ui.add_css(ACTIVE_SLOT_CSS + ":root { --hw-bg-surface: #101010; --hw-bg-elevated: #505050; }")
+        bar_style = "background: var(--hw-bg-surface); width: 300px; min-height: 20px;"
 
         last_command = ui.label("none").props('id="last-command"')
         last_payload = ui.label("none").props('id="last-payload"')
@@ -2342,7 +2349,8 @@ def register_routes(library_service) -> None:
         )
 
         root_style = "width: 300px; min-height: 80px; padding: 16px; border: 1px solid #666;"
-        with ui.element("div").props('id="hw-slot-edit"'):
+        with ui.element("div").props('id="hw-slot-edit" data-hw-slot="edit"'):
+            ui.element("div").classes("hw-slot-bar").props('id="edit-bar"').style(bar_style)
             with ui.element("div").props('data-hw-binding="ed::one" data-hw-editor="ed"').style(root_style):
                 ui.element("input").props('type="text"')
                 ui.element("div").props("data-hw-pointer-local").style("width: 40px; height: 20px;")
@@ -2358,6 +2366,13 @@ def register_routes(library_service) -> None:
                     "min-height: 20px;"
                 )
             ui.element("div").props('data-hw-binding="ed::two" data-hw-editor="ed"').style(root_style)
+        with ui.element("div").props('data-hw-slot="context"'):
+            ui.element("div").classes("hw-slot-header").props('id="ctx-bar"').style(bar_style)
+            ui.element("div").props('id="ctx-root" data-hw-binding="ed::ctx" data-hw-editor="ed"').style(
+                root_style
+            )
+        with ui.element("div").props('data-hw-slot="info"'):
+            ui.element("div").classes("hw-slot-bar").props('id="info-bar"').style(bar_style)
         with ui.element("div").classes("q-dialog").props('id="fake-dialog"'):
             ui.element("button").props('id="dialog-button" type="button"')
         # Opened on demand: an open Popup's backdrop takes every click on the page.
@@ -2394,7 +2409,10 @@ def register_routes(library_service) -> None:
         graph, editor, _ = _build_size_graph(library_service.get_node_factory())
         clipboard_json = ui.label("").props('id="clipboard-json"').style("display: none")
 
-        with ui.element("div").props('data-hw-binding="graph::main" data-hw-editor="graph"'):
+        with (
+            ui.element("div").props('data-hw-slot="edit"'),
+            ui.element("div").props('data-hw-binding="graph::main" data-hw-editor="graph"'),
+        ):
             manager = _mount_graph_canvas(library_service, graph, editor, testid="keymap")
 
         def on_command(payload: dict) -> None:

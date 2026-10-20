@@ -68,7 +68,12 @@ class IconSlot(Slot):
     def render(self, parent: ui.element) -> None:
         """Build ``[bar | area]`` (or ``[area | bar]``) inside ``parent``."""
         with parent:
-            row = ui.row().classes("gap-0 no-wrap").style("height: 100%; overflow: hidden;")
+            row = (
+                ui.row()
+                .classes("gap-0 no-wrap")
+                .style("height: 100%; overflow: hidden;")
+                .props(f'data-hw-slot="{self.name.value}"')
+            )
 
         if self._bar_place == "left":
             with row:

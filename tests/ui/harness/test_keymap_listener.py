@@ -1,10 +1,11 @@
 """KeymapListener in a real browser: target resolution, key combos, native-key guard, paste.
 
 The ``/keymap`` page mounts one listener (``platform="other"``, so Control is
-``Mod``) over two editor roots, ``ed::one`` and ``ed::two``, inside
-``#hw-slot-edit``. ``#command-log`` lists every command that reached Python, so
-a test that expects *no* command ends with a sentinel command and asserts the
-log holds only that.
+``Mod``) over three slots: ``edit`` with editor roots ``ed::one`` and
+``ed::two``, ``context`` with ``ed::ctx``, and ``info`` with no editor.
+``#command-log`` lists every command that reached Python, so a test that
+expects *no* command ends with a sentinel command and asserts the log holds
+only that.
 """
 
 import pytest
@@ -360,3 +361,71 @@ def test_save_inside_a_dialog_is_native(page: Page, harness):
     page.keyboard.press("Control+s")
 
     _expect_only_sentinel(page)
+
+
+# ---------------------------------------------------------------------------
+# The active slot
+# ---------------------------------------------------------------------------
+
+
+def _active_slot(page: Page) -> str:
+    return page.evaluate("() => document.documentElement.dataset.hwActiveSlot")
+
+
+def test_the_edit_slot_is_active_at_load(page: Page, harness):
+    _open(page, harness)
+
+    assert _active_slot(page) == "edit"
+
+
+def test_a_click_on_a_slot_bar_activates_that_slot(page: Page, harness):
+    _open(page, harness)
+
+    page.locator("#ctx-bar").click()
+    page.keyboard.press("Control+s")
+
+    expect(page.locator("#last-command")).to_have_text("save@ed::ctx")
+    expect(page.locator("#last-target")).to_have_text("ed::ctx")
+    assert _active_slot(page) == "context"
+
+
+def test_a_slot_without_an_editor_is_not_activated(page: Page, harness):
+    _open(page, harness)
+    _click_root(page, "#ctx-root")
+
+    page.locator("#info-bar").click()
+    page.keyboard.press("Delete")
+
+    expect(page.locator("#last-command")).to_have_text("delete@ed::ctx")
+    assert _active_slot(page) == "context"
+
+
+def test_a_hidden_active_editor_falls_back_to_the_edit_slot(page: Page, harness):
+    _open(page, harness)
+    _click_root(page, "#ctx-root")
+    page.locator("#ctx-root").evaluate("el => { el.style.display = 'none'; }")
+
+    page.keyboard.press("Delete")
+
+    expect(page.locator("#last-command")).to_have_text("delete@ed::one")
+    assert _active_slot(page) == "edit"
+
+
+def test_a_click_in_a_popup_keeps_the_active_slot(page: Page, harness):
+    _open(page, harness)
+    _click_root(page, "#ctx-root")
+
+    page.locator("#open-popup").click()
+    page.locator(".popup-field input").click()
+    page.locator("#close-popup").click()
+
+    assert _active_slot(page) == "context"
+
+
+def test_the_active_slot_bar_is_lighter(page: Page, harness):
+    _open(page, harness)
+
+    page.locator("#ctx-bar").click()
+
+    expect(page.locator("#ctx-bar")).to_have_css("background-color", "rgb(80, 80, 80)")
+    expect(page.locator("#edit-bar")).to_have_css("background-color", "rgb(16, 16, 16)")

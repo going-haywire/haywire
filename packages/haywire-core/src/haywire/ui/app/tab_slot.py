@@ -43,6 +43,7 @@ class TabSlot(Slot):
                 ui.column()
                 .classes("gap-0")
                 .style(f"width: 100%; {wrapper_flex}; min-height: 0; overflow: hidden;")
+                .props(f'data-hw-slot="{self.name.value}"')
             )
 
         if self._bar_place == "top":

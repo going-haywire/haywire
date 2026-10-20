@@ -182,6 +182,8 @@ class BaseTheme:
         "menu_row_font_size": "--hw-menu-row-font-size",
         "menu_row_font_weight": "--hw-menu-row-font-weight",
         "menu_row_text_transform": "--hw-menu-row-text-transform",
+        # The active slot's bars. Optional: the CSS falls back to --hw-bg-elevated.
+        "slot_bar_bg_active": "--hw-slot-bar-bg-active",
         # Compact fields
         "compact_gap": "--hw-compact-gap",
         "compact_field_h": "--hw-compact-field-h",

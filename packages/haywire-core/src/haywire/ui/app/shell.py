@@ -101,6 +101,24 @@ def last_seen_text(seconds: float) -> str:
     return f"{int(seconds // 3600)}h ago"
 
 
+def _active_slot_css() -> str:
+    """Return CSS lighting the bars of the slot named by ``<html data-hw-active-slot>``."""
+    rules = []
+    for slot in SlotName:
+        scope = f'html[data-hw-active-slot="{slot.value}"] [data-hw-slot="{slot.value}"]'
+        selectors = ", ".join(
+            f"{scope} {target}"
+            for target in (".hw-slot-bar", ".hw-slot-header", ".hw-icon-bar-tabs .q-tab--active")
+        )
+        # !important: the bars carry their resting background inline.
+        rules.append(
+            f" {selectors} {{ background: var(--hw-slot-bar-bg-active, var(--hw-bg-elevated)) !important; }}"
+        )
+    return "".join(rules)
+
+
+ACTIVE_SLOT_CSS = _active_slot_css()
+
 """Static, theme-independent CSS for every haywire surface.
 
 Module-level so surfaces that are NOT the shell can reuse it verbatim —
@@ -598,7 +616,7 @@ STATIC_CSS = (
     " }"
     # The doc panel's own padding replaces the tooltip wrapper's.
     " .cm-tooltip.cm-completionInfo { padding: 0; }"
-)
+) + ACTIVE_SLOT_CSS
 
 
 class AppShell:

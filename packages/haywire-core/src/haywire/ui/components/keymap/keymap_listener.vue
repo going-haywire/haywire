@@ -5,9 +5,12 @@
 <script>
 // Page-wide keyboard-shortcut listener.
 //
-// Tracks the target editor (the last [data-hw-binding] root that took a
-// pointerdown), turns key presses into command events for the target's editor
-// keymap, and turns the native `paste` event into the editor's paste command.
+// Tracks the active slot (the last [data-hw-slot] that took a pointerdown and
+// shows an editor) and, inside it, the target editor (the last [data-hw-binding]
+// root clicked); writes the active slot to <html data-hw-active-slot>, where the
+// shell CSS lights its bars and no server redraw can reach it. Turns key presses
+// into command events for the target's editor keymap, and the native `paste`
+// event into the editor's paste command.
 // Keys typed into a text field stay with the field, except the commands marked
 // `in_text_fields`; keys pressed inside a dialog or a Popup stay with the page.
 const NATIVE_SELECTOR =
@@ -78,7 +81,7 @@ export default {
   },
 
   data() {
-    return { targetBinding: null };
+    return { targetBinding: null, activeSlot: null };
   },
 
   computed: {
@@ -91,6 +94,7 @@ export default {
   mounted() {
     // Shortcut hints render both spellings; the shell CSS hides the one this flag rules out.
     document.documentElement.dataset.hwPlatform = this.isMac ? 'mac' : 'other';
+    this.setActiveSlot(this.fallbackSlot);
     document.addEventListener('pointerdown', this.onPointerDown, true);
     document.addEventListener('keydown', this.onKeyDown, true);
     document.addEventListener('paste', this.onPaste, true);
@@ -103,25 +107,47 @@ export default {
   },
 
   methods: {
+    setActiveSlot(name) {
+      this.activeSlot = name;
+      document.documentElement.dataset.hwActiveSlot = name;
+    },
+
+    slotElement(name) {
+      return document.querySelector(`[data-hw-slot="${CSS.escape(name)}"]`);
+    },
+
+    firstVisibleRoot(slotEl) {
+      return slotEl ? [...slotEl.querySelectorAll('[data-hw-binding]')].find(isVisible) || null : null;
+    },
+
+    // A pointer-down in a slot that shows an editor makes it the active slot; the editor root
+    // under the pointer, else the slot's visible one, becomes the target.
     onPointerDown(e) {
-      const root = e.target instanceof Element ? e.target.closest('[data-hw-binding]') : null;
+      if (!(e.target instanceof Element)) return;
+      const slotEl = e.target.closest('[data-hw-slot]');
+      if (!slotEl) return;
+      const root = e.target.closest('[data-hw-binding]') || this.firstVisibleRoot(slotEl);
       if (!root) return;
+      this.setActiveSlot(slotEl.dataset.hwSlot);
       const bindingId = root.dataset.hwBinding;
       if (bindingId === this.targetBinding) return;
       this.targetBinding = bindingId;
       this.$emit('hw-target', { binding_id: bindingId });
     },
 
-    // The target editor's root: the last one clicked while it is still visible in the page,
-    // else the first visible editor root in the fallback slot.
+    // The target editor's root: the last one clicked while it is still visible in the active slot,
+    // else the slot's first visible root, else the fallback slot's, which then becomes active.
     resolveRoot() {
-      if (this.targetBinding !== null) {
-        const sel = `[data-hw-binding="${CSS.escape(this.targetBinding)}"]`;
-        const current = document.querySelector(sel);
+      const slotEl = this.slotElement(this.activeSlot);
+      if (slotEl && this.targetBinding !== null) {
+        const current = slotEl.querySelector(`[data-hw-binding="${CSS.escape(this.targetBinding)}"]`);
         if (current && isVisible(current)) return current;
       }
-      const slot = `#hw-slot-${CSS.escape(this.fallbackSlot)} [data-hw-binding]`;
-      return [...document.querySelectorAll(slot)].find(isVisible) || null;
+      const inSlot = this.firstVisibleRoot(slotEl);
+      if (inSlot) return inSlot;
+      const fallback = this.firstVisibleRoot(this.slotElement(this.fallbackSlot));
+      if (fallback) this.setActiveSlot(this.fallbackSlot);
+      return fallback;
     },
 
     editorMap(root) {
