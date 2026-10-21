@@ -146,3 +146,49 @@ def test_a_failed_rebuild_keeps_the_values_for_the_fix(graph_with_library_system
     assert wrapper._stand_in_data is None
     assert wrapper.node.ports["message"].get_value() == "kept"
     assert wrapper.node.props.get_position() == (640.0, 320.0)
+
+
+def _loaded_with_a_stand_in(graph_with_library_system, construction_fails):
+    broken, _ = _two_nodes(graph_with_library_system)
+    data = graph_with_library_system.to_dict()
+    original = copy.deepcopy(data["nodes"][broken.node_id]["node_data"])
+    construction_fails(1)
+    return _load(data), broken.node_id, original
+
+
+def test_undoing_the_delete_of_a_stand_in_restores_its_data(
+    graph_with_library_system, library_system, construction_fails
+):
+    from haywire.core.graph.editor import Editor
+
+    graph, node_id, original = _loaded_with_a_stand_in(graph_with_library_system, construction_fails)
+    editor = Editor(graph, library_system.get_node_factory())
+    assert editor.remove_elements([node_id], [])
+    assert node_id not in graph.node_wrappers
+
+    construction_fails(1)  # the class is still broken when the delete is undone
+    editor.undo()
+
+    assert graph.node_wrappers[node_id].is_stand_in
+    assert _saved(graph, node_id)["node_data"] == original
+
+
+def test_a_pasted_stand_in_carries_the_original_data(
+    graph_with_library_system, library_system, construction_fails
+):
+    from haywire.core.graph.clipboard import build_clipboard_payload
+    from haywire.core.graph.editor import Editor
+
+    graph, node_id, original = _loaded_with_a_stand_in(graph_with_library_system, construction_fails)
+    editor = Editor(graph, library_system.get_node_factory())
+    payload = build_clipboard_payload(graph, [node_id], [], "session")
+
+    construction_fails(1)
+    pasted = editor.paste_clipboard(payload, 500.0, 500.0)
+
+    assert pasted is not None
+    new_id = pasted[0][0]
+    saved = _saved(graph, new_id)["node_data"]
+    assert graph.node_wrappers[new_id].is_stand_in
+    for key in ("ports", "identity", "library", "store"):
+        assert saved[key] == original[key]
