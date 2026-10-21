@@ -88,8 +88,17 @@ class NodeFactory:
             )
 
         if node_cls is None:
-            node_cls = self.node_registry._get_error_node()
-        if node_cls is None:
+            node_cls = self.get_error_node(registry_key)
+        return node_cls, node_error
+
+    def get_error_node(self, registry_key: str) -> type[BaseNode]:
+        """Return the registered error node class, which stands in for ``registry_key``.
+
+        Raises:
+            HaywireException: If no error node is registered.
+        """
+        error_cls = self.node_registry._get_error_node()
+        if error_cls is None:
             raise HaywireException(
                 message=(
                     f"Node lookup failed for '{registry_key}' and no error node is "
@@ -100,7 +109,7 @@ class NodeFactory:
                 registry_key=registry_key,
                 category="NodeFactoryConfigurationError",
             )
-        return node_cls, node_error
+        return error_cls
 
     def _get_macro_node(self, registry_key: str) -> tuple[type[BaseNode], HaywireException | None]:
         """Return the placement card for a macro key, and any error about the macro.

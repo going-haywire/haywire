@@ -2,6 +2,7 @@
 serialization and cleanup.
 """
 
+import copy
 import time
 import threading
 import logging
@@ -172,6 +173,10 @@ class NodeWrapper:
         """Where the node goes once it has an instance; held only while ``_node_instance`` is
         ``None``, because props are the position's only home. See ADR 0053."""
 
+        self._stand_in_data: Optional[Dict[str, Any]] = None
+        """The node data a stand-in keeps for the node it replaces: saved back as is, and
+        rebuilt from once the node's class works. See ADR 0058."""
+
         self._import_node_cls()
 
     @property
@@ -188,6 +193,29 @@ class NodeWrapper:
                     f"(not built or already cleaned up)."
                 )
             return self._node_instance
+
+    @property
+    def is_stand_in(self) -> bool:
+        """True while an error node stands in for this wrapper's node.
+
+        That is the case when the node's class is unknown or its constructor
+        raised. The stand-in shows the error, keeps the node's place and
+        connections, and saves the node's original data back. See ADR 0058.
+        """
+        instance = self._node_instance
+        if instance is None:
+            return False
+        identity = type(instance).class_identity
+        return bool(getattr(identity, "_is_error", False)) and identity.registry_key != self.registry_key
+
+    def _stand_in_save_data(self) -> Dict[str, Any]:
+        """The kept node data with the props the user can change on the stand-in's card."""
+        assert self._stand_in_data is not None and self._node_instance is not None
+        data = copy.deepcopy(self._stand_in_data)
+        live = self._node_instance._to_dict()
+        data["props"] = live["props"]
+        data.setdefault("settings", {})["props"] = live["settings"]["props"]
+        return data
 
     @property
     def is_cleaned_up(self) -> bool:
@@ -280,6 +308,9 @@ class NodeWrapper:
             # node from current code, so none of them apply to the result.
             self._state.clear_warnings()
 
+            if not node_info and self.is_stand_in and self._stand_in_data is not None:
+                node_info = self._stand_in_save_data()
+
             if (
                 self._instantiate(node_info)
                 and self._initialize(node_info)
@@ -305,6 +336,10 @@ class NodeWrapper:
             return False
         node_cls = self._node_cls  # narrowed for the rest of the method
         carried_position = None
+        # The node's data as it stands, kept by a stand-in if the class below fails to build.
+        original = node_info or None
+        if original is None and self._node_instance is not None:
+            original = self._stand_in_data if self.is_stand_in else self._node_instance._to_dict()
         try:
             if self._node_instance:
                 # A rebuild keeps the node where it is; everything else resets.
@@ -320,14 +355,13 @@ class NodeWrapper:
             self._pending_position = None
             self._state.is_instantiated = True
             self._state.error_instantiate = None
+            self._stand_in_data = original if self.is_stand_in else None
 
             return True
 
         except Exception as e:
-            if carried_position is not None:
-                self._pending_position = carried_position
-            elif node_info:
-                self._pending_position = position_of({"node_data": node_info})
+            if carried_position is None and node_info:
+                carried_position = position_of({"node_data": node_info})
             self._state.error_instantiate = HaywireException.from_exception(
                 exception=e,
                 operation="Instantiate Node",
@@ -342,8 +376,31 @@ class NodeWrapper:
             )
             self._state.error_instantiate.log(logger)
             self._state.is_instantiated = False
+            return self._stand_in(original, carried_position)
 
         return False
+
+    def _stand_in(self, original: Optional[Dict[str, Any]], position: tuple[float, float] | None) -> bool:
+        """Put the error node in place of a node whose class failed to construct.
+
+        Returns whether it stood in; when the error node cannot be built either, the
+        wrapper holds no instance and ``position`` waits for the next build.
+        """
+        try:
+            error_cls = self._node_factory.get_error_node(self.registry_key)
+            self._node_instance = error_cls(self._node_id, self)
+        except Exception as e:
+            self._node_instance = None
+            self._pending_position = position
+            HaywireException.from_exception(
+                exception=e, operation="Instantiate Node", message="The error node could not stand in"
+            ).log(logger)
+            return False
+        if position is not None:
+            self._node_instance.props.set_position(position)
+        self._pending_position = None
+        self._stand_in_data = original
+        return True
 
     def _initialize(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
         """Bring the node to its initial state — from *node_info* if given, else
@@ -355,6 +412,9 @@ class NodeWrapper:
         assert self._node_cls is not None, "must be set by _import_node_cls"
         node_instance = self._node_instance
         node_cls = self._node_cls
+        if not node_info and self.is_stand_in:
+            # A rebuild without data that failed to construct: the stand-in takes the old node's data.
+            node_info = self._stand_in_data
         try:
             if node_info:
                 # _initialize_from_dict regenerates promoted ports itself, from
@@ -758,7 +818,11 @@ class NodeWrapper:
                 "registry_key": self.registry_key,
             }
 
-            if self._node_instance:
+            if self.is_stand_in:
+                # A stand-in saves the node it replaces, not itself; with no data there is nothing to save.
+                if self._stand_in_data is not None:
+                    result["node_data"] = self._stand_in_save_data()
+            elif self._node_instance:
                 result["node_data"] = self._node_instance._to_dict(include_data=include_data)
 
             return result
