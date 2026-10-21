@@ -339,7 +339,14 @@ class NodeWrapper:
         # The node's data as it stands, kept by a stand-in if the class below fails to build.
         original = node_info or None
         if original is None and self._node_instance is not None:
-            original = self._stand_in_data if self.is_stand_in else self._node_instance._to_dict()
+            if self.is_stand_in:
+                original = self._stand_in_data
+            else:
+                try:
+                    original = self._node_instance._to_dict()
+                except Exception:
+                    # Only a stand-in would need it; the rebuild goes ahead without it.
+                    logger.warning(f"Node {self._node_id}: no data kept for a stand-in", exc_info=True)
         try:
             if self._node_instance:
                 # A rebuild keeps the node where it is; everything else resets.

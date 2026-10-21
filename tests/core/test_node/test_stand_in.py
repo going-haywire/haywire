@@ -192,3 +192,21 @@ def test_a_pasted_stand_in_carries_the_original_data(
     assert graph.node_wrappers[new_id].is_stand_in
     for key in ("ports", "identity", "library", "store"):
         assert saved[key] == original[key]
+
+
+def test_a_node_that_cannot_serialize_still_rebuilds(graph_with_library_system, monkeypatch):
+    """A stand-in's data is captured before every rebuild; a failed capture must not stop one."""
+    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+
+    graph = graph_with_library_system
+    wrapper = graph.create_node_wrapper(_print_key(), position=(10.0, 10.0))
+    old = wrapper.node
+
+    def broken_to_dict(self, include_data=True):
+        raise RuntimeError("cannot serialize")
+
+    monkeypatch.setattr(TestPrintNode, "_to_dict", broken_to_dict)
+    _reset(graph, wrapper.node_id)
+
+    assert wrapper.node is not old
+    assert isinstance(wrapper.node, TestPrintNode)

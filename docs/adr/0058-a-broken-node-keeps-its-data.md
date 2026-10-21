@@ -32,3 +32,4 @@ level: framework
 - A stand-in's card shows the error node's look and errors; its title is the error node's label unless the node has a label of its own.
 - A stand-in for a freshly dropped node has no data to keep and saves none, as before; it reloads as a fresh node.
 - Opening and saving a graph while a library is missing no longer changes that library's nodes in the file.
+- The real node returns from the kept data, as when the file is reopened: ports an author added to the class in the fix appear after a reset, not at once.
