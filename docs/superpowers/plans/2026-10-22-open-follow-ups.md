@@ -10,7 +10,7 @@ Line references are from 2026-10-22. ✓ = confirmed in code; anything else come
 
 ## 1. Features and UX gaps
 
-1. ✓ **Undo cannot restore an edge's propagation to `None`.** `SetEdgePropagationAction` records the old value but `None` ("follow the wire type") does not round-trip. First step: a test that sets a propagation on an edge without one, undoes, and expects `None`.
+1. **DONE** ~~**Undo cannot restore an edge's propagation to `None`.**~~ Obsolete premise: `None` means the wire type allows no mode, and the setter refuses every such edge, so no step is ever recorded from `None`. The unreachable guard in `_undo_impl` was replaced by an assert; a test pins the refusal (`test_an_edge_without_propagation_refuses_a_mode_and_records_nothing`).
 2. **No undo-history panel.** The two-session undo case (two sessions on one file) cannot be checked live without seeing the stack. Needs a design round: where the panel lives, what an entry shows (description, group, fence), whether it is per graph or per file history (Group interiors share their host's history, ADR 0059).
 3. **A Farmhand tool run outside the MCP host gets no closing fence.** No such caller exists yet; record it where a non-MCP caller is added.
 4. **An Inset on a node that is not a Graph-node shows the "Enter" placeholder.** The skin should refuse, or the skin lists should not offer it there (they already filter by the `graph-node` tag — check how the user reached it).
@@ -29,7 +29,7 @@ Line references are from 2026-10-22. ✓ = confirmed in code; anything else come
 11. **Restack compares with `is`.**
 12. **In patch, the selected-card lift outranks the dragging lift.**
 13. **Slice 5b-4 leftovers:** a `storage_key` collision in `widget_instances`; the guard misses `bag.x =`; a Group's mirrored ports drop `operable`; Farmhand's not-operable message; hard-coded 12 px padding.
-14. ✓ **Relative `..` imports** in `barn/haybale-graph-editor/haybale_graph_editor/skins/node_skin.py:19` and `inset_skin.py`.
+14. **DONE** ~~**Relative `..` imports** in `barn/haybale-graph-editor/haybale_graph_editor/skins/node_skin.py:19` and `inset_skin.py`.~~ Widened to all of `barn/`: 266 import statements made absolute, ruff `TID252` (`ban-relative-imports = "all"`) enforced on `barn/**`; reasons in `.insights/feedback_no_relative_imports_in_barn.md`. `packages/` still uses relative imports. `haybale-visiongraph` (separate repo) not converted.
 15. **Edit-instance polish** (`internals/handoff/edit-instance-followups.md` §3): `Editor.last_promotion_dropped_edges` is a last-call field (return it from `promote_to_macro` once a second caller needs it); optional notice in a second session whose placement level became a modified instance.
 
 ## 4. Test gaps
