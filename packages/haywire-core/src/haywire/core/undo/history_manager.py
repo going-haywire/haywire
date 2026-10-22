@@ -159,7 +159,12 @@ class HistoryManager(IHistoryManager):
         self._amendable = None
         if isinstance(action, ActionBase):
             action.mark_executed()
+        # Its own step: never grouped with a user action still pending, nor with the next one.
+        if self._pending_actions:
+            self._flush_pending_actions()
         self._record_executed(action, time.time())
+        if self._pending_actions:
+            self._flush_pending_actions()
 
     def add_value_action(
         self, action: IAction, merge_owner: object | None, idle_s: float = VALUE_EDIT_MERGE_IDLE_S

@@ -16,7 +16,7 @@
 - **One step per graph per validation batch**, description `"Reload <Node label>"` for one node, `"Reload <Node label> (<n> nodes)"` for several of one class, `"Reload <n> nodes"` for several classes; Reset likewise (`"Reset …"`).
 - **A Group interior is its own graph:** when the host and an opened interior both hold nodes of the reloaded class, the shared history gets one step per graph (two Ctrl+Z for one save). Accepted (user ruling 2026-10-22, option a) and stated in the ADR.
 - **Not recorded:** a node whose rebuild ended as a stand-in (`is_stand_in`, ADR 0058) — the failed reload is not undoable; a node that absorbed its reload (`on_class_reloaded` → True; no rebuild happens); a class that fails to import (no rebuild); a graph with no history registered; a batch validated off the main thread (`threading.current_thread() is not threading.main_thread()`), logged at debug.
-- **Recorded:** the reload that fixes a broken class (a stand-in becomes the real node). Its undo rebuilds from the stand-in's kept data, i.e. the configuration before the break, on the fixed class.
+- **Not recorded either (ruling during Task 2):** the reload that fixes a broken class — on master the fixed node already returns with its kept data (ADR 0058), so the step would undo nothing.
 - Undo/Redo requests use `ChangeReason.NODE_RESET_REQUESTED`, so they are never themselves recorded and they mark the file unsaved like any edit.
 - A recorded step is never merged and closes any running value-edit series (`_amendable = None`).
 

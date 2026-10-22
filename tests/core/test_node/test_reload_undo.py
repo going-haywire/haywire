@@ -157,3 +157,48 @@ def test_undo_and_redo_rebuilds_are_not_recorded(graph_with_library_system, libr
 
     assert not editor.history_manager.can_undo()
     assert editor.history_manager.can_redo()
+
+
+def test_two_quick_undos_reach_the_state_before_both(graph_with_library_system, library_system):
+    """Undo rebuilds at once: a second Ctrl+Z before any pass must not land on a stale node."""
+    graph, editor = _graph_with_editor(library_system)
+    wrapper = _printer(graph, "a")
+    assert editor.set_property(wrapper.node_id, "message", "b")
+    _reload(graph, wrapper)
+
+    editor.undo()
+    editor.undo()
+    graph._validation.force_immediate_validation()
+
+    assert _message(wrapper) == "a"
+
+
+def test_undoing_a_reset_and_then_its_delete_quickly_restores_the_node(
+    graph_with_library_system, library_system
+):
+    graph, editor = _graph_with_editor(library_system)
+    wrapper = _printer(graph, "kept")
+    assert editor.reset_nodes([wrapper.node_id])
+    assert editor.remove_elements([wrapper.node_id], [])
+
+    editor.undo()
+    editor.undo()
+    graph._validation.force_immediate_validation()
+
+    restored = graph.node_wrappers[wrapper.node_id]
+    assert _message(restored) == "kept"
+    assert restored._rebuild_data is None
+
+
+def test_a_recorded_reload_is_its_own_step(graph_with_library_system, library_system):
+    """With grouping on (the studio's default), a user action still pending is not folded into the reload."""
+    graph = BaseGraph("Grouped", validation_scheduler=_ParkedScheduler())
+    editor = Editor(graph, library_system.get_node_factory())
+    wrapper = _printer(graph, "kept")
+    assert editor.move_nodes([wrapper.node_id], 40.0, 0.0)
+
+    _reload(graph, wrapper)
+    editor.undo()
+
+    assert _message(wrapper) == "kept"
+    assert wrapper.node.props.get_position() == (50.0, 10.0)

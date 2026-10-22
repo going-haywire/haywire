@@ -303,12 +303,11 @@ class ValidationManager:
             # Validate nodes
             for node_id, reason in dirty_nodes.items():
                 try:
-                    if reason.requires_removal():
-                        validated_nodes[node_id] = reason
-                        validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
-                        continue
-
-                    if reason.requires_adding():
+                    if reason.requires_removal() or reason.requires_adding():
+                        added_or_removed = self._graph.get_node_wrapper(node_id)
+                        if added_or_removed is not None:
+                            # A rebuild this reason outranked must not linger for a later one.
+                            added_or_removed.take_rebuild_data()
                         validated_nodes[node_id] = reason
                         validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue

@@ -2882,8 +2882,9 @@ class RebuildNodesAction(ActionBase):
 
     Holds each node's data from before the rebuild. Undo rebuilds every node exactly
     from it, as loading a file does; execute (and redo) rebuilds them through
-    ``init()`` again. Both go through ``BaseGraph.request_node_rebuild``, so attached
-    edges are rebuilt with them in the next validation pass. See ADR 0059.
+    ``init()`` again. Both go through ``BaseGraph.request_node_rebuild`` and run the
+    validation pass at once — after settling any pass already pending — so attached
+    edges are rebuilt with them and a following undo meets the rebuilt node. See ADR 0059.
 
     Raises:
         ValueError: On execute or undo, if a node is no longer in the graph.
@@ -2925,11 +2926,15 @@ class RebuildNodesAction(ActionBase):
             raise ValueError(f"Nodes no longer in the graph: {', '.join(missing)}")
 
     def _execute_impl(self) -> None:
-        self._check()
-        for node_id in self.before:
-            self.graph.request_node_rebuild(node_id)
+        self._rebuild({node_id: None for node_id in self.before})
 
     def _undo_impl(self) -> None:
+        self._rebuild({node_id: copy.deepcopy(data) for node_id, data in self.before.items()})
+
+    def _rebuild(self, data_by_node: Dict[str, Optional[Dict[str, Any]]]) -> None:
+        # Settle first: a pending add or remove outranks the rebuild reason in one batch.
+        self.graph._validation.force_immediate_validation()
         self._check()
-        for node_id, node_data in self.before.items():
-            self.graph.request_node_rebuild(node_id, copy.deepcopy(node_data))
+        for node_id, node_data in data_by_node.items():
+            self.graph.request_node_rebuild(node_id, node_data)
+        self.graph._validation.force_immediate_validation()
