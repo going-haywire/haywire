@@ -126,6 +126,30 @@ def test_an_unknown_class_keeps_its_settings_and_identity(graph_with_library_sys
     assert saved["node_data"] == original
 
 
+def test_a_stand_in_keeps_its_own_copy_of_the_loaded_data(graph_with_library_system, construction_fails):
+    broken, _ = _two_nodes(graph_with_library_system)
+    data = graph_with_library_system.to_dict()
+    original = copy.deepcopy(data["nodes"][broken.node_id]["node_data"])
+    construction_fails(1)
+    graph = _load(data)
+
+    data["nodes"][broken.node_id]["node_data"]["ports"].clear()
+
+    assert _saved(graph, broken.node_id)["node_data"] == original
+
+
+def test_an_unknown_class_keeps_its_own_copy_of_the_loaded_data(graph_with_library_system):
+    wrapper = graph_with_library_system.create_node_wrapper(_print_key(), position=(1.0, 2.0))
+    data = graph_with_library_system.to_dict()
+    original = copy.deepcopy(data["nodes"][wrapper.node_id]["node_data"])
+    data["nodes"][wrapper.node_id]["registry_key"] = _UNKNOWN
+    graph = _load(data)
+
+    data["nodes"][wrapper.node_id]["node_data"]["ports"].clear()
+
+    assert _saved(graph, wrapper.node_id)["node_data"] == original
+
+
 def test_a_failed_rebuild_keeps_the_values_for_the_fix(graph_with_library_system, construction_fails):
     from haybale_testing.nodes.testbed.print_node import TestPrintNode
 

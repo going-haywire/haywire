@@ -378,7 +378,7 @@ class NodeWrapper:
             self._pending_position = None
             self._state.is_instantiated = True
             self._state.error_instantiate = None
-            self._stand_in_data = original if self.is_stand_in else None
+            self._stand_in_data = copy.deepcopy(original) if self.is_stand_in else None
 
             return True
 
@@ -422,7 +422,7 @@ class NodeWrapper:
         if position is not None:
             self._node_instance.props.set_position(position)
         self._pending_position = None
-        self._stand_in_data = original
+        self._stand_in_data = copy.deepcopy(original)
         return True
 
     def _initialize(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
