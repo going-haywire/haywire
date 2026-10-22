@@ -14,7 +14,7 @@ get: any of summary, node_id, ports, settings, props, state (required, non-empty
   ports: ports grouped as inlets/swinglets/outlets/configs (a swinglet may be either end of an edge)
   settings: author-declared settings bags, nested {bag: {category: [rows]}} at data='info' and {bag: [rows]} deeper — never a flat list, so bag identity is always explicit
   props: framework properties (position, size, locked, skin) — never mixed into settings
-  state: is_valid + per-stage lifecycle booleans + errors [{stage, message}] + warnings; read this after editing a node's source to learn WHICH stage failed
+  state: is_valid + per-stage lifecycle booleans + errors [{stage, message}] + warnings; read this after editing a node's source to learn WHICH stage failed; is_stand_in True = an error node holds the place of a node whose class cannot be built (fix the class, then reset)
 data: one of info, value, all (default info) — how much per row
   info: what it IS — label, description, category/data_type. NO values. Start here.
   value: what it is SET to — value, is_set, default, is_linked

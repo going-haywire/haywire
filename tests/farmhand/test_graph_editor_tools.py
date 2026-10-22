@@ -753,6 +753,22 @@ def test_inspect_state_reports_stage_booleans(farmhand_call):
             assert isinstance(state[key], bool), key
         assert state["errors"] == []
         assert isinstance(state["warnings"], list)
+        assert state["is_stand_in"] is False
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_names_a_stand_in_by_its_own_key(farmhand_call):
+    """An agent must see that edits to a stand-in other than its props are not saved."""
+    unknown = "haybale-testing:node:NoSuchNode"
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid, key=unknown)
+        result = _inspect(farmhand_call, bid, node_id, ["state"])
+
+        assert result["state"]["is_stand_in"] is True
+        assert f"({unknown})" in result["summary"]
+        assert "STAND-IN" in result["summary"]
     finally:
         _close(farmhand_call, bid)
 

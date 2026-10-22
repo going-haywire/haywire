@@ -471,6 +471,7 @@ def _state_row(wrapper) -> dict:
     )
     return {
         "is_valid": state.is_valid(),
+        "is_stand_in": wrapper.is_stand_in,
         "is_registered": state.is_registered,
         "is_imported": state.is_imported,
         "is_instantiated": state.is_instantiated,
@@ -637,7 +638,8 @@ _DIRECTIONS = ("inlet", "swinglet", "outlet", "config")
     "and {bag: [rows]} deeper — never a flat list, so bag identity is always explicit\n"
     "  props: framework properties (position, size, locked, skin) — never mixed into settings\n"
     "  state: is_valid + per-stage lifecycle booleans + errors [{stage, message}] + warnings; "
-    "read this after editing a node's source to learn WHICH stage failed\n"
+    "read this after editing a node's source to learn WHICH stage failed; is_stand_in True = an "
+    "error node holds the place of a node whose class cannot be built (fix the class, then reset)\n"
     f"data: one of {', '.join(_DATA_LEVELS)} (default info) — how much per row\n"
     "  info: what it IS — label, description, category/data_type. NO values. Start here.\n"
     "  value: what it is SET to — value, is_set, default, is_linked\n"
@@ -814,10 +816,15 @@ class GraphEditorInspectNodeTool(Farmhand):
             if v
         ]
         scope = f" [{'; '.join(active)}]" if active else ""
+        stand_in = (
+            " STAND-IN: the node's class cannot be built; only position/label/style edits are saved."
+            if wrapper.is_stand_in
+            else ""
+        )
         result["summary"] = (
-            f"{wrapper.node_id} ({node.class_identity.registry_key}): "
+            f"{wrapper.node_id} ({wrapper.registry_key}): "
             f"{len(node.ports)} port(s), {n_settings} setting(s) in {len(author_bags)} bag(s) "
-            f"({bags_note}) — {health}{err_note}{warn}. "
+            f"({bags_note}) — {health}{err_note}{warn}.{stand_in} "
             f"Returned: {', '.join(sections)} at data='{data}'{scope}."
         )
         return result

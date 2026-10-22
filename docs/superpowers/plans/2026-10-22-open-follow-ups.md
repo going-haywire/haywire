@@ -63,7 +63,7 @@ Error-node stand-in (ADR 0058):
 31. **DONE** ~~A stand-in ignores `serialize(include_data=False)`, so a template save writes its port values.~~ The kept ports drop `field_data` without `include_data`; test in `test_stand_in.py`.
 32. The graph-editor stand-in tests use an unknown-key stand-in only, not a constructor failure.
 33. No tests for break → fix with an edge attached, or relabel → fix (review probes passed).
-34. ✓ Farmhand's node state row lacks `is_stand_in`.
+34. **DONE** ~~Farmhand's node state row lacks `is_stand_in`.~~ State row carries `is_stand_in`; `inspect_node`'s summary names the node's own key (was the ErrorNode's) and flags a stand-in. Open question split off as #45.
 35. A Graph-node or Macro stand-in pasted while broken carries no Subgraph (the clipboard reads `wrapper.node.subgraph_key`); once fixed it would share its Subgraph with the original. Same pattern as an unknown-key Graph-node.
 
 Undoable reload and Reset (ADR 0059):
@@ -82,3 +82,7 @@ Each has its own note in `internals/handoff/`:
 42. `node-busy-highlight-from-is-executing.md` — a busy highlight while a worker runs (`NodeWrapper.is_executing` is never assigned).
 43. `popup-overlay-should-stop-capturing.md` — a `backdrop_click_close` Popup intercepts outside clicks.
 44. `startup-main-thread-block.md` — the browser main thread is blocked ~800 ms after a large load.
+
+## 7. Found while working the backlog
+
+45. **A port or setting edit on a stand-in is lost at the next save,** silently — a stand-in saves its kept data and takes only props from the live card. Applies to the canvas and to Farmhand's `set_property`/`operate` alike. Decide: refuse such writes, write them into the kept data, or leave it to the STAND-IN note (`inspect_node`).
