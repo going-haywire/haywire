@@ -54,7 +54,7 @@ Active slot bar:
 25. **DONE** ~~`STATIC_CSS`'s attribute docstring sits under `ACTIVE_SLOT_CSS` in `shell.py`; reorder.~~ Replaced by a comment block above `STATIC_CSS` (a docstring after its 490-line body would be unreadable).
 26. ✓ Ctrl+S in Component Source overwrites during a "file changed on disk" conflict (the header button does the same).
 27. ✓ The bare-border guard (`tests/ui/test_slot_bars.py`) scans only `editors/*.py` and `ui/app`, single-line `.classes(` calls.
-28. ✓ `hui.slot_header(icon=…, is_dirty=…)` without a title silently drops both.
+28. **DONE** ~~`hui.slot_header(icon=…, is_dirty=…)` without a title silently drops both.~~ Icon and dot now draw without a title; test in `tests/ui/test_slot_bars.py`.
 
 Error-node stand-in (ADR 0058):
 

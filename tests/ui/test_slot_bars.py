@@ -67,6 +67,17 @@ async def test_a_slot_header_without_a_title_draws_no_label(user: User) -> None:
 
 @pytest.mark.unit
 @pytest.mark.anyio
+async def test_a_slot_header_without_a_title_still_draws_its_icon_and_dirty_dot(user: User) -> None:
+    row = await _render(user, lambda: hui.slot_header(icon="folder", is_dirty=True))
+
+    children = list(row)
+    assert [c._props.get("name") for c in children if isinstance(c, ui.icon)] == ["folder"]
+    assert any("bg-amber-400" in c.classes for c in children)
+    assert not [c for c in children if isinstance(c, ui.label)]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
 async def test_an_editor_toolbar_has_the_toolbar_look(user: User) -> None:
     row = await _render(user, hui.editor_toolbar)
 

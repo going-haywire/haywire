@@ -88,15 +88,16 @@ def panel_header(title: str, *, icon: str | None = None, is_dirty: bool = False)
         yield row
 
 
-def _header_title(title: str, *, icon: str | None, is_dirty: bool) -> None:
-    """Draw a header's icon, dirty dot and title label into the current row."""
+def _header_title(title: str | None, *, icon: str | None, is_dirty: bool) -> None:
+    """Draw a header's icon, dirty dot and title label into the current row; each only when given."""
     if icon:
         ui.icon(icon, size="16px").classes("hw-text-dim")
     if is_dirty:
         ui.element("div").classes("w-2 h-2 rounded-full flex-shrink-0 bg-amber-400").style(
             "border: 1px solid var(--hw-border);"
         )
-    ui.label(title).classes("text-sm font-medium hw-text-body truncate flex-1")
+    if title is not None:
+        ui.label(title).classes("text-sm font-medium hw-text-body truncate flex-1")
 
 
 @contextmanager
@@ -106,7 +107,8 @@ def slot_header(title: str | None = None, *, icon: str | None = None, is_dirty: 
     The same height, background and separator as the tab bar of the EDIT and
     INFO slots, and lit with it when its slot is the active slot. The row holds
     ``panel_header``'s icon, dirty dot and title, then the action buttons placed
-    inside the ``with`` block; without ``title`` it is empty for the caller to fill.
+    inside the ``with`` block; without ``title`` it holds only the icon and dirty dot
+    asked for, and the caller fills the rest.
 
     Example::
 
@@ -122,8 +124,7 @@ def slot_header(title: str | None = None, *, icon: str | None = None, is_dirty: 
         .style(f"min-height: 36px; {_BG_SURFACE} {_BORDER}")
     )
     with row:
-        if title is not None:
-            _header_title(title, icon=icon, is_dirty=is_dirty)
+        _header_title(title, icon=icon, is_dirty=is_dirty)
         yield row
 
 
