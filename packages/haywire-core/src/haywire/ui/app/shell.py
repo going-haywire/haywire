@@ -167,10 +167,9 @@ STATIC_CSS = (
     " .hw-slot-bar-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
     " .hw-slot-bar-tabs .q-tab__label { font-size: 12px; }"
     # Overflow arrows (outside-arrows): the only affordance that more tabs
-    # exist than fit, so they carry the bar's surface rather than the page's.
+    # exist than fit. No background: they show the bar's, resting or lit.
     " .hw-slot-bar-tabs .q-tabs__arrow {"
     "   color: var(--hw-text-muted) !important;"
-    "   background: var(--hw-bg-surface);"
     "   width: 22px;"
     " }"
     " .hw-slot-bar-tabs .q-tabs__arrow:hover { color: var(--hw-text-body) !important; }"

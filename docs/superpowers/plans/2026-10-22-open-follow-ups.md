@@ -50,7 +50,7 @@ Ctrl+S and core fixes:
 Active slot bar:
 
 23. ✓ Expanding a collapsed ACTION/CONTEXT slot from its rail does not activate it (no editor visible at pointer-down).
-24. ✓ Tab-bar overflow arrows keep `--hw-bg-surface` on a lit bar (`shell.py`, `.q-tabs__arrow`); use `inherit`.
+24. **DONE** ~~Tab-bar overflow arrows keep `--hw-bg-surface` on a lit bar (`shell.py`, `.q-tabs__arrow`); use `inherit`.~~ Background dropped: with `outside-arrows` they overlap nothing and show the bar's own background, resting or lit. Not checked live yet.
 25. ✓ `STATIC_CSS`'s attribute docstring sits under `ACTIVE_SLOT_CSS` in `shell.py`; reorder.
 26. ✓ Ctrl+S in Component Source overwrites during a "file changed on disk" conflict (the header button does the same).
 27. ✓ The bare-border guard (`tests/ui/test_slot_bars.py`) scans only `editors/*.py` and `ui/app`, single-line `.classes(` calls.
