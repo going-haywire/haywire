@@ -106,6 +106,7 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
         data=data,
         app_data=app_data,
         can_access=AccessTier.ADMIN.satisfies,
+        active_component=None,
     )
     session.context = ctx  # type: ignore[assignment]
     return ctx

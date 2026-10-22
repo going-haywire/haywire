@@ -333,13 +333,15 @@ class VisualLayerHandlers:
     def _follow_membership(self, node_id: str, batch: list[dict]) -> None:
         """Mount or unmount a node whose channel membership changed.
 
-        Mounting also registers the node's eligible edges into ``batch``. Unmounting drops the
-        node's edges with it.
+        Mounting also registers the node's eligible edges into ``batch``, except during a chunked
+        load, which sends every edge once its nodes exist. Unmounting drops the node's edges with it.
         """
         wrapper = self.graph.get_node_wrapper(node_id)
         included = wrapper is not None and self.channel.includes(wrapper.node.props)
         if included and wrapper is not None and node_id not in self.node_panels:
             self.add_node_visual(wrapper.node, self._canvas_position(wrapper.node))
+            if self.mounting:
+                return
             for edge_wrapper in list(self.graph.edge_wrappers.values()):
                 if node_id not in (edge_wrapper.source_node_id, edge_wrapper.sink_node_id):
                     continue

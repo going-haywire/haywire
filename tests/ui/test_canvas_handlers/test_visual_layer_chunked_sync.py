@@ -445,8 +445,9 @@ def _with_edges(handler, graph, ids) -> None:
 class TestEdgesWaitForTheNodes:
     """A chunked load sends its edges once, after the last node is mounted.
 
-    The validation pass a file load schedules runs on a timer thread while the
-    nodes are still mounting, and a canvas mount asks for every edge; both would
+    The validation pass a file load schedules runs while the nodes are still
+    mounting (the scheduler's debounce fires between chunks), and a canvas mount
+    asks for every edge; both would
     send edges whose pins do not exist yet, which the browser then retries on
     every DOM change.
     """

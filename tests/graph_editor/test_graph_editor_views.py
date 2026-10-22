@@ -606,7 +606,7 @@ class TestTheEmptyStageViewport:
 
 
 class TestTheLargeGraphViewport:
-    """A graph loaded in batches is fitted to its saved positions before the first node arrives."""
+    """A graph loaded in chunks is fitted to its saved positions before the first node arrives."""
 
     @staticmethod
     def _built(monkeypatch: Any, node_count: int) -> Any:
@@ -636,6 +636,12 @@ class TestTheLargeGraphViewport:
 
         kwargs = manager.start_chunked_sync.call_args.kwargs
         assert kwargs["on_nodes_mounted"] == manager.zoom_container.center_on_content
+
+    def test_a_small_graph_does_not_measure_its_bounds(self, monkeypatch):
+        """Only a chunked load fits to saved bounds; a small graph's walk over every node is wasted."""
+        manager = self._built(monkeypatch, 3)
+
+        manager.visual_layer.content_bounds.assert_not_called()
 
     def test_a_small_graph_fits_its_drawn_cards(self, monkeypatch):
         manager = self._built(monkeypatch, graph_editor_module.CHUNKED_LOAD_THRESHOLD - 1)

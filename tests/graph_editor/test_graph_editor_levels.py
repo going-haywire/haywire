@@ -115,6 +115,7 @@ def _editor(
         data=MagicMock(),
         can_edit=lambda: True,
         can_access=tier.satisfies,
+        active_component=None,
     )
     editor._levels[DOCUMENT_LEVEL] = editor._new_level(cast(Any, context), DOCUMENT_LEVEL, document)
 
@@ -710,11 +711,22 @@ class TestFirstActivation:
 
         app_data = MagicMock()
         app_data.__getitem__.return_value = app_state
-        edit_stub = SimpleNamespace(active_graph=None, active_graph_path=None)
+        edit_stub = SimpleNamespace(
+            active_graph=None,
+            active_graph_path=None,
+            active_node=None,
+            active_edge=None,
+            selected_nodes=set(),
+            selected_edges=set(),
+        )
         data = MagicMock()
         data.__getitem__.return_value = edit_stub
         context = SimpleNamespace(
-            app_data=app_data, session=MagicMock(), data=data, can_access=AccessTier.ADMIN.satisfies
+            app_data=app_data,
+            session=MagicMock(),
+            data=data,
+            can_access=AccessTier.ADMIN.satisfies,
+            active_component=None,
         )
         return editor, context, document, edit_stub
 

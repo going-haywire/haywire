@@ -3553,6 +3553,10 @@ export default {
             if (!outletPin && !inletPin) {
                 return false;   // both ends culled — nothing on screen to refresh
             }
+            // A culled end keeps its last measured position; one never measured has none to draw from.
+            if ((!outletPin && !edgeInfo.outletPos) || (!inletPin && !edgeInfo.inletPos)) {
+                return false;
+            }
 
             // Positions, colours, and the direction vectors. The vectors are
             // re-read from the live pins rather than trusted from _createEdge:

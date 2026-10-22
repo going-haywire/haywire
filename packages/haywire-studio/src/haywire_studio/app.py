@@ -410,8 +410,9 @@ class HaywireApp:
                 show=open_browser,
                 title="Haywire",
                 reload=False,
-                # How long a dropped page keeps its session. A 512-node graph load
-                # holds the browser's main thread for at most ~2 s.
+                # How long a page keeps its session once NiceGUI has noticed its websocket
+                # dropped; noticing takes up to one ping interval plus its timeout. A
+                # 512-node graph load holds the browser's main thread for at most ~2 s.
                 reconnect_timeout=15.0,
                 **ssl_kwargs,  # type: ignore[arg-type]
             )

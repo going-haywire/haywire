@@ -465,11 +465,11 @@ class GraphEditor(BaseEditor):
         """Empty the session's node and edge selection; publish ``SelectionMoved`` if it held anything."""
         edit_state = context.data[EditState]
         had_selection = bool(
-            getattr(edit_state, "active_node", None) is not None
-            or getattr(edit_state, "active_edge", None) is not None
-            or getattr(edit_state, "selected_nodes", None)
-            or getattr(edit_state, "selected_edges", None)
-            or getattr(context, "active_component", None) is not None
+            edit_state.active_node is not None
+            or edit_state.active_edge is not None
+            or edit_state.selected_nodes
+            or edit_state.selected_edges
+            or context.active_component is not None
         )
         edit_state.active_node = None
         edit_state.active_edge = None
@@ -1242,9 +1242,9 @@ class GraphEditor(BaseEditor):
         elif node_count:
             zoom_container._on_ready = zoom_container.center_on_content
             on_nodes_mounted = zoom_container.center_on_content
-            bounds = manager.visual_layer.content_bounds()
-            if node_count >= CHUNKED_LOAD_THRESHOLD and bounds is not None:
-                # The cards arrive in batches; fit their saved positions now so each batch lands in view.
+            # A chunked load mounts its cards in chunks; fit their saved positions now so each lands in view.
+            bounds = manager.visual_layer.content_bounds() if node_count >= CHUNKED_LOAD_THRESHOLD else None
+            if bounds is not None:
                 zoom_container._on_ready = lambda: zoom_container.fit_to_rect(*bounds)
         elif channel.stage:
             stage_corner = (channel.origin + 400, channel.origin + 300)

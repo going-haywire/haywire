@@ -512,3 +512,36 @@ def test_the_active_edge_shows_a_dot_at_each_end_and_keeps_the_selection_glow(pa
     page.wait_for_selector(f"{_DATA}.connection-active", state="detached", timeout=5000)
     assert page.evaluate(_HANDLES_JS, _DATA) is None
     assert page.locator(".hw-edge-glow-path").count() == 0
+
+
+#: Measure the edge whose id contains the given fragment as if its outlet's node were culled
+#: before that end was ever measured; return what _measureEdge reports.
+_MEASURE_WITH_AN_UNMEASURED_CULLED_END = """(frag) => {
+    let canvas = null;
+    for (let i = 0; i < 5000 && !canvas; i++) {
+        const c = getElement(i);
+        if (c && c.$el && c.$el.dataset && c.$el.dataset.testid === 'edge-appearance-canvas') canvas = c;
+    }
+    for (const [id, info] of canvas.edgePaths) {
+        if (!id.includes(frag)) continue;
+        const drawnPin = canvas._drawnPin, isCulled = canvas._isNodeCulled;
+        canvas._drawnPin = (nodeId, ...rest) =>
+            nodeId === info.outletNodeId ? null : drawnPin.call(canvas, nodeId, ...rest);
+        canvas._isNodeCulled = (nodeId) => nodeId === info.outletNodeId || isCulled.call(canvas, nodeId);
+        info.outletPos = null;
+        try {
+            return canvas._measureEdge(id);
+        } finally {
+            canvas._drawnPin = drawnPin;
+            canvas._isNodeCulled = isCulled;
+        }
+    }
+    throw new Error('no edge ' + frag);
+}"""
+
+
+def test_an_edge_whose_culled_end_was_never_measured_is_not_drawn(page: Page, harness) -> None:
+    """Drawing it would use a missing position: the path comes out NaN. It waits for the node instead."""
+    _open(page, harness)
+
+    assert page.evaluate(_MEASURE_WITH_AN_UNMEASURED_CULLED_END, "[result]->") is False

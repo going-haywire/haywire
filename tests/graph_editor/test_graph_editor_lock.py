@@ -49,7 +49,14 @@ def _locked_editor(
     editor._claim_session_state = GraphEditor._claim_session_state.__get__(editor)  # type: ignore[method-assign]
     context.data = {
         EditState: SimpleNamespace(
-            active_graph=None, active_graph_path=None, active_mode=LevelMode.VIEW, active_route=None
+            active_graph=None,
+            active_graph_path=None,
+            active_mode=LevelMode.VIEW,
+            active_route=None,
+            active_node=None,
+            active_edge=None,
+            selected_nodes=set(),
+            selected_edges=set(),
         )
     }
     # Built through _new_level, so the level carries this session's route.

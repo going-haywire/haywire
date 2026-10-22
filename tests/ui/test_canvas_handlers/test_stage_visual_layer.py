@@ -211,6 +211,20 @@ def test_stage_change_mounts_only_the_eligible_edges(graph):
     assert "ac" not in h.edge_states
 
 
+def test_a_stage_change_during_a_chunked_load_mounts_the_node_but_sends_no_edges(graph):
+    """The chunked load sends every edge once its nodes are mounted; an earlier one has no pins yet."""
+    h = _layer(graph)
+    h.sync_with_graph()
+    h.mounting = True
+    graph.node_wrappers["c"].node.props.on_stage = True
+    graph.edge_wrappers["ac"].on_stage = True
+
+    h.on_validated(_stage_changed("c"))
+
+    assert "c" in h.node_panels
+    assert "ac" not in h.edge_states
+
+
 def test_a_patch_canvas_ignores_the_stage_reason(graph):
     h = _layer(graph, PATCH)
     h.on_validated(_stage_changed("c"))
