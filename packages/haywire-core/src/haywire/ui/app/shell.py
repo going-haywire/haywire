@@ -119,14 +119,10 @@ def _active_slot_css() -> str:
 
 ACTIVE_SLOT_CSS = _active_slot_css()
 
-"""Static, theme-independent CSS for every haywire surface.
-
-Module-level so surfaces that are NOT the shell can reuse it verbatim —
-the panel harness in barn/haybale-share is one. Duplicating it there
-meant the harness rendered Quasar dropdowns with browser defaults
-(white menu, white text) and unstyled fields, i.e. it misreported the
-very thing it exists to show.
-"""
+# Static, theme-independent CSS for every haywire surface. Module-level so
+# surfaces other than the shell reuse it verbatim: the haybale-share panel
+# harness (barn/haybale-share/haybale_share/_flow/__main__.py) and the test
+# harness (tests/ui/harness/routes.py).
 STATIC_CSS = (
     # The OVERLAY LADDER — every app-global layer that portals to <body> and
     # so genuinely competes. NOT theme tokens: stacking order is structural,
