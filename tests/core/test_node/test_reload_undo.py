@@ -96,6 +96,34 @@ def test_each_graph_records_its_own_step(graph_with_library_system, library_syst
     assert _message(in_b) == "Hello, World!"
 
 
+def _fresh_printer(graph: BaseGraph) -> Any:
+    wrapper: Any = graph.create_node_wrapper(_print_cls().class_identity.registry_key, position=(10.0, 10.0))
+    graph._validation.force_immediate_validation()
+    return wrapper
+
+
+def test_the_reload_of_an_untouched_node_records_nothing(graph_with_library_system, library_system):
+    graph, editor = _graph_with_editor(library_system)
+    wrapper = _fresh_printer(graph)
+
+    _reload(graph, wrapper)
+
+    assert not editor.history_manager.can_undo()
+
+
+def test_a_reload_step_holds_only_the_nodes_it_changed(graph_with_library_system, library_system):
+    graph, editor = _graph_with_editor(library_system)
+    fresh, changed = _fresh_printer(graph), _printer(graph, "changed")
+    label = _print_cls().class_identity.label
+
+    _reload(graph, fresh, changed)
+
+    assert editor.history_manager.get_undo_description() == f"Reload {label}"
+    assert editor.undo()
+    graph._validation.force_immediate_validation()
+    assert (_message(fresh), _message(changed)) == ("Hello, World!", "changed")
+
+
 def test_a_failed_reload_records_nothing(graph_with_library_system, library_system, construction_fails):
     graph, editor = _graph_with_editor(library_system)
     wrapper = _printer(graph, "kept")

@@ -18,7 +18,7 @@ level: framework
 - **The rebuild stays pristine; the step before it is kept.** `RebuildNodesAction` holds each node's `serialize()["node_data"]` from before the rebuild. Undo rebuilds every node exactly from it — the load path, as opening a saved file does. Redo rebuilds them through `init()` again. Both go through `BaseGraph.request_node_rebuild`, so the validation pass rebuilds attached edges with them.
 - **Reset is that action**, run through `Editor.reset_nodes` as an ordinary edit (refused below level mode edit).
 - **A successful hot reload records it after the fact.** An `Editor` registers its history on its graph (`BaseGraph.set_history`). The validation pass keeps each `NODE_HOT_RELOADED` node's data before rebuilding it and records the batch as one step (`IHistoryManager.record_executed`), named "Reload Print", "Reload Print (2 nodes)" or "Reload 3 nodes".
-- **Not recorded:** a reload that ended as a stand-in (a failed reload is not undoable); a reload of a stand-in, which already restores its kept data (ADR 0058); a node that absorbs its own reload (`on_class_reloaded`); a graph without an editor; a batch validated off the main thread, since the history has no lock.
+- **Not recorded:** a reload that ended as a stand-in (a failed reload is not undoable); a reload of a stand-in, which already restores its kept data (ADR 0058); a node whose data the reload left as it was (an untouched node); a node that absorbs its own reload (`on_class_reloaded`); a graph without an editor; a batch validated off the main thread, since the history has no lock.
 
 **Considered.**
 

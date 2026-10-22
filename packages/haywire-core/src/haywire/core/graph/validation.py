@@ -319,9 +319,13 @@ class ValidationManager:
                                 self._capture_for_undo(node_wrapper, reloaded)
                             # A requested rebuild may carry the exact data to restore (an undo).
                             node_wrapper.build(node_wrapper.take_rebuild_data())
-                            if node_wrapper.is_stand_in:
+                            if node_id in reloaded and (
                                 # A reload that broke the class is not undoable.
-                                reloaded.pop(node_id, None)
+                                node_wrapper.is_stand_in
+                                # Nor one that left the node as it was.
+                                or self._unchanged_by_reload(node_wrapper, reloaded[node_id][0])
+                            ):
+                                reloaded.pop(node_id)
                             edge_wrappers = self._graph._get_edge_wrappers_for_node(node_id)
                             for edge_wrapper in edge_wrappers:
                                 # Attached edges revalidate too, at this reason's priority.
@@ -437,6 +441,15 @@ class ValidationManager:
             )
         except Exception:
             logger.debug(f"Reload of {node_wrapper.node_id}: no data kept for undo", exc_info=True)
+
+    @staticmethod
+    def _unchanged_by_reload(node_wrapper: Any, before: Any) -> bool:
+        """True when the rebuilt node's data equals *before*; False when it cannot be serialized."""
+        try:
+            return bool(node_wrapper.serialize()["node_data"] == before)
+        except Exception:
+            logger.debug(f"Reload of {node_wrapper.node_id}: data after rebuild not compared", exc_info=True)
+            return False
 
     def _record_reload(self, reloaded: Dict[str, Any]) -> None:
         """Record this batch's successful reloads as one undo step on the graph's history."""
