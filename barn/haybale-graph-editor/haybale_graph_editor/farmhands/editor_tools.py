@@ -1060,6 +1060,8 @@ class GraphEditorSetPropertyTool(Farmhand):
     "change a person makes by using that widget. Use the exact port id from a "
     "graph_editor_inspect_node row. A port with no widget, a hidden widget, or an inlet fed by "
     "an edge raises not_operable, and so does a port marked as needing edit access to change. "
+    "A port inside a closed fold can be set; the fold stays closed, and its card shows the value "
+    "once the fold is open. "
     "The write is verified by reading the value back: a value the port rejects raises "
     "set_rejected. Like a widget edit it is not undo-recorded, and it marks "
     "the graph as unsaved only when the value changed.",
