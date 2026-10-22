@@ -291,6 +291,8 @@ class ValidationManager:
             validated_nodes: Dict[str, ChangeReason] = {}
             validated_edges: Dict[str, ChangeReason] = {}
             validated_graph: Optional[ChangeReason] = None
+            # Each hot-reloaded node's data from before its rebuild, for this batch's undo step.
+            reloaded: Dict[str, Any] = {}
 
             if dirty_graph is not None:
                 if dirty_graph.requires_graph_reassembly():
@@ -314,8 +316,13 @@ class ValidationManager:
                     if reason.requires_rebuild():
                         node_wrapper = self._graph.get_node_wrapper(node_id)
                         if node_wrapper:
+                            if reason is ChangeReason.NODE_HOT_RELOADED:
+                                self._capture_for_undo(node_wrapper, reloaded)
                             # A requested rebuild may carry the exact data to restore (an undo).
                             node_wrapper.build(node_wrapper.take_rebuild_data())
+                            if node_wrapper.is_stand_in:
+                                # A reload that broke the class is not undoable.
+                                reloaded.pop(node_id, None)
                             edge_wrappers = self._graph._get_edge_wrappers_for_node(node_id)
                             for edge_wrapper in edge_wrappers:
                                 # Attached edges revalidate too, at this reason's priority.
@@ -410,10 +417,42 @@ class ValidationManager:
                 f"{validation_time_ms:.2f}ms"
             )
 
+            self._record_reload(reloaded)
+
             if result.has_changes():
                 self._notify_subscribers(result)
 
             return result
+
+    def _capture_for_undo(self, node_wrapper: Any, reloaded: Dict[str, Any]) -> None:
+        """Keep a hot-reloaded node's data and label before its rebuild, if the graph records reloads.
+
+        A stand-in is skipped: its rebuild restores its kept data (ADR 0058), so there is nothing to undo.
+        """
+        if self._graph.history is None or node_wrapper.is_stand_in:
+            return
+        try:
+            reloaded[node_wrapper.node_id] = (
+                node_wrapper.serialize()["node_data"],
+                node_wrapper.node.identity.label,
+            )
+        except Exception:
+            logger.debug(f"Reload of {node_wrapper.node_id}: no data kept for undo", exc_info=True)
+
+    def _record_reload(self, reloaded: Dict[str, Any]) -> None:
+        """Record this batch's successful reloads as one undo step on the graph's history."""
+        history = self._graph.history
+        if not reloaded or history is None:
+            return
+        if threading.current_thread() is not threading.main_thread():
+            # The history has no lock; the user's actions run on the main thread.
+            logger.debug("Hot reload validated off the main thread: no undo step recorded")
+            return
+        from haywire.core.undo.actions.graph_actions import RebuildNodesAction, describe_rebuild
+
+        before = {node_id: data for node_id, (data, _label) in reloaded.items()}
+        description = describe_rebuild("Reload", [label for _data, label in reloaded.values()])
+        history.record_executed(RebuildNodesAction(self._graph, before, description))
 
     def _notify_subscribers(self, result: ValidationResult) -> None:
         """Call every subscriber with ``result``; an exception in one is logged and the rest still run."""

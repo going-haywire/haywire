@@ -26,6 +26,7 @@ from .types import ChangeReason
 from ...ui.utils import generate_edge_uuid
 
 if TYPE_CHECKING:
+    from ..undo.interfaces import IHistoryManager
     from ..types import DataPort
     from ..edge.edge_wrapper import EdgeWrapper
     from ..node.layout import LayoutChannel
@@ -170,6 +171,9 @@ class BaseGraph:
         self.validation_scheduler: "Optional[ValidationScheduler]" = validation_scheduler
         self.validation_delay_ms: float = validation_delay_ms
 
+        #: The undo history a successful hot reload records its step on; ``None`` records nothing.
+        self.history: "Optional[IHistoryManager]" = None
+
         self._validation = ValidationManager(
             graph=self, debounce_ms=validation_delay_ms, scheduler=validation_scheduler
         )
@@ -236,6 +240,13 @@ class BaseGraph:
         """Request full rebuild for a node (re-runs build + validation)."""
         if node_id in self.node_wrappers:
             self._validation.mark_node_dirty(node_id, ChangeReason.NODE_RESET_REQUESTED)
+
+    def set_history(self, history: "Optional[IHistoryManager]") -> None:
+        """Record each successful hot reload of this graph's nodes on *history*; ``None`` stops it.
+
+        An ``Editor`` registers its history on the graph it edits. See ADR 0059.
+        """
+        self.history = history
 
     def request_node_rebuild(self, node_id: str, node_data: Optional[Dict[str, Any]] = None) -> None:
         """Rebuild a node in the next validation pass: exactly from *node_data*, or through ``init()``.

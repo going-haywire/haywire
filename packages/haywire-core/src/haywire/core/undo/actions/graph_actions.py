@@ -2864,14 +2864,17 @@ def _claim(seen: set, key: Tuple[str, str, str, str]) -> bool:
     return True
 
 
-def rebuild_description(verb: str, wrappers: Sequence[NodeWrapper]) -> str:
-    """Name a rebuild of *wrappers*: "Reset Print", "Reset Print (2 nodes)" or "Reset 3 nodes"."""
-    labels = {wrapper.node.identity.label for wrapper in wrappers}
-    if len(wrappers) == 1:
-        return f"{verb} {labels.pop()}"
+def describe_rebuild(verb: str, labels: Sequence[str]) -> str:
+    """Name a rebuild of nodes with these class *labels*.
+
+    "Reset Print" for one node, "Reset Print (2 nodes)" for several of one class, else "Reset 3 nodes".
+    """
+    distinct = set(labels)
     if len(labels) == 1:
-        return f"{verb} {labels.pop()} ({len(wrappers)} nodes)"
-    return f"{verb} {len(wrappers)} nodes"
+        return f"{verb} {labels[0]}"
+    if len(distinct) == 1:
+        return f"{verb} {labels[0]} ({len(labels)} nodes)"
+    return f"{verb} {len(labels)} nodes"
 
 
 class RebuildNodesAction(ActionBase):

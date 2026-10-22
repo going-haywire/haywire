@@ -1,0 +1,159 @@
+"""A successful hot reload is one undo step per graph: Undo puts the reloaded nodes back exactly.
+
+The reload is driven as ``NodeWrapper._on_node_lifecycle_event`` ends for a class that
+does not absorb it: each node is marked ``NODE_HOT_RELOADED`` and the pass rebuilds it.
+"""
+
+from __future__ import annotations
+
+import threading
+from typing import Any, Callable
+
+import pytest
+
+from haywire.core.graph.base import BaseGraph
+from haywire.core.graph.editor import Editor
+from haywire.core.graph.types import ChangeReason
+from haywire.core.undo.config import UndoConfig
+
+pytestmark = pytest.mark.integration
+
+
+class _ParkedScheduler:
+    """Never fires on its own: every mark waits for ``force_immediate_validation``, so they share a batch."""
+
+    def schedule(self, delay_seconds: float, fn: Callable[[], object]) -> Any:
+        class _Handle:
+            def cancel(self) -> None:
+                pass
+
+        return _Handle()
+
+
+def _print_cls() -> Any:
+    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+
+    return TestPrintNode
+
+
+def _graph_with_editor(library_system, *, parked: bool = True) -> tuple[BaseGraph, Editor]:
+    graph = BaseGraph("Reloaded", validation_scheduler=_ParkedScheduler() if parked else None)
+    editor = Editor(
+        graph, library_system.get_node_factory(), undo_config=UndoConfig(enable_auto_grouping=False)
+    )
+    return graph, editor
+
+
+def _printer(graph: BaseGraph, message: str) -> Any:
+    wrapper: Any = graph.create_node_wrapper(_print_cls().class_identity.registry_key, position=(10.0, 10.0))
+    graph._validation.force_immediate_validation()
+    wrapper.node.ports["message"].set_value(message)
+    return wrapper
+
+
+def _reload(graph: BaseGraph, *wrappers: Any) -> None:
+    for wrapper in wrappers:
+        graph._validation.mark_node_dirty(wrapper.node_id, ChangeReason.NODE_HOT_RELOADED)
+    graph._validation.force_immediate_validation()
+
+
+def _message(wrapper: Any) -> str:
+    return wrapper.node.ports["message"].get_value()
+
+
+def test_a_reload_records_one_step_for_the_graph(graph_with_library_system, library_system):
+    graph, editor = _graph_with_editor(library_system)
+    first, second = _printer(graph, "one"), _printer(graph, "two")
+    label = _print_cls().class_identity.label
+
+    _reload(graph, first, second)
+
+    assert (_message(first), _message(second)) == ("Hello, World!", "Hello, World!")
+    assert editor.history_manager.get_undo_description() == f"Reload {label} (2 nodes)"
+
+    assert editor.undo()
+    graph._validation.force_immediate_validation()
+    assert (_message(first), _message(second)) == ("one", "two")
+
+    assert editor.redo()
+    graph._validation.force_immediate_validation()
+    assert (_message(first), _message(second)) == ("Hello, World!", "Hello, World!")
+
+
+def test_each_graph_records_its_own_step(graph_with_library_system, library_system):
+    graph_a, editor_a = _graph_with_editor(library_system)
+    graph_b, editor_b = _graph_with_editor(library_system)
+    in_a, in_b = _printer(graph_a, "a"), _printer(graph_b, "b")
+
+    _reload(graph_a, in_a)
+    _reload(graph_b, in_b)
+
+    assert editor_a.history_manager.can_undo()
+    assert editor_b.history_manager.can_undo()
+    editor_a.undo()
+    graph_a._validation.force_immediate_validation()
+    assert _message(in_a) == "a"
+    assert _message(in_b) == "Hello, World!"
+
+
+def test_a_failed_reload_records_nothing(graph_with_library_system, library_system, construction_fails):
+    graph, editor = _graph_with_editor(library_system)
+    wrapper = _printer(graph, "kept")
+
+    construction_fails(1)
+    _reload(graph, wrapper)
+
+    assert wrapper.is_stand_in
+    assert not editor.history_manager.can_undo()
+
+
+def test_the_reload_that_fixes_a_class_records_nothing(
+    graph_with_library_system, library_system, construction_fails
+):
+    """The fixed node comes back with its kept data (ADR 0058), so there is nothing to undo."""
+    graph, editor = _graph_with_editor(library_system)
+    wrapper = _printer(graph, "kept")
+    construction_fails(1)
+    _reload(graph, wrapper)
+    assert wrapper.is_stand_in
+
+    _reload(graph, wrapper)
+
+    assert isinstance(wrapper.node, _print_cls())
+    assert _message(wrapper) == "kept"
+    assert not editor.history_manager.can_undo()
+
+
+def test_a_graph_without_an_editor_records_nothing(graph_with_library_system):
+    graph = graph_with_library_system
+    wrapper = _printer(graph, "kept")
+
+    _reload(graph, wrapper)
+
+    assert graph.history is None
+    assert _message(wrapper) == "Hello, World!"
+
+
+def test_a_reload_validated_off_the_main_thread_records_nothing(graph_with_library_system, library_system):
+    graph, editor = _graph_with_editor(library_system)
+    wrapper = _printer(graph, "kept")
+    graph._validation.mark_node_dirty(wrapper.node_id, ChangeReason.NODE_HOT_RELOADED)
+
+    worker = threading.Thread(target=graph._validation.force_immediate_validation)
+    worker.start()
+    worker.join()
+
+    assert _message(wrapper) == "Hello, World!"
+    assert not editor.history_manager.can_undo()
+
+
+def test_undo_and_redo_rebuilds_are_not_recorded(graph_with_library_system, library_system):
+    graph, editor = _graph_with_editor(library_system)
+    wrapper = _printer(graph, "kept")
+    _reload(graph, wrapper)
+
+    editor.undo()
+    graph._validation.force_immediate_validation()
+
+    assert not editor.history_manager.can_undo()
+    assert editor.history_manager.can_redo()

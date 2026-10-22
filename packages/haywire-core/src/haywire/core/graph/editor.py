@@ -82,6 +82,7 @@ class Editor:
         self.history_manager: IHistoryManager = history_manager or HistoryManager(
             undo_config or UndoConfig()
         )
+        graph.set_history(self.history_manager)
         self._node_factory = node_factory
 
     # =============================================================================
@@ -450,13 +451,14 @@ class Editor:
             ``False`` without changing anything when *node_ids* is empty or names
             a node the graph does not have.
         """
-        from haywire.core.undo.actions.graph_actions import RebuildNodesAction, rebuild_description
+        from haywire.core.undo.actions.graph_actions import RebuildNodesAction, describe_rebuild
 
         wrappers = [self.graph.get_node_wrapper(node_id) for node_id in node_ids]
         if not wrappers or any(wrapper is None for wrapper in wrappers):
             return False
         try:
-            description = rebuild_description("Reset", [w for w in wrappers if w is not None])
+            labels = [w.node.identity.label for w in wrappers if w is not None]
+            description = describe_rebuild("Reset", labels)
             action = RebuildNodesAction.capture(self.graph, node_ids, description)
         except Exception as e:
             logger.error(f"Error resetting {node_ids}: {e}")
