@@ -1621,17 +1621,19 @@ class SetEdgePropagationAction(ActionBase):
 
     def _execute_impl(self) -> None:
         wrapper = self._edge()
-        self._old = wrapper.propagation
+        old = wrapper.propagation
         wrapper.propagation = self.propagation
+        # The setter refuses every edge whose propagation reads None, so a mode was there.
+        assert old is not None
+        self._old = old
         wrapper.redraw()
-        self._mark_if_changed(self._old, wrapper.propagation)
+        self._mark_if_changed(old, wrapper.propagation)
 
     def _undo_impl(self) -> None:
         wrapper = self._edge()
         before = wrapper.propagation
-        # The setter takes only a Propagation: an edge that started with none stays as it is.
-        if self._old is not None:
-            wrapper.propagation = self._old
+        assert self._old is not None
+        wrapper.propagation = self._old
         wrapper.redraw()
         self._mark_if_changed(before, wrapper.propagation)
 

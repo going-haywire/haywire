@@ -227,6 +227,24 @@ def test_a_propagation_change_is_one_undo_step(held_graph: BaseGraph, editor: Ed
     assert edge.propagation is Propagation.EAGER
 
 
+def test_an_edge_without_propagation_refuses_a_mode_and_records_nothing(
+    held_graph: BaseGraph, editor: Editor
+):
+    from haybale_testing.nodes.testbed.custom_callback_node import TestCustomCallbackNode
+    from haybale_testing.nodes.testbed.emit_callback_node import TestEmitCallbackNode
+
+    event = make_node(held_graph, TestCustomCallbackNode.class_identity.registry_key, position=(0, 0))
+    emit = make_node(held_graph, TestEmitCallbackNode.class_identity.registry_key, position=(300, 0))
+    edge = make_edge(held_graph, event.node_id, "listen_callback", emit.node_id, "edge_callback")
+    held_graph.force_validation()
+    assert edge.propagation is None
+
+    assert editor.set_edge_propagation(edge.edge_id, Propagation.LAZY) is False
+
+    assert edge.propagation is None
+    assert editor.can_undo() is False
+
+
 def test_a_propagation_change_marks_the_graph_and_undo_marks_again(held_graph: BaseGraph, editor: Editor):
     a = make_node(held_graph, _ADD, position=(0, 0))
     b = make_node(held_graph, _ADD, position=(300, 0))
