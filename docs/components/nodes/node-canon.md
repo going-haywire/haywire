@@ -164,6 +164,13 @@ restores them directly. That gives one rule with two parts:
 Neither hook is the place to open a camera or a file. That waits until the
 graph runs — the next section.
 
+**When you edit the class (hot-reload),** every placed node of it is rebuilt
+through `init()`: fresh, with only its position kept, so your port changes show
+at once. The user's setup on those nodes is not lost — **Undo** (Ctrl+Z) in the
+graph brings each node back exactly as it was, and Redo makes it fresh again.
+Reset Node is undoable the same way. A reload that fails to build the class is
+not an undo step; see [ADR 0059](../../adr/0059-reload-and-reset-are-undoable.md).
+
 ## 6. The lifecycle
 
 From creation to removal, the framework calls these hooks in this order:
@@ -178,7 +185,7 @@ post_init()                                                         on_frame_end
 
 | Hook | When | Use it to |
 |---|---|---|
-| `init(self)` | a node is created or reset — never on load | declare ports |
+| `init(self)` | a node is created, reset or hot-reloaded — never on load | declare ports |
 | `post_init(self)` | after `init()`, or after loading | build what saving cannot carry |
 | `on_startup(self, context)` | once, before the first worker run | acquire resources (devices, files) |
 | `on_frame_start(self, context)` | each frame, before any node runs | per-frame setup |
