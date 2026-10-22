@@ -557,15 +557,12 @@ class GraphEditor(BaseEditor):
         """
         replacement = self._new_level(context, level.key, container)
         replacement.view = level.view
-        viewports = {view: canvas.zoom_container.get_viewport() for view, canvas in level.canvases.items()}
+        viewports = self._viewports_of(level)
         self._teardown_level(level)
         self._levels[level.key] = replacement
         self._watch_level_name(replacement)
         if self._level_panels is not None:
-            self._mount_level(context, replacement, viewport=viewports.get(replacement.view))
-            for view, viewport in viewports.items():
-                if view != replacement.view and viewport is not None:
-                    self._mount_view(context, replacement, view, viewport=viewport)
+            self._remount(context, replacement, viewports)
         if level.key == self._active_level:
             self._switch_level(context, level.key, claim=claim)
         else:
@@ -1023,9 +1020,8 @@ class GraphEditor(BaseEditor):
             return
 
         # Canvases are rebuilt into the new DOM; the levels themselves survive,
-        # so a redraw comes back to the Groups that were open.
-        for level in self._levels.values():
-            self._teardown_canvas(level)
+        # so a redraw comes back to the Groups that were open, each view at its viewport.
+        kept_viewports = self._teardown_canvases_keeping_viewports()
         if self._active_level not in self._levels:
             self._active_level = DOCUMENT_LEVEL
 
@@ -1096,8 +1092,7 @@ class GraphEditor(BaseEditor):
                     .style("flex: 1; width: 100%; min-height: 0; overflow: hidden;")
                 )
 
-        for level in self._levels.values():
-            self._mount_level(context, level)
+        self._mount_levels(context, kept_viewports)
 
         self._render_level_bar(context)
         self._update_header(context)
@@ -1105,6 +1100,37 @@ class GraphEditor(BaseEditor):
     # ------------------------------------------------------------------
     # canvas build / teardown
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _viewports_of(level: _Level) -> dict[str, Viewport]:
+        """The viewport of each view ``level`` has mounted, by view; a view with none yet is left out."""
+        viewports: dict[str, Viewport] = {}
+        for view, canvas in level.canvases.items():
+            viewport = canvas.zoom_container.get_viewport()
+            if viewport is not None:
+                viewports[view] = viewport
+        return viewports
+
+    def _teardown_canvases_keeping_viewports(self) -> dict[str, dict[str, Viewport]]:
+        """Release every level's canvases; return each mounted view's viewport, by level key then view."""
+        kept: dict[str, dict[str, Viewport]] = {}
+        for key, level in self._levels.items():
+            kept[key] = self._viewports_of(level)
+            self._teardown_canvas(level)
+        return kept
+
+    def _mount_levels(self, context: "SessionContext", kept: dict[str, dict[str, Viewport]]) -> None:
+        """Mount every level, each view it had mounted at its kept viewport (see ``_remount``)."""
+        for key, level in self._levels.items():
+            self._remount(context, level, kept.get(key, {}))
+
+    def _remount(self, context: "SessionContext", level: _Level, viewports: dict[str, Viewport]) -> None:
+        """Mount ``level``: its view on screen at its viewport (fitted without one), and every other
+        view in ``viewports`` at its own. A view never mounted before stays lazy."""
+        self._mount_level(context, level, viewport=viewports.get(level.view))
+        for view, viewport in viewports.items():
+            if view != level.view:
+                self._mount_view(context, level, view, viewport=viewport)
 
     def _mount_level(
         self, context: "SessionContext", level: _Level, viewport: Optional[Viewport] = None

@@ -457,6 +457,41 @@ class TestTeardownAndRepoint:
         )
         assert calls == [("patch", Viewport(zoom=1.5, pan_x=-10.0, pan_y=-20.0))]
 
+    def test_a_redraw_brings_every_mounted_view_back_at_its_viewport(self):
+        """A full redraw rebuilds the canvases; each view mounted before keeps its zoom and pan."""
+        editor, context = _views_editor(mounted=("patch", "stage"))
+        level = editor._levels[DOCUMENT_LEVEL]
+        patch, stage = level.canvases["patch"], level.canvases["stage"]
+        patch.zoom_container.get_viewport.return_value = Viewport(zoom=1.5, pan_x=-10.0, pan_y=-20.0)
+        stage.zoom_container.get_viewport.return_value = Viewport(zoom=0.5, pan_x=-30.0, pan_y=-40.0)
+        editor._level_panels = MagicMock()
+        mounted_levels: list[tuple[str, Any]] = []
+        editor._mount_level = lambda ctx, lvl, viewport=None: mounted_levels.append((lvl.view, viewport))  # type: ignore[method-assign]
+        views: list[tuple[str, Any]] = []
+        editor._mount_view = lambda ctx, lvl, view, viewport=None: views.append((view, viewport))  # type: ignore[method-assign]
+
+        kept = editor._teardown_canvases_keeping_viewports()
+        editor._mount_levels(context, kept)
+
+        patch.cleanup.assert_called_once_with()
+        stage.cleanup.assert_called_once_with()
+        assert mounted_levels == [("patch", Viewport(zoom=1.5, pan_x=-10.0, pan_y=-20.0))]
+        assert views == [("stage", Viewport(zoom=0.5, pan_x=-30.0, pan_y=-40.0))]
+
+    def test_a_redraw_leaves_a_view_never_mounted_lazy(self):
+        editor, context = _views_editor(mounted=("patch",))
+        level = editor._levels[DOCUMENT_LEVEL]
+        patch = level.canvases["patch"]
+        patch.zoom_container.get_viewport.return_value = Viewport(zoom=2.0, pan_x=0.0, pan_y=0.0)
+        editor._level_panels = MagicMock()
+        editor._mount_level = MagicMock()  # type: ignore[method-assign]
+        views: list[str] = []
+        editor._mount_view = lambda ctx, lvl, view, viewport=None: views.append(view)  # type: ignore[method-assign]
+
+        editor._mount_levels(context, editor._teardown_canvases_keeping_viewports())
+
+        assert views == []
+
     def test_cleanup_releases_every_canvas_of_every_level(self):
         editor, _ = _views_editor(mounted=("patch", "stage"))
         level = editor._levels[DOCUMENT_LEVEL]
