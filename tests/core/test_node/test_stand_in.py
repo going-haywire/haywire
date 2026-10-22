@@ -138,6 +138,23 @@ def test_a_stand_in_keeps_its_own_copy_of_the_loaded_data(graph_with_library_sys
     assert _saved(graph, broken.node_id)["node_data"] == original
 
 
+def test_a_stand_in_saved_without_data_leaves_out_its_port_values(
+    graph_with_library_system, construction_fails
+):
+    broken, _ = _two_nodes(graph_with_library_system)
+    broken.node.ports["message"].set_value("kept")
+    data = graph_with_library_system.to_dict()
+    assert "field_data" in data["nodes"][broken.node_id]["node_data"]["ports"]["message"]
+    construction_fails(1)
+    graph = _load(data)
+
+    structure = graph.to_dict(include_data=False)["nodes"][broken.node_id]["node_data"]["ports"]
+    full = _saved(graph, broken.node_id)["node_data"]["ports"]
+
+    assert not [pid for pid, port in structure.items() if "field_data" in port]
+    assert "field_data" in full["message"]
+
+
 def test_an_unknown_class_keeps_its_own_copy_of_the_loaded_data(graph_with_library_system):
     wrapper = graph_with_library_system.create_node_wrapper(_print_key(), position=(1.0, 2.0))
     data = graph_with_library_system.to_dict()

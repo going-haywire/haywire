@@ -60,7 +60,7 @@ Error-node stand-in (ADR 0058):
 
 29. **DONE** ~~`NodeWrapper.build()`, `_instantiate` and `set_props` docstrings still describe the pre-stand-in behaviour.~~
 30. **DONE** ~~`_stand_in_data` aliases the caller's `node_info` dict; deep-copy once on capture.~~ Was live, not latent: the loader passes its own dict through (tests failed before the fix). Deep-copied on capture; two tests in `test_stand_in.py`.
-31. ✓ A stand-in ignores `serialize(include_data=False)`, so a template save writes its port values.
+31. **DONE** ~~A stand-in ignores `serialize(include_data=False)`, so a template save writes its port values.~~ The kept ports drop `field_data` without `include_data`; test in `test_stand_in.py`.
 32. The graph-editor stand-in tests use an unknown-key stand-in only, not a constructor failure.
 33. No tests for break → fix with an edge attached, or relabel → fix (review probes passed).
 34. ✓ Farmhand's node state row lacks `is_stand_in`.

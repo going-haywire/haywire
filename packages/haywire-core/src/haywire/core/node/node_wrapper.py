@@ -222,13 +222,17 @@ class NodeWrapper:
         identity = type(instance).class_identity
         return bool(getattr(identity, "_is_error", False)) and identity.registry_key != self.registry_key
 
-    def _stand_in_save_data(self) -> Dict[str, Any]:
-        """The kept node data with the props the user can change on the stand-in's card."""
+    def _stand_in_save_data(self, include_data: bool = True) -> Dict[str, Any]:
+        """The kept node data with the props the user can change on the stand-in's card;
+        without ``include_data``, the ports' values are left out as ``Port.to_dict`` does."""
         assert self._stand_in_data is not None and self._node_instance is not None
         data = copy.deepcopy(self._stand_in_data)
         live = self._node_instance._to_dict()
         data["props"] = live["props"]
         data.setdefault("settings", {})["props"] = live["settings"]["props"]
+        if not include_data:
+            for port in data.get("ports", {}).values():
+                port.pop("field_data", None)
         return data
 
     @property
@@ -844,7 +848,7 @@ class NodeWrapper:
             if self.is_stand_in:
                 # A stand-in saves the node it replaces, not itself; with no data there is nothing to save.
                 if self._stand_in_data is not None:
-                    result["node_data"] = self._stand_in_save_data()
+                    result["node_data"] = self._stand_in_save_data(include_data=include_data)
             elif self._node_instance:
                 result["node_data"] = self._node_instance._to_dict(include_data=include_data)
 
