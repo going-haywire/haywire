@@ -13,7 +13,8 @@
 ## Global Constraints
 
 - The rebuild itself is unchanged: pristine, through `init()`, position kept (ADR 0053). No data is carried across it (see feedback: pristine over heuristic restore).
-- **One step per graph per validation batch**, description `"Reload <Node label>"` when one class was reloaded, `"Reload <n> nodes"` otherwise; Reset: `"Reset <Node label>"` / `"Reset <n> nodes"`.
+- **One step per graph per validation batch**, description `"Reload <Node label>"` for one node, `"Reload <Node label> (<n> nodes)"` for several of one class, `"Reload <n> nodes"` for several classes; Reset likewise (`"Reset …"`).
+- **A Group interior is its own graph:** when the host and an opened interior both hold nodes of the reloaded class, the shared history gets one step per graph (two Ctrl+Z for one save). Accepted (user ruling 2026-10-22, option a) and stated in the ADR.
 - **Not recorded:** a node whose rebuild ended as a stand-in (`is_stand_in`, ADR 0058) — the failed reload is not undoable; a node that absorbed its reload (`on_class_reloaded` → True; no rebuild happens); a class that fails to import (no rebuild); a graph with no history registered; a batch validated off the main thread (`threading.current_thread() is not threading.main_thread()`), logged at debug.
 - **Recorded:** the reload that fixes a broken class (a stand-in becomes the real node). Its undo rebuilds from the stand-in's kept data, i.e. the configuration before the break, on the fixed class.
 - Undo/Redo requests use `ChangeReason.NODE_RESET_REQUESTED`, so they are never themselves recorded and they mark the file unsaved like any edit.
@@ -46,7 +47,7 @@
 
 - [ ] **Step 1: Write the failing tests** (`graph_with_library_system`; `SettingsNode` / `TestPrintNode` keys from `class_identity.registry_key`; promotion via `Editor.promote_setting`, as in the reviewed probes):
   - `test_record_executed_adds_an_undoable_step_without_running_it` — a counting fake action: `record_executed` → execute count 0, `can_undo()`; `undo()` → undo count 1; `redo()` → execute count 1.
-  - `test_a_reset_is_one_undoable_step` — value 7 + promotion on `example.example_int`, `message="kept"` on a print node; `editor.reset_nodes([a, b])` → both pristine; `editor.undo()` → value, promotion, promoted port and message back; `editor.redo()` → pristine; `history_manager.get_undo_description() == "Reset 2 nodes"` before the undo.
+  - `test_a_reset_is_one_undoable_step` — value 7 + promotion on `example.example_int`, `message="kept"` on a print node; `editor.reset_nodes([a, b])` → both pristine; `editor.undo()` → value, promotion, promoted port and message back; `editor.redo()` → pristine; `history_manager.get_undo_description() == "Reset 2 nodes"` before the undo (two classes).
   - `test_undoing_a_reset_brings_an_edge_on_a_promoted_port_back_to_life` — edge into the promoted inlet; reset → edge not valid; undo → edge valid.
   - `test_rebuild_with_data_restores_exactly` — `request_node_rebuild(id, data)` + `force_immediate_validation` → `serialize()["node_data"] == data` (minus nothing).
   - `test_undo_of_a_rebuild_whose_node_is_gone_fails_cleanly` — record, remove the wrapper bypassing history, `undo()` returns False, `can_redo()` False.
@@ -68,7 +69,7 @@
 - Consumes: `RebuildNodesAction`, `record_executed` (Task 1).
 
 - [ ] **Step 1: Write the failing tests.** Reload helper `_reload(graph, *wrappers)`: mark each `NODE_HOT_RELOADED`, then `force_immediate_validation()`. The one-batch tests build their graph with a scheduler that never fires on its own (a test-local `schedule()` returning a no-op handle), so several marks land in one batch; the rest may use `graph_with_library_system`.
-  - `test_a_reload_records_one_step_for_the_graph` — two print nodes with messages, one editor; reload both in one batch → one step `"Reload <TestPrintNode label>"`; nodes pristine; `undo()` → messages back; `redo()` → pristine.
+  - `test_a_reload_records_one_step_for_the_graph` — two print nodes with different messages, one editor; reload both in one batch → one step `"Reload <TestPrintNode label> (2 nodes)"`; nodes pristine; `undo()` → each message back on its own node; `redo()` → pristine.
   - `test_each_graph_records_its_own_step` — two graphs, each with an editor and a node of the class; reloading both → each history has one step.
   - `test_a_failed_reload_records_nothing` — `construction_fails(1)` (conftest) → stand-in; `can_undo()` False.
   - `test_the_reload_that_fixes_a_class_undoes_to_the_setup_before_the_break` — message "kept"; failed reload (stand-in); fixed reload → pristine real node, one step; `undo()` → real node with `message == "kept"`.
@@ -83,7 +84,7 @@
 ### Task 3: Docs
 
 **Files:**
-- Create: `docs/adr/0059-reload-and-reset-are-undoable.md` — context (a reload and a Reset discard what the user set; the rejected rehydrate approach, 2026-10-21, as "Considered"), decision (Global Constraints), consequences (Undo restores the pre-reload shape on new code, as an old file does; a Group's interior reload is recorded only once its interior editor exists; off-main-thread validation records nothing).
+- Create: `docs/adr/0059-reload-and-reset-are-undoable.md` — context (a reload and a Reset discard what the user set; the rejected rehydrate approach, 2026-10-21, as "Considered"), decision (Global Constraints), consequences (Undo restores the pre-reload shape on new code, as an old file does; a Group's interior reload is recorded only once its interior editor exists, and a reload hitting host and interior records one step each on the shared history; off-main-thread validation records nothing).
 - Modify: `docs/components/nodes/node-canon.md` §5 — one paragraph: editing the class rebuilds placed nodes from `init()` (fresh, only the position kept); Undo (Ctrl+Z) in the graph brings each back exactly as it was, Redo makes it fresh again; Reset Node is undoable the same way. Hook table: `init(self)` row "created, reset or hot-reloaded — never on load".
 - Modify: `docs/reference/glossary.md` — Undo section: **Rebuild step** row (the undo step a Reset or a successful hot reload records; Undo rebuilds the nodes from their data from before, Redo through `init()`).
 - [ ] **Step 1:** write the docs.
@@ -94,5 +95,6 @@
 
 - [ ] Promote a setting, set values, grow a pin; save a harmless edit to the class → node fresh; Ctrl+Z in that graph → everything back; Ctrl+Shift+Z → fresh again.
 - [ ] Two graphs with the class open → each undoes its own reload.
+- [ ] Two nodes of the class in one graph → one step "Reload … (2 nodes)"; one Ctrl+Z restores both.
 - [ ] Break the constructor → stand-in, nothing to undo for it; fix → Ctrl+Z gives the setup from before the break.
 - [ ] Reset Node on a configured node → Ctrl+Z restores it.
