@@ -120,6 +120,6 @@ def test_reset_clears_compatibility_warning(library_system, monkeypatch):
     wrapper = _wrapper(g2, a.node_id)
     assert wrapper.state.has_warning() is True
 
-    # Reset = full rebuild from current code (what request_node_reset triggers).
+    # Reset = full rebuild from current code (what request_node_rebuild without data triggers).
     wrapper.build()
     assert wrapper.state.has_warning() is False

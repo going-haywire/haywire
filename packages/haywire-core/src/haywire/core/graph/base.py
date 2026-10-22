@@ -236,11 +236,6 @@ class BaseGraph:
         if node_id in self.node_wrappers:
             self._validation.mark_node_dirty(node_id, ChangeReason.NODE_VALIDATION_REQUESTED)
 
-    def request_node_reset(self, node_id: str) -> None:
-        """Request full rebuild for a node (re-runs build + validation)."""
-        if node_id in self.node_wrappers:
-            self._validation.mark_node_dirty(node_id, ChangeReason.NODE_RESET_REQUESTED)
-
     def set_history(self, history: "Optional[IHistoryManager]") -> None:
         """Record each successful hot reload of this graph's nodes on *history*; ``None`` stops it.
 

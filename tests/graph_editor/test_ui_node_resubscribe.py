@@ -55,7 +55,7 @@ def card(library_system, held_graph: BaseGraph) -> Iterator[tuple[UINode, Any, B
 def _rebuild(graph: BaseGraph, wrapper: Any, how: str) -> Any:
     old = wrapper.node
     if how == "reset":
-        graph.request_node_reset(wrapper.node_id)
+        graph.request_node_rebuild(wrapper.node_id)
     else:
         graph._validation.mark_node_dirty(wrapper.node_id, ChangeReason.NODE_HOT_RELOADED)
     graph._validation.force_immediate_validation()
@@ -115,7 +115,7 @@ def test_detail_attr_follows_the_node_across_a_rebuild(card):
 @pytest.mark.integration
 def test_reset_reaches_the_card_through_a_redraw_reason(card):
     _, wrapper, graph = card
-    graph.request_node_reset(wrapper.node_id)
+    graph.request_node_rebuild(wrapper.node_id)
     result = graph._validation.force_immediate_validation()
     assert result is not None
     assert result.nodes[wrapper.node_id] is ChangeReason.NODE_RESET_REQUESTED

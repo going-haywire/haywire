@@ -88,7 +88,7 @@ def test_stacking_follows_the_node_across_a_rebuild(card, how: str):
     ui_node, wrapper, graph = card
     old = wrapper.node
     if how == "reset":
-        graph.request_node_reset(wrapper.node_id)
+        graph.request_node_rebuild(wrapper.node_id)
     else:
         graph._validation.mark_node_dirty(wrapper.node_id, ChangeReason.NODE_HOT_RELOADED)
     graph._validation.force_immediate_validation()

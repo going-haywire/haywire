@@ -62,7 +62,7 @@ def test_a_rebuild_keeps_the_position_only(graph_with_library_system):
     default_width = wrapper.node.props.width
     wrapper.node.props.width = default_width + 111
 
-    graph.request_node_reset(wrapper.node_id)
+    graph.request_node_rebuild(wrapper.node_id)
     graph._validation.force_immediate_validation()
 
     assert wrapper.node.props.get_position() == (640.0, 320.0)
@@ -126,7 +126,7 @@ def test_create_node_wrapper_without_a_position_leaves_the_props_default(graph_w
 
 
 def _reset(graph, wrapper) -> None:
-    graph.request_node_reset(wrapper.node_id)
+    graph.request_node_rebuild(wrapper.node_id)
     graph._validation.force_immediate_validation()
 
 

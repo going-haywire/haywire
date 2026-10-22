@@ -35,7 +35,7 @@ def _load(data: dict) -> BaseGraph:
 
 
 def _reset(graph: BaseGraph, node_id: str) -> None:
-    graph.request_node_reset(node_id)
+    graph.request_node_rebuild(node_id)
     graph._validation.force_immediate_validation()
 
 

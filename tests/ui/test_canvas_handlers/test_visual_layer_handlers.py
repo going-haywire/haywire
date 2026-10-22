@@ -349,7 +349,7 @@ def test_a_reset_event_goes_through_the_editor(graph, canvas_vue):
     handler.process_update_element(ElementResetEvent(nodes=["n1", "n2"], edges=["e1"]))
 
     editor.reset_nodes.assert_called_once_with(["n1", "n2"])
-    graph.request_node_reset.assert_not_called()
+    graph.request_node_rebuild.assert_not_called()
     graph.request_edge_reset.assert_called_once_with("e1")
 
 
@@ -359,7 +359,7 @@ def test_a_reset_below_edit_does_nothing_to_nodes(graph, canvas_vue):
     handler.process_update_element(ElementResetEvent(nodes=["n1"], edges=[]))
 
     editor.reset_nodes.assert_not_called()
-    graph.request_node_reset.assert_not_called()
+    graph.request_node_rebuild.assert_not_called()
 
 
 def test_process_update_element_revalidate_calls_graph(handler, graph):
