@@ -86,3 +86,4 @@ Each has its own note in `internals/handoff/`:
 ## 7. Found while working the backlog
 
 45. **A port or setting edit on a stand-in is lost at the next save,** silently — a stand-in saves its kept data and takes only props from the live card. Applies to the canvas and to Farmhand's `set_property`/`operate` alike. Decide: refuse such writes, write them into the kept data, or leave it to the STAND-IN note (`inspect_node`).
+46. **A hot reload in a graph without a history loses the user's setup silently** (a never-opened Group interior, mainly). Handoff: `internals/handoff/reload-without-history-loses-setup.md`.
