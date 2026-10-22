@@ -56,6 +56,9 @@ class _FakeGraph:
     def get_node_wrapper(self, node_id: str):
         return self.node_wrappers.get(node_id)
 
+    def set_history(self, history: Any) -> None:
+        self.history = history
+
     def get_subgraph(self, key: str):
         return self.subgraphs.get(key)
 
