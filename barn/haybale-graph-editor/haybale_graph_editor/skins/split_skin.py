@@ -13,7 +13,7 @@ from haywire.core.node.base import BaseNode
 from haywire.core.types.enums import LayoutDirection
 from haywire.ui.skin.decorator import skin
 
-from .node_skin import NodeSkin
+from haybale_graph_editor.skins.node_skin import NodeSkin
 
 
 @skin(

@@ -38,14 +38,14 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from ..component_rows import component_row, identity_of, key_and_label
-from .....surfaces import (
+from haybale_graph_editor.panels.graph.menu.component_rows import component_row, identity_of, key_and_label
+from haybale_graph_editor.surfaces import (
     SelectionActions,
     SelectionDetailMenu,
     SelectionEditMenu,
     SelectionMenu,
 )
-from .....state.edit_state import EditState
+from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

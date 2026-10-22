@@ -8,7 +8,7 @@ from typing_extensions import override
 from haywire.core.adapter.base import BaseAdapter
 from haywire.core.adapter.base import adapter
 
-from ..types.test_types import TEST_BOOL, TEST_FLOAT, TEST_INT, TEST_STRING
+from haybale_testing.types.test_types import TEST_BOOL, TEST_FLOAT, TEST_INT, TEST_STRING
 
 
 @adapter(description="Convert bool to integer", converts_from=TEST_BOOL, converts_to=TEST_INT)

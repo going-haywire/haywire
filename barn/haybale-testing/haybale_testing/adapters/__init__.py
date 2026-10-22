@@ -1,6 +1,6 @@
-from .test_adapters import BoolToIntAdapter
-from .test_adapters import IntToFloatAdapter
-from .test_adapters import FloatToStringAdapter
+from haybale_testing.adapters.test_adapters import BoolToIntAdapter
+from haybale_testing.adapters.test_adapters import IntToFloatAdapter
+from haybale_testing.adapters.test_adapters import FloatToStringAdapter
 
 
 __all__ = [

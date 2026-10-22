@@ -24,14 +24,14 @@ from haywire.ui.components.graph.event_definitions import (
     UserRemoveEvent,
 )
 from haywire.ui.elements import clipboard_script
-from ..event_handlers import handles_event
-from ....state.edit_state import EditState
+from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
+from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute
     from haywire.core.graph.base import BaseGraph
     from haywire.core.session.session import Session
-    from .visual_layer import VisualLayerHandlers
+    from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 
 logger = logging.getLogger(__name__)
 

@@ -55,7 +55,7 @@ def install_with_safety_check(
 
     from haybale_marketplace.state.marketplace_state import MarketplaceState
 
-    from ._install_flow import ManagerInstallSource, show_install_flow
+    from haybale_marketplace.editors._install_flow import ManagerInstallSource, show_install_flow
 
     def _on_block() -> None:
         if context.app_data is None or MarketplaceState not in context.app_data:
@@ -123,7 +123,7 @@ def install_package(
     *button* is accepted for call-site compatibility and no longer used: the
     flow owns its own busy state.
     """
-    from ._install_flow import ManagerInstallSource, show_install_flow
+    from haybale_marketplace.editors._install_flow import ManagerInstallSource, show_install_flow
 
     def _after() -> None:
         flow = holder.get("flow")

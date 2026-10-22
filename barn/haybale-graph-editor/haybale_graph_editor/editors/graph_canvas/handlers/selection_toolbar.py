@@ -39,9 +39,12 @@ from haywire.ui.components.graph.event_definitions import (
     SelectionBoundsEvent,
     SelectionBoundsHideEvent,
 )
-from ..event_handlers import handles_event
-from .selection import copy_selection_event, remove_selection_event
-from ....state.edit_state import EditState
+from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
+from haybale_graph_editor.editors.graph_canvas.handlers.selection import (
+    copy_selection_event,
+    remove_selection_event,
+)
+from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.stacking import Restack
@@ -50,7 +53,7 @@ if TYPE_CHECKING:
     from haywire.ui.panel import BasePanel
     from haywire.ui.panel.registry import PanelRegistry
     from haywire.ui.components.popup import Popup
-    from .context_menu import SessionContextMenuProvider
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import SessionContextMenuProvider
 
 
 class SelectionToolbarProvider:

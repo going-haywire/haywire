@@ -116,9 +116,12 @@ exclude = ["playground/", ".scratch/"]
 # default rules see: blind `pytest.raises(Exception)`, composite asserts that
 # hide which half failed, mutable argument defaults, unchained re-raises.
 # B applies repo-wide; PT is scoped to tests/ below.
-# TID251 only (banned-api, see below) — NOT all of TID: TID252 bans relative
-# parent imports, which this codebase uses deliberately and in volume.
-extend-select = ["E501", "PT", "B", "TID251"]
+# TID251 is banned-api (see below). TID252 bans relative imports, enforced in
+# barn/ only (see .insights/feedback_no_relative_imports_in_barn.md).
+extend-select = ["E501", "PT", "B", "TID251", "TID252"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 # Dependency direction: haybale-* -> haywire-studio -> haywire-core, one way.
@@ -148,6 +151,8 @@ extend-select = ["E501", "PT", "B", "TID251"]
 # every file fails to match at least one half — which is how this rule first
 # shipped enforcing nothing.
 "!packages/**" = ["TID251"]
+# Relative imports are banned in haybale libraries only; packages/ keeps them.
+"!barn/**" = ["TID252"]
 # PT is a pytest-only style; production code has no test functions to lint.
 "!tests/**" = ["PT"]
 

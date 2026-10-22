@@ -31,8 +31,8 @@ from haywire.ui import elements as hui
 from haywire.ui.panel.render_utils import render_settings
 from haywire.ui.utils import anchor_cleanup_to_element
 
-from ..state.edit_state import EditState
-from ..state.graph_app_state import route_for
+from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.state.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute

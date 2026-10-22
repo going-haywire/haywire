@@ -1,8 +1,8 @@
-from .example_widget import ValidatedNumberWidget
-from .example_widget import TemperatureWidget
-from .example_widget import UnitConversionConverter
-from .example_widget import ConversionDisplayConverter
-from .knob_widget import KnobWidget
+from haybale_example.widgets.example_widget import ValidatedNumberWidget
+from haybale_example.widgets.example_widget import TemperatureWidget
+from haybale_example.widgets.example_widget import UnitConversionConverter
+from haybale_example.widgets.example_widget import ConversionDisplayConverter
+from haybale_example.widgets.knob_widget import KnobWidget
 
 
 __all__ = [

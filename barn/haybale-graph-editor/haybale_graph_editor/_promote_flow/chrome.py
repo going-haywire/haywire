@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Callable
 
 from haywire.ui.components.stepper import Panel, show_step_flow
 
-from ._state import PromoteFlow, PromoteSource
-from .panels import _panel_name, _panel_planned, _panel_promoted
+from haybale_graph_editor._promote_flow._state import PromoteFlow, PromoteSource
+from haybale_graph_editor._promote_flow.panels import _panel_name, _panel_planned, _panel_promoted
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor

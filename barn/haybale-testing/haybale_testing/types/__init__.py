@@ -1,13 +1,13 @@
-from .test_types import TEST_INT
-from .test_types import TEST_INTField
-from .test_types import TEST_FLOAT
-from .test_types import TEST_FLOATField
-from .test_types import TEST_STRING
-from .test_types import TEST_BOOL
-from .test_types import TEST_TEMPERATURE
-from .test_types import TEST_RECORD_CALLBACK
-from .test_types import TEST_VISUAL
-from .test_types import TEST_VISUAL_COUNT
+from haybale_testing.types.test_types import TEST_INT
+from haybale_testing.types.test_types import TEST_INTField
+from haybale_testing.types.test_types import TEST_FLOAT
+from haybale_testing.types.test_types import TEST_FLOATField
+from haybale_testing.types.test_types import TEST_STRING
+from haybale_testing.types.test_types import TEST_BOOL
+from haybale_testing.types.test_types import TEST_TEMPERATURE
+from haybale_testing.types.test_types import TEST_RECORD_CALLBACK
+from haybale_testing.types.test_types import TEST_VISUAL
+from haybale_testing.types.test_types import TEST_VISUAL_COUNT
 
 
 __all__ = [

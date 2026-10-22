@@ -12,7 +12,7 @@ from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.skin.decorator import skin
 
-from .node_skin import NodeSkin
+from haybale_graph_editor.skins.node_skin import NodeSkin
 
 
 @skin(

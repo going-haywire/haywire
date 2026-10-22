@@ -39,14 +39,24 @@ from haywire.ui.components.graph.event_definitions import (
 from haywire.core.session.session import Session
 from haywire.core.signals import SelectionMoved
 
-from ...state.edit_state import EditState
-from .event_handlers import build_event_handler_map, handler_access
-from .graph_load_modal import graph_load_modal
-from .handlers.interaction import InteractionHandlers
-from .handlers.selection import SelectionHandlers, copy_selection_event, remove_selection_event
-from .handlers.visual_layer import VisualLayerHandlers
-from .handlers.context_menu import ContextMenuHandlers, SessionContextMenuProvider
-from .handlers.selection_toolbar import SelectionToolbarProvider, SelectionToolbarHandlers
+from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map, handler_access
+from haybale_graph_editor.editors.graph_canvas.graph_load_modal import graph_load_modal
+from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
+from haybale_graph_editor.editors.graph_canvas.handlers.selection import (
+    SelectionHandlers,
+    copy_selection_event,
+    remove_selection_event,
+)
+from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
+from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
+    ContextMenuHandlers,
+    SessionContextMenuProvider,
+)
+from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import (
+    SelectionToolbarProvider,
+    SelectionToolbarHandlers,
+)
 
 logger = logging.getLogger(__name__)
 

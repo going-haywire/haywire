@@ -8,7 +8,7 @@ from nicegui import ui
 
 from haywire.ui.components.stepper import advance, busy_advance
 
-from ._state import KEEP_EXISTING, USE_NEW, AddSourceFlow
+from haybale_marketplace.editors._add_source_flow._state import KEEP_EXISTING, USE_NEW, AddSourceFlow
 
 
 def _plural(count: int, singular: str, plural: str | None = None) -> str:

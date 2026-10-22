@@ -19,7 +19,7 @@ from haywire.core.farmhand import (
 from haywire.core.library.haybale_toml import read_haybale
 from haywire.core.library.registry import LibraryRegistry
 
-from ._helpers import kind_registry_map, page, resolve_component_class
+from haybale_studio.farmhands._helpers import kind_registry_map, page, resolve_component_class
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True)
 

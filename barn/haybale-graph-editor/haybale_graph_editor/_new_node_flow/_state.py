@@ -40,7 +40,7 @@ from haywire.core.node.info import NodeInfo, matches_query
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
 
-from .copy import STEP_TITLES, STEPS
+from haybale_graph_editor._new_node_flow.copy import STEP_TITLES, STEPS
 
 if TYPE_CHECKING:
     from haywire.core.errors.ledger import ErrorLedger

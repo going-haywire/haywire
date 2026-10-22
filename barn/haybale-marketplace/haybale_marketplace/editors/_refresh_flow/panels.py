@@ -10,7 +10,7 @@ from haywire.core.marketstall import RefreshOutcome
 from haywire.ui import elements as hui
 from haywire.ui.components.stepper import advance, busy_advance
 
-from ._state import RefreshFlow
+from haybale_marketplace.editors._refresh_flow._state import RefreshFlow
 
 
 def _plural(count: int, singular: str, plural: str | None = None) -> str:

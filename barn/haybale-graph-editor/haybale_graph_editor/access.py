@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Callable
 
 from haywire.core.access import AccessTier, LevelMode
 
-from .state.graph_app_state import route_for
+from haybale_graph_editor.state.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

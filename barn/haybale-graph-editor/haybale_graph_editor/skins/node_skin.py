@@ -16,7 +16,7 @@ from haywire.ui.skin.pin_render import (
 )
 from haywire.ui import elements as hui
 
-from ..settings.node_skin_settings import NodeSkinSettings
+from haybale_graph_editor.settings.node_skin_settings import NodeSkinSettings
 
 if TYPE_CHECKING:
     from haywire.ui.widget.factory_interface import IWidgetFactory

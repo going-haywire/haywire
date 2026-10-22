@@ -13,7 +13,7 @@ from haywire.core.types import DataPort
 from haywire.core.types.enums import LayoutDirection, PortType
 from haywire.ui.skin.decorator import skin
 
-from .node_skin import NodeSkin
+from haybale_graph_editor.skins.node_skin import NodeSkin
 
 
 def _lane_of(port: DataPort) -> PortType:

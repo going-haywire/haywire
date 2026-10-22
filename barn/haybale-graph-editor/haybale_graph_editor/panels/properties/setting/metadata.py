@@ -23,9 +23,9 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from ....surfaces import GraphInspector
-from ....state.edit_state import EditState
-from ....state.graph_app_state import route_for
+from haybale_graph_editor.surfaces import GraphInspector
+from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.state.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

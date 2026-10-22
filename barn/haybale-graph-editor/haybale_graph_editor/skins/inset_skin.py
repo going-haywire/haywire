@@ -12,8 +12,8 @@ from haywire.core.types import DataPort
 from haywire.core.types.enums import LayoutDirection, PortType
 from haywire.ui.skin.decorator import skin
 
-from ..editors.graph_canvas.inset_view import InsetView
-from .node_skin import NodeSkin
+from haybale_graph_editor.editors.graph_canvas.inset_view import InsetView
+from haybale_graph_editor.skins.node_skin import NodeSkin
 
 #: The body's smallest size, in px; a manual card size adds room, never less.
 INSET_FLOOR_PX: tuple[int, int] = (240, 160)

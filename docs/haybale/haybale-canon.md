@@ -278,7 +278,7 @@ Override `compatibility_warnings()` to return an **append-only** history:
 
 ```python
 from haywire.core.library.compatibility import CompatibilityWarning
-from .nodes import FrameDisplayNode
+from haybale_image.nodes import FrameDisplayNode
 
 
 class Library(BaseLibrary):

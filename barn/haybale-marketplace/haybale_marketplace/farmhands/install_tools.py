@@ -12,7 +12,7 @@ from haywire.core.farmhand import (
 )
 from haywire.core.signals import LibraryCatalogChanged
 
-from .catalog_tools import _library_manager, _progress_cb
+from haybale_marketplace.farmhands.catalog_tools import _library_manager, _progress_cb
 
 
 @farmhand(

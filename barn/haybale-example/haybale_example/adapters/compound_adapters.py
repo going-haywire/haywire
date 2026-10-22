@@ -4,7 +4,7 @@ from typing_extensions import override
 from haywire.core.adapter.base import adapter, BaseAdapter
 
 from haybale_core.types import ArrayType
-from ..types.maps_string_type import MapsStringType
+from haybale_example.types.maps_string_type import MapsStringType
 
 
 @adapter(

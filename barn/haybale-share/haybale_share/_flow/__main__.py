@@ -29,8 +29,8 @@ from haywire.core.di.config import (
 )
 from haywire.core.di.context import set_workspace_root
 
-from ._harness import Panel
-from ._state import ShareFlow
+from haybale_share._flow._harness import Panel
+from haybale_share._flow._state import ShareFlow
 
 _HERE = Path(__file__).resolve()
 # _flow/ → haybale_share/ → haybale-share/ → barn/ → repo root
@@ -47,7 +47,7 @@ def _render_scenario(container: ui.element, label: str, build, panel) -> None:
     """
     from haywire.ui.components.stepper import render_error, render_progress, render_warnings
 
-    from .panels import suppress_duplicate_error
+    from haybale_share._flow.panels import suppress_duplicate_error
 
     container.clear()
     flow = build()
@@ -116,7 +116,7 @@ def _inject_theme() -> None:
 
 
 def _page() -> None:
-    from ._harness import SCENARIOS
+    from haybale_share._flow._harness import SCENARIOS
 
     _inject_theme()
     ui.query("body").classes("hw-app")

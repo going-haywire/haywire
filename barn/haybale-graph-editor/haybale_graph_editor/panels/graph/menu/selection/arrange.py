@@ -15,8 +15,8 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.layout import PanelLayout
 
-from .....state.edit_state import EditState
-from .....surfaces import SelectionActions, SelectionArrangeMenu, SelectionMenu
+from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.surfaces import SelectionActions, SelectionArrangeMenu, SelectionMenu
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

@@ -7,8 +7,13 @@ from typing import Callable, Optional
 
 from haywire.ui.components.stepper import Panel, show_step_flow
 
-from ._state import UninstallFlow, UninstallSource
-from .panels import _panel_confirm, _panel_impact, _panel_removed, _panel_selected
+from haybale_marketplace.editors._uninstall_flow._state import UninstallFlow, UninstallSource
+from haybale_marketplace.editors._uninstall_flow.panels import (
+    _panel_confirm,
+    _panel_impact,
+    _panel_removed,
+    _panel_selected,
+)
 
 
 class ManagerUninstallSource:

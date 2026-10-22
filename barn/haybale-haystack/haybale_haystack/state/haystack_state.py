@@ -15,8 +15,8 @@ from haywire.core.node.factory import NodeFactory
 from haywire.core.state import LibraryStateContainer
 from haywire.core.execution.compile_result import CompileResult
 
-from ..graph_entry import EntryKind, GraphEntry
-from ..settings.haystack_settings import HaystackSettings
+from haybale_haystack.graph_entry import EntryKind, GraphEntry
+from haybale_haystack.settings.haystack_settings import HaystackSettings
 
 from haybale_graph_editor.state.graph_app_state import GraphAppState
 

@@ -65,10 +65,14 @@ from haywire.ui.components.graph.event_definitions import (
     SyncEdgeConnectCancelEvent,
 )
 
-from ..event_handlers import handles_event
-from ..ui_node import UINode
-from ..ui_edge import EdgeVisualState, edge_sync_payload, edge_visual_state
-from ....state.edit_state import EditState
+from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
+from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
+from haybale_graph_editor.editors.graph_canvas.ui_edge import (
+    EdgeVisualState,
+    edge_sync_payload,
+    edge_visual_state,
+)
+from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute
@@ -1190,7 +1194,7 @@ class VisualLayerHandlers:
         from haywire.core.di.config import get_library_system
         from haywire.core.macro.registry import MacroRegistry
 
-        from ...._promote_flow import EditorPromoteSource, show_promote_flow
+        from haybale_graph_editor._promote_flow import EditorPromoteSource, show_promote_flow
 
         wrapper = self.graph.get_node_wrapper(event.node_id)
         if wrapper is None:
@@ -1240,7 +1244,7 @@ class VisualLayerHandlers:
         from haywire.core.authoring import is_clone_source
         from haywire.core.di.config import get_library_system
 
-        from ...._new_node_flow import EditorNewNodeHost, new_node_flow, show_new_node_flow
+        from haybale_graph_editor._new_node_flow import EditorNewNodeHost, new_node_flow, show_new_node_flow
 
         if self.context is None:
             return

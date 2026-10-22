@@ -8,8 +8,8 @@ from nicegui import ui
 
 from haywire.ui.components.stepper import Panel, show_step_flow
 
-from ._state import RefreshFlow, RefreshSource
-from .panels import (
+from haybale_marketplace.editors._refresh_flow._state import RefreshFlow, RefreshSource
+from haybale_marketplace.editors._refresh_flow.panels import (
     _panel_applied,
     _panel_conflicts,
     _panel_fetched,

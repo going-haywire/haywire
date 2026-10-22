@@ -14,7 +14,7 @@ from nicegui import ui
 from haywire.core.graph.types import ChangeReason
 from haywire.core.node.layout import STAGE
 
-from .ui_node import UINode
+from haybale_graph_editor.editors.graph_canvas.ui_node import UINode
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute

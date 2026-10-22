@@ -21,8 +21,8 @@ from haywire.core.publishing.pipeline import ShareDecisions
 from haywire.ui import elements as hui
 from haywire.ui.components.stepper import busy_advance as _busy_advance
 
-from ._state import ShareFlow
-from .copy import DETECT_SECTIONS, FLOOR_OPTIONS, PIN_OPTIONS
+from haybale_share._flow._state import ShareFlow
+from haybale_share._flow.copy import DETECT_SECTIONS, FLOOR_OPTIONS, PIN_OPTIONS
 
 _POSITIVE = "color: var(--hw-positive);"
 

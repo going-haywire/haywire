@@ -39,7 +39,7 @@ from haywire.core.farmhand import (
     truncation_note,
 )
 
-from ._helpers import (
+from haybale_studio.farmhands._helpers import (
     KIND_FOLDERS,
     kind_registry_map,
     library_folder,

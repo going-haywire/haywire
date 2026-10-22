@@ -12,8 +12,8 @@ from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall import RefreshReport, ResolvedSource
 from haywire.ui.components.stepper import Panel, show_step_flow
 
-from ._state import AddSourceFlow, AddSourceTarget
-from .panels import (
+from haybale_marketplace.editors._add_source_flow._state import AddSourceFlow, AddSourceTarget
+from haybale_marketplace.editors._add_source_flow.panels import (
     _panel_added,
     _panel_input,
     _panel_probed,

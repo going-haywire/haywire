@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING
 
 from haywire.core.session.context import SessionContext
 
-from ..state.edit_state import EditState
+from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.node.properties import NodeProperties

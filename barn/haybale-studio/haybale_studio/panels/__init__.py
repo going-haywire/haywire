@@ -1,16 +1,16 @@
-from .properties.setting.app import ThemeSettingsPanel
-from .properties.setting.app import NodeSkinDefaultPanel
-from .properties.setting.app import EditingSettingsPanel
-from .properties.setting.app import ActivitySettingsPanel
-from .properties.setting.canvas import CanvasSettingsPanel
-from .properties.setting.canvas import EditorZoomPanSettingsPanel
-from .properties.setting.canvas import MinimapSettingsPanel
-from .properties.setting.canvas import EdgeDefaultSettingsPanel
-from .properties.setting.debug import DebugOverlaySettingsPanel
-from .properties.setting.debug import DebugSettingsPanel
-from .properties.setting.execution import ExecutionSettingsPanel
-from .file_browser.menu.file import OpenInCodeEditorMenuPanel
-from .file_browser.menu.file import OpenInFileViewerMenuPanel
+from haybale_studio.panels.properties.setting.app import ThemeSettingsPanel
+from haybale_studio.panels.properties.setting.app import NodeSkinDefaultPanel
+from haybale_studio.panels.properties.setting.app import EditingSettingsPanel
+from haybale_studio.panels.properties.setting.app import ActivitySettingsPanel
+from haybale_studio.panels.properties.setting.canvas import CanvasSettingsPanel
+from haybale_studio.panels.properties.setting.canvas import EditorZoomPanSettingsPanel
+from haybale_studio.panels.properties.setting.canvas import MinimapSettingsPanel
+from haybale_studio.panels.properties.setting.canvas import EdgeDefaultSettingsPanel
+from haybale_studio.panels.properties.setting.debug import DebugOverlaySettingsPanel
+from haybale_studio.panels.properties.setting.debug import DebugSettingsPanel
+from haybale_studio.panels.properties.setting.execution import ExecutionSettingsPanel
+from haybale_studio.panels.file_browser.menu.file import OpenInCodeEditorMenuPanel
+from haybale_studio.panels.file_browser.menu.file import OpenInFileViewerMenuPanel
 
 # Backwards-compat aliases for external consumers using old names
 OpenInCodeEditorPanel = OpenInCodeEditorMenuPanel

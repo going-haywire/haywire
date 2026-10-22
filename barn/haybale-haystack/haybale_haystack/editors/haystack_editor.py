@@ -32,9 +32,9 @@ from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
 
-from ..signals import HaystackReloaded, HaystackTeardown
-from ..state.haystack_state import HaystackState
-from ..graph_entry import EntryKind, GraphEntry
+from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
+from haybale_haystack.state.haystack_state import HaystackState
+from haybale_haystack.graph_entry import EntryKind, GraphEntry
 
 logger = logging.getLogger(__name__)
 

@@ -29,7 +29,7 @@ from haywire.core.macro.promote import PromotableSubgraph
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
 
-from .copy import STEP_TITLES, STEPS
+from haybale_graph_editor._promote_flow.copy import STEP_TITLES, STEPS
 
 if TYPE_CHECKING:
     from haywire.core.authoring.targets import AuthoringTarget

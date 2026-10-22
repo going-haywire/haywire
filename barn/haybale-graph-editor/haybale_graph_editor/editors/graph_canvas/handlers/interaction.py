@@ -19,7 +19,7 @@ from haywire.ui.components.graph.event_definitions import (
     UserResizeEndEvent,
     EdgeClickedEvent,
 )
-from ..event_handlers import handles_event
+from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute

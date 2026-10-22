@@ -6,19 +6,19 @@ surface's Protocol is its demand on whatever hosts it, and nothing inherits
 one, so every surface states its own (docs/adr/0029-surface-model.md).
 """
 
-from .edge import EdgeActions, EdgeEditMenu, EdgeInspector, EdgeMenu, EdgeStyle
-from .graph import GraphInspector
-from .graph_context import (
+from haybale_graph_editor.surfaces.edge import EdgeActions, EdgeEditMenu, EdgeInspector, EdgeMenu, EdgeStyle
+from haybale_graph_editor.surfaces.graph import GraphInspector
+from haybale_graph_editor.surfaces.graph_context import (
     GraphActions,
     GraphContext,
     GraphContextBody,
     GraphMoreActions,
     GraphToolBar,
 )
-from .node import NodeInspector, SettingsInspector
-from .pin import PinEditMenu, PinMenu, PinWidgetMenu, PortActions
-from .ports import PortInspector
-from .selection import (
+from haybale_graph_editor.surfaces.node import NodeInspector, SettingsInspector
+from haybale_graph_editor.surfaces.pin import PinEditMenu, PinMenu, PinWidgetMenu, PortActions
+from haybale_graph_editor.surfaces.ports import PortInspector
+from haybale_graph_editor.surfaces.selection import (
     SelectionActions,
     SelectionArrangeMenu,
     SelectionDetailMenu,
@@ -26,7 +26,7 @@ from .selection import (
     SelectionMenu,
     SelectionRebuildMenu,
 )
-from .toolbar import NodeAppearance, SelectionToolbar
+from haybale_graph_editor.surfaces.toolbar import NodeAppearance, SelectionToolbar
 
 __all__ = [
     "EdgeActions",

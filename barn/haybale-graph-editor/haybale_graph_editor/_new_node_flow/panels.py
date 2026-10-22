@@ -10,7 +10,7 @@ from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
 from haywire.ui.components.stepper import advance, busy_advance
 
-from ._state import NewNodeFlow
+from haybale_graph_editor._new_node_flow._state import NewNodeFlow
 
 _NO_TARGET_HELP = (
     "A new node needs a library installed with 'pip install -e' that registers a nodes/ folder and "

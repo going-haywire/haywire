@@ -190,7 +190,7 @@ A truncated response that does not announce itself is the worst output a tool ca
 
 ```python
 from haywire.core.farmhand import truncation_note
-from ._helpers import page  # barn/haybale-studio's local pagination slice helper
+from haybale_studio.farmhands._helpers import page  # haybale-studio's local pagination slice helper
 
 rows, total = page(rows, limit, offset)
 return {

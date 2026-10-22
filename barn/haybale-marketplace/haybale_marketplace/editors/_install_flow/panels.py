@@ -11,7 +11,7 @@ from haywire.ui import elements as hui
 from haywire.ui.components.stepper import busy_advance
 from haywire.ui.modals import restart_affordance
 
-from ._state import InstallFlow
+from haybale_marketplace.editors._install_flow._state import InstallFlow
 
 
 def _plural(count: int, singular: str, plural: str | None = None) -> str:

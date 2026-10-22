@@ -19,11 +19,11 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from .....surfaces import EdgeActions, EdgeEditMenu, EdgeMenu, EdgeStyle
-from .....state.edit_state import EditState
-from ..component_rows import component_row
-from ...._selection_forms import edge_style_subject, render_form
-from ....properties.introspect.edge import (
+from haybale_graph_editor.surfaces import EdgeActions, EdgeEditMenu, EdgeMenu, EdgeStyle
+from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.panels.graph.menu.component_rows import component_row
+from haybale_graph_editor.panels._selection_forms import edge_style_subject, render_form
+from haybale_graph_editor.panels.properties.introspect.edge import (
     _state_from_context,
     _has_edge_errors,
     _has_edge_warnings,

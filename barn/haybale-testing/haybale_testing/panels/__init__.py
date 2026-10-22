@@ -1,17 +1,17 @@
-from .graph.menu.canvas.canvas import TestCreateNodeMenuPanel
-from .graph.menu.canvas.canvas import TestSessionStateMenuPanel
-from .graph.menu.edge.edge import TestDeleteEdgeMenuPanel
-from .graph.menu.edge.edge import TestInspectEdgeMenuPanel
-from .graph.menu.edge.edge import TestEdgeErrorsMenuPanel
-from .graph.menu.edge.edge import TestEdgePathMenuPanel
-from .graph.menu.edge.edge import TestEdgeWarningsMenuPanel
-from .graph.menu.node.node import TestDeleteNodeMenuPanel
-from .graph.menu.node.node import TestCopyNodeMenuPanel
-from .graph.menu.node.node import TestRedrawNodeMenuPanel
-from .graph.menu.node.node import TestRevalidateNodeMenuPanel
-from .graph.menu.node.node import TestResetNodeMenuPanel
-from .graph.menu.selection.selection import TestCopySelectionMenuPanel
-from .graph.menu.selection.selection import TestPasteSelectionMenuPanel
+from haybale_testing.panels.graph.menu.canvas.canvas import TestCreateNodeMenuPanel
+from haybale_testing.panels.graph.menu.canvas.canvas import TestSessionStateMenuPanel
+from haybale_testing.panels.graph.menu.edge.edge import TestDeleteEdgeMenuPanel
+from haybale_testing.panels.graph.menu.edge.edge import TestInspectEdgeMenuPanel
+from haybale_testing.panels.graph.menu.edge.edge import TestEdgeErrorsMenuPanel
+from haybale_testing.panels.graph.menu.edge.edge import TestEdgePathMenuPanel
+from haybale_testing.panels.graph.menu.edge.edge import TestEdgeWarningsMenuPanel
+from haybale_testing.panels.graph.menu.node.node import TestDeleteNodeMenuPanel
+from haybale_testing.panels.graph.menu.node.node import TestCopyNodeMenuPanel
+from haybale_testing.panels.graph.menu.node.node import TestRedrawNodeMenuPanel
+from haybale_testing.panels.graph.menu.node.node import TestRevalidateNodeMenuPanel
+from haybale_testing.panels.graph.menu.node.node import TestResetNodeMenuPanel
+from haybale_testing.panels.graph.menu.selection.selection import TestCopySelectionMenuPanel
+from haybale_testing.panels.graph.menu.selection.selection import TestPasteSelectionMenuPanel
 
 # Backwards-compat aliases for external consumers using old names
 TestCreateNodePanel = TestCreateNodeMenuPanel

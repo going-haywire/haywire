@@ -1,4 +1,4 @@
-from .compound_adapters import MapsStringArrayAdapter
+from haybale_example.adapters.compound_adapters import MapsStringArrayAdapter
 
 
 __all__ = [

@@ -210,7 +210,7 @@ from haywire.core.signals import signal_field
 
 # Companion settings (covered in components/settings/setting-canon.md).
 # Lives in the same library so on_enable can find the wired registry.
-from ..settings import MidiSettings
+from haybale_midi.settings import MidiSettings
 
 @state(label='MIDI Device Pool')
 class MidiPool(AppState):

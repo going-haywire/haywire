@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 from haywire.ui.surface import Surface
 
-from .selection import SelectionActions
+from haybale_graph_editor.surfaces.selection import SelectionActions
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

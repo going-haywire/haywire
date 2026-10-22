@@ -17,8 +17,8 @@ from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from ....surfaces import GraphInspector
-from ....state.edit_state import EditState
+from haybale_graph_editor.surfaces import GraphInspector
+from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

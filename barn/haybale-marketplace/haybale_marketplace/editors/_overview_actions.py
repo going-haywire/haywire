@@ -79,8 +79,8 @@ def confirm_uninstall(
     """
     from pathlib import Path
 
-    from ._uninstall_flow import show_uninstall_flow
-    from ._uninstall_flow.chrome import ManagerUninstallSource
+    from haybale_marketplace.editors._uninstall_flow import show_uninstall_flow
+    from haybale_marketplace.editors._uninstall_flow.chrome import ManagerUninstallSource
 
     workspace_root = getattr(context.app, "workspace_root", None)
 

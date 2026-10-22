@@ -39,10 +39,13 @@ from haywire.ui.components.graph.event_definitions import (
     ContextMenuPortEvent,
     SyncEdgeConnectResumeEvent,
 )
-from .selection import copy_selection_event, remove_selection_event
-from .visual_layer import VisualLayerHandlers
-from ....state.edit_state import EditState
-from ..event_handlers import handles_event
+from haybale_graph_editor.editors.graph_canvas.handlers.selection import (
+    copy_selection_event,
+    remove_selection_event,
+)
+from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
+from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -529,7 +532,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         edge's mode unchanged when it is locked or the route hands out no
         ``Editor`` (below level mode edit), or ``None`` when there is no such edge.
         """
-        from ....state.graph_app_state import route_for
+        from haybale_graph_editor.state.graph_app_state import route_for
 
         wrapper = self._active_edge_wrapper(edge_id)
         if wrapper is None:
@@ -615,7 +618,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         return bags
 
     def _route(self) -> "EditRoute | None":
-        from ....state.graph_app_state import route_for
+        from haybale_graph_editor.state.graph_app_state import route_for
 
         return route_for(self._context)
 
@@ -798,7 +801,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def remove_port(self, port_id: str) -> None:
         """Remove the user-created port ``port_id`` on the right-clicked node, as one undo step."""
-        from ....state.graph_app_state import route_for
+        from haybale_graph_editor.state.graph_app_state import route_for
 
         wrapper = self._context.data[EditState].active_node
         route = route_for(self._context)

@@ -33,7 +33,7 @@ from haywire.core.marketstall import check_require
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
 
-from .copy import STEP_TITLES, STEPS
+from haybale_marketplace.editors._install_flow.copy import STEP_TITLES, STEPS
 
 logger = logging.getLogger(__name__)
 

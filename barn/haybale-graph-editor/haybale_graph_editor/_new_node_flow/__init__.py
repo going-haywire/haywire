@@ -12,9 +12,9 @@ changed nothing.
 
 from __future__ import annotations
 
-from ._state import NewNodeFlow, NewNodeHost
-from .chrome import EditorNewNodeHost, new_node_flow, show_new_node_flow
-from .copy import STEPS
+from haybale_graph_editor._new_node_flow._state import NewNodeFlow, NewNodeHost
+from haybale_graph_editor._new_node_flow.chrome import EditorNewNodeHost, new_node_flow, show_new_node_flow
+from haybale_graph_editor._new_node_flow.copy import STEPS
 
 __all__ = [
     "STEPS",

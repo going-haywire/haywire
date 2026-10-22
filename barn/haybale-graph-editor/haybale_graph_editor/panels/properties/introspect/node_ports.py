@@ -27,9 +27,9 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.utils import anchor_cleanup_to_element
 
-from ....surfaces import PortInspector
-from ....state.edit_state import EditState
-from ....state.graph_app_state import route_for
+from haybale_graph_editor.surfaces import PortInspector
+from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.state.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -185,7 +185,7 @@ class NodePortsPanel(BasePanel):
         an ``Editor`` (level mode edit), and the dialog's Apply writes nothing once
         that route's level mode drops below edit.
         """
-        from .port_edit_dialog import open_port_edit_dialog
+        from haybale_graph_editor.panels.properties.introspect.port_edit_dialog import open_port_edit_dialog
 
         route = route_for(context)
         editor = route.editor() if route is not None else None

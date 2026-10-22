@@ -7,8 +7,13 @@ from typing import TYPE_CHECKING, Any, Callable
 
 from haywire.ui.components.stepper import Panel, show_step_flow
 
-from ._state import NewNodeFlow, NewNodeHost
-from .panels import _panel_details, _panel_planned, _panel_result, _panel_source
+from haybale_graph_editor._new_node_flow._state import NewNodeFlow, NewNodeHost
+from haybale_graph_editor._new_node_flow.panels import (
+    _panel_details,
+    _panel_planned,
+    _panel_result,
+    _panel_source,
+)
 
 if TYPE_CHECKING:
     from haywire.core.node.factory import NodeFactory

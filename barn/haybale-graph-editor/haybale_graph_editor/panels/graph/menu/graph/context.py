@@ -24,7 +24,7 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from .....surfaces import (
+from haybale_graph_editor.surfaces import (
     GraphActions,
     GraphContext,
     GraphContextBody,

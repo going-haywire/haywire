@@ -30,7 +30,7 @@ from haybale_marketplace.uninstall_impact import (
     find_pip_dependents,
 )
 
-from .copy import STEP_TITLES, STEPS
+from haybale_marketplace.editors._uninstall_flow.copy import STEP_TITLES, STEPS
 
 logger = logging.getLogger(__name__)
 

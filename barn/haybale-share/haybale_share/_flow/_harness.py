@@ -41,8 +41,8 @@ from haywire.core.publishing.pipeline import (
     VersionPlan,
 )
 
-from ._state import ShareFlow
-from .panels import panel_done, panel_preflight, panel_publish, panel_review
+from haybale_share._flow._state import ShareFlow
+from haybale_share._flow.panels import panel_done, panel_preflight, panel_publish, panel_review
 
 _SCRATCH = Path(tempfile.gettempdir()) / "haybale-share-harness"
 

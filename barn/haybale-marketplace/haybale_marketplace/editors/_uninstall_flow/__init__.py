@@ -13,9 +13,9 @@ would affect, and closes it has changed nothing.
 
 from __future__ import annotations
 
-from ._state import UninstallFlow, UninstallSource
-from .chrome import show_uninstall_flow
-from .copy import STEPS
+from haybale_marketplace.editors._uninstall_flow._state import UninstallFlow, UninstallSource
+from haybale_marketplace.editors._uninstall_flow.chrome import show_uninstall_flow
+from haybale_marketplace.editors._uninstall_flow.copy import STEPS
 
 __all__ = [
     "STEPS",

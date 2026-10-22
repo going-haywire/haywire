@@ -9,7 +9,7 @@ from nicegui import ui
 from haywire.ui.components.stepper import advance, busy_advance
 from haywire.ui.modals import restart_affordance
 
-from ._state import UninstallFlow
+from haybale_marketplace.editors._uninstall_flow._state import UninstallFlow
 
 
 def _plural(count: int, singular: str, plural: str | None = None) -> str:

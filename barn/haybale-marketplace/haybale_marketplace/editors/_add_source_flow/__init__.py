@@ -11,9 +11,13 @@ behind, and an unreachable source was subscribed anyway.
 
 from __future__ import annotations
 
-from ._state import AddSourceFlow, AddSourceTarget
-from .chrome import MarketplaceAddSourceTarget, build_target, show_add_source_flow
-from .copy import STEPS
+from haybale_marketplace.editors._add_source_flow._state import AddSourceFlow, AddSourceTarget
+from haybale_marketplace.editors._add_source_flow.chrome import (
+    MarketplaceAddSourceTarget,
+    build_target,
+    show_add_source_flow,
+)
+from haybale_marketplace.editors._add_source_flow.copy import STEPS
 
 __all__ = [
     "STEPS",

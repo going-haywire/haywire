@@ -1,10 +1,10 @@
-from .array_type import ArrayType
-from .array_type import ArrayField
-from .pooled_type import PooledType
-from .pooled_type import PooledField
-from .specs import BYTES
-from .specs import LIST
-from .specs import DICT
+from haybale_core.types.array_type import ArrayType
+from haybale_core.types.array_type import ArrayField
+from haybale_core.types.pooled_type import PooledType
+from haybale_core.types.pooled_type import PooledField
+from haybale_core.types.specs import BYTES
+from haybale_core.types.specs import LIST
+from haybale_core.types.specs import DICT
 
 
 __all__ = [

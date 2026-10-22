@@ -12,9 +12,9 @@ the flow, sees the path, and closes it has changed nothing.
 
 from __future__ import annotations
 
-from ._state import PromoteFlow, PromoteSource
-from .chrome import EditorPromoteSource, show_promote_flow
-from .copy import STEPS
+from haybale_graph_editor._promote_flow._state import PromoteFlow, PromoteSource
+from haybale_graph_editor._promote_flow.chrome import EditorPromoteSource, show_promote_flow
+from haybale_graph_editor._promote_flow.copy import STEPS
 
 __all__ = [
     "STEPS",

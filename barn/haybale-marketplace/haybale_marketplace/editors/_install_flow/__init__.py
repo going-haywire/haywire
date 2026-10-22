@@ -12,9 +12,9 @@ the one the user approved.
 
 from __future__ import annotations
 
-from ._state import InstallFlow, InstallSource
-from .chrome import ManagerInstallSource, show_install_flow
-from .copy import STEPS
+from haybale_marketplace.editors._install_flow._state import InstallFlow, InstallSource
+from haybale_marketplace.editors._install_flow.chrome import ManagerInstallSource, show_install_flow
+from haybale_marketplace.editors._install_flow.copy import STEPS
 
 __all__ = [
     "STEPS",

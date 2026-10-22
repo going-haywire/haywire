@@ -9,8 +9,17 @@ from nicegui import ui
 from haywire.core.library.haybale import Haybale
 from haywire.ui.components.stepper import Panel, show_step_flow
 
-from ._state import InstallFlow, InstallSource, resolve_current_version
-from .panels import _panel_checked, _panel_done, _panel_installing, _panel_selected
+from haybale_marketplace.editors._install_flow._state import (
+    InstallFlow,
+    InstallSource,
+    resolve_current_version,
+)
+from haybale_marketplace.editors._install_flow.panels import (
+    _panel_checked,
+    _panel_done,
+    _panel_installing,
+    _panel_selected,
+)
 
 
 class ManagerInstallSource:

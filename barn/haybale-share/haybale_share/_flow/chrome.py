@@ -8,8 +8,8 @@ from typing import Callable
 from haywire.core.publishing.pipeline import SharePipeline
 from haywire.ui.components.stepper import Panel, show_step_flow
 
-from ._state import ShareFlow
-from .panels import (
+from haybale_share._flow._state import ShareFlow
+from haybale_share._flow.panels import (
     panel_done,
     panel_preflight,
     panel_publish,

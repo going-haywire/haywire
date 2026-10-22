@@ -223,7 +223,7 @@ class LibraryBrowserEditor(BaseEditor):
         """
         from haybale_marketplace.state.marketplace_state import MarketplaceState
 
-        from ._refresh_flow import show_refresh_flow
+        from haybale_marketplace.editors._refresh_flow import show_refresh_flow
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             ui.notify("Marketplace state not available", type="warning")
@@ -249,7 +249,7 @@ class LibraryBrowserEditor(BaseEditor):
         there is no silent post-add refresh to run here — only a re-render
         once the popup closes.
         """
-        from ._add_source_flow import build_target, show_add_source_flow
+        from haybale_marketplace.editors._add_source_flow import build_target, show_add_source_flow
 
         target = build_target(context)
         if target is None:

@@ -8,7 +8,7 @@ from nicegui import ui
 
 from haywire.ui.components.stepper import advance, busy_advance
 
-from ._state import PromoteFlow
+from haybale_graph_editor._promote_flow._state import PromoteFlow
 
 
 def _panel_name(flow: PromoteFlow, rerender: Callable[[], None]) -> None:

@@ -11,7 +11,7 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 
-from ....settings.node_skin_settings import NodeSkinSettings
+from haybale_graph_editor.settings.node_skin_settings import NodeSkinSettings
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

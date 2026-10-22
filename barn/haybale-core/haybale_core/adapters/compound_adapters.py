@@ -3,7 +3,7 @@ from typing_extensions import override
 
 from haywire.core.adapter.base import adapter, BaseAdapter
 
-from ..types.array_type import ArrayType
+from haybale_core.types.array_type import ArrayType
 
 
 @adapter(
