@@ -439,7 +439,10 @@ class GraphCanvasManager:
 
         The task is retained so :meth:`cleanup` can cancel a load still running
         when the editor closes — otherwise it would keep mounting nodes into a
-        torn-down canvas.
+        torn-down canvas. A websocket drop does not cancel it: a drop the page
+        reconnects from would leave it half-loaded. So a page reloaded mid-load
+        keeps its old load running until the old client is deleted, after
+        ``reconnect_timeout``.
         """
         modal = graph_load_modal(
             graph_name=graph_name,
