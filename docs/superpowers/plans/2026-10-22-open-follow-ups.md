@@ -69,7 +69,7 @@ Error-node stand-in (ADR 0058):
 Undoable reload and Reset (ADR 0059):
 
 36. **DONE** ~~A reload of an already fresh node still records a step; compare the data before and after and drop equal ones.~~ Equal nodes dropped from the batch; ADR 0059's "Not recorded" list updated. Reset of an untouched node still records a step (explicit command, left as is).
-37. ✓ `docs/components/nodes/node-canon.md` says the user's setup "is not lost" unconditionally; qualify "in an open graph" (no editor, a never-opened Group interior, a node absorbing its own reload).
+37. **DONE** ~~`docs/components/nodes/node-canon.md` says the user's setup "is not lost" unconditionally; qualify "in an open graph" (no editor, a never-opened Group interior, a node absorbing its own reload).~~
 38. ✓ `BaseGraph.request_node_reset` has no production callers left.
 39. Missing tests: a Group interior on the shared history, several reload batches in a row, save and reopen after an undone reload, the `on_class_reloaded` absorb path.
 
