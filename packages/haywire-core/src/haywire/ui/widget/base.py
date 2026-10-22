@@ -8,6 +8,7 @@ from haywire.core.types import WidgetModel
 from haywire.ui.widget.binding import PropertyBinding
 from haywire.ui.widget.converters import BindingConverter, BindingMode, PrimitiveUnwrappingConverter
 from haywire.ui.widget.interface import IWidget
+from haywire.ui.utils import anchor_cleanup_to_element
 
 # design-guide.md §2.11: the manual disabled treatment for elements that
 # don't support Quasar :disable. Always applied/removed as a pair via
@@ -171,7 +172,9 @@ class BaseWidget(IWidget, ABC):
             self.on_model_changed(self.port.get_value())
 
             if hasattr(self.ui_element, "client"):
-                self.ui_element.client.on_delete(self.cleanup)
+                # On its own element, not the page: a redraw or a page close removes it, and nothing
+                # accumulates on the client across redraws.
+                anchor_cleanup_to_element(self.ui_element, self.cleanup)
 
         return self.ui_element
 

@@ -80,9 +80,10 @@ def test_a_card_registers_no_client_handler(library_system, held_graph: BaseGrap
 
     ui_node = _card(library_system, held_graph, client)
 
-    # Its widgets register with the client; the card itself does not.
-    widgets = len(ui_node.current_ui_card.widget_instances) if ui_node.current_ui_card else 0
-    assert _handler_count(client) - before == widgets
+    # Neither the card nor its widgets: a widget anchors its cleanup to its own element.
+    assert ui_node.current_ui_card is not None
+    assert ui_node.current_ui_card.widget_instances, "the card has widgets to check"
+    assert _handler_count(client) == before
     ui_node.teardown_subscriptions()
 
 
