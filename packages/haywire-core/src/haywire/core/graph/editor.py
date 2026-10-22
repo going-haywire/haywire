@@ -443,6 +443,26 @@ class Editor:
             logger.error(f"Error applying {action.description}: {e}")
             return False
 
+    def reset_nodes(self, node_ids: List[str]) -> bool:
+        """Rebuild the nodes through ``init()`` as one undo step; Undo puts them back exactly.
+
+        Returns:
+            ``False`` without changing anything when *node_ids* is empty or names
+            a node the graph does not have.
+        """
+        from haywire.core.undo.actions.graph_actions import RebuildNodesAction, rebuild_description
+
+        wrappers = [self.graph.get_node_wrapper(node_id) for node_id in node_ids]
+        if not wrappers or any(wrapper is None for wrapper in wrappers):
+            return False
+        try:
+            description = rebuild_description("Reset", [w for w in wrappers if w is not None])
+            action = RebuildNodesAction.capture(self.graph, node_ids, description)
+        except Exception as e:
+            logger.error(f"Error resetting {node_ids}: {e}")
+            return False
+        return self.history_manager.add_action(action)
+
     def set_port_metadata(self, node_id: str, port_id: str, **changes: Any) -> Tuple[bool, Optional[str]]:
         """Edit a port's label, description and/or default, undo-recorded.
 

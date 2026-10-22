@@ -1499,8 +1499,10 @@ class VisualLayerHandlers:
                 self.graph.request_edge_revalidation(edge_id)
 
         elif isinstance(event, ElementResetEvent):
-            for node_id in event.nodes:
-                self.graph.request_node_reset(node_id)
+            # A node Reset is an undoable edit; below level mode edit there is no editor to take it.
+            editor = self.route.editor()
+            if editor is not None and event.nodes:
+                editor.reset_nodes(list(event.nodes))
             for edge_id in event.edges:
                 self.graph.request_edge_reset(edge_id)
 

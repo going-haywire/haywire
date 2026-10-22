@@ -2862,3 +2862,71 @@ def _claim(seen: set, key: Tuple[str, str, str, str]) -> bool:
         return False
     seen.add(key)
     return True
+
+
+def rebuild_description(verb: str, wrappers: Sequence[NodeWrapper]) -> str:
+    """Name a rebuild of *wrappers*: "Reset Print", "Reset Print (2 nodes)" or "Reset 3 nodes"."""
+    labels = {wrapper.node.identity.label for wrapper in wrappers}
+    if len(wrappers) == 1:
+        return f"{verb} {labels.pop()}"
+    if len(labels) == 1:
+        return f"{verb} {labels.pop()} ({len(wrappers)} nodes)"
+    return f"{verb} {len(wrappers)} nodes"
+
+
+class RebuildNodesAction(ActionBase):
+    """Undoable rebuild of nodes through ``init()``: a Reset, or a hot reload recorded after the fact.
+
+    Holds each node's data from before the rebuild. Undo rebuilds every node exactly
+    from it, as loading a file does; execute (and redo) rebuilds them through
+    ``init()`` again. Both go through ``BaseGraph.request_node_rebuild``, so attached
+    edges are rebuilt with them in the next validation pass. See ADR 0059.
+
+    Raises:
+        ValueError: On execute or undo, if a node is no longer in the graph.
+
+    Example::
+
+        action = RebuildNodesAction.capture(graph, [node_id], "Reset Print")
+        editor.history_manager.add_action(action)          # a Reset
+        editor.history_manager.record_executed(action)     # a reload that already ran
+    """
+
+    def __init__(self, graph: BaseGraph, before: Mapping[str, Dict[str, Any]], description: str):
+        """
+        Args:
+            before: Each node's ``serialize()["node_data"]`` from before the rebuild, by node id.
+        """
+        super().__init__(description=description)
+        self.graph = graph
+        self.before = dict(before)
+
+    @classmethod
+    def capture(cls, graph: BaseGraph, node_ids: Sequence[str], description: str) -> "RebuildNodesAction":
+        """Build the action from the nodes' current data.
+
+        Raises:
+            ValueError: If a node is not in the graph.
+        """
+        before: Dict[str, Dict[str, Any]] = {}
+        for node_id in node_ids:
+            wrapper = graph.get_node_wrapper(node_id)
+            if wrapper is None:
+                raise ValueError(f"Node '{node_id}' not found")
+            before[node_id] = wrapper.serialize()["node_data"]
+        return cls(graph, before, description)
+
+    def _check(self) -> None:
+        missing = [node_id for node_id in self.before if self.graph.get_node_wrapper(node_id) is None]
+        if missing:
+            raise ValueError(f"Nodes no longer in the graph: {', '.join(missing)}")
+
+    def _execute_impl(self) -> None:
+        self._check()
+        for node_id in self.before:
+            self.graph.request_node_rebuild(node_id)
+
+    def _undo_impl(self) -> None:
+        self._check()
+        for node_id, node_data in self.before.items():
+            self.graph.request_node_rebuild(node_id, copy.deepcopy(node_data))

@@ -314,7 +314,8 @@ class ValidationManager:
                     if reason.requires_rebuild():
                         node_wrapper = self._graph.get_node_wrapper(node_id)
                         if node_wrapper:
-                            node_wrapper.build()
+                            # A requested rebuild may carry the exact data to restore (an undo).
+                            node_wrapper.build(node_wrapper.take_rebuild_data())
                             edge_wrappers = self._graph._get_edge_wrappers_for_node(node_id)
                             for edge_wrapper in edge_wrappers:
                                 # Attached edges revalidate too, at this reason's priority.

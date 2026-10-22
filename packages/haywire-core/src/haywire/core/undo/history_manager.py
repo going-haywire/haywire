@@ -12,6 +12,7 @@ from typing import Any, List, Optional, Union, cast
 from dataclasses import dataclass
 
 from .actions.graph_actions import VALUE_EDIT_MERGE_IDLE_S
+from .base_action import ActionBase
 from .interfaces import IAction, IHistoryManager
 from .config import UndoConfig
 
@@ -152,6 +153,13 @@ class HistoryManager(IHistoryManager):
 
         self._record_executed(action, current_time)
         return True
+
+    def record_executed(self, action: IAction) -> None:
+        """Add an already applied ``action`` to the history, without running it. See ``IHistoryManager``."""
+        self._amendable = None
+        if isinstance(action, ActionBase):
+            action.mark_executed()
+        self._record_executed(action, time.time())
 
     def add_value_action(
         self, action: IAction, merge_owner: object | None, idle_s: float = VALUE_EDIT_MERGE_IDLE_S

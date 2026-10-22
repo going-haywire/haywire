@@ -173,6 +173,9 @@ class NodeWrapper:
         """Where the node goes once it has an instance; held only while ``_node_instance`` is
         ``None``, because props are the position's only home. See ADR 0053."""
 
+        self._rebuild_data: Optional[Dict[str, Any]] = None
+        """Node data the next requested rebuild restores exactly; see ``BaseGraph.request_node_rebuild``."""
+
         self._stand_in_data: Optional[Dict[str, Any]] = None
         """The node data a stand-in keeps for the node it replaces: saved back as is, and
         rebuilt from once the node's class works. See ADR 0058."""
@@ -193,6 +196,17 @@ class NodeWrapper:
                     f"(not built or already cleaned up)."
                 )
             return self._node_instance
+
+    def set_rebuild_data(self, node_data: Optional[Dict[str, Any]]) -> None:
+        """Hold *node_data* for the next requested rebuild; ``None`` rebuilds through ``init()``."""
+        with self._lock:
+            self._rebuild_data = node_data
+
+    def take_rebuild_data(self) -> Optional[Dict[str, Any]]:
+        """Return the data held for the next requested rebuild, and clear it."""
+        with self._lock:
+            data, self._rebuild_data = self._rebuild_data, None
+            return data
 
     @property
     def is_stand_in(self) -> bool:

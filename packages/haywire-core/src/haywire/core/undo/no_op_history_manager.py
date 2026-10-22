@@ -30,6 +30,9 @@ class NoOpHistoryManager(IHistoryManager):
         """No-op: the action is ignored and never runs, so this returns ``False``."""
         return False
 
+    def record_executed(self, action: IAction) -> None:
+        """No-op: the action is not recorded."""
+
     def add_fence(self) -> None:
         """No-op: fence is ignored."""
         pass

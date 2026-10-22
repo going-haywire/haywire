@@ -125,6 +125,21 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
+    def record_executed(self, action: IAction) -> None:
+        """
+        Add an action that has already been applied to the history, without running it.
+
+        For a change made outside an action, such as a hot reload, whose undo
+        the action carries. It ends the redo branch like any new step and never
+        amends a running value edit.
+
+        Args:
+            action: The applied change; ``undo()`` must reverse it and a later
+                ``execute()`` must apply it again.
+        """
+        pass
+
+    @abstractmethod
     def add_fence(self) -> None:
         """
         Add a fence to group related actions together.

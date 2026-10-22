@@ -237,6 +237,17 @@ class BaseGraph:
         if node_id in self.node_wrappers:
             self._validation.mark_node_dirty(node_id, ChangeReason.NODE_RESET_REQUESTED)
 
+    def request_node_rebuild(self, node_id: str, node_data: Optional[Dict[str, Any]] = None) -> None:
+        """Rebuild a node in the next validation pass: exactly from *node_data*, or through ``init()``.
+
+        *node_data* is a ``NodeWrapper.serialize()["node_data"]``. The pass rebuilds the
+        node's edges with it, as for a reset. An unknown node id is ignored.
+        """
+        wrapper = self.node_wrappers.get(node_id)
+        if wrapper is not None:
+            wrapper.set_rebuild_data(node_data)
+            self._validation.mark_node_dirty(node_id, ChangeReason.NODE_RESET_REQUESTED)
+
     def request_edge_redraw(self, edge_id: str) -> None:
         """Request visual refresh for an edge. Does not modify state."""
         if edge_id in self.edge_wrappers:
