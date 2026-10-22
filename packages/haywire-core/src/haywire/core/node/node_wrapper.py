@@ -311,8 +311,9 @@ class NodeWrapper:
         ``state`` rather than raised.
 
         Args:
-            node_info: Serialized node data to restore from; ``None`` builds a
-                fresh node through its ``init()``.
+            node_info: Serialized node data to restore from. ``None`` builds a fresh
+                node through its ``init()``; a stand-in instead rebuilds from the data
+                it keeps, with its current props (see ``is_stand_in``).
         """
         with self._locked():
             logger.debug(f"Start node building: {self._node_id} ... ")
@@ -339,12 +340,13 @@ class NodeWrapper:
             self._subscribe_stage_membership()
 
     def _instantiate(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
-        """Create the node instance, cleaning up any existing one first.
+        """Create the node instance, cleaning up any existing one first; the node keeps its position.
 
-        A rebuild keeps the node's position, also across a failed construction: the
-        position is held aside until a later instantiation succeeds.
+        When the class's constructor raises, the failure lands in ``state.error_instantiate``
+        and an error node stands in, keeping the node's data (see ``is_stand_in``).
 
-        Returns whether it succeeded; a failure lands in ``state.error_instantiate``.
+        Returns ``False`` only when no instance could be made, not even the stand-in;
+        the position then waits for the next build.
         """
         if self._node_cls is None:
             return False
@@ -673,8 +675,8 @@ class NodeWrapper:
     def set_props(self, values: Mapping[str, Any]) -> None:
         """Set ``NodeProperties`` fields from ``{name: value}``, e.g. a new node's stage placement.
 
-        A node that failed to build keeps only its patch position (``posX``/``posY``),
-        for the next successful build.
+        A stand-in takes them like any node and saves them. A wrapper holding no instance
+        at all keeps only the patch position (``posX``/``posY``), for the next build.
         """
         if self._node_instance is not None:
             for name, value in values.items():

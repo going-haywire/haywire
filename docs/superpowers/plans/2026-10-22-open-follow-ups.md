@@ -58,7 +58,7 @@ Active slot bar:
 
 Error-node stand-in (ADR 0058):
 
-29. ✓ `NodeWrapper.build()`, `_instantiate` and `set_props` docstrings still describe the pre-stand-in behaviour.
+29. **DONE** ~~`NodeWrapper.build()`, `_instantiate` and `set_props` docstrings still describe the pre-stand-in behaviour.~~
 30. ✓ `_stand_in_data` aliases the caller's `node_info` dict; deep-copy once on capture.
 31. ✓ A stand-in ignores `serialize(include_data=False)`, so a template save writes its port values.
 32. The graph-editor stand-in tests use an unknown-key stand-in only, not a constructor failure.
