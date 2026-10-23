@@ -90,6 +90,17 @@ def test_bring_to_front_writes_only_changed_ranks(graph_with_library_system, lib
     assert not wb.node.props._is_locally_set("z")
 
 
+def test_a_plain_string_names_the_restack_and_an_unknown_one_raises(graph_with_library_system):
+    from haywire.core.graph.stacking import restacked
+
+    graph = graph_with_library_system
+    _, (a, _b, _c, _d) = _four(graph)
+
+    assert restacked(graph, [a], "front", PATCH) == restacked(graph, [a], Restack.FRONT, PATCH)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="top"):
+        restacked(graph, [a], "top", PATCH)  # type: ignore[arg-type]
+
+
 def test_send_to_back_keeps_the_selections_order(graph_with_library_system, library_system):
     graph = graph_with_library_system
     editor = _editor(graph, library_system)

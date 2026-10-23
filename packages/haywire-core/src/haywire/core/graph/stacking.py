@@ -57,12 +57,17 @@ def restacked(
     ``channel`` does not include, are ignored. The result is empty when the paint order does not
     change, even if the stored values are not ranks yet.
 
+    Raises:
+        ValueError: If ``how`` names no ``Restack`` member; a plain string such as ``"front"``
+            is accepted.
+
     Example::
 
         # a, b, c, d all at 0, painted in that order
         restacked(graph, ["a"], Restack.FRONT, PATCH)      # {"c": 1, "d": 2, "a": 3}; b stays 0
         restacked(graph, ["a"], Restack.FORWARD, PATCH)    # {"a": 1, "c": 2, "d": 3}; order b, a, c, d
     """
+    how = Restack(how)
     before = stacking_order(graph, channel)
     order = list(before)
     moving = set(node_ids) & set(order)

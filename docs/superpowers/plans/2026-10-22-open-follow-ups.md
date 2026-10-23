@@ -26,7 +26,7 @@ Line references are from 2026-10-22. ✓ = confirmed in code; anything else come
 ## 3. Polish
 
 10. **On stage, two cards with equal z can come back in a different order after a remount** (DOM order vs graph order).
-11. **Restack compares with `is`.**
+11. **DONE** ~~**Restack compares with `is`.**~~ A plain string did BACKWARD silently; `how` is normalized with `Restack(how)`, an unknown value raises.
 12. **In patch, the selected-card lift outranks the dragging lift.**
 13. **Slice 5b-4 leftovers:** a `storage_key` collision in `widget_instances`; the guard misses `bag.x =`; a Group's mirrored ports drop `operable`; Farmhand's not-operable message; hard-coded 12 px padding.
 14. **DONE** ~~**Relative `..` imports** in `barn/haybale-graph-editor/haybale_graph_editor/skins/node_skin.py:19` and `inset_skin.py`.~~ Widened to all of `barn/`: 266 import statements made absolute, ruff `TID252` (`ban-relative-imports = "all"`) enforced on `barn/**`; reasons in `.insights/feedback_no_relative_imports_in_barn.md`. `packages/` still uses relative imports. `haybale-visiongraph` (separate repo) not converted.
