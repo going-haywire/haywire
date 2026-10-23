@@ -25,7 +25,7 @@ Line references are from 2026-10-22. ✓ = confirmed in code; anything else come
 
 ## 3. Polish
 
-10. **On stage, two cards with equal z can come back in a different order after a remount** (DOM order vs graph order).
+10. **DONE** ~~**On stage, two cards with equal z can come back in a different order after a remount** (DOM order vs graph order).~~ A card mounted later (put on stage) was appended at the DOM end; `add_node_visual` now places it at its graph position (skipped during a chunked load, which mounts in graph order). Test: `test_visual_layer_card_order.py`.
 11. **DONE** ~~**Restack compares with `is`.**~~ A plain string did BACKWARD silently; `how` is normalized with `Restack(how)`, an unknown value raises.
 12. **In patch, the selected-card lift outranks the dragging lift.**
 13. **Slice 5b-4 leftovers:** a `storage_key` collision in `widget_instances`; the guard misses `bag.x =`; a Group's mirrored ports drop `operable`; Farmhand's not-operable message; hard-coded 12 px padding.

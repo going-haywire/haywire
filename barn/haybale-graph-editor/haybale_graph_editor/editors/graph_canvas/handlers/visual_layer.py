@@ -703,9 +703,28 @@ class VisualLayerHandlers:
                 ui_node.refresh(ChangeReason.NODE_ADDED)
                 ui_node.position = position
                 self.node_panels[node_id] = ui_node
+        self._keep_graph_order(container, node_id)
 
         logger.debug(f"Successfully added node visual for {node_id}")
         return True
+
+    def _keep_graph_order(self, container: ui.element, node_id: str) -> None:
+        """Move a new card's container before the next mounted card in graph order.
+
+        Cards sharing a z-index paint in DOM order, and ``stacking_order`` breaks that tie by
+        graph order: a card mounted later (a node put on stage) must not land on top of them.
+        """
+        if self.mounting:
+            return  # a chunked load mounts in graph order already; skipping keeps it linear
+        ids = list(self.graph.node_wrappers)
+        if node_id not in ids:
+            return
+        following = next(
+            (self.node_panels[n].container for n in ids[ids.index(node_id) + 1 :] if n in self.node_panels),
+            None,
+        )
+        if following is not None:
+            container.move(target_index=self.canvas_vue.default_slot.children.index(following))
 
     def refresh_node_visual(self, ui_node: UINode, reason: ChangeReason) -> None:
         """Refresh a node's visual representation."""
