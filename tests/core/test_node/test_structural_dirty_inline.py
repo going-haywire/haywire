@@ -59,6 +59,41 @@ def test_every_change_reaches_the_validation_pass() -> None:
     assert wrapper._node_instance._housekeeping.call_count == 2  # type: ignore[union-attr]
 
 
+@pytest.mark.integration
+def test_edges_waiting_on_pins_added_one_after_another_validate(library_system) -> None:
+    """On a real graph that validates inline, each added pin revalidates the edges waiting on it.
+
+    The edges exist before their pins, as after a load or an undo, and no other pass runs
+    between the two additions: a flag left set by the first would swallow the second.
+    """
+    from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
+
+    from haywire.barn.builtin.types import FLOAT
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.scheduler import SyncScheduler
+
+    from tests.conftest import make_node
+
+    graph = BaseGraph(filestem="inline", validation_scheduler=SyncScheduler())
+    try:
+        key = TestAddFloatNode.class_identity.registry_key
+        source, sink = make_node(graph, key), make_node(graph, key)
+        assert isinstance(sink.node, TestAddFloatNode)
+        graph.force_validation()
+
+        pins = ["late_0", "late_1"]
+        edges = [graph.create_edge_wrapper(source.node_id, "result", sink.node_id, pin) for pin in pins]
+        assert all(edge is not None and not edge.is_valid() for edge in edges)
+
+        for index, pin in enumerate(pins):
+            sink.node.add(FLOAT.as_inlet(pin, label=f"Late {index}"))
+
+        assert [edge.is_valid() for edge in edges if edge is not None] == [True, True]
+        assert sink._is_dirty_structural is False
+    finally:
+        graph.cleanup()
+
+
 def test_a_pass_that_raises_leaves_the_flag_clear() -> None:
     def _boom(_w: NodeWrapper) -> None:
         raise RuntimeError("validation failed")
