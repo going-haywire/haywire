@@ -83,20 +83,29 @@ def test_a_stage_card_reads_stage_z(library_system, held_graph: BaseGraph):
         ui_node.teardown_subscriptions()
 
 
-@pytest.mark.parametrize("how", ["reset", "hot_reload"])
-def test_stacking_follows_the_node_across_a_rebuild(card, how: str):
-    ui_node, wrapper, graph = card
-    old = wrapper.node
-    if how == "reset":
-        graph.request_node_rebuild(wrapper.node_id)
-    else:
-        graph._validation.mark_node_dirty(wrapper.node_id, ChangeReason.NODE_HOT_RELOADED)
-    graph._validation.force_immediate_validation()
-    assert wrapper.node is not old
-    ui_node.refresh(ChangeReason.NODE_HOT_RELOADED)
+@pytest.mark.parametrize("channel", [PATCH, STAGE])
+@pytest.mark.parametrize("reason", [ChangeReason.NODE_RESET_REQUESTED, ChangeReason.NODE_HOT_RELOADED])
+def test_stacking_follows_the_node_across_a_rebuild(
+    library_system, held_graph: BaseGraph, channel: LayoutChannel, reason: ChangeReason
+):
+    ui_node, wrapper = _card(library_system, held_graph, channel)
+    field = "stage_z" if channel.stage else "z"
+    try:
+        setattr(wrapper.node.props, field, 7)
+        old = wrapper.node
+        held_graph._validation.mark_node_dirty(wrapper.node_id, reason)
+        held_graph._validation.force_immediate_validation()
+        assert wrapper.node is not old
+        ui_node.refresh(reason)
 
-    wrapper.node.props.z = 4
-    assert ui_node.container._style.get("z-index") == "4"
+        # The rebuilt node keeps its stacking order, and the card shows it with no further write.
+        assert ui_node.container._style.get("z-index") == "7"
+        setattr(old.props, field, 11)
+        assert ui_node.container._style.get("z-index") == "7", "the old node still restyles the card"
+        setattr(wrapper.node.props, field, 4)
+        assert ui_node.container._style.get("z-index") == "4"
+    finally:
+        ui_node.teardown_subscriptions()
 
 
 def test_a_stage_canvas_is_marked():

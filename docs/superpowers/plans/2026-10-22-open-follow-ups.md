@@ -36,7 +36,7 @@ Line references are from 2026-10-22. ✓ = confirmed in code; anything else come
 
 16. **DONE** ~~**No browser tests** for dragging the Inset body, its menu, or double-click to Enter.~~ Four tests in `tests/ui/harness/test_inset.py` (drag, menu, Enter, view does neither); all passed first time, no bug found.
 17. **DROPPED** ~~**No split-pane browser test.**~~ Origin not traceable; no feature by that name.
-18. **The 5c rebuild test is weak.**
+18. **DONE** ~~**The 5c rebuild test is weak.**~~ It now checks the value right after the rebuild, patch and stage, and that the old node is detached. Found: a reset or hot reload dropped the stacking order and took nodes off the stage; a rebuild now carries the arrangement (position, `z`, `on_stage`, stage position, `stage_z`); ADR 0053/0059 amended.
 19. **Edit-instance test gaps** (`internals/handoff/edit-instance-followups.md` §4): redo of a detach; `drop_unmatched_edges` keeping an edge whose pin exists; the background-session rekey test bypasses `_prune_dead_levels`; `TestEditInstanceRow` reuses `TestEnterRow()` helpers; the Clone-to-Library ordering test reads `ctx.data[next(iter(ctx.data))]`.
 
 ## 5. Deferred minors from the 2026-10-20 → 22 branches

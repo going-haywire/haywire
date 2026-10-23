@@ -55,18 +55,37 @@ def test_a_position_set_through_set_property_survives_save_and_load(
     assert restored.node.props.posX == 640.0
 
 
-def test_a_rebuild_keeps_the_position_only(graph_with_library_system):
+def _arrange(wrapper) -> None:
+    """Give the node a patch position and stacking order, and a place on stage."""
+    wrapper.move(640.0, 320.0)
+    props = wrapper.node.props
+    props.z = 7
+    props.on_stage = True
+    props.stage_x, props.stage_y = 30.0, 40.0
+    props.stage_z = 5
+
+
+def _arrangement(wrapper) -> tuple:
+    props = wrapper.node.props
+    return (props.get_position(), props.z, props.on_stage, props.stage_x, props.stage_y, props.stage_z)
+
+
+@pytest.mark.parametrize("reason", [ChangeReason.NODE_RESET_REQUESTED, ChangeReason.NODE_HOT_RELOADED])
+def test_a_rebuild_keeps_the_arrangement_only(graph_with_library_system, reason):
     graph = graph_with_library_system
     wrapper = graph.create_node_wrapper(_key(), position=(10.0, 10.0))
-    wrapper.move(640.0, 320.0)
+    _arrange(wrapper)
     default_width = wrapper.node.props.width
+    default_stage_width = wrapper.node.props.stage_width
     wrapper.node.props.width = default_width + 111
+    wrapper.node.props.stage_width = default_stage_width + 111
 
-    graph.request_node_rebuild(wrapper.node_id)
+    graph._validation.mark_node_dirty(wrapper.node_id, reason)
     graph._validation.force_immediate_validation()
 
-    assert wrapper.node.props.get_position() == (640.0, 320.0)
+    assert _arrangement(wrapper) == ((640.0, 320.0), 7, True, 30.0, 40.0, 5)
     assert wrapper.node.props.width == default_width
+    assert wrapper.node.props.stage_width == default_stage_width
     assert "exec" in wrapper.node.ports, "the rebuild ran init()"
 
 

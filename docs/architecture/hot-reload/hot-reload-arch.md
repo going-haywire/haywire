@@ -114,7 +114,7 @@ Validation:
   edges revalidate           # 4-stage edge build against new port objects
 ```
 
-`build()` is called with **no** `node_info`, so the node runs its `init()` again. Port values, `props` — including the user's label — and the `store` are gone. Only the node's position survives, plus its edges, which rebind by port id.
+`build()` is called with **no** `node_info`, so the node runs its `init()` again. Port values, `props` — including the user's label — and the `store` are gone. Only the node's arrangement survives (position, stacking order, place on stage; ADR 0053), plus its edges, which rebind by port id.
 
 That is deliberate rather than an oversight. `_initialize_from_dict` restores the *serialized* port set without calling `init()`, so carrying saved state across a class reload would keep showing the old port set and hide the new ports the author just wrote — the one thing the author is reloading to see.
 

@@ -10,7 +10,7 @@ level: framework
 
 **Context.**
 
-- A hot reload of a node class rebuilds every placed node of it through `init()`. Everything the user set on those nodes — promotions, setting and port values, grown pins, label — is gone; only the position survives (ADR 0053). A node Reset does the same on purpose, and could not be undone either.
+- A hot reload of a node class rebuilds every placed node of it through `init()`. Everything the user set on those nodes — promotions, setting and port values, grown pins, label — is gone; only the arrangement survives: position, stacking order and place on stage (ADR 0053). A node Reset does the same on purpose, and could not be undone either.
 - Carrying the user's data across the rebuild was tried and abandoned (2026-10-21): deciding whether a value still "fits" new code is a guess about intent, and the guesses kept misfiring.
 
 **Decision.**

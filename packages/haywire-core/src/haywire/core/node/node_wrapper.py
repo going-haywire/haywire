@@ -25,6 +25,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+#: The props fields besides the patch position that a rebuild carries over: the node's
+#: arrangement (stacking order, place on stage). Sizes reset. See ADR 0053.
+_CARRIED_ARRANGEMENT = ("z", "on_stage", "stage_x", "stage_y", "stage_z")
+
 
 @dataclass
 class NodeWrapperState:
@@ -344,7 +348,10 @@ class NodeWrapper:
             self._subscribe_stage_membership()
 
     def _instantiate(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
-        """Create the node instance, cleaning up any existing one first; the node keeps its position.
+        """Create the node instance, cleaning up any existing one first; the node keeps its arrangement.
+
+        A rebuild carries over the patch position, the stacking order and the place on
+        stage; everything else resets.
 
         When the class's constructor raises, the failure lands in ``state.error_instantiate``
         and an error node stands in, keeping the node's data (see ``is_stand_in``).
@@ -356,6 +363,7 @@ class NodeWrapper:
             return False
         node_cls = self._node_cls  # narrowed for the rest of the method
         carried_position = None
+        carried_arrangement: Dict[str, Any] = {}
         # The node's data as it stands, kept by a stand-in if the class below fails to build.
         original = node_info or None
         if original is None and self._node_instance is not None:
@@ -370,7 +378,9 @@ class NodeWrapper:
         try:
             if self._node_instance:
                 # A rebuild keeps the node where it is; everything else resets.
-                carried_position = self._node_instance.props.get_position()
+                props = self._node_instance.props
+                carried_position = props.get_position()
+                carried_arrangement = {name: getattr(props, name) for name in _CARRIED_ARRANGEMENT}
                 # TODO: Create Garbage Collection for old instance
                 self._node_instance._cleanup()
                 self._node_instance = None
@@ -379,6 +389,8 @@ class NodeWrapper:
             self._node_instance = node_cls(self._node_id, self)
             if carried_position is not None:
                 self._node_instance.props.set_position(carried_position)
+            for name, value in carried_arrangement.items():
+                setattr(self._node_instance.props, name, value)
             self._pending_position = None
             self._state.is_instantiated = True
             self._state.error_instantiate = None

@@ -165,7 +165,8 @@ Neither hook is the place to open a camera or a file. That waits until the
 graph runs — the next section.
 
 **When you edit the class (hot-reload),** every placed node of it is rebuilt
-through `init()`: fresh, with only its position kept, so your port changes show
+through `init()`: fresh, with only its arrangement kept (position, stacking order,
+place on stage), so your port changes show
 at once. In a graph open in an editor the user's setup is not lost: **Undo**
 (Ctrl+Z) brings each node back exactly as it was, and Redo makes it fresh again.
 Reset Node is undoable the same way. No undo step is recorded for a graph with
