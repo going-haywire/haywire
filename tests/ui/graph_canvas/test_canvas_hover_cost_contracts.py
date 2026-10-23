@@ -41,7 +41,8 @@ def test_connection_pin_never_transitions_all(source: str) -> None:
     open, so `all` turns each rewrite into a bundle of transitions instead of
     the one or two properties the rules below it actually animate.
     """
-    block = re.search(r"\.connection-pin\s*\{(.*?)\}", source, re.S)
+    # The standalone rule at line start, not a scoped one ending in `.connection-pin`.
+    block = re.search(r"^\.connection-pin\s*\{(.*?)\}", source, re.S | re.M)
     assert block, "no `.connection-pin` rule found in canvas.vue"
     transition = re.search(r"transition\s*:\s*([^;]+);", block.group(1))
     assert transition, "`.connection-pin` declares no transition — check this rule still exists"
