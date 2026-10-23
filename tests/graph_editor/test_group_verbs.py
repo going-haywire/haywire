@@ -130,66 +130,79 @@ class TestDiscovery:
         assert library_system.get_node_factory().get_graph_node() is GraphNode
 
 
+def _menu_ctx(*, active_node=None, selected: set[str] | None = None):
+    from haybale_graph_editor.state.edit_state import EditState
+
+    edit = MagicMock()
+    edit.active_node = active_node
+    edit.selected_nodes = selected or set()
+    edit.selected_edges = set()
+
+    ctx = MagicMock()
+    ctx.data = {EditState: edit}
+    return ctx
+
+
+def _menu_node(*, is_graph_node: bool):
+    wrapper = MagicMock()
+    wrapper.node.identity._is_graph_node = is_graph_node
+    return wrapper
+
+
+def _menu_placement(*, is_macro: bool):
+    """A card whose CLASS identity carries the macro flag."""
+
+    class _Node:
+        class class_identity:
+            _is_macro_node = is_macro
+
+    wrapper = MagicMock()
+    wrapper.node = _Node()
+    return wrapper
+
+
+def _drawn_labels(panel_cls, ctx) -> list[str]:
+    from unittest.mock import patch
+
+    panel = panel_cls.__new__(panel_cls)
+    panel.actions = MagicMock()  # type: ignore[attr-defined]
+    with patch("haybale_graph_editor.panels.graph.menu.selection.selection.hui.menu_row") as row:
+        panel.draw(ctx, MagicMock())
+    return [call.args[0] for call in row.call_args_list]
+
+
 @pytest.mark.unit
 class TestMenuGating:
     """Which rows the selection menu offers."""
 
-    def _ctx(self, *, active_node=None, selected: set[str] | None = None):
-        from haybale_graph_editor.state.edit_state import EditState
-
-        edit = MagicMock()
-        edit.active_node = active_node
-        edit.selected_nodes = selected or set()
-        edit.selected_edges = set()
-
-        ctx = MagicMock()
-        ctx.data = {EditState: edit}
-        return ctx
-
-    def _node(self, *, is_graph_node: bool):
-        wrapper = MagicMock()
-        wrapper.node.identity._is_graph_node = is_graph_node
-        return wrapper
-
     def test_group_rows_show_only_on_a_graph_node(self):
         from haybale_graph_editor.panels._gating import is_graph_node
 
-        assert is_graph_node(self._ctx(active_node=self._node(is_graph_node=True))) is True
-        assert is_graph_node(self._ctx(active_node=self._node(is_graph_node=False))) is False
+        assert is_graph_node(_menu_ctx(active_node=_menu_node(is_graph_node=True))) is True
+        assert is_graph_node(_menu_ctx(active_node=_menu_node(is_graph_node=False))) is False
 
     def test_group_rows_are_hidden_with_nothing_selected(self):
         from haybale_graph_editor.panels._gating import is_graph_node
 
-        assert is_graph_node(self._ctx()) is False
+        assert is_graph_node(_menu_ctx()) is False
 
     def test_collapse_needs_at_least_two_nodes(self):
         from haybale_graph_editor.panels._gating import is_collapsible_selection
 
-        assert is_collapsible_selection(self._ctx(selected=set())) is False
-        assert is_collapsible_selection(self._ctx(selected={"a"})) is False
-        assert is_collapsible_selection(self._ctx(selected={"a", "b"})) is True
-
-    def _placement(self, *, is_macro: bool):
-        """A card whose CLASS identity carries the macro flag."""
-
-        class _Node:
-            class class_identity:
-                _is_macro_node = is_macro
-
-        wrapper = MagicMock()
-        wrapper.node = _Node()
-        return wrapper
+        assert is_collapsible_selection(_menu_ctx(selected=set())) is False
+        assert is_collapsible_selection(_menu_ctx(selected={"a"})) is False
+        assert is_collapsible_selection(_menu_ctx(selected={"a", "b"})) is True
 
     def test_the_macro_row_shows_only_on_a_placement(self):
         from haybale_graph_editor.panels._gating import is_macro_placement
 
-        assert is_macro_placement(self._ctx(active_node=self._placement(is_macro=True))) is True
-        assert is_macro_placement(self._ctx(active_node=self._placement(is_macro=False))) is False
+        assert is_macro_placement(_menu_ctx(active_node=_menu_placement(is_macro=True))) is True
+        assert is_macro_placement(_menu_ctx(active_node=_menu_placement(is_macro=False))) is False
 
     def test_the_macro_row_is_hidden_with_nothing_selected(self):
         from haybale_graph_editor.panels._gating import is_macro_placement
 
-        assert is_macro_placement(self._ctx()) is False
+        assert is_macro_placement(_menu_ctx()) is False
 
     def test_a_placement_is_not_offered_the_group_rows(self):
         """MacroNode clears _is_graph_node so the two gates stay disjoint."""
@@ -202,56 +215,38 @@ class TestMenuGating:
         """A Group can be promoted; a placement can be detached. Never both."""
         from haybale_graph_editor.panels._gating import is_graph_node, is_macro_placement
 
-        group = self._ctx(active_node=self._node(is_graph_node=True))
-        placement = self._ctx(active_node=self._placement(is_macro=True))
+        group = _menu_ctx(active_node=_menu_node(is_graph_node=True))
+        placement = _menu_ctx(active_node=_menu_placement(is_macro=True))
 
         assert is_graph_node(group) is True
         assert is_macro_placement(placement) is True
         # The Group card carries no macro flag, so Detach never shows on it.
-        assert is_macro_placement(self._ctx(active_node=self._placement(is_macro=False))) is False
+        assert is_macro_placement(_menu_ctx(active_node=_menu_placement(is_macro=False))) is False
 
 
 @pytest.mark.unit
 class TestEnterRow:
     """Enter is its own panel, offered on every Graph-node and macro placement."""
 
-    def _ctx(self, **kwargs):
-        return TestMenuGating()._ctx(**kwargs)
-
-    def _node(self, **kwargs):
-        return TestMenuGating()._node(**kwargs)
-
-    def _placement(self, **kwargs):
-        return TestMenuGating()._placement(**kwargs)
-
     def test_enter_row_shows_for_groups_and_placements(self):
         from haybale_graph_editor.panels.graph.menu.selection.selection import EnterMenuPanel
 
-        group = self._ctx(active_node=self._node(is_graph_node=True))
-        card = self._placement(is_macro=True)
+        group = _menu_ctx(active_node=_menu_node(is_graph_node=True))
+        card = _menu_placement(is_macro=True)
         card.node.identity = MagicMock(_is_graph_node=False)
-        placement = self._ctx(active_node=card)
-        plain = self._ctx(active_node=self._node(is_graph_node=False))
+        placement = _menu_ctx(active_node=card)
+        plain = _menu_ctx(active_node=_menu_node(is_graph_node=False))
 
         assert EnterMenuPanel.poll(group) is True
         assert EnterMenuPanel.poll(placement) is True
         assert EnterMenuPanel.poll(plain) is False
 
-    def _drawn_labels(self, panel_cls, ctx) -> list[str]:
-        from unittest.mock import patch
-
-        panel = panel_cls.__new__(panel_cls)
-        panel.actions = MagicMock()  # type: ignore[attr-defined]
-        with patch("haybale_graph_editor.panels.graph.menu.selection.selection.hui.menu_row") as row:
-            panel.draw(ctx, MagicMock())
-        return [call.args[0] for call in row.call_args_list]
-
     def test_group_panel_no_longer_offers_enter(self):
         from haybale_graph_editor.panels.graph.menu.selection.selection import GroupMenuPanel
 
-        ctx = self._ctx(active_node=self._node(is_graph_node=True))
+        ctx = _menu_ctx(active_node=_menu_node(is_graph_node=True))
 
-        labels = self._drawn_labels(GroupMenuPanel, ctx)
+        labels = _drawn_labels(GroupMenuPanel, ctx)
 
         assert "Enter Group" not in labels
         assert "Expand Group" in labels
@@ -259,9 +254,9 @@ class TestEnterRow:
     def test_group_row_says_save_new_macro(self):
         from haybale_graph_editor.panels.graph.menu.selection.selection import GroupMenuPanel
 
-        ctx = self._ctx(active_node=self._node(is_graph_node=True))
+        ctx = _menu_ctx(active_node=_menu_node(is_graph_node=True))
 
-        labels = self._drawn_labels(GroupMenuPanel, ctx)
+        labels = _drawn_labels(GroupMenuPanel, ctx)
 
         assert "Save new Macro…" in labels
         assert "Promote to Macro…" not in labels
@@ -269,9 +264,9 @@ class TestEnterRow:
     def test_enter_panel_draws_enter(self):
         from haybale_graph_editor.panels.graph.menu.selection.selection import EnterMenuPanel
 
-        ctx = self._ctx(active_node=self._node(is_graph_node=True))
+        ctx = _menu_ctx(active_node=_menu_node(is_graph_node=True))
 
-        assert self._drawn_labels(EnterMenuPanel, ctx) == ["Enter"]
+        assert _drawn_labels(EnterMenuPanel, ctx) == ["Enter"]
 
 
 @pytest.mark.unit
@@ -281,15 +276,14 @@ class TestEditInstanceRow:
     def test_edit_instance_row(self):
         from haybale_graph_editor.panels.graph.menu.selection.selection import EditInstanceMenuPanel
 
-        helper = TestEnterRow()
-        card = helper._placement(is_macro=True)
-        placement = helper._ctx(active_node=card)
-        plain = helper._ctx(active_node=helper._placement(is_macro=False))
+        card = _menu_placement(is_macro=True)
+        placement = _menu_ctx(active_node=card)
+        plain = _menu_ctx(active_node=_menu_placement(is_macro=False))
 
         assert EditInstanceMenuPanel.class_identity.label == "Edit Instance"
         assert EditInstanceMenuPanel.poll(placement) is True
         assert EditInstanceMenuPanel.poll(plain) is False
-        assert helper._drawn_labels(EditInstanceMenuPanel, placement) == ["Edit Instance"]
+        assert _drawn_labels(EditInstanceMenuPanel, placement) == ["Edit Instance"]
 
 
 @pytest.mark.unit
@@ -329,21 +323,20 @@ class TestRevertToMacroRow:
     def test_row_shows_only_on_a_modified_instance(self):
         from haybale_graph_editor.panels.graph.menu.selection.selection import ModifiedInstanceMenuPanel
 
-        helper = TestMenuGating()
-        modified = helper._ctx(active_node=self._instance())
-        plain_group = helper._ctx(active_node=self._instance(origin=False))
-        placement = helper._ctx(active_node=helper._placement(is_macro=True))
+        modified = _menu_ctx(active_node=self._instance())
+        plain_group = _menu_ctx(active_node=self._instance(origin=False))
+        placement = _menu_ctx(active_node=_menu_placement(is_macro=True))
 
         assert ModifiedInstanceMenuPanel.class_identity.order == 39
         assert ModifiedInstanceMenuPanel.poll(modified) is True
         assert ModifiedInstanceMenuPanel.poll(plain_group) is False
         assert ModifiedInstanceMenuPanel.poll(placement) is False
-        assert ModifiedInstanceMenuPanel.poll(helper._ctx()) is False
+        assert ModifiedInstanceMenuPanel.poll(_menu_ctx()) is False
 
     def test_row_acts_when_the_macro_is_installed(self):
         template = MagicMock()
         template.class_identity.label = "Blur"
-        ctx = TestMenuGating()._ctx(active_node=self._instance())
+        ctx = _menu_ctx(active_node=self._instance())
 
         panel, row = self._drawn(ctx, template)
 
@@ -353,7 +346,7 @@ class TestRevertToMacroRow:
         panel.actions.revert_to_macro.assert_called_once_with("card1")
 
     def test_revert_row_disabled_when_the_macro_is_gone(self):
-        ctx = TestMenuGating()._ctx(active_node=self._instance(label="Blur copy"))
+        ctx = _menu_ctx(active_node=self._instance(label="Blur copy"))
 
         panel, row = self._drawn(ctx, None)
 
