@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -526,16 +526,19 @@ class TestADetachedPlacement:
         assert inner.inside_placement is False
         _stub(editor._teardown_level).assert_not_called()
 
-    def test_a_background_editor_follows_without_claiming(self):
+    @pytest.mark.parametrize("holds_session", [True, False])
+    def test_a_re_key_claims_the_session_only_from_the_editor_it_is_on(self, holds_session: bool):
+        """The prune decides the claim: an editor the session is not on re-keys its level alone."""
         editor, context, document = _editor()
         _open_placement(editor, context)
         _detach(document, _shown(editor, _PLACEMENT_KEY).definition, "subgraph_new")
         _stub(editor._claim_session_state).reset_mock()
 
-        editor._rekey_level(context, editor._levels[_PLACEMENT_KEY], claim=False)
+        with patch.object(editor, "_holds_session", return_value=holds_session):
+            editor._prune_dead_levels(context)
 
         assert editor._active_level == "subgraph_new"
-        _stub(editor._claim_session_state).assert_not_called()
+        assert _stub(editor._claim_session_state).called is holds_session
 
     def test_a_re_keyed_level_whose_card_is_gone_closes(self):
         editor, context, document = _editor()
