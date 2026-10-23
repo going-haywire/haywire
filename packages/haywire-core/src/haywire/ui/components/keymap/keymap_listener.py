@@ -22,8 +22,9 @@ class KeymapListener(ui.element, component="keymap_listener.vue"):
     command is a native-event command (see ``EditorCommand.native_event``) is
     left to the browser and reported from that event instead. Keys and pastes
     inside a text field (``input``, ``textarea``, ``select``,
-    ``[contenteditable]``, ``.cm-editor``, ``[data-hw-native-keys]``) stay with
-    the field, except a command marked ``EditorCommand.in_text_fields``. Before
+    ``[contenteditable]``, ``.cm-editor``) stay with the field, except a command
+    marked ``EditorCommand.in_text_fields``; inside a ``[data-hw-native-keys]``
+    subtree every key and paste stays with the element. Before
     reporting one, the listener sends a focused ``input`` or ``textarea`` a
     bubbling ``hw-commit`` DOM event, so a widget that commits on blur listens
     for ``hw-commit`` too. Keys inside a dialog or a ``Popup`` stay with the

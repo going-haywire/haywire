@@ -2297,7 +2297,8 @@ def register_routes(library_service) -> None:
     # One KeymapListener (Control is Mod) over three slots: "edit" (bar
     # #edit-bar, editor roots ed::one and ed::two), "context" (header #ctx-bar,
     # root ed::ctx = #ctx-root) and "info" (bar #info-bar, no editor). ed::one
-    # holds a text input and a pointer-local hook answering [12, 34]. The bars
+    # holds a text input, a pointer-local hook answering [12, 34] and a focusable
+    # #native-keys marked data-hw-native-keys. The bars
     # carry the shell's ACTIVE_SLOT_CSS over a surface of #101010 and an
     # elevated of #505050. #fake-dialog (classed .q-dialog) holds a plain
     # button, #dialog-button. #last-command / #command-log record what reached
@@ -2363,6 +2364,10 @@ def register_routes(library_service) -> None:
 
                 commit_field.on("blur", on_blur)
                 ui.element("div").classes("cm-editor").props('contenteditable="true" id="code-field"').style(
+                    "min-height: 20px;"
+                )
+                # A focusable widget that keeps every key, as a shortcut recorder would.
+                ui.element("div").props('id="native-keys" tabindex="0" data-hw-native-keys').style(
                     "min-height: 20px;"
                 )
             ui.element("div").props('data-hw-binding="ed::two" data-hw-editor="ed"').style(root_style)

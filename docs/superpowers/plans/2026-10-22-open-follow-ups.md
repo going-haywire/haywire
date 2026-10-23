@@ -43,7 +43,7 @@ Line references are from 2026-10-22. ✓ = confirmed in code; anything else come
 
 Ctrl+S and core fixes:
 
-20. ✓ `in_text_fields` also overrides the `[data-hw-native-keys]` opt-out in `keymap_listener.vue` (nothing uses the attribute yet).
+20. **DONE** ~~`in_text_fields` also overrides the `[data-hw-native-keys]` opt-out in `keymap_listener.vue` (nothing uses the attribute yet).~~ The opt-out is absolute; browser test `test_save_stays_with_a_native_keys_element`.
 21. ✓ `HaystackState.open_macro_with`: if `load_from_file` raises (file deleted since opening), the entry is left emptied; `macro.py` catches it, so the UI is safe.
 22. No core end-to-end test that an edge validates on a pin added after the first validation (the macro integration test covers the reported case).
 

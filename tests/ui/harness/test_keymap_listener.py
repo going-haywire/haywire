@@ -317,6 +317,18 @@ def test_save_fires_inside_a_text_field(page: Page, harness):
     assert page.evaluate("() => window.__hwProbe") is True
 
 
+def test_save_stays_with_a_native_keys_element(page: Page, harness):
+    """``data-hw-native-keys`` keeps every key, a command marked ``in_text_fields`` too."""
+    _open(page, harness)
+    _probe_default_prevented(page, "s")
+
+    page.locator("#native-keys").focus()
+    page.keyboard.press("Control+s")
+
+    assert page.evaluate("() => window.__hwProbe") is False
+    _expect_only_sentinel(page)
+
+
 def test_save_blurs_the_field_before_the_command(page: Page, harness):
     _open(page, harness)
     field = page.locator("#commit-field")

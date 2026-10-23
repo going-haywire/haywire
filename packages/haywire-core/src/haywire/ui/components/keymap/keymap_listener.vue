@@ -12,9 +12,11 @@
 // into command events for the target's editor keymap, and the native `paste`
 // event into the editor's paste command.
 // Keys typed into a text field stay with the field, except the commands marked
-// `in_text_fields`; keys pressed inside a dialog or a Popup stay with the page.
-const NATIVE_SELECTOR =
-  'input, textarea, select, [contenteditable], .cm-editor, [data-hw-native-keys]';
+// `in_text_fields`; keys pressed inside a dialog, a Popup or a [data-hw-native-keys]
+// subtree stay with the page.
+const TEXT_FIELD_SELECTOR = 'input, textarea, select, [contenteditable], .cm-editor';
+const NATIVE_KEYS_SELECTOR = '[data-hw-native-keys]';
+const NATIVE_SELECTOR = `${TEXT_FIELD_SELECTOR}, ${NATIVE_KEYS_SELECTOR}`;
 
 const MODIFIER_KEYS = new Set(['Control', 'Meta', 'Alt', 'Shift', 'AltGraph', 'CapsLock', 'OS']);
 
@@ -49,6 +51,11 @@ function isNativeTarget(el) {
 // An open dialog or Popup sits over the editors, so keys pressed in it never act on the editor behind.
 function isInDialog(el) {
   return el instanceof Element && el.closest('.q-dialog, .hw-popup-overlay') !== null;
+}
+
+// A subtree marked data-hw-native-keys keeps every key, `in_text_fields` commands too.
+function keepsAllKeys(el) {
+  return el instanceof Element && el.closest(NATIVE_KEYS_SELECTOR) !== null;
 }
 
 function keepsNativeKeys(target) {
@@ -188,6 +195,7 @@ export default {
       if (e.repeat) return;
       const active = document.activeElement;
       if (isInDialog(active) || isInDialog(e.target)) return;
+      if (keepsAllKeys(active)) return;
       const inField = isNativeTarget(active);
       const combo = comboFromEvent(e, this.isMac);
       if (combo === null) return;
