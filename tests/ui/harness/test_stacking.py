@@ -54,6 +54,20 @@ def test_the_higher_card_paints_on_top(page: Page, harness, channel: str):
     assert _card_at(page, *_overlap_centre(page, back, front)) == front
 
 
+@pytest.mark.parametrize("channel", ["patch", "stage"])
+def test_a_card_below_zero_still_paints_under_the_card_above(page: Page, harness, channel: str):
+    """A Send to Back writes negative values; the card stays drawn, only beneath the others."""
+    goto_ready(page, f"{harness}/graph-stack?channel={channel}&negative=1")
+    page.wait_for_selector("[data-node-id]")
+    wait_for_canvas_settled(page)
+    back, front = attr(page, "#stack-ids", "data-back"), attr(page, "#stack-ids", "data-front")
+    page.mouse.move(5, 5)
+
+    assert _card_at(page, *_overlap_centre(page, back, front)) == front
+    b = _box(page, back)
+    assert _card_at(page, b["x"] + 10, b["y"] + 10) == back  # its own corner, clear of the front card
+
+
 @pytest.mark.parametrize(("channel", "on_top"), [("patch", "back"), ("stage", "front")])
 def test_hover_lifts_a_back_card_in_the_patch_only(page: Page, harness, channel: str, on_top: str):
     back, front = _open(page, harness, channel)

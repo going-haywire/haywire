@@ -1650,10 +1650,15 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     @ui.page("/graph-stack")
-    async def graph_stack_page(channel: str = "patch"):
+    async def graph_stack_page(channel: str = "patch", negative: int = 0):
         from haywire.core.node.layout import CHANNELS
 
         graph, editor, back, front = _build_stack_graph(library_service.get_node_factory())
+        if negative:
+            # What a Send to Back writes: below zero, the front card at 0.
+            for props, z in ((back.node.props, -1), (front.node.props, 0)):
+                props.z = z
+                props.stage_z = z
         ui.label("stack").props(
             f'id="stack-ids" data-testid="stack-ids" data-back="{back.node_id}" data-front="{front.node_id}"'
         )
