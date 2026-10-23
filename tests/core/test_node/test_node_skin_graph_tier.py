@@ -28,14 +28,18 @@ class TestNodeSkinGraphTier:
         wrapper = _add_node(graph_obj)
 
         registry.set_global(SKIN_KEY, "skin-fw")
-        graph_obj.props.default_skin = "skin-graph"
-        wrapper.node.props.skin = "skin-node"
-        assert wrapper.node.props.skin == "skin-node"
+        try:
+            graph_obj.props.default_skin = "skin-graph"
+            wrapper.node.props.skin = "skin-node"
+            assert wrapper.node.props.skin == "skin-node"
 
-        wrapper.node.props._reset("skin")
-        assert wrapper.node.props.skin == "skin-graph"  # node → graph
-        graph_obj.props._reset("default_skin")
-        assert wrapper.node.props.skin == "skin-fw"  # graph → framework
+            wrapper.node.props._reset("skin")
+            assert wrapper.node.props.skin == "skin-graph"  # node → graph
+            graph_obj.props._reset("default_skin")
+            assert wrapper.node.props.skin == "skin-fw"  # graph → framework
+        finally:
+            # The registry is ambient: a framework skin left set reaches every later test's nodes.
+            registry.reset_global(SKIN_KEY)
 
     def test_round_trip_preserves_all_three_tiers(self, graph_with_library_system, library_system):
         graph_obj = graph_with_library_system
