@@ -167,6 +167,47 @@ def test_an_unknown_class_keeps_its_own_copy_of_the_loaded_data(graph_with_libra
     assert _saved(graph, wrapper.node_id)["node_data"] == original
 
 
+def test_an_edge_survives_break_and_fix(graph_with_library_system, construction_fails):
+    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+
+    graph = graph_with_library_system
+    source, sink = _two_nodes(graph)
+    edge = graph.create_edge_wrapper(source.node_id, "done", sink.node_id, "exec")
+    assert edge is not None
+    graph._validation.force_immediate_validation()
+    assert edge.is_valid()
+
+    construction_fails(1)
+    _reset(graph, sink.node_id)
+    assert sink.is_stand_in
+    assert edge.edge_id in graph.edge_wrappers
+
+    _reset(graph, sink.node_id)
+
+    assert isinstance(sink.node, TestPrintNode)
+    kept = graph.edge_wrappers[edge.edge_id]
+    assert (kept.outlet_port_id, kept.inlet_port_id) == ("done", "exec")
+    assert kept.is_valid()
+
+
+def test_a_label_and_move_on_a_stand_in_survive_the_fix(graph_with_library_system, construction_fails):
+    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+
+    graph = graph_with_library_system
+    wrapper = graph.create_node_wrapper(_print_key(), position=(10.0, 10.0))
+    construction_fails(1)
+    _reset(graph, wrapper.node_id)
+    assert wrapper.is_stand_in
+
+    wrapper.node.props.label = "Renamed"
+    graph.move_node(wrapper.node_id, 640.0, 320.0)
+    _reset(graph, wrapper.node_id)
+
+    assert isinstance(wrapper.node, TestPrintNode)
+    assert wrapper.node.props.label == "Renamed"
+    assert wrapper.node.props.get_position() == (640.0, 320.0)
+
+
 def test_a_failed_rebuild_keeps_the_values_for_the_fix(graph_with_library_system, construction_fails):
     from haybale_testing.nodes.testbed.print_node import TestPrintNode
 

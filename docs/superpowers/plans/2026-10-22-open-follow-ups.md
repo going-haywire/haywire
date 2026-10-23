@@ -62,7 +62,7 @@ Error-node stand-in (ADR 0058):
 30. **DONE** ~~`_stand_in_data` aliases the caller's `node_info` dict; deep-copy once on capture.~~ Was live, not latent: the loader passes its own dict through (tests failed before the fix). Deep-copied on capture; two tests in `test_stand_in.py`.
 31. **DONE** ~~A stand-in ignores `serialize(include_data=False)`, so a template save writes its port values.~~ The kept ports drop `field_data` without `include_data`; test in `test_stand_in.py`.
 32. **DONE** ~~The graph-editor stand-in tests use an unknown-key stand-in only, not a constructor failure.~~ `stand_in` is parametrized over both causes; `construction_fails` moved to `tests/conftest.py`.
-33. No tests for break → fix with an edge attached, or relabel → fix (review probes passed).
+33. **DONE** ~~No tests for break → fix with an edge attached, or relabel → fix (review probes passed).~~ Two tests in `test_stand_in.py` (edge kept and valid; label and move kept); no bug found.
 34. **DONE** ~~Farmhand's node state row lacks `is_stand_in`.~~ State row carries `is_stand_in`; `inspect_node`'s summary names the node's own key (was the ErrorNode's) and flags a stand-in. Open question split off as #45.
 35. A Graph-node or Macro stand-in pasted while broken carries no Subgraph (the clipboard reads `wrapper.node.subgraph_key`); once fixed it would share its Subgraph with the original. Same pattern as an unknown-key Graph-node.
 
