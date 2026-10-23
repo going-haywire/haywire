@@ -64,11 +64,13 @@ Fixed: a failed load raises and leaves the macro as its file has it; an error af
 
 ## 4. Test gaps
 
-- Redo of a detach re-applies the origin: not tested. `_AdoptTemplateInteriorAction` re-captures the previous value on execute, so redo should work.
-- `drop_unmatched_edges=True` keeping an edge whose pin exists: not tested. The `_revert` helper in `tests/core/test_macro/test_detach_placement.py` does not pass the flag that the real Revert passes.
-- `tests/graph_editor/test_graph_editor_placement_levels.py`: the background-session test calls `_rekey_level(claim=False)` directly. It does not go through `_prune_dead_levels` with `_holds_session()` false.
-- `tests/graph_editor/test_group_verbs.py`: `TestEditInstanceRow` creates `TestEnterRow()` to reuse its helpers. Move them to module functions.
-- The Clone-to-Library row ordering test reads the edit state through `ctx.data[next(iter(ctx.data))]`, which breaks if another state is added first.
+All five closed on 2026-10-23 (backlog #19).
+
+- **DONE** Redo of a detach re-applies the origin: not tested. `_AdoptTemplateInteriorAction` re-captures the previous value on execute, so redo should work.
+- **DONE** `drop_unmatched_edges=True` keeping an edge whose pin exists: not tested. The `_revert` helper in `tests/core/test_macro/test_detach_placement.py` does not pass the flag that the real Revert passes.
+- **DONE** `tests/graph_editor/test_graph_editor_placement_levels.py`: the background-session test calls `_rekey_level(claim=False)` directly. It does not go through `_prune_dead_levels` with `_holds_session()` false.
+- **DONE** `tests/graph_editor/test_group_verbs.py`: `TestEditInstanceRow` creates `TestEnterRow()` to reuse its helpers. Move them to module functions.
+- **DONE** The Clone-to-Library row ordering test reads the edit state through `ctx.data[next(iter(ctx.data))]`, which breaks if another state is added first.
 
 ## Out of scope
 

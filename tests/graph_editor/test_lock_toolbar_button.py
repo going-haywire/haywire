@@ -256,8 +256,10 @@ class TestTheButtonIsAnUndoableEdit:
         graph.cleanup()
 
     def _ctx_with_route(self, props, route):
+        from haybale_graph_editor.state.edit_state import EditState
+
         ctx = _ctx(cast(Any, props))
-        ctx.data[next(iter(ctx.data))].active_route = route
+        ctx.data[EditState].active_route = route
         return ctx
 
     def test_the_lock_button_marks_unsaved_and_undoes(self, nicegui_slot_context, live):
@@ -288,9 +290,11 @@ class TestTheButtonIsAnUndoableEdit:
         assert tooltips[0].text == "unlocked"
 
     def test_the_lock_button_without_a_route_changes_nothing(self, nicegui_slot_context):
+        from haybale_graph_editor.state.edit_state import EditState
+
         props = _Props(locked=False)
         ctx = _ctx(props)
-        ctx.data[next(iter(ctx.data))].active_route = None
+        ctx.data[EditState].active_route = None
         button = _draw(ctx)
 
         _click(button)

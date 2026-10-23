@@ -158,13 +158,14 @@ def test_count_placements_spans_graphs_and_interiors(graph_with_library_system, 
 def test_clone_to_library_never_polls_on_a_modified_instance(graph_with_library_system, library_system):
     """Both rows sit at order 39 on the selection menu; they never show together."""
     from haybale_graph_editor.panels._gating import is_cloneable_selection, is_modified_instance
+    from haybale_graph_editor.state.edit_state import EditState
 
     graph = graph_with_library_system
     editor, placement_id = _place(graph, library_system)
     card_id, _ = _detach(editor, placement_id)
     card = graph.get_node_wrapper(card_id)
     ctx = _ctx(card)
-    ctx.data[next(iter(ctx.data))].selected_nodes = {card_id}
+    ctx.data[EditState].selected_nodes = {card_id}
 
     assert is_modified_instance(ctx) is True
     assert is_cloneable_selection(ctx) is False
