@@ -79,15 +79,44 @@ def test_stage_order_holds_only_on_stage_nodes(graph_with_library_system):
 # ---------------------------------------------------------------------------
 
 
-def test_bring_to_front_writes_only_changed_ranks(graph_with_library_system, library_system):
+def test_bring_to_front_writes_only_the_moving_nodes(graph_with_library_system, library_system):
     graph = graph_with_library_system
     editor = _editor(graph, library_system)
     (wa, wb, wc, wd), (a, b, c, d) = _four(graph)
 
     assert editor.restack_nodes([a, c], Restack.FRONT)
     assert stacking_order(graph, PATCH) == [b, d, a, c]
-    assert (wd.node.props.z, wa.node.props.z, wc.node.props.z) == (1, 2, 3)
+    assert (wa.node.props.z, wc.node.props.z) == (1, 2)
     assert not wb.node.props._is_locally_set("z")
+    assert not wd.node.props._is_locally_set("z")
+
+
+def test_send_to_back_goes_below_zero_writing_only_the_moving_node(
+    graph_with_library_system, library_system
+):
+    graph = graph_with_library_system
+    editor = _editor(graph, library_system)
+    (wa, wb, wc, wd), (a, b, c, d) = _four(graph)
+
+    assert editor.restack_nodes([d], Restack.BACK)
+
+    assert stacking_order(graph, PATCH) == [d, a, b, c]
+    assert wd.node.props.z == -1
+    assert not any(w.node.props._is_locally_set("z") for w in (wa, wb, wc))
+
+
+def test_front_past_the_limit_renumbers_as_ranks(graph_with_library_system, library_system):
+    from haywire.core.graph.stacking import _Z_LIMIT
+
+    graph = graph_with_library_system
+    editor = _editor(graph, library_system)
+    (wa, wb, wc, wd), (a, b, c, d) = _four(graph)
+    wd.node.props.z = _Z_LIMIT
+
+    assert editor.restack_nodes([a], Restack.FRONT)
+
+    assert stacking_order(graph, PATCH) == [b, c, d, a]
+    assert _zs([wb, wc, wd, wa]) == [0, 1, 2, 3]
 
 
 def test_a_plain_string_names_the_restack_and_an_unknown_one_raises(graph_with_library_system):
@@ -196,10 +225,10 @@ def test_a_created_node_lands_on_top(graph_with_library_system, library_system):
     assert stacking_order(graph, PATCH)[-1] == fresh.node_id
 
     assert editor.restack_nodes([a], Restack.FRONT)
-    assert graph.node_wrappers[a].node.props.z == 4
+    assert graph.node_wrappers[a].node.props.z == 2
     newer = editor.create_wrapper(_key(), (0.0, 0.0))
     assert newer is not None
-    assert newer.node.props.z == 5
+    assert newer.node.props.z == 3
     assert stacking_order(graph, PATCH)[-1] == newer.node_id
 
 

@@ -20,7 +20,7 @@ Line references are from 2026-10-22. ✓ = confirmed in code; anything else come
 ## 2. Performance
 
 7. **The Inset host card is rebuilt in full on every visual change inside it,** patch moves included. Narrow it to stage changes (edge-only interior batches already skip it). Note: every rebuild also releases its widgets, which no longer leaks since `bb40afd5`.
-8. **The first restack writes N−1 nodes** (stacking order, slice 5c).
+8. **DONE** ~~**The first restack writes N−1 nodes** (stacking order, slice 5c).~~ It was every Front/Back far from that end (measured 300 writes, 28–65 ms at 300 nodes). Front/Back now write only the moving nodes (Back may go negative); dense ranks only past ±100 000.
 9. **Drawing large graphs.** The 512-node load went from 23 s to ~12 s (Firefox 52 s → 11 s) on 2026-10-20; the Vue full-tree render walk remains (`.insights/project_nicegui_component_vs_native_tag.md`). Handoff: `internals/handoff/draw_performance_regression_fix.md` — check whether its `_claim_session_state` regression is cleared by `_clear_selection` publishing only when something was selected.
 
 ## 3. Polish

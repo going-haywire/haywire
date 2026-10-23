@@ -16,6 +16,10 @@ from ..node.layout import LayoutChannel
 if TYPE_CHECKING:
     from .base import BaseGraph
 
+#: The largest stacking value, either sign, that FRONT and BACK write before renumbering
+#: as ranks; well below the canvas's selection lift (1 000 000).
+_Z_LIMIT = 100_000
+
 
 class Restack(str, Enum):
     """A change to the stacking order of a set of nodes in one view.
@@ -52,10 +56,12 @@ def restacked(
 ) -> dict[str, int]:
     """Return the new stacking value of each node that ``how`` changes, applied to ``node_ids``.
 
-    The new order is written as ranks: the node at paint position ``i`` gets ``i``. Only nodes
-    whose value differs from their rank are returned. Ids the graph does not know, or that
-    ``channel`` does not include, are ignored. The result is empty when the paint order does not
-    change, even if the stored values are not ranks yet.
+    ``FRONT`` and ``BACK`` change the moving nodes only: they go just above the highest, or
+    just below the lowest, of the others, so ``BACK`` can write negative values. When that would
+    pass ±100 000, and for ``FORWARD`` and ``BACKWARD``, the new order is written as ranks: the
+    node at paint position ``i`` gets ``i``, and only nodes whose value differs are returned.
+    Ids the graph does not know, or that ``channel`` does not include, are ignored. The result is
+    empty when the paint order does not change.
 
     Raises:
         ValueError: If ``how`` names no ``Restack`` member; a plain string such as ``"front"``
@@ -64,7 +70,8 @@ def restacked(
     Example::
 
         # a, b, c, d all at 0, painted in that order
-        restacked(graph, ["a"], Restack.FRONT, PATCH)      # {"c": 1, "d": 2, "a": 3}; b stays 0
+        restacked(graph, ["a"], Restack.FRONT, PATCH)      # {"a": 1}; order b, c, d, a
+        restacked(graph, ["d"], Restack.BACK, PATCH)       # {"d": -1}; order d, a, b, c
         restacked(graph, ["a"], Restack.FORWARD, PATCH)    # {"a": 1, "c": 2, "d": 3}; order b, a, c, d
     """
     how = Restack(how)
@@ -88,11 +95,17 @@ def restacked(
     if order == before:
         return {}
 
-    changes: dict[str, int] = {}
-    for rank, node_id in enumerate(order):
-        if getattr(graph.node_wrappers[node_id].node.props, channel.z) != rank:
-            changes[node_id] = rank
-    return changes
+    def z(node_id: str) -> int:
+        return getattr(graph.node_wrappers[node_id].node.props, channel.z)
+
+    if how in (Restack.FRONT, Restack.BACK):
+        movers = [n for n in order if n in moving]
+        others = [z(n) for n in order if n not in moving]
+        first = max(others) + 1 if how is Restack.FRONT else min(others) - len(movers)
+        if -_Z_LIMIT <= first and first + len(movers) - 1 <= _Z_LIMIT:
+            return {n: first + i for i, n in enumerate(movers) if z(n) != first + i}
+
+    return {node_id: rank for rank, node_id in enumerate(order) if z(node_id) != rank}
 
 
 def top_z(graph: "BaseGraph", channel: LayoutChannel, exclude: Collection[str] = ()) -> int:

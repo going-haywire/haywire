@@ -4283,8 +4283,9 @@ export default {
  * larger raw numbers here. See design-guide.md §2.9.
  *
  * Cards inside the node container carry their stacking order as z-index
- * (0 upward, one per card), so every lift above them (selected, hover, gadget,
- * edge handles) starts at 1000000.
+ * (within ±100000, negative after a Send to Back; the node container is its own
+ * stacking context, so a negative card never slips under the edges), so every
+ * lift above them (selected, hover, gadget, edge handles) starts at 1000000.
  *
  * NOT tokenised, deliberately: the `.connection-pin` values (10000+) inside a
  * node card, and the transient values the edge-drag paths write from JS. Both are
