@@ -146,18 +146,17 @@ class GraphNode(BaseNode):
         running host keeps running. A card with ``_forwards_content_changes``
         off drops the batches that only save.
 
-        A batch that repaints an interior node — a move, a stage change, a
-        redraw request, a reload — also redraws the card, whatever else it
-        carries, since a skin may draw the interior inside the card. A value
-        edit leaves the card as drawn.
+        A batch that repaints an on-stage interior node (a move, a redraw
+        request, a reload) or changes what is on stage also redraws the card,
+        whatever else it carries, since a skin may draw the interior's stage
+        inside the card. A node off stage cannot show there, so its repaint
+        leaves the card as drawn, and so does a value edit. A patch move of an
+        on-stage node still redraws: a move does not say which view it was in.
         """
         if result.graph is not None and result.graph.requires_graph_reassembly():
             self.reconcile_interface()
 
-        if any(
-            reason.requires_redraw() or reason is ChangeReason.NODE_STAGE_CHANGED
-            for reason in result.nodes.values()
-        ):
+        if any(self._shows_on_card(node_id, reason) for node_id, reason in result.nodes.items()):
             self.wrapper.redraw()
 
         if not result.requires_save():
@@ -169,6 +168,18 @@ class GraphNode(BaseNode):
             self.wrapper._graph._validation.mark_graph_dirty(ChangeReason.GRAPH_REQUIRE_REASSEMBLY)
         elif self._forwards_content_changes:
             self.wrapper._graph._validation.mark_graph_dirty(ChangeReason.GRAPH_CONTENT_CHANGED)
+
+    def _shows_on_card(self, node_id: str, reason: ChangeReason) -> bool:
+        """Whether an interior node's change can show on the card: only the stage is drawn there."""
+        if reason is ChangeReason.NODE_STAGE_CHANGED:
+            return True
+        if not reason.requires_redraw():
+            return False
+        wrapper = self._watched.get_node_wrapper(node_id) if self._watched is not None else None
+        try:
+            return wrapper is None or bool(wrapper.node.props.on_stage)
+        except RuntimeError:
+            return True  # no instance to ask: redraw rather than miss it
 
     def _on_label_changed(self, _value: object, _old: object) -> None:
         """Rename the Subgraph to match this card.

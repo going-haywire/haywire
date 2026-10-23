@@ -1,8 +1,9 @@
-"""A Graph-node card redraws when its interior changes visually, and never for a value edit.
+"""A Graph-node card redraws when its interior's stage changes visually, and never for a value edit.
 
-The Inset draws the interior's stage inside the card, so a move or a stage
-change inside must reach the card. A value edit must not: it would rebuild the
-card, and with it a slider the user is still dragging.
+The Inset draws the interior's stage inside the card, so a move of an on-stage
+node or a stage change inside must reach the card. A change to a node off stage
+must not, and neither may a value edit: either would rebuild the card, and with
+it a slider the user is still dragging.
 """
 
 from __future__ import annotations
@@ -47,26 +48,35 @@ def _card_redraws(seen: list[ValidationResult], card: NodeWrapper) -> bool:
     return any(card.node_id in r.nodes and r.nodes[card.node_id].requires_redraw() for r in seen)
 
 
-def test_an_interior_move_redraws_the_card(group) -> None:
+@pytest.mark.parametrize("on_stage", [True, False])
+def test_an_interior_move_redraws_the_card_only_on_stage(group, on_stage: bool) -> None:
     definition, card, interior, seen = group
+    interior.node.props.on_stage = on_stage
+    seen.clear()
 
     definition.move_node(interior.node_id, 10.0, 20.0)
 
-    assert _card_redraws(seen, card)
+    assert _card_redraws(seen, card) is on_stage
 
 
-def test_an_interior_stage_change_redraws_the_card(group) -> None:
+@pytest.mark.parametrize("on_stage", [True, False])
+def test_an_interior_redraw_request_redraws_the_card_only_on_stage(group, on_stage: bool) -> None:
     _definition, card, interior, seen = group
-
-    interior.node.props.on_stage = True
-
-    assert _card_redraws(seen, card)
-
-
-def test_an_interior_redraw_request_redraws_the_card(group) -> None:
-    _definition, card, interior, seen = group
+    interior.node.props.on_stage = on_stage
+    seen.clear()
 
     interior.redraw()
+
+    assert _card_redraws(seen, card) is on_stage
+
+
+@pytest.mark.parametrize("on_stage", [True, False])
+def test_an_interior_stage_change_redraws_the_card(group, on_stage: bool) -> None:
+    _definition, card, interior, seen = group
+    interior.node.props.on_stage = not on_stage
+    seen.clear()
+
+    interior.node.props.on_stage = on_stage
 
     assert _card_redraws(seen, card)
 

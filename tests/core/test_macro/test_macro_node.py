@@ -233,10 +233,11 @@ def _card_redraws(seen: list, card) -> bool:
 
 
 def test_a_placement_interior_move_redraws_the_card(graph_with_library_system, macro_registry):
-    """A move inside a placement redraws its card, which an Inset draws the interior in."""
+    """A move of an on-stage node inside a placement redraws its card, which an Inset draws the stage in."""
     graph = graph_with_library_system
     card = _place(graph)
     interior = _interior_adder(card)
+    interior.node.props.on_stage = True
     graph.force_validation()
     seen: list = []
     graph.subscribe_to_validation(seen.append)
