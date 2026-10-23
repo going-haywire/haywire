@@ -412,6 +412,34 @@ def test_a_slot_without_an_editor_is_not_activated(page: Page, harness):
     assert _active_slot(page) == "context"
 
 
+def _show_ctx_root(page: Page, shown: bool) -> None:
+    page.locator("#ctx-root").evaluate(f"el => {{ el.style.display = '{'' if shown else 'none'}'; }}")
+
+
+def test_a_slot_expanded_by_its_click_becomes_active(page: Page, harness):
+    """A collapsed slot's rail click shows its editor only after the server answers; it still activates."""
+    _open(page, harness)
+    _show_ctx_root(page, False)
+
+    page.locator("#ctx-bar").click()
+    assert _active_slot(page) == "edit"
+    _show_ctx_root(page, True)
+
+    page.wait_for_function("() => document.documentElement.dataset.hwActiveSlot === 'context'", timeout=2000)
+
+
+def test_a_later_click_elsewhere_cancels_the_pending_slot(page: Page, harness):
+    _open(page, harness)
+    _show_ctx_root(page, False)
+
+    page.locator("#ctx-bar").click()
+    _click_root(page, _TWO)
+    _show_ctx_root(page, True)
+    page.wait_for_timeout(300)
+
+    assert _active_slot(page) == "edit"
+
+
 def test_a_hidden_active_editor_falls_back_to_the_edit_slot(page: Page, harness):
     _open(page, harness)
     _click_root(page, "#ctx-root")

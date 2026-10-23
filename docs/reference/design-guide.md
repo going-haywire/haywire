@@ -696,13 +696,15 @@ the editor's `hui.slot_header` in ACTION and CONTEXT. Both are 36px,
 EDIT or INFO editor draws under the tab bar is an **editor toolbar**:
 `hui.editor_toolbar`, 32px, same background and line.
 
-The **active slot** — the last slot clicked that shows an editor, which takes
-the key presses — lights its slot bar and, in ACTION and CONTEXT, its selected
+The **active slot** — the last slot clicked that shows an editor, or comes to
+show one before the next click (a collapsed rail expanding), which takes the
+key presses — lights its slot bar and, in ACTION and CONTEXT, its selected
 rail icon with `--hw-slot-bar-bg-active`. An editor toolbar never lights.
 
 - `slot_header` holds `panel_header`'s icon, dirty dot and title, then the
-  actions inside the `with` block; with no `title` it is empty for the caller
-  to fill (Component Source draws its path there).
+  actions inside the `with` block; with no `title` it holds only the icon and
+  dirty dot asked for, and the caller fills the rest (Component Source draws
+  its path there).
 - An ACTION or CONTEXT editor with no header (Properties, Shortcuts, Component
   Docs) shows the active slot through its rail icon alone.
 - `panel_header` stays the header of a panel *inside* an editor.

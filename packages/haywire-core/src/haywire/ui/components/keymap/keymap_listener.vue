@@ -103,6 +103,9 @@ export default {
     document.documentElement.dataset.hwPlatform = this.isMac ? 'mac' : 'other';
     // Folding or closing the active slot's editor resizes it; the highlight then moves to the fallback.
     this.slotObserver = new ResizeObserver(() => this.checkActiveSlot());
+    // A slot clicked while it shows no editor (a collapsed rail) becomes active once one appears.
+    this.pendingSlot = null;
+    this.pendingObserver = new ResizeObserver(() => this.checkPendingSlot());
     this.setActiveSlot(this.fallbackSlot);
     document.addEventListener('pointerdown', this.onPointerDown, true);
     document.addEventListener('keydown', this.onKeyDown, true);
@@ -111,6 +114,7 @@ export default {
 
   unmounted() {
     this.slotObserver.disconnect();
+    this.pendingObserver.disconnect();
     document.removeEventListener('pointerdown', this.onPointerDown, true);
     document.removeEventListener('keydown', this.onKeyDown, true);
     document.removeEventListener('paste', this.onPaste, true);
@@ -132,6 +136,24 @@ export default {
       if (!this.firstVisibleRoot(this.slotElement(this.activeSlot))) this.setActiveSlot(this.fallbackSlot);
     },
 
+    setPendingSlot(slotEl) {
+      this.pendingSlot = slotEl.dataset.hwSlot;
+      this.pendingObserver.observe(slotEl);
+    },
+
+    clearPendingSlot() {
+      this.pendingSlot = null;
+      this.pendingObserver.disconnect();
+    },
+
+    checkPendingSlot() {
+      if (this.pendingSlot === null) return;
+      if (!this.firstVisibleRoot(this.slotElement(this.pendingSlot))) return;
+      const name = this.pendingSlot;
+      this.clearPendingSlot();
+      this.setActiveSlot(name);
+    },
+
     retarget(root) {
       const bindingId = root.dataset.hwBinding;
       if (bindingId === this.targetBinding) return;
@@ -149,12 +171,17 @@ export default {
 
     // A pointer-down in a slot that shows an editor makes it the active slot; one on an editor
     // root also makes that editor the target. A bar click leaves the target to the next key.
+    // A slot that shows none yet becomes active if one appears before the next pointer-down.
     onPointerDown(e) {
       if (!(e.target instanceof Element)) return;
+      this.clearPendingSlot();
       const slotEl = e.target.closest('[data-hw-slot]');
       if (!slotEl) return;
       const hit = e.target.closest('[data-hw-binding]');
-      if (!hit && !this.firstVisibleRoot(slotEl)) return;
+      if (!hit && !this.firstVisibleRoot(slotEl)) {
+        this.setPendingSlot(slotEl);
+        return;
+      }
       this.setActiveSlot(slotEl.dataset.hwSlot);
       if (hit) this.retarget(hit);
     },

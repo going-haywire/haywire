@@ -14,7 +14,8 @@ class KeymapListener(ui.element, component="keymap_listener.vue"):
     """Listen for key presses and pastes anywhere on the page and report them as editor commands.
 
     The active slot is the last ``[data-hw-slot]`` that took a pointer-down
-    and shows an editor root; the listener writes it to ``<html
+    and shows an editor root, or comes to show one before the next pointer-down
+    (a collapsed rail expanding); the listener writes it to ``<html
     data-hw-active-slot>``, where the shell CSS lights its bars. The target
     editor is the root under that pointer-down, else the slot's visible root.
     A key combo found in the target editor's keymap is reported
