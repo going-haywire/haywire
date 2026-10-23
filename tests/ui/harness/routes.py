@@ -1893,8 +1893,9 @@ def register_routes(library_service) -> None:
     # mounts the stage canvas). ``size=manual`` sizes the card 600 x 400 in both views
     # by hand; ``cull=1`` adds an ``enable-culling`` button (culling for any node
     # count and zoom). ``inset-card-id`` / ``inset-slider-id`` carry the ids; polled
-    # echoes show the slider's ``value`` (``echo-inset-value``) and whether the
-    # host history can undo (``echo-undo``, cleared after setup).
+    # echoes show the slider's ``value`` (``echo-inset-value``), whether the
+    # host history can undo (``echo-undo``, cleared after setup) and the card's
+    # patch position (``echo-position``); ``enter-log`` records an Enter.
     # Backs test_inset.py.
     # -------------------------------------------------------------------------
 
@@ -1952,10 +1953,13 @@ def register_routes(library_service) -> None:
         value = ui.label().props('data-testid="echo-inset-value"')
         undo = ui.label().props('data-testid="echo-undo"')
         selection = ui.label().props('data-testid="echo-selection"')
+        position = ui.label().props('data-testid="echo-position"')
+        enter_log = ui.label("").props('data-testid="enter-log"')
         managers: list = []
 
         def _refresh() -> None:
             value.set_text(repr(slider.node.ports["value"].get_value()))
+            position.set_text(repr(card.node.props.get_position()))
             undo.set_text(str(editor.history_manager.can_undo()))
             if managers:
                 selection.set_text(",".join(sorted(managers[0].selected_nodes)))
@@ -1974,6 +1978,7 @@ def register_routes(library_service) -> None:
                 level=_HarnessLevel(mode=LevelMode(mode)),
             )
         )
+        _record_navigation(managers[0], enter_log)
         _stamp_synced()
 
     # -------------------------------------------------------------------------

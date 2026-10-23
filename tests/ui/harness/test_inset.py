@@ -137,6 +137,66 @@ def test_a_press_on_an_interior_card_hits_the_body_not_the_card(page: Page, harn
     assert hits_interior is False
 
 
+def _body_point(page: Page) -> tuple[float, float]:
+    """A point low in the body, clear of the slider widget and of the card's resize grip."""
+    body = _body_box(page)
+    return body["x"] + body["width"] / 2, body["y"] + body["height"] - 25
+
+
+def _position(page: Page) -> str:
+    return page.locator('[data-testid="echo-position"]').inner_text()
+
+
+def _drag_body(page: Page) -> None:
+    x, y = _body_point(page)
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x + 80, y + 40, steps=8)
+    page.mouse.up()
+
+
+def test_dragging_the_body_moves_the_host_card(page: Page, harness):
+    _open(page, harness, "edit")
+    before = _position(page)
+
+    _drag_body(page)
+
+    expect(page.locator('[data-testid="echo-position"]')).not_to_have_text(before)
+
+
+def test_right_click_on_the_body_opens_the_host_card_menu(page: Page, harness):
+    card_id = _open(page, harness, "edit")
+    x, y = _body_point(page)
+
+    page.mouse.click(x, y, button="right")
+
+    # The node menu is a Popup. Enter is a Graph-node's entry: the menu is the host card's.
+    menu = page.locator(".hw-popup-card").first
+    expect(menu).to_contain_text("Enter")
+    _expect_selected(page, card_id)
+
+
+def test_double_click_on_the_body_enters(page: Page, harness):
+    card_id = _open(page, harness, "operate")
+    x, y = _body_point(page)
+
+    page.mouse.dblclick(x, y)
+
+    expect(page.locator('[data-testid="enter-log"]')).to_have_text(card_id)
+
+
+def test_a_view_session_neither_drags_nor_enters_the_inset(page: Page, harness):
+    _open(page, harness, "view")
+    before = _position(page)
+
+    _drag_body(page)
+    page.mouse.dblclick(*_body_point(page))
+    page.wait_for_timeout(500)
+
+    expect(page.locator('[data-testid="echo-position"]')).to_have_text(before)
+    expect(page.locator('[data-testid="enter-log"]')).to_have_text("")
+
+
 def test_inset_pins_are_not_displayed(page: Page, harness):
     _open(page, harness, "edit")
 
