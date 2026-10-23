@@ -1,7 +1,7 @@
 """The graph editor reads a stand-in node like any other: the toolbar gates and the canvas.
 
-A node whose library is missing is the stand-in these tests use; a node whose
-constructor raises gets the same error node (see tests/core/test_node/test_stand_in.py).
+Each test runs for both causes of a stand-in: a node whose library is missing, and a
+node whose constructor raises (see tests/core/test_node/test_stand_in.py).
 """
 
 from __future__ import annotations
@@ -25,11 +25,20 @@ pytestmark = pytest.mark.integration
 _UNKNOWN = "haybale-testing:node:NoSuchNode"
 
 
-@pytest.fixture
-def stand_in(graph_with_library_system):
-    wrapper = graph_with_library_system.create_node_wrapper(_UNKNOWN, position=(10.0, 20.0))
+@pytest.fixture(params=["unknown_key", "constructor_raises"])
+def stand_in(request, graph_with_library_system, construction_fails):
+    if request.param == "unknown_key":
+        key = _UNKNOWN
+    else:
+        from haybale_testing.nodes.testbed.print_node import TestPrintNode
+
+        key = TestPrintNode.class_identity.registry_key
+        construction_fails(1)
+    wrapper = graph_with_library_system.create_node_wrapper(key, position=(10.0, 20.0))
     assert wrapper is not None
     assert wrapper.is_stand_in
+    if request.param == "constructor_raises":
+        assert wrapper.state.error_instantiate is not None
     return graph_with_library_system, wrapper
 
 
