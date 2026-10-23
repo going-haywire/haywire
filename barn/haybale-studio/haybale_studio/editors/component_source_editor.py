@@ -13,7 +13,8 @@ Editing model:
 * While pinned the editor subscribes to ``add_batch_event_subscriber`` on
   the resolved registry.  If the on-disk file changes and the new content
   differs from ``_original`` we surface a "file changed externally" banner
-  with Reload-from-disk / Save-anyway actions.  When the change is just
+  with Reload-from-disk / Save-anyway actions; until one is chosen, Save
+  (the key and the header button) does not write.  When the change is just
   our own save echoing back (disk == _original) we ignore it.
 """
 
@@ -294,7 +295,9 @@ class ComponentSourceEditor(BaseEditor):
             ui.icon(hui.icon.warning, size="14px").classes("hw-text-dim")
             ui.label("File changed on disk").classes("text-xs flex-1")
             ui.button("Reload from disk", on_click=self._reload_from_disk).props("flat dense size=sm")
-            ui.button("Save anyway", on_click=self._save).props("flat dense size=sm")
+            ui.button("Save anyway", on_click=lambda: self._save(overwrite_disk_change=True)).props(
+                "flat dense size=sm"
+            )
         banner.set_visibility(self._conflict)
 
     def _render_editor(self, context: "SessionContext") -> None:
@@ -347,8 +350,12 @@ class ComponentSourceEditor(BaseEditor):
         if self._is_editable:
             self._save()
 
-    def _save(self) -> None:
+    def _save(self, *, overwrite_disk_change: bool = False) -> None:
+        """Write the buffer to its file; after a change on disk, only with ``overwrite_disk_change``."""
         if self._path is None:
+            return
+        if self._conflict and not overwrite_disk_change:
+            ui.notify("File changed on disk: Reload from disk or Save anyway.", type="warning")
             return
         try:
             self._path.write_text(self._content, encoding="utf-8")

@@ -391,6 +391,30 @@ def test_component_source_saves_on_the_command(tmp_path, monkeypatch):
     assert source._pinned is False
 
 
+def test_the_command_does_not_overwrite_a_change_on_disk(tmp_path, monkeypatch):
+    """While the file-changed banner shows, only its Save anyway overwrites."""
+    from haywire.core.signals import Save
+
+    source = _component_source(tmp_path / "toggle.py", monkeypatch, editable=True)
+    source._conflict = True
+
+    source._on_save(SimpleNamespace(), Save(binding_id="source"))
+
+    assert (tmp_path / "toggle.py").read_text(encoding="utf-8") == "old"
+    assert source._pinned is True
+    assert source._conflict is True
+
+
+def test_save_anyway_overwrites_a_change_on_disk(tmp_path, monkeypatch):
+    source = _component_source(tmp_path / "toggle.py", monkeypatch, editable=True)
+    source._conflict = True
+
+    source._save(overwrite_disk_change=True)
+
+    assert (tmp_path / "toggle.py").read_text(encoding="utf-8") == "new"
+    assert source._conflict is False
+
+
 def test_a_read_only_component_source_is_not_saved(tmp_path, monkeypatch):
     """An installed library's source has no Save button; the key must not write it either."""
     from haywire.core.signals import Save
