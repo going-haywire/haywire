@@ -339,8 +339,9 @@ class HaystackState(AppState):
         Raises:
             ValueError: If the entry open for ``path`` has unsaved edits, or
                 ``document`` could not be loaded. After a failed load an entry
-                already open for ``path`` holds the file's contents again, clean;
-                otherwise no entry is opened.
+                already open for ``path`` holds the file's contents again, clean,
+                or is closed when the file cannot be read either; otherwise no
+                entry is opened.
         """
         existing = self._entries.get(str(path))
         if existing is None:
@@ -350,7 +351,11 @@ class HaystackState(AppState):
 
         if not existing.graph.load_from_dict(document):
             # The failed load cleared the graph; the entry is clean, so its file is its content.
-            existing.graph.load_from_file(str(path))
+            if not existing.graph.load_from_file(str(path)):
+                self.remove_entry(existing)
+                raise ValueError(
+                    f"'{existing.display_name}' could not be loaded, nor its file read; it was closed"
+                )
             existing.graph.force_validation()
             existing.unsaved = False
             self._broadcast_data_mutated()

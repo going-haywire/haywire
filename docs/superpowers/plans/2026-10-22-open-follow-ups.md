@@ -44,7 +44,7 @@ Line references are from 2026-10-22. ✓ = confirmed in code; anything else come
 Ctrl+S and core fixes:
 
 20. **DONE** ~~`in_text_fields` also overrides the `[data-hw-native-keys]` opt-out in `keymap_listener.vue` (nothing uses the attribute yet).~~ The opt-out is absolute; browser test `test_save_stays_with_a_native_keys_element`.
-21. ✓ `HaystackState.open_macro_with`: if `load_from_file` raises (file deleted since opening), the entry is left emptied; `macro.py` catches it, so the UI is safe.
+21. **DONE** ~~`HaystackState.open_macro_with`: if `load_from_file` raises (file deleted since opening), the entry is left emptied; `macro.py` catches it, so the UI is safe.~~ `load_from_file` returns `False`, it never raises; the entry was left empty and clean. Now closed, with a `ValueError`; test in `test_update_macro.py`. Ledger reporting deferred to #47.
 22. No core end-to-end test that an edge validates on a pin added after the first validation (the macro integration test covers the reported case).
 
 Active slot bar:

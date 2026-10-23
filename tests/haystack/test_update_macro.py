@@ -248,6 +248,29 @@ def test_a_failed_load_into_an_open_macro_restores_it(haystack, macro_file, grap
     assert set(entry.graph.node_wrappers) == on_disk
 
 
+def test_a_failed_load_whose_file_is_gone_closes_the_open_macro(
+    haystack, macro_file, graph_with_library_system
+):
+    """With neither the document nor the file loadable, no empty clean entry is left behind."""
+    path, _, _ = macro_file
+    entry = haystack.open_macro(path)
+    entry.graph.force_validation()
+    real_load = entry.graph.load_from_dict
+    document = _document(graph_with_library_system, interface_ports=("gain", "radius"))
+
+    def _fail_on_the_document(data):
+        return False if data is document else real_load(data)
+
+    path.unlink()
+    with (
+        patch.object(entry.graph, "load_from_dict", side_effect=_fail_on_the_document),
+        pytest.raises(ValueError, match="was closed"),
+    ):
+        haystack.open_macro_with(path, document)
+
+    assert haystack.get_by_path(path) is None
+
+
 def test_a_failed_load_into_a_new_entry_registers_nothing(haystack, macro_file, graph_with_library_system):
     from haywire.core.graph.base import BaseGraph
 
