@@ -207,6 +207,17 @@ def test_view_pin_shows_its_tooltip_and_starts_no_edge(page: Page, harness):
     assert page.locator(".graph-canvas.edge-dragging").count() == 0
 
 
+@pytest.mark.parametrize(
+    ("mode", "cursor"), [("view", "default"), ("operate", "default"), ("edit", "crosshair")]
+)
+def test_a_pin_shows_the_crosshair_only_in_edit(page: Page, harness, mode: str, cursor: str):
+    """Below edit a pin starts no edge, so it does not promise one."""
+    _open(page, harness, mode)
+    pin = page.locator(f'[data-node-id="{_badge_card(page)}"] .connection-pin[data-hw-readable]').first
+
+    assert pin.evaluate("el => getComputedStyle(el).cursor") == cursor
+
+
 @pytest.mark.parametrize(("mode", "hit"), [("view", False), ("operate", False), ("edit", True)])
 def test_a_ghost_pin_takes_pointer_input_only_in_edit(page: Page, harness, mode: str, hit: bool):
     """A pin without its own tooltip is gated, despite .connection-pin's own !important rule."""

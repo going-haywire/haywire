@@ -4515,6 +4515,8 @@ export default {
 :where(.graph-canvas[data-hw-level-mode="view"] .ui-node-slot [data-hw-readable],
        .graph-canvas[data-hw-level-mode="operate"] .ui-node-slot [data-hw-readable],
        .graph-canvas[data-hw-level-mode="operate"] .ui-node-slot [data-hw-operable]) { pointer-events: auto; }
+/* Below edit a pin starts no edge, so it drops the crosshair; !important beats the pin's inline cursor. */
+.graph-canvas:not([data-hw-level-mode="edit"]) .ui-node-slot .connection-pin { cursor: default !important; }
 
 /* An Inset's interior takes input only on its operable widgets, in every mode the
  * gate above allows; any other press lands on the host card. Its pins are hidden. */

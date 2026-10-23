@@ -14,7 +14,7 @@ Line references are from 2026-10-22. ✓ = confirmed in code; anything else come
 2. **No undo-history panel.** The two-session undo case (two sessions on one file) cannot be checked live without seeing the stack. Needs a design round: where the panel lives, what an entry shows (description, group, fence), whether it is per graph or per file history (Group interiors share their host's history, ADR 0059).
 3. **A Farmhand tool run outside the MCP host gets no closing fence.** No such caller exists yet; record it where a non-MCP caller is added.
 4. **DONE** ~~**An Inset on a node that is not a Graph-node shows the "Enter" placeholder.**~~ Reached through a stand-in of a broken Graph-node (keeps its skin), a hand-edited file or an unvalidated write. The Inset now shows "failed to build" / "has no interior" in `hw-text-danger`; skin canon states that a special skin checks its node and fails loud.
-5. **Tooltips with a separate trigger (config row, fold triangle) do not respond in view mode;** readable pins keep their crosshair below edit. Part of the level-mode pointer gate (`.insights/project_level_mode_pointer_gate.md`): the trigger needs `data-hw-readable`.
+5. **Tooltips with a separate trigger (config row, fold triangle) do not respond in view mode;** ~~readable pins keep their crosshair below edit~~ (**DONE**: `cursor: default` below edit, `canvas.vue`). Part of the level-mode pointer gate (`.insights/project_level_mode_pointer_gate.md`): the trigger needs `data-hw-readable`.
 6. **Live reconfigure of a widget** (changing a widget's config while it is drawn) was left for a later design round.
 
 ## 2. Performance
