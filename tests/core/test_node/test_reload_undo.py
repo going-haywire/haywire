@@ -230,3 +230,70 @@ def test_a_recorded_reload_is_its_own_step(graph_with_library_system, library_sy
 
     assert _message(wrapper) == "kept"
     assert wrapper.node.props.get_position() == (50.0, 10.0)
+
+
+def test_a_reload_inside_a_group_is_a_step_on_the_host_history(graph_with_library_system, library_system):
+    """An opened interior shares its host's history, as SubgraphContainer builds it."""
+    from haywire.core.graph.subgraph import SubgraphDefinition
+
+    graph, editor = _graph_with_editor(library_system)
+    definition = graph.add_subgraph(SubgraphDefinition(key="sg", label="Group"))
+    Editor(definition, library_system.get_node_factory(), history_manager=editor.history_manager)
+    inner = _printer(definition, "inner")
+
+    _reload(definition, inner)
+
+    assert _message(inner) == "Hello, World!"
+    assert editor.history_manager.get_undo_description() == f"Reload {_print_cls().class_identity.label}"
+    assert editor.undo()
+    definition._validation.force_immediate_validation()
+    assert _message(inner) == "inner"
+
+
+def test_reload_batches_in_a_row_undo_one_by_one(graph_with_library_system, library_system):
+    graph, editor = _graph_with_editor(library_system)
+    wrapper = _printer(graph, "one")
+    _reload(graph, wrapper)
+    wrapper.node.ports["message"].set_value("two")
+    _reload(graph, wrapper)
+
+    assert editor.undo()
+    graph._validation.force_immediate_validation()
+    assert _message(wrapper) == "two"
+    assert editor.undo()
+    graph._validation.force_immediate_validation()
+    assert _message(wrapper) == "one"
+    assert not editor.history_manager.can_undo()
+
+
+def test_an_undone_reload_saves_and_reopens_with_the_old_data(graph_with_library_system, library_system):
+    graph, editor = _graph_with_editor(library_system)
+    wrapper = _printer(graph, "kept")
+    _reload(graph, wrapper)
+    editor.undo()
+    graph._validation.force_immediate_validation()
+
+    reopened = BaseGraph("Reopened", validation_scheduler=_ParkedScheduler())
+    try:
+        assert reopened.load_from_dict(graph.to_dict())
+        reopened._validation.force_immediate_validation()
+        assert _message(reopened.node_wrappers[wrapper.node_id]) == "kept"
+    finally:
+        reopened._validation.clear()
+        reopened.cleanup()
+
+
+def test_a_node_that_absorbs_its_reload_records_no_step(graph_with_library_system, library_system):
+    from tests.core.test_node.test_on_class_reloaded import _event
+
+    graph, editor = _graph_with_editor(library_system)
+    wrapper = _printer(graph, "kept")
+    node = wrapper.node
+    node.on_class_reloaded = lambda event: True
+
+    wrapper._on_node_lifecycle_event(_event(wrapper.registry_key, type(node)))
+    graph._validation.force_immediate_validation()
+
+    assert wrapper.node is node
+    assert _message(wrapper) == "kept"
+    assert not editor.history_manager.can_undo()
