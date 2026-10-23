@@ -199,6 +199,25 @@ def test_undo_makes_the_interior_a_template_interior_again(
     assert interior.template_key == _MACRO
 
 
+def test_redo_detaches_again(graph_with_library_system, library_system, macro_folder):
+    """Redo re-applies the detach: the card is a Group again, its interior owned by the host."""
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+    card_id, _ = _detach(editor, placement_id)
+    editor.undo()
+
+    assert editor.redo()
+
+    assert graph.get_node_wrapper(placement_id) is None
+    card = graph.get_node_wrapper(card_id)
+    assert card is not None
+    assert card.registry_key == _CARD
+    interior = card.node.resolve_definition()
+    assert interior.template_key is None
+    assert card.node.subgraph_key in graph.to_dict()["subgraphs"]
+    assert graph_origin(graph, card_id).key == _MACRO
+
+
 def test_a_group_cannot_be_detached(graph_with_library_system, library_system):
     """It is already its own; there is no template to stop tracking."""
     graph = graph_with_library_system
@@ -252,8 +271,11 @@ def _modify(graph, card_id):
 
 
 def _revert(editor, card_id):
+    """Revert as the canvas's Revert to Macro does, which drops edges to pins the macro lacks."""
     origin = graph_origin(editor.graph, card_id)
-    return editor.promote_to_macro(card_id, origin.key, description="Revert to Macro")
+    return editor.promote_to_macro(
+        card_id, origin.key, description="Revert to Macro", drop_unmatched_edges=True
+    )
 
 
 def graph_origin(graph, card_id):
@@ -384,6 +406,40 @@ def test_undo_of_a_revert_that_dropped_edges_restores_them(
     assert graph.get_node_wrapper(card_id) is not None
     assert len(graph._get_all_edges(card_id)) == edges_before
     assert _formal_errors(graph) == []
+
+
+def test_revert_keeps_an_edge_whose_pin_the_macro_has(graph_with_library_system, library_system, tmp_path):
+    """Only the edge on the pin the macro lacks is dropped; the one on its pin stays."""
+    from haywire.core.macro.origin import MacroOrigin
+    from haywire.core.macro.promote import macro_document
+
+    graph = graph_with_library_system
+    editor, card_id = _group_with_stale_boundary(graph, library_system)
+    definition = graph.get_node_wrapper(card_id).node.resolve_definition()
+    # A macro of this Group's interior without its output pin: it has in_exec, not out_done.
+    document = macro_document(definition)
+    out_id = next(nid for nid, node in document["nodes"].items() if node["registry_key"] == _OUTPUT)
+    del document["nodes"][out_id]["node_data"]["ports"]["done"]
+    document["edges"] = {
+        eid: edge for eid, edge in document["edges"].items() if out_id not in json.dumps(edge)
+    }
+    (tmp_path / "Half.hwm").write_text(json.dumps(document))
+    registry = library_system.get_macro_registry()
+    identity = _identity(tmp_path)
+    registry.add_folder(str(tmp_path), identity)
+    try:
+        definition.origin = MacroOrigin(key="testlib:macro:Half", hash="stale")
+
+        new_id, refusal = _revert(editor, card_id)
+
+        assert refusal is None
+        assert editor.last_promotion_dropped_edges == 1
+        kept = graph._get_all_edges(new_id)
+        assert [edge.inlet_port_id for edge in kept if edge.sink_node_id == new_id] == ["in_exec"]
+        assert len(kept) == 1
+        assert _formal_errors(graph) == []
+    finally:
+        registry.remove_folder(str(tmp_path), identity)
 
 
 def test_promote_without_the_flag_keeps_every_edge(graph_with_library_system, library_system, macro_folder):
