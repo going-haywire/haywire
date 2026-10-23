@@ -3,13 +3,19 @@ name: reload-without-history-loses-setup
 description: Handoff — a hot reload in a graph with no undo history (a never-opened Group interior, mainly) wipes the user's setup on its nodes silently; record the step on the host's history and warn through the ledger and the card where no history exists
 metadata:
   type: project
-  status: open
+  status: on-hold
 ---
 
 # Handoff — A reload in a graph without a history loses the user's setup silently
 
-**Status:** not started. Design discussed and a direction recommended (option (a) below), not
-settled with the user. No code, no branch. Raised during follow-up #37 of
+**Status:** **on hold** until
+[`haywire-exception-at-boundaries.md`](haywire-exception-at-boundaries.md) has landed. Its
+warning half (option (a) part 2) is a "detected condition" whose channel (ledger, card or
+both) that effort settles (its open question 4). Part 1 (recording on the host's history) is
+a pure undo fix that does not depend on it and could be released on its own.
+
+Design discussed and a direction recommended (option (a) below), not settled with the user.
+No code, no branch. Raised during follow-up #37 of
 `docs/superpowers/plans/2026-10-22-open-follow-ups.md` (branch `fix/follow-ups-a`, 2026-10-22).
 
 ## The problem
