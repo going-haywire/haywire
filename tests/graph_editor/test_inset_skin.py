@@ -157,6 +157,53 @@ def test_an_empty_stage_shows_the_placeholder(library_system, group) -> None:
     ui_node.teardown_subscriptions()
 
 
+def _inset_on(graph: BaseGraph, wrapper) -> Any:
+    wrapper.node.props.skin = _inset_key()
+    wrapper.node.props.stage_skin = _inset_key()
+    return wrapper
+
+
+def test_a_node_without_an_interior_says_so(library_system, group) -> None:
+    from haybale_graph_editor.skins.inset_skin import NO_INTERIOR
+
+    graph, _card, _definition, _staged = group
+    plain = _inset_on(graph, make_node(graph, _ADD))
+    ui_node = _draw(library_system, graph, plain, PATCH)
+    (body,) = _bodies(ui_node)
+
+    assert _labels(list(body.descendants())) == [NO_INTERIOR]
+    ui_node.teardown_subscriptions()
+
+
+def test_a_graph_node_whose_interior_is_missing_says_so(library_system, group) -> None:
+    from haybale_graph_editor.skins.inset_skin import NO_INTERIOR
+
+    from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
+
+    graph, _card, _definition, _staged = group
+    unbound = _inset_on(graph, make_node(graph, _CARD, node_data={"store": {SUBGRAPH_KEY: "gone"}}))
+    ui_node = _draw(library_system, graph, unbound, PATCH)
+    (body,) = _bodies(ui_node)
+
+    assert _labels(list(body.descendants())) == [NO_INTERIOR]
+    ui_node.teardown_subscriptions()
+
+
+def test_a_stand_in_says_its_node_failed_to_build(library_system, group) -> None:
+    from haybale_graph_editor.skins.inset_skin import FAILED_TO_BUILD
+
+    graph, _card, _definition, _staged = group
+    wrapper = graph.create_node_wrapper("haybale-testing:node:NoSuchGroup", position=(0.0, 0.0))
+    assert wrapper is not None
+    assert wrapper.is_stand_in
+    _inset_on(graph, wrapper)
+    ui_node = _draw(library_system, graph, wrapper, STAGE)
+    (body,) = _bodies(ui_node)
+
+    assert _labels(list(body.descendants())) == [FAILED_TO_BUILD]
+    ui_node.teardown_subscriptions()
+
+
 def test_a_collapsed_inset_has_no_body(library_system, group) -> None:
     graph, card, _definition, _staged = group
     card.node.props.collapsed = True

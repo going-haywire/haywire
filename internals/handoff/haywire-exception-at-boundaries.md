@@ -93,7 +93,9 @@ plain Python exceptions; a short, named list of boundaries converts them.
    `NodeWrapper._add_runtime_error`). The ledger needs the same, or a dedup key.
 4. **Detected conditions, not caught exceptions.** Some losses are detected, not raised:
    a reload without an undo history (the blocked handoff), a stand-in edit lost at save
-   (backlog #45). Do they go to the ledger as `HaywireException.create(...,
+   (backlog #45), a special skin meeting a node it cannot draw (the Inset's message in
+   the card, `haybale_graph_editor/skins/inset_skin.py`, backlog #4; it draws on every
+   redraw, so a ledger entry needs dedup). Do they go to the ledger as `HaywireException.create(...,
    severity=WARNING)`, to the card as `NodeWarning`, or both? One rule for all of them.
 5. **Threads.** `.log()` already runs from watchdog and timer threads (the ledger has a
    lock). Does a boundary off the main thread need anything more?

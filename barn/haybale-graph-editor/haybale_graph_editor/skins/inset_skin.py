@@ -21,6 +21,12 @@ INSET_FLOOR_PX: tuple[int, int] = (240, 160)
 #: What the body says when the interior has nothing on stage.
 PLACEHOLDER = "Nothing on stage — Enter to arrange"
 
+#: What the body says for a node whose interior cannot be resolved.
+NO_INTERIOR = "Inset cannot draw this node: it has no interior"
+
+#: What the body says for a stand-in, a node whose class failed to build.
+FAILED_TO_BUILD = "Inset cannot draw this node: it failed to build — see its errors"
+
 
 @skin(
     label="Inset",
@@ -145,6 +151,14 @@ class InsetSkin(NodeSkin):
             )
         )
         definition = getattr(wrapper.node, "resolve_definition", lambda: None)()
+        if definition is None:
+            # Offered for Graph-nodes only, so this is a node that broke; say so rather than draw.
+            with body:
+                ui.label(FAILED_TO_BUILD if wrapper.is_stand_in else NO_INTERIOR).classes(
+                    "absolute inset-0 flex items-center justify-center text-center p-2 "
+                    "text-xs hw-text-danger"
+                )
+            return
         view = InsetView(
             body,
             definition,
