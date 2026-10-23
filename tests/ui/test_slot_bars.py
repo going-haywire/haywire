@@ -88,20 +88,25 @@ async def test_an_editor_toolbar_has_the_toolbar_look(user: User) -> None:
 
 
 # A Tailwind border class with no colour: preflight leaves it currentColor, a near-white line.
-_BARE_BORDER = re.compile(r"""\.classes\([^)]*["' ]border(-[btlrxy])?(?=["' ])""")
+# Spans lines, so a .classes( call split over several is read whole.
+_BARE_BORDER = re.compile(r"""\.classes\([^)]*["' ]border(-[btlrxy])?(-[1-9]\d*)?(?=["' ])""")
+
+
+def _ui_sources() -> list[Path]:
+    """Every source file of the haybale libraries and packages; visiongraph is a symlinked other repo."""
+    return [
+        path
+        for path in (*_REPO.glob("barn/*/*/**/*.py"), *_REPO.glob("packages/*/src/**/*.py"))
+        if "haybale-visiongraph" not in path.parts
+    ]
 
 
 @pytest.mark.unit
-def test_no_editor_draws_a_bare_tailwind_border() -> None:
-    files = [
-        *_REPO.glob("barn/*/*/editors/*.py"),
-        *(_REPO / "packages/haywire-core/src/haywire/ui/app").glob("*.py"),
-    ]
-    hits = [
-        f"{path.relative_to(_REPO)}:{number}"
-        for path in files
-        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
-        if _BARE_BORDER.search(line)
-    ]
+def test_no_ui_code_draws_a_bare_tailwind_border() -> None:
+    hits = []
+    for path in _ui_sources():
+        text = path.read_text(encoding="utf-8")
+        for match in _BARE_BORDER.finditer(text):
+            hits.append(f"{path.relative_to(_REPO)}:{text.count(chr(10), 0, match.start()) + 1}")
 
     assert not hits, f"bare Tailwind border (draws in the text colour): {hits}"

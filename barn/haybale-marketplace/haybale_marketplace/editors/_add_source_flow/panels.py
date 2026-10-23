@@ -104,7 +104,9 @@ def _panel_resolved(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
             "text-xs hw-text-dim"
         )
         for conflict in flow.conflicts:
-            with ui.column().classes("border rounded p-2 gap-1 w-full"):
+            with (
+                ui.column().classes("rounded p-2 gap-1 w-full").style("border: 1px solid var(--hw-border);")
+            ):
                 ui.label(conflict.name).classes("text-xs font-medium")
                 radio = ui.radio(
                     ["Keep existing", "Use new"],
