@@ -10,7 +10,7 @@ from haywire.core.access import AccessTier
 def test_panel_is_admin_gated():
     from haybale_studio.panels.properties.setting.app import SecurityPanel
 
-    assert SecurityPanel.class_identity.access is AccessTier.ADMIN
+    assert SecurityPanel.class_identity.requires is AccessTier.ADMIN
 
 
 def test_network_settings_panel_is_gone():

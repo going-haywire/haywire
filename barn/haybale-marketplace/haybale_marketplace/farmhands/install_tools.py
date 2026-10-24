@@ -24,7 +24,6 @@ from haybale_marketplace.farmhands.catalog_tools import _library_manager, _progr
     "distributions; raises resolver_failed if resolution itself fails.",
     registry_id="dry_run_install",
     annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True),
-    access=AccessTier.EDIT,
 )
 class MarketplaceDryRunInstallTool(Farmhand):
     async def run(self, ctx: FarmhandContext, install_spec: str) -> dict:
@@ -49,7 +48,7 @@ class MarketplaceDryRunInstallTool(Farmhand):
     "broadcasts a catalog-changed signal.",
     registry_id="install_library",
     annotations=ToolAnnotations(destructive_hint=True, open_world_hint=True),
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class MarketplaceInstallLibraryTool(Farmhand):
     async def run(self, ctx: FarmhandContext, install_spec: str) -> dict:
@@ -73,7 +72,7 @@ class MarketplaceInstallLibraryTool(Farmhand):
     "on_reload naming the follow-up action and broadcasts a catalog-changed signal.",
     registry_id="uninstall_library",
     annotations=ToolAnnotations(destructive_hint=True),
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class MarketplaceUninstallLibraryTool(Farmhand):
     async def run(self, ctx: FarmhandContext, library_id: str) -> dict:

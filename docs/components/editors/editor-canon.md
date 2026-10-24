@@ -51,7 +51,7 @@ Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they 
 | `opens` | no | `'required'` | `'required'` / `'on_context'` / `'on_payload'` — see below |
 | `description` | no | `''` | Tooltip / accessibility text |
 | `registry_id` | no | class name | Unique short ID within the library |
-| `access` | no | `AccessTier.EDIT` | Minimum `AccessTier` to see this editor — see [ADR 0027](../../adr/0027-studio-authentication.md). An editor that does not declare is hidden below `edit`; a read-only editor, or one that gates its own actions, declares `view` |
+| `requires` | no | `AccessTier.EDIT` | Access requirement: the minimum `AccessTier` a principal's access right must reach to see this editor — see [ADR 0027](../../adr/0027-studio-authentication.md). An editor that does not declare is hidden below `edit`; a read-only editor, or one that gates its own actions, declares `view` |
 
 `@editor()` must be invoked with parentheses; the bare `@editor` form raises at class-definition time.
 
@@ -109,7 +109,7 @@ from: `GraphEditor` — registry_key: `haybale-graph-editor:editor:GraphEditor`
 
 Each handler calls one of the editor's canvas verbs (`GraphCanvasManager.copy_selection`, …). Copy and Delete build their canvas events with the same builders the right-click menu and selection toolbar use (`copy_selection_event`, `remove_selection_event`); the canvas verbs additionally keep only the selected ids of this canvas's own graph.
 
-The wrapper delivers a command only when its `binding_id` is this tab's `editor_binding_id` and the session's principal holds the command's `access` tier, so a handler checks neither — with three graph tabs open, `Mod+C` reaches the one the user last clicked in (the **target editor**). The slot marks each tab's root with `data-hw-binding` (the binding id) and `data-hw-editor` (the editor key); nothing else is needed. A command that does not apply is a silent no-op. To make `Paste` land at the pointer, put a `data-hw-pointer-local` element in your editor whose `hwPointerLocal()` returns `[x, y]` in your own coordinates; without one, `Paste.position` is `None`. Only handler subscriptions on the editor class claim keys and are filtered — a panel's `redraw_on=` does neither. See [guides/signals](../../guides/signals.md#adding-a-keyboard-command) for declaring your own command, and [ADR 0050](../../adr/0050-keyboard-commands-are-editor-addressed-command-signals.md) for the design.
+The wrapper delivers a command only when its `binding_id` is this tab's `editor_binding_id` and the session's principal holds the command's `requires` tier, so a handler checks neither — with three graph tabs open, `Mod+C` reaches the one the user last clicked in (the **target editor**). The slot marks each tab's root with `data-hw-binding` (the binding id) and `data-hw-editor` (the editor key); nothing else is needed. A command that does not apply is a silent no-op. To make `Paste` land at the pointer, put a `data-hw-pointer-local` element in your editor whose `hwPointerLocal()` returns `[x, y]` in your own coordinates; without one, `Paste.position` is `None`. Only handler subscriptions on the editor class claim keys and are filtered — a panel's `redraw_on=` does neither. See [guides/signals](../../guides/signals.md#adding-a-keyboard-command) for declaring your own command, and [ADR 0050](../../adr/0050-keyboard-commands-are-editor-addressed-command-signals.md) for the design.
 
 **`@reveal_on(*reveal_signal_types)`** is the class-level one, and the difference is not stylistic. `@redraw_on` / `@react_on` subscribe an **instance**, at instantiation. An `on_payload` editor has no instance until one of its tabs exists — so with no tab open there is no subscriber, and a signal asking it to open a file reaches nobody and silently does nothing. `@reveal_on` is read off the **class** by the AppShell, which is always alive, so it fires whether or not an instance exists and the reveal creates the tab.
 
@@ -275,11 +275,11 @@ For the `Surface` and `Panel` extension points the editor hosts, see [components
 
 - [ ] `@editor(label='...', default_slot=SlotName.…)` — both have sensible defaults; set them deliberately
 - [ ] Choose `opens='required'` / `'on_context'` / `'on_payload'`
-- [ ] Choose `access=`: leave the `edit` default for an editor that writes; declare `view` for one that only reads or gates its own actions
+- [ ] Choose `requires=`: leave the `edit` default for an editor that writes; declare `view` for one that only reads or gates its own actions
 - [ ] Inherit from `BaseEditor`; implement `draw(self, context, container)` — required
 - [ ] Decorate handler methods with `@redraw_on(*SignalTypes)` for signals that warrant a full editor redraw — empty body is fine; the framework redraws once per dispatch pass
 - [ ] Decorate handler methods with `@react_on(*SignalTypes)` for pure side effects — no auto-redraw; the body owns any explicit `wrapper.redraw()` / `session.publish(Reveal/Close/...)` calls
-- [ ] Optional: `@react_on(Copy)` (or any `EditorCommand`) to claim that command's keyboard shortcut for this editor — the wrapper delivers only presses aimed at this tab, from a principal holding the command's `access`
+- [ ] Optional: `@react_on(Copy)` (or any `EditorCommand`) to claim that command's keyboard shortcut for this editor — the wrapper delivers only presses aimed at this tab, from a principal holding the command's `requires` tier
 - [ ] Decorate a **classmethod** with `@reveal_on(*RevealSignalTypes)` to claim a reveal aimed at no particular editor — required rather than optional for an `opens='on_payload'` editor, which has no instance (and so no `@react_on` subscriber) until one of its tabs exists
 - [ ] Initialise instance state in `__init__`; container/UI refs re-fetched in `draw()`
 - [ ] Optional: `on_focus(self, context)` — runs *before* `draw()` on the newly-activated wrapper

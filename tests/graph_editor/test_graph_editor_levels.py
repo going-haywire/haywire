@@ -15,7 +15,7 @@ import pytest
 
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor, level_key_for
 from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
-from haywire.core.access import AccessTier
+from haywire.core.access import AccessTier, LevelMode
 
 pytestmark = pytest.mark.unit
 
@@ -116,6 +116,7 @@ def _editor(
         can_edit=lambda: True,
         can_access=tier.satisfies,
         active_component=None,
+        level_mode=LevelMode.VIEW,
     )
     editor._levels[DOCUMENT_LEVEL] = editor._new_level(cast(Any, context), DOCUMENT_LEVEL, document)
 
@@ -324,10 +325,10 @@ def _select(editor: GraphEditor, context: Any, node: Any) -> Any:
         selected_edges={"e1"},
         active_graph=level.container.editor.graph,
         active_graph_path=level.container.path,
-        active_mode=level.route.mode(),
         active_route=level.route,
     )
     context.data = {EditState: edit_state}
+    context.level_mode = level.route.mode()
     context.active_component = "lib:node:Blur"
     context.session = MagicMock()
     _claiming(editor)

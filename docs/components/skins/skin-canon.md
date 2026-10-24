@@ -374,9 +374,9 @@ graph unsaved and records the undo step (see
   model. `widget_key` picks a widget other than the field's own: the annotation skin draws
   `NoteTextWidget` on `annotation.text`, so the Properties panel keeps the plain text widget.
   The skin keeps the look by wrapping the widget in an element whose CSS the widget inherits.
-- **Operable or not:** both calls stamp `data-hw-operable` on an operable widget (below). A port
-  or field declared `operable=False` is not stamped, and the route needs level mode `edit` for
-  its writes.
+- **Operable or not:** both calls stamp `data-hw-requires` on the widget (below), from the route's
+  `required_mode`. A port or field declared `operable=False` is stamped `edit`, and the route
+  needs level mode `edit` for its writes.
 
 **Skin instances are app-wide singletons.** One instance of each skin draws every card, for
 every session and canvas. A skin keeps no per-card or per-session state between renders; what
@@ -385,18 +385,20 @@ route.
 
 ## Pointer input below level mode `edit`
 
-Below level mode `edit` the canvas takes pointer input away from everything inside a card's
-`.ui-node-slot` (see [ADR 0055](../../adr/0055-every-user-edit-takes-the-edit-route.md), "The
-browser layer"). Two attributes give it back:
+Below the mode an element requires, `AccessGate` takes its pointer input away (see
+[ADR 0060](../../adr/0060-the-browser-projects-the-route.md)). One attribute, `data-hw-requires="view|operate|edit"`,
+says from which level mode an element takes input:
 
 - **A control** a skin draws must be a widget drawn through `BaseSkin.render_widget` or
-  `BaseSkin.render_setting_widget`, which stamp `data-hw-operable` on an operable one. It then
-  takes input in level mode `operate` as well as `edit`. A widget for an `operable=False` port
-  or field is not stamped and takes input only in `edit`.
-- **A read-only affordance** (a tooltip trigger, an info menu, a badge) carries
-  `data-hw-readable` and takes input in every level mode. `add_pin_tooltip` stamps it on a pin
-  that triggers its own tooltip; the studio skin stamps it on the diagnostics badge and the
-  comment badge. It must not offer a write: `view` reaches it too.
+  `BaseSkin.render_setting_widget`, which stamp it from the route's `required_mode`: `operate` for
+  an operable widget, `edit` for an `operable=False` one. Unmarked card content counts as `edit`
+  (fails closed), so a hand-made control on a card is dead below `edit` until stamped with
+  `stamp_requires(el)` (`edit` by default; pass `LevelMode.OPERATE` for an operable one).
+- **A read-only affordance** (a tooltip trigger, an info menu, a badge) is stamped `view` and takes
+  input in every level mode. `add_pin_tooltip` stamps a pin that triggers its own tooltip; the
+  studio skin stamps the diagnostics and comment badges. It must not offer a write.
+- **Tooltips on gated content** show only from the mode that operates the content: a trigger
+  inside a gated widget is inert below that mode, as the widget is.
 
 Anything else on a card takes no pointer input below `edit`. The gate does not touch the
 inside of a marked element, so its own `pointer-events` rules (a disabled widget's `none`)
@@ -448,7 +450,7 @@ A skin made for the stage alone is tagged `["general", "stage-only"]`. A skin fo
 - **Body.** An `InsetView` builds one ordinary `UINode` per staged interior node, with its stage skin, at its raw stage position (`props.get_position(STAGE)`), so stage (0, 0) is the body's top-left. The containers carry `data-hw-inset-node`, never `data-node-id`. The body has a 240 × 160 floor and clips; an empty stage shows a placeholder. A node whose interior does not resolve gets a message instead of the view: "failed to build" for a stand-in, "has no interior" otherwise.
 - **Writes.** The cards write through `EditRoute.for_subgraph(definition)`: the host route's level mode, recorded on the host's history.
 - **Lifetime.** The host card redraws when an on-stage interior node repaints or the interior's stage membership changes (`GraphNode`), which rebuilds the view; a change to a node off stage leaves it as drawn. The skin hands `view.cleanup` to `BaseSkin.on_card_cleanup`, so the old cards are released with the card. A skin that builds anything outliving its draw call does the same.
-- **Input.** `canvas.vue` makes everything inside `[data-hw-inset]` inert except `[data-hw-operable]` subtrees, and hides its pins, so a press acts on the host card; box select skips the body. The Inset draws no edges.
+- **Input.** `canvas.vue` makes everything inside `[data-hw-inset]` inert except `[data-hw-requires]` subtrees the mode reaches, and hides its pins, so a press acts on the host card; box select skips the body. The Inset draws no edges.
 
 ## Where the default skins live
 

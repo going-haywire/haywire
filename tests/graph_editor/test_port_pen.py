@@ -38,22 +38,22 @@ def _resolved_port() -> Any:
 
 
 def _pen_ctx(tier: AccessTier, locked: bool) -> Any:
-    """A session context whose route reads ``active_mode`` at each call."""
-    edit = SimpleNamespace(active_mode=level_mode(tier.satisfies, locked), active_node=MagicMock())
+    """A session context whose route reads ``mode`` at each call."""
+    edit = SimpleNamespace(mode=level_mode(tier.satisfies, locked), active_node=MagicMock())
     editor = MagicMock(name="editor")
-    edit.active_route = EditRoute(lambda: editor, lambda: edit.active_mode)
+    edit.active_route = EditRoute(lambda: editor, lambda: edit.mode)
     return SimpleNamespace(can_access=tier.satisfies, data={EditState: edit}, session=MagicMock())
 
 
 def _open_dialog(ctx: Any, editor: Any) -> Client:
     """Open the pen's edit dialog for ``ctx`` against ``editor``; return its client.
 
-    ``ctx``'s route reads ``active_mode`` at each call.
+    ``ctx``'s route reads ``mode`` at each call.
     """
     from haybale_graph_editor.panels.properties.introspect import node_ports
 
     edit = ctx.data[EditState]
-    edit.active_route = EditRoute(lambda: editor, lambda: edit.active_mode)
+    edit.active_route = EditRoute(lambda: editor, lambda: edit.mode)
     client = Client(cast(Any, _noop_page), request=None)
     with client:
         node_ports.NodePortsPanel()._open_editor(_resolved_port(), "n1", ctx)
@@ -110,7 +110,7 @@ def test_an_open_port_dialog_refuses_once_the_level_is_locked():
     editor = _metadata_editor()
     client = _open_dialog(ctx, editor)
 
-    ctx.data[EditState].active_mode = LevelMode.OPERATE
+    ctx.data[EditState].mode = LevelMode.OPERATE
     _apply_relabelled(client, "Level")
 
     editor.set_port_metadata.assert_not_called()

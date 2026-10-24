@@ -15,6 +15,7 @@ from haywire.core.signals import (
     GraphDataMutated,
     SelectionMoved,
 )
+from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
 
 @panel(
     surface=SettingsInspector,
+    requires=AccessTier.VIEW,
     label="Node Settings",
     icon=hui.icon.node_properties,
     order=10,

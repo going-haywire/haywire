@@ -1,4 +1,4 @@
-"""Every shipped Farmhand tool declares a deliberate tier."""
+"""Every shipped Farmhand tool declares a deliberate access requirement; EDIT is the default."""
 
 import pytest
 
@@ -55,7 +55,7 @@ VIEW_TOOLS = {
 }
 
 
-def _tool_map():
+def _tool_classes():
     from haywire.core.di.config import create_library_system_service  # noqa: F401
 
     pytest.importorskip("haybale_studio")
@@ -94,8 +94,12 @@ def _tool_map():
         for obj in vars(module).values():
             identity = getattr(obj, "class_identity", None)
             if identity is not None and hasattr(identity, "instructions"):
-                found[identity.registry_id] = identity
+                found[identity.registry_id] = obj
     return found
+
+
+def _tool_map():
+    return {registry_id: cls.class_identity for registry_id, cls in _tool_classes().items()}
 
 
 @pytest.mark.integration
@@ -103,7 +107,7 @@ def test_write_tools_require_admin():
     identities = _tool_map()
     for registry_id, identity in identities.items():
         if registry_id in ADMIN_TOOLS:
-            assert identity.access is AccessTier.ADMIN, f"{registry_id} should be admin"
+            assert identity.requires is AccessTier.ADMIN, f"{registry_id} should be admin"
 
 
 @pytest.mark.integration
@@ -111,7 +115,7 @@ def test_edit_tools_require_edit():
     identities = _tool_map()
     for registry_id, identity in identities.items():
         if registry_id in EDIT_TOOLS:
-            assert identity.access is AccessTier.EDIT, f"{registry_id} should be edit"
+            assert identity.requires is AccessTier.EDIT, f"{registry_id} should be edit"
 
 
 @pytest.mark.integration
@@ -119,7 +123,7 @@ def test_operate_tools_require_operate():
     identities = _tool_map()
     for registry_id, identity in identities.items():
         if registry_id in OPERATE_TOOLS:
-            assert identity.access is AccessTier.OPERATE, f"{registry_id} should be operate"
+            assert identity.requires is AccessTier.OPERATE, f"{registry_id} should be operate"
 
 
 @pytest.mark.integration
@@ -127,21 +131,20 @@ def test_view_tools_are_view():
     identities = _tool_map()
     for registry_id, identity in identities.items():
         if registry_id in VIEW_TOOLS:
-            assert identity.access is AccessTier.VIEW, f"{registry_id} should be view"
+            assert identity.requires is AccessTier.VIEW, f"{registry_id} should be view"
 
 
 @pytest.mark.integration
 def test_every_tool_is_classified():
-    """Every discovered tool must appear in exactly one of the tier buckets above —
-    catches a shipped tool nobody looked at when annotating."""
-    identities = _tool_map()
+    """The discovered tools are exactly the classified ones: a shipped tool nobody looked at
+    fails here, and so does an empty discovery or a stale entry in the buckets above."""
     known = ADMIN_TOOLS | EDIT_TOOLS | OPERATE_TOOLS | VIEW_TOOLS
-    unclassified = set(identities) - known
-    assert not unclassified, f"tools not classified in this test: {unclassified}"
+    assert set(_tool_map()) == known
 
 
 @pytest.mark.integration
-def test_no_shipped_tool_is_left_at_the_default_by_accident():
-    """Every tool must have been looked at — VIEW is fine, but only deliberately."""
-    identities = _tool_map()
-    assert identities, "no farmhand identities discovered — fix the import list in this test"
+def test_a_view_principal_reaches_exactly_the_read_only_tools():
+    """The host's own gate lists and calls exactly the VIEW tools for a VIEW principal."""
+    from haywire_studio.farmhand.host import tools_for_tier
+
+    assert set(tools_for_tier(_tool_classes(), AccessTier.VIEW)) == VIEW_TOOLS

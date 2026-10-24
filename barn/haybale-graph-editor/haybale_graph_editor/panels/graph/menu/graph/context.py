@@ -106,7 +106,7 @@ class FocusGraphPanel(BasePanel):
     label="New Node",
     icon=hui.icon.node_new,
     order=30,
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class NewNodeToolbarPanel(BasePanel):
     """Open the New Node wizard, as an icon shortcut.

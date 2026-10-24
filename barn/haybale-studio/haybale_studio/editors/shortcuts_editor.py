@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     default_slot=SlotName.CONTEXT,
     description="Keyboard shortcuts of every editor, grouped by editor.",
     order=60,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class ShortcutsEditor(BaseEditor):
     """Lists the keyboard shortcuts of every editor, one collapsible group per editor.

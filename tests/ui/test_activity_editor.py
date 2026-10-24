@@ -20,7 +20,7 @@ def test_editor_is_visible_to_every_tier():
     from haybale_studio.editors.activity_editor import ActivityEditor
     from haywire.core.access import AccessTier
 
-    assert ActivityEditor.class_identity.access is AccessTier.VIEW
+    assert ActivityEditor.class_identity.requires is AccessTier.VIEW
 
 
 def test_account_panel_is_a_view_tier_entry_in_the_account_menu():
@@ -34,7 +34,7 @@ def test_account_panel_is_a_view_tier_entry_in_the_account_menu():
     from haywire.core.access import AccessTier
 
     assert OpenActivityPanel.class_identity.surface is AccountMenu
-    assert OpenActivityPanel.class_identity.access is AccessTier.VIEW
+    assert OpenActivityPanel.class_identity.requires is AccessTier.VIEW
     assert OpenActivityPanel.poll(MagicMock()) is True
 
 

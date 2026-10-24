@@ -9,8 +9,10 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.access import AccessTier
 from haywire.core.types.enums import Propagation
 from haywire.ui import elements as hui
+from haywire.ui.access_stamp import stamp_requires
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
@@ -58,6 +60,7 @@ def _render_edge_warnings(state: "EdgeWrapperState") -> None:
 
 @panel(
     surface=EdgeInspector,
+    requires=AccessTier.VIEW,
     label="Connection Errors",
     icon=hui.icon.error,
     order=0,
@@ -83,6 +86,7 @@ class EdgeErrorsPanel(BasePanel):
 
 @panel(
     surface=EdgeInspector,
+    requires=AccessTier.VIEW,
     label="Connection Warnings",
     icon=hui.icon.warning,
     order=5,
@@ -108,6 +112,7 @@ class EdgeWarningsPanel(BasePanel):
 
 @panel(
     surface=EdgeInspector,
+    requires=AccessTier.VIEW,
     label="Style",
     icon=hui.icon.theme,
     order=8,
@@ -134,6 +139,7 @@ class EdgeStylePanel(BasePanel):
 
 @panel(
     surface=EdgeInspector,
+    requires=AccessTier.VIEW,
     label="Propagation",
     icon=hui.icon.edge_propagation,
     order=10,
@@ -192,12 +198,14 @@ class EdgePropagationPanel(BasePanel):
         with layout:
             with ui.row().classes("w-full items-center gap-1 py-0.5"):
                 ui.icon(hui.icon.edge_eager).classes("text-lg")
-                ui.switch(value=_is_lazy(), on_change=_on_change).props("dense")
+                switch = ui.switch(value=_is_lazy(), on_change=_on_change).props("dense")
+                stamp_requires(switch)
                 ui.icon(hui.icon.edge_lazy).classes("text-lg")
 
 
 @panel(
     surface=EdgeInspector,
+    requires=AccessTier.VIEW,
     label="Adapter Chain",
     icon=hui.icon.adapter,
     default_open=False,
@@ -240,6 +248,7 @@ class EdgeAdapterChainPanel(BasePanel):
 
 @panel(
     surface=EdgeInspector,
+    requires=AccessTier.VIEW,
     label="Execution Statistics",
     icon=hui.icon.edge_statistics,
     default_open=False,
@@ -270,6 +279,7 @@ class EdgeStatsPanel(BasePanel):
 
 @panel(
     surface=EdgeInspector,
+    requires=AccessTier.VIEW,
     label="Connection Path",
     icon=hui.icon.edge,
     default_open=False,

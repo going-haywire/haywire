@@ -59,7 +59,7 @@ def _compile_row(result) -> dict:
     "to pass to haystack_open_graph.",
     registry_id="list_graphs",
     annotations=_READ_ONLY,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class HaystackListGraphsTool(Farmhand):
     async def run(self, ctx: FarmhandContext, limit: int = 100, offset: int = 0) -> dict:
@@ -101,7 +101,6 @@ class HaystackListGraphsTool(Farmhand):
     "graph_editor_add_node, then haystack_save_graph (it stays unsaved until you do).",
     registry_id="create_graph",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class HaystackCreateGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext) -> dict:
@@ -126,7 +125,6 @@ class HaystackCreateGraphTool(Farmhand):
     "to see valid paths.",
     registry_id="open_graph",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class HaystackOpenGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, path: str) -> dict:
@@ -151,7 +149,6 @@ class HaystackOpenGraphTool(Farmhand):
     "binding_id, save_failed if the write itself fails.",
     registry_id="save_graph",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class HaystackSaveGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str, save_as: str | None = None) -> dict:
@@ -175,7 +172,6 @@ class HaystackSaveGraphTool(Farmhand):
     "binding_id, rename_failed if the rename itself fails (e.g. name collision).",
     registry_id="rename_graph",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class HaystackRenameGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str, new_name: str) -> dict:
@@ -196,7 +192,6 @@ class HaystackRenameGraphTool(Farmhand):
     "haystack_open_graph. Raises graph_not_found for an unknown binding_id.",
     registry_id="close_graph",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class HaystackCloseGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:
@@ -214,7 +209,7 @@ class HaystackCloseGraphTool(Farmhand):
     "when ok).",
     registry_id="compile_graph",
     annotations=_READ_ONLY,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class HaystackCompileGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:
@@ -231,7 +226,7 @@ class HaystackCompileGraphTool(Farmhand):
     "haystack_stop_graph when done.",
     registry_id="start_graph",
     annotations=ToolAnnotations(destructive_hint=True),
-    access=AccessTier.OPERATE,
+    requires=AccessTier.OPERATE,
 )
 class HaystackStartGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:
@@ -253,7 +248,7 @@ class HaystackStartGraphTool(Farmhand):
     "currently running.",
     registry_id="stop_graph",
     annotations=_MUTATING,
-    access=AccessTier.OPERATE,
+    requires=AccessTier.OPERATE,
 )
 class HaystackStopGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:

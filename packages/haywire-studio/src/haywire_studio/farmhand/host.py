@@ -29,7 +29,7 @@ from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from mcp.server.transport_security import TransportSecuritySettings
 from nicegui import app as nicegui_app
 
-from haywire.core.access import AccessTier, required_access
+from haywire.core.access import AccessTier, required_tier
 from haywire.core.docs.tree import doc_manifest, list_docs, read_doc
 from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, FarmhandRegistry
 from haywire.core.library.registry import LibraryRegistry
@@ -92,11 +92,10 @@ def _format_tool_error(exc: Exception) -> str:
 def tools_for_tier(tools: dict[str, Any], tier: AccessTier) -> list[str]:
     """Tool names visible at ``tier``.
 
-    Uses the same ``required_access`` lookup as the panel and editor gates, so a
-    tool with no declared access is VIEW here for exactly the reason it is VIEW
-    there.
+    Uses the same ``required_tier`` lookup as the panel and editor gates, so a
+    tool with no class identity requires EDIT here as it does there.
     """
-    return [name for name, cls in tools.items() if tier.satisfies(required_access(cls))]
+    return [name for name, cls in tools.items() if tier.satisfies(required_tier(cls))]
 
 
 def caller_principal(request: Any) -> str | None:

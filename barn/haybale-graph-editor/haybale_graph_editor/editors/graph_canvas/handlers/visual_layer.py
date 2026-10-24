@@ -381,7 +381,7 @@ class VisualLayerHandlers:
             logger.error(f"❌ Error during initial sync: {e}")
             traceback.print_exc()
 
-    @handles_event(CanvasMountedEvent, access=LevelMode.VIEW)
+    @handles_event(CanvasMountedEvent, requires=LevelMode.VIEW)
     def process_canvas_mounted(self, event: CanvasMountedEvent) -> None:
         """Send this canvas its edges, because a fresh component has none.
 
@@ -945,7 +945,7 @@ class VisualLayerHandlers:
     # Event handlers — graph mutation requests
     # -------------------------------------------------------------------------
 
-    @handles_event(NodesMeasuredEvent, access=LevelMode.VIEW)
+    @handles_event(NodesMeasuredEvent, requires=LevelMode.VIEW)
     def process_nodes_measured(self, event: NodesMeasuredEvent):
         """Write one frame's measured auto-axis sizes back into node props.
 
@@ -1183,7 +1183,7 @@ class VisualLayerHandlers:
         else:
             ui.notify("Failed to expand Group", type="negative")
 
-    @handles_event(EnterGroupEvent, access=LevelMode.OPERATE)
+    @handles_event(EnterGroupEvent, requires=LevelMode.OPERATE)
     def process_enter_group(self, event: EnterGroupEvent):
         """Ask this session's editors to enter the Group or macro placement on this node.
 

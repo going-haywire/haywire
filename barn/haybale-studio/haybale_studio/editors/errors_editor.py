@@ -83,7 +83,7 @@ def _severity_value(error: HaywireException) -> str:
     icon=hui.icon.debug,
     default_slot=SlotName.INFO,
     description="Error ledger. Lists HaywireExceptions logged since startup; click one for details.",
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class ErrorsEditor(BaseEditor):
     """Renders the process-wide error ledger as a clickable list with a detail pane."""

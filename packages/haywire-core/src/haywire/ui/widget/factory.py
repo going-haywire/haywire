@@ -4,10 +4,11 @@ from typing import TYPE_CHECKING, Any, Callable
 
 import nicegui.ui as ui
 
-from haywire.core.access import LevelMode
+from haywire.core.access import LevelMode, required_mode
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.types import DataPort, WidgetModel
+from haywire.ui.access_stamp import stamp_requires
 from haywire.ui.widget.interface import IWidget
 from haywire.ui.widget.registry import WidgetRegistry
 from haywire.ui.errors.error_info import error_render_detail
@@ -32,18 +33,21 @@ def _widget_model_for(
     (``EditRoute.set_setting``), any other to the port (``EditRoute.set_port``).
     With no route, or for a port of no node, the widget is read-only: each write
     is refused. A promoted port whose setting no longer resolves is written as a
-    plain port.
+    plain port. The model ``requires`` the mode the route's write needs
+    (``required_mode``), or ``None`` when the widget is read-only.
     """
     if not isinstance(port, DataPort):
         return port
 
     from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
+    writable = route is not None and port._node is not None
     return SettingWidgetModel(
         field_id=port.id,
         widget_config=port.widget_config,
         cell=port.data,
         on_edit=_write_for(port, route, minimum),
+        requires=required_mode(minimum, port.operable) if writable else None,
     )
 
 
@@ -73,7 +77,8 @@ def setting_widget_model(
     """Return the model a widget for field *name* of *bag* binds to.
 
     The model reads the field's cell and sends each write to *route*, at level mode
-    *minimum*; with no route every write is refused.
+    *minimum*; with no route every write is refused. The model ``requires`` the mode
+    the route's write needs (``required_mode``), or ``None`` without a route.
 
     Raises:
         KeyError: If *bag* has no field *name*.
@@ -90,6 +95,7 @@ def setting_widget_model(
         widget_config=descriptor.widget_config,
         cell=bag._cell_for(descriptor),
         on_edit=write,
+        requires=required_mode(minimum, descriptor.operable) if route is not None else None,
     )
 
 
@@ -156,7 +162,9 @@ class WidgetFactory(IWidgetFactory):
             minimum: The lowest level mode at which *route* lets a write through.
 
         Returns:
-            IWidget instance or None if widget creation failed
+            IWidget instance or None if widget creation failed, and the widget's element.
+            The element is stamped ``data-hw-requires`` with the model's ``requires``
+            (see ``stamp_requires``) when that is not ``None``.
         """
         widget_instance: IWidget | None = None
         widget_key = port.widget_key if isinstance(port, DataPort) else registry_key
@@ -166,12 +174,14 @@ class WidgetFactory(IWidgetFactory):
         lc_event: LifeCycleEvent | None = None
 
         try:
-            widget_instance, lc_event = self._get_widget(
-                registry_key, _widget_model_for(port, route, minimum)
-            )
+            model = _widget_model_for(port, route, minimum)
+            widget_instance, lc_event = self._get_widget(registry_key, model)
             if widget_instance is None:
                 raise HaywireException.create(message=f"Widget '{registry_key}' not found")
             ui_element = widget_instance.render()
+            requires: LevelMode | None = getattr(model, "requires", None)
+            if requires is not None:
+                stamp_requires(ui_element, requires)
 
         except Exception as error:
             library_identity = lc_event.library_identity if lc_event is not None else None

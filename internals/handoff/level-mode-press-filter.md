@@ -3,12 +3,12 @@ name: level-mode-press-filter
 description: Handoff — replace the canvas's pointer-events level-mode gate with one capture-phase press filter, so hover (tooltips, cursors) works in every mode and only presses are gated; removes three of the gate's five traps and fixes follow-up #5 part 1 without a new marker
 metadata:
   type: project
-  status: open
+  status: superseded
 ---
 
 # Handoff — A press filter in place of the pointer-events gate
 
-**Status:** not started. Analysis agreed with the user on 2026-10-23; needs a design round and
+**Status:** superseded by the browser access layer (ADR 0060, `docs/superpowers/plans/2026-10-23-browser-access-layer-spec.md`); kept as history. Was: not started. Analysis agreed with the user on 2026-10-23; needs a design round and
 an update to ADR 0055's "browser layer" paragraph before code. No branch.
 
 **Raised during:** follow-up #5 part 1 of `docs/superpowers/plans/2026-10-22-open-follow-ups.md`

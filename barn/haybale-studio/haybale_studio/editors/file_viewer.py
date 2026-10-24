@@ -48,7 +48,7 @@ _LANGUAGE_MAP: dict = {
     default_slot=SlotName.EDIT,
     opens=OpenBehavior.ON_PAYLOAD,
     description="Displays the contents of a file selected in the Files browser.",
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class FileViewerEditor(BaseEditor):
     """

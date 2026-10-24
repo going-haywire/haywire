@@ -95,7 +95,7 @@ def test_a_wide_card_gives_the_control_the_extra_width(page: Page, harness):
     _open(page, harness)
     card = _card(page, "slider")
     label = _box(card.locator("[data-widget-node-label]"))
-    control = _box(card.locator("[data-hw-operable]").first)
+    control = _box(card.locator("[data-hw-requires=operate]").first)
     root_px = page.evaluate("() => parseFloat(getComputedStyle(document.documentElement).fontSize)")
     slot = _box(card.locator(".ui-node-slot").first)
     assert abs(label["width"] - 9 * root_px) < 2
@@ -107,7 +107,7 @@ def test_a_narrow_card_splits_label_and_control_evenly(page: Page, harness):
     _open(page, harness)
     card = _card(page, "narrow")
     label = _box(card.locator("[data-widget-node-label]"))
-    control = _box(card.locator("[data-hw-operable]").first)
+    control = _box(card.locator("[data-hw-requires=operate]").first)
     assert abs(label["width"] - control["width"]) < 4
 
 
@@ -126,7 +126,7 @@ def test_an_auto_sized_card_keeps_its_floor(page: Page, harness):
     _open(page, harness)
     card = _card(page, "menu")
     assert _box(card.locator(".ui-node-slot").first)["width"] >= 180
-    assert _box(card.locator("[data-hw-operable]").first)["width"] > 40
+    assert _box(card.locator("[data-hw-requires=operate]").first)["width"] > 40
 
 
 def test_a_label_above_sits_over_its_control(page: Page, harness):
@@ -143,11 +143,11 @@ def test_a_max_label_width_caps_the_label(page: Page, harness):
     _open(page, harness)
     wide = _card(page, "capped")
     label = _box(wide.locator("[data-widget-node-label]"))
-    control = _box(wide.locator("[data-hw-operable]").first)
+    control = _box(wide.locator("[data-hw-requires=operate]").first)
     assert abs(label["width"] - 80) < 2
     assert control["width"] > 250
 
     narrow = _card(page, "capped_narrow")
     label = _box(narrow.locator("[data-widget-node-label]"))
-    control = _box(narrow.locator("[data-hw-operable]").first)
+    control = _box(narrow.locator("[data-hw-requires=operate]").first)
     assert abs(label["width"] - control["width"]) < 4

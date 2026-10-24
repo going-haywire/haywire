@@ -130,7 +130,7 @@ def build_keymap(
 
     Each editor binds the ``default_keys`` of the ``EditorCommand`` classes it
     subscribes to, in their ``normalize_combo`` spelling. A command whose
-    ``access`` tier ``can_access`` rejects binds nothing, so its keys keep their
+    ``requires`` tier ``can_access`` rejects binds nothing, so its keys keep their
     browser behaviour. A combo ``normalize_combo`` rejects is recorded in
     ``Keymap.invalid`` and a browser-reserved combo in ``Keymap.reserved``;
     neither is bound. When several commands
@@ -178,7 +178,7 @@ def build_keymap(
     for editor_key, cls in editor_classes.items():
         claims: dict[str, list[type[EditorCommand]]] = {}
         for cmd in subscriptions[editor_key]:
-            if cmd.command_id in duplicated or not can_access(cmd.access):
+            if cmd.command_id in duplicated or not can_access(cmd.requires):
                 continue
             commands[cmd.command_id] = cmd
             for declared_combo in cmd.default_keys:

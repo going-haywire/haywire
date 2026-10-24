@@ -78,7 +78,7 @@ class EditorIdentity(BaseIdentity):
         order: Sort priority within a slot (lower = earlier in the bar).
             Editors without an explicit order default to 100; ties fall back
             to registration order.
-        access: Minimum AccessTier needed to see this editor — an
+        requires: Minimum AccessTier needed to see this editor — an
             :class:`AccessTier` or its string value ('view', 'edit', 'admin').
             Defaults to 'edit', so an editor that does not declare is hidden
             below edit. An unknown value raises ``ValueError`` at
@@ -89,4 +89,4 @@ class EditorIdentity(BaseIdentity):
     default_slot: SlotName = SlotName.EDIT
     opens: OpenBehavior = field(default=OpenBehavior.REQUIRED)
     order: int = 100
-    access: AccessTier = AccessTier.EDIT
+    requires: AccessTier = AccessTier.EDIT

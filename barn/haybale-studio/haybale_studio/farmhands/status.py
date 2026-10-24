@@ -23,7 +23,7 @@ def _version(dist: str) -> str:
     "URI. Call this first when connecting — the summary points at how to find documentation.",
     registry_id="status",
     annotations=ToolAnnotations(read_only_hint=True),
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class StudioStatusTool(Farmhand):
     async def run(self, ctx: FarmhandContext) -> dict:

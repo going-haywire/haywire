@@ -55,7 +55,7 @@ _BATCH_DEPTH = 3
         " folders so the user can pull in three more levels on demand."
     ),
     order=10,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class LazyFileBrowserEditor(BaseEditor):
     """File tree that loads three levels at a time on demand."""

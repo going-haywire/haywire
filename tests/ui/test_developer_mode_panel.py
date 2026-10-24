@@ -89,7 +89,7 @@ def test_panel_is_view_access():
     toggle higher would hide a read-only view and buy no safety."""
     from haybale_studio.panels.account.account import DeveloperModePanel
 
-    assert DeveloperModePanel.class_identity.access is AccessTier.VIEW
+    assert DeveloperModePanel.class_identity.requires is AccessTier.VIEW
 
 
 def test_panel_always_polls_true():

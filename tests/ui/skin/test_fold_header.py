@@ -45,7 +45,7 @@ def test_the_header_is_the_fold_widget(card) -> None:
     headers = _headers(card)
     assert {h._props["data-hw-fold-id"] for h in headers} == {"solver", "inputs", "advanced"}
     for header in headers:
-        assert "data-hw-operable" in header._props
+        assert header._props.get("data-hw-requires") == "operate"
         assert any(isinstance(e, ui.icon) for e in header.descendants())
     assert FoldWidget.__name__ == "FoldWidget"
 

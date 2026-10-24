@@ -10,7 +10,7 @@ import pytest
 
 from haybale_graph_editor.editors.graph_canvas.event_handlers import (
     build_event_handler_map,
-    handler_access,
+    handler_requires,
     handles_event,
 )
 from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
@@ -63,7 +63,7 @@ class _Stub:
     def resize_end(self, event: Any) -> None:
         self.calls.append("resize_end")
 
-    @handles_event(SelectionChangedEvent, access=LevelMode.VIEW)
+    @handles_event(SelectionChangedEvent, requires=LevelMode.VIEW)
     def selection(self, event: Any) -> None:
         self.calls.append("selection")
 
@@ -141,7 +141,7 @@ def test_other_refusals_do_not_resync(mode):
     manager.visual_layer.resync_positions.assert_not_called()
 
 
-def test_view_access_events():
+def test_view_mode_events():
     """Only the events that change nothing in the graph run at view access; selecting is one."""
     handler_classes = [
         VisualLayerHandlers,
@@ -154,15 +154,10 @@ def test_view_access_events():
     for cls in handler_classes:
         for name in dir(cls):
             method = getattr(cls, name)
-            if getattr(method, "_handles_event_access", None) == LevelMode.VIEW:
+            if getattr(method, "_handles_event_requires", None) == LevelMode.VIEW:
                 view_events.update(e.event_type for e in method._handles_event_classes)
     assert view_events == {
         "edgeClicked",
-        "contextMenuCanvas",
-        "contextMenuEdge",
-        "contextMenuSelected",
-        "contextMenuSurface",
-        "contextMenuPort",
         "selectionBounds",
         "selectionBoundsHide",
         "selectionChanged",
@@ -172,43 +167,80 @@ def test_view_access_events():
 
 
 def test_enter_group_declares_operate():
-    assert handler_access(VisualLayerHandlers.process_enter_group) is LevelMode.OPERATE
+    assert handler_requires(VisualLayerHandlers.process_enter_group) is LevelMode.OPERATE
+
+
+_MENU_EVENTS = [
+    ContextMenuCanvasEvent(screenX=1, screenY=2, canvasX=3, canvasY=4),
+    ContextMenuEdgeEvent(screenX=1, screenY=2, canvasX=3, canvasY=4, edge_id="e"),
+    ContextMenuSelectedEvent(
+        screenX=1, screenY=2, canvasX=3, canvasY=4, selectedNodes=["a"], selectedEdges=[]
+    ),
+    ContextMenuSurfaceEvent(screenX=1, screenY=2, canvasX=3, canvasY=4, nodeId="a", surfaceId="s"),
+    ContextMenuPortEvent(screenX=1, screenY=2, canvasX=3, canvasY=4, nodeId="a", portId="p"),
+]
+_MENU_INTENTS = (
+    "on_canvas_context",
+    "on_edge_context",
+    "on_selection_context",
+    "on_surface_context",
+    "on_port_context",
+)
+
+
+def _menu_manager(mode: LevelMode) -> tuple[Any, MagicMock]:
+    """A manager whose handler map holds the real ``process_context_menu`` over a mock provider."""
+    manager, _ = _manager(mode)
+    provider = MagicMock()
+    handlers = ContextMenuHandlers(visual_layer=MagicMock(), provider=provider)
+    manager._event_handlers = build_event_handler_map([handlers])
+    return manager, provider
 
 
 @pytest.mark.parametrize("mode", [LevelMode.VIEW, LevelMode.OPERATE])
-@pytest.mark.parametrize(
-    "event",
-    [
-        ContextMenuCanvasEvent(screenX=1, screenY=2, canvasX=3, canvasY=4),
-        ContextMenuEdgeEvent(screenX=1, screenY=2, canvasX=3, canvasY=4, edge_id="e"),
-        ContextMenuSelectedEvent(
-            screenX=1, screenY=2, canvasX=3, canvasY=4, selectedNodes=["a"], selectedEdges=[]
-        ),
-        ContextMenuSurfaceEvent(screenX=1, screenY=2, canvasX=3, canvasY=4, nodeId="a", surfaceId="s"),
-        ContextMenuPortEvent(screenX=1, screenY=2, canvasX=3, canvasY=4, nodeId="a", portId="p"),
-    ],
-)
+@pytest.mark.parametrize("event", _MENU_EVENTS)
 def test_no_menu_below_edit(mode, event):
-    manager, _ = _manager(mode)
-    provider = MagicMock()
-    handlers = ContextMenuHandlers(visual_layer=MagicMock(), provider=provider, allows=manager.route.allows)
-    handlers.process_context_menu(event)
-    for name in (
-        "on_canvas_context",
-        "on_edge_context",
-        "on_selection_context",
-        "on_surface_context",
-        "on_port_context",
-    ):
+    manager, provider = _menu_manager(mode)
+    manager._handle_canvas_event(event)
+    for name in _MENU_INTENTS:
         getattr(provider, name).assert_not_called()
 
 
 def test_menu_opens_in_edit():
-    manager, _ = _manager(LevelMode.EDIT)
-    provider = MagicMock()
-    handlers = ContextMenuHandlers(visual_layer=MagicMock(), provider=provider, allows=manager.route.allows)
-    handlers.process_context_menu(ContextMenuCanvasEvent(screenX=1, screenY=2, canvasX=3, canvasY=4))
+    manager, provider = _menu_manager(LevelMode.EDIT)
+    manager._handle_canvas_event(_MENU_EVENTS[0])
     provider.on_canvas_context.assert_called_once()
+
+
+def test_context_menu_events_need_edit():
+    assert handler_requires(ContextMenuHandlers.process_context_menu) is LevelMode.EDIT
+
+
+def test_a_handler_without_requires_needs_edit():
+    @handles_event(UserRemoveEvent)
+    def remove(event: Any) -> None: ...
+
+    assert handler_requires(remove) is LevelMode.EDIT
+
+
+@pytest.mark.parametrize(("mode", "runs"), [(LevelMode.OPERATE, False), (LevelMode.EDIT, True)])
+def test_a_handler_without_the_marker_needs_edit(mode, runs):
+    called: list[str] = []
+
+    class _Unmarked:
+        def remove(self, event: Any) -> None:
+            called.append("remove")
+
+    source = _Unmarked()
+    # Classes marked, no mode marker: the dispatcher treats it as EDIT.
+    setattr(_Unmarked.remove, "_handles_event_classes", (UserRemoveEvent,))  # noqa: B010
+    manager, _ = _manager(mode)
+    manager._event_handlers = build_event_handler_map([source])
+    assert handler_requires(manager._event_handlers["userRemove"]) is LevelMode.EDIT
+
+    manager._handle_canvas_event(UserRemoveEvent(nodes=["a"], edges=[]))
+
+    assert called == (["remove"] if runs else [])
 
 
 @pytest.mark.parametrize("mode", [LevelMode.VIEW, LevelMode.OPERATE])

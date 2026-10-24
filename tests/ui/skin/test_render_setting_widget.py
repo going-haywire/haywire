@@ -83,11 +83,17 @@ def test_without_a_route_it_is_read_only(note, nicegui_slot_context) -> None:
     assert cast(Any, note.node).annotation.font == "sans"
 
 
-def test_operable_is_stamped_only_for_an_operable_field(note, nicegui_slot_context) -> None:
+def test_the_model_requires_its_fields_rule(note, nicegui_slot_context) -> None:
     factory, element = _factory()
-    assert _draw(_Skin(factory), note, "font") is element
-    assert "data-hw-operable" in element._props
+    assert _draw(_Skin(factory), note, "font", route=MagicMock()) is element
+    assert factory.render_widget.call_args.args[1].requires is LevelMode.OPERATE
 
     factory, element = _factory()
-    assert _draw(_Skin(factory), note, "text") is element
-    assert "data-hw-operable" not in element._props
+    assert _draw(_Skin(factory), note, "text", route=MagicMock()) is element
+    assert factory.render_widget.call_args.args[1].requires is LevelMode.EDIT
+
+
+def test_without_a_route_the_model_requires_nothing(note, nicegui_slot_context) -> None:
+    factory, _ = _factory()
+    _draw(_Skin(factory), note, "font")
+    assert factory.render_widget.call_args.args[1].requires is None

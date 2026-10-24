@@ -59,7 +59,7 @@ class _LogHandler(logging.Handler):
     icon=hui.icon.terminal,
     default_slot=SlotName.INFO,
     description="Application output. Captures Python logging and print() output.",
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class LogEditor(BaseEditor):
     """

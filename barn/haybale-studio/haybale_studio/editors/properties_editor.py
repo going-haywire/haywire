@@ -7,6 +7,7 @@ from typing import Any, TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
@@ -14,7 +15,7 @@ from haywire.ui.editor.identity import SlotName
 from haywire.ui.panel.base import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.registry import PanelRegistry
-from haywire.ui.panel.host_rendering import _poll_surface, render_panel, visible_panels
+from haywire.ui.panel.host_rendering import _accessible, _poll_surface, render_panel, visible_panels
 from haywire.ui.surface import Surface
 from haywire.ui.panel.redraw_coordinator import PanelRedrawCoordinator
 
@@ -31,6 +32,8 @@ logger = logging.getLogger(__name__)
     default_slot=SlotName.CONTEXT,
     description="Context-sensitive property panels for the active selection.",
     order=10,
+    # Its inspector tabs read in every mode; each panel declares its own tier (ADR 0060).
+    requires=AccessTier.VIEW,
 )
 class PropertiesEditor(BaseEditor):
     """
@@ -46,8 +49,11 @@ class PropertiesEditor(BaseEditor):
 
     A surface whose ``poll()`` is false keeps its tab in place, greyed, and
     its content is dropped: stable position is what makes a tab learnable,
-    and the editor drew that chrome so the editor greys it. The active
-    surface is never changed automatically after initial selection.
+    and the editor drew that chrome so the editor greys it. A surface none of
+    whose panels the principal's access right reaches is not offered at all,
+    neither as a tab nor as the default: a greyed tab would advertise what the
+    principal may not have (ADR 0060). The active surface is never changed
+    automatically after initial selection, unless it stops being offered.
     """
 
     # ------------------------------------------------------------------
@@ -165,10 +171,12 @@ class PropertiesEditor(BaseEditor):
                         "border-right: 1px solid var(--hw-border);"
                     )
                 )
+                # The session mode gates the stamped writers in here (AccessGate).
                 self._content = (
                     ui.column()
                     .classes("flex-1 gap-0")
                     .style("overflow-y: auto; min-width: 0; min-height: 0; height: 100%;")
+                    .props('data-hw-mode-scope="session"')
                 )
         self._refresh(context)
 
@@ -197,21 +205,33 @@ class PropertiesEditor(BaseEditor):
         surfaces = [s for s in panel_registry.get_root_surfaces() if s.presentation is not None]
         return sorted(surfaces, key=lambda s: s.order)
 
+    def _offered_surfaces(self, context: SessionContext) -> list[type[Surface]]:
+        """Toolbar surfaces holding at least one panel the principal's access right reaches."""
+        registry = self._panel_registry(context)
+        return [
+            surface
+            for surface in self._compute_toolbar_surfaces(registry)
+            if any(_accessible(panel_cls, context) for panel_cls in registry.get_panels(surface))
+        ]
+
     # ------------------------------------------------------------------
     # Surface resolution
     # ------------------------------------------------------------------
 
     def _resolve_active_surface(self, context: SessionContext) -> None:
-        """Set a default surface on first render only.
+        """Set a default surface on first render, or when the active one is no longer offered.
 
-        After first render, the user's choice is preserved regardless of
-        selection changes. Default selection picks the lowest-order surface
+        Otherwise the user's choice is preserved regardless of selection
+        changes. Default selection picks the lowest-order offered surface
         whose ``poll()`` currently passes.
         """
+        offered = self._offered_surfaces(context)
         if self._active_surface_id is not None:
-            return  # user's choice — never override
+            if any(surface.id == self._active_surface_id for surface in offered):
+                return  # user's choice — never override
+            self._active_surface_id = None
 
-        for surface in self._compute_toolbar_surfaces(self._panel_registry(context)):
+        for surface in offered:
             if _poll_surface(surface, context):
                 self._active_surface_id = surface.id
                 return
@@ -226,7 +246,7 @@ class PropertiesEditor(BaseEditor):
         """Return the currently-active Surface class, or None."""
         if self._active_surface_id is None:
             return None
-        for surface in self._compute_toolbar_surfaces(self._panel_registry(context)):
+        for surface in self._offered_surfaces(context):
             if surface.id == self._active_surface_id:
                 return surface
         return None
@@ -243,7 +263,7 @@ class PropertiesEditor(BaseEditor):
         active_surface_id = self._active_surface_id
 
         with self._toolbar:
-            for surface in self._compute_toolbar_surfaces(self._panel_registry(context)):
+            for surface in self._offered_surfaces(context):
                 # A false poll() greys the tab in place rather than removing
                 # it — the editor drew this chrome, so the editor greys it.
                 applies = _poll_surface(surface, context)

@@ -2,10 +2,12 @@ from abc import ABC
 from typing import TYPE_CHECKING, List
 from nicegui import ui
 
+from haywire.core.access import LevelMode
 from haywire.core.errors import HaywireException
 from haywire.core.types import DataPort, LayoutDirection, PortType
 from haywire.core.node.node_wrapper import NodeWrapper
 
+from haywire.ui.access_stamp import stamp_requires
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.pin_render import (
     GHOST_PIN_SIZE,
@@ -817,8 +819,9 @@ class NodeSkin(BaseSkin, ABC):
         # right — so a node with both shows them side by side rather than
         # stacked on top of each other.
         btn.style("position: absolute; top: -25px; right: 32px;")
-        # Readable: the comment shows in every level mode.
-        btn.props(f'data-node-id="{wrapper.node_id}" data-hw-readable')
+        btn.props(f'data-node-id="{wrapper.node_id}"')
+        # The comment shows in every level mode.
+        stamp_requires(btn, LevelMode.VIEW)
         with btn:
             ui.tooltip(comment).classes("text-xs whitespace-normal").style("max-width: 22rem")
 
@@ -852,8 +855,9 @@ class NodeSkin(BaseSkin, ABC):
         btn = ui.button(icon=hui.icon.warning, color=color).props("flat dense round")
         btn.classes("text-xl px-2 py-1")
         btn.style("position: absolute; top: -25px;")
-        # Readable: the menu only reads, so it opens in every level mode.
-        btn.props(f'data-node-id="{node_id}" data-hw-readable')
+        btn.props(f'data-node-id="{node_id}"')
+        # The menu only reads, so it opens in every level mode.
+        stamp_requires(btn, LevelMode.VIEW)
         with btn:
             ui.badge(str(total), color=color).props("floating")
 

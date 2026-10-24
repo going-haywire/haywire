@@ -6,25 +6,25 @@ from haywire.core.access import AccessTier
 def test_roster_editor_requires_admin():
     from haybale_studio.editors.roster_editor import RosterEditor
 
-    assert RosterEditor.class_identity.access is AccessTier.ADMIN
+    assert RosterEditor.class_identity.requires is AccessTier.ADMIN
 
 
 def test_logout_panel_is_visible_to_everyone():
     from haybale_studio.panels.account.account import LogoutPanel
 
-    assert LogoutPanel.class_identity.access is AccessTier.VIEW
+    assert LogoutPanel.class_identity.requires is AccessTier.VIEW
 
 
 def test_open_roster_panel_requires_admin():
     from haybale_studio.panels.account.account import OpenRosterPanel
 
-    assert OpenRosterPanel.class_identity.access is AccessTier.ADMIN
+    assert OpenRosterPanel.class_identity.requires is AccessTier.ADMIN
 
 
 def test_rotate_secret_panel_requires_admin():
     from haybale_studio.panels.account.account import RotateSecretPanel
 
-    assert RotateSecretPanel.class_identity.access is AccessTier.ADMIN
+    assert RotateSecretPanel.class_identity.requires is AccessTier.ADMIN
 
 
 def test_account_panels_target_the_account_focus():

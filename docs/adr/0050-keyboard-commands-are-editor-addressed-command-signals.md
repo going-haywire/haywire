@@ -1,6 +1,6 @@
 ---
 name: keyboard-commands-are-editor-addressed-command-signals
-description: A keyboard shortcut publishes an EditorCommand, a CommandSignal addressed to one editor binding and gated by an access tier; an editor claims a key by subscribing to the command that declares it
+description: A keyboard shortcut publishes an EditorCommand, a CommandSignal addressed to one editor binding and gated by an access requirement; an editor claims a key by subscribing to the command that declares it
 status: accepted
 see-also: ADR-0027, ADR-0029, ADR-0049
 level: ui
@@ -18,7 +18,7 @@ level: ui
 **Decision.**
 
 - **A shortcut publishes an `EditorCommand`.** `EditorCommand` (`haywire.core.signals.signal`) is a `CommandSignal` with a `binding_id` naming the editor binding it is addressed to and an optional `position` in that editor's coordinates. The framework vocabulary declares eight: `Copy`, `Cut`, `Paste`, `Duplicate`, `Delete`, `Undo`, `Redo`, `SelectAll` (`haywire.core.signals.vocabulary`).
-- **The wrapper filters.** `EditorWrapper` drops an `EditorCommand` whose `binding_id` is not its own `editor_binding_id`, or whose `access` tier the session's principal does not hold. `access` defaults to `edit`; `Copy` and `SelectAll` are `view`. An editor's handler therefore never checks either.
+- **The wrapper filters.** `EditorWrapper` drops an `EditorCommand` whose `binding_id` is not its own `editor_binding_id`, or whose `requires` tier the session's principal does not hold. `requires` defaults to `edit`; `Copy` and `SelectAll` are `view`. An editor's handler therefore never checks either.
 - **Keys live on the command class.** Each command declares a `command_id` (stable, unique app-wide), a `label`, and `default_keys` in the canonical notation of `haywire.core.signals.keys` (`Mod+Shift+Z`; `Mod` is Cmd on macOS, Ctrl elsewhere), normalised before binding. Combos are matched on `KeyboardEvent.key`, except that a letter or digit typed as a non-ASCII character under Ctrl/Cmd without Alt (a non-Latin layout), or under Option on macOS, is matched on its physical key (`KeyboardEvent.code`).
 - **The keymap is derived from subscriptions.** An editor class claims a command's keys by subscribing to it. `build_keymap` (`haywire.ui.keymap`) reads every editor class's subscriptions and resolves them for the principal's tier: a command the principal cannot perform binds nothing, so its keys keep their browser behaviour. The AppShell rebuilds the keymap after a hot-reload and on `RosterChanged`, and stores it on `SessionContext.keymap`.
 - **Clash rule.** When two commands of one editor declare the same combo, the command from the editor's own top-level package wins, then the lowest `command_id`. A browser-reserved combo (`Mod+W`, `Mod+T`, `Mod+N`, `Mod+Q`, `Mod+Shift+N`, `Mod+Shift+T`, `Mod+Shift+W`) is never bound. A combo that does not parse is never bound. A `command_id` declared by two classes binds neither. Each problem is logged once per process to the error ledger.

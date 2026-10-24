@@ -572,7 +572,7 @@ def _metadata_row(graph) -> dict:
     ),
     registry_id="query_graph",
     annotations=_READ_ONLY,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class GraphEditorQueryGraphTool(Farmhand):
     async def run(
@@ -664,7 +664,7 @@ _DIRECTIONS = ("inlet", "swinglet", "outlet", "config")
     "silently by the framework; set_property verifies the write and reports the rejection.",
     registry_id="inspect_node",
     annotations=_READ_ONLY,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class GraphEditorInspectNodeTool(Farmhand):
     input_schema_override = {
@@ -840,7 +840,6 @@ class GraphEditorInspectNodeTool(Farmhand):
     "node's ports/settings before wiring or setting them.",
     registry_id="add_node",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class GraphEditorAddNodeTool(Farmhand):
     async def run(
@@ -882,7 +881,6 @@ class GraphEditorAddNodeTool(Farmhand):
     "connect_failed. Opens one undo fence and broadcasts to open studio UIs on success.",
     registry_id="connect",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class GraphEditorConnectTool(Farmhand):
     async def run(
@@ -933,7 +931,6 @@ class GraphEditorConnectTool(Farmhand):
     "own edges. Opens one undo fence and broadcasts to open studio UIs on success.",
     registry_id="remove_elements",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class GraphEditorRemoveElementsTool(Farmhand):
     async def run(
@@ -969,7 +966,6 @@ class GraphEditorRemoveElementsTool(Farmhand):
     "fence and broadcasts to open studio UIs on success.",
     registry_id="move_nodes",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class GraphEditorMoveNodesTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str, positions: dict) -> dict:
@@ -1012,7 +1008,6 @@ def _read_property(node, name: str):
     "(a pooled inlet or an ADD slot) raises no_own_value: wire an edge to feed it instead.",
     registry_id="set_property",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class GraphEditorSetPropertyTool(Farmhand):
     async def run(
@@ -1074,7 +1069,7 @@ class GraphEditorSetPropertyTool(Farmhand):
     "the graph as unsaved only when the value changed.",
     registry_id="operate",
     annotations=_MUTATING,
-    access=AccessTier.OPERATE,
+    requires=AccessTier.OPERATE,
 )
 class GraphEditorOperateTool(Farmhand):
     async def run(
@@ -1132,7 +1127,6 @@ class GraphEditorOperateTool(Farmhand):
     "undo timeline.",
     registry_id="promote_setting",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class GraphEditorPromoteSettingTool(Farmhand):
     async def run(
@@ -1175,7 +1169,6 @@ class GraphEditorPromoteSettingTool(Farmhand):
     "removed along with it. One undo step. Broadcasts to open studio UIs on success.",
     registry_id="demote_setting",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class GraphEditorDemoteSettingTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str, node_id: str, port_id: str) -> dict:
@@ -1203,7 +1196,6 @@ class GraphEditorDemoteSettingTool(Farmhand):
     "Broadcasts to open studio UIs only when a change was actually undone.",
     registry_id="undo",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class GraphEditorUndoTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:
@@ -1226,7 +1218,6 @@ class GraphEditorUndoTool(Farmhand):
     "UIs only when a change was actually redone.",
     registry_id="redo",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class GraphEditorRedoTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:
@@ -1251,7 +1242,6 @@ class GraphEditorRedoTool(Farmhand):
     "persists it.",
     registry_id="set_metadata",
     annotations=_MUTATING,
-    access=AccessTier.EDIT,
 )
 class GraphEditorSetMetadataTool(Farmhand):
     async def run(

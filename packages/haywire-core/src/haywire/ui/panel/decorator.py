@@ -44,7 +44,7 @@ from __future__ import annotations
 
 from typing import Any, Union
 
-from haywire.core.access import AccessTier
+from haywire.core.access import AccessTier, coerce_requirement
 from haywire.core.library.utils import PANEL, derive_library_identity, reg_key
 from haywire.core.session.handlers import validate_signal_types
 from haywire.ui.surface import Surface
@@ -75,7 +75,7 @@ def panel(**kwargs: Any):
         registry_id:  Unique ID for this panel. Defaults to the class name.
         redraw_on:    Tuple of Signal subclasses the panel wants its host
                       editor to redraw on. Empty tuple means no subscriptions.
-        access:       Minimum AccessTier needed to see this panel — an
+        requires:     Minimum AccessTier needed to see this panel — an
             :class:`AccessTier` or its string value ('view', 'edit', 'admin').
             Defaults to 'edit', so a panel that does not declare is hidden
             below edit. An unknown value raises ``ValueError`` at
@@ -116,9 +116,9 @@ def panel(**kwargs: Any):
         "@panel(..., redraw_on=...)", tuple(identity_kwargs.pop("redraw_on", ())), allow_empty=True
     )
 
-    # Coerce access to enum; raises ValueError at class-definition time on typo.
-    access: Union[AccessTier, str] = identity_kwargs.pop("access", AccessTier.EDIT)
-    identity_kwargs["access"] = AccessTier(access) if isinstance(access, str) else access
+    # Strict coercion: ValueError on an unknown name, TypeError on a LevelMode or other type.
+    requires: Union[AccessTier, str] = identity_kwargs.pop("requires", AccessTier.EDIT)
+    identity_kwargs["requires"] = coerce_requirement(requires)
 
     def decorator(inner_cls):
         if not issubclass(inner_cls, BasePanel):

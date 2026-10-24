@@ -55,7 +55,7 @@ class PanelIdentity(BaseIdentity):
                 dispatch — when one of these signals publishes, the editor
                 redraws (and the panel re-mounts as part of that redraw).
                 Empty tuple means the panel contributes no subscriptions.
-        access: Minimum AccessTier a principal needs to see this panel.
+        requires: Minimum AccessTier a principal needs to see this panel.
                 Below it, the panel is filtered out of visible_panels() —
                 it vanishes rather than rendering disabled, and never
                 renders ``draw_disabled()`` either. Default EDIT, so a panel
@@ -68,4 +68,4 @@ class PanelIdentity(BaseIdentity):
     surface: Optional[type["Surface"]] = None
     hosts: Tuple[type["Surface"], ...] = ()
     redraw_on: Tuple[type["Signal"], ...] = ()
-    access: AccessTier = AccessTier.EDIT
+    requires: AccessTier = AccessTier.EDIT

@@ -23,7 +23,7 @@ from haywire.core.signals import ErrorLedgerChanged
     "so a client can detect when older history was evicted or deleted.",
     registry_id="get_errors",
     annotations=ToolAnnotations(read_only_hint=True),
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class StudioGetErrorsTool(Farmhand):
     async def run(
@@ -65,7 +65,7 @@ class StudioGetErrorsTool(Farmhand):
     "Errors editors refresh. Dismissing an absent seq is a no-op (idempotent).",
     registry_id="dismiss_errors",
     annotations=ToolAnnotations(destructive_hint=True, idempotent_hint=True),
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class StudioDismissErrorsTool(Farmhand):
     async def run(

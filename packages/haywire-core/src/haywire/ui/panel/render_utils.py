@@ -28,13 +28,14 @@ import logging
 from collections.abc import Iterable
 from itertools import groupby
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 from nicegui import ui
 
-from haywire.core.access import LevelMode
+from haywire.core.access import LevelMode, required_mode
 from haywire.core.settings import UiState
 from haywire.ui import elements as hui
+from haywire.ui.access_stamp import stamp_requires
 from haywire.ui.panel.host_rendering import drawing_panel
 from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.widget.base import DISABLED_STYLE, BaseWidget
@@ -50,6 +51,8 @@ if TYPE_CHECKING:
     from haywire.core.types.fields import DataField
 
 logger = logging.getLogger(__name__)
+
+_E = TypeVar("_E", bound=ui.element)
 
 _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
 _WIDGET_CLASSES = "sf-widget"
@@ -751,6 +754,12 @@ def _render_reactive_field_row(
             # Greyed once the value already IS absent — nothing left to do.
             none_item.set_enabled(editable and getattr(obj, attr_name) is not None)
 
+    def _stamp_writer(item: _E) -> _E:
+        # Every write in the row menu goes through the route at minimum EDIT.
+        if route is not None:
+            stamp_requires(item)
+        return item
+
     def _build_row_menu() -> None:
         # Structural facts hide entries (no node, ineligible direction,
         # Promote vs Demote); transient ones only grey them. Nested in the
@@ -768,9 +777,14 @@ def _render_reactive_field_row(
         if node is not None and not is_promoted:
             directions = list(eligible_promotion_directions(defn))
         offers_demote = node is not None and is_promoted
-        with ui.context_menu().props('data-row-menu="true"'):
+        # The menu is teleported out of the panel, so on a level's route it carries
+        # the session scope itself and the panel gate greys its writers (ADR 0060).
+        menu_props = 'data-row-menu="true"'
+        if route is not None:
+            menu_props += ' data-hw-mode-scope="session"'
+        with ui.context_menu().props(menu_props):
             if offers_demote:
-                ui.menu_item("Demote", on_click=_demote, auto_close=True)
+                _stamp_writer(ui.menu_item("Demote", on_click=_demote, auto_close=True))
             elif directions:
                 # dense=False: the anchor's Quasar density must match the plain
                 # menu_items beside it (Reset et al are not dense), or it renders
@@ -778,7 +792,12 @@ def _render_reactive_field_row(
                 # The sibling group is this menu's own — one flyout, nothing to
                 # close beside it, but the primitive owns that bookkeeping.
                 promote_siblings: hui.FlyoutSiblings = []
-                with hui.flyout_category("Promote to", promote_siblings, dense=False):
+                # The anchor is internal to flyout_category, so the stamp goes on a
+                # wrapper; a greyed anchor takes no hover, and its flyout never opens.
+                with (
+                    _stamp_writer(ui.element("div")),
+                    hui.flyout_category("Promote to", promote_siblings, dense=False),
+                ):
                     for direction in directions:
                         # nowrap for the same reason flyout_category pins its own
                         # anchor: when Quasar flips the flyout leftward it
@@ -792,11 +811,13 @@ def _render_reactive_field_row(
             # row is clean rather than disappearing, so the menu never renders
             # empty and its shape does not depend on the current value.
             reset_item = ui.menu_item(reset_tooltip, on_click=_on_reset_click, auto_close=True)
+            _stamp_writer(reset_item)
             if offers_none:
                 # Adjacent to Reset on purpose: both are "put this field back to
                 # not-my-problem", and they differ only in where back is. Each
                 # says where it lands, because where they land can coincide.
                 none_item = ui.menu_item("Set to none", on_click=_set_to_none, auto_close=True)
+                _stamp_writer(none_item)
                 none_item.tooltip("Clear the value — pass nothing")
                 reset_item.tooltip(f"Back to {defn._default!r}")
             if ctx.developer_mode:
@@ -856,7 +877,10 @@ def _render_reactive_field_row(
                 promoted_lbl.tooltip(promoted_hint)
         else:
             on_edit = _bag_on_edit(obj, attr_name, error_container, route, on_refused=_show_model_again)
-            value_apply, widget_set_enabled, resync_view = _resolve_widget_instance(defn, on_edit, bag=obj)
+            requires = required_mode(LevelMode.EDIT, defn.operable) if route is not None else None
+            value_apply, widget_set_enabled, resync_view = _resolve_widget_instance(
+                defn, on_edit, bag=obj, requires=requires
+            )
 
     def _refresh_row_ui_state() -> None:
         state = obj._effective_ui_state(attr_name)
@@ -906,6 +930,7 @@ def _resolve_widget_instance(
     on_edit: Callable[[Any], None],
     bag: "Settings | None" = None,
     cell: "DataField | None" = None,
+    requires: LevelMode | None = None,
 ) -> tuple[Callable[[Any], None] | None, Callable[[bool], None], Callable[[], None]]:
     """Build the shared ``BaseWidget`` for *defn* via a ``SettingWidgetModel``.
 
@@ -917,6 +942,8 @@ def _resolve_widget_instance(
         cell: The registry-owned cell to bind instead.
         on_edit: Write-policy closure every edit routes through, never raw
             into the cell.
+        requires: The level mode a write needs, stamped on the widget's cell
+            (``stamp_requires``); ``None`` stamps nothing.
 
     Returns:
         ``(apply_callback, set_enabled, resync)``. ``apply_callback`` is
@@ -944,6 +971,7 @@ def _resolve_widget_instance(
         widget_config=defn.widget_config,
         cell=shared_cell,
         on_edit=on_edit,
+        requires=requires,
     )
 
     # Render the widget inside an sf-widget cell so it sits in the value column
@@ -954,6 +982,8 @@ def _resolve_widget_instance(
     with ui.element("div").classes(f"{_WIDGET_CLASSES} min-w-0") as widget_cell:
         widget = widget_cls(model)
         widget.render()
+    if requires is not None:
+        stamp_requires(widget_cell, requires)
 
     # BaseWidget.render() anchors cleanup to client disconnect, not element
     # deletion, so a panel re-render leaves the old widget subscribed to the

@@ -50,7 +50,7 @@ class FarmhandContext:
     def can_access(self, required: AccessTier) -> bool:
         """Whether the calling principal currently holds at least ``required``.
 
-        The host already refused this call if the tool's own ``access=`` tier
+        The host already refused this call if the tool's own ``requires=`` tier
         was too high, so this is for finer checks *inside* a tool — a branch
         that writes when the caller may write, and reports instead when it may
         not. Reads live authority per call, like ``SessionContext.can_access``,

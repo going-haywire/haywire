@@ -46,7 +46,7 @@ class EditorCommand(CommandSignal):
 
     A shortcut publishes the command with the ``binding_id`` of the editor that
     had focus. Only the editor bound to that id receives it, and it is dropped
-    when the session's principal holds less than ``access``. Subclasses declare
+    when the session's access right is below ``requires``. Subclasses declare
     the class-level metadata; instances carry the target and, for pointer-aware
     commands, where the pointer was.
 
@@ -54,7 +54,8 @@ class EditorCommand(CommandSignal):
         command_id: Stable identifier, unique across commands.
         label: Display name for menus and shortcut lists.
         default_keys: Canonical combos (see ``normalize_combo``) bound by default.
-        access: Minimum tier needed for the command to be delivered.
+        requires: Access requirement: the minimum tier the session's principal
+            must hold for the command to be delivered. Defaults to ``EDIT``.
         native_event: Browser event (e.g. ``"paste"``) that must supply the
             command's data instead of the key press; ``None`` for plain key commands.
         in_text_fields: Whether the command fires while a text field or code
@@ -71,6 +72,12 @@ class EditorCommand(CommandSignal):
             label: ClassVar[str] = "Rotate"
             default_keys: ClassVar[tuple[str, ...]] = ("Mod+R",)
 
+        @dataclass(frozen=True, kw_only=True)
+        class Inspect(EditorCommand):
+            command_id: ClassVar[str] = "my_lib.inspect"
+            label: ClassVar[str] = "Inspect"
+            requires: ClassVar[AccessTier] = AccessTier.VIEW  # lowered: reads only
+
         class MyEditor(BaseEditor):
             @react_on(Rotate)
             def _on_rotate(self, signal: Rotate) -> None:
@@ -80,7 +87,7 @@ class EditorCommand(CommandSignal):
     command_id: ClassVar[str]
     label: ClassVar[str]
     default_keys: ClassVar[tuple[str, ...]] = ()
-    access: ClassVar[AccessTier] = AccessTier.EDIT
+    requires: ClassVar[AccessTier] = AccessTier.EDIT
     native_event: ClassVar[Optional[str]] = None
     in_text_fields: ClassVar[bool] = False
 

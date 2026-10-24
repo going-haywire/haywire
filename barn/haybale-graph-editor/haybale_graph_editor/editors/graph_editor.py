@@ -185,7 +185,7 @@ class _Level:
     default_slot=SlotName.EDIT,
     opens=OpenBehavior.ON_PAYLOAD,
     description="Visual node graph editor for wiring data processing pipelines.",
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class GraphEditor(BaseEditor):
     """
@@ -988,7 +988,7 @@ class GraphEditor(BaseEditor):
         if (
             edit_state.active_graph is graph
             and edit_state.active_graph_path == entry.path
-            and edit_state.active_mode is mode
+            and context.level_mode is mode
             and edit_state.active_route is level.route
         ):
             return
@@ -998,7 +998,7 @@ class GraphEditor(BaseEditor):
             self._clear_selection(context)
         edit_state.active_graph = graph
         edit_state.active_graph_path = entry.path
-        edit_state.active_mode = mode
+        context.level_mode = mode
         edit_state.active_route = level.route
         context.session.publish(ActiveGraphMoved())
 

@@ -132,7 +132,7 @@ _MARKERS = {
     icon=hui.icon.severity,
     order=40,
     default_open=False,
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class SecurityPanel(BasePanel):
     """What this studio's defences currently are — read-only (ADR 0028).

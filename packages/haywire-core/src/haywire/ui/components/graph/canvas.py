@@ -7,7 +7,7 @@ all client-side graph canvas interactions with the enhanced event system.
 """
 
 import logging
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Mapping, Optional
 from pathlib import Path
 
 from nicegui import ui
@@ -91,6 +91,8 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         # canvases' pan/zoom containers (otherwise panning editor B would
         # corrupt editor A's zoomState and render edges with wrong coords).
         self._props["zoomContainerId"] = zoom_container.container_id if zoom_container else ""
+        # Until set_gesture_requires, every gesture is refused: no entry means no mode reaches it.
+        self._props["gestureRequires"] = {}
 
         # Canvas appearance settings: push initial values and live-update on change.
         self._canvas_settings = CanvasSettings()
@@ -186,13 +188,26 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
     def set_level_mode(self, mode: LevelMode) -> None:
         """Show the canvas in level mode ``mode`` in the browser.
 
-        Below ``EDIT`` the browser starts no node drag, resize, connection,
-        reconnect, selection or box select and requests no paste, and card
-        content takes no pointer input except operable elements in
-        ``OPERATE``. A double-click enters a card in ``OPERATE`` and ``EDIT``.
+        A gesture starts only when ``mode`` reaches the level mode its event
+        type needs (see ``set_gesture_requires``). Click, Shift-click and box
+        select work in every mode. Card content takes no pointer input below
+        ``EDIT`` except elements whose ``data-hw-requires`` ``mode`` satisfies.
         A canvas that was never given a mode shows ``VIEW``.
         """
         self._props["levelMode"] = mode.value
+        self.update()
+
+    def set_gesture_requires(self, requires: Mapping[str, LevelMode]) -> None:
+        """Tell the browser the level mode each gesture's event type needs.
+
+        A gesture whose event type has no entry is refused in every mode and
+        logged in the browser console.
+
+        Args:
+            requires: Event type (``BaseGraphEvent.event_type``) to the lowest
+                level mode that may emit it.
+        """
+        self._props["gestureRequires"] = {event_type: mode.value for event_type, mode in requires.items()}
         self.update()
 
     def emit_sync_event(self, event: BaseGraphEvent):

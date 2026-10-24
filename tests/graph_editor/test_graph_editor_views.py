@@ -104,10 +104,10 @@ def _views_editor(open_view: str = "patch", mounted: tuple[str, ...] | None = No
             selected_nodes=set(),
             selected_edges=set(),
             active_edge=None,
-            active_mode=LevelMode.VIEW,
             active_route=None,
         )
     }
+    context.level_mode = LevelMode.VIEW
     context.active_component = None
     return editor, context
 
@@ -378,7 +378,7 @@ class TestCommandsInStageView:
         ctx = _real_context(AccessTier.VIEW)
         _route_for(editor, ctx)
 
-        assert ToggleStageView.access is AccessTier.VIEW
+        assert ToggleStageView.requires is AccessTier.VIEW
         assert editor.accepts_command(ctx, ToggleStageView(binding_id=BINDING)) is True
 
         editor._on_toggle_stage_view(context, ToggleStageView(binding_id=BINDING))
@@ -543,7 +543,7 @@ class TestAPointerGestureOnTheStageClaimsTheSession:
         """Through ``_handle_canvas_event``: the stage canvas calls ``on_user_event`` for a pointer event."""
 
         class _Source:
-            @handles_event(SelectionChangedEvent, access=LevelMode.VIEW)
+            @handles_event(SelectionChangedEvent, requires=LevelMode.VIEW)
             def seen(self, event: BaseGraphEvent) -> None:
                 pass
 

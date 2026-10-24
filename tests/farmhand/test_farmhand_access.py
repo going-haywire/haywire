@@ -11,7 +11,7 @@ def _tool(name: str, access: AccessTier):
 
     cls = cast(Any, type(name, (), {}))
     cls.class_identity = FarmhandIdentity(
-        registry_id=name, registry_key=f"k:{name}", label=name, instructions="i", access=access
+        registry_id=name, registry_key=f"k:{name}", label=name, instructions="i", requires=access
     )
     cls.input_schema = classmethod(lambda c: {"type": "object", "properties": {}})
     return cls
@@ -30,11 +30,12 @@ def test_tier_for_tools_filters_by_caller_tier():
     assert sorted(tools_for_tier(tools, AccessTier.ADMIN)) == ["install", "read", "write"]
 
 
-def test_tool_without_identity_access_defaults_to_view():
+def test_a_tool_without_identity_requires_edit():
     from haywire_studio.farmhand.host import tools_for_tier
 
     cls = type("Bare", (), {})
-    assert tools_for_tier({"bare": cls}, AccessTier.VIEW) == ["bare"]
+    assert tools_for_tier({"bare": cls}, AccessTier.VIEW) == []
+    assert tools_for_tier({"bare": cls}, AccessTier.EDIT) == ["bare"]
 
 
 def test_caller_tier_reads_the_principal_off_the_asgi_scope(monkeypatch):

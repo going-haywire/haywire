@@ -173,7 +173,7 @@ async def _scaffold_node(ctx: FarmhandContext, lib_id: str, name: str, label: st
     "index (e.g. components/nodes/node-canon.md).",
     registry_id="scaffold_component",
     annotations=ToolAnnotations(),
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class StudioScaffoldComponentTool(Farmhand):
     async def run(
@@ -228,7 +228,7 @@ numbering stays absolute, so a windowed read can be cited and edited directly.""
     "for the entire file. Truncated results say so in the summary and report total_lines.",
     registry_id="read_component_source",
     annotations=ToolAnnotations(read_only_hint=True),
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class StudioReadComponentSourceTool(Farmhand):
     async def run(
@@ -278,7 +278,7 @@ class StudioReadComponentSourceTool(Farmhand):
     "studio_verify_component.",
     registry_id="write_component_source",
     annotations=ToolAnnotations(destructive_hint=True),
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class StudioWriteComponentSourceTool(Farmhand):
     async def run(
@@ -348,7 +348,7 @@ class StudioWriteComponentSourceTool(Farmhand):
     "error-ledger entries from the failing stage are attached.",
     registry_id="verify_component",
     annotations=ToolAnnotations(read_only_hint=True),
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class StudioVerifyComponentTool(Farmhand):
     async def run(self, ctx: FarmhandContext, registry_key: str) -> dict:

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Optional, TYPE_CHECKING
 
-from haywire.core.access import AccessTier, resolve_tier
+from haywire.core.access import AccessTier, LevelMode, resolve_tier
 from haywire.core.signals import Signal, SignalSource, signal_field
 from haywire.core.signals.descriptor import _seed_signal_fields
 
@@ -80,6 +80,9 @@ class SessionContext(SignalSource):
     # Per session, not app-wide, because the tier filter is per principal.
     keymap: Optional["Keymap"] = signal_field(None)
 
+    level_mode: LevelMode = signal_field(LevelMode.VIEW)
+    """The level mode of the level on screen in this session, as last claimed."""
+
     def __init__(self, session_id: str, app: "IAppState") -> None:
         # Lazy import: state.data_namespace transitively imports state.base,
         # which imports session.signals (for SignalSource). Importing it at
@@ -119,7 +122,7 @@ class SessionContext(SignalSource):
         Reads live authority through the resolver on every call rather than a
         tier stamped at login, so removing or demoting a principal takes effect
         on their next action with no eviction and no re-login. Use this when the
-        tier arrives as data (e.g. ``editor.class_identity.access``); use
+        tier arrives as data (e.g. ``editor.class_identity.requires``); use
         :meth:`can_view` / :meth:`can_edit` / :meth:`can_admin` when it is literal.
         """
         return resolve_tier(self.principal).satisfies(required)

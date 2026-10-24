@@ -161,7 +161,7 @@ def test_stage_canvas_duplicates_and_cuts():
 
 def _handlers() -> tuple[ContextMenuHandlers, MagicMock]:
     provider = MagicMock()
-    handlers = ContextMenuHandlers(visual_layer=MagicMock(), provider=provider, allows=lambda _t: True)
+    handlers = ContextMenuHandlers(visual_layer=MagicMock(), provider=provider)
     return handlers, provider
 
 
@@ -233,7 +233,7 @@ def test_remove_from_stage_row_shows_for_on_stage_nodes_in_either_view():
 
 @pytest.mark.parametrize("cls", [AddToStageMenuPanel, RemoveFromStageMenuPanel])
 def test_the_stage_verbs_need_edit(cls):
-    assert cls.class_identity.access is AccessTier.EDIT
+    assert cls.class_identity.requires is AccessTier.EDIT
 
 
 def test_the_provider_emits_the_stage_events_for_the_selection():

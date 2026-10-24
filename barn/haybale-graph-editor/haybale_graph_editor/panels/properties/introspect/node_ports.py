@@ -15,7 +15,7 @@ from nicegui import ui
 # bare specifier then fails to resolve.
 from nicegui.elements.sortable.sortable import Sortable as _Sortable  # noqa: F401
 
-from haywire.core.access import LevelMode
+from haywire.core.access import AccessTier, LevelMode
 from haywire.core.signals import (
     ActiveGraphMoved,
     GraphDataMutated,
@@ -24,6 +24,7 @@ from haywire.core.signals import (
 from haywire.core.types.enums import PortOrigin
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
+from haywire.ui.access_stamp import stamp_requires
 from haywire.ui.panel.decorator import panel
 from haywire.ui.utils import anchor_cleanup_to_element
 
@@ -86,6 +87,7 @@ def _type_name(port: object) -> str:
 
 @panel(
     surface=PortInspector,
+    requires=AccessTier.VIEW,
     label="Ports",
     icon=hui.icon.node_ports,
     default_open=True,
@@ -172,11 +174,12 @@ class NodePortsPanel(BasePanel):
     def _render_pen(self, port, node_id: str, widget_factory, context: "SessionContext") -> None:
         """The edit affordance, shown only on ports the user can actually edit."""
         if port.origin is PortOrigin.RESOLVED:
-            hui.icon_action(
+            pen = hui.icon_action(
                 hui.icon.edit,
                 tooltip="Edit name, description and default",
                 on_click=lambda: self._open_editor(port, node_id, context),
             )
+            stamp_requires(pen)
 
     def _open_editor(self, port, node_id: str, context: "SessionContext") -> None:
         """Open the edit dialog against the graph that is on screen now.
@@ -248,9 +251,10 @@ class NodePortsPanel(BasePanel):
             for port in siblings:
                 with ui.column().classes("w-full gap-0"):
                     with ui.row().classes("w-full items-start gap-0 flex-nowrap min-w-0"):
-                        ui.icon(hui.icon.drag_handle).classes(
+                        handle = ui.icon(hui.icon.drag_handle).classes(
                             f"{_DRAG_HANDLE_CLASS} text-sm hw-text-dim shrink-0 mt-1 cursor-grab"
                         )
+                        stamp_requires(handle)
                         with ui.column().classes("flex-1 min-w-0 gap-0"):
                             if port.is_fold:
                                 ui.label(port.label).classes("text-xs hw-text-dim px-2 pt-1")

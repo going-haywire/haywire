@@ -104,10 +104,10 @@ Two registration paths feed `PanelRegistry`:
 | Function | Role |
 | --- | --- |
 | `visible_panels(classes, ctx)` | The visibility gate for hosts that only ever skip an inapplicable panel. Poll-filters a list down to what should show, in order. A panel whose `poll()` returns `False` — or raises — is dropped, with raises logged through the error boundary. |
-| `partition_panels(classes, ctx)` | The superset: splits into `(applies, disabled)`, for hosts that render a panel's own inapplicable state via `draw_disabled()` (context menus). `access=`-denied panels are dropped from **both** lists — a greyed entry would advertise what the principal may not have. |
+| `partition_panels(classes, ctx)` | The superset: splits into `(applies, disabled)`, for hosts that render a panel's own inapplicable state via `draw_disabled()` (context menus). `requires=`-denied panels are dropped from **both** lists — a greyed entry would advertise what the principal may not have. |
 | `render_panel(cls, ctx, layout, actions_host=..., disabled=False)` | Instantiates one panel, injects `panel.actions`, and draws it (`draw()`, or `draw_disabled()` when `disabled=True`) under the same error boundary. A panel that raises renders an inline `error_label` instead of crashing its host. |
 
-The three hosts are `PropertiesEditor` (persistent display panels), `BaseContextMenuProvider` (right-click menus), and the graph canvas `SelectionToolbarProvider`. Because the filter is shared, anything that decides *whether a panel may show* — `poll()`, and `access=` under [ADR 0027](../../adr/0027-studio-authentication.md) — is written once here and takes effect in all three at once.
+The three hosts are `PropertiesEditor` (persistent display panels), `BaseContextMenuProvider` (right-click menus), and the graph canvas `SelectionToolbarProvider`. Because the filter is shared, anything that decides *whether a panel may show* — `poll()`, and `requires=` under [ADR 0027](../../adr/0027-studio-authentication.md) — is written once here and takes effect in all three at once.
 
 Two consequences worth knowing when authoring a host: `_open_menu()` refuses to build a popup at all when nothing in either list would draw (so a menu with nothing to show never appears as an empty box — see §3, "Hosting a surface" below for how nesting complicates "nothing to show"), and `render_panel()` assumes its caller already filtered — a new host that calls it directly without `visible_panels()` / `partition_panels()` bypasses the gate.
 
@@ -126,7 +126,7 @@ Two consequences worth knowing when authoring a host: `_open_menu()` refuses to 
 | `description` | no | `''` | Tooltip / accessibility text. |
 | `registry_id` | no | class name | Unique short ID within the library. |
 | `redraw_on` | no | `()` | Tuple of `Signal` subclasses the panel wants its host editor to redraw on. |
-| `access` | no | `AccessTier.EDIT` | Minimum `AccessTier` (`VIEW` < `OPERATE` < `EDIT` < `ADMIN`) to see this panel — see [ADR 0027](../../adr/0027-studio-authentication.md). A panel that does not declare is hidden below `edit`; declare `view` for a panel a principal below `edit` must reach, such as an account-menu entry. |
+| `requires` | no | `AccessTier.EDIT` | Access requirement: the minimum `AccessTier` (`VIEW` < `OPERATE` < `EDIT` < `ADMIN`) a principal's access right must reach to see this panel — see [ADR 0027](../../adr/0027-studio-authentication.md). A panel that does not declare is hidden below `edit`; declare `view` for a panel a principal below `edit` must reach, such as an account-menu entry. |
 
 **Two orthogonal facets.** A panel has two independent facets that compose freely:
 
@@ -253,7 +253,7 @@ Pipe is the default and by far the most common case — most hosting panels are 
 
 **The rule that makes it a second method instead of a branch in `draw()`: `draw_disabled()` must not touch the state `poll()` gated on.** `poll()` decided the panel doesn't apply; `draw_disabled()` renders that fact, it does not re-derive or mutate it. A `draw_disabled()` that reads `ctx.data[EditState].active_node` because "it's probably fine" is one library update away from crashing on `None` the day `poll()`'s condition changes shape.
 
-**The `access=` asymmetry.** A panel denied by `access=` (below the principal's `AccessTier`) renders **neither** method — it is filtered out before `poll()` even runs, by `partition_panels`'s access check. This is deliberate and different from the `poll()`-false case: a greyed disabled row still *advertises* the command exists ("Delete — you can't right now"), which is fine when the reason is selection state and wrong when the reason is the principal's access tier. Access denial must not leak "this command exists" information via a visible-but-disabled row.
+**The `requires=` asymmetry.** A panel denied by `requires=` (above the principal's access right) renders **neither** method — it is filtered out before `poll()` even runs, by `partition_panels`'s access check. This is deliberate and different from the `poll()`-false case: a greyed disabled row still *advertises* the command exists ("Delete — you can't right now"), which is fine when the reason is selection state and wrong when the reason is the principal's access right. For the same reason the Properties editor does not offer a tab none of whose panels the access right reaches. Access denial must not leak "this command exists" information via a visible-but-disabled row.
 
 ### What a nested panel may not assume
 

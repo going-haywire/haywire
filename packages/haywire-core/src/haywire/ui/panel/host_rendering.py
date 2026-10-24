@@ -29,7 +29,7 @@ from contextvars import ContextVar
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Generator
 
-from haywire.core.access import required_access
+from haywire.core.access import required_tier
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.ui import elements as hui
 from haywire.ui.elements.flyout import _leaves_drawn
@@ -133,11 +133,11 @@ def _accessible(panel_cls: type["BasePanel"], ctx: "SessionContext") -> bool:
     state the principal has no business touching, and running it would be doing
     work on behalf of someone not allowed to see the result.
 
-    The missing-identity fallback lives in ``required_access`` (Slice 1), shared
+    The missing-identity fallback lives in ``required_tier`` (Slice 1), shared
     with the editor and Farmhand gates so all three cannot disagree about the
     rule.
     """
-    return bool(ctx.can_access(required_access(panel_cls)))
+    return bool(ctx.can_access(required_tier(panel_cls)))
 
 
 def _poll_panel(panel_cls: type["BasePanel"], ctx: "SessionContext") -> bool:
@@ -192,7 +192,7 @@ def partition_panels(
 ) -> tuple[list[type["BasePanel"]], list[type["BasePanel"]]]:
     """Split ``panel_classes`` into ``(applies, disabled)``, both in order.
 
-    A panel denied by ``access=`` is dropped from **both** lists — a greyed
+    A panel denied by ``requires=`` is dropped from **both** lists — a greyed
     entry advertises what the principal may not have (ADR-0029). The rest
     split on ``poll()``: true lands in ``applies`` (rendered via ``draw()``),
     false in ``disabled`` (rendered via ``draw_disabled()``, whose default is
@@ -217,7 +217,7 @@ def visible_panels(
     """Poll-filter ``panel_classes`` down to the panels that apply, in order.
 
     The applicable half of :func:`partition_panels`, kept for hosts that want
-    only that set. A panel is dropped when its ``access=`` tier is above the
+    only that set. A panel is dropped when its ``requires=`` tier is above the
     principal's, or when its poll() returns ``False`` — or raises, which is
     logged via the error boundary.
 

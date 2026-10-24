@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.core.settings.descriptor import UiState
+from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
 
 @panel(
     surface=NodeInspector,
+    requires=AccessTier.VIEW,
     label="Node Info",
     icon=hui.icon.node_info,
     default_open=False,
@@ -60,6 +62,7 @@ class NodeInfoPanel(BasePanel):
 
 @panel(
     surface=NodeInspector,
+    requires=AccessTier.VIEW,
     label="Node Properties",
     icon=hui.icon.node_properties,
     order=20,
@@ -95,6 +98,7 @@ class NodePropertiesPanel(BasePanel):
 
 @panel(
     surface=NodeInspector,
+    requires=AccessTier.VIEW,
     label="Status",
     icon=hui.icon.node_status,
     order=30,
@@ -162,6 +166,7 @@ def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
 
 @panel(
     surface=NodeInspector,
+    requires=AccessTier.VIEW,
     label="Node Errors",
     icon=hui.icon.error,
     order=0,

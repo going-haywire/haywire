@@ -53,7 +53,7 @@ def _refused(context: "SessionContext", required: AccessTier, action: str) -> bo
     default_slot=SlotName.ACTION,
     description='All open graphs. Click to switch; "+" to create a new graph.',
     order=20,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class HaystackEditor(BaseEditor):
     """
@@ -535,7 +535,7 @@ class HaystackEditor(BaseEditor):
             edit_state.active_graph = None
             edit_state.active_graph_path = None
             edit_state.active_route = None
-            edit_state.active_mode = LevelMode.VIEW
+            context.level_mode = LevelMode.VIEW
             if session:
                 session.publish(ActiveGraphMoved())
 

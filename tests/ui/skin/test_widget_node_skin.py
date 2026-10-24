@@ -66,6 +66,10 @@ def _with(ui_node: UINode, prop: str) -> list[Any]:
     return [e for e in ui_node.container.descendants() if prop in e._props]
 
 
+def _operable(ui_node: UINode) -> list[Any]:
+    return [e for e in ui_node.container.descendants() if e._props.get("data-hw-requires") == "operate"]
+
+
 def _pins(ui_node: UINode) -> list[Any]:
     return _with(ui_node, "data-pin-id")
 
@@ -81,7 +85,7 @@ def test_the_skin_draws_the_label_then_the_control(library_system, held_graph) -
         assert card._skin_key() == WIDGET_NODE_SKIN
         labels = _with(card, "data-widget-node-label")
         assert [label.text for label in labels] == [wrapper.node.display_label]
-        assert len(_with(card, "data-hw-operable")) == 1
+        assert len(_operable(card)) == 1
     finally:
         card.teardown_subscriptions()
 
@@ -93,7 +97,7 @@ def test_the_skin_draws_only_the_declared_outlet_widget(library_system, held_gra
     set_promoted_show_widget(wrapper.node, max_port, ShowWidgetStrategy.ALWAYS)
     card = _card(library_system, held_graph, wrapper, STAGE)
     try:
-        assert len(_with(card, "data-hw-operable")) == 1
+        assert len(_operable(card)) == 1
     finally:
         card.teardown_subscriptions()
 
@@ -165,7 +169,7 @@ def test_default_style_draws_todays_face(library_system, held_graph) -> None:
     card, _ = _styled_card(library_system, held_graph)
     try:
         assert "sf-label" in _label(card)._classes
-        assert any("sf-widget" in e._classes for e in _with(card, "data-hw-operable"))
+        assert any("sf-widget" in e._classes for e in _operable(card))
         assert "width" not in _label(card)._style
         assert "--hw-max-label-width" not in _face(card)._style
         assert _node_card(card)._style.get("background") == "transparent"
@@ -233,7 +237,7 @@ def test_label_hidden_draws_no_label(library_system, held_graph) -> None:
     try:
         assert _face(card)._props["data-widget-node-face"] == "hidden"
         assert _with(card, "data-widget-node-label") == []
-        assert len(_with(card, "data-hw-operable")) == 1
+        assert len(_operable(card)) == 1
     finally:
         card.teardown_subscriptions()
 

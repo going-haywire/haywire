@@ -37,10 +37,14 @@ def test_commands_are_editor_commands(cmd):
     assert issubclass(cmd, CommandSignal)
 
 
-def test_access_tiers():
-    assert Copy.access is AccessTier.VIEW
-    assert SelectAll.access is AccessTier.VIEW
-    assert Delete.access is AccessTier.EDIT
+def test_a_command_requires_edit_by_default():
+    assert EditorCommand.requires is AccessTier.EDIT
+
+
+def test_access_requirements():
+    assert Copy.requires is AccessTier.VIEW
+    assert SelectAll.requires is AccessTier.VIEW
+    assert Delete.requires is AccessTier.EDIT
 
 
 def test_paste_carries_text_and_native_event():
@@ -66,7 +70,7 @@ def test_toggle_lock_identity():
     assert ToggleLock.command_id == "toggle_lock"
     assert ToggleLock.label == "Lock / Unlock"
     assert ToggleLock.default_keys == ("Mod+E",)
-    assert ToggleLock.access is AccessTier.EDIT
+    assert ToggleLock.requires is AccessTier.EDIT
 
 
 def test_toggle_stage_view_identity():
@@ -76,7 +80,7 @@ def test_toggle_stage_view_identity():
     assert ToggleStageView.command_id == "toggle_stage_view"
     assert ToggleStageView.label == "Patch / Stage"
     assert ToggleStageView.default_keys == ("Mod+Shift+E",)
-    assert ToggleStageView.access is AccessTier.VIEW
+    assert ToggleStageView.requires is AccessTier.VIEW
     assert not set(ToggleStageView.default_keys) & RESERVED_COMBOS
 
 
@@ -97,6 +101,6 @@ def test_save_is_an_edit_command_that_fires_in_text_fields():
 
     assert issubclass(Save, EditorCommand)
     assert (Save.command_id, Save.label, Save.default_keys) == ("save", "Save", ("Mod+S",))
-    assert Save.access is AccessTier.EDIT
+    assert Save.requires is AccessTier.EDIT
     assert Save.in_text_fields is True
     assert EditorCommand.in_text_fields is False

@@ -45,7 +45,7 @@ panel hosting a further surface repeats the same two steps one level down.
 **`poll` means one thing everywhere** — Surface and Panel use the same verb and
 the same contract: *does this apply right now*. It runs on every relevant context
 change, so it stays cheap: a state read, not a computation. `poll` is the only
-*state* predicate at either level; a panel's `access=` tier is an orthogonal
+*state* predicate at either level; a panel's `requires=` tier is an orthogonal
 *principal* gate that runs first, so a denied panel's `poll()` never executes
 (ADR-0027).
 
@@ -65,7 +65,7 @@ Nothing about the panel is drawn by its host, so a panel declares no `label` or
 `icon` for chrome and keeps the dynamic part of its row — "Copy 3 nodes" — that a
 static declaration could not carry.
 
-`access=` denial is not a kind of inapplicability. A denied panel renders nothing
+`requires=` denial is not a kind of inapplicability. A denied panel renders nothing
 at all, never a disabled view, because a greyed entry advertises what the
 principal may not have.
 
@@ -165,7 +165,7 @@ when it stops applying:
 - A panel renders its own inapplicable state through `draw_disabled()`, or
   nothing. That is where a greyed menu row lives, the row that opens a submenu
   included: the panel drew the row, so the panel greys it.
-- A panel denied by `access=` vanishes without trace, whatever it implements.
+- A panel denied by `requires=` vanishes without trace, whatever it implements.
 - A root context menu whose tree draws nothing does not open at all. The gesture
   is over, so the host runs its close cleanup and no popup appears. What counts
   as "nothing" is the next rule.

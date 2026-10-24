@@ -38,7 +38,7 @@ class _WidgetPreviewPort:
     default_slot=SlotName.CONTEXT,
     description="Detailed documentation for the selected component.",
     order=30,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class ComponentDocsEditor(BaseEditor):
     """

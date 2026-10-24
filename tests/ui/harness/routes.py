@@ -602,6 +602,21 @@ def _harness_session(library_service, graph):
     return session, app_state
 
 
+def _access_gate():
+    """The page's ``AccessGate``, mounted on first use, as the AppShell mounts one per page.
+
+    The level-mode gate on card content lives in it, so every page that shows a canvas needs one.
+    """
+    from haywire.ui.components.access_gate import AccessGate
+
+    client = ui.context.client
+    for element in client.elements.values():
+        if isinstance(element, AccessGate):
+            return element
+    with client.layout:
+        return AccessGate()
+
+
 @dataclass
 class _HarnessLevel:
     """The level mode a harness canvas's route reads; a page changes ``mode`` to move the canvas."""
@@ -635,6 +650,7 @@ def _mount_graph_canvas(
     from haybale_graph_editor.state.edit_state import EditState
     from haywire.core.graph.edit_route import EditRoute
 
+    _access_gate()
     session, _app_state = _harness_session(library_service, graph)
     level = level if level is not None else _HarnessLevel()
     route = EditRoute(lambda: editor, lambda: level.mode)
@@ -1076,6 +1092,9 @@ def register_routes(library_service) -> None:
 
                 editor = Editor(graph, library_service.get_node_factory())
                 route = EditRoute(lambda: editor, lambda: LevelMode.EDIT)
+                # The row menu carries the session scope on a route, so the page's
+                # session mode must match the route's, as the shell keeps it.
+                _access_gate().set_session_mode(LevelMode.EDIT)
                 render_settings(
                     _harness_session_context(library_service), getattr(wrapper.node, bag_name), route=route
                 )
@@ -1154,6 +1173,8 @@ def register_routes(library_service) -> None:
                 )
                 canvas.props('data-testid="graph-canvas-test"')
                 canvas.set_level_mode(LevelMode.EDIT)
+                # No manager here to push the handler table; the right-click needs its entry.
+                canvas.set_gesture_requires({"contextMenuSelected": LevelMode.EDIT})
         _stamp_synced()
 
     # -------------------------------------------------------------------------
@@ -1725,6 +1746,7 @@ def register_routes(library_service) -> None:
 
         if theme_css:
             ui.add_css(theme_css)
+        _access_gate()
         graph, editor, ids = _build_annotation_graph(library_service.get_node_factory())
         for name, x in (("c", 40.0), ("d", 360.0)):
             props = graph.node_wrappers[ids[name]].node.props
@@ -1778,6 +1800,15 @@ def register_routes(library_service) -> None:
             expected_label.set_text(json.dumps(expected))
 
         ui.button("views-mutate", on_click=_mutate_stage).props('data-testid="views-mutate"')
+        # Caps the level at operate, then lifts the cap: two mode changes pushed through the manager.
+        ui.button(
+            "views-lock",
+            on_click=lambda: graph_editor.set_level_locked(context, DOCUMENT_LEVEL, True),
+        ).props('data-testid="views-lock"')
+        ui.button(
+            "views-unlock",
+            on_click=lambda: graph_editor.set_level_locked(context, DOCUMENT_LEVEL, False),
+        ).props('data-testid="views-unlock"')
         expected_label = ui.label("").props('data-testid="views-expected"')
 
         graph_editor._draw_view_switch(context)
@@ -1807,6 +1838,7 @@ def register_routes(library_service) -> None:
         from haywire.ui.editor.identity import SlotName
         from haywire.ui.editor.registry import EditorTypeRegistry
 
+        _access_gate()
         graph, editor = _build_edge_batch_graph(library_service.get_node_factory(), edges)
         session, _app_state = _harness_session(library_service, graph)
 
@@ -2441,6 +2473,115 @@ def register_routes(library_service) -> None:
 
         listener = KeymapListener(on_command=on_command, on_target=lambda payload: None, platform="other")
         listener.set_keymap(build_keymap({"graph": GraphEditor}, lambda tier: True).to_client())
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /access-gate?mode=view|operate|edit
+    #
+    # The page's AccessGate in session mode ``mode``; a session scope column
+    # (``[data-hw-mode-scope="session"]``) holding an unstamped input
+    # (``free-input``), one stamped ``operate`` (``operate-input``) and one stamped
+    # ``edit`` (``edit-input``), in that order; and the ``/graph-enter`` Group card,
+    # whose number widget is a focusable card input, on a canvas in level mode
+    # ``mode``. ``access-card-id`` carries the card id. F8, F9 and F10 move both the
+    # session mode and the canvas to ``view``, ``operate`` and ``edit``, also while
+    # an input has focus. Backs test_access_gate.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/access-gate")
+    async def access_gate_page(mode: str = "view"):
+        from haywire.ui.access_stamp import stamp_requires
+
+        level = _HarnessLevel(mode=LevelMode(mode))
+        gate = _access_gate()
+        gate.set_session_mode(level.mode)
+        with ui.column().props('data-hw-mode-scope="session" data-testid="scope"'):
+            ui.input("Free").props('data-testid="free-input"')
+            stamp_requires(ui.input("Operate").props('data-testid="operate-input"'), LevelMode.OPERATE)
+            stamp_requires(ui.input("Edit").props('data-testid="edit-input"'))
+        graph, editor, card_id = _build_enter_graph(library_service)
+        ui.label(card_id).props(f'data-testid="access-card-id" data-node="{card_id}"')
+        manager = _mount_graph_canvas(library_service, graph, editor, testid="access", level=level)
+        keys = {"F8": LevelMode.VIEW, "F9": LevelMode.OPERATE, "F10": LevelMode.EDIT}
+
+        def _switch(event) -> None:
+            chosen = keys.get(str(event.key))
+            if chosen is None or not event.action.keydown:
+                return
+            level.mode = chosen
+            manager.refresh_mode()
+            gate.set_session_mode(chosen)
+
+        ui.keyboard(on_key=_switch, ignore=[])
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /inspector-gate?mode=view|operate|edit
+    #
+    # The Properties editor's Node, Settings and Ports tabs for one selected Test
+    # Add Float node, drawn as the editor draws them: every panel that passes the
+    # shared access + poll filter, inside a ``[data-hw-mode-scope="session"]``
+    # column (``inspector``), under the page's AccessGate in session mode ``mode``.
+    # Each panel sits in a ``panel-<ClassName>`` div. The node carries an extra
+    # RESOLVED inlet (``resolved``), so the Ports tab draws its pen. The canvas the
+    # route belongs to is mounted below in the same mode. F8, F9 and F10 move both
+    # to ``view``, ``operate`` and ``edit``. Backs test_inspector_gate.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/inspector-gate")
+    async def inspector_gate_page(mode: str = "view"):
+        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.surfaces import NodeInspector, PortInspector, SettingsInspector
+
+        from haywire.barn.builtin.types import FLOAT
+        from haywire.core.graph.editor import Editor
+        from haywire.core.types.enums import PortOrigin
+        from haywire.ui.panel.host_rendering import render_panel, visible_panels
+        from haywire.ui.panel.layout import PanelLayout
+
+        if theme_css:
+            ui.add_css(theme_css)
+        level = _HarnessLevel(mode=LevelMode(mode))
+        gate = _access_gate()
+        gate.set_session_mode(level.mode)
+        graph = _harness_graph("Inspector Fixture")
+        editor = Editor(graph, library_service.get_node_factory())
+        wrapper = graph.create_node_wrapper(_ADD_FLOAT_KEY, position=(3600.0, 3700.0))
+        assert wrapper is not None
+        with wrapper.node.rejig():
+            wrapper.node.add(FLOAT.as_inlet("resolved", label="Resolved", origin=PortOrigin.RESOLVED))
+
+        panel_column = (
+            ui.column().classes("w-96").props('data-hw-mode-scope="session" data-testid="inspector"')
+        )
+        manager = _mount_graph_canvas(library_service, graph, editor, testid="inspector", level=level)
+        context = manager._session.context
+        context.data[EditState].active_node = wrapper
+        # The settings row menu draws its read-only Developer submenu.
+        context.developer_mode = True
+        panel_registry = library_service.get_panel_registry()
+        state_bag: dict[str, Any] = {}
+        with panel_column:
+            for surface in (NodeInspector, SettingsInspector, PortInspector):
+                for panel_cls in visible_panels(panel_registry.get_panels(surface), context):
+                    with (
+                        ui.element("div")
+                        .classes("w-full")
+                        .props(f'data-testid="panel-{panel_cls.__name__}"')
+                    ):
+                        layout = PanelLayout(ui.column().classes("w-full gap-1"), state_bag=state_bag)
+                        render_panel(panel_cls, context, layout, registry=panel_registry)
+        keys = {"F8": LevelMode.VIEW, "F9": LevelMode.OPERATE, "F10": LevelMode.EDIT}
+
+        def _switch(event) -> None:
+            chosen = keys.get(str(event.key))
+            if chosen is None or not event.action.keydown:
+                return
+            level.mode = chosen
+            manager.refresh_mode()
+            gate.set_session_mode(chosen)
+
+        ui.keyboard(on_key=_switch, ignore=[])
         _stamp_synced()
 
     # -------------------------------------------------------------------------

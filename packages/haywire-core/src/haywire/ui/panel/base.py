@@ -82,7 +82,7 @@ class BasePanel(ABC):
 
         This body must not touch the state ``poll()`` gated on — that is the
         whole reason it is a second method rather than a branch inside
-        ``draw()``. A panel denied by ``access=`` renders *neither* method:
+        ``draw()``. A panel denied by ``requires=`` renders *neither* method:
         a greyed entry advertises what the principal may not have.
         """
 

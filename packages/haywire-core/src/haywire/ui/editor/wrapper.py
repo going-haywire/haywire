@@ -437,9 +437,9 @@ class EditorWrapper:
                 return
             if isinstance(event, EditorCommand) and (
                 event.binding_id != self.editor_binding_id
-                or not self._session.context.can_access(type(event).access)
+                or not self._session.context.can_access(type(event).requires)
             ):
-                # A command addresses one binding and needs its access tier; see ADR 0050.
+                # A command addresses one binding and needs its access requirement; see ADR 0050.
                 return
             if isinstance(event, EditorCommand) and not instance.accepts_command(
                 self._session.context, event

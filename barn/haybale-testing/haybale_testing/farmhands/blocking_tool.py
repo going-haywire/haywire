@@ -13,7 +13,7 @@ from haywire.core.farmhand import Farmhand, FarmhandContext, farmhand
     "Used to verify concurrent requests are not stalled by a blocking handler — not a real "
     "capability.",
     registry_id="block",
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class BlockTool(Farmhand):
     async def run(self, ctx: FarmhandContext, seconds: float = 1.0) -> dict:

@@ -2,7 +2,7 @@
 
 import pytest
 
-from haywire.core.access import LevelMode
+from haywire.core.access import LevelMode, required_mode
 
 pytestmark = pytest.mark.unit
 
@@ -21,3 +21,13 @@ def test_ranks_order():
 @pytest.mark.parametrize("mode", list(LevelMode))
 def test_satisfies_matrix(mode: LevelMode, required: LevelMode):
     assert mode.satisfies(required) is (mode.rank >= required.rank)
+
+
+@pytest.mark.parametrize("minimum", list(LevelMode))
+def test_required_mode_of_an_operable_target_is_its_minimum(minimum):
+    assert required_mode(minimum, True) is minimum
+
+
+@pytest.mark.parametrize("minimum", list(LevelMode))
+def test_required_mode_of_a_non_operable_target_is_edit(minimum):
+    assert required_mode(minimum, False) is LevelMode.EDIT

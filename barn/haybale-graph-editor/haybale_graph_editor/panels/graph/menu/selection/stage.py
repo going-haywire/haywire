@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
@@ -53,7 +52,6 @@ def _selection_has_on_stage(ctx: "SessionContext") -> bool:
     label="Add to Stage",
     icon=hui.icon.stage_add,
     order=15,
-    access=AccessTier.EDIT,
 )
 class AddToStageMenuPanel(BasePanel):
     """Put the selected nodes on the stage; offered when the selection holds an off-stage node."""
@@ -74,7 +72,6 @@ class AddToStageMenuPanel(BasePanel):
     label="Remove from Stage",
     icon=hui.icon.stage_remove,
     order=16,
-    access=AccessTier.EDIT,
 )
 class RemoveFromStageMenuPanel(BasePanel):
     """Take the selected nodes off the stage; offered when the selection holds an on-stage node."""

@@ -62,7 +62,7 @@ def _ctx(
 
     editor = SimpleNamespace(reorder_ports=lambda node_id, ids: node.reorder_ports(ids))
     route = EditRoute(lambda: cast(Any, editor), lambda: mode)
-    edit = SimpleNamespace(active_mode=mode, active_node=None, active_route=route)
+    edit = SimpleNamespace(active_node=None, active_route=route)
     return SimpleNamespace(can_access=tier.satisfies, data={EditState: edit})
 
 

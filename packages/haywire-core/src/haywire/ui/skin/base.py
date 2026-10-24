@@ -175,9 +175,7 @@ class BaseSkin(ABC):
             node_id: The unique identifier of the node
             classes: Additional CSS classes to apply to the widget ui_element container
         Returns:
-            The rendered widget ui_element container, or None if no widget was rendered. An
-            operable port's container is marked ``data-hw-operable``, so it takes pointer input
-            on a canvas in level mode ``OPERATE``.
+            The rendered widget ui_element container, or None if no widget was rendered.
         """
         if port.widget_key is None:
             return None  # Port has no widget configured
@@ -193,8 +191,6 @@ class BaseSkin(ABC):
         # Apply styling to the UI element if possible
         if ui_element and hasattr(ui_element, "classes") and callable(ui_element.classes):
             ui_element.classes(classes)
-        if ui_element is not None and getattr(port, "operable", True):
-            ui_element.props("data-hw-operable")
 
         # Carry the widget's declared size box (@widget(min_width=, min_height=))
         # onto the same element. Every skin funnels through here, so a custom
@@ -226,8 +222,7 @@ class BaseSkin(ABC):
             classes: Additional CSS classes for the widget's container.
 
         Returns:
-            The rendered widget container, or ``None`` if the field has no widget. An
-            operable field's container is marked ``data-hw-operable``.
+            The rendered widget container, or ``None`` if the field has no widget.
 
         Raises:
             KeyError: If *bag* has no field *name*.
@@ -248,8 +243,6 @@ class BaseSkin(ABC):
 
         if ui_element is not None and hasattr(ui_element, "classes") and callable(ui_element.classes):
             ui_element.classes(classes)
-        if ui_element is not None and descriptor.operable:
-            ui_element.props("data-hw-operable")
         if widget_instance is not None:
             stamp_size_declaration(ui_element, widget_instance)
             self._nodeids_widget_instances.setdefault(node_id, {})[descriptor.storage_key] = widget_instance

@@ -18,7 +18,9 @@ from nicegui import ui
 from nicegui.elements.mixins.color_elements import QUASAR_COLORS, TAILWIND_COLORS
 from nicegui.elements.mixins.text_element import TextElement
 
+from haywire.core.access import LevelMode
 from haywire.core.types import DataPort, LayoutDirection
+from haywire.ui.access_stamp import stamp_requires
 
 from ..utils import generate_pin_uuid
 from .pin_icons import DEFAULT_PIN_ICONS, PinIconResolver
@@ -122,9 +124,9 @@ def add_pin_tooltip(pin_el: ui.element, pin: DataPort, trigger_el: ui.element | 
     never renders — it has to be hosted on a plain parent and triggered by the
     widget.
 
-    Without ``trigger_el`` the pin is marked ``data-hw-readable``, so its tooltip
-    shows in every level mode. A separate trigger is left as it is: whether it
-    takes pointer input is its own element's rule (a widget is operable).
+    Without ``trigger_el`` the pin is stamped ``data-hw-requires="view"``, so its
+    tooltip shows in every level mode. A separate trigger is left as it is: whether
+    it takes pointer input is its own element's rule (a widget carries its own stamp).
 
     Trap: every crossing of a trigger costs a websocket round trip, so trigger
     areas must be SMALL and must not NEST. A trigger on a port's content column
@@ -143,7 +145,7 @@ def add_pin_tooltip(pin_el: ui.element, pin: DataPort, trigger_el: ui.element | 
     """
     trigger = trigger_el if trigger_el is not None else pin_el
     if trigger_el is None:
-        pin_el.props("data-hw-readable")
+        stamp_requires(pin_el, LevelMode.VIEW)
     tooltip: ui.tooltip | None = None
 
     def show_tooltip() -> None:

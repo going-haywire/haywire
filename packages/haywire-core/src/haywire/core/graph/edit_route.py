@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
-from haywire.core.access import LevelMode
+from haywire.core.access import LevelMode, required_mode
 from haywire.core.graph.setting_owner import SettingOwner, setting_owner
 
 if TYPE_CHECKING:
@@ -99,7 +99,7 @@ class EditRoute:
             ``False`` if the mode is below ``minimum``, or the node or port is unknown, or the
             port holds no own value (a pooled inlet or an ``ADD`` slot).
         """
-        if not self.allows(minimum if self._port_operable(node_id, port_id) else LevelMode.EDIT):
+        if not self.allows(required_mode(minimum, self._port_operable(node_id, port_id))):
             return False
         return self._editor().set_property(node_id, port_id, value, record=self._records(), merge_owner=self)
 
@@ -166,9 +166,7 @@ class EditRoute:
     @staticmethod
     def _minimum_for(bags: Sequence[Settings], name: str, minimum: LevelMode) -> LevelMode:
         """Return ``minimum``, or ``EDIT`` if field ``name`` of any bag is not operable."""
-        if all(type(bag)._settings_descriptors()[name].operable for bag in bags):
-            return minimum
-        return LevelMode.EDIT
+        return required_mode(minimum, all(type(bag)._settings_descriptors()[name].operable for bag in bags))
 
     def _split(
         self, bags: Sequence[Settings], name: str

@@ -27,7 +27,6 @@ def _make_data_with_edit_state(initial_active_graph=None, initial_active_graph_p
         active_graph=initial_active_graph,
         active_graph_path=initial_active_graph_path,
         active_node=None,
-        active_mode=LevelMode.EDIT,
         active_route=None,
         active_edge=None,
         active_port=None,
@@ -107,6 +106,7 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
         app_data=app_data,
         can_access=AccessTier.ADMIN.satisfies,
         active_component=None,
+        level_mode=LevelMode.VIEW,
     )
     session.context = ctx  # type: ignore[assignment]
     return ctx
@@ -167,6 +167,7 @@ def test_on_focus_short_circuits_when_graph_already_active() -> None:
     ed = _make_editor_with_payload("/tmp/a.haywire")
     ed._ensure_document_level(ctx)
     ctx.data.edit_stub.active_route = ed._levels[DOCUMENT_LEVEL].route
+    ctx.level_mode = ed._levels[DOCUMENT_LEVEL].route.mode()
 
     ed.on_focus(ctx)
 

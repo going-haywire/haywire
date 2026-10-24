@@ -893,19 +893,17 @@ class ContextMenuHandlers:
 
     Reads edge data from VisualLayerHandlers (via the get_edge accessor) and
     delegates all menu-surface decisions to an IContextMenuProvider.
-    ``allows`` answers whether the level's mode is at least a given one on this
-    canvas; menus open only where it allows ``EDIT``.
+    Menu events are declared ``EDIT``-only, so the dispatcher refuses them
+    below level mode ``EDIT``.
     """
 
     def __init__(
         self,
         visual_layer: "VisualLayerHandlers",
         provider: IContextMenuProvider,
-        allows: Callable[[LevelMode], bool],
     ):
         self.visual_layer = visual_layer
         self.provider = provider
-        self._allows = allows
 
     @handles_event(
         ContextMenuCanvasEvent,
@@ -913,12 +911,11 @@ class ContextMenuHandlers:
         ContextMenuSelectedEvent,
         ContextMenuSurfaceEvent,
         ContextMenuPortEvent,
-        access=LevelMode.VIEW,
     )
     def process_context_menu(self, event):
         """Route context-menu events to the provider as intent calls.
 
-        Below level mode ``EDIT`` no menu opens.
+        The dispatcher refuses these events below level mode ``EDIT``.
 
         A menu already open is dismissed first, so right-clicking a second node
         swaps menus in one gesture rather than stacking two live popups. This
@@ -934,8 +931,6 @@ class ContextMenuHandlers:
         re-dispatched from there.
         """
         self.provider.close_open_menu()
-        if not self._allows(LevelMode.EDIT):
-            return
 
         if isinstance(event, ContextMenuCanvasEvent):
             logger.debug(f"Canvas context menu at ({event.screenX}, {event.screenY})")

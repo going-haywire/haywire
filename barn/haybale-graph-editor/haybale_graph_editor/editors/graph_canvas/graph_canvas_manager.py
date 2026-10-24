@@ -40,7 +40,10 @@ from haywire.core.session.session import Session
 from haywire.core.signals import SelectionMoved
 
 from haybale_graph_editor.state.edit_state import EditState
-from haybale_graph_editor.editors.graph_canvas.event_handlers import build_event_handler_map, handler_access
+from haybale_graph_editor.editors.graph_canvas.event_handlers import (
+    build_event_handler_map,
+    handler_requires,
+)
 from haybale_graph_editor.editors.graph_canvas.graph_load_modal import graph_load_modal
 from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import (
@@ -205,7 +208,6 @@ class GraphCanvasManager:
         self.context_menu_handlers = ContextMenuHandlers(
             visual_layer=self.visual_layer,
             provider=context_menu_provider,
-            allows=self.route.allows,
         )
 
         self._toolbar_provider = SelectionToolbarProvider(
@@ -235,6 +237,7 @@ class GraphCanvasManager:
         )
 
         self._validate_handler_coverage()
+        self._push_gesture_requires()
 
         # Subscribe for incremental validation updates
         self.graph.subscribe_to_validation(self.visual_layer.on_validated)
@@ -363,6 +366,12 @@ class GraphCanvasManager:
             )
         return zoom_container, canvas_vue
 
+    def _push_gesture_requires(self) -> None:
+        """Send the browser the level mode each event type's handler declares."""
+        self.canvas_vue.set_gesture_requires(
+            {event_type: handler_requires(handler) for event_type, handler in self._event_handlers.items()}
+        )
+
     def _validate_handler_coverage(self):
         """Warn if any user event lacks a registered handler."""
         user_events = [
@@ -393,9 +402,8 @@ class GraphCanvasManager:
         event_type = event.event_type
         handler = self._event_handlers.get(event_type)
 
-        if handler and not self.route.allows(handler_access(handler)):
-            needed, mode = handler_access(handler), self.route.mode()
-            logger.debug(f"Refused {event_type}: needs {needed.value} (mode={mode.value})")
+        if handler and not self.route.allows(needed := handler_requires(handler)):
+            logger.debug(f"Refused {event_type}: needs {needed.value} (mode={self.route.mode().value})")
             if isinstance(event, UserDragEndEvent):
                 self.visual_layer.resync_positions(event.nodes)
             elif isinstance(event, UserResizeEndEvent):

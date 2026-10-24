@@ -23,11 +23,12 @@ from contextlib import nullcontext
 from dataclasses import fields
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Literal, TYPE_CHECKING
+from typing import Any, Callable, Literal, TYPE_CHECKING, cast
 from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.core.registry.lifecycle_event import LifeCycleEvent
+from haywire.core.session.context import SessionContext
 from haywire.core.signals import (
     AgentConnected,
     AgentDisconnected,
@@ -40,11 +41,15 @@ from haywire.core.signals import (
     RosterChanged,
 )
 from haywire.ui.app.slot import Slot
+from haywire.ui.components.access_gate import AccessGate
 from haywire.ui.components.keymap import KeymapListener
 from haywire.ui.editor.identity import SlotName
 from haywire.ui.keymap import build_keymap, report_new_keymap_problems
 
 logger = logging.getLogger(__name__)
+
+# Seconds the "access changed" notice stays readable before the page reloads.
+_TIER_RELOAD_DELAY_S = 1.5
 
 
 def _pygments_doc_css() -> str:
@@ -656,7 +661,9 @@ class AppShell:
         self._presence_row: ui.element | None = None  # TopBar connected-principal chips
         self._account_menu: object | None = None  # AccountMenuProvider, built lazily
         self._keymap_listener: KeymapListener | None = None  # page-wide key listener
+        self._access_gate: AccessGate | None = None  # page-wide level-mode gate
         self._keymap_loop: asyncio.AbstractEventLoop | None = None  # loop the keymap is rebuilt on
+        self._tier: AccessTier | None = None  # tier this page was rendered with
 
         # Bus subscriptions for workspace-mutation commands.
         self._lifecycle_unsubs: list[Callable[[], None]] = []
@@ -991,6 +998,8 @@ class AppShell:
             self._render_statusbar()
 
         self._mount_keymap_listener()
+        self._mount_access_gate()
+        self._mount_tier_watch()
 
     def _save_workspace_layout(self) -> None:
         """Save the workspace layout, or tell a principal below edit that saving needs edit access."""
@@ -1193,10 +1202,10 @@ class AppShell:
         """Mount the page's key listener and keep its keymap current.
 
         The keymap is rebuilt whenever the editor registry reports a lifecycle
-        batch and on ``RosterChanged``, since a tier change alters which
-        commands bind. Both subscriptions end with ``cleanup``. A registry
-        batch arriving off the event loop is rebuilt on the loop the page was
-        built on.
+        batch; the subscription ends with ``cleanup``. A registry batch
+        arriving off the event loop is rebuilt on the loop the page was built
+        on. A tier change does not rebuild it: the page reloads instead
+        (``_on_roster_changed``), which builds a fresh keymap.
         """
         try:
             self._keymap_loop = asyncio.get_running_loop()
@@ -1210,8 +1219,46 @@ class AppShell:
         self._lifecycle_unsubs.append(
             lambda: self._editor_registry.remove_batch_event_subscriber(self._on_editor_lifecycle)
         )
+
+    def _mount_tier_watch(self) -> None:
+        """Record the tier this page was rendered with and reload the page when a roster change alters it.
+
+        The subscription ends with ``cleanup``.
+        """
+        from haywire.core.access import resolve_tier
+
+        self._tier = resolve_tier(self.session.context.principal)
+        self._lifecycle_unsubs.append(self.session.subscribe(RosterChanged, self._on_roster_changed))
+
+    def _on_roster_changed(self, _signal: RosterChanged) -> None:
+        """Notify and reload this page when the roster changed its principal's tier; otherwise do nothing."""
+        from haywire.core.access import resolve_tier
+
+        tier = resolve_tier(self.session.context.principal)
+        listener = self._keymap_listener
+        if tier == self._tier or listener is None:
+            return
+        self._tier = tier
+        # The client is captured from the listener: the signal may arrive outside any slot context.
+        with listener.client:
+            ui.notify("Your access changed — reloading")
+        # The listener is a stable page element: the timer dies with the page.
+        with listener:
+            ui.timer(_TIER_RELOAD_DELAY_S, ui.navigate.reload, once=True)
+
+    def _mount_access_gate(self) -> None:
+        """Mount the page's level-mode gate and keep its session mode on ``SessionContext.level_mode``.
+
+        The subscription ends with ``cleanup``.
+        """
+        gate = AccessGate(session_mode=self.session.context.level_mode)
+        self._access_gate = gate
+        # On the class a signal field is its signal type; its annotation types the instance value.
         self._lifecycle_unsubs.append(
-            self.session.subscribe(RosterChanged, lambda _s: self._rebuild_keymap())
+            self.session.subscribe(
+                cast(Any, SessionContext.level_mode),
+                lambda _s: gate.set_session_mode(self.session.context.level_mode),
+            )
         )
 
     def _on_editor_lifecycle(self, _events: list[LifeCycleEvent]) -> None:

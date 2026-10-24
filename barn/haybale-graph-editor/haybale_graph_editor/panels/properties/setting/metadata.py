@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     icon=hui.icon.graph_metadata,
     order=15,  # between GraphInfoPanel (10) and GraphSettingsPanel (20)
     default_open=False,
-    access=AccessTier.EDIT,
+    requires=AccessTier.VIEW,
     # Deliberately NOT GraphDataMutated: that means "nodes/edges/props
     # changed", and metadata is not content. Subscribing to it to catch a
     # save would redraw on every node edit, risking a mid-typing rebuild

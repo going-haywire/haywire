@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.core.access import AccessTier
 from haywire.core.graph.stacking import Restack
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
@@ -46,7 +45,6 @@ def _selection_has_a_node(ctx: "SessionContext") -> bool:
     label="Arrange",
     icon=hui.icon.arrange,
     order=17,
-    access=AccessTier.EDIT,
 )
 class ArrangeSelectionMenuPanel(BasePanel):
     """The "Arrange" row: a submenu over the stacking-order verbs.
@@ -96,7 +94,6 @@ class _RestackMenuPanel(BasePanel):
     label="Bring to Front",
     icon=hui.icon.bring_to_front,
     order=10,
-    access=AccessTier.EDIT,
 )
 class BringToFrontMenuPanel(_RestackMenuPanel):
     """Paint the selected nodes above every other node in this view."""
@@ -111,7 +108,6 @@ class BringToFrontMenuPanel(_RestackMenuPanel):
     label="Bring Forward",
     icon=hui.icon.bring_forward,
     order=20,
-    access=AccessTier.EDIT,
 )
 class BringForwardMenuPanel(_RestackMenuPanel):
     """Move each selected node one step up: above the next node over it."""
@@ -126,7 +122,6 @@ class BringForwardMenuPanel(_RestackMenuPanel):
     label="Send Backward",
     icon=hui.icon.send_backward,
     order=30,
-    access=AccessTier.EDIT,
 )
 class SendBackwardMenuPanel(_RestackMenuPanel):
     """Move each selected node one step down: below the next node under it."""
@@ -141,7 +136,6 @@ class SendBackwardMenuPanel(_RestackMenuPanel):
     label="Send to Back",
     icon=hui.icon.send_to_back,
     order=40,
-    access=AccessTier.EDIT,
 )
 class SendToBackMenuPanel(_RestackMenuPanel):
     """Paint the selected nodes below every other node in this view."""

@@ -836,7 +836,7 @@ class ModifiedInstanceMenuPanel(BasePanel):
     label="Clone to Library",
     icon=hui.icon.node_clone,
     order=39,
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class CloneToLibraryMenuPanel(BasePanel):
     """Write a copy of this node's class into a library, as a new node to edit.

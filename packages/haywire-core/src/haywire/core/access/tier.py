@@ -1,7 +1,7 @@
 """AccessTier — the four cumulative access levels (ADR 0027).
 
 A StrEnum so the member *is* its wire string: it serializes into
-``~/.haywire/auth.json`` and into ``@panel(access=...)`` declarations with no
+``~/.haywire/auth.json`` and into ``@panel(requires=...)`` declarations with no
 conversion layer, exactly like ``SlotName`` does for slot names.
 
 Cumulative: ``admin`` satisfies every check ``edit`` does, ``edit`` every
@@ -43,7 +43,22 @@ _RANKS: dict[AccessTier, int] = {
 }
 
 
-def required_access(cls: type) -> AccessTier:
+def coerce_requirement(value: object) -> AccessTier:
+    """Strictly coerce a decorator's ``requires=`` tier to an :class:`AccessTier`.
+
+    An ``AccessTier`` passes through; a plain ``str`` is read as a tier name
+    (``ValueError`` when unknown). Anything else raises ``TypeError`` — notably a
+    ``LevelMode``, which is a ``StrEnum`` too and would otherwise be accepted
+    silently as its wire string.
+    """
+    if isinstance(value, AccessTier):
+        return value
+    if type(value) is str:
+        return AccessTier(value)
+    raise TypeError(f"requires= must be an AccessTier or a tier name, got {value!r}")
+
+
+def required_tier(cls: type) -> AccessTier:
     """The tier a principal needs before ``cls`` may be shown or called.
 
     One definition for all three gated surfaces — panels, editors and Farmhand
@@ -51,29 +66,26 @@ def required_access(cls: type) -> AccessTier:
     and filtered once; an editor binding is persisted and so is refused at
     admission as well), but they must not disagree about the *rule*.
 
-    Falls back to VIEW — the most permissive tier — in three cases, all
-    deliberate:
+    Falls back to ``EDIT``, the default of every access requirement, in three
+    cases:
 
-    * **No ``class_identity``.** A class caught mid-hot-reload, or a hand-built
-      test double, would otherwise vanish from every surface at once. A missing
-      identity is a framework hiccup, not a security assertion.
-    * **An identity with no ``access`` field.** Node, skin, widget and theme
-      identities have none by design (ADR 0027) — they are never gated, and
-      asking this function about one must not raise.
-    * **An ``access`` field that isn't a valid tier.** ``@panel(access=...)``
-      takes the value as an untyped decorator kwarg, and identity dataclasses
-      do no field validation — a typo like ``access="admni"`` must not become
-      an ``AttributeError`` deep inside a gating check at render time.
+    * **No ``class_identity``**, as on a hand-built test double or a class
+      caught mid-hot-reload.
+    * **An identity with no ``requires`` field.** Node, skin, widget and theme
+      identities have none (ADR 0027); asking about one does not raise.
+    * **A ``requires`` value that is not a tier name**, on a hand-built
+      identity (the decorators reject one with :func:`coerce_requirement`).
+      It is logged.
     """
     identity = getattr(cls, "class_identity", None)
-    declared = getattr(identity, "access", None)
+    declared = getattr(identity, "requires", None)
     if declared is None:
-        return AccessTier.VIEW
+        return AccessTier.EDIT
     try:
         # AccessTier is a StrEnum: AccessTier(AccessTier.ADMIN) is ADMIN
         # unchanged, and AccessTier("admin") coerces the wire string — so
         # this also normalizes a raw string that slipped past authoring time.
         return AccessTier(declared)
     except ValueError:
-        logger.warning("Invalid access tier %r on %r; denying to VIEW", declared, cls)
-        return AccessTier.VIEW
+        logger.warning("Invalid access requirement %r on %r; requiring EDIT", declared, cls)
+        return AccessTier.EDIT

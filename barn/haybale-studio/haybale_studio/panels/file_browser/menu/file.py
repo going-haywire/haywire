@@ -84,7 +84,7 @@ class OpenInCodeEditorMenuPanel(BasePanel):
     label="Open in File Viewer",
     icon=hui.icon.library_component,
     order=30,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class OpenInFileViewerMenuPanel(BasePanel):
     """Open any file in the read-only FileViewerEditor (catch-all fallback)."""

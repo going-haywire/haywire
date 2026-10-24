@@ -266,7 +266,7 @@ security control — binding `8125` instead of `8124` exposes nothing that
 with none of the reasons the rest of the schema had to leave.
 
 The settings panel that used to render the network schema is now
-**read-only and admin-gated** (`SecurityPanel`, `access=AccessTier.ADMIN`).
+**read-only and admin-gated** (`SecurityPanel`, `requires=AccessTier.ADMIN`).
 It shows the four-axis posture — network, auth, TLS, Farmhand — and every
 finding `haywire security status` would print, with the fix command for
 each one shown as copyable text, because the moment someone is reading this

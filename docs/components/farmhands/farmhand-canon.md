@@ -73,6 +73,7 @@ The MCP host (`haywire_studio.farmhand.host`) is the one place that talks the wi
 | `description` | no | Short human-facing blurb — shown in generated docs and the `studio_list_components` catalog. Not sent to MCP clients. |
 | `instructions` | **yes** | Sent to the MCP client as the tool's description — this is the *only* text the agent sees before deciding whether/how to call the tool, since derived input schemas carry no per-parameter descriptions (see below). Write it for an LLM: what the tool does, when to use it, valid argument values, gotchas — not just a restated label. Omitting it raises `TypeError` at class-definition time. |
 | `registry_id` | no | Unique id within the library. Defaults to the class name. The MCP-visible tool name is `{lib_id}_{registry_id}` — pass a snake_case id (e.g. `registry_id="save_graph"` → `mylib_save_graph`). |
+| `requires` | no | Access requirement: the minimum `AccessTier` an agent principal's access right must reach to list and call the tool. Defaults to `AccessTier.EDIT`; a tool that only reads declares `requires=AccessTier.VIEW`. Declared, never derived from `read_only_hint` — see [ADR 0027](../../adr/0027-studio-authentication.md). |
 | `annotations` | no | A `ToolAnnotations` instance: `read_only_hint`, `destructive_hint`, `idempotent_hint`, `open_world_hint` — MCP consent hints surfaced to the client/user before a mutating call. Defaults to all-`False`. |
 | `hidden` | no | Exclude from author-facing selection UIs (inherited from `BaseIdentity`; unrelated to MCP visibility — a hidden Farmhand is still callable). |
 | `deprecation_warning` | no | Advisory message shown wherever this tool is listed. |
@@ -311,6 +312,7 @@ For the MCP wire protocol, session tracking, and how resources (`farmhand://docs
 Mechanics (§3):
 
 - [ ] `@farmhand(label=, description=, instructions=, registry_id=, annotations=)` decorator
+- [ ] Choose `requires=`: leave the `edit` default for a tool with any side effect; declare `AccessTier.VIEW` for one that only reads
 - [ ] Inherit from `Farmhand`
 - [ ] Implement `async def run(self, ctx: FarmhandContext, ...) -> dict` — must be `async`
 - [ ] Write `instructions=` to teach valid arguments — it's the only text the agent sees before calling; keep `description=` short and human-facing

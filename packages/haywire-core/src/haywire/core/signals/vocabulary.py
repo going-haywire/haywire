@@ -489,7 +489,7 @@ class Copy(EditorCommand):
     command_id: ClassVar[str] = "copy"
     label: ClassVar[str] = "Copy"
     default_keys: ClassVar[tuple[str, ...]] = ("Mod+C",)
-    access: ClassVar[AccessTier] = AccessTier.VIEW
+    requires: ClassVar[AccessTier] = AccessTier.VIEW
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -571,7 +571,7 @@ class SelectAll(EditorCommand):
     command_id: ClassVar[str] = "select_all"
     label: ClassVar[str] = "Select All"
     default_keys: ClassVar[tuple[str, ...]] = ("Mod+A",)
-    access: ClassVar[AccessTier] = AccessTier.VIEW
+    requires: ClassVar[AccessTier] = AccessTier.VIEW
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -590,7 +590,7 @@ class ToggleStageView(EditorCommand):
     command_id: ClassVar[str] = "toggle_stage_view"
     label: ClassVar[str] = "Patch / Stage"
     default_keys: ClassVar[tuple[str, ...]] = ("Mod+Shift+E",)
-    access: ClassVar[AccessTier] = AccessTier.VIEW
+    requires: ClassVar[AccessTier] = AccessTier.VIEW
 
 
 __all__ = [

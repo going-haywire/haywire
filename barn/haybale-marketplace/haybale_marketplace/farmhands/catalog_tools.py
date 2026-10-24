@@ -78,7 +78,7 @@ def _haybale_row(haybale, detail: bool) -> dict:
     "(description, author, tags, dependencies, source_url, docs_url, ...).",
     registry_id="list_available",
     annotations=ToolAnnotations(read_only_hint=True),
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class MarketplaceListAvailableTool(Farmhand):
     async def run(
@@ -107,7 +107,7 @@ class MarketplaceListAvailableTool(Farmhand):
     "otherwise the cache is used as-is. Returns how many haybales were resolved.",
     registry_id="refresh",
     annotations=ToolAnnotations(open_world_hint=True),
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class MarketplaceRefreshTool(Farmhand):
     async def run(self, ctx: FarmhandContext) -> dict:
@@ -150,7 +150,7 @@ def _doc_result(summary: str, text: str, full: bool, **extra: object) -> dict:
     f"at {_DOC_CHAR_CAP} chars with total_chars reported; pass full=true for everything.",
     registry_id="get_library_docs",
     annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True),
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class MarketplaceGetLibraryDocsTool(Farmhand):
     async def run(self, ctx: FarmhandContext, library: str, component: str = "", full: bool = False) -> dict:

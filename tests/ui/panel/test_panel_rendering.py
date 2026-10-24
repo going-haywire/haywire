@@ -45,7 +45,7 @@ def _panel(name, *, poll=True, on_draw=None):
 
 
 def _real_panel(name, *, poll=True, order=100, with_draw_disabled=False):
-    """A real BasePanel subclass (needed for partition_panels' access= check
+    """A real BasePanel subclass (needed for partition_panels' requires= check
     and for _implements_draw_disabled's identity comparison against
     BasePanel.draw_disabled, which only works against real subclasses)."""
     draw_calls: list = []
@@ -220,11 +220,11 @@ def test_partition_panels_splits_on_poll():
 
 
 def test_partition_panels_drops_access_denied_from_both_lists():
-    """A panel denied by access= is dropped from BOTH lists — a greyed entry
+    """A panel denied by requires= is dropped from BOTH lists — a greyed entry
     would advertise what the principal may not have (ADR-0029)."""
     denied = _real_panel("Denied", poll=True)
     denied.class_identity = PanelIdentity(
-        registry_id="denied", registry_key="k:denied", label="Denied", access=AccessTier.ADMIN
+        registry_id="denied", registry_key="k:denied", label="Denied", requires=AccessTier.ADMIN
     )
 
     ctx = MagicMock()

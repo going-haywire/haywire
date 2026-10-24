@@ -32,3 +32,8 @@ _RANKS: dict[LevelMode, int] = {
     LevelMode.OPERATE: 1,
     LevelMode.EDIT: 2,
 }
+
+
+def required_mode(minimum: LevelMode, operable: bool) -> LevelMode:
+    """Return the level mode a write needs: ``minimum``, or ``EDIT`` if its target is not operable."""
+    return minimum if operable else LevelMode.EDIT

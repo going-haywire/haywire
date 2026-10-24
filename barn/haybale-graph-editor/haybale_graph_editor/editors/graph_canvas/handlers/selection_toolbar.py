@@ -356,12 +356,12 @@ class SelectionToolbarHandlers:
     def __init__(self, provider: SelectionToolbarProvider):
         self._provider = provider
 
-    @handles_event(SelectionBoundsEvent, access=LevelMode.VIEW)
+    @handles_event(SelectionBoundsEvent, requires=LevelMode.VIEW)
     def process_selection_bounds(self, event: SelectionBoundsEvent) -> None:
         """Show or reposition the toolbar above the selection. See ``SelectionToolbarProvider.show_at``."""
         self._provider.show_at((event.left, event.top, event.right, event.bottom))
 
-    @handles_event(SelectionBoundsHideEvent, access=LevelMode.VIEW)
+    @handles_event(SelectionBoundsHideEvent, requires=LevelMode.VIEW)
     def process_selection_bounds_hide(self, event: SelectionBoundsHideEvent) -> None:
         """Hide the toolbar during pan/zoom/drag gestures."""
         self._provider.hide()

@@ -16,7 +16,8 @@ from haybale_graph_editor.editors.graph_editor import (
     level_key_for,
 )
 from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
-from haywire.core.access import AccessTier
+from haybale_graph_editor.state.graph_app_state import route_for
+from haywire.core.access import AccessTier, LevelMode
 from haywire.ui.components.zoom.pan import Viewport
 
 from .test_graph_editor_levels import (
@@ -270,20 +271,19 @@ class TestAReloadedPlacement:
 
     def test_an_interior_node_selected_on_the_placement_is_not_editable_from_the_document(self):
         """A placement's node is selectable at view; going up to the document must not make it editable."""
-        from haybale_graph_editor.access import can_edit_graph
-
         editor, context, document = _locked_editor(AccessTier.EDIT, open_locked=False)
         _open_placement(editor, context)
         edit_state = _select(editor, context, MagicMock(name="interior_node"))
 
         editor.ascend(context)
 
-        assert can_edit_graph(context) is True  # the document is unlocked ...
+        route = route_for(context)
+        assert route is not None
+        assert route.allows(LevelMode.EDIT)  # the document is unlocked ...
         assert edit_state.active_node is None  # ... and holds nothing from the placement
 
     def test_an_interior_node_selected_on_the_placement_is_not_editable_from_another_tab(self):
         """Focusing another, unlocked tab must not make the placement's node editable either."""
-        from haybale_graph_editor.access import can_edit_graph
         from haybale_graph_editor.state.graph_app_state import GraphAppState
 
         editor, context, document = _locked_editor(AccessTier.EDIT, open_locked=False)
@@ -298,7 +298,9 @@ class TestAReloadedPlacement:
         other.on_focus(context)
 
         assert edit_state.active_graph is other_document.editor.graph
-        assert can_edit_graph(context) is True  # the other tab is unlocked ...
+        route = route_for(context)
+        assert route is not None
+        assert route.allows(LevelMode.EDIT)  # the other tab is unlocked ...
         _assert_selection_dropped(context, edit_state)  # ... and holds nothing from the placement
 
     def test_a_level_in_the_background_follows_without_coming_forward(self):

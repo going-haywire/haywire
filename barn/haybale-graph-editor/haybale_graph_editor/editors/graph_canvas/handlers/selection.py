@@ -79,7 +79,7 @@ class SelectionHandlers:
         self.selected_edges: Set[str] = set()
 
     # Selection changes no document, so it is taken in every level mode.
-    @handles_event(SelectionChangedEvent, access=LevelMode.VIEW)
+    @handles_event(SelectionChangedEvent, requires=LevelMode.VIEW)
     def process_selection_change(self, event: SelectionChangedEvent):
         """Update local selection state and write through to SessionContext.
 

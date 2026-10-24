@@ -51,7 +51,6 @@ def _locked_editor(
         EditState: SimpleNamespace(
             active_graph=None,
             active_graph_path=None,
-            active_mode=LevelMode.VIEW,
             active_route=None,
             active_node=None,
             active_edge=None,
@@ -59,6 +58,7 @@ def _locked_editor(
             selected_edges=set(),
         )
     }
+    context.level_mode = LevelMode.VIEW
     # Built through _new_level, so the level carries this session's route.
     editor._levels[DOCUMENT_LEVEL] = editor._new_level(context, DOCUMENT_LEVEL, document)
     return editor, context, document
@@ -103,16 +103,16 @@ def test_unlock_needs_real_edit():
 def test_claim_publishes_the_level_mode():
     editor, context, _ = _locked_editor(AccessTier.EDIT, open_locked=False)
     editor._claim_session_state(context)
-    assert context.data[EditState].active_mode is LevelMode.EDIT
+    assert context.level_mode is LevelMode.EDIT
     context.session.publish.reset_mock()
 
     assert editor.set_level_locked(context, DOCUMENT_LEVEL, True) is True
-    assert context.data[EditState].active_mode is LevelMode.OPERATE
+    assert context.level_mode is LevelMode.OPERATE
     assert isinstance(context.session.publish.call_args.args[0], ActiveGraphMoved)
     context.session.publish.reset_mock()
 
     assert editor.set_level_locked(context, DOCUMENT_LEVEL, False) is True
-    assert context.data[EditState].active_mode is LevelMode.EDIT
+    assert context.level_mode is LevelMode.EDIT
     assert isinstance(context.session.publish.call_args.args[0], ActiveGraphMoved)
 
 

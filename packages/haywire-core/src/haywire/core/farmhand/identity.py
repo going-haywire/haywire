@@ -39,9 +39,10 @@ class FarmhandIdentity(BaseIdentity):
             see ``@farmhand`` decorator docstring for authoring guidance.
             ``kw_only`` needed since BaseIdentity's fields all have defaults and
             ``instructions`` doesn't; decorator only ever constructs via kwargs.
-        access: access tier for this tool, defaulting to AccessTier.VIEW
+        requires: Minimum AccessTier needed to list and call this tool,
+            defaulting to AccessTier.EDIT
     """
 
     annotations: ToolAnnotations = field(default_factory=ToolAnnotations)
-    access: AccessTier = AccessTier.VIEW
+    requires: AccessTier = AccessTier.EDIT
     instructions: str = field(kw_only=True)

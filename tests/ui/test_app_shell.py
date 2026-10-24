@@ -249,3 +249,112 @@ def test_saving_the_workspace_layout_needs_edit(monkeypatch):
         shell._save_workspace_layout()
 
         assert app_state.save_workspace.call_count == saves
+
+
+def test_shell_pushes_the_session_level_mode_to_the_gate() -> None:
+    """The page's AccessGate starts in the session's level mode and follows every change of it."""
+    from unittest.mock import MagicMock
+
+    from nicegui import Client
+
+    from haywire.core.access import LevelMode
+    from haywire.core.session.session import Session
+
+    session = Session(app_state=MagicMock(), workspace_manager=MagicMock(), dispatcher=MagicMock())
+    session.context.level_mode = LevelMode.OPERATE
+    shell = _shell(session=session, editor_registry=_FakeEditorRegistry({}))
+
+    with Client(cast(Any, lambda: None), request=None):
+        shell._mount_access_gate()
+    gate = shell._access_gate
+    assert gate is not None
+    assert gate.props["sessionMode"] == "operate"
+
+    session.context.level_mode = LevelMode.EDIT
+    assert gate.props["sessionMode"] == "edit"
+
+    shell.cleanup()
+    session.context.level_mode = LevelMode.VIEW
+    assert gate.props["sessionMode"] == "edit"
+
+
+def _roster_shell(monkeypatch, tiers: dict):
+    """A shell mounted for the tier watch; ``tiers`` maps principal to tier and may be edited afterwards."""
+    from unittest.mock import MagicMock
+
+    from nicegui import Client
+
+    import haywire.core.access as access
+    import haywire.ui.app.shell as shell_module
+    from haywire.core.access import AccessTier
+    from haywire.core.session.session import Session
+
+    notify, reload_ = MagicMock(), MagicMock()
+    monkeypatch.setattr(shell_module.ui, "notify", notify)
+    monkeypatch.setattr(shell_module.ui.navigate, "reload", reload_)
+    # A fake timer records its callback so a test fires the delayed reload by hand.
+    timer = MagicMock()
+    monkeypatch.setattr(shell_module.ui, "timer", timer)
+    reload_.timer = timer
+    monkeypatch.setattr(access, "resolve_tier", lambda principal: tiers.get(principal, AccessTier.VIEW))
+
+    session = Session(app_state=MagicMock(), workspace_manager=MagicMock(), dispatcher=MagicMock())
+    session.context.principal = "alice"
+    registry = SimpleNamespace(
+        list_names=lambda: [],
+        add_batch_event_subscriber=lambda _cb: None,
+        remove_batch_event_subscriber=lambda _cb: None,
+    )
+    shell = _shell(session=session, editor_registry=registry)
+    with Client(cast(Any, lambda: None), request=None):
+        shell._mount_keymap_listener()
+        shell._mount_tier_watch()
+    return session, shell, notify, reload_
+
+
+def test_roster_change_that_changes_this_tier_notifies_and_reloads(monkeypatch) -> None:
+    from haywire.core.access import AccessTier
+    from haywire.core.signals import RosterChanged
+
+    tiers = {"alice": AccessTier.EDIT}
+    session, _shell_, notify, reload_ = _roster_shell(monkeypatch, tiers)
+
+    tiers["alice"] = AccessTier.VIEW
+    session._dispatch(RosterChanged())
+
+    notify.assert_called_once()
+    reload_.assert_not_called()  # the notice gets time to be read first
+    reload_.timer.assert_called_once()
+    args, kwargs = reload_.timer.call_args
+    assert args[0] == 1.5
+    assert kwargs == {"once": True}
+    args[1]()
+    reload_.assert_called_once()
+
+
+def test_roster_change_for_another_principal_does_not_reload(monkeypatch) -> None:
+    from haywire.core.access import AccessTier
+    from haywire.core.signals import RosterChanged
+
+    tiers = {"alice": AccessTier.EDIT, "bob": AccessTier.EDIT}
+    session, _shell_, notify, reload_ = _roster_shell(monkeypatch, tiers)
+
+    tiers["bob"] = AccessTier.VIEW
+    session._dispatch(RosterChanged())
+
+    notify.assert_not_called()
+    reload_.assert_not_called()
+
+
+def test_cleanup_drops_the_roster_subscription(monkeypatch) -> None:
+    from haywire.core.access import AccessTier
+    from haywire.core.signals import RosterChanged
+
+    tiers = {"alice": AccessTier.EDIT}
+    session, shell, _notify, reload_ = _roster_shell(monkeypatch, tiers)
+
+    shell.cleanup()
+    tiers["alice"] = AccessTier.VIEW
+    session._dispatch(RosterChanged())
+
+    reload_.assert_not_called()

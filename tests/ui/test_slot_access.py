@@ -1,4 +1,4 @@
-"""access= enforcement in the editor slots."""
+"""requires= enforcement in the editor slots."""
 
 from typing import Any, cast
 from unittest.mock import MagicMock
@@ -11,7 +11,7 @@ from haywire.ui.editor.identity import EditorIdentity, SlotName
 def _editor_cls(name: str, access: AccessTier):
     cls = cast(Any, type(name, (), {}))
     cls.class_identity = EditorIdentity(
-        registry_id=name, registry_key=f"lib:editor:{name}", label=name, access=access
+        registry_id=name, registry_key=f"lib:editor:{name}", label=name, requires=access
     )
     return cls
 
@@ -78,6 +78,6 @@ def test_wrapper_without_editor_cls_is_dropped():
     assert slot._accessible_bindings() == []
 
 
-def test_editor_accessible_treats_a_missing_identity_as_view():
-    slot = _slot(AccessTier.VIEW)
-    assert slot._editor_accessible(type("NoIdentity", (), {})) is True
+def test_editor_accessible_treats_a_missing_identity_as_edit():
+    assert _slot(AccessTier.VIEW)._editor_accessible(type("NoIdentity", (), {})) is False
+    assert _slot(AccessTier.EDIT)._editor_accessible(type("NoIdentity", (), {})) is True

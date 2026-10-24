@@ -339,3 +339,26 @@ def test_a_stage_resize_leaves_the_patch_card_alone(page: Page, harness):
 
     _show(page, "stage", nodes=2, edges=2, limit=limit)
     assert page.evaluate(_CARD_SIZES)[node] == pytest.approx(resized, abs=1.5)
+
+
+def test_a_manager_built_canvas_logs_no_missing_gesture_requires(page: Page, harness):
+    """Selection, view switches and mode changes never reach a gesture check the manager left undeclared."""
+    lines: list[str] = []
+    page.on("console", lambda msg: lines.append(msg.text))
+    goto_ready(page, f"{harness}/graph-views")
+    page.wait_for_function(f"() => ({_NODE_COUNT})() === 4", timeout=10_000)
+    wait_for_canvas_settled(page)
+    limit = _baseline(page)
+    node_id = _card_ids(page)[0]
+
+    _click_card(page, node_id)
+    _wait_selected(page, [node_id])
+    page.get_by_test_id("views-lock").click()
+    page.wait_for_timeout(300)
+    _click_card(page, node_id)
+    page.get_by_test_id("views-unlock").click()
+    page.wait_for_timeout(300)
+    _show(page, "stage", nodes=2, edges=2, limit=limit)
+    _show(page, "patch", nodes=4, edges=2, limit=limit)
+
+    assert not [line for line in lines if "[GraphCanvas] no mode requirement" in line], lines

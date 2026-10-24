@@ -131,7 +131,7 @@ the canvas hot path to catch.
 - **`haywire.core.access`** — the `AccessTier` enum, `SessionContext.principal`,
   and `can_view()` / `can_edit()` / `can_admin()` / `can_access(tier)` (the ladder is `view` < `operate` < `edit` < `admin` since ADR 0051). No
   files, no crypto, no ASGI. Core must own the vocabulary because
-  `@panel(access=…)` and `@editor(access=…)` are core decorators; a studio-owned
+  `@panel(requires=…)` and `@editor(requires=…)` are core decorators; a studio-owned
   enum would make core import studio.
 - **`haywire_studio.auth`** — roster I/O, scrypt, cookie signing, the gate, the
   login routes, the `haywire user` / `haywire auth` CLI.
@@ -153,9 +153,9 @@ gate could be disabled to open the door.
 Core resolves to `admin` for everybody when auth is disabled, so existing
 loopback installs are unchanged.
 
-## `access=` lives on three identities, not on `BaseIdentity`
+## `requires=` lives on three identities, not on `BaseIdentity`
 
-`PanelIdentity`, `EditorIdentity` and `FarmhandIdentity` carry `access`. Nodes,
+`PanelIdentity`, `EditorIdentity` and `FarmhandIdentity` carry `requires`. Nodes,
 skins, widgets, themes and adapters do not, and this is deliberate rather than
 an omission to be tidied up later.
 
@@ -163,7 +163,7 @@ A component identity governs whether the component appears in an authoring
 surface. For a panel, editor or Farmhand tool, that *is* the capability — hide
 the identity and the capability is gone. For a node it is not: the identity
 governs the Add Nodes menu, while the node instances already sitting in a
-`.graph` file execute regardless of who is watching. `@node(access=admin)`
+`.graph` file execute regardless of who is watching. `@node(requires=admin)`
 would look like a restriction and restrict nothing.
 
 Enforcement sits at the seams every consumer already funnels through:
@@ -203,7 +203,7 @@ against the machine.
 
 A tool's tier is declared, not derived from `ToolAnnotations.read_only_hint`.
 Those are orthogonal axes: `read_only_hint` describes *behaviour* and is
-addressed to the client for confirmation prompts, while `access` is *policy*
+addressed to the client for confirmation prompts, while `requires` is *policy*
 set by the operator. Deriving one from the other would mean an author tuning a
 UX hint silently changed who can see the tool.
 
@@ -311,11 +311,22 @@ the boundary.
 
 **A separate `haybale-auth` library for the roster UI.** Rejected: an editor
 with a user list does not earn a package in the lockstep release, a pyproject,
-entry points and generated docs. `access=admin` already hides it.
+entry points and generated docs. `requires=admin` already hides it.
 
 **Merging the agent token into the global roster unscoped.** Rejected: the
 Farmhand token is workspace-scoped today, and folding it in unscoped would
 silently promote one project's agent credential into a machine-wide key.
+
+## Amendment (ADR 0060)
+
+`@panel`, `@editor` and `@farmhand` validate their access requirement through `coerce_requirement` (`haywire.core.access`): a `LevelMode` raises `TypeError`, an unknown name `ValueError`, at decoration time.
+
+## Amendment (one name for every requirement)
+
+- **The keyword is `requires=`.** The access requirement of a panel, editor or Farmhand tool is declared as `requires=` (identity field `class_identity.requires`, read by `required_tier()`), and an `EditorCommand` declares `requires: ClassVar[AccessTier]`. The keyword was `access=`, and the field and helpers were `access`, `required_access()` and `coerce_access()`; they were renamed with no alias.
+- **Every access requirement defaults to `edit`.** Panels and editors already did. Farmhand tools defaulted to `view` and now default to `edit`, so a read-only tool declares `requires=AccessTier.VIEW`. `required_tier()` also answers `edit` for a class with no identity or no `requires` field, and for a value that is not a tier name; it answered `view` before, so a bare tool double failed open.
+- **An access right defaults to `view`.** A principal the resolver knows no tier for holds `view`, unchanged.
+- The vocabulary has two axes, each with a "has" and a "requires" side: the access right against the access requirement (`AccessTier`), and the level mode against the mode requirement (`LevelMode`, ADR 0060). See the glossary.
 
 ## References
 

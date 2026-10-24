@@ -1,7 +1,7 @@
 """Account-menu panels — behind the account_circle icon in the ACTION bar footer.
 
 These are ordinary panels on ``AccountMenu``, so the shared panel gate filters
-them by ``access=`` with no special case, and the menu does not open at all
+them by ``requires=`` with no special case, and the menu does not open at all
 when a principal has nothing in it.
 """
 
@@ -20,7 +20,7 @@ from haywire.ui.panel.decorator import panel
     surface=AccountMenu,
     label="Sign out",
     order=90,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class LogoutPanel(BasePanel):
     """Ends this browser session. Hidden entirely when authentication is off."""
@@ -40,7 +40,7 @@ class LogoutPanel(BasePanel):
     surface=AccountMenu,
     label="Manage principals",
     order=10,
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class OpenRosterPanel(BasePanel):
     """Opens the RosterEditor. Admin-only, so a view principal never sees it."""
@@ -66,7 +66,7 @@ class OpenRosterPanel(BasePanel):
     surface=AccountMenu,
     label="Sign everyone out",
     order=80,
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class RotateSecretPanel(BasePanel):
     """Rotates the cookie signing secret and evicts every live session.
@@ -104,7 +104,7 @@ class RotateSecretPanel(BasePanel):
     surface=AccountMenu,
     label="Agent activity",
     order=20,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class OpenActivityPanel(BasePanel):
     """Opens the ActivityEditor.
@@ -143,7 +143,7 @@ class OpenActivityPanel(BasePanel):
     surface=AccountMenu,
     label="Developer mode",
     order=50,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class DeveloperModePanel(BasePanel):
     """Toggles ``ctx.developer_mode`` for THIS session.

@@ -8,7 +8,7 @@ from typing import Any, Callable, ClassVar, Literal, Optional, TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.access import required_access
+from haywire.core.access import required_tier
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.registry import EditorTypeRegistry
@@ -282,10 +282,10 @@ class Slot(ABC):
 
         Reads the tier live on every call, so a demotion takes effect on the
         next redraw with no eviction and no re-login. The missing-identity
-        fallback lives in ``required_access`` (Slice 1), shared with the panel
+        fallback lives in ``required_tier`` (Slice 1), shared with the panel
         and Farmhand gates.
         """
-        return bool(self._session.context.can_access(required_access(editor_cls)))
+        return bool(self._session.context.can_access(required_tier(editor_cls)))
 
     def _accessible_bindings(self) -> list[EditorWrapper]:
         """The bindings this principal may see, in order.

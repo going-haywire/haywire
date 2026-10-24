@@ -301,8 +301,8 @@ def test_both_entry_panels_require_admin():
     from haybale_graph_editor.panels.graph.menu.selection.selection import CloneToLibraryMenuPanel
     from haywire.core.access import AccessTier
 
-    assert NewNodeToolbarPanel.class_identity.access is AccessTier.ADMIN
-    assert CloneToLibraryMenuPanel.class_identity.access is AccessTier.ADMIN
+    assert NewNodeToolbarPanel.class_identity.requires is AccessTier.ADMIN
+    assert CloneToLibraryMenuPanel.class_identity.requires is AccessTier.ADMIN
 
 
 def _ctx(*, node_cls=None, selected: set[str] | None = None):

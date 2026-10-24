@@ -1,4 +1,4 @@
-"""access= on panel, editor and farmhand identities — and NOT on BaseIdentity."""
+"""requires= on panel, editor and farmhand identities — and NOT on BaseIdentity."""
 
 import dataclasses
 
@@ -15,27 +15,27 @@ def _fields(cls):
     return {f.name for f in dataclasses.fields(cls)}
 
 
-def test_base_identity_has_no_access_field():
+def test_base_identity_has_no_requires_field():
     """A node/skin/widget identity governs an authoring menu, not a running graph."""
-    assert "access" not in _fields(BaseIdentity)
+    assert "requires" not in _fields(BaseIdentity)
 
 
 @pytest.mark.parametrize("cls", [PanelIdentity, EditorIdentity, FarmhandIdentity])
-def test_surface_identities_have_access(cls):
-    assert "access" in _fields(cls)
+def test_surface_identities_have_requires(cls):
+    assert "requires" in _fields(cls)
 
 
 def test_panel_identity_defaults_to_edit():
     identity = PanelIdentity(registry_id="p", registry_key="k", label="L")
-    assert identity.access is AccessTier.EDIT
+    assert identity.requires is AccessTier.EDIT
 
 
 def test_editor_identity_defaults_to_edit():
     identity = EditorIdentity(registry_id="e", registry_key="k", label="L")
-    assert identity.access is AccessTier.EDIT
+    assert identity.requires is AccessTier.EDIT
 
 
-def test_editor_decorator_without_access_gives_edit():
+def test_editor_decorator_without_requires_gives_edit():
     from haywire.ui.editor.base import BaseEditor
     from haywire.ui.editor.decorator import editor
 
@@ -43,10 +43,10 @@ def test_editor_decorator_without_access_gives_edit():
     class _Z(BaseEditor):
         def draw(self, context, container): ...
 
-    assert _Z.class_identity.access is AccessTier.EDIT
+    assert _Z.class_identity.requires is AccessTier.EDIT
 
 
-def test_panel_decorator_without_access_gives_edit():
+def test_panel_decorator_without_requires_gives_edit():
     from haywire.barn.builtin.surfaces import AppSettings
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
@@ -55,12 +55,34 @@ def test_panel_decorator_without_access_gives_edit():
     class _P(BasePanel):
         def draw(self, ctx, container): ...
 
-    assert _P.class_identity.access is AccessTier.EDIT
+    assert _P.class_identity.requires is AccessTier.EDIT
 
 
-def test_farmhand_identity_defaults_to_view():
+def test_farmhand_identity_defaults_to_edit():
     identity = FarmhandIdentity(registry_id="f", registry_key="k", label="L", instructions="i")
-    assert identity.access is AccessTier.VIEW
+    assert identity.requires is AccessTier.EDIT
+
+
+def test_farmhand_decorator_without_requires_gives_edit():
+    from haywire.core.farmhand import Farmhand, farmhand
+
+    @farmhand(instructions="i")
+    class _F(Farmhand):
+        async def run(self, ctx) -> dict:
+            return {}
+
+    assert _F.class_identity.requires is AccessTier.EDIT
+
+
+def test_farmhand_decorator_accepts_a_lowered_requirement():
+    from haywire.core.farmhand import Farmhand, farmhand
+
+    @farmhand(instructions="i", requires=AccessTier.VIEW)
+    class _F(Farmhand):
+        async def run(self, ctx) -> dict:
+            return {}
+
+    assert _F.class_identity.requires is AccessTier.VIEW
 
 
 # --- decorator coercion ------------------------------------------------
@@ -70,22 +92,22 @@ def test_editor_decorator_accepts_the_enum():
     from haywire.ui.editor.base import BaseEditor
     from haywire.ui.editor.decorator import editor
 
-    @editor(label="X", access=AccessTier.ADMIN)
+    @editor(label="X", requires=AccessTier.ADMIN)
     class _X(BaseEditor):
         def draw(self, context, container): ...
 
-    assert _X.class_identity.access is AccessTier.ADMIN
+    assert _X.class_identity.requires is AccessTier.ADMIN
 
 
 def test_editor_decorator_coerces_a_string():
     from haywire.ui.editor.base import BaseEditor
     from haywire.ui.editor.decorator import editor
 
-    @editor(label="Y", access="edit")
+    @editor(label="Y", requires="edit")
     class _Y(BaseEditor):
         def draw(self, context, container): ...
 
-    assert _Y.class_identity.access is AccessTier.EDIT
+    assert _Y.class_identity.requires is AccessTier.EDIT
 
 
 def test_editor_decorator_rejects_an_unknown_tier_at_definition_time():
@@ -94,6 +116,6 @@ def test_editor_decorator_rejects_an_unknown_tier_at_definition_time():
 
     with pytest.raises(ValueError, match=".*"):
 
-        @editor(label="Z", access="superuser")
+        @editor(label="Z", requires="superuser")
         class _Z(BaseEditor):
             def draw(self, context, container): ...

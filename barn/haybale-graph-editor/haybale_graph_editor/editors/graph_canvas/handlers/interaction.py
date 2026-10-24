@@ -122,7 +122,7 @@ class InteractionHandlers:
         if self._session is not None:
             self._session.publish(GraphDataMutated())
 
-    @handles_event(EdgeClickedEvent, access=LevelMode.VIEW)
+    @handles_event(EdgeClickedEvent, requires=LevelMode.VIEW)
     def process_edge_click(self, event: EdgeClickedEvent):
         """Log edge click; no editor mutation required."""
         logger.debug(f"Connection clicked: {event.edge_id}")

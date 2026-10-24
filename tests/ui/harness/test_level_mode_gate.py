@@ -56,16 +56,16 @@ def _title(page: Page, card_id: str) -> Locator:
 
 def _badge_card(page: Page) -> str:
     """The id of the card drawing the comment and the diagnostics badge, once both are drawn."""
-    page.wait_for_selector("[data-hw-readable].q-btn")
+    page.wait_for_selector("[data-hw-requires=view].q-btn")
     return attr(page, '[data-testid="level-badge-id"]', "data-node")
 
 
 def _diagnostics_badge(page: Page, card_id: str) -> Locator:
-    return page.locator(f'[data-node-id="{card_id}"] .q-btn[data-hw-readable]:has(.q-badge)')
+    return page.locator(f'[data-node-id="{card_id}"] .q-btn[data-hw-requires=view]:has(.q-badge)')
 
 
 def _comment_badge(page: Page, card_id: str) -> Locator:
-    return page.locator(f'[data-node-id="{card_id}"] .q-btn[data-hw-readable]:not(:has(.q-badge))')
+    return page.locator(f'[data-node-id="{card_id}"] .q-btn[data-hw-requires=view]:not(:has(.q-badge))')
 
 
 def _log(page: Page) -> str:
@@ -86,7 +86,9 @@ def test_view_card_content_takes_no_pointer_input(page: Page, harness):
 
 def test_operate_widgets_take_pointer_input(page: Page, harness):
     card_id, _ = _open(page, harness, "operate")
-    assert _hit(page, _widget(page, card_id), "number widget", "el.closest('[data-hw-operable]') !== null")
+    assert _hit(
+        page, _widget(page, card_id), "number widget", "el.closest('[data-hw-requires=operate]') !== null"
+    )
 
 
 def test_operate_card_text_takes_no_pointer_input(page: Page, harness):
@@ -165,7 +167,7 @@ def test_operate_gate_leaves_widget_internals_alone(page: Page, harness):
         page,
         _widget(page, card_id),
         "number widget",
-        "el.closest('.number-drag__center') === null && el.closest('[data-hw-operable]') !== null",
+        "el.closest('.number-drag__center') === null && el.closest('[data-hw-requires=operate]') !== null",
     )
     assert _hit(page, _title(page, card_id), "card title", "!el.matches('.ui-node-slot *')")
 
@@ -173,7 +175,7 @@ def test_operate_gate_leaves_widget_internals_alone(page: Page, harness):
 def test_view_diagnostics_badge_opens_its_menu(page: Page, harness):
     _open(page, harness, "view")
     badge = _diagnostics_badge(page, _badge_card(page))
-    assert _hit(page, badge, "diagnostics badge", "el.closest('[data-hw-readable]') !== null")
+    assert _hit(page, badge, "diagnostics badge", "el.closest('[data-hw-requires=view]') !== null")
 
     x, y = _centre(badge, "diagnostics badge")
     page.mouse.click(x, y)
@@ -184,7 +186,7 @@ def test_view_diagnostics_badge_opens_its_menu(page: Page, harness):
 def test_view_comment_badge_shows_its_comment(page: Page, harness):
     _open(page, harness, "view")
     comment = _comment_badge(page, _badge_card(page))
-    assert _hit(page, comment, "comment badge", "el.closest('[data-hw-readable]') !== null")
+    assert _hit(page, comment, "comment badge", "el.closest('[data-hw-requires=view]') !== null")
 
     x, y = _centre(comment, "comment badge")
     page.mouse.move(x, y)
@@ -194,8 +196,8 @@ def test_view_comment_badge_shows_its_comment(page: Page, harness):
 
 def test_view_pin_shows_its_tooltip_and_starts_no_edge(page: Page, harness):
     _open(page, harness, "view")
-    pin = page.locator(f'[data-node-id="{_badge_card(page)}"] .connection-pin[data-hw-readable]').first
-    assert _hit(page, pin, "pin", "el.closest('[data-hw-readable]') !== null")
+    pin = page.locator(f'[data-node-id="{_badge_card(page)}"] .connection-pin[data-hw-requires=view]').first
+    assert _hit(page, pin, "pin", "el.closest('[data-hw-requires=view]') !== null")
 
     x, y = _centre(pin, "pin")
     page.mouse.move(x, y)
@@ -213,7 +215,7 @@ def test_view_pin_shows_its_tooltip_and_starts_no_edge(page: Page, harness):
 def test_a_pin_shows_the_crosshair_only_in_edit(page: Page, harness, mode: str, cursor: str):
     """Below edit a pin starts no edge, so it does not promise one."""
     _open(page, harness, mode)
-    pin = page.locator(f'[data-node-id="{_badge_card(page)}"] .connection-pin[data-hw-readable]').first
+    pin = page.locator(f'[data-node-id="{_badge_card(page)}"] .connection-pin[data-hw-requires=view]').first
 
     assert pin.evaluate("el => getComputedStyle(el).cursor") == cursor
 
@@ -411,3 +413,69 @@ def test_a_card_shows_the_move_cursor_only_in_edit(page: Page, harness, mode: st
     card_id, _ = _open(page, harness, mode)
     card = page.locator(f'[id="{card_id}"]').first
     assert card.evaluate("(el) => getComputedStyle(el).cursor") == cursor
+
+
+def _canvas_events(page: Page) -> list[str]:
+    """Collect the console lines of every event the canvas emits to the server, from now on."""
+    lines: list[str] = []
+    page.on("console", lambda msg: lines.append(msg.text) if "Vue→Python Event" in msg.text else None)
+    return lines
+
+
+def test_view_right_click_keeps_selection_and_opens_no_menu(page: Page, harness):
+    card_id, _ = _open(page, harness, "view")
+    note_id, label = _note(page)
+    tx, ty = _centre(_title(page, card_id), "card title")
+    page.mouse.click(tx, ty)
+    _wait_selected(page, card_id)
+    page.evaluate(
+        "() => { window.__hwNativeMenu = null; document.addEventListener('contextmenu', "
+        "(e) => { window.__hwNativeMenu = !e.defaultPrevented; }); }"
+    )
+    events = _canvas_events(page)
+
+    x, y = _centre(label, "note text")
+    page.mouse.click(x, y, button="right")
+    page.wait_for_function("() => window.__hwNativeMenu !== null")
+    page.wait_for_timeout(600)
+
+    assert page.evaluate("() => window.__hwNativeMenu") is False
+    assert _selected(page, card_id)
+    assert not _selected(page, note_id)
+    assert not [line for line in events if "contextMenu" in line or "selectionChanged" in line]
+    assert page.locator(".q-menu").count() == 0
+
+
+def test_view_press_and_move_emits_no_drag_start(page: Page, harness):
+    card_id, _ = _open(page, harness, "view")
+    events = _canvas_events(page)
+    x, y = _centre(_title(page, card_id), "card title")
+
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x + 12, y + 8, steps=4)
+    page.mouse.up()
+    _wait_selected(page, card_id)
+
+    assert not [line for line in events if "userDrag" in line]
+
+
+def test_an_unknown_gesture_type_is_refused_and_logged(page: Page, harness):
+    _open(page, harness, "edit")
+    errors: list[str] = []
+    page.on("console", lambda msg: errors.append(msg.text) if msg.type == "error" else None)
+
+    allowed = page.evaluate(
+        """() => {
+            for (let i = 0; i < 5000; i++) {
+                const c = getElement(i);
+                if (c && c.$el && c.$el.dataset && c.$el.dataset.testid === 'level-canvas') {
+                    return c._allows('noSuchEvent');
+                }
+            }
+            throw new Error('no level canvas');
+        }"""
+    )
+
+    assert allowed is False
+    assert any("[GraphCanvas]" in line and "noSuchEvent" in line for line in errors)

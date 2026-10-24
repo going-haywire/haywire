@@ -236,13 +236,14 @@ def test_reload_batch_off_the_loop_rebuilds_on_the_loop() -> None:
     assert session.context.keymap.commands == {}
 
 
-def test_keymap_rebuilt_on_roster_change() -> None:
+def test_roster_change_does_not_rebuild_keymap() -> None:
+    """A tier change reloads the page (which rebuilds the keymap); the shell no longer rebuilds in place."""
     session = _FakeSession()
     with patch.object(KeymapListener, "set_keymap") as set_keymap:
         _mounted_shell(session)
         session.publish(RosterChanged())
 
-    assert set_keymap.call_count == 2
+    assert set_keymap.call_count == 1
 
 
 def test_cleanup_drops_registry_subscription() -> None:
@@ -254,7 +255,6 @@ def test_cleanup_drops_registry_subscription() -> None:
     shell.cleanup()
 
     assert registry.batch_subscribers == []
-    assert session.subscriptions.get(RosterChanged) == []
 
 
 def test_keymap_problems_logged_once_across_sessions() -> None:

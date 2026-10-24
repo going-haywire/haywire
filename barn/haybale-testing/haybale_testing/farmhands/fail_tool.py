@@ -11,7 +11,7 @@ from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, farm
     "the structured error contract in tests — not a real capability. Never call this "
     "expecting a result.",
     registry_id="fail",
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class FailTool(Farmhand):
     async def run(self, ctx: FarmhandContext) -> dict:

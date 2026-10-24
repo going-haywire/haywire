@@ -236,7 +236,7 @@ Check this list first. It is **not** a catalogue of every signal in a running ap
 | `Close` | Close every tab bound to `binding_id`, this session | — |
 | `BroadcastClose` | Same, but every session — for facts, not clicks | ✅ |
 
-**Editor commands** — `EditorCommand` subclasses: "do Y in the editor bound to `binding_id`". A key press publishes one; only the wrapper of that binding delivers it, and only when the session's principal holds the command's `access` tier ([ADR 0050](../adr/0050-keyboard-commands-are-editor-addressed-command-signals.md)):
+**Editor commands** — `EditorCommand` subclasses: "do Y in the editor bound to `binding_id`". A key press publishes one; only the wrapper of that binding delivers it, and only when the session's principal holds the command's `requires` tier ([ADR 0050](../adr/0050-keyboard-commands-are-editor-addressed-command-signals.md)):
 
 | Signal | `command_id` | Default keys | Access |
 | --- | --- | --- | --- |
@@ -420,7 +420,6 @@ A keyboard shortcut is an `EditorCommand`. To give your editor a key, subscribe 
 from dataclasses import dataclass
 from typing import ClassVar
 
-from haywire.core.access import AccessTier
 from haywire.core.session.handlers import react_on
 from haywire.core.signals import EditorCommand
 from haywire.ui.editor.base import BaseEditor
@@ -432,7 +431,7 @@ class Rotate(EditorCommand):
     command_id: ClassVar[str] = "my_lib.rotate"      # unique app-wide
     label: ClassVar[str] = "Rotate"                  # shown in menus and the Shortcuts editor
     default_keys: ClassVar[tuple[str, ...]] = ("Mod+R",)
-    access: ClassVar[AccessTier] = AccessTier.EDIT   # the default; tiers: VIEW < OPERATE < EDIT < ADMIN
+    # requires: ClassVar[AccessTier] defaults to AccessTier.EDIT; a read-only command lowers it to VIEW
 
 
 @editor(label="My Editor")
@@ -442,7 +441,7 @@ class MyEditor(BaseEditor):
         ...   # call the editor's rotate verb
 ```
 
-- **Subscribing claims the keys.** The keymap is built from the commands each editor class subscribes to; there is no separate registration. The handler runs only for key presses aimed at this editor's binding, from a principal holding `access`.
+- **Subscribing claims the keys.** The keymap is built from the commands each editor class subscribes to; there is no separate registration. The handler runs only for key presses aimed at this editor's binding, from a principal holding `requires`.
 - **The editor root needs no work.** Slot tab panels already carry `data-hw-binding`, so a pointer-down anywhere in your editor's slot makes the slot the **active slot** and your editor the **target editor**; the slot's bar lights. Keys typed into a text field, or pressed inside an open dialog or Popup, stay with the page; the one exception is a command with `in_text_fields = True` (`Save`), which also fires from a text field. Before it, the focused `input` or `textarea` gets a bubbling `hw-commit` DOM event, then a blur and refocus, so a pending value commits first — a widget that commits on blur listens for `hw-commit` too.
 - **Clashes are reported, not raised.** Two commands claiming one combo in the same editor, a browser-reserved combo (`Mod+W`, `Mod+T`, …), a combo that does not parse (see `normalize_combo`), or a `command_id` declared twice each log a warning to the error ledger; see `build_keymap` in `haywire.ui.keymap` for which one wins.
 - **Show the key on the menu row** with `hui.menu_row(..., command=Rotate)` or `hui.icon_action(..., command=Rotate)`; the row's `on_click` still calls the verb itself.

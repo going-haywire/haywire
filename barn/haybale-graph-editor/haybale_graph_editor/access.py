@@ -6,14 +6,9 @@ turns a session's real tier and the lock into the mode it works a level in,
 which the level's ``EditRoute`` checks at every write.
 """
 
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
 
 from haywire.core.access import AccessTier, LevelMode
-
-from haybale_graph_editor.state.graph_app_state import route_for
-
-if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
 
 
 def level_mode(can_access: Callable[[AccessTier], bool], locked: bool) -> LevelMode:
@@ -26,12 +21,3 @@ def level_mode(can_access: Callable[[AccessTier], bool], locked: bool) -> LevelM
     if can_access(AccessTier.OPERATE):
         return LevelMode.OPERATE
     return LevelMode.VIEW
-
-
-def can_edit_graph(ctx: "SessionContext") -> bool:
-    """Return whether ``ctx`` may edit the graph on screen, lock included.
-
-    ``False`` while no level is on screen.
-    """
-    route = route_for(ctx)
-    return route is not None and route.allows(LevelMode.EDIT)

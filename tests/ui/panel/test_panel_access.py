@@ -1,4 +1,4 @@
-"""access= enforcement in the single shared panel gate."""
+"""requires= enforcement in the single shared panel gate."""
 
 from unittest.mock import MagicMock
 
@@ -20,13 +20,15 @@ def _panel(name: str, access: AccessTier, *, visible: bool = True):
             type(self).drew = True
 
     _P.__name__ = name
-    _P.class_identity = PanelIdentity(registry_id=name, registry_key=f"k:{name}", label=name, access=access)
+    _P.class_identity = PanelIdentity(
+        registry_id=name, registry_key=f"k:{name}", label=name, requires=access
+    )
     return _P
 
 
 def _panel_with_both_methods(name: str, access: AccessTier):
     """A panel implementing BOTH draw() and draw_disabled() — the asymmetry an
-    author denied by access= will get wrong if only draw() is checked."""
+    author denied by requires= will get wrong if only draw() is checked."""
 
     class _P(BasePanel):
         drew = False
@@ -43,7 +45,9 @@ def _panel_with_both_methods(name: str, access: AccessTier):
             type(self).drew_disabled = True
 
     _P.__name__ = name
-    _P.class_identity = PanelIdentity(registry_id=name, registry_key=f"k:{name}", label=name, access=access)
+    _P.class_identity = PanelIdentity(
+        registry_id=name, registry_key=f"k:{name}", label=name, requires=access
+    )
     return _P
 
 
@@ -102,7 +106,9 @@ def test_access_is_checked_before_poll_is_even_called():
 
         def draw(self, ctx, layout): ...
 
-    _P.class_identity = PanelIdentity(registry_id="p", registry_key="k", label="P", access=AccessTier.ADMIN)
+    _P.class_identity = PanelIdentity(
+        registry_id="p", registry_key="k", label="P", requires=AccessTier.ADMIN
+    )
     visible_panels([_P], _ctx(AccessTier.VIEW))
     assert polled == []
 
@@ -112,8 +118,8 @@ def test_poll_false_still_hides_an_accessible_panel():
     assert visible_panels([panel], _ctx(AccessTier.ADMIN)) == []
 
 
-def test_a_panel_with_no_identity_is_treated_as_view():
-    """Defensive: a hand-built test double without class_identity must not crash the host."""
+def test_a_panel_with_no_identity_requires_edit():
+    """A hand-built test double without class_identity does not crash the host, nor fail open."""
 
     class _P(BasePanel):
         @classmethod
@@ -122,7 +128,8 @@ def test_a_panel_with_no_identity_is_treated_as_view():
 
         def draw(self, ctx, layout): ...
 
-    assert visible_panels([_P], _ctx(AccessTier.VIEW)) == [_P]
+    assert visible_panels([_P], _ctx(AccessTier.VIEW)) == []
+    assert visible_panels([_P], _ctx(AccessTier.EDIT)) == [_P]
 
 
 def test_render_panel_refuses_a_denied_panel_even_without_poll_filtering():
@@ -138,10 +145,10 @@ def test_render_panel_draws_an_allowed_panel():
 
 
 def test_render_panel_refuses_a_denied_panel_disabled_path_too():
-    """access= denies BOTH draw() and draw_disabled() — a greyed entry would
+    """requires= denies BOTH draw() and draw_disabled() — a greyed entry would
     advertise what the principal may not have (ADR-0029). Confirmed real gap:
     the sibling test above only exercised the disabled=False (draw()) path;
-    this is the asymmetry an author denied by access= would get wrong."""
+    this is the asymmetry an author denied by requires= would get wrong."""
     panel = _panel_with_both_methods("AdminBoth", AccessTier.ADMIN)
     assert render_panel(panel, _ctx(AccessTier.VIEW), _layout(), disabled=True) is False
     assert panel.drew is False

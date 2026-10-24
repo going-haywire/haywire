@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
     default_slot="edit",
     opens="on_context",
     description="Manage who may reach this studio",
-    access=AccessTier.ADMIN,
+    requires=AccessTier.ADMIN,
 )
 class RosterEditor(BaseEditor):
     """The roster table plus add/remove/re-tier controls."""

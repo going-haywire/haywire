@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from haywire.core.access import LevelMode
 from haywire.core.types.fields import DataField
 
 
@@ -34,13 +35,17 @@ class SettingWidgetModel:
         widget_config: dict[str, Any],
         cell: DataField,
         on_edit: Callable[[Any], bool | None],
+        requires: LevelMode | None = None,
     ) -> None:
         """
         Args:
             on_edit: Called with each raw value the widget produces. Returns ``False`` to
                 refuse the write; any other result counts as accepted.
+            requires: The level mode a write needs, which the widget's element is stamped
+                with (``data-hw-requires``); ``None`` when no route takes the writes.
         """
         self.id = field_id
+        self.requires = requires
         self.widget_config = widget_config or {}
         # ALWAYS the shared cell — the bag's instance cell or the registry-owned
         # cell. Any write into it shows live via on_changed; there is no

@@ -1,4 +1,4 @@
-"""An EditorCommand reaches only the wrapper it is addressed to, and only at its access tier."""
+"""An EditorCommand reaches only the wrapper it is addressed to, and only at its access requirement."""
 
 from __future__ import annotations
 

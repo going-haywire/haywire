@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional, Set
 
-from haywire.core.access import LevelMode
 from haywire.core.signals import signal_field
 from haywire.core.state import SessionState, state
 
@@ -21,8 +20,6 @@ class EditState(SessionState):
 
     active_graph: Optional["BaseGraph"] = signal_field(None)
     active_graph_path: Optional[Any] = signal_field(None)
-    active_mode: LevelMode = signal_field(LevelMode.VIEW)
-    """The level mode of the level on screen, as last claimed."""
     active_route: Optional["EditRoute"] = signal_field(None)
     """The edit route of the active level for this session; ``None`` before a level is on screen."""
 

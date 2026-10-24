@@ -11,7 +11,7 @@ from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, fa
     "exercise the Farmhand call path in tests, not a real capability.",
     registry_id="echo",
     annotations=ToolAnnotations(read_only_hint=True),
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class EchoTool(Farmhand):
     async def run(self, ctx: FarmhandContext, text: str) -> dict:

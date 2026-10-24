@@ -14,19 +14,22 @@ from haywire.core.access import LevelMode
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent
 
 
-def handles_event(*event_classes: Type[BaseGraphEvent], access: LevelMode = LevelMode.EDIT):
+def handles_event(*event_classes: Type[BaseGraphEvent], requires: LevelMode = LevelMode.EDIT):
     """Decorator to register methods as handlers for specific event classes.
 
     Args:
-        access: The lowest level mode a session needs on the canvas for the
-            handler to run. See ``handler_access``.
+        requires: The lowest level mode a session needs on the canvas for the
+            handler to run. See ``handler_requires``.
 
     Example::
 
-        @handles_event(UserRemoveEvent)  # needs edit
+        @handles_event(UserRemoveEvent)  # needs EDIT
         def process_element_removal(self, event): ...
 
-        @handles_event(SelectionChangedEvent, access=LevelMode.VIEW)  # runs in every mode
+        @handles_event(EnterGroupEvent, requires=LevelMode.OPERATE)
+        def process_enter_group(self, event): ...
+
+        @handles_event(SelectionChangedEvent, requires=LevelMode.VIEW)  # runs in every mode
         def process_selection_change(self, event): ...
     """
 
@@ -35,15 +38,18 @@ def handles_event(*event_classes: Type[BaseGraphEvent], access: LevelMode = Leve
         # is invisible to the type system, so the direct form fails mypy with
         # "Callable[..., Any] has no attribute _handles_event_classes".
         setattr(func, "_handles_event_classes", event_classes)  # noqa: B010
-        setattr(func, "_handles_event_access", access)  # noqa: B010
+        setattr(func, "_handles_event_requires", requires)  # noqa: B010
         return func
 
     return decorator
 
 
-def handler_access(handler: Callable) -> LevelMode:
-    """Return the level mode ``handler`` needs, as declared by ``@handles_event``; ``EDIT`` if undeclared."""
-    return getattr(handler, "_handles_event_access", LevelMode.EDIT)
+def handler_requires(handler: Callable) -> LevelMode:
+    """Return the level mode ``handler`` needs, as declared by ``@handles_event``.
+
+    ``EDIT`` for a handler without the marker.
+    """
+    return getattr(handler, "_handles_event_requires", LevelMode.EDIT)
 
 
 def build_event_handler_map(sources: List[object]) -> Dict[str, Callable]:

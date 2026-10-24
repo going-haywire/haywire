@@ -1,7 +1,7 @@
 """Which GraphEditor's level the session's graph state describes, with two editors shown at once.
 
 Split panes show two graph editors side by side, each the focused tab of its
-own slot. The session's ``active_graph`` / ``active_mode`` are what the
+own slot. The session's ``active_graph`` / ``level_mode`` are what the
 panels gate on, so they must describe the graph the selection lives in: the
 editor a pointer-down lands in claims the session, and an editor the user is
 not working in never does.
@@ -103,7 +103,7 @@ class TestTheEditorAClickLandsInClaims:
         _retarget(context, b.wrapper.editor_binding_id, a, b)
 
         assert edit_state.active_graph is _interior_graph(b)
-        assert edit_state.active_mode is LevelMode.OPERATE
+        assert context.level_mode is LevelMode.OPERATE
         _assert_selection_dropped(context, edit_state)
 
     def test_the_click_selection_lands_after_the_claim_and_stays(self):
@@ -116,7 +116,7 @@ class TestTheEditorAClickLandsInClaims:
 
         assert edit_state.active_node is b_node
         assert edit_state.active_graph is _interior_graph(b)
-        assert edit_state.active_mode is LevelMode.OPERATE
+        assert context.level_mode is LevelMode.OPERATE
 
     def test_clicking_back_in_the_first_pane_drops_the_other_panes_selection(self):
         a, b, context, edit_state = _split_panes()
@@ -127,7 +127,7 @@ class TestTheEditorAClickLandsInClaims:
         _retarget(context, a.wrapper.editor_binding_id, a, b)
 
         assert edit_state.active_graph is a._levels[DOCUMENT_LEVEL].container.editor.graph
-        assert edit_state.active_mode is LevelMode.EDIT
+        assert context.level_mode is LevelMode.EDIT
         _assert_selection_dropped(context, edit_state)
 
     def test_a_pointer_down_in_another_editor_claims_nothing(self):
@@ -159,7 +159,7 @@ class TestABackgroundEditorLeavesTheSessionAlone:
         assert container.definition is reloaded
         assert b._active_level == _PLACEMENT_KEY
         assert edit_state.active_graph is a_graph
-        assert edit_state.active_mode is LevelMode.EDIT
+        assert context.level_mode is LevelMode.EDIT
         assert edit_state.active_node is a_node
         assert SelectionMoved not in _published(context)
 
@@ -186,7 +186,7 @@ class TestABackgroundEditorLeavesTheSessionAlone:
         b.on_focus(context)
 
         assert edit_state.active_graph is reloaded
-        assert edit_state.active_mode is LevelMode.OPERATE
+        assert context.level_mode is LevelMode.OPERATE
 
     def test_the_editor_the_session_is_on_still_follows_its_reload(self):
         _a, b, context, edit_state = _split_panes()
@@ -197,7 +197,7 @@ class TestABackgroundEditorLeavesTheSessionAlone:
         b._prune_dead_levels(context)
 
         assert edit_state.active_graph is reloaded
-        assert edit_state.active_mode is LevelMode.OPERATE
+        assert context.level_mode is LevelMode.OPERATE
 
 
 _CONTEXT_MENU_EVENTS = [
@@ -235,7 +235,7 @@ class _Recorder:
         NodesMeasuredEvent,
         SelectionBoundsEvent,
         SelectionBoundsHideEvent,
-        access=LevelMode.VIEW,
+        requires=LevelMode.VIEW,
     )
     def record(self, event: BaseGraphEvent) -> None:
         self.seen.append(self._context.data[EditState].active_graph)
@@ -325,18 +325,18 @@ class TestAGestureOnACanvasClaimsTheSession:
         )
 
         assert edit_state.active_graph is _interior_graph(b)
-        assert edit_state.active_mode is LevelMode.OPERATE
+        assert context.level_mode is LevelMode.OPERATE
         assert edit_state.active_node is interior_node
         assert edit_state.selected_nodes == {"b1"}
 
     @pytest.mark.parametrize("event", _CONTEXT_MENU_EVENTS, ids=lambda e: e.event_type)
     def test_a_context_menu_resolves_against_the_canvas_it_opened_on(self, monkeypatch, event):
-        _a, b, _context, edit_state, manager, recorder = _residual_path(monkeypatch)
+        _a, b, context, edit_state, manager, recorder = _residual_path(monkeypatch)
 
         manager._handle_canvas_event(event)
 
         assert recorder.seen == [_interior_graph(b)]
-        assert edit_state.active_mode is LevelMode.OPERATE
+        assert context.level_mode is LevelMode.OPERATE
 
     @pytest.mark.parametrize("event", _BACKGROUND_EVENTS, ids=lambda e: e.event_type)
     def test_an_event_the_canvas_sends_on_its_own_claims_nothing(self, monkeypatch, event):
@@ -347,7 +347,7 @@ class TestAGestureOnACanvasClaimsTheSession:
 
         assert recorder.seen == [a_graph]
         assert edit_state.active_graph is a_graph
-        assert edit_state.active_mode is LevelMode.EDIT
+        assert context.level_mode is LevelMode.EDIT
         context.session.publish.assert_not_called()
 
     def test_a_canvas_of_a_level_not_on_screen_claims_nothing(self, monkeypatch):
@@ -358,7 +358,7 @@ class TestAGestureOnACanvasClaimsTheSession:
         hidden._handle_canvas_event(SelectionChangedEvent(selectedNodes=[], selectedEdges=[]))
 
         assert edit_state.active_graph is a._levels[DOCUMENT_LEVEL].container.editor.graph
-        assert edit_state.active_mode is LevelMode.EDIT
+        assert context.level_mode is LevelMode.EDIT
 
     def test_a_gesture_on_the_canvas_already_holding_the_session_publishes_no_move(self, monkeypatch):
         from haywire.core.signals import ActiveGraphMoved
@@ -413,3 +413,32 @@ class TestARedrawDropsOnlyItsOwnSelection:
         b.draw(context, MagicMock())
 
         _assert_selection_dropped(context, edit_state)
+
+
+def test_a_lock_toggle_publishes_the_session_level_mode():
+    """A lock toggle moves ``SessionContext.level_mode`` through the signal, once.
+
+    The other lock tests run on fake contexts where ``level_mode`` is a plain
+    attribute, so they check the value but never that panels are told.
+    """
+    from haywire.core.session.session import Session
+
+    from .test_graph_editor_lock import _locked_editor
+
+    editor, fake, _ = _locked_editor(AccessTier.EDIT, open_locked=False)
+    session = Session(app_state=MagicMock(), workspace_manager=MagicMock(), dispatcher=MagicMock())
+    context = session.context
+    context.principal = "someone"
+    context.data = fake.data
+    context.can_access = fake.can_access  # type: ignore[method-assign]
+    context.can_edit = fake.can_edit  # type: ignore[method-assign]
+    editor._claim_session_state(context)
+    assert context.level_mode is LevelMode.EDIT
+
+    received: list[Any] = []
+    session.subscribe(cast(Any, SessionContext.level_mode), received.append)
+
+    assert editor.set_level_locked(context, DOCUMENT_LEVEL, True) is True
+
+    assert context.level_mode is LevelMode.OPERATE
+    assert len(received) == 1

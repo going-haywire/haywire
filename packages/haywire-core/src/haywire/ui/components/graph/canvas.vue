@@ -102,21 +102,22 @@ import 'arrow_heads';
  *                       macro placement card. A double-click on it (not on a
  *                       widget or a pin) emits EnterGroupEvent in level mode
  *                       operate and edit. Written by ui_node.py.
- *   data-hw-operable    Present on an element inside a card that takes pointer
- *                       input in level mode operate: the root of every operable
- *                       card widget (BaseSkin.render_widget and
- *                       render_setting_widget in ui/skin/base.py). Read by the
- *                       level-mode rules in the global style block.
- *   data-hw-readable    Present on a read-only affordance inside a card that
- *                       takes pointer input in every level mode: the studio
- *                       skin's diagnostics badge and comment badge, and a pin
- *                       that carries its own tooltip (add_pin_tooltip in
- *                       ui/skin/pin_render.py). A press on one arms no drag
- *                       and selects nothing below 'edit'.
+ *   data-hw-requires    'view' | 'operate' | 'edit': the lowest level mode in
+ *                       which an element inside a card takes pointer input. An
+ *                       unstamped element counts as 'edit'. Written by
+ *                       stamp_requires (ui/access_stamp.py): every card widget
+ *                       with a route gets required_mode(minimum, operable)
+ *                       (WidgetFactory.render_widget); a pin that carries its
+ *                       own tooltip (add_pin_tooltip) and the studio skin's
+ *                       diagnostics and comment badges get 'view'. A press on
+ *                       one the level mode satisfies arms no drag and selects
+ *                       nothing below 'edit'. Read by AccessGate's level-mode
+ *                       gate (ui/components/access_gate).
  *   data-hw-inset       The body of an Inset card (a Graph-node drawn with the
  *                       Inset skin, haybale_graph_editor/skins/inset_skin.py).
- *                       Inside it only operable widgets take pointer input and
- *                       pins are hidden (global style block); box select skips it.
+ *                       Inside it only [data-hw-requires="operate"] widgets take
+ *                       pointer input and pins are hidden (global style block);
+ *                       box select skips it.
  *   data-pin-id         A pin's id; drives pin-menu detection.
  *   data-pin-dir        A pin's role in an edge: 'inlet', 'outlet', or
  *                       'swinglet' (either end). A drop links one end that can
@@ -153,20 +154,35 @@ import 'arrow_heads';
  *   levelMode           The session's level mode here, 'view' | 'operate' |
  *                       'edit', from GraphCanvasVue.set_level_mode; mirrored
  *                       on the root as data-hw-level-mode. Defaults to 'view'.
- *                       Below 'edit' no gesture that changes the graph starts:
- *                       node drag, resize grips, connection drag, reconnect,
- *                       paste request, the context menu's replace-then-act
- *                       selection. Click, Shift-click and box select work in
- *                       every mode; selecting changes no document. Card
- *                       content takes no pointer input below 'edit', except
- *                       [data-hw-readable] elements in every mode and
- *                       [data-hw-operable] elements in 'operate'. Double-click
- *                       enters a card in 'operate' and 'edit'. Distinct from
+ *                       A gesture starts only when _allows(eventType) says
+ *                       levelMode reaches gestureRequires[eventType], the
+ *                       event type named by its GraphEvents.UserInteractions
+ *                       constant, never a string literal: node drag
+ *                       ('userDragStart'), resize grips ('userResizeEnd'),
+ *                       connection drag ('edgeCreated'), reconnect
+ *                       ('edgeReconnectStarted'), paste request
+ *                       ('userPasteClipboard'), right-click with its
+ *                       replace-then-act selection ('contextMenuSelected'),
+ *                       double-click Enter ('enterGroup'). Click, Shift-click
+ *                       and box select work in every mode; selecting changes
+ *                       no document. Card content takes no pointer input
+ *                       below 'edit', except [data-hw-requires="view"]
+ *                       elements in every mode and [data-hw-requires="operate"]
+ *                       ones in 'operate'. Distinct from
  *                       data-node-props-locked, which is per node and also
  *                       keeps the node out of a multi-selection. The server
  *                       refuses the same events, so this is the immediate
  *                       half of the level mode, not its enforcement.
+ *   gestureRequires     { eventType: 'view' | 'operate' | 'edit' }, the level
+ *                       mode each event type's server handler declares
+ *                       (@handles_event(requires=)), from
+ *                       GraphCanvasVue.set_gesture_requires. An event type
+ *                       with no entry is refused in every mode and logged
+ *                       with console.error.
  * ------------------------------------------------------------------------ */
+
+// Level modes in cumulative order: each includes the ones before it (LevelMode.rank).
+const LEVEL_MODE_RANK = { view: 0, operate: 1, edit: 2 };
 
 export default {
     name: 'GraphCanvas',
@@ -202,6 +218,8 @@ export default {
         // The session's level mode; see the index at the top of this file.
         // 'view' until told otherwise, so a canvas never starts more permissive than its level.
         levelMode: { type: String, default: 'view' },
+        // The level mode each gesture's event type needs; see the index at the top of this file.
+        gestureRequires: { type: Object, default: () => ({}) },
     },
 
     data() {
@@ -739,7 +757,9 @@ export default {
         },
 
         _fitResizeGadget() {
-            if (!this.editing) { this.resizeGadget.visible = false; return; }
+            // Not _allows: this runs outside gestures, so a missing entry refuses without logging.
+            const resizeRequires = this.gestureRequires[GraphEvents.UserInteractions.USER_RESIZE_END];
+            if (!this._levelModeSatisfies(resizeRequires)) { this.resizeGadget.visible = false; return; }
             const ids = Array.from(this.selectionState.selectedNodes);
             if (ids.length !== 1) { this.resizeGadget.visible = false; return; }
             const nodeId = ids[0];
@@ -823,7 +843,7 @@ export default {
         onResizeGripDown(e, handle) {
             e.preventDefault();
             e.stopPropagation();
-            if (!this.editing) return;
+            if (!this._allows(GraphEvents.UserInteractions.USER_RESIZE_END)) return;
             const nodeId = this.resizeGadget.nodeId;
             const parts = this._resizeParts(nodeId);
             if (!parts) return;
@@ -1213,7 +1233,7 @@ export default {
         },
 
         async _handleClipboardPasteRequest(data) {
-            if (!this.editing) return;
+            if (!this._allows(GraphEvents.UserInteractions.USER_PASTE_CLIPBOARD)) return;
             let text = "";
             try {
                 text = await navigator.clipboard.readText();
@@ -1653,7 +1673,7 @@ export default {
 
         _syncEdgeReconnect(data) {
             // Before the removal below: a refused reconnect keeps its edge.
-            if (!this.editing) return;
+            if (!this._allows(GraphEvents.UserInteractions.EDGE_RECONNECT_STARTED)) return;
             const { edge_id, anchorNodeId, anchorPinId, anchorEnd } = data;
             // The server removes the edge only once this reports the drag started, so an
             // anchor that is not in the DOM (a culled node, a ghost end) leaves the edge as it is.
@@ -1793,9 +1813,9 @@ export default {
             const draggableElement = this._findDraggableElement(target);
             if (draggableElement) {
                 // Below edit a press on a card or edge arms a click that selects and drags
-                // nothing; a readable element keeps its press, and so does an operable one in operate.
-                const keepsPress = !this.editing && (target.closest('[data-hw-readable]')
-                    || (this.levelMode === 'operate' && target.closest('[data-hw-operable]')));
+                // nothing; an element whose data-hw-requires the level mode satisfies keeps its press.
+                const keepsPress = !this.editing && this._levelModeSatisfies(
+                    target.closest('[data-hw-requires]')?.dataset.hwRequires);
                 if (keepsPress) return;
                 this._startUnifiedDrag(event, draggableElement);
                 return;
@@ -1861,7 +1881,7 @@ export default {
         },
 
         handleDoubleClick(event) {
-            if (this.levelMode === 'view') return;
+            if (!this._allows(GraphEvents.UserInteractions.ENTER_GROUP)) return;
             const target = event.target;
             const card = target.closest('[data-node-enterable]');
             if (!card || !card.dataset.nodeId) {
@@ -1875,6 +1895,8 @@ export default {
 
         handleContextMenu(event) {
             event.preventDefault();
+            // A refused right-click keeps the selection as it is and opens no menu, native or ours.
+            if (!this._allows(GraphEvents.UserInteractions.CONTEXT_MENU_SELECTED)) return;
 
             const clientX = event.clientX;
             const clientY = event.clientY;
@@ -1969,7 +1991,7 @@ export default {
                 // the selection (incl. a lone selected node), leave selection
                 // intact. Either way the menu is always the unified selection
                 // menu — there is no separate single-node menu.
-                if (this.editing && !this.selectionState.selectedNodes.has(nodeId)) {
+                if (!this.selectionState.selectedNodes.has(nodeId)) {
                     this._setSelectionState([nodeId], []);
                     this.emitCanvasEvent(EventCreators.createSelectionChanged(
                         [nodeId], []
@@ -1993,7 +2015,7 @@ export default {
                 } else {
                     // Replace-then-act, as for a node: the edge menu always concerns
                     // a selection of exactly this edge, which the Style flyout reads.
-                    if (this.editing && !isEdgeSelected) {
+                    if (!isEdgeSelected) {
                         this._clearSelection();
                         this._selectElement('edge', edge_id, false);
                         this._setActive('edge', edge_id);
@@ -2163,8 +2185,8 @@ export default {
                 elementId: draggedElement.id
             };
 
-            // Determine what elements to drag; below edit nothing drags.
-            this.dragState.draggedElements = this.editing
+            // Determine what elements to drag; a refused drag moves nothing.
+            this.dragState.draggedElements = this._allows(GraphEvents.UserInteractions.USER_DRAG_START)
                 ? this._getDraggedElements(draggedElement, e.shiftKey)
                 : [];
 
@@ -2255,10 +2277,11 @@ export default {
                 // magnified node no longer shrinks it permanently.
                 this._clearAllMagnified();
 
-                // Emit unified drag start event
-                this.emitCanvasEvent(EventCreators.createUserDragStart(
-                    this._extractNodeIds(this.dragState.draggedElements)
-                ));
+                if (this._allows(GraphEvents.UserInteractions.USER_DRAG_START)) {
+                    this.emitCanvasEvent(EventCreators.createUserDragStart(
+                        this._extractNodeIds(this.dragState.draggedElements)
+                    ));
+                }
 
                 // Add visual feedback
                 this.dragState.draggedElements.forEach(element => {
@@ -2875,7 +2898,7 @@ export default {
 
         /** Transition to active connection mode from a pin; `anchorEnd` is a reconnect's anchor role. */
         _enterActiveEdge(pin, anchorEnd = null) {
-            if (!this.editing) return;
+            if (!this._allows(GraphEvents.UserInteractions.EDGE_CREATED)) return;
             // A magnified node shifts pins; clear magnify before wiring an edge.
             this._clearAllMagnified();
 
@@ -3946,6 +3969,24 @@ export default {
             return true;
         },
 
+        /** True when the canvas's level mode satisfies `required` ('view' | 'operate' | 'edit');
+         *  false for no mode or an unknown one. */
+        _levelModeSatisfies(required) {
+            const needed = LEVEL_MODE_RANK[required];
+            return needed !== undefined && LEVEL_MODE_RANK[this.levelMode] >= needed;
+        },
+
+        /** True when the canvas's level mode reaches the mode gestureRequires declares for
+         *  `eventType`. An event type with no entry is refused in every mode and logged. */
+        _allows(eventType) {
+            const required = this.gestureRequires[eventType];
+            if (required === undefined) {
+                console.error('[GraphCanvas] no mode requirement for', eventType);
+                return false;
+            }
+            return this._levelModeSatisfies(required);
+        },
+
         _isInteractiveWidgetElement(element) {
             // Edge pins are NOT interactive widgets
             if (element.closest('.connection-pin')) {
@@ -3954,7 +3995,7 @@ export default {
 
             // An operable widget keeps its press inside a drag handle too: a widget
             // node's whole card is one, and so is an Inset's interior card.
-            if (element.closest('[data-hw-operable]')) {
+            if (element.closest('[data-hw-requires="operate"]')) {
                 return true;
             }
 
@@ -4499,32 +4540,17 @@ export default {
 </style>
 
 <style>
-/* Level mode gate: below edit, card content takes no pointer input, except
- * readable elements (diagnostics badge, comment, pin tooltips) in every mode and
- * operable elements (operable card widgets) in operate. Keyed on
- * .ui-node-slot descendants so the card root and the slot keep taking presses (a
- * double-click on the card body still enters); pins sit inside the slot and are
- * gated too. !important plus the extra selectors out-specify .connection-pin's
- * rule below. The gate never matches inside an exempt subtree, so a widget's
- * own pointer-events rules (a disabled widget's none) stay in force. */
-.graph-canvas[data-hw-level-mode="view"] .ui-node-slot *:not([data-hw-readable]):not([data-hw-readable] *),
-.graph-canvas[data-hw-level-mode="operate"] .ui-node-slot *:not([data-hw-readable]):not([data-hw-readable] *):not([data-hw-operable]):not([data-hw-operable] *) {
-    pointer-events: none !important;
-}
-/* pointer-events inherits, so an exempt root would take the gated ancestors'
- * none; :where() gives it auto at zero specificity, so its own rules still win. */
-:where(.graph-canvas[data-hw-level-mode="view"] .ui-node-slot [data-hw-readable],
-       .graph-canvas[data-hw-level-mode="operate"] .ui-node-slot [data-hw-readable],
-       .graph-canvas[data-hw-level-mode="operate"] .ui-node-slot [data-hw-operable]) { pointer-events: auto; }
+/* The level mode gate on card content (pointer and keyboard) is AccessGate's
+ * (ui/components/access_gate), mounted once per page. */
 /* Below edit a pin starts no edge, so it drops the crosshair; !important beats the pin's inline cursor. */
 .graph-canvas:not([data-hw-level-mode="edit"]) .ui-node-slot .connection-pin { cursor: default !important; }
 
 /* An Inset's interior takes input only on its operable widgets, in every mode the
  * gate above allows; any other press lands on the host card. Its pins are hidden. */
-.graph-canvas [data-hw-inset] *:not([data-hw-operable]):not([data-hw-operable] *) {
+.graph-canvas [data-hw-inset] *:not([data-hw-requires="operate"]):not([data-hw-requires="operate"] *) {
     pointer-events: none !important;
 }
-:where(.graph-canvas [data-hw-inset] [data-hw-operable]) { pointer-events: auto; }
+:where(.graph-canvas [data-hw-inset] [data-hw-requires="operate"]) { pointer-events: auto; }
 .graph-canvas [data-hw-inset] [data-pin-id] { display: none !important; }
 
 /* Below edit a card selects but does not move: drop the move cursor its container

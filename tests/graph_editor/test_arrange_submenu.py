@@ -170,7 +170,7 @@ def test_the_arrange_panels_need_edit_and_sit_where_they_should():
     assert SelectionArrangeMenu.id == "selection-arrange"
     assert SelectionArrangeMenu.provides is SelectionActions
     for cls in (ArrangeSelectionMenuPanel, *(leaf for leaf, _, _ in _LEAVES)):
-        assert cls.class_identity.access is AccessTier.EDIT
+        assert cls.class_identity.requires is AccessTier.EDIT
     for leaf, _, _ in _LEAVES:
         assert leaf.class_identity.surface is SelectionArrangeMenu
 

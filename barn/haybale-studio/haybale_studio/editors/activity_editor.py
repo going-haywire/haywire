@@ -115,7 +115,7 @@ def format_age(seconds: float) -> str:
     default_slot="info",
     opens="on_context",
     description="Farmhand tool calls made by agent principals",
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class ActivityEditor(BaseEditor):
     """Running and recently-finished Farmhand tool calls, newest first.

@@ -149,7 +149,7 @@ def _ports_panel_widget(library_system, wrapper: Any, route: EditRoute) -> BaseW
     from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
     from haywire.ui.widget.factory import WidgetFactory
 
-    edit = SimpleNamespace(active_route=route, active_mode=LevelMode.EDIT, active_node=wrapper)
+    edit = SimpleNamespace(active_route=route, active_node=wrapper)
     ctx = SimpleNamespace(can_access=AccessTier.ADMIN.satisfies, data={EditState: edit})
     factory = _RecordingWidgetFactory(library_system.injector.get(WidgetFactory))
     client = Client(cast(Any, _noop_page), request=None)

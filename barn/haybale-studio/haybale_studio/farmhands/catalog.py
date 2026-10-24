@@ -37,7 +37,7 @@ def _is_synthetic_library(lib_id: str) -> bool:
     "unless include_system=true.",
     registry_id="list_libraries",
     annotations=_READ_ONLY,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class StudioListLibrariesTool(Farmhand):
     async def run(
@@ -135,7 +135,7 @@ def _matches_search(identity: Any, query_lower: str) -> bool:
     "default",
     registry_id="list_components",
     annotations=_READ_ONLY,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class StudioListComponentsTool(Farmhand):
     input_schema_override = _LIST_COMPONENTS_SCHEMA
@@ -237,7 +237,7 @@ class StudioListComponentsTool(Farmhand):
     "authoring guide. For nodes: read before graph_editor_add_node.",
     registry_id="describe_component",
     annotations=_READ_ONLY,
-    access=AccessTier.VIEW,
+    requires=AccessTier.VIEW,
 )
 class StudioDescribeComponentTool(Farmhand):
     async def run(self, ctx: FarmhandContext, registry_key: str) -> dict:

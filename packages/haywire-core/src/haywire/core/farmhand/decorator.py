@@ -7,7 +7,7 @@ from __future__ import annotations
 import inspect
 from typing import Any, Callable, Type, TypeVar, Union
 
-from haywire.core.access import AccessTier
+from haywire.core.access import AccessTier, coerce_requirement
 from haywire.core.farmhand.base import Farmhand
 from haywire.core.farmhand.identity import FarmhandIdentity, ToolAnnotations
 from haywire.core.library.utils import FARMHAND, derive_library_identity, reg_key
@@ -43,7 +43,9 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             snake_case registry_id (e.g. registry_id="save_graph").
         annotations (ToolAnnotations): MCP consent hints
             (read_only_hint/destructive_hint/...). Default: ToolAnnotations()
-        access (AccessTier | str): Access tier for this tool. Default: AccessTier.VIEW
+        requires (AccessTier | str): Minimum AccessTier needed to list and call this
+            tool. Default: AccessTier.EDIT; a tool that only reads declares
+            AccessTier.VIEW.
         hidden (bool): Exclude from author-facing selection UIs. Default: False
         deprecation_warning (str): Advisory message. Default: ""
 
@@ -87,9 +89,9 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         identity_kwargs.setdefault("label", identity_kwargs["registry_id"])
         identity_kwargs.setdefault("annotations", ToolAnnotations())
 
-        # Coerce access to enum; raises ValueError at class-definition time on typo.
-        access: Union[AccessTier, str] = identity_kwargs.pop("access", AccessTier.VIEW)
-        identity_kwargs["access"] = AccessTier(access) if isinstance(access, str) else access
+        # Strict coercion: ValueError on an unknown name, TypeError on a LevelMode or other type.
+        requires: Union[AccessTier, str] = identity_kwargs.pop("requires", AccessTier.EDIT)
+        identity_kwargs["requires"] = coerce_requirement(requires)
         # Get library identity (survives hot-reload)
         library_identity = derive_library_identity(inner_cls)
 

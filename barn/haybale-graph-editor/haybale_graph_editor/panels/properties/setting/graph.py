@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.core.signals import ActiveGraphMoved, GraphDataMutated
+from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
 
 @panel(
     surface=GraphInspector,
+    requires=AccessTier.VIEW,
     label="Graph Settings",
     icon=hui.icon.graph_properties,
     order=20,
