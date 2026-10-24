@@ -16,15 +16,10 @@ Items carry stable IDs (`#N`; handoff notes cite them), so the numbering has gap
 - **#49** **Nested `data-hw-requires` stamps follow two rules.** Card CSS frees an element if *any* enclosing stamp allows the mode; `isGated` (`access_gate.vue`) reads only the *nearest* stamp; panels gate on any enclosing stamp that ranks too high. Nothing nests stamps today. Decide one nesting rule for both scopes, then add a nested fixture to `test_css_and_isGated_agree`.
 - **#50** **A press on an `edit`-stamped widget inside a drag handle starts a node drag in `edit`.** `_isInteractiveWidgetElement` (`canvas.vue`) only counts `operate`-stamped elements as widgets; an `edit`-stamped or routeless widget in a widget node or Inset is not exempt. Pre-existing. First step: test `_levelModeSatisfies(closest('[data-hw-requires]')?.dataset.hwRequires)` instead.
 - **#51** **The settings row menu greys by the session mode, not its own route's mode.** With two canvases (one locked, one not), selection-toolbar forms can be greyed wrongly or left live; the route still refuses the write. Decide whether a teleported row menu should carry its own route's mode.
-- **#52** **Live checks owed for the access layer:**
-    - a panel row disabled by its own `ui_state` may stack with the gate's `opacity: 0.5` (about 0.25);
-    - in `view` a number widget enters its edit state on focus before the gate blurs it (flicker, nothing written) — document or suppress;
-    - first load shows no `[GraphCanvas] no access declared` console errors (the harness test is a smoke guard only and cannot reach `view`).
 
 ## 2. Performance
 
 - **#9** **Drawing large graphs.** The 512-node load went from 23 s to ~12 s (Firefox 52 s → 11 s) on 2026-10-20; the Vue full-tree render walk remains (`.insights/project_nicegui_component_vs_native_tag.md`). Handoff: `internals/handoff/draw_performance_regression_fix.md` — check whether its `_claim_session_state` regression is cleared by `_clear_selection` publishing only when something was selected.
-- **#53** **AccessGate observes `<body>` subtree attribute changes** (`attributeFilter: ['data-hw-level-mode']`) to blur a focused card input when a canvas mode drops. Judged negligible in review; confirm with a pan run (`.scratch/pan-perf/`). Alternative: canvas.vue's `levelMode` watcher calls `window.hwAccess`.
 
 ## 3. Polish
 
