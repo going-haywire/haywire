@@ -4075,27 +4075,29 @@ graph unsaved and records the undo step (see
   model. <code>widget_key</code> picks a widget other than the field's own: the annotation skin draws
   <code>NoteTextWidget</code> on <code>annotation.text</code>, so the Properties panel keeps the plain text widget.
   The skin keeps the look by wrapping the widget in an element whose CSS the widget inherits.</li>
-<li><strong>Operable or not:</strong> both calls stamp <code>data-hw-operable</code> on an operable widget (below). A port
-  or field declared <code>operable=False</code> is not stamped, and the route needs level mode <code>edit</code> for
-  its writes.</li>
+<li><strong>Operable or not:</strong> both calls stamp <code>data-hw-requires</code> on the widget (below), from the route's
+  <code>required_mode</code>. A port or field declared <code>operable=False</code> is stamped <code>edit</code>, and the route
+  needs level mode <code>edit</code> for its writes.</li>
 </ul>
 <p><strong>Skin instances are app-wide singletons.</strong> One instance of each skin draws every card, for
 every session and canvas. A skin keeps no per-card or per-session state between renders; what
 it needs during one render is keyed by node id, the way <code>BaseSkin._render</code> holds the card's
 route.</p>
 <h2 id="pointer-input-below-level-mode-edit">Pointer input below level mode <code>edit</code><a class="headerlink" href="#pointer-input-below-level-mode-edit" title="Permanent link">&para;</a></h2>
-<p>Below level mode <code>edit</code> the canvas takes pointer input away from everything inside a card's
-<code>.ui-node-slot</code> (see <a href="../../../adr/0055-every-user-edit-takes-the-edit-route/">ADR 0055</a>, "The
-browser layer"). Two attributes give it back:</p>
+<p>Below the mode an element requires, <code>AccessGate</code> takes its pointer input away (see
+<a href="../../../adr/0060-the-browser-projects-the-route/">ADR 0060</a>). One attribute, <code>data-hw-requires="view|operate|edit"</code>,
+says from which level mode an element takes input:</p>
 <ul>
 <li><strong>A control</strong> a skin draws must be a widget drawn through <code>BaseSkin.render_widget</code> or
-  <code>BaseSkin.render_setting_widget</code>, which stamp <code>data-hw-operable</code> on an operable one. It then
-  takes input in level mode <code>operate</code> as well as <code>edit</code>. A widget for an <code>operable=False</code> port
-  or field is not stamped and takes input only in <code>edit</code>.</li>
-<li><strong>A read-only affordance</strong> (a tooltip trigger, an info menu, a badge) carries
-  <code>data-hw-readable</code> and takes input in every level mode. <code>add_pin_tooltip</code> stamps it on a pin
-  that triggers its own tooltip; the studio skin stamps it on the diagnostics badge and the
-  comment badge. It must not offer a write: <code>view</code> reaches it too.</li>
+  <code>BaseSkin.render_setting_widget</code>, which stamp it from the route's <code>required_mode</code>: <code>operate</code> for
+  an operable widget, <code>edit</code> for an <code>operable=False</code> one. Unmarked card content counts as <code>edit</code>
+  (fails closed), so a hand-made control on a card is dead below <code>edit</code> until stamped with
+  <code>stamp_requires(el)</code> (<code>edit</code> by default; pass <code>LevelMode.OPERATE</code> for an operable one).</li>
+<li><strong>A read-only affordance</strong> (a tooltip trigger, an info menu, a badge) is stamped <code>view</code> and takes
+  input in every level mode. <code>add_pin_tooltip</code> stamps a pin that triggers its own tooltip; the
+  studio skin stamps the diagnostics and comment badges. It must not offer a write.</li>
+<li><strong>Tooltips on gated content</strong> show only from the mode that operates the content: a trigger
+  inside a gated widget is inert below that mode, as the widget is.</li>
 </ul>
 <p>Anything else on a card takes no pointer input below <code>edit</code>. The gate does not touch the
 inside of a marked element, so its own <code>pointer-events</code> rules (a disabled widget's <code>none</code>)
@@ -4173,15 +4175,16 @@ stay in force.</p>
 </tbody>
 </table>
 <p>A skin made for the stage alone is tagged <code>["general", "stage-only"]</code>. A skin for one node kind is tagged <code>["special", "stage-only", "&lt;kind&gt;"]</code> (drop <code>stage-only</code> if it suits the patch too), and that node class overrides its <code>stage_skin</code> (or <code>skin</code>) field with <code>skin_choices(include=["special", "&lt;kind&gt;"], exclude=["general"])</code> as its options. The lists decide only what is offered: a write naming any skin is accepted.</p>
+<p><strong>A special skin checks its node.</strong> Being offered only for its node kind does not mean a special skin only ever meets a node that can give it what it needs: a stand-in for a broken node keeps the skin its node had (ADR 0058), and a node's own data can be broken. The skin reads what it needs from the wrapper at every draw and, when it is missing, draws a message in the card naming the cause instead of its face, in <code>hw-text-danger</code>. It does not fall back to another skin: the failure is a developer's to fix and must show. Keep what the card always carries (the diagnostics badge, title and pins in the patch) so the node's errors stay reachable.</p>
 <p><strong>Widget nodes</strong> are the worked example. <code>WidgetNodeSkin</code> (haybale-core) is tagged <code>["special", "stage-only", "widget-node"]</code>, and <code>WidgetNode.props.stage_skin</code> takes its options from <code>_widget_node_stage_skin_choices()</code>, which is <code>skin_choices(include=["special", "widget-node"], exclude=["general"])</code>. A third-party skin for widget nodes joins that list by carrying the same three tags; it needs no change to the nodes. The skin draws only the widget of each outlet the node declares (<code>port.is_outlet() and port.origin is PortOrigin.DECLARED</code>), so a setting promoted to a port never shows on the stage face. Its look per node comes from the widget node's <code>style</code> settings bag (label typography, card background and border, label position, maximum label width): the node owns the bag and the skin reads it, and a node without one draws the default face.</p>
 <h2 id="the-inset">The Inset<a class="headerlink" href="#the-inset" title="Permanent link">&para;</a></h2>
 <p><code>InsetSkin</code> (haybale-graph-editor, tagged <code>special</code>, <code>graph-node</code>) draws a Graph-node card whose body shows the interior's stage, so a Group or placement works as an operable module. Only the Graph-node skin lists offer it.</p>
 <ul>
 <li><strong>Faces.</strong> In the patch: the title, then the body, with the card's pins on the layout's edges (pin columns for L2R/R2L, pin strips for T2B/B2T) and its root ghost pins. On a stage: the body alone. Collapsed: the shared folded card. It honours no Detail and draws no port labels, widgets or config ports.</li>
-<li><strong>Body.</strong> An <code>InsetView</code> builds one ordinary <code>UINode</code> per staged interior node, with its stage skin, at its raw stage position (<code>props.get_position(STAGE)</code>), so stage (0, 0) is the body's top-left. The containers carry <code>data-hw-inset-node</code>, never <code>data-node-id</code>. The body has a 240 × 160 floor and clips; an empty stage shows a placeholder.</li>
+<li><strong>Body.</strong> An <code>InsetView</code> builds one ordinary <code>UINode</code> per staged interior node, with its stage skin, at its raw stage position (<code>props.get_position(STAGE)</code>), so stage (0, 0) is the body's top-left. The containers carry <code>data-hw-inset-node</code>, never <code>data-node-id</code>. The body has a 240 × 160 floor and clips; an empty stage shows a placeholder. A node whose interior does not resolve gets a message instead of the view: "failed to build" for a stand-in, "has no interior" otherwise.</li>
 <li><strong>Writes.</strong> The cards write through <code>EditRoute.for_subgraph(definition)</code>: the host route's level mode, recorded on the host's history.</li>
-<li><strong>Lifetime.</strong> The host card redraws on any interior visual change (<code>GraphNode</code>), which rebuilds the view. The skin hands <code>view.cleanup</code> to <code>BaseSkin.on_card_cleanup</code>, so the old cards are released with the card. A skin that builds anything outliving its draw call does the same.</li>
-<li><strong>Input.</strong> <code>canvas.vue</code> makes everything inside <code>[data-hw-inset]</code> inert except <code>[data-hw-operable]</code> subtrees, and hides its pins, so a press acts on the host card; box select skips the body. The Inset draws no edges.</li>
+<li><strong>Lifetime.</strong> The host card redraws when an on-stage interior node repaints or the interior's stage membership changes (<code>GraphNode</code>), which rebuilds the view; a change to a node off stage leaves it as drawn. The skin hands <code>view.cleanup</code> to <code>BaseSkin.on_card_cleanup</code>, so the old cards are released with the card. A skin that builds anything outliving its draw call does the same.</li>
+<li><strong>Input.</strong> <code>canvas.vue</code> makes everything inside <code>[data-hw-inset]</code> inert except <code>[data-hw-requires]</code> subtrees the mode reaches, and hides its pins, so a press acts on the host card; box select skips the body. The Inset draws no edges.</li>
 </ul>
 <h2 id="where-the-default-skins-live">Where the default skins live<a class="headerlink" href="#where-the-default-skins-live" title="Permanent link">&para;</a></h2>
 <p>Stacked (the default skin), Split, Error, their <code>NodeSkin</code> base and the <code>NodeSkinSettings</code> geometry bag (namespace <code>ui.node.skin</code>) ship in <strong>haybale-graph-editor</strong>, the library that draws node cards: <code>haybale_graph_editor.skins.node_skin.NodeSkin</code>. A skin that subclasses <code>NodeSkin</code> depends on haybale-graph-editor. A skin built on <code>BaseSkin</code> (as <code>WidgetNodeSkin</code> and the builtin reroute and annotation skins are) depends on haywire-core only. See <a href="../../../adr/0057-the-default-skins-live-in-the-graph-editor/">ADR 0057</a>.</p>

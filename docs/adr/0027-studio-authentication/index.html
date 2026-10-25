@@ -3141,10 +3141,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#access-lives-on-three-identities-not-on-baseidentity" class="md-nav__link">
+  <a href="#requires-lives-on-three-identities-not-on-baseidentity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        access= lives on three identities, not on BaseIdentity
+        requires= lives on three identities, not on BaseIdentity
       
     </span>
   </a>
@@ -3200,6 +3200,28 @@
     <span class="md-ellipsis">
       
         Alternatives considered
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#amendment-adr-0060" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (ADR 0060)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#amendment-one-name-for-every-requirement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (one name for every requirement)
       
     </span>
   </a>
@@ -3340,7 +3362,7 @@ the canvas hot path to catch.</p>
 <li><strong><code>haywire.core.access</code></strong> — the <code>AccessTier</code> enum, <code>SessionContext.principal</code>,
   and <code>can_view()</code> / <code>can_edit()</code> / <code>can_admin()</code> / <code>can_access(tier)</code> (the ladder is <code>view</code> &lt; <code>operate</code> &lt; <code>edit</code> &lt; <code>admin</code> since ADR 0051). No
   files, no crypto, no ASGI. Core must own the vocabulary because
-  <code>@panel(access=…)</code> and <code>@editor(access=…)</code> are core decorators; a studio-owned
+  <code>@panel(requires=…)</code> and <code>@editor(requires=…)</code> are core decorators; a studio-owned
   enum would make core import studio.</li>
 <li><strong><code>haywire_studio.auth</code></strong> — roster I/O, scrypt, cookie signing, the gate, the
   login routes, the <code>haywire user</code> / <code>haywire auth</code> CLI.</li>
@@ -3360,15 +3382,15 @@ hot-reloadable, and installable from a marketplace; a library that owned the
 gate could be disabled to open the door.</p>
 <p>Core resolves to <code>admin</code> for everybody when auth is disabled, so existing
 loopback installs are unchanged.</p>
-<h2 id="access-lives-on-three-identities-not-on-baseidentity"><code>access=</code> lives on three identities, not on <code>BaseIdentity</code><a class="headerlink" href="#access-lives-on-three-identities-not-on-baseidentity" title="Permanent link">&para;</a></h2>
-<p><code>PanelIdentity</code>, <code>EditorIdentity</code> and <code>FarmhandIdentity</code> carry <code>access</code>. Nodes,
+<h2 id="requires-lives-on-three-identities-not-on-baseidentity"><code>requires=</code> lives on three identities, not on <code>BaseIdentity</code><a class="headerlink" href="#requires-lives-on-three-identities-not-on-baseidentity" title="Permanent link">&para;</a></h2>
+<p><code>PanelIdentity</code>, <code>EditorIdentity</code> and <code>FarmhandIdentity</code> carry <code>requires</code>. Nodes,
 skins, widgets, themes and adapters do not, and this is deliberate rather than
 an omission to be tidied up later.</p>
 <p>A component identity governs whether the component appears in an authoring
 surface. For a panel, editor or Farmhand tool, that <em>is</em> the capability — hide
 the identity and the capability is gone. For a node it is not: the identity
 governs the Add Nodes menu, while the node instances already sitting in a
-<code>.graph</code> file execute regardless of who is watching. <code>@node(access=admin)</code>
+<code>.graph</code> file execute regardless of who is watching. <code>@node(requires=admin)</code>
 would look like a restriction and restrict nothing.</p>
 <p>Enforcement sits at the seams every consumer already funnels through:</p>
 <table>
@@ -3417,7 +3439,7 @@ containment boundary; for browsers it is a boundary against mutation but not
 against the machine.</p>
 <p>A tool's tier is declared, not derived from <code>ToolAnnotations.read_only_hint</code>.
 Those are orthogonal axes: <code>read_only_hint</code> describes <em>behaviour</em> and is
-addressed to the client for confirmation prompts, while <code>access</code> is <em>policy</em>
+addressed to the client for confirmation prompts, while <code>requires</code> is <em>policy</em>
 set by the operator. Deriving one from the other would mean an author tuning a
 UX hint silently changed who can see the tool.</p>
 <p>Agent tokens are stored in plaintext while passwords are hashed. The asymmetry
@@ -3509,10 +3531,19 @@ of a wheel distributed through the marketplace, for a hash that is not holding
 the boundary.</p>
 <p><strong>A separate <code>haybale-auth</code> library for the roster UI.</strong> Rejected: an editor
 with a user list does not earn a package in the lockstep release, a pyproject,
-entry points and generated docs. <code>access=admin</code> already hides it.</p>
+entry points and generated docs. <code>requires=admin</code> already hides it.</p>
 <p><strong>Merging the agent token into the global roster unscoped.</strong> Rejected: the
 Farmhand token is workspace-scoped today, and folding it in unscoped would
 silently promote one project's agent credential into a machine-wide key.</p>
+<h2 id="amendment-adr-0060">Amendment (ADR 0060)<a class="headerlink" href="#amendment-adr-0060" title="Permanent link">&para;</a></h2>
+<p><code>@panel</code>, <code>@editor</code> and <code>@farmhand</code> validate their access requirement through <code>coerce_requirement</code> (<code>haywire.core.access</code>): a <code>LevelMode</code> raises <code>TypeError</code>, an unknown name <code>ValueError</code>, at decoration time.</p>
+<h2 id="amendment-one-name-for-every-requirement">Amendment (one name for every requirement)<a class="headerlink" href="#amendment-one-name-for-every-requirement" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>The keyword is <code>requires=</code>.</strong> The access requirement of a panel, editor or Farmhand tool is declared as <code>requires=</code> (identity field <code>class_identity.requires</code>, read by <code>required_tier()</code>), and an <code>EditorCommand</code> declares <code>requires: ClassVar[AccessTier]</code>. The keyword was <code>access=</code>, and the field and helpers were <code>access</code>, <code>required_access()</code> and <code>coerce_access()</code>; they were renamed with no alias.</li>
+<li><strong>Every access requirement defaults to <code>edit</code>.</strong> Panels and editors already did. Farmhand tools defaulted to <code>view</code> and now default to <code>edit</code>, so a read-only tool declares <code>requires=AccessTier.VIEW</code>. <code>required_tier()</code> also answers <code>edit</code> for a class with no identity or no <code>requires</code> field, and for a value that is not a tier name; it answered <code>view</code> before, so a bare tool double failed open.</li>
+<li><strong>An access right defaults to <code>view</code>.</strong> A principal the resolver knows no tier for holds <code>view</code>, unchanged.</li>
+<li>The vocabulary has two axes, each with a "has" and a "requires" side: the access right against the access requirement (<code>AccessTier</code>), and the level mode against the mode requirement (<code>LevelMode</code>, ADR 0060). See the glossary.</li>
+</ul>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <ul>
 <li>ADR 0026 — studio network exposure (bind address, peer allowlist, jedi confinement)</li>

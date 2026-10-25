@@ -3607,7 +3607,7 @@
 </tr>
 <tr>
 <td><code>partition_panels(classes, ctx)</code></td>
-<td>The superset: splits into <code>(applies, disabled)</code>, for hosts that render a panel's own inapplicable state via <code>draw_disabled()</code> (context menus). <code>access=</code>-denied panels are dropped from <strong>both</strong> lists — a greyed entry would advertise what the principal may not have.</td>
+<td>The superset: splits into <code>(applies, disabled)</code>, for hosts that render a panel's own inapplicable state via <code>draw_disabled()</code> (context menus). <code>requires=</code>-denied panels are dropped from <strong>both</strong> lists — a greyed entry would advertise what the principal may not have.</td>
 </tr>
 <tr>
 <td><code>render_panel(cls, ctx, layout, actions_host=..., disabled=False)</code></td>
@@ -3615,7 +3615,7 @@
 </tr>
 </tbody>
 </table>
-<p>The three hosts are <code>PropertiesEditor</code> (persistent display panels), <code>BaseContextMenuProvider</code> (right-click menus), and the graph canvas <code>SelectionToolbarProvider</code>. Because the filter is shared, anything that decides <em>whether a panel may show</em> — <code>poll()</code>, and <code>access=</code> under <a href="../../../adr/0027-studio-authentication/">ADR 0027</a> — is written once here and takes effect in all three at once.</p>
+<p>The three hosts are <code>PropertiesEditor</code> (persistent display panels), <code>BaseContextMenuProvider</code> (right-click menus), and the graph canvas <code>SelectionToolbarProvider</code>. Because the filter is shared, anything that decides <em>whether a panel may show</em> — <code>poll()</code>, and <code>requires=</code> under <a href="../../../adr/0027-studio-authentication/">ADR 0027</a> — is written once here and takes effect in all three at once.</p>
 <p>Two consequences worth knowing when authoring a host: <code>_open_menu()</code> refuses to build a popup at all when nothing in either list would draw (so a menu with nothing to show never appears as an empty box — see §3, "Hosting a surface" below for how nesting complicates "nothing to show"), and <code>render_panel()</code> assumes its caller already filtered — a new host that calls it directly without <code>visible_panels()</code> / <code>partition_panels()</code> bypasses the gate.</p>
 <h2 id="3-important-concepts">3. Important concepts<a class="headerlink" href="#3-important-concepts" title="Permanent link">&para;</a></h2>
 <p><strong>The <code>@panel</code> decorator.</strong> Required on every panel class. Two parameters are mandatory: <code>surface=</code> (a <code>Surface</code> subclass that determines visibility) and <code>label=</code> (display label).</p>
@@ -3684,10 +3684,10 @@
 <td>Tuple of <code>Signal</code> subclasses the panel wants its host editor to redraw on.</td>
 </tr>
 <tr>
-<td><code>access</code></td>
+<td><code>requires</code></td>
 <td>no</td>
 <td><code>AccessTier.EDIT</code></td>
-<td>Minimum <code>AccessTier</code> (<code>VIEW</code> &lt; <code>OPERATE</code> &lt; <code>EDIT</code> &lt; <code>ADMIN</code>) to see this panel — see <a href="../../../adr/0027-studio-authentication/">ADR 0027</a>. A panel that does not declare is hidden below <code>edit</code>; declare <code>view</code> for a panel a principal below <code>edit</code> must reach, such as an account-menu entry.</td>
+<td>Access requirement: the minimum <code>AccessTier</code> (<code>VIEW</code> &lt; <code>OPERATE</code> &lt; <code>EDIT</code> &lt; <code>ADMIN</code>) a principal's access right must reach to see this panel — see <a href="../../../adr/0027-studio-authentication/">ADR 0027</a>. A panel that does not declare is hidden below <code>edit</code>; declare <code>view</code> for a panel a principal below <code>edit</code> must reach, such as an account-menu entry.</td>
 </tr>
 </tbody>
 </table>
@@ -3899,7 +3899,7 @@
 <p><code>draw()</code> may assume <code>poll()</code> just returned <code>True</code> — the surface applies, and (for a menu) the host has already resolved the actions object. It must not run for its own visibility check a second time; that decision was already made.</p>
 <p><code>draw_disabled()</code> is called instead of <code>draw()</code> when <code>poll()</code> returned <code>False</code>, on hosts that render <code>draw_disabled()</code> at all (the context-menu hosts, via <code>partition_panels</code>; the PropertiesEditor does not — an inapplicable display panel simply doesn't appear). Its default implementation is a no-op, so a panel that never overrides it keeps vanishing exactly as every panel does today — this is the zero-migration guarantee, not an oversight. Override it to follow the platform convention for a fixed-shape command menu: an inapplicable command greys rather than disappearing (see <code>DeleteSelectionMenuPanel</code> in <a href="../../../guides/panels/">guides/panels</a> for a worked example).</p>
 <p><strong>The rule that makes it a second method instead of a branch in <code>draw()</code>: <code>draw_disabled()</code> must not touch the state <code>poll()</code> gated on.</strong> <code>poll()</code> decided the panel doesn't apply; <code>draw_disabled()</code> renders that fact, it does not re-derive or mutate it. A <code>draw_disabled()</code> that reads <code>ctx.data[EditState].active_node</code> because "it's probably fine" is one library update away from crashing on <code>None</code> the day <code>poll()</code>'s condition changes shape.</p>
-<p><strong>The <code>access=</code> asymmetry.</strong> A panel denied by <code>access=</code> (below the principal's <code>AccessTier</code>) renders <strong>neither</strong> method — it is filtered out before <code>poll()</code> even runs, by <code>partition_panels</code>'s access check. This is deliberate and different from the <code>poll()</code>-false case: a greyed disabled row still <em>advertises</em> the command exists ("Delete — you can't right now"), which is fine when the reason is selection state and wrong when the reason is the principal's access tier. Access denial must not leak "this command exists" information via a visible-but-disabled row.</p>
+<p><strong>The <code>requires=</code> asymmetry.</strong> A panel denied by <code>requires=</code> (above the principal's access right) renders <strong>neither</strong> method — it is filtered out before <code>poll()</code> even runs, by <code>partition_panels</code>'s access check. This is deliberate and different from the <code>poll()</code>-false case: a greyed disabled row still <em>advertises</em> the command exists ("Delete — you can't right now"), which is fine when the reason is selection state and wrong when the reason is the principal's access right. For the same reason the Properties editor does not offer a tab none of whose panels the access right reaches. Access denial must not leak "this command exists" information via a visible-but-disabled row.</p>
 <h3 id="what-a-nested-panel-may-not-assume">What a nested panel may not assume<a class="headerlink" href="#what-a-nested-panel-may-not-assume" title="Permanent link">&para;</a></h3>
 <p>A panel rendered via <code>render_surface</code> — at any depth — may not assume:</p>
 <ul>

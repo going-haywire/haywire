@@ -3441,7 +3441,7 @@ security control — binding <code>8125</code> instead of <code>8124</code> expo
 <code>8124</code> didn't — so it is genuinely a local, project-agnostic convenience
 with none of the reasons the rest of the schema had to leave.</p>
 <p>The settings panel that used to render the network schema is now
-<strong>read-only and admin-gated</strong> (<code>SecurityPanel</code>, <code>access=AccessTier.ADMIN</code>).
+<strong>read-only and admin-gated</strong> (<code>SecurityPanel</code>, <code>requires=AccessTier.ADMIN</code>).
 It shows the four-axis posture — network, auth, TLS, Farmhand — and every
 finding <code>haywire security status</code> would print, with the fix command for
 each one shown as copyable text, because the moment someone is reading this

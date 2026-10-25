@@ -3980,6 +3980,11 @@
 <td>Node instance (ambiguous — use NodeWrapper for the runtime object, Node for the class)</td>
 </tr>
 <tr>
+<td><strong>Stand-in</strong></td>
+<td>The <code>ErrorNode</code> a NodeWrapper holds when its node's class is missing or fails to construct (<code>NodeWrapper.is_stand_in</code>). It shows the error, keeps the node's place and connections, saves the node's original data back, and gives way to the real node once its class works. See <a href="../../adr/0058-a-broken-node-keeps-its-data/">ADR 0058</a></td>
+<td>placeholder node; error node (that is the class)</td>
+</tr>
+<tr>
 <td><strong>Edge</strong></td>
 <td>A directed connection between an outlet on one node and an inlet on another. See <a href="../../architecture/execution/edges/edges-arch/">architecture/execution/edges</a></td>
 <td>Connection, wire, link (use only as a verb: "to link an edge")</td>
@@ -5231,12 +5236,22 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Access Tier</strong></td>
-<td>One of <code>view</code> ⊂ <code>operate</code> ⊂ <code>edit</code> ⊂ <code>admin</code>, cumulative — an <code>admin</code> passes every <code>view</code> check. Carried by a <strong>Principal</strong> and required by an <strong>Access-Gated Surface</strong></td>
-<td>Role, permission, access rights (plural — implies a set, not one level)</td>
+<td>One of <code>view</code> ⊂ <code>operate</code> ⊂ <code>edit</code> ⊂ <code>admin</code>, cumulative — an <code>admin</code> passes every <code>view</code> check. The scale of both the <strong>Access right</strong> a <strong>Principal</strong> holds and the <strong>Access requirement</strong> an <strong>Access-Gated Surface</strong> declares</td>
+<td>Role, permission, access rights (plural: a principal holds one tier, its <strong>Access right</strong>)</td>
+</tr>
+<tr>
+<td><strong>Access right</strong></td>
+<td>The <strong>Access Tier</strong> a <strong>Principal</strong> holds, from the <strong>Roster</strong>; <code>view</code> when the resolver knows no tier for it. Read live by <code>ctx.can_access(tier)</code>, which answers whether the access right satisfies an <strong>Access requirement</strong>. The "has" side of the tier axis</td>
+<td>Role, clearance, effective tier</td>
+</tr>
+<tr>
+<td><strong>Access requirement</strong></td>
+<td>The lowest <strong>Access Tier</strong> a principal's <strong>Access right</strong> must reach before an <strong>Access-Gated Surface</strong> is shown or called: <code>requires=</code> on <code>@panel</code>, <code>@editor</code> and <code>@farmhand</code>, and <code>requires</code> on an <strong>EditorCommand</strong>. Defaults to <code>edit</code>; only a lowered (<code>view</code>, <code>operate</code>) or raised (<code>admin</code>) requirement is written down. <code>required_tier(cls)</code> reads it, and also answers <code>edit</code> for a class with no identity or no <code>requires</code> field. The "requires" side of the tier axis; its mode-axis twin is the <strong>Mode requirement</strong>. See <a href="../../adr/0027-studio-authentication/">ADR-0027</a></td>
+<td>access= (removed), required tier, permission</td>
 </tr>
 <tr>
 <td><strong>Access-Gated Surface</strong></td>
-<td>A component whose identity declares <code>access=</code> and which is therefore hidden from <strong>Principals</strong> below that tier: <strong>Panels</strong>, <strong>Editors</strong>, and <strong>Farmhands</strong>. Nodes, skins, widgets and themes are never access-gated — hiding their identity would not restrict the graph that already uses them The default is <code>edit</code>, so a panel or editor that does not declare is hidden below it; read-only editors declare <code>view</code></td>
+<td>A component whose identity declares an <strong>Access requirement</strong> (<code>requires=</code>) and which is therefore hidden from <strong>Principals</strong> whose <strong>Access right</strong> is below it: <strong>Panels</strong>, <strong>Editors</strong>, and <strong>Farmhands</strong>. Nodes, skins, widgets and themes are never access-gated — hiding their identity would not restrict the graph that already uses them. The default is <code>edit</code> for all three, so a panel, editor or Farmhand tool that does not declare is hidden below it; a read-only one declares <code>requires=AccessTier.VIEW</code></td>
 <td>Protected component, secured panel</td>
 </tr>
 <tr>
@@ -5246,7 +5261,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Operate (tier)</strong></td>
-<td>The <strong>Access Tier</strong> between <code>view</code> and <code>edit</code>: may change values on the <strong>Operable widgets</strong> on node cards and the stage, and <strong>Enter</strong> a level, and Start and Stop a graph in the haystack, and select on the canvas, and nothing else — no menus, no structural edits, no Undo/Redo, no Properties writes, no unlock. See <a href="../../adr/0051-operate-tier-and-the-canvas-lock/">ADR-0051</a></td>
+<td>The <strong>Access Tier</strong> between <code>view</code> and <code>edit</code>: may change values on the widgets stamped <code>data-hw-requires="operate"</code> (see <strong>Requires (marker)</strong>) on node cards and the stage, and <strong>Enter</strong> a level, and Start and Stop a graph in the haystack, and select on the canvas, and nothing else — no menus, no structural edits, no Undo/Redo, no Properties writes, no unlock. See <a href="../../adr/0051-operate-tier-and-the-canvas-lock/">ADR-0051</a></td>
 <td>Player, performer role, run mode</td>
 </tr>
 <tr>
@@ -5261,13 +5276,23 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Level mode</strong></td>
-<td><code>view</code>, <code>operate</code> or <code>edit</code>: the mode a session works one graph level in, per session and level. It is the <strong>Principal</strong>'s tier, capped at <code>operate</code> while the level is locked (<code>edit</code> and <code>admin</code> give <code>edit</code>); the cap never raises a lower tier. Selection works in every level mode; copying and every other action on the selection need <code>edit</code>. Save uses the real tier instead; agents have no level and no lock. See <a href="../../adr/0055-every-user-edit-takes-the-edit-route/">ADR-0055</a></td>
+<td><code>view</code>, <code>operate</code> or <code>edit</code>: the mode a session works one graph level in, per session and level. The session's own mode is <code>SessionContext.level_mode</code>, stamped on <code>&lt;html data-hw-session-mode&gt;</code> by the shell's <strong>AccessGate</strong>. It is the <strong>Principal</strong>'s tier, capped at <code>operate</code> while the level is locked (<code>edit</code> and <code>admin</code> give <code>edit</code>); the cap never raises a lower tier. Selection works in every level mode; copying and every other action on the selection need <code>edit</code>. Save uses the real tier instead; agents have no level and no lock. See <a href="../../adr/0055-every-user-edit-takes-the-edit-route/">ADR-0055</a>, <a href="../../adr/0060-the-browser-projects-the-route/">ADR-0060</a></td>
 <td>Effective tier, mode (bare), canvas mode</td>
 </tr>
 <tr>
-<td><strong>Operable widget</strong></td>
-<td>A card widget whose port or settings field is operable: operating it may change the value in <strong>Level mode</strong> <code>operate</code>. Its container carries <code>data-hw-operable</code> (stamped by <code>BaseSkin.render_widget</code> and <code>render_setting_widget</code>), which lifts the browser's pointer gate on card content. A port or field declared <code>operable=False</code> (the annotation's text) needs level mode <code>edit</code> for every write, and its widget takes no pointer input in <code>operate</code></td>
-<td>Live widget, performance control</td>
+<td><strong>Mode requirement</strong></td>
+<td>The lowest <strong>Level mode</strong> an action needs: <code>@handles_event(requires=)</code> on a canvas handler (pushed to the browser as the canvas's gesture map), <code>minimum=</code> on a port or field (through <code>required_mode()</code>), and the <strong>Requires (marker)</strong> <code>data-hw-requires</code>. Defaults to <code>edit</code>; only a lowered requirement is written down. The "requires" side of the mode axis, whose "has" side is the <strong>Level mode</strong>; its tier-axis twin is the <strong>Access requirement</strong>. See <a href="../../adr/0060-the-browser-projects-the-route/">ADR-0060</a></td>
+<td>Access (on a handler), handler access, gesture access</td>
+</tr>
+<tr>
+<td><strong>Requires (marker)</strong></td>
+<td>The attribute <code>data-hw-requires="view\|operate\|edit"</code> stamping the <strong>Mode requirement</strong> of an element, the lowest <strong>Level mode</strong> at which it takes input, derived from <code>required_mode(minimum, operable)</code> and set by <code>stamp_requires(el, mode=LevelMode.EDIT)</code>, which always writes the attribute. On card content an unmarked element counts as <code>edit</code>; in a panel under <code>data-hw-mode-scope="session"</code> only stamped writers are gated (greyed). A widget for an <code>operable=False</code> port or field is stamped <code>edit</code>. See <a href="../../adr/0060-the-browser-projects-the-route/">ADR-0060</a></td>
+<td>Operable widget, readable/operable marker (removed)</td>
+</tr>
+<tr>
+<td><strong>Session level mode</strong></td>
+<td><code>SessionContext.level_mode</code>: the level mode of the level this session has on screen, a core signal field (default <code>view</code>) written by the graph editor and reset when the haystack closes. The shell stamps it on <code>&lt;html data-hw-session-mode&gt;</code> for panels; each canvas keeps its own <code>data-hw-level-mode</code>. Replaces <code>EditState.active_mode</code></td>
+<td>Active mode</td>
 </tr>
 <tr>
 <td><strong>User edit</strong></td>
@@ -5276,17 +5301,18 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Edit route</strong></td>
-<td>The one way every <strong>User edit</strong> reaches <code>Editor</code> (<code>EditRoute</code>), per session and level. It refuses an edit the <strong>Level mode</strong> does not allow, marks unsaved the document that saves the changed value, and hands out the level's <code>Editor</code> for structure edits only in level mode <code>edit</code>. Cards, the stage, the Ports panel, settings rows and Farmhand all write through it. Writable Properties panels show only in level mode <code>edit</code>; the route is the enforcement. See <a href="../../adr/0055-every-user-edit-takes-the-edit-route/">ADR-0055</a></td>
+<td>The one way every <strong>User edit</strong> reaches <code>Editor</code> (<code>EditRoute</code>), per session and level. It refuses an edit the <strong>Level mode</strong> does not allow, marks unsaved the document that saves the changed value, and hands out the level's <code>Editor</code> for structure edits only in level mode <code>edit</code>. Cards, the stage, the Ports panel, settings rows and Farmhand all write through it. Writable Properties panels show in every level mode and their writers are greyed below <code>edit</code> (<a href="../../adr/0060-the-browser-projects-the-route/">ADR-0060</a>); the route is the enforcement. See <a href="../../adr/0055-every-user-edit-takes-the-edit-route/">ADR-0055</a></td>
 <td>Gate (that is the ASGI middleware, <strong>Gate</strong>), write path</td>
 </tr>
 </tbody>
 </table>
 <p><strong>Relationships</strong></p>
 <ul>
-<li>A <strong>Roster</strong> holds zero or more <strong>Principals</strong>; each carries exactly one <strong>Access Tier</strong></li>
+<li>A <strong>Roster</strong> holds zero or more <strong>Principals</strong>; each carries exactly one <strong>Access Tier</strong>, its <strong>Access right</strong></li>
+<li>Two axes, each with a "has" and a "requires" side: the tier axis pairs the <strong>Access right</strong> with the <strong>Access requirement</strong>, the mode axis pairs the <strong>Level mode</strong> with the <strong>Mode requirement</strong>. Every requirement defaults to <code>edit</code>; an access right defaults to <code>view</code></li>
 <li>A <strong>User Principal</strong> maps onto exactly one <strong>SessionContext</strong> per browser tab; <code>ctx.can_view()</code> / <code>can_edit()</code> / <code>can_admin()</code> / <code>can_access(tier)</code> answer from it</li>
 <li>An <strong>Agent Principal</strong> has no <strong>SessionContext</strong> — its tier filters the Farmhand tool list instead</li>
-<li>An <strong>Access-Gated Surface</strong> is never rendered for a <strong>Principal</strong> below its tier; it vanishes rather than appearing disabled</li>
+<li>An <strong>Access-Gated Surface</strong> is never rendered for a <strong>Principal</strong> whose <strong>Access right</strong> is below its <strong>Access requirement</strong>; it vanishes rather than appearing disabled. A Properties tab none of whose panels the access right reaches is not offered either</li>
 </ul>
 <hr />
 <h2 id="settings-system">Settings System<a class="headerlink" href="#settings-system" title="Permanent link">&para;</a></h2>
@@ -5494,6 +5520,11 @@ Macro is registered and placed.</p>
 <td>Barrier, checkpoint, undo stop (it stops nothing)</td>
 </tr>
 <tr>
+<td><strong>Rebuild step</strong></td>
+<td>The undo step a node Reset or a successful hot reload records (<code>RebuildNodesAction</code>): Undo rebuilds the nodes exactly from their data from before, Redo rebuilds them fresh through <code>init()</code>. One step per graph per reload. See <a href="../../adr/0059-reload-and-reset-are-undoable/">ADR 0059</a></td>
+<td>reload snapshot, restore point</td>
+</tr>
+<tr>
 <td><strong>Action group</strong></td>
 <td>The unit a fence delimits: a list of actions (or nested groups) executed and undone in order, as one operation</td>
 <td>Transaction, batch</td>
@@ -5652,7 +5683,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>disabled render</strong></td>
-<td>A Panel's own inapplicable state, drawn by <code>draw_disabled()</code> when its <code>poll()</code> is false. The default is a no-op, so a Panel with no opinion vanishes. Distinct from <code>access=</code> denial, which renders <strong>nothing</strong> — a greyed entry advertises what the principal may not have. Whoever draws a thing is who greys it: a Surface never draws, so its host greys it; a Panel always draws, so it greys itself</td>
+<td>A Panel's own inapplicable state, drawn by <code>draw_disabled()</code> when its <code>poll()</code> is false. The default is a no-op, so a Panel with no opinion vanishes. Distinct from denial by an <strong>Access requirement</strong> (<code>requires=</code>), which renders <strong>nothing</strong> — a greyed entry advertises what the principal may not have. Whoever draws a thing is who greys it: a Surface never draws, so its host greys it; a Panel always draws, so it greys itself</td>
 <td>greyed out, disabled item</td>
 </tr>
 <tr>
@@ -5777,8 +5808,13 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Target editor</strong></td>
-<td>The editor binding that receives key commands: the editor root under the last pointer-down while it is visible, else the EDIT slot's visible editor.</td>
+<td>The editor binding that receives key commands: the editor root under the last pointer-down while it is visible in the <strong>Active slot</strong>, else that slot's visible editor.</td>
 <td>focused editor, active editor</td>
+</tr>
+<tr>
+<td><strong>Active slot</strong></td>
+<td>The slot that receives key presses: the last slot that took a pointer-down while showing an editor — anywhere in it, its bar included — or that comes to show one before the next pointer-down (a collapsed rail expanding). EDIT at load, and again whenever the active slot shows no editor (INFO folded, editor closed). Its slot bar, and in ACTION/CONTEXT its selected rail icon, are lit with <code>--hw-slot-bar-bg-active</code>. Written by the <code>KeymapListener</code> to <code>&lt;html data-hw-active-slot&gt;</code>.</td>
+<td>focused slot, current slot</td>
 </tr>
 <tr>
 <td><strong>Shortcuts editor</strong></td>
@@ -5799,6 +5835,21 @@ Macro is registered and placed.</p>
 <td><strong>Bar</strong></td>
 <td>The control strip attached to a Slot; either a tab bar (horizontal, for EDIT/INFO) or an icon bar (vertical, for ACTION/CONTEXT)</td>
 <td>—</td>
+</tr>
+<tr>
+<td><strong>Slot bar</strong></td>
+<td>The 36px strip on top of a slot, lit when its slot is the <strong>Active slot</strong>: the tab bar in EDIT/INFO, the editor's <code>hui.slot_header</code> in ACTION/CONTEXT. Not every ACTION/CONTEXT editor draws one</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Slot header</strong></td>
+<td><code>hui.slot_header</code> — the slot bar an ACTION or CONTEXT editor draws on its own top edge (class <code>hw-slot-header</code>)</td>
+<td>panel header (that is a panel's own header)</td>
+</tr>
+<tr>
+<td><strong>Editor toolbar</strong></td>
+<td><code>hui.editor_toolbar</code> — a 32px row an EDIT or INFO editor draws under its slot's tab bar (class <code>hw-editor-toolbar</code>); never lit</td>
+<td>header bar, second bar</td>
 </tr>
 <tr>
 <td><strong>default_slot</strong></td>
@@ -5827,12 +5878,12 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>ActivityBar</strong></td>
-<td>The 48px icon bar on the left edge; switches editors in the ACTION Slot; styled with <code>hw-slot-bar hw-slot-bar-icons</code></td>
+<td>The 48px icon bar on the left edge; switches editors in the ACTION Slot; its tabs styled with <code>hw-icon-bar-tabs</code></td>
 <td>Left sidebar, toolbar</td>
 </tr>
 <tr>
 <td><strong>ContextBar</strong></td>
-<td>The 48px icon bar on the right edge; switches editors in the CONTEXT Slot; styled with <code>hw-slot-bar hw-slot-bar-icons</code></td>
+<td>The 48px icon bar on the right edge; switches editors in the CONTEXT Slot; its tabs styled with <code>hw-icon-bar-tabs</code></td>
 <td>Right sidebar</td>
 </tr>
 <tr>
@@ -5847,18 +5898,13 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>hw-slot-bar</strong></td>
-<td>CSS base class for all slot bars (both icon bars and tab bars)</td>
+<td>CSS class of the tab bar row of EDIT and INFO</td>
 <td>hw-tabs (deprecated)</td>
 </tr>
 <tr>
 <td><strong>hw-slot-bar-tabs</strong></td>
 <td>CSS modifier for horizontal tabbed slot bars (MainTabBar, BottomTabBar)</td>
 <td>hw-tabs (deprecated)</td>
-</tr>
-<tr>
-<td><strong>hw-slot-bar-icons</strong></td>
-<td>CSS modifier for vertical icon slot bars (ActivityBar, ContextBar)</td>
-<td>—</td>
 </tr>
 <tr>
 <td><strong>SurfaceToolbar</strong></td>
@@ -6149,7 +6195,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>EditorCommand</strong></td>
-<td>A <code>CommandSignal</code> delivered only to the editor whose binding matches its <code>binding_id</code>, and only when the principal holds its <code>access</code> tier. Distinct from the <code>tools.external_editor_command</code> setting. See <a href="../../adr/0050-keyboard-commands-are-editor-addressed-command-signals/">ADR 0050</a></td>
+<td>A <code>CommandSignal</code> delivered only to the editor whose binding matches its <code>binding_id</code>, and only when the principal's <strong>Access right</strong> reaches its <code>requires</code> tier (the <strong>Access requirement</strong>, default <code>edit</code>). Distinct from the <code>tools.external_editor_command</code> setting. See <a href="../../adr/0050-keyboard-commands-are-editor-addressed-command-signals/">ADR 0050</a></td>
 <td>key command, shortcut signal</td>
 </tr>
 <tr>

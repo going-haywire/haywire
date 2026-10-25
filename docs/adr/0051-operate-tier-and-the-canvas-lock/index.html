@@ -3079,6 +3079,25 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#amendment-adr-0060" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (ADR 0060)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -3105,17 +3124,17 @@
 <p><strong>Decision.</strong></p>
 <ul>
 <li><strong>Four tiers: <code>view</code> &lt; <code>operate</code> &lt; <code>edit</code> &lt; <code>admin</code>.</strong> Wire value <code>operate</code>. <code>view</code> pans and zooms on the document level and selects a haystack entry; the Properties editor needs <code>edit</code>. The read-only affordances on cards (the diagnostics badge and its menu, the comment, pin tooltips) work in every level mode. <code>operate</code> adds Enter (Groups and macro placements), the widgets on node cards and the stage, and Start and Stop in the haystack. Selection works in every level mode (it changes no document); copy, context menus, the selection toolbar, the resize gadget, paste, cut, delete, duplicate, Undo/Redo, the Properties editor's writable panels and unlock need <code>edit</code>.</li>
-<li><strong>The lock is a per-session, per-level cap.</strong> A level is a document, an entered Group or an entered macro placement; a level inside a placement is always locked (ADR 0038). The lock is never saved and does not affect other sessions. <code>ToggleLock</code> (<code>Mod+E</code>, access <code>edit</code>) and the header lock button toggle it; unlocking needs the real <code>edit</code> tier. <code>GraphProperties.open_locked</code> (default off) locks a level when it first opens in a session.</li>
+<li><strong>The lock is a per-session, per-level cap.</strong> A level is a document, an entered Group or an entered macro placement; a level inside a placement is always locked (ADR 0038). The lock is never saved and does not affect other sessions. <code>ToggleLock</code> (<code>Mod+E</code>, requires <code>edit</code>) and the header lock button toggle it; unlocking needs the real <code>edit</code> tier. <code>GraphProperties.open_locked</code> (default off) locks a level when it first opens in a session.</li>
 <li><strong>The cap lowers and never raises.</strong> A locked level makes the session's level mode <code>min(real tier, operate)</code> for that level, so a <code>view</code> session stays <code>view</code>. The rule is <code>level_mode(can_access, locked)</code> in the graph editor's <code>access.py</code>; locking a level keeps its selection.</li>
 <li><strong>Operate means values on shown, operable widgets.</strong> There is no per-port tier; a port or a settings field may only declare <code>operable=False</code>, a boolean, which makes its writes need <code>edit</code> even from a card (ADR 0055). A widget whose <code>on_change</code> reshapes its node (<code>rejig()</code>) stays operable: ghost pins make the reshape reversible, since edges on a removed pin reattach when a port with that id returns. An author who wants a widget out of operators' reach hides it on the card (<code>ShowWidgetStrategy.NEVER</code>); it then lives only in the Properties panel, which needs <code>edit</code>.</li>
 <li><strong>Save uses the real tier.</strong> Saving needs the principal's real <code>edit</code> tier and ignores the lock, in the graph editor header and in the haystack editor's entry Save and Save-as and its header Save and Save As. Locking protects the canvas; it is not a statement about persistence.</li>
-<li><strong>Enforcement is at the write, in two layers.</strong> First, the server: canvas events declare a <code>LevelMode</code> (<code>@handles_event(..., access=LevelMode.X)</code>, default <code>edit</code>), and a refused drag or resize snaps back. <code>GraphEditor.accepts_command</code> lets the editor refuse a command the wrapper's tier check allowed: every command but <code>ToggleLock</code> and <code>ToggleStageView</code> needs level mode <code>edit</code>. Context menus and the selection toolbar do not open below <code>edit</code> and close when a level locks. User edits take the edit route (ADR 0055), which refuses an edit the session's level mode does not allow when it lands: card and stage widgets need <code>operate</code>; Properties settings rows, Ports-panel widgets, port reorder, the port edit dialog and the edge propagation switch need <code>edit</code>. Second, the browser: each canvas carries its level mode, starts no editing gesture below <code>edit</code>, and takes no pointer input on card content below <code>edit</code> except in elements marked <code>data-hw-readable</code> (read-only affordances, every mode) and, from <code>operate</code> on, in elements marked <code>data-hw-operable</code>. The route is the refusal that counts; the browser gate is a second layer against accidents, and it is not access control: <code>pointer-events</code> does not stop keyboard focus.</li>
+<li><strong>Enforcement is at the write, in two layers.</strong> First, the server: canvas events carry a mode requirement (<code>@handles_event(..., requires=LevelMode.X)</code>, <code>edit</code> by default, ADR 0060), and a refused drag or resize snaps back. <code>GraphEditor.accepts_command</code> lets the editor refuse a command the wrapper's tier check allowed: every command but <code>ToggleLock</code> and <code>ToggleStageView</code> needs level mode <code>edit</code>. Context menus and the selection toolbar do not open below <code>edit</code> and close when a level locks. User edits take the edit route (ADR 0055), which refuses an edit the session's level mode does not allow when it lands: card and stage widgets need <code>operate</code>; Properties settings rows, Ports-panel widgets, port reorder, the port edit dialog and the edge propagation switch need <code>edit</code>. Second, the browser projects the route (ADR 0060, which replaced the <code>data-hw-readable</code> / <code>data-hw-operable</code> markers with <code>data-hw-requires</code>). The route is the refusal that counts; the browser gate is a second layer against accidents, and it is not access control: <code>pointer-events</code> does not stop keyboard focus.</li>
 <li><strong>Value edits mark the graph unsaved</strong> on every surface that writes through the edit route, graph props and graph metadata included (a promoted port's widget-visibility choice is the exception, see ADR 0055), when the stored value actually changes, without reassembling a running graph. The first one on a saved graph announces the change with <code>GraphUnsavedChanged</code>, which only unsaved markers follow, so no panel is rebuilt while it is typed in. A Group interior forwards non-structural changes without restarting its host or redrawing its card.</li>
-<li><strong>Agents.</strong> <code>graph_editor_operate</code> (access <code>operate</code>) writes a value to a port whose widget is shown, not linked and accepting its own value. It is not undo-recorded. The lock does not apply to agents.</li>
+<li><strong>Agents.</strong> <code>graph_editor_operate</code> (requires <code>operate</code>) writes a value to a port whose widget is shown, not linked and accepting its own value. It is not undo-recorded. The lock does not apply to agents.</li>
 </ul>
 <p><strong>Considered options.</strong></p>
 <ul>
-<li><em>A per-port <code>access=</code> on port specs.</em> Rejected: a tier there could name <code>view</code> or <code>admin</code> by mistake. The boolean <code>operable=False</code> covers the one case that needed it, the annotation's text.</li>
+<li><em>A per-port <code>requires=</code> tier on port specs.</em> Rejected: a tier there could name <code>view</code> or <code>admin</code> by mistake. The boolean <code>operable=False</code> covers the one case that needed it, the annotation's text.</li>
 <li><em>Lock stored on the graph and shared.</em> Rejected: it would lock every session viewing the graph, and a saved lock is a second thing to forget. Only the default (<code>open_locked</code>) is saved.</li>
 <li><em>Save following the lock.</em> Rejected: a locked editor still needs to persist work, and a value change that marks the graph unsaved must not leave the person who holds <code>edit</code> unable to save it.</li>
 <li><em>Gating only by hiding controls.</em> Rejected: a hidden or disabled control does not stop an event already in flight. The write itself asks.</li>
@@ -3130,6 +3149,8 @@
 <li>A new write path takes the edit route (ADR 0055) or declares a tier on its event; nothing gates it by default except canvas events (default <code>edit</code>).</li>
 <li>Because the cap is per level, entering a Group opens a level with its own lock.</li>
 </ul>
+<h2 id="amendment-adr-0060">Amendment (ADR 0060)<a class="headerlink" href="#amendment-adr-0060" title="Permanent link">&para;</a></h2>
+<p>The Properties editor requires <code>view</code>, not <code>edit</code>. Its inspector tabs show in every level mode and their writers are greyed below <code>edit</code>; the edit route still refuses the write. See <a href="../0060-the-browser-projects-the-route/">ADR 0060</a>.</p>
 
 
 
