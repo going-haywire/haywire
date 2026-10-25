@@ -250,7 +250,7 @@ Check this list first. It is **not** a catalogue of every signal in a running ap
 | `SelectAll` | `select_all` | `Mod+A` | view |
 | `Save` | `save` | `Mod+S` (also from a focused text field) | edit |
 
-`Mod` is Cmd on macOS and Ctrl elsewhere. A command that does not apply in the target editor does nothing.
+`Mod` is Cmd on macOS and Ctrl elsewhere. A command that does not apply in the target editor does nothing. A key whose command needs a tier the principal lacks does not reach the browser either: the studio shows "‹Label› needs ‹tier› access" instead.
 
 Two pairs look similar and are not interchangeable:
 

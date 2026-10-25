@@ -1,7 +1,8 @@
 """A Save icon shows only while its document has something to save, as in the haystack editor.
 
 A document that was never saved shows no Save either until it is edited; Save As
-stays available. Ctrl+S works whether or not the icon shows.
+stays available. Ctrl+S works whether or not the icon shows. Without edit
+access the icon never shows.
 """
 
 from __future__ import annotations
@@ -45,9 +46,17 @@ def _graph_editor(document: Any) -> Any:
 def test_the_graph_editor_shows_save_only_with_unsaved_edits(path, unsaved):
     editor = _graph_editor(SimpleNamespace(path=path, unsaved=unsaved))
 
-    editor._update_header(SimpleNamespace())
+    editor._update_header(SimpleNamespace(can_edit=lambda: True))
 
     editor._save_button.set_visibility.assert_called_with(unsaved)
+
+
+def test_the_graph_editor_hides_save_without_edit_access():
+    editor = _graph_editor(SimpleNamespace(path=Path("/ws/a.haywire"), unsaved=True))
+
+    editor._update_header(SimpleNamespace(can_edit=lambda: False))
+
+    editor._save_button.set_visibility.assert_called_with(False)
 
 
 def test_the_code_editor_shows_save_only_with_changes():

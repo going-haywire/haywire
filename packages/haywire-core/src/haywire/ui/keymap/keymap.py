@@ -64,6 +64,9 @@ class Keymap:
             ``editors``.
         commands: ``command_id`` -> command class, for every bindable command
             some editor subscribes to.
+        denied: ``command_id`` -> command class, for every command some editor
+            subscribes to whose ``requires`` tier the principal lacks. Its keys
+            are bound in ``editors`` so a press reaches the server, which refuses it.
         clashes: Combos declared by more than one command of the same editor.
         reserved: ``(combo, command)`` pairs left unbound because the browser
             reserves the combo.
@@ -77,6 +80,7 @@ class Keymap:
     editors: Mapping[str, Mapping[str, KeymapEntry]]
     editor_labels: Mapping[str, str]
     commands: Mapping[str, type[EditorCommand]]
+    denied: Mapping[str, type[EditorCommand]]
     clashes: tuple[KeymapClash, ...]
     reserved: tuple[tuple[str, type[EditorCommand]], ...]
     invalid: tuple[tuple[str, type[EditorCommand]], ...]
@@ -91,8 +95,10 @@ class Keymap:
             ``native`` lists the commands whose data comes from a browser event
             (see ``EditorCommand.native_event``), ``text_fields`` the commands
             that fire while a text field has focus (see
-            ``EditorCommand.in_text_fields``), sorted.
+            ``EditorCommand.in_text_fields``), sorted. Both include the
+            ``denied`` commands.
         """
+        bound = {**self.denied, **self.commands}
         return {
             "editors": {
                 editor_key: {combo: entry.command.command_id for combo, entry in entries.items()}
@@ -100,22 +106,24 @@ class Keymap:
             },
             "native": {
                 command_id: cmd.native_event
-                for command_id, cmd in self.commands.items()
+                for command_id, cmd in bound.items()
                 if cmd.native_event is not None
             },
-            "text_fields": sorted(
-                command_id for command_id, cmd in self.commands.items() if cmd.in_text_fields
-            ),
+            "text_fields": sorted(command_id for command_id, cmd in bound.items() if cmd.in_text_fields),
         }
 
     def editor_commands(self, editor_key: str) -> list[type[EditorCommand]]:
         """Return the commands bound in or shadowed within an editor, sorted by label.
 
         A command that loses every one of its combos to a clash is included;
-        one whose only combos are browser-reserved is not. Returns an empty list
-        for an editor key with no bindings.
+        one whose only combos are browser-reserved is not, nor is a ``denied``
+        one. Returns an empty list for an editor key with no bindings.
         """
-        found: set[type[EditorCommand]] = {e.command for e in self.editors.get(editor_key, {}).values()}
+        found: set[type[EditorCommand]] = {
+            e.command
+            for e in self.editors.get(editor_key, {}).values()
+            if e.command.command_id not in self.denied
+        }
         for clash in self.clashes:
             if clash.editor_key == editor_key:
                 found.update(clash.losers)
@@ -130,8 +138,9 @@ def build_keymap(
 
     Each editor binds the ``default_keys`` of the ``EditorCommand`` classes it
     subscribes to, in their ``normalize_combo`` spelling. A command whose
-    ``requires`` tier ``can_access`` rejects binds nothing, so its keys keep their
-    browser behaviour. A combo ``normalize_combo`` rejects is recorded in
+    ``requires`` tier ``can_access`` rejects is recorded in ``Keymap.denied`` and
+    still binds the combos no allowed command of the editor claims, so the
+    browser's own action for the key does not run. A combo ``normalize_combo`` rejects is recorded in
     ``Keymap.invalid`` and a browser-reserved combo in ``Keymap.reserved``;
     neither is bound. When several commands
     of one editor declare the same combo, the command from the editor class's
@@ -171,16 +180,19 @@ def build_keymap(
     editors: dict[str, dict[str, KeymapEntry]] = {}
     editor_labels: dict[str, str] = {}
     commands: dict[str, type[EditorCommand]] = {}
+    denied: dict[str, type[EditorCommand]] = {}
     clashes: list[KeymapClash] = []
     reserved: set[tuple[str, type[EditorCommand]]] = set()
     invalid: set[tuple[str, type[EditorCommand]]] = set()
 
     for editor_key, cls in editor_classes.items():
         claims: dict[str, list[type[EditorCommand]]] = {}
+        denied_claims: dict[str, list[type[EditorCommand]]] = {}
         for cmd in subscriptions[editor_key]:
-            if cmd.command_id in duplicated or not can_access(cmd.requires):
+            if cmd.command_id in duplicated:
                 continue
-            commands[cmd.command_id] = cmd
+            allowed = can_access(cmd.requires)
+            (commands if allowed else denied)[cmd.command_id] = cmd
             for declared_combo in cmd.default_keys:
                 try:
                     combo = normalize_combo(declared_combo)
@@ -190,16 +202,16 @@ def build_keymap(
                 if combo in RESERVED_COMBOS:
                     reserved.add((combo, cmd))
                     continue
-                claimants = claims.setdefault(combo, [])
+                claimants = (claims if allowed else denied_claims).setdefault(combo, [])
                 if cmd not in claimants:
                     claimants.append(cmd)
-        if not claims:
+        if not claims and not denied_claims:
             continue
 
         own_package = _top_package(cls)
         entries: dict[str, KeymapEntry] = {}
         for combo, claimants in sorted(claims.items()):
-            ranked = sorted(claimants, key=lambda c: (_top_package(c) != own_package, c.command_id))
+            ranked = _rank(claimants, own_package)
             entries[combo] = KeymapEntry(combo=combo, command=ranked[0])
             if len(ranked) > 1:
                 clashes.append(
@@ -207,7 +219,11 @@ def build_keymap(
                         editor_key=editor_key, combo=combo, winner=ranked[0], losers=tuple(ranked[1:])
                     )
                 )
-        editors[editor_key] = entries
+        # A denied command takes only a combo no allowed command claims; its contests are not clashes.
+        for combo, claimants in sorted(denied_claims.items()):
+            if combo not in entries:
+                entries[combo] = KeymapEntry(combo=combo, command=_rank(claimants, own_package)[0])
+        editors[editor_key] = dict(sorted(entries.items()))
         identity = getattr(cls, "class_identity", None)
         editor_labels[editor_key] = getattr(identity, "label", None) or editor_key
 
@@ -215,6 +231,7 @@ def build_keymap(
         editors=editors,
         editor_labels=editor_labels,
         commands=commands,
+        denied=denied,
         clashes=tuple(sorted(clashes, key=lambda c: (c.editor_key, c.combo))),
         reserved=tuple(sorted(reserved, key=lambda r: (r[0], r[1].command_id))),
         invalid=tuple(sorted(invalid, key=lambda r: (r[0], r[1].command_id))),
@@ -304,6 +321,11 @@ def _subscribed_commands(cls: type) -> list[type[EditorCommand]]:
 
 def _top_package(cls: type) -> str:
     return cls.__module__.split(".")[0]
+
+
+def _rank(claimants: list[type[EditorCommand]], own_package: str) -> list[type[EditorCommand]]:
+    """Return ``claimants`` best first: those from ``own_package``, then by ``command_id``."""
+    return sorted(claimants, key=lambda c: (_top_package(c) != own_package, c.command_id))
 
 
 def _qualified_name(cls: type) -> str:

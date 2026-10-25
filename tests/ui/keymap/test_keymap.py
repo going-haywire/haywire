@@ -188,12 +188,14 @@ def test_unsubscribed_editor_claims_nothing():
     assert keymap.editor_commands("plain") == []
 
 
-def test_below_tier_command_not_claimed():
+def test_below_tier_command_is_denied_but_keeps_its_keys():
     keymap = build_keymap({"ed": _CopyUndoEditor}, lambda tier: tier is AccessTier.VIEW)
 
-    assert "Mod+Z" not in keymap.editors["ed"]
+    assert keymap.editors["ed"]["Mod+Z"].command is Undo
     assert "Mod+C" in keymap.editors["ed"]
     assert "undo" not in keymap.commands
+    assert keymap.denied == {"undo": Undo}
+    assert keymap.editor_commands("ed") == [Copy]
 
 
 def test_clash_prefers_own_library_then_command_id():
@@ -427,6 +429,39 @@ def test_text_field_commands_reach_the_client():
     assert keymap.to_client()["text_fields"] == ["save"]
 
 
+def test_denied_command_never_takes_a_combo_from_an_allowed_one():
+    @dataclass(frozen=True, kw_only=True)
+    class _EditOnlyC(EditorCommand):
+        command_id: ClassVar[str] = "a_edit_c"
+        label: ClassVar[str] = "Edit C"
+        default_keys: ClassVar[tuple[str, ...]] = ("Mod+C",)
+
+    class _ContestEditor:
+        identity = _identity("Contest")
+
+        @react_on(Copy, _EditOnlyC)
+        def _on_command(self, ctx, signal): ...
+
+    keymap = build_keymap({"ed": _ContestEditor}, lambda tier: tier is AccessTier.VIEW)
+
+    assert keymap.editors["ed"]["Mod+C"].command is Copy
+    assert keymap.clashes == ()
+
+
+def test_denied_text_field_command_reaches_the_client():
+    from haywire.core.signals import Save
+
+    class _SaveEditor:
+        identity = _identity("Save")
+
+        @react_on(Save)
+        def _on_save(self, ctx, signal): ...
+
+    keymap = build_keymap({"e": _SaveEditor}, lambda tier: tier is AccessTier.VIEW)
+
+    assert keymap.to_client() == {"editors": {"e": {"Mod+S": "save"}}, "native": {}, "text_fields": ["save"]}
+
+
 def test_save_is_bound_to_mod_s_only_at_edit():
     from haywire.core.signals import Save
 
@@ -440,4 +475,5 @@ def test_save_is_bound_to_mod_s_only_at_edit():
     viewing = build_keymap({"e": _SaveEditor}, lambda tier: tier is AccessTier.VIEW)
 
     assert editing.editors["e"]["Mod+S"].command is Save
-    assert "e" not in viewing.editors
+    assert viewing.commands == {}
+    assert viewing.denied == {"save": Save}

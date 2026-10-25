@@ -1480,7 +1480,7 @@ class GraphEditor(BaseEditor):
             self._set_dirty_marker(True)
             self._graph_name_label.classes(remove="hw-text-body hw-text-dim", add="hw-text-muted")
         if self._save_button is not None:
-            self._save_button.set_visibility(document.unsaved)
+            self._save_button.set_visibility(document.unsaved and context.can_edit())
         self._update_undo_redo_buttons(document)
         self._update_lock_button(context)
         self._update_view_switch(self._levels.get(self._active_level))

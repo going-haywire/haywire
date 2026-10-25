@@ -1286,6 +1286,9 @@ class AppShell:
     def _on_key_command(self, payload: dict[str, Any]) -> None:
         """Publish the ``EditorCommand`` a key press or paste in the browser resolved to.
 
+        A command in the keymap's ``denied`` is not published; the user is told
+        which access it needs.
+
         Args:
             payload: ``{"command_id", "binding_id", "position", "text"}`` as
                 reported by ``KeymapListener``.
@@ -1293,6 +1296,12 @@ class AppShell:
         keymap = self.session.context.keymap
         command_id: str = payload.get("command_id") or ""
         command_cls = keymap.commands.get(command_id) if keymap is not None else None
+        denied_cls = keymap.denied.get(command_id) if keymap is not None else None
+        if denied_cls is not None:
+            listener = self._keymap_listener
+            with listener.client if listener is not None else nullcontext():
+                ui.notify(f"{denied_cls.label} needs {denied_cls.requires.value} access", type="warning")
+            return
         if command_cls is None:
             logger.debug("Key command %r is not in this session's keymap; ignored", command_id)
             return

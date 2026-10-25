@@ -156,6 +156,17 @@ def test_malformed_position_becomes_none(position: Any) -> None:
     assert session.published[-1] == Paste(binding_id="ed::a", position=None, text="t")
 
 
+def test_denied_key_command_is_refused_with_a_notice() -> None:
+    session = _FakeSession(can_access=lambda tier: tier is AccessTier.VIEW)
+    shell = _mounted_shell(session)
+
+    with patch("haywire.ui.app.shell.ui.notify") as notify:
+        shell._on_key_command({"command_id": "paste", "binding_id": "ed::a", "position": None, "text": "t"})
+
+    assert session.published == []
+    notify.assert_called_once_with("Paste needs edit access", type="warning")
+
+
 def test_key_command_before_mount_ignored() -> None:
     session = _FakeSession()
     shell = _shell(session)

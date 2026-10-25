@@ -45,3 +45,10 @@ level: ui
 - No default uses Alt/Option, and Alt combinations are not guaranteed to work across keyboard layouts: outside macOS, Ctrl+Alt is AltGr and is matched on the character it types. Multi-key sequences are unsupported.
 - `command_id` is the key a future user rebinding would store.
 - Keyboard Copy, Cut, Delete and Duplicate act on the part of the session's selection that belongs to the target canvas's own graph, so a selection left in another graph does nothing. The context menu and selection toolbar act on the whole, unfiltered selection through their own implementations of the `SelectionActions` protocol; unifying the keyboard and menu verbs into one is an open follow-up.
+
+## Amendment (a refused key is swallowed)
+
+- **A command the principal's tier lacks keeps its keys.** `build_keymap` records it in `Keymap.denied` and binds its combos wherever no allowed command of the editor claims them; an allowed command always wins the combo, and the contest is not a clash. The browser key listener is unchanged: it suppresses the browser's own action and reports the press.
+- **The shell refuses it.** `AppShell._on_key_command` publishes nothing for a denied command and notifies "‹Label› needs ‹tier› access", e.g. "Save needs edit access".
+- **Why.** Leaving the key to the browser turned Ctrl+S for a `view` principal into the browser's "Save Page" dialog, and Delete or Ctrl+Z into silence; a refusal the user can read replaces both.
+- `Keymap.commands` and `Keymap.editor_commands()` still list only allowed commands, so the Shortcuts editor shows what the principal can do. A tier change reloads the page (ADR 0060), which builds the keymap afresh.
