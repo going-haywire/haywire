@@ -426,7 +426,7 @@ class HaystackState(AppState):
             - on rename: rekeys ``self._entries`` AND
               ``self._graph_app_state``
             - broadcasts ``GraphDataMutated`` AND ``GraphSaved``
-            - marks haystack dirty, for a haystack member
+            - marks haystack dirty, for a haystack member whose path changed
 
         Refuses a save-as on a macro entry: a macro's filestem *is* its registry
         key, so writing it elsewhere would either orphan the key or mint a
@@ -444,6 +444,7 @@ class HaystackState(AppState):
         if not success:
             return False
 
+        old_path = entry.path
         entry.unsaved = False
         # The file now holds this state: a value edit after the save is a new step.
         entry.editor.add_fence()
@@ -460,7 +461,8 @@ class HaystackState(AppState):
 
         self._broadcast_data_mutated()
         self._broadcast_graph_saved()
-        if entry.kind.is_haystack_member():
+        # The haystack TOML stores member paths, not contents: only a new path dirties it.
+        if entry.kind.is_haystack_member() and entry.path != old_path:
             self._mark_haystack_dirty()
         return renamed_to  # None when no rename; str on rename
 
