@@ -53,7 +53,7 @@ INT.field_class = INTField
 @type(
     wire_type=DataWire,
     label="Float",
-    description="Decimal numberer",
+    description="Decimal number",
     color="#50b0ff",
     default={"value": 0.0},
     widget_key=widget_keys.NUMBER_WIDGET,

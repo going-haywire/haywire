@@ -50,7 +50,7 @@ TEST_INT.field_class = TEST_INTField
 @type(
     wire_type=DataWire,
     label="Float",
-    description="Decimal numberer",
+    description="Decimal number",
     color="#50b0ff",
     default={"value": 0.0},
 )
