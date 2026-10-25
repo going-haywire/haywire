@@ -503,7 +503,7 @@ class HaystackState(AppState):
             if self._graph_app_state is not None:
                 self._graph_app_state.unregister(entry.binding_id)
             if hasattr(entry.graph, "cleanup"):
-                entry.graph.cleanup()  # releases props bag's registry subscriptions
+                entry.graph.cleanup()  # releases its nodes' factory and settings subscriptions
             del self._entries[entry.binding_id]
             self._broadcast_data_mutated()
             if entry.kind.is_haystack_member():

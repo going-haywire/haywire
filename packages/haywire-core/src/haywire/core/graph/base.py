@@ -981,14 +981,21 @@ class BaseGraph:
         return None
 
     def cleanup(self) -> None:
-        """Release graph-owned resources: both settings bags' registry subscriptions.
+        """Release graph-owned resources: every node and edge, and both settings bags.
 
-        Recurses into every Subgraph definition, which owns bags of its own.
-        Call when the graph object is discarded for good. ``clear()`` does not
-        call it, so a cleared graph stays usable.
+        The nodes stop hearing about reloads of their class. Unlike ``clear()``,
+        no subscriber is notified of the removals. Recurses into every Subgraph
+        definition. Call when the graph object is discarded for good. ``clear()``
+        does not call it, so a cleared graph stays usable.
         """
         for definition in self.subgraphs.values():
             definition.cleanup()
+        for node_wrapper in self.node_wrappers.values():
+            node_wrapper.cleanup()
+        for edge_wrapper in self.edge_wrappers.values():
+            edge_wrapper.cleanup()
+        self.node_wrappers.clear()
+        self.edge_wrappers.clear()
         self.props._cleanup()
         self.meta._cleanup()
 
