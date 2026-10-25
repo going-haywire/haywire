@@ -227,7 +227,10 @@ class IType(ABC):
                 show_widget (ShowWidgetStrategy): When the inline widget is
                     rendered relative to link state — NEVER, NOT_LINKED,
                     WHEN_LINKED, ALWAYS (default: NOT_LINKED for inlets)
-                use_mode (str): 'optional' or 'required' (default: 'optional')
+                operable (bool): False makes every write to the widget need
+                    level mode ``edit``, even from the node card (default: True)
+                use_mode (str): 'optional' or 'required' (default: 'optional').
+                    Reported to tools; the framework does not enforce it
 
             Callbacks:
                 on_change (str): Node method name to call when value changes
@@ -295,8 +298,13 @@ class IType(ABC):
                 show_widget (ShowWidgetStrategy): When the inline widget is
                     rendered relative to link state — NEVER, NOT_LINKED,
                     WHEN_LINKED, ALWAYS (default: NEVER for outlets)
+                operable (bool): False makes every write to the widget need
+                    level mode ``edit``, even from the node card (default: True)
                 needs_loopback (bool): Set to True if the control flow from
                     this outlet needs to loop back to the node (default: False)
+                is_linked_lazy (bool): Lock every edge leaving this outlet to
+                    lazy propagation; see ``EdgeWrapper.locked_propagation``
+                    (default: False)
 
             Callbacks:
                 on_connect (str): Node method name to call when connected
@@ -377,7 +385,13 @@ class IType(ABC):
                 show_widget (ShowWidgetStrategy): When the inline widget is
                     rendered relative to link state — NEVER, NOT_LINKED,
                     WHEN_LINKED, ALWAYS (default: NOT_LINKED for swinglets)
-                use_mode (str): 'optional' or 'required' (default: 'optional')
+                operable (bool): False makes every write to the widget need
+                    level mode ``edit``, even from the node card (default: True)
+                is_linked_lazy (bool): Lock every edge leaving this swinglet to
+                    lazy propagation; see ``EdgeWrapper.locked_propagation``
+                    (default: False)
+                use_mode (str): 'optional' or 'required' (default: 'optional').
+                    Reported to tools; the framework does not enforce it
 
             Callbacks:
                 on_change (str): Node method name to call when a value arrives
@@ -415,7 +429,6 @@ class IType(ABC):
             Identity:
                 label (str): Display name (auto-generated from id if omitted)
                 description (str): Human-readable description
-                deprecation_warning (str) : Deprecation warning message
 
             Type configuration:
                 default (dict | primitive): Default value. Primitives auto-wrap
@@ -435,7 +448,10 @@ class IType(ABC):
                 show_widget (ShowWidgetStrategy): When the inline widget is
                     rendered. Config ports are never linked, so NOT_LINKED/ALWAYS
                     both show and WHEN_LINKED hides (default: ALWAYS for config)
-                use_mode (str): 'optional' or 'required' (default: 'optional')
+                operable (bool): False makes every write to the widget need
+                    level mode ``edit``, even from the node card (default: True)
+                use_mode (str): 'optional' or 'required' (default: 'optional').
+                    Reported to tools; the framework does not enforce it
 
             Callbacks:
                 on_change (str): Node method name to call when value changes

@@ -66,7 +66,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -755,7 +756,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -1444,7 +1446,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -2133,7 +2136,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -2822,7 +2826,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -3511,7 +3516,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -4200,7 +4206,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -4889,7 +4896,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -5578,7 +5586,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -6267,7 +6276,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -6956,7 +6966,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -7645,7 +7656,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -8334,7 +8346,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -9023,7 +9036,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -9712,7 +9726,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -10401,7 +10416,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -11090,7 +11106,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -11779,7 +11796,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -12468,7 +12486,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -13157,7 +13176,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -13846,7 +13866,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -14535,7 +14556,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -15224,7 +15246,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -15913,7 +15936,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -16602,7 +16626,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -17291,7 +17316,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -17980,7 +18006,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -18669,7 +18696,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -19358,7 +19386,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -20047,7 +20076,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -20736,7 +20766,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -21425,7 +21456,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -22114,7 +22146,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -22803,7 +22836,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -23492,7 +23526,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -24181,7 +24216,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -24870,7 +24906,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -25559,7 +25596,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -26248,7 +26286,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -26937,7 +26976,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -27626,7 +27666,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -28315,7 +28356,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -29004,7 +29046,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -29693,7 +29736,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -30382,7 +30426,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -31071,7 +31116,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -31760,7 +31806,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -32449,7 +32496,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -33138,7 +33186,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -33827,7 +33876,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -34516,7 +34566,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -35205,7 +35256,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -35894,7 +35946,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -36583,7 +36636,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -37272,7 +37326,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -37961,7 +38016,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -38650,7 +38706,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -39339,7 +39396,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -40028,7 +40086,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -40717,7 +40776,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -41406,7 +41466,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -42095,7 +42156,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -42784,7 +42846,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -43473,7 +43536,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -44162,7 +44226,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -44851,7 +44916,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -45540,7 +45606,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -46229,7 +46296,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -46918,7 +46986,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -47607,7 +47676,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -48296,7 +48366,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -48985,7 +49056,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -49674,7 +49746,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -50363,7 +50436,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -51052,7 +51126,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -51741,7 +51816,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -52430,7 +52506,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -53119,7 +53196,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -53808,7 +53886,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -54497,7 +54576,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -55186,7 +55266,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -55875,7 +55956,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -56564,7 +56646,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -57253,7 +57336,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -57942,7 +58026,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -58631,7 +58716,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -59320,7 +59406,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -60009,7 +60096,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -60698,7 +60786,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -61387,7 +61476,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -62076,7 +62166,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -62765,7 +62856,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -63454,7 +63546,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -64143,7 +64236,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -64832,7 +64926,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -65521,7 +65616,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -66210,7 +66306,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -66899,7 +66996,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -67588,7 +67686,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -68277,7 +68376,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -68966,7 +69066,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -69655,7 +69756,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -70344,7 +70446,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -71033,7 +71136,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -71722,7 +71826,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -72411,7 +72516,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -73100,7 +73206,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -73789,7 +73896,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -74478,7 +74586,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -75167,7 +75276,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -75856,7 +75966,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -76545,7 +76656,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -77234,7 +77346,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -77923,7 +78036,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -78612,7 +78726,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -79301,7 +79416,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -79990,7 +80106,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -80679,7 +80796,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -81368,7 +81486,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -82057,7 +82176,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -82746,7 +82866,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -83435,7 +83556,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -84124,7 +84246,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -84813,7 +84936,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -85502,7 +85626,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -86191,7 +86316,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -86880,7 +87006,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -87569,7 +87696,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -88258,7 +88386,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -88947,7 +89076,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -89636,7 +89766,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -90325,7 +90456,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -91014,7 +91146,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -91703,7 +91836,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -92392,7 +92526,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -93081,7 +93216,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -93770,7 +93906,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -94459,7 +94596,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -95148,7 +95286,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -95837,7 +95976,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -96526,7 +96666,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -97215,7 +97356,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -97904,7 +98046,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -98593,7 +98736,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -99282,7 +99426,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -99971,7 +100116,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -100660,7 +100806,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -101349,7 +101496,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -102038,7 +102186,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -102727,7 +102876,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -103416,7 +103566,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -104105,7 +104256,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -104794,7 +104946,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -105483,7 +105636,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -106172,7 +106326,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -106861,7 +107016,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -107550,7 +107706,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -108239,7 +108396,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -108928,7 +109086,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -109617,7 +109776,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -110306,7 +110466,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -110995,7 +111156,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -111684,7 +111846,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -112373,7 +112536,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -113062,7 +113226,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -113751,7 +113916,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -114440,7 +114606,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -115129,7 +115296,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -115818,7 +115986,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -116507,7 +116676,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -117196,7 +117366,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -117885,7 +118056,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -118574,7 +118746,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -119263,7 +119436,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -119952,7 +120126,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -120641,7 +120816,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -121330,7 +121506,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -122019,7 +122196,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -122708,7 +122886,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -123397,7 +123576,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -124086,7 +124266,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -124775,7 +124956,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -125464,7 +125646,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -126153,7 +126336,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -126842,7 +127026,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -127531,7 +127716,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -128220,7 +128406,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -128909,7 +129096,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -129598,7 +129786,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -130287,7 +130476,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -130976,7 +131166,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -131665,7 +131856,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -132354,7 +132546,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -133043,7 +133236,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -133732,7 +133926,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -134421,7 +134616,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -135110,7 +135306,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -135799,7 +135996,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -136488,7 +136686,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -137177,7 +137376,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -137866,7 +138066,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -138555,7 +138756,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -139244,7 +139446,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -139933,7 +140136,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -140622,7 +140826,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -141311,7 +141516,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -142000,7 +142206,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -142689,7 +142896,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -143378,7 +143586,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -144067,7 +144276,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -144756,7 +144966,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -145445,7 +145656,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -146134,7 +146346,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -146823,7 +147036,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -147512,7 +147726,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -148201,7 +148416,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -148890,7 +149106,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -149579,7 +149796,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -150268,7 +150486,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -150957,7 +151176,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -151646,7 +151866,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -152335,7 +152556,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -153024,7 +153246,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -153713,7 +153936,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -154402,7 +154626,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -155091,7 +155316,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -155780,7 +156006,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -156469,7 +156696,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -157158,7 +157386,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -157847,7 +158076,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -158536,7 +158766,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -159225,7 +159456,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -159914,7 +160146,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -160603,7 +160836,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -161292,7 +161526,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -161981,7 +162216,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -162670,7 +162906,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -163359,7 +163596,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -164048,7 +164286,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -164737,7 +164976,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -165426,7 +165666,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -166115,7 +166356,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -166804,7 +167046,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -167493,7 +167736,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -168182,7 +168426,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -168871,7 +169116,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -169560,7 +169806,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -170249,7 +170496,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -170938,7 +171186,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -171627,7 +171876,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -172316,7 +172566,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -173005,7 +173256,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -173694,7 +173946,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -174383,7 +174636,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -175072,7 +175326,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -175761,7 +176016,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -176450,7 +176706,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -177139,7 +177396,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -177828,7 +178086,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -178517,7 +178776,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -179206,7 +179466,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -179895,7 +180156,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -180584,7 +180846,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -181273,7 +181536,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -181962,7 +182226,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -182651,7 +182916,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -183340,7 +183606,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -184029,7 +184296,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -184718,7 +184986,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -185407,7 +185676,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -186096,7 +186366,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -186785,7 +187056,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -187474,7 +187746,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -188163,7 +188436,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -188852,7 +189126,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -189541,7 +189816,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -190230,7 +190506,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -190919,7 +191196,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -191608,7 +191886,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -192297,7 +192576,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -192986,7 +193266,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -193675,7 +193956,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -194364,7 +194646,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -195053,7 +195336,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -195742,7 +196026,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -196431,7 +196716,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -197120,7 +197406,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -197809,7 +198096,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -198498,7 +198786,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -199187,7 +199476,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -199876,7 +200166,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -200565,7 +200856,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -201254,7 +201546,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -201943,7 +202236,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -202632,7 +202926,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -203321,7 +203616,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -204010,7 +204306,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -204699,7 +204996,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -205388,7 +205686,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -206077,7 +206376,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -206766,7 +207066,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -207455,7 +207756,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -208144,7 +208446,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -208833,7 +209136,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -209522,7 +209826,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -210211,7 +210516,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -210900,7 +211206,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -211589,7 +211896,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -212278,7 +212586,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -212967,7 +213276,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -213656,7 +213966,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -214345,7 +214656,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -215034,7 +215346,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -215723,7 +216036,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -216412,7 +216726,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -217101,7 +217416,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -217790,7 +218106,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -218479,7 +218796,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -219168,7 +219486,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -219857,7 +220176,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -220546,7 +220866,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -221235,7 +221556,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -221924,7 +222246,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -222613,7 +222936,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -223302,7 +223626,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -223991,7 +224316,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -224680,7 +225006,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -225369,7 +225696,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -226058,7 +226386,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -226747,7 +227076,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -227436,7 +227766,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -228125,7 +228456,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -228814,7 +229146,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -229503,7 +229836,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -230192,7 +230526,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -230881,7 +231216,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -231570,7 +231906,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -232259,7 +232596,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -232948,7 +233286,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -233637,7 +233976,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -234326,7 +234666,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -235015,7 +235356,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -235704,7 +236046,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -236393,7 +236736,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -237082,7 +237426,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -237771,7 +238116,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -238460,7 +238806,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -239149,7 +239496,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -239838,7 +240186,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -240527,7 +240876,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -241216,7 +241566,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -241905,7 +242256,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -242594,7 +242946,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -243283,7 +243636,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -243972,7 +244326,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -244661,7 +245016,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -245350,7 +245706,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -246039,7 +246396,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -246728,7 +247086,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -247417,7 +247776,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -248106,7 +248466,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -248795,7 +249156,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -249484,7 +249846,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -250173,7 +250536,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -250862,7 +251226,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -251551,7 +251916,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -252240,7 +252606,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -252929,7 +253296,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -253618,7 +253986,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -254307,7 +254676,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -254996,7 +255366,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -255685,7 +256056,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -256374,7 +256746,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -257063,7 +257436,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -257752,7 +258126,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -258441,7 +258816,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -259130,7 +259506,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -259819,7 +260196,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -260508,7 +260886,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -261197,7 +261576,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -261886,7 +262266,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -262575,7 +262956,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -263264,7 +263646,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -263953,7 +264336,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -264642,7 +265026,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -265331,7 +265716,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -266020,7 +266406,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -266709,7 +267096,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -267398,7 +267786,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -268087,7 +268476,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -268776,7 +269166,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -269465,7 +269856,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -270154,7 +270546,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -270843,7 +271236,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -271532,7 +271926,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -272221,7 +272616,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -272910,7 +273306,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -273599,7 +273996,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -274288,7 +274686,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -274977,7 +275376,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -275666,7 +276066,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -276355,7 +276756,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -277044,7 +277446,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -277733,7 +278136,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -278422,7 +278826,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -279111,7 +279516,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -279800,7 +280206,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -280489,7 +280896,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -281178,7 +281586,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -281867,7 +282276,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -282556,7 +282966,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -283245,7 +283656,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -283934,7 +284346,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -284623,7 +285036,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -285312,7 +285726,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -286001,7 +286416,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -286690,7 +287106,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -287379,7 +287796,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -288068,7 +288486,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -288757,7 +289176,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -289446,7 +289866,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -290135,7 +290556,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -290824,7 +291246,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -291513,7 +291936,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -292202,7 +292626,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -292891,7 +293316,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -293580,7 +294006,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -294269,7 +294696,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -294958,7 +295386,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -295647,7 +296076,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -296336,7 +296766,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -297025,7 +297456,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -297714,7 +298146,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -298403,7 +298836,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -299092,7 +299526,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -299781,7 +300216,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -300470,7 +300906,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -301159,7 +301596,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -301848,7 +302286,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -302537,7 +302976,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -303226,7 +303666,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -303915,7 +304356,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -304604,7 +305046,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -305293,7 +305736,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -305982,7 +306426,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -306671,7 +307116,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -307360,7 +307806,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -308049,7 +308496,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -308738,7 +309186,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -309427,7 +309876,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -310116,7 +310566,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -310805,7 +311256,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -311494,7 +311946,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -312183,7 +312636,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -312872,7 +313326,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -313561,7 +314016,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -314250,7 +314706,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -314939,7 +315396,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -315628,7 +316086,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -316317,7 +316776,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -317006,7 +317466,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -317695,7 +318156,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -318384,7 +318846,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -319073,7 +319536,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -319762,7 +320226,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -320451,7 +320916,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -321140,7 +321606,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -321829,7 +322296,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -322518,7 +322986,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -323207,7 +323676,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -323896,7 +324366,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -324585,7 +325056,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -325274,7 +325746,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -325963,7 +326436,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -326652,7 +327126,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -327341,7 +327816,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -328030,7 +328506,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -328719,7 +329196,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -329408,7 +329886,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -330097,7 +330576,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -330786,7 +331266,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -331475,7 +331956,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -332164,7 +332646,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -332853,7 +333336,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -333542,7 +334026,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -334231,7 +334716,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -334920,7 +335406,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -335609,7 +336096,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -336298,7 +336786,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -336987,7 +337476,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -337676,7 +338166,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -338365,7 +338856,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -339054,7 +339546,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -339743,7 +340236,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -340432,7 +340926,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -341121,7 +341616,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -341810,7 +342306,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -342499,7 +342996,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -343188,7 +343686,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -343877,7 +344376,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -344566,7 +345066,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -345255,7 +345756,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -345944,7 +346446,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -346633,7 +347136,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -347322,7 +347826,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -348011,7 +348516,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -348700,7 +349206,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -349389,7 +349896,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -350078,7 +350586,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -350767,7 +351276,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -351456,7 +351966,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -352145,7 +352656,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"

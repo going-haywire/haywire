@@ -34,11 +34,12 @@ class PerformanceTester(BaseNode):
                 label="Port Count",
                 widget=NumberWidget.config(properties={"min": 0, "max": 10, "step": 1}),
                 default=0,
-                on_change="my_change"
+                on_change="my_change",
+                operable=False,
             )
         )
         self.add(EXEC.as_outlet("trigger", label="Trigger"))
-
+        
     def post_init(self):
         pass
 

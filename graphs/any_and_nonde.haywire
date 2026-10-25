@@ -2,7 +2,7 @@
   "format_version": 4,
   "filestem": "any_and_nonde",
   "created_at": "2026-09-12T10:04:10.101874",
-  "modified_at": "2026-10-19T23:32:08.736531",
+  "modified_at": "2026-10-25T10:29:55.058590",
   "meta": {
     "values": {},
     "promoted": {}
@@ -1189,8 +1189,7 @@
               "store_strategy": 1,
               "color": "#004cff",
               "id": "exec",
-              "port_type": "inlet",
-              "order": 41
+              "port_type": "inlet"
             },
             "recipe": {
               "registry_key": "haywire-core:type:EXEC"
@@ -1207,7 +1206,7 @@
               "default": {
                 "value": 0
               },
-              "store_strategy": 14,
+              "store_strategy": 4,
               "color": "#f7b0ff",
               "widget_key": "haywire-core:widget:NumberWidget",
               "widget_config": {
@@ -1221,7 +1220,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -1288,12 +1288,12 @@
               "default": {
                 "value": 0.0
               },
-              "store_strategy": 14,
+              "store_strategy": 4,
               "color": "#50b0ff",
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "float_outlet_0",
               "port_type": "outlet",
-              "order": 42,
+              "order": 4,
               "show_widget": "never"
             },
             "recipe": {
@@ -1318,7 +1318,8 @@
               "color": "#50b0ff",
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "float_inlet_1",
-              "port_type": "inlet"
+              "port_type": "inlet",
+              "order": 7
             },
             "recipe": {
               "registry_key": "haywire-core:type:FLOAT"
@@ -1338,12 +1339,12 @@
               "default": {
                 "value": 0.0
               },
-              "store_strategy": 14,
+              "store_strategy": 4,
               "color": "#50b0ff",
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "float_outlet_1",
               "port_type": "outlet",
-              "order": 36,
+              "order": 8,
               "show_widget": "never"
             },
             "recipe": {
@@ -1360,8 +1361,7 @@
               "posX": 3600.0,
               "posY": 3600.0,
               "width": 340,
-              "height": 348,
-              "size_adapt": "manual_height"
+              "height": 332
             },
             "promoted": {}
           }
@@ -1371,8 +1371,7 @@
             "posX": 3600.0,
             "posY": 3600.0,
             "width": 340,
-            "height": 348,
-            "size_adapt": "manual_height"
+            "height": 332
           },
           "promoted": {}
         },
@@ -1455,7 +1454,7 @@
               "default": {
                 "value": 0
               },
-              "store_strategy": 14,
+              "store_strategy": 4,
               "color": "#f7b0ff",
               "widget_key": "haywire-core:widget:NumberWidget",
               "widget_config": {
@@ -1469,7 +1468,8 @@
               "port_type": "config",
               "order": 1,
               "on_change": "my_change",
-              "show_widget": "always"
+              "show_widget": "always",
+              "operable": false
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -1536,7 +1536,7 @@
               "default": {
                 "value": 0.0
               },
-              "store_strategy": 14,
+              "store_strategy": 4,
               "color": "#50b0ff",
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "float_outlet_0",
@@ -1567,13 +1567,13 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "float_inlet_1",
               "port_type": "inlet",
-              "order": 5
+              "order": 7
             },
             "recipe": {
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.0
+              "value": 1.0
             }
           },
           "float_outlet_1": {
@@ -1587,12 +1587,12 @@
               "default": {
                 "value": 0.0
               },
-              "store_strategy": 14,
+              "store_strategy": 4,
               "color": "#50b0ff",
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "float_outlet_1",
               "port_type": "outlet",
-              "order": 6,
+              "order": 8,
               "show_widget": "never"
             },
             "recipe": {
@@ -1609,8 +1609,7 @@
               "posX": 4169.389665212402,
               "posY": 3596.8146741086766,
               "width": 340,
-              "height": 297,
-              "size_adapt": "manual_height"
+              "height": 296
             },
             "promoted": {}
           }
@@ -1620,8 +1619,7 @@
             "posX": 4169.389665212402,
             "posY": 3596.8146741086766,
             "width": 340,
-            "height": 297,
-            "size_adapt": "manual_height"
+            "height": 296
           },
           "promoted": {}
         },
