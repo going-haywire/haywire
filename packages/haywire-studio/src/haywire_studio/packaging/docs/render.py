@@ -105,7 +105,8 @@ def render_component(rec: ComponentRecord) -> str:
             "|---|---|---|---|",
         ]
         for p in sorted(rec.ports, key=lambda pt: _DIRECTION_ORDER.get(pt.direction, 99)):
-            lines.append(f"| {p.id} | {p.direction} | {p.data_type or ''} | {p.description} |")
+            data_type = f"`{p.data_type}`" if p.data_type else ""
+            lines.append(f"| `{p.id}` | {p.direction} | {data_type} | {p.description} |")
         lines.append("")
     documented_settings = [s for s in rec.settings if s.bag != "props"]
     if rec.kind in _PORT_BEARING_KINDS and documented_settings:
@@ -116,7 +117,7 @@ def render_component(rec: ComponentRecord) -> str:
             "|---|---|---|---|",
         ]
         for s in documented_settings:
-            lines.append(f"| {s.name} | {s.bag} | {s.default!r} | {s.description} |")
+            lines.append(f"| `{s.name}` | {s.bag} | `{s.default!r}` | {s.description} |")
         lines.append("")
     if rec.extra:
         lines += ["## Details", ""]
