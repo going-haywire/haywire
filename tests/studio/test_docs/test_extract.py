@@ -76,7 +76,7 @@ def documented_macro(tmp_path, service):
 
     document = {
         "format_version": 1,
-        "meta": {"description": "Blurs a frame."},
+        "meta": {"values": {"description": "Blurs a frame."}, "promoted": {}},
         "nodes": {
             "b_in": {"node_id": "b_in", "registry_key": _INPUT},
             "b_out": {"node_id": "b_out", "registry_key": _OUTPUT},

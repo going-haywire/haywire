@@ -41,7 +41,7 @@ def _document(graph, *, through: bool) -> dict:
     definition.force_validation()
     document = definition.to_dict()
     graph.remove_subgraph(key)
-    document["meta"] = {"description": ""}
+    document["meta"] = {"values": {"description": ""}, "promoted": {}}
     document.pop("key", None)
     return document
 
@@ -126,7 +126,7 @@ def test_promoting_a_group_keeps_a_subscription_through_it(graph_with_library_sy
     action = _collapse(graph, [_split_with_reroute(graph, edge.edge_id)])
     document = graph.get_subgraph(action.subgraph_key).to_dict()
     document.pop("key", None)
-    document["meta"] = {"description": ""}
+    document["meta"] = {"values": {"description": ""}, "promoted": {}}
     _path, _identity_, _registry, register = macro
     register(document)
 

@@ -95,12 +95,12 @@ class MacroRegistry(DocumentRegistry[MacroTemplate]):
                 f"reach back to the macro it belongs to."
             )
 
-        meta = document.get("meta") or {}
+        meta_values = (document.get("meta") or {}).get("values") or {}
         identity = NodeIdentity(
             registry_id=path.stem,
             registry_key=registry_key,
             label=path.stem,
-            description=str(meta.get("description") or ""),
+            description=str(meta_values.get("description") or ""),
             class_name=path.stem,
             module=str(path),
             menu=f"{_MACRO_MENU_ROOT}/{library_identity.label}",

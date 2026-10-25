@@ -26,7 +26,7 @@ def _identity(folder_path):
 def _document():
     return {
         "format_version": 1,
-        "meta": {"description": ""},
+        "meta": {"values": {"description": ""}, "promoted": {}},
         "nodes": {
             "b_in": {"node_id": "b_in", "registry_key": _INPUT},
             "b_out": {"node_id": "b_out", "registry_key": _OUTPUT},

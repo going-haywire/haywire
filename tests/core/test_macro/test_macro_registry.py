@@ -22,7 +22,7 @@ def _document(*registry_keys, description="", subgraphs=None):
     """A minimal BaseGraph.to_dict() shape holding the given node kinds."""
     return {
         "format_version": 1,
-        "meta": {"description": description},
+        "meta": {"values": {"description": description}, "promoted": {}},
         "nodes": {f"n{i}": {"node_id": f"n{i}", "registry_key": key} for i, key in enumerate(registry_keys)},
         "edges": {},
         "variables": {},

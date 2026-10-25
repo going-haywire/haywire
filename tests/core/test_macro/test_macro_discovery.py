@@ -24,7 +24,7 @@ def _identity(folder_path="/lib"):
 def _document(description=""):
     return {
         "format_version": 1,
-        "meta": {"description": description},
+        "meta": {"values": {"description": description}, "promoted": {}},
         "nodes": {
             "n0": {"node_id": "n0", "registry_key": _INPUT},
             "n1": {"node_id": "n1", "registry_key": _OUTPUT},

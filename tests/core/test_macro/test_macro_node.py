@@ -32,7 +32,7 @@ def _document(description="", extra_nodes=()):
         nodes[f"x{i}"] = {"node_id": f"x{i}", "registry_key": key}
     return {
         "format_version": 1,
-        "meta": {"description": description},
+        "meta": {"values": {"description": description}, "promoted": {}},
         "nodes": nodes,
         "edges": {},
         "variables": {},

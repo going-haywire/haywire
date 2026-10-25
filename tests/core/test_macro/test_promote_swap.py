@@ -32,7 +32,7 @@ def _document():
     """A macro document holding the boundary pair and one interior node."""
     return {
         "format_version": 1,
-        "meta": {"description": ""},
+        "meta": {"values": {"description": ""}, "promoted": {}},
         "nodes": {
             "b_in": {"node_id": "b_in", "registry_key": _INPUT},
             "b_out": {"node_id": "b_out", "registry_key": _OUTPUT},
