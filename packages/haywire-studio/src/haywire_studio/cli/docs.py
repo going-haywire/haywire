@@ -75,7 +75,12 @@ def _run(args: argparse.Namespace) -> int:
 
     from haywire_studio.packaging.docs.generate import generate_docs
 
-    coverage = generate_docs(args.library, args.version)
+    try:
+        coverage = generate_docs(args.library, args.version)
+    except (ValueError, FileNotFoundError) as exc:
+        print(f"ERROR: {exc}")
+        print("Name one library's package root (e.g. barn/haybale-mylib), or pass --all for every library.")
+        return 1
     if coverage:
         print("Documentation coverage gaps:")
         for line in coverage:
