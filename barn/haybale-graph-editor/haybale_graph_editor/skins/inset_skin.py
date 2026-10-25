@@ -8,6 +8,7 @@ from nicegui import ui
 
 from haywire.core.di.config import get_library_system
 from haywire.core.node.node_wrapper import NodeWrapper
+from haywire.core.skin.tags import SKIN_TAG_GRAPH_NODE, SKIN_TAG_SPECIAL
 from haywire.core.types import DataPort
 from haywire.core.types.enums import LayoutDirection, PortType
 from haywire.ui.skin.decorator import skin
@@ -31,7 +32,7 @@ FAILED_TO_BUILD = "Inset cannot draw this node: it failed to build — see its e
 @skin(
     label="Inset",
     description="The interior's stage, operable in the card",
-    tags=["special", "graph-node"],
+    tags=[SKIN_TAG_SPECIAL, SKIN_TAG_GRAPH_NODE],
 )
 class InsetSkin(NodeSkin):
     """A Group or macro placement drawn as its interior's stage.
