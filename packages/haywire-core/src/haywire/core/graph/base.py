@@ -295,19 +295,20 @@ class BaseGraph:
     # =========================================================================
 
     def generate_unique_node_id(self, registry_key: str = "node") -> str:
-        """Return a node ID, prefixed from ``registry_key``, that no node in this graph uses.
+        """Return a node ID, prefixed from ``registry_key``, that no node in this graph's Subgraph tree uses.
 
-        Ids are unique across the whole Subgraph tree, not just this graph, so a
-        node can be looked up by id alone — see
-        ``haywire.core.assembly.flat_view.FlatGraphView.get_node_wrapper``. The
-        random suffix is what delivers that; :meth:`add_subgraph` is where an id
-        space from elsewhere could break it, and checks.
+        Ids are unique across the whole tree, from ``root_graph`` down, so a node
+        can be looked up by id alone — see
+        ``haywire.core.assembly.flat_view.FlatGraphView.get_node_wrapper``.
+        :meth:`add_subgraph` is where an id space from elsewhere could break
+        that, and checks.
         """
         prefix = get_registry_id_from_key(registry_key)
+        root = self.root_graph
 
         while True:
-            node_id = f"{prefix}_{uuid.uuid4().hex[:6]}"
-            if node_id not in self.node_wrappers:
+            node_id = f"{prefix}_{uuid.uuid4().hex[:8]}"
+            if not root.tree_contains_node_id(node_id):
                 return node_id
 
     # =========================================================================
