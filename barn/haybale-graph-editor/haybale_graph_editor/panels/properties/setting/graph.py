@@ -42,7 +42,11 @@ class GraphSettingsPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         graph_obj = ctx.data[EditState].active_graph
-        return graph_obj is not None and getattr(graph_obj, "props", None) is not None
+        return (
+            graph_obj is not None
+            and getattr(graph_obj, "props", None) is not None
+            and route_for(ctx) is not None
+        )
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         graph_obj = ctx.data[EditState].active_graph
@@ -50,6 +54,6 @@ class GraphSettingsPanel(BasePanel):
             return
         route = route_for(ctx)
         if route is None:
-            return  # no level open: a graph-document bag is never drawn writable
+            return  # poll() checked it; a None route would draw the bag writable without the route
         with layout:
             render_settings(ctx, graph_obj.props, route=route)

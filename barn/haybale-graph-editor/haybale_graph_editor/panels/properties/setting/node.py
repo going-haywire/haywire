@@ -28,7 +28,9 @@ from haybale_graph_editor.surfaces import SettingsInspector
 from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
+    from haywire.core.node.base import BaseNode
     from haywire.core.session.context import SessionContext
+    from haywire.core.settings.settings import Settings
 
 
 @panel(
@@ -52,7 +54,8 @@ class NodeSettingsPanel(BasePanel):
             node is not None
             and hasattr(node, "node")
             and node.node is not None
-            and bool(node.node.list_setting_bags())
+            and bool(_user_bags(node.node))
+            and route_for(ctx) is not None
         )
 
     def draw(
@@ -66,16 +69,14 @@ class NodeSettingsPanel(BasePanel):
 
         route = route_for(ctx)
         if route is None:
-            return  # no level open: a graph-document bag is never drawn writable
-        bags = node.node.list_setting_bags()
-        if not bags:
-            with layout:
-                hui.empty_state("No settings bags found.", icon=hui.icon.node_settings)
-            return
+            return  # poll() checked it; a None route would draw the bag writable without the route
+        with layout:
+            for bag_name, bag in _user_bags(node.node).items():
+                header = bag_name.replace("_", " ").title()
+                with hui.category_group(header):
+                    render_settings(ctx, bag, route=route)
 
-        for bag_name, bag in bags.items():
-            if bag_name == "props":
-                continue  # skip props bag, rendered separately in NodePropertiesPanel
-            header = bag_name.replace("_", " ").title()
-            with hui.category_group(header):
-                render_settings(ctx, bag, route=route)
+
+def _user_bags(node: "BaseNode") -> "dict[str, Settings]":
+    """Return the node's setting bags except ``props``, which ``NodePropertiesPanel`` renders."""
+    return {name: bag for name, bag in node.list_setting_bags().items() if name != "props"}

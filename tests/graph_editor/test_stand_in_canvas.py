@@ -44,7 +44,11 @@ def stand_in(request, graph_with_library_system, construction_fails):
 
 def _selected(graph, wrapper) -> Any:
     edit = SimpleNamespace(
-        active_node=wrapper, active_graph=graph, selected_nodes={wrapper.node_id}, selected_edges=set()
+        active_node=wrapper,
+        active_graph=graph,
+        active_route=edit_route(MagicMock()),
+        selected_nodes={wrapper.node_id},
+        selected_edges=set(),
     )
     return SimpleNamespace(data={EditState: edit})
 

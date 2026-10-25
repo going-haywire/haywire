@@ -74,7 +74,7 @@ class NodePropertiesPanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         node = ctx.data[EditState].active_node
-        if node is None or not hasattr(node, "node") or node.node is None:
+        if node is None or not hasattr(node, "node") or node.node is None or route_for(ctx) is None:
             return False
         props = getattr(node.node, "props", None)
         if props is None:
@@ -92,8 +92,9 @@ class NodePropertiesPanel(BasePanel):
             return
         route = route_for(ctx)
         if route is None:
-            return  # no level open: a graph-document bag is never drawn writable
-        render_settings(ctx, node_wrapper.node.props, route=route)
+            return  # poll() checked it; a None route would draw the bag writable without the route
+        with layout:
+            render_settings(ctx, node_wrapper.node.props, route=route)
 
 
 @panel(

@@ -66,7 +66,7 @@ def edge_style_subject(ctx: "SessionContext") -> FormSubject:
     """Return what the edge Style form edits for the current selection."""
     edit = ctx.data[EditState]
     graph = edit.active_graph
-    if graph is None or not edit.selected_edges or edit.selected_nodes:
+    if graph is None or route_for(ctx) is None or not edit.selected_edges or edit.selected_nodes:
         return FormSubject("hidden")
     wrappers = [graph.get_edge_wrapper(edge_id) for edge_id in sorted(edit.selected_edges)]
     styles = [w.style if w is not None else None for w in wrappers]
@@ -86,7 +86,7 @@ def node_appearance_subject(ctx: "SessionContext") -> FormSubject:
     """Return what the node Appearance form edits for the current selection."""
     edit = ctx.data[EditState]
     graph = edit.active_graph
-    if graph is None or not edit.selected_nodes or edit.selected_edges:
+    if graph is None or route_for(ctx) is None or not edit.selected_nodes or edit.selected_edges:
         return FormSubject("hidden")
     nodes = []
     for node_id in sorted(edit.selected_nodes):
@@ -124,7 +124,7 @@ def render_form(
     """
     route = route_for(ctx)
     if route is None:
-        return  # no level open: a graph-document bag is never drawn writable
+        return  # poll() checked it; a None route would draw the bag writable without the route
     if subject.status == "own":
         render_settings(ctx, subject.bags[0], categories=categories, route=route)
         return

@@ -124,7 +124,7 @@ class EdgeStylePanel(BasePanel):
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         edge = ctx.data[EditState].active_edge
-        return edge is not None and edge.style is not None
+        return edge is not None and edge.style is not None and route_for(ctx) is not None
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         edge = ctx.data[EditState].active_edge
@@ -132,7 +132,7 @@ class EdgeStylePanel(BasePanel):
             return
         route = route_for(ctx)
         if route is None:
-            return  # no level open: a graph-document bag is never drawn writable
+            return  # poll() checked it; a None route would draw the bag writable without the route
         with layout:
             render_settings(ctx, edge.style, route=route)
 

@@ -54,9 +54,10 @@ def _computed_edge(graph):
     return edge
 
 
-def _ctx(graph, nodes=(), edges=()):
+def _ctx(graph, nodes=(), edges=(), routed=True):
     state = SimpleNamespace(
         active_graph=graph,
+        active_route=edit_route(None) if routed else None,
         selected_nodes={n.node_id for n in nodes},
         selected_edges={e.edge_id for e in edges},
     )
@@ -245,18 +246,24 @@ def test_a_refused_neutral_change_reaches_no_bag(graph, library_system):
 # ---------------------------------------------------------------------------
 
 
+def test_without_a_route_both_forms_are_hidden(graph):
+    edge = _styled_edge(graph)
+    node = make_node(graph, _ADD, position=(0, 300))
+    assert edge_style_subject(_ctx(graph, edges=[edge], routed=False)).status == "hidden"
+    assert node_appearance_subject(_ctx(graph, nodes=[node], routed=False)).status == "hidden"
+
+
 def test_an_own_form_without_a_route_draws_no_row(graph, monkeypatch):
     from unittest.mock import MagicMock
 
     from haybale_graph_editor.panels import _selection_forms as forms
 
     drawn = MagicMock()
-    monkeypatch.setattr(forms, "route_for", lambda ctx: None)
     monkeypatch.setattr(forms, "render_settings", drawn)
     edge = _styled_edge(graph)
     subject = edge_style_subject(_ctx(graph, edges=[edge]))
     assert subject.status == "own"
-    forms.render_form(_ctx(graph, edges=[edge]), subject)
+    forms.render_form(_ctx(graph, edges=[edge], routed=False), subject)
     drawn.assert_not_called()
 
 
