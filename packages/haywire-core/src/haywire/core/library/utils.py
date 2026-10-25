@@ -8,6 +8,7 @@ from .identity import LibraryIdentity
 
 # Component type segments — the middle token in every registry key (lib_id:TYPE:class_id).
 NODE = "node"
+MACRO = "macro"
 WIDGET = "widget"
 TYPE = "type"
 ADAPTER = "adapter"

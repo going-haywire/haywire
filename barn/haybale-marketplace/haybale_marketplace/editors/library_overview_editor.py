@@ -26,6 +26,7 @@ from nicegui import background_tasks
 from haywire.ui import elements as hui
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.farmhand.registry import FarmhandRegistry
+from haywire.core.macro.registry import MacroRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings import SettingsRegistry
 from haywire.core.state import LibraryStateRegistry
@@ -34,6 +35,7 @@ from haywire.core.library.utils import (
     ADAPTER,
     EDITOR,
     FARMHAND,
+    MACRO,
     NODE,
     PANEL,
     SETTING,
@@ -94,6 +96,7 @@ class TabConfig:
 
 
 _CFG_NODES = TabConfig("nodes", NODE)
+_CFG_MACROS = TabConfig("macros", MACRO)
 _CFG_WIDGETS = TabConfig("widgets", WIDGET)
 _CFG_TYPES = TabConfig("types", TYPE)
 _CFG_ADAPTERS = TabConfig("adapters", ADAPTER)
@@ -203,8 +206,8 @@ class LibraryOverviewEditor(BaseEditor):
 
     Displays:
     - Fixed header: name, version, dist name, badges, action buttons, metadata
-    - Scrollable content: tabs (Overview, Nodes, Widgets, Types, Adapters,
-      Renderers) for installed libraries, or async overview for marketplace-only.
+    - Scrollable content: tabs (Overview, Nodes, Macros, Widgets, Types,
+      Adapters, Renderers) for installed libraries, or async overview for marketplace-only.
 
     Rebuilds on LIBRARY_STATE_CHANGED.
     """
@@ -434,6 +437,7 @@ class LibraryOverviewEditor(BaseEditor):
             ui.label("Library manager not available").classes("hw-text-dim")
             return
         node_registry: NodeRegistry = svc.get_node_registry()
+        macro_registry: MacroRegistry = svc.get_macro_registry()
         widget_registry: WidgetRegistry = svc.get_widget_registry()
         type_registry: TypeRegistry = svc.get_type_registry()
         adapter_registry: AdapterRegistry = svc.get_adapter_registry()
@@ -480,7 +484,7 @@ class LibraryOverviewEditor(BaseEditor):
                 pass
 
         # Tab references — created in fixed section, used in scroll section
-        tabs = t_overview = t_nodes = t_widgets = None
+        tabs = t_overview = t_nodes = t_macros = t_widgets = None
         t_types = t_adapters = t_skins = None
         t_settings = t_states = t_themes = t_panels = t_editors = t_farmhands = None
 
@@ -780,6 +784,7 @@ class LibraryOverviewEditor(BaseEditor):
                 # ── Tabs bar (only when library is installed) ──────────────────
                 if installed_lib:
                     n_nodes = _count(node_registry, f"{lib_id}:{NODE}:")
+                    n_macros = _count(macro_registry, f"{lib_id}:{MACRO}:")
                     n_widgets = _count(widget_registry, f"{lib_id}:{WIDGET}:")
                     n_types = _count(type_registry, f"{lib_id}:{TYPE}:")
                     n_adapters = _count(adapter_registry, f"{lib_id}:{ADAPTER}:")
@@ -795,6 +800,7 @@ class LibraryOverviewEditor(BaseEditor):
                     with ui.tabs().classes("w-full hw-tabs").props("dense no-caps") as tabs:
                         t_overview = ui.tab("Overview", icon=hui.icon.library_component)
                         t_nodes = ui.tab("Nodes", icon=hui.icon.node) if n_nodes else None
+                        t_macros = ui.tab("Macros", icon=hui.icon.subgraph) if n_macros else None
                         t_widgets = ui.tab("Widgets", icon=hui.icon.widget) if n_widgets else None
                         t_types = ui.tab("Types", icon=hui.icon.type) if n_types else None
                         t_adapters = ui.tab("Adapters", icon=hui.icon.adapter) if n_adapters else None
@@ -814,6 +820,7 @@ class LibraryOverviewEditor(BaseEditor):
                     self._make_tab_panel(t_overview, self._render_overview, installed_lib)
                     _tab_configs = [
                         (t_nodes, node_registry, _CFG_NODES),
+                        (t_macros, macro_registry, _CFG_MACROS),
                         (t_widgets, widget_registry, _CFG_WIDGETS),
                         (t_types, type_registry, _CFG_TYPES),
                         (t_adapters, adapter_registry, _CFG_ADAPTERS),
