@@ -838,8 +838,9 @@ class LibrarySystemService:
     def get_component_doc_path(self, registry_key: str) -> Optional["Path"]:
         """Return the path to a component's documentation file, or None.
 
-        Looks up the library that owns this component and returns the path to its
-        docs file (e.g. ``~/.haywire/db/lib_id/docs/nodes/ClassName.md``).
+        Looks up the library that owns this component and returns the path to the
+        page ``haywire docs`` generated for it (e.g.
+        ``<module>/docs/lib_id.node.ClassName.md``).
 
         Returns None if:
         - The registry_key is malformed
@@ -854,8 +855,10 @@ class LibrarySystemService:
         """
         from pathlib import Path
 
+        from haywire.core.library.kinds import doc_filename
+
         try:
-            lib_id, comp_singular, class_name = split_reg_key(registry_key)
+            lib_id, _, _ = split_reg_key(registry_key)
         except ValueError:
             return None
 
@@ -868,9 +871,7 @@ class LibrarySystemService:
         if not source_path:
             return None
 
-        source = Path(source_path)
-        comp_type = f"{comp_singular}s"
-        doc_file = source / "docs" / comp_type / f"{class_name}.md"
+        doc_file = Path(source_path) / "docs" / doc_filename(registry_key)
 
         # Only return path if file exists
         return doc_file if doc_file.exists() else None

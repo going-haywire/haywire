@@ -81,6 +81,7 @@ class ComponentDocsEditor(BaseEditor):
 
     _COMP_ICONS = {
         "nodes": hui.icon.node,
+        "macros": hui.icon.subgraph,
         "widgets": hui.icon.widget,
         "types": hui.icon.type,
         "adapters": hui.icon.adapter,
@@ -118,8 +119,13 @@ class ComponentDocsEditor(BaseEditor):
             deprecation_warning = getattr(identity, "deprecation_warning", "") or ""
             tags = getattr(identity, "tags", []) or []
             icon = self._COMP_ICONS.get(comp_type, "extension")
-            actual_name = getattr(cls, "__name__", class_name) if cls else class_name
-            module_path = getattr(cls, "__module__", None) if cls else None
+            # A document component (a macro) is an instance: its own class
+            # describes the element type, so name, module and docstring come
+            # off the identity instead.
+            is_class = isinstance(cls, type)
+            actual_name = cls.__name__ if isinstance(cls, type) else class_name
+            module_path = getattr(cls, "__module__", None) if is_class else None
+            source_file = getattr(identity, "module", None) if cls and not is_class else None
             menu = getattr(identity, "menu", None) if identity else None
 
             # Resolve docs file via library service
@@ -167,7 +173,10 @@ class ComponentDocsEditor(BaseEditor):
                 if module_path:
                     short = (module_path[:48] + "…") if len(module_path) > 50 else module_path
                     hui.info_row("Module", short, copy_value=module_path)
-                if comp_type == "nodes" and menu:
+                if source_file:
+                    short = ("…" + source_file[-48:]) if len(source_file) > 50 else source_file
+                    hui.info_row("File", short, copy_value=source_file)
+                if comp_type in ("nodes", "macros") and menu:
                     hui.info_row("Menu", menu)
 
                 # ── Usage snippets ─────────────────────────────────────────
@@ -220,7 +229,7 @@ class ComponentDocsEditor(BaseEditor):
                                     doc_text = "\n".join(lines[2:])
                                 ui.markdown(doc_text).classes("w-full text-sm")
                             else:
-                                docstring = inspect.getdoc(cls) if cls else None
+                                docstring = inspect.getdoc(cls) if is_class else None
                                 if docstring:
                                     ui.markdown(docstring).classes("w-full text-sm")
                                 else:
