@@ -17,7 +17,7 @@ Framework-owned primitive types and adapters
 - **Choices** — A string constrained to a set of options (options live per-use in widget_config)
 - **Color** — Hex or rgba color string
 - **Execution Signal** — Signal for controlling execution flow between nodes
-- **Float** — Decimal numberer
+- **Float** — Decimal number
 - **Fold** — Hides or shows the ports inside it
 - **Integer** — Whole number
 - **Optional** — A value of the wrapped type, or absence

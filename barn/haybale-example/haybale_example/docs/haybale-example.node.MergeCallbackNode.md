@@ -8,10 +8,10 @@ Listens for a specified number of callbacks from other flows
 
 | id | direction | type | description |
 |---|---|---|---|
-| custom_callback_count | config | haywire-core:type:INT | Whole number |
-| listen_callback_1 | outlet | haywire-core:type:CALLBACK | Signal for callback execution between nodes |
-| triggered | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| payload_1 | outlet | haywire-core:type:FLOAT | Decimal numberer |
+| `custom_callback_count` | config | `haywire-core:type:INT` | Whole number |
+| `listen_callback_1` | outlet | `haywire-core:type:CALLBACK` | Signal for callback execution between nodes |
+| `triggered` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `payload_1` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

@@ -8,14 +8,14 @@ Iterate with start, end, and step control
 
 | id | direction | type | description |
 |---|---|---|---|
-| execute | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| start | inlet | haywire-core:type:INT | Whole number |
-| end | inlet | haywire-core:type:INT | Whole number |
-| step | inlet | haywire-core:type:INT | Whole number |
-| break_loop | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| loop_body | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| index | outlet | haywire-core:type:INT | Whole number |
-| completed | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
+| `execute` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `start` | inlet | `haywire-core:type:INT` | Whole number |
+| `end` | inlet | `haywire-core:type:INT` | Whole number |
+| `step` | inlet | `haywire-core:type:INT` | Whole number |
+| `break_loop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `loop_body` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `index` | outlet | `haywire-core:type:INT` | Whole number |
+| `completed` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 
 ## Notes
 

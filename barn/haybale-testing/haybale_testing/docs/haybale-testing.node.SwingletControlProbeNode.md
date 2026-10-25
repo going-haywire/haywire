@@ -8,7 +8,7 @@ Test-only: a control node with an exec swinglet that counts its runs.
 
 | id | direction | type | description |
 |---|---|---|---|
-| flow | swinglet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
+| `flow` | swinglet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 
 ## Notes
 

@@ -8,13 +8,13 @@ Tests user-driven port ordering
 
 | id | direction | type | description |
 |---|---|---|---|
-| a | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| b | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| c | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| dyn_a | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| dyn_b | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| dyn_c | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| out | outlet | haywire-core:type:STRING | Text data |
+| `a` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `b` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `c` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `dyn_a` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `dyn_b` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `dyn_c` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `out` | outlet | `haywire-core:type:STRING` | Text data |
 
 ## Notes
 

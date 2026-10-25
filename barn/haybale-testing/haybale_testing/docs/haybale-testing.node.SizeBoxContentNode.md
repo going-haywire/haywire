@@ -8,5 +8,5 @@ Hosts an oversized widget with no declared box
 
 | id | direction | type | description |
 |---|---|---|---|
-| preview | config | haywire-core:type:STRING | Text data |
-| passthrough | outlet | haywire-core:type:STRING | Text data |
+| `preview` | config | `haywire-core:type:STRING` | Text data |
+| `passthrough` | outlet | `haywire-core:type:STRING` | Text data |

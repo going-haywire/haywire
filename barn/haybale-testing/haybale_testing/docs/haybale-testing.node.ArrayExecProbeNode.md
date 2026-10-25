@@ -8,9 +8,9 @@ Test-only: an array-of-EXEC outlet and inlet on a control node.
 
 | id | direction | type | description |
 |---|---|---|---|
-| exec_in | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| exec_list_in | inlet | haybale-core:type:ArrayType | Homogeneous typed array |
-| exec_list_out | outlet | haybale-core:type:ArrayType | Homogeneous typed array |
+| `exec_in` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `exec_list_in` | inlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
+| `exec_list_out` | outlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
 
 ## Notes
 

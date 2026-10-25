@@ -8,10 +8,10 @@ Test-only: a data node with pins on a drawn-only wire.
 
 | id | direction | type | description |
 |---|---|---|---|
-| note_in | inlet | haybale-testing:type:TEST_VISUAL | Test-only: a text value on a drawn-only wire |
-| count_in | inlet | haybale-testing:type:TEST_VISUAL_COUNT | Test-only: a number on a drawn-only wire |
-| note_out | outlet | haybale-testing:type:TEST_VISUAL | Test-only: a text value on a drawn-only wire |
-| value | outlet | haywire-core:type:FLOAT | Decimal numberer |
+| `note_in` | inlet | `haybale-testing:type:TEST_VISUAL` | Test-only: a text value on a drawn-only wire |
+| `count_in` | inlet | `haybale-testing:type:TEST_VISUAL_COUNT` | Test-only: a number on a drawn-only wire |
+| `note_out` | outlet | `haybale-testing:type:TEST_VISUAL` | Test-only: a text value on a drawn-only wire |
+| `value` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

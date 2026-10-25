@@ -8,10 +8,10 @@
 
 | id | direction | type | description |
 |---|---|---|---|
-| operator | inlet | haybale-example:type:MathOPSelector | Simple mathematical operations for one or two float values |
-| value_a | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| value_b | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| result | outlet | haywire-core:type:FLOAT | Decimal numberer |
+| `operator` | inlet | `haybale-example:type:MathOPSelector` | Simple mathematical operations for one or two float values |
+| `value_a` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `value_b` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `result` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

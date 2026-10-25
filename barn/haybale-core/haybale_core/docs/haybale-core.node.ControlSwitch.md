@@ -8,14 +8,14 @@ Switches control flow based on condition
 
 | id | direction | type | description |
 |---|---|---|---|
-| exec | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| compare | inlet | haywire-core:type:INT | Whole number |
-| with | inlet | haywire-core:type:INT | Whole number |
-| DataType | config | haywire-core:type:STRING |  |
-| condition | config | haywire-core:type:STRING | set form of comparison |
-| true | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| false | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| test | outlet | haywire-core:type:INT | Whole number |
+| `exec` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `compare` | inlet | `haywire-core:type:INT` | Whole number |
+| `with` | inlet | `haywire-core:type:INT` | Whole number |
+| `DataType` | config | `haywire-core:type:STRING` |  |
+| `condition` | config | `haywire-core:type:STRING` | set form of comparison |
+| `true` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `false` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `test` | outlet | `haywire-core:type:INT` | Whole number |
 
 ## Notes
 

@@ -2,7 +2,7 @@
 
 `haybale-testing:type:TEST_FLOAT` · kind: type
 
-Decimal numberer
+Decimal number
 
 ## Details
 

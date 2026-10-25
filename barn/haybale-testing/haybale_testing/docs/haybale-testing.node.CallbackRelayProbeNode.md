@@ -8,8 +8,8 @@ Test-only: copies a callback inlet's value to its outlet on write, with a suffix
 
 | id | direction | type | description |
 |---|---|---|---|
-| in | inlet | haywire-core:type:CALLBACK | Signal for callback execution between nodes |
-| out | outlet | haywire-core:type:CALLBACK | Signal for callback execution between nodes |
+| `in` | inlet | `haywire-core:type:CALLBACK` | Signal for callback execution between nodes |
+| `out` | outlet | `haywire-core:type:CALLBACK` | Signal for callback execution between nodes |
 
 ## Notes
 

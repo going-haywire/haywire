@@ -6,9 +6,9 @@
 
 | id | direction | type | description |
 |---|---|---|---|
-| add_in_0 | inlet | haywire-core:type:ADD | Grows a new port from whatever connects to it |
-| str_in_0 | inlet | haywire-core:type:ADD | Grows a new port from whatever connects to it |
-| add_out_0 | outlet | haywire-core:type:ADD | Grows a new port from whatever connects to it |
+| `add_in_0` | inlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
+| `str_in_0` | inlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
+| `add_out_0` | outlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
 
 ## Notes
 

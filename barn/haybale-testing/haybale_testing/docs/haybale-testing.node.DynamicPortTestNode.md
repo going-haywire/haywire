@@ -6,13 +6,13 @@
 
 | id | direction | type | description |
 |---|---|---|---|
-| bool_inlet | inlet | haybale-testing:type:TEST_BOOL | True or False |
-| port_count | inlet | haybale-testing:type:TEST_INT | Whole number |
-| dynamic_inlet_0 | inlet | haybale-testing:type:TEST_INT | Whole number |
-| dynamic_inlet_1 | inlet | haybale-testing:type:TEST_INT | Whole number |
-| bool_outlet | outlet | haybale-testing:type:TEST_BOOL | True or False |
-| dynamic_outlet_0 | outlet | haybale-testing:type:TEST_INT | Whole number |
-| dynamic_outlet_1 | outlet | haybale-testing:type:TEST_INT | Whole number |
+| `bool_inlet` | inlet | `haybale-testing:type:TEST_BOOL` | True or False |
+| `port_count` | inlet | `haybale-testing:type:TEST_INT` | Whole number |
+| `dynamic_inlet_0` | inlet | `haybale-testing:type:TEST_INT` | Whole number |
+| `dynamic_inlet_1` | inlet | `haybale-testing:type:TEST_INT` | Whole number |
+| `bool_outlet` | outlet | `haybale-testing:type:TEST_BOOL` | True or False |
+| `dynamic_outlet_0` | outlet | `haybale-testing:type:TEST_INT` | Whole number |
+| `dynamic_outlet_1` | outlet | `haybale-testing:type:TEST_INT` | Whole number |
 
 ## Notes
 

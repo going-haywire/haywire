@@ -2,7 +2,7 @@
 
 `haywire-core:type:FLOAT` · kind: type
 
-Decimal numberer
+Decimal number
 
 ## Details
 

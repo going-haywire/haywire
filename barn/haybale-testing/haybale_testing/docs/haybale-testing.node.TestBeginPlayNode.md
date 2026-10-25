@@ -8,8 +8,8 @@ Test version of BeginPlay — triggered once when execution starts
 
 | id | direction | type | description |
 |---|---|---|---|
-| exec | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| timestamp | outlet | haywire-core:type:FLOAT | Decimal numberer |
+| `exec` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `timestamp` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

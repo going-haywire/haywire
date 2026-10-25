@@ -6,8 +6,8 @@
 
 | id | direction | type | description |
 |---|---|---|---|
-| fill | config | haybale-example:type:FILL | Solid colour or gradient background |
-| css | outlet | haywire-core:type:STRING | Text data |
+| `fill` | config | `haybale-example:type:FILL` | Solid colour or gradient background |
+| `css` | outlet | `haywire-core:type:STRING` | Text data |
 
 ## Notes
 

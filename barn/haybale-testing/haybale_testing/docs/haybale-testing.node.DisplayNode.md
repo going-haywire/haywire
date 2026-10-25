@@ -8,10 +8,10 @@ Displays input values for debugging
 
 | id | direction | type | description |
 |---|---|---|---|
-| a | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| b | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| operation | inlet | haywire-core:type:STRING | Text data |
-| result | outlet | haywire-core:type:FLOAT | Decimal numberer |
+| `a` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `b` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `operation` | inlet | `haywire-core:type:STRING` | Text data |
+| `result` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

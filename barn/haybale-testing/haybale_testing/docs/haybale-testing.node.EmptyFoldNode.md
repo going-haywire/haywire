@@ -8,8 +8,8 @@ Tests that a fold holding no ports raises
 
 | id | direction | type | description |
 |---|---|---|---|
-| nothing | config | haywire-core:type:FOLD | Hides or shows the ports inside it |
-| out | outlet | haywire-core:type:STRING | Text data |
+| `nothing` | config | `haywire-core:type:FOLD` | Hides or shows the ports inside it |
+| `out` | outlet | `haywire-core:type:STRING` | Text data |
 
 ## Notes
 

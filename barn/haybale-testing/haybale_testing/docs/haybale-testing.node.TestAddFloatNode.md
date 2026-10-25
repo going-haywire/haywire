@@ -8,9 +8,9 @@ Test arithmetic node — adds two float values
 
 | id | direction | type | description |
 |---|---|---|---|
-| value_a | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| value_b | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| result | outlet | haywire-core:type:FLOAT | Decimal numberer |
+| `value_a` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `value_b` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `result` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

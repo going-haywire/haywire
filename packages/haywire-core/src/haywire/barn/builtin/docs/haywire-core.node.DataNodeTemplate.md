@@ -8,8 +8,8 @@ Computes a value from its inputs each time the graph runs.
 
 | id | direction | type | description |
 |---|---|---|---|
-| x | inlet | haywire-core:type:FLOAT | Decimal numberer |
-| result | outlet | haywire-core:type:FLOAT | Decimal numberer |
+| `x` | inlet | `haywire-core:type:FLOAT` | Decimal number |
+| `result` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

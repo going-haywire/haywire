@@ -8,9 +8,9 @@ Triggered periodically by a connected TickEmitNode
 
 | id | direction | type | description |
 |---|---|---|---|
-| listen_callback | outlet | haywire-core:type:CALLBACK | Signal for callback execution between nodes |
-| exec | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| delta_time | outlet | haywire-core:type:FLOAT | Decimal numberer |
+| `listen_callback` | outlet | `haywire-core:type:CALLBACK` | Signal for callback execution between nodes |
+| `exec` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `delta_time` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

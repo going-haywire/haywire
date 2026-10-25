@@ -8,9 +8,9 @@ Test control node emitting to every dataclass subscription in its pool
 
 | id | direction | type | description |
 |---|---|---|---|
-| execute | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| subscriptions | inlet | haybale-core:type:PooledType | Multi-source aggregation |
-| exec | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
+| `execute` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `subscriptions` | inlet | `haybale-core:type:PooledType` | Multi-source aggregation |
+| `exec` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 
 ## Notes
 

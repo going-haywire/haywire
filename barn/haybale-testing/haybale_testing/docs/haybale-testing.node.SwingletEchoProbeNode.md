@@ -8,7 +8,7 @@ Test-only: a data node whose float swinglet records an arrival and writes it plu
 
 | id | direction | type | description |
 |---|---|---|---|
-| s | swinglet | haywire-core:type:FLOAT | Decimal numberer |
+| `s` | swinglet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

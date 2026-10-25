@@ -8,12 +8,12 @@ Emits tick callbacks at a configurable framerate
 
 | id | direction | type | description |
 |---|---|---|---|
-| start | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| stop | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| target_fps | inlet | haywire-core:type:FLOAT | Targeted Frames per second - needs a start signal to be applied |
-| callback_names | inlet | haybale-core:type:PooledType | Multi-source aggregation |
-| started | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| stopped | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
+| `start` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `stop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `target_fps` | inlet | `haywire-core:type:FLOAT` | Targeted Frames per second - needs a start signal to be applied |
+| `callback_names` | inlet | `haybale-core:type:PooledType` | Multi-source aggregation |
+| `started` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `stopped` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 
 ## Notes
 

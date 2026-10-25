@@ -8,28 +8,28 @@ A box of text for diagrams; links to other annotations with styled arrows
 
 | id | direction | type | description |
 |---|---|---|---|
-| exec | inlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| top_0 | swinglet | haywire-core:type:ADD | Grows a new port from whatever connects to it |
-| right_0 | swinglet | haywire-core:type:ADD | Grows a new port from whatever connects to it |
-| bottom_0 | swinglet | haywire-core:type:ADD | Grows a new port from whatever connects to it |
-| left_0 | swinglet | haywire-core:type:ADD | Grows a new port from whatever connects to it |
-| done | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
+| `exec` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `top_0` | swinglet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
+| `right_0` | swinglet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
+| `bottom_0` | swinglet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
+| `left_0` | swinglet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
+| `done` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 
 ## Settings
 
 | name | bag | default | description |
 |---|---|---|---|
-| text | annotation | '' | What the note says; double-click the card to edit it |
-| h_align | annotation | 'center' |  |
-| v_align | annotation | 'middle' |  |
-| font | annotation | 'sans' |  |
-| font_size | annotation | 14 | Size of the text in pixels |
-| bold | annotation | False |  |
-| italic | annotation | False |  |
-| underline | annotation | False |  |
-| text_color | annotation | '' | Empty uses the theme's text color |
-| highlight_color | annotation | '' | Marker behind the text; empty draws none |
-| show_control_pins | annotation | False | Draw the control pins while they are unlinked |
+| `text` | annotation | `''` | What the note says; double-click the card to edit it |
+| `h_align` | annotation | `'center'` |  |
+| `v_align` | annotation | `'middle'` |  |
+| `font` | annotation | `'sans'` |  |
+| `font_size` | annotation | `14` | Size of the text in pixels |
+| `bold` | annotation | `False` |  |
+| `italic` | annotation | `False` |  |
+| `underline` | annotation | `False` |  |
+| `text_color` | annotation | `''` | Empty uses the theme's text color |
+| `highlight_color` | annotation | `''` | Marker behind the text; empty draws none |
+| `show_control_pins` | annotation | `False` | Draw the control pins while they are unlinked |
 
 ## Notes
 

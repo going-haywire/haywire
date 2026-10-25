@@ -37,7 +37,7 @@
 
 ## type
 - `haybale-testing:type:TEST_BOOL` — Boolean — True or False
-- `haybale-testing:type:TEST_FLOAT` — Float — Decimal numberer
+- `haybale-testing:type:TEST_FLOAT` — Float — Decimal number
 - `haybale-testing:type:TEST_INT` — Integer — Whole number
 - `haybale-testing:type:TEST_RECORD_CALLBACK` — Test Record Callback — Test callback subscription carried as a dataclass
 - `haybale-testing:type:TEST_STRING` — String — Text data

@@ -8,7 +8,7 @@
 - `haybale-example:node:MergeCallbackNode` — Merge Callback — Listens for a specified number of callbacks from other flows  _tags: callback, listen, event, custom_
 
 ## macro
-- `haybale-example:macro:NewMacroGroup` — NewMacroGroup — 
+- `haybale-example:macro:NewMacroGroup` — NewMacroGroup — TestMacroGroup to see how macros work
 
 ## type
 - `haybale-example:type:FILL` — Fill — Solid colour or gradient background

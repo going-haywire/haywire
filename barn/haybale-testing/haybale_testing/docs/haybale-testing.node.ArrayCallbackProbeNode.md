@@ -8,8 +8,8 @@ Test-only: an array-of-CALLBACK outlet and inlet.
 
 | id | direction | type | description |
 |---|---|---|---|
-| names_in | inlet | haybale-core:type:ArrayType | Homogeneous typed array |
-| names_out | outlet | haybale-core:type:ArrayType | Homogeneous typed array |
+| `names_in` | inlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
+| `names_out` | outlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
 
 ## Notes
 

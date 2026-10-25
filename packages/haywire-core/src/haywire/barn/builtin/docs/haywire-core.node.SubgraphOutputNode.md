@@ -8,7 +8,7 @@ Defines the outlets of the Graph-node that owns this Subgraph.
 
 | id | direction | type | description |
 |---|---|---|---|
-| slot_0 | inlet | haywire-core:type:ADD | Grows a new port from whatever connects to it |
+| `slot_0` | inlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
 
 ## Notes
 

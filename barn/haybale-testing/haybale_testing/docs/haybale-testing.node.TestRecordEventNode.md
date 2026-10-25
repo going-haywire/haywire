@@ -8,8 +8,8 @@ Test event node whose subscription is a dataclass callback value
 
 | id | direction | type | description |
 |---|---|---|---|
-| subscription | outlet | haybale-testing:type:TEST_RECORD_CALLBACK | Test callback subscription carried as a dataclass |
-| triggered | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
+| `subscription` | outlet | `haybale-testing:type:TEST_RECORD_CALLBACK` | Test callback subscription carried as a dataclass |
+| `triggered` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 
 ## Notes
 

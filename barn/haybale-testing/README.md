@@ -44,7 +44,7 @@ Test library for test support
 
 ## Types
 - **Boolean** — True or False
-- **Float** — Decimal numberer
+- **Float** — Decimal number
 - **Integer** — Whole number
 - **String** — Text data
 - **Temperature** — Temperature in Celsius

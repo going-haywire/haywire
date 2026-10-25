@@ -8,12 +8,12 @@ Listens for custom callbacks from other flows
 
 | id | direction | type | description |
 |---|---|---|---|
-| custom_name | config | haywire-core:type:FOLD | Hides or shows the ports inside it |
-| custom_callback_name | config | haywire-core:type:STRING | Text data |
-| thread_mode | config | haywire-core:type:STRING | Text data |
-| listen_callback | outlet | haywire-core:type:CALLBACK | Signal for callback execution between nodes |
-| triggered | outlet | haywire-core:type:EXEC | Signal for controlling execution flow between nodes |
-| payload | outlet | haywire-core:type:FLOAT | Decimal numberer |
+| `custom_name` | config | `haywire-core:type:FOLD` | Hides or shows the ports inside it |
+| `custom_callback_name` | config | `haywire-core:type:STRING` | Text data |
+| `thread_mode` | config | `haywire-core:type:STRING` | Text data |
+| `listen_callback` | outlet | `haywire-core:type:CALLBACK` | Signal for callback execution between nodes |
+| `triggered` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `payload` | outlet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

@@ -8,49 +8,49 @@ Test the Settings for debugging
 
 | id | direction | type | description |
 |---|---|---|---|
-| settings | outlet | haybale-testing:type:TEST_STRING | Text data |
+| `settings` | outlet | `haybale-testing:type:TEST_STRING` | Text data |
 
 ## Settings
 
 | name | bag | default | description |
 |---|---|---|---|
-| example_string | example | 'default string' | An example string setting |
-| example_int | example | 3 | An example integer setting |
-| example_float | example | 5 | A float setting with explicit type_ override |
-| example_bool | example | False | An example boolean setting |
-| example_choices | example | 'fast' | An example choices setting |
-| example_color | example | '#00ff00' | An example color setting |
-| example_vec2i | example | [4, 8] | A 2-component integer vector |
-| example_vec3f | example | [1.0, 2.0, 3.0] | A 3-component float vector |
-| example_vec4f | example | [0.0, 0.0, 0.0, 1.0] | A 4-component float vector (e.g. RGBA or homogeneous coords) |
-| persistent_value | example | 1.0 | Normal stored setting |
-| intensity | example | None | Library-wide default intensity used by test nodes |
-| count_mirror | example | None | Library-wide integer default used by test nodes |
-| label_mirror | example | None | Library-wide string default used by test nodes |
-| enabled | example | None | Library-wide boolean default used by test nodes |
-| mode | example | None | Library-wide mode choice used by test nodes |
-| tint | example | None | Library-wide color default used by test nodes |
-| offset | example | None | Library-wide 2D integer offset used by test nodes |
-| position | example | None | Library-wide 3D float position used by test nodes |
-| intensity_ro | example | None | Library-wide default intensity used by test nodes |
-| count_ro | example | None | Library-wide integer default used by test nodes |
-| label_ro | example | None | Library-wide string default used by test nodes |
-| enabled_ro | example | None | Library-wide boolean default used by test nodes |
-| mode_ro | example | None | Library-wide mode choice used by test nodes |
-| tint_ro | example | None | Library-wide color default used by test nodes |
-| offset_ro | example | None | Library-wide 2D integer offset used by test nodes |
-| position_ro | example | None | Library-wide 3D float position used by test nodes |
-| validated_string | example | 'hello' | Must be non-empty |
-| clamped_positive | example | 1.0 | Must be positive (validator rejects <= 0) |
-| even_int | example | 4 | Must be an even integer |
-| optional_int | example | None | Rests absent. The declared range is the REAL range — no sentinel to admit. |
-| optional_float | example | None | A validator constrains the PRESENT domain only; absence is always allowed. |
-| optional_bool | example | None | Tri-state without a tri-state: True, False, or nothing. |
-| optional_with_default | example | -1 | Rests at a VALUE and can still be cleared — so Reset and 'Set to none' differ. |
-| optional_restore | example | None | Absent by default, but clicking 'none' enters 42 (per-use restore=). |
-| example_string_list | example | ['One', 'Two', 'Three'] |  |
-| example_int_list | example | [1, 2, 3] |  |
-| example_float_list | example | [0.5, 1.5] |  |
+| `example_string` | example | `'default string'` | An example string setting |
+| `example_int` | example | `3` | An example integer setting |
+| `example_float` | example | `5` | A float setting with explicit type_ override |
+| `example_bool` | example | `False` | An example boolean setting |
+| `example_choices` | example | `'fast'` | An example choices setting |
+| `example_color` | example | `'#00ff00'` | An example color setting |
+| `example_vec2i` | example | `[4, 8]` | A 2-component integer vector |
+| `example_vec3f` | example | `[1.0, 2.0, 3.0]` | A 3-component float vector |
+| `example_vec4f` | example | `[0.0, 0.0, 0.0, 1.0]` | A 4-component float vector (e.g. RGBA or homogeneous coords) |
+| `persistent_value` | example | `1.0` | Normal stored setting |
+| `intensity` | example | `None` | Library-wide default intensity used by test nodes |
+| `count_mirror` | example | `None` | Library-wide integer default used by test nodes |
+| `label_mirror` | example | `None` | Library-wide string default used by test nodes |
+| `enabled` | example | `None` | Library-wide boolean default used by test nodes |
+| `mode` | example | `None` | Library-wide mode choice used by test nodes |
+| `tint` | example | `None` | Library-wide color default used by test nodes |
+| `offset` | example | `None` | Library-wide 2D integer offset used by test nodes |
+| `position` | example | `None` | Library-wide 3D float position used by test nodes |
+| `intensity_ro` | example | `None` | Library-wide default intensity used by test nodes |
+| `count_ro` | example | `None` | Library-wide integer default used by test nodes |
+| `label_ro` | example | `None` | Library-wide string default used by test nodes |
+| `enabled_ro` | example | `None` | Library-wide boolean default used by test nodes |
+| `mode_ro` | example | `None` | Library-wide mode choice used by test nodes |
+| `tint_ro` | example | `None` | Library-wide color default used by test nodes |
+| `offset_ro` | example | `None` | Library-wide 2D integer offset used by test nodes |
+| `position_ro` | example | `None` | Library-wide 3D float position used by test nodes |
+| `validated_string` | example | `'hello'` | Must be non-empty |
+| `clamped_positive` | example | `1.0` | Must be positive (validator rejects <= 0) |
+| `even_int` | example | `4` | Must be an even integer |
+| `optional_int` | example | `None` | Rests absent. The declared range is the REAL range — no sentinel to admit. |
+| `optional_float` | example | `None` | A validator constrains the PRESENT domain only; absence is always allowed. |
+| `optional_bool` | example | `None` | Tri-state without a tri-state: True, False, or nothing. |
+| `optional_with_default` | example | `-1` | Rests at a VALUE and can still be cleared — so Reset and 'Set to none' differ. |
+| `optional_restore` | example | `None` | Absent by default, but clicking 'none' enters 42 (per-use restore=). |
+| `example_string_list` | example | `['One', 'Two', 'Three']` |  |
+| `example_int_list` | example | `[1, 2, 3]` |  |
+| `example_float_list` | example | `[0.5, 1.5]` |  |
 
 ## Notes
 

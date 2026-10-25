@@ -8,7 +8,7 @@ Test-only: a data node with a swinglet on a drawn-only wire.
 
 | id | direction | type | description |
 |---|---|---|---|
-| note | swinglet | haybale-testing:type:TEST_VISUAL | Test-only: a text value on a drawn-only wire |
+| `note` | swinglet | `haybale-testing:type:TEST_VISUAL` | Test-only: a text value on a drawn-only wire |
 
 ## Notes
 

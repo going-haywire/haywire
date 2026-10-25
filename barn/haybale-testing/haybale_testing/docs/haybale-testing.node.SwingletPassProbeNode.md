@@ -8,7 +8,7 @@ Test-only: a data node whose float swinglet records each run and writes ten time
 
 | id | direction | type | description |
 |---|---|---|---|
-| s | swinglet | haywire-core:type:FLOAT | Decimal numberer |
+| `s` | swinglet | `haywire-core:type:FLOAT` | Decimal number |
 
 ## Notes
 

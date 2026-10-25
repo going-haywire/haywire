@@ -15,7 +15,7 @@ Example library for demonstrating multi-library support
 - **Merge Callback** — Listens for a specified number of callbacks from other flows
 
 ## Macros
-- **NewMacroGroup** — 
+- **NewMacroGroup** — TestMacroGroup to see how macros work
 
 ## Types
 - **Array** — Map with key type string
