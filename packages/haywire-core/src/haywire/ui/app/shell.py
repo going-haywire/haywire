@@ -914,6 +914,18 @@ class AppShell:
         # Drag-resize event emitted by the JS handler above.
         ui.on("hw-slot-resize", lambda e: self._on_slot_resize(e))
 
+        # A pinch (or Ctrl+scroll) is a wheel with ctrlKey set. Zoom is a graph-canvas
+        # gesture (pan.vue handles it first, on bubble); anywhere else — popups, panels,
+        # Quasar menus — the browser would zoom the whole page. Cmd/Ctrl +/- still does.
+        # passive: false is required — window wheel listeners default to passive.
+        ui.add_head_html(
+            """<script>
+window.addEventListener("wheel", function (e) {
+  if (e.ctrlKey) e.preventDefault();
+}, { passive: false });
+</script>"""
+        )
+
         snapshot = self.session.workspace_manager.snapshot
 
         with ui.column().classes("w-full gap-0").style("height: 100vh; overflow: hidden;"):
