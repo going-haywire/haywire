@@ -39,7 +39,7 @@ class PerformanceTester(BaseNode):
             )
         )
         self.add(EXEC.as_outlet("trigger", label="Trigger"))
-        
+
     def post_init(self):
         pass
 
