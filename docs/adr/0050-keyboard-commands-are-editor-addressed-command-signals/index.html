@@ -3079,6 +3079,25 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#amendment-a-refused-key-is-swallowed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (a refused key is swallowed)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -3132,6 +3151,13 @@
 <li>No default uses Alt/Option, and Alt combinations are not guaranteed to work across keyboard layouts: outside macOS, Ctrl+Alt is AltGr and is matched on the character it types. Multi-key sequences are unsupported.</li>
 <li><code>command_id</code> is the key a future user rebinding would store.</li>
 <li>Keyboard Copy, Cut, Delete and Duplicate act on the part of the session's selection that belongs to the target canvas's own graph, so a selection left in another graph does nothing. The context menu and selection toolbar act on the whole, unfiltered selection through their own implementations of the <code>SelectionActions</code> protocol; unifying the keyboard and menu verbs into one is an open follow-up.</li>
+</ul>
+<h2 id="amendment-a-refused-key-is-swallowed">Amendment (a refused key is swallowed)<a class="headerlink" href="#amendment-a-refused-key-is-swallowed" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>A command the principal's tier lacks keeps its keys.</strong> <code>build_keymap</code> records it in <code>Keymap.denied</code> and binds its combos wherever no allowed command of the editor claims them; an allowed command always wins the combo, and the contest is not a clash. The browser key listener is unchanged: it suppresses the browser's own action and reports the press.</li>
+<li><strong>The shell refuses it.</strong> <code>AppShell._on_key_command</code> publishes nothing for a denied command and notifies "‹Label› needs ‹tier› access", e.g. "Save needs edit access".</li>
+<li><strong>Why.</strong> Leaving the key to the browser turned Ctrl+S for a <code>view</code> principal into the browser's "Save Page" dialog, and Delete or Ctrl+Z into silence; a refusal the user can read replaces both.</li>
+<li><code>Keymap.commands</code> and <code>Keymap.editor_commands()</code> still list only allowed commands, so the Shortcuts editor shows what the principal can do. A tier change reloads the page (ADR 0060), which builds the keymap afresh.</li>
 </ul>
 
 
