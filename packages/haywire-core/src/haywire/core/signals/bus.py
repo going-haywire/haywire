@@ -4,6 +4,8 @@ import logging
 from collections import defaultdict
 from typing import Callable, Dict, List, Tuple, Type, TypeVar
 
+from haywire.core.errors import report_failure
+
 from .signal import Signal
 
 logger = logging.getLogger(__name__)
@@ -87,7 +89,7 @@ class SignalBus:
         """Dispatch ``signal`` to every handler subscribed to its exact class.
 
         Handlers fire in registration order. Each handler runs in its own
-        ``try/except``: a raising handler is logged and the next handler
+        ``try/except``: a raising handler lands in the error ledger and the next handler
         still fires. Multiple raisers in one publish do not short-circuit.
 
         Args:
@@ -103,11 +105,13 @@ class SignalBus:
                 # Sync call only; coroutines are not awaited. Awaiting here would
                 # hit the NiceGUI async slot-stack footgun (.insights/feedback_nicegui_async.md).
                 handler(signal)
-            except Exception:
-                logger.exception(
-                    "SignalBus: handler %r raised during publish of %s; continuing",
-                    handler,
-                    type(signal).__name__,
+            except Exception as exc:
+                report_failure(
+                    exc,
+                    operation="Signal handler",
+                    refusals_fail=True,
+                    signal=type(signal).__name__,
+                    handler=getattr(handler, "__qualname__", repr(handler)),
                 )
 
     # ------------------------------------------------------------------

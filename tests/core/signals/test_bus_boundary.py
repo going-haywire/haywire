@@ -1,0 +1,72 @@
+"""Subscriber failures reach the error ledger; delivery continues."""
+
+from unittest.mock import MagicMock
+
+import pytest
+
+from haywire.core.errors import Refusal
+from haywire.core.errors.ledger import ErrorLedger, get_error_ledger, set_error_ledger
+from haywire.core.signals.bus import SignalBus
+from haywire.core.signals.dispatcher import SignalDispatcher
+from haywire.core.signals.signal import Signal
+
+pytestmark = pytest.mark.unit
+
+
+class _Ping(Signal):
+    pass
+
+
+@pytest.fixture
+def ledger():
+    previous = get_error_ledger()
+    fresh = ErrorLedger(max_entries=5)
+    set_error_ledger(fresh)
+    yield fresh
+    set_error_ledger(previous)
+
+
+def _boom(signal):
+    raise KeyError("boom")
+
+
+def test_a_raising_handler_is_recorded_and_the_next_still_runs(ledger):
+    bus = SignalBus()
+    seen: list[Signal] = []
+    bus.subscribe(_Ping, _boom)
+    bus.subscribe(_Ping, seen.append)
+    ping = _Ping()
+    bus.publish(ping)
+    assert seen == [ping]
+    assert ledger.query().total == 1
+
+
+def test_a_refusal_in_a_handler_is_recorded(ledger):
+    bus = SignalBus()
+
+    def refuse(signal):
+        raise Refusal("nope")
+
+    bus.subscribe(_Ping, refuse)
+    bus.publish(_Ping())
+    assert ledger.query().total == 1
+
+
+def test_a_handler_failing_on_every_publish_merges_into_one_entry(ledger):
+    bus = SignalBus()
+    bus.subscribe(_Ping, _boom)
+    for _ in range(100):
+        bus.publish(_Ping())
+    result = ledger.query()
+    assert result.total == 1
+    assert result.entries[0].count == 100
+
+
+def test_a_failing_peer_is_recorded_and_the_next_peer_still_runs(ledger):
+    dispatcher = SignalDispatcher()
+    bad, good = MagicMock(), MagicMock()
+    bad._dispatch.side_effect = RuntimeError("peer down")
+    dispatcher._peers = {"a" * 12: bad, "b" * 12: good}
+    dispatcher.broadcast(_Ping())
+    good._dispatch.assert_called_once()
+    assert ledger.query().total == 1

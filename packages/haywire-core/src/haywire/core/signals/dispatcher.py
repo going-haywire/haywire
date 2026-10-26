@@ -16,6 +16,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Dict
 
+from haywire.core.errors import report_failure
+
 from .signal import Signal
 
 if TYPE_CHECKING:
@@ -79,18 +81,24 @@ class SignalDispatcher:
         and directly by emitters owning no peer (``AppState._signal_emit``,
         ``FarmhandContext.broadcast``).
 
-        Per-peer exceptions are swallowed and logged so one raising subscriber
+        Per-peer exceptions are recorded in the error ledger so one raising subscriber
         does not abort delivery to the rest.
         """
         failed = []
         for peer_id, peer in list(self._peers.items()):
             try:
                 peer._dispatch(signal)
-            except Exception as e:
-                logger.warning(f"SignalDispatcher: broadcast failed for peer {peer_id[:8]}: {e}")
+            except Exception as exc:
+                report_failure(
+                    exc,
+                    operation="Signal broadcast",
+                    refusals_fail=True,
+                    signal=type(signal).__name__,
+                    peer=peer_id[:8],
+                )
                 failed.append(peer_id)
         if failed:
-            logger.warning(f"SignalDispatcher: {len(failed)} peer(s) failed during broadcast")
+            logger.debug("SignalDispatcher: %d peer(s) failed during broadcast", len(failed))
 
 
 __all__ = ["SignalDispatcher"]
