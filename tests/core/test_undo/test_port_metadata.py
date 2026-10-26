@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pytest
 
+from haywire.core.errors import Refusal
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.types.enums import PortOrigin
@@ -121,14 +122,10 @@ class TestUndo:
 
 class TestWhatIsRefused:
     def test_a_declared_port_is_refused(self, node_with_a_resolved_port):
-        """The node author's contract — it appears in the component's docs.
-
-        ``ActionBase.execute`` wraps the refusal in a ``RuntimeError``, so the
-        reason travels in the message rather than the type.
-        """
+        """The node author's contract — it appears in the component's docs."""
         graph, wrapper = node_with_a_resolved_port
 
-        with pytest.raises(RuntimeError, match="not resolved"):
+        with pytest.raises(Refusal, match="not resolved"):
             SetPortMetadataAction(graph, wrapper.node_id, "authored", label="Mine").execute()
 
         assert wrapper.node.ports["authored"].label == "Authored"

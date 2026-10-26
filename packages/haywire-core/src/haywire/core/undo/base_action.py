@@ -11,6 +11,7 @@ import uuid
 from abc import ABC
 from typing import Any, Dict, Optional
 
+from ..errors import Refusal
 from .interfaces import IAction
 
 
@@ -63,7 +64,8 @@ class ActionBase(IAction, ABC):
         Execute the action with error handling and validation.
 
         This method wraps the actual execution logic with common
-        validation and error handling.
+        validation and error handling. A ``Refusal`` propagates unchanged; any
+        other exception is re-raised as a ``RuntimeError``.
         """
         if self._executed:
             raise RuntimeError(f"Action {self.action_id} has already been executed")
@@ -71,6 +73,8 @@ class ActionBase(IAction, ABC):
         try:
             self._execute_impl()
             self._executed = True
+        except Refusal:
+            raise
         except Exception as e:
             raise RuntimeError(f"Failed to execute action {self.description}: {e}") from e
 
@@ -79,7 +83,8 @@ class ActionBase(IAction, ABC):
         Undo the action with error handling and validation.
 
         This method wraps the actual undo logic with common
-        validation and error handling.
+        validation and error handling. A ``Refusal`` propagates unchanged; any
+        other exception is re-raised as a ``RuntimeError``.
         """
         if not self._executed:
             raise RuntimeError(f"Cannot undo action {self.action_id} that hasn't been executed")
@@ -87,6 +92,8 @@ class ActionBase(IAction, ABC):
         try:
             self._undo_impl()
             self._executed = False
+        except Refusal:
+            raise
         except Exception as e:
             raise RuntimeError(f"Failed to undo action {self.description}: {e}") from e
 

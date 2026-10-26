@@ -2,6 +2,8 @@
 
 import pytest
 
+from haywire.core.errors import Refusal
+
 pytestmark = pytest.mark.integration  # needs library_system for builtin types/nodes
 
 # A node with plain data inlets (example:node:MathOP has FLOAT inlets value_a/value_b).
@@ -163,7 +165,7 @@ def test_the_refusal_names_the_mechanism(graph_and_editor):
     wrapper = _add_node(editor, POOLED_NODE_KEY)
     action = SetPropertyAction(graph, wrapper.node_id, "pooled_float_inlet", 3.0)
 
-    with pytest.raises(ValueError, match="holds no own value.*only from its edges"):
+    with pytest.raises(Refusal, match="holds no own value.*only from its edges"):
         action._resolve()
 
 

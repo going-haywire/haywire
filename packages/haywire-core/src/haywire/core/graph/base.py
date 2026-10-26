@@ -17,6 +17,7 @@ import logging
 from haywire.core.validation.interface import IStructuralValidator
 from haywire.core.validation.structural_validator import StructuralValidator
 from haywire.core.library.utils import get_registry_id_from_key
+from haywire.core.errors import Refusal
 
 from ..types import Propagation
 from ..types.wire import WireRole
@@ -693,7 +694,7 @@ class BaseGraph:
             The added wrapper.
 
         Raises:
-            ValueError: If an edge with the same id is already in the graph, or
+            Refusal: If an edge with the same id is already in the graph, or
                 one already links these pins the other way.
         """
         from ..edge.edge_wrapper import EdgeWrapper
@@ -719,11 +720,11 @@ class BaseGraph:
             The added wrapper.
 
         Raises:
-            ValueError: If a wrapper with the same ``edge_id`` is already in the graph, or one
+            Refusal: If a wrapper with the same ``edge_id`` is already in the graph, or one
                 already links the same two pins the other way (one edge between two pins).
         """
         if edge_wrapper.edge_id in self.edge_wrappers:
-            raise ValueError(f"Edge wrapper with UUID '{edge_wrapper.edge_id}' already exists in graph")
+            raise Refusal(f"Edge wrapper with UUID '{edge_wrapper.edge_id}' already exists in graph")
 
         reverse = generate_edge_uuid(
             edge_wrapper.sink_node_id,
@@ -732,7 +733,7 @@ class BaseGraph:
             edge_wrapper.outlet_port_id,
         )
         if reverse in self.edge_wrappers:
-            raise ValueError(f"Edge wrapper '{reverse}' already links these pins the other way")
+            raise Refusal(f"Edge wrapper '{reverse}' already links these pins the other way")
 
         self.edge_wrappers[edge_wrapper.edge_id] = edge_wrapper
         edge_wrapper.set_as_registered(True)

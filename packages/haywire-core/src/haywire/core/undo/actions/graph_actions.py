@@ -12,6 +12,7 @@ from collections.abc import Hashable, Sequence
 from typing import Any, Optional, Dict, List, Mapping, Tuple
 from dataclasses import dataclass
 
+from ...errors import Refusal
 from ...node import NodeWrapper
 from ...node.layout import (
     CHANNELS,
@@ -1091,7 +1092,7 @@ class SplitEdgeWithRerouteAction(CompositeAction):
 
         edge = graph.get_edge_wrapper(edge_id)
         if edge is None:
-            raise ValueError(f"Edge '{edge_id}' not found; cannot split")
+            raise Refusal(f"Edge '{edge_id}' not found; cannot split")
 
         source_node_id = edge.source_node_id
         outlet_port_id = edge.outlet_port_id
@@ -1171,7 +1172,7 @@ class DissolveRerouteAction(CompositeAction):
     — only the node is removed. This covers all partial states without
     blocking the user.
 
-    Raises ``ValueError`` if ``node_id`` is not present in the graph.
+    Raises ``Refusal`` if ``node_id`` is not present in the graph.
     """
 
     def __init__(
@@ -1182,7 +1183,7 @@ class DissolveRerouteAction(CompositeAction):
     ):
         wrapper = graph.get_node_wrapper(node_id)
         if wrapper is None:
-            raise ValueError(f"Reroute node '{node_id}' not found; cannot dissolve")
+            raise Refusal(f"Reroute node '{node_id}' not found; cannot dissolve")
 
         all_edges = graph._get_all_edges(node_id)
 
@@ -1224,7 +1225,7 @@ class SetPropertyAction(ActionBase):
     own value, or a setting's local override and value.
 
     A port whose field holds no own value (a pooled inlet, an ``ADD`` slot) is
-    refused with a ``ValueError`` naming why; a linked port that does accept
+    refused with a ``Refusal`` naming why; a linked port that does accept
     one stays writable.
 
     ``prefer_setting=True`` flips the resolution order (settings bags first),
@@ -1255,7 +1256,7 @@ class SetPropertyAction(ActionBase):
         """Return (node, kind, accessor) where kind is 'port' or 'setting'."""
         wrapper = self.graph.get_node_wrapper(self.node_id)
         if wrapper is None:
-            raise ValueError(f"Node '{self.node_id}' not found")
+            raise Refusal(f"Node '{self.node_id}' not found")
         node = wrapper.node
 
         def _find_bag() -> Optional[str]:
@@ -1279,13 +1280,13 @@ class SetPropertyAction(ActionBase):
             accessor = _find_bag()
             if accessor is not None:
                 return node, "setting", accessor
-        raise ValueError(f"Node '{self.node_id}' has no port or setting named '{self.name}'")
+        raise Refusal(f"Node '{self.node_id}' has no port or setting named '{self.name}'")
 
     def _require_own_value(self, node: Any) -> None:
-        """Raise ``ValueError`` when the named port stores no value of its own."""
+        """Raise ``Refusal`` when the named port stores no value of its own."""
         data = node.ports[self.name].data
         if not data.accepts_own_value():
-            raise ValueError(
+            raise Refusal(
                 f"Port '{self.name}' on '{self.node_id}' holds no own value: its value comes only "
                 f"from its edges (a pooled inlet or an ADD slot)."
             )
@@ -1388,12 +1389,12 @@ class _SettingWriteAction(ActionBase):
         self._old_value: Any = None
 
     def _bag(self) -> Any:
-        """Return the owner's current bag; raise ``ValueError`` if it is gone or has no field ``name``."""
+        """Return the owner's current bag; raise ``Refusal`` if it is gone or has no field ``name``."""
         bag = self.owner.resolve(self.graph)
         if bag is None:
-            raise ValueError(f"No settings bag at {self.owner}")
+            raise Refusal(f"No settings bag at {self.owner}")
         if self.name not in type(bag)._settings_descriptors():
-            raise ValueError(f"{type(bag).__name__} has no setting '{self.name}'")
+            raise Refusal(f"{type(bag).__name__} has no setting '{self.name}'")
         return bag
 
     def value_key(self) -> Hashable | None:
@@ -1439,7 +1440,7 @@ class SetSettingAction(_SettingWriteAction):
     graph becomes unsaved only when the field's local override or value changed.
 
     Raises:
-        ValueError: On execute or undo, if ``owner`` no longer resolves in the
+        Refusal: On execute or undo, if ``owner`` no longer resolves in the
             graph or its bag has no field ``name``.
 
     Example::
@@ -1480,7 +1481,7 @@ class ResetSettingAction(_SettingWriteAction):
     :class:`SetSettingAction` does.
 
     Raises:
-        ValueError: On execute or undo, if ``owner`` no longer resolves in the
+        Refusal: On execute or undo, if ``owner`` no longer resolves in the
             graph or its bag has no field ``name``.
     """
 
@@ -1522,7 +1523,7 @@ class SetSettingsAction(_SettingsFormAction):
     ``changed`` is true when any bag's stored pair changed.
 
     Raises:
-        ValueError: On execute or undo, as :class:`SetSettingAction` does for any owner.
+        Refusal: On execute or undo, as :class:`SetSettingAction` does for any owner.
     """
 
     def __init__(self, graph: BaseGraph, owners: Sequence[SettingOwner], name: str, value: Any):
@@ -1557,7 +1558,7 @@ class ResetSettingsAction(_SettingsFormAction):
     Undo puts each bag's own local value back. Never amends and is never amended.
 
     Raises:
-        ValueError: On execute or undo, as :class:`ResetSettingAction` does for any owner.
+        Refusal: On execute or undo, as :class:`ResetSettingAction` does for any owner.
     """
 
     def __init__(self, graph: BaseGraph, owners: Sequence[SettingOwner], name: str):
@@ -1568,7 +1569,7 @@ class ReorderPortsAction(ActionBase):
     """Undoable reorder of one sibling group of a node's ports; see ``NodeData.reorder_ports``.
 
     Raises:
-        ValueError: On execute or undo, if the node is not in the graph.
+        Refusal: On execute or undo, if the node is not in the graph.
     """
 
     def __init__(self, graph: BaseGraph, node_id: str, ordered_ids: List[str]):
@@ -1585,7 +1586,7 @@ class ReorderPortsAction(ActionBase):
     def _node(self) -> Any:
         wrapper = self.graph.get_node_wrapper(self.node_id)
         if wrapper is None:
-            raise ValueError(f"Node '{self.node_id}' not found")
+            raise Refusal(f"Node '{self.node_id}' not found")
         return wrapper.node
 
     def _execute_impl(self) -> None:
@@ -1602,8 +1603,9 @@ class SetEdgePropagationAction(ActionBase):
     """Undoable change of an edge's propagation mode; the edge redraws.
 
     Raises:
-        ValueError: If the edge is not in the graph, or on execute when the edge
-            refuses ``propagation`` (see ``EdgeWrapper.propagation``).
+        Refusal: On execute or undo, if the edge is not in the graph.
+        ValueError: On execute, when the edge refuses ``propagation`` (see
+            ``EdgeWrapper.propagation``).
     """
 
     def __init__(self, graph: BaseGraph, edge_id: str, propagation: Propagation):
@@ -1616,7 +1618,7 @@ class SetEdgePropagationAction(ActionBase):
     def _edge(self) -> EdgeWrapper:
         wrapper = self.graph.get_edge_wrapper(self.edge_id)
         if wrapper is None:
-            raise ValueError(f"Edge '{self.edge_id}' not found")
+            raise Refusal(f"Edge '{self.edge_id}' not found")
         return wrapper
 
     def _execute_impl(self) -> None:
@@ -1660,7 +1662,7 @@ class SetPortMetadataAction(ActionBase):
     regenerated on load, so an edit could not persist.
 
     Raises:
-        ValueError: If the node or port is not found, or the port's origin is
+        Refusal: If the node or port is not found, or the port's origin is
             not ``RESOLVED``.
 
     Example::
@@ -1706,10 +1708,10 @@ class SetPortMetadataAction(ActionBase):
     def _port(self) -> Any:
         wrapper = self.graph.get_node_wrapper(self.node_id)
         if wrapper is None:
-            raise ValueError(f"Node '{self.node_id}' not found")
+            raise Refusal(f"Node '{self.node_id}' not found")
         port = wrapper.node.ports.get(self.port_id)
         if port is None:
-            raise ValueError(f"Node '{self.node_id}' has no port '{self.port_id}'")
+            raise Refusal(f"Node '{self.node_id}' has no port '{self.port_id}'")
         return port
 
     def _execute_impl(self) -> None:
@@ -1717,7 +1719,7 @@ class SetPortMetadataAction(ActionBase):
 
         port = self._port()
         if port.origin is not PortOrigin.RESOLVED:
-            raise ValueError(
+            raise Refusal(
                 f"Port '{self.port_id}' is {port.origin.value}, not resolved: only a port the "
                 f"user brought into being carries its own label, docs and default"
             )
@@ -1756,7 +1758,7 @@ class RemovePortAction(ActionBase):
     and stay in the graph; undo restores the port and the edges link to it again.
 
     Raises:
-        ValueError: If the node or port is not found, or the port is one the node's
+        Refusal: If the node or port is not found, or the port is one the node's
             author declared.
     """
 
@@ -1773,7 +1775,7 @@ class RemovePortAction(ActionBase):
     def _node(self) -> Any:
         wrapper = self.graph.get_node_wrapper(self.node_id)
         if wrapper is None:
-            raise ValueError(f"Node '{self.node_id}' not found")
+            raise Refusal(f"Node '{self.node_id}' not found")
         return wrapper.node
 
     def _execute_impl(self) -> None:
@@ -1783,9 +1785,9 @@ class RemovePortAction(ActionBase):
         node = self._node()
         port = node.ports.get(self.port_id)
         if port is None:
-            raise ValueError(f"Node '{self.node_id}' has no port '{self.port_id}'")
+            raise Refusal(f"Node '{self.node_id}' has no port '{self.port_id}'")
         if not port.is_user_removable():
-            raise ValueError(f"Port '{self.port_id}' is declared by the node and cannot be removed")
+            raise Refusal(f"Port '{self.port_id}' is declared by the node and cannot be removed")
 
         self._promotion = self._spec = None
         if port.origin is PortOrigin.PROMOTED:
@@ -1826,7 +1828,7 @@ class PromoteSettingAction(ActionBase):
     meantime. The reverse, demoting a pin, is :class:`RemovePortAction`.
 
     Raises:
-        ValueError: If the node is not found.
+        Refusal: If the node is not found.
     """
 
     def __init__(self, graph: BaseGraph, node_id: str, accessor: str, field: str, direction: Any):
@@ -1847,7 +1849,7 @@ class PromoteSettingAction(ActionBase):
     def _node(self) -> Any:
         wrapper = self.graph.get_node_wrapper(self.node_id)
         if wrapper is None:
-            raise ValueError(f"Node '{self.node_id}' not found")
+            raise Refusal(f"Node '{self.node_id}' not found")
         return wrapper.node
 
     def _execute_impl(self) -> None:
@@ -2200,7 +2202,7 @@ class CollapseToGraphNodeAction(CompositeAction):
     core names no library's node.
 
     Raises:
-        ValueError: If fewer than one node is selected, if a selected node is
+        Refusal: If fewer than one node is selected, if a selected node is
             not in the graph, if the selection is not convex (the message names
             the intervening nodes), or if it holds a boundary node (the message
             names those).
@@ -2223,7 +2225,7 @@ class CollapseToGraphNodeAction(CompositeAction):
 
         selected = [node_id for node_id in node_ids if graph.get_node_wrapper(node_id) is not None]
         if not selected:
-            raise ValueError("Nothing to collapse: none of the selected nodes are in the graph")
+            raise Refusal("Nothing to collapse: none of the selected nodes are in the graph")
 
         boundary = [
             node_id
@@ -2232,7 +2234,7 @@ class CollapseToGraphNodeAction(CompositeAction):
             and wrapper.node.behavior.is_boundary_node
         ]
         if boundary:
-            raise ValueError(
+            raise Refusal(
                 "This selection cannot be collapsed: "
                 f"{', '.join(boundary)} carries the interface of the Group it is already in, "
                 "and a Group cannot hand its interface to another one. "
@@ -2241,7 +2243,7 @@ class CollapseToGraphNodeAction(CompositeAction):
 
         is_convex, intervening = check_convex(graph, selected)
         if not is_convex:
-            raise ValueError(
+            raise Refusal(
                 "This selection cannot be collapsed: a path carrying values (data, control or "
                 "callback) would leave the Group and re-enter "
                 f"it through {', '.join(intervening)}. Add them to the selection to collapse it."
@@ -2369,7 +2371,7 @@ class ExpandGraphNodeAction(CompositeAction):
     its own.
 
     Raises:
-        ValueError: If ``node_id`` is not a Graph-node with a Subgraph bound.
+        Refusal: If ``node_id`` is not a Graph-node with a Subgraph bound.
     """
 
     def __init__(
@@ -2385,12 +2387,12 @@ class ExpandGraphNodeAction(CompositeAction):
 
         card = graph.get_node_wrapper(node_id)
         if card is None:
-            raise ValueError(f"Node '{node_id}' not found; cannot expand")
+            raise Refusal(f"Node '{node_id}' not found; cannot expand")
 
         resolve = getattr(card.node, "resolve_definition", None)
         definition = resolve() if resolve is not None else None
         if not isinstance(definition, SubgraphDefinition):
-            raise ValueError(f"Node '{node_id}' is not a Graph-node with a Subgraph; cannot expand")
+            raise Refusal(f"Node '{node_id}' is not a Graph-node with a Subgraph; cannot expand")
 
         input_node = definition.input_node
         output_node = definition.output_node
@@ -2580,7 +2582,7 @@ class DetachPlacementFromMacroAction(CompositeAction):
     promotion, which consumed the only card standing for the Subgraph.
 
     Raises:
-        ValueError: If ``node_id`` is not a macro placement with an interior.
+        Refusal: If ``node_id`` is not a macro placement with an interior.
     """
 
     def __init__(
@@ -2594,19 +2596,19 @@ class DetachPlacementFromMacroAction(CompositeAction):
 
         card = graph.get_node_wrapper(node_id)
         if card is None:
-            raise ValueError(f"Node '{node_id}' not found; cannot detach")
+            raise Refusal(f"Node '{node_id}' not found; cannot detach")
 
         source_key = str(getattr(card.node, "subgraph_key", "") or "")
         definition = graph.get_subgraph(source_key) if source_key else None
         if definition is None:
-            raise ValueError(
+            raise Refusal(
                 f"Node '{node_id}' has no macro interior to detach; "
                 f"only a placement whose template resolved can be detached."
             )
 
         template_key = getattr(definition, "template_key", None)
         if template_key is None:
-            raise ValueError(f"Node '{node_id}' is already a Group, not a macro placement")
+            raise Refusal(f"Node '{node_id}' is already a Group, not a macro placement")
 
         origin = _macro_origin(template_key)
 
@@ -2683,7 +2685,7 @@ class ClearMacroOriginAction(ActionBase):
     included.
 
     Raises:
-        ValueError: If ``node_id`` is not a Group with an origin.
+        Refusal: If ``node_id`` is not a Group with an origin.
     """
 
     def __init__(self, graph: BaseGraph, node_id: str, description: Optional[str] = None):
@@ -2693,7 +2695,7 @@ class ClearMacroOriginAction(ActionBase):
         definition = resolve() if resolve is not None else None
         origin = getattr(definition, "origin", None)
         if definition is None or origin is None:
-            raise ValueError(f"Node '{node_id}' is not a modified instance; it has no macro origin")
+            raise Refusal(f"Node '{node_id}' is not a modified instance; it has no macro origin")
         self.definition = definition
         self.origin: MacroOrigin = origin
 
@@ -2755,7 +2757,7 @@ class PromoteGroupToMacroAction(CompositeAction):
     already place must not vanish because one promotion was undone.
 
     Raises:
-        ValueError: If ``node_id`` is not a Graph-node with a Subgraph bound.
+        Refusal: If ``node_id`` is not a Graph-node with a Subgraph bound.
     """
 
     def __init__(
@@ -2773,12 +2775,12 @@ class PromoteGroupToMacroAction(CompositeAction):
 
         card = graph.get_node_wrapper(node_id)
         if card is None:
-            raise ValueError(f"Node '{node_id}' not found; cannot save as a macro")
+            raise Refusal(f"Node '{node_id}' not found; cannot save as a macro")
 
         resolve = getattr(card.node, "resolve_definition", None)
         definition = resolve() if resolve is not None else None
         if not isinstance(definition, SubgraphDefinition):
-            raise ValueError(f"Node '{node_id}' is not a Graph-node with a Subgraph; cannot save as a macro")
+            raise Refusal(f"Node '{node_id}' is not a Graph-node with a Subgraph; cannot save as a macro")
 
         position = card.node.props.get_position()
 
@@ -2918,7 +2920,7 @@ class RebuildNodesAction(ActionBase):
     edges are rebuilt with them and a following undo meets the rebuilt node. See ADR 0059.
 
     Raises:
-        ValueError: On execute or undo, if a node is no longer in the graph.
+        Refusal: On execute or undo, if a node is no longer in the graph.
 
     Example::
 
@@ -2941,20 +2943,20 @@ class RebuildNodesAction(ActionBase):
         """Build the action from the nodes' current data.
 
         Raises:
-            ValueError: If a node is not in the graph.
+            Refusal: If a node is not in the graph.
         """
         before: Dict[str, Dict[str, Any]] = {}
         for node_id in node_ids:
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper is None:
-                raise ValueError(f"Node '{node_id}' not found")
+                raise Refusal(f"Node '{node_id}' not found")
             before[node_id] = wrapper.serialize()["node_data"]
         return cls(graph, before, description)
 
     def _check(self) -> None:
         missing = [node_id for node_id in self.before if self.graph.get_node_wrapper(node_id) is None]
         if missing:
-            raise ValueError(f"Nodes no longer in the graph: {', '.join(missing)}")
+            raise Refusal(f"Nodes no longer in the graph: {', '.join(missing)}")
 
     def _execute_impl(self) -> None:
         self._rebuild({node_id: None for node_id in self.before})

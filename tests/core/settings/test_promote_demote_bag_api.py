@@ -10,6 +10,8 @@ primarily for a node's post_init() call sites, e.g.:
 
 import pytest
 
+from haywire.core.errors import Refusal
+
 from haywire.core.types.enums import PortType
 
 pytestmark = pytest.mark.integration
@@ -61,7 +63,7 @@ def test_bag_promote_raises_for_ineligible_direction(make_node_with_setting):
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     type(node.filter).__dict__["threshold"]._promotable = Promotable.OUTLET
-    with pytest.raises(ValueError, match="cannot be promoted"):
+    with pytest.raises(Refusal, match="cannot be promoted"):
         node.filter._promote("threshold", PortType.INLET)
 
 

@@ -13,6 +13,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from haywire.core.types.base import WrapperType
+from haywire.core.errors import Refusal
 from haywire.core.types.enums import PortType, ShowWidgetStrategy
 
 if TYPE_CHECKING:
@@ -186,11 +187,11 @@ def promote_setting(
         order: The port's display position; ``None`` uses declaration order.
 
     Raises:
-        ValueError: If *direction* is none of the three port types, or if
+        Refusal: If *direction* is none of the three port types, or if
             ``eligible_promotion_directions`` does not include it.
     """
     if direction not in (PortType.INLET, PortType.OUTLET, PortType.CONFIG):
-        raise ValueError(f"promote direction must be INLET, OUTLET, or CONFIG, got {direction!r}")
+        raise Refusal(f"promote direction must be INLET, OUTLET, or CONFIG, got {direction!r}")
 
     desc = _descriptor(node, accessor, field)
     pid = desc.storage_key  # the setting's own key is the port id
@@ -199,7 +200,7 @@ def promote_setting(
 
     eligible = eligible_promotion_directions(desc)
     if direction not in eligible:
-        raise ValueError(
+        raise Refusal(
             f"setting {field!r} cannot be promoted to {direction.name.lower()} "
             f"(eligible: {', '.join(d.name.lower() for d in eligible) or 'none'})"
         )

@@ -8,6 +8,8 @@ from typing import Any, cast
 
 import pytest
 
+from haywire.core.errors import Refusal
+
 pytestmark = pytest.mark.unit
 
 
@@ -197,12 +199,12 @@ def test_dissolve_no_edges_only_removes_node():
 
 
 def test_dissolve_raises_on_missing_node():
-    """Raises ValueError if the node_id doesn't exist in the graph."""
+    """Raises Refusal if the node_id doesn't exist in the graph."""
     from haywire.core.undo.actions.graph_actions import DissolveRerouteAction
 
     graph = _FakeGraph(node_id="exists", edges=[])
 
-    with pytest.raises(ValueError, match="not found"):
+    with pytest.raises(Refusal, match="not found"):
         DissolveRerouteAction(graph=cast(Any, graph), node_id="does_not_exist")
 
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from haywire.core.errors import Refusal
+
 from haywire.barn.builtin.nodes.graph_node import GraphNode
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.subgraph import SubgraphDefinition
@@ -352,14 +354,14 @@ class TestCollapse:
     def test_a_non_convex_selection_is_refused_and_names_the_node(self, chain):
         graph, _begin, first, middle, last = chain
 
-        with pytest.raises(ValueError, match=middle.node_id):
+        with pytest.raises(Refusal, match=middle.node_id):
             _collapse(graph, [first.node_id, last.node_id])
 
     def test_a_refused_collapse_changes_nothing(self, chain):
         graph, _begin, first, _middle, last = chain
         before = _snapshot(graph)
 
-        with pytest.raises(ValueError, match="cannot be collapsed"):
+        with pytest.raises(Refusal, match="cannot be collapsed"):
             _collapse(graph, [first.node_id, last.node_id])
 
         assert _snapshot(graph) == before
@@ -368,7 +370,7 @@ class TestCollapse:
     def test_an_empty_selection_is_refused(self, chain):
         graph = chain[0]
 
-        with pytest.raises(ValueError, match="Nothing to collapse"):
+        with pytest.raises(Refusal, match="Nothing to collapse"):
             _collapse(graph, ["nobody"])
 
     def test_a_switch_keeps_both_exec_exits_on_the_card(self, graph_with_library_system: BaseGraph):
@@ -480,13 +482,13 @@ class TestExpand:
     def test_expanding_a_plain_node_is_refused(self, chain):
         graph, _begin, first, _middle, _last = chain
 
-        with pytest.raises(ValueError, match="not a Graph-node"):
+        with pytest.raises(Refusal, match="not a Graph-node"):
             ExpandGraphNodeAction(graph=graph, node_id=first.node_id)
 
     def test_expanding_an_unknown_node_is_refused(self, chain):
         graph = chain[0]
 
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(Refusal, match="not found"):
             ExpandGraphNodeAction(graph=graph, node_id="nobody")
 
 
@@ -728,7 +730,7 @@ class TestBoundaryNodesCannotBeCollapsed:
         input_node = definition.input_node
         assert input_node is not None
 
-        with pytest.raises(ValueError, match=input_node.node_id):
+        with pytest.raises(Refusal, match=input_node.node_id):
             _collapse(definition, [input_node.node_id])
 
     def test_a_selection_around_a_boundary_node_is_refused_too(self, chain):
@@ -736,7 +738,7 @@ class TestBoundaryNodesCannotBeCollapsed:
         _graph, definition = self._group(chain)
         inside = [w.node_id for w in definition.node_wrappers.values()]
 
-        with pytest.raises(ValueError, match="cannot be collapsed"):
+        with pytest.raises(Refusal, match="cannot be collapsed"):
             _collapse(definition, inside)
 
     def test_a_refused_collapse_changes_nothing(self, chain):
@@ -744,7 +746,7 @@ class TestBoundaryNodesCannotBeCollapsed:
         inside = [w.node_id for w in definition.node_wrappers.values()]
         before = _snapshot(definition)
 
-        with pytest.raises(ValueError, match="cannot be collapsed"):
+        with pytest.raises(Refusal, match="cannot be collapsed"):
             _collapse(definition, inside)
 
         assert _snapshot(definition) == before

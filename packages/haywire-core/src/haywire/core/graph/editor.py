@@ -1,6 +1,6 @@
 import logging
 from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
-from haywire.core.errors import report_failure
+from haywire.core.errors import Refusal, report_failure
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.setting_owner import SettingOwner
@@ -713,7 +713,7 @@ class Editor:
                 output_registry_key=output_registry_key,
                 label=label,
             )
-        except ValueError as e:
+        except (ValueError, Refusal) as e:
             logger.info(f"Collapse refused: {e}")
             return (None, str(e))
 
@@ -764,7 +764,7 @@ class Editor:
                 description=description,
                 drop_unmatched_edges=drop_unmatched_edges,
             )
-        except ValueError as e:
+        except (ValueError, Refusal) as e:
             logger.info(f"Save as macro refused: {e}")
             return (None, str(e))
 
@@ -810,7 +810,7 @@ class Editor:
                 node_id=node_id,
                 card_registry_key=card_registry_key,
             )
-        except ValueError as e:
+        except (ValueError, Refusal) as e:
             logger.info(f"Detach refused: {e}")
             return (None, str(e))
 
@@ -838,7 +838,7 @@ class Editor:
         """
         try:
             action = ClearMacroOriginAction(graph=self.graph, node_id=node_id)
-        except ValueError as e:
+        except (ValueError, Refusal) as e:
             logger.info(f"Forget origin refused: {e}")
             return False
         try:

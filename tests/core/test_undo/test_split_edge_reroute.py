@@ -8,6 +8,7 @@ from typing import Any, cast
 
 import pytest
 
+from haywire.core.errors import Refusal
 from haywire.core.graph.base import BaseGraph
 
 pytestmark = pytest.mark.unit
@@ -105,7 +106,7 @@ def test_split_action_resolves_outlet_type_and_builds_children():
 
 def test_split_action_raises_on_missing_edge():
     g = BaseGraph(filestem="G")
-    with pytest.raises(ValueError, match="not found"):
+    with pytest.raises(Refusal, match="not found"):
         _build_split_action(g, edge_id="nope")
 
 

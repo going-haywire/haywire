@@ -271,7 +271,7 @@ class Settings:
         Sugar over ``haywire.core.node.promotion.promote_setting``, e.g.
         ``self.my_bag._promote("choice_field", PortType.CONFIG)``. No-op if
         *field* is already promoted. Raises ``ValueError`` when the bag is not
-        node-bound, and for an ineligible direction (see
+        node-bound, and ``Refusal`` for an ineligible direction (see
         ``eligible_promotion_directions``).
         """
         from haywire.core.node.promotion import bag_accessor, promote_setting

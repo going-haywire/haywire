@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from haywire.core.errors import Refusal
 from tests.conftest import make_edge, make_node
 
 pytestmark = pytest.mark.integration
@@ -55,7 +56,7 @@ def test_a_reverse_note_link_is_refused(graph):
     graph.force_validation()
     assert link.is_valid()
 
-    with pytest.raises(ValueError, match="other way"):
+    with pytest.raises(Refusal, match="other way"):
         graph.create_edge_wrapper(b.node_id, "left_0", a.node_id, "right_0")
     assert len(graph.edge_wrappers) == 1
 
