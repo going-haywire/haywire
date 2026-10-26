@@ -203,7 +203,8 @@ class ErrorsEditor(BaseEditor):
                 # Unseen = bold (louder scan target); seen = normal weight, dimmed.
                 weight = "font-medium" if seen else "font-bold"
                 dim = " hw-text-dim" if seen else ""
-                ui.label(entry.message).classes(f"text-sm truncate {weight}{dim}")
+                text = f"{entry.message} ×{entry.count}" if entry.count > 1 else entry.message
+                ui.label(text).classes(f"text-sm truncate {weight}{dim}")
                 hui.hint(" · ".join(sub_parts))
             self._build_row_menu(entry)
 

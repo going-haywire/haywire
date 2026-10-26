@@ -548,6 +548,27 @@ class HaywireException(Exception):
     """Whether the user has acknowledged this error in the Errors editor.
     Ledger-owned triage state; toggled via the ledger's mark_seen/mark_unseen."""
 
+    count: int = 1
+    """How many occurrences this ledger entry stands for. The ledger raises it
+    when an identical failure (same ``fingerprint()``) repeats while the entry is
+    still unseen."""
+
+    last_seen_at: Optional[float] = None
+    """Timestamp of the most recent merged occurrence; None until one merges."""
+
+    def fingerprint(self) -> tuple:
+        """Identity for ledger dedup: where, what kind, and the message with digits
+        normalized so "Node 3 failed" and "Node 7 failed" collide."""
+        return (
+            self.operation,
+            self.registry_key,
+            self.graph_id,
+            self.node_id,
+            self.edge_id,
+            self.category,
+            re.sub(r"\d+", "#", self.message),
+        )
+
     def __post_init__(self):
         """Initialize exception and compute derived fields"""
         super().__init__(self.message)
@@ -1227,6 +1248,8 @@ class HaywireException(Exception):
             "severity": self.severity.value if self.severity else None,
             "category": self.category,
             "timestamp": self.timestamp,
+            "count": self.count,
+            "last_seen_at": self.last_seen_at,
             "operation": self.operation,
             "registry_key": self.registry_key,
             "node_id": self.node_id,

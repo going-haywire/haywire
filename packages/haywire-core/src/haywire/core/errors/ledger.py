@@ -118,15 +118,34 @@ class ErrorLedger:
         (no duplicate append, no seq bump, no listener fire, so a stray double
         ``.log()`` can't spuriously flash the unseen badge). Once set, an
         exception's ledger identity is permanent.
+
+        A fresh exception whose ``fingerprint()`` matches an unseen entry is
+        merged into it (``count`` and ``last_seen_at`` bump, ``current_seq`` does
+        not advance) and gets that entry's seq; listeners still fire.
         """
         if exc.ledger_seq != 0:
             return exc.ledger_seq
+        fingerprint = exc.fingerprint()
         with self._lock:
-            self._seq += 1
-            exc.ledger_seq = self._seq
-            exc.seen = False
-            self._entries.append(exc)
-            seq = self._seq
+            # A repeat of a still-unseen entry merges into it instead of
+            # appending, so a node failing every frame cannot flood the ledger.
+            # The merged exception shares the entry's seq, which keeps a second
+            # .log() of it a no-op.
+            existing = next(
+                (e for e in reversed(self._entries) if not e.seen and e.fingerprint() == fingerprint),
+                None,
+            )
+            if existing is not None:
+                existing.count += exc.count
+                existing.last_seen_at = exc.timestamp
+                exc.ledger_seq = existing.ledger_seq
+                seq = existing.ledger_seq
+            else:
+                self._seq += 1
+                exc.ledger_seq = self._seq
+                exc.seen = False
+                self._entries.append(exc)
+                seq = self._seq
         # Notify OUTSIDE the lock: a listener may re-enter the ledger (query())
         # or be slow, and holding the lock would deadlock/contend with concurrent
         # record()/query() from other threads. Snapshot the list so a listener

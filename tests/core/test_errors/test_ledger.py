@@ -68,7 +68,7 @@ def test_query_filters_by_library_and_registry_key(ledger):
 
 def test_bounded_drops_oldest(ledger):
     for i in range(8):  # max_entries=5
-        ledger.record(_exc(f"e{i}"))
+        ledger.record(_exc(f"e{i}", operation=f"op{i}"))
     page = ledger.query(limit=100)
     assert page.total == 5
     assert page.entries[0].message == "e3"  # oldest surviving
@@ -78,7 +78,7 @@ def test_bounded_drops_oldest(ledger):
 
 def test_query_pagination(ledger):
     for i in range(5):
-        ledger.record(_exc(f"e{i}"))
+        ledger.record(_exc(f"e{i}", operation=f"op{i}"))
     page = ledger.query(limit=2, offset=2)
     assert page.total == 5
     assert [e.message for e in page.entries] == ["e2", "e3"]
@@ -194,7 +194,7 @@ def test_mark_seen_unknown_seq_is_noop(ledger):
 
 def test_mark_all_seen(ledger):
     for i in range(3):
-        ledger.record(_exc(f"e{i}"))
+        ledger.record(_exc(f"e{i}", operation=f"op{i}"))
     ledger.mark_all_seen()
     assert all(e.seen for e in ledger.query().entries)
 
@@ -291,9 +291,80 @@ def test_first_retained_seq_after_eviction():
     set_error_ledger(small)
     try:
         for i in range(3):
-            small.record(_exc(f"e{i}"))
+            small.record(_exc(f"e{i}", operation=f"op{i}"))
         page = small.query()
         assert page.first_retained_seq == 2
         assert page.cursor == 3
     finally:
         set_error_ledger(None)
+
+
+def _err(message: str) -> HaywireException:
+    return HaywireException.create(message, operation="execute", node_id="n1")
+
+
+def test_a_repeat_while_unseen_bumps_the_entry(ledger):
+    first, again = _err("Node 3 failed"), _err("Node 7 failed")
+    seq = ledger.record(first)
+    assert ledger.record(again) == seq
+    assert again.ledger_seq == seq
+    assert ledger.query().total == 1
+    assert first.count == 2
+    assert first.last_seen_at == again.timestamp
+    assert ledger.record(again) == seq
+    assert first.count == 2
+
+
+def test_a_repeat_after_seen_starts_a_new_entry(ledger):
+    ledger.mark_seen(ledger.record(_err("x")))
+    ledger.record(_err("x"))
+    assert ledger.query().total == 2
+
+
+def test_a_repeat_after_delete_starts_a_new_entry(ledger):
+    ledger.delete(ledger.record(_err("x")))
+    ledger.record(_err("x"))
+    assert ledger.query().total == 1
+    assert ledger.query().entries[0].count == 1
+
+
+def test_a_merge_fires_the_listener_but_keeps_the_cursor(ledger):
+    fired = []
+    ledger.add_listener(lambda: fired.append(1))
+    ledger.record(_err("x"))
+    cursor = ledger.current_seq
+    ledger.record(_err("x"))
+    assert len(fired) == 2
+    assert ledger.current_seq == cursor
+
+
+def test_a_different_category_does_not_merge(ledger):
+    ledger.record(HaywireException.create("x", category="A", operation="execute"))
+    ledger.record(HaywireException.create("x", category="B", operation="execute"))
+    assert ledger.query().total == 2
+
+
+def test_concurrent_repeats_from_threads_all_count(ledger):
+    import threading
+
+    def work():
+        for _ in range(50):
+            ledger.record(_err("same"))
+
+    threads = [threading.Thread(target=work) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    page = ledger.query()
+    assert page.total == 1
+    assert page.entries[0].count == 400
+
+
+def test_to_dict_carries_count_and_last_seen_at(ledger):
+    first = _err("x")
+    ledger.record(first)
+    ledger.record(_err("x"))
+    data = first.to_dict()
+    assert data["count"] == 2
+    assert data["last_seen_at"] is not None
