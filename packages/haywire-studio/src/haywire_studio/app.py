@@ -22,10 +22,12 @@ from haywire.ui.console_bridge import get_stdout_tee
 from haywire.ui.extends.codemirror import register_code_intelligence_render_endpoint
 
 from haywire_studio.auth.gate import PRINCIPAL_SCOPE_KEY
+from haywire_studio.error_hooks import ErrorHooks
 
 from .code_intelligence import register_code_intelligence_endpoints
 
 if TYPE_CHECKING:
+    from haywire.core.session.session import Session
     from haywire.ui.app.shell import AppShell
 
 logger = logging.getLogger(__name__)
@@ -67,6 +69,9 @@ class HaywireApp:
         self._error_ledger_listener: Optional[Callable[[], None]] = None
         self._activity_tracker_listener: Optional[Callable[[], None]] = None
 
+        # Installed in on_startup (needs the running loop), uninstalled on shutdown.
+        self._error_hooks = ErrorHooks(self._session_of_client)
+
         self._register_lifecycle()
 
     # ------------------------------------------------------------------
@@ -80,6 +85,14 @@ class HaywireApp:
         app.on_delete(self.on_client_deleted)
         app.on_shutdown(self.on_app_shutdown)
         app.on_startup(self._wire_store_broadcasts)
+        app.on_startup(self._install_error_hooks)
+
+    def _install_error_hooks(self) -> None:
+        self._error_hooks.install()
+
+    def _session_of_client(self, client_id: str) -> Optional["Session"]:
+        session_id = self._client_to_session.get(client_id)
+        return self.session_manager.get_session(session_id) if session_id else None
 
     def _wire_store_broadcasts(self) -> None:
         """Bridge each process-wide observable store to its cross-session signal.
@@ -127,6 +140,8 @@ class HaywireApp:
             get_stdout_tee().clear_history()
         except Exception as e:
             print(f"  Error clearing stdout tee history: {e}")
+
+        self._error_hooks.uninstall()
 
         # 3. Unwire the observable-store bridges (mirrors console bridge).
         if self._error_ledger_listener is not None:
