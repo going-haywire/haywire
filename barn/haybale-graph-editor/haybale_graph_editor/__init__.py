@@ -15,10 +15,6 @@ from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.state import LibraryStateRegistry
 from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.skin.registry import SkinRegistry
-
-# Public API re-exports
-from haybale_graph_editor.protocols import GraphContainer
-from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haywire.ui.panel.registry import PanelRegistry
 
 __all__ = ["GraphContainer", "GraphAppState", "Library"]
@@ -71,3 +67,8 @@ class Library(BaseLibrary):
 
     def validate(self) -> bool:
         return True
+
+
+# Public API re-exports. Below Library: GraphAppState's registry key is derived from it.
+from haybale_graph_editor.protocols import GraphContainer  # noqa: E402
+from haybale_graph_editor.state.graph_app_state import GraphAppState  # noqa: E402

@@ -21,6 +21,9 @@ EDITOR = "editor"
 FARMHAND = "farmhand"
 WIRE = "wire"
 
+# Library name of a class that lives under no library.
+SYSTEM_LIBRARY_NAME = "__system__"
+
 
 def derive_library_identity(cls: Type) -> LibraryIdentity:
     """Return the identity of the library ``cls`` belongs to.
@@ -69,7 +72,7 @@ def derive_library_identity(cls: Type) -> LibraryIdentity:
     return LibraryIdentity(
         label="System",
         version="0.0.0",
-        name="__system__",
+        name=SYSTEM_LIBRARY_NAME,
         linked_libraries=[],
         folder_path="auto-generated",
         module_name="haywire",
