@@ -28,7 +28,7 @@ from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
 from haywire.core.access import LevelMode
 from haywire.ui import elements as hui
 from haywire.ui.panel.host_rendering import (
-    _poll_surface,
+    poll_surface,
     counting_leaves,
     partition_panels,
     render_panels,
@@ -126,7 +126,7 @@ class SelectionToolbarProvider:
             self.hide()
             return
 
-        if not _poll_surface(SelectionToolbar, self._context):
+        if not poll_surface(SelectionToolbar, self._context):
             self.hide()
             return
 

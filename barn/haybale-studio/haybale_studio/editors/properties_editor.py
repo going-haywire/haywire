@@ -15,7 +15,7 @@ from haywire.ui.editor.identity import SlotName
 from haywire.ui.panel.base import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.registry import PanelRegistry
-from haywire.ui.panel.host_rendering import _accessible, _poll_surface, render_panel, visible_panels
+from haywire.ui.panel.host_rendering import panel_accessible, poll_surface, render_panel, visible_panels
 from haywire.ui.surface import Surface
 from haywire.ui.panel.redraw_coordinator import PanelRedrawCoordinator
 
@@ -186,9 +186,10 @@ class PropertiesEditor(BaseEditor):
 
     def _refresh(self, context: SessionContext) -> None:
         """Recompute the active surface and redraw both toolbar and content."""
-        self._resolve_active_surface(context)
-        self._rebuild_toolbar(context)
-        self._rebuild_content(context)
+        offered = self._offered_surfaces(context)
+        self._resolve_active_surface(context, offered)
+        self._rebuild_toolbar(context, offered)
+        self._rebuild_content(context, offered)
 
     # ------------------------------------------------------------------
     # Toolbar discovery
@@ -211,42 +212,42 @@ class PropertiesEditor(BaseEditor):
         return [
             surface
             for surface in self._compute_toolbar_surfaces(registry)
-            if any(_accessible(panel_cls, context) for panel_cls in registry.get_panels(surface))
+            if any(panel_accessible(panel_cls, context) for panel_cls in registry.get_panels(surface))
         ]
 
     # ------------------------------------------------------------------
     # Surface resolution
     # ------------------------------------------------------------------
 
-    def _resolve_active_surface(self, context: SessionContext) -> None:
+    def _resolve_active_surface(self, context: SessionContext, offered: list[type[Surface]]) -> None:
         """Set a default surface on first render, or when the active one is no longer offered.
 
         Otherwise the user's choice is preserved regardless of selection
         changes. Default selection picks the lowest-order offered surface
         whose ``poll()`` currently passes.
         """
-        offered = self._offered_surfaces(context)
         if self._active_surface_id is not None:
             if any(surface.id == self._active_surface_id for surface in offered):
                 return  # user's choice — never override
             self._active_surface_id = None
 
         for surface in offered:
-            if _poll_surface(surface, context):
+            if poll_surface(surface, context):
                 self._active_surface_id = surface.id
                 return
 
     def _set_active_surface(self, surface_id: str, context: SessionContext) -> None:
         """Called when the user clicks a toolbar button."""
         self._active_surface_id = surface_id
-        self._rebuild_toolbar(context)
-        self._rebuild_content(context)
+        offered = self._offered_surfaces(context)
+        self._rebuild_toolbar(context, offered)
+        self._rebuild_content(context, offered)
 
-    def _active_surface(self, context: SessionContext) -> type[Surface] | None:
-        """Return the currently-active Surface class, or None."""
+    def _active_surface(self, offered: list[type[Surface]]) -> type[Surface] | None:
+        """Return the currently-active Surface class among ``offered``, or None."""
         if self._active_surface_id is None:
             return None
-        for surface in self._offered_surfaces(context):
+        for surface in offered:
             if surface.id == self._active_surface_id:
                 return surface
         return None
@@ -255,7 +256,7 @@ class PropertiesEditor(BaseEditor):
     # Toolbar rendering
     # ------------------------------------------------------------------
 
-    def _rebuild_toolbar(self, context: SessionContext) -> None:
+    def _rebuild_toolbar(self, context: SessionContext, offered: list[type[Surface]]) -> None:
         if self._toolbar is None:
             return
         self._toolbar.clear()
@@ -263,10 +264,10 @@ class PropertiesEditor(BaseEditor):
         active_surface_id = self._active_surface_id
 
         with self._toolbar:
-            for surface in self._offered_surfaces(context):
+            for surface in offered:
                 # A false poll() greys the tab in place rather than removing
                 # it — the editor drew this chrome, so the editor greys it.
-                applies = _poll_surface(surface, context)
+                applies = poll_surface(surface, context)
                 presentation = surface.presentation
                 assert presentation is not None  # filtered on above
                 surface_id_capture = surface.id
@@ -288,12 +289,12 @@ class PropertiesEditor(BaseEditor):
         """Panels on the active surface, in order."""
         return panel_registry.get_panels(surface)
 
-    def _rebuild_content(self, context: SessionContext) -> None:
+    def _rebuild_content(self, context: SessionContext, offered: list[type[Surface]]) -> None:
         if self._content is None:
             return
         self._content.clear()
 
-        surface = self._active_surface(context)
+        surface = self._active_surface(offered)
         if surface is None:
             with self._content:
                 hui.empty_state("Nothing to show", icon=hui.icon.empty_no_selection)
@@ -301,7 +302,7 @@ class PropertiesEditor(BaseEditor):
 
         # A greyed tab drops its content: the surface gate runs once, here,
         # and the shared panel filter does not re-check it.
-        if not _poll_surface(surface, context):
+        if not poll_surface(surface, context):
             with self._content:
                 hui.empty_state("Nothing to show", icon=hui.icon.empty_no_selection)
             return

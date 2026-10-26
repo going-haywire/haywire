@@ -25,7 +25,7 @@ Items carry stable IDs (`#N`; handoff notes cite them), so the numbering has gap
 
 - **#13** **Slice 5b-4 leftovers:** a `storage_key` collision in `widget_instances`; the guard misses `bag.x =`; a Group's mirrored ports drop `operable`; Farmhand's not-operable message; hard-coded 12 px padding.
 - **#15** **Edit-instance polish** (`internals/handoff/edit-instance-followups.md` §3): `Editor.last_promotion_dropped_edges` is a last-call field (return it from `promote_to_macro` once a second caller needs it); optional notice in a second session whose placement level became a modified instance.
-- **#54** **`properties_editor.py` imports private core helpers** `_accessible` and `_poll_surface`; make them public. `_offered_surfaces` runs up to three times per draw.
+- **#54** **DONE** (2026-10-26: `panel_accessible`, `poll_surface`; offered surfaces computed once per refresh) **`properties_editor.py` imports private core helpers** `_accessible` and `_poll_surface`; make them public. `_offered_surfaces` runs up to three times per draw.
 - **#55** **`_allows(USER_DRAG_START)` is checked twice per gesture** (`canvas.vue` `_startUnifiedDrag` and the drag-start emit): a mode rise mid-press emits a drag start with an empty node list (harmless). Gate the emit on `draggedElements.length > 0`.
 - **#56** **`AppShell._on_roster_changed` borrows the keymap listener's client;** capture the client in `_mount_tier_watch` and drop the silent `listener is None` branch. `resolve_tier` is imported inside the function (tests patch it there).
 - **#57** **AccessGate leaves `window.hwAccess` and `<html data-hw-session-mode>` behind on unmount** (harmless with one gate per page).

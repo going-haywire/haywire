@@ -14,7 +14,7 @@ from typing import Callable, Optional, Tuple, TYPE_CHECKING
 from haywire.ui import elements as hui
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.host_rendering import (
-    _poll_surface,
+    poll_surface,
     counting_leaves,
     partition_panels,
     render_panels,
@@ -129,7 +129,7 @@ class BaseContextMenuProvider:
         # Gate the surface before building anything. A surface that does not
         # apply costs nothing and takes the cheap early return, which is what
         # keeps the common paths off the render-then-discard path below.
-        if not _poll_surface(surface, self._context):
+        if not poll_surface(surface, self._context):
             _wrapped_on_close()
             return
 

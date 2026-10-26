@@ -243,7 +243,7 @@ This pattern only applies to host editors with third-party panel content. Most e
 The salient excerpts:
 
 ```python
---8<-- "barn/haybale-studio/haybale_studio/editors/properties_editor.py:28:300"
+--8<-- "barn/haybale-studio/haybale_studio/editors/properties_editor.py:28:301"
 ```
 
 from: `PropertiesEditor` — registry_key: `haybale-studio:editor:PropertiesEditor`

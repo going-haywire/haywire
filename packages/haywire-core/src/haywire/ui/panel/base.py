@@ -115,7 +115,7 @@ class BasePanel(ABC):
 
         from haywire.ui import elements as hui
         from haywire.ui.panel.host_rendering import (
-            _poll_surface,
+            poll_surface,
             _render_path,
             partition_panels,
             render_panels,
@@ -145,7 +145,7 @@ class BasePanel(ABC):
         # 3. Surface gate, under the error boundary like every other poll.
         #    Ahead of host validation: a surface that does not apply right now
         #    has no business complaining about hosts.
-        if not _poll_surface(surface, ctx):
+        if not poll_surface(surface, ctx):
             return
 
         # 4. Host. Piped by default, never inferred.

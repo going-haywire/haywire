@@ -35,7 +35,7 @@ def _provider(monkeypatch, *, menu_provider=None, allows=lambda _required: True)
         allows=allows,
     )
     # The surface gate runs first; default it open so the panel path is reached.
-    monkeypatch.setattr(selection_toolbar_module, "_poll_surface", lambda surface, ctx: True)
+    monkeypatch.setattr(selection_toolbar_module, "poll_surface", lambda surface, ctx: True)
     return prov, registry, menu_provider
 
 
@@ -49,7 +49,7 @@ def test_show_with_no_panels_opens_nothing(monkeypatch):
 def test_show_hides_when_the_surface_does_not_apply(monkeypatch):
     """The surface gate runs before anything is queried or built."""
     prov, registry, _ = _provider(monkeypatch)
-    monkeypatch.setattr(selection_toolbar_module, "_poll_surface", lambda surface, ctx: False)
+    monkeypatch.setattr(selection_toolbar_module, "poll_surface", lambda surface, ctx: False)
     prov.hide = MagicMock()
     prov.show_at((0.0, 0.0, 100.0, 50.0))
     prov.hide.assert_called_once()

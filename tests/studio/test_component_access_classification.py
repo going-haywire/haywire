@@ -305,7 +305,7 @@ def test_a_view_principal_is_not_offered_the_app_settings_tabs(library_system, r
     assert offered
     assert offered.isdisjoint(APP_SETTINGS_TABS)
 
-    editor._resolve_active_surface(context)
+    editor._resolve_active_surface(context, editor._offered_surfaces(context))
     assert editor._active_surface_id in offered
     # The default is an inspector tab, never an app-settings one.
     assert editor._active_surface_id in INSPECTOR_SURFACE_IDS
@@ -316,7 +316,7 @@ def test_an_edit_principal_is_offered_the_app_settings_tabs(library_system, rest
     editor, context = _properties_editor(library_system, AccessTier.EDIT)
 
     assert APP_SETTINGS_TABS <= {surface.id for surface in editor._offered_surfaces(context)}
-    editor._resolve_active_surface(context)
+    editor._resolve_active_surface(context, editor._offered_surfaces(context))
     assert editor._active_surface_id == "app"
 
 
@@ -325,10 +325,10 @@ def test_an_active_tab_that_stops_being_offered_falls_back_to_one_that_is(
     library_system, restore_resolver
 ) -> None:
     editor, context = _properties_editor(library_system, AccessTier.EDIT)
-    editor._resolve_active_surface(context)
+    editor._resolve_active_surface(context, editor._offered_surfaces(context))
     assert editor._active_surface_id == "app"
 
     set_access_resolver(lambda _name: AccessTier.VIEW)
-    editor._resolve_active_surface(context)
+    editor._resolve_active_surface(context, editor._offered_surfaces(context))
     assert editor._active_surface_id not in APP_SETTINGS_TABS
     assert editor._active_surface_id in {surface.id for surface in editor._offered_surfaces(context)}

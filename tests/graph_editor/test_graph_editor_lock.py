@@ -184,7 +184,7 @@ def test_locking_with_a_selection_leaves_the_toolbar_hidden(monkeypatch):
         menu_provider=MagicMock(),
         allows=manager.route.allows,
     )
-    monkeypatch.setattr(toolbar_module, "_poll_surface", lambda surface, ctx: True)
+    monkeypatch.setattr(toolbar_module, "poll_surface", lambda surface, ctx: True)
     monkeypatch.setattr(toolbar_module, "partition_panels", lambda classes, ctx: (classes, []))
     provider._render_into_popup = lambda applies, disabled: True  # type: ignore[method-assign]
     popup = _Popup()

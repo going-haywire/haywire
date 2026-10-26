@@ -11,7 +11,7 @@ that shared contract; hosts own their own iteration:
   - :func:`render_panel` — instantiates, injects the host, and draws one.
   - :func:`render_panels` — draws a surface's panels in order, with the
     separators between order bands of a ``banded`` surface.
-  - :func:`_poll_surface` — gates a surface once before querying its panels.
+  - :func:`poll_surface` — gates a surface once before querying its panels.
 
 ``_render_path``, the per-render surface ids, is where surface cycles are
 enforced; registration only logs them.
@@ -128,7 +128,7 @@ def _panel_name(panel_cls: type["BasePanel"]) -> str:
     return getattr(panel_cls, "__name__", repr(panel_cls))
 
 
-def _accessible(panel_cls: type["BasePanel"], ctx: "SessionContext") -> bool:
+def panel_accessible(panel_cls: type["BasePanel"], ctx: "SessionContext") -> bool:
     """Whether ``ctx``'s principal may see this panel at all.
 
     Checked *before* poll(), deliberately: a denied panel's poll() may read
@@ -157,7 +157,7 @@ def _poll_panel(panel_cls: type["BasePanel"], ctx: "SessionContext") -> bool:
     return err is None and bool(visible)
 
 
-def _poll_surface(surface: type["Surface"], context: "SessionContext") -> bool:
+def poll_surface(surface: type["Surface"], context: "SessionContext") -> bool:
     """Poll a Surface under the same error boundary panels get.
 
     The surface-level twin of :func:`_poll_panel`, with the same false-on-raise
@@ -206,7 +206,7 @@ def partition_panels(
     applies: list[type["BasePanel"]] = []
     disabled: list[type["BasePanel"]] = []
     for cls in panel_classes:
-        if not _accessible(cls, context):
+        if not panel_accessible(cls, context):
             continue
         (applies if _poll_panel(cls, context) else disabled).append(cls)
     return applies, disabled
@@ -324,7 +324,7 @@ def render_panel(
     # Callers are expected to filter through partition_panels() first, but
     # this is public API and a new host can reach it directly. Refusing here
     # makes the access rule a fact rather than a docstring request.
-    if not _accessible(panel_cls, context):
+    if not panel_accessible(panel_cls, context):
         return False
 
     if disabled and not _implements_draw_disabled(panel_cls):
