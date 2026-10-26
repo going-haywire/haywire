@@ -1270,9 +1270,12 @@ window.addEventListener("wheel", function (e) {
 
         The subscription ends with ``cleanup``.
         """
+        # Imported here so tests can patch haywire.core.access.resolve_tier.
         from haywire.core.access import resolve_tier
 
         self._tier = resolve_tier(self.session.context.principal)
+        # Captured now: the signal may arrive outside any slot context.
+        self._tier_client = ui.context.client
         self._lifecycle_unsubs.append(self.session.subscribe(RosterChanged, self._on_roster_changed))
 
     def _on_roster_changed(self, _signal: RosterChanged) -> None:
@@ -1280,15 +1283,14 @@ window.addEventListener("wheel", function (e) {
         from haywire.core.access import resolve_tier
 
         tier = resolve_tier(self.session.context.principal)
-        listener = self._keymap_listener
-        if tier == self._tier or listener is None:
+        if tier == self._tier:
             return
         self._tier = tier
-        # The client is captured from the listener: the signal may arrive outside any slot context.
-        with listener.client:
+        client = self._tier_client
+        with client:
             ui.notify("Your access changed — reloading")
-        # The listener is a stable page element: the timer dies with the page.
-        with listener:
+        # The page's layout is a stable element: the timer dies with the page.
+        with client.layout:
             ui.timer(_TIER_RELOAD_DELAY_S, ui.navigate.reload, once=True)
 
     def _mount_access_gate(self) -> None:
