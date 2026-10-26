@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from typing import Optional
 
+from haywire.core.errors.refusal import Refusal
 
-class FarmhandError(Exception):
+
+class FarmhandError(Refusal):
     """An expected tool failure, raised instead of letting an exception escape.
 
     The host renders it as an MCP tool error, never a stack trace: clients see
@@ -29,6 +31,5 @@ class FarmhandError(Exception):
     ):
         super().__init__(message)
         self.code = code
-        self.message = message
         self.ids = ids or {}
         self.help = help

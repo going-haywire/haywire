@@ -488,9 +488,8 @@ class HaywireException(Exception):
     the exception outlives the node."""
 
     graph_id: Optional[str] = None
-    """Which graph the offending instance lives in — the graph's binding_id
-    (``str(path)`` for saved graphs, ``__unsaved_N__`` for untitled). Stable
-    across save/rename; the key both HaystackState and GraphAppState use.
+    """Which graph the offending instance lives in: the graph's runtime ``graph_id``
+    (a uuid4 minted per ``BaseGraph``), not its binding id.
     A string, not a graph reference: the exception outlives the graph."""
 
     edge_id: Optional[str] = None
