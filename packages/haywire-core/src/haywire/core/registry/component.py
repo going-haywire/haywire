@@ -11,6 +11,7 @@ from typing import Dict, Generic, List, Optional, cast
 from abc import abstractmethod
 import logging
 
+from ..errors import report_failure
 from ..library.identity import LibraryIdentity
 from .events import FileChangeEvent, HotReloadRegistry, T
 from .identity import BaseIdentity
@@ -226,4 +227,13 @@ class ComponentRegistry(HotReloadRegistry, Generic[T]):
                     f"Registry subscriber '{registry.__class__.__name__}' "
                     f"callback failed for {event.file_path}: {e}",
                     exc_info=True,
+                )
+                report_failure(
+                    e,
+                    operation="Hot reload",
+                    message=(
+                        f"Registry subscriber '{registry.__class__.__name__}' failed for {event.file_path}"
+                    ),
+                    library_identity=event.library_identity,
+                    refusals_fail=True,
                 )

@@ -7,6 +7,7 @@ import sys
 from types import ModuleType
 from typing import List, Type, Optional, Callable
 
+from haywire.core.errors import report_failure
 from haywire.core.library.identity import LibraryIdentity
 
 logger = logging.getLogger(__name__)
@@ -134,6 +135,14 @@ class FolderScanMixin:
                 except Exception as e:
                     # Log filter errors but continue discovery
                     logger.error(f"Filter error for class {name}: \n\n {e} \n")
+                    report_failure(
+                        e,
+                        operation="Hot reload",
+                        message=f"Class filter failed for '{name}' in module '{module_name}'",
+                        module_name=module_name,
+                        library_identity=library_identity,
+                        refusals_fail=True,
+                    )
                     continue
 
         return discovered_classes, module

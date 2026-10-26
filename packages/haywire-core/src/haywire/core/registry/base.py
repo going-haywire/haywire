@@ -9,7 +9,7 @@ from pathlib import Path
 import sys
 import logging
 
-from ..errors import HaywireException
+from ..errors import HaywireException, report_failure
 from ..library.identity import LibraryIdentity
 from ..library.utils import derive_library_identity
 from .component import ComponentRegistry
@@ -593,6 +593,14 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
             if event is None:
                 # No source event to associate the dependency error with;
                 # the cascade-tracking dict is keyed by event context.
+                report_failure(
+                    e,
+                    operation="Hot reload",
+                    message=f"Failed reloading dependency module '{module_name}'",
+                    module_name=module_name,
+                    library_identity=library_identity,
+                    refusals_fail=True,
+                )
                 self.logger.warning(
                     f"Library '{library_identity.label}': failed reloading dependency "
                     f"module '{module_name}' but no source event provided to track."

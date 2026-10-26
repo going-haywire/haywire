@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from typing import Set, List, Dict, Optional
 from dataclasses import dataclass
+
+from ..errors import report_failure
 from collections import deque
 
 logger = logging.getLogger(__name__)
@@ -337,6 +339,13 @@ class DependencyGraph:
 
         except Exception as e:
             logger.warning(f"Failed to extract dependencies from '{module_name}': {e}")
+            report_failure(
+                e,
+                operation="Hot reload",
+                message=f"Failed to extract dependencies from '{module_name}'",
+                module_name=module_name,
+                refusals_fail=True,
+            )
             return set()
 
     def _topological_sort(self, modules: List[str]) -> List[str]:
@@ -425,4 +434,11 @@ class DependencyGraph:
 
         except Exception as e:
             logger.warning(f"Failed to resolve relative import in '{importing_module}': {e}")
+            report_failure(
+                e,
+                operation="Hot reload",
+                message=f"Failed to resolve relative import in '{importing_module}'",
+                module_name=importing_module,
+                refusals_fail=True,
+            )
             return None
