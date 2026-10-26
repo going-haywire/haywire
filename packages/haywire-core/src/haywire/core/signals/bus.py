@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import logging
 from collections import defaultdict
 from typing import Callable, Dict, List, Tuple, Type, TypeVar
 
 from haywire.core.errors import report_failure
 
 from .signal import Signal
-
-logger = logging.getLogger(__name__)
 
 
 # Handler signature: ``(signal) -> None``. The ``ctx`` parameter described in

@@ -328,13 +328,13 @@ def test_a_repeat_after_delete_starts_a_new_entry(ledger):
     assert ledger.query().entries[0].count == 1
 
 
-def test_a_merge_fires_the_listener_but_keeps_the_cursor(ledger):
+def test_a_merge_notifies_no_listener_and_keeps_the_cursor(ledger):
     fired = []
     ledger.add_listener(lambda: fired.append(1))
     ledger.record(_err("x"))
     cursor = ledger.current_seq
     ledger.record(_err("x"))
-    assert len(fired) == 2
+    assert len(fired) == 1
     assert ledger.current_seq == cursor
 
 

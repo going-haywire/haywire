@@ -38,7 +38,12 @@ def test_a_raising_handler_is_recorded_and_the_next_still_runs(ledger):
     ping = _Ping()
     bus.publish(ping)
     assert seen == [ping]
-    assert ledger.query().total == 1
+    result = ledger.query()
+    assert result.total == 1
+    entry = result.entries[0]
+    assert entry.operation == "Signal handler"
+    assert entry.error_context["signal"] == "_Ping"
+    assert entry.error_context["handler"].endswith("_boom")
 
 
 def test_a_refusal_in_a_handler_is_recorded(ledger):
@@ -49,7 +54,10 @@ def test_a_refusal_in_a_handler_is_recorded(ledger):
 
     bus.subscribe(_Ping, refuse)
     bus.publish(_Ping())
-    assert ledger.query().total == 1
+    result = ledger.query()
+    assert result.total == 1
+    assert result.entries[0].operation == "Signal handler"
+    assert result.entries[0].error_context["signal"] == "_Ping"
 
 
 def test_a_handler_failing_on_every_publish_merges_into_one_entry(ledger):
@@ -69,4 +77,37 @@ def test_a_failing_peer_is_recorded_and_the_next_peer_still_runs(ledger):
     dispatcher._peers = {"a" * 12: bad, "b" * 12: good}
     dispatcher.broadcast(_Ping())
     good._dispatch.assert_called_once()
+    result = ledger.query()
+    assert result.total == 1
+    entry = result.entries[0]
+    assert entry.operation == "Signal broadcast"
+    assert entry.error_context["signal"] == "_Ping"
+    assert entry.error_context["peer"] == "a" * 8
+
+
+def test_a_refusal_in_a_broadcast_is_recorded(ledger):
+    dispatcher = SignalDispatcher()
+    bad = MagicMock()
+    bad._dispatch.side_effect = Refusal("nope")
+    dispatcher._peers = {"a" * 12: bad}
+    dispatcher.broadcast(_Ping())
+    result = ledger.query()
+    assert result.total == 1
+    assert result.entries[0].operation == "Signal broadcast"
+    assert result.entries[0].error_context["peer"] == "a" * 8
+
+
+def test_a_listener_republishing_on_a_failing_bus_does_not_loop(ledger):
+    bus = SignalBus()
+    bus.subscribe(_Ping, _boom)
+    fired: list[int] = []
+
+    def bridge():
+        fired.append(1)
+        if len(fired) < 20:  # loop guard: a regression fails instead of hanging
+            bus.publish(_Ping())
+
+    ledger.add_listener(bridge)
+    bus.publish(_Ping())
+    assert len(fired) == 1
     assert ledger.query().total == 1
