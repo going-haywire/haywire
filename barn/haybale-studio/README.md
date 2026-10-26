@@ -7,6 +7,7 @@
 Library for haywire studio
 
 ## Settings
+- **Network** — Where the studio's web server listens.
 - **Node Theme** — Global settings controlling the active node theme.
 - **Workbench Theme** — Global settings controlling the active workbench theme.
 

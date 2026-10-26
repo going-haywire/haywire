@@ -67,6 +67,7 @@ def test_run_installs_middleware_only_when_exposed_true(monkeypatch):
     instance._is_shutting_down = True  # skip cleanup() path
 
     monkeypatch.setattr(instance, "create_ui", lambda: None)
+    monkeypatch.setattr(instance, "_studio_port", lambda: 8124)
     monkeypatch.setattr(instance, "setup_farmhand", lambda port, document, *, tls=False: None)
     monkeypatch.setattr(instance, "_install_auth", lambda document: False)
     monkeypatch.setattr(instance, "_load_security_document", lambda: _document(_network(exposed=True)))
@@ -77,10 +78,8 @@ def test_run_installs_middleware_only_when_exposed_true(monkeypatch):
     )
 
     with (
-        patch("haywire_studio.network.settings.NetworkSettings") as MockSettings,
         patch("haywire_studio.app.ui") as mock_ui,
     ):
-        MockSettings.return_value.port = 8124
         instance.run(open_browser=False)
 
     assert len(install_calls) == 1
@@ -93,6 +92,7 @@ def test_run_skips_middleware_install_when_exposed_false(monkeypatch):
     instance._is_shutting_down = True
 
     monkeypatch.setattr(instance, "create_ui", lambda: None)
+    monkeypatch.setattr(instance, "_studio_port", lambda: 8124)
     monkeypatch.setattr(instance, "setup_farmhand", lambda port, document, *, tls=False: None)
     monkeypatch.setattr(instance, "_install_auth", lambda document: False)
     monkeypatch.setattr(instance, "_load_security_document", lambda: _document(_network(exposed=False)))
@@ -103,10 +103,8 @@ def test_run_skips_middleware_install_when_exposed_false(monkeypatch):
     )
 
     with (
-        patch("haywire_studio.network.settings.NetworkSettings") as MockSettings,
         patch("haywire_studio.app.ui") as mock_ui,
     ):
-        MockSettings.return_value.port = 8124
         instance.run(open_browser=False)
 
     assert install_calls == []
@@ -187,6 +185,7 @@ def test_proxy_warning_does_not_fire_when_exposed_false(monkeypatch, caplog):
     instance._is_shutting_down = True
 
     monkeypatch.setattr(instance, "create_ui", lambda: None)
+    monkeypatch.setattr(instance, "_studio_port", lambda: 8124)
     monkeypatch.setattr(instance, "setup_farmhand", lambda port, document, *, tls=False: None)
     monkeypatch.setattr(instance, "_install_auth", lambda document: False)
     monkeypatch.setattr(
@@ -196,12 +195,10 @@ def test_proxy_warning_does_not_fire_when_exposed_false(monkeypatch, caplog):
     )
 
     with (
-        patch("haywire_studio.network.settings.NetworkSettings") as MockSettings,
         patch("haywire_studio.app.ui"),
         patch("haywire_studio.app.app"),
         caplog.at_level("WARNING", logger="haywire_studio.app"),
     ):
-        MockSettings.return_value.port = 8124
         instance.run(open_browser=False)
 
     assert not any("trusted_proxies is empty" in record.message for record in caplog.records)

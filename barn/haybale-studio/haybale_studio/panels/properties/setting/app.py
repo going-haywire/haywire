@@ -19,6 +19,7 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 
+from haybale_studio.settings.network_settings import NetworkSettings
 from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeThemeSettings
 from haywire.core.skin.settings import NodeDefaultSkinSettings
 from haywire.core.tooling.settings import ExternalToolsSettings
@@ -28,7 +29,6 @@ from haywire.core.farmhand.settings import ActivitySettings
 from haywire.barn.builtin.surfaces import AppSettings
 
 from haywire.core.access import AccessTier
-from haywire_studio.network.settings import NetworkSettings
 from haywire_studio.network.tls_operations import status as tls_status
 from haywire_studio.security.posture import Severity, assess_document
 

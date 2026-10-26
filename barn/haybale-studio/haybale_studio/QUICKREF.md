@@ -1,6 +1,7 @@
 # haybale-studio — component index (v0.2.4)
 
 ## setting
+- `haybale-studio:setting:NetworkSettings` — Network — Where the studio's web server listens.
 - `haybale-studio:setting:NodeThemeSettings` — Node Theme — Global settings controlling the active node theme.
 - `haybale-studio:setting:WorkbenchThemeSettings` — Workbench Theme — Global settings controlling the active workbench theme.
 

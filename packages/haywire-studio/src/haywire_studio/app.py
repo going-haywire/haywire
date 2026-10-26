@@ -379,14 +379,26 @@ class HaywireApp:
         print(f"🔒 Authentication enabled — {len(document.auth.principals)} principal(s)")
         return True
 
+    def _studio_port(self) -> int:
+        """Return the configured studio port, or the default if no library declares the setting."""
+        from haywire_studio.network import DEFAULT_STUDIO_PORT, STUDIO_PORT_KEY
+
+        try:
+            port, _ = self.library_service.get_settings_registry().resolve(STUDIO_PORT_KEY)
+        except KeyError:
+            logger.warning(
+                f"HaywireApp: '{STUDIO_PORT_KEY}' setting is not registered — no library declares it. "
+                f"Listening on the default port {DEFAULT_STUDIO_PORT}."
+            )
+            return DEFAULT_STUDIO_PORT
+        return int(port)
+
     def run(self, *, open_browser: bool = True):
         """Run the application."""
         print("Starting Haywire...")
         self.create_ui()
 
-        from haywire_studio.network.settings import NetworkSettings
-
-        port = NetworkSettings().port
+        port = self._studio_port()
         document: SecurityDocument = self._load_security_document()
         self.security_document = document
 
