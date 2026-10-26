@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A placement is edited by detaching it into a Group that remembers where it came from (its origin); a modified instance then goes back through three verbs, Revert to Macro, Update Macro and Save new Macro, each one undo step, and no verb writes a file except through the macro tab's own Save">
+        <meta name="description" content="A placement is edited by detaching it into a Group that remembers where it came from (its origin), across save and reload; a modified instance then offers four verbs, Revert to Macro, Update Macro, Forget Macro Origin and Save new Macro, each one undo step, and no verb writes a file except through the macro tab's own Save">
       
       
       
@@ -3106,10 +3106,12 @@
 <li><strong>Two entry points, one action.</strong> Unlocking a placement's own interior level asks ("Edit Instance"), then detaches and unlocks. The selection-menu row <strong>Edit Instance</strong> (formerly "Detach from Macro") detaches and enters the new Group. Both need <code>edit</code>.</li>
 <li><strong>Only a placement's own level offers it.</strong> A level deeper inside a placement keeps the ADR 0038 refusal: the unit that detaches is the placement card, and a nested level has no card of its own to detach.</li>
 <li><strong>An open level follows its Subgraph to the new key</strong> (<code>_rekey_level</code>), so the level the user is looking at survives the detach. Undo moves it back and re-locks it.</li>
-<li><strong>Three verbs on a modified instance, each a swap, each one undo step, each needing <code>edit</code></strong> (they reuse the swap that Promote used):</li>
+<li><strong>The origin outlives the session.</strong> It is saved with the host file and reloaded with it, and only a verb ends it. Closing or saving the graph never does, so a reopened file offers the same verbs it offered when it was saved.</li>
+<li><strong>Four verbs on a modified instance, each one undo step, each needing <code>edit</code>.</strong> Three are swaps (they reuse the swap that Promote used):</li>
 <li><strong>Revert to Macro</strong> swaps the card for a placement of the current template. Connections to pins the template lacks are dropped; undo restores them. It writes nothing.</li>
 <li><strong>Update Macro…</strong> (haystack editor) swaps the card for a placement, then opens the origin <code>.hwm</code> in a macro tab holding the instance's contents, unsaved. The user's Save writes the file and the ordinary reload updates every placement. It is greyed out when the macro is not installed, on a read-only install, or while its macro tab has unsaved edits, and it warns when the template's hash differs from <code>origin.hash</code> (the macro changed since the detach). It does not drop edges: connections to newly added pins re-bind after the save's reload.</li>
 <li><strong>Save new Macro…</strong> (formerly "Promote to Macro…") writes a new <code>.hwm</code> without an origin.</li>
+<li><strong>Forget Macro Origin</strong> is not a swap: it clears <code>origin</code> (<code>ClearMacroOriginAction</code>) and keeps the card, its interior and its edges, so the Group becomes a plain Group. Undo restores the same origin, hash included. It is offered whether or not the macro is installed.</li>
 <li><strong>Update Macro writes through the macro tab's Save, never itself.</strong> The tab already owns write, validate and reload; a second writer would bypass its unsaved-edit guard.</li>
 <li><strong>Undo restores the card and never touches files.</strong> Undoing an Update Macro leaves a saved <code>.hwm</code> as saved, exactly as Promote already behaved.</li>
 </ul>
@@ -3119,6 +3121,8 @@
 <li><em>Origin as a reference only (no hash).</em> Rejected: Update Macro could not tell that the macro had moved on since the detach.</li>
 <li><em>Update Macro writing the file directly.</em> Rejected: see above; it bypasses the macro tab's unsaved-edit guard and validation.</li>
 <li><em>Dropping edges to new pins on Update Macro.</em> Rejected: they re-bind after the reload, so dropping loses connections for nothing. Revert is different: the template will not gain those pins.</li>
+<li><em>Forgetting the origin when the graph is closed or saved.</em> Rejected: the same file would offer different verbs depending on whether it had been reopened, and editing an instance in one session and sending it back with Update Macro in a later one would break without a word. An explicit verb lets the user end the link.</li>
+<li><em>Forgetting the origin when the macro is not installed.</em> Rejected: an uninstalled or unshared library is often temporary, and an origin lost on load cannot be undone. A greyed Update Macro already covers it.</li>
 </ul>
 <p><strong>Consequences.</strong></p>
 <ul>
