@@ -49,6 +49,8 @@ from haywire.ui.components.graph.event_definitions import (
     UserResizeEndEvent,
 )
 
+from tests.graph_editor.test_graph_editor_lock import _locked_editor
+
 from .test_graph_editor_levels import _assert_selection_dropped, _select, _two_tabs
 from .test_graph_editor_placement_levels import _PLACEMENT_KEY, _open_placement, _placement_definition
 
@@ -422,8 +424,6 @@ def test_a_lock_toggle_publishes_the_session_level_mode():
     attribute, so they check the value but never that panels are told.
     """
     from haywire.core.session.session import Session
-
-    from .test_graph_editor_lock import _locked_editor
 
     editor, fake, _ = _locked_editor(AccessTier.EDIT, open_locked=False)
     session = Session(app_state=MagicMock(), workspace_manager=MagicMock(), dispatcher=MagicMock())

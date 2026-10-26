@@ -436,8 +436,11 @@ def test_view_right_click_keeps_selection_and_opens_no_menu(page: Page, harness)
 
     x, y = _centre(label, "note text")
     page.mouse.click(x, y, button="right")
+    # The document listener runs after the canvas's, so any event it emitted is logged by now;
+    # console messages arrive in order, so the fence arriving means every earlier line has.
     page.wait_for_function("() => window.__hwNativeMenu !== null")
-    page.wait_for_timeout(600)
+    with page.expect_console_message(lambda msg: msg.text == "hw-fence"):
+        page.evaluate("() => console.log('hw-fence')")
 
     assert page.evaluate("() => window.__hwNativeMenu") is False
     assert _selected(page, card_id)

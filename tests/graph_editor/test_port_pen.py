@@ -37,23 +37,23 @@ def _resolved_port() -> Any:
     )
 
 
-def _pen_ctx(tier: AccessTier, locked: bool) -> Any:
-    """A session context whose route reads ``mode`` at each call."""
-    edit = SimpleNamespace(mode=level_mode(tier.satisfies, locked), active_node=MagicMock())
-    editor = MagicMock(name="editor")
-    edit.active_route = EditRoute(lambda: editor, lambda: edit.mode)
-    return SimpleNamespace(can_access=tier.satisfies, data={EditState: edit}, session=MagicMock())
+def _pen_ctx(tier: AccessTier, locked: bool, editor: Any) -> tuple[Any, SimpleNamespace]:
+    """Return a session context whose route writes to ``editor``, and the level it reads ``mode`` off.
 
-
-def _open_dialog(ctx: Any, editor: Any) -> Client:
-    """Open the pen's edit dialog for ``ctx`` against ``editor``; return its client.
-
-    ``ctx``'s route reads ``mode`` at each call.
+    The route reads ``level.mode`` at each call, so a test can lock the level mid-dialog.
     """
+    level = SimpleNamespace(mode=level_mode(tier.satisfies, locked))
+    edit = SimpleNamespace(
+        active_node=MagicMock(), active_route=EditRoute(lambda: editor, lambda: level.mode)
+    )
+    ctx = SimpleNamespace(can_access=tier.satisfies, data={EditState: edit}, session=MagicMock())
+    return ctx, level
+
+
+def _open_dialog(ctx: Any) -> Client:
+    """Open the pen's edit dialog for ``ctx``; return its client."""
     from haybale_graph_editor.panels.properties.introspect import node_ports
 
-    edit = ctx.data[EditState]
-    edit.active_route = EditRoute(lambda: editor, lambda: edit.mode)
     client = Client(cast(Any, _noop_page), request=None)
     with client:
         node_ports.NodePortsPanel()._open_editor(_resolved_port(), "n1", ctx)
@@ -94,10 +94,9 @@ def _metadata_editor() -> Any:
     ("tier", "locked"), [(AccessTier.ADMIN, True), (AccessTier.VIEW, False)], ids=["locked-admin", "view"]
 )
 def test_the_port_pen_refuses_below_edit(tier: AccessTier, locked: bool):
-    ctx = _pen_ctx(tier, locked)
-
     editor = _metadata_editor()
-    client = _open_dialog(ctx, editor)
+    ctx, _level = _pen_ctx(tier, locked, editor)
+    client = _open_dialog(ctx)
     if _apply_button(client) is not None:
         _apply_relabelled(client, "Level")
 
@@ -106,11 +105,11 @@ def test_the_port_pen_refuses_below_edit(tier: AccessTier, locked: bool):
 
 @pytest.mark.unit
 def test_an_open_port_dialog_refuses_once_the_level_is_locked():
-    ctx = _pen_ctx(AccessTier.ADMIN, locked=False)
     editor = _metadata_editor()
-    client = _open_dialog(ctx, editor)
+    ctx, level = _pen_ctx(AccessTier.ADMIN, False, editor)
+    client = _open_dialog(ctx)
 
-    ctx.data[EditState].mode = LevelMode.OPERATE
+    level.mode = LevelMode.OPERATE
     _apply_relabelled(client, "Level")
 
     editor.set_port_metadata.assert_not_called()
@@ -118,10 +117,9 @@ def test_an_open_port_dialog_refuses_once_the_level_is_locked():
 
 @pytest.mark.unit
 def test_the_port_pen_applies_for_edit():
-    ctx = _pen_ctx(AccessTier.EDIT, locked=False)
-
     editor = _metadata_editor()
-    client = _open_dialog(ctx, editor)
+    ctx, _level = _pen_ctx(AccessTier.EDIT, False, editor)
+    client = _open_dialog(ctx)
     _apply_relabelled(client, "Level")
 
     editor.set_port_metadata.assert_called_once_with("n1", "p1", label="Level")
