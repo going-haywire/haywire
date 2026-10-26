@@ -84,7 +84,9 @@ def test_writers_are_greyed_and_inert_below_edit(page: Page, harness, mode: str)
 def test_writers_are_live_in_edit(page: Page, harness):
     _open(page, harness, "edit")
 
-    assert all(style == _LIVE for style in _styles(page, _SETTINGS_WIDGET) + _styles(page, _PORT_WRITERS))
+    writers = _styles(page, _SETTINGS_WIDGET) + _styles(page, _PORT_WRITERS)
+    assert len(writers) >= 4
+    assert all(style == _LIVE for style in writers)
     assert _takes_focus(page, _SETTINGS_WIDGET)
 
 
@@ -138,3 +140,35 @@ def test_row_menu_writers_are_live_in_edit(page: Page, harness):
     assert _gated(page, _ROW_MENU_WRITERS)
     assert not any(_gated(page, _ROW_MENU_WRITERS))
     assert all(style["pointer"] == "auto" for style in _styles(page, _ROW_MENU_WRITERS))
+
+
+def _hover_promote_anchor(page: Page) -> None:
+    """Move the pointer onto the row menu's "Promote to" anchor, gated or not."""
+    anchor = page.locator('[data-row-menu] .q-item:has-text("Promote to")').first
+    anchor.wait_for(state="visible")
+    found = anchor.bounding_box()
+    assert found is not None
+    page.mouse.move(found["x"] + found["width"] / 2, found["y"] + found["height"] / 2, steps=4)
+
+
+_PROMOTE_DIRECTION = '.q-menu .q-item:has-text("outlet"):visible'
+
+
+def test_the_promote_flyout_opens_on_hover_in_edit(page: Page, harness):
+    _open(page, harness, "edit")
+    _open_row_menu(page)
+
+    _hover_promote_anchor(page)
+
+    page.locator(_PROMOTE_DIRECTION).first.wait_for(timeout=3000)
+
+
+def test_the_greyed_promote_anchor_keeps_its_flyout_shut_below_edit(page: Page, harness):
+    _open(page, harness, "view")
+    _open_row_menu(page)
+
+    _hover_promote_anchor(page)
+    # The edit test above opens the flyout well within this time.
+    page.wait_for_timeout(800)
+
+    assert page.locator(_PROMOTE_DIRECTION).count() == 0
