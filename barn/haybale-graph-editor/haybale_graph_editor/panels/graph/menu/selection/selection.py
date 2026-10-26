@@ -781,11 +781,12 @@ class EditInstanceMenuPanel(BasePanel):
     order=39,
 )
 class ModifiedInstanceMenuPanel(BasePanel):
-    """Offer to put a modified instance back to its macro.
+    """Offer to put a modified instance back to its macro, or to cut it loose.
 
     Only visible on a Group that was detached from a macro. Reverting swaps the
     card for a placement of that macro as it stands now, dropping the changes
-    made to the instance. The row is greyed when the macro is not installed.
+    made to the instance; that row is greyed when the macro is not installed.
+    Forgetting the origin keeps the card as it is and makes it a plain Group.
     """
 
     actions: SelectionActions
@@ -819,15 +820,24 @@ class ModifiedInstanceMenuPanel(BasePanel):
                     enabled=False,
                     tooltip=f"{label} is not installed.",
                 )
-                return
+            else:
+                hui.menu_row(
+                    "Revert to Macro",
+                    icon=hui.icon.edge,
+                    tooltip=(
+                        f"Replace this card with a placement of {label}. "
+                        "The changes made to this instance are dropped."
+                    ),
+                    on_click=lambda: self.actions.revert_to_macro(node_id),
+                )
             hui.menu_row(
-                "Revert to Macro",
+                "Forget Macro Origin",
                 icon=hui.icon.edge,
                 tooltip=(
-                    f"Replace this card with a placement of {label}. "
-                    "The changes made to this instance are dropped."
+                    f"Keep this card as it is, as a plain Group no longer linked to {label}. "
+                    "Revert to Macro and Update Macro stop applying to it."
                 ),
-                on_click=lambda: self.actions.revert_to_macro(node_id),
+                on_click=lambda: self.actions.forget_macro_origin(node_id),
             )
 
 

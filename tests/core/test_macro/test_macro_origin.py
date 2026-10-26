@@ -77,6 +77,54 @@ def test_the_origin_survives_save_and_load(graph_with_library_system, library_sy
     assert fresh.origin is not None
 
 
+@pytest.mark.usefixtures("macro_folder")
+def test_forget_makes_a_plain_group_that_saves_without_an_origin(graph_with_library_system, library_system):
+    from haybale_graph_editor.panels._gating import is_modified_instance
+
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+    card_id, _ = _detach(editor, placement_id)
+
+    assert editor.forget_macro_origin(card_id) is True
+
+    card = graph.get_node_wrapper(card_id)
+    definition = _definition(graph, card_id)
+    assert card is not None
+    assert definition.origin is None
+    assert "origin" not in definition.to_dict()
+    assert is_modified_instance(_ctx(card)) is False
+
+
+@pytest.mark.usefixtures("macro_folder")
+def test_undo_of_forget_restores_the_same_origin(graph_with_library_system, library_system):
+    graph = graph_with_library_system
+    editor, placement_id = _place(graph, library_system)
+    card_id, _ = _detach(editor, placement_id)
+    origin = _definition(graph, card_id).origin
+    editor.forget_macro_origin(card_id)
+
+    editor.undo()
+
+    assert _definition(graph, card_id).origin == origin
+
+
+def test_forget_refuses_a_plain_group(graph_with_library_system, library_system):
+    graph = graph_with_library_system
+    a, b = make_node(graph, _PRINT), make_node(graph, _PRINT)
+    graph.create_edge_wrapper(a.node_id, "done", b.node_id, "exec")
+    editor = _editor(graph, library_system)
+    card_id, _ = editor.collapse_to_group(
+        node_ids=[a.node_id, b.node_id],
+        card_registry_key=_CARD,
+        input_registry_key="haywire-core:node:SubgraphInputNode",
+        output_registry_key="haywire-core:node:SubgraphOutputNode",
+    )
+
+    assert editor.forget_macro_origin(card_id) is False
+    assert editor.forget_macro_origin(a.node_id) is False
+    assert editor.forget_macro_origin("missing") is False
+
+
 def test_a_plain_group_has_no_origin_key(graph_with_library_system, library_system):
     graph = graph_with_library_system
     a, b = make_node(graph, _PRINT), make_node(graph, _PRINT)

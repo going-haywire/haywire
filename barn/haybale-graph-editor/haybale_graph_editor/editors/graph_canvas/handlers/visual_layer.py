@@ -44,6 +44,7 @@ from haywire.ui.components.graph.event_definitions import (
     EnterGroupEvent,
     DetachFromMacroEvent,
     RevertToMacroEvent,
+    ForgetMacroOriginEvent,
     ExpandGroupEvent,
     RemoveFromStageEvent,
     RestackEvent,
@@ -1379,6 +1380,27 @@ class VisualLayerHandlers:
         if dropped:
             message += f" — {dropped} connection(s) to pins {label} does not have were removed"
         ui.notify(message, type="positive")
+
+    @handles_event(ForgetMacroOriginEvent)
+    def process_forget_macro_origin(self, event: ForgetMacroOriginEvent):
+        """Turn a modified instance into a plain Group (one undoable op)."""
+        editor = self.route.editor()
+        if editor is None:
+            return
+        from haywire.core.macro.source import origin_label
+
+        wrapper = self.graph.get_node_wrapper(event.node_id)
+        definition = getattr(wrapper.node, "resolve_definition", lambda: None)() if wrapper else None
+        # Read before the change: the label names the macro through the origin.
+        label = origin_label(definition) if definition is not None else ""
+
+        logger.info(f"📦 Forgetting the macro origin of {event.node_id}")
+        if not editor.forget_macro_origin(event.node_id):
+            ui.notify("This card is not a modified instance", type="warning")
+            return
+        ui.notify(
+            f"No longer linked to {label}" if label else "No longer linked to its macro", type="positive"
+        )
 
     def _subgraph_node_classes(self):
         """The Graph-node and two boundary classes, or ``None`` after notifying.

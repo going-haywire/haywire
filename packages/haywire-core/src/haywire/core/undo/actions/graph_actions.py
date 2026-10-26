@@ -2675,6 +2675,35 @@ class DetachPlacementFromMacroAction(CompositeAction):
         super().__init__(actions, description or "Detach from Macro")
 
 
+class ClearMacroOriginAction(ActionBase):
+    """Turn a modified instance into a plain Group by clearing the origin it records.
+
+    The card, its interior and its edges are untouched; only the Group's link
+    to the macro it was copied from goes. Undo restores the same origin, hash
+    included.
+
+    Raises:
+        ValueError: If ``node_id`` is not a Group with an origin.
+    """
+
+    def __init__(self, graph: BaseGraph, node_id: str, description: Optional[str] = None):
+        super().__init__(description or "Forget Macro Origin")
+        card = graph.get_node_wrapper(node_id)
+        resolve = getattr(card.node, "resolve_definition", None) if card is not None else None
+        definition = resolve() if resolve is not None else None
+        origin = getattr(definition, "origin", None)
+        if definition is None or origin is None:
+            raise ValueError(f"Node '{node_id}' is not a modified instance; it has no macro origin")
+        self.definition = definition
+        self.origin: MacroOrigin = origin
+
+    def _execute_impl(self) -> None:
+        self.definition.origin = None
+
+    def _undo_impl(self) -> None:
+        self.definition.origin = self.origin
+
+
 class _ReattachEdgeAction(AddEdgeAction):
     """Re-attach an edge to a placement, or leave it removed if the placement lacks the pin.
 

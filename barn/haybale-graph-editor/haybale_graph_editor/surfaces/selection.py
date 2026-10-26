@@ -50,6 +50,10 @@ class SelectionActions(Protocol):
     # copied from, as that macro stands now.
     def revert_to_macro(self, node_id: str) -> None: ...
 
+    # Acts on one modified instance: it becomes a plain Group, keeping its
+    # contents but no longer recording the macro it was copied from.
+    def forget_macro_origin(self, node_id: str) -> None: ...
+
     # Opens the New Node wizard with this node's class as the source.
     def clone_to_library(self, node_id: str) -> None: ...
 

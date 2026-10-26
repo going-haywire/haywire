@@ -1,4 +1,4 @@
-"""Revert to Macro names the macro in its notice, also when the template lookup fails after the swap."""
+"""Revert to Macro and Forget Macro Origin name the macro in their notices."""
 
 from __future__ import annotations
 
@@ -40,3 +40,25 @@ def test_the_revert_notice_names_the_macro(monkeypatch):
     handler.process_revert_to_macro(RevertToMacroEvent(node_id="card"))
 
     assert notify.call_args.args[0] == "Reverted to Blur Stack"
+
+
+def test_the_forget_notice_names_the_macro(monkeypatch):
+    from haywire.ui.components.graph.event_definitions import ForgetMacroOriginEvent
+
+    definition = SimpleNamespace(label="Blur Stack", origin=SimpleNamespace(key=_KEY), template_key=None)
+    wrapper = SimpleNamespace(node=SimpleNamespace(resolve_definition=lambda: definition))
+    graph = MagicMock()
+    graph.get_node_wrapper.side_effect = lambda node_id: wrapper if node_id == "card" else None
+    editor = MagicMock()
+    editor.forget_macro_origin.return_value = True
+    handler = VisualLayerHandlers(
+        graph=graph, route=edit_route(editor), skin_factory=MagicMock(), canvas_vue=MagicMock()
+    )
+    monkeypatch.setattr(source, "macro_template", lambda key: None)
+    notify = MagicMock()
+    monkeypatch.setattr(ui, "notify", notify)
+
+    handler.process_forget_macro_origin(ForgetMacroOriginEvent(node_id="card"))
+
+    editor.forget_macro_origin.assert_called_once_with("card")
+    assert notify.call_args.args[0] == "No longer linked to Blur Stack"

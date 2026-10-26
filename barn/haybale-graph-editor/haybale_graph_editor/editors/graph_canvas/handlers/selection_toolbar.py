@@ -322,6 +322,9 @@ class SelectionToolbarProvider:
     def revert_to_macro(self, node_id: str) -> None:
         self._menu_provider.revert_to_macro(node_id)
 
+    def forget_macro_origin(self, node_id: str) -> None:
+        self._menu_provider.forget_macro_origin(node_id)
+
     def clone_to_library(self, node_id: str) -> None:
         self._menu_provider.clone_to_library(node_id)
 

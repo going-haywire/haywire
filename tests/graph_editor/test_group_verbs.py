@@ -340,9 +340,9 @@ class TestRevertToMacroRow:
 
         panel, row = self._drawn(ctx, template)
 
-        assert row.call_args.args[0] == "Revert to Macro"
-        assert row.call_args.kwargs.get("enabled", True) is True
-        row.call_args.kwargs["on_click"]()
+        revert = self._call(row, "Revert to Macro")
+        assert revert.kwargs.get("enabled", True) is True
+        revert.kwargs["on_click"]()
         panel.actions.revert_to_macro.assert_called_once_with("card1")
 
     def test_revert_row_disabled_when_the_macro_is_gone(self):
@@ -350,6 +350,22 @@ class TestRevertToMacroRow:
 
         panel, row = self._drawn(ctx, None)
 
-        assert row.call_args.args[0] == "Revert to Macro"
-        assert row.call_args.kwargs["enabled"] is False
-        assert row.call_args.kwargs["tooltip"] == "Blur copy is not installed."
+        revert = self._call(row, "Revert to Macro")
+        assert revert.kwargs["enabled"] is False
+        assert revert.kwargs["tooltip"] == "Blur copy is not installed."
+
+    @pytest.mark.parametrize("installed", [True, False])
+    def test_forget_row_acts_whether_or_not_the_macro_is_installed(self, installed):
+        ctx = _menu_ctx(active_node=self._instance())
+
+        panel, row = self._drawn(ctx, MagicMock() if installed else None)
+
+        forget = self._call(row, "Forget Macro Origin")
+        assert forget.kwargs.get("enabled", True) is True
+        forget.kwargs["on_click"]()
+        panel.actions.forget_macro_origin.assert_called_once_with("card1")
+
+    @staticmethod
+    def _call(row, label):
+        (call,) = [c for c in row.call_args_list if c.args[0] == label]
+        return call

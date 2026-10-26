@@ -25,6 +25,7 @@ from haywire.core.undo.actions.graph_actions import (
     PasteClipboardAction,
     SplitEdgeWithRerouteAction,
     DissolveRerouteAction,
+    ClearMacroOriginAction,
     CollapseToGraphNodeAction,
     DetachPlacementFromMacroAction,
     ExpandGraphNodeAction,
@@ -815,6 +816,30 @@ class Editor:
         except Exception as e:
             logger.error(f"Error detaching placement {node_id}: {e}")
             return (None, str(e))
+
+    def forget_macro_origin(self, node_id: str) -> bool:
+        """Turn the modified instance on ``node_id`` into a plain Group, as one undoable operation.
+
+        The card and its interior stay as they are; the Group stops recording the
+        macro it was copied from, so Revert to Macro and Update Macro no longer
+        apply to it.
+
+        Returns ``True`` on success, ``False`` if the node is not a Group with a
+        macro origin, or if the change failed.
+        """
+        try:
+            action = ClearMacroOriginAction(graph=self.graph, node_id=node_id)
+        except ValueError as e:
+            logger.info(f"Forget origin refused: {e}")
+            return False
+        try:
+            if not self.history_manager.add_action(action):
+                return False
+            logger.info(f"Forgot the macro origin of Group {node_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error forgetting the macro origin of {node_id}: {e}")
+            return False
 
     def expand_group(self, node_id: str) -> bool:
         """Expand the Group on ``node_id`` back into this graph as one undoable operation.

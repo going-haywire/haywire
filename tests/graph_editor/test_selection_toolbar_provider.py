@@ -250,6 +250,7 @@ def test_provider_satisfies_selection_actions(monkeypatch):
         ("promote_to_macro", ("n1",)),
         ("detach_from_macro", ("n1",)),
         ("revert_to_macro", ("n1",)),
+        ("forget_macro_origin", ("n1",)),
         ("clone_to_library", ("n1",)),
         ("set_selection_collapsed", (True,)),
         ("set_selection_detail", ("compact",)),

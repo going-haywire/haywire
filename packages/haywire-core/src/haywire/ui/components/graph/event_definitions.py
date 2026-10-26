@@ -273,6 +273,16 @@ class RevertToMacroEvent(BaseGraphEvent):
     node_id: str
 
 
+@graph_event(
+    "forgetMacroOrigin",
+    category="user",
+    description="Turn a modified instance into a plain Group that no longer records its macro",
+)
+@dataclass
+class ForgetMacroOriginEvent(BaseGraphEvent):
+    node_id: str
+
+
 @graph_event("edgeCreated", category="user", description="New connection created")
 @dataclass
 class EdgeCreatedEvent(BaseGraphEvent):
