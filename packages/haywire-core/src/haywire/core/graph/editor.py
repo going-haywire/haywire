@@ -1,5 +1,6 @@
 import logging
 from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from haywire.core.errors import report_failure
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.graph.setting_owner import SettingOwner
@@ -430,8 +431,16 @@ class Editor:
                 self.history_manager.add_fence()
             return True
         except Exception as e:
-            logger.error(f"Error applying {action.description}: {e}")
+            self._report_apply_failure(e, action)
             return False
+
+    def _report_apply_failure(self, exc: Exception, action: IAction) -> None:
+        """Record a failed edit in the error ledger; a ``Refusal`` is not recorded."""
+        context: Dict[str, Any] = {"graph_id": self.graph.graph_id, "action": action.description}
+        node_id = getattr(action, "node_id", None)
+        if node_id:
+            context["node_id"] = node_id
+        report_failure(exc, operation="Apply edit", **context)
 
     def _apply(self, action: IAction, record: bool) -> bool:
         """Run ``action``: recorded on the history, or applied and fenced; ``False`` if it raised."""
@@ -442,7 +451,7 @@ class Editor:
             self.history_manager.add_fence()
             return True
         except Exception as e:
-            logger.error(f"Error applying {action.description}: {e}")
+            self._report_apply_failure(e, action)
             return False
 
     def reset_nodes(self, node_ids: List[str]) -> bool:
@@ -462,7 +471,7 @@ class Editor:
             description = describe_rebuild("Reset", labels)
             action = RebuildNodesAction.capture(self.graph, node_ids, description)
         except Exception as e:
-            logger.error(f"Error resetting {node_ids}: {e}")
+            report_failure(e, operation="Reset nodes", graph_id=self.graph.graph_id, node_ids=node_ids)
             return False
         return self.history_manager.add_action(action)
 

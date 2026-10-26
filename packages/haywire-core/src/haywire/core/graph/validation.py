@@ -11,6 +11,7 @@ import time
 import logging
 from typing import Dict, List, Callable, Optional, Any, TYPE_CHECKING
 
+from haywire.core.errors import report_failure
 from .types import ChangeReason, ValidationResult
 from .scheduler import ScheduleHandle, ThreadingTimerScheduler, ValidationScheduler
 
@@ -355,7 +356,15 @@ class ValidationManager:
                         continue
 
                 except Exception as e:
-                    logger.error(f"Node validation failed: {node_id}", exc_info=e)
+                    failed = self._graph.get_node_wrapper(node_id)
+                    report_failure(
+                        e,
+                        operation="Validate node",
+                        graph_id=self._graph.graph_id,
+                        node_id=node_id,
+                        reason=reason.name,
+                        registry_key=failed.registry_key if failed else None,
+                    )
 
             # Validate edges
             for edge_id, reason in dirty_edges.items():
@@ -390,7 +399,13 @@ class ValidationManager:
                         continue
 
                 except Exception as e:
-                    logger.error(f"Edge validation failed: {edge_id}", exc_info=e)
+                    report_failure(
+                        e,
+                        operation="Validate edge",
+                        graph_id=self._graph.graph_id,
+                        edge_id=edge_id,
+                        reason=reason.name,
+                    )
 
             # Housekeeping runs only once every node and edge is validated.
             for node_id, _ in validated_nodes.items():
