@@ -131,31 +131,50 @@ def test_coerce_requirement_rejects_a_level_mode():
         coerce_requirement(LevelMode.EDIT)
 
 
-def test_panel_decorator_rejects_a_level_mode():
+def _decorate_panel(requires: object) -> type:
     from haywire.barn.builtin.surfaces import AppSettings
-    from haywire.core.access import LevelMode
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
 
-    with pytest.raises(TypeError):
-        panel(label="X", surface=AppSettings, requires=LevelMode.EDIT)(type("P", (BasePanel,), {}))
+    return panel(label="X", surface=AppSettings, requires=requires)(type("P", (BasePanel,), {}))
 
 
-def test_editor_decorator_rejects_a_level_mode():
-    from haywire.core.access import LevelMode
+def _decorate_editor(requires: object) -> type:
     from haywire.ui.editor.base import BaseEditor
     from haywire.ui.editor.decorator import editor
 
-    with pytest.raises(TypeError):
-        editor(label="X", requires=LevelMode.EDIT)(type("E", (BaseEditor,), {}))
+    return editor(label="X", requires=requires)(type("E", (BaseEditor,), {}))
 
 
-def test_farmhand_decorator_rejects_a_level_mode():
-    from haywire.core.access import LevelMode
+def _decorate_farmhand(requires: object) -> type:
     from haywire.core.farmhand import Farmhand, farmhand
 
     async def run(self, ctx) -> dict:
         return {}
 
+    return farmhand(instructions="x", requires=requires)(type("F", (Farmhand,), {"run": run}))
+
+
+_SURFACE_DECORATORS = pytest.mark.parametrize(
+    "decorate", [_decorate_panel, _decorate_editor, _decorate_farmhand], ids=["panel", "editor", "farmhand"]
+)
+
+
+@_SURFACE_DECORATORS
+def test_a_surface_decorator_rejects_a_level_mode(decorate) -> None:
+    from haywire.core.access import LevelMode
+
     with pytest.raises(TypeError):
-        farmhand(instructions="x", requires=LevelMode.EDIT)(type("F", (Farmhand,), {"run": run}))
+        decorate(LevelMode.EDIT)
+
+
+@_SURFACE_DECORATORS
+@pytest.mark.parametrize("requires", [AccessTier.OPERATE, "operate"])
+def test_a_surface_decorator_records_a_valid_tier(decorate, requires: object) -> None:
+    assert decorate(requires).class_identity.requires is AccessTier.OPERATE
+
+
+@_SURFACE_DECORATORS
+def test_a_surface_decorator_rejects_an_unknown_tier_name(decorate) -> None:
+    with pytest.raises(ValueError, match="admni"):
+        decorate("admni")
