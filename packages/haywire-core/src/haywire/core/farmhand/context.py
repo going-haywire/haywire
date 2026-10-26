@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Optional, TYPE_CHECKING, TypeVar, cast
+from typing import Awaitable, Callable, Optional, ParamSpec, Protocol, TYPE_CHECKING, TypeVar
 
 from haywire.core.access import AccessTier, resolve_tier
 from haywire.core.di.context import (
@@ -26,10 +26,18 @@ from haywire.core.di.context import (
 )
 
 if TYPE_CHECKING:
+    from haywire.core.signals.signal import Signal
     from haywire.core.state.base import AppState
 
 T = TypeVar("T")
+P = ParamSpec("P")
 S = TypeVar("S", bound="AppState")
+
+
+class Fenceable(Protocol):
+    """Anything ``FarmhandContext.fence`` accepts: a ``GraphEditor`` or an ``IHistoryManager``."""
+
+    def add_fence(self) -> None: ...
 
 
 class FarmhandContext:
@@ -43,7 +51,7 @@ class FarmhandContext:
         #: gate stamped; ``None`` when authentication is off, which resolves to
         #: ADMIN exactly as it does for a browser session.
         self.principal = principal
-        self._fenced: list[Any] = []
+        self._fenced: list[Fenceable] = []
 
     # -- access (ADR 0027) ----------------------------------------------
 
@@ -80,16 +88,16 @@ class FarmhandContext:
         """Resolve a framework singleton (registries, factories) from the global injector."""
         from haywire.core.di import config as di_config
 
-        injector = getattr(di_config, "_global_injector", None)
+        injector = di_config._global_injector
         if injector is None:
             raise RuntimeError("Global injector not set — is the library system initialized?")
-        return cast(T, injector.get(registry_cls))
+        return injector.get(registry_cls)
 
-    def broadcast(self, signal: Any) -> None:
+    def broadcast(self, signal: Signal) -> None:
         """Emit a cross-peer signal so open browser UIs update (caller-owned, gap 5)."""
         get_signal_dispatcher().broadcast(signal)
 
-    async def offload(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
+    async def offload(self, fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
         """Run blocking work off the shared NiceGUI loop."""
         return await asyncio.to_thread(fn, *args, **kwargs)
 
@@ -98,7 +106,7 @@ class FarmhandContext:
         if self._progress_reporter is not None:
             await self._progress_reporter(message)
 
-    def fence(self, editor: Any) -> None:
+    def fence(self, editor: Fenceable) -> None:
         """Open the undo fence for this tool call: one call = one undo gesture.
 
         ``close_fences`` closes the step, so nothing written after the call joins it.

@@ -6,6 +6,7 @@ import threading
 import pytest
 
 from haywire.core.farmhand import FarmhandContext
+from haywire.core.signals.signal import Signal
 
 pytestmark = pytest.mark.unit
 
@@ -78,6 +79,6 @@ def test_broadcast_uses_ambient_signal_dispatcher(monkeypatch):
 
     fake = FakeDispatcher()
     monkeypatch.setattr(di_context, "_signal_dispatcher", fake)
-    sentinel = object()
+    sentinel = Signal()
     FarmhandContext().broadcast(sentinel)
     assert fake.signals == [sentinel]
