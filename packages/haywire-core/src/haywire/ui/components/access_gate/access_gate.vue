@@ -91,6 +91,9 @@ export default {
   unmounted() {
     document.removeEventListener('focusin', this.onFocusIn, true);
     this.levelObserver.disconnect();
+    // One gate per page: these globals are this gate's alone.
+    delete window.hwAccess;
+    delete document.documentElement.dataset.hwSessionMode;
   },
 
   methods: {

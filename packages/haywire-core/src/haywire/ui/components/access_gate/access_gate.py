@@ -13,15 +13,17 @@ class AccessGate(ui.element, component="access_gate.vue"):
     The gate reads ``data-hw-requires`` (see ``stamp_requires``) in two scopes:
 
     - Canvas cards: an element inside a card (``.ui-node-slot``) takes input
-      while the canvas root's ``data-hw-level-mode`` satisfies the element's
-      nearest ``data-hw-requires``; an unstamped element counts as ``edit``.
+      while the canvas root's ``data-hw-level-mode`` satisfies every
+      ``data-hw-requires`` around it, so the strictest one decides; an
+      unstamped element counts as ``edit``.
     - Panels: inside ``[data-hw-mode-scope="session"]`` only stamped elements
       are gated, against the session mode written here to ``<html
       data-hw-session-mode>``; a gated one is greyed (``opacity: 0.5``).
 
     A gated element takes no pointer input and loses keyboard focus as it gains
     it, or when a mode change gates the focused element. Mount one per page;
-    the browser exposes the decision as ``window.hwAccess.isGated(el)``. The
+    the browser exposes the decision as ``window.hwAccess.isGated(el)`` while
+    the gate is mounted, and removing the gate removes both globals. The
     gate is the browser half of the level mode: the server still refuses the
     write.
 
