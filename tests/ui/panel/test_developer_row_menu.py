@@ -157,7 +157,7 @@ def test_node_settings_bag_falls_back_to_the_owning_node(make_node_with_setting)
 def test_registered_settings_class_answers_its_own_key(library_system):
     from haywire.core.debug.debug_settings import DebugSettings
 
-    assert _component_key(DebugSettings) == "__system__:setting:debug"
+    assert _component_key(DebugSettings) == "haywire-core:setting:debug"
 
 
 def test_a_declared_field_records_its_owning_class(library_system):
@@ -166,7 +166,7 @@ def test_a_declared_field_records_its_owning_class(library_system):
     from haywire.core.debug.debug_settings import DebugSettings
 
     defn = next(iter(DebugSettings._settings_descriptors().values()))
-    assert _component_key(getattr(defn, "_owner_cls", None)) == "__system__:setting:debug"
+    assert _component_key(getattr(defn, "_owner_cls", None)) == "haywire-core:setting:debug"
 
 
 def test_component_key_of_none_is_none():

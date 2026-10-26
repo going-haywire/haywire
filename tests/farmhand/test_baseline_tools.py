@@ -94,7 +94,7 @@ def test_list_components_excludes_hidden_by_default():
 
 def test_list_components_excludes_system_library_by_default():
     """__system__ is the derive_library_identity() fallback for unparented classes
-    (e.g. FrameworkSettings); whether any are registered depends on which other
+    (e.g. a class in a package with no Library); whether any are registered depends on which other
     settings modules already imported in this session, so assert the filtering
     guarantee rather than a specific key's presence.
     """

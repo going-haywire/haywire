@@ -27,15 +27,20 @@ def derive_library_identity(cls: Type) -> LibraryIdentity:
 
     Walks up ``cls.__module__`` for the nearest already-imported module
     exposing a ``Library`` class with a ``class_identity``, so a module that
-    has not been imported is skipped rather than imported here. A class that
-    lives under no library gets the synthetic ``__system__`` identity, so the
-    result is always a ``LibraryIdentity``, never ``None``.
+    has not been imported is skipped rather than imported here. A class in the
+    ``haywire`` package outside any library belongs to the builtin library. Any
+    other class that lives under no library gets the synthetic ``__system__``
+    identity, so the result is always a ``LibraryIdentity``, never ``None``.
 
     Example::
 
         # haywire.barn.builtin.types.specs.FLOAT walks up to
         # haywire.barn.builtin, and returns its Library.class_identity.
         identity = derive_library_identity(FLOAT)
+
+        # haywire.core.debug.debug_settings has no Library ancestor, so it
+        # also returns the builtin library's identity.
+        identity = derive_library_identity(DebugSettings)
     """
     module_path = cls.__module__
     parts = module_path.split(".")
@@ -55,6 +60,11 @@ def derive_library_identity(cls: Type) -> LibraryIdentity:
             lib_class = module.Library
             if hasattr(lib_class, "class_identity"):
                 return lib_class.class_identity
+
+    if parts[0] == "haywire":
+        from haywire.barn.builtin import Library as BuiltinLibrary
+
+        return BuiltinLibrary.class_identity
 
     return LibraryIdentity(
         label="System",

@@ -28,13 +28,6 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 
-class _TestFrameworkSettings(FrameworkSettings, namespace="test.global"):
-    """Minimal FrameworkSettings for unit tests that need registered global keys."""
-
-    verbose_logging = setting[BOOL](False, label="Verbose Logging")
-    font_size = setting[INT](12, label="Font Size", min=8, max=72)
-
-
 class TestingWidgetSettings(FrameworkSettings, namespace="test.widgets"):
     """FrameworkSettings covering every widget type, for UI harness tests.
 
@@ -167,7 +160,7 @@ def create_test_settings_registry(
 
     Example:
         registry = create_test_settings_registry({
-            'test.global.verbose_logging': True,
+            'test.widgets.flag': False,
         })
     """
     from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
@@ -246,7 +239,7 @@ class SettingsTestContext:
 
     Example:
         with SettingsTestContext(registry) as ctx:
-            ctx.set('test.global.font_size', 16)
+            ctx.set('test.widgets.count', 7)
             # Test code here uses modified settings
         # Original settings restored automatically
     """
