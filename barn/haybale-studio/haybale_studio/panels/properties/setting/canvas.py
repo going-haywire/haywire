@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 @panel(
     surface=CanvasSurface,
     label="Grid",
+    description="Grid, zoom, pan and background pattern.",
     icon=hui.icon.canvas_grid,
     order=10,
     default_open=False,
@@ -56,6 +57,7 @@ class CanvasSettingsPanel(BasePanel):
 @panel(
     surface=CanvasSurface,
     label="Zoom & Pan",
+    description="Canvas pan/zoom behaviour settings.",
     icon=hui.icon.canvas_zoom_pan,
     order=40,
     default_open=False,
@@ -75,6 +77,7 @@ class EditorZoomPanSettingsPanel(BasePanel):
 @panel(
     surface=CanvasSurface,
     label="Minimap",
+    description="Minimap visibility, position and size.",
     icon=hui.icon.canvas_minimap,
     order=40,
     default_open=False,
@@ -94,6 +97,7 @@ class MinimapSettingsPanel(BasePanel):
 @panel(
     surface=CanvasSurface,
     label="Edges",
+    description="Computed edges' arrow head, head size, width and hit padding.",
     icon=hui.icon.edge,
     order=30,
     default_open=False,

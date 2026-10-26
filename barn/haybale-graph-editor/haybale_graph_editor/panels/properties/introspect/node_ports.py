@@ -89,6 +89,7 @@ def _type_name(port: object) -> str:
     surface=PortInspector,
     requires=AccessTier.VIEW,
     label="Ports",
+    description="Displays the inlet, outlet, and config ports of the selected node.",
     icon=hui.icon.node_ports,
     default_open=True,
     order=20,

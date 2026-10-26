@@ -41,6 +41,7 @@ if TYPE_CHECKING:
     surface=GraphContext,
     hosts=(GraphToolBar, GraphContextBody),
     label="Graph Context",
+    description="Layout-only root of the canvas menu: shortcut row, then prime area.",
     icon=hui.icon.canvas,
     order=0,
 )
@@ -60,6 +61,7 @@ class GraphContextPanel(BasePanel):
 @panel(
     surface=GraphToolBar,
     label="Paste",
+    description="Paste at the click position, as an icon shortcut.",
     icon=hui.icon.paste,
     order=10,
 )
@@ -84,6 +86,7 @@ class PastePanel(BasePanel):
 @panel(
     surface=GraphToolBar,
     label="Focus on Graph",
+    description="Fit the viewport to show every node in the graph, as an icon shortcut.",
     icon=hui.icon.focus_graph,
     order=20,
 )
@@ -104,6 +107,7 @@ class FocusGraphPanel(BasePanel):
 @panel(
     surface=GraphToolBar,
     label="New Node",
+    description="Open the New Node wizard, as an icon shortcut.",
     icon=hui.icon.node_new,
     order=30,
     requires=AccessTier.ADMIN,
@@ -136,6 +140,7 @@ class NewNodeToolbarPanel(BasePanel):
     surface=GraphToolBar,
     hosts=(GraphMoreActions,),
     label="More Actions",
+    description='The "…" — a panel that is itself a host.',
     icon="more_horiz",
     order=999,
 )
@@ -161,6 +166,7 @@ class GraphMorePanel(BasePanel):
 @panel(
     surface=GraphContextBody,
     label="Create Node",
+    description="The hierarchical node-creation menu, search and tree together.",
     icon=hui.icon.add,
     order=0,
 )
@@ -210,6 +216,7 @@ class CreateNodeMenuPanel(BasePanel):
 @panel(
     surface=GraphMoreActions,
     label="Reset Node Detail",
+    description="Make every node in the graph follow the graph's detail rank again.",
     icon=hui.icon.reset,
     order=10,
 )

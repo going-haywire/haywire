@@ -19,6 +19,7 @@ from haywire.ui.panel.decorator import panel
 @panel(
     surface=AccountMenu,
     label="Sign out",
+    description="Ends this browser session. Hidden entirely when authentication is off.",
     order=90,
     requires=AccessTier.VIEW,
 )
@@ -39,6 +40,7 @@ class LogoutPanel(BasePanel):
 @panel(
     surface=AccountMenu,
     label="Manage principals",
+    description="Opens the RosterEditor. Admin-only, so a view principal never sees it.",
     order=10,
     requires=AccessTier.ADMIN,
 )
@@ -65,6 +67,7 @@ class OpenRosterPanel(BasePanel):
 @panel(
     surface=AccountMenu,
     label="Sign everyone out",
+    description="Rotates the cookie signing secret and evicts every live session.",
     order=80,
     requires=AccessTier.ADMIN,
 )
@@ -103,6 +106,7 @@ class RotateSecretPanel(BasePanel):
 @panel(
     surface=AccountMenu,
     label="Agent activity",
+    description="Opens the ActivityEditor.",
     order=20,
     requires=AccessTier.VIEW,
 )
@@ -142,6 +146,7 @@ class OpenActivityPanel(BasePanel):
 @panel(
     surface=AccountMenu,
     label="Developer mode",
+    description="Toggles developer mode for this session.",
     order=50,
     requires=AccessTier.VIEW,
 )

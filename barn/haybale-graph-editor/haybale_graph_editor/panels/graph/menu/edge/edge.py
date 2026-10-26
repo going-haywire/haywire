@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 @panel(
     surface=EdgeMenu,
     label="Connection Errors",
+    description="Edge errors panel for the context menu (right-click on edge).",
     icon=hui.icon.error,
     order=0,
 )
@@ -65,6 +66,7 @@ class EdgeErrorsMenuPanel(BasePanel):
 @panel(
     surface=EdgeMenu,
     label="Connection Warnings",
+    description="Edge warnings panel for the context menu.",
     icon=hui.icon.warning,
     order=5,
 )
@@ -93,6 +95,7 @@ class EdgeWarningsMenuPanel(BasePanel):
     surface=EdgeMenu,
     hosts=(EdgeStyle,),
     label="Style",
+    description='The "Style…" row — a submenu with the connection\'s colour, line and arrow heads.',
     icon=hui.icon.theme,
     order=110,
 )
@@ -117,6 +120,7 @@ class EdgeStyleMenuPanel(BasePanel):
 @panel(
     surface=EdgeStyle,
     label="Style",
+    description="The style fields of the selected edge, or a form applying to every selected edge.",
     icon=hui.icon.theme,
     order=10,
 )
@@ -139,6 +143,7 @@ class EdgeStyleBodyPanel(BasePanel):
 @panel(
     surface=EdgeMenu,
     label="Insert Reroute",
+    description="Split the active edge and insert a reroute node in between. Available for every edge.",
     icon=hui.icon.edge,
     order=210,
 )
@@ -179,6 +184,7 @@ class InsertRerouteMenuPanel(BasePanel):
     surface=EdgeMenu,
     hosts=(EdgeEditMenu,),
     label="Edit Source",
+    description='The "Edit Source" row — a submenu over the adapters behind this edge.',
     icon=hui.icon.adapter,
     order=300,
 )
@@ -212,6 +218,7 @@ class EditEdgeMenuPanel(BasePanel):
 @panel(
     surface=EdgeEditMenu,
     label="Adapters",
+    description="One row per adapter in the edge's chain, each opening its source.",
     icon=hui.icon.adapter,
     order=10,
 )
@@ -329,6 +336,7 @@ class EdgePropagationMenuPanel(BasePanel):
 @panel(
     surface=EdgeMenu,
     label="Delete Connection",
+    description="Delete the right-clicked connection.",
     icon=hui.icon.delete,
     order=400,
 )
@@ -360,6 +368,7 @@ class DeleteEdgeMenuPanel(BasePanel):
 @panel(
     surface=EdgeMenu,
     label="Reconnect Edge",
+    description="Removes the edge and starts a new connection drag from the anchor pin.",
     icon=hui.icon.edge,
     order=200,
 )

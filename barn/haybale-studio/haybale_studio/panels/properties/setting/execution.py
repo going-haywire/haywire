@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 @panel(
     surface=ExecutionInspector,
     label="Execution",
+    description="Auto-execute, timeouts, parallelism, caching and error handling.",
     icon=hui.icon.execution,
     order=10,
     default_open=True,

@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 @panel(
     surface=SelectionToolbar,
     label="Fold",
+    description="One button that folds or unfolds the selection.",
     icon=hui.icon.node_collapse,
     order=100,
 )
@@ -103,6 +104,7 @@ class CollapseToolbarPanel(BasePanel):
 @panel(
     surface=SelectionToolbar,
     label="Lock",
+    description="Lock or unlock one node, as protection against accidental manipulation.",
     icon=hui.icon.locked,
     order=110,
 )
@@ -159,6 +161,7 @@ class LockToolbarPanel(BasePanel):
     surface=SelectionToolbar,
     hosts=(SelectionMenu,),
     label="More",
+    description="The ⋯ — a panel that hosts the selection right-click menu.",
     icon="more_horiz",
     order=900,
 )

@@ -23,7 +23,7 @@ from haywire.core.signals import signal_field
 from haywire.core.state import SessionState, state
 
 
-@state(label="File Browser State")
+@state(label="File Browser State", description="Per-session state for the FileBrowser editor.")
 class FileBrowserState(SessionState):
     """Per-session state for the FileBrowser editor."""
 

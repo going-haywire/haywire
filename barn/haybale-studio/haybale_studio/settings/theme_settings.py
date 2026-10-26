@@ -21,7 +21,11 @@ def _workbench_theme_choices():
         return {}
 
 
-@settings(namespace="workbench", label="Workbench Theme")
+@settings(
+    namespace="workbench",
+    label="Workbench Theme",
+    description="Global settings controlling the active workbench theme.",
+)
 class WorkbenchThemeSettings(LibrarySettings):
     """Global settings controlling the active workbench theme."""
 
@@ -34,7 +38,11 @@ class WorkbenchThemeSettings(LibrarySettings):
     )
 
 
-@settings(namespace="node_theme", label="Node Theme")
+@settings(
+    namespace="node_theme",
+    label="Node Theme",
+    description="Global settings controlling the active node theme.",
+)
 class NodeThemeSettings(LibrarySettings):
     """Global settings controlling the active node theme.
 

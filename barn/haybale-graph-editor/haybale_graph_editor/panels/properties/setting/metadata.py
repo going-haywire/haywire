@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 @panel(
     surface=GraphInspector,
     label="Graph Metadata",
+    description="Renders the metadata of the active graph.",
     icon=hui.icon.graph_metadata,
     order=15,  # between GraphInfoPanel (10) and GraphSettingsPanel (20)
     default_open=False,

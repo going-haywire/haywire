@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 @panel(
     surface=ExecutionInspector,
     label="Graph Settings",
+    description="Renders the GraphRunSettings for the currently active graph.",
     icon=hui.icon.graph,
     order=20,
     default_open=True,

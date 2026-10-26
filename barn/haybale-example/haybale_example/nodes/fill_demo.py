@@ -16,6 +16,7 @@ from haybale_example.types.fill import FILL
 
 @node(
     label="Fill Demo",
+    description="Edits a solid/linear/radial fill and outputs it as a CSS value.",
     search_tags=["fill", "gradient", "colour", "color", "css", "example"],
     menu="examples/appearance",
     node_type=NodeType.DATA,

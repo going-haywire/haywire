@@ -62,6 +62,7 @@ def _widget_identity(ctx: "SessionContext") -> Any | None:
     surface=PinMenu,
     hosts=(PinEditMenu,),
     label="Edit Source",
+    description='The "Edit Source" row — a submenu over the components behind this pin.',
     icon=hui.icon.node_source,
     order=200,
 )
@@ -87,6 +88,7 @@ class PinEditMenuPanel(BasePanel):
 @panel(
     surface=PinEditMenu,
     label="Type",
+    description="The pin's data type, as a row that opens the type's source.",
     icon=hui.icon.type,
     order=10,
 )
@@ -110,6 +112,7 @@ class PortTypeMenuPanel(BasePanel):
 @panel(
     surface=PinEditMenu,
     label="Widget",
+    description="The widget editing this pin, as a row that opens the widget's source.",
     icon=hui.icon.widget,
     order=20,
 )
@@ -154,6 +157,7 @@ def _promoted_setting(ctx: "SessionContext"):
 @panel(
     surface=PinMenu,
     label="Reset to default",
+    description="Put the backing setting back to its declared default, from the pin.",
     icon=hui.icon.undo,
     order=0,
 )
@@ -208,6 +212,7 @@ class ResetSettingMenuPanel(BasePanel):
 @panel(
     surface=PinMenu,
     label="Set to none",
+    description="Clear the backing setting to absence (OPTIONAL[T] fields only).",
     icon=hui.icon.close,
     order=10,
 )
@@ -262,6 +267,7 @@ class ClearSettingMenuPanel(BasePanel):
 @panel(
     surface=PinMenu,
     label="Detach from setting",
+    description="Removes a pin the user added, on the pin that carries it.",
     icon=hui.icon.delete,
     order=20,
 )
@@ -324,6 +330,7 @@ class DetachSettingMenuPanel(BasePanel):
     surface=PinMenu,
     hosts=(PinWidgetMenu,),
     label="Show widget",
+    description='The "Show widget ▸" row — picks when this pin\'s Widget is rendered.',
     icon=hui.icon.widget,
     order=100,
 )
@@ -364,6 +371,7 @@ class PinShowWidgetMenuPanel(BasePanel):
 @panel(
     surface=PinWidgetMenu,
     label="Strategy",
+    description="One row per show-widget strategy, marked with the port's current choice.",
     icon=hui.icon.widget,
     order=10,
 )

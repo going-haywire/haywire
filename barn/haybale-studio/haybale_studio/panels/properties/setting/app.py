@@ -40,6 +40,7 @@ if TYPE_CHECKING:
 @panel(
     surface=AppSettings,
     label="Workbench",
+    description="Active workbench and node themes.",
     icon=hui.icon.theme,
     order=10,
     default_open=True,
@@ -60,6 +61,7 @@ class ThemeSettingsPanel(BasePanel):
 @panel(
     surface=AppSettings,
     label="Default Skins",
+    description="Node Default Skins.",
     icon=hui.icon.skin,
     order=20,
     default_open=False,
@@ -79,6 +81,7 @@ class NodeSkinDefaultPanel(BasePanel):
 @panel(
     surface=AppSettings,
     label="Editing",
+    description="Undo history, and the external editor Haywire opens files in.",
     icon=hui.icon.edit,
     order=30,
     default_open=False,
@@ -99,6 +102,7 @@ class EditingSettingsPanel(BasePanel):
 @panel(
     surface=AppSettings,
     label="Activity",
+    description="Farmhand activity tracker: in-memory history size, audit log path.",
     icon="smart_toy",  # matches ActivityEditor/OpenActivityPanel's icon
     order=35,
     default_open=False,
@@ -129,6 +133,7 @@ _MARKERS = {
 @panel(
     surface=AppSettings,
     label="Security",
+    description="What this studio's defences currently are — read-only.",
     icon=hui.icon.severity,
     order=40,
     default_open=False,

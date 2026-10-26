@@ -6,7 +6,7 @@ from haywire.core.settings.decorator import settings
 from haywire.barn.builtin.types import INT, STRING
 
 
-@settings(namespace="haystack", label="Haystack")
+@settings(namespace="haystack", label="Haystack", description="Per-workspace settings for haystack scalars.")
 class HaystackSettings(LibrarySettings):
     """Per-workspace settings for haystack scalars."""
 

@@ -48,6 +48,7 @@ APPEARANCE_CATEGORY = "appearance"
     surface=SelectionToolbar,
     hosts=(NodeAppearance,),
     label="Appearance",
+    description="The ⧉ icon that drops the appearance fields above the toolbar.",
     icon=hui.icon.theme,
     order=200,
 )
@@ -79,6 +80,7 @@ class AppearanceToolbarPanel(BasePanel):
 @panel(
     surface=NodeAppearance,
     label="Appearance",
+    description="The selected node's appearance props, or a form applying to every selected node.",
     icon=hui.icon.theme,
     order=10,
 )

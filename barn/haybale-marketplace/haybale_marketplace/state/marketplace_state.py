@@ -28,7 +28,7 @@ from haywire.core.state.decorator import state
 logger = logging.getLogger(__name__)
 
 
-@state(label="Marketplace State")
+@state(label="Marketplace State", description="Owns marketplace orchestration for the studio library.")
 class MarketplaceState(AppState):
     """Owns marketplace orchestration for the studio library.
 

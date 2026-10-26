@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     surface=SettingsInspector,
     requires=AccessTier.VIEW,
     label="Node Settings",
+    description="Discovers and renders all user-defined settings on the selected node.",
     icon=hui.icon.node_properties,
     order=10,
     default_open=True,

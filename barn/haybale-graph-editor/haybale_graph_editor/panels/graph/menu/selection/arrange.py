@@ -43,6 +43,7 @@ def _selection_has_a_node(ctx: "SessionContext") -> bool:
     surface=SelectionMenu,
     hosts=(SelectionArrangeMenu,),
     label="Arrange",
+    description='The "Arrange" row: a submenu over the stacking-order verbs.',
     icon=hui.icon.arrange,
     order=420,
 )
@@ -92,6 +93,7 @@ class _RestackMenuPanel(BasePanel):
 @panel(
     surface=SelectionArrangeMenu,
     label="Bring to Front",
+    description="Paint the selected nodes above every other node in this view.",
     icon=hui.icon.bring_to_front,
     order=10,
 )
@@ -106,6 +108,7 @@ class BringToFrontMenuPanel(_RestackMenuPanel):
 @panel(
     surface=SelectionArrangeMenu,
     label="Bring Forward",
+    description="Move each selected node one step up: above the next node over it.",
     icon=hui.icon.bring_forward,
     order=20,
 )
@@ -120,6 +123,7 @@ class BringForwardMenuPanel(_RestackMenuPanel):
 @panel(
     surface=SelectionArrangeMenu,
     label="Send Backward",
+    description="Move each selected node one step down: below the next node under it.",
     icon=hui.icon.send_backward,
     order=30,
 )
@@ -134,6 +138,7 @@ class SendBackwardMenuPanel(_RestackMenuPanel):
 @panel(
     surface=SelectionArrangeMenu,
     label="Send to Back",
+    description="Paint the selected nodes below every other node in this view.",
     icon=hui.icon.send_to_back,
     order=40,
 )

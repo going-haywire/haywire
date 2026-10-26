@@ -23,7 +23,7 @@ from haybale_graph_editor.state.graph_app_state import GraphAppState
 logger = logging.getLogger(__name__)
 
 
-@state(label="Haystack State")
+@state(label="Haystack State", description="In-memory registry of open graphs, one entry per file path.")
 class HaystackState(AppState):
     """In-memory registry of open graphs (one entry per file path)
     Validation broadcast goes directly via ``SignalDispatcher``.

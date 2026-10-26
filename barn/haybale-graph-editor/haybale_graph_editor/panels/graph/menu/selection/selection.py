@@ -103,6 +103,7 @@ def _selected_nodes_only(ctx: "SessionContext") -> bool:
 @panel(
     surface=SelectionMenu,
     label="Fold",
+    description="Fold or unfold every selected node — one row, both directions.",
     icon=hui.icon.node_collapse,
     order=400,
 )
@@ -176,6 +177,7 @@ class CollapseSelectionMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Copy Selection",
+    description="Copy the selected nodes and edges to the clipboard.",
     icon=hui.icon.copy,
     order=100,
 )
@@ -229,6 +231,7 @@ def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
 @panel(
     surface=SelectionMenu,
     label="Node Errors",
+    description="Node errors panel for the unified selection context menu.",
     icon=hui.icon.error,
     order=0,
 )
@@ -257,6 +260,7 @@ class NodeErrorsSelectionMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Dissolve Reroute",
+    description="Collapse a reroute node back into a direct connection.",
     icon=hui.icon.edge,
     order=230,
 )
@@ -310,6 +314,7 @@ def _single_node(ctx: "SessionContext"):
     surface=SelectionDevelopMenu,
     hosts=(SelectionEditMenu,),
     label="Edit Source",
+    description='The "Edit Source" row — a submenu over the components behind this node.',
     icon=hui.icon.node_source,
     order=10,
 )
@@ -353,6 +358,7 @@ class EditSelectionMenuPanel(BasePanel):
 @panel(
     surface=SelectionEditMenu,
     label="Node",
+    description="The node class itself, as a row that opens its source.",
     icon=hui.icon.node,
     order=10,
 )
@@ -380,6 +386,7 @@ class NodeSourceMenuPanel(BasePanel):
 @panel(
     surface=SelectionEditMenu,
     label="Skin",
+    description="The skin that drew this node's card, as a row opening its source.",
     icon=hui.icon.skin,
     order=20,
 )
@@ -433,6 +440,7 @@ class NodeSkinMenuPanel(BasePanel):
 @panel(
     surface=SelectionEditMenu,
     label="Theme",
+    description="The node theme colouring this card, as a row opening its source.",
     icon=hui.icon.theme,
     order=30,
 )
@@ -476,6 +484,7 @@ class NodeThemeMenuPanel(BasePanel):
     surface=SelectionMenu,
     hosts=(SelectionDetailMenu,),
     label="Detail",
+    description='The "Detail" row — a submenu over the density ranks.',
     icon=hui.icon.node_detail,
     order=410,
 )
@@ -508,6 +517,7 @@ class DetailSelectionMenuPanel(BasePanel):
 @panel(
     surface=SelectionDetailMenu,
     label="Detail Ranks",
+    description="One row per node detail rank.",
     icon=hui.icon.node_detail,
     order=10,
 )
@@ -551,6 +561,7 @@ _RESET_DETAIL_TOOLTIP = "Clear this node's own detail rank so it follows the gra
 @panel(
     surface=SelectionDetailMenu,
     label=_RESET_DETAIL_LABEL,
+    description="Drop each selected node's own detail rank, so it follows the graph's again.",
     icon=hui.icon.reset,
     order=20,
 )
@@ -592,6 +603,7 @@ class ClearDetailOverridesMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Delete Selection",
+    description="Delete every node and edge in the current selection in one undoable step.",
     icon=hui.icon.delete,
     order=600,
 )
@@ -628,6 +640,7 @@ class DeleteSelectionMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Collapse to Group",
+    description="Collapse the selection into one Graph-node standing for a Subgraph.",
     icon=hui.icon.subgraph,
     order=210,
 )
@@ -664,6 +677,7 @@ class CollapseToGroupMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Enter",
+    description="Enter a Group or a macro placement: open its inside as a level of the graph editor.",
     icon=hui.icon.subgraph,
     order=200,
 )
@@ -700,6 +714,7 @@ class EnterMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Expand Group",
+    description="Expand a Group back into the graph around it.",
     icon=hui.icon.subgraph,
     order=220,
 )
@@ -736,6 +751,7 @@ class GroupMenuPanel(BasePanel):
 @panel(
     surface=SelectionMacroMenu,
     label="Save new Macro",
+    description="Save a Group as a new macro. Only visible when the right-clicked node is a Graph-node.",
     icon=hui.icon.macro,
     order=50,
 )
@@ -766,6 +782,7 @@ class SaveNewMacroMenuPanel(BasePanel):
 @panel(
     surface=SelectionMacroMenu,
     label="Edit Instance",
+    description="Turn one macro placement into a modified instance and enter it.",
     icon=hui.icon.macro,
     order=20,
 )
@@ -808,6 +825,7 @@ class EditInstanceMenuPanel(BasePanel):
 @panel(
     surface=SelectionMacroMenu,
     label="Modified instance",
+    description="Offer to put a modified instance back to its macro, or to cut it loose.",
     icon=hui.icon.macro,
     order=40,
 )
@@ -875,6 +893,7 @@ class ModifiedInstanceMenuPanel(BasePanel):
 @panel(
     surface=SelectionDevelopMenu,
     label="Clone to Library",
+    description="Write a copy of this node's class into a library, as a new node to edit.",
     icon=hui.icon.node_clone,
     order=20,
     requires=AccessTier.ADMIN,
@@ -915,6 +934,7 @@ class CloneToLibraryMenuPanel(BasePanel):
     surface=SelectionMenu,
     hosts=(SelectionMacroMenu,),
     label="Macro",
+    description='The "Macro" row — a submenu over the verbs between a card and a macro.',
     icon=hui.icon.macro,
     order=300,
 )
@@ -940,6 +960,7 @@ class MacroSelectionMenuPanel(BasePanel):
     surface=SelectionMenu,
     hosts=(SelectionDevelopMenu,),
     label="Develop",
+    description='The "Develop" row — a submenu over the node\'s source, cloning it, and rebuilding.',
     icon=hui.icon.node_source,
     order=500,
 )

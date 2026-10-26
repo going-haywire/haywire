@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 @panel(
     surface=FileMenu,
     label="Open in Code Editor",
+    description="Open an editable text file in the CodeEditor.",
     icon=hui.icon.edit,
     order=20,
 )
@@ -82,6 +83,7 @@ class OpenInCodeEditorMenuPanel(BasePanel):
 @panel(
     surface=FileMenu,
     label="Open in File Viewer",
+    description="Open any file in the read-only FileViewerEditor (catch-all fallback).",
     icon=hui.icon.library_component,
     order=30,
     requires=AccessTier.VIEW,

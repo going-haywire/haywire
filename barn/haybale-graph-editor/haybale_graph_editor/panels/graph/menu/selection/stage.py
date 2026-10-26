@@ -50,6 +50,7 @@ def _selection_has_on_stage(ctx: "SessionContext") -> bool:
 @panel(
     surface=SelectionMenu,
     label="Add to Stage",
+    description="Put the selected nodes on the stage; offered when the selection holds an off-stage node.",
     icon=hui.icon.stage_add,
     order=430,
 )
@@ -70,6 +71,7 @@ class AddToStageMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Remove from Stage",
+    description="Take the selected nodes off the stage; offered when the selection holds an on-stage node.",
     icon=hui.icon.stage_remove,
     order=431,
 )

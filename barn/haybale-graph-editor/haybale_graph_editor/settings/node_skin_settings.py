@@ -7,7 +7,11 @@ from haywire.core.settings.decorator import settings
 from haywire.barn.builtin.types import INT
 
 
-@settings(namespace="ui.node.skin", label="Node Skin")
+@settings(
+    namespace="ui.node.skin",
+    label="Node Skin",
+    description="Settings controlling node layout and pin geometry.",
+)
 class NodeSkinSettings(LibrarySettings):
     """Settings controlling node layout and pin geometry.
 

@@ -11,6 +11,7 @@ from haybale_example.types.math import MathOPs
 
 @node(
     label="Math Operation",
+    description="Node that outputs a constant value.",
     search_tags=["math", "value", "single", "basic", "operation"],
     deprecation_warning="This node will be moved to the math library",
     menu="examples/math/basic",

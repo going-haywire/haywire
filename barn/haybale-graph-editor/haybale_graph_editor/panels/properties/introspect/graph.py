@@ -41,6 +41,7 @@ def _format_stamp(value: str | None) -> str:
     surface=GraphInspector,
     requires=AccessTier.VIEW,
     label="Graph Info",
+    description="Displays counts and framework-written metadata for the active graph.",
     icon=hui.icon.graph_info,
     order=10,
     default_open=False,

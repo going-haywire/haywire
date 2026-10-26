@@ -23,7 +23,7 @@ from haybale_marketplace.library_manager import LibraryManager
 logger = logging.getLogger(__name__)
 
 
-@state(label="Library Manager State")
+@state(label="Library Manager State", description="Publishes the LibraryManager for editor consumption.")
 class LibraryManagerState(AppState):
     """Publishes the LibraryManager for editor consumption."""
 

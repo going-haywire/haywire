@@ -18,6 +18,7 @@ from haybale_graph_editor.surfaces import SelectionActions, SelectionDevelopMenu
     surface=SelectionDevelopMenu,
     hosts=(SelectionRebuildMenu,),
     label="Rebuild",
+    description='The "Rebuild" row — a submenu over redraw / revalidate / reset.',
     icon=hui.icon.refresh,
     order=30,
 )
@@ -53,6 +54,7 @@ class RebuildSelectionMenuPanel(BasePanel):
 @panel(
     surface=SelectionRebuildMenu,
     label="Redraw Selection",
+    description="Redraw every node/edge in the selection in one step.",
     icon=hui.icon.refresh,
     order=10,
 )
@@ -83,6 +85,7 @@ class RedrawSelectionMenuPanel(BasePanel):
 @panel(
     surface=SelectionRebuildMenu,
     label="Revalidate Selection",
+    description="Revalidate every node/edge in the selection in one step.",
     icon=hui.icon.node_status,
     order=20,
 )
@@ -113,6 +116,7 @@ class RevalidateSelectionMenuPanel(BasePanel):
 @panel(
     surface=SelectionRebuildMenu,
     label="Reset Selection",
+    description="Reset every node/edge in the selection in one step.",
     icon=hui.icon.reset,
     order=30,
 )

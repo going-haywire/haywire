@@ -34,6 +34,7 @@ _GRAPH_EXTS = frozenset({".haywire"})
 @panel(
     surface=FileMenu,
     label="Load into Haystack",
+    description="Load a .haywire graph file into the Haystack (does not open an editor tab).",
     icon=hui.icon.graph,
     order=10,
 )

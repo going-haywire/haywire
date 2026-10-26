@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from haywire.core.undo.actions.graph_actions import ClipboardData
 
 
-@state(label="Edit State")
+@state(label="Edit State", description="Per-session graph-editor state: selection, active items, clipboard.")
 class EditState(SessionState):
     """Per-session graph-editor state: selection, active items, clipboard."""
 

@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 @panel(
     surface=DebugSurface,
     label="Log Levels",
+    description="Logging, execution visibility, visual debugging and data inspection.",
     icon=hui.icon.debug,
     order=10,
     default_open=False,
@@ -51,6 +52,7 @@ class DebugSettingsPanel(BasePanel):
 @panel(
     surface=DebugSurface,
     label="Debug Overlay",
+    description="Performance/debug HUD visibility and position.",
     icon=hui.icon.debug,
     order=20,
     default_open=False,

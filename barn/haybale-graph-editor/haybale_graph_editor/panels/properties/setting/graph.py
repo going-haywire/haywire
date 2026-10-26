@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     surface=GraphInspector,
     requires=AccessTier.VIEW,
     label="Graph Settings",
+    description="Renders the properties of the active graph.",
     icon=hui.icon.graph_properties,
     order=20,
     default_open=True,

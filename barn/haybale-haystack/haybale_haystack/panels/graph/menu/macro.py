@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 @panel(
     surface=SelectionMacroMenu,
     label="Edit Macro",
+    description="Open the document behind a macro placement, in its own editor tab.",
     icon=hui.icon.macro,
     order=10,
 )
@@ -111,6 +112,7 @@ def _open_macro(ctx: "SessionContext", registry_key: str) -> None:
 @panel(
     surface=SelectionMacroMenu,
     label="Update Macro",
+    description="Send a modified instance's changes back to the macro it came from.",
     icon=hui.icon.macro,
     order=30,
 )

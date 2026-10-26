@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     surface=SelectionToolbar,
     hosts=(EdgeStyle,),
     label="Style",
+    description="The icon that drops the selected edges' colour, line and arrow heads above the toolbar.",
     icon=hui.icon.theme,
     order=210,
 )
