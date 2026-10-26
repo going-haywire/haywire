@@ -17,7 +17,7 @@ import logging
 from haywire.core.validation.interface import IStructuralValidator
 from haywire.core.validation.structural_validator import StructuralValidator
 from haywire.core.library.utils import get_registry_id_from_key
-from haywire.core.errors import Refusal
+from haywire.core.errors import Refusal, report_failure
 
 from ..types import Propagation
 from ..types.wire import WireRole
@@ -1104,7 +1104,13 @@ class BaseGraph:
                         self.add_subgraph(definition)
                         definition.load_from_dict(definition_data)
                     except Exception as e:
-                        logger.error(f"Error loading subgraph {key} from dictionary: {e}", exc_info=True)
+                        report_failure(
+                            e,
+                            operation="Load graph",
+                            refusals_fail=True,
+                            graph_id=self.graph_id,
+                            subgraph=key,
+                        )
 
             if "nodes" in data:
                 from ..node.node_wrapper import NodeWrapper
@@ -1121,7 +1127,13 @@ class BaseGraph:
 
                         self.add_node_wrapper(wrapper)
                     except Exception as e:
-                        logger.error(f"Error loading node {node_id} from dictionary: {e}", exc_info=True)
+                        report_failure(
+                            e,
+                            operation="Load graph",
+                            refusals_fail=True,
+                            graph_id=self.graph_id,
+                            node_id=node_id,
+                        )
 
             if "edges" in data:
                 from ..edge.edge_wrapper import EdgeWrapper
@@ -1145,7 +1157,13 @@ class BaseGraph:
 
                         self.add_edge_wrapper(edge_wrapper)
                     except Exception as e:
-                        logger.error(f"Error loading edge {edge_id} from dictionary: {e}", exc_info=True)
+                        report_failure(
+                            e,
+                            operation="Load graph",
+                            refusals_fail=True,
+                            graph_id=self.graph_id,
+                            edge_id=edge_id,
+                        )
 
             for wrapper in self.node_wrappers.values():
                 wrapper._housekeeping()
@@ -1155,7 +1173,7 @@ class BaseGraph:
             return True
 
         except Exception as e:
-            logger.error(f"Error loading graph from dictionary: {e}", exc_info=True)
+            report_failure(e, operation="Load graph", refusals_fail=True, graph_id=self.graph_id)
             return False
 
     def _apply_compatibility_warnings(self, data: Dict[str, Any]) -> None:
@@ -1287,7 +1305,9 @@ class BaseGraph:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to save graph to {filepath}: {e}", exc_info=True)
+            report_failure(
+                e, operation="Save graph", refusals_fail=True, graph_id=self.graph_id, path=str(filepath)
+            )
             return False
 
     def load_from_file(self, filepath: str) -> bool:
@@ -1321,5 +1341,7 @@ class BaseGraph:
             return success
 
         except Exception as e:
-            logger.error(f"Failed to load graph from {filepath}: {e}", exc_info=True)
+            report_failure(
+                e, operation="Load graph", refusals_fail=True, graph_id=self.graph_id, path=str(filepath)
+            )
             return False
