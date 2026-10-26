@@ -588,6 +588,8 @@ STATIC_CSS = (
     # One step in from where the section label's text starts; nested lists step once more.
     " .hw-indented { padding-left: calc(var(--hw-inset) + var(--hw-indent-step)); }"
     " .hw-indented .hw-indented { padding-left: var(--hw-indent-step); }"
+    # hui.confirm_button: the label span sits under the .hw-panel text cascade.
+    " .hw-confirm-btn, .hw-confirm-btn * { color: var(--hw-positive) !important; }"
     " .hw-box { border: 1px solid var(--hw-border); border-radius: 4px; padding: 0.5rem;"
     "   background: var(--hw-bg-surface); }"
     # ── hw-tree: quiet, theme-aware Quasar q-tree ──

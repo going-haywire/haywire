@@ -1319,7 +1319,7 @@ def confirm_button(label: str, *, on_click: Callable | None = None) -> ui.button
         with hui.action_row():
             hui.confirm_button("Publish", on_click=publish)
     """
-    return ui.button(label, on_click=on_click).props("flat dense").style("color: var(--hw-positive);")
+    return ui.button(label, on_click=on_click).props("flat dense").classes("hw-confirm-btn")
 
 
 # ──────────────────────────────────────────────────────────────────────────────

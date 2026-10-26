@@ -70,7 +70,7 @@ def _render_scenario(container: ui.element, label: str, build, panel) -> None:
         # with browser defaults and misreports what the panel looks like.
         with (
             ui.column()
-            .classes("gap-2 p-3 rounded hw-panel")
+            .classes("gap-2 p-3 rounded hw-panel hw-popup-content-col")
             .style("width: 640px; border: 1px solid var(--hw-border); background: var(--hw-bg-elevated);")
         ):
             render_progress(flow)
