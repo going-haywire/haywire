@@ -2279,7 +2279,9 @@ export default {
                 // magnified node no longer shrinks it permanently.
                 this._clearAllMagnified();
 
-                if (this._allows(GraphEvents.UserInteractions.USER_DRAG_START)) {
+                // Empty when the press was refused: a mode rise mid-press does not start a drag.
+                if (this.dragState.draggedElements.length > 0
+                    && this._allows(GraphEvents.UserInteractions.USER_DRAG_START)) {
                     this.emitCanvasEvent(EventCreators.createUserDragStart(
                         this._extractNodeIds(this.dragState.draggedElements)
                     ));
