@@ -412,7 +412,7 @@ class FarmhandHost(SignalPeer):
         agent's tool loop. Silent when auth is off (no principal to name).
 
         Departure is not emitted here; ``AgentDisconnected`` fires on idle
-        timeout from ``auth/presence.py``.
+        timeout from ``haywire.core.access.presence``.
         """
         principal = self._caller_principal()
         if principal is None or principal in self._known_principals:

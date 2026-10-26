@@ -5,7 +5,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from haywire.core.access import AccessTier
 from haywire.core.farmhand.activity import HISTORY_LIMIT, PAYLOAD_CHAR_CAP, ActivityTracker
 
 pytestmark = pytest.mark.unit
@@ -131,31 +130,17 @@ def test_auth_off_records_under_the_none_principal(tracker):
 # -- what the presence row surfaces -----------------------------------------
 
 
-STRONG = "Correct-Horse9"
-
-
-@pytest.fixture
-def roster_path(tmp_path):
-    from haywire_studio.auth.operations import add_agent, add_user, enable_auth
-
-    target = tmp_path / "auth.json"
-    add_user("alice", STRONG, AccessTier.ADMIN, path=target)
-    enable_auth("alice", STRONG, path=target)
-    add_agent("builder", AccessTier.EDIT, path=target)
-    return target
-
-
 @pytest.fixture
 def seen_builder():
-    """Put 'builder' in the gate's last_seen window, and clean up after."""
+    """Put agent 'builder' in the presence window, and clean up after."""
     import time
 
-    from haywire_studio.auth import gate
+    from haywire.core.access.presence import agents_seen
 
-    gate.last_seen().clear()
-    gate.last_seen()["builder"] = time.monotonic()
+    agents_seen().clear()
+    agents_seen()["builder"] = time.monotonic()
     yield
-    gate.last_seen().clear()
+    agents_seen().clear()
 
 
 @pytest.fixture
@@ -174,48 +159,46 @@ def _empty_manager():
     return manager
 
 
-def _agent_entry(roster_path):
-    from haywire_studio.auth.live import RosterCache
-    from haywire_studio.auth.presence import collect_presence
+def _agent_entry():
+    from haywire.core.access.presence import collect_presence
 
-    entries = collect_presence(_empty_manager(), RosterCache(roster_path))
+    entries = collect_presence(_empty_manager())
     return next(e for e in entries if e.name == "builder")
 
 
-def test_idle_agent_shows_no_running_tool(roster_path, seen_builder, clean_tracker):
-    entry = _agent_entry(roster_path)
+def test_idle_agent_shows_no_running_tool(seen_builder, clean_tracker):
+    entry = _agent_entry()
     assert entry.running_tool == ""
     assert entry.last_tool == ""
 
 
-def test_agent_mid_call_shows_the_running_tool(roster_path, seen_builder, clean_tracker):
+def test_agent_mid_call_shows_the_running_tool(seen_builder, clean_tracker):
     clean_tracker.start("builder", "graph_editor_add_node")
 
-    entry = _agent_entry(roster_path)
+    entry = _agent_entry()
     assert entry.running_tool == "graph_editor_add_node"
 
 
-def test_agent_after_a_call_shows_it_as_last_not_running(roster_path, seen_builder, clean_tracker):
+def test_agent_after_a_call_shows_it_as_last_not_running(seen_builder, clean_tracker):
     clean_tracker.finish(clean_tracker.start("builder", "graph_editor_add_node"))
 
-    entry = _agent_entry(roster_path)
+    entry = _agent_entry()
     assert entry.running_tool == ""
     assert entry.last_tool == "graph_editor_add_node"
     assert entry.last_ok is True
 
 
-def test_agent_after_a_failed_call_reports_it_failed(roster_path, seen_builder, clean_tracker):
+def test_agent_after_a_failed_call_reports_it_failed(seen_builder, clean_tracker):
     token = clean_tracker.start("builder", "haystack_save_graph")
     clean_tracker.finish(token, ok=False, error="[save_failed] nope")
 
-    entry = _agent_entry(roster_path)
+    entry = _agent_entry()
     assert entry.last_tool == "haystack_save_graph"
     assert entry.last_ok is False
 
 
-def test_user_entries_never_carry_activity(roster_path, clean_tracker):
-    from haywire_studio.auth.live import RosterCache
-    from haywire_studio.auth.presence import collect_presence
+def test_user_entries_never_carry_activity(clean_tracker):
+    from haywire.core.access.presence import collect_presence
 
     clean_tracker.start("alice", "graph_editor_add_node")
     manager = MagicMock()
@@ -223,7 +206,7 @@ def test_user_entries_never_carry_activity(roster_path, clean_tracker):
     session.context.principal = "alice"
     manager.active_sessions = {"s0": session}
 
-    entries = collect_presence(manager, RosterCache(roster_path))
+    entries = collect_presence(manager)
     alice = next(e for e in entries if e.name == "alice")
     # A browser principal's actions are already visible on screen; the chip
     # stays a plain identity chip.

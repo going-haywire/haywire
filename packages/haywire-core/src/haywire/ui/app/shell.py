@@ -1156,11 +1156,7 @@ window.addEventListener("wheel", function (e) {
         if self._presence_row is None:
             return
 
-        try:
-            from haywire_studio.auth.live import RosterCache
-            from haywire_studio.auth.presence import collect_presence
-        except ImportError:
-            return
+        from haywire.core.access.presence import collect_presence
 
         # DI accessor, not self.session._session_manager — reaching into a
         # private attribute of Session would couple the shell to its internals.
@@ -1168,7 +1164,7 @@ window.addEventListener("wheel", function (e) {
 
         self._presence_row.clear()
         with self._presence_row:
-            for entry in collect_presence(get_session_manager(), RosterCache()):
+            for entry in collect_presence(get_session_manager()):
                 icon = "smart_toy" if entry.kind == "agent" else "person"
                 detail = (
                     last_seen_text(entry.last_seen_seconds)

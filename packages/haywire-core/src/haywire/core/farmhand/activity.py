@@ -1,6 +1,6 @@
 """What each agent principal is doing right now, and what it just did.
 
-Answers the question ``auth/presence.py`` cannot: an agent's tool calls mutate
+Answers the question ``haywire.core.access.presence`` cannot: an agent's tool calls mutate
 graphs under a human collaborator's cursor, and this attributes the change and
 records what the call sent and got back.
 

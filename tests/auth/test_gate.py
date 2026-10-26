@@ -269,11 +269,12 @@ async def test_non_browser_request_gets_401_json(enabled_roster):
 
 
 @pytest.mark.anyio
-async def test_admitted_request_records_last_seen(enabled_roster):
-    from haywire_studio.auth.gate import last_seen
+async def test_admitted_agent_request_records_last_seen(enabled_roster):
+    from haywire.core.access.presence import agents_seen
 
-    last_seen().clear()
+    agents_seen().clear()
     agent = add_agent("builder", AccessTier.EDIT, path=enabled_roster)
     headers = [(b"authorization", f"Bearer {agent.token}".encode())]
     await _call(_gate(enabled_roster), _http("/mcp", headers))
-    assert "builder" in last_seen()
+    assert "builder" in agents_seen()
+    agents_seen().clear()

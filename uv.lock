@@ -923,20 +923,16 @@ source = { editable = "barn/haybale-marketplace" }
 dependencies = [
     { name = "haybale-studio" },
     { name = "haywire-core" },
-    { name = "haywire-studio" },
     { name = "nicegui" },
     { name = "packaging" },
-    { name = "toml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haywire-core", editable = "packages/haywire-core" },
-    { name = "haywire-studio", editable = "packages/haywire-studio" },
     { name = "nicegui", specifier = ">=3.12.1" },
     { name = "packaging" },
-    { name = "toml" },
 ]
 
 [[package]]

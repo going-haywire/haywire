@@ -5,10 +5,12 @@ Two different liveness signals, deliberately not pretended to be the same:
 * **Users** hold an open websocket, so ``SessionManager.active_sessions`` is
   authoritative. Multiple browser tabs collapse into one entry with a count.
 * **Agents** transact over request-shaped MCP traffic with no persistent
-  socket, so the gate's ``last_seen`` stamp is the only signal available.
-  MCP's ``ping`` is an *optional* protocol message, so an agent that never
-  pings would look offline — which is why the UI shows "last seen 40s ago"
-  rather than a green dot. A relative timestamp cannot be wrong.
+  socket, so the time of their last admitted request is the only signal
+  available. Whatever admits that request reports it through
+  ``record_agent_seen``. MCP's ``ping`` is an *optional* protocol message, so
+  an agent that never pings would look offline — which is why the UI shows
+  "last seen 40s ago" rather than a green dot. A relative timestamp cannot be
+  wrong.
 """
 
 from __future__ import annotations
@@ -16,28 +18,39 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
-from haywire.core.access import AccessTier
-from haywire.core.signals import AgentDisconnected
-
-from haywire_studio.auth.gate import last_seen
-from haywire_studio.auth.live import RosterCache
+from haywire.core.access.resolver import resolve_tier
+from haywire.core.access.tier import AccessTier
 from haywire.core.farmhand.activity import activity_tracker
+from haywire.core.signals import AgentDisconnected
 
 #: An agent quieter than this drops out of the presence row.
 AGENT_IDLE_TIMEOUT_SECONDS = 300.0
+
+#: Agent name → monotonic timestamp of its most recent admitted request.
+_AGENTS_SEEN: dict[str, float] = {}
 
 #: Agents currently inside the idle window, so a departure publishes once
 #: rather than on every presence read. Module-level to survive hot-reload.
 _present_agents: set[str] = set()
 
 
+def record_agent_seen(name: str) -> None:
+    """Stamp agent ``name`` as seen now. Call once per admitted agent request."""
+    _AGENTS_SEEN[name] = time.monotonic()
+
+
+def agents_seen() -> dict[str, float]:
+    """Agent name → monotonic timestamp of its most recent admitted request.
+
+    The live dict: tests may clear or seed it directly.
+    """
+    return _AGENTS_SEEN
+
+
 def _note_departure(name: str) -> None:
     """Publish :class:`AgentDisconnected` the first time ``name`` ages out.
 
-    Aging out is the only available departure signal — MCP has no close event,
-    and the host's ``WeakSet`` drops entries on GC, which is timing rather than
-    departure.
-
+    Aging out is the only available departure signal — MCP has no close event.
     Best-effort: presence is a read path, so a broadcast failure must not stop
     it returning rows.
     """
@@ -72,10 +85,13 @@ class PresenceEntry:
     last_ok: bool = True
 
 
-def collect_presence(session_manager, cache: RosterCache) -> list[PresenceEntry]:
-    """Every principal currently present, users first."""
-    roster = cache.roster()
+def collect_presence(session_manager) -> list[PresenceEntry]:
+    """Every principal currently present, users first.
 
+    Tiers come from ``resolve_tier``. An agent drops out once it has been idle
+    longer than ``AGENT_IDLE_TIMEOUT_SECONDS``, publishing ``AgentDisconnected``
+    once.
+    """
     counts: dict[str, int] = {}
     for session in session_manager.active_sessions.values():
         name = getattr(session.context, "principal", None)
@@ -83,21 +99,13 @@ def collect_presence(session_manager, cache: RosterCache) -> list[PresenceEntry]
             counts[name] = counts.get(name, 0) + 1
 
     users = [
-        PresenceEntry(
-            name=name,
-            kind="user",
-            tier=principal.tier if (principal := roster.find(name)) else AccessTier.VIEW,
-            sessions=count,
-        )
+        PresenceEntry(name=name, kind="user", tier=resolve_tier(name), sessions=count)
         for name, count in sorted(counts.items())
     ]
 
     now = time.monotonic()
     agents = []
-    for name, stamp in sorted(last_seen().items()):
-        principal = roster.find(name)
-        if principal is None or not principal.is_agent:
-            continue
+    for name, stamp in sorted(_AGENTS_SEEN.items()):
         idle = now - stamp
         if idle > AGENT_IDLE_TIMEOUT_SECONDS:
             _note_departure(name)
@@ -110,7 +118,7 @@ def collect_presence(session_manager, cache: RosterCache) -> list[PresenceEntry]
             PresenceEntry(
                 name=name,
                 kind="agent",
-                tier=principal.tier,
+                tier=resolve_tier(name),
                 last_seen_seconds=idle,
                 running_tool=running.tool if running is not None else "",
                 last_tool=finished.tool if finished is not None else "",

@@ -29,8 +29,9 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from pathlib import Path
+
+from haywire.core.access.presence import record_agent_seen
 
 from haywire_studio.auth.cookies import COOKIE_NAME, verify_session
 from haywire_studio.auth.live import RosterCache
@@ -46,23 +47,6 @@ EXEMPT_PATHS = frozenset({"/login"})
 #: the NiceGUI page handler (which binds it onto SessionContext) and the
 #: Farmhand handlers (which filter the tool list by its tier).
 PRINCIPAL_SCOPE_KEY = "haywire_principal"
-
-_LAST_SEEN: dict[str, float] = {}
-
-
-def last_seen() -> dict[str, float]:
-    """principal name → monotonic timestamp of their most recent admitted request.
-
-    Drives agent presence in the TopBar. For a browser principal an open socket
-    is the better liveness signal; for an agent this is the only one, because
-    MCP traffic is request-shaped and its ``ping`` is an optional protocol
-    message.
-    """
-    return _LAST_SEEN
-
-
-def record_seen(name: str) -> None:
-    _LAST_SEEN[name] = time.monotonic()
 
 
 class AuthGateMiddleware:
@@ -101,7 +85,10 @@ class AuthGateMiddleware:
             return
 
         scope[PRINCIPAL_SCOPE_KEY] = principal
-        record_seen(principal)
+        entry = roster.find(principal)
+        if entry is not None and entry.is_agent:
+            # Request time is an agent's only liveness signal; see haywire.core.access.presence.
+            record_agent_seen(principal)
         await self.app(scope, receive, send)
 
     # -- credential resolution ------------------------------------------
