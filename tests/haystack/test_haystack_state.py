@@ -161,6 +161,32 @@ def test_remove_entry_returns_false_for_unknown(state_with_mocked_deps):
     assert state.remove_entry(rogue) is False
 
 
+def test_remove_entry_cleans_up_its_undo_history(state_with_mocked_deps):
+    """Closing an entry releases what its undo steps hold, such as deleted nodes."""
+    from haywire.core.undo.base_action import ActionBase
+
+    class _Holding(ActionBase):
+        cleaned_up = False
+
+        def _execute_impl(self) -> None:
+            pass
+
+        def _undo_impl(self) -> None:
+            pass
+
+        def cleanup(self) -> None:
+            self.cleaned_up = True
+
+    state = state_with_mocked_deps
+    entry = state.create_new()
+    action = _Holding("hold")
+    entry.editor.history_manager.add_action(action)
+
+    state.remove_entry(entry)
+
+    assert action.cleaned_up is True
+
+
 def test_unsaved_entries_includes_untitled(state_with_mocked_deps):
     state = state_with_mocked_deps
     entry = state.create_new()

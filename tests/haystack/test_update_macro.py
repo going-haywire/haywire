@@ -246,6 +246,43 @@ def test_a_failed_load_into_an_open_macro_restores_it(haystack, macro_file, grap
     assert set(entry.graph.node_wrappers) == on_disk
 
 
+def test_a_failed_load_into_an_open_macro_discards_its_history(
+    haystack, macro_file, graph_with_library_system
+):
+    """The history described the contents the failed load replaced; a node it deleted is released."""
+    path, _, _ = macro_file
+    entry = haystack.open_macro(path)
+    deleted = make_node(entry.graph, _PRINT)
+    entry.graph.force_validation()
+    assert entry.editor.remove_elements([deleted.node_id], [])
+    entry.unsaved = False
+    real_load = entry.graph.load_from_dict
+    document = _document(graph_with_library_system, interface_ports=("gain", "radius"))
+
+    def _fail_on_the_document(data):
+        return False if data is document else real_load(data)
+
+    with (
+        patch.object(entry.graph, "load_from_dict", side_effect=_fail_on_the_document),
+        pytest.raises(ValueError, match="could not be loaded"),
+    ):
+        haystack.open_macro_with(path, document)
+
+    assert entry.editor.history_manager.can_undo() is False
+    assert deleted._cleaned_up is True
+
+
+def test_closing_an_entry_releases_the_nodes_its_history_deleted(haystack, tmp_path):
+    entry = _open_graph(haystack, tmp_path, "Closing")
+    deleted = make_node(entry.graph, _PRINT)
+    entry.graph.force_validation()
+    assert entry.editor.remove_elements([deleted.node_id], [])
+
+    haystack.remove_entry(entry)
+
+    assert deleted._cleaned_up is True
+
+
 def test_a_failed_load_whose_file_is_gone_closes_the_open_macro(
     haystack, macro_file, graph_with_library_system
 ):

@@ -357,6 +357,7 @@ class HaystackState(AppState):
                     f"'{existing.display_name}' could not be loaded, nor its file read; it was closed"
                 )
             existing.graph.force_validation()
+            existing.editor.history_manager.clear()
             existing.unsaved = False
             self._broadcast_data_mutated()
             raise ValueError(f"'{existing.display_name}' could not be loaded")
@@ -493,7 +494,7 @@ class HaystackState(AppState):
         return True
 
     def remove_entry(self, entry: GraphEntry) -> bool:
-        """Stop execution and drop the entry from the registry.
+        """Stop execution, discard the undo history, and drop the entry from the registry.
 
         Does NOT delete the file on disk.
         """
@@ -504,6 +505,8 @@ class HaystackState(AppState):
         if entry.binding_id in self._entries and self._entries[entry.binding_id] is entry:
             if self._graph_app_state is not None:
                 self._graph_app_state.unregister(entry.binding_id)
+            # The history holds the nodes and edges deleted from the graph; graph.cleanup() never sees them.
+            entry.editor.history_manager.clear()
             if hasattr(entry.graph, "cleanup"):
                 entry.graph.cleanup()  # releases its nodes' factory and settings subscriptions
             del self._entries[entry.binding_id]
