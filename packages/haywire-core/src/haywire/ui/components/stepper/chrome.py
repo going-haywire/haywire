@@ -121,7 +121,7 @@ def render_progress(flow: StepFlow) -> None:
             ui.element("div").classes("flex-1 rounded").style(f"height: 3px; background: {colour};").tooltip(
                 flow.STEP_TITLES.get(name, name)
             )
-    ui.label(flow.STEP_TITLES.get(flow.step, flow.step)).classes("text-sm font-medium")
+    hui.heading(flow.STEP_TITLES.get(flow.step, flow.step))
 
 
 def render_warnings(flow: StepFlow) -> None:

@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from nicegui import ui
+
 from haybale_graph_editor.state.edit_state import EditState
 from haybale_testing.surfaces import TestEdgeActions, TestEdgeMenu
 from haywire.ui import elements as hui
@@ -172,6 +174,9 @@ class TestEdgeWarningsMenuPanel(BasePanel):
             return
 
         with layout:
-            hui.warning_label("Warnings").classes("font-semibold")
-            for warning in state.warnings:
-                hui.warning_label(f"• {warning}").classes("whitespace-pre-wrap break-words ml-1")
+            hui.section_label("Warnings")
+            with hui.indented():
+                for warning in state.warnings:
+                    ui.label(f"• {warning}").classes(
+                        "text-xs hw-text-warning whitespace-pre-wrap break-words"
+                    )

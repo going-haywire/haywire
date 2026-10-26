@@ -316,7 +316,7 @@ class CodeEditor(BaseEditor):
 
         with ui.dialog() as dialog, hui.dialog_card("w-[420px]"):
             with ui.column().classes("w-full gap-2"):
-                ui.label("Save As").classes("text-base font-semibold")
+                hui.heading("Save As")
                 path_input = hui.input_field(label="File path", value=default, autofocus=True)
                 warning_label = ui.label("").classes("text-xs hw-text-danger -mt-1")
                 warning_label.set_visibility(False)
@@ -326,7 +326,7 @@ class CodeEditor(BaseEditor):
 
                 path_input.on("update:model-value", _clear_warning)
 
-                with ui.row().classes("w-full justify-end gap-2 mt-1"):
+                with hui.action_row().classes("mt-1"):
                     ui.button("Cancel", on_click=dialog.close).props("flat dense")
                     ui.button(
                         "Save",
@@ -400,14 +400,14 @@ class CodeEditor(BaseEditor):
         result: dict = {}
 
         with ui.dialog() as dialog, hui.dialog_card("w-[420px]"):
-            ui.label("Save changes before closing?").classes("text-base font-semibold")
+            hui.heading("Save changes before closing?")
             ui.label("You have unsaved changes in this file.").classes("text-sm hw-text-muted")
 
             def _resolve(action: str) -> None:
                 result["action"] = action
                 dialog.close()
 
-            with ui.row().classes("w-full justify-end gap-2 mt-2"):
+            with hui.action_row().classes("mt-2"):
                 ui.button("Cancel", on_click=lambda: _resolve("cancel")).props("flat dense")
                 ui.button("Discard", on_click=lambda: _resolve("discard")).props("flat dense").style(
                     "color: var(--hw-danger);"

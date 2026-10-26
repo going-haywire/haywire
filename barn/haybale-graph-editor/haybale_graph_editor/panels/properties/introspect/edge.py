@@ -52,10 +52,11 @@ def _render_edge_errors(state: "EdgeWrapperState") -> None:
 
 
 def _render_edge_warnings(state: "EdgeWrapperState") -> None:
-    with ui.column().classes("w-full gap-1 p-2"):
-        hui.warning_label("Warnings").classes("font-semibold")
-        for warning in state.warnings:
-            hui.warning_label(f"• {warning}").classes("whitespace-pre-wrap break-words ml-1")
+    with ui.column().classes("w-full gap-1 py-2"):
+        hui.section_label("Warnings")
+        with hui.indented():
+            for warning in state.warnings:
+                ui.label(f"• {warning}").classes("text-xs hw-text-warning whitespace-pre-wrap break-words")
 
 
 @panel(

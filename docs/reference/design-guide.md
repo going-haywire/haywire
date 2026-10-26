@@ -405,6 +405,11 @@ formula:
 
 These labels are structural markers, not content — they should be the dimmest text in the panel.
 
+The formula is the `.hw-section-label` class; draw one with `hui.section_label()`
+(§8.5b) or, for a settings category, `hui.category_group()` (§8.21). Never
+write the classes by hand. Pass the text in sentence case: the class
+uppercases it.
+
 ### 3.5 Truncation
 
 **Rule:** Any text that can overflow its container must include `.truncate`.
@@ -420,6 +425,30 @@ For values that are programmatically too long, truncate in Python and provide th
 short = (value[:48] + "…") if len(value) > 50 else value
 hui.info_row("Module", short, copy_value=full_value)
 ```
+
+### 3.6 Label Hierarchy
+
+Inside a panel, popup, dialog or flow step, text takes one of five roles. Each
+role is a CSS class in the shell stylesheet and a `hui` helper; the helper is
+how you draw it.
+
+| Role          | Class               | Helper                | Look                                   | Use for                                                       |
+| ------------- | ------------------- | --------------------- | -------------------------------------- | ------------------------------------------------------------- |
+| Heading       | `.hw-heading`       | `hui.heading()`       | `text-sm font-medium`, `--hw-text-body` | The one title line of a dialog or flow step.                  |
+| Section label | `.hw-section-label` | `hui.section_label()` | §3.4                                   | A group within the screen.                                    |
+| Subject       | `.hw-subject`       | `hui.subject()`       | `text-xs font-medium`, `--hw-text-body` | The name a row or box is about (a package, a conflict).       |
+| Body          | —                   | `ui.label().classes("text-sm")` | `text-sm`                    | A statement or a question the user acts on.                   |
+| Hint          | `.hw-hint`          | `hui.hint()`          | `text-xs`, `--hw-text-muted`           | Explanation, status, metadata.                                |
+
+**Rule:** a screen has at most one heading. In a step flow the stepper draws
+it from the flow's `STEP_TITLES`; a panel never draws its own, and never
+repeats the popup title.
+
+**Rule:** a hint is `--hw-text-muted`, not `--hw-text-dim`: it is read, and dim
+is reserved for structural labels (§11.2).
+
+**Rule:** the Heading tier of §3.1 (`text-base`) is the title of a detail
+view (Component Docs), not of a dialog or flow step.
 
 ---
 
@@ -519,6 +548,34 @@ editor content uses the standard gap/padding system (§4.1–4.3).
 
 **Rule:** Never apply `compact-fields` and `p-4` to the same container. Compact
 panels use `p-0` or `p-1` on their outer column.
+
+### 4.6 Insets and Indentation
+
+Two tokens place labels and lists horizontally:
+
+| Token              | Default  | Purpose                                                                 |
+| ------------------ | -------- | ----------------------------------------------------------------------- |
+| `--hw-inset`       | `0.5rem` | Where a section label's text starts. 0 in a popup body, a dialog card and a `hui.box()`, which pad their own content. |
+| `--hw-indent-step` | `12px`   | One level of indentation.                                               |
+
+So a section label lines up with `hui.list_item` rows (`px-2`) in a panel, and
+with the body text in a popup, without the caller choosing.
+
+- `hui.indented()` is the column for items listed under a label: one step in
+  from where the label's text starts. Nest it once per level.
+- `hui.box()` is a bordered group (`1px solid var(--hw-border)`, 4px, `p-2`,
+  `--hw-bg-surface`). A section label as its first child has no top padding.
+
+**Rule:** never indent with `ml-*` / `pl-*` or an inline `margin-left`. Use
+`hui.indented()`. Canvas content (skins, node widgets) follows §9.6 instead.
+
+```python
+hui.section_label("Will be written")
+hui.hint("These sources will be contacted:")
+with hui.indented():
+    for url in urls:
+        ui.label(url).classes("text-xs font-mono")
+```
 
 ---
 
@@ -815,11 +872,37 @@ An uppercase tracking label that separates groups within a list or panel.
 
 **Visual rules:**
 
-- Text: `text-xs font-bold tracking-wider uppercase hw-text-dim`
-- Padding: `px-2 pt-2 pb-1`
+- Class: `.hw-section-label` — `text-xs`, bold, tracking, uppercase, `hw-text-dim`
+- Padding: `0.5rem var(--hw-inset) 0.25rem` (§4.6); none in a row beside an icon
+- The text is uppercased by CSS — pass sentence case
 
 ```python
-hui.section_label("REQUIRED")
+hui.section_label("Required")
+```
+
+### 8.5c `hui.heading(text)`, `hui.subject(text, mono=False, tone=None)`, `hui.hint(text)`
+
+The heading, subject and hint roles of §3.6. `subject(mono=True)` is for
+identifiers; `tone="--hw-positive"` recolours it. Chain `.classes()` on a hint
+for `font-mono`, `truncate` or `whitespace-pre-line`.
+
+```python
+hui.heading("Save changes before closing?")
+hui.subject("haybale_core", mono=True, tone="--hw-warning")
+hui.hint("Nothing is written until you apply.")
+```
+
+### 8.5d `hui.indented(gap="gap-0.5")` and `hui.box(gap="gap-2")`
+
+The indentation column and the bordered group of §4.6. Both return a
+`ui.column` to use as a context manager.
+
+```python
+with hui.box():
+    hui.section_label("Version")
+    hui.hint("Every library publishes at the same version.")
+    with hui.indented():
+        ui.label("haybale-core: 0.4.1").classes("text-xs font-mono")
 ```
 
 ### 8.6 `hui.info_row(label, value, copy_value=None)`
@@ -1267,7 +1350,7 @@ A foldable expansion used to group settings fields by category inside a
 **Visual rules:**
 
 - Props: `dense dense-toggle`
-- Header class: `text-xs font-bold hw-text-muted uppercase tracking-wide px-2 py-0 min-h-[24px]`
+- Header class: `hw-section-label py-0 min-h-[24px]` — the section label of §3.4
 - Default open: `True`
 - No state persistence (categories always reset to open)
 
@@ -1327,7 +1410,7 @@ the `.hw-menu-row` block and its `--hw-menu-row-*` tokens (§2.8a):
   spelling everywhere and drifts from the command's keys.
 - Divider between groups: `hui.separator()`
 
-### 8.24 `hui.dialog_card(width=None)` and `hui.dialog_actions(...)`
+### 8.24 `hui.dialog_card(width=None)`, `hui.dialog_actions(...)`, `hui.action_row()`, `hui.confirm_button(label)`
 
 Two helpers that enforce §8.23 chrome rules on modal dialogs.
 
@@ -1344,6 +1427,17 @@ with ui.dialog() as dlg, hui.dialog_card("w-[480px]"):
 **`hui.dialog_actions(on_confirm, on_cancel, *, confirm_label="OK", cancel_label="Cancel")`** —
 a right-aligned action row. Cancel is flat/unstyled; the confirm button uses
 `color: var(--hw-positive)` for affirming emphasis.
+
+**`hui.action_row()`** — the right-aligned button row that ends any dialog,
+popup or flow step, and **`hui.confirm_button(label, on_click=None)`** — the
+`flat dense` button in `var(--hw-positive)` that carries out its intent.
+`dialog_actions` is built from the two.
+
+```python
+with hui.action_row():
+    ui.button("Close", on_click=popup.close).props("flat dense")
+    hui.confirm_button("Apply", on_click=apply)
+```
 
 **Rule:** Never use raw `ui.card()` inside `ui.dialog()`. Always use
 `hui.dialog_card()`.
@@ -1618,6 +1712,8 @@ bars (ActivityBar / ContextBar), not the ACTION/CONTEXT slot content areas.
 | `hw-slot-bar-tabs`  | Tabbed slot bar modifier (MainTabBar, BottomTabBar)  |
 | `hw-slot-bar-icons` | Icon slot bar modifier (ActivityBar, ContextBar)     |
 | `hw-cm-isolate`     | CodeMirror isolation wrapper (see rule below)        |
+| `hw-heading`, `hw-section-label`, `hw-subject`, `hw-hint` | Label roles (§3.6)  |
+| `hw-indented`, `hw-box` | Indentation column and bordered group (§4.6)     |
 | `compact-fields`    | Dense field rendering mode                           |
 | `sf-label`          | Settings field label (responsive layout)             |
 | `sf-widget`         | Settings field widget (responsive layout)            |
@@ -1689,3 +1785,8 @@ not a CodeMirror host.
 | `from haywire.ui import elements as hui` inside a method/function | Repeated import cost, inconsistent with codebase convention | Import once at module level                                       |
 | Raw Material icon string (`icon="refresh"`)                       | No semantic registry, drifts from `AppIcon`                 | `hui.icon.<name>`                                                 |
 | `.truncate` on a `ui.button` label                                | Class can't reach Quasar's inner `<span>`                   | `no-wrap` Quasar prop (`hui.button` already applies it)           |
+| `ui.label(...).classes("text-base font-bold")` in a dialog or flow | A heading style per author                                  | `hui.heading()` (§3.6)                                            |
+| Hand-written `uppercase tracking-wide` labels                     | Drifts from `hui.section_label`                             | `hui.section_label()` (§3.4)                                      |
+| A flow panel repeating its popup or step title                    | Two headings of one tier                                    | The stepper draws the step title; the panel draws none            |
+| `ml-1` / `ml-2` / `pl-*` columns under a label                    | Mixed indents, misaligned with the label                    | `hui.indented()` (§4.6)                                           |
+| `ui.row().classes("w-full justify-end gap-2")` + positive button  | Copied in every flow                                        | `hui.action_row()` + `hui.confirm_button()`                       |

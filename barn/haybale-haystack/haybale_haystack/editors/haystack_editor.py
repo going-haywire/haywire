@@ -241,7 +241,7 @@ class HaystackEditor(BaseEditor):
             # haystack and cannot be run, so it does not belong among the
             # entries the play controls and the TOML apply to.
             if macros:
-                ui.label("Macros").classes("text-xs hw-text-dim px-2 pt-2 pb-0.5 uppercase")
+                hui.section_label("Macros")
                 for entry in macros:
                     self._render_entry(entry, context)
 

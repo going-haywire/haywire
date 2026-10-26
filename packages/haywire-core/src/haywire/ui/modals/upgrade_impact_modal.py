@@ -14,6 +14,8 @@ from typing import Callable
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.ui.components.popup import Popup
 
 
@@ -59,15 +61,13 @@ def upgrade_impact_modal(
     with popup:
         with ui.column().classes("w-full gap-3 p-1"):
             with ui.column().classes("gap-1"):
-                ui.label("Installing").classes("text-xs font-semibold hw-text-dim uppercase tracking-wide")
+                hui.section_label("Installing")
                 ui.label(installing).classes("text-sm")
 
             ui.separator()
 
             with ui.column().classes("gap-1"):
-                ui.label("Also upgrading").classes(
-                    "text-xs font-semibold hw-text-dim uppercase tracking-wide"
-                )
+                hui.section_label("Also upgrading")
                 ui.label(
                     "Installing this library requires upgrading the following already-loaded libraries."
                 ).classes("text-xs hw-text-dim")
@@ -81,7 +81,7 @@ def upgrade_impact_modal(
                 on_continue()
                 popup.close()
 
-            with ui.row().classes("w-full justify-end gap-2 mt-1"):
+            with hui.action_row().classes("mt-1"):
                 ui.button("Cancel", on_click=popup.close).props("flat dense")
                 ui.button("Continue", on_click=_do_continue).props("flat dense").style(
                     "color: var(--hw-positive);"

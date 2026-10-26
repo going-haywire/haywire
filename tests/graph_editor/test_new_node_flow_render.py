@@ -77,7 +77,7 @@ async def test_the_plan_and_result_steps_render(user: User, env) -> None:
     await flow.advance_from_details()
     with user:
         flow.on_render()
-    await user.should_see("This will be written:")
+    await user.should_see("Will be written")
     await user.should_see("dst:node:SingleCopy")
 
     flow.outcome = RegistrationOutcome(status="added", registry_key="dst:node:SingleCopy")

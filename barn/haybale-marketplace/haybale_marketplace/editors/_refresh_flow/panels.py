@@ -40,7 +40,7 @@ def _panel_sources(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
         return
 
     ui.label("These sources will be contacted:").classes("text-xs hw-text-dim")
-    with ui.column().classes("gap-0.5 ml-1"):
+    with hui.indented():
         for sub in global_file.markets:
             ui.label(f"market · {sub.url}").classes("text-xs font-mono hw-text-dim")
         for sub in global_file.stalls:
@@ -55,8 +55,8 @@ def _panel_sources(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
         "Fetching only reads — nothing is written until you apply."
     ).classes("text-xs hw-text-dim")
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        fetch = ui.button("Fetch").props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        fetch = hui.confirm_button("Fetch")
         fetch.on_click(lambda: busy_advance(rerender, fetch, flow.advance_from_sources))
 
 
@@ -77,7 +77,7 @@ def _panel_fetched(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
             f"color: {colour};"
         )
 
-    with ui.column().classes("gap-0.5 ml-1"):
+    with hui.indented():
         for outcome in fetched.outcomes:
             if outcome.outcome is RefreshOutcome.FRESH:
                 mark, tone = "✓", "hw-text-dim"
@@ -103,11 +103,11 @@ def _panel_fetched(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
         "text-xs hw-text-dim"
     )
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        ui.button(
+    with hui.action_row():
+        hui.confirm_button(
             "Resolve",
             on_click=lambda: advance(rerender, flow.advance_from_fetched),
-        ).props("flat dense").style("color: var(--hw-positive);")
+        )
 
 
 def _panel_resolved(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
@@ -124,7 +124,7 @@ def _panel_resolved(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
     else:
         ui.label("Applying this refresh will:").classes("text-xs hw-text-dim")
 
-    with ui.column().classes("gap-0.5 ml-1"):
+    with hui.indented():
         for name in resolved.newly_added:
             ui.label(f"+ {name}").classes("text-xs font-mono").style("color: var(--hw-positive);")
         for name in resolved.newly_stale:
@@ -146,8 +146,8 @@ def _panel_resolved(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
         "Applying overwrites the project's cached library list. Nothing is installed or removed."
     ).classes("text-xs hw-text-dim")
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        apply_button = ui.button("Apply").props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        apply_button = hui.confirm_button("Apply")
         apply_button.on_click(lambda: busy_advance(rerender, apply_button, flow.advance_from_resolved))
 
 
@@ -165,7 +165,7 @@ def _render_collisions(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
 
     hui.section_label("Offered by several sources")
     for collision in (c for c in resolved.collisions if c.same_library):
-        with ui.column().classes("gap-0.5 ml-1 mb-1"):
+        with hui.indented().classes("mb-1"):
             ui.label(f"{collision.name} — offered by {_plural(collision.source_count, 'source')}").classes(
                 "text-xs font-mono"
             )
@@ -225,7 +225,7 @@ def _panel_conflicts(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
     """
     ui.label(
         f"{_plural(len(flow.conflicts), 'name is', 'names are')} claimed by more than one library."
-    ).classes("text-sm font-medium").style("color: var(--hw-warning);")
+    ).classes("text-sm").style("color: var(--hw-warning);")
     ui.label(
         "These are different libraries that happen to share a name — not the same "
         "library from several feeds. Leave exactly one unblocked."
@@ -233,10 +233,10 @@ def _panel_conflicts(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
 
     for conflict in flow.conflicts:
         claimants = flow.claimants_for(conflict.name)
-        with ui.column().classes("gap-0.5 ml-1 mb-2"):
+        with hui.indented().classes("mb-2"):
             remaining = sum(1 for c in claimants if not c.blocked)
             with ui.row().classes("items-center gap-2"):
-                ui.label(conflict.name).classes("text-xs font-mono font-medium")
+                hui.subject(conflict.name, mono=True)
                 tone = "var(--hw-positive)" if remaining == 1 else "var(--hw-warning)"
                 ui.label(f"{remaining} of {len(claimants)} unblocked").classes("text-xs").style(
                     f"color: {tone};"
@@ -256,8 +256,8 @@ def _panel_conflicts(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
             "unresolved as blocking none."
         ).classes("text-xs").style("color: var(--hw-warning);")
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        cont = ui.button("Continue").props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        cont = hui.confirm_button("Continue")
         cont.on_click(lambda: busy_advance(rerender, cont, flow.advance_from_conflicts))
         # Disabled rather than failing on click: the requirement is visible on
         # screen (the per-name "n of m unblocked" counter), so a dead button is
@@ -274,7 +274,7 @@ def _render_claimant(
     claimant,
 ) -> None:
     """One claimant row: who offers it, its identity, and the block toggle."""
-    with ui.column().classes("gap-0 ml-2 mb-1"):
+    with hui.indented(gap="gap-0").classes("mb-1"):
         with ui.row().classes("items-center gap-2"):
             label = claimant.label or claimant.url or "(inline)"
             colour = (
@@ -355,5 +355,5 @@ def _panel_applied(flow: RefreshFlow, on_done: Callable[[], None] | None) -> Non
         if flow.popup is not None:
             flow.popup.close()
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        ui.button("Done", on_click=_close).props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        hui.confirm_button("Done", on_click=_close)

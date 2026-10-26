@@ -6,6 +6,8 @@ from typing import Callable
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.ui.components.stepper import advance, busy_advance
 from haywire.ui.modals import restart_affordance
 
@@ -18,14 +20,13 @@ def _plural(count: int, singular: str, plural: str | None = None) -> str:
 
 def _panel_selected(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
     """What is about to be removed. Nothing has been read or written yet."""
-    ui.label(f"Uninstall {flow.label}?").classes("text-sm font-medium")
     ui.label(
         "This removes the library from the environment. Checking first which graphs use it "
         "and which installed packages depend on it — neither check changes anything."
     ).classes("text-xs hw-text-dim")
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        check = ui.button("Check impact").props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        check = hui.confirm_button("Check impact")
         check.on_click(lambda: busy_advance(rerender, check, flow.advance_from_selected))
 
 
@@ -50,7 +51,7 @@ def _panel_impact(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
                 f"{_plural(len(impact.graphs), 'graph')} use this library "
                 f"({_plural(impact.total_references, 'reference')})."
             ).classes("text-sm").style("color: var(--hw-warning);")
-        with ui.column().classes("gap-0.5 ml-1"):
+        with hui.indented():
             for usage in impact.graphs:
                 ui.label(f"{usage.name} — {_plural(usage.references, 'reference')}").classes(
                     "text-xs font-mono hw-text-dim"
@@ -72,7 +73,7 @@ def _panel_impact(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
                 f"{'requires' if len(impact.pip_dependents) == 1 else 'require'} "
                 f"{impact.dist_name}."
             ).classes("text-sm hw-text-danger")
-        with ui.column().classes("gap-0.5 ml-1"):
+        with hui.indented():
             for name in impact.pip_dependents:
                 ui.label(name).classes("text-xs font-mono hw-text-danger")
         ui.label("Removing it anyway will break those packages until they are reinstalled.").classes(
@@ -84,7 +85,7 @@ def _panel_impact(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
             "text-xs hw-text-dim"
         )
 
-    with ui.row().classes("w-full justify-end gap-2"):
+    with hui.action_row():
         ui.button(
             "Continue",
             on_click=lambda: advance(rerender, flow.advance_from_impact),
@@ -95,7 +96,7 @@ def _panel_confirm(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
     """The decision point. The next click is the destructive one."""
     impact = flow.impact
 
-    ui.label(f"Remove {flow.label} from the environment?").classes("text-sm font-medium")
+    ui.label(f"Remove {flow.label} from the environment?").classes("text-sm")
 
     if impact is not None and impact.dist_name:
         ui.label(f"uv uninstall {impact.dist_name}").classes("text-xs font-mono hw-text-dim")
@@ -115,7 +116,7 @@ def _panel_confirm(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
         "text-xs hw-text-dim"
     )
 
-    with ui.row().classes("w-full justify-end gap-2"):
+    with hui.action_row():
         uninstall = ui.button("Uninstall").props("flat dense").style("color: var(--hw-danger);")
         uninstall.on_click(lambda: busy_advance(rerender, uninstall, flow.advance_from_confirm))
 
@@ -143,5 +144,5 @@ def _panel_removed(flow: UninstallFlow, on_done: Callable[[], None] | None) -> N
         if flow.popup is not None:
             flow.popup.close()
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        ui.button("Done", on_click=_close).props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        hui.confirm_button("Done", on_click=_close)

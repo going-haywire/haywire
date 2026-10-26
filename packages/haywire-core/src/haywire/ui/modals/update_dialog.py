@@ -57,19 +57,19 @@ def open_update_dialog(project_root: Path) -> None:
             _render_explainer(status.installed, status.latest or "")
 
     def _render_explainer(installed: str, latest: str) -> None:
-        ui.label(f"Haywire {latest} is available").classes("text-base font-bold")
+        hui.heading(f"Haywire {latest} is available")
         ui.label(f"You're on {installed}.").classes("text-xs hw-text-muted")
         hui.section_label("What happens")
-        with ui.column().classes("gap-0.5 ml-1"):
+        with hui.indented():
             ui.label("1. Your pyproject.toml pin is updated").classes("text-xs")
             ui.label("2. Studio quits").classes("text-xs")
             ui.label("3. You run `uv run haywire` — the new version installs on launch").classes("text-xs")
-        with ui.row().classes("w-full justify-end gap-2"):
+        with hui.action_row():
             ui.button("Cancel", on_click=popup.close).props("flat dense")
-            ui.button(
+            hui.confirm_button(
                 "Continue",
                 on_click=lambda: _run_conflict_check(installed, latest),
-            ).props("flat dense").style("color: var(--hw-positive);")
+            )
 
     async def _run_conflict_check(installed: str, latest: str) -> None:
         body.clear()
@@ -80,7 +80,7 @@ def open_update_dialog(project_root: Path) -> None:
         body.clear()
         with body:
             if not result.ok:
-                ui.label("Update blocked").classes("text-base font-bold")
+                hui.heading("Update blocked")
                 ui.label(result.message).classes("text-xs font-mono whitespace-pre-wrap")
                 ui.label("Update or remove the conflicting library first. Nothing was written.").classes(
                     "text-xs hw-text-muted"
@@ -91,11 +91,11 @@ def open_update_dialog(project_root: Path) -> None:
             # happens later inside `uv run`, unsupervised.
             ui.label("No conflicts found.").classes("text-sm")
             if result.changes:
-                with ui.column().classes("gap-0 ml-1 max-h-40 overflow-auto"):
+                with hui.indented(gap="gap-0").classes("max-h-40 overflow-auto"):
                     for line in result.changes:
                         ui.label(line).classes("text-xs font-mono hw-text-muted")
             ui.label("Unsaved work will be lost.").classes("text-xs").style("color: var(--hw-warning);")
-            with ui.row().classes("w-full justify-end gap-2"):
+            with hui.action_row():
                 ui.button("Cancel", on_click=popup.close).props("flat dense")
                 ui.button(
                     "Continue anyway",

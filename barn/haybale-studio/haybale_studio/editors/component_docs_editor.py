@@ -137,9 +137,7 @@ class ComponentDocsEditor(BaseEditor):
                 with ui.row().classes("w-full items-center justify-between mb-3"):
                     with ui.row().classes("items-center gap-2"):
                         ui.icon(icon).classes("text-xl hw-use-props-color").props("color=purple")
-                        ui.label(comp_singular.upper()).classes(
-                            "text-xs hw-text-dim font-bold tracking-wider"
-                        )
+                        hui.section_label(comp_singular)
                     hui.icon_action("close", tooltip="Close", on_click=lambda ctx=context: self._close(ctx))
 
                 # ── Label + description ────────────────────────────────────

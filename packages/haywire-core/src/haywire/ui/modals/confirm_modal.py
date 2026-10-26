@@ -9,6 +9,8 @@ from typing import Callable, Optional
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.ui.components.popup import Popup
 
 
@@ -67,7 +69,7 @@ def confirm_modal(
 
         color = "var(--hw-danger)" if danger else "var(--hw-positive)"
 
-        with ui.row().classes("w-full justify-end gap-2 mt-3"):
+        with hui.action_row().classes("mt-3"):
             ui.button("Cancel", on_click=popup.close).props("flat dense")
             ui.button(confirm_label, on_click=_do_confirm).props("flat dense").style(f"color: {color};")
 

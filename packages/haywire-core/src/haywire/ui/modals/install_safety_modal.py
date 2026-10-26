@@ -11,6 +11,8 @@ from typing import Any, Awaitable, Callable
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.ui.components.popup import Popup
 
 
@@ -97,7 +99,7 @@ def install_safety_modal(
                 await result
             popup.close()
 
-        with ui.row().classes("w-full justify-end gap-2 mt-4"):
+        with hui.action_row().classes("mt-4"):
             ui.button("Cancel", on_click=popup.close).props("flat dense")
             ui.button("Block", on_click=_do_block).props("flat dense").style("color: var(--hw-warning);")
             ui.button("Install", on_click=_do_install).props("flat dense").style(

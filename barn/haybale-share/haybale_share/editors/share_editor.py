@@ -79,7 +79,7 @@ class ShareEditor(BaseEditor):
             status = ShareFlow.project_status(root)
             libraries = status.libraries
 
-            ui.label(root.name).classes("text-sm font-medium")
+            hui.heading(root.name)
             ui.label(str(root)).classes("text-xs font-mono hw-text-muted")
 
             version = status.version
@@ -97,11 +97,11 @@ class ShareEditor(BaseEditor):
                 return
 
             hui.section_label(f"{len(libraries)} librar{'y' if len(libraries) == 1 else 'ies'}")
-            with ui.column().classes("gap-0.5 ml-1 w-full"):
+            with hui.indented().classes("w-full"):
                 for name in libraries:
                     ui.label(name).classes("text-xs font-mono hw-text-dim")
 
-            with ui.row().classes("w-full justify-end gap-2 pt-2"):
+            with hui.action_row().classes("pt-2"):
                 ui.button("Share…", on_click=self._open_flow).props("flat dense").style(
                     "color: var(--hw-positive);"
                 )

@@ -295,23 +295,103 @@ def label(text: str) -> ui.label:
     return ui.label(text).classes("text-sm hw-text-body truncate")
 
 
+def heading(text: str) -> ui.label:
+    """A screen heading: the one title line of a step, dialog or page section (§3.6).
+
+    Visual rules: ``.hw-heading`` — ``text-sm font-medium hw-text-body``.
+
+    Usage::
+
+        hui.heading("Save changes before closing?")
+    """
+    return ui.label(text).classes("hw-heading")
+
+
 def section_label(text: str) -> ui.label:
     """
     An uppercase tracking label that separates groups within a list or panel.
 
     Visual rules:
-    - Text: ``text-xs font-bold tracking-wider uppercase hw-text-dim``
-    - Padding: ``px-2 pt-2 pb-1``
+    - ``.hw-section-label``: ``text-xs`` bold, tracking, uppercase, ``hw-text-dim``
+    - Padding: ``0.5rem var(--hw-inset) 0.25rem`` — the inset is ``px-2`` in a
+      panel list, and 0 in a popup body, a dialog card or a ``hui.box``, so the
+      label lines up with the content below it
     - These labels are structural markers, not content — they should be the
       dimmest text in the panel.
 
     Usage::
 
-        hui.section_label("REQUIRED")
+        hui.section_label("Required")
     """
-    return ui.label(text.upper()).classes(
-        "text-xs font-bold tracking-wider hw-text-dim px-2 pt-2 pb-1 truncate"
-    )
+    return ui.label(text).classes("hw-section-label truncate")
+
+
+def subject(text: str, *, mono: bool = False, tone: str | None = None) -> ui.label:
+    """The name a row or a box is about, above or beside its detail (§3.6).
+
+    Visual rules: ``.hw-subject`` — ``text-xs font-medium hw-text-body``.
+
+    Args:
+        mono: Add ``font-mono``, for identifiers.
+        tone: A colour token such as ``"--hw-positive"`` that replaces the body colour.
+
+    Usage::
+
+        hui.subject("numpy-tools")
+        hui.subject("haybale_core", mono=True)
+        hui.subject("+ numpy-tools", mono=True, tone="--hw-positive")
+    """
+    lbl = ui.label(text).classes("hw-subject font-mono" if mono else "hw-subject")
+    if tone:
+        lbl.style(f"color: var({tone}) !important;")
+    return lbl
+
+
+def hint(text: str) -> ui.label:
+    """A line of explanation, status or metadata under a heading or a control (§3.6).
+
+    Visual rules: ``.hw-hint`` — ``text-xs hw-text-muted``. Chain
+    ``.classes()`` for ``font-mono``, ``truncate`` or ``whitespace-pre-line``.
+
+    Usage::
+
+        hui.hint("Nothing is written until you apply.")
+        hui.hint(path).classes("font-mono truncate")
+    """
+    return ui.label(text).classes("hw-hint")
+
+
+def indented(*, gap: str = "gap-0.5") -> ui.column:
+    """A column one indent step (``--hw-indent-step``, 12px) in from its label (§4.6).
+
+    Use it for the items listed under a hint or a section label. Nest it once
+    per level for a tree.
+
+    Usage::
+
+        hui.hint("These sources will be contacted:")
+        with hui.indented():
+            ui.label(url).classes("text-xs font-mono")
+    """
+    return ui.column().classes(f"hw-indented {gap}")
+
+
+def box(*, gap: str = "gap-2") -> ui.column:
+    """A bordered group inside a popup or panel (§4.6).
+
+    Sets ``--hw-inset`` to 0, so a ``hui.section_label`` inside lines up with
+    the rest of the box's content.
+
+    Visual rules: ``.hw-box`` — ``1px solid var(--hw-border)``, 4px radius,
+    ``p-2``, ``var(--hw-bg-surface)``.
+
+    Usage::
+
+        with hui.box():
+            hui.section_label("Version")
+            hui.hint("Every library publishes at the same version.")
+    """
+    return ui.column().classes(f"hw-box w-full {gap}")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1112,7 +1192,7 @@ def category_group(label: str, *, default_open: bool = True):
 
     Visual rules:
     - Props: ``dense dense-toggle``
-    - Header class: ``text-xs font-bold hw-text-muted uppercase tracking-wide px-2 py-0 min-h-[24px]``
+    - Header class: ``hw-section-label py-0 min-h-[24px]``
     - Default open: ``True``
     - No state persistence (categories always reset to open on rebuild)
 
@@ -1132,11 +1212,7 @@ def category_group(label: str, *, default_open: bool = True):
     with (
         ui.expansion(display, value=default_open)
         .classes("w-full")
-        .props(
-            "dense dense-toggle"
-            ' header-class="text-xs font-bold hw-text-muted uppercase tracking-wide'
-            ' px-2 py-0 min-h-[24px] truncate"'
-        )
+        .props('dense dense-toggle header-class="hw-section-label py-0 min-h-[24px] truncate"')
     ):
         # Field rows go into an sf-field-list column so they get the same uniform
         # vertical gap as the root-category rows (the expansion content slot itself
@@ -1218,9 +1294,32 @@ def dialog_actions(
         confirm_label: Label for the confirm button (default ``"OK"``).
         cancel_label:  Label for the cancel button (default ``"Cancel"``).
     """
-    with ui.row().classes("w-full justify-end gap-2 mt-2"):
+    with action_row().classes("mt-2"):
         ui.button(cancel_label, on_click=on_cancel).props("flat dense")
-        ui.button(confirm_label, on_click=on_confirm).props("flat dense").style("color: var(--hw-positive);")
+        confirm_button(confirm_label, on_click=on_confirm)
+
+
+def action_row() -> ui.row:
+    """The right-aligned row of buttons that ends a dialog, popup or flow step.
+
+    Usage::
+
+        with hui.action_row():
+            ui.button("Close", on_click=popup.close).props("flat dense")
+            hui.confirm_button("Apply", on_click=apply)
+    """
+    return ui.row().classes("w-full justify-end gap-2")
+
+
+def confirm_button(label: str, *, on_click: Callable | None = None) -> ui.button:
+    """The button that carries out a dialog's or flow step's intent, in ``var(--hw-positive)``.
+
+    Usage::
+
+        with hui.action_row():
+            hui.confirm_button("Publish", on_click=publish)
+    """
+    return ui.button(label, on_click=on_click).props("flat dense").style("color: var(--hw-positive);")
 
 
 # ──────────────────────────────────────────────────────────────────────────────

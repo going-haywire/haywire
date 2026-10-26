@@ -28,13 +28,9 @@ _POSITIVE = "color: var(--hw-positive);"
 
 
 def _footer(label: str) -> ui.button:
-    """The one right-aligned action every screen ends with.
-
-    Sixteen hand-rolled copies of this row lived in the predecessor's panels,
-    along with nineteen repetitions of the colour literal.
-    """
-    with ui.row().classes("w-full justify-end gap-2"):
-        return ui.button(label).props("flat dense").style(_POSITIVE)
+    """The one right-aligned action every screen ends with."""
+    with hui.action_row():
+        return hui.confirm_button(label)
 
 
 # ── 1. Preflight ─────────────────────────────────────────────────────────────
@@ -58,10 +54,8 @@ def panel_preflight(flow: ShareFlow, rerender: Callable[[], None]) -> None:
     if failure is None and flow.error is None:
         with ui.row().classes("w-full items-center gap-2"):
             ui.spinner(size="sm")
-            ui.label("Checking the project…").classes("text-sm hw-text-dim")
-        ui.label(
-            "Working tree, git, barn/ contents, and whether origin is set, recognized and reachable."
-        ).classes("text-xs hw-text-dim")
+            hui.hint("Checking the project…")
+        hui.hint("Working tree, git, barn/ contents, and whether origin is set, recognized and reachable.")
         return
 
     if failure is None:
@@ -76,7 +70,7 @@ def panel_preflight(flow: ShareFlow, rerender: Callable[[], None]) -> None:
         # publishing is blocked, with any command indented on its own line.
         # Rendering the whole thing as code made the explanation monospace and
         # offered to copy a paragraph.
-        ui.label(failure.remedy).classes("text-xs hw-text-dim whitespace-pre-line")
+        hui.hint(failure.remedy).classes("whitespace-pre-line")
     if failure.doc_url:
         # A real anchor. The URL arrives on its own field precisely so it can
         # be one — inside `remedy` it would render as dead text in that
@@ -90,9 +84,9 @@ def panel_preflight(flow: ShareFlow, rerender: Callable[[], None]) -> None:
     if failure.kind == "act":
         _render_fix(flow, failure, note)
 
-    with ui.row().classes("w-full justify-end gap-2"):
+    with hui.action_row():
         ui.button("Close", on_click=lambda: flow.popup and flow.popup.close()).props("flat dense")
-        recheck = ui.button("Check again").props("flat dense").style(_POSITIVE)
+        recheck = hui.confirm_button("Check again")
         recheck.on_click(lambda: _busy_advance(rerender, recheck, flow.advance))
 
 
@@ -110,7 +104,7 @@ def _render_fix(flow: ShareFlow, failure, note: ui.label) -> None:
     if fix_id in needs_input:
         field = hui.input_field(placeholder=needs_input[fix_id]).classes("w-full mt-2")
 
-    button = ui.button(failure.fix_label or "Fix").props("flat dense").classes("mt-2").style(_POSITIVE)
+    button = hui.confirm_button(failure.fix_label or "Fix").classes("mt-2")
     if field is not None:
         button.set_enabled(False)
         field.on_value_change(lambda: button.set_enabled(bool((field.value or "").strip())))
@@ -126,7 +120,7 @@ def _render_fix(flow: ShareFlow, failure, note: ui.label) -> None:
         elif fix_id == "add_host_config":
             written = _write_host_config(failure.lib_dir or "")
             note.text = written
-            note.classes(replace="text-xs hw-text-dim")
+            note.classes(replace="hw-hint")
             button.set_enabled(False)
             return
 
@@ -136,7 +130,7 @@ def _render_fix(flow: ShareFlow, failure, note: ui.label) -> None:
             note.classes(replace="text-xs hw-text-danger")
             return
         note.text = "Done — click Check again."
-        note.classes(replace="text-xs hw-text-dim")
+        note.classes(replace="hw-hint")
         button.set_enabled(False)
         if field is not None:
             field.set_enabled(False)
@@ -223,8 +217,8 @@ def _render_findings(flow: ShareFlow, libraries) -> dict:
                     _render_floor_row(lib_dir, item, controls, token)
                 else:
                     with ui.row().classes("items-baseline gap-2"):
-                        ui.label(str(item)).classes("text-xs font-mono").style(f"color: var({token});")
-                        ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
+                        hui.subject(str(item), mono=True, tone=token)
+                        hui.hint(f"in {lib_dir.name}")
     return controls
 
 
@@ -244,16 +238,11 @@ def _section(title: str, blurb: str = "") -> ui.column:
     The heading lives inside the box (not above it) so that boundary actually
     contains the thing it names.
     """
-    box = (
-        ui.column()
-        .classes("w-full gap-2 p-2 rounded")
-        .style("border: 1px solid var(--hw-border); background: var(--hw-bg-surface);")
-    )
-    with box:
+    with hui.box() as section:
         hui.section_label(title)
         if blurb:
-            ui.label(blurb).classes("text-xs hw-text-dim")
-    return box
+            hui.hint(blurb)
+    return section
 
 
 def _decision(subject: str, context: str, token: str) -> ui.column:
@@ -266,16 +255,12 @@ def _decision(subject: str, context: str, token: str) -> ui.column:
     dropdown belonged to. Now the subject and its control share a bordered
     box, and only boxes are separated.
     """
-    box = (
-        ui.column()
-        .classes("w-full gap-1 p-2 rounded")
-        .style("border: 1px solid var(--hw-border); background: var(--hw-bg-elevated);")
-    )
-    with box:
+    decision = hui.box(gap="gap-1").style("background: var(--hw-bg-elevated);")
+    with decision:
         with ui.row().classes("items-baseline gap-2"):
-            ui.label(subject).classes("text-xs font-mono").style(f"color: var({token});")
-            ui.label(context).classes("text-xs hw-text-dim")
-    return box
+            hui.subject(subject, mono=True, tone=token)
+            hui.hint(context)
+    return decision
 
 
 def _render_addition_row(flow: ShareFlow, lib_dir: Path, dep: str, controls: dict, token: str) -> None:
@@ -300,8 +285,8 @@ def _render_removal_row(lib_dir: Path, dep: str, controls: dict, token: str) -> 
     both the tick and the trailing "in <library>" sat visibly low.
     """
     with ui.row().classes("items-center gap-2"):
-        box = ui.checkbox(dep, value=False).props("dense").classes("text-xs")
-        ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
+        box = ui.checkbox(dep, value=False).props("dense").classes("text-xs font-mono")
+        hui.hint(f"in {lib_dir.name}")
     controls["removals"].append((lib_dir, dep, box))
 
 
@@ -323,12 +308,18 @@ def _render_clean_lines(libraries, registrations: dict) -> None:
     The predecessor gave each of the finding kinds a full screen with its own
     Continue button — six screens of good news for a clean repo.
     """
-    for field, (title, _blurb, _token) in DETECT_SECTIONS.items():
-        if any(getattr(d, field) for d in libraries):
-            continue
-        with ui.row().classes("items-center gap-2"):
-            ui.icon("check_circle", size="14px").style(_POSITIVE)
-            ui.label(f"{title}: none").classes("text-xs hw-text-dim")
+    clean = [
+        title
+        for field, (title, _blurb, _token) in DETECT_SECTIONS.items()
+        if not any(getattr(d, field) for d in libraries)
+    ]
+    if clean:
+        with hui.box(gap="gap-0.5"):
+            hui.section_label("Nothing found")
+            for title in clean:
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon("check_circle", size="14px").style(_POSITIVE)
+                    hui.hint(title)
 
     if registrations:
         # Never a choice — every entry is provably true and constrains nothing
@@ -344,7 +335,7 @@ def _render_clean_lines(libraries, registrations: dict) -> None:
                             ui.label("linked_libraries = [..., ").classes("text-xs font-mono hw-text-dim")
                             ui.label(name).classes("text-xs font-mono hw-text-warning")
                             ui.label("]").classes("text-xs font-mono hw-text-dim")
-                        ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
+                        hui.hint(f"in {lib_dir.name}")
 
 
 def _render_framework(flow: ShareFlow) -> Callable[[], str | None]:
@@ -368,7 +359,7 @@ def _render_framework(flow: ShareFlow) -> Callable[[], str | None]:
         custom.bind_visibility_from(choice, "value", lambda v: v == "custom")
 
         consequences = {opt.specifier: opt.consequence for opt in plan.options}
-        note = ui.label(consequences.get(default, "")).classes("text-xs hw-text-dim")
+        note = hui.hint(consequences.get(default, ""))
         choice.on_value_change(lambda: setattr(note, "text", consequences.get(str(choice.value), "")))
 
     def _spec() -> str | None:
@@ -389,7 +380,7 @@ def _render_version(flow: ShareFlow) -> Callable[[], str]:
         "Version",
         "Every barn library publishes at the same version (lockstep), and the repo is tagged with it.",
     ):
-        with ui.column().classes("gap-0.5"):
+        with hui.indented():
             for lib in plan.current:
                 ui.label(f"{lib.name}: {lib.version or '(none)'}").classes("text-xs font-mono")
 
@@ -480,12 +471,12 @@ def panel_publish(flow: ShareFlow, rerender: Callable[[], None]) -> None:
         return
 
     version = flow.pipeline.version
-    ui.label(
+    hui.hint(
         "Regenerates every library's docs, rebuilds marketstall.toml, then commits, "
         "tags and pushes to origin."
-    ).classes("text-xs hw-text-dim")
+    )
     if version:
-        ui.label(f"Publishing v{version}.").classes("text-xs font-mono hw-text-dim")
+        hui.subject(f"Publishing v{version}", mono=True)
 
     message = hui.input_field(
         value=f"chore: share v{version}" if version else "", placeholder="Commit message"
@@ -515,9 +506,7 @@ def _render_committed_unpushed(flow: ShareFlow) -> None:
     result = flow.commit_result
     ui.label("The commit and tag were created, but the push failed.").classes("text-sm hw-text-danger")
     if result is not None:
-        ui.label(f"Committed {result.sha[:8]}, tagged {result.tag} — both are still here.").classes(
-            "text-xs hw-text-dim"
-        )
+        hui.hint(f"Committed {result.sha[:8]}, tagged {result.tag} — both are still here.")
 
     # `stderr`, not `str(exc)`: PushError's message already embeds the retry
     # command and the "Run this yourself" line, both of which this panel lays
@@ -528,10 +517,10 @@ def _render_committed_unpushed(flow: ShareFlow) -> None:
 
     command = flow.retry_command
     if command:
-        ui.label("Finish the publish by running this yourself:").classes("text-xs hw-text-dim")
+        hui.hint("Finish the publish by running this yourself:")
         hui.code_snippet(command)
 
-    with ui.row().classes("w-full justify-end gap-2"):
+    with hui.action_row():
         ui.button("Close", on_click=lambda: flow.popup and flow.popup.close()).props("flat dense")
 
 
@@ -547,13 +536,13 @@ def panel_done(flow: ShareFlow, _rerender: Callable[[], None]) -> None:
 
     url, tagged_url, warning = flow.share_url()
     if url:
-        ui.label("Share this URL so others can subscribe to your feed:").classes("text-xs hw-text-dim")
+        hui.hint("Share this URL so others can subscribe to your feed:")
         hui.code_snippet(url)
         if tagged_url:
-            ui.label("Frozen to this version:").classes("text-xs hw-text-dim")
+            hui.hint("Frozen to this version:")
             hui.code_snippet(tagged_url)
     elif warning:
-        ui.label(warning).classes("text-xs hw-text-muted")
+        hui.hint(warning)
 
     done = _footer("Done")
     done.on_click(lambda: flow.popup and flow.popup.close())

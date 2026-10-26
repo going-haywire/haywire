@@ -6,6 +6,8 @@ from typing import Callable
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.ui.components.stepper import advance, busy_advance
 
 from haybale_marketplace.editors._add_source_flow._state import KEEP_EXISTING, USE_NEW, AddSourceFlow
@@ -17,7 +19,6 @@ def _plural(count: int, singular: str, plural: str | None = None) -> str:
 
 def _panel_input(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
     """Paste a URL or a TOML block. Nothing is fetched yet."""
-    ui.label("Add a marketplace source").classes("text-sm font-medium")
     ui.label(
         "Paste a marketstall URL, a marketplace URL, or a [[haybales]] TOML block. "
         "Nothing is subscribed until you have seen what it offers."
@@ -40,8 +41,8 @@ def _panel_input(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
         ui.label("• Any URL that serves a TOML file (GitHub Pages, GitLab Pages, etc.)")
         ui.label("• A [[haybales]] TOML block pasted directly")
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        probe = ui.button("Probe").props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        probe = hui.confirm_button("Probe")
         probe.on_click(lambda: busy_advance(rerender, probe, lambda: flow.advance_from_input(field.value)))
 
 
@@ -66,7 +67,7 @@ def _panel_probed(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
         ui.label(resolved.persist_url).classes("text-xs font-mono hw-text-dim")
 
     if flow.new_names:
-        with ui.column().classes("gap-0.5 ml-1"):
+        with hui.indented():
             for name in flow.new_names[:12]:
                 ui.label(name).classes("text-xs font-mono hw-text-dim")
             if len(flow.new_names) > 12:
@@ -84,11 +85,11 @@ def _panel_probed(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
             "you will choose which to keep next."
         ).classes("text-xs").style("color: var(--hw-warning);")
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        ui.button(
+    with hui.action_row():
+        hui.confirm_button(
             "Continue",
             on_click=lambda: advance(rerender, flow.advance_from_probed),
-        ).props("flat dense").style("color: var(--hw-positive);")
+        )
 
 
 def _panel_resolved(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
@@ -104,10 +105,8 @@ def _panel_resolved(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
             "text-xs hw-text-dim"
         )
         for conflict in flow.conflicts:
-            with (
-                ui.column().classes("rounded p-2 gap-1 w-full").style("border: 1px solid var(--hw-border);")
-            ):
-                ui.label(conflict.name).classes("text-xs font-medium")
+            with hui.box(gap="gap-1"):
+                hui.subject(conflict.name)
                 radio = ui.radio(
                     ["Keep existing", "Use new"],
                     value="Keep existing" if flow.choices.get(conflict.name) == KEEP_EXISTING else "Use new",
@@ -118,7 +117,7 @@ def _panel_resolved(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
 
                 radio.on("update:model-value", _on_choice)
 
-                with ui.column().classes("gap-0 ml-2"):
+                with hui.indented(gap="gap-0"):
                     ui.label(f"existing: {conflict.existing_source}").classes(
                         "text-xs hw-text-dim font-mono"
                     )
@@ -130,8 +129,8 @@ def _panel_resolved(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
 
     ui.label("Subscribing writes this source to your marketplace file.").classes("text-xs hw-text-dim")
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        subscribe = ui.button("Subscribe").props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        subscribe = hui.confirm_button("Subscribe")
         subscribe.on_click(lambda: busy_advance(rerender, subscribe, flow.advance_from_resolved))
 
 
@@ -148,9 +147,9 @@ def _panel_added(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
         "Its libraries reach the list on the next refresh. You can run that now, or later from the toolbar."
     ).classes("text-xs hw-text-dim")
 
-    with ui.row().classes("w-full justify-end gap-2"):
+    with hui.action_row():
         ui.button("Done", on_click=lambda: _close(flow)).props("flat dense")
-        refresh = ui.button("Refresh now").props("flat dense").style("color: var(--hw-positive);")
+        refresh = hui.confirm_button("Refresh now")
         refresh.on_click(lambda: busy_advance(rerender, refresh, flow.advance_from_added))
 
 
@@ -170,7 +169,7 @@ def _panel_refreshed(flow: AddSourceFlow, on_done: Callable[[], None] | None) ->
             "text-xs hw-text-muted"
         )
 
-    with ui.row().classes("w-full justify-end gap-2"):
+    with hui.action_row():
         ui.button("Done", on_click=lambda: _close(flow)).props("flat dense").style(
             "color: var(--hw-positive);"
         )

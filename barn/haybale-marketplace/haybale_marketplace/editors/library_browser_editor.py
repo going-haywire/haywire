@@ -351,7 +351,7 @@ class LibraryBrowserEditor(BaseEditor):
         """Modal listing the unavailable source URLs with a fallback-cache hint."""
         with ui.dialog() as dialog, hui.dialog_card():
             with ui.column().classes("p-4 gap-2"):
-                ui.label("Sources unavailable").classes("text-sm font-medium")
+                hui.heading("Sources unavailable")
                 ui.label(
                     "These sources couldn't be fetched. Cached responses (if any) were used as fallback."
                 ).classes("text-xs hw-text-dim")

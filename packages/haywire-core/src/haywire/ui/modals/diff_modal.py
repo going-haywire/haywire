@@ -116,7 +116,7 @@ def diff_modal(
 
             return _wrapped
 
-        with ui.row().classes("w-full justify-end gap-2 mt-3"):
+        with hui.action_row().classes("mt-3"):
             ui.button("Cancel", on_click=popup.close).props("flat dense")
             if secondary_label is not None and on_secondary is not None:
                 sec_btn = (
@@ -144,7 +144,7 @@ def _render_section(section: DiffSection) -> None:
     if not (section.additions or section.removals or section.unchanged):
         ui.label("(no changes)").classes("text-xs hw-text-dim italic ml-1")
     else:
-        with ui.column().classes("gap-0.5 ml-1"):
+        with hui.indented():
             for line in section.additions:
                 ui.label(f"+ {line}").classes("text-xs font-mono").style("color: var(--hw-positive);")
             for line in section.removals:

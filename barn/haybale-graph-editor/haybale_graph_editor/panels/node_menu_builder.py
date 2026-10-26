@@ -116,9 +116,7 @@ class NodeMenuBuilder:
                 # shrink-to-fit width from seeing the buttons' natural width.
                 # The popup card already scrolls (`overflow: auto`) for the
                 # rare case content still exceeds 90vh.
-                ui.label(f"Found {len(results)} node(s)").classes(
-                    "text-xs font-semibold hw-text-dim mb-2"
-                ).props("dense")
+                hui.section_label(f"Found {len(results)} node(s)")
 
                 for node_info in results[:20]:  # Limit to 10 results
                     self._create_search_result_item(node_info)

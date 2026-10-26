@@ -14,6 +14,8 @@ import logging
 from typing import TYPE_CHECKING
 
 from nicegui import background_tasks, ui
+
+from haywire.ui import elements as hui
 from nicegui.elements.button import Button
 
 from haywire.core.library.haybale import Haybale
@@ -160,8 +162,8 @@ def open_version_picker(pkg: Haybale, manager: "LibraryManager", context: "Sessi
     dialog reports what is installed rather than blocking the choice — and the
     install flow it hands off to says "Downgrade" instead of "Update".
     """
-    with ui.dialog() as dialog, ui.card().classes("min-w-80"):
-        ui.label(f"Install specific version — {pkg.name}").classes("text-lg font-bold mb-2")
+    with ui.dialog() as dialog, hui.dialog_card("min-w-80"):
+        hui.heading(f"Install specific version — {pkg.name}")
         version_select = (
             ui.select(
                 options=["Loading…"],
@@ -201,7 +203,7 @@ def open_version_picker(pkg: Haybale, manager: "LibraryManager", context: "Sessi
             versioned_pkg = replace(pkg, install_spec=spec, version=selected)
             install_with_safety_check(versioned_pkg, None, manager, context)
 
-        with ui.row().classes("w-full justify-end gap-2 mt-4"):
+        with hui.action_row().classes("mt-4"):
             ui.button("Cancel", on_click=dialog.close).props("flat")
             ui.button("Install", on_click=install_selected).props("color=positive")
 

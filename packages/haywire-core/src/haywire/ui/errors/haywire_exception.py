@@ -83,7 +83,7 @@ def render_error_details(
             ui.icon(get_severity_icon(error)).classes("text-base").style(
                 f"color: {get_severity_color(error)};"
             )
-            ui.label(f"{error.category}").classes("text-base font-bold hw-text-body")
+            hui.heading(f"{error.category}")
             ui.button(
                 icon=hui.icon.copy,
                 on_click=lambda: ui.run_javascript(
@@ -212,7 +212,7 @@ def render_error_details(
                     with ui.column().classes("gap-2"):
                         with ui.row().classes("items-center gap-2"):
                             ui.icon(hui.icon.traceback).classes("text-sm hw-text-muted")
-                            ui.label("Traceback").classes("font-bold hw-text-muted")
+                            hui.section_label("Traceback")
 
                         with ui.column().classes("gap-3 pl-4"):
                             for frame in interesting_frames:
@@ -274,7 +274,7 @@ def render_error_details(
             with ui.column().classes("gap-2"):
                 with ui.row().classes("items-center gap-2"):
                     ui.icon(hui.icon.node_info).classes("text-sm hw-text-muted")
-                    ui.label("Error Information").classes("font-bold hw-text-muted")
+                    hui.section_label("Error information")
 
                 if error.message:
                     _create_detail_row("Message", error.message, hui.icon.message)
@@ -301,7 +301,7 @@ def render_error_details(
                 with ui.column().classes("gap-2"):
                     with ui.row().classes("items-center gap-2"):
                         ui.icon(hui.icon.node_info).classes("text-sm hw-text-muted")
-                        ui.label("Context Information").classes("font-bold hw-text-muted")
+                        hui.section_label("Context information")
 
                     if error.library_identity:
                         _create_detail_row("Library", error.library_identity.label, hui.icon.library)

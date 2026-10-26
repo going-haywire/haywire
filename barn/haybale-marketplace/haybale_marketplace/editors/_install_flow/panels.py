@@ -20,8 +20,6 @@ def _plural(count: int, singular: str, plural: str | None = None) -> str:
 
 def _panel_selected(flow: InstallFlow, rerender: Callable[[], None]) -> None:
     """What is about to be installed, and from where. Nothing resolved yet."""
-    ui.label(f"{flow.verb} {flow.name}").classes("text-sm font-medium")
-
     if flow.is_update and flow.target_version:
         ui.label(f"{flow.current_version} → {flow.target_version}").classes("text-xs font-mono hw-text-dim")
     elif flow.target_version:
@@ -47,8 +45,8 @@ def _panel_selected(flow: InstallFlow, rerender: Callable[[], None]) -> None:
         "text-xs hw-text-dim"
     )
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        check = ui.button("Check").props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        check = hui.confirm_button("Check")
         check.on_click(lambda: busy_advance(rerender, check, flow.advance_from_selected))
 
 
@@ -68,7 +66,7 @@ def _panel_checked(flow: InstallFlow, rerender: Callable[[], None]) -> None:
             ui.label(f"{_plural(len(removals), 'other package')} will be replaced to make room.").classes(
                 "text-sm"
             ).style("color: var(--hw-warning);")
-        with ui.column().classes("gap-0.5 ml-1"):
+        with hui.indented():
             for name in removals:
                 ui.label(name).classes("text-xs font-mono hw-text-dim")
         ui.label(
@@ -76,8 +74,8 @@ def _panel_checked(flow: InstallFlow, rerender: Callable[[], None]) -> None:
             "reloaded afterwards, so a restart is recommended when this finishes."
         ).classes("text-xs hw-text-muted")
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        install = ui.button("Install").props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        install = hui.confirm_button("Install")
         install.on_click(lambda: busy_advance(rerender, install, flow.run_install))
 
 
@@ -94,7 +92,7 @@ def _panel_installing(flow: InstallFlow, rerender: Callable[[], None]) -> None:
     with ui.row().classes("w-full items-center gap-2"):
         if running:
             ui.spinner(size="sm")
-        ui.label(f"Installing {flow.name}…").classes("text-sm font-medium")
+        ui.label(f"Installing {flow.name}…").classes("text-sm")
         elapsed = ui.label("").classes("text-xs hw-text-dim ml-auto")
 
     def _tick() -> None:
@@ -119,7 +117,7 @@ def _panel_installing(flow: InstallFlow, rerender: Callable[[], None]) -> None:
     if flow.error is not None:
         # A failed install stays here; the shared chrome renders the message
         # and its Retry, which re-runs the install in place.
-        with ui.row().classes("w-full justify-end gap-2"):
+        with hui.action_row():
             retry = ui.button("Try again").props("flat dense")
             retry.on_click(lambda: busy_advance(rerender, retry, flow.advance_from_installing))
 
@@ -151,5 +149,5 @@ def _panel_done(flow: InstallFlow, on_done: Callable[[], None] | None) -> None:
         if flow.popup is not None:
             flow.popup.close()
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        ui.button("Done", on_click=_close).props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        hui.confirm_button("Done", on_click=_close)

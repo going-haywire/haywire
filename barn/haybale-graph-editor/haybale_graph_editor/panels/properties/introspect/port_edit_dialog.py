@@ -100,9 +100,9 @@ def open_port_edit_dialog(
             if on_applied is not None:
                 on_applied()
 
-        with ui.row().classes("w-full justify-end gap-2 mt-3"):
+        with hui.action_row().classes("mt-3"):
             ui.button("Cancel", on_click=popup.close).props("flat dense")
-            ui.button("Apply", on_click=_apply).props("flat dense").style("color: var(--hw-positive);")
+            hui.confirm_button("Apply", on_click=_apply)
 
     popup.open()
     return popup

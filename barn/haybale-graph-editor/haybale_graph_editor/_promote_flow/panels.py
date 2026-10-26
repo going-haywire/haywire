@@ -6,6 +6,8 @@ from typing import Callable
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.ui.components.stepper import advance, busy_advance
 
 from haybale_graph_editor._promote_flow._state import PromoteFlow
@@ -13,7 +15,6 @@ from haybale_graph_editor._promote_flow._state import PromoteFlow
 
 def _panel_name(flow: PromoteFlow, rerender: Callable[[], None]) -> None:
     """The macro's name and the library it goes into. Nothing written yet."""
-    ui.label("Save this Group as a new macro").classes("text-sm font-medium")
     ui.label(
         "A macro lives in its own file and can be placed in any graph. This Group's card "
         "becomes the first placement."
@@ -45,8 +46,8 @@ def _panel_name(flow: PromoteFlow, rerender: Callable[[], None]) -> None:
     elif flow.target is not None:
         ui.label(f"Into {flow.target.label}").classes("text-xs hw-text-dim")
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        plan_button = ui.button("Continue").props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        plan_button = hui.confirm_button("Continue")
         plan_button.on_click(lambda: busy_advance(rerender, plan_button, flow.advance_from_name))
 
     # Wired after both elements exist, since the handler writes to them.
@@ -77,14 +78,14 @@ def _panel_planned(flow: PromoteFlow, rerender: Callable[[], None]) -> None:
     if plan is None:  # pragma: no cover — unreachable via the flow
         return
 
-    ui.label("This will be written:").classes("text-sm font-medium")
+    hui.section_label("Will be written")
     ui.label(str(plan.path)).classes("text-xs font-mono hw-text-dim")
 
     if plan.refusal is not None:
         with ui.row().classes("w-full items-center gap-2 mt-1"):
             ui.icon("error", size="16px").classes("hw-text-danger")
             ui.label(plan.refusal).classes("text-sm hw-text-danger")
-        with ui.row().classes("w-full justify-end gap-2"):
+        with hui.action_row():
             ui.button("Back", on_click=lambda: _back(flow, rerender)).props("flat dense")
         return
 
@@ -97,9 +98,9 @@ def _panel_planned(flow: PromoteFlow, rerender: Callable[[], None]) -> None:
         "text-xs hw-text-dim"
     )
 
-    with ui.row().classes("w-full justify-end gap-2"):
+    with hui.action_row():
         ui.button("Back", on_click=lambda: _back(flow, rerender)).props("flat dense")
-        save = ui.button("Save").props("flat dense").style("color: var(--hw-positive);")
+        save = hui.confirm_button("Save")
         save.on_click(lambda: busy_advance(rerender, save, flow.advance_from_planned))
 
 
@@ -126,5 +127,5 @@ def _panel_promoted(flow: PromoteFlow, on_done: Callable[[], None] | None) -> No
         if flow.popup is not None:
             flow.popup.close()
 
-    with ui.row().classes("w-full justify-end gap-2"):
-        ui.button("Done", on_click=_close).props("flat dense").style("color: var(--hw-positive);")
+    with hui.action_row():
+        hui.confirm_button("Done", on_click=_close)

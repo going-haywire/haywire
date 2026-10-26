@@ -119,7 +119,7 @@ def rename_modal(
 
         name_input = hui.input_field(label="Name", value=initial, autofocus=True, on_change=_refresh)
 
-        with ui.row().classes("w-full justify-end gap-2 mt-2"):
+        with hui.action_row().classes("mt-2"):
             ui.button("Cancel", on_click=popup.close).props("flat dense")
             confirm_btn = ui.button(labels["same"]).props("flat dense")
 

@@ -174,7 +174,7 @@ def save_as_modal(
             elif len(suffixes) == 1:
                 suffix_label = ui.label(suffixes[0]).classes("text-xs font-mono hw-text-dim flex-shrink-0")
 
-        with ui.row().classes("w-full justify-end gap-2 mt-1"):
+        with hui.action_row().classes("mt-1"):
             ui.button("Cancel", on_click=popup.close).props("flat dense")
             confirm_btn = ui.button("Save").props("flat dense")
 

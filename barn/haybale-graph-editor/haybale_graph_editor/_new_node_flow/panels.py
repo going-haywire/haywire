@@ -90,7 +90,7 @@ def _source_list(flow: NewNodeFlow, rerender: Callable[[], None]) -> None:
     for row_group, info in rows:
         if row_group != group:
             group = row_group
-            ui.label(group).classes("text-xs font-semibold hw-text-dim mt-2")
+            hui.section_label(group)
         _source_row(flow, info, rerender)
 
 
@@ -164,10 +164,10 @@ def _panel_details(flow: NewNodeFlow, rerender: Callable[[], None]) -> None:
 
     refusal_label = ui.label("").classes("text-xs hw-text-danger")
 
-    with ui.row().classes("w-full justify-end gap-2"):
+    with hui.action_row():
         if flow.templates or flow.clone_sources:
             ui.button("Back", on_click=lambda: _back(flow, rerender, "source")).props("flat dense")
-        plan_button = ui.button("Continue").props("flat dense").style("color: var(--hw-positive);")
+        plan_button = hui.confirm_button("Continue")
         plan_button.on_click(lambda: busy_advance(rerender, plan_button, flow.advance_from_details))
 
     def _on_target(library_id: str) -> None:
@@ -217,12 +217,12 @@ def _panel_planned(flow: NewNodeFlow, rerender: Callable[[], None]) -> None:
     if plan is None:  # pragma: no cover — unreachable via the flow
         return
 
-    ui.label("This will be written:").classes("text-sm font-medium")
+    hui.section_label("Will be written")
     ui.label(str(plan.path)).classes("text-xs font-mono hw-text-dim")
 
     if plan.refusal is not None:
         _refusal_row(plan.refusal)
-        with ui.row().classes("w-full justify-end gap-2"):
+        with hui.action_row():
             ui.button("Back", on_click=lambda: _back(flow, rerender, "details")).props("flat dense")
         return
 
@@ -245,9 +245,9 @@ def _panel_planned(flow: NewNodeFlow, rerender: Callable[[], None]) -> None:
         "max-height: 40vh; overflow: auto;"
     )
 
-    with ui.row().classes("w-full justify-end gap-2"):
+    with hui.action_row():
         ui.button("Back", on_click=lambda: _back(flow, rerender, "details")).props("flat dense")
-        create = ui.button("Create").props("flat dense").style("color: var(--hw-positive);")
+        create = hui.confirm_button("Create")
         create.on_click(lambda: busy_advance(rerender, create, flow.advance_from_planned))
 
 
@@ -266,7 +266,7 @@ def _panel_result(flow: NewNodeFlow, _rerender: Callable[[], None]) -> None:
                 "color: var(--hw-positive);"
             )
         ui.label(outcome.registry_key or "").classes("text-xs font-mono hw-text-dim")
-        with ui.row().classes("w-full justify-end gap-2"):
+        with hui.action_row():
             ui.button("Close", on_click=lambda: _close(flow)).props("flat dense")
             ui.button("Edit", on_click=_then_close(flow, flow.edit)).props("flat dense")
             ui.button("Place", on_click=_then_close(flow, flow.place)).props("flat dense").style(
@@ -285,6 +285,6 @@ def _panel_result(flow: NewNodeFlow, _rerender: Callable[[], None]) -> None:
     ui.label("The file stays on disk; fix it and save, and the library registers it.").classes(
         "text-xs hw-text-muted"
     )
-    with ui.row().classes("w-full justify-end gap-2"):
+    with hui.action_row():
         ui.button("Close", on_click=lambda: _close(flow)).props("flat dense")
         ui.button("Open file", on_click=_then_close(flow, flow.open_file)).props("flat dense")

@@ -565,6 +565,31 @@ STATIC_CSS = (
     " .hw-text-success { color: var(--hw-success) !important; }"
     " .hw-text-info    { color: var(--hw-info) !important; }"
     " .hw-text-accent  { color: var(--hw-accent) !important; }"
+    # ── label hierarchy (design-guide §3.6) ──
+    # --hw-inset is the content edge of the surrounding container: a panel list
+    # rows its items at px-2, while a popup body or a box already pads its own
+    # content, so a section label there must start at the content's own edge.
+    " :root { --hw-inset: 0.5rem; --hw-indent-step: 12px; }"
+    " .hw-popup-content-col, .q-card.hw-panel, .hw-box { --hw-inset: 0px; }"
+    " .hw-heading { font-size: 0.875rem; line-height: 1.25rem; font-weight: 500;"
+    "   color: var(--hw-text-body) !important; }"
+    " .hw-section-label { font-size: 0.75rem; line-height: 1rem; font-weight: 700;"
+    "   letter-spacing: 0.05em; text-transform: uppercase; color: var(--hw-text-dim) !important;"
+    "   padding: 0.5rem var(--hw-inset) 0.25rem; }"
+    " .hw-box > .hw-section-label:first-child { padding-top: 0; }"
+    # Beside an icon in a row, the row places the label.
+    " .nicegui-row > .hw-section-label { padding: 0; }"
+    # hui.category_group's header: outrank the expansion-header colour above.
+    " .hw-panel .q-expansion-item__header.hw-section-label"
+    " { color: var(--hw-text-dim) !important; padding-top: 0; padding-bottom: 0; }"
+    " .hw-subject { font-size: 0.75rem; line-height: 1rem; font-weight: 500;"
+    "   color: var(--hw-text-body) !important; }"
+    " .hw-hint { font-size: 0.75rem; line-height: 1rem; color: var(--hw-text-muted) !important; }"
+    # One step in from where the section label's text starts; nested lists step once more.
+    " .hw-indented { padding-left: calc(var(--hw-inset) + var(--hw-indent-step)); }"
+    " .hw-indented .hw-indented { padding-left: var(--hw-indent-step); }"
+    " .hw-box { border: 1px solid var(--hw-border); border-radius: 4px; padding: 0.5rem;"
+    "   background: var(--hw-bg-surface); }"
     # ── hw-tree: quiet, theme-aware Quasar q-tree ──
     # Opt-in via .classes("... hw-tree") on any ui.tree. Quasar draws
     # the connector lines (elbow + vertical guides) as pseudo-element
