@@ -11,6 +11,8 @@ import logging
 from typing import Any, List, Optional, Union, cast
 from dataclasses import dataclass
 
+from haywire.core.errors import report_failure
+
 from .actions.graph_actions import VALUE_EDIT_MERGE_IDLE_S
 from .base_action import ActionBase
 from .interfaces import IAction, IHistoryManager
@@ -137,8 +139,9 @@ class HistoryManager(IHistoryManager):
 
         Returns:
             ``True`` if the action executed and entered the history, ``False``
-            if its execution raised. The error is logged, and the history,
-            including what can be redone, is left unchanged.
+            if its execution raised. The failure is recorded in the error ledger
+            (a ``Refusal`` is not), and the history, including what can be redone,
+            is left unchanged.
         """
         current_time = time.time()
         self._amendable = None
@@ -148,7 +151,7 @@ class HistoryManager(IHistoryManager):
             if self.config.enable_debug_logging:
                 logger.debug(f"Executed action: {action.description}")
         except Exception as e:
-            logger.error(f"Failed to execute action {action.description}: {e}", exc_info=True)
+            report_failure(e, operation="Apply edit", action=action.description)
             return False
 
         self._record_executed(action, current_time)
@@ -187,13 +190,13 @@ class HistoryManager(IHistoryManager):
             idle_s: Seconds after a step's last write beyond which a write starts a new step.
 
         Returns:
-            ``False`` if the action's execution raised (logged, history unchanged), else ``True``.
+            ``False`` if the action's execution raised (recorded as above, history unchanged), else ``True``.
         """
         value_action: Any = action
         try:
             value_action.execute()
         except Exception as e:
-            logger.error(f"Failed to execute action {action.description}: {e}", exc_info=True)
+            report_failure(e, operation="Apply edit", action=action.description)
             return False
 
         if not value_action.changed:
@@ -353,7 +356,7 @@ class HistoryManager(IHistoryManager):
             return True
 
         except Exception as e:
-            logger.error(f"Failed to undo action: {e}")
+            report_failure(e, operation="Undo", action=self._get_item_description(item))
             return False
 
     def redo(self) -> bool:
@@ -393,7 +396,7 @@ class HistoryManager(IHistoryManager):
             return True
 
         except Exception as e:
-            logger.error(f"Failed to redo action: {e}")
+            report_failure(e, operation="Redo", action=self._get_item_description(item))
             return False
 
     def can_undo(self) -> bool:
