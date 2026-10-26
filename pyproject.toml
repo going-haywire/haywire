@@ -216,6 +216,14 @@ lockstep_unpublished = [
     "haybale-TEST_A",
 ]
 
+[tool.haywire.docs]
+# Library ids whose docs `haywire docs --all` still generates but whose
+# coverage gaps it does not report — test fixtures, not meant to be documented.
+coverage_exempt = [
+    "haybale-testing",
+    "haybale-TEST_A",
+]
+
 [tool.haywire.marketstall]
 # Configuration for scripts/generate_marketstall.py.
 # Consumed by the marketplace generator and the CI publish workflow.

@@ -9,6 +9,7 @@ import pytest
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.registry import LibraryRegistry
 from haywire_studio.packaging.docs.generate import (
+    _coverage_exempt,
     _library_id_for_path,
     _package_root,
     _pyproject_version,
@@ -268,3 +269,23 @@ def test_library_id_for_path_resolves_unambiguous_exact_and_nested_paths(tmp_pat
     nested = lib_b_folder / "haybale_b"
     nested.mkdir()
     assert _library_id_for_path(service, nested) == "lib_b"
+
+
+def test_coverage_exempt_reads_repo_pyproject(tmp_path):
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.haywire.docs]\ncoverage_exempt = ["haybale-testing", "haybale-TEST_A"]\n'
+    )
+    assert _coverage_exempt(tmp_path) == {"haybale-testing", "haybale-TEST_A"}
+
+
+def test_coverage_exempt_is_empty_without_declaration(tmp_path):
+    assert _coverage_exempt(tmp_path) == frozenset()  # no pyproject.toml
+    (tmp_path / "pyproject.toml").write_text("not = [valid toml")
+    assert _coverage_exempt(tmp_path) == frozenset()
+    (tmp_path / "pyproject.toml").write_text('[tool.haywire.docs]\ncoverage_exempt = "haybale-testing"\n')
+    assert _coverage_exempt(tmp_path) == frozenset()
+
+
+def test_repo_declares_test_fixtures_coverage_exempt():
+    repo = Path(__file__).resolve().parents[3]
+    assert {"haybale-testing", "haybale-TEST_A"} <= _coverage_exempt(repo)

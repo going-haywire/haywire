@@ -5,6 +5,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+import toml
+
 from haywire.core.di.config import create_library_system_service
 from haywire.core.library.registry import LibraryRegistry
 from haywire_studio.packaging.docs.extract import extract_library
@@ -99,6 +101,20 @@ def _pyproject_version(module_dir: Path) -> str | None:
     return match.group(1) if match else None
 
 
+def _coverage_exempt(root: Path) -> frozenset[str]:
+    """Library ids listed in ``<root>/pyproject.toml``'s ``[tool.haywire.docs].coverage_exempt``.
+
+    Lenient: a missing file, malformed TOML or absent key means no exemptions.
+    """
+    try:
+        data = toml.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    except (OSError, toml.TomlDecodeError):
+        return frozenset()
+    block = data.get("tool", {}).get("haywire", {}).get("docs", {})
+    exempt = block.get("coverage_exempt", []) if isinstance(block, dict) else []
+    return frozenset(str(lib_id) for lib_id in exempt) if isinstance(exempt, list) else frozenset()
+
+
 def _generate_one(
     service: Any,
     library_id: str,
@@ -175,6 +191,9 @@ def generate_all_docs(repo_root: str | None, version: str | None = None) -> dict
     ``haywire.barn.builtin``, and excludes external site-packages installs.
     Returns {library_id: coverage_lines}, sorted by library id.
 
+    Libraries listed in ``repo_root``'s ``[tool.haywire.docs].coverage_exempt``
+    still get their docs generated, but report no coverage gaps.
+
     ``version`` applies to EVERY library generated, which is correct precisely
     because the barn is versioned in lockstep — the share pipeline bumps all
     libraries to one version and passes that same value here.
@@ -187,10 +206,12 @@ def generate_all_docs(repo_root: str | None, version: str | None = None) -> dict
         watch_settings=False,
     )
     registry = service.injector.get(LibraryRegistry)
+    exempt = _coverage_exempt(root)
 
     results: dict[str, list[str]] = {}
     for lib_id in sorted(registry.list_names()):
         module_dir = Path(registry.get_library_identity(lib_id).folder_path).resolve()
         if root == module_dir or root in module_dir.parents:
-            results[lib_id] = _generate_one(service, lib_id, module_dir, version)
+            coverage = _generate_one(service, lib_id, module_dir, version)
+            results[lib_id] = [] if lib_id in exempt else coverage
     return results
