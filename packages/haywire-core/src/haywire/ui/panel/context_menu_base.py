@@ -153,9 +153,10 @@ class BaseContextMenuProvider:
 
         # A popup is a menu *level*: push the root flyout-sibling group around
         # its content so any submenu rows drawn inside — on this surface or
-        # any nested one — share one group and close each other.
+        # any nested one — share one group and close each other. It is also
+        # the menu root, so a command row anywhere inside closes the popup.
         with counting_leaves() as leaves, render_path_extended(surface.id):
-            with popup.content, hui.open_flyout_group():
+            with popup.content, hui.open_flyout_group(dismiss=popup.close):
                 for cls, is_disabled in by_order:
                     render_panel(
                         cls,

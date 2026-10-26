@@ -167,8 +167,8 @@ def test_paste_at_click_no_open_ctx_is_noop():
     assert captured == []
 
 
-def test_focus_on_graph_fits_the_viewport_and_closes_the_popup():
-    """focus_on_graph fits the zoom container to content and dismisses the menu.
+def test_focus_on_graph_fits_the_viewport_and_leaves_closing_to_the_row():
+    """focus_on_graph fits the zoom container to content; its icon closes the menu.
 
     Pure client-side viewport op: no event is emitted, unlike paste/create-node.
     """
@@ -180,18 +180,18 @@ def test_focus_on_graph_fits_the_viewport_and_closes_the_popup():
     provider.focus_on_graph()
 
     canvas_vue.zoom_container.center_on_content.assert_called_once()
-    popup.close.assert_called_once()
+    popup.close.assert_not_called()
 
 
-def test_focus_on_graph_with_no_canvas_vue_is_noop_but_still_closes_popup():
-    """No canvas_vue wired (e.g. a stub provider) — don't crash, still dismiss."""
+def test_focus_on_graph_with_no_canvas_vue_is_noop():
+    """No canvas_vue wired (e.g. a stub provider) — don't crash."""
     provider = _make_provider(canvas_vue=None)
     popup = MagicMock()
     provider._open_popup = popup
 
     provider.focus_on_graph()
 
-    popup.close.assert_called_once()
+    popup.close.assert_not_called()
 
 
 def test_create_node_at_click_emits_node_create_request_event():

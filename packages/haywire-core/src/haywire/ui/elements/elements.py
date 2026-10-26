@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json as _json
 from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any, Callable
 
 from nicegui import ui
@@ -457,6 +458,47 @@ MENU_ROW_ICON_CLASS = "hw-menu-row-icon"
 #: differs: its ``pointer-events: none`` is what keeps an empty submenu shut.
 _MENU_ROW_DISABLED_STYLE = "opacity: 0.4; cursor: default"
 
+# Dismisses the whole menu a row is drawn in, from its root down. Set by the
+# menu's root (``open_flyout_group(dismiss=...)``, ``hui.flyout``, a command
+# ``hui.dropdown``), cleared by a body that does not close, and read by a control at
+# construction, so it closes the menu it was drawn in.
+_menu_dismiss: ContextVar[Callable[[], None] | None] = ContextVar("_menu_dismiss", default=None)
+
+
+def menu_dismiss() -> Callable[[], None]:
+    """Return a function that closes the menu being drawn, from its root down.
+
+    For a control in a menu that is not a ``hui.menu_row``, or that decides
+    for itself when to close. Call it while drawing; the function it returns
+    can then be called from any click handler. Outside a menu it does nothing.
+
+    Example::
+
+        def draw(self, ctx, layout):
+            dismiss = hui.menu_dismiss()
+
+            def _on_node_selected(info):
+                self.actions.create_node_at_click(info.identity.registry_key)
+                dismiss()
+    """
+    dismiss = _menu_dismiss.get()
+    return dismiss if dismiss is not None else lambda: None
+
+
+def _with_dismiss(on_click: Callable, closes: bool) -> Callable[..., None]:
+    """Wrap a click handler so it closes the ambient menu after ``on_click``, when ``closes``."""
+    dismiss = _menu_dismiss.get() if closes else None
+
+    def _run(_e: object = None) -> None:
+        # The command runs first: closing a menu can clear the gesture state
+        # (click position, active node) the command still reads.
+        on_click()
+        if dismiss is not None:
+            dismiss()
+
+    return _run
+
+
 _KEY_HINT_CLASSES = "text-xs hw-text-dim ml-auto font-mono"
 
 
@@ -522,6 +564,7 @@ def menu_row(
     enabled: bool = True,
     tooltip: str | None = None,
     command: type[EditorCommand] | None = None,
+    closes: bool = True,
 ) -> ui.row:
     """One command in a menu — the leaf counterpart of ``hui.submenu_row``.
 
@@ -542,6 +585,12 @@ def menu_row(
     ``command`` names the keyboard command the row performs; its shortcut is
     drawn at the right edge (see ``key_hint``), on a disabled row too.
 
+    After ``on_click`` runs, the whole menu the row was drawn in closes, from
+    its root down. Pass ``closes=False`` for a command whose result the menu
+    shows, such as a toggle that relabels its own row. A row drawn outside any
+    menu, inside a body that does not close (a default ``hui.dropdown``,
+    ``hui.submenu_row(closes=False)``), or without ``on_click`` closes nothing.
+
     Usage::
 
         hui.menu_row("Delete Node", icon=hui.icon.delete, on_click=self._delete)
@@ -552,6 +601,8 @@ def menu_row(
         )
         # Shows ⌘C / Ctrl+C at the right edge.
         hui.menu_row("Copy", icon=hui.icon.copy, on_click=self._copy, command=Copy)
+        # Stays open: the row relabels itself to show the new state.
+        hui.menu_row("Collapse", icon=hui.icon.node_collapse, on_click=self._toggle, closes=False)
     """
     row = ui.row().classes(f"{MENU_ROW_CLASS} items-center gap-2 w-full")
     with row:
@@ -565,7 +616,7 @@ def menu_row(
     if not enabled:
         row.classes(add="hw-disabled").style(_MENU_ROW_DISABLED_STYLE)
     elif on_click:
-        row.on("click", lambda _e=None, fn=on_click: fn())
+        row.on("click", _with_dismiss(on_click, closes))
     return row
 
 
@@ -581,6 +632,7 @@ def icon_action(
     on_click: Callable | None = None,
     size: str = "xs",
     command: type[EditorCommand] | None = None,
+    closes: bool = True,
 ) -> ui.button:
     """
     A minimal icon-only button for inline actions (refresh, close, copy).
@@ -595,6 +647,10 @@ def icon_action(
     default shortcut is appended to ``tooltip`` as ``"Copy (Ctrl+C)"``. A
     tooltip is plain text, so it always shows the non-macOS spelling.
 
+    In a menu, the button is a command like ``hui.menu_row``: after
+    ``on_click`` runs, the menu closes. ``closes=False`` keeps it open. In an
+    editor, a toolbar or a content dropdown there is no menu to close.
+
     Standard icon vocabulary: ``refresh``, ``close``, ``content_copy``,
     ``add``, ``delete``, ``edit``, ``expand_more``, ``expand_less``.
 
@@ -602,6 +658,8 @@ def icon_action(
 
         hui.icon_action("refresh", tooltip="Refresh tree", on_click=refresh)
         hui.icon_action(hui.icon.copy, tooltip="Copy", on_click=copy, command=Copy)
+        # In a context menu's icon row, a toggle that keeps the menu up.
+        hui.icon_action(hui.icon.locked, tooltip="Lock", on_click=toggle_lock, closes=False)
     """
     btn = ui.button(icon=icon).props(f"flat round dense size={size}")
     if tooltip and command is not None and command.default_keys:
@@ -609,7 +667,7 @@ def icon_action(
     if tooltip:
         btn.tooltip(tooltip)
     if on_click:
-        btn.on("click", lambda _e=None, fn=on_click: fn())
+        btn.on("click", _with_dismiss(on_click, closes))
     return btn
 
 

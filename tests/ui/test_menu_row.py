@@ -246,3 +246,112 @@ def test_a_theme_emits_the_menu_row_tokens_it_sets():
     assert css_vars["--hw-menu-row-text-transform"] == "uppercase"
     # Unset ones simply don't appear — the CSS fallback covers them.
     assert "--hw-menu-row-hover-bg" not in css_vars
+
+
+# ---------------------------------------------------------------------------
+# 4. A command row closes the menu it was drawn in
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_command_row_runs_its_command_then_dismisses_the_menu(user: User) -> None:
+    calls: list[str] = []
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group(dismiss=lambda: calls.append("dismiss")):
+            hui.menu_row("Copy", on_click=lambda: calls.append("copy")).mark("row")
+
+    await user.open("/")
+    user.find(marker="row").click()
+
+    # The command first: dismissing can clear gesture state it still reads.
+    assert calls == ["copy", "dismiss"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_row_that_does_not_close_leaves_the_menu_open(user: User) -> None:
+    calls: list[str] = []
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group(dismiss=lambda: calls.append("dismiss")):
+            hui.menu_row("Collapse", on_click=lambda: calls.append("toggle"), closes=False).mark("row")
+
+    await user.open("/")
+    user.find(marker="row").click()
+
+    assert calls == ["toggle"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_row_in_a_nested_flyout_dismisses_the_root(user: User) -> None:
+    calls: list[str] = []
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group(dismiss=lambda: calls.append("dismiss")):
+            with hui.submenu_row("Detail"):
+                hui.menu_row("Full", on_click=lambda: calls.append("full")).mark("row")
+
+    await user.open("/")
+    user.find(marker="row").click()
+
+    assert calls == ["full", "dismiss"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_row_outside_any_menu_root_closes_nothing(user: User) -> None:
+    calls: list[str] = []
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group(dismiss=lambda: calls.append("dismiss")):
+            pass
+        hui.menu_row("Copy", on_click=lambda: calls.append("copy")).mark("row")
+
+    await user.open("/")
+    user.find(marker="row").click()
+
+    assert calls == ["copy"]
+
+
+@pytest.mark.unit
+def test_menu_dismiss_outside_a_menu_does_nothing() -> None:
+    hui.menu_dismiss()()  # no root ambient: a callable no-op, not None
+
+
+@pytest.mark.unit
+def test_menu_dismiss_returns_the_root_while_drawing() -> None:
+    calls: list[str] = []
+
+    def _close() -> None:
+        calls.append("dismiss")
+
+    with open_flyout_group(dismiss=_close):
+        dismiss = hui.menu_dismiss()
+    dismiss()  # still the root's close, called after drawing ended
+
+    assert calls == ["dismiss"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+@pytest.mark.parametrize(("closes", "expected"), [(True, ["paste", "dismiss"]), (False, ["paste"])])
+async def test_icon_action_in_a_menu_is_a_command(user: User, closes: bool, expected: list[str]) -> None:
+    """Like a menu row: it closes the menu unless told not to."""
+    calls: list[str] = []
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group(dismiss=lambda: calls.append("dismiss")):
+            hui.icon_action("content_paste", on_click=lambda: calls.append("paste"), closes=closes).mark("b")
+
+    await user.open("/")
+    user.find(marker="b").click()
+
+    assert calls == expected

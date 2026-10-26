@@ -109,7 +109,7 @@ def test_on_close_runs_immediately_when_no_panels_visible():
     assert state.right_clicked_file is None
 
 
-def test_reveal_issues_lifecycle_and_closes_popup():
+def test_reveal_issues_lifecycle_and_leaves_closing_to_the_row():
     provider, ctx, session, panel_registry, state = _make_provider_under_test()
     popup = MagicMock()
     provider._open_popup = popup
@@ -123,8 +123,8 @@ def test_reveal_issues_lifecycle_and_closes_popup():
     assert call.editor is editor_cls
     assert call.binding_id == "payload-x"
     assert call.label == "My Editor"
-    # And the popup got closed
-    popup.close.assert_called_once()
+    # Closing is the row's job (hui.menu_row closes=), not the verb's.
+    popup.close.assert_not_called()
 
 
 def test_panels_filtered_by_poll():
@@ -156,3 +156,30 @@ def test_no_panels_no_popup_open():
         provider.on_file_context(pos=(0, 0), path=Path("/tmp/foo"))
 
     popup.open.assert_not_called()
+
+
+def test_the_popup_is_the_menu_root_its_rows_dismiss():
+    """A row drawn into the popup reads the popup's close as its dismiss.
+
+    The host owns closing the popup only through this wiring; its verbs no
+    longer close it themselves.
+    """
+    from haywire.ui import elements as hui
+
+    provider, ctx, session, panel_registry, state = _make_provider_under_test(panels=[_visible_panel()])
+    popup = _patched_popup()
+    seen = []
+
+    def _render_panel(*_a, **_kw):
+        seen.append(hui.menu_dismiss())
+        return True
+
+    with (
+        patch.object(provider, "_build_popup", return_value=popup),
+        patch("haywire.ui.panel.context_menu_base.render_panel", _render_panel),
+        patch("haywire.ui.panel.context_menu_base.counting_leaves") as leaves,
+    ):
+        leaves.return_value.__enter__.return_value = lambda: 1
+        provider.on_file_context(pos=(0, 0), path=Path("/tmp/foo.haywire"))
+
+    assert seen == [popup.close]

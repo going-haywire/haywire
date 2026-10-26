@@ -154,7 +154,7 @@ class GraphMorePanel(BasePanel):
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
-            with hui.dropdown("more_horiz", tooltip="More actions"):
+            with hui.dropdown("more_horiz", tooltip="More actions", closes=True):
                 self.render_surface(GraphMoreActions, ctx)
 
 
@@ -186,8 +186,12 @@ class CreateNodeMenuPanel(BasePanel):
                 hui.error_label("No node factory available.")
             return
 
+        # The node list is not built from menu rows, so it closes the menu itself.
+        dismiss = hui.menu_dismiss()
+
         def _on_node_selected(node_info: NodeInfo) -> None:
             self.actions.create_node_at_click(node_info.identity.registry_key)
+            dismiss()
 
         def _on_context_click(node_info: NodeInfo) -> None:
             if node_info.library is not None:

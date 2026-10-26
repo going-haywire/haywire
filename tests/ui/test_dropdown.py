@@ -258,3 +258,107 @@ async def test_a_flyout_does_not_lift_nested_popups(user: User) -> None:
 
     select: ui.select = captured["select"]  # type: ignore[assignment]
     assert "popup-content-style" not in select._props
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_closing_dropdown_in_a_toolbar_is_the_menu_root(user: User) -> None:
+    """With no menu root around it, a command row inside closes the dropdown."""
+    captured: dict[str, object] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group():
+            with hui.dropdown("more_horiz", closes=True) as drop:
+                hui.menu_row("Copy", on_click=lambda: None).mark("row")
+                _leaves_drawn.set(_leaves_drawn.get() + 1)
+        captured["drop"] = drop
+
+    await user.open("/")
+    drop: DropdownIcon = captured["drop"]  # type: ignore[assignment]
+    drop._menu.open()
+    user.find(marker="row").click()
+
+    assert drop._menu.value is False
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_closing_dropdown_inside_a_menu_defers_to_the_outer_root(user: User) -> None:
+    """A command closes the whole menu, not just the dropdown it sits in."""
+    calls: list[str] = []
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group(dismiss=lambda: calls.append("dismiss")):
+            with hui.dropdown("more_horiz", closes=True):
+                hui.menu_row("Reset", on_click=lambda: calls.append("reset")).mark("row")
+                _leaves_drawn.set(_leaves_drawn.get() + 1)
+
+    await user.open("/")
+    user.find(marker="row").click()
+
+    assert calls == ["reset", "dismiss"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_dropdown_wears_the_menu_frame(user: User) -> None:
+    """The same rows must look the same in a dropdown as in the right-click Popup."""
+    from haywire.ui.app.shell import STATIC_CSS
+    from haywire.ui.elements.flyout import MENU_CARD_CLASS
+
+    captured: dict[str, object] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group():
+            with hui.dropdown("more_horiz") as drop:
+                _leaves_drawn.set(_leaves_drawn.get() + 1)
+        captured["drop"] = drop
+
+    await user.open("/")
+    drop: DropdownIcon = captured["drop"]  # type: ignore[assignment]
+    assert MENU_CARD_CLASS in drop._menu._classes
+    assert f".q-menu.{MENU_CARD_CLASS} {{" in STATIC_CSS
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_default_dropdown_closes_nothing(user: User) -> None:
+    """A click into a field panel, buttons included, leaves every menu up."""
+    calls: list[str] = []
+    captured: dict[str, object] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group(dismiss=lambda: calls.append("dismiss")):
+            with hui.dropdown("tune") as drop:
+                hui.icon_action("refresh", on_click=lambda: calls.append("refresh")).mark("b")
+                _leaves_drawn.set(_leaves_drawn.get() + 1)
+        captured["drop"] = drop
+
+    await user.open("/")
+    drop: DropdownIcon = captured["drop"]  # type: ignore[assignment]
+    drop._menu.open()
+    user.find(marker="b").click()
+
+    assert calls == ["refresh"]
+    assert drop._menu.value is True
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_submenu_that_does_not_close_closes_nothing(user: User) -> None:
+    calls: list[str] = []
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group(dismiss=lambda: calls.append("dismiss")):
+            with hui.submenu_row("Style", closes=False):
+                hui.menu_row("Swap", on_click=lambda: calls.append("swap")).mark("row")
+
+    await user.open("/")
+    user.find(marker="row").click()
+
+    assert calls == ["swap"]

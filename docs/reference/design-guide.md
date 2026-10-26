@@ -902,7 +902,7 @@ hui.button("Delete Node", icon="delete", on_click=self._delete)
 hui.button("Refresh", icon="refresh", on_click=self._refresh)
 ```
 
-### 8.8b `hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None, command=None)`
+### 8.8b `hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None, command=None, closes=True)`
 
 One command in a menu — the leaf counterpart of `hui.submenu_row`, which *is* one
 (plus a chevron), so a command and the submenu row beside it cannot drift.
@@ -948,7 +948,42 @@ the tooltip instead (`Copy (Ctrl+C)`, in the non-macOS spelling on every
 platform, since a tooltip is plain text); without a `tooltip` there is nothing to
 append to.
 
-### 8.8c `hui.flyout(icon, tooltip=…)` vs `hui.dropdown(icon, tooltip=…, align="left", direction="down")`
+**Closing.** Whether a click closes a menu is decided by `closes=`, on the
+container and on the control, never by the action it calls: a host's verbs
+(`self.actions.*`) never close anything.
+
+On a container, `closes` says whether a command inside closes it — whether
+picking something there ends the interaction. A **menu** (pick and done)
+closes: a context-menu `Popup` (via `open_flyout_group(dismiss=popup.close)`),
+a `hui.flyout`, a `hui.submenu_row`, and a `hui.dropdown(..., closes=True)` such
+as the selection toolbar's ⋯. A **panel** (stay and work) does not:
+`hui.dropdown` by default, `hui.submenu_row(closes=False)`. Nothing inside a
+panel closes it, neither a field nor a button beside it, whatever the control
+says. Either kind still closes on click-away. A toolbar is neither and stays
+up. A menu inside a menu defers to the outer one, so a command closes all of it.
+
+On a control, `closes` is its own say inside a menu, which closes after its
+`on_click` runs:
+
+- `hui.menu_row` and `hui.icon_action` both close by default. Pass
+  `closes=False` for a command whose result the menu shows — a toggle that
+  relabels its own row (Collapse, edge Propagation, Developer mode).
+- Anything else clickable — a list, a tree, a custom widget — takes
+  `dismiss = hui.menu_dismiss()` while drawing and calls `dismiss()` when it is
+  done. `CreateNodeMenuPanel` does this for its node list.
+
+```python
+hui.menu_row("Copy", icon=hui.icon.copy, on_click=self.actions.copy_selection)  # closes
+hui.menu_row("Collapse", icon=hui.icon.node_collapse, on_click=_toggle, closes=False)
+hui.icon_action(hui.icon.paste, tooltip="Paste", on_click=self.actions.paste_at_click)  # closes
+
+dismiss = hui.menu_dismiss()   # in draw(): for a control that isn't a row
+def _on_node_selected(info):
+    self.actions.create_node_at_click(info.identity.registry_key)
+    dismiss()
+```
+
+### 8.8c `hui.flyout(icon, tooltip=…)` vs `hui.dropdown(icon, tooltip=…, align="left", direction="down", closes=False)`
 
 Two icon anchors that open a hosted surface. Same sibling group (one open path
 at a time), same cascade-close, same retroactive greying of an empty body. Pick
@@ -956,7 +991,7 @@ by **what hangs off them**, never by where you want it on screen:
 
 | | `hui.flyout` | `hui.dropdown` |
 | --- | --- | --- |
-| Holds | commands (`hui.menu_row`) | content (fields, widgets, a mini panel) |
+| Holds | commands (`hui.menu_row`) | fields, widgets, a mini panel |
 | Opens | beside the anchor (`anchor="top end"`) | below or above it, placed by `align=` + `direction=` |
 | Trigger | hover, after a ~120 ms debounce | click |
 | `auto-close` | yes — a command dismisses its menu | **no** |
@@ -965,7 +1000,13 @@ by **what hangs off them**, never by where you want it on screen:
 **Rule:** never give a dropdown `auto-close`. Quasar's `auto-close` dismisses the
 menu on *any* click inside it, so the first click into a field closes the panel
 you just opened. Conversely, never drop `auto-close` from a command flyout — a
-menu that survives its own command reads as broken.
+menu that survives its own command reads as broken. A dropdown that holds
+commands anyway (the selection toolbar's ⋯) says so with `closes=True`: it
+still has no `auto-close`, but its commands close it (§8.8b).
+
+Both anchors' menus carry `hw-menu-card`, styled in `app/shell.py` to the
+context-menu `Popup`'s frame (radius, shadow, padding), so the same rows look
+the same in a popup, a flyout or a dropdown.
 
 The two remaining rows are consequences of holding content: a select's option
 list or a colour picker is a Quasar portal of its own at z-6000, *behind* the

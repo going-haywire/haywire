@@ -33,7 +33,7 @@ class FileActions(Protocol):
         binding_id: Any,
         label: str,
     ) -> None:
-        """Issue a Reveal lifecycle command and close the menu popup."""
+        """Issue a Reveal lifecycle command."""
         ...
 
 

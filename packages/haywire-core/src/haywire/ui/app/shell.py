@@ -328,6 +328,14 @@ STATIC_CSS = (
     " .q-menu .q-item { color: var(--hw-text-body) !important; }"
     " .q-menu .q-item--active { color: var(--hw-accent) !important; }"
     " .q-menu .q-item:hover { background: var(--hw-bg-surface) !important; }"
+    # A hui flyout or dropdown wears the context-menu Popup's frame
+    # (`.hw-popup-card` / `.hw-popup-content` in popup.vue), so the same rows
+    # look the same whichever of the two hosts them.
+    " .q-menu.hw-menu-card {"
+    "   border-radius: 8px;"
+    "   box-shadow: var(--hw-popup-shadow);"
+    "   padding: 8px;"
+    " }"
     # ── Menu rows: the ONE place a menu command's text style and colour live ──
     # `hui.menu_row` carries `.hw-menu-row`, and `hui.submenu_row` IS one, so a
     # command and the submenu row beside it cannot drift. Every value reads a

@@ -349,27 +349,18 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
     # ------------------------------------------------------------------
 
     def _emit(self, event) -> None:
-        """Emit an event from a context-menu action and close the popup.
+        """Emit an event from a context-menu action.
 
-        Action methods are invoked by panel buttons; selecting any item
-        should dismiss the menu. Panels themselves don't have a popup
-        handle, so closing centrally here keeps that contract.
+        Leaves the menu open: whether a command closes it is the row's
+        ``closes=`` (see ``hui.menu_row``).
         """
         if self._on_emit_event:
             self._on_emit_event(event)
-        if self._open_popup is not None:
-            self._open_popup.close()
 
     def _emit_sync(self, event) -> None:
-        """Emit a sync event from a context-menu action and close the popup.
-
-        Sync sibling of ``_emit``: selecting a menu item that drives a Python→Vue
-        sync round-trip (e.g. paste) should dismiss the menu just like any other.
-        """
+        """Emit a sync event (a Python→Vue round-trip, e.g. paste) from a context-menu action."""
         if self._on_emit_sync_event:
             self._on_emit_sync_event(event)
-        if self._open_popup is not None:
-            self._open_popup.close()
 
     # CanvasContextActions
 
@@ -419,7 +410,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         self._emit(OpenNewNodeWizardEvent(position={"x": x, "y": y}))
 
     def focus_on_graph(self) -> None:
-        """Fit the viewport to show every node in the graph, then close the menu.
+        """Fit the viewport to show every node in the graph.
 
         Pure client-side viewport op — no event round-trip needed, unlike
         paste/create-node, since it doesn't touch graph state. Runs directly
@@ -428,8 +419,6 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         zoom_container = getattr(self._canvas_vue, "zoom_container", None)
         if zoom_container is not None:
             zoom_container.center_on_content()
-        if self._open_popup is not None:
-            self._open_popup.close()
 
     # EdgeContextActions
 
@@ -646,10 +635,9 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         """Flip the fold state of the selection, and report the new state.
 
         The decision is made HERE, on each click, rather than captured when the
-        menu drew. ``hui.menu_row`` does not close its popup, so a menu stays
-        open after a command — a row that closed over the state it read at draw
-        time would keep re-sending the same value, and the toggle would only
-        ever work once. That is exactly what it did.
+        menu drew. The Collapse row keeps its menu open after a click, so a row
+        that closed over the state it read at draw time would keep re-sending
+        the same value, and the toggle would only ever work once.
         """
         collapsed = not self.selection_is_collapsed()
         self.set_selection_collapsed(collapsed)

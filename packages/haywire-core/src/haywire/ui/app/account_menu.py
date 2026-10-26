@@ -35,15 +35,11 @@ class AccountMenuProvider(BaseContextMenuProvider):
         the browser cannot clear it from JavaScript, only the server can.
         """
         self._run_js("fetch('/logout', {method: 'POST'}).then(() => window.location.href = '/login')")
-        if self._open_popup is not None:
-            self._open_popup.close()
 
     def reveal(self, editor_cls: type, binding_id: Any, label: str) -> None:
         from haywire.core.signals import Reveal
 
         self._session.publish(Reveal(editor=editor_cls, binding_id=binding_id, label=label))
-        if self._open_popup is not None:
-            self._open_popup.close()
 
     @staticmethod
     def _run_js(script: str) -> None:

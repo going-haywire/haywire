@@ -30,11 +30,11 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
-from typing import Generator, List, Literal
+from typing import Callable, Generator, List, Literal
 
 from nicegui import ui
 
-from haywire.ui.elements.elements import MENU_ROW_ICON_CLASS, menu_row
+from haywire.ui.elements.elements import MENU_ROW_ICON_CLASS, _menu_dismiss, menu_row
 
 # One rung above Quasar's interaction tier, which QMenu hardcodes at 6000: a
 # flyout is a QMenu inside another QMenu, so without this the child wins only
@@ -114,16 +114,23 @@ FLYOUT_OPEN_DELAY_S = 0.12
 
 _DISABLED_STYLE = "opacity: 0.4; pointer-events: none"
 
+MENU_CARD_CLASS = "hw-menu-card"
+"""Marker class giving a flyout or dropdown the menu frame. See ``app/shell.py``."""
+
 
 class FlyoutMenu(ui.menu):
     """A ``ui.menu`` that tracks its child flyouts for depth-first cascade-close.
 
     ``_child_flyouts`` is the one-level-deeper sibling group opened beneath this
     flyout; ``close_flyout`` walks it to dismiss descendants before closing self.
+
+    Carries ``MENU_CARD_CLASS``, whose frame the shell CSS matches to the
+    context-menu ``Popup``.
     """
 
     def __init__(self, *, value: bool = False) -> None:
         super().__init__(value=value)
+        self.classes(MENU_CARD_CLASS)
         self._child_flyouts: FlyoutSiblings = []
 
 
@@ -144,22 +151,36 @@ _flyout_siblings: ContextVar[FlyoutSiblings] = ContextVar("_flyout_siblings")
 
 
 @contextmanager
-def open_flyout_group() -> Generator[FlyoutSiblings]:
+def open_flyout_group(dismiss: Callable[[], None] | None = None) -> Generator[FlyoutSiblings]:
     """Push a fresh sibling group as the ambient level for everything drawn inside.
 
     Call it around a box with no owning row: a ``Popup``'s top-level content,
     or a ``ui.menu`` opened directly. Panels rendered inside pass nothing.
 
+    ``dismiss`` closes the box, and makes it the menu root: a ``hui.menu_row``
+    drawn anywhere inside, nested flyouts included, calls it after its command.
+    Leave it ``None`` for a box that stays up, such as a toolbar; a
+    ``hui.flyout`` or ``hui.dropdown`` inside it then becomes the root.
+
     Never call it inside a ``hui.submenu_row`` or ``hui.flyout`` body, whose
     ``__enter__`` pushes its own group — a second group there orphans
     everything inside from the row's ``_child_flyouts`` and breaks
     cascade-close for that branch.
+
+    Usage::
+
+        with popup.content, hui.open_flyout_group(dismiss=popup.close):
+            ...  # a menu: every command row closes the popup
+        with toolbar_row, hui.open_flyout_group():
+            ...  # a toolbar: stays up; each dropdown closes itself
     """
     child_siblings: FlyoutSiblings = []
     token = _flyout_siblings.set(child_siblings)
+    dismiss_token = _menu_dismiss.set(dismiss)
     try:
         yield child_siblings
     finally:
+        _menu_dismiss.reset(dismiss_token)
         _flyout_siblings.reset(token)
 
 
@@ -204,6 +225,18 @@ def close_flyout(submenu: FlyoutMenu) -> None:
     for child in submenu._child_flyouts:
         close_flyout(child)
     submenu.close()
+
+
+def _body_dismiss(menu: FlyoutMenu, *, closes: bool) -> Callable[[], None] | None:
+    """The dismiss a flyout body's controls see: ``None`` unless ``closes``, else the outer root or ``menu``.
+
+    A body that does not close closes nothing, so a click into a field or a
+    button beside it leaves every menu up. A closing body defers to an outer
+    root, so a command closes the whole menu rather than one level.
+    """
+    if not closes:
+        return None
+    return _menu_dismiss.get() or (lambda: close_flyout(menu))
 
 
 def open_on_hover(anchor: ui.element, submenu: FlyoutMenu, siblings: FlyoutSiblings) -> None:
@@ -321,11 +354,19 @@ class FlyoutIcon:
     unclickable, so an unextended ⋯ reads as unavailable instead of opening an
     empty box.
 
+    Drawn where no menu root is ambient (a toolbar), the flyout is the root
+    itself: a command inside (``hui.menu_row``, ``hui.icon_action``) closes it
+    and its open descendants. Inside a menu, the command closes that whole
+    menu instead.
+
     Usage::
 
         with hui.flyout("image", tooltip="Image"):
             ...  # flyout body: leaves, or nested hui.submenu_row / hui.flyout
     """
+
+    # A flyout holds commands, so they close it. DropdownIcon sets this per instance.
+    _closes = True
 
     # Overridden by DropdownIcon — the only two things that differ between a
     # sideways command flyout and a downward content dropdown.
@@ -359,12 +400,14 @@ class FlyoutIcon:
         self._token: Token[FlyoutSiblings] | None = None
         self._count_token: Token[int] | None = None
         self._body_token: Token[bool] | None = None
+        self._dismiss_token: Token[Callable[[], None] | None] | None = None
 
     def __enter__(self) -> "FlyoutIcon":
         self._child = []
         self._token = _flyout_siblings.set(self._child)  # body is a new level
         self._count_token = _leaves_drawn.set(0)
         self._body_token = _in_flyout_body.set(True)
+        self._dismiss_token = _menu_dismiss.set(_body_dismiss(self._menu, closes=self._closes))
         self._menu.__enter__()
         return self
 
@@ -373,10 +416,12 @@ class FlyoutIcon:
         assert self._token is not None
         assert self._count_token is not None
         assert self._body_token is not None
+        assert self._dismiss_token is not None
         drew_anything = _leaves_drawn.get() > 0
         _flyout_siblings.reset(self._token)
         _leaves_drawn.reset(self._count_token)
         _in_flyout_body.reset(self._body_token)
+        _menu_dismiss.reset(self._dismiss_token)
         self._menu._child_flyouts = self._child
 
         if not drew_anything:
@@ -440,7 +485,7 @@ class DropdownIcon(FlyoutIcon):
 
     Same anchor, same sibling group, same cascade-close and same retroactive
     greying as ``hui.flyout``; three deliberate differences, because what
-    hangs off it is **content**, not commands:
+    usually hangs off it is **fields**, not commands:
 
     - **Opens above or below the icon rather than beside it** — the shape a
       toolbar wants for a group of fields. Two independent axes, so two
@@ -464,6 +509,15 @@ class DropdownIcon(FlyoutIcon):
       click into a field would close the panel. A dropdown closes on
       click-away, or when a sibling flyout opens.
 
+    ``closes`` says whether a command inside closes the dropdown. ``False``
+    (the default) is a panel of fields: nothing inside closes the dropdown or
+    any menu around it, buttons included — a ``closes=True`` on a control
+    there does not override it. ``closes=True`` is a menu of commands that
+    opens on click, like the selection toolbar's ⋯: it is a menu root as
+    ``hui.flyout`` is, so a ``hui.menu_row`` or ``hui.icon_action`` inside
+    closes it, or the whole menu it sits in, unless that control passes
+    ``closes=False``. Either way the dropdown still closes on click-away.
+
     Everything drawn inside must be a panel for the emptiness rule to work:
     ``__exit__`` greys the icon when nothing bumped the leaf counter, and only
     ``render_panel`` bumps it. Render a hosted surface here (the ADR-0029
@@ -480,6 +534,9 @@ class DropdownIcon(FlyoutIcon):
 
         with hui.dropdown("palette", align="center", direction="up"):
             self.render_surface(Swatches, ctx)      # toolbar along a bottom edge
+
+        with hui.dropdown("more_horiz", tooltip="More actions", closes=True):
+            self.render_surface(SelectionMenu, ctx)  # commands: each one closes it
     """
 
     def __init__(
@@ -489,12 +546,14 @@ class DropdownIcon(FlyoutIcon):
         tooltip: str = "",
         align: DropdownAlign = "left",
         direction: DropdownDirection = "down",
+        closes: bool = False,
     ) -> None:
         # Validated here, at construction, so a typo is an error where it was
         # written rather than a panel that opens somewhere surprising.
         self._props_str = dropdown_props(align=align, direction=direction)
         self._align = align
         self._direction = direction
+        self._closes = closes
         super().__init__(icon, tooltip=tooltip)
 
     def _menu_props(self) -> str:
@@ -514,11 +573,12 @@ class SubmenuRow:
     ``enabled=False`` renders the greyed, non-expanding form and creates no
     flyout, so it may be called bare and never entered.
 
-    ``content=True`` marks the body as editable fields rather than commands,
-    with the same two differences as ``hui.dropdown``: no ``auto-close``, so a
-    click into a field does not dismiss the flyout, and menus a field opens
-    (a select's options, a colour picker) are lifted above it. The flyout
-    closes on click-away or when a sibling opens.
+    ``closes=False`` marks the body as editable fields rather than commands,
+    the same as a default ``hui.dropdown``: nothing inside closes the menu,
+    buttons included; there is no ``auto-close``, so a click into a field does
+    not dismiss the flyout; and menus a field opens (a select's options, a
+    colour picker) are lifted above it. The flyout still closes on click-away
+    or when a sibling opens.
 
     A row reads the ambient sibling group to register its own flyout into; it
     never takes a ``siblings`` list from its caller. ``__enter__`` pushes a
@@ -531,16 +591,17 @@ class SubmenuRow:
     """
 
     def __init__(
-        self, label: str, *, icon: str | None = None, enabled: bool = True, content: bool = False
+        self, label: str, *, icon: str | None = None, enabled: bool = True, closes: bool = True
     ) -> None:
         self._row = _anchor_row(label, icon, enabled)
         self._enabled = enabled
-        self._content = content
+        self._closes = closes
         self._menu: FlyoutMenu | None = None
         self._child: FlyoutSiblings = []
         self._token: Token[FlyoutSiblings] | None = None
         self._count_token: Token[int] | None = None
         self._body_token: Token[bool] | None = None
+        self._dismiss_token: Token[Callable[[], None] | None] | None = None
 
         # A row, enabled or not, counts as content drawn at the enclosing
         # level when that level is itself a flyout body — so a container whose
@@ -554,7 +615,7 @@ class SubmenuRow:
 
         with self._row:  # inside the anchor — see the module's ANCHORING note
             self._menu = FlyoutMenu()
-        self._menu.props(FLYOUT_PROPS if content else f"{FLYOUT_PROPS} auto-close").style(FLYOUT_Z)
+        self._menu.props(f"{FLYOUT_PROPS} auto-close" if closes else FLYOUT_PROPS).style(FLYOUT_Z)
 
         siblings = _flyout_siblings.get()  # ambient: this level's group
         siblings.append(self._menu)
@@ -567,21 +628,24 @@ class SubmenuRow:
         self._token = _flyout_siblings.set(self._child)  # body is a new level
         self._count_token = _leaves_drawn.set(0)
         self._body_token = _in_flyout_body.set(True)
+        self._dismiss_token = _menu_dismiss.set(_body_dismiss(self._menu, closes=self._closes))
         self._menu.__enter__()
         return self
 
     def __exit__(self, *exc: object) -> None:
         assert self._menu is not None
-        if self._content:
+        if not self._closes:
             _lift_nested_popups(self._menu)
         self._menu.__exit__(*exc)
         assert self._token is not None
         assert self._count_token is not None
         assert self._body_token is not None
+        assert self._dismiss_token is not None
         drew_anything = _leaves_drawn.get() > 0
         _flyout_siblings.reset(self._token)
         _leaves_drawn.reset(self._count_token)
         _in_flyout_body.reset(self._body_token)
+        _menu_dismiss.reset(self._dismiss_token)
         self._menu._child_flyouts = self._child
 
         if not drew_anything:

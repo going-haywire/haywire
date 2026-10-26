@@ -14,9 +14,10 @@ Lazy propagation pulls data on demand instead of pushing it to the target node.
 Show an edge's propagation mode and switch it between lazy and eager.
 
 **The row rewrites itself on click rather than closing over its state**,
-for the same reason as `CollapseSelectionMenuPanel`: `hui.menu_row` does
-not dismiss its popup, so a handler that captured the mode at draw time
-would keep re-sending that value and the toggle would work exactly once.
+for the same reason as `CollapseSelectionMenuPanel`: the row is drawn with
+`closes=False`, so the menu stays open, and a handler that captured the mode
+at draw time would keep re-sending that value and the toggle would work
+exactly once.
 The current mode is asked for on every click (`toggle_edge_propagation`
 decides and returns the new one).
 

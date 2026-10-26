@@ -106,13 +106,13 @@ class CollapseSelectionMenuPanel(BasePanel):
     """Fold or unfold every selected node — one row, both directions.
 
     **The row rewrites itself on click rather than closing over its state.**
-    ``hui.menu_row`` does not dismiss its popup, so this menu is still on
-    screen after the command runs: a handler that captured ``collapsed`` at
-    draw time would keep re-sending that same value, and the toggle would work
-    exactly once. It did, until it was found. The current state is asked for on
-    every click (``toggle_selection_collapsed`` decides server-side and returns
-    the new state), and the label and icon are updated in place from the
-    answer, so what the row says stays true while the menu remains open.
+    It is drawn with ``closes=False``, so the menu stays open after the
+    command runs: a handler that captured ``collapsed`` at draw time would
+    keep re-sending that same value, and the toggle would work exactly once.
+    The current state is asked for on every click
+    (``toggle_selection_collapsed`` decides server-side and returns the new
+    state), and the label and icon are updated in place from the answer, so
+    what the row says stays true while the menu remains open.
 
     The icon names the action, not the state — it pairs with the label, which
     also says the verb. An icon showing the *current* state beside a label
@@ -139,8 +139,20 @@ class CollapseSelectionMenuPanel(BasePanel):
         n_nodes = len(ctx.data[EditState].selected_nodes)
         collapsed = self.actions.selection_is_collapsed()
 
+        def _toggle() -> None:
+            now_collapsed = self.actions.toggle_selection_collapsed()
+            if label_el is not None:
+                label_el.set_text(self._row_text(now_collapsed, n_nodes))
+            if icon_el is not None:
+                icon_el.set_name(self._row_icon(now_collapsed))
+
         with layout:
-            row = hui.menu_row(self._row_text(collapsed, n_nodes), icon=self._row_icon(collapsed))
+            row = hui.menu_row(
+                self._row_text(collapsed, n_nodes),
+                icon=self._row_icon(collapsed),
+                on_click=_toggle,
+                closes=False,
+            )
 
         # Reach into the row this panel just built to relabel it after a click.
         # menu_row's shape is (icon?, label) and it always makes both here,
@@ -149,15 +161,6 @@ class CollapseSelectionMenuPanel(BasePanel):
         # relabelling" instead of raising out of a click handler.
         icon_el = next((c for c in row.default_slot.children if isinstance(c, ui.icon)), None)
         label_el = next((c for c in row.default_slot.children if isinstance(c, ui.label)), None)
-
-        def _toggle() -> None:
-            now_collapsed = self.actions.toggle_selection_collapsed()
-            if label_el is not None:
-                label_el.set_text(self._row_text(now_collapsed, n_nodes))
-            if icon_el is not None:
-                icon_el.set_name(self._row_icon(now_collapsed))
-
-        row.on("click", lambda _e=None: _toggle())
 
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         if is_reroute_node(ctx) is False:

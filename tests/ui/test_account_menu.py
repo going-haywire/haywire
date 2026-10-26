@@ -55,10 +55,11 @@ def test_logout_navigates_the_client_to_the_logout_route():
     provider.logout()
 
     assert "/logout" in ran[0]
-    provider._open_popup.close.assert_called_once()
+    # Closing is the row's job (hui.menu_row closes=), not the verb's.
+    provider._open_popup.close.assert_not_called()
 
 
-def test_reveal_publishes_a_reveal_signal_and_closes():
+def test_reveal_publishes_a_reveal_signal_and_leaves_closing_to_the_row():
     session = MagicMock()
     provider = AccountMenuProvider(context=MagicMock(), session=session, panel_registry=MagicMock())
     provider._open_popup = MagicMock()
@@ -67,4 +68,4 @@ def test_reveal_publishes_a_reveal_signal_and_closes():
     provider.reveal(marker, None, "Roster")
 
     assert session.publish.called
-    provider._open_popup.close.assert_called_once()
+    provider._open_popup.close.assert_not_called()

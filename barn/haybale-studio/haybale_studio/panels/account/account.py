@@ -183,11 +183,19 @@ class DeveloperModePanel(BasePanel):
         return hui.icon.checked if enabled else hui.icon.unchecked
 
     def draw(self, ctx, layout) -> None:
+        def _toggle() -> None:
+            now_enabled = not ctx.developer_mode
+            ctx.developer_mode = now_enabled
+            if icon_el is not None:
+                icon_el.set_name(self._row_icon(now_enabled))
+
         with layout:
             row = hui.menu_row(
                 "Developer mode",
                 icon=self._row_icon(ctx.developer_mode),
                 tooltip="Show affordances that open the studio's own source",
+                on_click=_toggle,
+                closes=False,
             )
 
         # Reach into the row just built to re-icon it after a click. menu_row's
@@ -196,11 +204,3 @@ class DeveloperModePanel(BasePanel):
         # to that shape degrades to "the row stops updating" instead of raising
         # out of a click handler.
         icon_el = next((c for c in row.default_slot.children if isinstance(c, ui.icon)), None)
-
-        def _toggle() -> None:
-            now_enabled = not ctx.developer_mode
-            ctx.developer_mode = now_enabled
-            if icon_el is not None:
-                icon_el.set_name(self._row_icon(now_enabled))
-
-        row.on("click", lambda _e=None: _toggle())

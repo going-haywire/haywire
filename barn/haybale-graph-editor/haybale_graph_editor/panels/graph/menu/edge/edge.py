@@ -110,7 +110,7 @@ class EdgeStyleMenuPanel(BasePanel):
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
-            with hui.submenu_row("Style", icon=hui.icon.theme, content=True):
+            with hui.submenu_row("Style", icon=hui.icon.theme, closes=False):
                 self.render_surface(EdgeStyle, ctx)
 
 
@@ -256,9 +256,10 @@ class EdgePropagationMenuPanel(BasePanel):
     """Show an edge's propagation mode and switch it between lazy and eager.
 
     **The row rewrites itself on click rather than closing over its state**,
-    for the same reason as `CollapseSelectionMenuPanel`: `hui.menu_row` does
-    not dismiss its popup, so a handler that captured the mode at draw time
-    would keep re-sending that value and the toggle would work exactly once.
+    for the same reason as `CollapseSelectionMenuPanel`: the row is drawn with
+    `closes=False`, so the menu stays open, and a handler that captured the mode
+    at draw time would keep re-sending that value and the toggle would work
+    exactly once.
     The current mode is asked for on every click (`toggle_edge_propagation`
     decides and returns the new one).
 
@@ -298,6 +299,15 @@ class EdgePropagationMenuPanel(BasePanel):
             return
         locked = self.actions.edge_propagation_locked(edge_id)
 
+        def _toggle() -> None:
+            now = self.actions.toggle_edge_propagation(edge_id)
+            if now is None:
+                return
+            if label_el is not None:
+                label_el.set_text(self._row_text(now))
+            if icon_el is not None:
+                icon_el.set_name(self._ICONS[now])
+
         with layout:
             row = hui.menu_row(
                 self._row_text(mode),
@@ -308,23 +318,12 @@ class EdgePropagationMenuPanel(BasePanel):
                     if locked
                     else "Lazy propagation pulls data on demand instead of pushing it on write."
                 ),
+                on_click=_toggle,
+                closes=False,
             )
-        if locked:
-            return
 
         icon_el = next((c for c in row.default_slot.children if isinstance(c, ui.icon)), None)
         label_el = next((c for c in row.default_slot.children if isinstance(c, ui.label)), None)
-
-        def _toggle() -> None:
-            now = self.actions.toggle_edge_propagation(edge_id)
-            if now is None:
-                return
-            if label_el is not None:
-                label_el.set_text(self._row_text(now))
-            if icon_el is not None:
-                icon_el.set_name(self._ICONS[now])
-
-        row.on("click", lambda _e=None: _toggle())
 
 
 @panel(
