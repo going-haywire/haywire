@@ -68,7 +68,8 @@ class NoteTextWidget(BaseWidget):
             "align-items: var(--hw-note-align, flex-start); text-decoration: inherit;"
         )
         with root:
-            self._label = ui.label("").classes("zoom-pan-lod1")
+            # drag-handle: a press on the shown text drags the card; a double-click edits it.
+            self._label = ui.label("").classes("zoom-pan-lod1 drag-handle")
             self._label.style(
                 "white-space: pre-wrap; word-break: break-word; padding: 2px 6px; max-width: 100%; "
                 "text-decoration: inherit; "

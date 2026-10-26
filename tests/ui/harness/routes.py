@@ -2236,16 +2236,17 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
-    # GET /graph-widget-nodes
+    # GET /graph-widget-nodes?mode=view|operate|edit
     #
-    # A stage canvas in level mode operate: a Float Slider (Max promoted to an
-    # inlet) and a Menu on stage, the slider wired into a Float Number off stage.
-    # Polled echoes show what the number's inlet and the menu's outlet hold.
-    # Backs test_widget_nodes.py.
+    # A stage canvas in level mode ``mode`` (default operate): a Float Slider (Max
+    # promoted to an inlet) and a Menu on stage, the slider wired into a Float
+    # Number off stage, and a Float Slider whose value is not operable (its
+    # widget needs edit). Polled echoes show what the number's inlet and the
+    # menu's outlet hold. Backs test_widget_nodes.py.
     # -------------------------------------------------------------------------
 
     @ui.page("/graph-widget-nodes")
-    async def graph_widget_nodes_page():
+    async def graph_widget_nodes_page(mode: str = "operate"):
         from haybale_core.nodes.widgets.menu import MenuNode
         from haybale_core.nodes.widgets.number import FloatNumberNode
         from haybale_core.nodes.widgets.slider import FloatSliderNode
@@ -2273,6 +2274,8 @@ def register_routes(library_service) -> None:
         styled = _make(FloatSliderNode, 3600.0, 4000.0)
         capped = _make(FloatSliderNode, 3600.0, 4100.0)
         capped_narrow = _make(FloatSliderNode, 3600.0, 4200.0)
+        locked = _make(FloatSliderNode, 3600.0, 4300.0)
+        locked.node.ports["value"].operable = False
         promote_setting(slider.node, "range", "max", direction=PortType.INLET)
         placed = (
             (slider, (40.0, 40.0)),
@@ -2281,6 +2284,7 @@ def register_routes(library_service) -> None:
             (styled, (480.0, 40.0)),
             (capped, (480.0, 200.0)),
             (capped_narrow, (480.0, 280.0)),
+            (locked, (40.0, 360.0)),
         )
         for wrapper, (sx, sy) in placed:
             wrapper.node.props.on_stage = True
@@ -2311,6 +2315,7 @@ def register_routes(library_service) -> None:
             ("styled", styled),
             ("capped", capped),
             ("capped_narrow", capped_narrow),
+            ("locked", locked),
         )
         for name, wrapper in named:
             ui.label(wrapper.node_id).props(f'data-testid="{name}-node-id" data-node="{wrapper.node_id}"')
@@ -2329,7 +2334,7 @@ def register_routes(library_service) -> None:
             editor,
             testid="widgetnodes",
             channel=STAGE,
-            level=_HarnessLevel(mode=LevelMode.OPERATE),
+            level=_HarnessLevel(mode=LevelMode(mode)),
         )
         _stamp_synced()
 

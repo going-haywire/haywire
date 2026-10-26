@@ -110,8 +110,10 @@ import 'arrow_heads';
  *                       (WidgetFactory.render_widget); a pin that carries its
  *                       own tooltip (add_pin_tooltip) and the studio skin's
  *                       diagnostics and comment badges get 'view'. A press on
- *                       one the level mode satisfies arms no drag and selects
- *                       nothing below 'edit'. Read by AccessGate's level-mode
+ *                       one the level mode satisfies arms no drag, also inside
+ *                       a drag handle, unless a .drag-handle sits nearer to
+ *                       the press than the stamp; it selects nothing below
+ *                       'edit'. Read by AccessGate's level-mode
  *                       gate (ui/components/access_gate).
  *   data-hw-inset       The body of an Inset card (a Graph-node drawn with the
  *                       Inset skin, haybale_graph_editor/skins/inset_skin.py).
@@ -3993,9 +3995,13 @@ export default {
                 return false;
             }
 
-            // An operable widget keeps its press inside a drag handle too: a widget
-            // node's whole card is one, and so is an Inset's interior card.
-            if (element.closest('[data-hw-requires="operate"]')) {
+            // A widget whose data-hw-requires the level mode satisfies keeps its press inside
+            // a drag handle too: a widget node's whole card is one, and so is an Inset's interior card.
+            // The nearer of stamp and drag handle decides, so a widget can hand a part back to the card.
+            const stamped = element.closest('[data-hw-requires]');
+            const handle = element.closest('.drag-handle');
+            if (stamped && (!handle || handle.contains(stamped))
+                && this._levelModeSatisfies(stamped.dataset.hwRequires)) {
                 return true;
             }
 

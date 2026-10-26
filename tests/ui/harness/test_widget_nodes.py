@@ -15,8 +15,8 @@ _PATH = "/graph-widget-nodes"
 pytestmark = pytest.mark.ui
 
 
-def _open(page: Page, harness) -> None:
-    goto_ready(page, f"{harness}{_PATH}")
+def _open(page: Page, harness, mode: str = "operate") -> None:
+    goto_ready(page, f"{harness}{_PATH}?mode={mode}")
     page.wait_for_selector(".ui-node-slot")
     wait_for_canvas_settled(page)
     # Fit-to-content zooms out as the stage fills; measure at zoom 1, the top-left in view.
@@ -151,3 +151,41 @@ def test_a_max_label_width_caps_the_label(page: Page, harness):
     label = _box(narrow.locator("[data-widget-node-label]"))
     control = _box(narrow.locator("[data-hw-requires=operate]").first)
     assert abs(label["width"] - control["width"]) < 4
+
+
+def _press_and_drag(page: Page, locator, dx: float) -> None:
+    locator.scroll_into_view_if_needed()
+    box = _box(locator)
+    x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+    page.mouse.move(x, y)
+    page.mouse.down()
+    page.mouse.move(x + dx, y, steps=8)
+    page.mouse.up()
+
+
+def test_an_edit_widget_keeps_its_press_in_edit(page: Page, harness):
+    _open(page, harness, "edit")
+    card = _card(page, "locked")
+    expect(card.locator(".q-slider[data-hw-requires=edit]")).to_have_count(1)
+    card.scroll_into_view_if_needed()
+    before = _box(card)
+
+    _press_and_drag(page, card.locator(".q-slider").first, 60)
+    page.wait_for_timeout(300)
+
+    after = _box(card)
+    assert (after["x"], after["y"]) == (before["x"], before["y"]), "the press dragged the card"
+
+
+def test_the_label_of_a_widget_node_drags_the_card_in_edit(page: Page, harness):
+    _open(page, harness, "edit")
+    card = _card(page, "locked")
+    card.scroll_into_view_if_needed()
+    before = _box(card)
+
+    _press_and_drag(page, card.locator("[data-widget-node-label]"), 60)
+
+    page.wait_for_function(
+        "([id, x]) => document.getElementById(id).getBoundingClientRect().x > x + 30",
+        arg=[card.get_attribute("id"), before["x"]],
+    )
