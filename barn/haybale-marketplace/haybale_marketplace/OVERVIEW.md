@@ -11,8 +11,8 @@ Library installer + browser editors
 - **Uninstall library** — Uninstall an installed library via uv pip (streams progress). Destructive.
 
 ## States
-- **Library Manager State** — 
-- **Marketplace State** — 
+- **Library Manager State** — Publishes the LibraryManager for editor consumption.
+- **Marketplace State** — Owns marketplace orchestration for the studio library.
 
 ## Editors
 - **Library Detail** — Detailed information for the selected library.

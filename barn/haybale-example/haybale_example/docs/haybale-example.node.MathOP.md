@@ -2,6 +2,8 @@
 
 `haybale-example:node:MathOP` · kind: node
 
+Node that outputs a constant value.
+
 > **Deprecated:** This node will be moved to the math library
 
 ## Ports

@@ -2,6 +2,8 @@
 
 `haybale-example:node:FillDemoNode` · kind: node
 
+Edits a solid/linear/radial fill and outputs it as a CSS value.
+
 ## Ports
 
 | id | direction | type | description |

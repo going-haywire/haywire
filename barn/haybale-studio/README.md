@@ -7,8 +7,8 @@
 Library for haywire studio
 
 ## Settings
-- **Node Theme** — 
-- **Workbench Theme** — 
+- **Node Theme** — Global settings controlling the active node theme.
+- **Workbench Theme** — Global settings controlling the active workbench theme.
 
 ## Farmhands
 - **Describe component** — One component's identity, docstring, and authoring-guide link.
@@ -23,28 +23,28 @@ Library for haywire studio
 - **Write component source** — Full-source write into a project-local library only.
 
 ## States
-- **File Browser State** — 
+- **File Browser State** — Per-session state for the FileBrowser editor.
 
 ## Panels
-- **Activity** — 
-- **Agent activity** — 
-- **Debug Overlay** — 
-- **Default Skins** — 
-- **Developer mode** — 
-- **Edges** — 
-- **Editing** — 
-- **Execution** — 
-- **Grid** — 
-- **Log Levels** — 
-- **Manage principals** — 
-- **Minimap** — 
-- **Open in Code Editor** — 
-- **Open in File Viewer** — 
-- **Security** — 
-- **Sign everyone out** — 
-- **Sign out** — 
-- **Workbench** — 
-- **Zoom & Pan** — 
+- **Activity** — Farmhand activity tracker: in-memory history size, audit log path.
+- **Agent activity** — Opens the ActivityEditor.
+- **Debug Overlay** — Performance/debug HUD visibility and position.
+- **Default Skins** — Node Default Skins.
+- **Developer mode** — Toggles developer mode for this session.
+- **Edges** — Computed edges' arrow head, head size, width and hit padding.
+- **Editing** — Undo history, and the external editor Haywire opens files in.
+- **Execution** — Auto-execute, timeouts, parallelism, caching and error handling.
+- **Grid** — Grid, zoom, pan and background pattern.
+- **Log Levels** — Logging, execution visibility, visual debugging and data inspection.
+- **Manage principals** — Opens the RosterEditor. Admin-only, so a view principal never sees it.
+- **Minimap** — Minimap visibility, position and size.
+- **Open in Code Editor** — Open an editable text file in the CodeEditor.
+- **Open in File Viewer** — Open any file in the read-only FileViewerEditor (catch-all fallback).
+- **Security** — What this studio's defences currently are — read-only.
+- **Sign everyone out** — Rotates the cookie signing secret and evicts every live session.
+- **Sign out** — Ends this browser session. Hidden entirely when authentication is off.
+- **Workbench** — Active workbench and node themes.
+- **Zoom & Pan** — Canvas pan/zoom behaviour settings.
 
 ## Editors
 - **Accounts** — Manage who may reach this studio
@@ -60,6 +60,6 @@ Library for haywire studio
 - **Shortcuts** — Keyboard shortcuts of every editor, grouped by editor.
 
 ## Themes
-- **Default Node Theme** — 
-- **Haywire Dark** — 
-- **Haywire Light** —
+- **Default Node Theme** — Default node rendering theme — works on both dark and light backgrounds.
+- **Haywire Dark** — Default dark workbench theme.
+- **Haywire Light** — Default light workbench theme.

@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:setting:NodeSkinSettings` · kind: setting
 
+Settings controlling node layout and pin geometry.
+
 ## Notes
 
 Settings controlling node layout and pin geometry.

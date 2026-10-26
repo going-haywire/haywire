@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:ActivitySettingsPanel` · kind: panel
 
+Farmhand activity tracker: in-memory history size, audit log path.
+
 ## Details
 
 - **surface**: `app`

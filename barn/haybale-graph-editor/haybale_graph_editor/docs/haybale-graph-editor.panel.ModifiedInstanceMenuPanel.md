@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:ModifiedInstanceMenuPanel` · kind: panel
 
+Offer to put a modified instance back to its macro, or to cut it loose.
+
 ## Details
 
-- **surface**: `selection`
-- **order**: `39`
+- **surface**: `selection-macro`
+- **order**: `40`
 
 ## Notes
 

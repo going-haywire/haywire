@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:EdgeStylePanel` · kind: panel
 
+The connection's colour, line and arrow heads, where its connection type allows it.
+
 ## Details
 
 - **surface**: `edge`

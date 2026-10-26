@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:RemoveFromStageMenuPanel` · kind: panel
 
+Take the selected nodes off the stage; offered when the selection holds an on-stage node.
+
 ## Details
 
 - **surface**: `selection`
-- **order**: `16`
+- **order**: `431`
 
 ## Notes
 

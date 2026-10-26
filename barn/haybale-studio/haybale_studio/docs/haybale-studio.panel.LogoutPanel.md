@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:LogoutPanel` · kind: panel
 
+Ends this browser session. Hidden entirely when authentication is off.
+
 ## Details
 
 - **surface**: `account`

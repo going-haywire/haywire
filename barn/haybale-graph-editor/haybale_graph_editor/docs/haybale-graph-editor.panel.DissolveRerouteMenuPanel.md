@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:DissolveRerouteMenuPanel` · kind: panel
 
+Collapse a reroute node back into a direct connection.
+
 ## Details
 
 - **surface**: `selection`
-- **order**: `30`
+- **order**: `230`
 
 ## Notes
 

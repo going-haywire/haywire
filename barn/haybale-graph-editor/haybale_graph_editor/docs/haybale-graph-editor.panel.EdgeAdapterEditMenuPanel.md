@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:EdgeAdapterEditMenuPanel` · kind: panel
 
+One row per adapter in the edge's chain, each opening its source.
+
 ## Details
 
 - **surface**: `edge-edit`

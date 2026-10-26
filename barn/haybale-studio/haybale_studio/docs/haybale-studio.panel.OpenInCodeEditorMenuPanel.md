@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:OpenInCodeEditorMenuPanel` · kind: panel
 
+Open an editable text file in the CodeEditor.
+
 ## Details
 
 - **surface**: `file`

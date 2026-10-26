@@ -2,11 +2,13 @@
 
 `haybale-graph-editor:panel:SelectionOverflowPanel` · kind: panel
 
+The ⋯ — a panel that hosts the selection right-click menu.
+
 ## Details
 
 - **surface**: `toolbar`
 - **hosts**: `['selection']`
-- **order**: `999`
+- **order**: `900`
 
 ## Notes
 

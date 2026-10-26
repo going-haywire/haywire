@@ -2,6 +2,8 @@
 
 `haybale-marketplace:state:MarketplaceState` · kind: state
 
+Owns marketplace orchestration for the studio library.
+
 ## Notes
 
 Owns marketplace orchestration for the studio library.

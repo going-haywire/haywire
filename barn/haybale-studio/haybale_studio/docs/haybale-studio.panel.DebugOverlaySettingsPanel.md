@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:DebugOverlaySettingsPanel` · kind: panel
 
+Performance/debug HUD visibility and position.
+
 ## Details
 
 - **surface**: `debug`

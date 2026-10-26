@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:SendToBackMenuPanel` · kind: panel
 
+Paint the selected nodes below every other node in this view.
+
 ## Details
 
 - **surface**: `selection-arrange`

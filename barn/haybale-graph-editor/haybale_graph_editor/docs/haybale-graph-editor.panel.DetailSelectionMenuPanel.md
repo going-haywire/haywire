@@ -2,11 +2,13 @@
 
 `haybale-graph-editor:panel:DetailSelectionMenuPanel` · kind: panel
 
+The "Detail" row — a submenu over the density ranks.
+
 ## Details
 
 - **surface**: `selection`
 - **hosts**: `['selection-detail']`
-- **order**: `40`
+- **order**: `410`
 
 ## Notes
 

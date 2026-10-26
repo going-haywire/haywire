@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:PortShowWidgetStrategyPanel` · kind: panel
 
+One row per show-widget strategy, marked with the port's current choice.
+
 ## Details
 
 - **surface**: `pin-widget`

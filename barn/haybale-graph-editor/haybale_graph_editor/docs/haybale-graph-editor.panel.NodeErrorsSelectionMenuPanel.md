@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:NodeErrorsSelectionMenuPanel` · kind: panel
 
+Node errors panel for the unified selection context menu.
+
 ## Details
 
 - **surface**: `selection`

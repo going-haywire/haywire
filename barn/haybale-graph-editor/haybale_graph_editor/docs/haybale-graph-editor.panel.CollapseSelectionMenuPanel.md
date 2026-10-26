@@ -1,11 +1,13 @@
-# Collapse
+# Fold
 
 `haybale-graph-editor:panel:CollapseSelectionMenuPanel` · kind: panel
+
+Fold or unfold every selected node — one row, both directions.
 
 ## Details
 
 - **surface**: `selection`
-- **order**: `10`
+- **order**: `400`
 
 ## Notes
 

@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:ResetSettingMenuPanel` · kind: panel
 
+Put the backing setting back to its declared default, from the pin.
+
 ## Details
 
 - **surface**: `pin`
-- **order**: `15`
+- **order**: `0`
 
 ## Notes
 

@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:ReconnectEdgeMenuPanel` · kind: panel
 
+Removes the edge and starts a new connection drag from the anchor pin.
+
 ## Details
 
 - **surface**: `edge-menu`
-- **order**: `10`
+- **order**: `200`
 
 ## Notes
 

@@ -2,10 +2,12 @@
 
 `haybale-haystack:panel:UpdateMacroMenuPanel` · kind: panel
 
+Send a modified instance's changes back to the macro it came from.
+
 ## Details
 
-- **surface**: `selection`
-- **order**: `40`
+- **surface**: `selection-macro`
+- **order**: `30`
 
 ## Notes
 

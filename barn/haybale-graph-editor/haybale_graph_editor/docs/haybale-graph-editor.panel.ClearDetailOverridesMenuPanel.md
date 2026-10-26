@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:ClearDetailOverridesMenuPanel` · kind: panel
 
+Drop each selected node's own detail rank, so it follows the graph's again.
+
 ## Details
 
 - **surface**: `selection-detail`

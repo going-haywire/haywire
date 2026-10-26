@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:PastePanel` · kind: panel
 
+Paste at the click position, as an icon shortcut.
+
 ## Details
 
 - **surface**: `graph-toolbar`

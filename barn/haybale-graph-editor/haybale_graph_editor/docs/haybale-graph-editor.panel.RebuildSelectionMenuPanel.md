@@ -2,11 +2,13 @@
 
 `haybale-graph-editor:panel:RebuildSelectionMenuPanel` · kind: panel
 
+The "Rebuild" row — a submenu over redraw / revalidate / reset.
+
 ## Details
 
-- **surface**: `selection`
+- **surface**: `selection-develop`
 - **hosts**: `['selection-rebuild']`
-- **order**: `80`
+- **order**: `30`
 
 ## Notes
 

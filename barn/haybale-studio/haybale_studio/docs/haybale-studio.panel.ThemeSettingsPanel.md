@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:ThemeSettingsPanel` · kind: panel
 
+Active workbench and node themes.
+
 ## Details
 
 - **surface**: `app`

@@ -6,8 +6,8 @@ Example library for demonstrating multi-library support
 ### Examples
 - **Custom Callback** — Listens for custom callbacks from other flows
 - **Emit Callback** — Emits a callback to trigger event nodes in other flows
-- **Fill Demo** — 
-- **Math Operation** — 
+- **Fill Demo** — Edits a solid/linear/radial fill and outputs it as a CSS value.
+- **Math Operation** — Node that outputs a constant value.
 - **Merge Callback** — Listens for a specified number of callbacks from other flows
 
 ## Macros

@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:CreateNodeMenuPanel` · kind: panel
 
+The hierarchical node-creation menu, search and tree together.
+
 ## Details
 
 - **surface**: `graph-body`

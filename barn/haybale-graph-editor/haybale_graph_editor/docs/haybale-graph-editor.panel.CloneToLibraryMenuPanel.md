@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:CloneToLibraryMenuPanel` · kind: panel
 
+Write a copy of this node's class into a library, as a new node to edit.
+
 ## Details
 
-- **surface**: `selection`
-- **order**: `39`
+- **surface**: `selection-develop`
+- **order**: `20`
 
 ## Notes
 

@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:DetachSettingMenuPanel` · kind: panel
 
+Removes a pin the user added, on the pin that carries it.
+
 ## Details
 
 - **surface**: `pin`
-- **order**: `30`
+- **order**: `20`
 
 ## Notes
 

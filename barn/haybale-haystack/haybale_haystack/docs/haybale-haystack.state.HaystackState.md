@@ -2,6 +2,8 @@
 
 `haybale-haystack:state:HaystackState` · kind: state
 
+In-memory registry of open graphs, one entry per file path.
+
 ## Notes
 
 In-memory registry of open graphs (one entry per file path)

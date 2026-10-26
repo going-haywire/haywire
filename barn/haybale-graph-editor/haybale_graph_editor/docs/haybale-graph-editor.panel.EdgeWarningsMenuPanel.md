@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:EdgeWarningsMenuPanel` · kind: panel
 
+Edge warnings panel for the context menu.
+
 ## Details
 
 - **surface**: `edge-menu`

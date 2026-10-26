@@ -2,11 +2,13 @@
 
 `haybale-graph-editor:panel:PinShowWidgetMenuPanel` · kind: panel
 
+The "Show widget ▸" row — picks when this pin's Widget is rendered.
+
 ## Details
 
 - **surface**: `pin`
 - **hosts**: `['pin-widget']`
-- **order**: `40`
+- **order**: `100`
 
 ## Notes
 

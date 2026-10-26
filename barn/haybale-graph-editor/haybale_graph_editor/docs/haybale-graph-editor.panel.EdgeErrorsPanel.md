@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:EdgeErrorsPanel` · kind: panel
 
+Edge errors panel for PropertiesEditor.
+
 ## Details
 
 - **surface**: `edge`

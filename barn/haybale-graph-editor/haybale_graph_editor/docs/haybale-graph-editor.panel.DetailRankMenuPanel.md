@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:DetailRankMenuPanel` · kind: panel
 
+One row per node detail rank.
+
 ## Details
 
 - **surface**: `selection-detail`

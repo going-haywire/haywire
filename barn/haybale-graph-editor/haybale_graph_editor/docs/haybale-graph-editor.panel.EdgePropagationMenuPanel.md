@@ -7,7 +7,7 @@ Lazy propagation pulls data on demand instead of pushing it to the target node.
 ## Details
 
 - **surface**: `edge-menu`
-- **order**: `0`
+- **order**: `100`
 
 ## Notes
 

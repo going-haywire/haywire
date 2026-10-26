@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:EdgeErrorsMenuPanel` · kind: panel
 
+Edge errors panel for the context menu (right-click on edge).
+
 ## Details
 
 - **surface**: `edge-menu`

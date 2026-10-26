@@ -1,16 +1,18 @@
-# Edit
+# Edit Source
 
 `haybale-graph-editor:panel:EditSelectionMenuPanel` · kind: panel
 
+The "Edit Source" row — a submenu over the components behind this node.
+
 ## Details
 
-- **surface**: `selection`
+- **surface**: `selection-develop`
 - **hosts**: `['selection-edit']`
-- **order**: `35`
+- **order**: `10`
 
 ## Notes
 
-The "Edit…" row — a submenu over the components behind this node.
+The "Edit Source" row — a submenu over the components behind this node.
 
 A hosting panel: it draws only the row and the flyout, piping the
 ``SelectionActions`` host one hop further, exactly as

@@ -2,6 +2,8 @@
 
 `haybale-haystack:panel:OpenInHaystackMenuPanel` · kind: panel
 
+Load a .haywire graph file into the Haystack (does not open an editor tab).
+
 ## Details
 
 - **surface**: `file`

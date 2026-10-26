@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:NodeAppearancePanel` · kind: panel
 
+The selected node's appearance props, or a form applying to every selected node.
+
 ## Details
 
 - **surface**: `node-appearance`

@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:GraphMetadataPanel` · kind: panel
 
+Renders the metadata of the active graph.
+
 ## Details
 
 - **surface**: `graph`

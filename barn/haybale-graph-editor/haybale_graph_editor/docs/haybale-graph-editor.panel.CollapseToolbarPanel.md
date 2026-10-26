@@ -1,17 +1,19 @@
-# Collapse
+# Fold
 
 `haybale-graph-editor:panel:CollapseToolbarPanel` · kind: panel
+
+One button that folds or unfolds the selection.
 
 ## Details
 
 - **surface**: `toolbar`
-- **order**: `25`
+- **order**: `100`
 
 ## Notes
 
 One button that folds or unfolds the selection (ADR 0032).
 
-The same verb as the context menu's Collapse row, on the toolbar because
+The same verb as the context menu's Fold row, on the toolbar because
 folding is the gesture a user repeats while reading a graph — the
 code-folding idiom — and a repeated gesture should not cost a right-click.
 

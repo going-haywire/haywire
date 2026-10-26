@@ -2,11 +2,13 @@
 
 `haybale-graph-editor:panel:EdgeStyleToolbarPanel` · kind: panel
 
+The icon that drops the selected edges' colour, line and arrow heads above the toolbar.
+
 ## Details
 
 - **surface**: `toolbar`
 - **hosts**: `['edge-style']`
-- **order**: `31`
+- **order**: `210`
 
 ## Notes
 

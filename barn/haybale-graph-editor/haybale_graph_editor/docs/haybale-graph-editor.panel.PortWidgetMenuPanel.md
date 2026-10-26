@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:PortWidgetMenuPanel` · kind: panel
 
+The widget editing this pin, as a row that opens the widget's source.
+
 ## Details
 
 - **surface**: `pin-edit`

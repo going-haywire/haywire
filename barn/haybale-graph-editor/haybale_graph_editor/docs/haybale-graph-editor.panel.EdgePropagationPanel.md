@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:EdgePropagationPanel` · kind: panel
 
+Switch the edge between eager and lazy propagation, or show the mode it is fixed to.
+
 ## Details
 
 - **surface**: `edge`

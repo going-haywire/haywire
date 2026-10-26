@@ -9,8 +9,8 @@
 - `haybale-marketplace:farmhand:uninstall_library` — Uninstall library — Uninstall an installed library via uv pip (streams progress). Destructive.
 
 ## state
-- `haybale-marketplace:state:LibraryManagerState` — Library Manager State — 
-- `haybale-marketplace:state:MarketplaceState` — Marketplace State — 
+- `haybale-marketplace:state:LibraryManagerState` — Library Manager State — Publishes the LibraryManager for editor consumption.
+- `haybale-marketplace:state:MarketplaceState` — Marketplace State — Owns marketplace orchestration for the studio library.
 
 ## editor
 - `haybale-marketplace:editor:LibraryBrowserEditor` — Marketplace — Searchable list of installed and available libraries.

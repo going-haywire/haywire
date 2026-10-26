@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:EnterMenuPanel` · kind: panel
 
+Enter a Group or a macro placement: open its inside as a level of the graph editor.
+
 ## Details
 
 - **surface**: `selection`
-- **order**: `35`
+- **order**: `200`
 
 ## Notes
 

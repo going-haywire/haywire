@@ -2,6 +2,8 @@
 
 `haybale-studio:setting:NodeThemeSettings` · kind: setting
 
+Global settings controlling the active node theme.
+
 ## Notes
 
 Global settings controlling the active node theme.

@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:NodePortsPanel` · kind: panel
 
+Displays the inlet, outlet, and config ports of the selected node.
+
 ## Details
 
 - **surface**: `ports`

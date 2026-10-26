@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:NodeSkinDefaultPanel` · kind: panel
 
+Node Default Skins.
+
 ## Details
 
 - **surface**: `app`

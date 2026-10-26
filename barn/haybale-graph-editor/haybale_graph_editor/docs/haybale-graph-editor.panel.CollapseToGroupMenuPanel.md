@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:CollapseToGroupMenuPanel` · kind: panel
 
+Collapse the selection into one Graph-node standing for a Subgraph.
+
 ## Details
 
 - **surface**: `selection`
-- **order**: `35`
+- **order**: `210`
 
 ## Notes
 

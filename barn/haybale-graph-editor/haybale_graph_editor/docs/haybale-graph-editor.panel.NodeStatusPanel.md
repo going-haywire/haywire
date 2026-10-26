@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:NodeStatusPanel` · kind: panel
 
+Displays the validation and lifecycle status of the selected node.
+
 ## Details
 
 - **surface**: `node`

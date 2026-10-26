@@ -1,8 +1,8 @@
 # haybale-studio — component index (v0.2.4)
 
 ## setting
-- `haybale-studio:setting:NodeThemeSettings` — Node Theme — 
-- `haybale-studio:setting:WorkbenchThemeSettings` — Workbench Theme — 
+- `haybale-studio:setting:NodeThemeSettings` — Node Theme — Global settings controlling the active node theme.
+- `haybale-studio:setting:WorkbenchThemeSettings` — Workbench Theme — Global settings controlling the active workbench theme.
 
 ## farmhand
 - `haybale-studio:farmhand:describe_component` — Describe component — One component's identity, docstring, and authoring-guide link.
@@ -17,28 +17,28 @@
 - `haybale-studio:farmhand:write_component_source` — Write component source — Full-source write into a project-local library only.
 
 ## state
-- `haybale-studio:state:FileBrowserState` — File Browser State — 
+- `haybale-studio:state:FileBrowserState` — File Browser State — Per-session state for the FileBrowser editor.
 
 ## panel
-- `haybale-studio:panel:ActivitySettingsPanel` — Activity — 
-- `haybale-studio:panel:CanvasSettingsPanel` — Grid — 
-- `haybale-studio:panel:DebugOverlaySettingsPanel` — Debug Overlay — 
-- `haybale-studio:panel:DebugSettingsPanel` — Log Levels — 
-- `haybale-studio:panel:DeveloperModePanel` — Developer mode — 
-- `haybale-studio:panel:EdgeDefaultSettingsPanel` — Edges — 
-- `haybale-studio:panel:EditingSettingsPanel` — Editing — 
-- `haybale-studio:panel:EditorZoomPanSettingsPanel` — Zoom & Pan — 
-- `haybale-studio:panel:ExecutionSettingsPanel` — Execution — 
-- `haybale-studio:panel:LogoutPanel` — Sign out — 
-- `haybale-studio:panel:MinimapSettingsPanel` — Minimap — 
-- `haybale-studio:panel:NodeSkinDefaultPanel` — Default Skins — 
-- `haybale-studio:panel:OpenActivityPanel` — Agent activity — 
-- `haybale-studio:panel:OpenInCodeEditorMenuPanel` — Open in Code Editor — 
-- `haybale-studio:panel:OpenInFileViewerMenuPanel` — Open in File Viewer — 
-- `haybale-studio:panel:OpenRosterPanel` — Manage principals — 
-- `haybale-studio:panel:RotateSecretPanel` — Sign everyone out — 
-- `haybale-studio:panel:SecurityPanel` — Security — 
-- `haybale-studio:panel:ThemeSettingsPanel` — Workbench — 
+- `haybale-studio:panel:ActivitySettingsPanel` — Activity — Farmhand activity tracker: in-memory history size, audit log path.
+- `haybale-studio:panel:CanvasSettingsPanel` — Grid — Grid, zoom, pan and background pattern.
+- `haybale-studio:panel:DebugOverlaySettingsPanel` — Debug Overlay — Performance/debug HUD visibility and position.
+- `haybale-studio:panel:DebugSettingsPanel` — Log Levels — Logging, execution visibility, visual debugging and data inspection.
+- `haybale-studio:panel:DeveloperModePanel` — Developer mode — Toggles developer mode for this session.
+- `haybale-studio:panel:EdgeDefaultSettingsPanel` — Edges — Computed edges' arrow head, head size, width and hit padding.
+- `haybale-studio:panel:EditingSettingsPanel` — Editing — Undo history, and the external editor Haywire opens files in.
+- `haybale-studio:panel:EditorZoomPanSettingsPanel` — Zoom & Pan — Canvas pan/zoom behaviour settings.
+- `haybale-studio:panel:ExecutionSettingsPanel` — Execution — Auto-execute, timeouts, parallelism, caching and error handling.
+- `haybale-studio:panel:LogoutPanel` — Sign out — Ends this browser session. Hidden entirely when authentication is off.
+- `haybale-studio:panel:MinimapSettingsPanel` — Minimap — Minimap visibility, position and size.
+- `haybale-studio:panel:NodeSkinDefaultPanel` — Default Skins — Node Default Skins.
+- `haybale-studio:panel:OpenActivityPanel` — Agent activity — Opens the ActivityEditor.
+- `haybale-studio:panel:OpenInCodeEditorMenuPanel` — Open in Code Editor — Open an editable text file in the CodeEditor.
+- `haybale-studio:panel:OpenInFileViewerMenuPanel` — Open in File Viewer — Open any file in the read-only FileViewerEditor (catch-all fallback).
+- `haybale-studio:panel:OpenRosterPanel` — Manage principals — Opens the RosterEditor. Admin-only, so a view principal never sees it.
+- `haybale-studio:panel:RotateSecretPanel` — Sign everyone out — Rotates the cookie signing secret and evicts every live session.
+- `haybale-studio:panel:SecurityPanel` — Security — What this studio's defences currently are — read-only.
+- `haybale-studio:panel:ThemeSettingsPanel` — Workbench — Active workbench and node themes.
 
 ## editor
 - `haybale-studio:editor:ActivityEditor` — Agent Activity — Farmhand tool calls made by agent principals
@@ -54,6 +54,6 @@
 - `haybale-studio:editor:TerminalEditor` — Log — Application output. Captures Python logging and print() output.
 
 ## theme
-- `haybale-studio:theme:DefaultNodeTheme` — Default Node Theme — 
-- `haybale-studio:theme:HaywireDarkTheme` — Haywire Dark — 
-- `haybale-studio:theme:HaywireLightTheme` — Haywire Light —
+- `haybale-studio:theme:DefaultNodeTheme` — Default Node Theme — Default node rendering theme — works on both dark and light backgrounds.
+- `haybale-studio:theme:HaywireDarkTheme` — Haywire Dark — Default dark workbench theme.
+- `haybale-studio:theme:HaywireLightTheme` — Haywire Light — Default light workbench theme.

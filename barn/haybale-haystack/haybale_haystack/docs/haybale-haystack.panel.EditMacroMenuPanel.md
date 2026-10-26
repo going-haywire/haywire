@@ -2,10 +2,12 @@
 
 `haybale-haystack:panel:EditMacroMenuPanel` · kind: panel
 
+Open the document behind a macro placement, in its own editor tab.
+
 ## Details
 
-- **surface**: `selection`
-- **order**: `37`
+- **surface**: `selection-macro`
+- **order**: `10`
 
 ## Notes
 

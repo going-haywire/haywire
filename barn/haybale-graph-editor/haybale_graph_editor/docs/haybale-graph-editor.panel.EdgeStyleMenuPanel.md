@@ -2,11 +2,13 @@
 
 `haybale-graph-editor:panel:EdgeStyleMenuPanel` · kind: panel
 
+The "Style…" row — a submenu with the connection's colour, line and arrow heads.
+
 ## Details
 
 - **surface**: `edge-menu`
 - **hosts**: `['edge-style']`
-- **order**: `15`
+- **order**: `110`
 
 ## Notes
 

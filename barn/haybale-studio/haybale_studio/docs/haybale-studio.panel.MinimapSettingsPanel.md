@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:MinimapSettingsPanel` · kind: panel
 
+Minimap visibility, position and size.
+
 ## Details
 
 - **surface**: `canvas`

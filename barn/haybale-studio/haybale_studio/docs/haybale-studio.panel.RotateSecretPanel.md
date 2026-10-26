@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:RotateSecretPanel` · kind: panel
 
+Rotates the cookie signing secret and evicts every live session.
+
 ## Details
 
 - **surface**: `account`

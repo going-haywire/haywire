@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:GraphSettingsPanel` · kind: panel
 
+Renders the properties of the active graph.
+
 ## Details
 
 - **surface**: `graph`

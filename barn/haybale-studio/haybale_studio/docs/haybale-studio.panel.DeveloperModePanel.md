@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:DeveloperModePanel` · kind: panel
 
+Toggles developer mode for this session.
+
 ## Details
 
 - **surface**: `account`

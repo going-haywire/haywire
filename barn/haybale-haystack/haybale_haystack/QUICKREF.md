@@ -1,7 +1,7 @@
 # haybale-haystack — component index (v0.2.4)
 
 ## setting
-- `haybale-haystack:setting:HaystackSettings` — Haystack — 
+- `haybale-haystack:setting:HaystackSettings` — Haystack — Per-workspace settings for haystack scalars.
 
 ## farmhand
 - `haybale-haystack:farmhand:close_graph` — Close graph — Close an open graph entry. NEVER deletes the file on disk.
@@ -15,13 +15,13 @@
 - `haybale-haystack:farmhand:stop_graph` — Stop graph — Stop a running graph (bounded grace, then teardown).
 
 ## state
-- `haybale-haystack:state:HaystackState` — Haystack State — 
+- `haybale-haystack:state:HaystackState` — Haystack State — In-memory registry of open graphs, one entry per file path.
 
 ## panel
-- `haybale-haystack:panel:EditMacroMenuPanel` — Edit Macro — 
-- `haybale-haystack:panel:GraphRunSettingsPanel` — Graph Settings — 
-- `haybale-haystack:panel:OpenInHaystackMenuPanel` — Load into Haystack — 
-- `haybale-haystack:panel:UpdateMacroMenuPanel` — Update Macro — 
+- `haybale-haystack:panel:EditMacroMenuPanel` — Edit Macro — Open the document behind a macro placement, in its own editor tab.
+- `haybale-haystack:panel:GraphRunSettingsPanel` — Graph Settings — Renders the GraphRunSettings for the currently active graph.
+- `haybale-haystack:panel:OpenInHaystackMenuPanel` — Load into Haystack — Load a .haywire graph file into the Haystack (does not open an editor tab).
+- `haybale-haystack:panel:UpdateMacroMenuPanel` — Update Macro — Send a modified instance's changes back to the macro it came from.
 
 ## editor
 - `haybale-haystack:editor:HaystackEditor` — Haystack — All open graphs. Click to switch; "+" to create a new graph.

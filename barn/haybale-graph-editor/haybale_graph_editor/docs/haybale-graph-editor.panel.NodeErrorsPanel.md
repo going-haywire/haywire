@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:NodeErrorsPanel` · kind: panel
 
+Node errors panel for PropertiesEditor.
+
 ## Details
 
 - **surface**: `node`

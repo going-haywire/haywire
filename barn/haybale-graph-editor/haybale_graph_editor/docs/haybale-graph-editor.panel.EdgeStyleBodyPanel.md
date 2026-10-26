@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:EdgeStyleBodyPanel` · kind: panel
 
+The style fields of the selected edge, or a form applying to every selected edge.
+
 ## Details
 
 - **surface**: `edge-style`

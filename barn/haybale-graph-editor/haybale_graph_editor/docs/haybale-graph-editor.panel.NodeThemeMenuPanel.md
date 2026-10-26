@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:NodeThemeMenuPanel` · kind: panel
 
+The node theme colouring this card, as a row opening its source.
+
 ## Details
 
 - **surface**: `selection-edit`

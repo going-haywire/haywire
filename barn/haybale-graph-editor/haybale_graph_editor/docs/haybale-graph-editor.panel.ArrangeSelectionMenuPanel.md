@@ -2,11 +2,13 @@
 
 `haybale-graph-editor:panel:ArrangeSelectionMenuPanel` · kind: panel
 
+The "Arrange" row: a submenu over the stacking-order verbs.
+
 ## Details
 
 - **surface**: `selection`
 - **hosts**: `['selection-arrange']`
-- **order**: `17`
+- **order**: `420`
 
 ## Notes
 

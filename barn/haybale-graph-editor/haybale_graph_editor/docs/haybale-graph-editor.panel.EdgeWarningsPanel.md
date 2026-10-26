@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:EdgeWarningsPanel` · kind: panel
 
+Edge warnings panel for PropertiesEditor.
+
 ## Details
 
 - **surface**: `edge`

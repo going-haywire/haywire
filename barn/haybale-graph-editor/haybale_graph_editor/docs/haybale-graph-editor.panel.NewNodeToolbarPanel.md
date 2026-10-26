@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:NewNodeToolbarPanel` · kind: panel
 
+Open the New Node wizard, as an icon shortcut.
+
 ## Details
 
 - **surface**: `graph-toolbar`

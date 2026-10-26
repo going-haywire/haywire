@@ -2,11 +2,13 @@
 
 `haybale-graph-editor:panel:AppearanceToolbarPanel` · kind: panel
 
+The ⧉ icon that drops the appearance fields above the toolbar.
+
 ## Details
 
 - **surface**: `toolbar`
 - **hosts**: `['node-appearance']`
-- **order**: `30`
+- **order**: `200`
 
 ## Notes
 

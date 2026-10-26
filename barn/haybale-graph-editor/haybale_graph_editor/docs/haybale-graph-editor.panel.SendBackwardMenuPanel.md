@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:SendBackwardMenuPanel` · kind: panel
 
+Move each selected node one step down: below the next node under it.
+
 ## Details
 
 - **surface**: `selection-arrange`

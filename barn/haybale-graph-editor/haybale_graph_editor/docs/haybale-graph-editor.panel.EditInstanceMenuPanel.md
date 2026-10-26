@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:EditInstanceMenuPanel` · kind: panel
 
+Turn one macro placement into a modified instance and enter it.
+
 ## Details
 
-- **surface**: `selection`
-- **order**: `38`
+- **surface**: `selection-macro`
+- **order**: `20`
 
 ## Notes
 

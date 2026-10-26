@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:GraphContextPanel` · kind: panel
 
+Layout-only root of the canvas menu: shortcut row, then prime area.
+
 ## Details
 
 - **surface**: `graph-context`

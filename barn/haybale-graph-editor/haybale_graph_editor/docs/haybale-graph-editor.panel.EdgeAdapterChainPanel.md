@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:EdgeAdapterChainPanel` · kind: panel
 
+List the adapters converting the source value to the sink type, in order.
+
 ## Details
 
 - **surface**: `edge`

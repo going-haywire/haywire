@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:EditorZoomPanSettingsPanel` · kind: panel
 
+Canvas pan/zoom behaviour settings.
+
 ## Details
 
 - **surface**: `canvas`

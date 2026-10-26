@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:FocusGraphPanel` · kind: panel
 
+Fit the viewport to show every node in the graph, as an icon shortcut.
+
 ## Details
 
 - **surface**: `graph-toolbar`

@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:GraphInfoPanel` · kind: panel
 
+Displays counts and framework-written metadata for the active graph.
+
 ## Details
 
 - **surface**: `graph`

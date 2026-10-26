@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:ResetNodeCardsMenuPanel` · kind: panel
 
+Make every node in the graph follow the graph's detail rank again.
+
 ## Details
 
 - **surface**: `graph-more`

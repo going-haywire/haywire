@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:SecurityPanel` · kind: panel
 
+What this studio's defences currently are — read-only.
+
 ## Details
 
 - **surface**: `app`

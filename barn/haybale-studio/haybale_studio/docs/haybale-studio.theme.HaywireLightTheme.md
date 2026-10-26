@@ -2,6 +2,8 @@
 
 `haybale-studio:theme:HaywireLightTheme` · kind: theme
 
+Default light workbench theme.
+
 ## Details
 
 - **theme_type**: `workbench`

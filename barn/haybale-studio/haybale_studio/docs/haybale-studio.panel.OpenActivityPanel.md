@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:OpenActivityPanel` · kind: panel
 
+Opens the ActivityEditor.
+
 ## Details
 
 - **surface**: `account`

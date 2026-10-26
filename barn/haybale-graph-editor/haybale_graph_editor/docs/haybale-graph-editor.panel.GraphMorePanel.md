@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:GraphMorePanel` · kind: panel
 
+The "…" — a panel that is itself a host.
+
 ## Details
 
 - **surface**: `graph-toolbar`

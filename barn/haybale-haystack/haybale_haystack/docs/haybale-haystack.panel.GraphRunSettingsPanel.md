@@ -2,6 +2,8 @@
 
 `haybale-haystack:panel:GraphRunSettingsPanel` · kind: panel
 
+Renders the GraphRunSettings for the currently active graph.
+
 ## Details
 
 - **surface**: `execution`

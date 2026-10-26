@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:LockToolbarPanel` · kind: panel
 
+Lock or unlock one node, as protection against accidental manipulation.
+
 ## Details
 
 - **surface**: `toolbar`
-- **order**: `27`
+- **order**: `110`
 
 ## Notes
 

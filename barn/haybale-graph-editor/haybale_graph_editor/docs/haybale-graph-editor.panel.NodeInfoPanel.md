@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:NodeInfoPanel` · kind: panel
 
+Displays basic identity information for the selected node.
+
 ## Details
 
 - **surface**: `node`

@@ -2,10 +2,12 @@
 
 `haybale-graph-editor:panel:ClearSettingMenuPanel` · kind: panel
 
+Clear the backing setting to absence (OPTIONAL[T] fields only).
+
 ## Details
 
 - **surface**: `pin`
-- **order**: `16`
+- **order**: `10`
 
 ## Notes
 

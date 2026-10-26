@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:ExecutionSettingsPanel` · kind: panel
 
+Auto-execute, timeouts, parallelism, caching and error handling.
+
 ## Details
 
 - **surface**: `execution`

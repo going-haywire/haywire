@@ -2,6 +2,8 @@
 
 `haybale-graph-editor:panel:NodeSkinMenuPanel` · kind: panel
 
+The skin that drew this node's card, as a row opening its source.
+
 ## Details
 
 - **surface**: `selection-edit`

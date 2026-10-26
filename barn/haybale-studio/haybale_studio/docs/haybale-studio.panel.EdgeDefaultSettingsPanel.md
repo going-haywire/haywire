@@ -2,6 +2,8 @@
 
 `haybale-studio:panel:EdgeDefaultSettingsPanel` · kind: panel
 
+Computed edges' arrow head, head size, width and hit padding.
+
 ## Details
 
 - **surface**: `canvas`
@@ -9,4 +11,4 @@
 
 ## Notes
 
-Arrow head, head size and width of computed edges; each graph may override them.
+Computed edges' arrow head, head size and width (each graph may override them), and hit padding.

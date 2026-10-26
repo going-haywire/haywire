@@ -2,6 +2,8 @@
 
 `haybale-studio:theme:DefaultNodeTheme` · kind: theme
 
+Default node rendering theme — works on both dark and light backgrounds.
+
 ## Details
 
 - **theme_type**: `node`
