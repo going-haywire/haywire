@@ -31,6 +31,7 @@ from nicegui import app as nicegui_app
 
 from haywire.core.access import AccessTier, required_tier
 from haywire.core.docs.tree import doc_manifest, list_docs, read_doc
+from haywire.core.errors import Refusal, report_failure
 from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, FarmhandRegistry
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
@@ -71,7 +72,13 @@ def _origin_scheme(*, tls: bool) -> str:
     return "https" if tls else "http"
 
 
-def _format_tool_error(exc: Exception) -> str:
+def _format_tool_error(exc: Exception, ledger_seq: int | None = None) -> str:
+    """Render ``exc`` as the agent-facing error line.
+
+    ``ledger_seq`` is the error-ledger entry recorded for an unexpected failure;
+    it is appended so the agent can point the user at that entry. A ``FarmhandError``
+    is checked first: it is a ``Refusal`` too, but carries its own code and hint.
+    """
     if isinstance(exc, FarmhandError):
         ids = ", ".join(f"{k}={v}" for k, v in exc.ids.items())
         suffix = f" ({ids})" if ids else ""
@@ -79,14 +86,17 @@ def _format_tool_error(exc: Exception) -> str:
         # gets the fixing command without parsing the message prose.
         hint = f"\nhelp: {exc.help}" if exc.help else ""
         return f"[{exc.code}] {exc.message}{suffix}{hint}"
+    seq_suffix = f" (ledger_seq={ledger_seq})" if ledger_seq is not None else ""
     # HaywireException maps directly (spec §5 conventions): category is the stable code.
     category = getattr(exc, "category", None)
     message = getattr(exc, "message", None)
     if category and message:
         key = getattr(exc, "registry_key", None)
         suffix = f" (registry_key={key})" if key else ""
-        return f"[haywire:{category}] {message}{suffix}"
-    return f"[internal] {type(exc).__name__}: {exc}"
+        return f"[haywire:{category}] {message}{suffix}{seq_suffix}"
+    if isinstance(exc, Refusal):
+        return f"[refused] {exc.message}"
+    return f"[internal] {type(exc).__name__}: {exc}" + seq_suffix
 
 
 def tools_for_tier(tools: dict[str, Any], tier: AccessTier) -> list[str]:
@@ -310,8 +320,16 @@ class FarmhandHost(SignalPeer):
                 try:
                     result = await cls().run(ctx, **arguments)
                 except Exception as exc:
-                    tracker.finish(token, ok=False, error=_format_tool_error(exc))
-                    raise Exception(_format_tool_error(exc)) from None
+                    logged = report_failure(
+                        exc,
+                        operation="Farmhand tool",
+                        tool=name,
+                        principal=principal,
+                        arguments=sorted(arguments),
+                    )
+                    error = _format_tool_error(exc, (logged.ledger_seq or None) if logged else None)
+                    tracker.finish(token, ok=False, error=error)
+                    raise Exception(error) from None
                 if isinstance(result, dict) and "summary" not in result:
                     result = {"summary": f"{name}: ok", **result}
                 # Return BOTH halves (the SDK's CombinationContent form): the
