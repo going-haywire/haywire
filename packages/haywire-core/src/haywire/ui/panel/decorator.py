@@ -42,7 +42,7 @@ A panel that renders further surfaces of its own declares them with
 
 from __future__ import annotations
 
-from typing import Any, Union
+from typing import Any
 
 from haywire.core.access import AccessTier, coerce_requirement
 from haywire.core.library.utils import PANEL, derive_library_identity, reg_key
@@ -117,7 +117,7 @@ def panel(**kwargs: Any):
     )
 
     # Strict coercion: ValueError on an unknown name, TypeError on a LevelMode or other type.
-    requires: Union[AccessTier, str] = identity_kwargs.pop("requires", AccessTier.EDIT)
+    requires: object = identity_kwargs.pop("requires", AccessTier.EDIT)
     identity_kwargs["requires"] = coerce_requirement(requires)
 
     def decorator(inner_cls):

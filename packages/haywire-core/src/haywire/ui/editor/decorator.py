@@ -93,7 +93,7 @@ def editor(**kwargs: Any):
         )
 
         # Strict coercion: ValueError on an unknown name, TypeError on a LevelMode or other type.
-        requires: Union[AccessTier, str] = identity_kwargs.pop("requires", AccessTier.EDIT)
+        requires: object = identity_kwargs.pop("requires", AccessTier.EDIT)
         identity_kwargs["requires"] = coerce_requirement(requires)
 
         _registry_id = identity_kwargs.pop("registry_id", None) or inner_cls.__name__

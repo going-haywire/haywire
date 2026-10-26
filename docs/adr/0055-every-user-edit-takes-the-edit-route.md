@@ -51,3 +51,5 @@ level: core
 - The history is shared by every session on a graph, so one session's undo can undo another session's step.
 - Properties panels show only in level mode `edit`, so a settings row or a Ports-panel widget has no read-only rendering. The route still refuses a write below the mode it needs (ADR 0051).
 - Code that deliberately writes the model directly goes around the route and is outside what the tiers promise.
+
+**Amendment (ADR 0060).** The inspector polls no longer read the level mode: `can_edit_graph` is gone, the inspector tabs show in every mode, and the page's `AccessGate` greys their stamped writers by the session mode (ADR 0060). This supersedes the consequence that properties panels show only in level mode `edit`. The route still refuses a write below the mode it needs.

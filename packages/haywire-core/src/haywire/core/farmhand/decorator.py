@@ -5,7 +5,7 @@ class-name defaults via setdefault, kind constant from library/utils."""
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable, Type, TypeVar, Union
+from typing import Any, Callable, Type, TypeVar
 
 from haywire.core.access import AccessTier, coerce_requirement
 from haywire.core.farmhand.base import Farmhand
@@ -90,7 +90,7 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         identity_kwargs.setdefault("annotations", ToolAnnotations())
 
         # Strict coercion: ValueError on an unknown name, TypeError on a LevelMode or other type.
-        requires: Union[AccessTier, str] = identity_kwargs.pop("requires", AccessTier.EDIT)
+        requires: object = identity_kwargs.pop("requires", AccessTier.EDIT)
         identity_kwargs["requires"] = coerce_requirement(requires)
         # Get library identity (survives hot-reload)
         library_identity = derive_library_identity(inner_cls)

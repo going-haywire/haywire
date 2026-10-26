@@ -41,21 +41,23 @@ def _widget_model_for(
 
     from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
-    writable = route is not None and port._node is not None
+    write = _write_for(port, route, minimum)
     return SettingWidgetModel(
         field_id=port.id,
         widget_config=port.widget_config,
         cell=port.data,
-        on_edit=_write_for(port, route, minimum),
-        requires=required_mode(minimum, port.operable) if writable else None,
+        on_edit=write if write is not None else _refuse,
+        requires=required_mode(minimum, port.operable) if write is not None else None,
     )
 
 
-def _write_for(port: DataPort, route: EditRoute | None, minimum: LevelMode) -> Callable[[Any], bool | None]:
-    """Return where a widget write for *port* goes: its setting or the port, through *route*, or refused."""
+def _write_for(
+    port: DataPort, route: EditRoute | None, minimum: LevelMode
+) -> Callable[[Any], bool | None] | None:
+    """Return where a widget write for *port* goes (its setting or the port, via *route*), or ``None``."""
     node = port._node
     if route is None or node is None:
-        return _refuse
+        return None
     resolved = None
     if port.promoted:
         from haywire.core.node.promotion import _resolve_promoted

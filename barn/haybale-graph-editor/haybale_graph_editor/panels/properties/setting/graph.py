@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.core.signals import ActiveGraphMoved, GraphDataMutated
 from haywire.core.access import AccessTier
+from haywire.core.signals import ActiveGraphMoved, GraphDataMutated
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
