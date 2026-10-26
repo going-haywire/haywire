@@ -12,13 +12,13 @@ instead, because it only mutates the graph being edited.
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haybale_graph_editor.panels._gating import is_macro_placement, is_modified_instance
 from haybale_graph_editor.state.edit_state import EditState
 from haybale_graph_editor.surfaces import SelectionActions, SelectionMacroMenu
+from haywire.core.errors import report_failure
 from haywire.core.signals import Reveal
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
@@ -29,8 +29,6 @@ from haybale_haystack.state.haystack_state import HaystackState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-
-logger = logging.getLogger(__name__)
 
 
 @panel(
@@ -247,7 +245,7 @@ def _update_macro(ctx: "SessionContext", node_id: str) -> None:
         entry = hs.open_macro_with(template.path, document)
     except Exception as exc:
         # The swap stands: it is one undoable step, so nothing of the instance is lost.
-        logger.warning("Update Macro: could not open %s", template.path, exc_info=True)
+        report_failure(exc, operation="Update Macro", path=str(template.path), node_id=node_id)
         with client:
             ui.notify(
                 f"Could not open {label}: {exc}. Undo restores the instance.",

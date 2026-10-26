@@ -383,6 +383,36 @@ def test_an_error_opening_the_macro_after_the_swap_is_reported(haystack, macro_f
     assert warnings == ["Could not open Blur: 'Blur' could not be loaded. Undo restores the instance."]
 
 
+@pytest.fixture
+def ledger():
+    from haywire.core.errors.ledger import ErrorLedger, get_error_ledger, set_error_ledger
+
+    previous = get_error_ledger()
+    fresh = ErrorLedger(max_entries=50)
+    set_error_ledger(fresh)
+    yield fresh
+    set_error_ledger(previous)
+
+
+def test_a_failure_opening_the_macro_reaches_the_ledger(haystack, macro_file, tmp_path, ledger):
+    """An OSError opening the macro is recorded once, with its path, and the toast is unchanged."""
+    from haybale_haystack.state.haystack_state import HaystackState
+
+    path, _, _ = macro_file
+    host = _open_graph(haystack, tmp_path, "host")
+    card_id, _ = _modified_instance(host)
+
+    with patch.object(HaystackState, "open_macro_with", side_effect=OSError("disk gone")):
+        notify = _update(_ctx(haystack, host, card_id), card_id)
+
+    (logged,) = [e for e in ledger.query().entries if e.operation == "Update Macro"]
+    assert logged.operation == "Update Macro"
+    assert logged.node_id == card_id
+    assert logged.error_context["path"] == str(path)
+    warnings = [c.args[0] for c in notify.call_args_list if c.kwargs.get("type") == "warning"]
+    assert warnings == ["Could not open Blur: disk gone. Undo restores the instance."]
+
+
 def test_one_placement_reads_in_the_singular(haystack, macro_file, tmp_path):
     host = _open_graph(haystack, tmp_path, "host")
     card_id, _ = _modified_instance(host)
