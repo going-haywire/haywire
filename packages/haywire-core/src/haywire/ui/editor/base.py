@@ -126,6 +126,7 @@ class BaseEditor(ABC):
         if orientation == "vertical":
             ui.icon(self.class_identity.icon).tooltip(self.class_identity.label)
         else:
+            ui.icon(self.class_identity.icon, size="14px")
             ui.label(label)
 
     def cleanup(self) -> None:

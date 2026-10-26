@@ -62,6 +62,9 @@ class AppIcon:
     """A Group — one graph standing inside another. Distinct from ``graph``:
     a level bar shows both at once, and the same icon on each would say they
     are the same kind of thing."""
+    macro: Final[str] = "extension"
+    """A macro — a Subgraph that lives in its own file. Distinct from ``subgraph``:
+    a level bar shows both at once."""
     node: Final[str] = "memory"
     """Node main icon."""
     edge: Final[str] = "cable"

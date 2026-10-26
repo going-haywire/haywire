@@ -536,7 +536,7 @@ class EditorWrapper:
 
         When the wrapper has no usable instance — ``editor_cls`` failed to
         load, or instantiation raised — a minimal class-derived fallback is
-        rendered (icon for vertical / label for horizontal) so a broken tab
+        rendered (icon for vertical / icon and label for horizontal) so a broken tab
         stays visible and closeable. Exceptions from the editor's
         ``draw_tab`` are captured into ``state.error_runtime`` (mirroring
         :meth:`draw`) and the same fallback is drawn.
@@ -570,11 +570,12 @@ class EditorWrapper:
         """
         identity = getattr(self.editor_cls, "class_identity", None)
         label = self.label or getattr(identity, "label", None) or self.editor_key
+        icon = getattr(identity, "icon", "extension")
         if orientation == "vertical":
-            icon = getattr(identity, "icon", "extension")
             tooltip = getattr(identity, "label", None) or self.editor_key
             ui.icon(icon).tooltip(tooltip)
         else:
+            ui.icon(icon, size="14px")
             ui.label(label)
 
     def on_focus(self) -> None:

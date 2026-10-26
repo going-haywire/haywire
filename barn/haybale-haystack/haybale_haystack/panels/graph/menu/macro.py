@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 @panel(
     surface=SelectionMenu,
     label="Edit Macro",
-    icon=hui.icon.node_source,
+    icon=hui.icon.macro,
     order=37,
 )
 class EditMacroMenuPanel(BasePanel):
@@ -65,7 +65,7 @@ class EditMacroMenuPanel(BasePanel):
         with layout:
             hui.menu_row(
                 "Edit Macro…",
-                icon=hui.icon.node_source,
+                icon=hui.icon.macro,
                 tooltip="Open this macro's own document in an editor",
                 on_click=lambda: _open_macro(ctx, registry_key),
             )
@@ -111,7 +111,7 @@ def _open_macro(ctx: "SessionContext", registry_key: str) -> None:
 @panel(
     surface=SelectionMenu,
     label="Update Macro",
-    icon=hui.icon.node_source,
+    icon=hui.icon.macro,
     order=40,
 )
 class UpdateMacroMenuPanel(BasePanel):
@@ -151,7 +151,7 @@ class UpdateMacroMenuPanel(BasePanel):
         with layout:
             hui.menu_row(
                 "Update Macro…",
-                icon=hui.icon.node_source,
+                icon=hui.icon.macro,
                 enabled=refusal is None,
                 tooltip=refusal
                 or (

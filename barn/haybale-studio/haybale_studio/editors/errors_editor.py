@@ -138,6 +138,7 @@ class ErrorsEditor(BaseEditor):
             if orientation == "vertical":
                 ui.icon(self.class_identity.icon).tooltip(self.class_identity.label)
             else:
+                ui.icon(self.class_identity.icon, size="14px")
                 ui.label(label)
             if unseen:
                 color = _SEVERITY_DOT_COLOR.get(self._worst_severity(unseen), "grey")

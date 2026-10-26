@@ -284,7 +284,7 @@ class HaystackEditor(BaseEditor):
             # to run, so it carries its kind's icon instead of a control whose
             # only answer would be a refusal.
             if not entry.kind.is_executable():
-                ui.icon(hui.icon.node_source, size="16px").classes("hw-text-dim").tooltip(
+                ui.icon(hui.icon.macro, size="16px").classes("hw-text-dim").tooltip(
                     "A macro is run by placing it in a graph"
                 )
             elif not can_operate:

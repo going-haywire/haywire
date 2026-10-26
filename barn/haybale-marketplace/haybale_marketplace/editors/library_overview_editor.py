@@ -800,7 +800,7 @@ class LibraryOverviewEditor(BaseEditor):
                     with ui.tabs().classes("w-full hw-tabs").props("dense no-caps") as tabs:
                         t_overview = ui.tab("Overview", icon=hui.icon.library_component)
                         t_nodes = ui.tab("Nodes", icon=hui.icon.node) if n_nodes else None
-                        t_macros = ui.tab("Macros", icon=hui.icon.subgraph) if n_macros else None
+                        t_macros = ui.tab("Macros", icon=hui.icon.macro) if n_macros else None
                         t_widgets = ui.tab("Widgets", icon=hui.icon.widget) if n_widgets else None
                         t_types = ui.tab("Types", icon=hui.icon.type) if n_types else None
                         t_adapters = ui.tab("Adapters", icon=hui.icon.adapter) if n_adapters else None

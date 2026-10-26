@@ -70,8 +70,10 @@ def test_draw_tab_horizontal_default_draws_label_from_wrapper(monkeypatch):
 
     labels = [el for kind, el in created if kind == "label"]
     assert any(el._args and el._args[0] == "graph.hwg" for el in labels)
-    # Horizontal default draws no icon.
-    assert not any(kind == "icon" for kind, _ in created)
+    # Horizontal default draws the class icon before the label.
+    icons = [el for kind, el in created if kind == "icon"]
+    assert [el._args[0] for el in icons] == ["account_tree"]
+    assert created[0][0] == "icon"
 
 
 def test_draw_tab_horizontal_falls_back_to_class_label(monkeypatch):

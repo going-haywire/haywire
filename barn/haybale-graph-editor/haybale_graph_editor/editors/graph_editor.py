@@ -1389,8 +1389,7 @@ class GraphEditor(BaseEditor):
                 for level in self._levels.values():
                     with ui.tab(name=level.key, label="").props("no-caps"):
                         with ui.row().classes("items-center gap-1 no-wrap"):
-                            icon = hui.icon.graph if level.key == DOCUMENT_LEVEL else hui.icon.subgraph
-                            ui.icon(icon, size="12px")
+                            ui.icon(self._level_icon(level), size="12px")
                             ui.label(level.container.display_name).classes("text-xs")
                             if level.key != DOCUMENT_LEVEL:
                                 (
@@ -1402,6 +1401,15 @@ class GraphEditor(BaseEditor):
                                     .classes("hw-tab-close -mr-1")
                                     .on("click.stop", lambda _e: None)
                                 )
+
+    @staticmethod
+    def _level_icon(level: _Level) -> str:
+        """Return the icon of a level's tab: the document, a macro placement, or a Group."""
+        if level.key == DOCUMENT_LEVEL:
+            return hui.icon.graph
+        if placement_root(level.container):
+            return hui.icon.macro
+        return hui.icon.subgraph
 
     def _on_level_tab_clicked(self, context: "SessionContext", key: str) -> None:
         """Switch to the clicked level, ignoring the echo of a programmatic change."""

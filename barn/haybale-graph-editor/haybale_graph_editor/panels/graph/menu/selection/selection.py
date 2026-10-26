@@ -660,7 +660,7 @@ class CollapseToGroupMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Enter",
-    icon=hui.icon.graph,
+    icon=hui.icon.subgraph,
     order=35,
 )
 class EnterMenuPanel(BasePanel):
@@ -688,7 +688,7 @@ class EnterMenuPanel(BasePanel):
         with layout:
             hui.menu_row(
                 "Enter",
-                icon=hui.icon.graph,
+                icon=hui.icon.subgraph,
                 on_click=lambda: self.actions.enter_group(node_id),
             )
 
@@ -696,7 +696,7 @@ class EnterMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Group",
-    icon=hui.icon.graph,
+    icon=hui.icon.subgraph,
     order=36,
 )
 class GroupMenuPanel(BasePanel):
@@ -724,12 +724,12 @@ class GroupMenuPanel(BasePanel):
         with layout:
             hui.menu_row(
                 "Expand Group",
-                icon=hui.icon.edge,
+                icon=hui.icon.subgraph,
                 on_click=lambda: self.actions.expand_group(node_id),
             )
             hui.menu_row(
                 "Save new Macro…",
-                icon=hui.icon.node_source,
+                icon=hui.icon.macro,
                 tooltip="Write this Group to its own file so it can be placed in any graph",
                 on_click=lambda: self.actions.promote_to_macro(node_id),
             )
@@ -780,7 +780,7 @@ class EditInstanceMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Modified instance",
-    icon=hui.icon.edge,
+    icon=hui.icon.macro,
     order=39,
 )
 class ModifiedInstanceMenuPanel(BasePanel):
@@ -819,14 +819,14 @@ class ModifiedInstanceMenuPanel(BasePanel):
             if template is None:
                 hui.menu_row(
                     "Revert to Macro",
-                    icon=hui.icon.edge,
+                    icon=hui.icon.macro,
                     enabled=False,
                     tooltip=f"{label} is not installed.",
                 )
             else:
                 hui.menu_row(
                     "Revert to Macro",
-                    icon=hui.icon.edge,
+                    icon=hui.icon.macro,
                     tooltip=(
                         f"Replace this card with a placement of {label}. "
                         "The changes made to this instance are dropped."
@@ -835,7 +835,7 @@ class ModifiedInstanceMenuPanel(BasePanel):
                 )
             hui.menu_row(
                 "Forget Macro Origin",
-                icon=hui.icon.edge,
+                icon=hui.icon.macro,
                 tooltip=(
                     f"Keep this card as it is, as a plain Group no longer linked to {label}. "
                     "Revert to Macro and Update Macro stop applying to it."
