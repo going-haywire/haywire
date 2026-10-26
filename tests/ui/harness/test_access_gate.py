@@ -188,7 +188,8 @@ _PARITY_JS = """
         })
         .map(describe);
     const gated = els.filter((el) => window.hwAccess.isGated(el)).length;
-    return { count: els.length, unknown, gated, mismatches };
+    const inert = els.filter((el) => window.__hwBaseline.get(el) === 'none').map(describe);
+    return { count: els.length, unknown, gated, mismatches, inert };
 }
 """
 
@@ -243,6 +244,9 @@ def test_css_and_isGated_agree(page: Page, harness):
     assert baseline["count"] > 20
     assert baseline["gated"] == 0
     assert baseline["mismatches"] == []
+    # Elements inert by their own rules (Quasar field labels, the number widget's display)
+    # are masked below; keep them few, so the mask cannot hide the gate's own work.
+    assert len(baseline["inert"]) <= 12, baseline["inert"]
 
     for mode in ("operate", "view", "edit"):
         _switch(page, mode)

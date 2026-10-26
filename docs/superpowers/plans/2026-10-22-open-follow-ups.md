@@ -34,7 +34,7 @@ Items carry stable IDs (`#N`; handoff notes cite them), so the numbering has gap
 ## 4. Test gaps
 
 - **#59** **DONE** (2026-10-26: hover tests in `view` and, as control, in `edit`; the live-writers list is asserted non-empty) **No test hovers the greyed "Promote to" anchor** in the settings row menu to prove its flyout stays shut below `edit` (`tests/ui/harness/test_inspector_gate.py`); `test_writers_are_live_in_edit` runs `all()` over a settings list it never asserts non-empty.
-- **#60** **`test_css_and_isGated_agree` masks elements whose `pointer-events` is already `none` in `edit`** without counting them; assert or log the count.
+- **#60** **DONE** (2026-10-26: the masked elements are returned and capped at 12; 9 today) **`test_css_and_isGated_agree` masks elements whose `pointer-events` is already `none` in `edit`** without counting them; assert or log the count.
 - **#61** **The surface-decorator tests only check the `TypeError` for a `LevelMode`,** not that a valid tier lands on `class_identity.requires` nor that an unknown name raises `ValueError` through the decorator; the panel test passes a class the raising `@panel(...)` never sees.
 - **#62** **Test hygiene:** a 600 ms negative `wait_for_timeout` in `test_level_mode_gate.py`; `test_port_pen.py`'s fake `EditState` carries a `mode` stand-in; `test_graph_editor_session_claim.py` imports `_locked_editor` inside a function; the `required_mode` tests lack type annotations.
 
