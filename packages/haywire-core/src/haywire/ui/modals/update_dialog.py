@@ -58,7 +58,7 @@ def open_update_dialog(project_root: Path) -> None:
 
     def _render_explainer(installed: str, latest: str) -> None:
         hui.heading(f"Haywire {latest} is available")
-        ui.label(f"You're on {installed}.").classes("text-xs hw-text-muted")
+        hui.hint(f"You're on {installed}.")
         hui.section_label("What happens")
         with hui.indented():
             ui.label("1. Your pyproject.toml pin is updated").classes("text-xs")
@@ -82,9 +82,7 @@ def open_update_dialog(project_root: Path) -> None:
             if not result.ok:
                 hui.heading("Update blocked")
                 ui.label(result.message).classes("text-xs font-mono whitespace-pre-wrap")
-                ui.label("Update or remove the conflicting library first. Nothing was written.").classes(
-                    "text-xs hw-text-muted"
-                )
+                hui.hint("Update or remove the conflicting library first. Nothing was written.")
                 ui.button("Close", on_click=popup.close).props("flat dense")
                 return
             # Framing matters: resolution is not installation. The real sync
@@ -93,7 +91,7 @@ def open_update_dialog(project_root: Path) -> None:
             if result.changes:
                 with hui.indented(gap="gap-0").classes("max-h-40 overflow-auto"):
                     for line in result.changes:
-                        ui.label(line).classes("text-xs font-mono hw-text-muted")
+                        hui.hint(line).classes("font-mono")
             ui.label("Unsaved work will be lost.").classes("text-xs").style("color: var(--hw-warning);")
             with hui.action_row():
                 ui.button("Cancel", on_click=popup.close).props("flat dense")

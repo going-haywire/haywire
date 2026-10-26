@@ -22,6 +22,8 @@ from typing import Callable
 
 from nicegui import app, ui
 
+from haywire.ui import elements as hui
+
 from haywire.core.di.config import (
     create_library_system_service,
     set_global_injector,
@@ -57,7 +59,7 @@ def _render_scenario(container: ui.element, label: str, build, panel) -> None:
 
     with container:
         ui.label(label).classes("text-sm font-medium")
-        ui.label(f"step = {flow.step!r}").classes("text-xs font-mono hw-text-muted")
+        hui.hint(f"step = {flow.step!r}").classes("font-mono")
 
         # 640px: the width show_share_flow() opens the real popup at.
         #
@@ -128,12 +130,12 @@ def _page() -> None:
             .style("width: 300px; border-right: 1px solid var(--hw-border);")
         ):
             ui.label("Share flow — panels").classes("text-sm font-medium")
-            ui.label("Fixture state. Nothing writes.").classes("text-xs hw-text-muted")
+            hui.hint("Fixture state. Nothing writes.")
             buttons: list[tuple[ui.button, str, Callable[[], ShareFlow], Panel]] = []
 
             with ui.scroll_area().classes("flex-1 w-full"):
                 for group, entries in SCENARIOS.items():
-                    ui.label(group).classes("text-xs hw-text-dim mt-2")
+                    hui.hint(group).classes("mt-2")
                     for label, build, panel in entries:
                         button = (
                             ui.button(label).props("flat dense align=left no-caps").classes("w-full text-xs")

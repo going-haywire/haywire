@@ -134,7 +134,7 @@ class LibraryBrowserEditor(BaseEditor):
                 .style("border-bottom: 1px solid var(--hw-border);")
             ):
                 with ui.row().classes("items-center gap-0.5 w-full"):
-                    ui.label("Show:").classes("text-xs hw-text-dim mr-1")
+                    hui.hint("Show:").classes("mr-1")
                     self._make_toggle("required", "purple", "lock", "Required (cannot be disabled)", context)
                     self._make_toggle("enabled", "green", "check_circle", "Enabled", context)
                     self._make_toggle("disabled", "orange", "pause_circle", "Disabled", context)
@@ -352,9 +352,9 @@ class LibraryBrowserEditor(BaseEditor):
         with ui.dialog() as dialog, hui.dialog_card():
             with ui.column().classes("p-4 gap-2"):
                 hui.heading("Sources unavailable")
-                ui.label(
+                hui.hint(
                     "These sources couldn't be fetched. Cached responses (if any) were used as fallback."
-                ).classes("text-xs hw-text-dim")
+                )
                 for url in urls:
                     ui.label(url).classes("text-xs hw-text-default font-mono")
                 with ui.row().classes("w-full justify-end mt-2"):
@@ -413,7 +413,7 @@ class LibraryBrowserEditor(BaseEditor):
         manager = manager_state.manager if manager_state is not None else None
         if manager is None:
             with self._list_container:
-                ui.label("Library manager not available").classes("text-xs hw-text-dim p-2")
+                hui.hint("Library manager not available").classes("p-2")
             return
 
         try:

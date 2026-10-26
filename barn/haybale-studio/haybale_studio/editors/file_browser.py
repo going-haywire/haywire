@@ -131,13 +131,13 @@ class LazyFileBrowserEditor(BaseEditor):
 
         if self._root_path is None or not self._root_path.exists():
             with self._tree_container:
-                ui.label("No project loaded").classes("text-xs hw-text-dim p-2")
+                hui.hint("No project loaded").classes("p-2")
             return
 
         self._root_nodes = self._build_subtree(self._root_path, depth=0)
         if not self._root_nodes:
             with self._tree_container:
-                ui.label("Project folder is empty").classes("text-xs hw-text-dim p-2")
+                hui.hint("Project folder is empty").classes("p-2")
             return
         self._index_nodes(self._root_nodes)
 

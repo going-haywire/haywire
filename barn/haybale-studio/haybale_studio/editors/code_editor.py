@@ -164,9 +164,7 @@ class CodeEditor(BaseEditor):
                 with hui.editor_toolbar():
                     ui.icon("description", size="14px").classes("hw-text-dim")
                     label_text = str(path) if path is not None else "Untitled"
-                    self._path_label = ui.label(label_text).classes(
-                        "text-xs hw-text-muted truncate font-mono flex-1"
-                    )
+                    self._path_label = hui.hint(label_text).classes("truncate font-mono flex-1")
 
                     # Preview button only for markdown
                     if is_md:

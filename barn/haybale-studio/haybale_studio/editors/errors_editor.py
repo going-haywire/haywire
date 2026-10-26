@@ -108,7 +108,7 @@ class ErrorsEditor(BaseEditor):
                 with splitter.before:
                     with ui.column().classes("w-full h-full gap-0"):
                         with hui.panel_header("Errors", icon=hui.icon.debug):
-                            self._count_label = ui.label("").classes("text-xs hw-text-dim ml-auto")
+                            self._count_label = hui.hint("").classes("ml-auto")
                             hui.icon_action(
                                 hui.icon.ok, tooltip="Mark all seen", on_click=self._mark_all_seen
                             )
@@ -203,7 +203,7 @@ class ErrorsEditor(BaseEditor):
                 weight = "font-medium" if seen else "font-bold"
                 dim = " hw-text-dim" if seen else ""
                 ui.label(entry.message).classes(f"text-sm truncate {weight}{dim}")
-                ui.label(" · ".join(sub_parts)).classes("text-xs hw-text-dim")
+                hui.hint(" · ".join(sub_parts))
             self._build_row_menu(entry)
 
     def _build_row_menu(self, entry: HaywireException) -> None:

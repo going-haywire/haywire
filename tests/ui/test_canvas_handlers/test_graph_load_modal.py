@@ -37,6 +37,7 @@ def test_popup_is_not_dismissable_by_the_user():
     with (
         patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.Popup") as popup_cls,
         patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.ui"),
+        patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.hui"),
     ):
         graph_load_modal(graph_name="big", total_nodes=200)
 
@@ -51,6 +52,7 @@ def test_the_overlay_does_not_dim_the_canvas():
     with (
         patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.Popup") as popup_cls,
         patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.ui"),
+        patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.hui"),
     ):
         graph_load_modal(graph_name="big", total_nodes=200)
 
@@ -62,6 +64,7 @@ def test_popup_is_opened_immediately():
     with (
         patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.Popup") as popup_cls,
         patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.ui"),
+        patch("haybale_graph_editor.editors.graph_canvas.graph_load_modal.hui"),
     ):
         graph_load_modal(graph_name="big", total_nodes=200)
 

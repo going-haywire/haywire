@@ -144,7 +144,7 @@ class ComponentDocsEditor(BaseEditor):
                 with ui.column().classes("w-full gap-0.5 mb-2"):
                     ui.label(label).classes("text-base font-bold")
                     if description:
-                        ui.label(description).classes("text-xs hw-text-muted")
+                        hui.hint(description)
 
                 # ── Deprecation banner ────────────────────────────────────
                 if deprecation_warning:
@@ -245,9 +245,7 @@ class ComponentDocsEditor(BaseEditor):
             with ui.column().classes("items-center gap-2 py-6"):
                 ui.icon("videocam_off").classes("text-3xl hw-text-dim")
                 ui.label("Live preview only").classes("hw-text-muted text-sm italic")
-                ui.label("This widget renders only when bound to a live port.").classes(
-                    "hw-text-dim text-xs"
-                )
+                hui.hint("This widget renders only when bound to a live port.")
             return
         try:
             mock_port = _WidgetPreviewPort()
@@ -256,7 +254,7 @@ class ComponentDocsEditor(BaseEditor):
         except Exception as exc:
             with ui.column().classes("gap-1"):
                 ui.label("Preview failed").classes("text-sm hw-text-muted")
-                ui.label(str(exc)).classes("text-xs font-mono hw-text-dim")
+                hui.hint(str(exc)).classes("font-mono")
 
     def _close(self, context: "SessionContext") -> None:
         """Clear active component and notify listeners."""

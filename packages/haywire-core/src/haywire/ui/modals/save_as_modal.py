@@ -120,9 +120,7 @@ def save_as_modal(
             .style("background: var(--hw-bg-page); border-radius: 4px; border: 1px solid var(--hw-border);")
         ):
             ui.icon("folder", size="14px").classes("hw-text-dim flex-shrink-0")
-            ui.label(str(workspace_root).rstrip("/") + "/").classes(
-                "text-xs font-mono hw-text-dim truncate py-1"
-            )
+            hui.hint(str(workspace_root).rstrip("/") + "/").classes("font-mono truncate py-1")
 
         def _refresh(_=None) -> None:
             raw = (path_input.value or "").strip()
@@ -172,7 +170,7 @@ def save_as_modal(
                     on_change=_on_suffix_change,
                 ).props("dense").classes("flex-shrink-0")
             elif len(suffixes) == 1:
-                suffix_label = ui.label(suffixes[0]).classes("text-xs font-mono hw-text-dim flex-shrink-0")
+                suffix_label = hui.hint(suffixes[0]).classes("font-mono flex-shrink-0")
 
         with hui.action_row().classes("mt-1"):
             ui.button("Cancel", on_click=popup.close).props("flat dense")

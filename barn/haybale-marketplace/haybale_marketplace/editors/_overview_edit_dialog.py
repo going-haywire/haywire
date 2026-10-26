@@ -141,9 +141,7 @@ def build_edit_dialog(
     with edit_popup:
         # Version is not editable here — it's set by Share/publish (lockstep bump),
         # which overwrites this on the next publish regardless of what's typed here.
-        ui.label(f"Version: {haybale_row.version or '?'} (set via Share/publish)").classes(
-            "text-xs hw-text-dim"
-        )
+        hui.hint(f"Version: {haybale_row.version or '?'} (set via Share/publish)")
         # Still a label, not an input: the author has nothing to decide here.
         # Refresh applies the pipeline's own rule (union what is provably
         # imported, never remove), so the only affordance needed is the button.
@@ -162,7 +160,7 @@ def build_edit_dialog(
         _linked_staged: list[str] = list(_linked)
 
         with ui.row().classes("items-center gap-2"):
-            linked_label = ui.label().classes("text-xs hw-text-dim")
+            linked_label = hui.hint("")
 
             def _render_linked() -> None:
                 shown = ", ".join(_linked_staged) or "(none)"
@@ -229,7 +227,7 @@ def build_edit_dialog(
         # mutate the container directly, the same clear-and-redraw spirit
         # `_render_linked` above uses, but per-row rather than whole-list since
         # each row deletes independently.
-        ui.label("Authors").classes("text-xs hw-text-dim")
+        hui.hint("Authors")
         _author_rows: list[tuple[ui.row, ui.input, ui.input]] = []
         _authors_container = ui.column().classes("w-full gap-1")
 
@@ -275,9 +273,9 @@ def build_edit_dialog(
             marketplace_pkg = getattr(context, "active_marketplace_pkg", None)
             wheel_os = list(getattr(marketplace_pkg, "os", []) or []) if marketplace_pkg else []
             if wheel_os:
-                ui.label(f"Supported OS (read-only): {', '.join(wheel_os)}").classes("text-xs hw-text-dim")
+                hui.hint(f"Supported OS (read-only): {', '.join(wheel_os)}")
 
-        ui.label("Declare behavior for install, update, and uninstall alike:").classes("text-xs hw-text-dim")
+        hui.hint("Declare behavior for install, update, and uninstall alike:")
         on_reload_select = hui.select_field(
             options={
                 LibraryReloadAction.NONE.value: "No special action — library is hot-reloadable",

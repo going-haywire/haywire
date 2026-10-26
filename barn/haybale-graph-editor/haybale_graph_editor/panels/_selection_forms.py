@@ -138,7 +138,7 @@ def render_form(
     default_word = "the graph's defaults" if graph is not None else "defaults"
     with ui.column().classes("w-full gap-0") as column:
         header = f"Editing {len(subject.bags)} {subject.noun} — fields show {default_word}"
-        ui.label(f"{header}; a change applies to all.").classes("text-xs hw-text-muted px-2 py-1")
+        hui.hint(f"{header}; a change applies to all.").classes("px-2 py-1")
         render_settings(ctx, neutral, categories=categories, route=route)
     fan_out = fan_out_to(neutral, subject.bags, route)
     neutral._subscribe(fan_out)

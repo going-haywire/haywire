@@ -130,7 +130,7 @@ def render_warnings(flow: StepFlow) -> None:
             ui.icon("warning", size="14px").classes("flex-shrink-0 mt-0.5").style(
                 "color: var(--hw-warning);"
             )
-            ui.label(warning).classes("text-xs hw-text-muted")
+            hui.hint(warning)
 
 
 def render_error(

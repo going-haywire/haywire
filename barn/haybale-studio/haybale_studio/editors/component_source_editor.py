@@ -249,15 +249,11 @@ class ComponentSourceEditor(BaseEditor):
             )
             ui.icon(hui.icon.node_source, size="14px").classes("hw-text-dim")
             label_text = str(self._path) if self._path is not None else "—"
-            self._path_label = ui.label(label_text).classes(
-                "text-xs hw-text-muted truncate font-mono flex-1"
-            )
+            self._path_label = hui.hint(label_text).classes("truncate font-mono flex-1")
 
             if not self._is_editable:
-                self._readonly_badge = (
-                    ui.label("Read-only")
-                    .classes("text-xs hw-text-dim")
-                    .style("padding: 1px 6px; border: 1px solid var(--hw-border); border-radius: 3px;")
+                self._readonly_badge = hui.hint("Read-only").style(
+                    "padding: 1px 6px; border: 1px solid var(--hw-border); border-radius: 3px;"
                 )
             else:
                 self._readonly_badge = None
@@ -276,7 +272,7 @@ class ComponentSourceEditor(BaseEditor):
         ) as banner:
             self._pin_banner = banner
             name = self._path.name if self._path else "buffer"
-            ui.label(f"• editing {name}").classes("text-xs hw-text-muted flex-1")
+            hui.hint(f"• editing {name}").classes("flex-1")
             ui.button("Discard", on_click=self._discard).props("flat dense size=sm").tooltip(
                 "Drop edits and follow the current selection again"
             )

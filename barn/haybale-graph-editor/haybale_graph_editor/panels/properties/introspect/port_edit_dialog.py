@@ -135,7 +135,7 @@ def _render_default_field(
 
     model = PortDefaultWidgetModel(port, on_edit=lambda value: staged.__setitem__("default", value))
     with ui.column().classes("w-full gap-0 compact-fields"):
-        ui.label("Default value").classes("text-xs hw-text-dim pt-1")
+        hui.hint("Default value").classes("pt-1")
         try:
             with ui.element("div").classes("w-full min-w-0") as cell:
                 widget = widget_cls(model)

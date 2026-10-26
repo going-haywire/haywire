@@ -332,9 +332,9 @@ def _render_clean_lines(libraries, registrations: dict) -> None:
                 for name in names:
                     with ui.row().classes("items-baseline gap-2"):
                         with ui.row().classes("items-baseline gap-0"):
-                            ui.label("linked_libraries = [..., ").classes("text-xs font-mono hw-text-dim")
+                            hui.hint("linked_libraries = [..., ").classes("font-mono")
                             ui.label(name).classes("text-xs font-mono hw-text-warning")
-                            ui.label("]").classes("text-xs font-mono hw-text-dim")
+                            hui.hint("]").classes("font-mono")
                         hui.hint(f"in {lib_dir.name}")
 
 

@@ -33,27 +33,25 @@ def _panel_sources(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
     inline = len(global_file.haybales)
 
     if not (markets or stalls or inline):
-        ui.label(
+        hui.hint(
             "No sources subscribed. Add a marketplace or marketstall URL first — "
             "a refresh would have nothing to contact."
-        ).classes("text-xs hw-text-dim")
+        )
         return
 
-    ui.label("These sources will be contacted:").classes("text-xs hw-text-dim")
+    hui.hint("These sources will be contacted:")
     with hui.indented():
         for sub in global_file.markets:
-            ui.label(f"market · {sub.url}").classes("text-xs font-mono hw-text-dim")
+            hui.hint(f"market · {sub.url}").classes("font-mono")
         for sub in global_file.stalls:
-            ui.label(f"stall · {sub.url}").classes("text-xs font-mono hw-text-dim")
+            hui.hint(f"stall · {sub.url}").classes("font-mono")
         if inline:
-            ui.label(f"{_plural(inline, 'library')} listed directly in the global file").classes(
-                "text-xs hw-text-dim"
-            )
+            hui.hint(f"{_plural(inline, 'library')} listed directly in the global file")
 
-    ui.label(
+    hui.hint(
         "Markets are read one level deep, so they may add stalls beyond the ones listed here. "
         "Fetching only reads — nothing is written until you apply."
-    ).classes("text-xs hw-text-dim")
+    )
 
     with hui.action_row():
         fetch = hui.confirm_button("Fetch")
@@ -89,19 +87,17 @@ def _panel_fetched(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
             ui.label(f"{mark} {outcome.url}{suffix}").classes(f"text-xs font-mono {tone}")
 
     if cached:
-        ui.label(
+        hui.hint(
             f"{_plural(cached, 'source')} could not be reached and was served from the local cache, "
             "so their entries may be out of date."
-        ).classes("text-xs hw-text-muted")
+        )
     if unavailable:
-        ui.label(
+        hui.hint(
             f"{_plural(len(unavailable), 'source')} unreachable with no cached copy — "
             "libraries offered only by those will be marked stale."
-        ).classes("text-xs hw-text-muted")
+        )
 
-    ui.label("Next: work out what this would change in the library list. Still no writes.").classes(
-        "text-xs hw-text-dim"
-    )
+    hui.hint("Next: work out what this would change in the library list. Still no writes.")
 
     with hui.action_row():
         hui.confirm_button(
@@ -118,11 +114,9 @@ def _panel_resolved(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
 
     unchanged = not (resolved.newly_added or resolved.newly_stale)
     if unchanged:
-        ui.label(
-            f"Nothing changes — {_plural(resolved.resolved_count, 'library')} available, same as now."
-        ).classes("text-xs hw-text-dim")
+        hui.hint(f"Nothing changes — {_plural(resolved.resolved_count, 'library')} available, same as now.")
     else:
-        ui.label("Applying this refresh will:").classes("text-xs hw-text-dim")
+        hui.hint("Applying this refresh will:")
 
     with hui.indented():
         for name in resolved.newly_added:
@@ -134,17 +128,15 @@ def _panel_resolved(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
 
     if resolved.updates_available:
         hui.section_label("Updates")
-        ui.label(
+        hui.hint(
             f"{_plural(resolved.updates_available, 'installed library')} "
             f"{'has' if resolved.updates_available == 1 else 'have'} a newer version available."
-        ).classes("text-xs hw-text-dim")
+        )
 
     if any(c.same_library for c in resolved.collisions):
         _render_collisions(flow, rerender)
 
-    ui.label(
-        "Applying overwrites the project's cached library list. Nothing is installed or removed."
-    ).classes("text-xs hw-text-dim")
+    hui.hint("Applying overwrites the project's cached library list. Nothing is installed or removed.")
 
     with hui.action_row():
         apply_button = hui.confirm_button("Apply")
@@ -180,9 +172,9 @@ def _render_collisions(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
                 # reached through an aggregator.
                 owner = collision.loser_owners[i] if i < len(collision.loser_owners) else loser_url
                 with ui.row().classes("items-center gap-2 ml-2"):
-                    ui.label(
+                    hui.hint(
                         f"also {loser_url or '(inline)'}" + (f" ({loser_version})" if loser_version else "")
-                    ).classes("text-xs font-mono hw-text-dim")
+                    ).classes("font-mono")
                     if owner:
                         _prefer_button(flow, rerender, collision.name, owner)
 
@@ -226,10 +218,10 @@ def _panel_conflicts(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
     ui.label(
         f"{_plural(len(flow.conflicts), 'name is', 'names are')} claimed by more than one library."
     ).classes("text-sm").style("color: var(--hw-warning);")
-    ui.label(
+    hui.hint(
         "These are different libraries that happen to share a name — not the same "
         "library from several feeds. Leave exactly one unblocked."
-    ).classes("text-xs hw-text-muted")
+    )
 
     for conflict in flow.conflicts:
         claimants = flow.claimants_for(conflict.name)
@@ -290,15 +282,13 @@ def _render_claimant(
                     "color: var(--hw-positive); border: 1px solid var(--hw-positive);"
                 )
             if claimant.blocked:
-                ui.label("blocked").classes("text-xs px-1 rounded hw-text-dim").style(
-                    "border: 1px solid var(--hw-border);"
-                )
+                hui.hint("blocked").classes("px-1 rounded").style("border: 1px solid var(--hw-border);")
             _render_block_toggle(flow, rerender, name, claimant)
 
         # The origin is what actually distinguishes two same-named libraries,
         # so it is shown rather than left to a tooltip.
         if claimant.origin:
-            ui.label(claimant.origin).classes("text-xs font-mono hw-text-dim ml-1")
+            hui.hint(claimant.origin).classes("font-mono ml-1")
 
 
 def _render_block_toggle(
@@ -347,9 +337,7 @@ def _panel_applied(flow: RefreshFlow, on_done: Callable[[], None] | None) -> Non
             )
 
         if report.updates_available:
-            ui.label(f"{_plural(report.updates_available, 'update')} available.").classes(
-                "text-xs hw-text-dim"
-            )
+            hui.hint(f"{_plural(report.updates_available, 'update')} available.")
 
     def _close() -> None:
         if flow.popup is not None:

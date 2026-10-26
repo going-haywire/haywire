@@ -156,7 +156,7 @@ class FileViewerEditor(BaseEditor):
             ui.label(path.name).classes("text-xs font-medium hw-text-body")
             if lang:
                 ui.badge(lang).props("color=blue-grey rounded outline").classes("text-xs")
-            ui.label(f"{size:,} B").classes("text-xs hw-text-dim ml-auto")
+            hui.hint(f"{size:,} B").classes("ml-auto")
 
         # Content
         if ext == ".md":

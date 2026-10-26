@@ -8,6 +8,8 @@ from typing import Callable, Optional
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall import RefreshReport, ResolvedSource
 from haywire.ui.components.stepper import Panel, show_step_flow
@@ -118,9 +120,7 @@ def _error_detail(flow: AddSourceFlow, _rerender: Callable[[], None]) -> bool:
     if not flow.rejected_input:
         return False
     ui.label(flow.error or "").classes("text-xs hw-text-danger whitespace-pre-line")
-    ui.label("Edit the field above to point at the marketstall.toml itself, then probe again.").classes(
-        "text-xs hw-text-dim"
-    )
+    hui.hint("Edit the field above to point at the marketstall.toml itself, then probe again.")
     return True
 
 

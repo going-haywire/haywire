@@ -48,7 +48,7 @@ def _then_close(flow: NewNodeFlow, action: Callable[[], None]) -> Callable[[], N
 
 def _panel_source(flow: NewNodeFlow, rerender: Callable[[], None]) -> None:
     """Pick a Node template or a node class to clone. Picking a row advances."""
-    ui.label("Start a new node from a template or from an existing node.").classes("text-xs hw-text-dim")
+    hui.hint("Start a new node from a template or from an existing node.")
 
     ui.toggle(
         {"template": "Template", "clone": "Clone a node"},
@@ -104,7 +104,7 @@ def _source_row(flow: NewNodeFlow, info: NodeInfo, rerender: Callable[[], None])
         if library:
             ui.badge(library).classes("shrink-0 ml-2 text-xs hw-text-dim")
     if info.identity.description:
-        ui.label(info.identity.description).classes("text-xs hw-text-muted pl-2 truncate")
+        hui.hint(info.identity.description).classes("pl-2 truncate")
 
 
 # ── details ──────────────────────────────────────────────────────────────────
@@ -114,18 +114,18 @@ def _panel_details(flow: NewNodeFlow, rerender: Callable[[], None]) -> None:
     """The new node's identity and the library it goes into. Nothing written yet."""
     if not flow.targets:
         _refusal_row("No library in this project can receive a node.")
-        ui.label(_NO_TARGET_HELP).classes("text-xs hw-text-muted")
+        hui.hint(_NO_TARGET_HELP)
         return
 
     if flow.source_cls is not None:
         source_label = flow.source_cls.class_identity.label
-        ui.label(f"Starting from {source_label}").classes("text-xs hw-text-dim")
+        hui.hint(f"Starting from {source_label}")
 
     label_input = ui.input(label="Label", value=flow.fields.label).classes("w-full")
     label_input.props("dense outlined autofocus")
     class_input = ui.input(label="Class name", value=flow.fields.class_name).classes("w-full")
     class_input.props("dense outlined")
-    file_label = ui.label(flow.file_name).classes("text-xs font-mono hw-text-dim")
+    file_label = hui.hint(flow.file_name).classes("font-mono")
 
     ui.select(
         options=sorted({*flow.menu_paths, flow.fields.menu}),
@@ -160,7 +160,7 @@ def _panel_details(flow: NewNodeFlow, rerender: Callable[[], None]) -> None:
             on_change=lambda e: _on_target(e.value),
         ).classes("w-full").props("dense outlined")
     elif flow.target is not None:
-        ui.label(f"Into {flow.target.label}").classes("text-xs hw-text-dim")
+        hui.hint(f"Into {flow.target.label}")
 
     refusal_label = ui.label("").classes("text-xs hw-text-danger")
 
@@ -218,7 +218,7 @@ def _panel_planned(flow: NewNodeFlow, rerender: Callable[[], None]) -> None:
         return
 
     hui.section_label("Will be written")
-    ui.label(str(plan.path)).classes("text-xs font-mono hw-text-dim")
+    hui.hint(str(plan.path)).classes("font-mono")
 
     if plan.refusal is not None:
         _refusal_row(plan.refusal)
@@ -232,7 +232,7 @@ def _panel_planned(flow: NewNodeFlow, rerender: Callable[[], None]) -> None:
     if plan.rewritten_imports:
         hui.info_row("Imports made absolute", str(len(plan.rewritten_imports)), label_width=_INFO_WIDTH)
         for before, after in plan.rewritten_imports:
-            ui.label(f"{before}  →  {after}").classes("text-xs font-mono hw-text-muted")
+            hui.hint(f"{before}  →  {after}").classes("font-mono")
     if plan.free_names:
         hui.info_row("Imported from the source", ", ".join(plan.free_names), label_width=_INFO_WIDTH)
     if plan.linked_additions:
@@ -265,7 +265,7 @@ def _panel_result(flow: NewNodeFlow, _rerender: Callable[[], None]) -> None:
             ui.label(f"{flow.fields.label} is registered.").classes("text-sm").style(
                 "color: var(--hw-positive);"
             )
-        ui.label(outcome.registry_key or "").classes("text-xs font-mono hw-text-dim")
+        hui.hint(outcome.registry_key or "").classes("font-mono")
         with hui.action_row():
             ui.button("Close", on_click=lambda: _close(flow)).props("flat dense")
             ui.button("Edit", on_click=_then_close(flow, flow.edit)).props("flat dense")
@@ -281,10 +281,8 @@ def _panel_result(flow: NewNodeFlow, _rerender: Callable[[], None]) -> None:
     for error in outcome.errors:
         ui.label(error.message).classes("text-xs hw-text-danger whitespace-pre-line")
     if flow.plan is not None:
-        ui.label(str(flow.plan.path)).classes("text-xs font-mono hw-text-dim")
-    ui.label("The file stays on disk; fix it and save, and the library registers it.").classes(
-        "text-xs hw-text-muted"
-    )
+        hui.hint(str(flow.plan.path)).classes("font-mono")
+    hui.hint("The file stays on disk; fix it and save, and the library registers it.")
     with hui.action_row():
         ui.button("Close", on_click=lambda: _close(flow)).props("flat dense")
         ui.button("Open file", on_click=_then_close(flow, flow.open_file)).props("flat dense")

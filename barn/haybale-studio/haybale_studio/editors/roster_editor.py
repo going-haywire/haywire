@@ -65,9 +65,7 @@ class RosterEditor(BaseEditor):
         state = "enabled" if roster.enabled else "disabled"
         hui.section_label(f"Authentication is {state}")
         if not roster.enabled:
-            ui.label("Run 'haywire auth enable' with the studio stopped to require a login.").classes(
-                "hw-text-muted text-xs"
-            )
+            hui.hint("Run 'haywire auth enable' with the studio stopped to require a login.")
 
         with ui.column().classes("w-full gap-0 hw-panel"):
             self._draw_header_row()
@@ -77,8 +75,8 @@ class RosterEditor(BaseEditor):
     def _draw_header_row(self) -> None:
         with ui.row().classes(f"grid {self._GRID_COLUMNS} w-full items-center gap-2 px-2 py-1"):
             ui.label()
-            ui.label("Name").classes("text-xs hw-text-dim")
-            ui.label("Tier").classes("text-xs hw-text-dim")
+            hui.hint("Name")
+            hui.hint("Tier")
             ui.label()
             ui.label()
 

@@ -142,7 +142,7 @@ def _render_section(section: DiffSection) -> None:
     """Render one DiffSection block: title, +/-/= lines, optional note."""
     hui.section_label(section.title)
     if not (section.additions or section.removals or section.unchanged):
-        ui.label("(no changes)").classes("text-xs hw-text-dim italic ml-1")
+        hui.hint("(no changes)").classes("italic ml-1")
     else:
         with hui.indented():
             for line in section.additions:
@@ -150,6 +150,6 @@ def _render_section(section: DiffSection) -> None:
             for line in section.removals:
                 ui.label(f"− {line}").classes("text-xs font-mono").style("color: var(--hw-danger);")
             for line in section.unchanged:
-                ui.label(f"  {line}").classes("text-xs font-mono hw-text-dim")
+                hui.hint(f"  {line}").classes("font-mono")
     if section.note:
-        ui.label(section.note).classes("text-xs hw-text-dim italic ml-1 mt-0.5")
+        hui.hint(section.note).classes("italic ml-1 mt-0.5")

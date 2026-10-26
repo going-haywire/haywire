@@ -20,10 +20,10 @@ def _plural(count: int, singular: str, plural: str | None = None) -> str:
 
 def _panel_selected(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
     """What is about to be removed. Nothing has been read or written yet."""
-    ui.label(
+    hui.hint(
         "This removes the library from the environment. Checking first which graphs use it "
         "and which installed packages depend on it — neither check changes anything."
-    ).classes("text-xs hw-text-dim")
+    )
 
     with hui.action_row():
         check = hui.confirm_button("Check impact")
@@ -53,17 +53,13 @@ def _panel_impact(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
             ).classes("text-sm").style("color: var(--hw-warning);")
         with hui.indented():
             for usage in impact.graphs:
-                ui.label(f"{usage.name} — {_plural(usage.references, 'reference')}").classes(
-                    "text-xs font-mono hw-text-dim"
-                )
-        ui.label("Those nodes will fail to load until the library is installed again.").classes(
-            "text-xs hw-text-muted"
-        )
+                hui.hint(f"{usage.name} — {_plural(usage.references, 'reference')}").classes("font-mono")
+        hui.hint("Those nodes will fail to load until the library is installed again.")
 
     if not impact.graphs_scanned:
-        ui.label(
+        hui.hint(
             "No project open, so graphs were not scanned — graphs elsewhere may still use this library."
-        ).classes("text-xs hw-text-muted")
+        )
 
     if impact.pip_dependents:
         with ui.row().classes("w-full items-center gap-2 mt-1"):
@@ -76,14 +72,10 @@ def _panel_impact(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
         with hui.indented():
             for name in impact.pip_dependents:
                 ui.label(name).classes("text-xs font-mono hw-text-danger")
-        ui.label("Removing it anyway will break those packages until they are reinstalled.").classes(
-            "text-xs hw-text-muted"
-        )
+        hui.hint("Removing it anyway will break those packages until they are reinstalled.")
 
     if impact.is_editable:
-        ui.label("This is an editable install — the source folder on disk is left untouched.").classes(
-            "text-xs hw-text-dim"
-        )
+        hui.hint("This is an editable install — the source folder on disk is left untouched.")
 
     with hui.action_row():
         ui.button(
@@ -99,7 +91,7 @@ def _panel_confirm(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
     ui.label(f"Remove {flow.label} from the environment?").classes("text-sm")
 
     if impact is not None and impact.dist_name:
-        ui.label(f"uv uninstall {impact.dist_name}").classes("text-xs font-mono hw-text-dim")
+        hui.hint(f"uv uninstall {impact.dist_name}").classes("font-mono")
 
     consequences: list[str] = []
     if impact is not None:
@@ -110,11 +102,9 @@ def _panel_confirm(flow: UninstallFlow, rerender: Callable[[], None]) -> None:
                 f"{_plural(len(impact.pip_dependents), 'installed package')} will lose a dependency"
             )
     if consequences:
-        ui.label("After this: " + ", ".join(consequences) + ".").classes("text-xs hw-text-muted")
+        hui.hint("After this: " + ", ".join(consequences) + ".")
 
-    ui.label("This cannot be undone from here — reinstall from the marketplace to get it back.").classes(
-        "text-xs hw-text-dim"
-    )
+    hui.hint("This cannot be undone from here — reinstall from the marketplace to get it back.")
 
     with hui.action_row():
         uninstall = ui.button("Uninstall").props("flat dense").style("color: var(--hw-danger);")

@@ -67,11 +67,11 @@ class ShareEditor(BaseEditor):
         root = self._workspace_root()
         with self._body:
             if root is None:
-                ui.label("No project open.").classes("text-xs hw-text-dim")
-                ui.label(
+                hui.hint("No project open.")
+                hui.hint(
                     "Share publishes a haywire project directory — the workspace root "
                     "holding barn/ and marketstall.toml."
-                ).classes("text-xs hw-text-muted")
+                )
                 return
 
             from haybale_share._flow._state import ShareFlow
@@ -80,26 +80,24 @@ class ShareEditor(BaseEditor):
             libraries = status.libraries
 
             hui.heading(root.name)
-            ui.label(str(root)).classes("text-xs font-mono hw-text-muted")
+            hui.hint(str(root)).classes("font-mono")
 
             version = status.version
             if status.disagree:
                 with ui.row().classes("items-center gap-2"):
                     ui.icon("warning", size="14px").style("color: var(--hw-warning);")
-                    ui.label("Library versions disagree — the flow will ask for a target.").classes(
-                        "text-xs hw-text-dim"
-                    )
+                    hui.hint("Library versions disagree — the flow will ask for a target.")
             elif version:
-                ui.label(f"Version {version} — every library in lockstep").classes("text-xs hw-text-dim")
+                hui.hint(f"Version {version} — every library in lockstep")
 
             if not libraries:
-                ui.label("No library under barn/ — nothing to publish yet.").classes("text-xs hw-text-dim")
+                hui.hint("No library under barn/ — nothing to publish yet.")
                 return
 
             hui.section_label(f"{len(libraries)} librar{'y' if len(libraries) == 1 else 'ies'}")
             with hui.indented().classes("w-full"):
                 for name in libraries:
-                    ui.label(name).classes("text-xs font-mono hw-text-dim")
+                    hui.hint(name).classes("font-mono")
 
             with hui.action_row().classes("pt-2"):
                 ui.button("Share…", on_click=self._open_flow).props("flat dense").style(

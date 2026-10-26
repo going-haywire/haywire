@@ -26,6 +26,8 @@ from typing import Optional
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.core.library.identity import LibraryReloadAction
 from haywire.ui.components.popup import Popup
 from haywire.ui.modals.restart_affordance import restart_affordance
@@ -189,7 +191,7 @@ def library_operation_progress_modal(
             spinner_row = ui.row().classes("items-center gap-2")
             with spinner_row:
                 ui.spinner(size="sm")
-                ui.label("Working…").classes("text-xs hw-text-dim")
+                hui.hint("Working…")
 
             # Error banner — hidden until finish(error=…) is called
             error_text = ui.label("").classes("text-xs hw-text-danger")
@@ -211,9 +213,7 @@ def library_operation_progress_modal(
             )
 
             # Refresh-required notice — hidden unless the REFRESH action fires
-            reload_notice = ui.label("Reload the page to use the new library.").classes(
-                "text-xs hw-text-muted"
-            )
+            reload_notice = hui.hint("Reload the page to use the new library.")
             reload_notice.set_visibility(False)
 
             # Reserved slot for the restart affordance. Built empty here because

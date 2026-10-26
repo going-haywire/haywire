@@ -213,11 +213,11 @@ class ActivityEditor(BaseEditor):
                     f"text-xs {dot}"
                 )
                 ui.label(record.tool).classes("text-xs font-mono truncate flex-1 hw-text-body")
-                ui.label(record.principal or "—").classes("text-xs hw-text-dim flex-shrink-0")
-                ui.label(timing).classes("text-xs hw-text-dim flex-shrink-0 w-16 text-right")
+                hui.hint(record.principal or "—").classes("flex-shrink-0")
+                hui.hint(timing).classes("flex-shrink-0 w-16 text-right")
                 if not running:
                     age = now - (record.finished_at or now)
-                    ui.label(format_age(age)).classes("text-xs hw-text-dim flex-shrink-0 w-16 text-right")
+                    hui.hint(format_age(age)).classes("flex-shrink-0 w-16 text-right")
                 # Icon-only, sized to match the status icon above (text-xs) —
                 # never larger, per the design decision. Always present, even
                 # while running (a running call still has arguments to show).

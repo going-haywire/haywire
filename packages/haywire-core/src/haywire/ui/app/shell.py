@@ -1100,7 +1100,7 @@ window.addEventListener("wheel", function (e) {
                 " border-top: 1px solid var(--hw-border);"
             )
         ):
-            ui.label(f"Session: {self.session.session_id[:8]}...").classes("text-xs hw-text-muted")
+            hui.hint(f"Session: {self.session.session_id[:8]}...")
 
             from haywire.core.update import startup_mismatch
 
@@ -1114,7 +1114,7 @@ window.addEventListener("wheel", function (e) {
             label = identity_text(principal, resolve_tier(principal))
             if label:
                 ui.space()
-                ui.label(label).classes("hw-text-muted text-xs px-2")
+                hui.hint(label).classes("px-2")
 
     def _render_account_icon(self) -> None:
         """The ``account_circle`` button in the ACTION bar footer."""
@@ -1178,7 +1178,7 @@ window.addEventListener("wheel", function (e) {
                     # chip stays exactly as wide as it was before this feature,
                     # so the TopBar does not reflow on every call.
                     if entry.running_tool:
-                        ui.label(entry.running_tool).classes("text-xs hw-text-dim")
+                        hui.hint(entry.running_tool)
                     # The tooltip stays a one-liner: identity and liveness only.
                     # Anything list-shaped goes to the activity editor, reached
                     # from the account menu — the chip is core's and must not

@@ -111,7 +111,7 @@ def render_settings(
         wanted = set(categories)
         visible_fields = {name: defn for name, defn in fields.items() if defn._category in wanted}
     if not visible_fields:
-        ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
+        hui.hint("No fields defined.").classes("px-2 py-1")
         return
 
     # _settings_descriptors() already yields fields in declaration order (base-first
@@ -212,7 +212,7 @@ def render_schema(ctx: "SessionContext", schema_cls: type["Settings"], registry:
         if defn._setting_key and registry.has_definition(defn._setting_key)
     ]
     if not ordered_defns:
-        ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
+        hui.hint("No fields defined.").classes("px-2 py-1")
         return
 
     def _render_one(defn: setting) -> None:
@@ -248,7 +248,7 @@ def render_keys(ctx: "SessionContext", prefix: str, registry: "SettingsRegistry"
         key: defn for key, defn in registry.all_definitions().items() if key.startswith(match_prefix)
     }
     if not defns:
-        ui.label(f"No fields found under: {prefix}.*").classes("text-xs hw-text-muted px-2 py-1")
+        hui.hint(f"No fields found under: {prefix}.*").classes("px-2 py-1")
         return
 
     _render_definitions(ctx, _sort_definitions(defns.values()), registry)

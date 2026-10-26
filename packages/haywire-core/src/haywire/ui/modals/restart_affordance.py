@@ -23,6 +23,8 @@ from __future__ import annotations
 
 from nicegui import app, ui
 
+from haywire.ui import elements as hui
+
 RESTART_COMMAND = "uv run haywire"
 """The command the user runs to bring Studio back up after the quit."""
 
@@ -65,12 +67,10 @@ def restart_affordance(
         with ui.column().classes("gap-1 flex-1"):
             ui.label(reason or _DEFAULT_REASON).classes("text-xs").style("color: var(--hw-warning);")
             if not compact:
-                ui.label(_EXPLAINER).classes("text-xs hw-text-muted")
+                hui.hint(_EXPLAINER)
             # Same static warning as the update dialog: shutdown does not save.
             ui.label("Unsaved work will be lost.").classes("text-xs").style("color: var(--hw-warning);")
-            ui.label(f"Studio does not relaunch itself — run `{RESTART_COMMAND}` afterwards.").classes(
-                "text-xs hw-text-dim"
-            )
+            hui.hint(f"Studio does not relaunch itself — run `{RESTART_COMMAND}` afterwards.")
 
     return (
         ui.button("Restart Studio", on_click=_shutdown)

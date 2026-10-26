@@ -163,7 +163,7 @@ class NodePortsPanel(BasePanel):
             widget_factory is not None and port.widget_key is not None and port.should_show_widget()
         )
         with ui.row().classes("w-full items-center gap-1 no-wrap px-2 pt-1"):
-            name = ui.label(port.label or port.id).classes("text-xs hw-text-dim truncate flex-1 min-w-0")
+            name = hui.hint(port.label or port.id).classes("truncate flex-1 min-w-0")
             name.tooltip(_identity_tooltip(port))
             if not shows_widget:
                 # The value slot is empty, so the type goes where the widget
@@ -257,7 +257,7 @@ class NodePortsPanel(BasePanel):
                         stamp_requires(handle)
                         with ui.column().classes("flex-1 min-w-0 gap-0"):
                             if port.is_fold:
-                                ui.label(port.label).classes("text-xs hw-text-dim px-2 pt-1")
+                                hui.hint(port.label).classes("px-2 pt-1")
                             else:
                                 self._render_port(port, node_id, widget_factory, context)
                     if port.is_fold:

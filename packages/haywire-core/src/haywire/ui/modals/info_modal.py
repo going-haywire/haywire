@@ -7,6 +7,8 @@ the user (blocked actions, explanatory messages, status reports).
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.ui.components.popup import Popup
 
 
@@ -47,7 +49,7 @@ def info_modal(
                 # (a bare ui.label collapses them to spaces).
                 ui.label(message).classes("text-sm hw-text-muted").style("white-space: pre-line;")
                 if detail:
-                    ui.label(detail).classes("text-xs hw-text-dim italic")
+                    hui.hint(detail).classes("italic")
 
         with ui.row().classes("w-full justify-end mt-3"):
             ui.button(ok_label, on_click=popup.close).props("flat dense")

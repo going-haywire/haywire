@@ -21,9 +21,9 @@ def _plural(count: int, singular: str, plural: str | None = None) -> str:
 def _panel_selected(flow: InstallFlow, rerender: Callable[[], None]) -> None:
     """What is about to be installed, and from where. Nothing resolved yet."""
     if flow.is_update and flow.target_version:
-        ui.label(f"{flow.current_version} → {flow.target_version}").classes("text-xs font-mono hw-text-dim")
+        hui.hint(f"{flow.current_version} → {flow.target_version}").classes("font-mono")
     elif flow.target_version:
-        ui.label(f"version {flow.target_version}").classes("text-xs font-mono hw-text-dim")
+        hui.hint(f"version {flow.target_version}").classes("font-mono")
 
     if flow.is_downgrade:
         ui.label(
@@ -36,14 +36,12 @@ def _panel_selected(flow: InstallFlow, rerender: Callable[[], None]) -> None:
         hui.info_row("Source", pkg.origin)
 
     if not flow.is_update:
-        ui.label(
+        hui.hint(
             "Installing runs code from this source in your environment. Only install "
             "libraries from publishers you trust."
-        ).classes("text-xs hw-text-muted")
+        )
 
-    ui.label("Next: ask the resolver what this would change. That check installs nothing.").classes(
-        "text-xs hw-text-dim"
-    )
+    hui.hint("Next: ask the resolver what this would change. That check installs nothing.")
 
     with hui.action_row():
         check = hui.confirm_button("Check")
@@ -68,11 +66,11 @@ def _panel_checked(flow: InstallFlow, rerender: Callable[[], None]) -> None:
             ).style("color: var(--hw-warning);")
         with hui.indented():
             for name in removals:
-                ui.label(name).classes("text-xs font-mono hw-text-dim")
-        ui.label(
+                hui.hint(name).classes("font-mono")
+        hui.hint(
             "Those libraries are removed from the registry before the install and "
             "reloaded afterwards, so a restart is recommended when this finishes."
-        ).classes("text-xs hw-text-muted")
+        )
 
     with hui.action_row():
         install = hui.confirm_button("Install")
@@ -93,7 +91,7 @@ def _panel_installing(flow: InstallFlow, rerender: Callable[[], None]) -> None:
         if running:
             ui.spinner(size="sm")
         ui.label(f"Installing {flow.name}…").classes("text-sm")
-        elapsed = ui.label("").classes("text-xs hw-text-dim ml-auto")
+        elapsed = hui.hint("").classes("ml-auto")
 
     def _tick() -> None:
         elapsed.text = f"{int(flow.elapsed)}s"
@@ -110,9 +108,7 @@ def _panel_installing(flow: InstallFlow, rerender: Callable[[], None]) -> None:
     flow.attach_log(log)
 
     if running:
-        ui.label("Large packages can take a minute, and uv stays quiet while it downloads.").classes(
-            "text-xs hw-text-muted"
-        )
+        hui.hint("Large packages can take a minute, and uv stays quiet while it downloads.")
 
     if flow.error is not None:
         # A failed install stays here; the shared chrome renders the message
@@ -143,7 +139,7 @@ def _panel_done(flow: InstallFlow, on_done: Callable[[], None] | None) -> None:
     elif action is LibraryReloadAction.REFRESH:
         with ui.row().classes("w-full items-center gap-2"):
             ui.icon("refresh", size="16px").classes("hw-text-muted")
-            ui.label("Reload the page to use the new library.").classes("text-xs hw-text-muted")
+            hui.hint("Reload the page to use the new library.")
 
     def _close() -> None:
         if flow.popup is not None:

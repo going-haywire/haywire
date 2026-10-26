@@ -6,6 +6,8 @@ from typing import Callable
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.ui.components.stepper import Panel, show_step_flow
 
 from haybale_marketplace.editors._refresh_flow._state import RefreshFlow, RefreshSource
@@ -46,9 +48,7 @@ def show_refresh_flow(
         if not f.malformed or on_edit_global is None:
             return False
         ui.label(f.error or "").classes("text-xs hw-text-danger whitespace-pre-line")
-        ui.label("A malformed file stays malformed on retry — repair it first, then fetch again.").classes(
-            "text-xs hw-text-dim"
-        )
+        hui.hint("A malformed file stays malformed on retry — repair it first, then fetch again.")
 
         def _edit() -> None:
             if flow.popup is not None:

@@ -15,19 +15,19 @@ from haybale_graph_editor._promote_flow._state import PromoteFlow
 
 def _panel_name(flow: PromoteFlow, rerender: Callable[[], None]) -> None:
     """The macro's name and the library it goes into. Nothing written yet."""
-    ui.label(
+    hui.hint(
         "A macro lives in its own file and can be placed in any graph. This Group's card "
         "becomes the first placement."
-    ).classes("text-xs hw-text-dim")
+    )
 
     if not flow.targets:
         with ui.row().classes("w-full items-center gap-2 mt-1"):
             ui.icon("error", size="16px").classes("hw-text-danger")
             ui.label("No library in this project can receive a macro.").classes("text-sm hw-text-danger")
-        ui.label(
+        hui.hint(
             "A macro needs a library installed with 'pip install -e' that registers a "
             "macros/ folder — otherwise its file could never be edited or scanned."
-        ).classes("text-xs hw-text-muted")
+        )
         return
 
     name_input = ui.input(label="Macro name", value=flow.name).classes("w-full")
@@ -44,7 +44,7 @@ def _panel_name(flow: PromoteFlow, rerender: Callable[[], None]) -> None:
             on_change=lambda e: _on_target(flow, e.value),
         ).classes("w-full").props("dense outlined")
     elif flow.target is not None:
-        ui.label(f"Into {flow.target.label}").classes("text-xs hw-text-dim")
+        hui.hint(f"Into {flow.target.label}")
 
     with hui.action_row():
         plan_button = hui.confirm_button("Continue")
@@ -79,7 +79,7 @@ def _panel_planned(flow: PromoteFlow, rerender: Callable[[], None]) -> None:
         return
 
     hui.section_label("Will be written")
-    ui.label(str(plan.path)).classes("text-xs font-mono hw-text-dim")
+    hui.hint(str(plan.path)).classes("font-mono")
 
     if plan.refusal is not None:
         with ui.row().classes("w-full items-center gap-2 mt-1"):
@@ -90,13 +90,11 @@ def _panel_planned(flow: PromoteFlow, rerender: Callable[[], None]) -> None:
         return
 
     node_count = len(plan.document.get("nodes", {}))
-    ui.label(
+    hui.hint(
         f"{node_count} node{'' if node_count == 1 else 's'}, including the two boundary nodes "
         "that define its interface."
-    ).classes("text-xs hw-text-muted")
-    ui.label("The Group's card becomes a placement. Undo puts the Group back and leaves the file.").classes(
-        "text-xs hw-text-dim"
     )
+    hui.hint("The Group's card becomes a placement. Undo puts the Group back and leaves the file.")
 
     with hui.action_row():
         ui.button("Back", on_click=lambda: _back(flow, rerender)).props("flat dense")
@@ -120,8 +118,8 @@ def _panel_promoted(flow: PromoteFlow, on_done: Callable[[], None] | None) -> No
         ui.label(f"{flow.name} is now a macro.").classes("text-sm").style("color: var(--hw-positive);")
 
     if flow.registry_key:
-        ui.label(flow.registry_key).classes("text-xs font-mono hw-text-dim")
-    ui.label("Find it in the add-node menu, under this library's macros.").classes("text-xs hw-text-muted")
+        hui.hint(flow.registry_key).classes("font-mono")
+    hui.hint("Find it in the add-node menu, under this library's macros.")
 
     def _close() -> None:
         if flow.popup is not None:

@@ -68,9 +68,9 @@ def upgrade_impact_modal(
 
             with ui.column().classes("gap-1"):
                 hui.section_label("Also upgrading")
-                ui.label(
+                hui.hint(
                     "Installing this library requires upgrading the following already-loaded libraries."
-                ).classes("text-xs hw-text-dim")
+                )
                 for name in also_upgrading:
                     with ui.row().classes("items-center gap-1"):
                         ui.icon("upgrade", size="14px").classes("hw-text-accent")

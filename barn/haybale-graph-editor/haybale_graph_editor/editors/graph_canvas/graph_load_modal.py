@@ -36,6 +36,8 @@ import logging
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
+
 from haywire.ui.components.popup.popup import Popup
 
 logger = logging.getLogger(__name__)
@@ -112,9 +114,9 @@ def graph_load_modal(*, graph_name: str, total_nodes: int) -> GraphLoadModal:
 
     with popup:
         with ui.column().classes("w-full gap-2 p-1"):
-            label = ui.label(f"Mounting nodes… 0 / {total_nodes}").classes("text-xs hw-text-muted")
+            label = hui.hint(f"Mounting nodes… 0 / {total_nodes}")
             bar = ui.linear_progress(value=0.0, show_value=False).props("rounded").classes("w-full")
-            ui.label("The canvas is locked until the graph is fully drawn.").classes("text-xs hw-text-dim")
+            hui.hint("The canvas is locked until the graph is fully drawn.")
 
     popup.open()
     return GraphLoadModal(popup=popup, label=label, bar=bar, total=total_nodes)

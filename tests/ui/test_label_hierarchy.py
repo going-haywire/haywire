@@ -61,6 +61,34 @@ def test_no_ui_code_styles_a_heading_by_hand() -> None:
     assert not hits, f"hand-styled heading, use hui.heading / hui.section_label: {hits}"
 
 
+# A ui.label given the hint look by hand: text-xs in a muted or dim colour.
+_LABEL_CLASSES = re.compile(
+    r"""ui\.label\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\)\s*\.classes\(\s*"([^"]*)"\s*\)"""
+)
+
+# A label that switches its own colour (.hw-hint's would win), and a bold key label.
+_HINT_ALLOWED = {
+    "barn/haybale-graph-editor/haybale_graph_editor/editors/graph_editor.py",
+    "packages/haywire-core/src/haywire/ui/errors/haywire_exception.py",
+}
+
+
+@pytest.mark.unit
+def test_no_ui_code_styles_a_hint_by_hand() -> None:
+    hits = []
+    for path in _ui_sources():
+        rel = path.relative_to(_REPO).as_posix()
+        if rel in _HINT_ALLOWED:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for match in _LABEL_CLASSES.finditer(text):
+            classes = set(match.group(1).split())
+            if "text-xs" in classes and classes & {"hw-text-dim", "hw-text-muted"}:
+                hits.append(f"{rel}:{text.count(chr(10), 0, match.start()) + 1}")
+
+    assert not hits, f"hand-styled hint, use hui.hint: {hits}"
+
+
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"

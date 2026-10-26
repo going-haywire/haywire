@@ -175,9 +175,7 @@ class EdgePropagationPanel(BasePanel):
             with layout:
                 with ui.row().classes("w-full items-center gap-1 py-0.5"):
                     ui.icon(hui.icon.edge_propagation).classes("text-lg")
-                    ui.label(f"{locked.value.capitalize()} (fixed by the connection)").classes(
-                        "text-xs hw-text-muted"
-                    )
+                    hui.hint(f"{locked.value.capitalize()} (fixed by the connection)")
             return
 
         def _is_lazy() -> bool:

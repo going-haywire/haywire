@@ -223,7 +223,7 @@ class HaystackEditor(BaseEditor):
         app = context.app
         if app is None:
             with self._list_container:
-                ui.label("Graph manager not available").classes("text-xs hw-text-dim p-2 italic")
+                hui.hint("Graph manager not available").classes("p-2 italic")
             return
 
         hs = context.app_data[HaystackState]
@@ -232,7 +232,7 @@ class HaystackEditor(BaseEditor):
 
         with self._list_container:
             if not graphs:
-                ui.label("No graphs open").classes("text-xs hw-text-dim p-2 italic")
+                hui.hint("No graphs open").classes("p-2 italic")
             else:
                 for entry in graphs:
                     self._render_entry(entry, context)

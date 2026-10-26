@@ -232,7 +232,7 @@ def render_error_details(
                                     with ui.row().classes("items-center gap-2"):
                                         ui.icon(hui.icon.arrow_forward).classes("text-xs hw-text-accent")
                                         ui.label(f"{base_filename}").classes("font-bold text-xs")
-                                        ui.label(f"in {function_name}").classes("text-xs hw-text-muted")
+                                        hui.hint(f"in {function_name}")
                                         # Add open button for each frame
                                         if os.path.exists(filename):
                                             ui.button(
@@ -253,9 +253,7 @@ def render_error_details(
                                     display_path = filename
                                     if len(display_path) > 60:
                                         display_path = "..." + display_path[-57:]
-                                    ui.label(f'File "{display_path}"').classes(
-                                        "text-xs hw-text-dim font-mono"
-                                    )
+                                    hui.hint(f'File "{display_path}"').classes("font-mono")
 
                                     # Source line
                                     if source_line.strip():

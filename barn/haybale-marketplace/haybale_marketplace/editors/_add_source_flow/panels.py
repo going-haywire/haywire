@@ -19,10 +19,10 @@ def _plural(count: int, singular: str, plural: str | None = None) -> str:
 
 def _panel_input(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
     """Paste a URL or a TOML block. Nothing is fetched yet."""
-    ui.label(
+    hui.hint(
         "Paste a marketstall URL, a marketplace URL, or a [[haybales]] TOML block. "
         "Nothing is subscribed until you have seen what it offers."
-    ).classes("text-xs hw-text-dim")
+    )
 
     # ui.textarea (not hui.input_field) so a multi-line TOML paste preserves
     # newlines — a single-line input collapses them into spaces and produces
@@ -60,24 +60,22 @@ def _panel_probed(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
         ).style("color: var(--hw-positive);")
 
     if resolved.is_paste:
-        ui.label("Pasted block — it will be saved alongside your other sources when you subscribe.").classes(
-            "text-xs hw-text-dim"
-        )
+        hui.hint("Pasted block — it will be saved alongside your other sources when you subscribe.")
     elif resolved.persist_url:
-        ui.label(resolved.persist_url).classes("text-xs font-mono hw-text-dim")
+        hui.hint(resolved.persist_url).classes("font-mono")
 
     if flow.new_names:
         with hui.indented():
             for name in flow.new_names[:12]:
-                ui.label(name).classes("text-xs font-mono hw-text-dim")
+                hui.hint(name).classes("font-mono")
             if len(flow.new_names) > 12:
-                ui.label(f"…and {len(flow.new_names) - 12} more").classes("text-xs hw-text-muted")
+                hui.hint(f"…and {len(flow.new_names) - 12} more")
 
     if resolved.kind == "market":
-        ui.label(
+        hui.hint(
             "Marketplaces are read one level deep, so this may pull in further "
             "marketstalls when you refresh."
-        ).classes("text-xs hw-text-muted")
+        )
 
     if flow.conflicts:
         ui.label(
@@ -101,9 +99,7 @@ def _panel_resolved(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
                 "text-sm"
             ).style("color: var(--hw-positive);")
     else:
-        ui.label("These names are offered by more than one source. Pick which to keep:").classes(
-            "text-xs hw-text-dim"
-        )
+        hui.hint("These names are offered by more than one source. Pick which to keep:")
         for conflict in flow.conflicts:
             with hui.box(gap="gap-1"):
                 hui.subject(conflict.name)
@@ -118,16 +114,14 @@ def _panel_resolved(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
                 radio.on("update:model-value", _on_choice)
 
                 with hui.indented(gap="gap-0"):
-                    ui.label(f"existing: {conflict.existing_source}").classes(
-                        "text-xs hw-text-dim font-mono"
-                    )
-                    ui.label(f"new: {conflict.new_source}").classes("text-xs hw-text-dim font-mono")
+                    hui.hint(f"existing: {conflict.existing_source}").classes("font-mono")
+                    hui.hint(f"new: {conflict.new_source}").classes("font-mono")
 
-        ui.label(
+        hui.hint(
             "The source that loses a name is told to ignore it, so the choice survives future refreshes."
-        ).classes("text-xs hw-text-muted")
+        )
 
-    ui.label("Subscribing writes this source to your marketplace file.").classes("text-xs hw-text-dim")
+    hui.hint("Subscribing writes this source to your marketplace file.")
 
     with hui.action_row():
         subscribe = hui.confirm_button("Subscribe")
@@ -141,11 +135,11 @@ def _panel_added(flow: AddSourceFlow, rerender: Callable[[], None]) -> None:
         ui.label("Subscribed.").classes("text-sm").style("color: var(--hw-positive);")
 
     if flow.persist_url:
-        ui.label(flow.persist_url).classes("text-xs font-mono hw-text-dim")
+        hui.hint(flow.persist_url).classes("font-mono")
 
-    ui.label(
+    hui.hint(
         "Its libraries reach the list on the next refresh. You can run that now, or later from the toolbar."
-    ).classes("text-xs hw-text-dim")
+    )
 
     with hui.action_row():
         ui.button("Done", on_click=lambda: _close(flow)).props("flat dense")
@@ -165,9 +159,7 @@ def _panel_refreshed(flow: AddSourceFlow, on_done: Callable[[], None] | None) ->
             ui.label("Refreshed.").classes("text-sm").style("color: var(--hw-positive);")
 
     if report is not None and report.unavailable_urls:
-        ui.label(f"{_plural(len(report.unavailable_urls), 'source')} could not be reached.").classes(
-            "text-xs hw-text-muted"
-        )
+        hui.hint(f"{_plural(len(report.unavailable_urls), 'source')} could not be reached.")
 
     with hui.action_row():
         ui.button("Done", on_click=lambda: _close(flow)).props("flat dense").style(

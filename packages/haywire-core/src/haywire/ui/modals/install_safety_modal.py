@@ -72,13 +72,13 @@ def install_safety_modal(
                     icon="open_in_new",
                     on_click=lambda: ui.run_javascript(f"window.open({source_url!r}, '_blank')"),
                 ).props("flat dense size=sm")
-                ui.label(source_url).classes("text-xs hw-text-dim font-mono truncate")
+                hui.hint(source_url).classes("font-mono truncate")
             else:
                 ui.button(
                     "Review source",
                     icon="open_in_new",
                 ).props("flat dense size=sm disable").tooltip("No source URL provided")
-                ui.label("(no source URL provided)").classes("text-xs hw-text-dim italic")
+                hui.hint("(no source URL provided)").classes("italic")
 
         # Action buttons. Each handler awaits the callback if it returns a
         # coroutine so NiceGUI's handle_event wraps the whole chain in the

@@ -408,7 +408,7 @@ class LibraryOverviewEditor(BaseEditor):
                             ),
                         ).props("size=sm color=warning flat")
                     else:
-                        ui.label(f"Successor: {deprecated.successor}").classes("text-xs hw-text-dim")
+                        hui.hint(f"Successor: {deprecated.successor}")
 
     # ─────────────────────────────────────────────────────────────────────────
     # Center panel — unified renderer
@@ -515,7 +515,7 @@ class LibraryOverviewEditor(BaseEditor):
                         with ui.row().classes("items-center gap-2 mt-1 flex-wrap"):
                             ui.label(f"v{version}").classes("text-sm hw-text-muted")
                             if row.name:
-                                ui.label(row.name).classes("text-xs hw-text-muted font-mono")
+                                hui.hint(row.name).classes("font-mono")
                             if update_available and catalog_row:
                                 hui.tag(f"v{catalog_row.version} available", color="orange")
                             if row.deprecated is not None:
@@ -747,14 +747,14 @@ class LibraryOverviewEditor(BaseEditor):
                     ui.label(description).classes("hw-text-muted text-sm mb-1")
                 if row.authors:
                     with ui.row().classes("items-center gap-1"):
-                        ui.label("By").classes("text-xs hw-text-dim")
+                        hui.hint("By")
                         for i, (_name, _url) in enumerate(row.authors):
                             if i:
-                                ui.label(",").classes("text-xs hw-text-dim")
+                                hui.hint(",")
                             if _url.startswith("http"):
                                 ui.link(_name, _url, new_tab=True).classes("text-xs hw-text-accent")
                             else:
-                                ui.label(_name).classes("text-xs hw-text-dim")
+                                hui.hint(_name)
 
                 # Collect relevant links. Notes gets special handling
                 _links = [(_lbl, _href) for _lbl, _href in collect_overview_links(row) if _lbl != "Notes"]
@@ -764,14 +764,14 @@ class LibraryOverviewEditor(BaseEditor):
                         if _notes_click:
                             _open_notes, _icon = _notes_click
                             with ui.row().classes("items-center gap-1"):
-                                ui.label("Notes").classes("text-xs hw-text-dim")
+                                hui.hint("Notes")
                                 # the target is a studio-side navigation action (open in CodeEditor)
                                 ui.icon(_icon, size="14px").classes("hw-text-accent cursor-pointer").on(
                                     "click", _open_notes
                                 ).tooltip("Open in CodeEditor")
                         for _lbl, _href in _links:
                             with ui.row().classes("items-center gap-1"):
-                                ui.label(_lbl).classes("text-xs hw-text-dim")
+                                hui.hint(_lbl)
                                 with ui.link(target=_href, new_tab=True):
                                     ui.icon(hui.icon.open_external, size="14px").classes(
                                         "hw-text-accent"
@@ -898,8 +898,8 @@ class LibraryOverviewEditor(BaseEditor):
             with ui.column().classes("gap-0 min-w-0 flex-1"):
                 ui.label(label).classes("text-sm font-medium")
                 if description:
-                    ui.label(description).classes("text-xs hw-text-dim truncate")
-                ui.label(key).classes("text-xs hw-text-dim font-mono")
+                    hui.hint(description).classes("truncate")
+                hui.hint(key).classes("font-mono")
 
             # Lazy, matching _notes_click_target: haybale_studio is a declared
             # dependency, but editor modules are imported during registration
@@ -945,7 +945,7 @@ class LibraryOverviewEditor(BaseEditor):
         else:
             with ui.column().classes("gap-2 py-4"):
                 ui.label("No OVERVIEW.md found.").classes("hw-text-muted italic text-sm")
-                ui.label("Run /docs to generate library documentation.").classes("text-xs hw-text-dim")
+                hui.hint("Run /docs to generate library documentation.")
 
     def _render_component_tab(
         self,

@@ -173,7 +173,7 @@ def open_version_picker(pkg: Haybale, manager: "LibraryManager", context: "Sessi
             .classes("w-full")
             .props("dense")
         )
-        status = ui.label("Fetching versions…").classes("text-xs hw-text-dim")
+        status = hui.hint("Fetching versions…")
 
         async def load_versions():
             versions = await manager.fetch_versions(pkg)
