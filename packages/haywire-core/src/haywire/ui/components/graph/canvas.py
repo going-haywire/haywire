@@ -13,6 +13,7 @@ from pathlib import Path
 from nicegui import ui
 
 from haywire.core.access import LevelMode
+from haywire.core.edge.settings import EdgeDefaultSettings
 from haywire.ui.components.graph.event_definitions import BaseGraphEvent, GRAPH_EVENT_REGISTRY
 from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
@@ -30,7 +31,12 @@ _CANVAS_SETTING_PROPS: dict[str, str] = {
     "grid_subdivisions": "grid-subdivisions",
     "snap_to_grid": "snap-to-grid",
     "snap_scale_to_grid": "snap-scale-to-grid",
-    "edge_hit_padding": "edge-hit-padding",
+}
+
+# Studio-wide edge settings → Vue prop names. The graph-overridable edge defaults
+# arrive through set_edge_defaults instead.
+_EDGE_SETTING_PROPS: dict[str, str] = {
+    "hit_padding": "edge-hit-padding",
 }
 
 # Hover-magnifier settings → Vue prop names. The magnifier lives in canvas.vue
@@ -99,6 +105,11 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         self._apply_canvas_setting_props()
         self._canvas_settings._subscribe(self._on_canvas_setting_changed)
 
+        self._edge_settings = EdgeDefaultSettings()
+        for name, prop in _EDGE_SETTING_PROPS.items():
+            self._props[prop] = getattr(self._edge_settings, name)
+        self._edge_settings._subscribe(self._on_edge_setting_changed)
+
         # Hover-magnifier settings: push initial values and live-update on change.
         self._pz_settings = EditorPanZoomSettings()
         self._apply_hover_setting_props()
@@ -139,6 +150,13 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
     def _on_canvas_setting_changed(self, name: str, value, _old) -> None:
         """Propagate a canvas appearance settings change to the Vue component."""
         prop = _CANVAS_SETTING_PROPS.get(name)
+        if prop is not None:
+            self._props[prop] = value
+            self.update()
+
+    def _on_edge_setting_changed(self, name: str, value, _old) -> None:
+        """Propagate a studio-wide edge settings change to the Vue component."""
+        prop = _EDGE_SETTING_PROPS.get(name)
         if prop is not None:
             self._props[prop] = value
             self.update()
@@ -234,6 +252,10 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         # doesn't fire into a torn-down component) across hot-reload / tab close.
         try:
             self._canvas_settings._unsubscribe(self._on_canvas_setting_changed)
+        except Exception:
+            pass
+        try:
+            self._edge_settings._unsubscribe(self._on_edge_setting_changed)
         except Exception:
             pass
         try:

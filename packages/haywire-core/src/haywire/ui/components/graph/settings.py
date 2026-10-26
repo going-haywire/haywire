@@ -56,11 +56,3 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         description="Snap the dragged edge to the grid when resizing a node",
         category="ui.canvas",
     )
-    edge_hit_padding = setting[INT](
-        20,
-        label="Edge Hit Padding",
-        description="Clickable width around an edge beyond its line, in pixels",
-        category="ui.canvas",
-        min=0,
-        max=24,
-    )

@@ -11,7 +11,7 @@ this module.
 CanvasSettingsPanel          — grid, zoom, pan behaviour
 EditorZoomPanSettingsPanel   — zoom/pan behaviour settings
 MinimapSettingsPanel         — minimap position and visibility
-EdgeDefaultSettingsPanel     — computed edges' arrow head, head size and width
+EdgeDefaultSettingsPanel     — computed edges' arrow head, head size and width; edge hit padding
 
 Debug HUD visibility moved to ``DebugSurface`` — see debug.py.
 """
@@ -99,7 +99,7 @@ class MinimapSettingsPanel(BasePanel):
     default_open=False,
 )
 class EdgeDefaultSettingsPanel(BasePanel):
-    """Arrow head, head size and width of computed edges; each graph may override them."""
+    """Computed edges' arrow head, head size and width (each graph may override them), and hit padding."""
 
     def draw(
         self,

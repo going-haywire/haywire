@@ -2,12 +2,12 @@
 
 import pytest
 
-from haywire.ui.components.graph.canvas import _CANVAS_SETTING_PROPS
-from haywire.ui.components.graph.settings import CanvasSettings
+from haywire.core.edge.settings import EdgeDefaultSettings
+from haywire.ui.components.graph.canvas import _EDGE_SETTING_PROPS
 
 pytestmark = pytest.mark.unit
 
 
 def test_the_hit_padding_reaches_the_canvas_as_a_prop():
-    assert _CANVAS_SETTING_PROPS["edge_hit_padding"] == "edge-hit-padding"
-    assert CanvasSettings._settings_descriptors()["edge_hit_padding"]._default == 20
+    assert _EDGE_SETTING_PROPS["hit_padding"] == "edge-hit-padding"
+    assert EdgeDefaultSettings._settings_descriptors()["hit_padding"]._default == 20
