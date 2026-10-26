@@ -39,6 +39,7 @@ level: framework
 - Known gap: the CSS exempts an element if any ancestor stamp is exempt, while `isGated` reads the nearest stamp. They differ only for a gated stamp nested inside an exempt one; none exists today.
 - Known limitation: tooltips on gated triggers stay inert in `view`, because `pointer-events: none` also removes hover; they are documented in skin-canon.
 - Known gap: a number widget briefly enters its edit state on focus before the blur in `view`; nothing is written.
+- Known limitation: a teleported settings row menu greys its writers by the session mode, the active editor's level mode, not by its own route's mode. They differ only for a selection toolbar on a canvas that is not the active one with a different lock (two canvases of one graph); the route still refuses the write (follow-up #51).
 - Out-of-app limitation: edits to the security document made outside the app publish no `RosterChanged`, so no page reloads (the roster cache picks them up lazily). This closes follow-up #5 part 1 as a known limitation.
 - The gate stays a second layer, not access control; the route is the refusal that counts (ADR 0055).
 
