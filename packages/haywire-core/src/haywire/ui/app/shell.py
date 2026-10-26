@@ -244,6 +244,8 @@ STATIC_CSS = (
     " { color: var(--hw-text-body); }"
     # Make CodeMirror fill its flex container so height is flexible.
     " .hw-cm-isolate .cm-editor { height: 100%; }"
+    # Quasar colours a separator by its light/dark mode, which the shell does not use.
+    " .q-separator { background: var(--hw-separator, var(--hw-border)) !important; }"
     # Expansion items inside area editors (PropertiesEditor, etc.)
     " .hw-panel .q-expansion-item {"
     "   background: var(--hw-panel-header-0-bg, transparent);"

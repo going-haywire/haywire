@@ -118,7 +118,7 @@ class BasePanel(ABC):
             _poll_surface,
             _render_path,
             partition_panels,
-            render_panel,
+            render_panels,
             render_path_extended,
         )
         from haywire.ui.panel.layout import PanelLayout
@@ -163,18 +163,6 @@ class BasePanel(ABC):
             hui.error_label(f"{type(self).__name__} has no panel registry to render {surface.id!r} from")
             return
         applies, disabled = partition_panels(registry.get_panels(surface), ctx)
-        by_order = sorted(
-            [(cls, False) for cls in applies] + [(cls, True) for cls in disabled],
-            key=lambda pair: getattr(pair[0].class_identity, "order", 100),
-        )
         layout = PanelLayout(ui.element("div"), state_bag=self._hw_state_bag)
         with render_path_extended(surface.id):
-            for cls, is_disabled in by_order:
-                render_panel(
-                    cls,
-                    ctx,
-                    layout,
-                    actions_host=host,
-                    registry=registry,
-                    disabled=is_disabled,
-                )
+            render_panels(surface, applies, disabled, ctx, layout, actions_host=host, registry=registry)

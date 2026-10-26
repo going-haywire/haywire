@@ -428,7 +428,7 @@ def _open_source_file(ctx: "SessionContext", registry_key: str) -> None:
 
 
 def _build_developer_menu(ctx: "SessionContext", *entries: tuple[str, str | None]) -> None:
-    """Draw the Developer submenu for a settings row, if it has anything to say.
+    """Draw the Develop submenu for a settings row, if it has anything to say.
 
     *entries* are ``(label, registry_key)`` pairs; a pair whose key is None is
     dropped.
@@ -438,11 +438,11 @@ def _build_developer_menu(ctx: "SessionContext", *entries: tuple[str, str | None
         return
     # dense=False: the anchor must match the density of the Reset/Promote items
     # it sits beside, which are plain menu_items. The default (True) suits
-    # NodeMenuBuilder, whose own leaves are dense, and left the Developer row
+    # NodeMenuBuilder, whose own leaves are dense, and left the Develop row
     # visibly shorter than the rest of this menu. Same reasoning applies one
     # level down, to each entry's own sub-flyout anchor.
     siblings: list = []
-    with hui.flyout_category("Developer", siblings, dense=False) as entry_siblings:
+    with hui.flyout_category("Develop", siblings, dense=False) as entry_siblings:
         # entry_siblings (yielded, not a fresh list per entry) is what makes the
         # per-entry sub-flyouts (below) siblings of EACH OTHER. A fresh list per
         # iteration would register each sub-flyout into its own private group of

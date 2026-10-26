@@ -37,14 +37,14 @@ if TYPE_CHECKING:
 
 @panel(
     surface=SelectionToolbar,
-    label="Collapse",
+    label="Fold",
     icon=hui.icon.node_collapse,
-    order=25,
+    order=100,
 )
 class CollapseToolbarPanel(BasePanel):
     """One button that folds or unfolds the selection (ADR 0032).
 
-    The same verb as the context menu's Collapse row, on the toolbar because
+    The same verb as the context menu's Fold row, on the toolbar because
     folding is the gesture a user repeats while reading a graph — the
     code-folding idiom — and a repeated gesture should not cost a right-click.
 
@@ -76,7 +76,7 @@ class CollapseToolbarPanel(BasePanel):
 
     @staticmethod
     def _tip(collapsed: bool, n_nodes: int) -> str:
-        return selection_label("Expand" if collapsed else "Collapse", n_nodes, 0)
+        return selection_label("Unfold" if collapsed else "Fold", n_nodes, 0)
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         collapsed = self.actions.selection_is_collapsed()
@@ -104,7 +104,7 @@ class CollapseToolbarPanel(BasePanel):
     surface=SelectionToolbar,
     label="Lock",
     icon=hui.icon.locked,
-    order=27,
+    order=110,
 )
 class LockToolbarPanel(BasePanel):
     """Lock or unlock ONE node — protection against accidental manipulation."""
@@ -160,7 +160,7 @@ class LockToolbarPanel(BasePanel):
     hosts=(SelectionMenu,),
     label="More",
     icon="more_horiz",
-    order=999,
+    order=900,
 )
 class SelectionOverflowPanel(BasePanel):
     """The ⋯ — a panel that hosts the selection right-click menu.

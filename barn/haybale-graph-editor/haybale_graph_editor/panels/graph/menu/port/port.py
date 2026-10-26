@@ -5,10 +5,10 @@ Pin context-menu panels — the surface ``PinMenu``.
 Reached structurally now: the canvas detects a pin from ``data-pin-id``,
 which ``render_pin`` emits on every pin from every skin, so every skin gains
 this menu and none can suppress it. Every panel below is safe under that:
-the "Edit…" rows are read-only navigation, and the removal verb polls true
+the "Edit Source" rows are read-only navigation, and the removal verb polls true
 only on a pin the user added.
 
-"Edit…" holds the components behind the pin — its data type, and the widget
+"Edit Source" holds the components behind the pin — its data type, and the widget
 editing its value — and the selection menu carries the same submenu over its
 own subjects, so one gesture answers "what is this made of" everywhere. See
 ``..component_rows`` for why those rows are not gated on developer mode.
@@ -61,12 +61,12 @@ def _widget_identity(ctx: "SessionContext") -> Any | None:
 @panel(
     surface=PinMenu,
     hosts=(PinEditMenu,),
-    label="Edit",
+    label="Edit Source",
     icon=hui.icon.node_source,
-    order=10,
+    order=200,
 )
 class PinEditMenuPanel(BasePanel):
-    """The "Edit…" row — a submenu over the components behind this pin.
+    """The "Edit Source" row — a submenu over the components behind this pin.
 
     It draws the row and the flyout, and pipes the ``PortActions`` host
     one hop further to the rows inside.
@@ -80,7 +80,7 @@ class PinEditMenuPanel(BasePanel):
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
-            with hui.submenu_row("Edit", icon=hui.icon.node_source):
+            with hui.submenu_row("Edit Source", icon=hui.icon.node_source):
                 self.render_surface(PinEditMenu, ctx)
 
 
@@ -155,7 +155,7 @@ def _promoted_setting(ctx: "SessionContext"):
     surface=PinMenu,
     label="Reset to default",
     icon=hui.icon.undo,
-    order=15,
+    order=0,
 )
 class ResetSettingMenuPanel(BasePanel):
     """Put the backing setting back to its declared default, from the pin.
@@ -209,7 +209,7 @@ class ResetSettingMenuPanel(BasePanel):
     surface=PinMenu,
     label="Set to none",
     icon=hui.icon.close,
-    order=16,
+    order=10,
 )
 class ClearSettingMenuPanel(BasePanel):
     """Clear the backing setting to ABSENCE — ``OPTIONAL[T]`` fields only.
@@ -263,7 +263,7 @@ class ClearSettingMenuPanel(BasePanel):
     surface=PinMenu,
     label="Detach from setting",
     icon=hui.icon.delete,
-    order=30,
+    order=20,
 )
 class DetachSettingMenuPanel(BasePanel):
     """Removes a pin the user added, on the pin that carries it.
@@ -325,7 +325,7 @@ class DetachSettingMenuPanel(BasePanel):
     hosts=(PinWidgetMenu,),
     label="Show widget",
     icon=hui.icon.widget,
-    order=40,
+    order=100,
 )
 class PinShowWidgetMenuPanel(BasePanel):
     """The "Show widget ▸" row — picks when this pin's Widget is rendered.

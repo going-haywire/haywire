@@ -12,9 +12,9 @@ selection. The label appears twice per panel because the panel owns both
 renderings (a host-drawn row could not carry the dynamic "Copy 3 nodes"
 form); a class constant is the whole answer.
 
-Redraw / revalidate / reset sit one level down, on ``SelectionRebuildMenu``,
-behind ``RebuildSelectionMenuPanel``'s "Rebuild" row: three commands of one
-family, reached through one row instead of three.
+Rows group into bands by ``order`` (see ``SelectionMenu``), with a separator
+between bands. The macro verbs sit one level down on ``SelectionMacroMenu``;
+source, cloning and rebuilding on ``SelectionDevelopMenu``.
 """
 
 from __future__ import annotations
@@ -42,7 +42,9 @@ from haybale_graph_editor.panels.graph.menu.component_rows import component_row,
 from haybale_graph_editor.surfaces import (
     SelectionActions,
     SelectionDetailMenu,
+    SelectionDevelopMenu,
     SelectionEditMenu,
+    SelectionMacroMenu,
     SelectionMenu,
 )
 from haybale_graph_editor.state.edit_state import EditState
@@ -79,12 +81,14 @@ def _selection_counts(ctx: "SessionContext") -> tuple[int, int]:
 
 # SelectionMenu
 #  -> CopySelectionMenuPanel
+#  -> MacroSelectionMenuPanel
+#     -> SelectionMacroMenu
+#  -> DevelopSelectionMenuPanel
+#     -> SelectionDevelopMenu
+#        -> EditSelectionMenuPanel -> SelectionEditMenu
+#        -> CloneToLibraryMenuPanel
+#        -> RebuildSelectionMenuPanel -> SelectionRebuildMenu
 #  -> DeleteSelectionMenuPanel
-#  -> RebuildSelectionMenuPanel
-#     -> SelectionRebuildMenu
-#        -> RedrawSelectionMenuPanel
-#        -> RevalidateSelectionMenuPanel
-#        -> ResetSelectionMenuPanel
 
 
 def _selected_nodes_only(ctx: "SessionContext") -> bool:
@@ -98,9 +102,9 @@ def _selected_nodes_only(ctx: "SessionContext") -> bool:
 
 @panel(
     surface=SelectionMenu,
-    label="Collapse",
+    label="Fold",
     icon=hui.icon.node_collapse,
-    order=10,
+    order=400,
 )
 class CollapseSelectionMenuPanel(BasePanel):
     """Fold or unfold every selected node — one row, both directions.
@@ -129,7 +133,7 @@ class CollapseSelectionMenuPanel(BasePanel):
 
     @staticmethod
     def _row_text(collapsed: bool, n_nodes: int) -> str:
-        return selection_label("Expand" if collapsed else "Collapse", n_nodes, 0)
+        return selection_label("Unfold" if collapsed else "Fold", n_nodes, 0)
 
     @staticmethod
     def _row_icon(collapsed: bool) -> str:
@@ -166,14 +170,14 @@ class CollapseSelectionMenuPanel(BasePanel):
         if is_reroute_node(ctx) is False:
             with layout:
                 with layout:
-                    hui.menu_row("Collapse", icon=hui.icon.node_collapse, enabled=False)
+                    hui.menu_row("Fold", icon=hui.icon.node_collapse, enabled=False)
 
 
 @panel(
     surface=SelectionMenu,
     label="Copy Selection",
     icon=hui.icon.copy,
-    order=20,
+    order=100,
 )
 class CopySelectionMenuPanel(BasePanel):
     actions: SelectionActions
@@ -254,7 +258,7 @@ class NodeErrorsSelectionMenuPanel(BasePanel):
     surface=SelectionMenu,
     label="Dissolve Reroute",
     icon=hui.icon.edge,
-    order=30,
+    order=230,
 )
 class DissolveRerouteMenuPanel(BasePanel):
     """Collapse a reroute node back into a direct connection.
@@ -303,14 +307,14 @@ def _single_node(ctx: "SessionContext"):
 
 
 @panel(
-    surface=SelectionMenu,
+    surface=SelectionDevelopMenu,
     hosts=(SelectionEditMenu,),
-    label="Edit",
+    label="Edit Source",
     icon=hui.icon.node_source,
-    order=35,
+    order=10,
 )
 class EditSelectionMenuPanel(BasePanel):
-    """The "Edit…" row — a submenu over the components behind this node.
+    """The "Edit Source" row — a submenu over the components behind this node.
 
     A hosting panel: it draws only the row and the flyout, piping the
     ``SelectionActions`` host one hop further, exactly as
@@ -337,13 +341,13 @@ class EditSelectionMenuPanel(BasePanel):
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
-            with hui.submenu_row("Edit", icon=hui.icon.node_source):
+            with hui.submenu_row("Edit Source", icon=hui.icon.node_source):
                 self.render_surface(SelectionEditMenu, ctx)
 
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         if _selection_nonempty(ctx):
             with layout:
-                hui.menu_row("Edit", icon=hui.icon.node_source, enabled=False)
+                hui.menu_row("Edit Source", icon=hui.icon.node_source, enabled=False)
 
 
 @panel(
@@ -473,7 +477,7 @@ class NodeThemeMenuPanel(BasePanel):
     hosts=(SelectionDetailMenu,),
     label="Detail",
     icon=hui.icon.node_detail,
-    order=40,
+    order=410,
 )
 class DetailSelectionMenuPanel(BasePanel):
     """The "Detail" row — a submenu over the density ranks.
@@ -589,7 +593,7 @@ class ClearDetailOverridesMenuPanel(BasePanel):
     surface=SelectionMenu,
     label="Delete Selection",
     icon=hui.icon.delete,
-    order=100,
+    order=600,
 )
 class DeleteSelectionMenuPanel(BasePanel):
     """Delete every node and edge in the current selection in one undoable step."""
@@ -624,8 +628,8 @@ class DeleteSelectionMenuPanel(BasePanel):
 @panel(
     surface=SelectionMenu,
     label="Collapse to Group",
-    icon=hui.icon.graph,
-    order=35,
+    icon=hui.icon.subgraph,
+    order=210,
 )
 class CollapseToGroupMenuPanel(BasePanel):
     """Collapse the selection into one Graph-node standing for a Subgraph.
@@ -652,7 +656,7 @@ class CollapseToGroupMenuPanel(BasePanel):
         with layout:
             hui.menu_row(
                 f"Collapse {n_nodes} Nodes to Group",
-                icon=hui.icon.graph,
+                icon=hui.icon.subgraph,
                 on_click=self.actions.collapse_to_group,
             )
 
@@ -661,7 +665,7 @@ class CollapseToGroupMenuPanel(BasePanel):
     surface=SelectionMenu,
     label="Enter",
     icon=hui.icon.subgraph,
-    order=35,
+    order=200,
 )
 class EnterMenuPanel(BasePanel):
     """Enter a Group or a macro placement: open its inside as a level of the graph editor.
@@ -695,12 +699,12 @@ class EnterMenuPanel(BasePanel):
 
 @panel(
     surface=SelectionMenu,
-    label="Group",
+    label="Expand Group",
     icon=hui.icon.subgraph,
-    order=36,
+    order=220,
 )
 class GroupMenuPanel(BasePanel):
-    """Expand a Group back into the graph around it, or save it as a new macro.
+    """Expand a Group back into the graph around it.
 
     Only visible when the right-clicked node is a Graph-node.
     """
@@ -727,6 +731,30 @@ class GroupMenuPanel(BasePanel):
                 icon=hui.icon.subgraph,
                 on_click=lambda: self.actions.expand_group(node_id),
             )
+
+
+@panel(
+    surface=SelectionMacroMenu,
+    label="Save new Macro",
+    icon=hui.icon.macro,
+    order=50,
+)
+class SaveNewMacroMenuPanel(BasePanel):
+    """Save a Group as a new macro. Only visible when the right-clicked node is a Graph-node."""
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return is_graph_node(ctx)
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        wrapper = ctx.data[EditState].active_node
+        if wrapper is None:
+            return
+        node_id = wrapper.node_id
+
+        with layout:
             hui.menu_row(
                 "Save new Macro…",
                 icon=hui.icon.macro,
@@ -736,10 +764,10 @@ class GroupMenuPanel(BasePanel):
 
 
 @panel(
-    surface=SelectionMenu,
+    surface=SelectionMacroMenu,
     label="Edit Instance",
-    icon=hui.icon.edge,
-    order=38,
+    icon=hui.icon.macro,
+    order=20,
 )
 class EditInstanceMenuPanel(BasePanel):
     """Turn one macro placement into a modified instance and enter it.
@@ -768,7 +796,7 @@ class EditInstanceMenuPanel(BasePanel):
         with layout:
             hui.menu_row(
                 "Edit Instance",
-                icon=hui.icon.edge,
+                icon=hui.icon.macro,
                 tooltip=(
                     "Turn this card into a modified instance and open it. The macro "
                     "file and its other placements are unchanged."
@@ -778,10 +806,10 @@ class EditInstanceMenuPanel(BasePanel):
 
 
 @panel(
-    surface=SelectionMenu,
+    surface=SelectionMacroMenu,
     label="Modified instance",
     icon=hui.icon.macro,
-    order=39,
+    order=40,
 )
 class ModifiedInstanceMenuPanel(BasePanel):
     """Offer to put a modified instance back to its macro, or to cut it loose.
@@ -845,10 +873,10 @@ class ModifiedInstanceMenuPanel(BasePanel):
 
 
 @panel(
-    surface=SelectionMenu,
+    surface=SelectionDevelopMenu,
     label="Clone to Library",
     icon=hui.icon.node_clone,
-    order=39,
+    order=20,
     requires=AccessTier.ADMIN,
 )
 class CloneToLibraryMenuPanel(BasePanel):
@@ -881,3 +909,50 @@ class CloneToLibraryMenuPanel(BasePanel):
                 tooltip="Write a copy of this node's class into a library, as a new node to edit",
                 on_click=lambda: self.actions.clone_to_library(node_id),
             )
+
+
+@panel(
+    surface=SelectionMenu,
+    hosts=(SelectionMacroMenu,),
+    label="Macro",
+    icon=hui.icon.macro,
+    order=300,
+)
+class MacroSelectionMenuPanel(BasePanel):
+    """The "Macro" row — a submenu over the verbs between a card and a macro.
+
+    Only visible when the right-clicked node is a Group's card or a macro placement.
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return is_graph_node(ctx) or is_macro_placement(ctx)
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            with hui.submenu_row("Macro", icon=hui.icon.macro):
+                self.render_surface(SelectionMacroMenu, ctx)
+
+
+@panel(
+    surface=SelectionMenu,
+    hosts=(SelectionDevelopMenu,),
+    label="Develop",
+    icon=hui.icon.node_source,
+    order=500,
+)
+class DevelopSelectionMenuPanel(BasePanel):
+    """The "Develop" row — a submenu over the node's source, cloning it, and rebuilding."""
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return _selection_nonempty(ctx)
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            with hui.submenu_row("Develop", icon=hui.icon.node_source):
+                self.render_surface(SelectionDevelopMenu, ctx)

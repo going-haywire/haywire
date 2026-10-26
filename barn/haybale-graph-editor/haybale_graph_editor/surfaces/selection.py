@@ -77,10 +77,15 @@ class SelectionActions(Protocol):
 
 
 class SelectionMenu(Surface):
-    """The selection right-click menu."""
+    """The selection right-click menu.
+
+    Bands: status (0), clipboard (100), Group structure (200), macro (300),
+    view (400), develop (500), delete (600).
+    """
 
     id = "selection"
     provides = SelectionActions
+    banded = True
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -115,8 +120,32 @@ class SelectionArrangeMenu(Surface):
     provides = SelectionActions
 
 
+class SelectionMacroMenu(Surface):
+    """The "Macro" submenu of ``SelectionMenu`` — the verbs between a card and a macro.
+
+    Save a Group as a new macro; edit a placement's macro or the placement
+    itself; send a modified instance back, revert it, or forget its origin.
+
+    Declares no ``poll``: the hosting panel already gates on the selection.
+    """
+
+    id = "selection-macro"
+    provides = SelectionActions
+
+
+class SelectionDevelopMenu(Surface):
+    """The "Develop" submenu of ``SelectionMenu`` — source, cloning and rebuilding.
+
+    Declares no ``poll``: the hosting panel already gates on the selection, and
+    its rows grey themselves.
+    """
+
+    id = "selection-develop"
+    provides = SelectionActions
+
+
 class SelectionEditMenu(Surface):
-    """The "Edit…" submenu of ``SelectionMenu`` — the components behind this node.
+    """The "Edit Source" submenu of ``SelectionDevelopMenu`` — the components behind this node.
 
     One row per component that produced the card the user is looking at: the
     node class itself, the skin that drew it, and the node theme colouring

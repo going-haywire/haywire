@@ -49,7 +49,7 @@ APPEARANCE_CATEGORY = "appearance"
     hosts=(NodeAppearance,),
     label="Appearance",
     icon=hui.icon.theme,
-    order=30,
+    order=200,
 )
 class AppearanceToolbarPanel(BasePanel):
     """The ⧉ icon that drops the appearance fields above the toolbar.

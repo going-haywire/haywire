@@ -11,15 +11,15 @@ from haybale_graph_editor.panels.graph.menu.selection.selection import (
     _selection_nonempty,
     selection_label,
 )
-from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionRebuildMenu
+from haybale_graph_editor.surfaces import SelectionActions, SelectionDevelopMenu, SelectionRebuildMenu
 
 
 @panel(
-    surface=SelectionMenu,
+    surface=SelectionDevelopMenu,
     hosts=(SelectionRebuildMenu,),
     label="Rebuild",
     icon=hui.icon.refresh,
-    order=80,
+    order=30,
 )
 class RebuildSelectionMenuPanel(BasePanel):
     """The "Rebuild" row — a submenu over redraw / revalidate / reset.

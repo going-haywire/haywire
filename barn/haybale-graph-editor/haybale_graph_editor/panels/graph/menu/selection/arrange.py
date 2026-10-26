@@ -44,7 +44,7 @@ def _selection_has_a_node(ctx: "SessionContext") -> bool:
     hosts=(SelectionArrangeMenu,),
     label="Arrange",
     icon=hui.icon.arrange,
-    order=17,
+    order=420,
 )
 class ArrangeSelectionMenuPanel(BasePanel):
     """The "Arrange" row: a submenu over the stacking-order verbs.

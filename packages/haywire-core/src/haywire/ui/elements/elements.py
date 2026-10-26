@@ -682,7 +682,7 @@ def menu_row(
         # Shows ⌘C / Ctrl+C at the right edge.
         hui.menu_row("Copy", icon=hui.icon.copy, on_click=self._copy, command=Copy)
         # Stays open: the row relabels itself to show the new state.
-        hui.menu_row("Collapse", icon=hui.icon.node_collapse, on_click=self._toggle, closes=False)
+        hui.menu_row("Fold", icon=hui.icon.node_collapse, on_click=self._toggle, closes=False)
     """
     row = ui.row().classes(f"{MENU_ROW_CLASS} items-center gap-2 w-full")
     with row:
@@ -1143,14 +1143,27 @@ def tabs(
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def separator() -> ui.separator:
+def separator(*, vertical: bool = False) -> ui.separator:
     """
-    A plain themed horizontal rule.
+    A plain themed rule, coloured by ``--hw-separator``.
 
     Use when you need a divider without a label and without the top margin
     added by ``hui.section_divider()``. Prefer ``hui.section_divider()`` in
     most contexts; use this only where the extra margin would break a tight layout.
+
+    Args:
+        vertical: Draw a vertical line between items in a row, as tall as the row.
+
+    Example::
+
+        hui.separator()  # between rows of a column
+        with ui.row():
+            ui.button("A")
+            hui.separator(vertical=True)  # between items of a row
+            ui.button("B")
     """
+    if vertical:
+        return ui.separator().props("vertical").classes("mx-1")
     return ui.separator()
 
 

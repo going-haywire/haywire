@@ -77,7 +77,7 @@ def _item_text(item: ui.menu_item) -> str:
 
 
 def _has_developer_row(anchor) -> bool:
-    return any(_item_text(e) == "Developer" for e in _walk(anchor) if isinstance(e, ui.menu_item))
+    return any(_item_text(e) == "Develop" for e in _walk(anchor) if isinstance(e, ui.menu_item))
 
 
 # ---------------------------------------------------------------------------
@@ -209,7 +209,7 @@ def _top_level_items(anchor) -> list:
 
 
 def _developer_anchor(anchor):
-    """The "Developer" flyout anchor, matched by TEXT.
+    """The "Develop" flyout anchor, matched by TEXT.
 
     Not "the item that owns a FlyoutMenu" — the row menu grew a second flyout
     ("Promote to"), and that older test rendered the first one it found, which
@@ -220,7 +220,7 @@ def _developer_anchor(anchor):
     return next(
         item
         for item in _top_level_items(anchor)
-        if _item_text(item) == "Developer"
+        if _item_text(item) == "Develop"
         and any(isinstance(c, FlyoutMenu) for c in item.default_slot.children)
     )
 
@@ -330,7 +330,7 @@ def test_the_two_entries_are_siblings_of_each_other():
             _build_developer_menu(ctx, ("A", "lib:setting:A"), ("B", "lib:setting:B"))
 
     top_items = [c for c in _context_menu(column).default_slot.children if isinstance(c, ui.menu_item)]
-    dev_anchor = next(item for item in top_items if _item_text(item) == "Developer")
+    dev_anchor = next(item for item in top_items if _item_text(item) == "Develop")
     dev_body = next(c for c in dev_anchor.default_slot.children if isinstance(c, FlyoutMenu))
 
     entry_anchors = [c for c in dev_body.default_slot.children if isinstance(c, ui.menu_item)]

@@ -94,7 +94,7 @@ class EdgeWarningsMenuPanel(BasePanel):
     hosts=(EdgeStyle,),
     label="Style",
     icon=hui.icon.theme,
-    order=15,
+    order=110,
 )
 class EdgeStyleMenuPanel(BasePanel):
     """The "Style…" row — a submenu with the connection's colour, line and arrow heads.
@@ -140,7 +140,7 @@ class EdgeStyleBodyPanel(BasePanel):
     surface=EdgeMenu,
     label="Insert Reroute",
     icon=hui.icon.edge,
-    order=20,
+    order=210,
 )
 class InsertRerouteMenuPanel(BasePanel):
     """Split the active edge and insert a reroute node in between. Available for every edge."""
@@ -178,12 +178,12 @@ class InsertRerouteMenuPanel(BasePanel):
 @panel(
     surface=EdgeMenu,
     hosts=(EdgeEditMenu,),
-    label="Edit",
+    label="Edit Source",
     icon=hui.icon.adapter,
-    order=25,
+    order=300,
 )
 class EditEdgeMenuPanel(BasePanel):
-    """The "Edit…" row — a submenu over the adapters behind this edge.
+    """The "Edit Source" row — a submenu over the adapters behind this edge.
 
     A hosting panel: it draws only the row and the flyout, piping the
     ``EdgeActions`` host one hop further, exactly as
@@ -200,13 +200,13 @@ class EditEdgeMenuPanel(BasePanel):
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
-            with hui.submenu_row("Edit", icon=hui.icon.adapter):
+            with hui.submenu_row("Edit Source", icon=hui.icon.adapter):
                 self.render_surface(EdgeEditMenu, ctx)
 
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         if ctx.data[EditState].active_edge is not None:
             with layout:
-                hui.menu_row("Edit", icon=hui.icon.adapter, enabled=False)
+                hui.menu_row("Edit Source", icon=hui.icon.adapter, enabled=False)
 
 
 @panel(
@@ -250,7 +250,7 @@ class EdgeAdapterEditMenuPanel(BasePanel):
     label="Propagation",
     description="Lazy propagation pulls data on demand instead of pushing it to the target node.",
     icon=hui.icon.edge_lazy,
-    order=0,
+    order=100,
 )
 class EdgePropagationMenuPanel(BasePanel):
     """Show an edge's propagation mode and switch it between lazy and eager.
@@ -330,7 +330,7 @@ class EdgePropagationMenuPanel(BasePanel):
     surface=EdgeMenu,
     label="Delete Connection",
     icon=hui.icon.delete,
-    order=30,
+    order=400,
 )
 class DeleteEdgeMenuPanel(BasePanel):
     actions: EdgeActions
@@ -361,7 +361,7 @@ class DeleteEdgeMenuPanel(BasePanel):
     surface=EdgeMenu,
     label="Reconnect Edge",
     icon=hui.icon.edge,
-    order=10,
+    order=200,
 )
 class ReconnectEdgeMenuPanel(BasePanel):
     """Removes the edge and starts a new connection drag from the anchor pin.

@@ -31,7 +31,7 @@ from haywire.ui.panel.host_rendering import (
     _poll_surface,
     counting_leaves,
     partition_panels,
-    render_panel,
+    render_panels,
     render_path_extended,
 )
 from haywire.ui.panel.layout import PanelLayout
@@ -234,11 +234,6 @@ class SelectionToolbarProvider:
 
         popup.content.clear()
 
-        by_order = sorted(
-            [(cls, False) for cls in applies] + [(cls, True) for cls in disabled],
-            key=lambda pair: getattr(pair[0].class_identity, "order", 100),
-        )
-
         with counting_leaves() as leaves, render_path_extended(SelectionToolbar.id):
             with popup.content:
                 # The toolbar row is a menu level of its own: push the root
@@ -248,16 +243,18 @@ class SelectionToolbarProvider:
                     ui.row().classes("hw-selection-toolbar items-center gap-1 no-wrap"),
                     hui.open_flyout_group(),
                 ):
-                    layout = PanelLayout(ui.element("div"))
-                    for cls, is_disabled in by_order:
-                        render_panel(
-                            cls,
-                            self._context,
-                            layout,
-                            actions_host=self,
-                            registry=self._panel_registry,
-                            disabled=is_disabled,
-                        )
+                    # A flex row, so a vertical separator between bands is as tall as the buttons.
+                    layout = PanelLayout(ui.element("div").classes("flex items-center no-wrap"))
+                    render_panels(
+                        SelectionToolbar,
+                        applies,
+                        disabled,
+                        self._context,
+                        layout,
+                        actions_host=self,
+                        registry=self._panel_registry,
+                        vertical=True,
+                    )
             return leaves() > 0
 
     # ------------------------------------------------------------------

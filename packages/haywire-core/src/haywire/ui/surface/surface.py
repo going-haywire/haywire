@@ -13,7 +13,9 @@ Each Surface subclass declares:
   - provides: ClassVar[type | None]    — a runtime_checkable Protocol naming
                                           verbs the surface's host must
                                           implement; None means no contract.
-  - poll(cls, ctx) -> bool             — classmethod, concrete, defaults to
+  - banded: ClassVar[bool]             — separators between order bands
+                                          (``order // 100``), for menus.
+  - poll(cls, ctx) -> bool            — classmethod, concrete, defaults to
                                           True. Overridden when a surface is
                                           only sometimes reachable.
 
@@ -48,6 +50,9 @@ class Surface(ABC):
     order: ClassVar[int] = 100
     presentation: ClassVar[Presentation | None] = None
     provides: ClassVar[type | None] = None
+    #: Draw a separator between panels in different order bands (``order // 100``).
+    #: For menus, whose rows group into sections by ``order``.
+    banded: ClassVar[bool] = False
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)

@@ -1,6 +1,6 @@
 """EditMacroMenuPanel — "Edit Macro…" on a macro placement's context menu.
 
-A panel on **haybale-graph-editor's** ``SelectionMenu``, hosted here because
+A panel on **haybale-graph-editor's** ``SelectionMacroMenu``, hosted here because
 opening a document is this library's act: it adds the macro to the in-memory
 registry (as an :class:`EntryKind.MACRO` entry) and reveals a GraphEditor tab
 over it. The same split ``OpenInHaystackMenuPanel`` makes on haybale-studio's
@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haybale_graph_editor.panels._gating import is_macro_placement, is_modified_instance
 from haybale_graph_editor.state.edit_state import EditState
-from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu
+from haybale_graph_editor.surfaces import SelectionActions, SelectionMacroMenu
 from haywire.core.signals import Reveal
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
@@ -34,10 +34,10 @@ logger = logging.getLogger(__name__)
 
 
 @panel(
-    surface=SelectionMenu,
+    surface=SelectionMacroMenu,
     label="Edit Macro",
     icon=hui.icon.macro,
-    order=37,
+    order=10,
 )
 class EditMacroMenuPanel(BasePanel):
     """Open the document behind a macro placement, in its own editor tab.
@@ -47,7 +47,7 @@ class EditMacroMenuPanel(BasePanel):
     can.
     """
 
-    # Declared because ``SelectionMenu.provides`` is isinstance-checked against
+    # Declared because ``SelectionMacroMenu.provides`` is isinstance-checked against
     # the host. Unused: this panel calls HaystackState rather than a verb on
     # the graph editor.
     actions: SelectionActions
@@ -109,10 +109,10 @@ def _open_macro(ctx: "SessionContext", registry_key: str) -> None:
 
 
 @panel(
-    surface=SelectionMenu,
+    surface=SelectionMacroMenu,
     label="Update Macro",
     icon=hui.icon.macro,
-    order=40,
+    order=30,
 )
 class UpdateMacroMenuPanel(BasePanel):
     """Send a modified instance's changes back to the macro it came from.
@@ -125,7 +125,7 @@ class UpdateMacroMenuPanel(BasePanel):
     has unsaved edits in its tab.
     """
 
-    # Declared because ``SelectionMenu.provides`` is isinstance-checked against
+    # Declared because ``SelectionMacroMenu.provides`` is isinstance-checked against
     # the host. Unused: this panel calls HaystackState rather than a verb on
     # the graph editor.
     actions: SelectionActions

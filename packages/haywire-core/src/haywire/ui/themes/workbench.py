@@ -80,6 +80,8 @@ class BaseTheme:
         # Borders
         "border": "--hw-border",
         "border_strong": "--hw-border-strong",
+        # Divider lines (q-separator). Optional: the CSS falls back to --hw-border.
+        "separator": "--hw-separator",
         # Text
         "text_body": "--hw-text-body",
         "text_muted": "--hw-text-muted",

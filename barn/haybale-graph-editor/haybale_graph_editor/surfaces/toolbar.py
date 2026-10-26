@@ -42,11 +42,14 @@ class SelectionToolbar(Surface):
 
     Declares no ``presentation``: it is a root surface, but not a properties
     tab, so the strip does not list it.
+
+    Bands: card state (100), appearance (200), more (900).
     """
 
     id = "toolbar"
     order = 91  # just after SelectionMenu's historical 90
     provides = SelectionActions
+    banded = True
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

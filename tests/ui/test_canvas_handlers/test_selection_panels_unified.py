@@ -17,7 +17,7 @@ from haybale_graph_editor.panels.graph.menu.selection.selection import (
     DeleteSelectionMenuPanel as DeleteSelectionPanel,
     selection_label,
 )
-from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionRebuildMenu
+from haybale_graph_editor.surfaces import SelectionActions, SelectionDevelopMenu, SelectionRebuildMenu
 
 
 @pytest.mark.parametrize(
@@ -31,11 +31,11 @@ def test_batch_panel_registration(panel_cls):
 
 
 def test_rebuild_panel_hosts_the_batch_submenu():
-    """The row itself stays on SelectionMenu and declares what it renders —
+    """The row sits on the Develop submenu and declares what it renders —
     render_surface refuses any surface not listed in hosts=."""
-    assert RebuildSelectionPanel.class_identity.surface is SelectionMenu
+    assert RebuildSelectionPanel.class_identity.surface is SelectionDevelopMenu
     assert RebuildSelectionPanel.class_identity.hosts == (SelectionRebuildMenu,)
-    assert SelectionMenu.provides is SelectionActions
+    assert SelectionDevelopMenu.provides is SelectionActions
 
 
 def test_rebuild_panel_polls_like_the_commands_it_hosts():

@@ -179,9 +179,9 @@ def test_edit_submenu_rows_are_ordered_type_then_widget():
     assert len(set(orders)) == 2
 
 
-def test_edit_row_sits_before_detach_on_the_parent_menu():
-    """Identity first, verbs after — the row order the menu reads in."""
-    assert PinEditMenuPanel.class_identity.order < DetachSettingMenuPanel.class_identity.order
+def test_edit_source_row_sits_after_detach_on_the_parent_menu():
+    """Verbs first, then the source the pin is made of, in its own band."""
+    assert PinEditMenuPanel.class_identity.order // 100 > DetachSettingMenuPanel.class_identity.order // 100
 
 
 def test_edit_row_polls_on_what_its_body_will_hold():

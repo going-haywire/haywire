@@ -22,7 +22,9 @@ from haybale_graph_editor.surfaces.selection import (
     SelectionActions,
     SelectionArrangeMenu,
     SelectionDetailMenu,
+    SelectionDevelopMenu,
     SelectionEditMenu,
+    SelectionMacroMenu,
     SelectionMenu,
     SelectionRebuildMenu,
 )
@@ -52,6 +54,8 @@ __all__ = [
     "SelectionMenu",
     "SelectionRebuildMenu",
     "SelectionDetailMenu",
+    "SelectionDevelopMenu",
+    "SelectionMacroMenu",
     "SelectionEditMenu",
     "SelectionToolbar",
     "SettingsInspector",

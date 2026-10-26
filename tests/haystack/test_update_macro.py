@@ -520,7 +520,7 @@ def test_update_row_shows_only_on_a_modified_instance(haystack, macro_file, tmp_
     host.graph.force_validation()
     card_id, _ = _modified_instance(host)
 
-    assert UpdateMacroMenuPanel.class_identity.order == 40
+    assert UpdateMacroMenuPanel.class_identity.order == 30
     assert UpdateMacroMenuPanel.poll(_ctx(haystack, host, card_id)) is True
     assert UpdateMacroMenuPanel.poll(_ctx(haystack, host, placement.node_id)) is False
 

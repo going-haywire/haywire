@@ -116,6 +116,7 @@ theme-unaware and will break on non-dark themes.
 | -------------------- | ------------------------------------------------ |
 | `--hw-border`        | Subtle structural dividers. Felt, not seen.      |
 | `--hw-border-strong` | Visible separators. Section breaks, panel edges. |
+| `--hw-separator`     | Divider lines (`hui.separator()`, menu bands). Optional; falls back to `--hw-border`. |
 
 **Rule:** Every `border-b`, `border-r`, `border-l`, `border-t` in the shell
 and editor UI must use `var(--hw-border)` via inline style or an appropriate
@@ -1318,7 +1319,7 @@ hui.section_divider()            # plain separator
 
 ### 8.19b `hui.separator()`
 
-A plain themed horizontal rule (`ui.separator`). Use when you need a divider
+A plain themed horizontal rule (`ui.separator`), coloured by `--hw-separator`. Use when you need a divider
 without a label and without the top margin added by `hui.section_divider()`.
 Prefer `hui.section_divider()` in most contexts; use `hui.separator()` only
 where the extra margin would break a tight layout.

@@ -142,7 +142,7 @@ class TestItReadsStateRatherThanCapturingIt:
 
         tooltips = [el for el in button.descendants() if isinstance(el, ui.tooltip)]
         assert len(tooltips) == 1
-        assert tooltips[0].text == "Collapse 2 Nodes"
+        assert tooltips[0].text == "Fold 2 Nodes"
 
     def test_the_tooltip_names_the_action_not_the_state(self, nicegui_slot_context):
         """Icon and tooltip must agree — an icon showing the current state
@@ -151,7 +151,7 @@ class TestItReadsStateRatherThanCapturingIt:
         button = _draw(actions)
 
         tooltips = [el for el in button.descendants() if isinstance(el, ui.tooltip)]
-        assert tooltips[0].text == "Expand 2 Nodes"
+        assert tooltips[0].text == "Unfold 2 Nodes"
         assert button._props["icon"] == hui.icon.node_expand
 
 

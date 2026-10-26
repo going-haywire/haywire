@@ -46,10 +46,14 @@ class PortActions(Protocol):
 
 
 class PinMenu(Surface):
-    """The pin right-click menu."""
+    """The pin right-click menu.
+
+    Bands: value rows (0), widget (100), source (200).
+    """
 
     id = "pin"
     provides = PortActions
+    banded = True
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -59,7 +63,7 @@ class PinMenu(Surface):
 
 
 class PinEditMenu(Surface):
-    """The "Edit…" submenu of ``PinMenu`` — the components behind this pin.
+    """The "Edit Source" submenu of ``PinMenu`` — the components behind this pin.
 
     One row per component that produced what the user is looking at: the
     pin's data type, and the widget editing its value. Both open that
@@ -86,7 +90,7 @@ class PinWidgetMenu(Surface):
     A **verb** surface, unlike its sibling ``PinEditMenu``: these rows change
     the port rather than navigating to a component's source. That is why it
     hangs off ``PinMenu`` (which carries ``PortActions``) instead of joining
-    the read-only rows under "Edit…".
+    the read-only rows under "Edit Source".
 
     Applies to promoted ports only — an author-declared port's visibility
     stays the author's decision (ADR 0003); a promoted port's strategy was

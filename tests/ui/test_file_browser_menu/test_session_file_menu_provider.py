@@ -176,7 +176,7 @@ def test_the_popup_is_the_menu_root_its_rows_dismiss():
 
     with (
         patch.object(provider, "_build_popup", return_value=popup),
-        patch("haywire.ui.panel.context_menu_base.render_panel", _render_panel),
+        patch("haywire.ui.panel.host_rendering.render_panel", _render_panel),
         patch("haywire.ui.panel.context_menu_base.counting_leaves") as leaves,
     ):
         leaves.return_value.__enter__.return_value = lambda: 1

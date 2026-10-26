@@ -17,7 +17,7 @@ from haywire.ui.panel.host_rendering import (
     _poll_surface,
     counting_leaves,
     partition_panels,
-    render_panel,
+    render_panels,
     render_path_extended,
 )
 from haywire.ui.components.popup import Popup
@@ -146,10 +146,6 @@ class BaseContextMenuProvider:
 
         popup = self._build_popup(pos)
         layout = PanelLayout(popup.content)
-        by_order = sorted(
-            [(cls, False) for cls in applies] + [(cls, True) for cls in disabled],
-            key=lambda pair: getattr(pair[0].class_identity, "order", 100),
-        )
 
         # A popup is a menu *level*: push the root flyout-sibling group around
         # its content so any submenu rows drawn inside — on this surface or
@@ -157,15 +153,15 @@ class BaseContextMenuProvider:
         # the menu root, so a command row anywhere inside closes the popup.
         with counting_leaves() as leaves, render_path_extended(surface.id):
             with popup.content, hui.open_flyout_group(dismiss=popup.close):
-                for cls, is_disabled in by_order:
-                    render_panel(
-                        cls,
-                        self._context,
-                        layout,
-                        actions_host=host,
-                        registry=self._panel_registry,
-                        disabled=is_disabled,
-                    )
+                render_panels(
+                    surface,
+                    applies,
+                    disabled,
+                    self._context,
+                    layout,
+                    actions_host=host,
+                    registry=self._panel_registry,
+                )
             drew = leaves() > 0
 
         if not drew:

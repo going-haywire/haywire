@@ -9,6 +9,8 @@ that shared contract; hosts own their own iteration:
   - :func:`partition_panels` — the superset, ``(applies, disabled)``, for a
     host rendering a panel's inapplicable state through ``draw_disabled()``.
   - :func:`render_panel` — instantiates, injects the host, and draws one.
+  - :func:`render_panels` — draws a surface's panels in order, with the
+    separators between order bands of a ``banded`` surface.
   - :func:`_poll_surface` — gates a surface once before querying its panels.
 
 ``_render_path``, the per-render surface ids, is where surface cycles are
@@ -224,6 +226,70 @@ def visible_panels(
     Access is checked first, so a denied panel's poll() never runs.
     """
     return partition_panels(panel_classes, context)[0]
+
+
+#: Width of an order band. On a surface that declares ``banded = True``, panels whose
+#: ``order // BAND`` differ are drawn with a separator between them.
+BAND = 100
+
+
+def render_panels(
+    surface: type["Surface"],
+    applies: list[type["BasePanel"]],
+    disabled: list[type["BasePanel"]],
+    context: "SessionContext",
+    layout: "PanelLayout",
+    *,
+    actions_host: object | None = None,
+    registry: Any = None,
+    vertical: bool = False,
+) -> None:
+    """Draw a surface's panels in ``order``, the applicable and the disabled interleaved.
+
+    On a surface with ``banded = True``, a separator is drawn between two bands
+    (see ``BAND``) that both drew something; a band whose panels drew nothing gets
+    none, so there is never one at the top, at the bottom, or two in a row.
+
+    Args:
+        applies: Panels drawn through ``draw()``, as returned by :func:`partition_panels`.
+        disabled: Panels drawn through ``draw_disabled()``.
+        vertical: Draw vertical separators, for panels laid out side by side in a row.
+    """
+    by_order = sorted(
+        [(cls, False) for cls in applies] + [(cls, True) for cls in disabled],
+        key=lambda pair: _order(pair[0]),
+    )
+    banded = bool(getattr(surface, "banded", False))
+    last_band: int | None = None
+    for cls, is_disabled in by_order:
+        band = _order(cls) // BAND
+        separator = None
+        if banded and last_band is not None and band != last_band:
+            with layout.container:
+                separator = hui.separator(vertical=vertical)
+        before = _child_count(layout.container)
+        render_panel(
+            cls,
+            context,
+            layout,
+            actions_host=actions_host,
+            registry=registry,
+            disabled=is_disabled,
+        )
+        if _child_count(layout.container) > before:
+            last_band = band
+        elif separator is not None:
+            separator.delete()
+
+
+def _order(panel_cls: type["BasePanel"]) -> int:
+    return getattr(getattr(panel_cls, "class_identity", None), "order", 100)
+
+
+def _child_count(container: Any) -> int:
+    """Return how many elements sit directly in ``container``; 0 for one that has no slot."""
+    slot = getattr(container, "default_slot", None)
+    return len(getattr(slot, "children", ()))
 
 
 def render_panel(

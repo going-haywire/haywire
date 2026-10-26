@@ -252,11 +252,11 @@ class TestEnterRow:
         assert "Expand Group" in labels
 
     def test_group_row_says_save_new_macro(self):
-        from haybale_graph_editor.panels.graph.menu.selection.selection import GroupMenuPanel
+        from haybale_graph_editor.panels.graph.menu.selection.selection import SaveNewMacroMenuPanel
 
         ctx = _menu_ctx(active_node=_menu_node(is_graph_node=True))
 
-        labels = _drawn_labels(GroupMenuPanel, ctx)
+        labels = _drawn_labels(SaveNewMacroMenuPanel, ctx)
 
         assert "Save new Macro…" in labels
         assert "Promote to Macro…" not in labels
@@ -327,7 +327,7 @@ class TestRevertToMacroRow:
         plain_group = _menu_ctx(active_node=self._instance(origin=False))
         placement = _menu_ctx(active_node=_menu_placement(is_macro=True))
 
-        assert ModifiedInstanceMenuPanel.class_identity.order == 39
+        assert ModifiedInstanceMenuPanel.class_identity.order == 40
         assert ModifiedInstanceMenuPanel.poll(modified) is True
         assert ModifiedInstanceMenuPanel.poll(plain_group) is False
         assert ModifiedInstanceMenuPanel.poll(placement) is False

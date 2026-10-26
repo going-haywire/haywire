@@ -28,6 +28,7 @@ class HaywireDarkTheme(BaseTheme):
     # Borders
     border = "#333333"
     border_strong = "#4a4a6a"
+    separator = "rgba(255,255,255,0.12)"
 
     # Text
     text_body = "rgba(255,255,255,0.87)"
@@ -137,6 +138,7 @@ class HaywireLightTheme(BaseTheme):
     # Borders
     border = "rgba(0,0,0,0.15)"
     border_strong = "#a0a0c0"
+    separator = "rgba(0,0,0,0.12)"
 
     # Text
     text_body = "rgba(0,0,0,0.87)"

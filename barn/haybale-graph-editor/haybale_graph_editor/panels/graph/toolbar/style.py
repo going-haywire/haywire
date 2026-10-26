@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     hosts=(EdgeStyle,),
     label="Style",
     icon=hui.icon.theme,
-    order=31,
+    order=210,
 )
 class EdgeStyleToolbarPanel(BasePanel):
     """The icon that drops the selected edges' colour, line and arrow heads above the toolbar.

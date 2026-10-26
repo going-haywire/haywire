@@ -102,7 +102,7 @@ def test_read_only_rows_stay_live_in_view(page: Page, harness):
 
 def _open_row_menu(page: Page) -> None:
     page.locator(f"{_panel('NodePropertiesPanel')} [data-field] .sf-label").first.click(button="right")
-    page.wait_for_selector('[data-row-menu] .q-item:has-text("Developer")')
+    page.wait_for_selector('[data-row-menu] .q-item:has-text("Develop")')
 
 
 _ROW_MENU_WRITERS = '[data-row-menu] [data-hw-requires="edit"]'
@@ -124,7 +124,7 @@ def test_row_menu_writers_are_greyed_below_edit_and_developer_stays_live(page: P
     assert all(_gated(page, _ROW_MENU_WRITERS))
     assert all(style["pointer"] == "none" for style in _styles(page, _ROW_MENU_WRITERS))
     assert _styles(page, f"{_ROW_MENU_WRITERS}:not(.disabled)")[0] == _GREYED
-    developer = page.locator('[data-row-menu] .q-item:has-text("Developer")').first
+    developer = page.locator('[data-row-menu] .q-item:has-text("Develop")').first
     assert developer.evaluate("(el) => !window.hwAccess.isGated(el)")
     assert developer.evaluate("(el) => getComputedStyle(el).pointerEvents") == "auto"
     developer.hover()

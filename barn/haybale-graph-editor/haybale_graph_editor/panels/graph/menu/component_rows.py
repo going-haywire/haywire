@@ -1,5 +1,5 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/component_rows.py
-"""Shared bits for the "Edit…" submenus on the pin and selection menus.
+"""Shared bits for the "Edit Source" submenus on the pin and selection menus.
 
 Both menus answer the same question about different subjects — *which
 components produced what I am looking at, and where is their code* — so the

@@ -48,10 +48,14 @@ class EdgeInspector(Surface):
 
 
 class EdgeMenu(Surface):
-    """The edge right-click menu."""
+    """The edge right-click menu.
+
+    Bands: status (0), appearance (100), rewiring (200), source (300), delete (400).
+    """
 
     id = "edge-menu"
     provides = EdgeActions
+    banded = True
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -61,7 +65,7 @@ class EdgeMenu(Surface):
 
 
 class EdgeEditMenu(Surface):
-    """The "Edit…" submenu of ``EdgeMenu`` — the adapters behind this edge.
+    """The "Edit Source" submenu of ``EdgeMenu`` — the adapters behind this edge.
 
     One row per adapter in the edge's chain, each opening that adapter's
     source. Mirrors ``SelectionEditMenu``/``PinEditMenu``: same gesture,

@@ -76,7 +76,7 @@ class NodeProperties(NodeSettings):
 
     collapsed = setting[BOOL](
         False,
-        label="Collapsed",
+        label="Folded",
         order=20,
         category="state",
         description="Fold to card, title, badges and the pins of linked ports",
