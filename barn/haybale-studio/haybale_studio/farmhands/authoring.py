@@ -30,6 +30,7 @@ from haywire.core.authoring import (
 from haywire.core.docs.canons import canon_uri
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.library.registry import LibraryRegistry
+from haywire.core.library.utils import get_kind_from_key
 from haywire.core.farmhand import (
     Farmhand,
     FarmhandContext,
@@ -312,7 +313,7 @@ class StudioWriteComponentSourceTool(Farmhand):
                 )
             lib_id = resolve_target_library(ctx, library)
             path = library_folder(ctx, lib_id) / KIND_FOLDERS[kind] / filename
-        component_kind = registry_key.split(":")[1] if registry_key is not None else kind
+        component_kind = get_kind_from_key(registry_key) if registry_key is not None else kind
         assert component_kind is not None
         library_registry = ctx.registry(LibraryRegistry)
         target_library = library_registry.get_library(lib_id)
@@ -360,7 +361,7 @@ class StudioVerifyComponentTool(Farmhand):
         result["registered"] = True
         result["stage_reached"] = "registered"
 
-        if registry_key.split(":")[1] == "node":
+        if get_kind_from_key(registry_key) == "node":
             from haywire.core.graph.base import BaseGraph
             from haywire.core.graph.scheduler import SyncScheduler
 

@@ -18,6 +18,7 @@ from haywire.core.farmhand import (
 )
 from haywire.core.library.haybale_toml import read_haybale
 from haywire.core.library.registry import LibraryRegistry
+from haywire.core.library.utils import get_kind_from_key
 
 from haybale_studio.farmhands._helpers import kind_registry_map, page, resolve_component_class
 
@@ -245,7 +246,7 @@ class StudioDescribeComponentTool(Farmhand):
 
         cls = resolve_component_class(ctx, registry_key)
         identity = getattr(cls, "class_identity", None)
-        kind = registry_key.split(":")[1]
+        kind = get_kind_from_key(registry_key)
         result: dict[str, Any] = {
             "summary": f"{registry_key}: {getattr(identity, 'label', cls.__name__)}",
             "registry_key": registry_key,

@@ -89,6 +89,15 @@ def get_registry_id_from_key(registry_key: str) -> str:
     return registry_key.split(":")[-1]
 
 
+def get_kind_from_key(registry_key: str) -> str:
+    """Extract the kind segment from a registry key (``lib:node:Name`` -> ``node``).
+
+    Returns ``""`` for a key with fewer than three segments.
+    """
+    parts = registry_key.split(":")
+    return parts[1] if len(parts) > 2 else ""
+
+
 def split_reg_key(registry_key: str) -> tuple[str, str, str]:
     """Decompose a registry key into its three parts.
 

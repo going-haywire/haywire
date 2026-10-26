@@ -7,16 +7,11 @@ from haywire.core.errors.haywire_exception import HaywireException
 from . import BaseNode, NodeRegistry
 from .info import NodeInfo, matches_query
 
+from ..library.utils import get_kind_from_key
 from ..macro.registry import MacroRegistry
 from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback, LifeCycleEventCallback
 
 logger = logging.getLogger(__name__)
-
-
-def _kind_of(registry_key: str) -> str:
-    """The kind segment of a registry key (``lib:node:Name`` -> ``node``)."""
-    parts = registry_key.split(":")
-    return parts[1] if len(parts) > 2 else ""
 
 
 class NodeFactory:
@@ -64,7 +59,7 @@ class NodeFactory:
             HaywireException: If the key yields no class and no error node is
                 registered at all.
         """
-        if _kind_of(registry_key) == "macro":
+        if get_kind_from_key(registry_key) == "macro":
             return self._get_macro_node(registry_key)
 
         node_cls: type[BaseNode] | None = None
