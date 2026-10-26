@@ -34,16 +34,6 @@ from .settings import Settings
 logger = logging.getLogger(__name__)
 
 
-# Framework identity used when registering built-in schema classes
-FRAMEWORK_IDENTITY = LibraryIdentity(
-    label="haywire-core",
-    version="0.0.0",
-    name="haywire-core",
-    module_name="haywire",
-    folder_path="",
-)
-
-
 class SettingsRegistry(BaseRegistry[Settings]):
     """
     Central registry for setting definitions and global values.
@@ -178,7 +168,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 self._repopulate_from_file_for_keys(schema_keys, self._global_path, tier="global")
             if self._workspace_path is not None and self._workspace_path.exists():
                 self._repopulate_from_file_for_keys(schema_keys, self._workspace_path, tier="workspace")
-        return super()._register(registry_key, cls, library_identity or FRAMEWORK_IDENTITY)
+        return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key: str) -> type[Settings] | None:
         """Unregister a schema class and remove its field definitions."""
@@ -331,7 +321,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         registry_key = schema_cls.class_identity.registry_key
         if self.has(registry_key):
             return registry_key
-        return self._register_class(schema_cls, library_identity or FRAMEWORK_IDENTITY)
+        return self._register_class(schema_cls, library_identity)
 
     # =========================================================================
     # Subscriptions

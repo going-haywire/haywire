@@ -11,6 +11,7 @@ import logging
 
 from ..errors import HaywireException
 from ..library.identity import LibraryIdentity
+from ..library.utils import derive_library_identity
 from .component import ComponentRegistry
 from .dependency_graph import DependencyGraph
 from .identity import BaseIdentity
@@ -88,11 +89,11 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
             registry_key (str): The haywire registry_key of the class to register
             cls (Any): The class to register
             library_identity (Optional[LibraryIdentity]):
-                The library identity to associate with the class
+                The library named in error messages; ``None`` derives it from ``cls``'s module
         Returns:
             str: The haywire registry_key of the registered class
         """
-        library_label = library_identity.label if library_identity is not None else "<unknown>"
+        library_label = (library_identity or derive_library_identity(cls)).label
 
         # Check if class_identity exists
         if not hasattr(cls, "class_identity"):

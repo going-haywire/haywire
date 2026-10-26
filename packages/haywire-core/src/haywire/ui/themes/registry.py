@@ -13,16 +13,6 @@ from haywire.core.library.identity import LibraryIdentity
 from .workbench import BaseTheme
 
 
-# Framework identity used for built-in theme registration
-_FRAMEWORK_THEME_IDENTITY = LibraryIdentity(
-    label="haywire-core",
-    version="0.0.0",
-    name="haywire-core",
-    module_name="haywire",
-    folder_path="",
-)
-
-
 class ThemeRegistry(BaseRegistry[BaseTheme]):
     """
     Registry for BaseTheme classes — both workbench and node flavours.
@@ -60,7 +50,7 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         self, cls: type[BaseTheme], library_identity: Optional[LibraryIdentity] = None
     ) -> str | None:
         registry_key = cls.class_identity.registry_key
-        return super()._register(registry_key, cls, library_identity or _FRAMEWORK_THEME_IDENTITY)
+        return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key: str) -> type[BaseTheme] | None:
         return super()._unregister(registry_key)
@@ -73,13 +63,13 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         self, cls: Type[BaseTheme], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """Register a BaseTheme class authored with @theme(theme_type='workbench')."""
-        return self._register_class(cls, library_identity or _FRAMEWORK_THEME_IDENTITY)
+        return self._register_class(cls, library_identity)
 
     def register_node_theme(
         self, cls: Type[BaseTheme], library_identity: LibraryIdentity | None = None
     ) -> str | None:
         """Register a BaseTheme class authored with @theme(theme_type='node')."""
-        return self._register_class(cls, library_identity or _FRAMEWORK_THEME_IDENTITY)
+        return self._register_class(cls, library_identity)
 
     # =========================================================================
     # Typed accessors
