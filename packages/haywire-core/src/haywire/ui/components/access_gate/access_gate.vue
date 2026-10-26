@@ -10,8 +10,10 @@
 // and the focusin listener blurs a gated element as it takes keyboard focus.
 // Keep the two in step: test_access_gate.py::test_css_and_isGated_agree.
 //
+// Nested stamps: the strictest one around el decides, so an inner stamp can only tighten.
+//
 //   canvas: el inside a card (.ui-node-slot) under a [data-hw-level-mode] root;
-//           required = nearest [data-hw-requires], unstamped = 'edit'.
+//           required = strictest [data-hw-requires] from el up to the slot, unstamped = 'edit'.
 //   panel:  el inside [data-hw-mode-scope="session"]; gated only when a
 //           [data-hw-requires] ancestor (or el) ranks above <html data-hw-session-mode>.
 const RANK = { view: 0, operate: 1, edit: 2 };
@@ -28,8 +30,12 @@ function canvasGated(el) {
   if (!root) return null;
   const mode = root.dataset.hwLevelMode;
   if (!(mode in RANK)) return false;
-  const stamped = el.closest('[data-hw-requires]');
-  return requiredRank(stamped ? stamped.dataset.hwRequires : 'edit') > RANK[mode];
+  let required = null;
+  for (let node = el.closest('[data-hw-requires]'); node && slot.contains(node);
+       node = node.parentElement ? node.parentElement.closest('[data-hw-requires]') : null) {
+    required = Math.max(required ?? RANK.view, requiredRank(node.dataset.hwRequires));
+  }
+  return (required ?? RANK.edit) > RANK[mode];
 }
 
 function panelGated(el) {
@@ -107,8 +113,8 @@ export default {
  * descendants so the card root and the slot keep taking presses (a double-click on
  * the card body still enters); pins sit inside the slot and are gated too.
  * !important plus the extra selectors out-specify .connection-pin's rule in
- * canvas.vue. The gate never matches inside an exempt subtree, so a widget's own
- * pointer-events rules (a disabled widget's none) stay in force. */
+ * canvas.vue. The gate never matches inside an exempt subtree that holds no stricter
+ * stamp, so a widget's own pointer-events rules (a disabled widget's none) stay in force. */
 [data-hw-level-mode="view"] .ui-node-slot *:not([data-hw-requires="view"]):not([data-hw-requires="view"] *),
 [data-hw-level-mode="operate"] .ui-node-slot *:not([data-hw-requires="view"]):not([data-hw-requires="view"] *):not([data-hw-requires="operate"]):not([data-hw-requires="operate"] *) {
     pointer-events: none !important;
@@ -118,6 +124,13 @@ export default {
 :where([data-hw-level-mode="view"] .ui-node-slot [data-hw-requires="view"],
        [data-hw-level-mode="operate"] .ui-node-slot [data-hw-requires="view"],
        [data-hw-level-mode="operate"] .ui-node-slot [data-hw-requires="operate"]) { pointer-events: auto; }
+/* A stricter (or unknown) stamp nested in an exempt one is gated again: nesting only tightens. */
+[data-hw-level-mode="view"] .ui-node-slot [data-hw-requires]:not([data-hw-requires="view"]),
+[data-hw-level-mode="view"] .ui-node-slot [data-hw-requires]:not([data-hw-requires="view"]) *,
+[data-hw-level-mode="operate"] .ui-node-slot [data-hw-requires]:not([data-hw-requires="view"]):not([data-hw-requires="operate"]),
+[data-hw-level-mode="operate"] .ui-node-slot [data-hw-requires]:not([data-hw-requires="view"]):not([data-hw-requires="operate"]) * {
+    pointer-events: none !important;
+}
 
 /* Panels under [data-hw-mode-scope="session"]: only stamped writers are gated,
  * greyed as a disabled input (design guide 2.11). No session mode counts as view. */

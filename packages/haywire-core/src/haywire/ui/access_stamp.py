@@ -2,7 +2,8 @@
 
 An element stamped ``data-hw-requires="view|operate|edit"`` takes pointer input
 only while the level mode in force where it is drawn satisfies that mode. On a
-canvas card an unstamped element counts as ``edit``.
+canvas card an unstamped element counts as ``edit``. Where stamps nest, the
+strictest one around an element decides: an inner stamp can only tighten.
 """
 
 from __future__ import annotations

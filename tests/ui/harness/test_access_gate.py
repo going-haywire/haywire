@@ -193,8 +193,52 @@ _PARITY_JS = """
 """
 
 
+# Nested stamps, outer to inner, each ending in a leaf span: the strictest stamp decides.
+_NESTS = {
+    "view-edit": ("view", "edit"),
+    "operate-view": ("operate", "view"),
+    "view-bogus": ("view", "bogus"),
+}
+
+_NEST_JS = """
+([selector, nests]) => {
+    const host = document.querySelector(selector);
+    for (const [name, stamps] of Object.entries(nests)) {
+        let parent = host;
+        for (const stamp of stamps) {
+            const el = document.createElement('div');
+            el.dataset.hwRequires = stamp;
+            parent.appendChild(el);
+            parent = el;
+        }
+        const leaf = document.createElement('span');
+        leaf.dataset.hwNest = name;
+        leaf.textContent = name;
+        parent.appendChild(leaf);
+    }
+}
+"""
+
+
+def _nest(page: Page, selector: str) -> None:
+    """Append the ``_NESTS`` fixtures to the first element matching ``selector``."""
+    page.evaluate(_NEST_JS, [selector, _NESTS])
+
+
+def _nest_gated(page: Page, scope: str) -> dict[str, bool]:
+    """Whether each nested fixture's leaf inside ``scope`` is gated, by CSS and by ``isGated`` alike."""
+    return page.evaluate(
+        """(scope) => Object.fromEntries([...document.querySelectorAll(`${scope} [data-hw-nest]`)].map(
+            (el) => [el.dataset.hwNest,
+                     [getComputedStyle(el).pointerEvents === 'none', window.hwAccess.isGated(el)]]))""",
+        scope,
+    )
+
+
 def test_css_and_isGated_agree(page: Page, harness):
-    _open(page, harness, "edit")
+    card_id = _open(page, harness, "edit")
+    _nest(page, f'[data-node-id="{card_id}"] .ui-node-slot')
+    _nest(page, '[data-hw-mode-scope="session"]')
     baseline = page.evaluate(_PARITY_JS, True)
     assert baseline["count"] > 20
     assert baseline["gated"] == 0
@@ -207,3 +251,35 @@ def test_css_and_isGated_agree(page: Page, harness):
         assert result["mismatches"] == [], mode
         if mode != "edit":
             assert result["gated"] > 0, mode
+
+
+@pytest.mark.parametrize(
+    ("mode", "card", "panel"),
+    [
+        # card: unknown counts as edit; panel: an unknown stamp gates nothing.
+        (
+            "view",
+            {"view-edit": True, "operate-view": True, "view-bogus": True},
+            {"view-edit": True, "operate-view": True, "view-bogus": False},
+        ),
+        (
+            "operate",
+            {"view-edit": True, "operate-view": False, "view-bogus": True},
+            {"view-edit": True, "operate-view": False, "view-bogus": False},
+        ),
+        (
+            "edit",
+            {"view-edit": False, "operate-view": False, "view-bogus": False},
+            {"view-edit": False, "operate-view": False, "view-bogus": False},
+        ),
+    ],
+)
+def test_the_strictest_nested_stamp_decides(page: Page, harness, mode: str, card: dict, panel: dict):
+    card_id = _open(page, harness, "edit")
+    card_scope = f'[data-node-id="{card_id}"] .ui-node-slot'
+    _nest(page, card_scope)
+    _nest(page, '[data-hw-mode-scope="session"]')
+    _switch(page, mode)
+
+    assert _nest_gated(page, card_scope) == {k: [v, v] for k, v in card.items()}
+    assert _nest_gated(page, '[data-hw-mode-scope="session"]') == {k: [v, v] for k, v in panel.items()}

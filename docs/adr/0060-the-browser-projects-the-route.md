@@ -50,3 +50,8 @@ level: framework
 - `stamp_requires` defaults its mode to `edit`.
 - `canvas.vue` names each gesture by its generated `GraphEvents.UserInteractions` constant instead of a string literal.
 - The Properties editor hides a tab none of whose panels the principal's access right reaches; it showed it empty.
+
+**Amendment (nested stamps tighten).**
+
+- Where stamps nest, the strictest one around an element decides: an inner stamp can only tighten, never loosen, the one it sits in. The card CSS, `isGated`, the canvas's press check and the Inset rule all read it so; the panel rule already did. An unknown value counts as `edit` on a card and gates nothing in a panel. This closes the known gap above (follow-up #49).
+- On a card the nearer of a stamp and a `.drag-handle` decides whether a press stays with the element or drags the card, so a widget can hand a part of itself back to the card (`NoteTextWidget`'s shown text, follow-up #50).

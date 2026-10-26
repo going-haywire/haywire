@@ -104,7 +104,8 @@ import 'arrow_heads';
  *                       operate and edit. Written by ui_node.py.
  *   data-hw-requires    'view' | 'operate' | 'edit': the lowest level mode in
  *                       which an element inside a card takes pointer input. An
- *                       unstamped element counts as 'edit'. Written by
+ *                       unstamped element counts as 'edit'; of nested stamps the
+ *                       strictest decides. Written by
  *                       stamp_requires (ui/access_stamp.py): every card widget
  *                       with a route gets required_mode(minimum, operable)
  *                       (WidgetFactory.render_widget); a pin that carries its
@@ -1815,9 +1816,8 @@ export default {
             const draggableElement = this._findDraggableElement(target);
             if (draggableElement) {
                 // Below edit a press on a card or edge arms a click that selects and drags
-                // nothing; an element whose data-hw-requires the level mode satisfies keeps its press.
-                const keepsPress = !this.editing && this._levelModeSatisfies(
-                    target.closest('[data-hw-requires]')?.dataset.hwRequires);
+                // nothing; an element whose data-hw-requires stamps the level mode satisfies keeps its press.
+                const keepsPress = !this.editing && this._stampsSatisfied(target);
                 if (keepsPress) return;
                 this._startUnifiedDrag(event, draggableElement);
                 return;
@@ -3978,6 +3978,18 @@ export default {
             return needed !== undefined && LEVEL_MODE_RANK[this.levelMode] >= needed;
         },
 
+        /** True when `element` sits in at least one [data-hw-requires] stamp and the level mode
+         *  satisfies every stamp around it: a nested stamp can only tighten. */
+        _stampsSatisfied(element) {
+            let node = element.closest('[data-hw-requires]');
+            if (!node) return false;
+            for (; node && this.$el.contains(node);
+                node = node.parentElement ? node.parentElement.closest('[data-hw-requires]') : null) {
+                if (!this._levelModeSatisfies(node.dataset.hwRequires)) return false;
+            }
+            return true;
+        },
+
         /** True when the canvas's level mode reaches the mode gestureRequires declares for
          *  `eventType`. An event type with no entry is refused in every mode and logged. */
         _allows(eventType) {
@@ -4000,8 +4012,7 @@ export default {
             // The nearer of stamp and drag handle decides, so a widget can hand a part back to the card.
             const stamped = element.closest('[data-hw-requires]');
             const handle = element.closest('.drag-handle');
-            if (stamped && (!handle || handle.contains(stamped))
-                && this._levelModeSatisfies(stamped.dataset.hwRequires)) {
+            if (stamped && (!handle || handle.contains(stamped)) && this._stampsSatisfied(element)) {
                 return true;
             }
 
@@ -4557,6 +4568,11 @@ export default {
     pointer-events: none !important;
 }
 :where(.graph-canvas [data-hw-inset] [data-hw-requires="operate"]) { pointer-events: auto; }
+/* A stricter (or unknown) stamp nested in an operable widget is inert again: nesting only tightens. */
+.graph-canvas [data-hw-inset] [data-hw-requires="operate"] [data-hw-requires]:not([data-hw-requires="operate"]):not([data-hw-requires="view"]),
+.graph-canvas [data-hw-inset] [data-hw-requires="operate"] [data-hw-requires]:not([data-hw-requires="operate"]):not([data-hw-requires="view"]) * {
+    pointer-events: none !important;
+}
 .graph-canvas [data-hw-inset] [data-pin-id] { display: none !important; }
 
 /* Below edit a card selects but does not move: drop the move cursor its container
