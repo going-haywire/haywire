@@ -16,6 +16,13 @@ about to write off a failure as flakiness.
 Pick the smallest tier that covers the change. Run the full suite once at the
 end, not on every iteration.
 
+The browser tier runs in Chromium only. After touching browser-side input,
+clipboard or canvas code, also run it in Firefox once:
+`uv run pytest -m browser -n 4 --browser firefox`. Playwright's synthetic input
+differs per engine: Firefox's `ClipboardEvent` constructor drops a
+`clipboardData` init, and Control+A has no native effect in a field on macOS.
+A test that fakes input must hold in both engines.
+
 ## Parallelism
 
 Both tiers parallelise with `-n 4` (pytest-xdist). Together that is roughly

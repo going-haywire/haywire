@@ -68,10 +68,8 @@ def test_keys_native_inside_text_field(page: Page, harness):
     page.keyboard.type("abc")
     page.keyboard.press("Control+a")
 
+    # Not prevented is the whole contract: what Control+A then does natively differs per engine and OS.
     assert page.evaluate("() => window.__hwProbe") is False
-    # The field's own Control+A ran: select-all, or caret-to-line-start on macOS.
-    selection = field.evaluate("el => [el.selectionStart, el.selectionEnd]")
-    assert selection in ([0, 3], [0, 0])
     _expect_only_sentinel(page)
 
 
@@ -130,15 +128,7 @@ def test_paste_carries_text_and_pointer_position(page: Page, harness):
     _open(page, harness)
     _click_root(page, _ONE)
 
-    page.evaluate(
-        """() => {
-            const dt = new DataTransfer();
-            dt.setData('text/plain', 'hello');
-            document.body.dispatchEvent(new ClipboardEvent('paste', {
-                clipboardData: dt, bubbles: true, cancelable: true,
-            }));
-        }"""
-    )
+    _dispatch_paste(page, "hello")
 
     expect(page.locator("#last-command")).to_have_text("paste@ed::one")
     expect(page.locator("#last-payload")).to_have_text("[12, 34]|hello")
@@ -150,9 +140,10 @@ def _dispatch_paste(page: Page, text: str, target: str = "document.body") -> boo
         f"""(text) => {{
             const dt = new DataTransfer();
             dt.setData('text/plain', text);
-            return {target}.dispatchEvent(new ClipboardEvent('paste', {{
-                clipboardData: dt, bubbles: true, cancelable: true,
-            }}));
+            const ev = new ClipboardEvent('paste', {{bubbles: true, cancelable: true}});
+            // Firefox's constructor ignores a clipboardData init and gives the event an empty one.
+            Object.defineProperty(ev, 'clipboardData', {{value: dt}});
+            return {target}.dispatchEvent(ev);
         }}""",
         text,
     )
