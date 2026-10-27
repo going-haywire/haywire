@@ -43,7 +43,7 @@ level: core
 
 - The refusal message of an `Editor` verb is dropped: the caller sees `False`.
 - A validation failure shows nothing new on the card; it is in the Errors editor and in `studio_get_errors`.
-- The dedup key ignores digits in the message, so "Node 3 failed" and "Node 7 failed" at the same place are one entry with `count == 2`; the source location (`filename`, `line_number`) is part of the key, so generic "<operation> failed" messages from different bugs stay apart, and one bug raised from two lines is two entries. Merged repeats keep only the first traceback.
+- The dedup key ignores digits in the message, so "Node 3 failed" and "Node 7 failed" at the same place are one entry with `count == 2`; the source location (`filename`, `line_number`) is part of the key, so generic "<operation> failed" messages from different bugs stay apart, and one bug raised from two lines is two entries. Merged repeats keep only the first traceback. The console follows the same rule: a merged repeat logs one DEBUG line instead of the full report.
 - Because a merge notifies no one, the Errors editor's `×count` refreshes only with the next new entry or a triage action.
 - A stale id met during load or hot reload is recorded, even where an edit would have been refused.
 - The other `except` sites keep logging to the console; widening the list is a matter of adding a `report_failure` call.

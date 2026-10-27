@@ -560,6 +560,10 @@ class HaywireException(Exception):
     """The ``fingerprint()`` the ledger computed when it first recorded this
     exception; ``None`` until then. Not serialized."""
 
+    ledger_merged: bool = field(default=False, repr=False, compare=False)
+    """Whether the ledger folded this exception into an existing unseen entry
+    instead of adding it. Not serialized."""
+
     def fingerprint(self) -> tuple:
         """Identity for ledger dedup: where, what kind, the source location it was
         raised from, and the message with digits normalized so "Node 3 failed" and
@@ -996,7 +1000,12 @@ class HaywireException(Exception):
     # ========================================================================
 
     def log(self, logger=None) -> "HaywireException":
-        """Log to console (fallback when UI not available) and register in the error ledger."""
+        """Register in the error ledger and log the full report to the console.
+
+        A repeat the ledger merges into an unseen entry logs one DEBUG line
+        instead of the full report, so a failure raised every frame prints once
+        until the entry is seen.
+        """
         import logging
 
         from haywire.core.errors.ledger import get_error_ledger
@@ -1006,7 +1015,10 @@ class HaywireException(Exception):
         except Exception:
             pass  # the ledger must never break error reporting itself
         logger = logger or logging.getLogger()
-        logger.error(self.format_detailed())
+        if self.ledger_merged:
+            logger.debug("%s (repeat of ledger entry %d)", self.message, self.ledger_seq)
+        else:
+            logger.error(self.format_detailed())
         return self
 
     def is_interesting_frame(self, frame: Dict[str, Any]) -> bool:

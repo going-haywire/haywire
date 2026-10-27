@@ -123,9 +123,10 @@ class ErrorLedger:
         ``ledger_fingerprint``; later changes to the exception do not move it.
         A fresh exception whose ``fingerprint()`` matches an unseen entry is
         merged into it (``count`` and ``last_seen_at`` bump, ``current_seq`` does
-        not advance) and gets that entry's seq; listeners do NOT fire, since nothing
-        new appeared. This also breaks the loop where a failing ``ErrorLogged``
-        subscriber is recorded, re-broadcasts ``ErrorLogged`` and fails again.
+        not advance), gets that entry's seq and ``ledger_merged = True``;
+        listeners do NOT fire, since nothing new appeared. This also breaks the
+        loop where a failing ``ErrorLogged`` subscriber is recorded,
+        re-broadcasts ``ErrorLogged`` and fails again.
         """
         if exc.ledger_seq != 0:
             return exc.ledger_seq
@@ -147,6 +148,7 @@ class ErrorLedger:
                 exc.ledger_seq = existing.ledger_seq
                 seq = existing.ledger_seq
                 merged = True
+                exc.ledger_merged = True
             else:
                 self._seq += 1
                 exc.ledger_seq = self._seq

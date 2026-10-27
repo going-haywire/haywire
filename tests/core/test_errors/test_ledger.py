@@ -368,3 +368,51 @@ def test_to_dict_carries_count_and_last_seen_at(ledger):
     data = first.to_dict()
     assert data["count"] == 2
     assert data["last_seen_at"] is not None
+
+
+# ── console output of repeats ───────────────────────────────────────────────
+
+
+def _levels(caplog: pytest.LogCaptureFixture, name: str) -> list[int]:
+    return [record.levelno for record in caplog.records if record.name == name]
+
+
+def test_record_marks_only_a_merged_exception(ledger):
+    first, again = _err("x"), _err("x")
+    ledger.record(first)
+    ledger.record(again)
+    assert first.ledger_merged is False
+    assert again.ledger_merged is True
+
+
+def test_a_repeat_while_unseen_logs_one_debug_line_not_the_report(ledger, caplog):
+    import logging
+
+    log = logging.getLogger("ledger-repeat")
+    with caplog.at_level(logging.DEBUG, logger="ledger-repeat"):
+        _err("x").log(log)
+        _err("x").log(log)
+    assert _levels(caplog, "ledger-repeat") == [logging.ERROR, logging.DEBUG]
+
+
+def test_a_repeat_after_seen_logs_the_report_again(ledger, caplog):
+    import logging
+
+    log = logging.getLogger("ledger-repeat")
+    with caplog.at_level(logging.DEBUG, logger="ledger-repeat"):
+        ledger.mark_seen(_err("x").log(log).ledger_seq)
+        _err("x").log(log)
+    assert _levels(caplog, "ledger-repeat") == [logging.ERROR, logging.ERROR]
+
+
+def test_a_failing_ledger_still_logs_the_report(ledger, caplog, monkeypatch):
+    import logging
+
+    def _boom(exc):
+        raise RuntimeError("ledger down")
+
+    monkeypatch.setattr(ledger, "record", _boom)
+    log = logging.getLogger("ledger-repeat")
+    with caplog.at_level(logging.DEBUG, logger="ledger-repeat"):
+        _err("x").log(log)
+    assert _levels(caplog, "ledger-repeat") == [logging.ERROR]
