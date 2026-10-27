@@ -157,7 +157,7 @@ class HistoryManager(IHistoryManager):
             if self.config.enable_debug_logging:
                 logger.debug(f"Executed action: {action.description}")
         except Exception as e:
-            report_failure(e, operation="Apply edit", action=action.description, **self.error_context)
+            self._report(e, "Apply edit", action.description)
             return False
 
         self._record_executed(action, current_time)
@@ -202,7 +202,7 @@ class HistoryManager(IHistoryManager):
         try:
             value_action.execute()
         except Exception as e:
-            report_failure(e, operation="Apply edit", action=action.description, **self.error_context)
+            self._report(e, "Apply edit", action.description)
             return False
 
         if not value_action.changed:
@@ -363,13 +363,7 @@ class HistoryManager(IHistoryManager):
             return True
 
         except Exception as e:
-            report_failure(
-                e,
-                operation="Undo",
-                refusals_fail=True,
-                action=self._get_item_description(item),
-                **self.error_context,
-            )
+            self._report(e, "Undo", self._get_item_description(item), refusals_fail=True)
             return False
 
     def redo(self) -> bool:
@@ -410,14 +404,13 @@ class HistoryManager(IHistoryManager):
             return True
 
         except Exception as e:
-            report_failure(
-                e,
-                operation="Redo",
-                refusals_fail=True,
-                action=self._get_item_description(item),
-                **self.error_context,
-            )
+            self._report(e, "Redo", self._get_item_description(item), refusals_fail=True)
             return False
+
+    def _report(self, exc: Exception, operation: str, action: str, refusals_fail: bool = False) -> None:
+        """Record *exc* in the error ledger with ``error_context`` and the action's description."""
+        context = {**self.error_context, "action": action}
+        report_failure(exc, operation=operation, refusals_fail=refusals_fail, **context)
 
     def can_undo(self) -> bool:
         """Check if undo operation is possible."""
