@@ -61,7 +61,7 @@ license = { text = "MIT" }
 dependencies = [
     "haywire-core>=0.0.39",
     "haybale-core>=0.0.39",
-    "nicegui>=3.12.1",
+    "nicegui>=3.18.0",
 ]
 
 [project.optional-dependencies]

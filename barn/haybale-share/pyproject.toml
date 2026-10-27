@@ -12,7 +12,7 @@ license = {text = "MIT"}
 # mean opening marketplace's editors, and duplicating its browser besides.
 dependencies = [
     "haywire-core>=0.2.4",
-    "nicegui>=3.12.1",
+    "nicegui>=3.18.0",
 ]
 keywords = ["publishing"]
 

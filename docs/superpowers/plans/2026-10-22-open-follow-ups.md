@@ -20,7 +20,7 @@ Items carry stable IDs (`#N`; handoff notes cite them), so the numbering has gap
 
 ## 2. Performance
 
-- **#9** **Drawing large graphs.** The 512-node load went from 23 s to ~12 s (Firefox 52 s → 11 s) on 2026-10-20; the Vue full-tree render walk remains (`.insights/project_nicegui_component_vs_native_tag.md`). Handoff: `internals/handoff/draw_performance_regression_fix.md` — check whether its `_claim_session_state` regression is cleared by `_clear_selection` publishing only when something was selected.
+- **#9** **Drawing large graphs.** The 512-node load went from 23 s to ~12 s (Firefox 52 s → 11 s) on 2026-10-20; the Vue full-tree render walk remains (`.insights/project_nicegui_component_vs_native_tag.md`). The `_claim_session_state` regression is cleared (`internals/handoff/draw_performance_regression_fix.md`, done). Re-measured 2026-10-27 (harness `.scratch/draw-perf/`): one load builds ~55k elements (~107 per card) and sends ~24 MB; NiceGUI 3.13 spent ~2.6 s per load in an uncached `inspect.signature` per element change, fixed upstream by 3.18 (adopted; all edges drawn in ~11–15 s in Chrome and Firefox). Next: the 11,264 pins are half the bytes (~1.2 KB each): server-side `mouseenter`/`mouseleave` listeners (4.6 MB), 12 `data-*` attributes (4.2 MB), 9 inline styles (2 MB).
 
 ## 3. Polish
 
