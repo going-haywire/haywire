@@ -81,9 +81,15 @@ class Editor:
         self.graph: BaseGraph = graph
         #: Edges removed by the most recent ``promote_to_macro`` call only (0 unless it dropped any).
         self.last_promotion_dropped_edges = 0
-        self.history_manager: IHistoryManager = history_manager or HistoryManager(
-            undo_config or UndoConfig()
-        )
+        if history_manager is None:
+            history_manager = HistoryManager(
+                undo_config or UndoConfig(), error_context={"graph_id": graph.graph_id}
+            )
+        elif isinstance(history_manager, HistoryManager):
+            # A shared history records edits to several graphs, so no single graph id is
+            # true for all its failures; the action's own context still names the node.
+            history_manager.error_context.pop("graph_id", None)
+        self.history_manager: IHistoryManager = history_manager
         graph.set_history(self.history_manager)
         self._node_factory = node_factory
 
@@ -665,7 +671,9 @@ class Editor:
             logger.info(f"Split edge {edge_id} with reroute {action.reroute_node_id}")
             return action.reroute_node_id
         except Exception as e:
-            logger.error(f"Error splitting edge {edge_id} with reroute: {e}")
+            report_failure(
+                e, operation="Apply edit", graph_id=self.graph.graph_id, action="Split edge with reroute"
+            )
             return None
 
     def dissolve_reroute(self, node_id: str) -> bool:
@@ -681,7 +689,9 @@ class Editor:
             logger.info(f"Dissolved reroute node {node_id}")
             return True
         except Exception as e:
-            logger.error(f"Error dissolving reroute {node_id}: {e}")
+            report_failure(
+                e, operation="Apply edit", graph_id=self.graph.graph_id, action="Dissolve reroute"
+            )
             return False
 
     def collapse_to_group(
@@ -863,7 +873,7 @@ class Editor:
             logger.info(f"Expanded Group {node_id}")
             return True
         except Exception as e:
-            logger.error(f"Error expanding Group {node_id}: {e}")
+            report_failure(e, operation="Apply edit", graph_id=self.graph.graph_id, action="Expand group")
             return False
 
     def list_edges(self) -> List[EdgeWrapper]:

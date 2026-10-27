@@ -235,7 +235,10 @@ def test_editor_dissolve_returns_true_on_success(monkeypatch):
     assert isinstance(added["action"], _FakeAction)
 
 
-def test_editor_dissolve_returns_false_on_error(monkeypatch):
+def test_editor_dissolve_returns_false_on_error_and_records_it(monkeypatch):
+    from types import SimpleNamespace
+
+    from haywire.core.errors.ledger import ErrorLedger, get_error_ledger, set_error_ledger
     from haywire.core.graph import editor as editor_module
     from haywire.core.graph.editor import Editor
 
@@ -250,10 +253,20 @@ def test_editor_dissolve_returns_false_on_error(monkeypatch):
     monkeypatch.setattr(editor_module, "DissolveRerouteAction", _FakeAction)
 
     ed = Editor.__new__(Editor)
-    ed.graph = cast(Any, object())
+    ed.graph = cast(Any, SimpleNamespace(graph_id="g1"))
     ed.history_manager = cast(Any, _HM())
 
-    assert ed.dissolve_reroute("reroute_1") is False
+    previous = get_error_ledger()
+    ledger = ErrorLedger(max_entries=5)
+    set_error_ledger(ledger)
+    try:
+        assert ed.dissolve_reroute("reroute_1") is False
+    finally:
+        set_error_ledger(previous)
+
+    (entry,) = ledger.query().entries
+    assert (entry.operation, entry.graph_id) == ("Apply edit", "g1")
+    assert entry.error_context["action"] == "Dissolve reroute"
 
 
 # ---------------------------------------------------------------------------

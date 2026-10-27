@@ -92,14 +92,20 @@ class HistoryManager(IHistoryManager):
     and action merging.
     """
 
-    def __init__(self, config: Optional[UndoConfig] = None):
+    def __init__(
+        self, config: Optional[UndoConfig] = None, *, error_context: Optional[dict[str, Any]] = None
+    ):
         """
         Initialize the history manager.
 
         Args:
             config: Configuration for undo system behavior
+            error_context: Boundary context (e.g. ``graph_id``) added to every failure this
+                history records in the error ledger; see ``report_failure``. Also settable
+                later through the ``error_context`` attribute.
         """
         self.config = config or UndoConfig()
+        self.error_context: dict[str, Any] = dict(error_context or {})
 
         # Core history storage
         self.history: List[Union[IAction, ActionGroup, Fence]] = []
@@ -151,7 +157,7 @@ class HistoryManager(IHistoryManager):
             if self.config.enable_debug_logging:
                 logger.debug(f"Executed action: {action.description}")
         except Exception as e:
-            report_failure(e, operation="Apply edit", action=action.description)
+            report_failure(e, operation="Apply edit", action=action.description, **self.error_context)
             return False
 
         self._record_executed(action, current_time)
@@ -196,7 +202,7 @@ class HistoryManager(IHistoryManager):
         try:
             value_action.execute()
         except Exception as e:
-            report_failure(e, operation="Apply edit", action=action.description)
+            report_failure(e, operation="Apply edit", action=action.description, **self.error_context)
             return False
 
         if not value_action.changed:
@@ -321,7 +327,8 @@ class HistoryManager(IHistoryManager):
         Undo the most recent action or action group.
 
         Returns:
-            True if undo was successful, False if nothing to undo
+            ``True`` if undo was successful; ``False`` if there was nothing to undo, or if the
+            undo raised, which is recorded in the error ledger (a ``Refusal`` too).
         """
         self._amendable = None
 
@@ -356,7 +363,13 @@ class HistoryManager(IHistoryManager):
             return True
 
         except Exception as e:
-            report_failure(e, operation="Undo", action=self._get_item_description(item))
+            report_failure(
+                e,
+                operation="Undo",
+                refusals_fail=True,
+                action=self._get_item_description(item),
+                **self.error_context,
+            )
             return False
 
     def redo(self) -> bool:
@@ -364,7 +377,8 @@ class HistoryManager(IHistoryManager):
         Redo the most recently undone action or action group.
 
         Returns:
-            True if redo was successful, False if nothing to redo
+            ``True`` if redo was successful; ``False`` if there was nothing to redo, or if the
+            redo raised, which is recorded in the error ledger (a ``Refusal`` too).
         """
         self._amendable = None
 
@@ -396,7 +410,13 @@ class HistoryManager(IHistoryManager):
             return True
 
         except Exception as e:
-            report_failure(e, operation="Redo", action=self._get_item_description(item))
+            report_failure(
+                e,
+                operation="Redo",
+                refusals_fail=True,
+                action=self._get_item_description(item),
+                **self.error_context,
+            )
             return False
 
     def can_undo(self) -> bool:

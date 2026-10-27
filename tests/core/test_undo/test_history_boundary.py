@@ -1,11 +1,10 @@
-"""``HistoryManager`` records a failing edit, undo or redo in the error ledger once; a refusal not at all."""
+"""``HistoryManager`` records a failing edit, undo or redo in the ledger once; a refused edit not at all."""
 
 import pytest
 
 from haywire.core.errors import Refusal
 from haywire.core.errors.ledger import ErrorLedger, get_error_ledger, set_error_ledger
 from haywire.core.graph.editor import Editor
-from haywire.core.types import Propagation
 from haywire.core.undo.base_action import ActionBase
 
 pytestmark = pytest.mark.integration
@@ -55,8 +54,29 @@ def test_a_recorded_edit_that_fails_is_recorded_once(ledger, editor):
 
 
 def test_a_recorded_edit_that_refuses_is_not_recorded(ledger, editor):
-    assert editor.set_edge_propagation("removed_elsewhere", Propagation.LAZY) is False
+    assert editor._apply(_Flaky(Refusal("stale"), "execute"), record=True) is False
+    assert editor._apply_value(_Flaky(Refusal("stale"), "execute"), record=True, merge_owner=None) is False
     assert ledger.query().total == 0
+
+
+def test_a_failing_recorded_edit_carries_the_graph_id(ledger, editor):
+    assert editor._apply(_Flaky(KeyError("gone"), "execute"), record=True) is False
+
+    (entry,) = ledger.query().entries
+    assert entry.graph_id == editor.graph.graph_id
+
+
+def test_a_shared_history_carries_no_graph_id(ledger, editor, library_system):
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.scheduler import SyncScheduler
+
+    other = BaseGraph(filestem="Other", validation_scheduler=SyncScheduler())
+    Editor(other, library_system.get_node_factory(), history_manager=editor.history_manager)
+
+    assert editor._apply(_Flaky(KeyError("gone"), "execute"), record=True) is False
+
+    (entry,) = ledger.query().entries
+    assert entry.graph_id is None
 
 
 def test_a_failing_value_write_on_the_recorded_path_is_recorded(ledger, editor):
@@ -88,8 +108,20 @@ def test_a_redo_that_fails_is_recorded(ledger, editor):
     assert entry.operation == "Redo"
 
 
-def test_an_undo_that_refuses_is_not_recorded(ledger, editor):
+def test_an_undo_that_refuses_is_recorded(ledger, editor):
     assert editor._apply(_Flaky(Refusal("stale"), "undo"), record=True) is True
 
     assert editor.history_manager.undo() is False
-    assert ledger.query().total == 0
+
+    (entry,) = ledger.query().entries
+    assert entry.operation == "Undo"
+
+
+def test_a_redo_that_refuses_is_recorded(ledger, editor):
+    assert editor._apply(_Flaky(Refusal("stale"), "redo"), record=True) is True
+    assert editor.history_manager.undo() is True
+
+    assert editor.history_manager.redo() is False
+
+    (entry,) = ledger.query().entries
+    assert entry.operation == "Redo"
