@@ -96,8 +96,8 @@ class _GrowsInterface(BaseNode):
     def hb_grow(self, port, edge_wrapper) -> None:
         """Grow an interface port of the connected port's type, and a fresh slot.
 
-        The new port takes the connected port's label, description, widget and
-        default, so an interface grown by wiring starts out documented and
+        The new port takes the connected port's label, description, widget,
+        default and ``operable``, so an interface grown by wiring starts out documented and
         presents the affordance its counterpart does — an interior port behind
         a 0..1 slider gives the card a 0..1 slider. All of it is the user's from
         then on: an interface port is ``RESOLVED``, and the Subgraph owns its
@@ -125,6 +125,7 @@ class _GrowsInterface(BaseNode):
             "label": other.label or port.id,
             "description": other.description,
             "origin": PortOrigin.RESOLVED,
+            "operable": other.operable,
         }
         if not other.is_immediate:
             # An immediate port's default is its own node's subscription, so the type's default stands.

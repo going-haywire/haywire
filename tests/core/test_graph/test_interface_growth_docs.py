@@ -2,7 +2,7 @@
 
 Both paths that create one — collapsing a selection, and wiring an interior
 port to a boundary node's growing slot — take the naming port's label,
-description, widget and default, so a Group arrives documented and presents
+description, widget, default and ``operable``, so a Group arrives documented and presents
 the affordances its interior does. All of it is ``RESOLVED`` from then on: the
 Subgraph owns its interface (ADR 0036), so a user edit survives revalidation.
 """
@@ -194,10 +194,53 @@ class TestTheWidgetTravels:
 
         assert card.node.ports[f"in_{slot_id}"].get_value() == pytest.approx(0.75)
 
+    def test_an_operable_port_stays_operable(self, slider_interface):
+        input_node, card, slot_id = slider_interface
+
+        assert input_node.node.ports[slot_id].operable is True
+        assert card.node.ports[f"in_{slot_id}"].operable is True
+
     def test_the_card_pin_renders_that_widget(self, slider_interface):
         _input_node, card, slot_id = slider_interface
 
         assert card.node.ports[f"in_{slot_id}"].should_show_widget() is True
+
+
+class TestOperableTravels:
+    """An interior port that needs level mode edit to change needs it on the card too."""
+
+    @pytest.fixture
+    def edit_only_interface(self, graph_with_library_system: BaseGraph):
+        from haywire.barn.builtin.types import FLOAT
+        from haywire.barn.builtin.widgets import SliderWidget
+        from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY
+
+        graph = graph_with_library_system
+        definition = _definition(graph, key="sg_operable")
+        input_node = make_node(definition, _INPUT)
+        consumer = make_node(definition, _ADD_FLOAT)
+        with consumer.node.rejig():
+            consumer.node.add(
+                FLOAT.as_inlet("gain", widget=SliderWidget.config(min=0.0, max=1.0), operable=False)
+            )
+
+        slot_id = _slot(input_node.node)
+        definition.create_edge_wrapper(input_node.node_id, slot_id, consumer.node_id, "gain")
+        definition.force_validation()
+
+        card = make_node(graph, _CARD, node_data={"store": {SUBGRAPH_KEY: "sg_operable"}})
+        cast("GraphNode", card.node).reconcile_interface()
+        return input_node, card, slot_id
+
+    def test_the_boundary_port_takes_it(self, edit_only_interface):
+        input_node, _card, slot_id = edit_only_interface
+
+        assert input_node.node.ports[slot_id].operable is False
+
+    def test_the_card_pin_takes_it_too(self, edit_only_interface):
+        _input_node, card, slot_id = edit_only_interface
+
+        assert card.node.ports[f"in_{slot_id}"].operable is False
 
 
 class TestCollapseSeedsTheSameWay:
@@ -205,6 +248,10 @@ class TestCollapseSeedsTheSameWay:
 
     @pytest.fixture
     def collapsed(self, graph_with_library_system: BaseGraph):
+        return self._collapse(graph_with_library_system)
+
+    @staticmethod
+    def _collapse(graph_with_library_system: BaseGraph, *, operable: bool = True):
         from haywire.barn.builtin.types import FLOAT
         from haywire.barn.builtin.widgets import SliderWidget
         from haywire.core.undo.actions.graph_actions import CollapseToGraphNodeAction
@@ -220,6 +267,7 @@ class TestCollapseSeedsTheSameWay:
                     description="Input multiplier",
                     default=0.75,
                     widget=SliderWidget.config(min=0.0, max=1.0),
+                    operable=operable,
                 )
             )
         graph.create_edge_wrapper(producer.node_id, "result", consumer.node_id, "gain")
@@ -279,6 +327,14 @@ class TestCollapseSeedsTheSameWay:
         assert pin.label == "Gain"
         assert pin.description == "Input multiplier"
         assert pin.widget_key == "haywire-core:widget:SliderWidget"
+        assert pin.operable is True
+
+    def test_an_edit_only_port_stays_edit_only(self, graph_with_library_system: BaseGraph):
+        definition, card = self._collapse(graph_with_library_system, operable=False)
+        port = self._interface_port(definition)
+
+        assert port.operable is False
+        assert card.node.ports[f"in_{port.id}"].operable is False
 
 
 class TestARenameReachesTheCard:

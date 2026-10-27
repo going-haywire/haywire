@@ -2014,6 +2014,7 @@ class _BuildSubgraphAction(ActionBase):
                     "label": port.label,
                     "description": port.description,
                     "origin": PortOrigin.RESOLVED,
+                    "operable": port.operable,
                 }
                 if not immediate:
                     # An immediate port's default is its own node's subscription; the type's stands.

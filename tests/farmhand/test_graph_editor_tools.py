@@ -1408,6 +1408,8 @@ def test_operate_refuses_a_non_operable_port(farmhand_call):
             result = _operate(farmhand_call, bid, node_id, "value_a", 2.0)
         assert result.isError is True
         assert "[not_operable]" in result.content[0].text
+        assert "needs edit access" in result.content[0].text
+        assert "graph_editor_set_property" in result.content[0].text
     finally:
         _close(farmhand_call, bid)
 

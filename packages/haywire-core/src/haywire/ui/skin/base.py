@@ -382,6 +382,9 @@ class BaseSkin(ABC):
             ui_element.classes(classes)
         if widget_instance is not None:
             stamp_size_declaration(ui_element, widget_instance)
-            self._nodeids_widget_instances.setdefault(node_id, {})[descriptor.storage_key] = widget_instance
+            # Prefixed: a promoted port's id is its setting's storage_key; both widgets need cleanup.
+            self._nodeids_widget_instances.setdefault(node_id, {})[f"setting:{descriptor.storage_key}"] = (
+                widget_instance
+            )
 
         return ui_element

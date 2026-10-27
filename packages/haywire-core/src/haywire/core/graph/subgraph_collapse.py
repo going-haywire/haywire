@@ -114,6 +114,8 @@ class BoundaryPort:
     widget_config: Dict[str, Any] = field(default_factory=dict)
     default: "dict | None" = None
     """The interior port's default, so the card's pin starts where it does."""
+    operable: bool = True
+    """The interior port's ``operable``, so its widget needs level mode ``edit`` on the card too."""
     outer: List[Endpoint] = field(default_factory=list)
     """The endpoints outside the selection: sources for an inlet, sinks for an outlet."""
     inner: List[Endpoint] = field(default_factory=list)
@@ -233,6 +235,7 @@ def _build_ports(
                 widget_key=naming.widget_key,
                 widget_config=dict(naming.widget_config),
                 default=naming.default,
+                operable=naming.operable,
                 outer=[(endpoint[0], endpoint[1])]
                 if is_inlet
                 else [(e.sink_node_id, e.inlet_port_id) for e in edges],

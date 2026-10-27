@@ -313,7 +313,8 @@ class GraphNode(BaseNode):
         """Add this card's counterpart of one interface port.
 
         The pin mirrors everything the interface port presents — its name, its
-        docs, the widget editing it and the value it starts at — so a Group
+        docs, the widget editing it, whether that widget needs level mode ``edit``
+        (``operable``) and the value it starts at — so a Group
         wrapping a slider-constrained input offers that slider on its card. A
         pin this card already carries keeps its own order; a new one lands
         after the pins already there.
@@ -324,6 +325,7 @@ class GraphNode(BaseNode):
             "label": port.label,
             "description": port.description,
             "default": port.default,
+            "operable": port.operable,
         }
         if port.widget_key is not None:
             kwargs["widget_key"] = port.widget_key

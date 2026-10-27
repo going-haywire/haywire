@@ -1078,10 +1078,18 @@ class GraphEditorOperateTool(Farmhand):
         editor = _editor(ctx, binding_id)
         wrapper = _node(editor, node_id)
         port = wrapper.node.ports.get(port_id)
+        if port is not None and port.widget_key and not port.operable:
+            raise FarmhandError(
+                "not_operable",
+                f"Port '{port_id}' on node '{node_id}' needs edit access to change, so it cannot be "
+                f"operated.",
+                ids={"node_id": node_id, "port_id": port_id},
+                help=f"Change it with graph_editor_set_property node_id={node_id!r} name={port_id!r}, "
+                "which needs edit access and records an undo step.",
+            )
         if (
             port is None
             or not port.widget_key
-            or not port.operable
             or not port.should_show_widget()
             or not port.data.accepts_own_value()
             or port.data.has_linked_value()

@@ -97,3 +97,16 @@ def test_without_a_route_the_model_requires_nothing(note, nicegui_slot_context) 
     factory, _ = _factory()
     _draw(_Skin(factory), note, "font")
     assert factory.render_widget.call_args.args[1].requires is None
+
+
+def test_a_setting_widget_and_its_promoted_pin_s_widget_are_both_kept(note, nicegui_slot_context) -> None:
+    """A promoted port's id is its setting's storage_key; each widget is cleaned up with the card."""
+    descriptor = type(cast(Any, note.node).annotation)._settings_descriptors()["font"]
+    setting_widget, pin_widget = MagicMock(name="setting"), MagicMock(name="pin")
+    factory = MagicMock()
+    factory.render_widget.return_value = (setting_widget, ui.element("div"))
+    skin = _Skin(factory)
+    _draw(skin, note, "font")
+    skin._nodeids_widget_instances[note.node_id][descriptor.storage_key] = pin_widget
+
+    assert set(skin._nodeids_widget_instances[note.node_id].values()) == {setting_widget, pin_widget}
