@@ -298,7 +298,7 @@ class stream_flags(NodeSettings):
     want_depth = setting[BOOL](False, label="Depth Requested", promotable=Promotable.NONE)
 ```
 
-`Promotable` is a Flag: `NONE` / `INLET` / `OUTLET` / `CONFIG` / `INPUT` (= `INLET | CONFIG`) / `ALL` (default). Effective eligibility is purely the declared flag — `watch()` seeds `Promotable.OUTLET` itself, so there's no separate structural rule to intersect with. The single source of truth is `eligible_promotion_directions()` in `haywire.core.node.promotion` — the Setting-row menu hides ineligible entries and `promote_setting()` raises `ValueError` for them, whether the call is interactive or from the load-time regeneration pass.
+`Promotable` is a Flag: `NONE` / `INLET` / `OUTLET` / `CONFIG` / `INPUT` (= `INLET | CONFIG`) / `ALL` (default). Effective eligibility is purely the declared flag — `watch()` seeds `Promotable.OUTLET` itself, so there's no separate structural rule to intersect with. The single source of truth is `eligible_promotion_directions()` in `haywire.core.node.promotion` — the Setting-row menu hides ineligible entries and `promote_setting()` raises `Refusal` for them, whether the call is interactive or from the load-time regeneration pass.
 
 **Live vs rebuild-category settings.** A node wrapping an external library (a camera, a model, a tracker) has two kinds of field, and they want different `promotable=`:
 

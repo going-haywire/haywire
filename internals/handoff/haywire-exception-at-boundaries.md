@@ -3,18 +3,19 @@ name: haywire-exception-at-boundaries
 description: Handoff — make every error on the main editing and running pathways of the studio land in the error ledger as a HaywireException, by converting at a short list of central boundaries instead of throwing HaywireException at every failure site
 metadata:
   type: project
-  status: open
+  status: landed
 ---
 
 # Handoff — HaywireException at the boundaries
 
-**Status:** not started. Direction agreed in principle with the user on 2026-10-23
-(convert at central boundaries, not at every failure site); needs a design round (`/design`
-or `/inquisition`) and an ADR before code. No branch.
+**Status:** **landed** 2026-10-26 on branch `fix/follow-ups-e` (backlog #47). Settled by an
+inquisition (2026-10-26); decision and rationale in
+[ADR 0061](../../docs/adr/0061-errors-reach-the-ledger-at-named-boundaries.md), current design in
+[`docs/architecture/errors/errors-arch.md`](../../docs/architecture/errors/errors-arch.md). The
+text below is the pre-design record.
 
-**Blocks:** [`reload-without-history-loses-setup.md`](reload-without-history-loses-setup.md)
-(on hold until this lands; its warning half is the first "detected condition" case, see
-open question 4).
+**Released:** [`reload-without-history-loses-setup.md`](reload-without-history-loses-setup.md)
+(open question 4 settled: a detected loss goes to the ledger only, `report_loss`).
 
 **Raised during:** follow-up #21 of `docs/superpowers/plans/2026-10-22-open-follow-ups.md`
 (Update Macro's `open_macro_with` failing reaches only the console and a toast).

@@ -1,18 +1,18 @@
 ---
 name: reload-without-history-loses-setup
-description: Handoff — a hot reload in a graph with no undo history (a never-opened Group interior, mainly) wipes the user's setup on its nodes silently; record the step on the host's history and warn through the ledger and the card where no history exists
+description: Handoff — a hot reload in a graph with no undo history (a never-opened Group interior, mainly) wipes the user's setup on its nodes silently; record the step on the host's history and warn through the ledger where no history exists
 metadata:
   type: project
-  status: on-hold
+  status: open
 ---
 
 # Handoff — A reload in a graph without a history loses the user's setup silently
 
-**Status:** **on hold** until
-[`haywire-exception-at-boundaries.md`](haywire-exception-at-boundaries.md) has landed. Its
-warning half (option (a) part 2) is a "detected condition" whose channel (ledger, card or
-both) that effort settles (its open question 4). Part 1 (recording on the host's history) is
-a pure undo fix that does not depend on it and could be released on its own.
+**Status:** **open.** [`haywire-exception-at-boundaries.md`](haywire-exception-at-boundaries.md)
+landed 2026-10-26 ([ADR 0061](../../docs/adr/0061-errors-reach-the-ledger-at-named-boundaries.md))
+and settled the warning's channel: a detected loss goes to the error ledger only, through
+`report_loss` (`haywire.core.errors`), with no `NodeWarning`. Option (a) part 2 below is
+amended accordingly.
 
 Design discussed and a direction recommended (option (a) below), not settled with the user.
 No code, no branch. Raised during follow-up #37 of
@@ -74,15 +74,16 @@ documentation, not a remedy.
    interior nodes via `RebuildNodesAction(self._graph, …)`, which takes the definition graph,
    so the action needs no change. Check that undo works while the interior is still closed.
 2. **Warn where there is still no history**, or the batch ran off the main thread, through
-   both channels:
-   - **Ledger:** one `HaywireException.create(…, severity=ErrorSeverity.WARNING)` per batch,
-     enriched with `graph_id` and the affected node ids, then `.log()`. It appears in the
+   the ledger only (ADR 0061):
+   - **Ledger:** one `report_loss(message, operation="Hot reload", graph_id=…, node_ids=…)`
+     per batch, a `WARNING` entry with `graph_id` and the affected node ids. It appears in the
      Errors editor (unseen badge) and in Farmhand's `studio_get_errors`. A `NodeWarning` does
      **not** reach the ledger: only `HaywireException.log()` records
      (`errors/haywire_exception.py:972-980`). Precedent for a WARNING-severity
      `HaywireException`: `BaseNode._initialize_from_dict` (`node/base.py:344-347`).
-   - **Card:** `NodeWarning(kind="reload", message="Rebuilt from new code; its previous setup
-     could not be kept for undo")` on each affected node. That gives the existing amber badge,
+   - **Card: superseded by ADR 0061, not to be built.** Was: `NodeWarning(kind="reload",
+     message="Rebuilt from new code; its previous setup could not be kept for undo")` on each
+     affected node. That gives the existing amber badge,
      and Farmhand's `inspect_node` shows it in `state.warnings`. Nothing branches on
      `NodeWarning.kind` today, so no UI change is needed. Update `NodeWarning`'s docstring,
      which says "compatibility" is the only kind. `NodeWrapper.build()` clears warnings at its
@@ -117,8 +118,7 @@ In `tests/core/test_node/test_reload_undo.py` (helpers `_graph_with_editor`, `_p
 - A Group interior that was never opened: reload a node inside it, undo on the host's editor,
   and the node's setup comes back.
 - A graph with no history: reload a changed node, and the ledger gains one WARNING entry
-  naming the node and the node carries a `NodeWarning(kind="reload")`. An untouched node gets
-  neither.
+  naming the node (no `NodeWarning`). An untouched node gets none.
 - The existing `test_a_graph_without_an_editor_records_nothing` and
   `test_a_reload_validated_off_the_main_thread_records_nothing` change their expectations.
 

@@ -144,6 +144,7 @@ nav:
       - Hot-reload: architecture/hot-reload/hot-reload-arch.md
       - Settings: architecture/settings/settings-arch.md
       - Session and state: architecture/session-and-state/session-and-state-arch.md
+      - Errors: architecture/errors/errors-arch.md
       - Studio:
           - Overview: architecture/studio/studio-arch.md
           - App shell: architecture/studio/app-shell/app-shell-arch.md
