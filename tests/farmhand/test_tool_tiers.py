@@ -23,6 +23,7 @@ EDIT_TOOLS = {
     "demote_setting",
     "undo",
     "redo",
+    "previous_setup",
     "create_graph",
     "open_graph",
     "save_graph",

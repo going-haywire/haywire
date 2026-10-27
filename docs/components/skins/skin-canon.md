@@ -396,13 +396,24 @@ says from which level mode an element takes input:
   `stamp_requires(el)` (`edit` by default; pass `LevelMode.OPERATE` for an operable one).
 - **A read-only affordance** (a tooltip trigger, an info menu, a badge) is stamped `view` and takes
   input in every level mode. `add_pin_tooltip` stamps a pin that triggers its own tooltip; the
-  studio skin stamps the diagnostics and comment badges. It must not offer a write.
+  diagnostics and comment badges `BaseSkin` draws are stamped this way. It must not offer a write.
 - **Tooltips on gated content** show only from the mode that operates the content: a trigger
   inside a gated widget is inert below that mode, as the widget is.
 
 Anything else on a card takes no pointer input below `edit`. The gate does not touch the
 inside of a marked element, so its own `pointer-events` rules (a disabled widget's `none`)
 stay in force.
+
+## The markers: `BaseSkin` draws the badges
+
+A skin never draws the diagnostics badge (errors, warnings, deprecation) or the
+comment badge itself. `BaseSkin._render` calls `render_markers(card, wrapper,
+on_stage=...)` after `render`, so every card shows them, whichever skin drew it.
+The default places both just above the card's top-right corner in the patch, and
+draws nothing on the stage. Override `render_markers` to place them elsewhere, or
+to draw none (a skin too small for them); draw both or neither, since they share
+one hook. Commands a warning calls for live in panels, not on the card: a
+previous setup is restored from the node's right-click menu (ADR 0062).
 
 ## Stage view: the stage skin and the `on_stage` keyword
 
@@ -438,7 +449,7 @@ A node has a patch skin (`props.skin`) and a stage skin (`props.stage_skin`), ea
 
 A skin made for the stage alone is tagged `["general", "stage-only"]`. A skin for one node kind is tagged `["special", "stage-only", "<kind>"]` (drop `stage-only` if it suits the patch too), and that node class overrides its `stage_skin` (or `skin`) field with `skin_choices(include=["special", "<kind>"], exclude=["general"])` as its options. The lists decide only what is offered: a write naming any skin is accepted.
 
-**A special skin checks its node.** Being offered only for its node kind does not mean a special skin only ever meets a node that can give it what it needs: a stand-in for a broken node keeps the skin its node had (ADR 0058), and a node's own data can be broken. The skin reads what it needs from the wrapper at every draw and, when it is missing, draws a message in the card naming the cause instead of its face, in `hw-text-danger`. It does not fall back to another skin: the failure is a developer's to fix and must show. Keep what the card always carries (the diagnostics badge, title and pins in the patch) so the node's errors stay reachable.
+**A special skin checks its node.** Being offered only for its node kind does not mean a special skin only ever meets a node that can give it what it needs: a stand-in for a broken node keeps the skin its node had (ADR 0058), and a node's own data can be broken. The skin reads what it needs from the wrapper at every draw and, when it is missing, draws a message in the card naming the cause instead of its face, in `hw-text-danger`. It does not fall back to another skin: the failure is a developer's to fix and must show. Keep the title and pins in the patch, and leave `render_markers` alone, so the node's errors stay reachable.
 
 **Widget nodes** are the worked example. `WidgetNodeSkin` (haybale-core) is tagged `["special", "stage-only", "widget-node"]`, and `WidgetNode.props.stage_skin` takes its options from `_widget_node_stage_skin_choices()`, which is `skin_choices(include=["special", "widget-node"], exclude=["general"])`. A third-party skin for widget nodes joins that list by carrying the same three tags; it needs no change to the nodes. The skin draws only the widget of each outlet the node declares (`port.is_outlet() and port.origin is PortOrigin.DECLARED`), so a setting promoted to a port never shows on the stage face. Its look per node comes from the widget node's `style` settings bag (label typography, card background and border, label position, maximum label width): the node owns the bag and the skin reads it, and a node without one draws the default face.
 

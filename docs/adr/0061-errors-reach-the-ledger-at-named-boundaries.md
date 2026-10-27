@@ -47,4 +47,4 @@ level: core
 - Because a merge notifies no one, the Errors editor's `×count` refreshes only with the next new entry or a triage action.
 - A stale id met during load or hot reload is recorded, even where an edit would have been refused.
 - The other `except` sites keep logging to the console; widening the list is a matter of adding a `report_failure` call.
-- Backlog #46 is unblocked: its warning is a detected loss, ledger only (`report_loss`); no `NodeWarning`.
+- Backlog #46 is settled by ADR 0062: a reload keeps the previous setup, so nothing is lost; each node holding one gets a `WARNING` row.

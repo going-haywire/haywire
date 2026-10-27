@@ -960,6 +960,39 @@ def tag(text: str, *, color: str = "grey") -> ui.badge:
     return ui.badge(text).props(f"outline color={color}").classes("text-xs")
 
 
+COUNT_BADGE_TONES = ("danger", "warning", "info", "success")
+"""Status tokens ``count_badge`` accepts, as ``--hw-<tone>``."""
+
+
+def count_badge(count: int, *, tone: str, floating: bool = False) -> ui.badge:
+    """A count filled with a status colour, such as unseen errors or a node's warnings.
+
+    The fill is ``var(--hw-<tone>)`` and the text ``var(--hw-bg-page)``, so the
+    count stays legible in every theme: dark on a light status colour, light on
+    a dark one. Use ``tag`` for a label; this is for a number that draws the eye.
+
+    Args:
+        tone: One of ``COUNT_BADGE_TONES``.
+        floating: Pin the badge to the top-right corner of its parent element.
+
+    Raises:
+        ValueError: If *tone* is not one of ``COUNT_BADGE_TONES``.
+
+    Usage::
+
+        hui.count_badge(len(unseen), tone="warning")
+        with ui.button(icon=hui.icon.warning):
+            hui.count_badge(3, tone="danger", floating=True)
+    """
+    if tone not in COUNT_BADGE_TONES:
+        raise ValueError(f"Unknown tone {tone!r}; use one of {COUNT_BADGE_TONES}")
+    badge = ui.badge(str(count), color=None).classes("text-xs")
+    badge.style(f"background: var(--hw-{tone}); color: var(--hw-bg-page);")
+    if floating:
+        badge.props("floating")
+    return badge
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # 8.15  Input Field
 # ──────────────────────────────────────────────────────────────────────────────

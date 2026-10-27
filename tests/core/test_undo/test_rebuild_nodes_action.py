@@ -147,3 +147,17 @@ def test_undo_of_a_rebuild_whose_node_is_gone_fails_cleanly(editor):
 
     assert editor.undo() is False
     assert editor.history_manager.can_redo() is False
+
+
+def test_execute_rebuilds_from_after_when_given(editor: Editor) -> None:
+    _settings, printer = _configured(editor)
+    graph = editor.graph
+    target = printer.serialize()["node_data"]
+    target["ports"]["message"]["field_data"]["value"] = "x"
+    action = RebuildNodesAction.capture(graph, [printer.node_id], "Set x", after={printer.node_id: target})
+
+    assert editor.history_manager.add_action(action)
+    assert printer.node.ports["message"].get_value() == "x"
+    assert editor.undo()
+    graph._validation.force_immediate_validation()
+    assert printer.node.ports["message"].get_value() == "kept"

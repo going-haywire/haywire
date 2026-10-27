@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from ..graph.types import ChangeReason
 from .layout import PATCH, STAGE, LayoutChannel, position_of
 from haywire.core.node.node_warning import NodeWarning
+from .previous_setup import PREVIOUS_SETUP_KEY, PREVIOUS_SETUP_WARNING
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
 from ..validation.interface import IStructuralValidator
@@ -184,6 +185,9 @@ class NodeWrapper:
         """The node data a stand-in keeps for the node it replaces: saved back as is, and
         rebuilt from once the node's class works. See ADR 0058."""
 
+        self._previous_setup: Optional[Dict[str, Any]] = None
+        """The node data from before a hot reload, until the user applies or dismisses it. See ADR 0062."""
+
         self._import_node_cls()
 
     @property
@@ -211,6 +215,28 @@ class NodeWrapper:
         with self._lock:
             data, self._rebuild_data = self._rebuild_data, None
             return data
+
+    @property
+    def previous_setup(self) -> Optional[Dict[str, Any]]:
+        """The node data this node had before a hot reload rebuilt it, or ``None``.
+
+        Held until the user applies or dismisses it; saved inside the node's data.
+        See ADR 0062.
+        """
+        return self._previous_setup
+
+    def set_previous_setup(self, data: Optional[Dict[str, Any]]) -> None:
+        """Hold *data* as the node's previous setup, or drop it with ``None``.
+
+        The node carries a ``"previous_setup"`` warning exactly while one is held.
+        """
+        with self._lock:
+            self._previous_setup = data
+            self._state.warnings[:] = [w for w in self._state.warnings if w.kind != "previous_setup"]
+            if data is not None:
+                self._state.add_warning(
+                    NodeWarning(message=PREVIOUS_SETUP_WARNING, source_version=None, kind="previous_setup")
+                )
 
     @property
     def is_stand_in(self) -> bool:
@@ -331,6 +357,11 @@ class NodeWrapper:
             # node from current code, so none of them apply to the result.
             self._state.clear_warnings()
 
+            if node_info is not None:
+                # Data to restore says whether the node holds a previous setup; a fresh build keeps it.
+                node_info = dict(node_info)
+                self._previous_setup = node_info.pop(PREVIOUS_SETUP_KEY, None)
+
             if not node_info and self.is_stand_in and self._stand_in_data is not None:
                 node_info = self._stand_in_save_data()
 
@@ -346,6 +377,7 @@ class NodeWrapper:
 
             self._subscribe_props_redraw()
             self._subscribe_stage_membership()
+            self.set_previous_setup(self._previous_setup)
 
     def _instantiate(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
         """Create the node instance, cleaning up any existing one first; the node keeps its arrangement.
@@ -863,6 +895,9 @@ class NodeWrapper:
                     result["node_data"] = self._stand_in_save_data(include_data=include_data)
             elif self._node_instance:
                 result["node_data"] = self._node_instance._to_dict(include_data=include_data)
+
+            if self._previous_setup is not None and "node_data" in result:
+                result["node_data"][PREVIOUS_SETUP_KEY] = copy.deepcopy(self._previous_setup)
 
             return result
 

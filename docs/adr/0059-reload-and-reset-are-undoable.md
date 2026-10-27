@@ -1,8 +1,8 @@
 ---
 name: reload-and-reset-are-undoable
 description: A node Reset and a successful hot reload rebuild the node pristine through init(), and each is one undo step per graph whose Undo rebuilds the nodes exactly from their data from before
-status: accepted
-see-also: ADR-0053, ADR-0058
+status: superseded-in-part by ADR-0062
+see-also: ADR-0053, ADR-0058, ADR-0062
 level: framework
 ---
 
@@ -14,6 +14,8 @@ level: framework
 - Carrying the user's data across the rebuild was tried and abandoned (2026-10-21): deciding whether a value still "fits" new code is a guess about intent, and the guesses kept misfiring.
 
 **Decision.**
+
+*The hot-reload half is superseded by ADR 0062: a reload records no step and keeps the previous setup. Reset stands.*
 
 - **The rebuild stays pristine; the step before it is kept.** `RebuildNodesAction` holds each node's `serialize()["node_data"]` from before the rebuild. Undo rebuilds every node exactly from it — the load path, as opening a saved file does. Redo rebuilds them through `init()` again. Both go through `BaseGraph.request_node_rebuild`, so the validation pass rebuilds attached edges with them.
 - **Reset is that action**, run through `Editor.reset_nodes` as an ordinary edit (refused below level mode edit).

@@ -167,12 +167,17 @@ graph runs — the next section.
 **When you edit the class (hot-reload),** every placed node of it is rebuilt
 through `init()`: fresh, with only its arrangement kept (position, stacking order,
 place on stage), so your port changes show
-at once. In a graph open in an editor the user's setup is not lost: **Undo**
-(Ctrl+Z) brings each node back exactly as it was, and Redo makes it fresh again.
-Reset Node is undoable the same way. No undo step is recorded for a graph with
-no editor (such as a Group interior that was never opened), for a reload that
-fails to build the class, or for a node that handles the reload itself in
-`on_class_reloaded`; see [ADR 0059](../../adr/0059-reload-and-reset-are-undoable.md).
+at once. The user's setup is not lost: a node the rebuild changed keeps its
+**previous setup** and shows an amber badge ("Settings reset by a code change").
+In the node's right-click menu, or the Node tab of the Properties editor,
+**Restore** brings the earlier settings back on the new code and **Discard**
+drops them; both are undoable, and the node stays where it is. This works in every
+graph, a closed Group interior included, and each such node also gets a warning in
+the Errors list. A reload records no undo step. A node that handles the reload
+itself in `on_class_reloaded` keeps nothing; see
+[ADR 0062](../../adr/0062-a-reload-keeps-the-previous-setup.md). Reset Node is
+undoable and also drops a held previous setup
+([ADR 0059](../../adr/0059-reload-and-reset-are-undoable.md)).
 
 ## 6. The lifecycle
 

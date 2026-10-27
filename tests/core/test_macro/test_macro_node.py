@@ -329,3 +329,29 @@ def test_an_interior_value_is_still_live(graph_with_library_system, macro_regist
     assert port.get_value() == 2.5
     assert [r for r in seen if r.requires_save()] == []
     assert [r for r in seen if r.requires_reassembly()] == []
+
+
+@pytest.fixture
+def held_macro_registry(tmp_path, library_system):
+    """A macro whose template node holds a previous setup, as a macro document saved after a reload does."""
+    document = _document(extra_nodes=[_ADD])
+    document["nodes"]["x0"]["node_data"] = {"previous_setup": {"props": {"values": {}}}}
+    (tmp_path / "Blur.hwm").write_text(json.dumps(document))
+    registry = library_system.get_macro_registry()
+    identity = _identity(str(tmp_path))
+    registry.add_folder(str(tmp_path), identity)
+    try:
+        yield registry
+    finally:
+        registry.remove_folder(str(tmp_path), identity)
+
+
+def test_a_placement_takes_no_previous_setup_from_its_template(
+    graph_with_library_system, held_macro_registry
+):
+    """A template is copied into every placement; a previous setup belongs to the macro's own document."""
+    card = _place(graph_with_library_system)
+    interior = graph_with_library_system.get_subgraph(card.node.subgraph_key)
+
+    assert interior is not None
+    assert [w.node_id for w in interior.node_wrappers.values() if w.previous_setup is not None] == []

@@ -134,11 +134,16 @@ def macro_document(definition: PromotableSubgraph) -> dict[str, Any]:
     """Return the ``.hwm`` document for a Group's interior.
 
     The document carries neither the Subgraph's ``key`` nor its ``origin``: a
-    macro file names itself by filestem and is not a copy of another macro.
+    macro file names itself by filestem and is not a copy of another macro. No node
+    in it carries a previous setup.
     """
+    from haywire.core.node.previous_setup import strip_previous_setups
+
     document = definition.to_dict()
     document.pop("key", None)
     document.pop("origin", None)
+    # A template hands its data to every placement; a node's previous setup is its own.
+    strip_previous_setups(document)
     return document
 
 

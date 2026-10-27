@@ -91,10 +91,7 @@ class StackedNodeSkin(NodeSkin):
         )
 
         with main_card:
-            # Single diagnostics badge unifying runtime errors and advisory
-            # warnings (compatibility warnings + deprecation notice). One icon,
-            # one count, colored by highest severity. See _render_diagnostics_badge.
-            runtime_errors = self._render_diagnostics_badge(wrapper)
+            runtime_errors = wrapper.state.get_errors() or []
 
             # Open with whichever strip belongs on the card's TOP edge — inlets
             # under T2B, outlets under B2T. Getting this from `top_port_type`
@@ -143,10 +140,7 @@ class StackedNodeSkin(NodeSkin):
         main_card.classes("w-full min-w-64 max-w-sm node-card zoom-pan-lod0").style(card_style)
 
         with main_card:
-            # Single diagnostics badge unifying runtime errors and advisory
-            # warnings (compatibility warnings + deprecation notice). One icon,
-            # one count, colored by highest severity. See _render_diagnostics_badge.
-            runtime_errors = self._render_diagnostics_badge(wrapper)
+            runtime_errors = wrapper.state.get_errors() or []
 
             # Header with node label and ghost pins for hidden connected ports.
             with self.header_row():

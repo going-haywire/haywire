@@ -50,7 +50,6 @@ def _make_editor(*graphs, active: int = 0):
 
 def _graph(graph_id: str, **kwargs):
     graph = SimpleNamespace(graph_id=graph_id, filestem=graph_id, subgraphs={}, **kwargs)
-    graph.set_history = lambda history: setattr(graph, "history", history)
     return graph
 
 

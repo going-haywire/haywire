@@ -88,7 +88,6 @@ class InsetSkin(NodeSkin):
             self.card_style()
         )
         with main_card:
-            self._render_diagnostics_badge(wrapper)
             with self.header_row("gap-2"):
                 self._render_root_ghost_pins(wrapper, layout)
                 self._render_title(wrapper.node)
@@ -118,7 +117,6 @@ class InsetSkin(NodeSkin):
         )
         top_first = layout.inlet_side == "top"
         with main_card:
-            self._render_diagnostics_badge(wrapper)
             self.render_pin_strip(
                 inlets if top_first else outlets,
                 wrapper,

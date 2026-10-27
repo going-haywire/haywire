@@ -127,3 +127,22 @@ def test_round_trip_records_nothing(library_system, ledger, tmp_path):
     assert json.loads(path.read_text(encoding="utf-8"))
     assert _graph().load_from_file(str(path)) is True
     assert ledger.query().total == 0
+
+
+def test_a_saved_previous_setup_reopens_with_its_warning_and_row(library_system, ledger, tmp_path):
+    g, a, _b = _two_linked_nodes(library_system)
+    a.set_previous_setup(a.serialize()["node_data"])
+    path = tmp_path / "held.haywire"
+    assert g.save_to_file(str(path))
+    ledger.clear()
+
+    g2 = _graph()
+    assert g2.load_from_file(str(path))
+
+    reopened = g2.get_node_wrapper(a.node_id)
+    assert reopened is not None
+    assert reopened.previous_setup is not None
+    assert [w.kind for w in reopened.state.warnings] == ["previous_setup"]
+    (entry,) = ledger.query().entries
+    assert (entry.operation, entry.node_id) == ("Load graph", a.node_id)
+    assert "holds a previous setup" in entry.message

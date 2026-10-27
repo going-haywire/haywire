@@ -13,6 +13,8 @@ from haywire.core.types import DataPort
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.registry.identity import BaseIdentity
 
+from .. import elements as hui
+from ..access_stamp import stamp_requires
 from ..widget.interface import IWidget
 from ..widget.factory_interface import IWidgetFactory
 from ..widget.sizing import stamp_size_declaration
@@ -20,7 +22,9 @@ from .nodecard import UINodeCard
 from .pin_icons import DEFAULT_PIN_ICONS, PinIconResolver
 
 if TYPE_CHECKING:
+    from haywire.core.errors import HaywireException
     from haywire.core.graph.edit_route import EditRoute
+    from haywire.core.node.node_warning import NodeWarning
     from haywire.core.settings.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -77,10 +81,13 @@ class BaseSkin(ABC):
         ``None`` refuses every write.
         """
         self._nodeids_routes[wrapper.node_id] = route
+
+        def draw(card: ui.card) -> None:
+            self.render(card, wrapper, on_stage=on_stage)
+            self.render_markers(card, wrapper, on_stage=on_stage)
+
         try:
-            return self._render_into_card(
-                wrapper, lambda card: self.render(card, wrapper, on_stage=on_stage)
-            )
+            return self._render_into_card(wrapper, draw)
         finally:
             self._nodeids_routes.pop(wrapper.node_id, None)
 
@@ -118,6 +125,136 @@ class BaseSkin(ABC):
 
             # Re-raise the original exception so the factory can handle it
             raise
+
+    def render_markers(self, card: ui.card, wrapper: NodeWrapper, *, on_stage: bool) -> None:
+        """Draw the markers above *card*: the diagnostics badge and the comment badge.
+
+        Called after :meth:`render` for every card, so every skin shows them. The
+        default draws both in the patch view and nothing on the stage, a
+        performance view. Override it to place them differently, or to draw none.
+
+        Args:
+            card: The card :meth:`render` drew into.
+            on_stage: True when the card is drawn for a stage view.
+
+        Example::
+
+            def render_markers(self, card, wrapper, *, on_stage):
+                pass  # a skin too small for badges
+        """
+        if on_stage:
+            return
+        runtime_errors = wrapper.state.get_errors() or []
+        deprecation_str = wrapper.node.identity.deprecation_warning
+        with card:
+            if runtime_errors or wrapper.state.has_warning() or deprecation_str:
+                self._render_diagnostics_button(
+                    runtime_errors,
+                    wrapper.state.warnings,
+                    wrapper.node_id,
+                    deprecation_str=deprecation_str,
+                )
+            self._render_comment_badge(wrapper)
+
+    def _render_comment_badge(self, wrapper: NodeWrapper) -> None:
+        """A badge for the node's comment, if it has one. Hover to read it.
+
+        Emptiness is the whole visibility rule (ADR 0032) — no companion flag.
+        Drawn unconditionally so a note survives folding, where it matters
+        most: a folded node is a box with a title.
+
+        The tooltip is built eagerly, unlike a pin's, because there is at most
+        one per node and only on nodes that have a comment.
+        """
+        try:
+            comment = (wrapper.node.props.comment or "").strip()
+        except Exception:
+            return
+        if not comment:
+            return
+
+        btn = ui.button(icon=hui.icon.message).props("flat dense round")
+        btn.classes("text-xl px-2 py-1")
+        # Left of the diagnostics badge, which sits at the same offset on the
+        # right — so a node with both shows them side by side rather than
+        # stacked on top of each other.
+        btn.style("position: absolute; top: -25px; right: 32px;")
+        btn.props(f'data-node-id="{wrapper.node_id}"')
+        # The comment shows in every level mode.
+        stamp_requires(btn, LevelMode.VIEW)
+        with btn:
+            ui.tooltip(comment).classes("text-xs whitespace-normal").style("max-width: 22rem")
+
+    def _render_diagnostics_button(
+        self,
+        errors: list["HaywireException"],
+        warnings: list["NodeWarning"],
+        node_id: str,
+        deprecation_str: str = "",
+    ) -> None:
+        """Render a single badge unifying errors and advisory warnings.
+
+        One icon and one count, coloured by highest severity: red for any
+        runtime error, amber for advisory-only. Left-click opens the popup;
+        right-click falls through to the selection context menu via
+        ``data-node-id``.
+
+        Args:
+            errors: Runtime errors (fatal — make the node invalid).
+            warnings: Advisory NodeWarning records (non-fatal).
+            node_id: Node ID used by canvas.vue to resolve the active node.
+            deprecation_str: Optional deprecation notice from node identity.
+        """
+        has_errors = bool(errors)
+        # One count covering every diagnostic surfaced in the popup.
+        total = len(errors) + len(warnings) + (1 if deprecation_str else 0)
+
+        # Highest severity drives the color: red if any fatal error, else amber.
+        color = "red" if has_errors else "amber"
+
+        btn = ui.button(icon=hui.icon.warning, color=color).props("flat dense round")
+        btn.classes("text-xl px-2 py-1")
+        # Pinned right: drawn after the card body, it has no flow position to fall back on.
+        btn.style("position: absolute; top: -25px; right: 0;")
+        btn.props(f'data-node-id="{node_id}"')
+        # The menu only reads, so it opens in every level mode.
+        stamp_requires(btn, LevelMode.VIEW)
+        with btn:
+            hui.count_badge(total, tone="danger" if has_errors else "warning", floating=True)
+
+            # ui.menu renders on Layer 2 (--hw-bg-elevated) per the design system.
+            # Body copy stays quiet (body/dim tokens) — severity lives on the badge
+            # icon, not the prose. Messages wrap, so override `truncate`.
+            with ui.menu(), ui.column().classes("p-2 gap-1").style("max-width: 22rem"):
+                if errors:
+                    hui.section_label("Errors")
+                    for e in errors:
+                        ui.label(e.message).classes("text-sm hw-text-body whitespace-normal")
+                if deprecation_str:
+                    hui.section_label("Deprecated")
+                    ui.label(deprecation_str).classes("text-sm hw-text-body whitespace-normal")
+                compatibility = [w for w in warnings if w.kind == "compatibility"]
+                if compatibility:
+                    hui.section_label("Compatibility warnings")
+                    for w in compatibility:
+                        ui.label(w.message).classes("text-sm hw-text-body whitespace-normal")
+                    ui.label(
+                        "Tip: 'Reset Node' re-derives this node from current code "
+                        "(note: this discards any dynamically-added ports)."
+                    ).classes("text-xs hw-text-dim whitespace-normal")
+                previous_setup = [w for w in warnings if w.kind == "previous_setup"]
+                if previous_setup:
+                    hui.section_label("Settings reset by a code change")
+                    for w in previous_setup:
+                        ui.label(w.message).classes("text-sm hw-text-body whitespace-normal")
+                    ui.label("Right-click the node to restore or discard them.").classes(
+                        "text-xs hw-text-dim whitespace-normal"
+                    )
+                others = [w for w in warnings if w.kind not in ("compatibility", "previous_setup")]
+                if others:
+                    hui.section_label("Warnings")
+                    for w in others:
+                        ui.label(w.message).classes("text-sm hw-text-body whitespace-normal")
 
     @abstractmethod
     def render(self, main_card: ui.card, wrapper: NodeWrapper, *, on_stage: bool) -> UINodeCard:

@@ -16,6 +16,7 @@ from haywire.ui.panel.render_utils import render_settings
 
 from haybale_graph_editor.surfaces import NodeInspector
 from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.panels import _previous_setup as previous_setup
 from haybale_graph_editor.state.graph_app_state import route_for
 
 if TYPE_CHECKING:
@@ -189,3 +190,22 @@ class NodeErrorsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         _render_node_errors(ctx, layout)
+
+
+@panel(
+    surface=NodeInspector,
+    requires=AccessTier.VIEW,
+    label=previous_setup.HEADING,
+    description="Restore or discard the settings the active node had before a code change rebuilt it.",
+    icon=hui.icon.warning,
+    order=1,
+)
+class NodePreviousSetupPanel(BasePanel):
+    """Restore or discard the active node's previous setup, whatever skin draws it. See ADR 0062."""
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return previous_setup.holds_previous_setup(ctx)
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        previous_setup.draw_previous_setup(ctx, layout, in_menu=False)

@@ -51,6 +51,14 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
     from nicegui.element import Element
 
+# The tab's count badge, by the worst unseen severity.
+_SEVERITY_TONE = {
+    ErrorSeverity.INFO.value: "info",
+    ErrorSeverity.WARNING.value: "warning",
+    ErrorSeverity.ERROR.value: "danger",
+    ErrorSeverity.CRITICAL.value: "danger",
+}
+
 _SEVERITY_DOT_COLOR = {
     ErrorSeverity.INFO.value: "blue",
     ErrorSeverity.WARNING.value: "yellow",
@@ -141,8 +149,7 @@ class ErrorsEditor(BaseEditor):
                 ui.icon(self.class_identity.icon, size="14px")
                 ui.label(label)
             if unseen:
-                color = _SEVERITY_DOT_COLOR.get(self._worst_severity(unseen), "grey")
-                ui.badge(str(len(unseen))).props(f"color={color}").classes("text-xs")
+                hui.count_badge(len(unseen), tone=_SEVERITY_TONE.get(self._worst_severity(unseen), "info"))
 
     @staticmethod
     def _worst_severity(entries: list[HaywireException]) -> str:

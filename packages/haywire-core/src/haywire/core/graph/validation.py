@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
 # Type alias for validation callbacks
 ValidationCallback = Callable[[ValidationResult], None]
 
@@ -292,8 +293,6 @@ class ValidationManager:
             validated_nodes: Dict[str, ChangeReason] = {}
             validated_edges: Dict[str, ChangeReason] = {}
             validated_graph: Optional[ChangeReason] = None
-            # Each hot-reloaded node's data from before its rebuild, for this batch's undo step.
-            reloaded: Dict[str, Any] = {}
 
             if dirty_graph is not None:
                 if dirty_graph.requires_graph_reassembly():
@@ -316,17 +315,15 @@ class ValidationManager:
                     if reason.requires_rebuild():
                         node_wrapper = self._graph.get_node_wrapper(node_id)
                         if node_wrapper:
-                            if reason is ChangeReason.NODE_HOT_RELOADED:
-                                self._capture_for_undo(node_wrapper, reloaded)
+                            before = (
+                                self._data_before_reload(node_wrapper)
+                                if reason is ChangeReason.NODE_HOT_RELOADED
+                                else None
+                            )
                             # A requested rebuild may carry the exact data to restore (an undo).
                             node_wrapper.build(node_wrapper.take_rebuild_data())
-                            if node_id in reloaded and (
-                                # A reload that broke the class is not undoable.
-                                node_wrapper.is_stand_in
-                                # Nor one that left the node as it was.
-                                or self._unchanged_by_reload(node_wrapper, reloaded[node_id][0])
-                            ):
-                                reloaded.pop(node_id)
+                            if before is not None:
+                                self._keep_previous_setup(node_wrapper, before)
                             edge_wrappers = self._graph._get_edge_wrappers_for_node(node_id)
                             for edge_wrapper in edge_wrappers:
                                 # Attached edges revalidate too, at this reason's priority.
@@ -435,51 +432,58 @@ class ValidationManager:
                 f"{validation_time_ms:.2f}ms"
             )
 
-            self._record_reload(reloaded)
-
             if result.has_changes():
                 self._notify_subscribers(result)
 
             return result
 
-    def _capture_for_undo(self, node_wrapper: Any, reloaded: Dict[str, Any]) -> None:
-        """Keep a hot-reloaded node's data and label before its rebuild, if the graph records reloads.
+    @staticmethod
+    def _data_before_reload(node_wrapper: Any) -> Optional[Dict[str, Any]]:
+        """The node's data before its reload rebuild, or ``None`` for a stand-in or data that cannot be read.
 
-        A stand-in is skipped: its rebuild restores its kept data (ADR 0058), so there is nothing to undo.
+        A stand-in's rebuild restores its kept data (ADR 0058), so it gets no previous setup.
         """
-        if self._graph.history is None or node_wrapper.is_stand_in:
-            return
+        if node_wrapper.is_stand_in:
+            return None
         try:
-            reloaded[node_wrapper.node_id] = (
-                node_wrapper.serialize()["node_data"],
-                node_wrapper.node.identity.label,
-            )
+            return dict(node_wrapper.serialize()["node_data"])
         except Exception:
-            logger.debug(f"Reload of {node_wrapper.node_id}: no data kept for undo", exc_info=True)
+            logger.debug(f"Reload of {node_wrapper.node_id}: data before rebuild not kept", exc_info=True)
+            return None
 
     @staticmethod
-    def _unchanged_by_reload(node_wrapper: Any, before: Any) -> bool:
-        """True when the rebuilt node's data equals *before*; False when it cannot be serialized."""
+    def _keep_previous_setup(node_wrapper: Any, before: Dict[str, Any]) -> None:
+        """Hold the node's setup from before its reload when the rebuild changed it. See ADR 0062.
+
+        A previous setup already held is kept over *before*, which is a rebuilt node's
+        pristine data; it clears once the rebuild reproduces it. A reload that ends as
+        a stand-in keeps what was held.
+        """
+        from haywire.core.node.previous_setup import (
+            PREVIOUS_SETUP_KEY,
+            differing_paths,
+            report_previous_setup,
+            restorable,
+        )
+
+        held = before.pop(PREVIOUS_SETUP_KEY, None)
+        if node_wrapper.is_stand_in:
+            node_wrapper.set_previous_setup(held)
+            return
         try:
-            return bool(node_wrapper.serialize()["node_data"] == before)
+            after = node_wrapper.serialize()["node_data"]
         except Exception:
             logger.debug(f"Reload of {node_wrapper.node_id}: data after rebuild not compared", exc_info=True)
-            return False
-
-    def _record_reload(self, reloaded: Dict[str, Any]) -> None:
-        """Record this batch's successful reloads as one undo step on the graph's history."""
-        history = self._graph.history
-        if not reloaded or history is None:
+            node_wrapper.set_previous_setup(held)
             return
-        if threading.current_thread() is not threading.main_thread():
-            # The history has no lock; the user's actions run on the main thread.
-            logger.debug("Hot reload validated off the main thread: no undo step recorded")
+        after.pop(PREVIOUS_SETUP_KEY, None)
+        candidate = held if held is not None else before
+        differs = differing_paths(restorable(candidate), restorable(after))
+        if not differs:
+            node_wrapper.set_previous_setup(None)
             return
-        from haywire.core.undo.actions.graph_actions import RebuildNodesAction, describe_rebuild
-
-        before = {node_id: data for node_id, (data, _label) in reloaded.items()}
-        description = describe_rebuild("Reload", [label for _data, label in reloaded.values()])
-        history.record_executed(RebuildNodesAction(self._graph, before, description))
+        node_wrapper.set_previous_setup(candidate)
+        report_previous_setup(node_wrapper, operation="Hot reload", differs=differs)
 
     def _notify_subscribers(self, result: ValidationResult) -> None:
         """Call every subscriber with ``result``; an exception in one is logged and the rest still run."""

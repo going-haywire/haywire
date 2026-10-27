@@ -17,9 +17,11 @@ class NodeWarning:
         message: Human-readable text shown in the badge tooltip / summary.
         source_version: For compatibility warnings, the library version the
             graph was saved with (None if the saved file predated the field).
-        kind: Discriminator for the warning type. "compatibility" today;
-            a "compatibility" warning implies the suggested remedy is the
-            Reset Node action (re-derives the node from current code).
+        kind: Discriminator for the warning type. A "compatibility" warning
+            implies the suggested remedy is the Reset Node action (re-derives
+            the node from current code). A "previous_setup" warning means the
+            node holds the data it had before a hot reload; the remedy is
+            Apply or Dismiss on its card (see ``NodeWrapper.previous_setup``).
     """
 
     message: str

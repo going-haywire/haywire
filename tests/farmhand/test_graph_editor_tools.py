@@ -1410,3 +1410,42 @@ def test_operate_refuses_a_non_operable_port(farmhand_call):
         assert "[not_operable]" in result.content[0].text
     finally:
         _close(farmhand_call, bid)
+
+
+def test_previous_setup_tool_applies_and_refuses_bad_input(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        held_id = _add_math(farmhand_call, bid)
+        plain_id = _add_math(farmhand_call, bid)
+        editor = _live_editor(bid)
+        held = editor.get_node_wrapper(held_id)
+        held.set_previous_setup(held.serialize()["node_data"])
+        editor.history_manager.clear()
+
+        bogus = _call(
+            farmhand_call,
+            "haybale-graph-editor_previous_setup",
+            {"binding_id": bid, "node_ids": [held_id], "action": "bogus"},
+        )
+        assert bogus.isError is True
+        assert "[bad_action]" in bogus.content[0].text
+
+        none_held = _call(
+            farmhand_call,
+            "haybale-graph-editor_previous_setup",
+            {"binding_id": bid, "node_ids": [plain_id], "action": "apply"},
+        )
+        assert none_held.isError is True
+        assert "[no_previous_setup]" in none_held.content[0].text
+        assert editor.can_undo() is False
+
+        applied = _call(
+            farmhand_call,
+            "haybale-graph-editor_previous_setup",
+            {"binding_id": bid, "node_ids": [held_id], "action": "apply"},
+        )
+        assert applied.isError is not True
+        assert editor.get_node_wrapper(held_id).previous_setup is None
+        assert editor.can_undo() is True
+    finally:
+        _close_all(farmhand_call)

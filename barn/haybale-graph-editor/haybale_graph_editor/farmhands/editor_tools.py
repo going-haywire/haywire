@@ -1232,6 +1232,42 @@ class GraphEditorRedoTool(Farmhand):
 
 
 @farmhand(
+    label="Previous setup",
+    description="Apply or dismiss the previous setup nodes kept through a hot reload. One undo step.",
+    instructions="A hot reload rebuilds every node of the reloaded class from its new code; a node "
+    "whose setup that changed keeps its previous setup and lists a 'previous_setup' warning in "
+    "graph_editor_inspect_node (and a WARNING in studio_get_errors). action='apply' rebuilds the "
+    "nodes from their previous setup, keeping where they are; action='dismiss' drops it. Every "
+    "node in node_ids must hold one, or nothing changes and no_previous_setup is raised; an "
+    "unknown action raises bad_action. One undo step on the shared undo timeline.",
+    registry_id="previous_setup",
+    annotations=_MUTATING,
+)
+class GraphEditorPreviousSetupTool(Farmhand):
+    async def run(self, ctx: FarmhandContext, binding_id: str, node_ids: list[str], action: str) -> dict:
+        if action not in ("apply", "dismiss"):
+            raise FarmhandError(
+                "bad_action",
+                f"Unknown action '{action}'.",
+                ids={"action": action},
+                help="Pass action='apply' or action='dismiss'.",
+            )
+        editor = _editor(ctx, binding_id)
+        ctx.fence(editor)
+        verb = editor.apply_previous_setup if action == "apply" else editor.dismiss_previous_setup
+        if not verb(list(node_ids)):
+            raise FarmhandError(
+                "no_previous_setup",
+                f"Not every node in {node_ids} holds a previous setup; nothing changed.",
+                ids={"node_ids": ", ".join(node_ids)},
+                help="Run graph_editor_inspect_node; a node holding one lists a 'previous_setup' warning.",
+            )
+        ctx.broadcast(GraphDataMutated())
+        done = "Applied" if action == "apply" else "Dismissed"
+        return {"summary": f"{done} the previous setup of {len(node_ids)} node(s)."}
+
+
+@farmhand(
     label="Set graph metadata",
     description="Set a graph's document metadata (label, description, author, version). One undo step.",
     instructions="Set one or more of a graph's document metadata fields — label (free-text "

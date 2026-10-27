@@ -3,12 +3,12 @@ name: reload-without-history-loses-setup
 description: Handoff — a hot reload in a graph with no undo history (a never-opened Group interior, mainly) wipes the user's setup on its nodes silently; record the step on the host's history and warn through the ledger where no history exists
 metadata:
   type: project
-  status: open
+  status: done
 ---
 
 # Handoff — A reload in a graph without a history loses the user's setup silently
 
-**Status:** **open.** [`haywire-exception-at-boundaries.md`](haywire-exception-at-boundaries.md)
+**Status:** **done** (2026-10-27) — settled differently from the options below: see [ADR 0062](../../docs/adr/0062-a-reload-keeps-the-previous-setup.md). [`haywire-exception-at-boundaries.md`](haywire-exception-at-boundaries.md)
 landed 2026-10-26 ([ADR 0061](../../docs/adr/0061-errors-reach-the-ledger-at-named-boundaries.md))
 and settled the warning's channel: a detected loss goes to the error ledger only, through
 `report_loss` (`haywire.core.errors`), with no `NodeWarning`. Option (a) part 2 below is

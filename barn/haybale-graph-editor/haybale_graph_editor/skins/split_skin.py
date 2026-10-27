@@ -103,7 +103,7 @@ class SplitNodeSkin(NodeSkin):
         )
 
         with main_card:
-            runtime_errors = self._render_diagnostics_badge(wrapper)
+            runtime_errors = wrapper.state.get_errors() or []
 
             # Whichever direction belongs on the card's TOP edge goes first —
             # inlets under T2B, outlets under B2T. Rendering a strip at the top
@@ -138,7 +138,7 @@ class SplitNodeSkin(NodeSkin):
         ).style(card_style)
 
         with main_card:
-            runtime_errors = self._render_diagnostics_badge(wrapper)
+            runtime_errors = wrapper.state.get_errors() or []
 
             ports = node.get_visible_ports()
             configs = [port for port in ports if port.is_config()]

@@ -13,6 +13,7 @@ import time
 from typing import Any, Dict, List, TYPE_CHECKING
 
 from ..node.layout import position_of
+from ..node.previous_setup import strip_previous_setups
 
 if TYPE_CHECKING:
     from .base import BaseGraph
@@ -41,6 +42,8 @@ def build_clipboard_payload(
     A Graph-node brings its Subgraph with it, serialized under ``subgraphs`` by
     the key its card names, so pasting it into another graph or another session
     gives the copy contents of its own.
+
+    No node in the payload, inside a Subgraph or not, carries a previous setup.
 
     Returns:
         ``haywire_clipboard``, ``format_version``, ``source`` (``session_id``
@@ -88,7 +91,7 @@ def build_clipboard_payload(
     else:
         bounding_box = {"min_x": 0.0, "min_y": 0.0, "max_x": 0.0, "max_y": 0.0}
 
-    return {
+    payload = {
         "haywire_clipboard": True,
         "format_version": CLIPBOARD_FORMAT_VERSION,
         "source": {"session_id": session_id, "timestamp": time.time()},
@@ -97,6 +100,9 @@ def build_clipboard_payload(
         "edges": edges,
         "subgraphs": subgraphs,
     }
+    # A copy is a new node on the current code; the previous setup stays with the original.
+    strip_previous_setups(payload)
+    return payload
 
 
 def is_haywire_payload(obj: Any) -> bool:

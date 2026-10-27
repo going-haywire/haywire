@@ -129,9 +129,9 @@ class IHistoryManager(ABC):
         """
         Add an action that has already been applied to the history, without running it.
 
-        For a change made outside an action, such as a hot reload, whose undo
-        the action carries. It ends the redo branch like any new step and never
-        amends a running value edit.
+        For a change made outside an action, whose undo the action carries. It
+        ends the redo branch like any new step and never amends a running value
+        edit.
 
         Args:
             action: The applied change; ``undo()`` must reverse it and a later

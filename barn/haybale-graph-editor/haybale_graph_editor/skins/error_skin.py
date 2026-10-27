@@ -97,7 +97,7 @@ class ErrorNodeSkin(NodeSkin):
             with ui.row().classes("drag-handle w-full items-center"):
                 self._render_root_ghost_pins(wrapper, layout)
                 self._render_title(node)
-            runtime_errors = self._render_diagnostics_badge(wrapper)
+            runtime_errors = wrapper.state.get_errors() or []
             self._render_alternates_notice(wrapper, runtime_errors)
 
             # Main content: inlets and outlets in two columns.

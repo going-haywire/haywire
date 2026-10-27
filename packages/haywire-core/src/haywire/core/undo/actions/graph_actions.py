@@ -2911,35 +2911,57 @@ def describe_rebuild(verb: str, labels: Sequence[str]) -> str:
 
 
 class RebuildNodesAction(ActionBase):
-    """Undoable rebuild of nodes through ``init()``: a Reset, or a hot reload recorded after the fact.
+    """Undoable rebuild of nodes: a Reset, or Apply or Dismiss of a previous setup.
 
     Holds each node's data from before the rebuild. Undo rebuilds every node exactly
-    from it, as loading a file does; execute (and redo) rebuilds them through
-    ``init()`` again. Both go through ``BaseGraph.request_node_rebuild`` and run the
-    validation pass at once — after settling any pass already pending — so attached
-    edges are rebuilt with them and a following undo meets the rebuilt node. See ADR 0059.
+    from it, as loading a file does, previous setup included. Execute (and redo)
+    rebuilds each node from its ``after`` data, or through ``init()`` when it has
+    none; a rebuild through ``init()`` also drops the node's previous setup. Both go
+    through ``BaseGraph.request_node_rebuild`` and run the validation pass at once —
+    after settling any pass already pending — so attached edges are rebuilt with
+    them and a following undo meets the rebuilt node. See ADR 0059 and ADR 0062.
 
     Raises:
         Refusal: On execute or undo, if a node is no longer in the graph.
 
     Example::
 
-        action = RebuildNodesAction.capture(graph, [node_id], "Reset Print")
-        editor.history_manager.add_action(action)          # a Reset
-        editor.history_manager.record_executed(action)     # a reload that already ran
+        # A Reset: rebuild through init(), Undo puts the node back exactly.
+        editor.history_manager.add_action(RebuildNodesAction.capture(graph, [node_id], "Reset Print"))
+
+        # An Apply: rebuild from given data.
+        action = RebuildNodesAction.capture(
+            graph, [node_id], "Apply previous setup Print", after={node_id: data}
+        )
+        editor.history_manager.add_action(action)
     """
 
-    def __init__(self, graph: BaseGraph, before: Mapping[str, Dict[str, Any]], description: str):
+    def __init__(
+        self,
+        graph: BaseGraph,
+        before: Mapping[str, Dict[str, Any]],
+        description: str,
+        after: Optional[Mapping[str, Optional[Dict[str, Any]]]] = None,
+    ):
         """
         Args:
             before: Each node's ``serialize()["node_data"]`` from before the rebuild, by node id.
+            after: The node data each node is rebuilt from, by node id; a node missing
+                here, or mapped to ``None``, is rebuilt through ``init()``.
         """
         super().__init__(description=description)
         self.graph = graph
         self.before = dict(before)
+        self.after = dict(after or {})
 
     @classmethod
-    def capture(cls, graph: BaseGraph, node_ids: Sequence[str], description: str) -> "RebuildNodesAction":
+    def capture(
+        cls,
+        graph: BaseGraph,
+        node_ids: Sequence[str],
+        description: str,
+        after: Optional[Mapping[str, Optional[Dict[str, Any]]]] = None,
+    ) -> "RebuildNodesAction":
         """Build the action from the nodes' current data.
 
         Raises:
@@ -2951,7 +2973,7 @@ class RebuildNodesAction(ActionBase):
             if wrapper is None:
                 raise Refusal(f"Node '{node_id}' not found")
             before[node_id] = wrapper.serialize()["node_data"]
-        return cls(graph, before, description)
+        return cls(graph, before, description, after)
 
     def _check(self) -> None:
         missing = [node_id for node_id in self.before if self.graph.get_node_wrapper(node_id) is None]
@@ -2959,7 +2981,7 @@ class RebuildNodesAction(ActionBase):
             raise Refusal(f"Nodes no longer in the graph: {', '.join(missing)}")
 
     def _execute_impl(self) -> None:
-        self._rebuild({node_id: None for node_id in self.before})
+        self._rebuild({node_id: copy.deepcopy(self.after.get(node_id)) for node_id in self.before})
 
     def _undo_impl(self) -> None:
         self._rebuild({node_id: copy.deepcopy(data) for node_id, data in self.before.items()})
@@ -2969,5 +2991,10 @@ class RebuildNodesAction(ActionBase):
         self.graph._validation.force_immediate_validation()
         self._check()
         for node_id, node_data in data_by_node.items():
+            if node_data is None:
+                # A rebuild through init() starts the node over, previous setup included.
+                wrapper = self.graph.get_node_wrapper(node_id)
+                if wrapper is not None:
+                    wrapper.set_previous_setup(None)
             self.graph.request_node_rebuild(node_id, node_data)
         self.graph._validation.force_immediate_validation()

@@ -1235,6 +1235,23 @@ hui.tag("vision")
 hui.tag("editable", color="green")
 ```
 
+### 8.14a `hui.count_badge(count, tone, floating=False)`
+
+A count filled with a status colour: unseen errors on a tab, a node's diagnostics.
+
+**Visual rules:**
+
+- Fill `var(--hw-<tone>)`, text `var(--hw-bg-page)`: legible in every theme. Never a
+  Quasar `color=` name, whose white text vanishes on a light status colour.
+- `tone` is one of `danger`, `warning`, `info`, `success`.
+- `.text-xs`; `floating=True` pins it to its parent's top-right corner.
+
+```python
+hui.count_badge(len(unseen), tone="warning")
+with ui.button(icon=hui.icon.warning):
+    hui.count_badge(3, tone="danger", floating=True)
+```
+
 ### 8.15 `hui.input_field(label=None, **props)`
 
 A standard text input, pre-configured for panel use.

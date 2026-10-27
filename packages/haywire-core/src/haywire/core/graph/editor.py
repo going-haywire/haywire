@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
 from haywire.core.errors import Refusal, report_failure
 from haywire.core.graph.base import BaseGraph
 from haywire.core.edge.edge_wrapper import EdgeWrapper
@@ -90,7 +90,6 @@ class Editor:
             # true for all its failures; the action's own context still names the node.
             history_manager.error_context.pop("graph_id", None)
         self.history_manager: IHistoryManager = history_manager
-        graph.set_history(self.history_manager)
         self._node_factory = node_factory
 
     # =============================================================================
@@ -478,6 +477,57 @@ class Editor:
             action = RebuildNodesAction.capture(self.graph, node_ids, description)
         except Exception as e:
             report_failure(e, operation="Reset nodes", graph_id=self.graph.graph_id, node_ids=node_ids)
+            return False
+        return self.history_manager.add_action(action)
+
+    def apply_previous_setup(self, node_ids: List[str]) -> bool:
+        """Rebuild the nodes from their previous setup as one undo step; Undo brings it back.
+
+        Each node keeps its current position, stacking order and place on stage.
+        See ADR 0062.
+
+        Returns:
+            ``False`` without changing anything when *node_ids* is empty, names a
+            node the graph does not have, or names one that holds no previous setup.
+        """
+        from haywire.core.node.previous_setup import setup_to_apply
+
+        return self._rebuild_previous_setup(node_ids, "Apply previous setup", setup_to_apply)
+
+    def dismiss_previous_setup(self, node_ids: List[str]) -> bool:
+        """Drop the nodes' previous setup as one undo step; Undo brings it back.
+
+        Returns:
+            ``False`` without changing anything when *node_ids* is empty, names a
+            node the graph does not have, or names one that holds no previous setup.
+        """
+        from haywire.core.node.previous_setup import PREVIOUS_SETUP_KEY
+
+        def without_previous_setup(wrapper: Any) -> Dict[str, Any]:
+            data = wrapper.serialize()["node_data"]
+            data.pop(PREVIOUS_SETUP_KEY, None)
+            return data
+
+        return self._rebuild_previous_setup(node_ids, "Dismiss previous setup", without_previous_setup)
+
+    def _rebuild_previous_setup(
+        self, node_ids: List[str], verb: str, after_of: Callable[[Any], Optional[Dict[str, Any]]]
+    ) -> bool:
+        """Rebuild nodes that each hold a previous setup from ``after_of(wrapper)``, as one undo step."""
+        from haywire.core.undo.actions.graph_actions import RebuildNodesAction, describe_rebuild
+
+        wrappers = [self.graph.get_node_wrapper(node_id) for node_id in node_ids]
+        if not wrappers or any(w is None or w.previous_setup is None for w in wrappers):
+            return False
+        try:
+            labels = [w.node.identity.label for w in wrappers if w is not None]
+            after = {w.node_id: after_of(w) for w in wrappers if w is not None}
+            if any(data is None for data in after.values()):
+                # Cleared since the check above: no data would rebuild it through init(), a Reset.
+                return False
+            action = RebuildNodesAction.capture(self.graph, node_ids, describe_rebuild(verb, labels), after)
+        except Exception as e:
+            report_failure(e, operation=verb, graph_id=self.graph.graph_id, node_ids=node_ids)
             return False
         return self.history_manager.add_action(action)
 

@@ -2,12 +2,10 @@ from abc import ABC
 from typing import TYPE_CHECKING, List
 from nicegui import ui
 
-from haywire.core.access import LevelMode
 from haywire.core.errors import HaywireException
 from haywire.core.types import DataPort, LayoutDirection, PortType
 from haywire.core.node.node_wrapper import NodeWrapper
 
-from haywire.ui.access_stamp import stamp_requires
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.pin_render import (
     GHOST_PIN_SIZE,
@@ -16,13 +14,11 @@ from haywire.ui.skin.pin_render import (
     render_pin,
     resolve_layout_direction,
 )
-from haywire.ui import elements as hui
 
 from haybale_graph_editor.settings.node_skin_settings import NodeSkinSettings
 
 if TYPE_CHECKING:
     from haywire.ui.widget.factory_interface import IWidgetFactory
-    from haywire.core.node.node_warning import NodeWarning
 
 
 class NodeSkin(BaseSkin, ABC):
@@ -303,8 +299,6 @@ class NodeSkin(BaseSkin, ABC):
         needs reserving is the ``min-width`` the widest strip requires.
         """
         with main_card:
-            self._render_diagnostics_badge(wrapper)
-
             linked = node.get_folded_ports()
             inlets = [p for p in linked if p.is_inlet()]
             outlets = [p for p in linked if not p.is_inlet()]
@@ -390,32 +384,6 @@ class NodeSkin(BaseSkin, ABC):
             ghost_for=PortType.OUTLET if top_first else PortType.INLET,
             on_stage=False,
         )
-
-    def _render_diagnostics_badge(self, wrapper: NodeWrapper) -> List["HaywireException"]:
-        """The unified error/warning badge. Drawn at EVERY rank, folded included.
-
-        Never gated by detail, menu included: a node hiding the fact that it is
-        broken is worse than a slow one. The menu body only costs elements on
-        nodes that actually have diagnostics. The separate inline notice
-        (:meth:`_render_alternates_notice`) is what canvas.vue's
-        ``.hw-detail-diagnostic`` CSS rule hides below FULL.
-
-        Returns the runtime errors so a caller can decide about that notice
-        without re-reading node state.
-        """
-        runtime_errors = wrapper.state.get_errors() or []
-        deprecation_str = wrapper.node.identity.deprecation_warning
-        if runtime_errors or wrapper.state.has_warning() or deprecation_str:
-            self._render_diagnostics_button(
-                runtime_errors,
-                wrapper.state.warnings,
-                wrapper.node_id,
-                deprecation_str=deprecation_str,
-            )
-        # The comment badge is the other always-drawn marker, and rides the
-        # same call so no render path can pick up one and forget the other.
-        self._render_comment_badge(wrapper)
-        return runtime_errors
 
     def _render_alternates_notice(
         self,
@@ -795,88 +763,3 @@ class NodeSkin(BaseSkin, ABC):
                 offset=offset,
                 order_last=order,
             )
-
-    def _render_comment_badge(self, wrapper: NodeWrapper) -> None:
-        """A badge for the node's comment, if it has one. Hover to read it.
-
-        Emptiness is the whole visibility rule (ADR 0032) — no companion flag.
-        Drawn unconditionally so a note survives folding, where it matters
-        most: a folded node is a box with a title.
-
-        The tooltip is built eagerly, unlike a pin's, because there is at most
-        one per node and only on nodes that have a comment.
-        """
-        try:
-            comment = (wrapper.node.props.comment or "").strip()
-        except Exception:
-            return
-        if not comment:
-            return
-
-        btn = ui.button(icon=hui.icon.message).props("flat dense round")
-        btn.classes("text-xl px-2 py-1")
-        # Left of the diagnostics badge, which sits at the same offset on the
-        # right — so a node with both shows them side by side rather than
-        # stacked on top of each other.
-        btn.style("position: absolute; top: -25px; right: 32px;")
-        btn.props(f'data-node-id="{wrapper.node_id}"')
-        # The comment shows in every level mode.
-        stamp_requires(btn, LevelMode.VIEW)
-        with btn:
-            ui.tooltip(comment).classes("text-xs whitespace-normal").style("max-width: 22rem")
-
-    def _render_diagnostics_button(
-        self,
-        errors: List["HaywireException"],
-        warnings: List["NodeWarning"],
-        node_id: str,
-        deprecation_str: str = "",
-    ) -> None:
-        """Render a single badge unifying errors and advisory warnings.
-
-        One icon and one count, coloured by highest severity: red for any
-        runtime error, amber for advisory-only. Left-click opens the popup;
-        right-click falls through to the selection context menu via
-        ``data-node-id``.
-
-        Args:
-            errors: Runtime errors (fatal — make the node invalid).
-            warnings: Advisory NodeWarning records (non-fatal).
-            node_id: Node ID used by canvas.vue to resolve the active node.
-            deprecation_str: Optional deprecation notice from node identity.
-        """
-        has_errors = bool(errors)
-        # One count covering every diagnostic surfaced in the popup.
-        total = len(errors) + len(warnings) + (1 if deprecation_str else 0)
-
-        # Highest severity drives the color: red if any fatal error, else amber.
-        color = "red" if has_errors else "amber"
-
-        btn = ui.button(icon=hui.icon.warning, color=color).props("flat dense round")
-        btn.classes("text-xl px-2 py-1")
-        btn.style("position: absolute; top: -25px;")
-        btn.props(f'data-node-id="{node_id}"')
-        # The menu only reads, so it opens in every level mode.
-        stamp_requires(btn, LevelMode.VIEW)
-        with btn:
-            ui.badge(str(total), color=color).props("floating")
-
-            # ui.menu renders on Layer 2 (--hw-bg-elevated) per the design system.
-            # Body copy stays quiet (body/dim tokens) — severity lives on the badge
-            # icon, not the prose. Messages wrap, so override `truncate`.
-            with ui.menu(), ui.column().classes("p-2 gap-1").style("max-width: 22rem"):
-                if errors:
-                    hui.section_label("Errors")
-                    for e in errors:
-                        ui.label(e.message).classes("text-sm hw-text-body whitespace-normal")
-                if deprecation_str:
-                    hui.section_label("Deprecated")
-                    ui.label(deprecation_str).classes("text-sm hw-text-body whitespace-normal")
-                if warnings:
-                    hui.section_label("Compatibility warnings")
-                    for w in warnings:
-                        ui.label(w.message).classes("text-sm hw-text-body whitespace-normal")
-                    ui.label(
-                        "Tip: 'Reset Node' re-derives this node from current code "
-                        "(note: this discards any dynamically-added ports)."
-                    ).classes("text-xs hw-text-dim whitespace-normal")

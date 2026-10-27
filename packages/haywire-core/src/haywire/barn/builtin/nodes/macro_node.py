@@ -13,11 +13,13 @@ rebuilt. See ADR 0038.
 
 from __future__ import annotations
 
+import copy
 import logging
 from typing import TYPE_CHECKING
 
 from haywire.core.node import node, NodeType
 from haywire.core.graph.scheduler import SyncScheduler
+from haywire.core.node.previous_setup import strip_previous_setups
 
 from .graph_node import GraphNode
 
@@ -146,7 +148,10 @@ class MacroNode(GraphNode):
         )
         definition.template_key = wrapper.registry_key
         host.add_subgraph(definition)
-        definition.instantiate(template.nodes, template.edges, template.subgraphs)
+        # A placement is a copy of the template; a previous setup belongs to the macro's own document.
+        copied = copy.deepcopy({"nodes": template.nodes, "subgraphs": template.subgraphs})
+        strip_previous_setups(copied)
+        definition.instantiate(copied["nodes"], template.edges, copied["subgraphs"])
         self._watch_definition()
 
     def _on_label_changed(self, _value: object, _old: object) -> None:
