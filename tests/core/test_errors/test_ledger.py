@@ -416,3 +416,47 @@ def test_a_failing_ledger_still_logs_the_report(ledger, caplog, monkeypatch):
     with caplog.at_level(logging.DEBUG, logger="ledger-repeat"):
         _err("x").log(log)
     assert _levels(caplog, "ledger-repeat") == [logging.ERROR]
+
+
+# ── one raised exception, one entry ─────────────────────────────────────────
+
+
+def _wrapped(raised: Exception, operation: str) -> HaywireException:
+    return HaywireException.from_exception(raised, message=f"{operation} failed", operation=operation)
+
+
+def _raise_once() -> Exception:
+    try:
+        raise SyntaxError("expected ':'")
+    except SyntaxError as e:
+        return e
+
+
+def test_two_boundaries_wrapping_one_exception_make_one_entry(ledger):
+    raised = _raise_once()
+    first = _wrapped(raised, "Registry Hotreload File Module Reload")
+    second = _wrapped(raised, "Registry Hotreload Callback")
+
+    seq = ledger.record(first)
+    assert ledger.record(second) == seq
+    assert ledger.query().total == 1
+    assert first.count == 1
+    assert second.ledger_merged is True
+
+
+def test_the_same_occurrence_adds_nothing_after_it_was_seen(ledger):
+    raised = _raise_once()
+    ledger.mark_seen(ledger.record(_wrapped(raised, "first")))
+    ledger.record(_wrapped(raised, "second"))
+    assert ledger.query().total == 1
+
+
+def test_a_second_boundary_logs_one_debug_line(ledger, caplog):
+    import logging
+
+    raised = _raise_once()
+    log = logging.getLogger("ledger-repeat")
+    with caplog.at_level(logging.DEBUG, logger="ledger-repeat"):
+        _wrapped(raised, "first").log(log)
+        _wrapped(raised, "second").log(log)
+    assert _levels(caplog, "ledger-repeat") == [logging.ERROR, logging.DEBUG]

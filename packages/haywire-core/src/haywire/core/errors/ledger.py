@@ -124,7 +124,10 @@ class ErrorLedger:
         A fresh exception whose ``fingerprint()`` matches an unseen entry is
         merged into it (``count`` and ``last_seen_at`` bump, ``current_seq`` does
         not advance), gets that entry's seq and ``ledger_merged = True``;
-        listeners do NOT fire, since nothing new appeared. This also breaks the
+        listeners do NOT fire, since nothing new appeared. An exception wrapping
+        the same ``original_exception`` object as a retained entry is the same
+        occurrence reported by a second boundary: it takes that entry's seq and
+        ``ledger_merged = True`` without bumping ``count``. This also breaks the
         loop where a failing ``ErrorLogged`` subscriber is recorded,
         re-broadcasts ``ErrorLogged`` and fails again.
         """
@@ -133,7 +136,15 @@ class ErrorLedger:
         fingerprint = exc.fingerprint()
         exc.ledger_fingerprint = fingerprint
         merged = False
+        original = exc.original_exception
         with self._lock:
+            # Two boundaries wrapping one raised exception are one occurrence:
+            # the second adds no entry and no count.
+            same_occurrence = (
+                next((e for e in reversed(self._entries) if e.original_exception is original), None)
+                if original is not None
+                else None
+            )
             # A repeat of a still-unseen entry merges into it instead of
             # appending, so a node failing every frame cannot flood the ledger.
             # The merged exception shares the entry's seq, which keeps a second
@@ -142,7 +153,12 @@ class ErrorLedger:
                 (e for e in reversed(self._entries) if not e.seen and e.ledger_fingerprint == fingerprint),
                 None,
             )
-            if existing is not None:
+            if same_occurrence is not None:
+                exc.ledger_seq = same_occurrence.ledger_seq
+                seq = same_occurrence.ledger_seq
+                merged = True
+                exc.ledger_merged = True
+            elif existing is not None:
                 existing.count += exc.count
                 existing.last_seen_at = exc.timestamp
                 exc.ledger_seq = existing.ledger_seq
