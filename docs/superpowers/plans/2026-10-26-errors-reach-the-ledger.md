@@ -38,7 +38,7 @@
 - `report_failure` never raises. Anything going wrong inside it is swallowed with `logger.debug(..., exc_info=True)`, like `HaywireException.log`.
 - Boundary context fills only fields the exception does not already hold: an existing `HaywireException` keeps its `node_id`, `graph_id`, `registry_key`, `operation`.
 - `graph_id` context is always `graph.graph_id` (the runtime uuid), as the edge and node sites do today.
-- Fingerprint, exactly: `(operation, registry_key, graph_id, node_id, edge_id, category, re.sub(r"\d+", "#", message))`.
+- Fingerprint, exactly: `(operation, registry_key, graph_id, node_id, edge_id, category, filename, line_number, re.sub(r"\d+", "#", message))` (source location added by ruling R8).
 - Toast copy, exactly: failure `"Something went wrong — see Errors"` (`type="negative"`); refusal `str(exc)` (`type="warning"`, `multi_line=True`).
 - Farmhand suffix, exactly: `" (ledger_seq=<n>)"` appended to the existing formatted error line; refusal format `"[refused] <message>"`.
 - The studio app (`haywire_studio`) must not import any barn library (`.insights/project_app_library_dependency_direction.md`): the safety net enriches with `principal` and `session_id` only.

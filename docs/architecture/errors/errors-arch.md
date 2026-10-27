@@ -37,12 +37,14 @@ except Exception as e:
 ```
 
 - **`report_failure(exc, *, operation, message=None, severity=ERROR, refusals_fail=False, **context)`**, called in an `except` block:
-    - a `Refusal` returns `None` and records nothing, unless `refusals_fail=True`, which records it like any failure;
+    - a `Refusal` returns `None`, records nothing and is logged at `INFO` (`"<operation> refused: <message>"`), unless `refusals_fail=True`, which records it like any failure;
     - a `HaywireException` is reused: only its empty `graph_id`, `node_id`, `edge_id`, `registry_key`, `library_identity` and `operation` are filled, so context set closer to the failure wins;
     - anything else is wrapped with `HaywireException.from_exception` (message defaults to `"<operation> failed"`);
     - other `context` keys go into `error_context`;
     - returns the logged `HaywireException`, and never raises.
-- **`report_loss(message, *, operation, **context)`** records a `WARNING` entry for a detected loss.
+- **`report_loss(message, *, operation, **context)`** records a `WARNING` entry for a detected loss; it returns the entry, or `None` if recording failed, and never raises.
+
+`HistoryManager.error_context` is merged into the context of its four boundaries. An `Editor` that creates its own history sets `graph_id` there; a history shared by several editors (a Group's interior records on its host's, ADR 0059) carries no `graph_id`, since no single graph is true for all its edits.
 
 `graph_id` context is always the runtime `graph.graph_id`.
 
@@ -52,10 +54,10 @@ Each boundary calls `report_failure` and then does what it did before: return `F
 
 | Boundary | Where | `operation` | A `Refusal` |
 |---|---|---|---|
-| UI safety net (`app.on_exception`) | `packages/haywire-studio/src/haywire_studio/error_hooks.py` `ErrorHooks.on_ui_exception` | `UI handler` | toasted with its own message, not recorded |
+| UI safety net (`app.on_exception`) | `packages/haywire-studio/src/haywire_studio/error_hooks.py` `ErrorHooks.on_ui_exception` | `UI handler` | toasted with its own message (logged at `INFO` when there is no client), not recorded |
 | Thread, uncaught and asyncio hooks | same file, `_on_thread_exception`, `_on_uncaught`, `on_loop_exception` | `Thread`, `Uncaught`, `Asyncio` | not recorded; the previous hook still runs |
-| `Editor` writes | `packages/haywire-core/src/haywire/core/graph/editor.py` `_apply`, `_apply_value`, `reset_nodes` | `Apply edit`, `Reset nodes` | `False`, not recorded |
-| Undo history | `packages/haywire-core/src/haywire/core/undo/history_manager.py` `add_action`, `add_value_action`, `undo`, `redo` | `Apply edit`, `Undo`, `Redo` | `False`, not recorded |
+| `Editor` writes | `packages/haywire-core/src/haywire/core/graph/editor.py` `_apply`, `_apply_value`, `reset_nodes`, and the action builds of `split_edge_with_reroute`, `dissolve_reroute`, `expand_group` | `Apply edit`, `Reset nodes` | `False`, not recorded |
+| Undo history | `packages/haywire-core/src/haywire/core/undo/history_manager.py` `add_action`, `add_value_action`, `undo`, `redo` | `Apply edit`, `Undo`, `Redo` | edit: `False`, not recorded; undo/redo: recorded (`refusals_fail`) |
 | Validation loops | `packages/haywire-core/src/haywire/core/graph/validation.py` node and edge loops | `Validate node`, `Validate edge` | not recorded |
 | Signal bus | `packages/haywire-core/src/haywire/core/signals/bus.py` `publish` | `Signal handler` | recorded (`refusals_fail`) |
 | Cross-session broadcast | `packages/haywire-core/src/haywire/core/signals/dispatcher.py` `broadcast` | `Signal broadcast` | recorded (`refusals_fail`) |
@@ -76,7 +78,7 @@ Node build stages, edges, the VM, assembly, library scans and widget and editor 
 `ErrorLedger.record` (`packages/haywire-core/src/haywire/core/errors/ledger.py`):
 
 - **Once per object.** An exception already recorded keeps its `ledger_seq`; a second `.log()` is a no-op.
-- **Repeats merge while unseen.** `HaywireException.fingerprint()` is `(operation, registry_key, graph_id, node_id, edge_id, category, message with every digit run replaced by #)`. A fresh exception matching an unseen entry bumps that entry's `count` and `last_seen_at`, takes its seq and adds no entry. A seen or deleted entry is never merged into: the repeat appears as new.
+- **Repeats merge while unseen.** `HaywireException.fingerprint()` is `(operation, registry_key, graph_id, node_id, edge_id, category, filename, line_number, message with every digit run replaced by #)`: the same failure raised from another source line is a separate entry. The ledger computes it once, when it first records the exception, and keeps it as `ledger_fingerprint`. A fresh exception matching an unseen entry bumps that entry's `count` and `last_seen_at`, takes its seq and adds no entry. A seen or deleted entry is never merged into: the repeat appears as new.
 - **A merge notifies no one.** Listeners fire only when an entry is added. This keeps a failing `ErrorLogged` subscriber from feeding itself through the signal bus, and means the Errors editor's `×count` refreshes with the next new entry or triage action.
 
 ## 5. The studio's safety net
