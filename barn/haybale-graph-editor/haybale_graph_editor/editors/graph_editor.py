@@ -199,7 +199,8 @@ class GraphEditor(BaseEditor):
         ``GraphDataMutated`` — sync canvas from another session.
         ``GraphUnsavedChanged`` — refresh the unsaved dot and tab marker.
         ``RevealGraphInstance`` — select a node/edge if one of this editor's
-            levels holds that graph, opening the level if it is not open yet.
+            levels holds that graph, opening the level if it is not open yet. A
+            reveal waiting in ``EditState.pending_reveal`` is carried out on draw.
         ``SubgraphNavigation`` — open a Group of one of this editor's levels.
         ``SessionContext.target_binding_id`` — claim the session's graph state
             when a pointer-down lands in this editor.
@@ -900,7 +901,7 @@ class GraphEditor(BaseEditor):
         document_level = self._levels.get(DOCUMENT_LEVEL)
         if document_level is None or document_level.route.mode() is LevelMode.VIEW:
             return None
-        path = _definition_path(document.editor.graph, graph_id)
+        path = definition_path(document.editor.graph, graph_id)
         if path is None:
             return None
 
@@ -1096,6 +1097,20 @@ class GraphEditor(BaseEditor):
 
         self._render_level_bar(context)
         self._update_header(context)
+        self._take_pending_reveal(context)
+
+    def _take_pending_reveal(self, context: "SessionContext") -> None:
+        """Carry out ``EditState.pending_reveal`` and clear it, if its graph is in this document."""
+        edit_state = context.data[EditState]
+        pending = edit_state.pending_reveal
+        document = self._document()
+        if pending is None or document is None:
+            return
+        graph = document.editor.graph
+        if graph.graph_id != pending.graph_id and definition_path(graph, pending.graph_id) is None:
+            return
+        edit_state.pending_reveal = None
+        self._on_reveal_graph_instance(context, pending)
 
     # ------------------------------------------------------------------
     # canvas build / teardown
@@ -1666,15 +1681,23 @@ class GraphEditor(BaseEditor):
         self._levels.clear()
 
 
-def _definition_path(graph: "BaseGraph", graph_id: str) -> Optional[list["SubgraphDefinition"]]:
-    """The Subgraphs from ``graph`` down to the one whose graph is ``graph_id``.
+def definition_path(graph: "BaseGraph", graph_id: str) -> Optional[list["SubgraphDefinition"]]:
+    """Return the Subgraphs from ``graph`` down to the one whose graph is ``graph_id``, outermost first.
 
-    ``None`` when no Subgraph beneath ``graph`` has that id.
+    Searches every Group and macro placement interior beneath ``graph``, open or not.
+    Returns ``None`` if no Subgraph beneath ``graph`` has that id, including when
+    ``graph_id`` is ``graph``'s own.
+
+    Example::
+
+        path = definition_path(document.editor.graph, error.graph_id)
+        if path is not None:
+            interior = path[-1]  # the Subgraph whose graph is error.graph_id
     """
     for definition in graph.subgraphs.values():
         if definition.graph_id == graph_id:
             return [definition]
-        deeper = _definition_path(definition, graph_id)
+        deeper = definition_path(definition, graph_id)
         if deeper is not None:
             return [definition, *deeper]
     return None

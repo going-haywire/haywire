@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.types import DataPort
     from haywire.core.node.node_wrapper import NodeWrapper
+    from haywire.core.signals import RevealGraphInstance
     from haywire.core.undo.actions.graph_actions import ClipboardData
 
 
@@ -31,3 +32,9 @@ class EditState(SessionState):
     selected_edges: Set[str] = signal_field(set())
 
     clipboard: Optional["ClipboardData"] = signal_field(None)
+
+    pending_reveal: Optional["RevealGraphInstance"] = signal_field(None)
+    """A reveal for a document whose tab is being opened; the new tab carries it out when it draws.
+
+    Set only while the ``Reveal`` that opens the tab is being published, and ``None`` otherwise.
+    """

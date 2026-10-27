@@ -29,7 +29,7 @@ from haywire.ui.modals import confirm_modal, pick_modal, rename_modal
 
 from haybale_graph_editor.state.edit_state import EditState
 from haybale_graph_editor.state.graph_app_state import GraphAppState
-from haybale_graph_editor.editors.graph_editor import GraphEditor
+from haybale_graph_editor.editors.graph_editor import GraphEditor, definition_path
 from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
 
 from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
@@ -106,21 +106,27 @@ class HaystackEditor(BaseEditor):
     def _on_reveal_graph_instance_reopen(
         self, context: "SessionContext", event: "RevealGraphInstance"
     ) -> None:
-        """Reopen a loaded-but-tabless graph so it can receive future selects.
+        """Bring forward the tab of the document holding ``event.graph_id``, opening it if needed.
 
-        Accepted gap: this only re-opens the tab via Reveal (idempotent —
-        find-or-add — even if a GraphEditor in this session also matched
-        and already self-revealed). It does NOT retroactively select the
-        node/edge in the freshly-constructed GraphEditor, which was not
-        alive to receive the original signal.
+        The graph may be the document's own or a Group or macro placement interior
+        in it, open or not. A tab this opens carries out the reveal when it draws
+        (``EditState.pending_reveal``); a tab already open carries it out itself.
         """
         graph_app_state = context.app_data[GraphAppState]
         for container in graph_app_state.all_containers():
-            if container.editor.graph.graph_id == event.graph_id:
+            graph = container.editor.graph
+            if graph.graph_id != event.graph_id and definition_path(graph, event.graph_id) is None:
+                continue
+            edit_state = context.data[EditState]
+            edit_state.pending_reveal = event
+            try:
                 context.session.publish(
                     Reveal(editor=GraphEditor, binding_id=container.binding_id, label=container.display_name)
                 )
-                return
+            finally:
+                # A tab already open draws nothing, so the reveal must not wait for a later draw.
+                edit_state.pending_reveal = None
+            return
 
     def _on_haystack_teardown(self, context: "SessionContext", signal: "HaystackTeardown") -> None:
         """Translate the teardown fact into local tab-close lifecycle commands.

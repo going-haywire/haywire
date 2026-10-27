@@ -323,6 +323,7 @@ def _select(editor: GraphEditor, context: Any, node: Any) -> Any:
         active_graph=level.container.editor.graph,
         active_graph_path=level.container.path,
         active_route=level.route,
+        pending_reveal=None,
     )
     context.data = {EditState: edit_state}
     context.level_mode = level.route.mode()

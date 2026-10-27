@@ -219,3 +219,61 @@ class TestOpeningALevelForIt:
 
         editor._open_level.assert_not_called()
         context.session.publish.assert_not_called()
+
+
+class TestARevealWaitingForTheTab:
+    """A tab opened for a reveal carries out the reveal waiting in ``EditState.pending_reveal``."""
+
+    @staticmethod
+    def _editor_with_interior():
+        document = _graph("webcam")
+        document.subgraphs = {"sg_a": _graph("group_graph", key="sg_a")}
+        editor = _make_editor(document)
+        editor._on_reveal_graph_instance = MagicMock()  # type: ignore[method-assign]
+        return editor
+
+    def test_a_reveal_into_an_interior_of_this_document_is_carried_out_and_cleared(self):
+        from haywire.core.signals import RevealGraphInstance
+
+        editor = self._editor_with_interior()
+        context, edit_stub = _context()
+        pending = RevealGraphInstance(graph_id="group_graph", node_id="n1")
+        edit_stub.pending_reveal = pending
+
+        editor._take_pending_reveal(context)
+
+        cast(Any, editor._on_reveal_graph_instance).assert_called_once_with(context, pending)
+        assert edit_stub.pending_reveal is None
+
+    def test_a_reveal_into_the_document_itself_is_carried_out(self):
+        from haywire.core.signals import RevealGraphInstance
+
+        editor = self._editor_with_interior()
+        context, edit_stub = _context()
+        edit_stub.pending_reveal = RevealGraphInstance(graph_id="webcam", node_id="n1")
+
+        editor._take_pending_reveal(context)
+
+        cast(Any, editor._on_reveal_graph_instance).assert_called_once()
+
+    def test_a_reveal_for_another_document_is_left_waiting(self):
+        from haywire.core.signals import RevealGraphInstance
+
+        editor = self._editor_with_interior()
+        context, edit_stub = _context()
+        pending = RevealGraphInstance(graph_id="stranger", node_id="n1")
+        edit_stub.pending_reveal = pending
+
+        editor._take_pending_reveal(context)
+
+        cast(Any, editor._on_reveal_graph_instance).assert_not_called()
+        assert edit_stub.pending_reveal is pending
+
+    def test_no_waiting_reveal_does_nothing(self):
+        editor = self._editor_with_interior()
+        context, edit_stub = _context()
+        edit_stub.pending_reveal = None
+
+        editor._take_pending_reveal(context)
+
+        cast(Any, editor._on_reveal_graph_instance).assert_not_called()
