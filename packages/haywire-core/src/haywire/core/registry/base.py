@@ -196,18 +196,19 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
 
         for file_path in file_paths:
             try:
-                if self._validate_python_file(file_path):
-                    resolved = self.resolve_module_name(
-                        file_path, library_identity.folder_path, library_identity.module_name
+                resolved = self.resolve_module_name(
+                    file_path, library_identity.folder_path, library_identity.module_name
+                )
+                if resolved is None:
+                    logger.warning(
+                        f"Library '{library_identity.label}': could not resolve module name "
+                        f"for {file_path}. Skipping."
                     )
-                    if resolved is None:
-                        logger.warning(
-                            f"Library '{library_identity.label}': could not resolve module name "
-                            f"for {file_path}. Skipping."
-                        )
-                        continue
-                    module_name = resolved
-                    self._on_creation(module_name, library_identity)
+                    continue
+                module_name = resolved
+                # A broken file raises its real SyntaxError into the report below.
+                self._parse_python_file(file_path)
+                self._on_creation(module_name, library_identity)
 
             except Exception as e:
                 try:
@@ -333,14 +334,9 @@ class BaseRegistry(ComponentRegistry[T], FolderScanMixin):
 
             # ... before validating the file
             if event.event_type != FileEventType.DELETED:  # no need to validate deleted files
-                if not self._validate_python_file(event.file_path):
-                    # The guard above already established this is a .py, so the
-                    # only way to fail here is source that will not parse — an
-                    # author's broken save. That is a reload failure worth
-                    # reporting, so it takes the exception path and lands in the
-                    # error ledger as CLASS_RELOAD_FAILED, exactly as it did when
-                    # ast.parse threw from inside the validator.
-                    raise SyntaxError(f"Invalid Python file: {event.file_path}")
+                # An author's broken save raises its real SyntaxError (file, line,
+                # caret) into the reload-failure path below.
+                self._parse_python_file(event.file_path)
 
             if event.dependency_event or event.event_type == FileEventType.MODIFIED:
                 if module_name in sys.modules:

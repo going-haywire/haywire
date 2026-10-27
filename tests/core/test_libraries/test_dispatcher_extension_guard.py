@@ -159,20 +159,59 @@ def test_a_syntactically_broken_py_still_reports_a_reload_failure(
     assert "FAILED" in caplog.text
 
 
-# ── the validator decides, it does not raise ─────────────────────────────────
+# ── a broken file reports its real error ─────────────────────────────────────
+
+
+@pytest.fixture
+def ledger():
+    from haywire.core.errors.ledger import ErrorLedger, get_error_ledger, set_error_ledger
+
+    previous = get_error_ledger()
+    fresh = ErrorLedger()
+    set_error_ledger(fresh)
+    yield fresh
+    set_error_ledger(previous)
 
 
 @pytest.mark.unit
 @pytest.mark.core
-def test_validate_python_file_returns_false_instead_of_raising(tmp_path: Path, registry: _Registry) -> None:
-    toml = tmp_path / "haybale.toml"
-    toml.write_text('id = "demo"\n')
+def test_parse_python_file_raises_the_real_error(tmp_path: Path, registry: _Registry) -> None:
     broken = tmp_path / "broken.py"
-    broken.write_text("def oops(:\n")
+    broken.write_text("x = 1\ndef oops(:\n")
     good = tmp_path / "good.py"
     good.write_text("x = 1\n")
 
-    assert registry._validate_python_file(toml) is False
-    assert registry._validate_python_file(broken) is False
-    assert registry._validate_python_file(tmp_path / "missing.py") is False
-    assert registry._validate_python_file(good) is True
+    with pytest.raises(SyntaxError) as raised:
+        registry._parse_python_file(broken)
+    assert (raised.value.filename, raised.value.lineno) == (str(broken), 2)
+    with pytest.raises(FileNotFoundError):
+        registry._parse_python_file(tmp_path / "missing.py")
+    registry._parse_python_file(good)
+
+
+@pytest.mark.unit
+@pytest.mark.core
+def test_a_broken_save_reports_its_file_and_line(tmp_path: Path, registry: _Registry, ledger) -> None:
+    broken = tmp_path / "broken.py"
+    broken.write_text("x = 1\ndef oops(:\n")
+
+    registry.event_dispatcher(_event(broken, FileEventType.MODIFIED, tmp_path))
+
+    (entry,) = ledger.query().entries
+    assert (entry.filename, entry.line_number) == (str(broken), 2)
+
+
+@pytest.mark.unit
+@pytest.mark.core
+def test_a_broken_file_at_startup_reports_its_file_and_line(
+    tmp_path: Path, registry: _Registry, ledger
+) -> None:
+    broken = tmp_path / "broken.py"
+    broken.write_text("x = 1\ndef oops(:\n")
+    (tmp_path / "good.py").write_text("x = 1\n")
+
+    registry.add_folder(str(tmp_path), _identity(tmp_path))
+
+    (entry,) = ledger.query().entries
+    assert (entry.filename, entry.line_number) == (str(broken), 2)
+    assert registry.created == ["haybale_demo.good"]

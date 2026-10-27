@@ -83,8 +83,11 @@ class FolderScanMixin:
             if any(pattern in py_file.name for pattern in exclude_patterns):
                 continue
 
-            if not self._validate_python_file(py_file):
-                logger.warning(f"Invalid Python file: {py_file}. Skip Registering.")
+            try:
+                self._parse_python_file(py_file)
+            except (SyntaxError, OSError) as e:
+                # A listing only; importing the file is what reports it.
+                logger.warning(f"Invalid Python file: {py_file}. Skip Registering. ({e})")
                 continue
 
             # Calculate module name based on relative path from library_dir
@@ -200,31 +203,16 @@ class FolderScanMixin:
         else:  # File is directly in library root
             return f"{module_prefix}.{rel_path.stem}"
 
-    def _validate_python_file(self, file_path: str | Path) -> bool:
-        """Check the file is a Python module that compiles.
+    def _parse_python_file(self, file_path: str | Path) -> None:
+        """Parse the Python module at *file_path*; raise if it cannot be read or parsed.
 
-        Returns False rather than raising: a caller uses this to *decide*, and a
-        file that is not a module — or is one an author is halfway through
-        typing — is an expected input here, not an exceptional one. Whether a
-        rejection is worth reporting is the caller's judgement, not this
-        method's; see ``BaseRegistry.event_dispatcher``, which stays silent for a
-        non-Python file and raises for a ``.py`` that will not parse.
+        Whether a failure is worth reporting is the caller's decision; the raised
+        error carries what a report needs.
+
+        Raises:
+            OSError: The file cannot be read.
+            SyntaxError: The source does not parse. It carries the file, line and
+                offending text of the author's mistake.
         """
-        if Path(file_path).suffix != ".py":
-            return False
-
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                source_code = f.read()
-
-        except OSError as e:
-            logger.error(f"Error reading {file_path}: {e}")
-            return False
-
-        try:
-            ast.parse(source_code, filename=str(file_path))
-        except SyntaxError as e:
-            logger.error(f"Syntax error in {file_path}: {e}")
-            return False
-
-        return True
+        source_code = Path(file_path).read_text(encoding="utf-8")
+        ast.parse(source_code, filename=str(file_path))
