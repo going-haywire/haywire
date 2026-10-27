@@ -364,16 +364,24 @@ _REVIEW_HIGHLIGHTED_LINE = "Review the highlighted line in your code"
 
 
 def enhance_error_message_for_context(
-    context_type: str, highlighted_item: Optional[str], original_message: str, error_context: Dict[str, Any]
+    context_type: str,
+    highlighted_item: Optional[str],
+    original_message: str,
+    error_context: Dict[str, Any],
+    *,
+    line_number: Optional[int] = None,
 ) -> tuple[str, List[str]]:
     """
     Generate contextual error message and suggestions.
 
     Args:
-        context_type: Type of code context ('class', 'function', etc.)
+        context_type: Type of code context ('class', 'function', 'anonymous'
+            for a lambda or comprehension, etc.)
         highlighted_item: Name of the item (class name, function name, etc.)
         original_message: Original exception message
         error_context: Additional context from analyze_error_context()
+        line_number: The line the error was raised on, named in the
+            suggestion for an anonymous function.
 
     Returns:
         Tuple of (enhanced_message, suggestions)
@@ -399,6 +407,10 @@ def enhance_error_message_for_context(
     elif context_type == "function" and highlighted_item:
         message_parts.append(f"Error in function '{highlighted_item}': {original_message}")
         suggestions.append(f"Check the '{highlighted_item}' function definition")
+
+    elif context_type == "anonymous" and highlighted_item:
+        message_parts.append(f"Error in {highlighted_item}: {original_message}")
+        suggestions.append(f"Check the {highlighted_item} on line {line_number}")
 
     elif context_type == "method_call" and highlighted_item:
         message_parts.append(f"Error calling .{highlighted_item}(): {original_message}")
@@ -718,6 +730,10 @@ class HaywireException(Exception):
             context_type, source_context, highlighted_item, code_block_start = extract_extended_context(
                 filename, line_number, context_lines=10
             )
+            function_name = user_frame.get("function", "")
+            if function_name.startswith("<") and function_name != "<module>":
+                # A lambda or comprehension: the enclosing def is not what raised.
+                context_type, highlighted_item = "anonymous", function_name
 
             # Find the source line to display
             for ln, text in source_context:
@@ -786,7 +802,7 @@ class HaywireException(Exception):
 
         # Enhance message with context
         enhanced_message, suggestions = enhance_error_message_for_context(
-            context_type, highlighted_item, exc_message, error_context
+            context_type, highlighted_item, exc_message, error_context, line_number=line_number
         )
         if filename is None or is_framework_code(filename):
             # The highlighted line, if any, is Haywire's own code, not the user's.
