@@ -23,7 +23,8 @@ class ErrorHooks:
     """Record failures that escape NiceGUI handlers, threads and the event loop.
 
     ``on_ui_exception`` records the failure with the session's principal and toasts the
-    clicking user; a leaked ``Refusal`` is toasted with its own message and not recorded.
+    clicking user; a leaked ``Refusal`` is toasted with its own message and not recorded
+    (with no client to toast, it is logged at ``INFO``).
     ``install`` also chains ``threading.excepthook``, ``sys.excepthook`` and, when called
     inside a running loop, the asyncio exception handler; each previous hook is still
     called. ``uninstall`` restores what ``install`` replaced.
@@ -44,6 +45,8 @@ class ErrorHooks:
         """Record a failure escaping a NiceGUI handler and toast the user who triggered it."""
         client = self._current_client()
         if isinstance(exc, Refusal):
+            if client is None:
+                logger.info("UI handler refused: %s", exc.message)
             self._toast(client, str(exc), type="warning", multi_line=True)
             return
         context_fields: dict[str, Any] = {}

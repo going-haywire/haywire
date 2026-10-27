@@ -1,6 +1,7 @@
 """Unit tests for the studio's error safety net and last-resort hooks."""
 
 import asyncio
+import logging
 import sys
 import threading
 from types import SimpleNamespace
@@ -92,6 +93,15 @@ def test_a_failure_without_a_client_is_recorded_and_not_toasted(ledger, notify, 
     _hooks().on_ui_exception(RuntimeError("boom"))
     assert ledger.query().total == 1
     notify.assert_not_called()
+
+
+def test_a_leaked_refusal_without_a_client_is_logged_not_recorded(ledger, notify, monkeypatch, caplog):
+    monkeypatch.setattr(mod, "context", SimpleNamespace(slot_stack=[], client=None))
+    with caplog.at_level(logging.INFO, logger=mod.__name__):
+        _hooks().on_ui_exception(Refusal("Node is gone"))
+    assert ledger.query().total == 0
+    notify.assert_not_called()
+    assert any(r.levelno == logging.INFO and "Node is gone" in r.getMessage() for r in caplog.records)
 
 
 def test_a_toast_into_a_deleted_client_does_not_raise(ledger, notify, monkeypatch):
