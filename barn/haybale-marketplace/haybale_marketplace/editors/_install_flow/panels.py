@@ -52,7 +52,18 @@ def _panel_checked(flow: InstallFlow, rerender: Callable[[], None]) -> None:
     """The resolver's answer — the informed-decision point."""
     removals = flow.removals or []
 
-    if not removals:
+    if flow.replaces_editable:
+        with ui.row().classes("w-full items-center gap-2"):
+            ui.icon("warning", size="16px").style("color: var(--hw-warning);")
+            ui.label(f"{flow.name} is installed editable here.").classes("text-sm").style(
+                "color: var(--hw-warning);"
+            )
+        hui.hint(
+            "Installing replaces the editable install, so edits in its source folder stop "
+            "taking effect. The source folder stays on disk."
+        )
+
+    if not removals and not flow.replaces_editable:
         with ui.row().classes("w-full items-center gap-2"):
             ui.icon("check_circle", size="16px").style("color: var(--hw-positive);")
             ui.label("Resolved cleanly — nothing else changes.").classes("text-sm").style(

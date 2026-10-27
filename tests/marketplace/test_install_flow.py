@@ -23,9 +23,12 @@ def anyio_backend() -> str:
 class _FakeSource:
     """Stands in for LibraryManager: records calls instead of running uv."""
 
-    def __init__(self, *, removals: list[str] | None = None, installed: str = "") -> None:
+    def __init__(
+        self, *, removals: list[str] | None = None, installed: str = "", install_type: str = ""
+    ) -> None:
         self._removals = removals if removals is not None else []
         self._installed = installed
+        self._install_type = install_type
         self.dry_run_calls = 0
         self.install_calls: list[dict] = []
         self.dry_run_error: Exception | None = None
@@ -46,6 +49,9 @@ class _FakeSource:
 
     def get_installed_version(self, dist_name: str) -> str:
         return self._installed
+
+    def get_install_type(self, dist_name: str) -> str:
+        return self._install_type
 
 
 def _pkg(name: str = "haybale-vision", version: str = "0.3.0") -> Haybale:
@@ -372,3 +378,83 @@ async def test_satisfied_requirement_reaches_the_resolver() -> None:
 
     assert flow.blocked is False
     assert source.dry_run_calls == 1
+
+
+@pytest.mark.anyio
+async def test_replacing_an_editable_install_is_reported_not_blocked() -> None:
+    source = _FakeSource(installed="0.2.0", install_type="EDITABLE")
+    flow = _flow(source, current_version="0.2.0")
+
+    await flow.advance_from_selected()
+
+    assert flow.step == "checked"
+    assert flow.replaces_editable is True
+    assert flow.blocked is False
+
+    await flow.run_install()
+
+    assert len(source.install_calls) == 1
+
+
+@pytest.mark.anyio
+async def test_a_non_editable_install_is_not_reported_as_replaced() -> None:
+    flow = _flow(_FakeSource(installed="0.2.0", install_type="REGULAR"), current_version="0.2.0")
+
+    await flow.advance_from_selected()
+
+    assert flow.replaces_editable is False
+
+
+@pytest.mark.anyio
+async def test_an_editable_install_from_a_folder_is_not_reported_as_replaced(tmp_path) -> None:
+    """A folder spec installs editable itself, so nothing editable is lost."""
+    pkg = Haybale(name="haybale-vision", version="0.3.0", install_spec=str(tmp_path))
+    flow = _flow(_FakeSource(install_type="EDITABLE"), package=pkg)
+
+    await flow.advance_from_selected()
+
+    assert flow.replaces_editable is False
+
+
+@pytest.mark.anyio
+async def test_a_failed_check_reports_no_editable_replacement() -> None:
+    source = _FakeSource(install_type="EDITABLE")
+    source.dry_run_error = RuntimeError("framework conflict")
+    flow = _flow(source)
+
+    await flow.advance_from_selected()
+
+    assert flow.replaces_editable is False
+
+
+class _StubRegistry:
+    def __init__(self, install_types: dict) -> None:
+        self._install_types = install_types
+
+    def find_library_by_distribution_name(self, dist_name: str) -> str | None:
+        return dist_name.replace("-", "_") if dist_name.replace("-", "_") in self._install_types else None
+
+    def get_library_install_type(self, library_id: str):
+        return self._install_types.get(library_id)
+
+
+@pytest.mark.parametrize(
+    ("install_types", "expected"),
+    [
+        ({"haybale_vision": "EDITABLE"}, "EDITABLE"),
+        ({"haybale_vision": "REGULAR"}, "REGULAR"),
+        ({"haybale_vision": None}, ""),
+        ({}, ""),
+    ],
+)
+def test_manager_source_reads_the_install_type_by_distribution_name(install_types, expected) -> None:
+    from types import SimpleNamespace
+
+    from haywire.core.library.install_type import InstallType
+
+    from haybale_marketplace.editors._install_flow.chrome import ManagerInstallSource
+
+    types = {lid: InstallType[name] if name else None for lid, name in install_types.items()}
+    source = ManagerInstallSource(SimpleNamespace(registry=_StubRegistry(types)))
+
+    assert source.get_install_type("haybale-vision") == expected

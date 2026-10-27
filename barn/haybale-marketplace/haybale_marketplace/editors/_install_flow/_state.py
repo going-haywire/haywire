@@ -19,16 +19,19 @@ Two postures, deliberately different:
   actually guarantees the guard.
 * **Collateral upgrades** inform. Replacing another library is a real
   consequence but a legitimate one, so it is shown and confirmed rather than
-  forbidden.
+  forbidden. Replacing an editable install of the library itself is the same
+  class of consequence.
 """
 
 from __future__ import annotations
 
 import logging
 import time
+from pathlib import Path
 from typing import Optional, Protocol
 
 from haywire.core.library.haybale import Haybale
+from haywire.core.library.install_type import InstallType
 from haywire.core.marketstall import check_require
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
@@ -52,6 +55,10 @@ class InstallSource(Protocol):
     ) -> tuple[bool, str, object]: ...
 
     def get_installed_version(self, dist_name: str) -> str: ...
+
+    def get_install_type(self, dist_name: str) -> str:
+        """Return the ``InstallType`` name of the installed library, or "" when none is installed."""
+        ...
 
 
 class InstallFlow(StepFlow):
@@ -84,6 +91,9 @@ class InstallFlow(StepFlow):
         self.removals: list[str] | None = None
         #: True when dry_run refused — a framework conflict, not a choice.
         self.blocked: bool = False
+        #: True when the library is installed editable and this install would
+        #: replace it with a non-editable copy. Informs; never blocks.
+        self.replaces_editable: bool = False
         self.succeeded: bool = False
         self.message: str = ""
         self.hints: object | None = None
@@ -174,7 +184,20 @@ class InstallFlow(StepFlow):
         except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
             self.fail(exc)
             return
+        self.replaces_editable = self._replaces_editable()
         self.step = "checked"
+
+    def _replaces_editable(self) -> bool:
+        """Whether an editable install of this library would be replaced by a non-editable one."""
+        if self.package is None or not self.package.name:
+            return False
+        # A directory spec installs editable itself (see LibraryManager._resolver_args).
+        if Path(self.install_spec).is_dir():
+            return False
+        try:
+            return self.source.get_install_type(self.package.name) == InstallType.EDITABLE.name
+        except Exception:  # noqa: BLE001 — an unknown install type is not an error here
+            return False
 
     async def advance_from_checked(self) -> None:
         """Enter the install step. The work itself runs there."""

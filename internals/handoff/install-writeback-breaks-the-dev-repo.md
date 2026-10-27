@@ -135,6 +135,19 @@ Two facts worth carrying into the fix:
   (`_uninstall_flow/_state.py`, the warning appended in
   `advance_from_confirm`).
 
+## Status (2026-10-27)
+
+- The editable warning has landed: `InstallFlow.replaces_editable`, set in
+  `advance_from_selected` from `InstallSource.get_install_type`, rendered on
+  the `checked` step. It informs; the Install button stays the gate.
+- Question 3 is answered: not uv's bug. visiongraph's repo-root
+  `pyproject.toml` carried path `[tool.uv.sources]` (absolute at v0.0.20,
+  `../haywire-repo/…` since). uv applies a git repo's own workspace sources,
+  so the path becomes an escaping `subdirectory`. It breaks any consumer
+  project's `uv lock` / `uv run` once write-back adds the git source. Tracked
+  as backlog #67.
+- Questions 2 and 4 are still open.
+
 ## Open questions
 
 1. **Warn, or block?** By the project's own inform-vs-block rule (see

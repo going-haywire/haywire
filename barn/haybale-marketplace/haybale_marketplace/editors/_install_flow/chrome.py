@@ -25,9 +25,10 @@ from haybale_marketplace.editors._install_flow.panels import (
 class ManagerInstallSource:
     """Adapts :class:`LibraryManager` to :class:`InstallSource`.
 
-    The manager already exposes all three methods with matching signatures;
-    this exists so the flow depends on the narrow protocol rather than on the
-    manager, keeping the tests free of a library system.
+    The manager exposes three of the methods with matching signatures; the
+    install type lives on the registry, keyed by library id. This exists so
+    the flow depends on the narrow protocol rather than on the manager,
+    keeping the tests free of a library system.
     """
 
     def __init__(self, manager) -> None:
@@ -41,6 +42,14 @@ class ManagerInstallSource:
 
     def get_installed_version(self, dist_name: str) -> str:
         return self._manager.get_installed_version(dist_name)
+
+    def get_install_type(self, dist_name: str) -> str:
+        registry = self._manager.registry
+        library_id = registry.find_library_by_distribution_name(dist_name)
+        if library_id is None:
+            return ""
+        install_type = registry.get_library_install_type(library_id)
+        return install_type.name if install_type is not None else ""
 
 
 def show_install_flow(
