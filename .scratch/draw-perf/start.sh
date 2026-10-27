@@ -1,7 +1,7 @@
 #!/bin/zsh
 # usage: start.sh <worktree> <logfile>
 P=$(cd "$(dirname "$0")" && pwd)
-W=$1
+W=$(cd "$1" && pwd)
 mkdir -p $W/.haywire
 echo '{"network":{"port":{"value":8191}}}' > $W/.haywire/settings.json
 cd $W

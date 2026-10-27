@@ -26,3 +26,12 @@ The two probes below need a studio already running on 8191 with the graph loaded
   DOM-lookup change in both engines; Chrome alone hides this class of cost.
 
 Remove the worktrees afterwards with `git worktree remove --force .scratch/draw-perf/<cN>`.
+
+Added 2026-10-27 (re-measurement at NiceGUI 3.13 → 3.18, backlog #9). Same setup: a studio on 8191 with the graph
+loaded.
+
+- `measure_engine.py <label> time <runs> <graph> <chromium|firefox>`: `measure.py` in either engine. Time every change in both.
+- `breakdown.py <out.json>`: Chromium CPU profile over the whole load, by script (`(idle)` is mostly waiting on the
+  server) and by stack (`renderRecursively` is the Vue page walk), plus websocket message counts and bytes.
+- `ws_kinds.py <engine>`: the load's websocket messages grouped by kind and, for `run_javascript`, by the JS they run.
+- `elements.py`: after a load, the page's NiceGUI elements by tag with their JSON size; writes `elements.json`.
