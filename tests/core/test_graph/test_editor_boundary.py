@@ -55,7 +55,7 @@ def test_a_failing_action_is_recorded_and_returns_false(ledger, editor):
     assert entry.operation == "Apply edit"
     assert entry.graph_id == editor.graph.graph_id
     assert entry.node_id == "n1"
-    assert entry.error_context["action"] == "Raising"
+    assert entry.details["action"] == "Raising"
 
 
 def test_a_refusing_action_returns_false_unrecorded(ledger, editor):
@@ -94,4 +94,4 @@ def test_a_failing_reset_is_recorded(ledger, editor, monkeypatch):
 
     (entry,) = ledger.query().entries
     assert entry.operation == "Reset nodes"
-    assert entry.error_context["node_ids"] == [node.node_id]
+    assert entry.details["node_ids"] == [node.node_id]

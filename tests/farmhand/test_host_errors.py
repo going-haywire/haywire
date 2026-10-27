@@ -60,9 +60,9 @@ def test_a_failing_tool_is_recorded_and_the_agent_sees_its_seq(farmhand_call, ra
     assert len(entries) == 1
     assert text.startswith("[internal]")
     assert text.endswith(f" (ledger_seq={entries[0].ledger_seq})")
-    assert entries[0].error_context["tool"] == "raising"
-    assert entries[0].error_context["arguments"] == ["secret"]
-    assert "value" not in str(entries[0].error_context)
+    assert entries[0].details["tool"] == "raising"
+    assert entries[0].details["arguments"] == ["secret"]
+    assert "value" not in str(entries[0].details)
 
 
 def test_a_farmhand_error_is_not_recorded(farmhand_call, raising_tool, ledger):

@@ -50,7 +50,7 @@ def test_a_recorded_edit_that_fails_is_recorded_once(ledger, editor):
 
     (entry,) = ledger.query().entries
     assert entry.operation == "Apply edit"
-    assert entry.error_context["action"] == "Flaky"
+    assert entry.details["action"] == "Flaky"
 
 
 def test_a_recorded_edit_that_refuses_is_not_recorded(ledger, editor):
@@ -95,7 +95,7 @@ def test_an_undo_that_fails_is_recorded(ledger, editor):
 
     (entry,) = ledger.query().entries
     assert entry.operation == "Undo"
-    assert entry.error_context["action"]
+    assert entry.details["action"]
 
 
 def test_a_redo_that_fails_is_recorded(ledger, editor):

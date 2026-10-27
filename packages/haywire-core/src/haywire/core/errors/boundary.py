@@ -10,11 +10,11 @@ from haywire.core.errors.refusal import Refusal
 
 logger = logging.getLogger(__name__)
 
-_ENRICH_FIELDS = ("graph_id", "node_id", "edge_id", "registry_key", "library_identity")
+_ENRICH_FIELDS = ("graph_id", "node_id", "edge_id", "registry_key", "library_identity", "module_name")
 
 
 def _split_context(context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Split boundary context into ``enrich`` keywords and extra ``error_context`` entries."""
+    """Split boundary context into ``enrich`` keywords and ``details`` entries."""
     known = {k: v for k, v in context.items() if k in _ENRICH_FIELDS and v is not None}
     extra = {k: v for k, v in context.items() if k not in _ENRICH_FIELDS}
     return known, extra
@@ -43,9 +43,9 @@ def report_failure(
         message: Entry message for a wrapped exception; defaults to ``"<operation> failed"``.
         severity: Severity of a wrapped exception.
         refusals_fail: Record a ``Refusal`` instead of letting it through.
-        **context: ``graph_id``, ``node_id``, ``edge_id``, ``registry_key`` and
-            ``library_identity`` set the matching fields; any other key goes into
-            ``error_context``.
+        **context: ``graph_id``, ``node_id``, ``edge_id``, ``registry_key``,
+            ``library_identity`` and ``module_name`` set the matching fields; any
+            other key goes into ``details``, which the detailed report prints.
 
     Returns:
         The logged ``HaywireException``, or ``None`` for a refusal or if recording failed.
@@ -62,14 +62,14 @@ def report_failure(
             if not logged.operation:
                 logged.operation = operation
             for key, value in extra.items():
-                logged.error_context.setdefault(key, value)
+                logged.details.setdefault(key, value)
         else:
             assert isinstance(exc, Exception)
             logged = HaywireException.from_exception(
                 exc, message or f"{operation} failed", operation=operation, severity=severity
             )
             logged.enrich(**known)
-            logged.error_context.update(extra)
+            logged.details.update(extra)
         return logged.log()
     except Exception:
         logger.debug("report_failure failed for %r", exc, exc_info=True)
@@ -93,7 +93,7 @@ def report_loss(message: str, *, operation: str, **context: Any) -> HaywireExcep
         known, extra = _split_context(context)
         loss = HaywireException.create(message, severity=ErrorSeverity.WARNING, operation=operation)
         loss.enrich(**known)
-        loss.error_context.update(extra)
+        loss.details.update(extra)
         return loss.log()
     except Exception:
         logger.debug("report_loss failed for %r", message, exc_info=True)

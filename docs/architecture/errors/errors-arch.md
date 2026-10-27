@@ -38,9 +38,9 @@ except Exception as e:
 
 - **`report_failure(exc, *, operation, message=None, severity=ERROR, refusals_fail=False, **context)`**, called in an `except` block:
     - a `Refusal` returns `None`, records nothing and is logged at `INFO` (`"<operation> refused: <message>"`), unless `refusals_fail=True`, which records it like any failure;
-    - a `HaywireException` is reused: only its empty `graph_id`, `node_id`, `edge_id`, `registry_key`, `library_identity` and `operation` are filled, so context set closer to the failure wins;
-    - anything else is wrapped with `HaywireException.from_exception` (message defaults to `"<operation> failed"`);
-    - other `context` keys go into `error_context`;
+    - a `HaywireException` is reused: only its empty `graph_id`, `node_id`, `edge_id`, `registry_key`, `library_identity`, `module_name` and `operation` are filled, so context set closer to the failure wins;
+    - anything else is wrapped with `HaywireException.from_exception`. Its `message` is the entry's headline in the Errors list: a boundary that knows its subject names it (`"Could not load graph 'loop.haywire'"`, `"Tool 'x' failed"`); otherwise it defaults to `"<operation> failed"`;
+    - other `context` keys go into `details` (path, action, tool, signal, …). The detailed report, in the console and the Errors editor alike, prints `Graph`, `Node`, `Edge` and every `details` entry as `Key : value`;
     - returns the logged `HaywireException`, and never raises.
 - **`report_loss(message, *, operation, **context)`** records a `WARNING` entry for a detected loss; it returns the entry, or `None` if recording failed, and never raises.
 

@@ -323,6 +323,7 @@ class FarmhandHost(SignalPeer):
                     logged = report_failure(
                         exc,
                         operation="Farmhand tool",
+                        message=f"Tool '{name}' failed",
                         tool=name,
                         principal=principal,
                         arguments=sorted(arguments),

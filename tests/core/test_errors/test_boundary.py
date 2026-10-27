@@ -39,7 +39,7 @@ def test_a_plain_exception_is_wrapped_enriched_and_recorded(ledger):
     assert logged is not None
     assert logged.ledger_seq > 0
     assert (logged.operation, logged.graph_id, logged.node_id) == ("Apply edit", "g1", "n1")
-    assert logged.error_context["action"] == "Move"
+    assert logged.details["action"] == "Move"
     assert logged.message == "Apply edit failed"
 
 
@@ -115,3 +115,21 @@ def test_the_same_raise_twice_makes_one_entry_counted_twice(ledger):
     _report(_raise_here)
     (entry,) = ledger.query().entries
     assert entry.count == 2
+
+
+def test_the_detailed_report_shows_the_boundary_context(ledger):
+    logged = report_failure(
+        KeyError("x"), operation="Apply edit", graph_id="g1", node_id="n1", edge_id="e1", file_path="/a/b"
+    )
+    assert logged is not None
+    report = logged.format_detailed()
+    for line in ("Graph     : g1", "Node      : n1", "Edge      : e1", "File path : /a/b"):
+        assert line in report
+    assert logged.to_dict()["details"] == {"file_path": "/a/b"}
+
+
+def test_module_name_sets_the_field_not_the_details(ledger):
+    logged = report_failure(KeyError("x"), operation="Hot reload", module_name="pkg.mod")
+    assert logged is not None
+    assert logged.module_name == "pkg.mod"
+    assert "module_name" not in logged.details

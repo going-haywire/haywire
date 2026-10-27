@@ -496,6 +496,10 @@ class HaywireException(Exception):
     """The offending edge's id (adapter/edge errors). Self-encodes endpoints
     (``nodeA[out]->nodeB[in]``). A string, not an EdgeWrapper reference."""
 
+    details: Dict[str, Any] = field(default_factory=dict)
+    """What the error boundary that recorded this knew, by name: the file path, the
+    action, the tool, the signal. Shown in the detailed report."""
+
     # ========================================================================
     # TECHNICAL DETAILS (for advanced users / debugging)
     # ========================================================================
@@ -1066,6 +1070,18 @@ class HaywireException(Exception):
         if self.module_name:
             lines.append(f"Module    : {self.module_name}")
 
+        if self.graph_id:
+            lines.append(f"Graph     : {self.graph_id}")
+
+        if self.node_id:
+            lines.append(f"Node      : {self.node_id}")
+
+        if self.edge_id:
+            lines.append(f"Edge      : {self.edge_id}")
+
+        for key, value in self.details.items():
+            lines.append(f"{key.replace('_', ' ').capitalize():<10}: {value}")
+
         if self.context_type:
             lines.append(f"Context   : {self.context_type}")
 
@@ -1274,6 +1290,7 @@ class HaywireException(Exception):
             "node_id": self.node_id,
             "graph_id": self.graph_id,
             "edge_id": self.edge_id,
+            "details": {key: str(value) for key, value in self.details.items()},
             "library": self.library_identity.name if self.library_identity else None,
             "filename": self.filename,
             "line_number": self.line_number,

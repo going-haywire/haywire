@@ -266,7 +266,7 @@ def test_editor_dissolve_returns_false_on_error_and_records_it(monkeypatch):
 
     (entry,) = ledger.query().entries
     assert (entry.operation, entry.graph_id) == ("Apply edit", "g1")
-    assert entry.error_context["action"] == "Dissolve reroute"
+    assert entry.details["action"] == "Dissolve reroute"
 
 
 # ---------------------------------------------------------------------------

@@ -408,7 +408,7 @@ def test_a_failure_opening_the_macro_reaches_the_ledger(haystack, macro_file, tm
     (logged,) = [e for e in ledger.query().entries if e.operation == "Update Macro"]
     assert logged.operation == "Update Macro"
     assert logged.node_id == card_id
-    assert logged.error_context["path"] == str(path)
+    assert logged.details["path"] == str(path)
     warnings = [c.args[0] for c in notify.call_args_list if c.kwargs.get("type") == "warning"]
     assert warnings == ["Could not open Blur: disk gone. Undo restores the instance."]
 

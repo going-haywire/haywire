@@ -42,8 +42,8 @@ def test_a_raising_handler_is_recorded_and_the_next_still_runs(ledger):
     assert result.total == 1
     entry = result.entries[0]
     assert entry.operation == "Signal handler"
-    assert entry.error_context["signal"] == "_Ping"
-    assert entry.error_context["handler"].endswith("_boom")
+    assert entry.details["signal"] == "_Ping"
+    assert entry.details["handler"].endswith("_boom")
 
 
 def test_a_refusal_in_a_handler_is_recorded(ledger):
@@ -57,7 +57,7 @@ def test_a_refusal_in_a_handler_is_recorded(ledger):
     result = ledger.query()
     assert result.total == 1
     assert result.entries[0].operation == "Signal handler"
-    assert result.entries[0].error_context["signal"] == "_Ping"
+    assert result.entries[0].details["signal"] == "_Ping"
 
 
 def test_a_handler_failing_on_every_publish_merges_into_one_entry(ledger):
@@ -81,8 +81,8 @@ def test_a_failing_peer_is_recorded_and_the_next_peer_still_runs(ledger):
     assert result.total == 1
     entry = result.entries[0]
     assert entry.operation == "Signal broadcast"
-    assert entry.error_context["signal"] == "_Ping"
-    assert entry.error_context["peer"] == "a" * 8
+    assert entry.details["signal"] == "_Ping"
+    assert entry.details["peer"] == "a" * 8
 
 
 def test_a_refusal_in_a_broadcast_is_recorded(ledger):
@@ -94,7 +94,7 @@ def test_a_refusal_in_a_broadcast_is_recorded(ledger):
     result = ledger.query()
     assert result.total == 1
     assert result.entries[0].operation == "Signal broadcast"
-    assert result.entries[0].error_context["peer"] == "a" * 8
+    assert result.entries[0].details["peer"] == "a" * 8
 
 
 def test_a_listener_republishing_on_a_failing_bus_does_not_loop(ledger):

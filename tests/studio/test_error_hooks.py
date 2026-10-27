@@ -75,8 +75,8 @@ def test_a_ui_failure_is_recorded_with_session_context_and_toasted(ledger, notif
     entries = ledger.query().entries
     assert len(entries) == 1
     assert entries[0].operation == "UI handler"
-    assert entries[0].error_context["principal"] == "ann"
-    assert entries[0].error_context["session_id"] == "s1"
+    assert entries[0].details["principal"] == "ann"
+    assert entries[0].details["session_id"] == "s1"
     notify.assert_called_once_with("Something went wrong — see Errors", type="negative")
     assert client.entered == 1
 

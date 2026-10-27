@@ -87,7 +87,7 @@ def test_a_failing_class_filter_is_recorded_and_discovery_continues(ledger, tmp_
     assert [c.__name__ for c in found] == ["GoodOne"]
     (entry,) = _entries(ledger)
     assert entry.operation == "Hot reload"
-    assert entry.error_context["module_name"] == "reload_boundary_mod"
+    assert entry.module_name == "reload_boundary_mod"
 
 
 def test_an_unparseable_dependency_source_is_recorded(ledger, tmp_path, monkeypatch):
@@ -101,7 +101,7 @@ def test_an_unparseable_dependency_source_is_recorded(ledger, tmp_path, monkeypa
 
     (entry,) = _entries(ledger)
     assert entry.operation == "Hot reload"
-    assert entry.error_context["module_name"] == "broken_dep"
+    assert entry.module_name == "broken_dep"
 
 
 def test_an_unresolvable_relative_import_is_recorded(ledger, monkeypatch):
@@ -110,7 +110,7 @@ def test_an_unresolvable_relative_import_is_recorded(ledger, monkeypatch):
 
     (entry,) = _entries(ledger)
     assert entry.operation == "Hot reload"
-    assert entry.error_context["module_name"] == "pkg.mod"
+    assert entry.module_name == "pkg.mod"
 
 
 def test_a_helper_reload_failure_without_a_source_event_is_recorded(ledger, monkeypatch):
@@ -122,4 +122,4 @@ def test_a_helper_reload_failure_without_a_source_event_is_recorded(ledger, monk
 
     (entry,) = _entries(ledger)
     assert entry.operation == "Hot reload"
-    assert entry.error_context["module_name"] == "helper_boundary_mod"
+    assert entry.module_name == "helper_boundary_mod"

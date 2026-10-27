@@ -1107,6 +1107,7 @@ class BaseGraph:
                         report_failure(
                             e,
                             operation="Load graph",
+                            message=f"Could not load subgraph '{key}'",
                             refusals_fail=True,
                             graph_id=self.graph_id,
                             subgraph=key,
@@ -1130,6 +1131,7 @@ class BaseGraph:
                         report_failure(
                             e,
                             operation="Load graph",
+                            message=f"Could not load node '{node_id}'",
                             refusals_fail=True,
                             graph_id=self.graph_id,
                             node_id=node_id,
@@ -1160,6 +1162,7 @@ class BaseGraph:
                         report_failure(
                             e,
                             operation="Load graph",
+                            message=f"Could not load edge '{edge_id}'",
                             refusals_fail=True,
                             graph_id=self.graph_id,
                             edge_id=edge_id,
@@ -1173,7 +1176,13 @@ class BaseGraph:
             return True
 
         except Exception as e:
-            report_failure(e, operation="Load graph", refusals_fail=True, graph_id=self.graph_id)
+            report_failure(
+                e,
+                operation="Load graph",
+                message="Could not load the graph data",
+                refusals_fail=True,
+                graph_id=self.graph_id,
+            )
             return False
 
     def _apply_compatibility_warnings(self, data: Dict[str, Any]) -> None:
@@ -1306,7 +1315,12 @@ class BaseGraph:
 
         except Exception as e:
             report_failure(
-                e, operation="Save graph", refusals_fail=True, graph_id=self.graph_id, path=str(filepath)
+                e,
+                operation="Save graph",
+                message=f"Could not save graph '{Path(filepath).name}'",
+                refusals_fail=True,
+                graph_id=self.graph_id,
+                path=str(filepath),
             )
             return False
 
@@ -1342,6 +1356,11 @@ class BaseGraph:
 
         except Exception as e:
             report_failure(
-                e, operation="Load graph", refusals_fail=True, graph_id=self.graph_id, path=str(filepath)
+                e,
+                operation="Load graph",
+                message=f"Could not load graph '{Path(filepath).name}'",
+                refusals_fail=True,
+                graph_id=self.graph_id,
+                path=str(filepath),
             )
             return False

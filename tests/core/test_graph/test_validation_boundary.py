@@ -48,7 +48,7 @@ def test_a_node_failing_validation_is_recorded_and_the_loop_continues(ledger, gr
     assert entry.node_id == bad.node_id
     assert entry.graph_id == graph.graph_id
     assert entry.registry_key == key
-    assert entry.error_context["reason"] == "NODE_RESET_REQUESTED"
+    assert entry.details["reason"] == "NODE_RESET_REQUESTED"
 
 
 def test_an_edge_failing_validation_is_recorded(ledger, graph_with_library_system):
@@ -70,4 +70,4 @@ def test_an_edge_failing_validation_is_recorded(ledger, graph_with_library_syste
     assert entry.operation == "Validate edge"
     assert entry.edge_id == edge.edge_id
     assert entry.graph_id == graph.graph_id
-    assert entry.error_context["reason"] == "EDGE_VALIDATION_REQUESTED"
+    assert entry.details["reason"] == "EDGE_VALIDATION_REQUESTED"
