@@ -660,11 +660,9 @@ class NodeSkin(BaseSkin, ABC):
 
         # A config port renders no pin, so the WIDGET is what the user points
         # at — not the whole row, which spans the label and the full card width
-        # and would fire anywhere the pointer crosses the body. The tooltip is
-        # HOSTED on the row (a widget is a custom Vue component with no
-        # `<slot>`, so a child added to it never renders) and TRIGGERED by the
-        # widget. A config with no widget gets none: nothing to aim at, and the
-        # label already names it wherever it is shown.
+        # and would show the tip anywhere the pointer crosses the body. A config
+        # with no widget gets none: nothing to aim at, and the label already
+        # names it wherever it is shown.
         if widget_el is not None:
             add_pin_tooltip(config_row, port, trigger_el=widget_el)
 

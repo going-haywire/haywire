@@ -963,6 +963,11 @@ window.addEventListener("wheel", function (e) {
 </script>"""
         )
 
+        # Pin and widget tooltips on node cards (add_pin_tooltip) are drawn by this script.
+        from haywire.ui.hover_tip import add_hover_tip_script
+
+        add_hover_tip_script()
+
         snapshot = self.session.workspace_manager.snapshot
 
         with ui.column().classes("w-full gap-0").style("height: 100vh; overflow: hidden;"):

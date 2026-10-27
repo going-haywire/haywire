@@ -1,30 +1,22 @@
 """Tooltip triggers on a card must be small, and must never nest.
 
-Each ``add_pin_tooltip`` trigger costs a websocket round trip on EVERY hover
-crossing — ``mouseenter`` shows, ``mouseleave`` hides, both server-side. That is
-survivable for a pin-sized target the user aims at deliberately. It is not
-survivable when the trigger is a container: a port's content column spans its
-label and widget, a config row spans the full card width, and both CONTAIN the
-widget, so one pointer movement fires enters and leaves on several of them at
-once — several round trips, several Quasar tooltips shown and torn down, for a
-single crossing.
+A tooltip trigger is an element carrying ``data-hw-tip``; the page's hover-tip
+script shows the tip while the pointer is over the innermost one. A trigger that
+is a container (a port's content column, a config row) shows its tip wherever
+the pointer crosses the card body, and nested triggers swap tips on every small
+movement, so each trigger is one thing the user points at.
 
-Panning is what makes that bite. The content moves under a stationary cursor,
-so a gesture generates crossings by itself, and each one lands in the middle of
-the frames the gesture needs. Measured by hand in Firefox on a 300-node graph:
-~0.5s of freeze at the start of a pan begun with the cursor over a card BODY,
-and never over the title strip — the one part of a card that carried no
-tooltip. Chrome did not show it. Removing the nested triggers removed the
-freeze entirely.
+The tips cost the server nothing on hover: a card registers no hover listener.
+The old server-side tooltips made a round trip on every crossing and froze the
+start of a pan for ~0.5s in Firefox on a 300-node graph.
 
-These tests pin the SHAPE, not the timing — a timing assertion on a canvas this
-size is a flake, and the shape is what actually went wrong:
+These tests pin the SHAPE:
 
   * no trigger contains another trigger
   * no trigger is a layout container
   * triggers still exist (a card that lost its tooltips passes every
     "is it fast" check ever written)
-  * a built tooltip animates instantly
+  * a trigger carries its port's text, and no card element listens for hovers
 """
 
 from __future__ import annotations
@@ -34,6 +26,7 @@ from nicegui import ui
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
+from haywire.ui.hover_tip import TIP_ATTR
 from haywire.ui.skin.factory import SkinFactory
 
 pytestmark = [pytest.mark.integration]
@@ -83,12 +76,8 @@ def rendered(request, library_system, nicegui_slot_context):
 
 
 def _triggers(container: ui.element) -> list[ui.element]:
-    """Every element carrying a hover listener — i.e. every tooltip trigger."""
-    return [
-        el
-        for el in container.descendants()
-        if any(listener.type == "mouseenter" for listener in el._event_listeners.values())
-    ]
+    """Every tooltip trigger: every element carrying the tip's text."""
+    return [el for el in container.descendants() if TIP_ATTR in el._props]
 
 
 def _is_ancestor(candidate: ui.element, element: ui.element) -> bool:
@@ -130,28 +119,15 @@ def test_no_tooltip_trigger_is_a_layout_container(rendered) -> None:
     )
 
 
-def test_a_built_tooltip_animates_instantly(rendered) -> None:
-    """Hiding a VISIBLE tooltip is the one tooltip operation that can land in
-    the middle of a pan, and Quasar's default 300ms show/hide animation makes
-    it an animation the browser runs while the canvas transforms underneath.
-    Firefox froze on exactly that; Chrome did not. Instant transitions fixed it.
-    """
+def test_a_trigger_carries_its_text_and_nothing_listens_for_hovers(rendered) -> None:
     triggers = _triggers(rendered)
-    assert triggers, "no trigger to build a tooltip from"
-
-    # The tooltip is built lazily on first hover, so fire the handler the way a
-    # hover would rather than reaching past it.
-    trigger = triggers[0]
-    listener = next(
-        listener for listener in trigger._event_listeners.values() if listener.type == "mouseenter"
-    )
-    assert listener.handler is not None
-    listener.handler(None)
-
-    tooltips = [el for el in trigger.descendants() if el.tag == "q-tooltip"]
-    assert tooltips, "hovering a trigger built no tooltip"
-    props = tooltips[0]._props
-    assert str(props.get("transition-duration")) == "0", (
-        "the tooltip animates its show/hide; a hide landing mid-gesture then "
-        f"runs an animation over the moving canvas (props={props})"
+    assert all(str(el._props[TIP_ATTR]).strip() for el in triggers), "a trigger carries an empty tip"
+    hover_listeners = [
+        el
+        for el in rendered.descendants()
+        if any(listener.type in ("mouseenter", "mouseleave") for listener in el._event_listeners.values())
+    ]
+    assert not hover_listeners, (
+        "a card element listens for hovers on the server, so each crossing costs a round trip: "
+        + ", ".join(sorted(str(sorted(el._classes)) for el in hover_listeners))
     )

@@ -21,6 +21,7 @@ from nicegui.elements.mixins.text_element import TextElement
 from haywire.core.access import LevelMode
 from haywire.core.types import DataPort, LayoutDirection
 from haywire.ui.access_stamp import stamp_requires
+from haywire.ui.hover_tip import TIP_ATTR, TIP_DESC_ATTR
 
 from ..utils import generate_pin_uuid
 from .pin_icons import DEFAULT_PIN_ICONS, PinIconResolver
@@ -100,80 +101,31 @@ def resolve_graph_layout_direction(wrapper: "NodeWrapper") -> LayoutDirection:
 
 
 def add_pin_tooltip(pin_el: ui.element, pin: DataPort, trigger_el: ui.element | None = None) -> None:
-    """Attach a hover tooltip showing a port's label and description.
+    """Show a port's label and description while the pointer is over its pin.
 
-    The description line is omitted when the port has no description.
+    The description line is omitted when the port has no description. The text
+    is written onto the trigger as attributes and drawn by the page's hover-tip
+    script (see ``haywire.ui.hover_tip``), so a pin registers no listener and a
+    hover makes no round trip. Pages built by ``AppShell`` install that script.
 
-    Lazy construction: the tooltip (a QTooltip + 1–2 labels = 3 elements) is
-    built on the pin's first ``mouseenter`` rather than at render time. A large
-    graph has ~one tooltip per port, all invisible until hovered — building them
-    eagerly was measured at ~30% of graph-render time. Deferring to first hover
-    pays that cost only for pins the user actually hovers.
-
-    Visibility is driven explicitly by ``mouseenter`` → show / ``mouseleave`` →
-    hide, and the QTooltip is given ``no-parent-event`` so Quasar does NOT also
-    run its own hover show/hide. Without that, two controllers fight: the
-    tooltip mounts after the current ``mouseenter`` (so Quasar misses the first
-    show — the "appears on second hover" bug) and a manual ``show`` then leaves
-    Quasar's hide unreconciled (so tooltips orphan on screen). Making our
-    handlers the sole controller keeps the state deterministic.
-
-    ``trigger_el`` splits WHERE the tooltip lives from WHAT the user hovers to
-    get it. A widget is a custom Vue component whose template has no ``<slot>``
-    (``drag.vue`` has none), so a tooltip added to one is silently dropped and
-    never renders — it has to be hosted on a plain parent and triggered by the
-    widget.
+    ``trigger_el`` is what the user hovers to see the tip, for a pin whose widget
+    stands in for it. ``pin_el`` is then left as it is.
 
     Without ``trigger_el`` the pin is stamped ``data-hw-requires="view"``, so its
     tooltip shows in every level mode. A separate trigger is left as it is: whether
     it takes pointer input is its own element's rule (a widget carries its own stamp).
 
-    Trap: every crossing of a trigger costs a websocket round trip, so trigger
-    areas must be SMALL and must not NEST. A trigger on a port's content column
-    as well as on its pin makes the areas overlap, so one pointer movement
-    fires several enters and leaves — each a round trip, each showing or
-    tearing down a Quasar tooltip.
-
-    Panning is what makes that bite: content moves under a stationary cursor,
-    so a gesture generates crossings by itself, and they land in the frames the
-    gesture needs. Measured at ~0.5s of freeze at the start of a pan on a
-    300-node graph in Firefox (Chrome did not show it), and only with the
-    cursor over a card BODY — never over the title strip, the one part of a
-    card carrying no tooltip. One trigger per thing the user can point at, and
-    nothing containing another. Locked down by
-    ``tests/ui/skin/test_tooltip_triggers.py``.
+    A trigger must be one thing the user points at — a pin, a widget, a fold's
+    triangle — never a container spanning a label and a widget, and no trigger
+    may contain another (``tests/ui/skin/test_tooltip_triggers.py``).
     """
     trigger = trigger_el if trigger_el is not None else pin_el
     if trigger_el is None:
         stamp_requires(pin_el, LevelMode.VIEW)
-    tooltip: ui.tooltip | None = None
-
-    def show_tooltip() -> None:
-        nonlocal tooltip
-        if tooltip is None:
-            # Build inside the (stable) pin element. pin_el is not torn down by
-            # this handler, so its slot is safe to populate — unlike the
-            # redraw-during-handler case in .insights/feedback_nicegui_async.md.
-            with pin_el:
-                # no-parent-event: we are the sole show/hide controller.
-                # transition-duration=0: hiding a VISIBLE tooltip is the one
-                # tooltip operation that can land mid-gesture, and Quasar's
-                # default 300ms show/hide animation makes it an animation the
-                # browser runs while the canvas is transforming underneath.
-                tooltip = ui.tooltip().classes("text-xs").props("no-parent-event transition-duration=0")
-                with tooltip:
-                    ui.label(pin.label).classes("font-bold")
-                    description = (pin.description or "").strip()
-                    if description:
-                        ui.label(description)
-        tooltip.run_method("show")
-
-    def hide_tooltip() -> None:
-        if tooltip is not None:
-            tooltip.run_method("hide")
-
-    trigger.on("mouseenter", lambda _: show_tooltip())
-    trigger.on("mouseleave", lambda _: hide_tooltip())
+    trigger.props[TIP_ATTR] = pin.label
+    description = (pin.description or "").strip()
+    if description:
+        trigger.props[TIP_DESC_ATTR] = description
 
 
 def render_pin(

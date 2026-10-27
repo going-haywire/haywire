@@ -13,6 +13,7 @@ import pytest
 from playwright.sync_api import Locator, Page
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.test_hover_tip import install_hover_tips
 from tests.ui.harness.probe import attr, box
 
 _PATH = "/graph-level-mode"
@@ -199,9 +200,10 @@ def test_view_pin_shows_its_tooltip_and_starts_no_edge(page: Page, harness):
     pin = page.locator(f'[data-node-id="{_badge_card(page)}"] .connection-pin[data-hw-requires=view]').first
     assert _hit(page, pin, "pin", "el.closest('[data-hw-requires=view]') !== null")
 
+    install_hover_tips(page)
     x, y = _centre(pin, "pin")
     page.mouse.move(x, y)
-    page.locator(".q-tooltip").first.wait_for(state="visible")
+    page.locator(".hw-hover-tip").wait_for(state="visible")
 
     page.mouse.down()
     page.mouse.move(x + 60, y + 40)

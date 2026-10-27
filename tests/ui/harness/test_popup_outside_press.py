@@ -18,8 +18,12 @@ def _open(page: Page, harness) -> dict:
     page.wait_for_selector(_STYLED)
     wait_for_canvas_settled(page)
     _open_edge_menu(page)
-    # The first point on screen, scanning from the bottom right, whose topmost element is
-    # the canvas itself: no node, edge, menu or overlay.
+    return _empty_canvas_point(page)
+
+
+def _empty_canvas_point(page: Page) -> dict:
+    """The first point on screen, scanning from the bottom right, whose topmost element is
+    the canvas itself: no node, edge, menu or overlay."""
     point = page.evaluate(
         """() => {
             for (let y = window.innerHeight - 20; y > 0; y -= 20) {

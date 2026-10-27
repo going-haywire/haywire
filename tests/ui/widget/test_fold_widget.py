@@ -13,6 +13,7 @@ from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
 from haywire.ui import elements as hui
 from haywire.ui.panel.setting_widget_model import SettingWidgetModel
+from haywire.ui.hover_tip import TIP_ATTR
 
 pytestmark = pytest.mark.unit
 
@@ -86,11 +87,7 @@ def test_an_accepted_write_updates_the_header(nicegui_slot_context) -> None:
 
 def test_only_the_triangle_triggers_the_tooltip(nicegui_slot_context) -> None:
     root = FoldWidget(_model(True, lambda _v: None)).render()
-    hovered = [
-        e
-        for e in [root, *root.descendants()]
-        if any(lis.type == "mouseenter" for lis in e._event_listeners.values())
-    ]
+    hovered = [e for e in [root, *root.descendants()] if TIP_ATTR in e._props]
     assert len(hovered) == 1
     assert isinstance(hovered[0], ui.icon)
     assert hovered[0]._props["name"] == hui.icon.fold_open
