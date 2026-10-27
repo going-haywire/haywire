@@ -77,6 +77,22 @@ class ErrorSeverity(Enum):
 # ============================================================================
 
 
+_THIRD_PARTY_PATHS = [
+    "site-packages",  # Python packages
+    "<frozen",  # Python internals
+    "<string>",  # Dynamically generated code (dataclasses, etc.)
+    "/lib/python",  # Python standard library
+    "/Library/Frameworks/Python.framework",  # macOS Python framework
+    "\\lib\\python",  # Windows Python stdlib
+]
+
+_FRAMEWORK_PATHS = [
+    "/src/haywire/core",  # All Haywire core code
+    "/src/haywire/ui",  # All Haywire UI code
+    *_THIRD_PARTY_PATHS,
+]
+
+
 def is_framework_code(filepath: str, framework_paths: Optional[List[str]] = None) -> bool:
     """
     Check if a file is part of the framework (not user code).
@@ -84,23 +100,14 @@ def is_framework_code(filepath: str, framework_paths: Optional[List[str]] = None
     Args:
         filepath: Path to the file
         framework_paths: List of framework package paths to exclude
-                        (defaults to haywire core packages)
+                        (defaults to Haywire's own packages, the standard
+                        library and installed packages)
 
     Returns:
         True if this is framework code, False if user code
     """
     if framework_paths is None:
-        # Default framework paths to exclude
-        framework_paths = [
-            "/src/haywire/core",  # All Haywire core code
-            "/src/haywire/ui",  # All Haywire UI code
-            "site-packages",  # Python packages
-            "<frozen",  # Python internals
-            "<string>",  # Dynamically generated code (dataclasses, etc.)
-            "/lib/python",  # Python standard library
-            "/Library/Frameworks/Python.framework",  # macOS Python framework
-            "\\lib\\python",  # Windows Python stdlib
-        ]
+        framework_paths = _FRAMEWORK_PATHS
 
     # Normalize path
     filepath = os.path.normpath(filepath)
@@ -353,6 +360,9 @@ def analyze_error_context(
     return context
 
 
+_REVIEW_HIGHLIGHTED_LINE = "Review the highlighted line in your code"
+
+
 def enhance_error_message_for_context(
     context_type: str, highlighted_item: Optional[str], original_message: str, error_context: Dict[str, Any]
 ) -> tuple[str, List[str]]:
@@ -397,7 +407,7 @@ def enhance_error_message_for_context(
 
     else:
         message_parts.append(original_message)
-        suggestions.append("Review the highlighted line in your code")
+        suggestions.append(_REVIEW_HIGHLIGHTED_LINE)
 
     message = "\n".join(message_parts)
 
@@ -729,9 +739,15 @@ class HaywireException(Exception):
                     filename, line_number
                 )
 
-        elif traceback_frames:
-            # Last resort - use last frame
-            last_frame = traceback_frames[-1]
+        elif last_frame := next(
+            (
+                f
+                for f in reversed(traceback_frames)
+                if not is_framework_code(str(f["file"]), _THIRD_PARTY_PATHS)
+            ),
+            None,
+        ):
+            # Last resort: the deepest Haywire frame; a stdlib or package frame is not actionable.
             filename = last_frame["file"]
             line_number = int(last_frame["line"]) if last_frame["line"] is not None else None
             code_value = last_frame.get("code")
@@ -772,6 +788,9 @@ class HaywireException(Exception):
         enhanced_message, suggestions = enhance_error_message_for_context(
             context_type, highlighted_item, exc_message, error_context
         )
+        if filename is None or is_framework_code(filename):
+            # The highlighted line, if any, is Haywire's own code, not the user's.
+            suggestions = [s for s in suggestions if s != _REVIEW_HIGHLIGHTED_LINE]
 
         return {
             "filename": filename,

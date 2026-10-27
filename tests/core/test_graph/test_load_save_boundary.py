@@ -44,6 +44,13 @@ def _entries(ledger):
     return list(ledger.query().entries)
 
 
+def _assert_points_at_haywire_frame(entry):
+    """The source is the graph code that called json/pathlib, not the stdlib, and asks no user review."""
+    assert entry.filename is not None
+    assert entry.filename.endswith(os.path.join("haywire", "core", "graph", "base.py"))
+    assert "Review the highlighted line in your code" not in entry.suggestions
+
+
 def test_unreadable_file_is_recorded(library_system, ledger, tmp_path):
     bad = tmp_path / "bad.haywire"
     bad.write_text("{not json", encoding="utf-8")
@@ -54,6 +61,7 @@ def test_unreadable_file_is_recorded(library_system, ledger, tmp_path):
     assert entries[0].details["path"] == str(bad)
     assert entries[0].message == "Could not load graph 'bad.haywire'"
     assert f"Path      : {bad}" in entries[0].format_detailed()
+    _assert_points_at_haywire_frame(entries[0])
 
 
 def test_failing_node_is_skipped_and_recorded(library_system, ledger, monkeypatch):
@@ -109,6 +117,7 @@ def test_save_into_read_only_directory_is_recorded(library_system, ledger, tmp_p
     assert len(entries) == 1
     assert entries[0].operation == "Save graph"
     assert entries[0].details["path"] == str(target)
+    _assert_points_at_haywire_frame(entries[0])
 
 
 def test_round_trip_records_nothing(library_system, ledger, tmp_path):
