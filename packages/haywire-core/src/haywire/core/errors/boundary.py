@@ -31,8 +31,8 @@ def report_failure(
 ) -> HaywireException | None:
     """Record a caught exception in the error ledger; call it from an ``except`` block.
 
-    A ``Refusal`` is not recorded and yields ``None``, unless ``refusals_fail`` is
-    set, in which case it is recorded like any other exception. A
+    A ``Refusal`` is not recorded, only logged at ``INFO``, and yields ``None``, unless
+    ``refusals_fail`` is set, in which case it is recorded like any other exception. A
     ``HaywireException`` is reused and keeps the context it already holds; only its
     empty fields are filled. Any other exception is wrapped. Recording the same
     exception twice adds no second entry. Never raises.
@@ -52,6 +52,7 @@ def report_failure(
     """
     try:
         if isinstance(exc, Refusal) and not refusals_fail:
+            logger.info("%s refused: %s", operation, exc.message)
             return None
         known, extra = _split_context(context)
         if isinstance(exc, HaywireException):
@@ -75,8 +76,10 @@ def report_failure(
         return None
 
 
-def report_loss(message: str, *, operation: str, **context: Any) -> HaywireException:
+def report_loss(message: str, *, operation: str, **context: Any) -> HaywireException | None:
     """Record a detected loss (something silently dropped) as a ``WARNING`` in the error ledger.
+
+    Never raises.
 
     Args:
         message: What was lost.
@@ -84,10 +87,14 @@ def report_loss(message: str, *, operation: str, **context: Any) -> HaywireExcep
         **context: As for ``report_failure``.
 
     Returns:
-        The logged ``HaywireException``.
+        The logged ``HaywireException``, or ``None`` if recording failed.
     """
-    known, extra = _split_context(context)
-    loss = HaywireException.create(message, severity=ErrorSeverity.WARNING, operation=operation)
-    loss.enrich(**known)
-    loss.error_context.update(extra)
-    return loss.log()
+    try:
+        known, extra = _split_context(context)
+        loss = HaywireException.create(message, severity=ErrorSeverity.WARNING, operation=operation)
+        loss.enrich(**known)
+        loss.error_context.update(extra)
+        return loss.log()
+    except Exception:
+        logger.debug("report_loss failed for %r", message, exc_info=True)
+        return None

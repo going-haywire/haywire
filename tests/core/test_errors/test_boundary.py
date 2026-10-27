@@ -1,5 +1,7 @@
 """Unit tests for ``Refusal`` and the error-boundary helpers."""
 
+import logging
+
 import pytest
 
 from haywire.core.errors import ErrorSeverity, HaywireException, Refusal, report_failure, report_loss
@@ -67,6 +69,49 @@ def test_a_farmhand_error_is_a_refusal():
 
 def test_report_loss_records_a_warning(ledger):
     loss = report_loss("setup lost", operation="Hot reload", graph_id="g1")
+    assert loss is not None
     assert loss.severity is ErrorSeverity.WARNING
     assert ledger.query().total == 1
     assert loss.graph_id == "g1"
+
+
+def test_report_loss_never_raises(ledger, monkeypatch):
+    monkeypatch.setattr(HaywireException, "log", lambda self, logger=None: 1 / 0)
+    assert report_loss("setup lost", operation="Hot reload") is None
+
+
+def test_a_refusal_let_through_is_logged_at_info(ledger, caplog):
+    with caplog.at_level(logging.INFO, logger="haywire.core.errors.boundary"):
+        assert report_failure(Refusal("Node is gone"), operation="Apply edit") is None
+    assert any(
+        r.levelno == logging.INFO and r.getMessage() == "Apply edit refused: Node is gone"
+        for r in caplog.records
+    )
+
+
+def _raise_here() -> None:
+    raise KeyError("a")
+
+
+def _raise_there() -> None:
+    raise KeyError("a")
+
+
+def _report(raiser) -> None:
+    try:
+        raiser()
+    except KeyError as e:
+        report_failure(e, operation="Apply edit")
+
+
+def test_the_same_failure_from_two_lines_makes_two_entries(ledger):
+    _report(_raise_here)
+    _report(_raise_there)
+    assert ledger.query().total == 2
+
+
+def test_the_same_raise_twice_makes_one_entry_counted_twice(ledger):
+    _report(_raise_here)
+    _report(_raise_here)
+    (entry,) = ledger.query().entries
+    assert entry.count == 2

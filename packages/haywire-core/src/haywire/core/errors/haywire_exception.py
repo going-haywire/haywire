@@ -556,9 +556,14 @@ class HaywireException(Exception):
     last_seen_at: Optional[float] = None
     """Timestamp of the most recent merged occurrence; None until one merges."""
 
+    ledger_fingerprint: Optional[tuple] = field(default=None, repr=False, compare=False)
+    """The ``fingerprint()`` the ledger computed when it first recorded this
+    exception; ``None`` until then. Not serialized."""
+
     def fingerprint(self) -> tuple:
-        """Identity for ledger dedup: where, what kind, and the message with digits
-        normalized so "Node 3 failed" and "Node 7 failed" collide."""
+        """Identity for ledger dedup: where, what kind, the source location it was
+        raised from, and the message with digits normalized so "Node 3 failed" and
+        "Node 7 failed" collide."""
         return (
             self.operation,
             self.registry_key,
@@ -566,6 +571,8 @@ class HaywireException(Exception):
             self.node_id,
             self.edge_id,
             self.category,
+            self.filename,
+            self.line_number,
             re.sub(r"\d+", "#", self.message),
         )
 
