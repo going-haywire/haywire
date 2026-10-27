@@ -292,3 +292,57 @@ def test_a_node_that_cannot_serialize_still_rebuilds(graph_with_library_system, 
 
     assert wrapper.node is not old
     assert isinstance(wrapper.node, TestPrintNode)
+
+
+def test_a_pasted_group_stand_in_gets_a_subgraph_of_its_own(
+    graph_with_library_system, library_system, monkeypatch
+):
+    """The copy takes its Subgraph along, so once the Graph-node class works the two cards
+    stand for two Subgraphs, not one."""
+    from haywire.barn.builtin.nodes.graph_node import SUBGRAPH_KEY, GraphNode
+    from haywire.barn.builtin.nodes.subgraph_io import SubgraphInputNode, SubgraphOutputNode
+    from haywire.core.graph.clipboard import build_clipboard_payload
+    from haywire.core.graph.editor import Editor
+
+    editor = Editor(graph_with_library_system, library_system.get_node_factory())
+    printer = graph_with_library_system.create_node_wrapper(_print_key(), position=(10.0, 10.0))
+    card_id, _ = editor.collapse_to_group(
+        [printer.node_id],
+        GraphNode.class_identity.registry_key,
+        SubgraphInputNode.class_identity.registry_key,
+        SubgraphOutputNode.class_identity.registry_key,
+    )
+    assert card_id is not None
+    data = graph_with_library_system.to_dict()
+
+    original_init = GraphNode.__init__
+    fails = {"left": 0}
+
+    def flaky(self, *args, **kwargs):
+        if fails["left"] > 0:
+            fails["left"] -= 1
+            raise RuntimeError("construction failed")
+        original_init(self, *args, **kwargs)
+
+    monkeypatch.setattr(GraphNode, "__init__", flaky)
+    fails["left"] = 1
+    graph = _load(data)
+    assert graph.node_wrappers[card_id].is_stand_in
+    source_key = _saved(graph, card_id)["node_data"]["store"][SUBGRAPH_KEY]
+
+    payload = build_clipboard_payload(graph, [card_id], [], "session")
+    assert set(payload["subgraphs"]) == {source_key}
+
+    fails["left"] = 1
+    pasted = Editor(graph, library_system.get_node_factory()).paste_clipboard(payload, 500.0, 500.0)
+    assert pasted is not None
+    new_id = pasted[0][0]
+    assert graph.node_wrappers[new_id].is_stand_in
+    pasted_key = _saved(graph, new_id)["node_data"]["store"][SUBGRAPH_KEY]
+    assert pasted_key != source_key
+    assert graph.get_subgraph(pasted_key) is not None
+
+    _reset(graph, new_id)
+    copy_card = graph.node_wrappers[new_id]
+    assert isinstance(copy_card.node, GraphNode)
+    assert copy_card.node.resolve_definition() is graph.get_subgraph(pasted_key)

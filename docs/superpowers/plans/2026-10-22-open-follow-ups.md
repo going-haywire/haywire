@@ -40,7 +40,7 @@ Items carry stable IDs (`#N`; handoff notes cite them), so the numbering has gap
 
 ## 5. Deferred minors from the 2026-10-20 → 22 branches
 
-- **#35** A Graph-node or Macro stand-in pasted while broken carries no Subgraph (the clipboard reads `wrapper.node.subgraph_key`); once fixed it would share its Subgraph with the original. Same pattern as an unknown-key Graph-node.
+- **#35** **DONE** (2026-10-27: the clipboard reads the Subgraph key from the saved store, which a stand-in keeps; a pasted Macro placement no longer leaves an unused copy of its interior) A Graph-node or Macro stand-in pasted while broken carries no Subgraph (the clipboard reads `wrapper.node.subgraph_key`); once fixed it would share its Subgraph with the original. Same pattern as an unknown-key Graph-node.
 
 ## 6. Other open handoffs
 
@@ -54,7 +54,7 @@ Each has its own note in `internals/handoff/`:
 
 ## 7. Found while working the backlog
 
-- **#45** **A port or setting edit on a stand-in is lost at the next save,** silently — a stand-in saves its kept data and takes only props from the live card. Applies to the canvas and to Farmhand's `set_property`/`operate` alike. Decide: refuse such writes, write them into the kept data, or leave it to the STAND-IN note (`inspect_node`).
+- **#45** **WON'T FIX** (2026-10-27: only port edits are affected, since a stand-in has no settings bags but `props`; nobody edits a card that shows it is broken, and Farmhand's `inspect_node` says STAND-IN, only position/label/style edits are saved) **A port or setting edit on a stand-in is lost at the next save,** silently — a stand-in saves its kept data and takes only props from the live card. Applies to the canvas and to Farmhand's `set_property`/`operate` alike. Decide: refuse such writes, write them into the kept data, or leave it to the STAND-IN note (`inspect_node`).
 - **#46** **DONE** (2026-10-27: a reload records no undo step; each changed node keeps its previous setup, applied or dismissed from the card or Farmhand; ADR 0062) **A hot reload in a graph without a history loses the user's setup silently** (a never-opened Group interior, mainly). Handoff: `internals/handoff/reload-without-history-loses-setup.md`. **Unblocked:** its warning is a detected loss, ledger only (`report_loss`, ADR 0061).
 - **#47** **DONE** (2026-10-26: `Refusal` vs failure; `report_failure` at named error boundaries; the ledger merges unseen repeats; ADR 0061) **Errors on the main editing and running pathways do not reach the error ledger** systematically; convert to `HaywireException` at a short list of central boundaries (`Editor._apply`, validation loops, signal dispatch, a global UI hook, Farmhand runner, load/save). Needs a design round and an ADR. Handoff: `internals/handoff/haywire-exception-at-boundaries.md`.
 - **#63** **DONE** (2026-10-26: re-exports moved below `Library`; `@library` now raises `ImportError` naming any class of its package decorated before it) **`GraphAppState` is keyed `__system__:state:GraphAppState`,** not `haybale-graph-editor:…`: `haybale_graph_editor/__init__.py` imports it (line 21) before `Library` is defined, so `derive_library_identity` finds no `Library` yet. Any library importing a decorated component above its `Library` class has the same defect, silently. Fixing it changes a registry key; check `workspace_state.json` and other persisted state keys first.

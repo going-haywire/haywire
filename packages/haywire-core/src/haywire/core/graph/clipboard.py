@@ -14,6 +14,7 @@ from typing import Any, Dict, List, TYPE_CHECKING
 
 from ..node.layout import position_of
 from ..node.previous_setup import strip_previous_setups
+from .subgraph import SUBGRAPH_KEY
 
 if TYPE_CHECKING:
     from .base import BaseGraph
@@ -41,7 +42,7 @@ def build_clipboard_payload(
 
     A Graph-node brings its Subgraph with it, serialized under ``subgraphs`` by
     the key its card names, so pasting it into another graph or another session
-    gives the copy contents of its own.
+    gives the copy contents of its own. So does a Graph-node an error node stands in for.
 
     No node in the payload, inside a Subgraph or not, carries a previous setup.
 
@@ -62,7 +63,8 @@ def build_clipboard_payload(
         nodes[node_id] = serialized
         positions.append(position_of(serialized))
 
-        key = getattr(wrapper.node, "subgraph_key", None)
+        # Read from the saved store, which a stand-in for a Graph-node keeps too.
+        key = (serialized.get("node_data") or {}).get("store", {}).get(SUBGRAPH_KEY)
         if isinstance(key, str):
             definition = graph.get_subgraph(key)
             if definition is not None:
