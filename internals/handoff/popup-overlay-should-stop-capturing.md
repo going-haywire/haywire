@@ -3,7 +3,7 @@ name: popup-overlay-should-stop-capturing
 description: Handoff — a backdrop_click_close Popup covers the viewport at pointer-events auto, so outside clicks are intercepted rather than passed through; the context-menu symptom is patched, the underlying design is not
 metadata:
   type: project
-  status: open
+  status: done
 ---
 
 # The positioned Popup overlay captures clicks it should let through

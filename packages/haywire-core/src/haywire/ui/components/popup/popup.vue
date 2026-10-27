@@ -6,8 +6,7 @@
     class="hw-popup-overlay"
     :style="overlayStyle"
     @click.self="onOverlayClick"
-    @contextmenu.self="onOverlayContextMenu"
-    @wheel.self="onOverlayWheel"
+    @contextmenu.self.prevent="onOverlayClick"
   >
     <!-- Floating card -->
     <div
@@ -109,13 +108,15 @@ export default {
       // opened from an ALREADY-OPEN ui.dialog() renders behind it and is
       // invisible — close the dialog first.
       if (this.propsPositioned) {
-        // Originally positioned — transparent overlay, no backdrop
+        // Originally positioned — transparent overlay, no backdrop. It paints
+        // and never takes input: a press outside reaches the page underneath,
+        // and closes the popup on the way (see `_dismissesOutside`).
         return {
           position: 'fixed',
           inset: '0',
           zIndex: 5000,
           background: 'transparent',
-          pointerEvents: this.backdropClickClose ? 'auto' : 'none',
+          pointerEvents: 'none',
         };
       }
       // Centred / modal — keep backdrop even after drag-positioning kicks in
@@ -165,12 +166,14 @@ export default {
       this._initPosition();
       this.visible = true;
       this._clampAfterRender();
+      this._watchOutside(true);
     }
     document.addEventListener('mousemove', this.handleDragMove);
     document.addEventListener('mouseup',   this.handleDragUp);
   },
 
   beforeUnmount() {
+    this._watchOutside(false);
     document.removeEventListener('mousemove', this.handleDragMove);
     document.removeEventListener('mouseup',   this.handleDragUp);
   },
@@ -205,13 +208,34 @@ export default {
       this._initPosition();
       this.visible = true;
       this._clampAfterRender();
+      this._watchOutside(true);
     },
 
     close() {
       if (!this.visible) return;
+      this._watchOutside(false);
       this.visible = false;
       this.isDragging = false;
       this.$emit('popup-close');
+    },
+
+    /** Start or stop closing a positioned `backdropClickClose` popup on a press
+     *  or wheel outside it. Capture phase, so the popup closes before the page
+     *  handles the same event. */
+    _watchOutside(on) {
+      if (!this.backdropClickClose || !this.propsPositioned) return;
+      const method = on ? 'addEventListener' : 'removeEventListener';
+      document[method]('pointerdown', this._dismissesOutside, true);
+      document[method]('wheel', this._dismissesOutside, { capture: true, passive: true });
+    },
+
+    /** Close when the event lands on the page rather than on a layer above it:
+     *  this popup or another one, a Quasar menu, dialog or tooltip (each
+     *  teleported into a `q-portal--…` container), or a notification. */
+    _dismissesOutside(e) {
+      const target = e.target instanceof Element ? e.target : null;
+      if (target && target.closest('.hw-popup-overlay, [id^="q-portal--"], .q-notifications')) return;
+      this.close();
     },
 
     toggle() {
@@ -226,70 +250,12 @@ export default {
       }
     },
 
+    /** A click or right-click on a centred popup's backdrop; the backdrop keeps
+     *  the browser's own menu from opening either way. */
     onOverlayClick() {
       if (this.backdropClickClose) {
         this.close();
       }
-    },
-
-    /** Right-click OUTSIDE the card, while this popup is capturing.
-     *
-     * A `backdropClickClose` popup covers the viewport with a transparent
-     * `inset: 0` overlay at `pointer-events: auto`, so a right-click aimed at
-     * a node lands here instead. With no handler the browser showed its OWN
-     * context menu — and our menu stayed open, needing a separate left-click
-     * to dismiss.
-     *
-     * Close, then hand the gesture on to whatever the user was actually
-     * aiming at, so right-clicking a second node swaps menus in one gesture.
-     * The re-dispatch is a real `contextmenu` event at the same coordinates,
-     * which is what canvas.vue's own listener expects — no special-casing
-     * there, and it works for any target, not just nodes.
-     *
-     * `elementFromPoint` is read only AFTER the overlay is taken out of
-     * hit-testing, otherwise it returns the overlay and this re-enters
-     * itself. `visible = false` is not enough on its own: the style change
-     * has to be flushed before the browser will hit-test against the new
-     * layout, hence the `nextTick`.
-     */
-    onOverlayContextMenu(e) {
-      if (!this.backdropClickClose) return;
-      // Never let the native menu through — it is the visible symptom, and it
-      // would also cover whatever menu we open next.
-      e.preventDefault();
-
-      const { clientX, clientY } = e;
-      this.close();
-
-      this.$nextTick(() => {
-        const target = document.elementFromPoint(clientX, clientY);
-        // Guard against re-entry: if the overlay is somehow still under the
-        // cursor, drop the gesture rather than dispatching into ourselves.
-        if (!target || this.$el.contains(target)) return;
-        target.dispatchEvent(new MouseEvent('contextmenu', {
-          bubbles: true,
-          cancelable: true,
-          view: window,
-          clientX,
-          clientY,
-          // A real contextmenu event carries the secondary button; handlers
-          // that check it (or forward it on) would otherwise see button 0.
-          button: 2,
-          buttons: 2,
-        }));
-      });
-    },
-
-    /** Wheel OUTSIDE the card, while this popup is capturing.
-     *
-     * Dismiss, close and let the gesture through
-     */
-    onOverlayWheel() {
-      // Centred modals keep a real backdrop and are not a passthrough surface
-      // — dismissing a confirm dialog on a stray trackpad twitch would be a
-      // bug, not a feature. Only the positioned, transparent overlay closes.
-      if (!this.backdropClickClose || !this.propsPositioned) return;
-      this.close();
     },
 
     onTitleMousedown(e) {

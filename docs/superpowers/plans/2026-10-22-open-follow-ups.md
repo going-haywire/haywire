@@ -49,7 +49,7 @@ Each has its own note in `internals/handoff/`:
 
 - **#40** `graph-loop-benchmark-drift.md` — `graph_loop` ~8% slower between June and September 2026, not attributed.
 - **#41** `install-writeback-breaks-the-dev-repo.md` — a marketplace install over an editable install silently replaces it.
-- **#43** `popup-overlay-should-stop-capturing.md` — a `backdrop_click_close` Popup intercepts outside clicks.
+- **#43** **DONE** (2026-10-27: a positioned Popup's overlay takes no input; a capture-phase `pointerdown`/`wheel` listener closes it unless the event lands on a layer above the page; the `contextmenu` re-dispatch and the overlay wheel handler are gone) `popup-overlay-should-stop-capturing.md` — a `backdrop_click_close` Popup intercepts outside clicks.
 - **#44** `startup-main-thread-block.md` — the browser main thread is blocked ~800 ms after a large load.
 
 ## 7. Found while working the backlog

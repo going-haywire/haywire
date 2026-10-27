@@ -919,10 +919,9 @@ class ContextMenuHandlers:
         so closing any later would have the old gesture's cleanup wipe the new
         gesture's state.
 
-        The browser-side half of the same behaviour is
-        ``HwPopup.onOverlayContextMenu``: while a menu is up its overlay
-        captures the click, so the right-click that produced this event was
-        re-dispatched from there.
+        In the browser the right-click reaches the canvas directly: an open
+        menu's overlay takes no input, and the popup closes itself on the
+        press (``HwPopup._dismissesOutside``), so its close arrives here first.
         """
         self.provider.close_open_menu()
 
