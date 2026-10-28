@@ -13,7 +13,9 @@ before a gesture behaves — and dispatches a probe wheel each tick to see
 whether anything would have called preventDefault.
 
     uv run python .scratch/pan-perf/startupgap.py
-    uv run python .scratch/pan-perf/startupgap.py --graph 10x300nodes
+    uv run python .scratch/pan-perf/startupgap.py --graph 10x512n_5x448e --engine firefox
+
+The graph must be in the active haystack, or its row is not in the sidebar.
 """
 
 from __future__ import annotations
@@ -76,12 +78,13 @@ def main() -> int:
     ap.add_argument("--graph", default=None)
     ap.add_argument("--ticks", type=int, default=60)
     ap.add_argument("--step-ms", type=int, default=250)
+    ap.add_argument("--engine", default="chrome", help="chrome | chromium | firefox")
     args = ap.parse_args()
 
     url = S.ensure_studio()
     with sync_playwright() as pw:
-        browser = S.launch(pw)
-        context, page = S.open_studio(browser, url)
+        browser = S.launch(pw, engine=args.engine)
+        context, page = S.open_studio(browser, url, engine=args.engine)
         if args.graph:
             S.open_graph(page, args.graph)
 
@@ -99,10 +102,15 @@ def main() -> int:
 
         rows = []
         for _ in range(args.ticks):
+            t_tick = _time.perf_counter()
             try:
-                rows.append(page.evaluate(PROBE))
+                row = page.evaluate(PROBE)
             except Exception as exc:  # page still navigating
-                rows.append({"t": -1, "error": type(exc).__name__})
+                row = {"t": -1, "error": type(exc).__name__}
+            # Same reasoning as blocked_ms: each probe waits for the main thread,
+            # so its round trip is the stall a gesture at that moment would hit.
+            row["lat"] = (_time.perf_counter() - t_tick) * 1000
+            rows.append(row)
             page.wait_for_timeout(args.step_ms)
 
         context.close()
@@ -133,6 +141,18 @@ def main() -> int:
             f"{r['t']:>7} {str(r['container']):>5} {str(r['controls']):>6} "
             f"{str(r['ready']):>6} {str(r['arbiter']):>4} "
             f"{str(r['sameArbiter']):>5} {r['nodes']:>6} {str(r['prevented']):>16}"
+        )
+
+    with_nodes = [r for r in rows if r.get("nodes", 0) > 0]
+    if with_nodes:
+        worst = max(with_nodes, key=lambda r: r["lat"])
+        print(
+            f"\nnodes first seen at t={with_nodes[0]['t']}ms; longest main-thread wait after that: "
+            f"{worst['lat']:.0f} ms at t={worst['t']}ms; final nodes={with_nodes[-1]['nodes']}"
+        )
+        print(
+            "waits over 100 ms after nodes appeared: "
+            + ", ".join(f"{r['lat']:.0f}@{r['t']}" for r in with_nodes if r["lat"] > 100)
         )
 
     unprotected = [r for r in rows if r.get("prevented") is False]

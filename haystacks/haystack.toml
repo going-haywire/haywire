@@ -3,23 +3,11 @@ path = "graphs/webcam.haywire"
 execute = false
 
 [[graphs]]
-path = "graphs/10x200nodes.haywire"
-execute = false
-
-[[graphs]]
 path = "graphs/oakNwebCam.haywire"
 execute = false
 
 [[graphs]]
 path = "graphs/loop.haywire"
-execute = false
-
-[[graphs]]
-path = "graphs/10x300nodes.haywire"
-execute = false
-
-[[graphs]]
-path = "graphs/60nodes-edges.haywire"
 execute = false
 
 [[graphs]]
