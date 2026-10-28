@@ -867,10 +867,8 @@ def bag(settings_cls: "type[_BagT]") -> _BagT:
     attribute really does resolve to an instance at runtime.
 
     Declaring the bag at module level and aliasing it here lets several nodes
-    share one bag — but alias a shared bag under the same accessor name on
-    every node: the descriptors are shared objects and ``@node`` re-stamps
-    ``_setting_key`` as ``f"{accessor}.{field}"`` per node, so two different
-    names would make the storage key depend on decoration order.
+    share one bag, under any accessor name; the same bag may also appear twice
+    on one node under two names.
     """
     return settings_cls  # type: ignore[return-value]
 

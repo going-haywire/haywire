@@ -75,3 +75,78 @@ def test_subclass_redeclaration_check_still_applies():
 
     assert bag(Extended) is Extended
     assert issubclass(Extended, Style)
+
+
+# --- a bag shared under different accessor names keeps one key per name ---
+
+
+class Shared(NodeSettings):
+    level = setting[INT](1, label="Level")
+
+
+class _StubWrapper:
+    graph = None
+    state = None
+
+    def mark_as_structuraly_dirty(self):
+        pass
+
+
+def _built(cls):
+    from typing import Any, cast
+
+    node_obj = cast(Any, cls)(node_id="n", wrapper=_StubWrapper())
+    node_obj.init()
+    return node_obj
+
+
+def test_same_bag_twice_on_one_node_gives_two_ports(library_system):
+    from haywire.core.node import BaseNode, NodeType, node
+    from haywire.core.node.promotion import promote_setting
+    from haywire.core.types.enums import PortType
+
+    @node(label="Shared Twice Probe", menu="testing/testbed", node_type=NodeType.DATA)
+    class _Probe(BaseNode):
+        first = bag(Shared)
+        second = bag(Shared)
+
+        def init(self):
+            pass
+
+    node_obj = _built(_Probe)
+    promote_setting(node_obj, "first", "level", direction=PortType.INLET)
+    promote_setting(node_obj, "second", "level", direction=PortType.INLET)
+
+    assert {"first.level", "second.level"} <= set(node_obj.ports)
+    assert isinstance(node_obj.second, Shared)
+
+
+def test_another_node_naming_the_bag_differently_keeps_a_saved_promotion(library_system):
+    from haywire.core.node import BaseNode, NodeType, node
+    from haywire.core.node.promotion import promote_setting
+    from haywire.core.types.enums import PortType
+
+    @node(label="Shared A Probe", menu="testing/testbed", node_type=NodeType.DATA)
+    class _A(BaseNode):
+        shared = bag(Shared)
+
+        def init(self):
+            pass
+
+    original = _built(_A)
+    promote_setting(original, "shared", "level", direction=PortType.INLET)
+    saved = original.shared._to_dict()
+
+    @node(label="Shared B Probe", menu="testing/testbed", node_type=NodeType.DATA)
+    class _B(BaseNode):
+        renamed = bag(Shared)
+
+        def init(self):
+            pass
+
+    reloaded = _built(_A)
+    reloaded.shared._from_dict(saved)
+    reloaded._regenerate_promoted_ports()
+
+    assert "shared.level" in reloaded.ports
+    assert type(_built(_B).renamed)._settings_descriptors()["level"].storage_key == "renamed.level"

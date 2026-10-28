@@ -1,12 +1,36 @@
 """Node decorator for registering node classes."""
 
+import copy
 from dataclasses import asdict
-from typing import Any, Callable, Type, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Callable, Type, TypeVar, cast
 
 from haywire.core.library.utils import NODE, derive_library_identity, reg_key
 from haywire.core.node import BaseNode, NodeIdentity, NodeBehaviorFlags, BEHAVIOR_FIELDS
 
+if TYPE_CHECKING:
+    from haywire.core.settings import NodeSettings
+
 T = TypeVar("T")
+
+
+def _keyed_bag(bag_cls: "type[NodeSettings]", accessor: str) -> "type[NodeSettings]":
+    """Return *bag_cls* with its fields keyed ``'<accessor>.<field>'``.
+
+    A field already keyed under another accessor belongs to a bag shared with
+    another node or accessor; the result is then a subclass of *bag_cls* holding
+    its own copies of every field, so both keys stay valid.
+    """
+    from haywire.core.settings import setting
+
+    fields = {name: d for name, d in bag_cls._settings_descriptors().items() if isinstance(d, setting)}
+    if any(d._setting_key not in ("", f"{accessor}.{name}") for name, d in fields.items()):
+        copies = {name: copy.copy(d) for name, d in fields.items()}
+        namespace: dict[str, Any] = {"__module__": bag_cls.__module__, "__qualname__": bag_cls.__qualname__}
+        bag_cls = cast("type[NodeSettings]", type(bag_cls.__name__, (bag_cls,), {**namespace, **copies}))
+        fields = copies
+    for name, descriptor in fields.items():
+        descriptor._setting_key = f"{accessor}.{name}"
+    return bag_cls
 
 
 def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
@@ -17,8 +41,9 @@ def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
     The accessor name is the inner class name. ``_setting_key`` is
     ``'<accessor>.<field>'`` (``'filter.strength'``), a per-node identifier and
     not a global address: node bags are never registered with
-    ``SettingsRegistry``. Re-stamping on every ``@node`` is idempotent, since
-    the key depends only on the accessor.
+    ``SettingsRegistry``. A bag class shared under several accessor names, on
+    one node or across nodes, gets one keyed copy of its fields per name (see
+    ``_keyed_bag``), so the accessor name is free.
 
     Raises:
         ValueError: If an accessor name shadows a non-``Settings`` attribute
@@ -26,7 +51,7 @@ def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
             subclassing it. Subclassing an inherited bag is the supported way
             for a node to override a framework prop's default.
     """
-    from haywire.core.settings import NodeSettings, setting
+    from haywire.core.settings import NodeSettings
 
     bags: dict[str, type[NodeSettings]] = {}
 
@@ -35,12 +60,7 @@ def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
         for name, val in klass.__dict__.items():
             if not (isinstance(val, type) and issubclass(val, NodeSettings) and val is not NodeSettings):
                 continue
-            # Unconditional: the key depends only on the accessor, so re-stamping
-            # a shared inherited descriptor writes the same string.
-            for field_name, descriptor in val._settings_descriptors().items():
-                if isinstance(descriptor, setting):
-                    descriptor._setting_key = f"{name}.{field_name}"
-            bags[name] = val
+            bags[name] = _keyed_bag(val, name)
 
     # Conflict check — must not shadow existing attributes on the MRO
     for accessor_name in bags:

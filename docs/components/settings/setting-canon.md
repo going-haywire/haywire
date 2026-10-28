@@ -101,12 +101,14 @@ class NmsSettings(NodeSettings):
 # two unrelated nodes, each opting in
 @node(...)
 class ObjectDetectorNode(BaseEstimatorNode):
-    nms = bag(NmsSettings)     # accessor name MUST match everywhere
+    nms = bag(NmsSettings)
 
 @node(...)
 class PoseEstimatorNode(BaseEstimatorNode):
-    nms = bag(NmsSettings)     # ...the same name here
+    suppression = bag(NmsSettings)     # any accessor name; the same bag twice on one node works too
 ```
+
+A field is keyed `'<accessor>.<field>'` (its promoted port id and its promotion record). When a shared bag appears under a second accessor name, `@node` attaches a subclass of it holding its own copies of the fields, so each name keeps its own key.
 
 **Attach bags with `bag()`.** It returns the class at runtime (so `@node`'s collection walk and its subclass check are unchanged) while *typing* as a bound instance — which is what the attribute genuinely resolves to, since `NodeData.__init__` replaces the class placeholder. Without it, a bag touched from an **annotated** method types as the class, so every field read looks like a `setting[T]` descriptor instead of a `T`; a bare `nms = NmsSettings` only type-checks in *unannotated* method bodies, which mypy skips by default. `bag()` replaces the four-line `if TYPE_CHECKING: ... else: ...` alias the framework itself still uses for `BaseNode.props`.
 
