@@ -254,6 +254,8 @@ class AppIcon:
     undo: Final[str] = "undo"
     """Return a value to a previous state (distinct from `refresh`, which
     re-reads rather than reverting) — e.g. resetting a setting to its default."""
+    history: Final[str] = "history"
+    """An undo history: the steps a document can undo and redo."""
     save: Final[str] = "save"
     """Persist to disk action."""
     edit: Final[str] = "edit"

@@ -69,6 +69,7 @@ ADMIN_PANELS = {
 EDIT_EDITORS = {
     "CodeEditor",
     "ComponentSourceEditor",
+    "HistoryEditor",
     "LibraryBrowserEditor",
     "LibraryOverviewEditor",
     "ShareEditor",
