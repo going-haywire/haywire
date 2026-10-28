@@ -152,6 +152,20 @@ class GraphSaved(Signal):
     cross_session: ClassVar[bool] = True
 
 
+@dataclass(frozen=True)
+class GraphHistoryChanged(Signal):
+    """An open file's undo history lists different steps. Cross-session.
+
+    Carries no payload: subscribers re-read the history they show
+    (``IHistoryManager.snapshot()``). Not published when a value write amends
+    the step it is already merging into, so a slider drag publishes once.
+    Bridged from the history's listener hook (``IHistoryManager.add_listener``)
+    onto the event loop.
+    """
+
+    cross_session: ClassVar[bool] = True
+
+
 # --8<-- [start:library_catalog_changed]
 @dataclass(frozen=True)
 class LibraryCatalogChanged(Signal):

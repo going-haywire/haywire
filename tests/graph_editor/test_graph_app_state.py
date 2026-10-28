@@ -6,13 +6,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional, cast
 
+from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
+
 from haybale_graph_editor.state.graph_app_state import GraphAppState
+
+
+@dataclass
+class _Editor:
+    graph: object = None
+    history_manager: Any = field(default_factory=NoOpHistoryManager)
 
 
 @dataclass
 class _Container:
     binding_id: str
-    editor: object = field(default_factory=object)
+    editor: Any = field(default_factory=_Editor)
     path: Optional[Path] = None
     unsaved: bool = False
     display_name: str = "C"
@@ -31,11 +39,6 @@ def test_register_then_get_returns_container():
 def test_get_unknown_id_returns_none():
     state = GraphAppState()
     assert state.get("missing") is None
-
-
-@dataclass
-class _Editor:
-    graph: object
 
 
 def test_get_by_graph_finds_container_by_identity():

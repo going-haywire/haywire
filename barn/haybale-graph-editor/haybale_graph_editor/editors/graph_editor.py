@@ -60,6 +60,7 @@ from haywire.core.signals import (
 )
 
 from haywire.core.graph.edit_route import EditRoute
+from haywire.core.undo.origin import StepOrigin
 
 from haybale_graph_editor.access import level_mode
 from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
@@ -339,7 +340,9 @@ class GraphEditor(BaseEditor):
             inside_placement=inside,
         )
         level.route = EditRoute(
-            lambda: level.container.editor, lambda: level_mode(context.can_access, level.locked)
+            lambda: level.container.editor,
+            lambda: level_mode(context.can_access, level.locked),
+            origin=self._origin(context),
         )
         return level
 
@@ -853,9 +856,9 @@ class GraphEditor(BaseEditor):
         card_cls = self._project_state.node_factory.get_graph_node()
         if card is None or card_cls is None:
             return False
-        card_id, refusal = container.host.editor.detach_placement_from_macro(
-            card.node_id, card_cls.class_identity.registry_key
-        )
+        card_id, refusal = container.host.editor.with_origin(
+            self._origin(context)
+        ).detach_placement_from_macro(card.node_id, card_cls.class_identity.registry_key)
         if card_id is None:
             ui.notify(refusal or "Could not edit this instance", type="warning", multi_line=True)
             return False
@@ -1604,7 +1607,7 @@ class GraphEditor(BaseEditor):
         document = self._document()
         if document is None or not self._edit_allowed() or not document.editor.can_undo():
             return
-        document.editor.undo()
+        document.editor.with_origin(self._origin(context)).undo()
         context.session.publish(GraphDataMutated())
 
     def _do_redo(self, context: "SessionContext") -> None:
@@ -1612,8 +1615,13 @@ class GraphEditor(BaseEditor):
         document = self._document()
         if document is None or not self._edit_allowed() or not document.editor.can_redo():
             return
-        document.editor.redo()
+        document.editor.with_origin(self._origin(context)).redo()
         context.session.publish(GraphDataMutated())
+
+    @staticmethod
+    def _origin(context: "SessionContext") -> StepOrigin:
+        """Return the origin this session's edits, undos and redos are credited to."""
+        return StepOrigin.of_session(context.principal, context.session_id)
 
     # ------------------------------------------------------------------
     # save

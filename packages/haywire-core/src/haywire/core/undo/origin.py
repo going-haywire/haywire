@@ -35,6 +35,16 @@ class StepOrigin:
     session: Optional[str]
     via: StepVia
 
+    @classmethod
+    def of_session(cls, principal: Optional[str], session_id: str) -> "StepOrigin":
+        """Return the origin of a browser session's canvas and panel edits.
+
+        Args:
+            principal: The session's signed-in principal, or ``None`` when authentication is off.
+            session_id: The session's full id; its first four characters become ``session``.
+        """
+        return cls(principal, session_id[:4] or None, "canvas")
+
     @property
     def label(self) -> str:
         """Return a short display text: principal and session, or ``via`` when both are unknown."""

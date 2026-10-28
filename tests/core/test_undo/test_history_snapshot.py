@@ -162,12 +162,15 @@ def test_a_merged_step_keeps_the_earlier_steps_origin():
     )
     history.add_fence()
     history.add_action(_Step("a", mergeable=True), origin=ALICE)
+    calls: list[int] = []
+    history.add_listener(lambda: calls.append(1))
     history.add_action(_Step("b", mergeable=True), origin=BOB)
 
     steps = [r for r in history.snapshot() if r.kind == "step"]
 
     assert [(r.description, r.origin) for r in steps] == [("a+b", ALICE)]
     assert len(history._origins) == 1
+    assert calls == []  # a merge lists no new row
 
 
 def test_snapshot_names_the_graph_a_step_mutates_including_through_sub_actions():

@@ -30,6 +30,7 @@ from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.setting_owner import SettingOwner
 from haywire.core.signals import GraphDataMutated
 from haywire.core.types.enums import PortType
+from haywire.core.undo.origin import StepOrigin
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True)
 _MUTATING = ToolAnnotations()
@@ -46,7 +47,7 @@ def _editor(ctx: FarmhandContext, binding_id: str):
             ids={"binding_id": binding_id},
             help="Run haystack_list_graphs to see open graphs, or haystack_open_graph to open one.",
         )
-    return container.editor
+    return container.editor.with_origin(StepOrigin(ctx.principal, None, "farmhand"))
 
 
 def _node(editor, node_id):

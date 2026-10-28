@@ -168,8 +168,8 @@ class HistoryManager(IHistoryManager):
             self._report(e, "Apply edit", action.description)
             return False
 
-        self._record_executed(action, current_time, origin)
-        self._notify()
+        if self._record_executed(action, current_time, origin):
+            self._notify()
         return True
 
     def record_executed(self, action: IAction, *, origin: StepOrigin | None = None) -> None:
@@ -241,9 +241,10 @@ class HistoryManager(IHistoryManager):
                 action.cleanup()
                 return True
 
-        self._record_executed(action, time.time(), origin)
+        listed = self._record_executed(action, time.time(), origin)
         self._amendable = action
-        self._notify()
+        if listed:
+            self._notify()
         return True
 
     def _amend_candidate(self) -> Any:
@@ -268,8 +269,11 @@ class HistoryManager(IHistoryManager):
             item = item.actions[-1]
         return item if item is self._amendable else None
 
-    def _record_executed(self, action: IAction, current_time: float, origin: StepOrigin | None) -> None:
-        """Record an already executed action: end the redo branch, merge, group, flush, trim."""
+    def _record_executed(self, action: IAction, current_time: float, origin: StepOrigin | None) -> bool:
+        """Record an already executed action: end the redo branch, merge, group, flush, trim.
+
+        Returns ``False`` when the action merged into the pending step, which lists no new row.
+        """
         # A new action ends the redo branch, once it has actually changed the graph.
         self._clear_redo_history()
         if origin is not None:
@@ -284,7 +288,7 @@ class HistoryManager(IHistoryManager):
         ):
             self._maintain_history_limits()
             self._action_count += 1
-            return
+            return False
 
         # Every action is a merge candidate for the next one, so the window is
         # measured from the last action added — not only from the last actual
@@ -315,6 +319,7 @@ class HistoryManager(IHistoryManager):
             logger.debug(f"Added action: {action.description}")
             logger.debug(f"History state: {len(self.history)} items, current_index: {self.current_index}")
             logger.debug(f"Can undo: {self.can_undo()}, Can redo: {self.can_redo()}")
+        return True
 
     def add_fence(self) -> None:
         """

@@ -107,6 +107,8 @@ def _editor(
     editor = GraphEditor(cast(EditorWrapper, wrapper))
     editor._project_state = cast(Any, SimpleNamespace(node_factory=MagicMock()))
     context = SimpleNamespace(
+        principal=None,
+        session_id="test",
         app_data=MagicMock(),
         session=MagicMock(),
         data=MagicMock(),
@@ -667,7 +669,7 @@ class TestUndoIsTheDocuments:
 
         editor._do_undo(context)
 
-        document_editor.undo.assert_called_once_with()
+        document_editor.with_origin.return_value.undo.assert_called_once_with()
         assert isinstance(context.session.publish.call_args[0][0], GraphDataMutated)
 
     def test_redo_goes_to_the_documents_editor_from_inside_a_group(self):
@@ -678,7 +680,7 @@ class TestUndoIsTheDocuments:
 
         editor._do_redo(context)
 
-        document_editor.redo.assert_called_once_with()
+        document_editor.with_origin.return_value.redo.assert_called_once_with()
 
     def test_save_goes_to_the_document_from_inside_a_group(self, monkeypatch):
         from haybale_graph_editor.editors import graph_editor as graph_editor_mod
@@ -721,6 +723,8 @@ class TestFirstActivation:
         data = MagicMock()
         data.__getitem__.return_value = edit_stub
         context = SimpleNamespace(
+            principal=None,
+            session_id="test",
             app_data=app_data,
             session=MagicMock(),
             data=data,

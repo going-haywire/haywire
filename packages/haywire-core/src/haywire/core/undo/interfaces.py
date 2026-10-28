@@ -261,8 +261,9 @@ class IHistoryManager(ABC):
         """
         Call ``listener`` with no arguments whenever ``snapshot()`` would list different rows.
 
-        That is: a step recorded or merged, a group flushed, a fence, an undo, a redo, a trim
-        or a clear. A value write that amends an open step does not call it. Listeners run on
+        That is: a step recorded, a group flushed, a fence, an undo, a redo, a trim or a clear.
+        A step merged into the pending one, or a value write that amends an open step, lists no
+        new row and does not call it. Listeners run on
         the thread that changed the history; one that raises is logged and skipped.
         """
         pass

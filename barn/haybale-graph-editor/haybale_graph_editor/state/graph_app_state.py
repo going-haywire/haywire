@@ -7,8 +7,9 @@ looks up the container for its tab by ``binding_id`` on every render.
 
 The registry holds *references* only — owning libraries remain
 responsible for the underlying container's lifecycle (file I/O,
-execution state, signal broadcast). GraphAppState's only job is
-identity routing: "which container does this binding_id point to?"
+execution state, signal broadcast). GraphAppState's jobs are
+identity routing: "which container does this binding_id point to?",
+and bridging each registered file's undo history to ``GraphHistoryChanged``.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ import logging
 from typing import TYPE_CHECKING, Optional
 
 from haywire.core.graph.base import BaseGraph
+from haywire.core.signals import GraphHistoryChanged
 from haywire.core.state.base import AppState
 from haywire.core.state.decorator import state
 
@@ -35,6 +37,9 @@ class GraphAppState(AppState):
 
     One instance per app, shared across sessions. Source libraries
     coordinate writes; GraphEditor performs reads.
+
+    While a container is registered, every change to its undo history
+    publishes ``GraphHistoryChanged`` on the event loop.
     """
 
     def __init__(self) -> None:
@@ -43,11 +48,27 @@ class GraphAppState(AppState):
 
     def register(self, container: GraphContainer) -> None:
         """Add or replace a container under its current ``binding_id``."""
+        replaced = self._graphs.get(container.binding_id)
+        if replaced is not None and replaced is not container:
+            replaced.editor.history_manager.remove_listener(self._on_history_changed)
         self._graphs[container.binding_id] = container
+        container.editor.history_manager.add_listener(self._on_history_changed)
 
     def unregister(self, binding_id: str) -> None:
         """Remove a container by ``binding_id``. Idempotent."""
-        self._graphs.pop(binding_id, None)
+        container = self._graphs.pop(binding_id, None)
+        if container is not None:
+            container.editor.history_manager.remove_listener(self._on_history_changed)
+
+    def _on_history_changed(self) -> None:
+        """Publish ``GraphHistoryChanged`` on the event loop; dropped while no loop runs."""
+        from nicegui import core
+
+        loop = core.loop
+        if loop is None or not loop.is_running():
+            return
+        # Always deferred: the history calls this mid-operation, and on any thread.
+        loop.call_soon_threadsafe(self._signal_emit, GraphHistoryChanged())
 
     def get(self, binding_id: str) -> Optional[GraphContainer]:
         """Look up a container by ``binding_id``. Returns None when absent."""

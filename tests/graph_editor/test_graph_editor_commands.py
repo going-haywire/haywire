@@ -11,6 +11,7 @@ import pytest
 
 from haywire.core.access import LevelMode
 from haywire.core.graph.edit_route import EditRoute
+from haywire.core.undo.origin import StepOrigin
 from haywire.core.signals import (
     Copy,
     Cut,
@@ -48,7 +49,7 @@ def _editor(canvas_manager: Any = None) -> tuple[GraphEditor, Any, Any]:
     )
     level.route = EditRoute(lambda: document.editor, lambda: LevelMode.EDIT)
     editor._levels[DOCUMENT_LEVEL] = level
-    context = SimpleNamespace(session=MagicMock(), data=MagicMock())
+    context = SimpleNamespace(session=MagicMock(), data=MagicMock(), principal="alice", session_id="s1234")
     return editor, context, document
 
 
@@ -78,12 +79,13 @@ def test_undo_and_redo_go_through_the_document_history():
     document.editor.can_redo.return_value = True
 
     editor._on_undo(cast(Any, context), Undo(binding_id=BINDING))
-    document.editor.undo.assert_called_once_with()
+    document.editor.with_origin.assert_called_with(StepOrigin("alice", "s123", "canvas"))
+    document.editor.with_origin.return_value.undo.assert_called_once_with()
     published = [call.args[0] for call in context.session.publish.call_args_list]
     assert any(isinstance(signal, GraphDataMutated) for signal in published)
 
     editor._on_redo(cast(Any, context), Redo(binding_id=BINDING))
-    document.editor.redo.assert_called_once_with()
+    document.editor.with_origin.return_value.redo.assert_called_once_with()
 
 
 def test_graph_editor_paste_uses_position(monkeypatch):
