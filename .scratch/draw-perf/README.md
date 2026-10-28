@@ -3,7 +3,7 @@
 Measures, in headless Chromium or Firefox at 1600x900, how long it takes from clicking a graph in the Haystack until
 every node card and edge is drawn. Built 2026-10-16 to bisect a draw-performance regression (resolved 2026-10-20; the
 bisect scripts and raw results were removed afterwards and live in git history). Findings about load cost:
-`.insights/project_large_graph_load_cost.md`.
+`.insights/project_browser_rendering_cost.md`.
 
 - `start.sh <worktree>`: starts a studio from `<worktree>` (the repo itself, or a `git worktree`) on port 8191. HOME
   is `./home`, so your real auth and settings stay untouched. It wraps `UINode._apply_write_gates` to time it

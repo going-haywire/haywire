@@ -49,7 +49,7 @@ trigger `data-hw-readable` would let a click through (the fold header toggles: a
 **Why the gate is CSS:** cost. A lock toggle is one attribute flip on the canvas root, whatever
 the graph size. Letting every widget render its read-only state from its route (Quasar
 `readonly`/`disable`) would need a message per widget on every mode change; with the Vue
-full-tree render walk on large graphs (`.insights/project_nicegui_component_vs_native_tag.md`)
+full-tree render walk on large graphs (`.insights/project_browser_rendering_cost.md`)
 that is too expensive. Any replacement must keep the O(1) mode change.
 
 ## The proposal

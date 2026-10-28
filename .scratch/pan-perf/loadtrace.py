@@ -2,7 +2,7 @@
 
 `panperf.py --trace` traces a pan on a settled page; this traces the load
 itself, which is where the multi-second main-thread stalls are
-(.insights/project_large_graph_load_cost.md). The JS sampler is on: the
+(.insights/project_browser_rendering_cost.md). The JS sampler is on: the
 question here is which code runs during a stall, not what a frame costs.
 
 Restore the graph to load as the studio's open tab before running (see that

@@ -48,7 +48,7 @@ class PinGlyph(TextElement):
     and a component costs roughly 3x a native tag there. Pins are the largest
     single population in a graph — one per port, 6,600 on a 300-node graph —
     so moving them off ``q-icon`` measured **723 -> 619 ms (-14%)** on a whole-page
-    update. See ``.insights/project_nicegui_component_vs_native_tag.md``.
+    update. See ``.insights/project_browser_rendering_cost.md``.
 
     Two things ``q-icon`` did that a native tag cannot, and are done by
     ``render_pin`` instead: ``size`` becomes an inline ``font-size``, and

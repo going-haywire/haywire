@@ -1,7 +1,7 @@
 """SPIKE — per-node culling wrapper.
 
 Under evaluation, not yet a supported seam. See
-``.insights/project_nicegui_component_vs_native_tag.md`` for the mechanism it
+``.insights/project_browser_rendering_cost.md`` for the mechanism it
 is testing: NiceGUI passes each element's children to Vue as a slot FUNCTION,
 so a component that does not invoke its slot stops the page's full-tree render
 walk from descending into that subtree.

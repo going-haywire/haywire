@@ -218,7 +218,7 @@ scan count.
 
 The page is one Vue component with no memoization, and the render walk scales
 with total element count ([ADR 0006](../docs/adr/0006-node-render-performance.md),
-`project_nicegui_component_vs_native_tag.md`). Every open Group is elements the
+`project_browser_rendering_cost.md`). Every open Group is elements the
 walk visits on every server message, so each one makes every interaction
 fractionally slower. Two things release it: the X on the level's tab, and
 `_prune_dead_levels`, which closes a level the moment its Subgraph stops

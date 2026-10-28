@@ -46,7 +46,7 @@ The bisection covered all 60 commits between `cfda8ef8` and `c077de9a`, one 3-ru
 
 `GraphEditor._claim_session_state` (`barn/haybale-graph-editor/haybale_graph_editor/editors/graph_editor.py`) now calls `_clear_selection(context)` whenever the session's `active_graph` changes. That publishes `SelectionMoved`. It also replaced the explicit clears in `_switch_level` and `_repoint_level`, and `draw()` now uses `_clear_selection`.
 
-The hypothesis is that during a load `_claim_session_state` runs many times, or the clear runs while the canvas is still streaming nodes. Each `SelectionMoved` then makes its subscribers redraw: properties, ports, the selection toolbar, minimap and other panels. Each redraw is a server message, and every server message rebuilds the whole page's VNode tree (`.insights/project_nicegui_component_vs_native_tag.md`). The cost would therefore grow with the number of elements on the page.
+The hypothesis is that during a load `_claim_session_state` runs many times, or the clear runs while the canvas is still streaming nodes. Each `SelectionMoved` then makes its subscribers redraw: properties, ports, the selection toolbar, minimap and other panels. Each redraw is a server message, and every server message rebuilds the whole page's VNode tree (`.insights/project_browser_rendering_cost.md`). The cost would therefore grow with the number of elements on the page.
 
 This is unproven. The bisection only shows that this commit holds the step.
 
