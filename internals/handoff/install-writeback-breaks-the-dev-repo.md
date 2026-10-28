@@ -146,7 +146,9 @@ Two facts worth carrying into the fix:
   so the path becomes an escaping `subdirectory`. It breaks any consumer
   project's `uv lock` / `uv run` once write-back adds the git source. A path
   source in the library's own pyproject (as `--dev-repo` scaffolds it) does
-  the same, without any root sources. Tracked as backlog #67.
+  the same, without any root sources. Tracked as backlog #67, now done: share
+  refuses such links under `distribute = "git"`. Visiongraph itself has
+  since moved to `distribute = "pypi"`, so its consumers are unaffected.
 - Questions 2 and 4 are still open.
 
 ## Open questions
