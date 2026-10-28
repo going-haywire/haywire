@@ -96,6 +96,24 @@ jq 'select(.case=="graph_loop" and .host=="<your-host>" and .dirty==false) | .mi
    benchmarks/results/results.jsonl
 ```
 
+## Known shifts in `graph_loop`
+
+`graph_loop` on `MB-41545` went from ~2650 ns/op (June 2026) to ~2850–2920
+(October), measured interleaved on 2026-10-28, each commit with its own
+harness. Where the ~7–10% came from:
+
+| step | share | cause |
+|---|---|---|
+| `214c7b38` (2026-07-01) | ~2.3% | harness, not code: the loop graph is built in code instead of loaded from `loop_bench.haywire`. Same code, saved vs code-built graph: 2667 vs 2729 ns/op. The code-built graph uses the switch's defaults (`int`) where the file had `float`, so MathOP's float result is converted per iteration; setting it back to `float` measured under 1% in `run.py`, so that is not the whole difference |
+| `3d2e9fe..adaa50b`, code | ~1.5% | not attributed |
+| `adaa50b..79be47e` (745 commits) | ~2.5% | not attributed; same size with either switch setting |
+| `78a1b0f` (edge kinds, step 2) | ~2.7% | each field read checks for a linked value (~12 ns × 4.7 reads per node execution) |
+
+The unattributed steps were accepted as the baseline: each is spread over many
+commits and is close to the run-to-run noise (back-to-back runs of one commit
+differ by up to ±2% at the minimum, ±4% across sessions). Compare commits
+interleaved and side by side, never against an old row.
+
 ## Adding a case
 
 1. If it needs a node or graph, add a **frozen** one (new file in
