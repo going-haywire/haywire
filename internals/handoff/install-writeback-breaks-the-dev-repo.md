@@ -144,8 +144,9 @@ Two facts worth carrying into the fix:
   `pyproject.toml` carried path `[tool.uv.sources]` (absolute at v0.0.20,
   `../haywire-repo/…` since). uv applies a git repo's own workspace sources,
   so the path becomes an escaping `subdirectory`. It breaks any consumer
-  project's `uv lock` / `uv run` once write-back adds the git source. Tracked
-  as backlog #67.
+  project's `uv lock` / `uv run` once write-back adds the git source. A path
+  source in the library's own pyproject (as `--dev-repo` scaffolds it) does
+  the same, without any root sources. Tracked as backlog #67.
 - Questions 2 and 4 are still open.
 
 ## Open questions
