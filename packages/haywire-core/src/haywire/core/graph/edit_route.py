@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
     from haywire.core.graph.subgraph import SubgraphDefinition
     from haywire.core.settings.settings import Settings
+    from haywire.core.undo.origin import StepOrigin
 
 
 class EditRoute:
@@ -29,9 +30,15 @@ class EditRoute:
     ``EDIT``, keyed to this route: its repeated writes to one field amend one step
     until another step, a fence, an undo or a 3 s pause ends the run.
 
+    Given an ``origin``, every step the route records, through its own writes or through
+    the editor ``editor()`` returns, is credited to it on the level's history.
+
     Example::
 
         route = EditRoute(lambda: level.editor, lambda: level.mode)
+        # Credit this session's steps to it:
+        mine = StepOrigin("alice", "3f2a", "canvas")
+        route = EditRoute(lambda: level.editor, lambda: level.mode, origin=mine)
 
         route.set_port(node_id, "value_a", 2.0, minimum=LevelMode.OPERATE)  # False in view
         route.set_setting(node.props, "label", "Mixer", minimum=LevelMode.EDIT)
@@ -41,9 +48,26 @@ class EditRoute:
             editor.add_node(...)
     """
 
-    def __init__(self, editor: Callable[[], Editor], mode: Callable[[], LevelMode]) -> None:
-        self._editor = editor
+    def __init__(
+        self,
+        editor: Callable[[], Editor],
+        mode: Callable[[], LevelMode],
+        origin: StepOrigin | None = None,
+    ) -> None:
+        self._level_editor = editor
         self._mode = mode
+        self.origin = origin
+        # The level editor's sibling credited to origin, rebuilt when the level's editor changes.
+        self._stamped: tuple[Editor, Editor] | None = None
+
+    def _editor(self) -> Editor:
+        """Return the level's current ``Editor``, crediting its steps to this route's origin."""
+        level = self._level_editor()
+        if self.origin is None:
+            return level
+        if self._stamped is None or self._stamped[0] is not level:
+            self._stamped = (level, level.with_origin(self.origin))
+        return self._stamped[1]
 
     @property
     def graph(self) -> BaseGraph:
@@ -66,9 +90,9 @@ class EditRoute:
         """Return a route to *definition*'s nodes at this route's level mode.
 
         Its writes record on this route's history, so they undo in order with the
-        level's own edits. It follows this route: a new level ``Editor`` gives it a
-        new one over *definition*, and a mode change applies at once. A node outside
-        *definition* is unknown to it.
+        level's own edits, credited to this route's origin. It follows this route: a new
+        level ``Editor`` gives it a new one over *definition*, and a mode change applies at
+        once. A node outside *definition* is unknown to it.
 
         Example::
 
@@ -84,11 +108,11 @@ class EditRoute:
             if built.get("host") is not host:
                 built["host"] = host
                 built["editor"] = Editor(
-                    definition, host._node_factory, history_manager=host.history_manager
+                    definition, host._node_factory, history_manager=host.history_manager, origin=self.origin
                 )
             return built["editor"]
 
-        return EditRoute(inner_editor, self._mode)
+        return EditRoute(inner_editor, self._mode, self.origin)
 
     def set_port(self, node_id: str, port_id: str, value: Any, *, minimum: LevelMode) -> bool:
         """Set a port's own value.

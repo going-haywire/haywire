@@ -179,7 +179,7 @@ def test_editor_split_returns_reroute_id(monkeypatch):
     added = {}
 
     class _HM:
-        def add_action(self, action):
+        def add_action(self, action, origin=None):
             added["action"] = action
             return True
 
@@ -206,7 +206,7 @@ def test_editor_split_returns_none_on_error():
     from haywire.core.graph.editor import Editor
 
     class _HM:
-        def add_action(self, action):
+        def add_action(self, action, origin=None):
             raise RuntimeError("boom")
 
     ed = Editor.__new__(Editor)

@@ -235,7 +235,7 @@ def test_editor_paste_clipboard_adds_action_and_returns_new_ids():
     added = {}
 
     class _HM:
-        def add_action(self, action):
+        def add_action(self, action, origin=None):
             added["action"] = action
             return True
 
@@ -477,7 +477,7 @@ def test_editor_paste_clipboard_returns_none_on_error():
     )
 
     class _HM:
-        def add_action(self, action):
+        def add_action(self, action, origin=None):
             raise RuntimeError("boom")
 
     ed = Editor.__new__(Editor)

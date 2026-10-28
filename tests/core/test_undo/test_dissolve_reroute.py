@@ -215,7 +215,7 @@ def test_editor_dissolve_returns_true_on_success(monkeypatch):
     added = {}
 
     class _HM:
-        def add_action(self, action):
+        def add_action(self, action, origin=None):
             added["action"] = action
             return True
 
@@ -243,7 +243,7 @@ def test_editor_dissolve_returns_false_on_error_and_records_it(monkeypatch):
     from haywire.core.graph.editor import Editor
 
     class _HM:
-        def add_action(self, action):
+        def add_action(self, action, origin=None):
             raise RuntimeError("boom")
 
     class _FakeAction:

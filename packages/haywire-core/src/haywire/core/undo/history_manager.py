@@ -8,7 +8,8 @@ and action merging.
 
 import time
 import logging
-from typing import Any, List, Optional, Union, cast
+from collections.abc import Callable
+from typing import Any, List, Literal, Optional, Union, cast
 from dataclasses import dataclass
 
 from haywire.core.errors import report_failure
@@ -17,6 +18,7 @@ from .actions.graph_actions import VALUE_EDIT_MERGE_IDLE_S
 from .base_action import ActionBase
 from .interfaces import IAction, IHistoryManager
 from .config import UndoConfig
+from .origin import HistoryEntry, HistoryMove, StepOrigin
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +129,11 @@ class HistoryManager(IHistoryManager):
 
         self._undo_redo_count = 0
 
+        # Who recorded each step still held, by id(action); entries leave with their action.
+        self._origins: dict[int, StepOrigin] = {}
+        self._last_move: Optional[HistoryMove] = None
+        self._listeners: List[Callable[[], None]] = []
+
     @property
     def undo_redo_count(self) -> int:
         """Return how many undos and redos this history has performed; it grows with each one.
@@ -136,12 +143,13 @@ class HistoryManager(IHistoryManager):
         """
         return self._undo_redo_count
 
-    def add_action(self, action: IAction) -> bool:
+    def add_action(self, action: IAction, *, origin: StepOrigin | None = None) -> bool:
         """
         Execute ``action`` and add it to the history.
 
         This method handles action merging, grouping, and history maintenance
-        based on the current configuration.
+        based on the current configuration. A step merged into the one before it
+        keeps that step's origin.
 
         Returns:
             ``True`` if the action executed and entered the history, ``False``
@@ -160,10 +168,11 @@ class HistoryManager(IHistoryManager):
             self._report(e, "Apply edit", action.description)
             return False
 
-        self._record_executed(action, current_time)
+        self._record_executed(action, current_time, origin)
+        self._notify()
         return True
 
-    def record_executed(self, action: IAction) -> None:
+    def record_executed(self, action: IAction, *, origin: StepOrigin | None = None) -> None:
         """Add an already applied ``action`` to the history, without running it. See ``IHistoryManager``."""
         self._amendable = None
         if isinstance(action, ActionBase):
@@ -171,12 +180,18 @@ class HistoryManager(IHistoryManager):
         # Its own step: never grouped with a user action still pending, nor with the next one.
         if self._pending_actions:
             self._flush_pending_actions()
-        self._record_executed(action, time.time())
+        self._record_executed(action, time.time(), origin)
         if self._pending_actions:
             self._flush_pending_actions()
+        self._notify()
 
     def add_value_action(
-        self, action: IAction, merge_owner: object | None, idle_s: float = VALUE_EDIT_MERGE_IDLE_S
+        self,
+        action: IAction,
+        merge_owner: object | None,
+        idle_s: float = VALUE_EDIT_MERGE_IDLE_S,
+        *,
+        origin: StepOrigin | None = None,
     ) -> bool:
         """
         Execute a value write and record it, amending the run's step while a merge run lasts.
@@ -188,12 +203,14 @@ class HistoryManager(IHistoryManager):
         an undo or a redo ends the run. It amends when both share a merge key — the action's
         ``value_key()`` plus ``merge_owner`` — and the step was written less than ``idle_s`` ago. A
         ``merge_owner`` of ``None`` never amends and is never amended. The amended step stays
-        the executed action it was; the amend writes nothing.
+        the executed action it was, with the origin it was recorded with; the amend writes
+        nothing and calls no listener.
 
         Args:
             action: A value-write action (``SetPropertyAction``, ``SetSettingAction``, ...).
             merge_owner: The session token a run belongs to, or ``None`` for no merging.
             idle_s: Seconds after a step's last write beyond which a write starts a new step.
+            origin: Who records the step.
 
         Returns:
             ``False`` if the action's execution raised (recorded as above, history unchanged), else ``True``.
@@ -224,8 +241,9 @@ class HistoryManager(IHistoryManager):
                 action.cleanup()
                 return True
 
-        self._record_executed(action, time.time())
+        self._record_executed(action, time.time(), origin)
         self._amendable = action
+        self._notify()
         return True
 
     def _amend_candidate(self) -> Any:
@@ -250,10 +268,12 @@ class HistoryManager(IHistoryManager):
             item = item.actions[-1]
         return item if item is self._amendable else None
 
-    def _record_executed(self, action: IAction, current_time: float) -> None:
+    def _record_executed(self, action: IAction, current_time: float, origin: StepOrigin | None) -> None:
         """Record an already executed action: end the redo branch, merge, group, flush, trim."""
         # A new action ends the redo branch, once it has actually changed the graph.
         self._clear_redo_history()
+        if origin is not None:
+            self._origins[id(action)] = origin
 
         # Try to merge with the last action if merging is enabled
         # A merge() that returns None merged nothing, so the action takes the append path below.
@@ -321,10 +341,14 @@ class HistoryManager(IHistoryManager):
 
         if self.config.enable_debug_logging:
             logger.debug("Added fence")
+        self._notify()
 
-    def undo(self) -> bool:
+    def undo(self, *, origin: StepOrigin | None = None) -> bool:
         """
         Undo the most recent action or action group.
+
+        Args:
+            origin: Who undoes; a successful undo becomes ``last_move()``.
 
         Returns:
             ``True`` if undo was successful; ``False`` if there was nothing to undo, or if the
@@ -333,15 +357,14 @@ class HistoryManager(IHistoryManager):
         self._amendable = None
 
         # Flush pending actions first
-        if self._pending_actions:
+        flushed = bool(self._pending_actions)
+        if flushed:
             self._flush_pending_actions()
 
-        if not self.can_undo():
-            return False
-
-        # Find the next undoable item
-        item = self._get_current_undoable_item()
+        item = self._get_current_undoable_item() if self.can_undo() else None
         if item is None:
+            if flushed:
+                self._notify()
             return False
 
         try:
@@ -356,19 +379,26 @@ class HistoryManager(IHistoryManager):
             # Move the current index
             self._move_to_previous_action()
             self._undo_redo_count += 1
+            self._last_move = HistoryMove("undo", origin, time.time())
 
             if self.config.show_undo_notifications:
                 self._show_notification(f"Undid: {self._get_item_description(item)}")
 
+            self._notify()
             return True
 
         except Exception as e:
             self._report(e, "Undo", self._get_item_description(item), refusals_fail=True)
+            if flushed:
+                self._notify()
             return False
 
-    def redo(self) -> bool:
+    def redo(self, *, origin: StepOrigin | None = None) -> bool:
         """
         Redo the most recently undone action or action group.
+
+        Args:
+            origin: Who redoes; a successful redo becomes ``last_move()``.
 
         Returns:
             ``True`` if redo was successful; ``False`` if there was nothing to redo, or if the
@@ -397,10 +427,12 @@ class HistoryManager(IHistoryManager):
             # Move the current index forward after successful execution
             self._move_to_next_action()
             self._undo_redo_count += 1
+            self._last_move = HistoryMove("redo", origin, time.time())
 
             if self.config.show_undo_notifications:
                 self._show_notification(f"Redid: {self._get_item_description(item)}")
 
+            self._notify()
             return True
 
         except Exception as e:
@@ -440,9 +472,93 @@ class HistoryManager(IHistoryManager):
         self._pending_actions.clear()
         self._action_count = 0
         self._amendable = None
+        self._origins.clear()
+        self._last_move = None
 
         if self.config.enable_debug_logging:
             logger.debug("Cleared all history")
+        self._notify()
+
+    def snapshot(self) -> list[HistoryEntry]:
+        """Return the history as read-only rows, oldest first. See ``IHistoryManager``."""
+        amendable = self._amend_candidate()
+        rows = [
+            self._entry(item, undone=index > self.current_index, pending=False, amendable=amendable)
+            for index, item in enumerate(self.history)
+        ]
+        rows += [
+            self._entry(action, undone=False, pending=True, amendable=amendable)
+            for action in self._pending_actions
+        ]
+        return rows
+
+    def last_move(self) -> Optional[HistoryMove]:
+        """Return the latest successful undo or redo since the last ``clear()``, or ``None``."""
+        return self._last_move
+
+    def add_listener(self, listener: Callable[[], None]) -> None:
+        """Call ``listener`` whenever ``snapshot()`` would list different rows. See ``IHistoryManager``."""
+        if listener not in self._listeners:
+            self._listeners.append(listener)
+
+    def remove_listener(self, listener: Callable[[], None]) -> None:
+        """Stop calling ``listener``; a listener that was never added is ignored."""
+        if listener in self._listeners:
+            self._listeners.remove(listener)
+
+    def _notify(self) -> None:
+        for listener in list(self._listeners):
+            try:
+                listener()
+            except Exception:
+                logger.exception("History listener failed")
+
+    def _entry(
+        self, item: Union[IAction, ActionGroup, Fence], *, undone: bool, pending: bool, amendable: Any
+    ) -> HistoryEntry:
+        """Return the snapshot row for one history item; a group's children share its flags."""
+        if isinstance(item, Fence):
+            return HistoryEntry("fence", item.description or "", None, item.timestamp)
+        if isinstance(item, ActionGroup):
+            children = tuple(
+                self._entry(child, undone=undone, pending=pending, amendable=amendable)
+                for child in item.actions
+            )
+            return HistoryEntry(
+                "group",
+                self._get_item_description(item),
+                next((child.origin for child in children if child.origin is not None), None),
+                item.timestamp or 0.0,
+                graph=next((child.graph for child in children if child.graph is not None), None),
+                undone=undone,
+                pending=pending,
+                action_type="ActionGroup",
+                children=children,
+            )
+        kind: Literal["step"] = "step"
+        return HistoryEntry(
+            kind,
+            item.description,
+            self._origins.get(id(item)),
+            getattr(item, "timestamp", 0.0),
+            graph=self._graph_of(item),
+            undone=undone,
+            pending=pending,
+            action_type=type(item).__name__,
+            merge_key=getattr(item, "merge_key", None) if item is amendable else None,
+        )
+
+    @staticmethod
+    def _graph_of(action: Any) -> Any:
+        """The graph ``action`` mutates: its own ``graph``, else its first sub-action's, else ``None``."""
+        graph = getattr(action, "graph", None)
+        if graph is not None:
+            return graph
+        for child in getattr(action, "actions", None) or ():
+            graph = HistoryManager._graph_of(child)
+            if graph is not None:
+                return graph
+        return None
 
     def get_undo_description(self) -> Optional[str]:
         """Get description of the next action that would be undone."""
@@ -496,6 +612,11 @@ class HistoryManager(IHistoryManager):
             if merged_action:
                 self._pending_actions[-1] = merged_action
                 self._last_merge_time = time.time()
+                # The merged step is still the earlier step, so it keeps that step's origin.
+                newer_origin = self._origins.pop(id(action), None)
+                kept_origin = self._origins.pop(id(last_action), None) or newer_origin
+                if kept_origin is not None:
+                    self._origins[id(merged_action)] = kept_origin
 
                 last_action.cleanup()
                 action.cleanup()
@@ -675,9 +796,11 @@ class HistoryManager(IHistoryManager):
                 if isinstance(action, ActionGroup):
                     self._cleanup_item(action)
                 else:
+                    self._origins.pop(id(action), None)
                     action.cleanup()
         else:
             # Regular action
+            self._origins.pop(id(item), None)
             item.cleanup()
 
     @staticmethod

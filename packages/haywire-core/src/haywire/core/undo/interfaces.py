@@ -6,7 +6,11 @@ must implement, following the three-layer separation of concerns architecture.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from .origin import HistoryEntry, HistoryMove, StepOrigin
 
 
 class IAction(ABC):
@@ -92,12 +96,13 @@ class IHistoryManager(ABC):
     """
 
     @abstractmethod
-    def add_action(self, action: IAction) -> bool:
+    def add_action(self, action: IAction, *, origin: "StepOrigin | None" = None) -> bool:
         """
         Execute ``action`` and add it to the history.
 
         Args:
             action: The action to add to the history
+            origin: Who records it; kept beside the step for ``snapshot()``.
 
         Returns:
             ``True`` if the action executed and entered the history, ``False``
@@ -107,7 +112,14 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def add_value_action(self, action: IAction, merge_owner: object | None, idle_s: float = ...) -> bool:
+    def add_value_action(
+        self,
+        action: IAction,
+        merge_owner: object | None,
+        idle_s: float = ...,
+        *,
+        origin: "StepOrigin | None" = None,
+    ) -> bool:
         """
         Execute a value write and record it, amending the newest step while a merge run lasts.
 
@@ -118,6 +130,7 @@ class IHistoryManager(ABC):
             action: A value-write action (a port or settings-field write).
             merge_owner: The session token a run belongs to, or ``None`` for no merging.
             idle_s: Seconds after a step's last write beyond which a write starts a new step.
+            origin: Who records it; an amended step keeps the origin it was recorded with.
 
         Returns:
             ``False`` if the action did not run or its execution raised, else ``True``.
@@ -125,7 +138,7 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def record_executed(self, action: IAction) -> None:
+    def record_executed(self, action: IAction, *, origin: "StepOrigin | None" = None) -> None:
         """
         Add an action that has already been applied to the history, without running it.
 
@@ -136,6 +149,7 @@ class IHistoryManager(ABC):
         Args:
             action: The applied change; ``undo()`` must reverse it and a later
                 ``execute()`` must apply it again.
+            origin: Who records it; kept beside the step for ``snapshot()``.
         """
         pass
 
@@ -150,9 +164,11 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def undo(self) -> bool:
+    def undo(self, *, origin: "StepOrigin | None" = None) -> bool:
         """
         Undo the most recent action or action group.
+
+        A successful undo becomes ``last_move()``, credited to ``origin``.
 
         Returns:
             True if undo was successful, False if nothing to undo
@@ -160,9 +176,11 @@ class IHistoryManager(ABC):
         pass
 
     @abstractmethod
-    def redo(self) -> bool:
+    def redo(self, *, origin: "StepOrigin | None" = None) -> bool:
         """
         Redo the most recently undone action or action group.
+
+        A successful redo becomes ``last_move()``, credited to ``origin``.
 
         Returns:
             True if redo was successful, False if nothing to redo
@@ -220,4 +238,36 @@ class IHistoryManager(ABC):
         Returns:
             Description string or None if nothing to redo
         """
+        pass
+
+    @abstractmethod
+    def snapshot(self) -> list["HistoryEntry"]:
+        """
+        Return the history as read-only rows, oldest first.
+
+        Rows cover the whole history, redo branch and fences included, followed by the
+        steps still pending in the grouping window. Building a snapshot changes nothing:
+        it neither flushes pending steps nor ends a merge run.
+        """
+        pass
+
+    @abstractmethod
+    def last_move(self) -> Optional["HistoryMove"]:
+        """Return the latest successful undo or redo since the last ``clear()``, or ``None``."""
+        pass
+
+    @abstractmethod
+    def add_listener(self, listener: Callable[[], None]) -> None:
+        """
+        Call ``listener`` with no arguments whenever ``snapshot()`` would list different rows.
+
+        That is: a step recorded or merged, a group flushed, a fence, an undo, a redo, a trim
+        or a clear. A value write that amends an open step does not call it. Listeners run on
+        the thread that changed the history; one that raises is logged and skipped.
+        """
+        pass
+
+    @abstractmethod
+    def remove_listener(self, listener: Callable[[], None]) -> None:
+        """Stop calling ``listener``; a listener that was never added is ignored."""
         pass

@@ -1,3 +1,4 @@
+import copy
 import logging
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, cast
 from haywire.core.errors import Refusal, report_failure
@@ -12,6 +13,7 @@ from haywire.core.types import Propagation
 from haywire.core.undo.interfaces import IAction, IHistoryManager
 from haywire.core.undo.history_manager import HistoryManager
 from haywire.core.undo.config import UndoConfig
+from haywire.core.undo.origin import StepOrigin
 from haywire.core.undo.actions.graph_actions import (
     ResetSettingsAction,
     SetSettingsAction,
@@ -53,12 +55,15 @@ class Editor:
     it, and fences the history after it.
     """
 
+    origin: Optional[StepOrigin] = None
+
     def __init__(
         self,
         graph: BaseGraph,
         node_factory: NodeFactory,
         undo_config: Optional[UndoConfig] = None,
         history_manager: Optional[IHistoryManager] = None,
+        origin: Optional[StepOrigin] = None,
     ):
         """Initialize the editor with the graph it edits.
 
@@ -70,6 +75,8 @@ class Editor:
                 editor's own. Pass another editor's to put both editors' actions
                 on a single stack: every action names the graph it mutates, so
                 one history can span a graph and the Subgraphs inside it.
+            origin: Who this editor records for: every step it records, and every
+                undo and redo it performs, is credited to it. ``None`` records no origin.
 
         Example::
 
@@ -77,8 +84,11 @@ class Editor:
             # A Subgraph belongs to the same file, so it shares the history:
             # an edit inside it undoes in order with the edits around it.
             inner = Editor(definition, node_factory, history_manager=editor.history_manager)
+            # One session's edits, credited to it on the shared history:
+            mine = editor.with_origin(StepOrigin("alice", "3f2a", "canvas"))
         """
         self.graph: BaseGraph = graph
+        self.origin = origin
         #: Edges removed by the most recent ``promote_to_macro`` call only (0 unless it dropped any).
         self.last_promotion_dropped_edges = 0
         if history_manager is None:
@@ -91,6 +101,19 @@ class Editor:
             history_manager.error_context.pop("graph_id", None)
         self.history_manager: IHistoryManager = history_manager
         self._node_factory = node_factory
+
+    def with_origin(self, origin: Optional[StepOrigin]) -> "Editor":
+        """Return an editor over the same graph and history that credits its steps to ``origin``.
+
+        Returns ``self`` when ``origin`` is already this editor's.
+        """
+        if origin == self.origin:
+            return self
+        # A copy, not Editor(...): sharing a history through the constructor drops its graph_id context.
+        sibling = copy.copy(self)
+        sibling.origin = origin
+        sibling.last_promotion_dropped_edges = 0
+        return sibling
 
     # =============================================================================
     # NODE OPERATIONS
@@ -125,7 +148,7 @@ class Editor:
                 )
             else:
                 action = AddNodeAction(graph=self.graph, registry_key=registry_key, position=position)
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return None
 
             logger.info(f"Created node of type {registry_key} at {position}")
@@ -172,7 +195,7 @@ class Editor:
                 patch_fallback=patch_fallback,
                 stage_anchor=stage_anchor,
             )
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return None
             logger.info(f"Pasted {len(payload.get('nodes', {}))} nodes at ({paste_x}, {paste_y})")
             return (action.new_node_ids, action.new_edge_ids)
@@ -193,7 +216,7 @@ class Editor:
 
         try:
             action = MoveNodesAction(self.graph, nodes, deltaX, deltaY, channel)
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return False
 
             logger.info(f"Moved {len(nodes)} nodes by delta ({deltaX}, {deltaY})")
@@ -216,7 +239,7 @@ class Editor:
             return False
         try:
             action = MoveNodesToAction(self.graph, positions, channel)
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return False
             logger.info(f"Moved {len(positions)} nodes to absolute positions")
             return True
@@ -263,7 +286,7 @@ class Editor:
             return False
         try:
             action = RestackNodesAction(self.graph, changes, channel)
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return False
             logger.info(f"Restacked {len(node_ids)} nodes ({how.value}, {channel.name})")
             return True
@@ -281,7 +304,7 @@ class Editor:
             return False
         try:
             action = SetStageMembershipAction(self.graph, changing, on_stage)
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return False
             logger.info(f"{'Added' if on_stage else 'Removed'} {len(changing)} nodes on the stage")
             return True
@@ -430,7 +453,7 @@ class Editor:
         """
         try:
             if record:
-                return self.history_manager.add_value_action(action, merge_owner)
+                return self.history_manager.add_value_action(action, merge_owner, origin=self.origin)
             action.execute()
             if cast(Any, action).changed:
                 self.history_manager.add_fence()
@@ -451,7 +474,7 @@ class Editor:
         """Run ``action``: recorded on the history, or applied and fenced; ``False`` if it raised."""
         try:
             if record:
-                return self.history_manager.add_action(action)
+                return self.history_manager.add_action(action, origin=self.origin)
             action.execute()
             self.history_manager.add_fence()
             return True
@@ -478,7 +501,7 @@ class Editor:
         except Exception as e:
             report_failure(e, operation="Reset nodes", graph_id=self.graph.graph_id, node_ids=node_ids)
             return False
-        return self.history_manager.add_action(action)
+        return self.history_manager.add_action(action, origin=self.origin)
 
     def apply_previous_setup(self, node_ids: List[str]) -> bool:
         """Rebuild the nodes from their previous setup as one undo step; Undo brings it back.
@@ -529,7 +552,7 @@ class Editor:
         except Exception as e:
             report_failure(e, operation=verb, graph_id=self.graph.graph_id, node_ids=node_ids)
             return False
-        return self.history_manager.add_action(action)
+        return self.history_manager.add_action(action, origin=self.origin)
 
     def set_port_metadata(self, node_id: str, port_id: str, **changes: Any) -> Tuple[bool, Optional[str]]:
         """Edit a port's label, description and/or default, undo-recorded.
@@ -550,7 +573,7 @@ class Editor:
             # Pre-flight so a refusal returns its reason; a failure inside the
             # action itself only reports that it failed.
             action._port()
-            added = self.history_manager.add_action(action)
+            added = self.history_manager.add_action(action, origin=self.origin)
         except Exception as e:
             logger.error(f"Error editing port {port_id!r} on {node_id}: {e}")
             return False, str(e)
@@ -568,7 +591,7 @@ class Editor:
         """
         try:
             action = PromoteSettingAction(self.graph, node_id, accessor, field, direction)
-            return self.history_manager.add_action(action)
+            return self.history_manager.add_action(action, origin=self.origin)
         except Exception as e:
             logger.error(f"Error promoting {accessor}.{field} on {node_id}: {e}")
             return False
@@ -582,7 +605,7 @@ class Editor:
         """
         try:
             action = RemovePortAction(self.graph, node_id, port_id)
-            return self.history_manager.add_action(action)
+            return self.history_manager.add_action(action, origin=self.origin)
         except Exception as e:
             logger.error(f"Error removing port {port_id!r} on {node_id}: {e}")
             return False
@@ -625,7 +648,7 @@ class Editor:
 
         try:
             action = RemoveElementsAction(self.graph, nodes, edges, release_pins=release_pins)
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return False
 
             total_count = len(nodes) + len(edges)
@@ -673,7 +696,7 @@ class Editor:
                 sink_node_id=sink_node_id,
                 inlet_pin_id=inlet_pin,
             )
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return False
 
             logger.info(f"Created connection {source_node_id}:{outlet_pin} -> {sink_node_id}:{inlet_pin}")
@@ -716,7 +739,7 @@ class Editor:
                 channel=channel,
                 patch_fallback=patch_fallback,
             )
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return None
             logger.info(f"Split edge {edge_id} with reroute {action.reroute_node_id}")
             return action.reroute_node_id
@@ -734,7 +757,7 @@ class Editor:
         """
         try:
             action = DissolveRerouteAction(graph=self.graph, node_id=node_id)
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return False
             logger.info(f"Dissolved reroute node {node_id}")
             return True
@@ -778,7 +801,7 @@ class Editor:
             return (None, str(e))
 
         try:
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return (None, "The selection could not be collapsed")
             logger.info(f"Collapsed {len(node_ids)} nodes into subgraph {action.subgraph_key}")
             return (action.card_node_id, None)
@@ -830,7 +853,7 @@ class Editor:
 
         try:
             self.history_manager.add_fence()
-            added = self.history_manager.add_action(action)
+            added = self.history_manager.add_action(action, origin=self.origin)
             self.history_manager.add_fence()
             if not added:
                 return (None, "The Group could not be saved as a macro")
@@ -876,7 +899,7 @@ class Editor:
 
         try:
             self.history_manager.add_fence()
-            added = self.history_manager.add_action(action)
+            added = self.history_manager.add_action(action, origin=self.origin)
             self.history_manager.add_fence()
             if not added:
                 return (None, "The placement could not be detached")
@@ -902,7 +925,7 @@ class Editor:
             logger.info(f"Forget origin refused: {e}")
             return False
         try:
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return False
             logger.info(f"Forgot the macro origin of Group {node_id}")
             return True
@@ -918,7 +941,7 @@ class Editor:
         """
         try:
             action = ExpandGraphNodeAction(graph=self.graph, node_id=node_id)
-            if not self.history_manager.add_action(action):
+            if not self.history_manager.add_action(action, origin=self.origin):
                 return False
             logger.info(f"Expanded Group {node_id}")
             return True
@@ -938,7 +961,7 @@ class Editor:
         """Perform an undo operation. Returns True if undo was performed."""
         if self.history_manager.can_undo():
             try:
-                result = self.history_manager.undo()
+                result = self.history_manager.undo(origin=self.origin)
                 if result:
                     logger.info("Undo performed")
                 return result
@@ -952,7 +975,7 @@ class Editor:
         """Perform a redo operation. Returns True if redo was performed."""
         if self.history_manager.can_redo():
             try:
-                result = self.history_manager.redo()
+                result = self.history_manager.redo(origin=self.origin)
                 if result:
                     logger.info("Redo performed")
                 return result
