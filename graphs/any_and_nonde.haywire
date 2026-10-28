@@ -2,7 +2,7 @@
   "format_version": 4,
   "filestem": "any_and_nonde",
   "created_at": "2026-09-12T10:04:10.101874",
-  "modified_at": "2026-10-26T17:27:30.974567",
+  "modified_at": "2026-10-28T16:26:46.361454",
   "meta": {
     "values": {},
     "promoted": {}
@@ -2383,7 +2383,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 1792444268.226899
+              "value": 1793201194.942255
             }
           }
         },
@@ -2731,7 +2731,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.09453362500062212
+              "value": 0.10201720800250769
             }
           }
         },
@@ -2962,7 +2962,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 0.81
+              "value": 0.34
             }
           },
           "in_slot_0": {
@@ -3018,7 +3018,7 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": ""
+              "value": "test text"
             }
           },
           "out_slot_1": {
@@ -3054,7 +3054,7 @@
               "registry_key": "haywire-core:type:CHOICES"
             },
             "field_data": {
-              "value": "One"
+              "value": "Two"
             }
           }
         },
@@ -4088,7 +4088,7 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 4180.0,
+              "posX": 4460.0,
               "posY": 2180.0,
               "width": 168,
               "height": 80,
@@ -4109,7 +4109,7 @@
         },
         "props": {
           "values": {
-            "posX": 4180.0,
+            "posX": 4460.0,
             "posY": 2180.0,
             "width": 168,
             "height": 80,
@@ -4389,7 +4389,7 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 4440.0,
+              "posX": 4720.0,
               "posY": 2180.0,
               "width": 168,
               "height": 80,
@@ -4410,7 +4410,7 @@
         },
         "props": {
           "values": {
-            "posX": 4440.0,
+            "posX": 4720.0,
             "posY": 2180.0,
             "width": 168,
             "height": 80,
@@ -4690,7 +4690,7 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 4440.0,
+              "posX": 4720.0,
               "posY": 2340.0,
               "width": 168,
               "height": 80,
@@ -4711,7 +4711,7 @@
         },
         "props": {
           "values": {
-            "posX": 4440.0,
+            "posX": 4720.0,
             "posY": 2340.0,
             "width": 168,
             "height": 80,
@@ -4991,7 +4991,7 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 4180.0,
+              "posX": 4460.0,
               "posY": 2340.0,
               "width": 168,
               "height": 80,
@@ -5012,7 +5012,7 @@
         },
         "props": {
           "values": {
-            "posX": 4180.0,
+            "posX": 4460.0,
             "posY": 2340.0,
             "width": 168,
             "height": 80,
@@ -5061,6 +5061,230 @@
           "module_name": "haywire.barn.builtin",
           "name": "haywire-core",
           "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    },
+    "ProgressDemoNode_a72d3f2f": {
+      "node_id": "ProgressDemoNode_a72d3f2f",
+      "registry_key": "haybale-example:node:ProgressDemoNode",
+      "node_data": {
+        "node_id": "ProgressDemoNode_a72d3f2f",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execution Signal",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "done": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execution Signal",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "done",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "jobs": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Jobs",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 4
+              },
+              "store_strategy": 2,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "jobs",
+              "port_type": "inlet",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 4
+            }
+          },
+          "steps": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Steps per job",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 20
+              },
+              "store_strategy": 2,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "steps",
+              "port_type": "inlet",
+              "order": 3
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 20
+            }
+          },
+          "step_ms": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Step (ms)",
+              "description": "Decimal number",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 40.0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "step_ms",
+              "port_type": "inlet",
+              "order": 4
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 40.0
+            }
+          },
+          "processed": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Processed",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "processed",
+              "port_type": "outlet",
+              "order": 5,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 80
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 4020.0,
+              "posY": 2160.0,
+              "width": 256,
+              "height": 382,
+              "z": 15
+            },
+            "promoted": {}
+          },
+          "progress": {
+            "values": {},
+            "promoted": {
+              "progress.main": {
+                "direction": "config"
+              },
+              "progress.job": {
+                "direction": "config"
+              }
+            }
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 4020.0,
+            "posY": 2160.0,
+            "width": 256,
+            "height": 382,
+            "z": 15
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "ProgressDemoNode",
+          "registry_key": "haybale-example:node:ProgressDemoNode",
+          "label": "Progress Demo",
+          "description": "Simulates slow work and shows its progress on the card: overall, per job, final stage.",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "ProgressDemoNode",
+          "module": "haybale_example.nodes.progress_demo",
+          "tags": [],
+          "search_tags": [
+            "progress",
+            "busy",
+            "bar",
+            "example"
+          ],
+          "menu": "examples/progress",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Example",
+          "version": "0.2.4",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-example/haybale_example",
+          "module_name": "haybale_example",
+          "name": "haybale-example",
+          "linked_libraries": [
+            "haybale_core"
+          ],
           "file_watcher": false,
           "on_reload": "none"
         }
@@ -5247,6 +5471,14 @@
       "sink_node_id": "AnnotationNode_45c188ef",
       "inlet_port_id": "bottom_0",
       "chain_adapter_keys": []
+    },
+    "TickEmitNode_9a5f7e[started]->ProgressDemoNode_a72d3f2f[exec]": {
+      "source_node_id": "TickEmitNode_9a5f7e",
+      "outlet_port_id": "started",
+      "sink_node_id": "ProgressDemoNode_a72d3f2f",
+      "inlet_port_id": "exec",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
     }
   },
   "variables": {},
@@ -5627,7 +5859,7 @@
                   "registry_key": "haywire-core:type:FLOAT"
                 },
                 "field_data": {
-                  "value": 0.81
+                  "value": 0.34
                 }
               }
             },
@@ -6246,7 +6478,7 @@
                   "registry_key": "haywire-core:type:FLOAT"
                 },
                 "field_data": {
-                  "value": 0.81
+                  "value": 0.34
                 }
               }
             },
@@ -6931,7 +7163,7 @@
                       "registry_key": "haywire-core:type:FLOAT"
                     },
                     "field_data": {
-                      "value": 0.81
+                      "value": 0.34
                     }
                   }
                 },
