@@ -6,6 +6,7 @@
 - `haybale-example:node:FillDemoNode` — Fill Demo — Edits a solid/linear/radial fill and outputs it as a CSS value.  _tags: fill, gradient, colour, color, css, example_
 - `haybale-example:node:MathOP` — Math Operation — Node that outputs a constant value.  _tags: math, value, single, basic, operation_  **DEPRECATED**
 - `haybale-example:node:MergeCallbackNode` — Merge Callback — Listens for a specified number of callbacks from other flows  _tags: callback, listen, event, custom_
+- `haybale-example:node:ProgressDemoNode` — Progress Demo — Simulates slow work and shows its progress on the card: overall, per job, final stage.  _tags: progress, busy, bar, example_
 
 ## macro
 - `haybale-example:macro:NewMacroGroup` — NewMacroGroup — TestMacroGroup to see how macros work

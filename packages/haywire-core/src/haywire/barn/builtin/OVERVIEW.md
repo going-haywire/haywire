@@ -21,6 +21,7 @@ Framework-owned primitive types and adapters
 - **Fold** — Hides or shows the ports inside it
 - **Integer** — Whole number
 - **Optional** — A value of the wrapped type, or absence
+- **Progress** — Whether a node is busy, how far it is, and what it is doing
 - **String** — Text data
 - **Vec2f** — 2D float vector
 - **Vec2i** — 2D integer vector
@@ -44,9 +45,22 @@ Framework-owned primitive types and adapters
 - **NoteTextWidget** — Note text
 - **NumberWidget** — Fast number input widget
 - **OptionalWidget** — Optional value — the wrapped type's widget, plus an absence state
+- **ProgressWidget** — Progress bar
 - **SelectWidget** — select widget
 - **SimpleLabelWidget** — Simple label for display only
 - **SliderWidget** — slider widget
 - **SwitchWidget** — switch widget
 - **TextWidget** — Fast text input widget
 - **VecWidget** — Vector component editor widget
+
+## Settings
+- **debug** — 
+- **editor.pan_zoom** — 
+- **farmhand.activity** — 
+- **tools** — 
+- **ui.canvas** — 
+- **ui.debug_overlay** — 
+- **ui.edge.default** — 
+- **ui.minimap** — 
+- **ui.node.default.skin** — 
+- **undo** —

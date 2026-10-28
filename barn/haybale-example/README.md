@@ -13,6 +13,7 @@ Example library for demonstrating multi-library support
 - **Fill Demo** — Edits a solid/linear/radial fill and outputs it as a CSS value.
 - **Math Operation** — Node that outputs a constant value.
 - **Merge Callback** — Listens for a specified number of callbacks from other flows
+- **Progress Demo** — Simulates slow work and shows its progress on the card: overall, per job, final stage.
 
 ## Macros
 - **NewMacroGroup** — TestMacroGroup to see how macros work

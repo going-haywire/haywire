@@ -22,7 +22,8 @@ Signals consumed:
     ``GraphDataMutated`` — sync canvas from another session.
     ``GraphUnsavedChanged`` — refresh the unsaved dot and tab marker.
     ``RevealGraphInstance`` — select a node/edge if one of this editor's
-        levels holds that graph, opening the level if it is not open yet.
+        levels holds that graph, opening the level if it is not open yet. A
+        reveal waiting in ``EditState.pending_reveal`` is carried out on draw.
     ``SubgraphNavigation`` — open a Group of one of this editor's levels.
     ``SessionContext.target_binding_id`` — claim the session's graph state
         when a pointer-down lands in this editor.

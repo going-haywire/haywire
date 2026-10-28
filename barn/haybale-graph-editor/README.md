@@ -20,6 +20,7 @@ Visual graph editor library — host-agnostic
 - **Inspect node** — One node's ports, settings, and health, at a chosen depth.
 - **Move nodes** — Move nodes to absolute positions ({node_id: {x, y}}).
 - **Operate widget** — Change the value of a widget that is shown on a node card. Not undo-recorded.
+- **Previous setup** — Apply or dismiss the previous setup nodes kept through a hot reload. One undo step.
 - **Promote setting** — Promote a settings field to a data port. One undo step.
 - **Query graph** — Nodes (with ports) and edges of an open graph.
 - **Redo** — Redo the last undone change on this graph's SHARED human+agent timeline.
@@ -30,6 +31,7 @@ Visual graph editor library — host-agnostic
 
 ## States
 - **Edit State** — Per-session graph-editor state: selection, active items, clipboard.
+- **Graph App State** — 
 
 ## Panels
 - **Adapter Chain** — List the adapters converting the source value to the sink type, in order.
@@ -100,6 +102,8 @@ Visual graph editor library — host-agnostic
 - **Send Backward** — Move each selected node one step down: below the next node under it.
 - **Send to Back** — Paint the selected nodes below every other node in this view.
 - **Set to none** — Clear the backing setting to absence (OPTIONAL[T] fields only).
+- **Settings reset by a code change** — Restore or discard the settings the active node had before a code change rebuilt it.
+- **Settings reset by a code change** — Restore or discard the settings the active node had before a code change rebuilt it.
 - **Show widget** — The "Show widget ▸" row — picks when this pin's Widget is rendered.
 - **Skin** — The skin that drew this node's card, as a row opening its source.
 - **Skin** — Skin Configuration:Node dimensions, typography and label visibility.

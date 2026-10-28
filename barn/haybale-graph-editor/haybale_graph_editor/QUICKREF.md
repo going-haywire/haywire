@@ -10,6 +10,7 @@
 - `haybale-graph-editor:farmhand:inspect_node` — Inspect node — One node's ports, settings, and health, at a chosen depth.
 - `haybale-graph-editor:farmhand:move_nodes` — Move nodes — Move nodes to absolute positions ({node_id: {x, y}}).
 - `haybale-graph-editor:farmhand:operate` — Operate widget — Change the value of a widget that is shown on a node card. Not undo-recorded.
+- `haybale-graph-editor:farmhand:previous_setup` — Previous setup — Apply or dismiss the previous setup nodes kept through a hot reload. One undo step.
 - `haybale-graph-editor:farmhand:promote_setting` — Promote setting — Promote a settings field to a data port. One undo step.
 - `haybale-graph-editor:farmhand:query_graph` — Query graph — Nodes (with ports) and edges of an open graph.
 - `haybale-graph-editor:farmhand:redo` — Redo — Redo the last undone change on this graph's SHARED human+agent timeline.
@@ -20,6 +21,7 @@
 
 ## state
 - `haybale-graph-editor:state:EditState` — Edit State — Per-session graph-editor state: selection, active items, clipboard.
+- `haybale-graph-editor:state:GraphAppState` — Graph App State — 
 
 ## panel
 - `haybale-graph-editor:panel:AddToStageMenuPanel` — Add to Stage — Put the selected nodes on the stage; offered when the selection holds an off-stage node.
@@ -77,6 +79,7 @@
 - `haybale-graph-editor:panel:NodeErrorsSelectionMenuPanel` — Node Errors — Node errors panel for the unified selection context menu.
 - `haybale-graph-editor:panel:NodeInfoPanel` — Node Info — Displays basic identity information for the selected node.
 - `haybale-graph-editor:panel:NodePortsPanel` — Ports — Displays the inlet, outlet, and config ports of the selected node.
+- `haybale-graph-editor:panel:NodePreviousSetupPanel` — Settings reset by a code change — Restore or discard the settings the active node had before a code change rebuilt it.
 - `haybale-graph-editor:panel:NodePropertiesPanel` — Node Properties — Displays per-instance node settings (collapsed, locked, skin, etc.).
 - `haybale-graph-editor:panel:NodeSettingsPanel` — Node Settings — Discovers and renders all user-defined settings on the selected node.
 - `haybale-graph-editor:panel:NodeSkinMenuPanel` — Skin — The skin that drew this node's card, as a row opening its source.
@@ -90,6 +93,7 @@
 - `haybale-graph-editor:panel:PortShowWidgetStrategyPanel` — Strategy — One row per show-widget strategy, marked with the port's current choice.
 - `haybale-graph-editor:panel:PortTypeMenuPanel` — Type — The pin's data type, as a row that opens the type's source.
 - `haybale-graph-editor:panel:PortWidgetMenuPanel` — Widget — The widget editing this pin, as a row that opens the widget's source.
+- `haybale-graph-editor:panel:PreviousSetupSelectionMenuPanel` — Settings reset by a code change — Restore or discard the settings the active node had before a code change rebuilt it.
 - `haybale-graph-editor:panel:RebuildSelectionMenuPanel` — Rebuild — The "Rebuild" row — a submenu over redraw / revalidate / reset.
 - `haybale-graph-editor:panel:ReconnectEdgeMenuPanel` — Reconnect Edge — Removes the edge and starts a new connection drag from the anchor pin.
 - `haybale-graph-editor:panel:RedrawSelectionMenuPanel` — Redraw Selection — Redraw every node/edge in the selection in one step.
