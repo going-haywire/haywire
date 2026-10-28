@@ -613,8 +613,7 @@ class DataPort(DataTypeIdentity):
         """Set one property of this port's widget config, e.g. a slider's ``max``.
 
         The node's card is redrawn when the property changed, and its widgets are
-        built again from the new config. Live reconfiguration of a drawn widget is
-        not part of this method yet.
+        built again from the new config.
 
         Args:
             key: The widget property, one the port's widget documents (``"max"``).
