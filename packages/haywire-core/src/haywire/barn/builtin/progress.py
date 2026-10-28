@@ -1,7 +1,7 @@
 """Progress bars on a node card, reported from the node's own code.
 
-A node declares an inner settings class that subclasses ``ProgressSettings``
-and holds one ``progress_field()`` per bar, then reports from its worker with
+A node attaches a ``ProgressSettings`` subclass holding one ``progress_field()``
+per bar, then reports from its worker with
 ``track()`` (loops) or ``busy()`` (everything else). Each bar's value is a
 ``PROGRESS``; the card renders it with ``ProgressWidget``.
 """
@@ -51,8 +51,9 @@ def progress_field(label: str = "Progress", **kwargs: Any) -> "setting[PROGRESS]
 class ProgressSettings(NodeSettings):
     """Progress bars on a node card, driven from the node's worker.
 
-    Subclass it as an inner class of a node and declare one ``progress_field()``
-    per bar. Report a loop with ``track()`` and any other work with ``busy()``:
+    Subclass it with one ``progress_field()`` per bar and attach the subclass to
+    a node with ``bag()``, which types the attribute as the bound settings
+    inside an annotated worker. Report a loop with ``track()`` and any other work with ``busy()``:
     while a block or loop runs its bar shows it, and when it ends, also by an
     exception or a ``break``, the bar returns to idle.
 
@@ -66,14 +67,17 @@ class ProgressSettings(NodeSettings):
     Example::
 
         from haywire.barn.builtin.progress import ProgressSettings, progress_field
+        from haywire.core.settings import bag
+
+        class DetectorProgress(ProgressSettings):
+            main = progress_field("Progress")
+            sub = progress_field("Step")
 
         @node(...)
         class Detector(DataNode):
-            class progress(ProgressSettings):
-                main = progress_field("Progress")
-                sub = progress_field("Step")
+            progress = bag(DetectorProgress)
 
-            def worker(self, context, files):
+            def worker(self, context: ExecutionContext, files: list) -> str | None:
                 # A loop: the bar fills as the items pass.
                 for f in self.progress.track("main", files, "processing"):
                     # A nested loop on the second bar.

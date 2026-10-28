@@ -546,14 +546,17 @@ A node whose work is slow — a blocking API call, a local model inference, a lo
 
 ```python
 from haywire.barn.builtin.progress import ProgressSettings, progress_field
+from haywire.core.settings import bag
+
+class DetectorProgress(ProgressSettings):
+    main = progress_field("Progress")
+    sub = progress_field("Step")
 
 @node(...)
 class Detector(DataNode):
-    class progress(ProgressSettings):
-        main = progress_field("Progress")
-        sub = progress_field("Step")
+    progress = bag(DetectorProgress)     # bag(): typed inside an annotated worker
 
-    def worker(self, context, files):
+    def worker(self, context: ExecutionContext, files: list) -> str | None:
         for f in self.progress.track("main", files, "processing"):           # fills by share passed
             for chunk in self.progress.track("sub", load(f), f"loading {f}"):
                 decode(chunk)
@@ -566,7 +569,7 @@ class Detector(DataNode):
         return boxes
 ```
 
-- `progress_field()` is `setting[PROGRESS]` declared `promotable=Promotable.CONFIG` and seeded to config: each bar is a card row the user can demote to hide, never a pin. `ProgressSettings` itself declares no field, so each node's subclass owns its bars and the accessor name is free.
+- `progress_field()` is `setting[PROGRESS]` declared `promotable=Promotable.CONFIG` and seeded to config: each bar is a card row the user can demote to hide, never a pin. `ProgressSettings` itself declares no field; your subclass holds the bars and may be shared between nodes under any accessor name. An inner `class progress(ProgressSettings)` works too, but mypy then types `self.progress` as the class inside an annotated worker — attach with `bag()` instead.
 - Ending a block or a `track()` loop — also by an exception or `break` — resets that bar to its idle default, so a save between blocks stores nothing.
 - Blocks on different bars nest; on the same bar, any end resets it. A field name that is not a progress field raises `ValueError`; a field named `busy` or `track` raises `TypeError`.
 - `track()` takes its fraction from `len()`, or `total=`; without either the bar sweeps.
