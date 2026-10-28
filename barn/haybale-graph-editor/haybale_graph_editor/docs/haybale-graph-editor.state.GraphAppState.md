@@ -8,3 +8,6 @@ Registry: ``binding_id`` → :class:`GraphContainer`.
 
 One instance per app, shared across sessions. Source libraries
 coordinate writes; GraphEditor performs reads.
+
+While a container is registered, every change to its undo history
+publishes ``GraphHistoryChanged`` on the event loop.

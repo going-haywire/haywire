@@ -111,6 +111,7 @@ Visual graph editor library — host-agnostic
 
 ## Editors
 - **Graph Editor** — Visual node graph editor for wiring data processing pipelines.
+- **History** — The undo history of the active graph's file: every step, who recorded it, and where.
 
 ## Skins
 - **Inset** — The interior's stage, operable in the card

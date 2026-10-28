@@ -109,6 +109,7 @@
 
 ## editor
 - `haybale-graph-editor:editor:GraphEditor` — Graph Editor — Visual node graph editor for wiring data processing pipelines.
+- `haybale-graph-editor:editor:HistoryEditor` — History — The undo history of the active graph's file: every step, who recorded it, and where.
 
 ## skin
 - `haybale-graph-editor:skin:InsetSkin` — Inset — The interior's stage, operable in the card
