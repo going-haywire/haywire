@@ -538,6 +538,39 @@ The canvas draws five field names (`haywire.core.edge.style.STYLE_FIELDS`):
 
 A field the bag does not declare falls back to the graph's edge defaults: for heads, per end, to the computed head at the end the wire type's `arrow_at` names. Other fields are saved but not drawn. The edge menu and the Edge inspector show the bag. An edge holds its bag only while it validates; while it fails, its saved values wait unchanged.
 
+## 3d. Showing progress — `ProgressSettings`
+
+A node whose work is slow — a blocking API call, a local model inference, a long loop — can show a progress bar on its card. It is opt-in: the framework shows nothing on its own, because only the node's code knows which part of its work is slow.
+
+```python
+from haywire.barn.builtin.progress import ProgressSettings, progress_field
+
+@node(...)
+class Detector(DataNode):
+    class progress(ProgressSettings):
+        main = progress_field("Progress")
+        sub = progress_field("Step")
+
+    def worker(self, context, files):
+        for f in self.progress.track("main", files, "processing"):           # fills by share passed
+            for chunk in self.progress.track("sub", load(f), f"loading {f}"):
+                decode(chunk)
+
+        with self.progress.busy("main", "inferring"):                         # sweeps
+            boxes = self._model(frame)
+
+        with self.progress.busy("main", "download") as span:                  # not a loop
+            fetch(url, on_progress=span.step)
+        return boxes
+```
+
+- `progress_field()` is `setting[PROGRESS]` declared `promotable=Promotable.CONFIG` and seeded to config: each bar is a card row the user can demote to hide, never a pin. `ProgressSettings` itself declares no field, so each node's subclass owns its bars and the accessor name is free.
+- Ending a block or a `track()` loop — also by an exception or `break` — resets that bar to its idle default, so a save between blocks stores nothing.
+- Blocks on different bars nest; on the same bar, any end resets it. A field name that is not a progress field raises `ValueError`; a field named `busy` or `track` raises `TypeError`.
+- `track()` takes its fraction from `len()`, or `total=`; without either the bar sweeps.
+- Both work from any thread the node owns, so a node that waits for an answer on its own thread shows it the same way.
+- `span.step()` drops writes closer than 50 ms unless the label changes; call it as often as you like.
+
 ## 3a. Using `LibrarySettings` from a State, Editor, or Panel
 
 Hold a `LibrarySettings` instance the same way you'd hold any other dependency: construct it once, read fields off it. No injection, no setup call.

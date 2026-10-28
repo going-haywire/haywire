@@ -47,7 +47,6 @@ class NodeWrapperState:
     """The node has passed structural validation"""
     has_test_passed: bool = False
     """The node has been successfully tested"""
-    is_executing: bool = False
     error_import: Optional[HaywireException] = None
     """node import error"""
     error_instantiate: Optional[HaywireException] = None

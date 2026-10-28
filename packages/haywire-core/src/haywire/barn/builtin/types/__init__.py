@@ -6,6 +6,7 @@ from .color import COLOR, ColorStr
 from .exec import EXEC
 from .fold import FOLD
 from .optional import OPTIONAL
+from .progress import PROGRESS
 from .specs import BOOL, FLOAT, INT, STRING, FLOATField, INTField
 from .vectors import VEC2F, VEC2I, VEC3F, VEC3I, VEC4F, VEC4I
 
@@ -32,4 +33,5 @@ __all__ = [
     "COLOR",
     "ColorStr",
     "OPTIONAL",
+    "PROGRESS",
 ]

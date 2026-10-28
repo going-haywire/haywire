@@ -42,8 +42,6 @@ class EdgeWrapperState:
     """The outlet port has been validated"""
     is_linked: bool = False
     """The edge is linked to both ports"""
-    is_executing: bool = False
-    """Edge is currently transforming data"""
     warnings: List[str] = field(default_factory=list)
     """main warning message"""
     error_link: Optional[HaywireException] = None
