@@ -1154,3 +1154,101 @@ def test_unregistered_failure_offers_no_automatic_fix() -> None:
     assert failure.fix_id is None
     assert "haybale-alpha" in failure.message
     assert 'distribute = "git"' in failure.remedy
+
+
+# ── path sources a clone cannot satisfy ─────────────────────────────────────
+# A git row installs from a clone of the repository, where uv applies the
+# clone's own [tool.uv.sources]. A path leading out of the repository exists
+# only on the author's machine, so it breaks every consumer's `uv lock`.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _write_root_pyproject(repo: Path, body: str) -> None:
+    (repo / "pyproject.toml").write_text(body)
+
+
+def test_root_path_source_outside_the_repo_fails(project: Path) -> None:
+    _write_root_pyproject(
+        project, '[tool.uv.sources]\nhaybale-core = { path = "../haywire-repo/barn/haybale-core" }\n'
+    )
+    _commit(project, "dev links")
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert report.ok is False
+    failure = report.failures[0]
+    assert "pyproject.toml: haybale-core = ../haywire-repo/barn/haybale-core" in failure.message
+    assert failure.fix_id is None
+    assert 'distribute = "pypi"' in failure.remedy
+
+
+def test_library_path_source_outside_the_repo_fails(project: Path) -> None:
+    lib = project / "barn" / "haybale-alpha"
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text()
+        + '\n[tool.uv.sources]\nhaywire-core = { path = "/abs/haywire-repo/packages/haywire-core" }\n'
+    )
+    _commit(project, "dev link")
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert report.ok is False
+    assert "barn/haybale-alpha/pyproject.toml: haywire-core = /abs/haywire-repo/packages/haywire-core" in (
+        report.failures[0].message
+    )
+
+
+def test_every_escaping_source_is_listed_in_one_failure(project: Path) -> None:
+    _write_root_pyproject(
+        project,
+        "[tool.uv.sources]\n"
+        'haywire-core = { path = "../dev/packages/haywire-core" }\n'
+        'haybale-core = [{ path = "../dev/barn/haybale-core", marker = "sys_platform == \'darwin\'" }]\n',
+    )
+    _commit(project, "dev links")
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert len(report.failures) == 1
+    assert "haywire-core = ../dev/packages/haywire-core" in report.failures[0].message
+    assert "haybale-core = ../dev/barn/haybale-core" in report.failures[0].message
+
+
+def test_sources_a_clone_can_satisfy_pass(project: Path) -> None:
+    """Workspace members, in-repo paths and git sources all exist in a clone."""
+    _write_root_pyproject(
+        project,
+        "[tool.uv.sources]\n"
+        "haybale-alpha = { workspace = true }\n"
+        'haybale-beta = { path = "barn/haybale-beta" }\n'
+        'haybale-gamma = { git = "https://example.org/gamma.git", tag = "v1" }\n',
+    )
+    lib = project / "barn" / "haybale-alpha"
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text() + '\n[tool.uv.sources]\nhaybale-beta = { path = "../haybale-beta" }\n'
+    )
+    _commit(project, "in-repo sources")
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert report.ok, report.failures
+
+
+def test_a_pypi_project_may_keep_its_path_sources(project: Path) -> None:
+    from unittest.mock import patch
+
+    from haywire.core.publishing.pipeline.steps import preconditions as mod
+
+    _write_root_pyproject(
+        project,
+        '[tool.haywire.marketstall]\ndistribute = "pypi"\n\n'
+        '[tool.uv.sources]\nhaybale-core = { path = "../haywire-repo/barn/haybale-core" }\n',
+    )
+    _commit(project, "dev links, pypi")
+
+    with patch.object(mod, "_pypi_name_is_registered", return_value=True):
+        report = SharePipeline(project).check_preconditions()
+
+    assert report.ok, report.failures

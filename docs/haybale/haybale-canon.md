@@ -449,7 +449,7 @@ from haywire.ui.themes.registry import ThemeRegistry
 | Command | Does |
 | --- | --- |
 | `uv run haywire init my-project` | Scaffold a project with a starter haybale |
-| `uv run haywire init my-project --dev` | Also register every dev-repo sibling as a project heap |
+| `uv run haywire init my-project --dev` | Also link the framework packages to your haywire checkout by path, and register every dev-repo sibling as a project heap. `share` refuses a git publish while those links are present ([sharing guide §4.3](../guides/sharing-libraries.md#43-no-path-sources-outside-the-repository)) |
 | `uv run haywire docs barn/haybale-mylib` | Generate docs for one library |
 | `uv run haywire docs --all` | Generate docs for every in-repo library |
 | `uv run haywire deps check` | Read-only drift check; exits 1 on drift. A PR gate |

@@ -296,7 +296,7 @@ class TestProjectMarketplace:
 
 
 class TestDevMode:
-    """`haywire init --dev` adds editable source paths to the generated pyprojects."""
+    """`haywire init --dev` adds editable source paths to the project's root pyproject."""
 
     def test_project_has_sources(self, scaffold_project_dev):
         data = toml.loads((scaffold_project_dev / "pyproject.toml").read_text())
@@ -316,13 +316,23 @@ class TestDevMode:
         for pkg in ["haywire-studio", "haywire-core"]:
             assert Path(data["tool"]["uv"]["sources"][pkg]["path"]).is_dir()
 
-    def test_library_has_framework_source(self, scaffold_project_dev):
+    @pytest.mark.parametrize("dev", [True, False])
+    def test_only_a_dev_project_is_told_about_the_share_limit(
+        self, tmp_path, monkeypatch, fake_home, capsys, dev
+    ):
+        from haywire_studio.init import _get_dev_repo_root, init_project
+
+        monkeypatch.chdir(tmp_path)
+        init_project("note-project", auto_sync=False, dev_repo=_get_dev_repo_root() if dev else None)
+
+        assert ("refuses to publish git coordinates" in capsys.readouterr().out) is dev
+
+    def test_library_carries_no_sources(self, scaffold_project_dev):
+        """The root's sources cover the library, so the dev links live in one file."""
         data = toml.loads(
             (scaffold_project_dev / "barn" / "hay-test-project-dev" / "pyproject.toml").read_text()
         )
-        sources = data["tool"]["uv"]["sources"]
-        assert "haywire-core" in sources
-        assert sources["haywire-core"]["editable"] is True
+        assert "sources" not in data.get("tool", {}).get("uv", {})
 
     def test_dev_project_marketplace_includes_dev_repo_libs(self, scaffold_project_dev):
         """In --dev mode the project marketplace holds the scaffolded library AND

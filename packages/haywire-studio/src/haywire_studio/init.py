@@ -250,29 +250,21 @@ def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None =
     return toml.dumps(data)
 
 
-def _generate_library_pyproject(
-    name: str, lib_name: str, module_name: str, dev_repo: str | None = None
-) -> str:
+def _generate_library_pyproject(name: str, lib_name: str, module_name: str) -> str:
     """Generate the local haybale library's pyproject.toml content.
 
     Commented so an author can tell what's safe to hand-edit from what a
     publish regenerates — see docs/reference/files/pyproject-toml.md for the
-    full field-by-field breakdown.
+    full field-by-field breakdown. Carries no ``[tool.uv.sources]``: in
+    ``--dev`` mode the project root's sources apply to the library too.
 
     Args:
         name: Project name.
         lib_name: The scaffolded local library's resolved dist name
             (``hay-<base>`` by default, or the ``--distname`` override).
         module_name: Python module name (e.g. hay_my_project).
-        dev_repo: If set, absolute path to the haywire dev repo.
     """
     pin = _release_pin()
-    sources_section = ""
-    if dev_repo:
-        sources_section = f'''
-[tool.uv.sources]
-haywire-core = {{ path = "{dev_repo}/packages/haywire-core", editable = true }}
-'''
 
     return f'''# Full field reference: docs/reference/files/pyproject-toml.md
 [project]
@@ -304,7 +296,7 @@ build-backend = "hatchling.build"
 # reaches the wheel, including haybale.toml — do not add include/exclude here.
 [tool.hatch.build.targets.wheel]
 packages = ["{module_name}"]
-{sources_section}'''
+'''
 
 
 def _generate_haybale_toml(name: str, lib_name: str, label: str) -> str:
@@ -842,9 +834,7 @@ def init_project(
         _generate_project_pyproject(name, lib_name, dev_repo=dev_repo)
     )
 
-    (lib_dir / "pyproject.toml").write_text(
-        _generate_library_pyproject(name, lib_name, module_name, dev_repo=dev_repo)
-    )
+    (lib_dir / "pyproject.toml").write_text(_generate_library_pyproject(name, lib_name, module_name))
 
     (pkg_dir / "__init__.py").write_text(_generate_library_init(name, label))
     (pkg_dir / "haybale.toml").write_text(_generate_haybale_toml(name, lib_name, label))
@@ -934,5 +924,11 @@ def init_project(
     print("  git remote add origin <your-repo-url>")
     print("  git push -u origin master")
     print("  uv run haywire share --save")
+    if dev_repo:
+        print(
+            "\n  This --dev project links to your haywire checkout by path (pyproject.toml,\n"
+            "  [tool.uv.sources]). `haywire share` refuses to publish git coordinates while\n"
+            '  those links are present: remove them first, or set distribute = "pypi".'
+        )
     print("\nCheck your current security exposure:")
     print("  uv run haywire security status")

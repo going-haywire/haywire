@@ -51,17 +51,26 @@ Those are the ENGINE's units of work. The screens are the USER's units of decisi
 
 ### 2.1 Step 1 — Preconditions
 
-`check_preconditions()` verifies everything needed to publish and collects **every** failure in one pass, rather than raising on the first — a user missing both a remote and a barn library should see both at once, not discover the second after fixing the first. It returns a `PreconditionsReport` (`ok` is `True` iff `failures` is empty); `require_preconditions()` wraps it and raises `PreconditionsError` on failure.
+`check_preconditions()` verifies everything needed to publish and **stops at the first failure**, so a `PreconditionsReport` carries at most one. An earlier failure can make a later probe moot or misleading: nothing else matters while the tree is dirty, and probing an origin that doesn't exist wastes a network round trip. The author fixes what is reported and checks again. `ok` is `True` iff `failures` is empty; `require_preconditions()` wraps it and raises `PreconditionsError` on failure.
 
-It checks, in order:
+It checks, in order. A fix in brackets is the `fix_id` the wizard offers as a button; a check without one has a remedy text only.
 
-- `git --version` — if git itself is missing, every other probe would just report the same missing binary as a different symptom, so the method returns immediately with a single failure.
-- `barn/` exists and contains at least one directory with a `pyproject.toml` (via `barn.barn_library_dirs()`).
-- Every barn library's `pyproject.toml` parses via `read_manifest()` — a malformed file or an invalid `[tool.haywire].os` declaration is reported here rather than surfacing later as a crash mid-docs-generation or a silently wrong marketstall entry.
-- An `origin` remote is configured.
-- The remote is reachable, via `git ls-remote --symref origin HEAD`. This exercises the exact credential path `git push` uses, so an auth failure surfaces here rather than after a commit and tag already exist. `--symref` also narrows the round-trip to one ref and additionally names the remote's default branch (`ref: refs/heads/<name>\tHEAD` in the output) — the local `git symbolic-ref refs/remotes/origin/HEAD` is *not* a usable substitute, since nothing populates it without an explicit `git remote set-head`.
-- HEAD is not detached (`git symbolic-ref -q HEAD`, not `git rev-parse --abbrev-ref HEAD` — see §5 for why).
-- The current branch matches the remote's default branch (see §5).
+1. `git --version`. If git itself is missing, every other probe would report the same missing binary as a different symptom.
+2. The working tree is clean (`git status --porcelain`, whole repo) [`commit_dirty_tree`]. The rollback after a failed step resets the whole tree, which is safe only if nothing was dirty before the run.
+3. The project root is the git root. Declared example and test paths are project-relative, but a consumer resolves them against the repository.
+4. `barn/` exists and contains at least one directory with a `pyproject.toml` (via `barn.barn_library_dirs()`).
+5. No library is still named under the reserved `hay-` prefix. Every offender is listed in one failure, with a ready-to-run `haywire rename` command each.
+6. Per barn library, in order:
+   - its manifest parses via `read_manifest()`, and its `haybale.toml` declares no invalid `os` value [`strip_os`];
+   - a declared `examples_path` / `tests_path` exists [`set_examples_path` / `set_tests_path` when candidates exist on disk, else `clear_…`];
+   - its `pyproject.toml` agrees with `haybale.toml` [`sync_pyproject`].
+7. Under `distribute = "git"`, no `[tool.uv.sources]` `path` in the root or a barn `pyproject.toml` is absolute or leads out of the repository. A consumer installs from a clone, where uv applies those sources and the path does not exist. No fix is offered: the author either removes the links or publishes to PyPI, where a package carries no sources.
+8. An `origin` remote is configured [`add_origin`].
+9. The remote's host is recognized [`add_host_config`]. A remote that is a local filesystem path names no host and skips this check.
+10. The remote is reachable, via `git ls-remote --symref origin HEAD`. This exercises the exact credential path `git push` uses, so an auth failure surfaces here rather than after a commit and tag already exist. `--symref` also narrows the round-trip to one ref and additionally names the remote's default branch (`ref: refs/heads/<name>\tHEAD` in the output) — the local `git symbolic-ref refs/remotes/origin/HEAD` is *not* a usable substitute, since nothing populates it without an explicit `git remote set-head`.
+11. HEAD is not detached (`git symbolic-ref -q HEAD`, not `git rev-parse --abbrev-ref HEAD` — see §5 for why) [`switch_branch`, only when a branch already contains the commit].
+12. The current branch matches the remote's default branch (see §5) [`switch_branch`, only when the branch has nothing unmerged].
+13. Under `distribute = "pypi"`, every library's name is registered on PyPI. Skipped when PyPI cannot be reached, so it never blocks an offline publish.
 
 Reporting rather than raising also matters for the Preflight screen. It runs automatically when the flow opens (`show_step_flow(auto_start=True)`) — a first step that only checks, writes nothing, and asks the user to confirm an intent they already expressed by opening it does not deserve a button. On failure the screen renders the message and its remedy **inline**, offering the in-place fix where one exists (`fix_id`) and "Check again" always. So it needs a populated failure to render, not an exception to catch before the UI exists.
 

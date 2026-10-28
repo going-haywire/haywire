@@ -191,6 +191,30 @@ switch to the default branch and publish from there: `git switch main`.
 This check, along with a companion check that HEAD isn't detached, always
 runs — there's no flag to skip it.
 
+### 4.3 No path sources outside the repository
+
+Under `distribute = "git"` (the default), a consumer installs your library from
+a **clone of the whole repository**, and uv applies that clone's own
+`[tool.uv.sources]` when it resolves: the root `pyproject.toml`'s as well as
+the library's. A `path` source that is absolute, or that leads out of the
+repository, does not exist in the clone, so the consumer's `uv lock` and
+`uv run` fail. It keeps working on your machine, because the path exists there.
+
+`haywire share` therefore refuses a git publish while the root or any `barn/*`
+`pyproject.toml` has such an entry, and lists each one. Sources a clone can
+satisfy pass: `{ workspace = true }`, a `path` inside the repository, and `git`
+or `url` sources.
+
+The usual cause is a project scaffolded with `haywire init --dev`, which links
+the framework packages to your haywire checkout by path in the root
+`pyproject.toml`. You have two ways out:
+
+- Remove those entries before sharing (and add them back afterwards if you
+  want to keep working against your checkout).
+- Publish to PyPI instead: set `distribute = "pypi"` and upload the package
+  yourself — see [publish-to-pypi](./publish-to-pypi.md). A PyPI package
+  carries no `[tool.uv.sources]`, so a `--dev` project can keep its links.
+
 ## 5. Hosting your marketstall
 
 A marketstall is just a TOML file. Wherever consumers can reach by URL, you can host one. Common patterns:
@@ -379,8 +403,8 @@ command prints which library and which manifest entries are missing. Resolve it
 with `haywire share` (interactive) or the Library Overview Editor's Detect
 Dependencies button ([§6.3](#63-keeping-the-manifests-honest)).
 
-**You're working in `--dev` mode and want to share a library that has dev-repo dependencies.**
-`haywire share`'s output uses `source = "git"` for haywire's `dependencies` field, which is correct — consumers don't have your dev workspace. But the dev-repo path-style `pyproject.toml` won't survive `pip install`. Make sure the published version of your library declares versioned dependencies (`haybale-core>=0.0.1`), not editable path sources. `haywire share` handles this correctly when the dependencies are listed in the library's `pyproject.toml` rather than in the project root's `pyproject.toml`.
+**`haywire share` fails with "These [tool.uv.sources] paths point outside the repository".**
+Your project links packages by a path that exists only on your machine — typically the framework links `haywire init --dev` writes. A git publish would break every consumer's `uv lock`. Remove the listed entries, or publish to PyPI with `distribute = "pypi"`. See [§4.3](#43-no-path-sources-outside-the-repository).
 
 ## 9. Reading on
 

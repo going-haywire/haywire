@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
+import toml
 
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.haybale_toml import HAYBALE_TOML, read_raw
@@ -392,6 +394,18 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                 barn_libraries=barn_libraries,
             )
 
+    # ── git coordinates need sources a clone can satisfy ────────────────
+    # A consumer installs a git row from a clone of this repository, and uv
+    # applies the clone's own [tool.uv.sources] there. A path leading out of
+    # the repository works on this machine only, so nothing surfaces here.
+    escaping = _escaping_path_sources(pipeline.repo_root, barn_libraries)
+    if escaping:
+        return PreconditionsReport(
+            failures=[_escaping_path_sources_failure(escaping)],
+            remote_url=None,
+            barn_libraries=barn_libraries,
+        )
+
     # No framework-consistency check: the marketstall's `require` is derived
     # from each library's pyproject floor at write time, so the two carriers
     # cannot disagree. The invariant is asserted by a unit test over
@@ -525,6 +539,64 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
         remote_url=remote_url,
         barn_libraries=barn_libraries,
         default_branch=default_branch,
+    )
+
+
+def _escaping_path_sources(repo_root: Path, barn_libraries: list[Path]) -> list[tuple[str, str, str]]:
+    """``(file, package, path)`` for every ``path`` source a clone of the repository cannot satisfy.
+
+    Reads ``[tool.uv.sources]`` in the root ``pyproject.toml`` and in every barn
+    library's. A path is unsatisfiable when it is absolute or leads outside the
+    repository. Returns nothing for a project that declares ``distribute =
+    "pypi"``: a PyPI package carries no sources. Unreadable files are skipped.
+    """
+    from haywire.core.publishing.marketstall import DISTRIBUTE_PYPI, read_distribute
+
+    if read_distribute(repo_root) == DISTRIBUTE_PYPI:
+        return []
+
+    repo = Path(os.path.normpath(repo_root))
+    found: list[tuple[str, str, str]] = []
+    for pyproject in [repo_root / "pyproject.toml", *(lib / "pyproject.toml" for lib in barn_libraries)]:
+        try:
+            data = toml.loads(pyproject.read_text())
+        except (OSError, toml.TomlDecodeError):
+            continue
+        sources = data.get("tool", {}).get("uv", {}).get("sources", {})
+        if not isinstance(sources, dict):
+            continue
+        try:
+            rel_file = str(pyproject.relative_to(repo_root))
+        except ValueError:
+            rel_file = str(pyproject)
+        for package, entries in sources.items():
+            # uv allows a list of sources per package, each with its own marker.
+            for entry in entries if isinstance(entries, list) else [entries]:
+                path = entry.get("path") if isinstance(entry, dict) else None
+                if not isinstance(path, str):
+                    continue
+                # normpath, not resolve(): a barn/ symlink must not carry the check out of the repo.
+                target = Path(os.path.normpath(pyproject.parent / path))
+                if Path(path).is_absolute() or not target.is_relative_to(repo):
+                    found.append((rel_file, package, path))
+    return found
+
+
+def _escaping_path_sources_failure(escaping: list[tuple[str, str, str]]) -> PreconditionFailure:
+    """No ``fix_id``: the author decides between removing the links and publishing to PyPI."""
+    listed = "\n".join(f"  {rel_file}: {package} = {path}" for rel_file, package, path in escaping)
+    return PreconditionFailure(
+        message=f"These [tool.uv.sources] paths point outside the repository:\n{listed}",
+        remedy=(
+            'This project publishes git coordinates (`distribute = "git"`), so a consumer '
+            "installs from a clone of this repository, and uv applies these sources there. "
+            "A path outside the repository does not exist in the clone, so the consumer's "
+            "`uv lock` and `uv run` fail. They work on this machine only because the path "
+            "exists here.\n\n"
+            'Either remove these entries before sharing, or set `distribute = "pypi"` in '
+            "`[tool.haywire.marketstall]` of the root pyproject.toml and upload the package "
+            "to PyPI yourself: a PyPI package carries no sources."
+        ),
     )
 
 
