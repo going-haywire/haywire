@@ -62,7 +62,8 @@ This is unproven. The bisection only shows that this commit holds the step.
 
 ## Harness
 
-`.scratch/draw-perf/`; see its `README.md`. In short:
+`.scratch/draw-perf/`; see its `README.md`. The bisect scripts (`bis.sh`, `runall.sh`, `measure.py`) and raw
+results were removed on 2026-10-28, once this was resolved; recover them from git history. In short, they did:
 - create a worktree with `git worktree add --detach .scratch/draw-perf/c2 <sha>`, then run `uv sync` in it;
 - then run `.scratch/draw-perf/bis.sh <sha>`.
 

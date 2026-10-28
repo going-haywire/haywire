@@ -51,7 +51,7 @@ Each has its own note in `internals/handoff/`:
 - **#40** `graph-loop-benchmark-drift.md` — `graph_loop` ~8% slower between June and September 2026, not attributed.
 - **#41** **PARTLY DONE** (2026-10-27: the install flow's `checked` step warns when it would replace an editable install, and still installs on confirm. The mangled `subdirectory` is not uv's bug, see #67. Write-back questions 2 and 4 remain open) `install-writeback-breaks-the-dev-repo.md` — a marketplace install over an editable install silently replaces it.
 - **#43** **DONE** (2026-10-27: a positioned Popup's overlay takes no input; a capture-phase `pointerdown`/`wheel` listener closes it unless the event lands on a layer above the page; the `contextmenu` re-dispatch and the overlay wheel handler are gone) `popup-overlay-should-stop-capturing.md` — a `backdrop_click_close` Popup intercepts outside clicks.
-- **#44** `startup-main-thread-block.md` — the browser main thread is blocked ~800 ms after a large load.
+- **#44** **PARKED** (2026-10-28: attributed, not fixed. A 512-node load stalls the main thread 1–3 s at a time in both engines: Vue mount, NiceGUI's whole-page render walk, style and layout per delivered message. Cost is per element, so batching does not help (`b07adc60a`); the levers are elements per card and the render walk, which overlap #9. Findings: `.insights/project_large_graph_load_cost.md`; handoff removed) the browser main thread is blocked ~800 ms after a large load.
 
 ## 7. Found while working the backlog
 

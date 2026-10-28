@@ -21,6 +21,11 @@ lands inside ~6%.
 | `js.py` | evaluate arbitrary JS against the settled canvas |
 | `stacking.py` | census of paint-chunk / stacking-context inducing CSS on the canvas |
 | `analyze_trace.py` | summarize a devtools trace: per-thread busy, self time by event |
+| `startupgap.py` | how long the main thread is unavailable while a graph loads, per tick, either engine |
+| `earlyfreeze.py` | the same short pan early in a load and after settling |
+| `eventcensus.py` | which listeners a hover or pan crossing wakes |
+| `loadtrace.py` | devtools trace of a page load from navigation on, JS sampler included |
+| `loadtrace_analyze.py` | attribute a load trace's long tasks to timeline events and JS functions |
 | `session.py` | shared plumbing (login, readiness, overlay buttons) — not run directly |
 
 ## Usage

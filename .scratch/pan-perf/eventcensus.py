@@ -21,7 +21,7 @@ Read the counts per second of pan, not the absolutes: the wheel stream is
 wall-clock driven, so a slow frame gets fewer events (RESULTS.md, retracted A/B).
 
     uv run python .scratch/pan-perf/eventcensus.py
-    uv run python .scratch/pan-perf/eventcensus.py --zoom 0.09 --graph 10x300nodes
+    uv run python .scratch/pan-perf/eventcensus.py --zoom 0.09 --graph 10x512n_5x448e
 """
 
 from __future__ import annotations
