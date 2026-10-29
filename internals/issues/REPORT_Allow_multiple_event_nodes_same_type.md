@@ -2,6 +2,10 @@
 
 Date: 2026-06-03
 Type: design change (loosen a structural rule)
+Status (2026-10-29): **blocked on execution groups** (`docs/superpowers/plans/2026-10-29-execution-groups.md`,
+ADR 0064). Do not loosen before that lands: two event nodes whose chains share a control node would
+run that node on two threads at once. Once it lands the refusal breaks nothing it protects and should
+go (ADR 0043: defuse, don't refuse). Fan-out stays illegal: ADR 0044 caps a control outlet at one link.
 
 ## The restriction today
 
@@ -60,27 +64,28 @@ rule forbids exactly that. The two rules together make parallel same-event start
 
 ## Open questions / interactions
 
-- **Determinism / ordering.** If two flows are triggered by one event, do they run
-  concurrently (separate scheduler threads — current model) with no ordering
-  guarantee? Is that acceptable, or do some events need ordered fan-out? Document
-  the contract either way.
+- **Determinism / ordering.** Answered by execution groups (D3/D4): disjoint chains
+  land in separate groups and run in parallel, unordered; chains sharing a control
+  node merge into one group and run one frame at a time in trigger arrival order.
 - **Shutdown semantics.** Multiple `Shutdown` nodes → multiple graceful-teardown
-  flows. The scoped grace period in `Interpreter.stop_execution` already waits on
-  *all* flows under `system:shutdown` (it iterates the list), so this is already
-  handled — but worth a test.
-- **Should this fully replace the fan-out desire, or coexist?** See Issue 2: if
-  control fan-out were ever made legal, the need for multiple event nodes shrinks.
-  These are alternative answers to the same expressiveness gap — decide which is the
-  canonical way to express "N parallel chains from one event."
+  flows. `Interpreter.stop_execution` waits on *all* flows under `system:shutdown`,
+  and execution groups keep that protocol — still worth a test.
+- **Fan-out vs. multiple event nodes.** Settled: ADR 0044 caps a control outlet at
+  one link, so multiple event nodes are the only way to express "N parallel chains
+  from one event."
+
+## What to test when unblocked
+
+- Two Begin Play nodes, disjoint chains → two groups, both run on one BEGIN_PLAY.
+- Two Begin Play nodes sharing a control node → one group, frames serialized.
+- Two Shutdown nodes → both run within the stop grace period.
 
 ## Related
-- `REPORT_Compiler_accepts_invald_graph.md` — the EXEC-outlet fan-out that assembly
-  silently accepts (`edge_wrappers[0]`, drops the rest). Direct counterpart: this
-  issue assumes fan-out stays illegal and routes the need through multiple event
-  nodes instead.
-- `REPORT_Shared_node_concurrent_execution.md` — more event nodes ⇒ more flows ⇒
-  more opportunity for node sharing across flows ⇒ raises the priority of the
-  per-shared-node frame lock.
+
+- ADR 0044 (link ceiling) — a control outlet takes one link; replaces the retired
+  `REPORT_Compiler_accepts_invald_graph.md`.
+- ADR 0064 / execution groups plan — replaces `REPORT_Shared_node_concurrent_execution.md`;
+  makes shared nodes across flows safe, which is what this change needs.
 - Inquisition resolution: "one event node per flow" (one *flow* rooted per event
   node) still holds; this issue only loosens "one event node per *event type* per
   *graph*."
