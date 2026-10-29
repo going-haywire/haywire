@@ -18,6 +18,7 @@ window.GraphEvents = {
     ARRANGE_NODES: 'arrangeNodes', // Lay out the flow of nodes, a node's downstream or upstream nodes, or the whole graph
     SELECT_CONNECTED: 'selectConnected', // Select the nodes downstream or upstream of a node
     ROTATE_NODES: 'rotateNodes', // Turn the layout of the selected nodes a quarter turn
+    TRIM_CANVAS: 'trimCanvas', // Centre every node on a canvas trimmed to them, then fit the view
     COLLAPSE_TO_GROUP: 'collapseToGroup', // Collapse the selected nodes into a Group
     EXPAND_GROUP: 'expandGroup', // Expand a Group back into the graph around it
     ENTER_GROUP: 'enterGroup', // Enter a Graph-node: a Group or a macro placement
@@ -204,6 +205,16 @@ window.EventCreators = {
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { node_ids, clockwise },
+      requires_broadcast: true
+    };
+  },
+
+  createTrimCanvas(sessionId = 'default') {
+    return {
+      event_type: 'trimCanvas',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: {  },
       requires_broadcast: true
     };
   },
@@ -538,6 +549,11 @@ window.EventValidators = {
 
   validateRotateNodes(data) {
     const requiredFields = ["node_ids", "clockwise"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateTrimCanvas(data) {
+    const requiredFields = [];
     return requiredFields.every(field => field in data);
   },
 

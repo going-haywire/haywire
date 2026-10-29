@@ -49,12 +49,12 @@ def test_stage_extent_measures_only_on_stage_nodes_plus_the_origin(graph_with_li
     off.node.props.stage_x = 9000.0
     off.node.props.stage_y = 9000.0
     on.node.props.on_stage = True
-    on.node.props.stage_x = 4500.0
+    on.node.props.stage_x = 2500.0
 
     graph._check_canvas_size(STAGE)
 
     width, height = graph.canvas_extent(STAGE)
-    assert width > 4500 + STAGE.origin  # the on-stage node grows the width
+    assert width > 2500 + STAGE.origin  # the on-stage node grows the width
     assert width < 9000  # the off-stage node at 9000 does not
     assert height == _CANVAS_MIN_SIZE
 

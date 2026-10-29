@@ -172,6 +172,8 @@ class VisualLayerHandlers:
         self.edge_states: Dict[str, EdgeVisualState] = {}
         # True while sync_with_graph_chunked mounts nodes; edges wait until it ends.
         self.mounting = False
+        # Set by fit_view_after_validation; the next on_validated fits the view and clears it.
+        self._fit_pending = False
 
         if hasattr(canvas_vue, "client"):
             self._release_on_client_delete(canvas_vue.client)
@@ -267,6 +269,20 @@ class VisualLayerHandlers:
             self.canvas_vue.emit_sync_event(SyncAllEdgesEvent(edges=batch))
 
         self.canvas_vue.update()
+
+        if self._fit_pending:
+            self._fit_pending = False
+            self.fit_view()
+
+    def fit_view(self) -> None:
+        """Fit the viewport to show every card on this canvas."""
+        zoom_container = getattr(self.canvas_vue, "zoom_container", None)
+        if zoom_container is not None:
+            zoom_container.center_on_content()
+
+    def fit_view_after_validation(self) -> None:
+        """Fit the viewport once the next validation result has moved and resized the canvas."""
+        self._fit_pending = True
 
     def _canvas_position(self, node: BaseNode) -> Tuple[float, float]:
         """Return the node's position on this canvas, the channel origin included."""

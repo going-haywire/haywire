@@ -421,6 +421,12 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         if zoom_container is not None:
             zoom_container.center_on_content()
 
+    def trim_canvas(self) -> None:
+        """Emit TrimCanvasEvent; the canvas the menu opened on applies it."""
+        from haywire.ui.components.graph.event_definitions import TrimCanvasEvent
+
+        self._emit(TrimCanvasEvent())
+
     # EdgeContextActions
 
     def delete_edge(self, edge_id: str) -> None:

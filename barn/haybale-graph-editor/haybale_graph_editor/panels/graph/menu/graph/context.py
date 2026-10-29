@@ -106,6 +106,38 @@ class FocusGraphPanel(BasePanel):
 
 @panel(
     surface=GraphToolBar,
+    label="Trim Canvas",
+    description="Centre every node on a canvas trimmed to them, then fit the view, as an icon shortcut.",
+    icon=hui.icon.trim_canvas,
+    order=25,
+)
+class TrimCanvasPanel(BasePanel):
+    """Centre every node on a canvas trimmed to them, then fit the view, as an icon shortcut.
+
+    The nodes move as one undo step, leaving a margin the size of the shorter side of the box
+    around them on every side.
+    """
+
+    actions: GraphActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        from haybale_graph_editor.state.edit_state import EditState
+
+        graph = ctx.data[EditState].active_graph
+        return graph is not None and len(graph.node_wrappers) >= 1
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            hui.icon_action(
+                hui.icon.trim_canvas,
+                tooltip="Trim Canvas",
+                on_click=self.actions.trim_canvas,
+            )
+
+
+@panel(
+    surface=GraphToolBar,
     label="New Node",
     description="Open the New Node wizard, as an icon shortcut.",
     icon=hui.icon.node_new,

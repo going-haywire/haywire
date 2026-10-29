@@ -288,6 +288,8 @@ class AppIcon:
     """Promote setting to port"""
     focus_graph: Final[str] = "center_focus_strong"
     """Fit the viewport to show every node in the graph."""
+    trim_canvas: Final[str] = "crop"
+    """Centre every node on a canvas trimmed to them."""
 
     # ── Status ───────────────────────────────────────────────────────────────
     ok: Final[str] = "task_alt"

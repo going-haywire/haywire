@@ -38,9 +38,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Canvas auto-expansion constants
-_CANVAS_EDGE_MARGIN = 1000
-_CANVAS_EXPANSION_STEP = 2000
+# Smallest canvas extent on either axis.
 _CANVAS_MIN_SIZE = 4000
 
 
@@ -576,13 +574,37 @@ class BaseGraph:
             return self.canvas_width, self.canvas_height
         return self._channel_extents.get(channel.name, (_CANVAS_MIN_SIZE, _CANVAS_MIN_SIZE))
 
+    def _member_bounds(self, channel: LayoutChannel) -> Tuple[float, float, float, float] | None:
+        """Return ``(left, top, right, bottom)`` in canvas pixels of the cards ``channel`` includes.
+
+        ``None`` when the channel includes no node.
+        """
+        members = [w.node.props for w in self.node_wrappers.values() if channel.includes(w.node.props)]
+        if not members:
+            return None
+        lefts, tops, rights, bottoms = [], [], [], []
+        for props in members:
+            x, y = channel.to_canvas(getattr(props, channel.x), getattr(props, channel.y))
+            lefts.append(x)
+            tops.append(y)
+            rights.append(x + getattr(props, channel.width))
+            bottoms.append(y + getattr(props, channel.height))
+        return min(lefts), min(tops), max(rights), max(bottoms)
+
+    @staticmethod
+    def _canvas_indent(bounds: Tuple[float, float, float, float]) -> float:
+        """Return the margin a trimmed canvas leaves around ``bounds``: its shorter side."""
+        left, top, right, bottom = bounds
+        return min(right - left, bottom - top)
+
     def _check_canvas_size(self, channel: LayoutChannel | None = None) -> bool:
         """Recompute the canvas extent of ``channel`` from the nodes it includes.
 
-        Measures the largest position among the nodes ``channel.includes()``, adds
-        ``channel.origin``, and rounds up to the next ``_CANVAS_EXPANSION_STEP`` boundary,
-        never below ``_CANVAS_MIN_SIZE``. Adds the channel's name to ``_canvas_size_changed``
-        when the extent actually changes, so the next ``ValidationResult`` carries it.
+        Each axis reaches past the furthest card edge by the larger of the space before the
+        nearest card and the shorter side of the box around all cards, and is never below
+        ``_CANVAS_MIN_SIZE``. So a layout from :meth:`trimmed_positions` keeps its extent.
+        Adds the channel's name to ``_canvas_size_changed`` when the extent actually
+        changes, so the next ``ValidationResult`` carries it.
 
         Args:
             channel: Layout channel to measure. ``None`` means ``PATCH``.
@@ -593,19 +615,15 @@ class BaseGraph:
         from ..node.layout import PATCH  # a module-level import cycles through haywire.core.node
 
         channel = channel if channel is not None else PATCH
-        members = [w.node.props for w in self.node_wrappers.values() if channel.includes(w.node.props)]
-        if not members:
+        bounds = self._member_bounds(channel)
+        if bounds is None:
             new_w = _CANVAS_MIN_SIZE
             new_h = _CANVAS_MIN_SIZE
         else:
-            max_x = max(getattr(props, channel.x) for props in members)
-            max_y = max(getattr(props, channel.y) for props in members)
-            needed_w = max_x + channel.origin + _CANVAS_EDGE_MARGIN
-            needed_h = max_y + channel.origin + _CANVAS_EDGE_MARGIN
-            steps_w = math.ceil(needed_w / _CANVAS_EXPANSION_STEP)
-            steps_h = math.ceil(needed_h / _CANVAS_EXPANSION_STEP)
-            new_w = max(_CANVAS_MIN_SIZE, steps_w * _CANVAS_EXPANSION_STEP)
-            new_h = max(_CANVAS_MIN_SIZE, steps_h * _CANVAS_EXPANSION_STEP)
+            left, top, right, bottom = bounds
+            indent = self._canvas_indent(bounds)
+            new_w = max(_CANVAS_MIN_SIZE, math.ceil(right + max(left, indent)))
+            new_h = max(_CANVAS_MIN_SIZE, math.ceil(bottom + max(top, indent)))
 
         if (new_w, new_h) == self.canvas_extent(channel):
             return False
@@ -646,6 +664,49 @@ class BaseGraph:
         """
         self._check_all_canvas_sizes()
         self._canvas_size_changed.clear()
+
+    def trimmed_positions(self, channel: LayoutChannel | None = None) -> Dict[str, Dict[str, float]]:
+        """Return the positions that centre every card in ``channel`` on a trimmed canvas.
+
+        The cards move together, locked ones included, so a margin the size of the shorter
+        side of the box around them is left on all four sides. Where that makes an axis
+        shorter than ``_CANVAS_MIN_SIZE``, the cards are centred on that axis instead. The
+        canvas extent follows on the next size check.
+
+        Args:
+            channel: Layout channel to trim. ``None`` means ``PATCH``.
+
+        Returns:
+            Node id to ``{"x": ..., "y": ...}`` in ``channel`` coordinates, ready for
+            ``Editor.move_nodes_to``. Only nodes that move are listed, so an
+            already-trimmed canvas returns an empty dict.
+
+        Example::
+
+            editor.move_nodes_to(graph.trimmed_positions())
+        """
+        from ..node.layout import PATCH  # a module-level import cycles through haywire.core.node
+
+        channel = channel if channel is not None else PATCH
+        bounds = self._member_bounds(channel)
+        if bounds is None:
+            return {}
+        left, top, right, bottom = bounds
+        indent = self._canvas_indent(bounds)
+        width, height = right - left, bottom - top
+        dx = round((max(_CANVAS_MIN_SIZE, width + 2 * indent) - width) / 2 - left)
+        dy = round((max(_CANVAS_MIN_SIZE, height + 2 * indent) - height) / 2 - top)
+        if dx == 0 and dy == 0:
+            return {}
+        positions = {}
+        for node_id, wrapper in self.node_wrappers.items():
+            props = wrapper.node.props
+            if channel.includes(props):
+                positions[node_id] = {
+                    "x": getattr(props, channel.x) + dx,
+                    "y": getattr(props, channel.y) + dy,
+                }
+        return positions
 
     def _get_port(self, node_id: str, port_id: str) -> "DataPort":
         """Convenience method to get a port from a node."""

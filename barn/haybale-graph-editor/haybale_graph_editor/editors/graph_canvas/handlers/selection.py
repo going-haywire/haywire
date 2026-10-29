@@ -30,6 +30,7 @@ from haywire.ui.components.graph.event_definitions import (
     RotateNodesEvent,
     SelectConnectedEvent,
     SelectionChangedEvent,
+    TrimCanvasEvent,
     UserCopySelectedEvent,
     UserPasteClipboardEvent,
     UserRemoveEvent,
@@ -227,6 +228,26 @@ class SelectionHandlers:
         positions = rotated_positions(self.graph, event.node_ids, event.clockwise)
         if not editor.move_nodes_to(positions, self.channel):
             ui.notify("Nothing to rotate", type="warning")
+
+    @handles_event(TrimCanvasEvent)
+    def process_trim(self, _event: TrimCanvasEvent):
+        """Centre every node on a canvas trimmed to them (one undoable op), then fit the view.
+
+        See ``BaseGraph.trimmed_positions``. Patch canvas only; a stage canvas declines with a
+        notice. An already-trimmed canvas only fits the view.
+        """
+        if self.channel.stage:
+            ui.notify("Trim works in the patch view", type="warning")
+            return
+        editor = self.route.editor()
+        if editor is None:
+            return
+        positions = self.graph.trimmed_positions(self.channel)
+        if positions and editor.move_nodes_to(positions, self.channel):
+            if self._visual_layer is not None:
+                self._visual_layer.fit_view_after_validation()
+        elif self._visual_layer is not None:
+            self._visual_layer.fit_view()
 
     def _selectable(self, node_ids: Set[str]) -> Set[str]:
         """The nodes of ``node_ids`` that are not locked and that this canvas's view shows."""

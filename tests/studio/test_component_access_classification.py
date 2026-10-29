@@ -175,6 +175,7 @@ EDIT_PANELS = {
     "TestRevalidateNodeMenuPanel",
     "TestSessionStateMenuPanel",
     "ThemeSettingsPanel",
+    "TrimCanvasPanel",
     "UpdateMacroMenuPanel",
     "SelectDownstreamMenuPanel",
     "SelectFlowSelectionMenuPanel",

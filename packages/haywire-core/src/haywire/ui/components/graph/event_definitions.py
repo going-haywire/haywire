@@ -238,6 +238,16 @@ class RotateNodesEvent(BaseGraphEvent):
 
 
 @graph_event(
+    "trimCanvas",
+    category="user",
+    description="Centre every node on a canvas trimmed to them, then fit the view",
+)
+@dataclass
+class TrimCanvasEvent(BaseGraphEvent):
+    pass
+
+
+@graph_event(
     "collapseToGroup",
     category="user",
     description="Collapse the selected nodes into a Group",
