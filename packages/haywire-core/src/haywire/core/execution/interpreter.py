@@ -198,7 +198,7 @@ class Interpreter:
         Shutdown flow, which would run on the outdated assembly.
 
         Args:
-            timeout: Grace-period budget for the Shutdown flow to complete.
+            timeout: Grace-period budget for every Shutdown flow to complete, in total.
         """
         if not self._executing:
             return
@@ -209,12 +209,14 @@ class Interpreter:
             # Dispatch SHUTDOWN so a Shutdown-rooted flow can run its graceful path.
             self.dispatch_system_event(SystemEventType.SHUTDOWN)
 
-            # Scoped grace: wait (bounded) only for the Shutdown flow(s) to finish.
+            # Scoped grace: wait (bounded) only for the Shutdown flow(s) to
+            # finish, one deadline for all of them.
             shutdown_key = SystemEvent(type=SystemEventType.SHUTDOWN).get_subscription_key()
             shutdown_flows = self.event_subscriptions.get(shutdown_key, [])
+            deadline = time.monotonic() + timeout
             for flow in shutdown_flows:
                 if flow.queue:
-                    flow.queue.wait_for_completion(timeout)
+                    flow.queue.wait_for_completion(max(0.0, deadline - time.monotonic()))
 
         # Force teardown: stop every group; on_shutdown backstops any
         # producer threads not stopped by a graceful path.

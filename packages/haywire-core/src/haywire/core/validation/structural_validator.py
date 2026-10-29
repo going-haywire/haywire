@@ -463,48 +463,23 @@ class StructuralValidator(IStructuralValidator):
         return (True, None, [])
 
     def _validate_event_nodes_graph_wide(self) -> List[str]:
-        """
-        Validate event node constraints across the entire graph.
+        """Return an error for each event node that failed its own structural validation.
 
-        Rules:
-        - No duplicate event subscriptions (only one node per event)
-        - All event nodes individually valid
-
-        Returns:
-            List of error messages (empty if valid)
+        Several event nodes may share one event subscription: each roots its
+        own flow, and one dispatch triggers them all (ADR 0064).
         """
-        errors = []
-        event_subscriptions: dict[str, list[str]] = {}  # subscription_key -> list of node_ids
         from haywire.core.node.behavior import NodeType
 
+        errors = []
         for node_wrapper in self.graph.node_wrappers.values():
-            node = node_wrapper.node
-
-            # Check if this is an event node
-            if NodeType.EVENT in node.behavior.node_type:
-                # Check individual validity
-                if not node_wrapper._state.is_structural:
-                    errors.append(
-                        f"Event node {node_wrapper.node_id} failed structural validation: "
-                        f"{node_wrapper._state.error_structural}"
-                    )
-
-                # Track subscription for duplicate detection
-                if node.event_subscription:
-                    sub_key = node.event_subscription.get_subscription_key()
-                    if sub_key not in event_subscriptions:
-                        event_subscriptions[sub_key] = []
-                    event_subscriptions[sub_key].append(node_wrapper.node_id)
-
-        # Check for duplicate subscriptions
-        for sub_key, node_ids in event_subscriptions.items():
-            if len(node_ids) > 1:
+            if (
+                NodeType.EVENT in node_wrapper.node.behavior.node_type
+                and not node_wrapper._state.is_structural
+            ):
                 errors.append(
-                    f"Multiple event nodes subscribe to '{sub_key}': "
-                    f"{', '.join(node_ids)}. Only one event node per "
-                    f"event type is allowed."
+                    f"Event node {node_wrapper.node_id} failed structural validation: "
+                    f"{node_wrapper._state.error_structural}"
                 )
-
         return errors
 
     # ========================================================================

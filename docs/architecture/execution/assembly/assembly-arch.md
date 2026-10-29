@@ -61,7 +61,6 @@ assemble_graph(graph)
 
 | Check | Why |
 |---|---|
-| **Duplicate event types** | Multiple event nodes listening for the same event (e.g. two `BeginPlay` nodes) is undefined — which Flow runs first? |
 | **Subgraph contents** | Checked by `StructuralValidator._validate_subgraph_contents`, not here: exactly one Subgraph Input and one Subgraph Output, and no EVENT or OUTPUT node |
 | **Cycle detection in data-flow** | Implemented in `DataFlowBuilder._check_cycles`, not in `_validate_graph()`. Pure data cycles are illegal; cycles passing through a CONTROL node are allowed |
 
@@ -197,6 +196,8 @@ A graph with `BeginPlay`, `Tick`, and a `CallbackEvent('frame_ready')` node yiel
 | Flow 3 | `CallbackEvent('frame_ready')` | when another Flow emits `'frame_ready'` |
 
 The Interpreter registers Flow 3 with `CallbackManager` under `'frame_ready'` when it starts the Flow; any node that emits `'frame_ready'` then triggers it.
+
+Several event nodes may listen for the same event — two `BeginPlay` nodes, say. Each roots its own Flow, and one dispatch triggers all of them. Since a control outlet takes one link (ADR 0044), this is how one event starts several independent chains. Their order follows the execution groups (ADR 0064): Flows with disjoint chains run in parallel, unordered; Flows whose chains share a control node run one frame at a time, in arrival order.
 
 ## 6. Open questions
 

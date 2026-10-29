@@ -157,29 +157,8 @@ class FlowAssemblyManager:
         Returns:
             List of validation errors (empty if valid)
         """
-        errors = []
-
-        # Check for duplicate event nodes of same type
-        event_nodes = self._identify_event_nodes(graph)
-        event_types: Dict[str, List[str]] = {}
-
-        for node in event_nodes:
-            if node.event_subscription is not None:
-                key = node.event_subscription.get_subscription_key()
-                if key not in event_types:
-                    event_types[key] = []
-                event_types[key].append(node.node_id)
-
-        for event_type, node_ids in event_types.items():
-            if len(node_ids) > 1:
-                errors.append(
-                    f"Multiple event nodes listening for '{event_type}': {node_ids}. "
-                    f"Only one event node per event type is allowed."
-                )
-
-        errors.extend(self._validate_subgraphs(graph))
-
-        return errors
+        # Several event nodes may share one subscription: each roots its own flow (ADR 0064).
+        return self._validate_subgraphs(graph)
 
     def _validate_subgraphs(self, graph: "BaseGraph") -> List[str]:
         """Check every Subgraph's own shape, and that each has exactly one card.

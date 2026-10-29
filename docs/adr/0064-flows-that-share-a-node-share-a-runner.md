@@ -47,4 +47,5 @@ level: framework
 - A shared data node's state advances per frame of the first-arriving group, so two groups never both see "their own" update of it in the same round.
 - Two Flows sharing a control node no longer run in parallel; Flows that share only data stay parallel.
 - After an edit that requires reassembly the graph is parked until the haystack restarts it; that stop skips the Shutdown flow, which would run on the outdated assembly, and relies on `on_shutdown`.
+- Several event nodes may share one event subscription (two `BeginPlay` nodes, two `Shutdown` nodes): each roots its own Flow and one dispatch triggers them all; the Shutdown grace period is one deadline for all Shutdown flows.
 - A stuck worker no longer hangs stop: the group is killed, then abandoned, and the graph cannot start again until the stuck thread returns.
