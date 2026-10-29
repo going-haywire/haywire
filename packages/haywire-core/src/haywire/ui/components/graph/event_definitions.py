@@ -227,6 +227,17 @@ class SelectConnectedEvent(BaseGraphEvent):
 
 
 @graph_event(
+    "rotateNodes",
+    category="user",
+    description="Turn the layout of the selected nodes a quarter turn",
+)
+@dataclass
+class RotateNodesEvent(BaseGraphEvent):
+    node_ids: List[str]
+    clockwise: bool
+
+
+@graph_event(
     "collapseToGroup",
     category="user",
     description="Collapse the selected nodes into a Group",

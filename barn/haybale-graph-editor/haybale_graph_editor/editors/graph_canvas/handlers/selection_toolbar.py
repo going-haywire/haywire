@@ -305,6 +305,9 @@ class SelectionToolbarProvider:
     def select_from(self, node_id: str, scope: "ArrangeScope") -> None:
         self._menu_provider.select_from(node_id, scope)
 
+    def rotate_selection(self, clockwise: bool) -> None:
+        self._menu_provider.rotate_selection(clockwise)
+
     def dissolve_reroute(self, node_id: str) -> None:
         self._menu_provider.dissolve_reroute(node_id)
 

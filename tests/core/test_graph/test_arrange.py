@@ -11,6 +11,7 @@ from haywire.core.graph.arrange import (
     ArrangeScope,
     arrange_layout,
     arranged_nodes,
+    rotated_positions,
     connected_nodes,
 )
 from haywire.core.graph.editor import Editor
@@ -288,3 +289,55 @@ def test_directed_scopes_refuse_several_start_nodes():
     graph = _graph(["a>b", "c>d"])
     with pytest.raises(ValueError, match="one start node"):
         arrange_layout(graph, DOWN, ["a", "c"])
+
+
+# ---------------------------------------------------------------------------
+# rotated_positions
+# ---------------------------------------------------------------------------
+
+
+def _centre(graph, positions, n):
+    x0, y0, x1, y1 = _rect(graph, positions, n)
+    return (x0 + x1) / 2, (y0 + y1) / 2
+
+
+def test_clockwise_turns_a_left_to_right_row_top_to_bottom():
+    graph = _graph(["a>b"], positions={"a": (0.0, 0.0), "b": (300.0, 0.0)})
+    positions = rotated_positions(graph, ["a", "b"], clockwise=True)
+    (ax, ay), (bx, by) = _centre(graph, positions, "a"), _centre(graph, positions, "b")
+    assert ax == pytest.approx(bx)
+    assert by - ay == pytest.approx(300.0)
+
+
+def test_counter_clockwise_turns_it_bottom_to_top():
+    graph = _graph(["a>b"], positions={"a": (0.0, 0.0), "b": (300.0, 0.0)})
+    positions = rotated_positions(graph, ["a", "b"], clockwise=False)
+    assert _centre(graph, positions, "b")[1] < _centre(graph, positions, "a")[1]
+
+
+def test_rotation_keeps_the_centre_and_four_turns_come_back():
+    graph = _graph(
+        ["a>b", "b>c"],
+        sizes={"b": (180, 90)},
+        positions={"a": (10.0, 20.0), "b": (300.0, -40.0), "c": (520.0, 200.0)},
+        locked=["c"],
+    )
+    ids = ["a", "b", "c"]
+    before = {n: _centre(graph, {}, n) for n in ids}
+    positions = rotated_positions(graph, ids, clockwise=True)
+    assert set(positions) == set(ids)  # locked nodes turn too
+    after = {n: _centre(graph, positions, n) for n in ids}
+    for axis in (0, 1):
+        assert sum(c[axis] for c in after.values()) == pytest.approx(sum(c[axis] for c in before.values()))
+    for _ in range(3):
+        for n, p in positions.items():
+            graph.node_wrappers[n].node.props.posX = p["x"]
+            graph.node_wrappers[n].node.props.posY = p["y"]
+        positions = rotated_positions(graph, ids, clockwise=True)
+    assert {n: _centre(graph, positions, n) for n in ids} == pytest.approx(before)
+
+
+def test_rotating_fewer_than_two_nodes_moves_nothing():
+    graph = _graph(["a>b"])
+    assert rotated_positions(graph, ["a"], clockwise=True) == {}
+    assert rotated_positions(graph, ["a", "nope"], clockwise=True) == {}

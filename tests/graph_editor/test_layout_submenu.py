@@ -25,6 +25,8 @@ from haybale_graph_editor.panels.graph.menu.selection.layout import (
     ArrangeFlowMenuPanel,
     ArrangeUpstreamMenuPanel,
     LayoutSelectionMenuPanel,
+    RotateClockwiseMenuPanel,
+    RotateCounterClockwiseMenuPanel,
     SelectDownstreamMenuPanel,
     SelectFlowSelectionMenuPanel,
     SelectUpstreamMenuPanel,
@@ -42,7 +44,11 @@ from haywire.core.graph.arrange import ArrangeGaps, ArrangeScope
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.node.layout import PATCH, STAGE
 from haywire.ui import elements as hui
-from haywire.ui.components.graph.event_definitions import ArrangeNodesEvent, SelectConnectedEvent
+from haywire.ui.components.graph.event_definitions import (
+    ArrangeNodesEvent,
+    RotateNodesEvent,
+    SelectConnectedEvent,
+)
 from haywire.ui.panel import BasePanel, PanelRegistry
 from haywire.ui.panel.host_rendering import render_panel
 from haywire.ui.panel.layout import PanelLayout
@@ -368,3 +374,73 @@ def test_a_stage_canvas_declines_to_arrange() -> None:
         handlers.process_arrange(ArrangeNodesEvent(node_ids=["a"], scope="flow"))
     editor.move_nodes_to.assert_not_called()
     notify.assert_called_once()
+
+
+def test_rotate_needs_two_nodes_and_calls_rotate_selection() -> None:
+    for panel_cls, clockwise in ((RotateClockwiseMenuPanel, True), (RotateCounterClockwiseMenuPanel, False)):
+        assert panel_cls.poll(_ctx({"n1"})) is False
+        assert panel_cls.poll(_ctx({"n1", "n2"})) is True
+        assert panel_cls.class_identity.surface is SelectionLayoutMenu
+        assert panel_cls.class_identity.requires is AccessTier.EDIT
+        actions = MagicMock()
+        panel_obj: Any = object.__new__(panel_cls)
+        panel_obj.actions = actions
+        panel_obj._rotate()
+        actions.rotate_selection.assert_called_once_with(clockwise)
+
+
+def test_the_providers_emit_and_forward_rotate() -> None:
+    provider = _provider()
+    provider._context = _ctx({"b", "a"})
+    provider.rotate_selection(True)
+    assert [c.args[0] for c in provider._emit.call_args_list] == [
+        RotateNodesEvent(node_ids=["a", "b"], clockwise=True)
+    ]
+    menu_provider = MagicMock()
+    toolbar: Any = object.__new__(SelectionToolbarProvider)
+    toolbar._menu_provider = menu_provider
+    toolbar.rotate_selection(False)
+    menu_provider.rotate_selection.assert_called_once_with(False)
+
+
+def test_a_rotate_event_moves_the_rotated_positions_and_keeps_the_selection() -> None:
+    editor = MagicMock()
+    handlers = _arranging(editor)
+    handlers.selected_nodes = {"a", "b"}
+    positions = {"a": {"x": 1.0, "y": 2.0}}
+    target = "haybale_graph_editor.editors.graph_canvas.handlers.selection.rotated_positions"
+    with patch(target, return_value=positions) as rotate:
+        handlers.process_rotate(RotateNodesEvent(node_ids=["a", "b"], clockwise=True))
+    rotate.assert_called_once_with(handlers.graph, ["a", "b"], True)
+    editor.move_nodes_to.assert_called_once_with(positions, PATCH)
+    assert handlers.selected_nodes == {"a", "b"}
+
+
+def test_a_stage_canvas_declines_to_rotate() -> None:
+    editor = MagicMock()
+    handlers = _arranging(editor, channel=STAGE)
+    with patch("haybale_graph_editor.editors.graph_canvas.handlers.selection.ui.notify") as notify:
+        handlers.process_rotate(RotateNodesEvent(node_ids=["a", "b"], clockwise=False))
+    editor.move_nodes_to.assert_not_called()
+    notify.assert_called_once()
+
+
+@pytest.mark.anyio
+async def test_a_rotate_row_leaves_the_menu_open(user: User) -> None:
+    calls: list[str] = []
+    actions = MagicMock()
+    actions.rotate_selection.side_effect = lambda clockwise: calls.append(f"rotate {clockwise}")
+    captured: dict[str, PanelLayout] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        with hui.open_flyout_group(dismiss=lambda: calls.append("dismiss")):
+            panel_obj: Any = object.__new__(RotateClockwiseMenuPanel)
+            panel_obj.actions = actions
+            captured["layout"] = PanelLayout(ui.column())
+            panel_obj.draw(_ctx({"n1", "n2"}), captured["layout"])
+
+    await user.open("/")
+    _click_row(captured["layout"].container, "Rotate Clockwise")
+
+    assert calls == ["rotate True"]

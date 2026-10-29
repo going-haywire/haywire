@@ -3,7 +3,9 @@
 The selected nodes are the start nodes. Layout lays out their flow, or the nodes downstream or
 upstream of a single start node, keeping a single start node in place; Arrange Flow also takes
 several, arranging every flow they touch. Select needs exactly one node and selects the nodes
-downstream or upstream of it. Both need EDIT. See ``haywire.core.graph.arrange``.
+downstream or upstream of it. Layout also turns the layout of two or more selected nodes a quarter
+turn, to follow a change of the graph's layout direction. Both need EDIT. See
+``haywire.core.graph.arrange``.
 """
 
 from __future__ import annotations
@@ -58,6 +60,8 @@ def _selection_nonempty(ctx: "SessionContext") -> bool:
 #        -> ArrangeFlowMenuPanel
 #        -> ArrangeDownstreamMenuPanel
 #        -> ArrangeUpstreamMenuPanel
+#        -> RotateClockwiseMenuPanel
+#        -> RotateCounterClockwiseMenuPanel
 #  -> SelectFlowSelectionMenuPanel
 #     -> SelectionSelectMenu
 #        -> SelectDownstreamMenuPanel
@@ -257,3 +261,67 @@ class SelectUpstreamMenuPanel(_SelectMenuPanel):
     scope = ArrangeScope.UPSTREAM
     row_label = "Select Upstream"
     row_icon = hui.icon.select_upstream
+
+
+class _RotateMenuPanel(BasePanel):
+    """A menu row that turns the layout of the selected nodes a quarter turn; needs two nodes."""
+
+    actions: SelectionActions
+    clockwise: bool
+    row_label: str
+    row_icon: str
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return len(_start_nodes(ctx)) >= 2
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            # The menu stays open, so the next turn is one more click.
+            hui.menu_row(self.row_label, icon=self.row_icon, on_click=self._rotate, closes=False)
+
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        if _start_nodes(ctx):
+            with layout:
+                hui.menu_row(self.row_label, icon=self.row_icon, enabled=False)
+
+    def _rotate(self) -> None:
+        self.actions.rotate_selection(self.clockwise)
+
+
+@panel(
+    surface=SelectionLayoutMenu,
+    label="Rotate Clockwise",
+    description="Turn the layout of the selected nodes a quarter turn clockwise, in place.",
+    icon=hui.icon.rotate_clockwise,
+    order=40,
+)
+class RotateClockwiseMenuPanel(_RotateMenuPanel):
+    """Turn the layout of the selected nodes a quarter turn clockwise, in place.
+
+    Left-to-right becomes top-to-bottom. The cards keep their own size and appearance; set the
+    graph's layout direction to match.
+    """
+
+    clockwise = True
+    row_label = "Rotate Clockwise"
+    row_icon = hui.icon.rotate_clockwise
+
+
+@panel(
+    surface=SelectionLayoutMenu,
+    label="Rotate Counter-clockwise",
+    description="Turn the layout of the selected nodes a quarter turn counter-clockwise, in place.",
+    icon=hui.icon.rotate_counter_clockwise,
+    order=50,
+)
+class RotateCounterClockwiseMenuPanel(_RotateMenuPanel):
+    """Turn the layout of the selected nodes a quarter turn counter-clockwise, in place.
+
+    Left-to-right becomes bottom-to-top. The cards keep their own size and appearance; set the
+    graph's layout direction to match.
+    """
+
+    clockwise = False
+    row_label = "Rotate Counter-clockwise"
+    row_icon = hui.icon.rotate_counter_clockwise

@@ -17,6 +17,7 @@ window.GraphEvents = {
     RESTACK_NODES: 'restackNodes', // Change the stacking order of the selected nodes
     ARRANGE_NODES: 'arrangeNodes', // Lay out the flow of nodes, a node's downstream or upstream nodes, or the whole graph
     SELECT_CONNECTED: 'selectConnected', // Select the nodes downstream or upstream of a node
+    ROTATE_NODES: 'rotateNodes', // Turn the layout of the selected nodes a quarter turn
     COLLAPSE_TO_GROUP: 'collapseToGroup', // Collapse the selected nodes into a Group
     EXPAND_GROUP: 'expandGroup', // Expand a Group back into the graph around it
     ENTER_GROUP: 'enterGroup', // Enter a Graph-node: a Group or a macro placement
@@ -193,6 +194,16 @@ window.EventCreators = {
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { node_id, scope },
+      requires_broadcast: true
+    };
+  },
+
+  createRotateNodes(node_ids, clockwise, sessionId = 'default') {
+    return {
+      event_type: 'rotateNodes',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_ids, clockwise },
       requires_broadcast: true
     };
   },
@@ -522,6 +533,11 @@ window.EventValidators = {
 
   validateSelectConnected(data) {
     const requiredFields = ["node_id", "scope"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateRotateNodes(data) {
+    const requiredFields = ["node_ids", "clockwise"];
     return requiredFields.every(field => field in data);
   },
 

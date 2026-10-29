@@ -18,6 +18,7 @@ from haywire.core.graph.arrange import (
     arrange_layout,
     arranged_nodes,
     connected_nodes,
+    rotated_positions,
 )
 from haywire.core.graph.clipboard import build_clipboard_payload, is_haywire_payload
 from haywire.core.node.layout import PATCH, STAGE, LayoutChannel, layout_position_of, position_of
@@ -26,6 +27,7 @@ from haywire.core.signals import SelectionMoved
 
 from haywire.ui.components.graph.event_definitions import (
     ArrangeNodesEvent,
+    RotateNodesEvent,
     SelectConnectedEvent,
     SelectionChangedEvent,
     UserCopySelectedEvent,
@@ -209,6 +211,22 @@ class SelectionHandlers:
             if edge.source_node_id in nodes and edge.sink_node_id in nodes
         }
         self._replace_selection(nodes, edges)
+
+    @handles_event(RotateNodesEvent)
+    def process_rotate(self, event: RotateNodesEvent):
+        """Turn the layout of ``event.node_ids`` a quarter turn in place (one undoable op).
+
+        Patch canvas only; a stage canvas declines with a notice. The selection is unchanged.
+        """
+        if self.channel.stage:
+            ui.notify("Rotate works in the patch view", type="warning")
+            return
+        editor = self.route.editor()
+        if editor is None:
+            return
+        positions = rotated_positions(self.graph, event.node_ids, event.clockwise)
+        if not editor.move_nodes_to(positions, self.channel):
+            ui.notify("Nothing to rotate", type="warning")
 
     def _selectable(self, node_ids: Set[str]) -> Set[str]:
         """The nodes of ``node_ids`` that are not locked and that this canvas's view shows."""

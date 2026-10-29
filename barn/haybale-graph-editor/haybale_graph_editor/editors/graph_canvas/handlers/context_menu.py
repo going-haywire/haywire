@@ -739,6 +739,13 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
         self._emit(SelectConnectedEvent(node_id=node_id, scope=scope.value))
 
+    def rotate_selection(self, clockwise: bool) -> None:
+        """Emit RotateNodesEvent for the whole selection; the canvas the menu opened on applies it."""
+        from haywire.ui.components.graph.event_definitions import RotateNodesEvent
+
+        edit = self._context.data[EditState]
+        self._emit(RotateNodesEvent(node_ids=sorted(edit.selected_nodes), clockwise=clockwise))
+
     def arrange_graph(self) -> None:
         """Emit ArrangeNodesEvent for the whole graph."""
         from haywire.core.graph.arrange import ArrangeScope

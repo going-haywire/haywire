@@ -225,6 +225,43 @@ def arrange_layout(
     return {n: {"x": canvas[n][0] + dx, "y": canvas[n][1] + dy} for n in order if n not in fixed}
 
 
+def rotated_positions(
+    graph: "BaseGraph", node_ids: Collection[str], clockwise: bool
+) -> dict[str, dict[str, float]]:
+    """Return the patch positions that turn the layout of ``node_ids`` a quarter turn.
+
+    Each card's centre turns 90 degrees about the centre of all the cards, so the group stays
+    where it was; the cards themselves keep their size. Locked nodes turn with the rest. Use it
+    after changing a graph's layout direction, which moves no node: L2R turns into T2B
+    clockwise, and into B2T counter-clockwise.
+
+    Returns:
+        Node id to ``{"x": ..., "y": ...}``, ready for ``Editor.move_nodes_to``. Empty for
+        fewer than two known nodes, since one card turns in place.
+
+    Example::
+
+        editor.move_nodes_to(rotated_positions(graph, ["a", "b", "c"], clockwise=True))
+    """
+    known = [n for n in _starts(node_ids) if n in graph.node_wrappers and graph.node_wrappers[n].node]
+    if len(known) < 2:
+        return {}
+    centres = {}
+    for n in known:
+        (x, y), (w, h) = _position(graph, n), _size(graph, n)
+        centres[n] = (x + w / 2, y + h / 2)
+    cx = sum(x for x, _ in centres.values()) / len(centres)
+    cy = sum(y for _, y in centres.values()) / len(centres)
+    positions = {}
+    for n, (x, y) in centres.items():
+        dx, dy = x - cx, y - cy
+        # Canvas y points down, so clockwise on screen takes right to down.
+        tx, ty = (cx - dy, cy + dx) if clockwise else (cx + dy, cy - dx)
+        w, h = _size(graph, n)
+        positions[n] = {"x": tx - w / 2, "y": ty - h / 2}
+    return positions
+
+
 # =============================================================================
 # GRAPH READING
 # =============================================================================

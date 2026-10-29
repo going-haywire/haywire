@@ -83,6 +83,9 @@ class SelectionActions(Protocol):
     def arrange_from(self, node_ids: list[str], scope: "ArrangeScope") -> None: ...
     def select_from(self, node_id: str, scope: "ArrangeScope") -> None: ...
 
+    # Turns the layout of the whole selection a quarter turn, in place.
+    def rotate_selection(self, clockwise: bool) -> None: ...
+
 
 class SelectionMenu(Surface):
     """The selection right-click menu.

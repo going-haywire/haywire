@@ -126,6 +126,8 @@ EDIT_PANELS = {
     "GroupMenuPanel",
     "InsertRerouteMenuPanel",
     "LayoutSelectionMenuPanel",
+    "RotateClockwiseMenuPanel",
+    "RotateCounterClockwiseMenuPanel",
     "LockToolbarPanel",
     "MacroSelectionMenuPanel",
     "MinimapSettingsPanel",
