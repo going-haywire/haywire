@@ -1879,6 +1879,8 @@
       
         
       
+        
+      
     
     
     
@@ -2549,6 +2551,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../../architecture/errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2577,10 +2614,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
             
   
   
@@ -2598,8 +2635,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3571,51 +3608,52 @@ a node is placed, loaded or hot-reloaded; you never create one yourself.</p>
 <h2 id="3-a-complete-node">3. A complete node<a class="headerlink" href="#3-a-complete-node" title="Permanent link">&para;</a></h2>
 <p><div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@node</span><span class="p">(</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Math Operation&quot;</span><span class="p">,</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;math&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;single&quot;</span><span class="p">,</span> <span class="s2">&quot;basic&quot;</span><span class="p">,</span> <span class="s2">&quot;operation&quot;</span><span class="p">],</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">deprecation_warning</span><span class="o">=</span><span class="s2">&quot;This node will be moved to the math library&quot;</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;examples/math/basic&quot;</span><span class="p">,</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">MathOP</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Node that outputs a constant value&quot;&quot;&quot;</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="kn">from</span><span class="w"> </span><span class="nn">haybale_example.types.math</span><span class="w"> </span><span class="kn">import</span> <span class="n">MathOPSelector</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="kn">from</span><span class="w"> </span><span class="nn">haywire.barn.builtin.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">FLOAT</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="kn">from</span><span class="w"> </span><span class="nn">haywire.barn.builtin.widgets</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>            <span class="n">NumberWidget</span><span class="p">,</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="p">)</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>        <span class="c1"># Add inlets with different widget types</span>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>            <span class="n">MathOPSelector</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
-</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>                <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;operator&quot;</span><span class="p">,</span>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>                <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Operator&quot;</span><span class="p">,</span>
-</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>            <span class="p">)</span>
-</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>        <span class="p">)</span>
-</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>
-</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;value_a&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Value A&quot;</span><span class="p">,</span> <span class="n">widget</span><span class="o">=</span><span class="n">NumberWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
-</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>
-</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;value_b&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Value B&quot;</span><span class="p">,</span> <span class="n">widget</span><span class="o">=</span><span class="n">NumberWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
-</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>
-</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_outlet</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Result&quot;</span><span class="p">))</span>
-</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>
-</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">worker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">ExecutionContext</span><span class="p">,</span> <span class="n">value_a</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">value_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">operator</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>        <span class="n">result</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>        <span class="k">if</span> <span class="n">operator</span> <span class="o">==</span> <span class="n">MathOPs</span><span class="o">.</span><span class="n">ADD</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>            <span class="n">result</span> <span class="o">=</span> <span class="n">value_a</span> <span class="o">+</span> <span class="n">value_b</span>
-</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>        <span class="k">elif</span> <span class="n">operator</span> <span class="o">==</span> <span class="n">MathOPs</span><span class="o">.</span><span class="n">SUBTRACT</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>            <span class="n">result</span> <span class="o">=</span> <span class="n">value_a</span> <span class="o">-</span> <span class="n">value_b</span>
-</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>        <span class="k">elif</span> <span class="n">operator</span> <span class="o">==</span> <span class="n">MathOPs</span><span class="o">.</span><span class="n">MULTIPLY</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>            <span class="n">result</span> <span class="o">=</span> <span class="n">value_a</span> <span class="o">*</span> <span class="n">value_b</span>
-</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>        <span class="k">elif</span> <span class="n">operator</span> <span class="o">==</span> <span class="n">MathOPs</span><span class="o">.</span><span class="n">DIVIDE</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
-</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>            <span class="k">if</span> <span class="n">value_b</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>                <span class="n">result</span> <span class="o">=</span> <span class="n">value_a</span> <span class="o">/</span> <span class="n">value_b</span>
-</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>            <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>                <span class="n">result</span> <span class="o">=</span> <span class="mf">0.0</span>
-</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>        <span class="c1"># result = 1 / 0</span>
-</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
-</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a>        <span class="k">return</span> <span class="kc">None</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Node that outputs a constant value.&quot;</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;math&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;single&quot;</span><span class="p">,</span> <span class="s2">&quot;basic&quot;</span><span class="p">,</span> <span class="s2">&quot;operation&quot;</span><span class="p">],</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">deprecation_warning</span><span class="o">=</span><span class="s2">&quot;This node will be moved to the math library&quot;</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;examples/math/basic&quot;</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="k">class</span><span class="w"> </span><span class="nc">MathOP</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Node that outputs a constant value&quot;&quot;&quot;</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="kn">from</span><span class="w"> </span><span class="nn">haybale_example.types.math</span><span class="w"> </span><span class="kn">import</span> <span class="n">MathOPSelector</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="kn">from</span><span class="w"> </span><span class="nn">haywire.barn.builtin.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">FLOAT</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="kn">from</span><span class="w"> </span><span class="nn">haywire.barn.builtin.widgets</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>            <span class="n">NumberWidget</span><span class="p">,</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        <span class="p">)</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>        <span class="c1"># Add inlets with different widget types</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>            <span class="n">MathOPSelector</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>                <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;operator&quot;</span><span class="p">,</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>                <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Operator&quot;</span><span class="p">,</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>            <span class="p">)</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>        <span class="p">)</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;value_a&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Value A&quot;</span><span class="p">,</span> <span class="n">widget</span><span class="o">=</span><span class="n">NumberWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;value_b&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Value B&quot;</span><span class="p">,</span> <span class="n">widget</span><span class="o">=</span><span class="n">NumberWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_outlet</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Result&quot;</span><span class="p">))</span>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">worker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">ExecutionContext</span><span class="p">,</span> <span class="n">value_a</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">value_b</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">operator</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a>        <span class="n">result</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>        <span class="k">if</span> <span class="n">operator</span> <span class="o">==</span> <span class="n">MathOPs</span><span class="o">.</span><span class="n">ADD</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>            <span class="n">result</span> <span class="o">=</span> <span class="n">value_a</span> <span class="o">+</span> <span class="n">value_b</span>
+</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a>        <span class="k">elif</span> <span class="n">operator</span> <span class="o">==</span> <span class="n">MathOPs</span><span class="o">.</span><span class="n">SUBTRACT</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a>            <span class="n">result</span> <span class="o">=</span> <span class="n">value_a</span> <span class="o">-</span> <span class="n">value_b</span>
+</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>        <span class="k">elif</span> <span class="n">operator</span> <span class="o">==</span> <span class="n">MathOPs</span><span class="o">.</span><span class="n">MULTIPLY</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>            <span class="n">result</span> <span class="o">=</span> <span class="n">value_a</span> <span class="o">*</span> <span class="n">value_b</span>
+</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a>        <span class="k">elif</span> <span class="n">operator</span> <span class="o">==</span> <span class="n">MathOPs</span><span class="o">.</span><span class="n">DIVIDE</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>            <span class="k">if</span> <span class="n">value_b</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a>                <span class="n">result</span> <span class="o">=</span> <span class="n">value_a</span> <span class="o">/</span> <span class="n">value_b</span>
+</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a>            <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>                <span class="n">result</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a>        <span class="c1"># result = 1 / 0</span>
+</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+</span><span id="__span-1-48"><a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a>        <span class="k">return</span> <span class="kc">None</span>
 </span></code></pre></div>
 from: <code>MathOP</code> — registry_key: <code>haybale-example:node:MathOP</code></p>
 <p><strong>The decorator — <code>@node(...)</code>.</strong> <code>label</code>, <code>description</code>, <code>menu</code> (the canvas
@@ -3718,12 +3756,17 @@ graph runs — the next section.</p>
 <p><strong>When you edit the class (hot-reload),</strong> every placed node of it is rebuilt
 through <code>init()</code>: fresh, with only its arrangement kept (position, stacking order,
 place on stage), so your port changes show
-at once. In a graph open in an editor the user's setup is not lost: <strong>Undo</strong>
-(Ctrl+Z) brings each node back exactly as it was, and Redo makes it fresh again.
-Reset Node is undoable the same way. No undo step is recorded for a graph with
-no editor (such as a Group interior that was never opened), for a reload that
-fails to build the class, or for a node that handles the reload itself in
-<code>on_class_reloaded</code>; see <a href="../../../adr/0059-reload-and-reset-are-undoable/">ADR 0059</a>.</p>
+at once. The user's setup is not lost: a node the rebuild changed keeps its
+<strong>previous setup</strong> and shows an amber badge ("Settings reset by a code change").
+In the node's right-click menu, or the Node tab of the Properties editor,
+<strong>Restore</strong> brings the earlier settings back on the new code and <strong>Discard</strong>
+drops them; both are undoable, and the node stays where it is. This works in every
+graph, a closed Group interior included, and each such node also gets a warning in
+the Errors list. A reload records no undo step. A node that handles the reload
+itself in <code>on_class_reloaded</code> keeps nothing; see
+<a href="../../../adr/0062-a-reload-keeps-the-previous-setup/">ADR 0062</a>. Reset Node is
+undoable and also drops a held previous setup
+(<a href="../../../adr/0059-reload-and-reset-are-undoable/">ADR 0059</a>).</p>
 <h2 id="6-the-lifecycle">6. The lifecycle<a class="headerlink" href="#6-the-lifecycle" title="Permanent link">&para;</a></h2>
 <p>From creation to removal, the framework calls these hooks in this order:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>created          flow starts        each frame                                     flow stops    saved       removed
@@ -3753,12 +3796,12 @@ fails to build the class, or for a node that handles the reload itself in
 </tr>
 <tr>
 <td><code>on_startup(self, context)</code></td>
-<td>once, before the first worker run</td>
+<td>once, before the node's first use in a run</td>
 <td>acquire resources (devices, files)</td>
 </tr>
 <tr>
 <td><code>on_frame_start(self, context)</code></td>
-<td>each frame, before any node runs</td>
+<td>at the start of each frame of each execution group that executes the node</td>
 <td>per-frame setup</td>
 </tr>
 <tr>
@@ -3773,12 +3816,12 @@ fails to build the class, or for a node that handles the reload itself in
 </tr>
 <tr>
 <td><code>on_frame_end(self, context)</code></td>
-<td>each frame, after every node ran</td>
+<td>at the end of each frame of each execution group that executes the node</td>
 <td>per-frame cleanup</td>
 </tr>
 <tr>
 <td><code>on_shutdown(self, context)</code></td>
-<td>the flow stops</td>
+<td>after the node's last use in a run</td>
 <td>release resources</td>
 </tr>
 <tr>
@@ -3794,6 +3837,14 @@ fails to build the class, or for a node that handles the reload itself in
 </tbody>
 </table>
 <p>Override only what you need.</p>
+<p><code>on_startup</code> and <code>on_shutdown</code> run once per run, and more than once only if one execution group stops before another starts; calls always pair and never overlap. A node executed by several execution groups gets <code>on_frame_start</code>/<code>on_frame_end</code> from each of them; the calls never overlap, but may interleave between groups, so start and end are not guaranteed to pair.</p>
+<p><strong>Threading contract.</strong> A node never runs on two threads at once, but three things still reach it from outside its frames:</p>
+<ul>
+<li>A value written to an outlet crosses into other execution groups as written. Never mutate a value object in place once it is on an outlet; write a new one.</li>
+<li>Port <code>on_change</code> handlers and settings handlers apply immediately, from the UI, an edit route or Farmhand, and may run while <code>worker()</code> runs. Guard state such a handler shares with <code>worker()</code> with the node's own lock.</li>
+<li>A thread the node owns (a tick or capture loop) may emit callbacks and read inputs. It guards state shared with <code>worker()</code> and the lifecycle hooks with the node's own lock, and writes ports only through <code>self.post_value(port_id, value)</code>, never directly.</li>
+</ul>
+<p>See ADR 0064.</p>
 <h2 id="7-changing-ports-at-runtime">7. Changing ports at runtime<a class="headerlink" href="#7-changing-ports-at-runtime" title="Permanent link">&para;</a></h2>
 <p>So far a node's ports were fixed by <code>init()</code>. They need not be. A node can
 change its ports <em>while placed, with edges connected</em> — and keep the edges that
@@ -4121,7 +4172,7 @@ parameter with no matching port raises <code>ValueError</code>.</p>
 <tr>
 <td><code>on_startup</code></td>
 <td><code>(self, context)</code></td>
-<td>Once when flow starts</td>
+<td>Before the node's first use in a run</td>
 </tr>
 <tr>
 <td><code>on_frame_start</code></td>
@@ -4146,7 +4197,7 @@ parameter with no matching port raises <code>ValueError</code>.</p>
 <tr>
 <td><code>on_shutdown</code></td>
 <td><code>(self, context)</code></td>
-<td>Once when flow stops</td>
+<td>After the node's last use in a run</td>
 </tr>
 <tr>
 <td><code>on_saved</code></td>

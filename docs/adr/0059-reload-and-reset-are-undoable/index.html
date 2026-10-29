@@ -1645,6 +1645,8 @@
       
         
       
+        
+      
     
     
     
@@ -2315,6 +2317,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../architecture/errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2343,10 +2380,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
             
   
   
@@ -2364,8 +2401,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3101,6 +3138,7 @@
 <li>Carrying the user's data across the rebuild was tried and abandoned (2026-10-21): deciding whether a value still "fits" new code is a guess about intent, and the guesses kept misfiring.</li>
 </ul>
 <p><strong>Decision.</strong></p>
+<p><em>The hot-reload half is superseded by ADR 0062: a reload records no step and keeps the previous setup. Reset stands.</em></p>
 <ul>
 <li><strong>The rebuild stays pristine; the step before it is kept.</strong> <code>RebuildNodesAction</code> holds each node's <code>serialize()["node_data"]</code> from before the rebuild. Undo rebuilds every node exactly from it — the load path, as opening a saved file does. Redo rebuilds them through <code>init()</code> again. Both go through <code>BaseGraph.request_node_rebuild</code>, so the validation pass rebuilds attached edges with them.</li>
 <li><strong>Reset is that action</strong>, run through <code>Editor.reset_nodes</code> as an ordinary edit (refused below level mode edit).</li>

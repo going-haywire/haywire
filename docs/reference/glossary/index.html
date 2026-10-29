@@ -1651,6 +1651,8 @@
       
         
       
+        
+      
     
     
     
@@ -2321,6 +2323,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../architecture/errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2349,10 +2386,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
             
   
   
@@ -2370,8 +2407,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -4389,18 +4426,33 @@ Macro is registered and placed.</p>
 <td>Tick (reserved for the Tick node event), cycle</td>
 </tr>
 <tr>
-<td><strong>FlowScheduler</strong></td>
-<td>The per-Flow component that owns the trigger queue and the single execution thread; one scheduler per Flow, hence one per EVENT node. Decides what happens to incoming Triggers via its <strong>Queue mode</strong>. See <a href="../../architecture/execution/flow/flow-arch/">architecture/execution/flow</a></td>
-<td>Queue (the queue is one part of it), dispatcher</td>
+<td><strong>Execution group</strong></td>
+<td>Flows that share a control node. One runner thread runs the group's frames one at a time, in trigger arrival order. Data edges never join groups: values cross between groups as they are written. See <a href="../../adr/0064-flows-that-share-a-node-share-a-runner/">ADR 0064</a></td>
+<td>Flow group, thread group</td>
+</tr>
+<tr>
+<td><strong>Shared data node</strong></td>
+<td>A data node that more than one execution group executes. Groups take turns on it: the first to reach it in a frame computes it, the others read that result. Its state advances once per frame of whichever group reaches it first</td>
+<td>Shared node (also names a shared control node, which merges groups instead)</td>
+</tr>
+<tr>
+<td><strong>Frame barrier</strong></td>
+<td>The moment between two frames of an execution group, when none of its nodes is executing. Structural validation and stop take effect there</td>
+<td>Pause point</td>
+</tr>
+<tr>
+<td><strong>FlowQueue</strong></td>
+<td>The per-Flow component that owns the flow's trigger queue and queue mode; it decides whether and where an incoming Trigger waits, never when a frame runs — its frames run on its execution group's runner thread. One per Flow, hence one per EVENT node. See <a href="../../architecture/execution/flow/flow-arch/">architecture/execution/flow</a></td>
+<td>FlowScheduler (its former name), scheduler (the execution group schedules frames), dispatcher</td>
 </tr>
 <tr>
 <td><strong>Trigger</strong></td>
-<td>A single queued request to run a Flow once, built by <code>CallbackManager</code> when an EMIT node calls <code>emit_callback</code>; carries the payload (e.g. a video frame). Enqueued into the subscribing Flow's FlowScheduler</td>
+<td>A single queued request to run a Flow once, built by <code>CallbackManager</code> when an EMIT node calls <code>emit_callback</code>; carries the payload (e.g. a video frame). Enqueued into the subscribing Flow's FlowQueue</td>
 <td>Event (overloaded — see "event vs signal"), frame (a Trigger <em>carries</em> a video frame, it is not one)</td>
 </tr>
 <tr>
 <td><strong>Queue mode</strong></td>
-<td>How a FlowScheduler treats an incoming Trigger while a Frame is executing: <strong>DROP</strong> (discard it — newest-only, lossy by design) or <strong>BLOCK</strong> (queue it, with backpressure). Carried on the EVENT node's <code>EventSource</code> (<code>CallbackEvent.queue_mode</code>), read once at Assembly onto the Flow. The <code>QueueMode</code> enum is canonical. See ADR 0010</td>
+<td>How a FlowQueue treats an incoming Trigger while a Frame is executing: <strong>DROP</strong> (keep only the newest pending Trigger — a full queue replaces its oldest; lossy by design) or <strong>BLOCK</strong> (queue it, with backpressure). Carried on the EVENT node's <code>EventSource</code> (<code>CallbackEvent.queue_mode</code>), read once at Assembly onto the Flow. The <code>QueueMode</code> enum is canonical. See ADR 0010</td>
 <td>Backpressure (describes BLOCK only, not DROP — see Flagged ambiguities)</td>
 </tr>
 <tr>
@@ -4760,8 +4812,23 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Error ledger</strong></td>
-<td>A bounded, in-memory, sequence-numbered collection where every <code>HaywireException</code> registers at <code>.log()</code> time (registry-scan import errors wrapped in), queryable "since sequence N". First consumers are Farmhand's <code>studio_get_errors</code> and <code>studio_verify_component</code>. An <strong>Observable store</strong>.</td>
+<td>A bounded, in-memory, sequence-numbered collection where every <code>HaywireException</code> registers at <code>.log()</code> time (registry-scan import errors wrapped in), queryable "since sequence N". First consumers are Farmhand's <code>studio_get_errors</code> and <code>studio_verify_component</code>. It takes <strong>Failures</strong> and detected losses (<code>WARNING</code>), never a <strong>Refusal</strong>. Repeats merge into the unseen entry with the same fingerprint (<code>count</code>) — operation, registry key, graph, node, edge, category, source file and line, and the message with digits normalized; a merge adds no entry and fires no listener, and a repeat of a seen or deleted entry is new. An <strong>Observable store</strong>. See <a href="../../architecture/errors/errors-arch/">architecture/errors</a></td>
 <td>error log (file logs are unqueryable), exception history</td>
+</tr>
+<tr>
+<td><strong>Refusal</strong></td>
+<td>An expected rejection that correct code can reach: bad input, a stale id after another session's edit, a name collision. It goes back to whoever asked (a <code>False</code>, a toast with its own message, <code>[refused] …</code> for an agent) and never into the <strong>Error ledger</strong>. Raised as <code>Refusal</code> (<code>haywire.core.errors</code>); <code>FarmhandError</code> is one. See <a href="../../adr/0061-errors-reach-the-ledger-at-named-boundaries/">ADR 0061</a></td>
+<td>validation error, user error, <code>ValueError</code> (that is a <strong>Failure</strong>)</td>
+</tr>
+<tr>
+<td><strong>Failure</strong></td>
+<td>Any exception that is not a <strong>Refusal</strong>, <code>ValueError</code> included: only a bug or a broken environment reaches it. An <strong>Error boundary</strong> records it in the <strong>Error ledger</strong>, then carries on with its fallback</td>
+<td>error (unqualified: covers refusals too), crash</td>
+</tr>
+<tr>
+<td><strong>Error boundary</strong></td>
+<td>One of a short, named list of places on the studio's main pathways (an edit, undo/redo, a validation pass, a signal subscriber, a Farmhand tool call, load/save, hot reload, a UI handler) that catches what the code below it raises and records each <strong>Failure</strong> with the context it holds (<code>report_failure</code>), then runs its fallback. Inner code raises plain exceptions. See <a href="../../architecture/errors/errors-arch/">architecture/errors</a></td>
+<td>error handler, catch site (most <code>except</code> blocks are not boundaries)</td>
 </tr>
 <tr>
 <td><strong>Activity tracker</strong></td>
@@ -4770,7 +4837,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Observable store</strong></td>
-<td>Process-wide mutable state reached through an ambient <code>get_</code>/<code>set_</code> accessor in <code>core/di/context.py</code>, which fires a zero-arg listener on every state change; an app-side bridge turns those fires into a cross-session <strong>Signal</strong>. The store never broadcasts itself — not a layering rule (core <em>can</em> reach the dispatcher) but a safety one: <code>SignalDispatcher.broadcast</code> dispatches into the single-threaded bus, and a store like the <strong>Error ledger</strong> fires from watchdog threads with no running loop to hop from. The bridge owns that hop, so the pattern is safe wherever it is copied. It also keeps the store inert in tests and leaves the choice of <em>which</em> signal to the application. Instances: <strong>Error ledger</strong>, <strong>Activity tracker</strong>. Distinct from a <strong>strategy hook</strong> (e.g. <code>access_resolver</code>), which holds a <em>callable</em> whose absence is a valid operating mode.</td>
+<td>Process-wide mutable state reached through an ambient <code>get_</code>/<code>set_</code> accessor in <code>core/di/context.py</code>, which fires a zero-arg listener on every state change (the <strong>Error ledger</strong> skips a repeat merged into an unseen entry, since nothing new appeared); an app-side bridge turns those fires into a cross-session <strong>Signal</strong>. The store never broadcasts itself — not a layering rule (core <em>can</em> reach the dispatcher) but a safety one: <code>SignalDispatcher.broadcast</code> dispatches into the single-threaded bus, and a store like the <strong>Error ledger</strong> fires from watchdog threads with no running loop to hop from. The bridge owns that hop, so the pattern is safe wherever it is copied. It also keeps the store inert in tests and leaves the choice of <em>which</em> signal to the application. Instances: <strong>Error ledger</strong>, <strong>Activity tracker</strong>. Distinct from a <strong>strategy hook</strong> (e.g. <code>access_resolver</code>), which holds a <em>callable</em> whose absence is a valid operating mode.</td>
 <td>global, singleton (both true but they miss the listener/bridge half)</td>
 </tr>
 </tbody>
@@ -5372,6 +5439,11 @@ Macro is registered and placed.</p>
 <td>nullable, maybe, <code>Optional</code> (the Python typing construct)</td>
 </tr>
 <tr>
+<td><strong>Progress</strong></td>
+<td>Opt-in progress bars on a node card, reported by the node's own code. A node attaches a <code>ProgressSettings</code> subclass holding one <code>progress_field()</code> per bar (e.g. <code>main</code>, <code>sub</code>) with <code>progress = bag(MyProgress)</code>, then reports with <code>for x in self.progress.track("main", items, "label")</code> (a loop: the bar fills by the share passed) or <code>with self.progress.busy("main", "label") as span:</code> (anything else; <code>span.step(fraction)</code> reports how far). One <code>PROGRESS</code> value per bar holds three states: <strong>idle</strong> (<code>active=False</code>, the empty bar), <strong>busy without a known end</strong> (<code>fraction=None</code>, the bar sweeps) and <strong>busy at a fraction</strong> (0–1, the bar fills). Idle is the field's default: ending a block or loop — also by an exception or <code>break</code> — resets that bar, so a save between blocks stores nothing. Blocks on different bars nest (an overall bar around a per-step bar); on the same bar any end resets it. Works from any thread the node owns. Each bar is <code>Promotable.CONFIG</code> and seeded to config: a card row the user can demote, never a pin. <code>step()</code> drops writes closer than 50 ms unless the label changes. Nothing shows busy automatically: the framework does not know which work is slow, the author does</td>
+<td>busy highlight, busy state, spinner, <code>is_executing</code> (the removed wrapper flag)</td>
+</tr>
+<tr>
 <td><strong>widget key</strong></td>
 <td>The registry key (a plain string, e.g. <code>builtin:widget:SelectWidget</code>) selecting which <code>BaseWidget</code> subclass renders a field or port. Stamped on a <code>setting()</code> descriptor's <code>widget_key</code> attribute exactly once — at <code>__set_name__</code> for a class-body field, or at the end of <code>__init__</code> for a registry-constructed one (<code>registry.define(...)</code>, file auto-define) — never re-resolved at render time. An explicit <code>widget=</code> dict wins; otherwise it comes from the field's IType's declared identity (<code>@type(widget_key=...)</code>). See <a href="../../adr/0017-widget-selection-port-contract/">ADR 0017</a></td>
 <td>resolved_widget_key (removed — no render-time resolution), widget hint</td>
@@ -5388,7 +5460,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>set_widget_config</strong></td>
-<td><code>DataPort.set_widget_config(key, value)</code>: the one way a node changes a property of its port's widget config (a slider's <code>max</code>, a menu's <code>options</code>); <code>None</code> removes the property. It redraws the node's card when the property changed, and the card builds its widgets from the new config. Live reconfiguration of a drawn widget is a later design round behind the same call</td>
+<td><code>DataPort.set_widget_config(key, value)</code>: the one way a node changes a property of its port's widget config (a slider's <code>max</code>, a menu's <code>options</code>); <code>None</code> removes the property. It redraws the node's card when the property changed, and the card builds its widgets from the new config</td>
 <td>rejig (rebuilds the port)</td>
 </tr>
 <tr>
@@ -5521,13 +5593,28 @@ Macro is registered and placed.</p>
 <tbody>
 <tr>
 <td><strong>Fence</strong></td>
-<td>A <strong>boundary</strong> in the action history that groups the actions between two of them into one logical operation, so a single undo reverses a whole gesture. It does <strong>not block</strong> undo — undo walks straight past it. Fences are not actions: they do not count towards <code>max_actions</code>, because a canvas drag emits two per gesture and counting them evicted real undo steps long before the user's limit; a save and an unrecorded write add one too; repeated fences at the tail collapse, since a gesture that produced nothing still brackets itself</td>
+<td>A <strong>boundary</strong> in the action history: adding one flushes the steps still pending in the grouping window as one <strong>action group</strong>, so a single undo reverses a whole gesture, and ends any merge run. The fence itself lasts only until the next step: recording a step ends the redo branch, and a fence past the undo marker belongs to it, so the history holds at most one closing fence. It does <strong>not block</strong> undo — undo walks straight past it. Fences are not actions: they do not count towards <code>max_actions</code>, because a canvas drag emits two per gesture and counting them evicted real undo steps long before the user's limit; a save and an unrecorded write add one too; repeated fences at the tail collapse, since a gesture that produced nothing still brackets itself</td>
 <td>Barrier, checkpoint, undo stop (it stops nothing)</td>
 </tr>
 <tr>
 <td><strong>Rebuild step</strong></td>
-<td>The undo step a node Reset or a successful hot reload records (<code>RebuildNodesAction</code>): Undo rebuilds the nodes exactly from their data from before, Redo rebuilds them fresh through <code>init()</code>. One step per graph per reload. See <a href="../../adr/0059-reload-and-reset-are-undoable/">ADR 0059</a></td>
+<td>The undo step a node Reset, <strong>Apply previous setup</strong> or <strong>Dismiss previous setup</strong> records (<code>RebuildNodesAction</code>): Undo rebuilds the nodes exactly from their data from before, Redo rebuilds them again — fresh through <code>init()</code> for a Reset, from the given data otherwise. A hot reload records none. See <a href="../../adr/0059-reload-and-reset-are-undoable/">ADR 0059</a>, <a href="../../adr/0062-a-reload-keeps-the-previous-setup/">ADR 0062</a></td>
 <td>reload snapshot, restore point</td>
+</tr>
+<tr>
+<td><strong>Previous setup</strong></td>
+<td>The data a node had before a hot reload rebuilt it from new code, kept on the node until the user applies or dismisses it from the card's warning badge (<code>NodeWrapper.previous_setup</code>). Saved with the graph; not copied with the node. See <a href="../../adr/0062-a-reload-keeps-the-previous-setup/">ADR 0062</a></td>
+<td>reload snapshot, kept data (that is a <strong>Stand-in</strong>'s)</td>
+</tr>
+<tr>
+<td><strong>Step origin</strong></td>
+<td>Who recorded an undo step: a principal through one session (principal and a short session id) or a Farmhand call (<code>StepOrigin</code>, <code>via</code> = <code>canvas</code>, <code>farmhand</code> or <code>system</code>). Kept beside the step, credited by the <code>Editor</code> that records it; an undo or redo is credited the same way. See <a href="../../adr/0063-undo-steps-carry-their-origin/">ADR 0063</a></td>
+<td>author, owner (a session owns nothing on the history)</td>
+</tr>
+<tr>
+<td><strong>History editor</strong></td>
+<td>The read-only CONTEXT-slot editor listing the undo history of the active graph's file — the whole file, interiors included — newest first, with each step's origin and interior path and the marker naming the last undo or redo. See <a href="../../adr/0063-undo-steps-carry-their-origin/">ADR 0063</a></td>
+<td>undo panel, history panel (it is an editor, not a panel)</td>
 </tr>
 <tr>
 <td><strong>Action group</strong></td>
@@ -6432,7 +6519,7 @@ Macro is registered and placed.</p>
 <li><strong>"component" overloaded</strong> <em>(new)</em>: the canonical meaning is a <strong>Component</strong> — a hot-reload-registry-managed library contribution (node, type, adapter, skin, widget, editor, panel, settings, theme); this is the meaning in <code>register_components()</code>, <code>lookup_component_class()</code>, <code>active_component</code>, <code>ComponentSourceEditor</code>, and the <code>docs/components/</code> tree. A <strong>second, internal-only meaning</strong> lives in the code path <code>haywire.ui.components.*</code> (e.g. <code>graph</code>, <code>minimap</code>, <code>number</code>/NumberDrag, <code>popup</code>), where "component" carries the generic Vue/NiceGUI sense of "a reusable <code>ui.element</code> subclass." These are deliberately kept distinct: the registry meaning is public API and author-facing vocabulary and cannot move; the <code>ui.components</code> path is a private package name retained to avoid churn. When writing prose, prefer <strong>Component</strong> (capitalized) for the registry meaning and qualify the other as "a <code>ui.components</code> element" or "reusable UI element." Never use bare "component" to mean a reusable UI element in author-facing docs. Note the sibling package <code>haywire.ui.extends.*</code> (e.g. <code>extends/codemirror</code>) is deliberately NOT under <code>ui.components</code>: those modules attach behavior to an existing element they do not own (helpers like <code>attach_code_intelligence</code>, no <code>.vue</code>, no render surface), whereas every <code>ui.components</code> entry is a self-contained Vue-backed <code>ui.element</code> subclass.</li>
 <li><strong>"BLOCK" does not mean lossless / "process every frame"</strong> <em>(new)</em>: the <code>QueueMode.BLOCK</code> scheduler mode is <em>best-effort backpressure</em> — <code>put(block=True, timeout=5.0)</code>, then the Trigger is <strong>dropped</strong> (with a warning) if the queue stays full past 5 s. It is NOT a guarantee that every frame is processed, and a deep queue (<code>max_queue_size=100</code>) does not make it one. True "process every frame" (offline/lossless) is met by a separate <strong>demand-driven</strong> pattern — the Flow's completion signal (<code>trigger.payload["_on_complete"]</code>) triggers the EMIT node to produce the next frame, one in flight, no queue — which is a <em>node behavior</em>, not a queue mode. Never describe BLOCK as lossless or "every-frame." (ADR 0010.)</li>
 <li><strong>"backpressure" vs "drop" vs "queue mode"</strong> <em>(new)</em>: <strong>Queue mode</strong> is the umbrella (<code>QueueMode</code>: <code>BLOCK</code> or <code>DROP</code>). <strong>Backpressure</strong> is the BLOCK-specific mechanism (the producer waits when the queue is full); <strong>DROP</strong> is the <em>absence</em> of backpressure (the producer is never slowed — stale Triggers are discarded). Use <strong>Queue mode</strong> for the selectable knob, <strong>backpressure</strong> only when you specifically mean BLOCK's wait behavior, never "backpressure" to mean DROP.</li>
-<li><strong>"event node" vs "emit node"</strong> <em>(new)</em>: an <strong>EVENT node</strong> (<code>NodeType.EVENT</code>, e.g. <code>Frame Event</code>, <code>Tick</code>) is the <em>subscriber</em> — it owns an <code>EventSource</code>, becomes a Flow + FlowScheduler at Assembly, and therefore owns the <strong>Queue mode</strong>. An <strong>EMIT node</strong> (<code>NodeType.CONTROL</code>, e.g. <code>Tick Emit</code>, a camera emit) is the <em>producer</em> — it calls <code>emit_callback</code> to enqueue Triggers and can fan out to many EVENT nodes. Queue mode lives on the EVENT node (it owns the scheduler), NOT the EMIT node (ADR 0010). Do not say "the emit node drops frames."</li>
+<li><strong>"event node" vs "emit node"</strong> <em>(new)</em>: an <strong>EVENT node</strong> (<code>NodeType.EVENT</code>, e.g. <code>Frame Event</code>, <code>Tick</code>) is the <em>subscriber</em> — it owns an <code>EventSource</code>, becomes a Flow + FlowQueue at Assembly, and therefore owns the <strong>Queue mode</strong>. An <strong>EMIT node</strong> (<code>NodeType.CONTROL</code>, e.g. <code>Tick Emit</code>, a camera emit) is the <em>producer</em> — it calls <code>emit_callback</code> to enqueue Triggers and can fan out to many EVENT nodes. Queue mode lives on the EVENT node (its Flow owns the queue), NOT the EMIT node (ADR 0010). Do not say "the emit node drops frames."</li>
 <li><strong>"dialog" vs "modal" vs "popup"</strong> <em>(new)</em>: in the haywire codebase, <strong>Popup</strong> is the Vue component all canonical modals are built on. The helpers in <code>haywire.ui.modals</code> (info_modal, confirm_modal, pick_modal, rename_modal, save_as_modal, diff_modal) wrap Popup with task-specific bodies. "Dialog" is the legacy NiceGUI/Quasar surface (<code>ui.dialog()</code>) — being migrated to Popup; legacy dialogs sit at Quasar's default z-index 6000, Popup at 7000/7001 so haywire modals always stack on top.</li>
 </ul>
 

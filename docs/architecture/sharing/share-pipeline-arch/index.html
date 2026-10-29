@@ -1653,6 +1653,8 @@
       
         
       
+        
+      
     
     
     
@@ -2614,6 +2616,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2645,10 +2682,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="">
             
   
   
@@ -2666,8 +2703,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3681,17 +3718,26 @@
 <p>Those are the ENGINE's units of work. The screens are the USER's units of decision, and the two do not have to agree. An earlier wizard made them agree — thirteen screens, one per pipeline concern — and a clean repo then walked six consecutive screens of good news requiring six clicks and offering no decisions.</p>
 <p><code>tests/share_pipeline/test_step_sequence.py</code> enforces what actually matters: every decision the UI can express has an applier behind it, and <code>apply_all()</code> reads every <code>ShareDecisions</code> field. A field it forgot would be collected from the author and then silently dropped — invisible in a collect-then-apply-once design, since nothing writes until the single apply.</p>
 <h3 id="21-step-1-preconditions">2.1 Step 1 — Preconditions<a class="headerlink" href="#21-step-1-preconditions" title="Permanent link">&para;</a></h3>
-<p><code>check_preconditions()</code> verifies everything needed to publish and collects <strong>every</strong> failure in one pass, rather than raising on the first — a user missing both a remote and a barn library should see both at once, not discover the second after fixing the first. It returns a <code>PreconditionsReport</code> (<code>ok</code> is <code>True</code> iff <code>failures</code> is empty); <code>require_preconditions()</code> wraps it and raises <code>PreconditionsError</code> on failure.</p>
-<p>It checks, in order:</p>
-<ul>
-<li><code>git --version</code> — if git itself is missing, every other probe would just report the same missing binary as a different symptom, so the method returns immediately with a single failure.</li>
+<p><code>check_preconditions()</code> verifies everything needed to publish and <strong>stops at the first failure</strong>, so a <code>PreconditionsReport</code> carries at most one. An earlier failure can make a later probe moot or misleading: nothing else matters while the tree is dirty, and probing an origin that doesn't exist wastes a network round trip. The author fixes what is reported and checks again. <code>ok</code> is <code>True</code> iff <code>failures</code> is empty; <code>require_preconditions()</code> wraps it and raises <code>PreconditionsError</code> on failure.</p>
+<p>It checks, in order. A fix in brackets is the <code>fix_id</code> the wizard offers as a button; a check without one has a remedy text only.</p>
+<ol>
+<li><code>git --version</code>. If git itself is missing, every other probe would report the same missing binary as a different symptom.</li>
+<li>The working tree is clean (<code>git status --porcelain</code>, whole repo) [<code>commit_dirty_tree</code>]. The rollback after a failed step resets the whole tree, which is safe only if nothing was dirty before the run.</li>
+<li>The project root is the git root. Declared example and test paths are project-relative, but a consumer resolves them against the repository.</li>
 <li><code>barn/</code> exists and contains at least one directory with a <code>pyproject.toml</code> (via <code>barn.barn_library_dirs()</code>).</li>
-<li>Every barn library's <code>pyproject.toml</code> parses via <code>read_manifest()</code> — a malformed file or an invalid <code>[tool.haywire].os</code> declaration is reported here rather than surfacing later as a crash mid-docs-generation or a silently wrong marketstall entry.</li>
-<li>An <code>origin</code> remote is configured.</li>
+<li>No library is still named under the reserved <code>hay-</code> prefix. Every offender is listed in one failure, with a ready-to-run <code>haywire rename</code> command each.</li>
+<li>Per barn library, in order:</li>
+<li>its manifest parses via <code>read_manifest()</code>, and its <code>haybale.toml</code> declares no invalid <code>os</code> value [<code>strip_os</code>];</li>
+<li>a declared <code>examples_path</code> / <code>tests_path</code> exists [<code>set_examples_path</code> / <code>set_tests_path</code> when candidates exist on disk, else <code>clear_…</code>];</li>
+<li>its <code>pyproject.toml</code> agrees with <code>haybale.toml</code> [<code>sync_pyproject</code>].</li>
+<li>Under <code>distribute = "git"</code>, no <code>[tool.uv.sources]</code> <code>path</code> in the root or a barn <code>pyproject.toml</code> is absolute or leads out of the repository. A consumer installs from a clone, where uv applies those sources and the path does not exist. No fix is offered: the author either removes the links or publishes to PyPI, where a package carries no sources.</li>
+<li>An <code>origin</code> remote is configured [<code>add_origin</code>].</li>
+<li>The remote's host is recognized [<code>add_host_config</code>]. A remote that is a local filesystem path names no host and skips this check.</li>
 <li>The remote is reachable, via <code>git ls-remote --symref origin HEAD</code>. This exercises the exact credential path <code>git push</code> uses, so an auth failure surfaces here rather than after a commit and tag already exist. <code>--symref</code> also narrows the round-trip to one ref and additionally names the remote's default branch (<code>ref: refs/heads/&lt;name&gt;\tHEAD</code> in the output) — the local <code>git symbolic-ref refs/remotes/origin/HEAD</code> is <em>not</em> a usable substitute, since nothing populates it without an explicit <code>git remote set-head</code>.</li>
-<li>HEAD is not detached (<code>git symbolic-ref -q HEAD</code>, not <code>git rev-parse --abbrev-ref HEAD</code> — see §5 for why).</li>
-<li>The current branch matches the remote's default branch (see §5).</li>
-</ul>
+<li>HEAD is not detached (<code>git symbolic-ref -q HEAD</code>, not <code>git rev-parse --abbrev-ref HEAD</code> — see §5 for why) [<code>switch_branch</code>, only when a branch already contains the commit].</li>
+<li>The current branch matches the remote's default branch (see §5) [<code>switch_branch</code>, only when the branch has nothing unmerged].</li>
+<li>Under <code>distribute = "pypi"</code>, every library's name is registered on PyPI. Skipped when PyPI cannot be reached, so it never blocks an offline publish.</li>
+</ol>
 <p>Reporting rather than raising also matters for the Preflight screen. It runs automatically when the flow opens (<code>show_step_flow(auto_start=True)</code>) — a first step that only checks, writes nothing, and asks the user to confirm an intent they already expressed by opening it does not deserve a button. On failure the screen renders the message and its remedy <strong>inline</strong>, offering the in-place fix where one exists (<code>fix_id</code>) and "Check again" always. So it needs a populated failure to render, not an exception to catch before the UI exists.</p>
 <p>Inline, specifically, rather than in a modal: a <code>ui.dialog()</code> is a top-level element that a panel's own container clear cannot reach, so an earlier wizard had to close the whole popup to show one, and opening it outside a click handler stacked it on every redraw.</p>
 <h3 id="22-step-2-detect">2.2 Step 2 — Detect<a class="headerlink" href="#22-step-2-detect" title="Permanent link">&para;</a></h3>

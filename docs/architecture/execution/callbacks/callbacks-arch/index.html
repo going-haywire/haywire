@@ -1653,6 +1653,8 @@
       
         
       
+        
+      
     
     
     
@@ -2603,6 +2605,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../../errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2634,10 +2671,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="">
             
   
   
@@ -2655,8 +2692,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3733,7 +3770,7 @@
 <p>The callback subsystem is <strong>not</strong>:</p>
 <ul>
 <li>A <strong>synchronous function call</strong> mechanism — listeners run as standalone Flows; emitters do not wait.</li>
-<li>A <strong>data channel</strong> — a CALLBACK edge carries a subscription, not run-time data. Data sent with a callback travels as <code>emit_callback(payload=...)</code>; data shared between sibling Flows requires AppState (see <a href="../../../session-and-state/session-and-state-arch/">architecture/session-and-state</a>) or a shared <code>LibrarySettings</code>.</li>
+<li>A <strong>data channel</strong> — a CALLBACK edge carries a subscription, not run-time data. Data sent with a callback travels as <code>emit_callback(payload=...)</code>; data shared between sibling Flows travels over ordinary data edges (it arrives as written, not at frame boundaries — ADR 0064), through AppState (see <a href="../../../session-and-state/session-and-state-arch/">architecture/session-and-state</a>), or through a shared <code>LibrarySettings</code>.</li>
 <li>A <strong>subscription protocol</strong> for UI events — that's the studio's <code>notify_context_changed</code> system; see <a href="../../../studio/studio-arch/">architecture/studio</a>.</li>
 <li>An <strong>inter-process communication</strong> mechanism — callbacks are intra-Interpreter only.</li>
 </ul>

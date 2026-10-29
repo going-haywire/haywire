@@ -1126,6 +1126,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-markers-baseskin-draws-the-badges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The markers: BaseSkin draws the badges
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#stage-view-the-stage-skin-and-the-on_stage-keyword" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1980,6 +1991,8 @@
       
         
       
+        
+      
     
     
     
@@ -2650,6 +2663,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../../architecture/errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2678,10 +2726,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
             
   
   
@@ -2699,8 +2747,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3632,6 +3680,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#the-markers-baseskin-draws-the-badges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The markers: BaseSkin draws the badges
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#stage-view-the-stage-skin-and-the-on_stage-keyword" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4095,13 +4154,22 @@ says from which level mode an element takes input:</p>
   <code>stamp_requires(el)</code> (<code>edit</code> by default; pass <code>LevelMode.OPERATE</code> for an operable one).</li>
 <li><strong>A read-only affordance</strong> (a tooltip trigger, an info menu, a badge) is stamped <code>view</code> and takes
   input in every level mode. <code>add_pin_tooltip</code> stamps a pin that triggers its own tooltip; the
-  studio skin stamps the diagnostics and comment badges. It must not offer a write.</li>
+  diagnostics and comment badges <code>BaseSkin</code> draws are stamped this way. It must not offer a write.</li>
 <li><strong>Tooltips on gated content</strong> show only from the mode that operates the content: a trigger
   inside a gated widget is inert below that mode, as the widget is.</li>
 </ul>
 <p>Anything else on a card takes no pointer input below <code>edit</code>. The gate does not touch the
 inside of a marked element, so its own <code>pointer-events</code> rules (a disabled widget's <code>none</code>)
 stay in force.</p>
+<h2 id="the-markers-baseskin-draws-the-badges">The markers: <code>BaseSkin</code> draws the badges<a class="headerlink" href="#the-markers-baseskin-draws-the-badges" title="Permanent link">&para;</a></h2>
+<p>A skin never draws the diagnostics badge (errors, warnings, deprecation) or the
+comment badge itself. <code>BaseSkin._render</code> calls <code>render_markers(card, wrapper,
+on_stage=...)</code> after <code>render</code>, so every card shows them, whichever skin drew it.
+The default places both just above the card's top-right corner in the patch, and
+draws nothing on the stage. Override <code>render_markers</code> to place them elsewhere, or
+to draw none (a skin too small for them); draw both or neither, since they share
+one hook. Commands a warning calls for live in panels, not on the card: a
+previous setup is restored from the node's right-click menu (ADR 0062).</p>
 <h2 id="stage-view-the-stage-skin-and-the-on_stage-keyword">Stage view: the stage skin and the <code>on_stage</code> keyword<a class="headerlink" href="#stage-view-the-stage-skin-and-the-on_stage-keyword" title="Permanent link">&para;</a></h2>
 <p>A node has a patch skin (<code>props.skin</code>) and a stage skin (<code>props.stage_skin</code>), each resolved framework &lt; graph &lt; node (<code>studio_skin</code> / <code>studio_stage_skin</code>, <code>GraphProperties.default_skin</code> / <code>default_stage_skin</code>); nothing crosses between the two chains. <code>UINode._render</code> draws with the stage skin on a stage canvas and the patch skin on a patch canvas, and passes <code>on_stage=self.channel.stage</code> through <code>SkinFactory.render(key, wrapper, *, on_stage=False, ...)</code> (the error-skin fallback forwards it too). See <a href="../../../adr/0054-the-stage-view/">ADR 0054</a> and <a href="../../../adr/0056-the-view-picks-the-skin/">ADR 0056</a>.</p>
 <ul>
@@ -4175,7 +4243,7 @@ stay in force.</p>
 </tbody>
 </table>
 <p>A skin made for the stage alone is tagged <code>["general", "stage-only"]</code>. A skin for one node kind is tagged <code>["special", "stage-only", "&lt;kind&gt;"]</code> (drop <code>stage-only</code> if it suits the patch too), and that node class overrides its <code>stage_skin</code> (or <code>skin</code>) field with <code>skin_choices(include=["special", "&lt;kind&gt;"], exclude=["general"])</code> as its options. The lists decide only what is offered: a write naming any skin is accepted.</p>
-<p><strong>A special skin checks its node.</strong> Being offered only for its node kind does not mean a special skin only ever meets a node that can give it what it needs: a stand-in for a broken node keeps the skin its node had (ADR 0058), and a node's own data can be broken. The skin reads what it needs from the wrapper at every draw and, when it is missing, draws a message in the card naming the cause instead of its face, in <code>hw-text-danger</code>. It does not fall back to another skin: the failure is a developer's to fix and must show. Keep what the card always carries (the diagnostics badge, title and pins in the patch) so the node's errors stay reachable.</p>
+<p><strong>A special skin checks its node.</strong> Being offered only for its node kind does not mean a special skin only ever meets a node that can give it what it needs: a stand-in for a broken node keeps the skin its node had (ADR 0058), and a node's own data can be broken. The skin reads what it needs from the wrapper at every draw and, when it is missing, draws a message in the card naming the cause instead of its face, in <code>hw-text-danger</code>. It does not fall back to another skin: the failure is a developer's to fix and must show. Keep the title and pins in the patch, and leave <code>render_markers</code> alone, so the node's errors stay reachable.</p>
 <p><strong>Widget nodes</strong> are the worked example. <code>WidgetNodeSkin</code> (haybale-core) is tagged <code>["special", "stage-only", "widget-node"]</code>, and <code>WidgetNode.props.stage_skin</code> takes its options from <code>_widget_node_stage_skin_choices()</code>, which is <code>skin_choices(include=["special", "widget-node"], exclude=["general"])</code>. A third-party skin for widget nodes joins that list by carrying the same three tags; it needs no change to the nodes. The skin draws only the widget of each outlet the node declares (<code>port.is_outlet() and port.origin is PortOrigin.DECLARED</code>), so a setting promoted to a port never shows on the stage face. Its look per node comes from the widget node's <code>style</code> settings bag (label typography, card background and border, label position, maximum label width): the node owns the bag and the skin reads it, and a node without one draws the default face.</p>
 <h2 id="the-inset">The Inset<a class="headerlink" href="#the-inset" title="Permanent link">&para;</a></h2>
 <p><code>InsetSkin</code> (haybale-graph-editor, tagged <code>special</code>, <code>graph-node</code>) draws a Graph-node card whose body shows the interior's stage, so a Group or placement works as an operable module. Only the Graph-node skin lists offer it.</p>

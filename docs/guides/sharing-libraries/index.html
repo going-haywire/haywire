@@ -1651,6 +1651,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#43-no-path-sources-outside-the-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 No path sources outside the repository
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1890,6 +1901,8 @@
   
     
     
+      
+        
       
         
       
@@ -2583,6 +2596,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../architecture/errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2611,10 +2659,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
             
   
   
@@ -2632,8 +2680,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3448,6 +3496,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#43-no-path-sources-outside-the-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 No path sources outside the repository
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3731,6 +3790,27 @@ did not relax the rule, see
 <p>switch to the default branch and publish from there: <code>git switch main</code>.</p>
 <p>This check, along with a companion check that HEAD isn't detached, always
 runs — there's no flag to skip it.</p>
+<h3 id="43-no-path-sources-outside-the-repository">4.3 No path sources outside the repository<a class="headerlink" href="#43-no-path-sources-outside-the-repository" title="Permanent link">&para;</a></h3>
+<p>Under <code>distribute = "git"</code> (the default), a consumer installs your library from
+a <strong>clone of the whole repository</strong>, and uv applies that clone's own
+<code>[tool.uv.sources]</code> when it resolves: the root <code>pyproject.toml</code>'s as well as
+the library's. A <code>path</code> source that is absolute, or that leads out of the
+repository, does not exist in the clone, so the consumer's <code>uv lock</code> and
+<code>uv run</code> fail. It keeps working on your machine, because the path exists there.</p>
+<p><code>haywire share</code> therefore refuses a git publish while the root or any <code>barn/*</code>
+<code>pyproject.toml</code> has such an entry, and lists each one. Sources a clone can
+satisfy pass: <code>{ workspace = true }</code>, a <code>path</code> inside the repository, and <code>git</code>
+or <code>url</code> sources.</p>
+<p>The usual cause is a project scaffolded with <code>haywire init --dev</code>, which links
+the framework packages to your haywire checkout by path in the root
+<code>pyproject.toml</code>. You have two ways out:</p>
+<ul>
+<li>Remove those entries before sharing (and add them back afterwards if you
+  want to keep working against your checkout).</li>
+<li>Publish to PyPI instead: set <code>distribute = "pypi"</code> and upload the package
+  yourself — see <a href="../publish-to-pypi/">publish-to-pypi</a>. A PyPI package
+  carries no <code>[tool.uv.sources]</code>, so a <code>--dev</code> project can keep its links.</li>
+</ul>
 <h2 id="5-hosting-your-marketstall">5. Hosting your marketstall<a class="headerlink" href="#5-hosting-your-marketstall" title="Permanent link">&para;</a></h2>
 <p>A marketstall is just a TOML file. Wherever consumers can reach by URL, you can host one. Common patterns:</p>
 <table>
@@ -3936,8 +4016,8 @@ One or more <code>barn/*</code> libraries have actionable dependency-manifest dr
 command prints which library and which manifest entries are missing. Resolve it
 with <code>haywire share</code> (interactive) or the Library Overview Editor's Detect
 Dependencies button (<a href="#63-keeping-the-manifests-honest">§6.3</a>).</p>
-<p><strong>You're working in <code>--dev</code> mode and want to share a library that has dev-repo dependencies.</strong>
-<code>haywire share</code>'s output uses <code>source = "git"</code> for haywire's <code>dependencies</code> field, which is correct — consumers don't have your dev workspace. But the dev-repo path-style <code>pyproject.toml</code> won't survive <code>pip install</code>. Make sure the published version of your library declares versioned dependencies (<code>haybale-core&gt;=0.0.1</code>), not editable path sources. <code>haywire share</code> handles this correctly when the dependencies are listed in the library's <code>pyproject.toml</code> rather than in the project root's <code>pyproject.toml</code>.</p>
+<p><strong><code>haywire share</code> fails with "These [tool.uv.sources] paths point outside the repository".</strong>
+Your project links packages by a path that exists only on your machine — typically the framework links <code>haywire init --dev</code> writes. A git publish would break every consumer's <code>uv lock</code>. Remove the listed entries, or publish to PyPI with <code>distribute = "pypi"</code>. See <a href="#43-no-path-sources-outside-the-repository">§4.3</a>.</p>
 <h2 id="9-reading-on">9. Reading on<a class="headerlink" href="#9-reading-on" title="Permanent link">&para;</a></h2>
 <ul>
 <li>The <strong>consumer side</strong> of this flow: <a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a>.</li>

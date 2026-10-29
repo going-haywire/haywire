@@ -1645,6 +1645,8 @@
       
         
       
+        
+      
     
     
     
@@ -2315,6 +2317,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../architecture/errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2343,10 +2380,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
             
   
   
@@ -2364,8 +2401,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3251,6 +3288,8 @@
 <li><code>Flow</code> carries <code>queue_mode</code> / <code>max_queue_size</code>; <code>_assemble_flow</code> populates them, <code>_register_flow</code> consumes them. The hardcoded <code>QueueMode.BLOCK</code> at <code>interpreter.py:218</code> is removed.</li>
 <li><code>NumpyFrameEventNode</code> now defaults to realtime DROP; existing graphs using it drop stale frames after upgrade.</li>
 <li>BLOCK semantics (5 s-then-drop) are unchanged; true offline completeness remains a future demand-driven pattern, out of scope.</li>
+<li><strong>Amended by ADR 0064 (D5):</strong> DROP keeps the newest pending trigger — a full DROP queue replaces its oldest trigger instead of discarding the incoming one.</li>
+<li><strong>Renamed by ADR 0064:</strong> <code>FlowScheduler</code> is now <code>FlowQueue</code> (<code>execution/flow_queue.py</code>); its frames run on the flow's execution group.</li>
 </ul>
 
 

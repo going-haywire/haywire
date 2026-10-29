@@ -1645,6 +1645,8 @@
       
         
       
+        
+      
     
     
     
@@ -2315,6 +2317,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../architecture/errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2343,10 +2380,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
             
   
   
@@ -2364,8 +2401,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3125,6 +3162,7 @@
 <li>Known gap: the CSS exempts an element if any ancestor stamp is exempt, while <code>isGated</code> reads the nearest stamp. They differ only for a gated stamp nested inside an exempt one; none exists today.</li>
 <li>Known limitation: tooltips on gated triggers stay inert in <code>view</code>, because <code>pointer-events: none</code> also removes hover; they are documented in skin-canon.</li>
 <li>Known gap: a number widget briefly enters its edit state on focus before the blur in <code>view</code>; nothing is written.</li>
+<li>Known limitation: a teleported settings row menu greys its writers by the session mode, the active editor's level mode, not by its own route's mode. They differ only for a selection toolbar on a canvas that is not the active one with a different lock (two canvases of one graph); the route still refuses the write (follow-up #51).</li>
 <li>Out-of-app limitation: edits to the security document made outside the app publish no <code>RosterChanged</code>, so no page reloads (the roster cache picks them up lazily). This closes follow-up #5 part 1 as a known limitation.</li>
 <li>The gate stays a second layer, not access control; the route is the refusal that counts (ADR 0055).</li>
 </ul>
@@ -3136,6 +3174,11 @@
 <li><code>stamp_requires</code> defaults its mode to <code>edit</code>.</li>
 <li><code>canvas.vue</code> names each gesture by its generated <code>GraphEvents.UserInteractions</code> constant instead of a string literal.</li>
 <li>The Properties editor hides a tab none of whose panels the principal's access right reaches; it showed it empty.</li>
+</ul>
+<p><strong>Amendment (nested stamps tighten).</strong></p>
+<ul>
+<li>Where stamps nest, the strictest one around an element decides: an inner stamp can only tighten, never loosen, the one it sits in. The card CSS, <code>isGated</code>, the canvas's press check and the Inset rule all read it so; the panel rule already did. An unknown value counts as <code>edit</code> on a card and gates nothing in a panel. This closes the known gap above (follow-up #49).</li>
+<li>On a card the nearer of a stamp and a <code>.drag-handle</code> decides whether a press stays with the element or drags the card, so a widget can hand a part of itself back to the card (<code>NoteTextWidget</code>'s shown text, follow-up #50).</li>
 </ul>
 
 

@@ -1653,6 +1653,8 @@
       
         
       
+        
+      
     
     
     
@@ -2691,6 +2693,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2722,10 +2759,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="">
             
   
   
@@ -2743,8 +2780,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3875,7 +3912,7 @@
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">library_registry_name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">node_registry_id</span><span class="si">}</span><span class="s2">&quot;</span>
 </span></code></pre></div>
 <p>producing keys like <code>haywire-core:node:RerouteNode</code>, <code>haywire-core:skin:RerouteSkin</code>, <code>haybale-core:widget:NumberWidget</code>. The middle segment is one of the constants in the same module (<code>NODE</code>, <code>WIDGET</code>, <code>TYPE</code>, <code>ADAPTER</code>, <code>SKIN</code>, <code>SETTING</code>, <code>STATE</code>, <code>THEME</code>, <code>PANEL</code>, <code>EDITOR</code>) — use these instead of a bare string to avoid a silent key mismatch. <code>split_reg_key()</code> / <code>get_registry_id_from_key()</code> invert the format.</p>
-<p><strong>The <code>library_registry_name</code> segment is never author-supplied.</strong> Each decorator (<code>@node</code>, <code>@skin</code>, …) calls <code>derive_library_identity(cls)</code> at decoration time, which walks up <code>cls.__module__</code> looking for the nearest ancestor module that defines a <code>Library</code> class with <code>class_identity</code> set, and uses that library's <code>name</code> — its sole identifier, the pip distribution name declared in <code>haybale.toml</code>. A class that isn't parented under any <code>Library</code> falls back to the synthetic <code>__system__</code> identity rather than raising.</p>
+<p><strong>The <code>library_registry_name</code> segment is never author-supplied.</strong> Each decorator (<code>@node</code>, <code>@skin</code>, …) calls <code>derive_library_identity(cls)</code> at decoration time, which walks up <code>cls.__module__</code> looking for the nearest ancestor module that defines a <code>Library</code> class with <code>class_identity</code> set, and uses that library's <code>name</code> — its sole identifier, the pip distribution name declared in <code>haybale.toml</code>. A class in the <code>haywire</code> package that isn't parented under any <code>Library</code> belongs to the builtin library (<code>haywire-core</code>); any other unparented class falls back to the synthetic <code>__system__</code> identity rather than raising.</p>
 <p>The practical consequence: <strong>a component's registry key is determined entirely by which library's source tree the file lives in</strong> — not by anything written in the file itself. Moving a node or skin's <code>.py</code> file from one library's folder to another's changes its registry key automatically, with no code change required at the call site.</p>
 <h3 id="25-filewatcher-haywirecorelibraryfile_watcherpy">2.5 <code>FileWatcher</code> (<code>haywire/core/library/file_watcher.py</code>)<a class="headerlink" href="#25-filewatcher-haywirecorelibraryfile_watcherpy" title="Permanent link">&para;</a></h3>
 <p>A <code>watchdog</code>-based file-system observer started per library when <code>file_watcher=True</code>. On any <code>.py</code> change inside the library's source directory, it triggers the <a href="../../hot-reload/hot-reload-arch/">hot-reload</a> pipeline: re-import the module, re-register components, rebuild affected node and edge wrappers, revalidate the graph.</p>

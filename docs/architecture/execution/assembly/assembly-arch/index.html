@@ -1653,6 +1653,8 @@
       
         
       
+        
+      
     
     
     
@@ -2597,6 +2599,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../../errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2628,10 +2665,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
         
           
-          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="">
             
   
   
@@ -2649,8 +2686,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_11">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_12">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3648,10 +3685,6 @@
 </thead>
 <tbody>
 <tr>
-<td><strong>Duplicate event types</strong></td>
-<td>Multiple event nodes listening for the same event (e.g. two <code>BeginPlay</code> nodes) is undefined — which Flow runs first?</td>
-</tr>
-<tr>
 <td><strong>Subgraph contents</strong></td>
 <td>Checked by <code>StructuralValidator._validate_subgraph_contents</code>, not here: exactly one Subgraph Input and one Subgraph Output, and no EVENT or OUTPUT node</td>
 </tr>
@@ -3801,11 +3834,12 @@ consumer before the Group's interior.</p>
 </tbody>
 </table>
 <p>The Interpreter registers Flow 3 with <code>CallbackManager</code> under <code>'frame_ready'</code> when it starts the Flow; any node that emits <code>'frame_ready'</code> then triggers it.</p>
+<p>Several event nodes may listen for the same event — two <code>BeginPlay</code> nodes, say. Each roots its own Flow, and one dispatch triggers all of them. Since a control outlet takes one link (ADR 0044), this is how one event starts several independent chains. Their order follows the execution groups (ADR 0064): Flows with disjoint chains run in parallel, unordered; Flows whose chains share a control node run one frame at a time, in arrival order.</p>
 <h2 id="6-open-questions">6. Open questions<a class="headerlink" href="#6-open-questions" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Partial reassembly inside a Flow.</strong> Today, any change inside a Flow's reachable set rebuilds the whole Flow. Could be smarter — rebuild only the affected localized data-flow.</li>
-<li><strong>Cross-Flow optimization.</strong> Two Flows sharing a large data-flow subtree compute it twice. The architecture allows shared subtrees but the current implementation doesn't deduplicate.</li>
-<li><strong>Parallel Flow execution.</strong> The assembler builds independent Flows; whether they run in parallel is the VM's call. Today they run serially. See <a href="../../virtual-machine/virtual-machine-arch/">virtual-machine</a>.</li>
+<li><strong>Cross-Flow optimization.</strong> A shared data subtree is computed once per frame of whichever group reaches it first; groups that arrive later read its result.</li>
+<li><strong>Parallel Flow execution.</strong> Each execution group runs on its own thread; flows that share a control node share a group (ADR 0064). See <a href="../../virtual-machine/virtual-machine-arch/">virtual-machine</a>.</li>
 </ul>
 <h2 id="key-files">Key files<a class="headerlink" href="#key-files" title="Permanent link">&para;</a></h2>
 <ul>
