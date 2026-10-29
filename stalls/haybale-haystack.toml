@@ -6,11 +6,11 @@
 [[haybales]]
 name = "haybale-haystack"
 label = "Haystack"
-version = "0.2.4"
-require = "haywire-core>=0.2.4"
+version = "0.3.0"
+require = "haywire-core>=0.3.0"
 description = "File-centric multi-graph manager"
 source = "pypi"
-install_spec = "haybale-haystack==0.2.4"
+install_spec = "haybale-haystack==0.3.0"
 tags = ["graph-management"]
 on_reload = "none"
 linked_libraries = ["haybale_studio", "haybale_graph_editor"]
