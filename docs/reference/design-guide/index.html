@@ -7684,16 +7684,16 @@ registry contains at least one editor, the bottom tab bar row stays on screen
 in both expanded and retracted states. Users never lose sight of which bottom
 editors exist. If the registry has no bottom editors, the whole region (tab
 bar and content) is hidden.</p>
-<p><strong>Rule 2 — Retraction is chevron-only from a click path.</strong> The rightmost
-control in the bottom tab bar row is a single chevron button: <code>expand_less</code>
-when expanded, <code>expand_more</code> when retracted. Clicking it toggles only the
-content panel and the divider above it — not the tab bar row itself. There
-must be no secondary close buttons or tab-level close affordances.</p>
+<p><strong>Rule 2 — The active tab is the fold control.</strong> Clicking the active bottom
+tab retracts the area; clicking any tab while retracted expands it (switching
+to that tab first) — the same gesture as the side slots' icon bars. A click
+toggles only the content panel and the divider above it — not the tab bar row
+itself. There is no separate fold button.</p>
 <p><strong>Rule 3 — Drag auto-expands from retracted.</strong> The horizontal drag divider
 above the bottom tab bar is always hit-testable. Starting a drag while the
 panel is retracted auto-expands it; releasing a drag below a small snap
 threshold (~40px) retracts it again. Both paths flow through the same
-visibility-sync helper as the chevron click so Python state and DOM state
+visibility-sync helper as the tab click so Python state and DOM state
 never drift.</p>
 <p><strong>Visual rules:</strong></p>
 <ul>
@@ -7703,9 +7703,6 @@ never drift.</p>
 <li>The BottomTabBar shares the <code>hw-slot-bar-tabs</code> styling with the MainTabBar
   — same <code>36px</code> height, same active/hover behaviour, same label truncation
   rules.</li>
-<li>The chevron uses standard <code>hui.icon_action</code> sizing (<code>xs</code>) and flips its
-  icon between <code>expand_less</code> and <code>expand_more</code>. It must not animate its
-  rotation; the icon swap is the state signal.</li>
 <li>When retracted, the content panel's <code>display: none</code> — it does not
   contribute to flex layout — so the divider sits directly against the top
   edge of the tab bar row.</li>
