@@ -5,7 +5,7 @@ A Flow is the assembled, executable form of a graph. It contains:
 - Entry event node
 - Control flow graph (navigation structure)
 - Localized data flows for each control node
-- Flow scheduler for execution management
+- Flow queue: the trigger queue its execution group runs frames from
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node import BaseNode
     from haywire.core.execution.event_source import EventSource
-    from haywire.core.execution.scheduler import FlowScheduler
+    from haywire.core.execution.flow_queue import FlowQueue
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +88,13 @@ class ControlFlowGraph:
         return f"ControlFlowGraph(entry={self.entry_node.node_id}, nodes={len(self.control_nodes)})"
 
 
+def overrides(node: "BaseNode", method_name: str) -> bool:
+    """Return ``True`` if ``node``'s class overrides the ``BaseNode`` hook ``method_name``."""
+    from haywire.core.node.base import BaseNode
+
+    return getattr(type(node), method_name) is not getattr(BaseNode, method_name)
+
+
 class Flow:
     """
     Assembled, executable flow.
@@ -122,13 +129,12 @@ class Flow:
         self.control_graph: Optional[ControlFlowGraph] = None
 
         # Execution management
-        self.scheduler: Optional["FlowScheduler"] = None
-        self.is_locked = False
+        self.queue: Optional["FlowQueue"] = None
+        self.shared_node_ids: frozenset[str] = frozenset()
+        """Ids of this flow's shared data nodes: executed under their wrapper's ``exec_lock``."""
 
         # Cache for nodes (populated on first access after assembly)
         self._all_nodes_cache: Optional[List["BaseNode"]] = None
-        self._nodes_with_on_startup_cache: Optional[List["BaseNode"]] = None
-        self._nodes_with_on_shutdown_cache: Optional[List["BaseNode"]] = None
         self._nodes_with_on_frame_start_cache: Optional[List["BaseNode"]] = None
         self._nodes_with_on_frame_end_cache: Optional[List["BaseNode"]] = None
 
@@ -204,69 +210,6 @@ class Flow:
         self._all_nodes_cache = nodes
         return nodes
 
-    def _is_method_overridden(self, node: "BaseNode", method_name: str) -> bool:
-        """
-        Check if node has overridden a lifecycle method from BaseNode.
-
-        Args:
-            node: Node to check
-            method_name: Name of the method to check
-
-        Returns:
-            True if the method is overridden from BaseNode
-
-        Examples:
-            is_overridden = self._is_method_overridden(
-                node, 'on_startup'
-            )
-        """
-        node_class = type(node)
-        from haywire.core.node.base import BaseNode
-
-        return getattr(node_class, method_name) is not getattr(BaseNode, method_name)
-
-    def get_nodes_with_on_startup(self) -> List["BaseNode"]:
-        """
-        Get nodes that have overridden on_startup from BaseNode.
-
-        Filters nodes to only those that implement custom startup logic,
-        avoiding unnecessary method calls on nodes using default no-op.
-
-        Returns:
-            List of BaseNode instances with overridden on_startup
-
-        Examples:
-            for node in flow.get_nodes_with_on_startup():
-                node.on_startup(context)
-        """
-        if self._nodes_with_on_startup_cache is not None:
-            return self._nodes_with_on_startup_cache
-
-        filtered = [n for n in self.get_all_nodes() if self._is_method_overridden(n, "on_startup")]
-        self._nodes_with_on_startup_cache = filtered
-        return filtered
-
-    def get_nodes_with_on_shutdown(self) -> List["BaseNode"]:
-        """
-        Get nodes that have overridden on_shutdown from BaseNode.
-
-        Filters nodes to only those that implement custom shutdown logic,
-        avoiding unnecessary method calls on nodes using default no-op.
-
-        Returns:
-            List of BaseNode instances with overridden on_shutdown
-
-        Examples:
-            for node in flow.get_nodes_with_on_shutdown():
-                node.on_shutdown(context)
-        """
-        if self._nodes_with_on_shutdown_cache is not None:
-            return self._nodes_with_on_shutdown_cache
-
-        filtered = [n for n in self.get_all_nodes() if self._is_method_overridden(n, "on_shutdown")]
-        self._nodes_with_on_shutdown_cache = filtered
-        return filtered
-
     def get_nodes_with_on_frame_start(self) -> List["BaseNode"]:
         """
         Get nodes that have overridden on_frame_start from BaseNode.
@@ -285,7 +228,7 @@ class Flow:
         if self._nodes_with_on_frame_start_cache is not None:
             return self._nodes_with_on_frame_start_cache
 
-        filtered = [n for n in self.get_all_nodes() if self._is_method_overridden(n, "on_frame_start")]
+        filtered = [n for n in self.get_all_nodes() if overrides(n, "on_frame_start")]
         self._nodes_with_on_frame_start_cache = filtered
         return filtered
 
@@ -307,7 +250,7 @@ class Flow:
         if self._nodes_with_on_frame_end_cache is not None:
             return self._nodes_with_on_frame_end_cache
 
-        filtered = [n for n in self.get_all_nodes() if self._is_method_overridden(n, "on_frame_end")]
+        filtered = [n for n in self.get_all_nodes() if overrides(n, "on_frame_end")]
         self._nodes_with_on_frame_end_cache = filtered
         return filtered
 

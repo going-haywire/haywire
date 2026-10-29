@@ -195,16 +195,26 @@ post_init()                                                         on_frame_end
 |---|---|---|
 | `init(self)` | a node is created, reset or hot-reloaded — never on load | declare ports |
 | `post_init(self)` | after `init()`, or after loading | build what saving cannot carry |
-| `on_startup(self, context)` | once, before the first worker run | acquire resources (devices, files) |
-| `on_frame_start(self, context)` | each frame, before any node runs | per-frame setup |
+| `on_startup(self, context)` | once, before the node's first use in a run | acquire resources (devices, files) |
+| `on_frame_start(self, context)` | at the start of each frame of each execution group that executes the node | per-frame setup |
 | `on_validate(self, context)` | each frame, right before this worker | check inlet values |
 | `worker(self, context, ...)` | each frame this node executes | compute |
-| `on_frame_end(self, context)` | each frame, after every node ran | per-frame cleanup |
-| `on_shutdown(self, context)` | the flow stops | release resources |
+| `on_frame_end(self, context)` | at the end of each frame of each execution group that executes the node | per-frame cleanup |
+| `on_shutdown(self, context)` | after the node's last use in a run | release resources |
 | `on_saved(self)` | the graph is saved, before serializing | capture last-moment state |
 | `on_teardown(self)` | the node is removed or unloaded | clean up |
 
 Override only what you need.
+
+`on_startup` and `on_shutdown` run once per run, and more than once only if one execution group stops before another starts; calls always pair and never overlap. A node executed by several execution groups gets `on_frame_start`/`on_frame_end` from each of them; the calls never overlap, but may interleave between groups, so start and end are not guaranteed to pair.
+
+**Threading contract.** A node never runs on two threads at once, but three things still reach it from outside its frames:
+
+- A value written to an outlet crosses into other execution groups as written. Never mutate a value object in place once it is on an outlet; write a new one.
+- Port `on_change` handlers and settings handlers apply immediately, from the UI, an edit route or Farmhand, and may run while `worker()` runs. Guard state such a handler shares with `worker()` with the node's own lock.
+- A thread the node owns (a tick or capture loop) may emit callbacks and read inputs. It guards state shared with `worker()` and the lifecycle hooks with the node's own lock, and writes ports only through `self.post_value(port_id, value)`, never directly.
+
+See ADR 0064.
 
 ## 7. Changing ports at runtime
 
@@ -424,11 +434,11 @@ parameter with no matching port raises `ValueError`.
 |---|---|---|
 | `init` | `(self)` | Declare ports via `self.add(...)` — new/reset nodes only |
 | `post_init` | `(self)` | Setup saving cannot carry — runs after `init()` and after load |
-| `on_startup` | `(self, context)` | Once when flow starts |
+| `on_startup` | `(self, context)` | Before the node's first use in a run |
 | `on_frame_start` | `(self, context)` | Each frame, before workers |
 | `on_validate` | `(self, context)` | Each frame, before this worker |
 | `worker` | `(self, context, *args, **kwargs)` | Main computation; returns `None` or `'outlet_id'` |
 | `on_frame_end` | `(self, context)` | Each frame, after workers |
-| `on_shutdown` | `(self, context)` | Once when flow stops |
+| `on_shutdown` | `(self, context)` | After the node's last use in a run |
 | `on_saved` | `(self)` | Just before graph is saved |
 | `on_teardown` | `(self)` | When node is destroyed |

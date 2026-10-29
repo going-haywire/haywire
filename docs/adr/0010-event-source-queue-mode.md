@@ -79,3 +79,5 @@ The scheduler never reads the node; nothing reads the value per-frame. Changing 
 - `Flow` carries `queue_mode` / `max_queue_size`; `_assemble_flow` populates them, `_register_flow` consumes them. The hardcoded `QueueMode.BLOCK` at `interpreter.py:218` is removed.
 - `NumpyFrameEventNode` now defaults to realtime DROP; existing graphs using it drop stale frames after upgrade.
 - BLOCK semantics (5 s-then-drop) are unchanged; true offline completeness remains a future demand-driven pattern, out of scope.
+- **Amended by ADR 0064 (D5):** DROP keeps the newest pending trigger — a full DROP queue replaces its oldest trigger instead of discarding the incoming one.
+- **Renamed by ADR 0064:** `FlowScheduler` is now `FlowQueue` (`execution/flow_queue.py`); its frames run on the flow's execution group.

@@ -95,3 +95,29 @@ def test_start_execution_noop_when_already_executing():
     entry.interpreter = running
     result = entry.start_execution()
     assert result.ok is True  # already running counts as success
+
+
+def test_compile_refused_while_previous_run_abandoned():
+    entry = _make_entry()
+    entry.graph.filestem = "Cameras"
+    stuck = MagicMock()
+    stuck.is_executing = True
+    stuck.has_abandoned_runners.return_value = True
+    entry.interpreter = stuck
+    entry.stop_execution()
+    assert entry.interpreter is None
+
+    fresh = MagicMock()
+    with (
+        patch.object(graph_entry_module, "Interpreter", return_value=fresh),
+        patch.object(graph_entry_module, "get_library_state_container", return_value=MagicMock()),
+    ):
+        refused = entry.compile()
+        assert refused.ok is False
+        assert entry.display_name in (refused.error or "")
+        fresh.load_graph.assert_not_called()
+
+        stuck.has_abandoned_runners.return_value = False
+        result = entry.compile()
+    assert result.ok is True
+    assert entry.interpreter is fresh

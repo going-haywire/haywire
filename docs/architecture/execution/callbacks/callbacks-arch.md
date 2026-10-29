@@ -133,7 +133,7 @@ CALLBACK edges follow the same hot-reload path as DATA/EXEC edges (see [architec
 The callback subsystem is **not**:
 
 - A **synchronous function call** mechanism — listeners run as standalone Flows; emitters do not wait.
-- A **data channel** — a CALLBACK edge carries a subscription, not run-time data. Data sent with a callback travels as `emit_callback(payload=...)`; data shared between sibling Flows requires AppState (see [architecture/session-and-state](../../session-and-state/session-and-state-arch.md)) or a shared `LibrarySettings`.
+- A **data channel** — a CALLBACK edge carries a subscription, not run-time data. Data sent with a callback travels as `emit_callback(payload=...)`; data shared between sibling Flows travels over ordinary data edges (it arrives as written, not at frame boundaries — ADR 0064), through AppState (see [architecture/session-and-state](../../session-and-state/session-and-state-arch.md)), or through a shared `LibrarySettings`.
 - A **subscription protocol** for UI events — that's the studio's `notify_context_changed` system; see [architecture/studio](../../studio/studio-arch.md).
 - An **inter-process communication** mechanism — callbacks are intra-Interpreter only.
 

@@ -104,10 +104,10 @@ class TestInterpreter:
         # Test: Wait for completion
         interpreter.wait_all(timeout=5.0)
 
-        # Test: Verify schedulers
-        assert len(stats["schedulers"]) == 1
-        scheduler_info = stats["schedulers"][0]
-        assert scheduler_info["subscription"] is not None
+        # Test: Verify flows
+        assert len(stats["flows"]) == 1
+        flow_info = stats["flows"][0]
+        assert flow_info["subscription"] is not None
 
         # Cleanup
         interpreter.shutdown()
@@ -211,9 +211,9 @@ class TestInterpreter:
         # Test: Wait for all executions
         interpreter.wait_all(timeout=5.0)
 
-        # Test: Verify scheduler state
+        # Test: Verify flow state
         stats = interpreter.get_statistics()
-        assert len(stats["schedulers"]) == 1
+        assert len(stats["flows"]) == 1
 
         interpreter.shutdown()
 
@@ -289,7 +289,7 @@ class TestInterpreter:
         assert "total_subscriptions" in stats
         assert "assembly" in stats
         assert "callbacks" in stats
-        assert "schedulers" in stats
+        assert "flows" in stats
 
         # Test: Assembly stats
         assembly_stats = stats["assembly"]
@@ -298,14 +298,14 @@ class TestInterpreter:
         assert assembly_stats["total_flows"] > 0
 
         # Test: Scheduler stats
-        assert isinstance(stats["schedulers"], list)
-        assert len(stats["schedulers"]) > 0
+        assert isinstance(stats["flows"], list)
+        assert len(stats["flows"]) > 0
 
-        scheduler = stats["schedulers"][0]
-        assert "flow_id" in scheduler
-        assert "subscription" in scheduler
-        assert "executing" in scheduler
-        assert "queued" in scheduler
+        flow_stats = stats["flows"][0]
+        assert "flow_id" in flow_stats
+        assert "subscription" in flow_stats
+        assert "executing" in flow_stats
+        assert "queued" in flow_stats
 
         interpreter.shutdown()
 
@@ -315,7 +315,7 @@ class TestInterpreter:
     # no-Shutdown-node and graceful-Shutdown-wired cases.
     #
     # NOTE: the deterministic regression for the underlying deadlock lives
-    # in test_scheduler_wait.py (wait_for_completion timeout contract).
+    # in test_flow_queue_wait.py (wait_for_completion timeout contract).
     # These integration tests exercise the full stop_execution protocol but
     # cannot reliably reproduce the hang on their own, because an idle Tick
     # flow drains faster than the emitter produces.

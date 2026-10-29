@@ -3,7 +3,7 @@
 The worker contract lets a worker return any string (``_parse_worker_result``
 only type-checks it), and the Graph-node/boundary-node crossings return outlet
 ids that deliberately name no port. A strict lookup in the loopback check would
-raise out of the VM loop, and the scheduler's frame-level handler logs it
+raise out of the VM loop, and the flow queue's frame-level handler logs it
 against the *flow* — so the frame is abandoned with no error on any node.
 """
 

@@ -9,7 +9,7 @@ subscribers with a ``ValidationResult``.
 import threading
 import time
 import logging
-from typing import Dict, List, Callable, Optional, Any, TYPE_CHECKING
+from typing import Dict, List, Callable, Optional, Any, Protocol, TYPE_CHECKING
 
 from haywire.core.errors import report_failure
 from .types import ChangeReason, ValidationResult
@@ -23,6 +23,25 @@ logger = logging.getLogger(__name__)
 
 # Type alias for validation callbacks
 ValidationCallback = Callable[[ValidationResult], None]
+
+
+class ExecutionHold(Protocol):
+    """Parks a running graph at its frame barrier while a structural batch runs.
+
+    Implemented by the Interpreter executing the graph tree. See ADR 0064.
+    """
+
+    def hold_for_batch(self) -> bool:
+        """Park every execution group between frames; return ``False`` (no hold taken) if that is impossible.
+
+        Implementations return ``False`` when called on one of their own runner
+        threads, which cannot wait for its own frame to end.
+        """
+        ...
+
+    def release_after_batch(self, requires_reassembly: bool) -> None:
+        """End the hold ``hold_for_batch()`` took; with ``requires_reassembly`` the groups stay parked."""
+        ...
 
 
 class ValidationManager:
@@ -63,6 +82,8 @@ class ValidationManager:
         self._batch_generation = 0
 
         self._callbacks: List[ValidationCallback] = []
+
+        self._execution_hold: Optional[ExecutionHold] = None
 
         self._validation_count = 0
         self._last_validation_time = 0.0
@@ -187,6 +208,17 @@ class ValidationManager:
 
             return self._validate_batch()
 
+    def set_execution_hold(self, hold: Optional[ExecutionHold]) -> None:
+        """Make structural batches of this graph tree wait for ``hold``'s frame barrier; ``None`` ends it.
+
+        Set on the root graph's manager; a Subgraph's batches read it from there.
+        """
+        self._execution_hold = hold
+
+    def call_soon(self, fn: Callable[[], object]) -> None:
+        """Run ``fn`` on this graph's validation scheduler, after the current batch."""
+        self._scheduler.schedule(0.0, fn)
+
     def adopt_scheduler(self, scheduler: Optional[ValidationScheduler]) -> None:
         """Run future batches on ``scheduler``, cancelling any pending one.
 
@@ -256,8 +288,48 @@ class ValidationManager:
                 f"({len(self._dirty_nodes)} nodes, {len(self._dirty_edges)} edges)"
             )
 
+    def _tree_execution_hold(self) -> Optional[ExecutionHold]:
+        root = self._graph.root_graph
+        return root._validation._execution_hold if root is not self._graph else self._execution_hold
+
+    def _pending_mutates_structure(self) -> bool:
+        reasons = [*self._dirty_nodes.values(), *self._dirty_edges.values()]
+        if self._dirty_graph is not None:
+            reasons.append(self._dirty_graph)
+        return any(reason.mutates_structure() for reason in reasons)
+
     def _validate_batch(self) -> ValidationResult:
         """Validate every dirty element and return the batch result.
+
+        A batch that may change structure first parks the executing graph at
+        its frame barrier (see ``set_execution_hold``), unless this thread
+        already holds the validation lock; the validation lock is taken after
+        the hold. See ``_run_batch_locked`` for what the batch does.
+        """
+        hold = self._tree_execution_hold()
+        # A thread already inside the lock (inline validation, a forced batch)
+        # must not wait for frames that may need that lock.
+        reentrant = self._validation_lock._is_owned()  # type: ignore[attr-defined]
+        held = False
+        while True:
+            with self._validation_lock:
+                if held or hold is None or reentrant or not self._pending_mutates_structure():
+                    result = self._run_batch_locked()
+                    break
+            held = hold.hold_for_batch()
+            if not held:
+                with self._validation_lock:
+                    result = self._run_batch_locked()
+                break
+        if held:
+            assert hold is not None
+            hold.release_after_batch(
+                requires_reassembly=result.graph is not None and result.graph.requires_graph_reassembly()
+            )
+        return result
+
+    def _run_batch_locked(self) -> ValidationResult:
+        """Validate every dirty element and return the batch result; the caller holds the validation lock.
 
         Rebuilds the nodes and edges whose reason calls for it, spreads a dirty
         node's reason to the edges attached to it, runs node housekeeping, and

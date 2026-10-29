@@ -1,6 +1,6 @@
 import threading
 import time
-from typing import Optional
+from typing import List, Optional
 
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
@@ -84,39 +84,54 @@ class TickEmitNode(BaseNode):
         return None
 
     def _handle_start(self, context: ExecutionContext) -> Optional[str]:
-        if self._is_running:
-            return "started"
+        with self._lock:
+            if self._is_running:
+                return "started"
 
-        self._is_running = True
-        self._stop_event.clear()
-        self._frame_count = 0
-        self._delta_diff = 0.0
+            target_fps = self.value("target_fps")
+            callback_names = list(self.value("callback_names").values())
+            # One stop event per tick thread, so a restart never clears the
+            # event an exiting thread has not seen yet.
+            self._stop_event = threading.Event()
+            self._is_running = True
+            self._frame_count = 0
+            self._delta_diff = 0.0
 
-        self._thread = threading.Thread(target=self._tick_loop, args=(context,), daemon=True)
-        self._thread.start()
+            self._thread = threading.Thread(
+                target=self._tick_loop,
+                args=(context, self._stop_event, target_fps, callback_names),
+                name=f"TickEmit-{self.node_id}",
+                daemon=True,
+            )
+            self._thread.start()
         return "started"
 
     def _handle_stop(self) -> Optional[str]:
-        if not self._is_running:
-            return None
+        with self._lock:
+            if not self._is_running:
+                return None
         self._stop_thread()
         return "stopped"
 
-    def _tick_loop(self, context: ExecutionContext):
+    def _tick_loop(
+        self,
+        context: ExecutionContext,
+        stop_event: threading.Event,
+        target_fps: float,
+        callback_names: List[str],
+    ):
         """Main tick loop running in a separate thread."""
-        target_fps = self.value("target_fps")
         interval = 1.0 / max(0.1, target_fps)
         last_time = time.perf_counter()
 
-        while not self._stop_event.wait(timeout=max(0.0, interval - self._delta_diff)):
+        while not stop_event.wait(timeout=max(0.0, interval - self._delta_diff)):
             now = time.perf_counter()
             delta = now - last_time
             last_time = now
             self._frame_count += 1
 
             # Emit to all connected TickEventNodes
-            callback_names: dict = self.value("callback_names")
-            for callback in callback_names.values():
+            for callback in callback_names:
                 context.emit_callback(
                     event_name=callback,
                     payload={"delta_time": delta},
@@ -126,16 +141,11 @@ class TickEmitNode(BaseNode):
             new_delta_diff = self._delta_diff + (delta - interval)
             self._delta_diff = self._delta_diff * (1.0 - self._smoothing) + new_delta_diff * self._smoothing
 
-        with self._lock:
-            self._is_running = False
-
     def _stop_thread(self):
-        """Stop the tick thread and wait for it to exit."""
-        if not self._is_running:
-            return
-        self._stop_event.set()
-        if self._thread is not None:
-            self._thread.join(timeout=2.0)
+        """Stop the tick thread and wait for it to exit; safe to call from several threads at once."""
         with self._lock:
+            thread, self._thread = self._thread, None
             self._is_running = False
-        self._thread = None
+            self._stop_event.set()
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout=2.0)

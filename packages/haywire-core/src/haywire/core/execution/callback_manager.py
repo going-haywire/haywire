@@ -6,7 +6,7 @@ trigger event nodes in other flows within the same graph.
 """
 
 from __future__ import annotations
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 import time
 import logging
 
@@ -28,7 +28,7 @@ class CallbackManager:
     - Track callback statistics
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize callback manager"""
         self.callbacks: Dict[str, List[Flow]] = {}
         """Maps callback event names to listening flows"""
@@ -38,7 +38,7 @@ class CallbackManager:
 
         logger.debug("CallbackManager initialized")
 
-    def register_callback_listener(self, event_name: str, flow: Flow):
+    def register_callback_listener(self, event_name: str, flow: Flow) -> None:
         """
         Register a flow as listener for a callback event.
 
@@ -53,7 +53,7 @@ class CallbackManager:
             self.callbacks[event_name].append(flow)
             logger.debug(f"Flow {flow.flow_id} registered for callback '{event_name}'")
 
-    def unregister_callback_listener(self, event_name: str, flow: Flow):
+    def unregister_callback_listener(self, event_name: str, flow: Flow) -> None:
         """
         Unregister a flow from callback event.
 
@@ -66,7 +66,7 @@ class CallbackManager:
                 self.callbacks[event_name].remove(flow)
                 logger.debug(f"Flow {flow.flow_id} unregistered from callback '{event_name}'")
 
-    def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
+    def emit_callback(self, event_name: str, payload: Optional[Dict[str, Any]] = None) -> None:
         """
         Emit a callback event to trigger listening flows.
 
@@ -86,20 +86,20 @@ class CallbackManager:
         flows = self.callbacks.get(event_name, [])
 
         if not flows:
-            logger.debug(f"Callback '{event_name}' emitted but no flows listening")
+            logger.debug("Callback '%s' emitted but no flows listening", event_name)
             return
 
-        logger.debug(f"Emitting callback '{event_name}' to {len(flows)} flows")
+        logger.debug("Emitting callback '%s' to %d flows", event_name, len(flows))
 
         # Create trigger
         trigger = Trigger(source_key=f"callback:{event_name}", payload=payload, timestamp=time.time())
 
-        # Enqueue trigger in each flow's scheduler
+        # Enqueue trigger in each flow's queue
         for flow in flows:
-            if flow.scheduler:
-                flow.scheduler.enqueue_trigger(trigger)
+            if flow.queue:
+                flow.queue.enqueue_trigger(trigger)
             else:
-                logger.warning(f"Flow {flow.flow_id} has no scheduler, cannot trigger callback")
+                logger.warning(f"Flow {flow.flow_id} has no queue, cannot trigger callback")
 
     def get_listeners(self, event_name: str) -> List[Flow]:
         """
@@ -113,12 +113,12 @@ class CallbackManager:
         """
         return self.callbacks.get(event_name, []).copy()
 
-    def clear_callbacks(self):
+    def clear_callbacks(self) -> None:
         """Clear all callback registrations"""
         self.callbacks.clear()
         logger.debug("All callback registrations cleared")
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self) -> Dict[str, Any]:
         """
         Get callback statistics.
 

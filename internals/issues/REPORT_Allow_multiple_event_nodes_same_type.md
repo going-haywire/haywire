@@ -2,9 +2,8 @@
 
 Date: 2026-06-03
 Type: design change (loosen a structural rule)
-Status (2026-10-29): **blocked on execution groups** (`docs/superpowers/plans/2026-10-29-execution-groups.md`,
-ADR 0064). Do not loosen before that lands: two event nodes whose chains share a control node would
-run that node on two threads at once. Once it lands the refusal breaks nothing it protects and should
+Status (2026-10-29): **unblocked** — execution groups (ADR 0064) landed: two event nodes whose chains
+share a control node now run on one runner thread, so the refusal breaks nothing it protects and should
 go (ADR 0043: defuse, don't refuse). Fan-out stays illegal: ADR 0044 caps a control outlet at one link.
 
 ## The restriction today

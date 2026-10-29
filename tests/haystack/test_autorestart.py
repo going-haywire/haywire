@@ -31,6 +31,13 @@ def _reassembly_result():
     return result
 
 
+def _inline_graph():
+    """A graph double whose validation ``call_soon`` runs its callable at once."""
+    graph = MagicMock()
+    graph._validation.call_soon.side_effect = lambda fn: fn()
+    return graph
+
+
 def _make_state():
     from haybale_haystack.state.haystack_state import HaystackState
 
@@ -46,7 +53,7 @@ def test_autorestart_off_only_stops(monkeypatch):
     from haybale_haystack.graph_entry import GraphEntry
     from haywire.core.execution.compile_result import CompileResult
 
-    entry = GraphEntry(graph=MagicMock(), editor=MagicMock())
+    entry = GraphEntry(graph=_inline_graph(), editor=MagicMock())
     entry.run_settings.autorestart = False
 
     running = MagicMock()
@@ -67,7 +74,7 @@ def test_autorestart_on_restarts_when_compile_ok(monkeypatch):
     from haybale_haystack.graph_entry import GraphEntry
     from haywire.core.execution.compile_result import CompileResult
 
-    entry = GraphEntry(graph=MagicMock(), editor=MagicMock())
+    entry = GraphEntry(graph=_inline_graph(), editor=MagicMock())
     entry.run_settings.autorestart = True
 
     running = MagicMock()
@@ -88,7 +95,7 @@ def test_autorestart_on_stays_stopped_when_compile_fails(monkeypatch):
     from haybale_haystack.graph_entry import GraphEntry
     from haywire.core.execution.compile_result import CompileResult
 
-    entry = GraphEntry(graph=MagicMock(), editor=MagicMock())
+    entry = GraphEntry(graph=_inline_graph(), editor=MagicMock())
     entry.run_settings.autorestart = True
 
     running = MagicMock()
@@ -146,3 +153,42 @@ def test_running_host_not_restarted_by_value_edit(graph_with_library_system, mon
 
     assert calls == []
     assert entry.unsaved is True
+
+
+def test_restart_runs_after_batch_releases_lock(monkeypatch):
+    """The reassembly path defers stop/start to ``call_soon``; it runs outside the validation lock."""
+    import threading
+
+    from haybale_haystack.graph_entry import GraphEntry
+    from haywire.core.execution.compile_result import CompileResult
+
+    lock = threading.RLock()
+    deferred: list = []
+    graph = MagicMock()
+    graph._validation.lock = lock
+    graph._validation.call_soon.side_effect = deferred.append
+
+    entry = GraphEntry(graph=graph, editor=MagicMock())
+    entry.run_settings.autorestart = True
+    running = MagicMock()
+    running.is_executing = True
+    entry.interpreter = running
+
+    calls: list = []
+    owned: list = []
+
+    def stop():
+        calls.append("stop")
+        owned.append(lock._is_owned())  # type: ignore[attr-defined]
+
+    monkeypatch.setattr(entry, "stop_execution", stop)
+    monkeypatch.setattr(entry, "start_execution", _record(calls, "start", CompileResult(ok=True)))
+
+    state = _make_state()
+    with lock:  # the batch notifies subscribers under the validation lock
+        state._on_entry_validation(entry, _reassembly_result())
+        assert calls == []
+    assert len(deferred) == 1
+    deferred[0]()
+    assert calls == ["stop", "start"]
+    assert owned == [False]

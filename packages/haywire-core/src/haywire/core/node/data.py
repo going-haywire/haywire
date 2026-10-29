@@ -64,6 +64,8 @@ class NodeData:
         # a node whose shape decides its role restamps it — and because a read
         # can land before init() (structural validation does one).
         self._behavior: NodeBehaviorFlags = self.__class__.class_behavior
+        self._is_data_node: bool = self._behavior.is_data_node
+        """``behavior.is_data_node``, cached for ``_execute``; kept in step by ``set_node_type``."""
 
         self.event_subscription: EventSource | None = None
         # TODO: CallbackSystem
@@ -144,6 +146,7 @@ class NodeData:
         next one, not the frame in flight.
         """
         self._behavior = replace(self._behavior, node_type=node_type)
+        self._is_data_node = self._behavior.is_data_node
 
     @property
     def library(self) -> LibraryIdentity:

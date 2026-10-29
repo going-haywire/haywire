@@ -83,6 +83,8 @@ class GraphEntry(GraphContainer):
     run_settings: GraphRunSettings = field(default_factory=GraphRunSettings)
     kind: EntryKind = EntryKind.GRAPH
     last_undo_availability: Optional[tuple[bool, bool, int]] = field(default=None, repr=False)
+    _abandoned: list["Interpreter"] = field(default_factory=list, init=False, repr=False)
+    """Stopped Interpreters whose runner threads are still stuck in a node."""
 
     @property
     def binding_id(self) -> str:
@@ -125,6 +127,8 @@ class GraphEntry(GraphContainer):
         Returns a failed result for an entry whose :attr:`kind` is not
         executable, naming the reason: a macro document holds no EVENT node, so
         assembly would find nothing to run and the verdict would not say why.
+        Also refuses while a previous run of this graph is still stuck in a
+        node (its runner was abandoned by a stop).
         """
         if not self.kind.is_executable():
             return CompileResult(
@@ -136,6 +140,16 @@ class GraphEntry(GraphContainer):
 
         if self.is_executing:
             return CompileResult(ok=True, error=None)
+
+        self._abandoned = [interp for interp in self._abandoned if interp.has_abandoned_runners()]
+        if self._abandoned:
+            return CompileResult(
+                ok=False,
+                error=(
+                    f"a previous run of '{self.display_name}' is still stuck in a node; "
+                    "wait for it to finish or restart the studio"
+                ),
+            )
 
         library_state_container = get_library_state_container()
         interpreter = Interpreter(library_state_container=library_state_container)
@@ -175,8 +189,13 @@ class GraphEntry(GraphContainer):
             self.interpreter.stop_execution()
         except Exception as e:
             logger.warning(f"Error stopping execution on '{self.display_name}': {e}")
-        self.interpreter = None
+        self._retire_interpreter()
         logger.info(f"Execution stopped for graph '{self.display_name}'")
+
+    def _retire_interpreter(self) -> None:
+        interpreter, self.interpreter = self.interpreter, None
+        if interpreter is not None and interpreter.has_abandoned_runners():
+            self._abandoned.append(interpreter)
 
     def save(self, save_as: "Optional[Path]" = None) -> "Optional[str]":
         """Persist this entry via its owning HaystackState.

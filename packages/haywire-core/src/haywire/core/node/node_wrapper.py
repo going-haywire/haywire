@@ -155,6 +155,15 @@ class NodeWrapper:
         # Thread safety
         self._lock = threading.RLock()
 
+        self.exec_lock = threading.Lock()
+        """Serializes execution of the node across execution groups, and its run lifecycle.
+
+        Held around a shared data node's ``_execute`` and frame hooks, and around
+        ``retain()``/``release()`` and the lifecycle hook they trigger. Survives
+        node rebuilds. Lock order: before the validation lock and ``_lock``. See ADR 0064.
+        """
+        self._run_refs: int = 0
+
         # Cleanup flag — signals that cleanup() has run and callers must not
         # access the wrapper's fields. Mirrors Settings._cleaned_up.
         self._cleaned_up: bool = False
@@ -203,6 +212,25 @@ class NodeWrapper:
                     f"(not built or already cleaned up)."
                 )
             return self._node_instance
+
+    def retain(self) -> bool:
+        """Count one more execution group using this node; return ``True`` for the first.
+
+        The caller holds ``exec_lock`` and calls ``on_startup`` when this returns ``True``.
+        """
+        self._run_refs += 1
+        return self._run_refs == 1
+
+    def release(self) -> bool:
+        """Count one execution group fewer; return ``True`` when the last one let go.
+
+        Never counts below zero: a release with no retain outstanding returns
+        ``False``. The caller holds ``exec_lock`` and calls ``on_shutdown`` on ``True``.
+        """
+        if self._run_refs == 0:
+            return False
+        self._run_refs -= 1
+        return self._run_refs == 0
 
     def set_rebuild_data(self, node_data: Optional[Dict[str, Any]]) -> None:
         """Hold *node_data* for the next requested rebuild; ``None`` rebuilds through ``init()``."""

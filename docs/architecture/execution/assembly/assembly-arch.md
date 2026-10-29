@@ -201,8 +201,8 @@ The Interpreter registers Flow 3 with `CallbackManager` under `'frame_ready'` wh
 ## 6. Open questions
 
 - **Partial reassembly inside a Flow.** Today, any change inside a Flow's reachable set rebuilds the whole Flow. Could be smarter — rebuild only the affected localized data-flow.
-- **Cross-Flow optimization.** Two Flows sharing a large data-flow subtree compute it twice. The architecture allows shared subtrees but the current implementation doesn't deduplicate.
-- **Parallel Flow execution.** The assembler builds independent Flows; whether they run in parallel is the VM's call. Today they run serially. See [virtual-machine](../virtual-machine/virtual-machine-arch.md).
+- **Cross-Flow optimization.** A shared data subtree is computed once per frame of whichever group reaches it first; groups that arrive later read its result.
+- **Parallel Flow execution.** Each execution group runs on its own thread; flows that share a control node share a group (ADR 0064). See [virtual-machine](../virtual-machine/virtual-machine-arch.md).
 
 ## Key files
 

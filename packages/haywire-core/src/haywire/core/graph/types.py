@@ -74,6 +74,13 @@ class ChangeReason(Enum):
     EDGE_STYLE_CHANGED = "edge_style_changed"
     """An edge's style bag changed: the edge redraws and the graph saves."""
 
+    def mutates_structure(self) -> bool:
+        """Return ``True`` when a batch carrying this reason may change nodes, ports or edges.
+
+        Such a batch waits for the frame barrier before it runs. See ADR 0064.
+        """
+        return self not in _NON_STRUCTURAL_REASONS
+
     def requires_adding(self) -> bool:
         adding_reasons = {
             ChangeReason.NODE_ADDED,
@@ -268,3 +275,17 @@ class ValidationResult:
     def get_removed_edges(self) -> list[str]:
         """Get all edge UUIDs that were removed"""
         return self.get_edges_by_reason(ChangeReason.EDGE_REMOVED)
+
+
+_NON_STRUCTURAL_REASONS = frozenset(
+    {
+        ChangeReason.NODE_VALUE_CHANGED,
+        ChangeReason.GRAPH_CONTENT_CHANGED,
+        ChangeReason.NODE_REDRAW_REQUESTED,
+        ChangeReason.NODE_MOVED,
+        ChangeReason.NODE_STAGE_CHANGED,
+        ChangeReason.NODE_LAYOUT_CHANGED,
+        ChangeReason.EDGE_REDRAW_REQUESTED,
+        ChangeReason.EDGE_STYLE_CHANGED,
+    }
+)

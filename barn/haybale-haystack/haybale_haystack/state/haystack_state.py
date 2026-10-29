@@ -193,7 +193,9 @@ class HaystackState(AppState):
 
         Handles three concerns:
 
-        1. Stop execution when the result requires graph reassembly.
+        1. Stop execution when the result requires graph reassembly, and
+           restart it under autorestart. Both run through the graph's
+           ``call_soon``, after the batch has released the validation lock.
         2. Mark the entry unsaved if the batch changed persisted state.
         3. Broadcast ``GraphDataMutated`` so peer sessions refresh.
 
@@ -213,14 +215,9 @@ class HaystackState(AppState):
         """
         if entry.is_executing and result.has_changes() and result.graph is not None:
             if result.graph.requires_graph_reassembly():
-                autorestart = entry.run_settings.autorestart
-                entry.stop_execution()
-                if autorestart:
-                    result_compile = entry.start_execution()
-                    if not result_compile.ok:
-                        logger.info(
-                            f"Autorestart skipped for '{entry.display_name}': {result_compile.error}"
-                        )
+                # Stopping waits for runner threads, whose frames may need the
+                # validation lock this batch holds. See ADR 0064.
+                entry.graph._validation.call_soon(lambda: self._restart_after_reassembly(entry))
 
         if result.requires_save():
             was_unsaved = entry.unsaved
@@ -238,6 +235,18 @@ class HaystackState(AppState):
                 self._broadcast_data_mutated()
             elif not was_unsaved or availability_changed:
                 self._broadcast_unsaved_changed()
+
+    @staticmethod
+    def _restart_after_reassembly(entry: GraphEntry) -> None:
+        """Stop the entry's run, and start it again under autorestart."""
+        if not entry.is_executing:
+            return
+        autorestart = entry.run_settings.autorestart
+        entry.stop_execution()
+        if autorestart:
+            result_compile = entry.start_execution()
+            if not result_compile.ok:
+                logger.info(f"Autorestart skipped for '{entry.display_name}': {result_compile.error}")
 
     @staticmethod
     def _only_value_edits(result: "ValidationResult") -> bool:

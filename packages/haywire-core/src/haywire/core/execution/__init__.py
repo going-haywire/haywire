@@ -7,7 +7,8 @@ Main Components:
 - Interpreter: Main coordinator for graph execution
 - HaywireVM: Virtual machine for executing flows
 - Flow: Executable representation of graph flows
-- Scheduler: Per-flow execution scheduler
+- Scheduler: Per-flow trigger queue
+- ExecutionGroup: One runner thread for flows that share a control node
 - Event Sources: System, External, and Callback events
 - Callback Manager: Inter-flow communication
 
@@ -33,7 +34,8 @@ from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.execution.vm import HaywireVM
 from haywire.core.execution.flow import Flow, ControlFlowGraph, ControlNodeInfo, LocalizedDataFlow
-from haywire.core.execution.scheduler import FlowScheduler, QueueMode
+from haywire.core.execution.flow_queue import FlowQueue, QueueMode
+from haywire.core.execution.execution_group import ExecutionGroup
 from haywire.core.execution.event_source import (
     EventSource,
     SystemEvent,
@@ -51,7 +53,8 @@ __all__ = [
     "HaywireVM",
     "ExecutionContext",
     "Flow",
-    "FlowScheduler",
+    "FlowQueue",
+    "ExecutionGroup",
     "QueueMode",
     "CallbackManager",
     # Flow structures

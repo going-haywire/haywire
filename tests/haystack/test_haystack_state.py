@@ -613,6 +613,7 @@ def test_validation_callback_stops_execution_on_reassembly(state_with_mocked_dep
     entry = MagicMock()
     entry.is_executing = True
     entry.stop_execution = MagicMock()
+    entry.graph._validation.call_soon.side_effect = lambda fn: fn()  # the deferred restart, run now
 
     inner_graph = MagicMock()
     inner_graph.requires_graph_reassembly.return_value = True

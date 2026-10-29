@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from haywire.core.execution.scheduler import QueueMode
+from haywire.core.execution.flow_queue import QueueMode
 
 
 class SystemEventType(Enum):
@@ -28,11 +28,11 @@ class EventSource:
     as dictionary keys and compared reliably.
 
     Scheduler config carried by every event source:
-        queue_mode: How the subscribing flow's scheduler treats triggers that
+        queue_mode: How the subscribing flow's queue treats triggers that
             arrive while a frame is executing. ``BLOCK`` (default) queues with
             backpressure; ``DROP`` discards stale triggers for realtime. Set by
             the event-node author in ``post_init``.
-        max_queue_size: Depth of the scheduler's trigger queue. ``DROP`` needs a
+        max_queue_size: Depth of the flow's trigger queue. ``DROP`` needs a
             shallow queue (``1``) to actually keep only the newest frame, since
             triggers can still slip in between frames; the author sets the pair.
 
@@ -139,13 +139,14 @@ class CallbackEvent(EventSource):
         return f"CallbackEvent({self.event_name})"
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Trigger:
     """
     Runtime trigger that activates a flow.
 
     Created when an event occurs and contains all data needed
-    to execute the flow.
+    to execute the flow. Immutable: one trigger is shared by every flow
+    subscribed to the event.
 
     Args:
         source_key: Subscription key that identifies event source
@@ -156,7 +157,3 @@ class Trigger:
     source_key: str
     payload: Optional[Dict[str, Any]] = None
     timestamp: float = 0.0
-
-    def matches_subscription(self, event_source: EventSource) -> bool:
-        """Check if this trigger matches an event source subscription"""
-        return event_source.matches(self.source_key)

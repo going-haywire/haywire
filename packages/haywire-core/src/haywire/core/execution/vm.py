@@ -1,14 +1,16 @@
 """Haywire Virtual Machine - executes control and data flows."""
 
 from __future__ import annotations
-from typing import Dict, List, Optional, Any, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Any, Sequence, TYPE_CHECKING
 import logging
+import threading
 
 from haywire.core.execution.callback_manager import CallbackManager
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.execution.flow import ControlNodeInfo, LocalizedDataFlow
+from haywire.core.execution.flow import ControlNodeInfo, LocalizedDataFlow, overrides
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.node.behavior import NodeType
+from haywire.core.state.data_namespace import AppDataNamespace
 
 if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
@@ -26,17 +28,20 @@ class HaywireVM:
     The VM manages control flow execution by:
     1. Starting from event node
     2. Navigating control graph based on worker function results
-    3. Managing done/loopback stacks for loop handling
+    3. Managing the loopback stack for loop handling
     4. Evaluating data flows before each control node
     5. Handling callbacks between flows
+
+    One VM is shared by every execution group's runner thread, so it keeps
+    no per-frame state of its own.
     """
 
     def __init__(
         self,
         global_context: Optional[Dict[str, Any]] = None,
         max_stack_depth: int = 1000,
-        library_state_container: Optional["LibraryStateContainer"] = None,
-    ):
+        library_state_container: Optional[LibraryStateContainer] = None,
+    ) -> None:
         """
         Initialize VM.
 
@@ -53,11 +58,15 @@ class HaywireVM:
         # Callback manager reference (set by interpreter)
         self.callback_manager: Optional[CallbackManager] = None
         self._library_state_container = library_state_container
+        # Built once: the container never changes, and the namespace holds no per-frame state.
+        self._app_data: Optional[AppDataNamespace] = (
+            AppDataNamespace(library_state_container) if library_state_container is not None else None
+        )
 
         logger.debug("HaywireVM initialized")
 
     def _create_execution_context(
-        self, flow: "Flow", trigger: Optional["Trigger"] = None, frame_number: int = 0
+        self, flow: Flow, trigger: Optional[Trigger] = None, frame_number: int = 0
     ) -> ExecutionContext:
         """
         Create execution context for flow execution.
@@ -73,108 +82,121 @@ class HaywireVM:
         Returns:
             Complete ExecutionContext ready for node execution
         """
-        # Create local context from graph variables
-        local_ctx = {}
-        for var_name, variable in flow.graph_ref.variables.items():
-            local_ctx[var_name] = variable.current_value
-
-        from haywire.core.state.data_namespace import AppDataNamespace
-
-        app_data_namespace: Optional[AppDataNamespace] = (
-            AppDataNamespace(self._library_state_container)
-            if self._library_state_container is not None
-            else None
-        )
-
-        # Build and return complete execution context
+        local_ctx: Dict[str, Any] = {
+            var_name: variable.current_value for var_name, variable in flow.graph_ref.variables.items()
+        }
         return ExecutionContext(
             global_ctx=self.global_context,
             local_ctx=local_ctx,
             trigger=trigger,
             vm=self,
             frame_number=frame_number,
-            app_data=app_data_namespace,
+            app_data=self._app_data,
         )
 
-    def call_flow_startup(self, flow: "Flow"):
-        """
-        Call on_startup() on all nodes in flow.
+    def call_startup(
+        self, nodes: Sequence[BaseNode], context_flow: Flow, cancel: Optional[threading.Event] = None
+    ) -> None:
+        """Retain every node in ``nodes`` for a run, calling ``on_startup()`` on first retain.
 
-        Invoked once when flow execution thread starts, before processing
-        any triggers. Nodes can use this to initialize resources.
+        Called by an execution group before its first frame. A node shared
+        with another group that already retained it is not started again.
 
         Args:
-            flow: Flow containing nodes to initialize
+            nodes: The nodes the group executes.
+            context_flow: The flow whose graph provides the hook's execution context.
+            cancel: The group's ``cancel`` flag; once set, a node whose ``exec_lock``
+                another group holds is skipped.
         """
-        exec_ctx = self._create_execution_context(flow)
+        exec_ctx = self._create_execution_context(context_flow)
 
-        for node in flow.get_nodes_with_on_startup():
+        for node in nodes:
+            if not self._acquire_exec_lock(node, cancel):
+                continue
             try:
-                # call the nodes wrapper on_startup for housekeeping purposes.
-                node.on_startup(exec_ctx)
+                if node.wrapper.retain() and overrides(node, "on_startup"):
+                    node.on_startup(exec_ctx)
             except Exception as e:
                 self.catch_exception(e, node, "Node on_startup() Execution")
+            finally:
+                node.wrapper.exec_lock.release()
 
-    def call_flow_shutdown(self, flow: "Flow"):
+    def call_shutdown(
+        self, nodes: Sequence[BaseNode], context_flow: Flow, cancel: Optional[threading.Event] = None
+    ) -> None:
+        """Release every node in ``nodes``, calling ``on_shutdown()`` on the last release.
+
+        Called by an execution group after its last frame; mirrors ``call_startup()``.
+        Once ``cancel`` is set, a node whose ``exec_lock`` another group holds
+        (a stuck worker) is skipped and stays retained.
         """
-        Call on_shutdown() on all nodes in flow.
+        exec_ctx = self._create_execution_context(context_flow)
 
-        Invoked once when flow execution thread ends, after all triggers
-        processed. Nodes can use this to cleanup resources.
-
-        Args:
-            flow: Flow containing nodes to cleanup
-        """
-        exec_ctx = self._create_execution_context(flow)
-
-        for node in flow.get_nodes_with_on_shutdown():
+        for node in nodes:
+            if not self._acquire_exec_lock(node, cancel):
+                logger.warning(f"Skipping on_shutdown bookkeeping of {node.node_id}: held by a stuck run")
+                continue
             try:
-                # call the nodes wrapper on_shutdown for housekeeping purposes.
-                node.on_shutdown(exec_ctx)
+                if node.wrapper.release() and overrides(node, "on_shutdown"):
+                    node.on_shutdown(exec_ctx)
             except Exception as e:
                 self.catch_exception(e, node, "Node on_shutdown() Execution")
+            finally:
+                node.wrapper.exec_lock.release()
 
-    def execute_control_flow(self, flow: "Flow", trigger: "Trigger", frame_number: int = 0) -> int:
+    @staticmethod
+    def _acquire_exec_lock(node: BaseNode, cancel: Optional[threading.Event]) -> bool:
+        """Take ``node``'s ``exec_lock``; give up (``False``) once ``cancel`` is set."""
+        lock = node.wrapper.exec_lock
+        if cancel is None:
+            return lock.acquire()
+        while not lock.acquire(timeout=0.1):
+            if cancel.is_set():
+                return False
+        return True
+
+    def execute_control_flow(
+        self,
+        flow: Flow,
+        trigger: Trigger,
+        frame_number: int = 0,
+        cancel: Optional[threading.Event] = None,
+    ) -> int:
         """
         Execute a flow's control flow.
 
         This is the main entry point for flow execution. It:
-        1. Initializes execution stacks
-        2. Creates execution context
-        3. Navigates control graph
-        4. Handles loopback nodes
+        1. Creates the execution context and runs ``on_frame_start``
+        2. Navigates the control graph from the entry node
+        3. Handles loopback nodes
+        4. Runs ``on_frame_end``
 
         Args:
             flow: Flow to execute
             trigger: Trigger that activated this flow
-            frame_number: int = 0
+            frame_number: Number of this frame within its flow, counted from 1
+            cancel: ``cancel`` flag of the flow's execution group. Once set, the
+                frame ends before its next control node; ``on_frame_end``
+                still runs.
 
         Returns:
-            The number of nodes executed in this frame. This is returned (not
-            read off the VM) because a single VM instance is shared across all
-            flow schedulers running on separate threads — a VM-instance counter
-            would be corrupted by concurrent frames. The per-frame count is
-            tracked in a local and threaded through ``exec_ctx.exec_count``.
+            The number of nodes executed in this frame.
         """
         if not flow.is_assembled():
             raise RuntimeError(f"Cannot execute flow {flow.flow_id}: not assembled")
         assert flow.control_graph is not None, "is_assembled() guarantees control_graph is set"
-
-        # logger.debug(
-        #     f"Starting control flow execution: {flow.flow_id} "
-        #     f"(trigger: {trigger.source_key})"
-        # )
+        control_nodes = flow.control_graph.control_nodes
 
         loopback_stack: List[str] = []
 
-        # Create execution context
         exec_ctx = self._create_execution_context(flow, trigger, frame_number)
+        exec_ctx.cancel = cancel
 
+        shared = flow.shared_node_ids
         for node in flow.get_nodes_with_on_frame_start():
-            try:
-                node.on_frame_start(exec_ctx)
-            except Exception as e:
-                self.catch_exception(e, node, "Node on_frame_start() Execution")
+            self._run_frame_hook(
+                node, node.on_frame_start, shared, exec_ctx, "Node on_frame_start() Execution"
+            )
 
         # Start from event node
         current_node_id: Optional[str] = flow.get_entry_node_id()
@@ -182,8 +204,10 @@ class HaywireVM:
 
         # Main execution loop
         while current_node_id is not None:
-            # Get node info
-            node_info = flow.control_graph.get_node_info(current_node_id)
+            if cancel is not None and cancel.is_set():
+                break
+
+            node_info = control_nodes.get(current_node_id)
             if node_info is None:
                 logger.error(f"Node {current_node_id} not found in control graph")
                 break
@@ -217,15 +241,35 @@ class HaywireVM:
             )
 
         for node in flow.get_nodes_with_on_frame_end():
-            try:
-                node.on_frame_end(exec_ctx)
-            except Exception as e:
-                self.catch_exception(e, node, "Node on_frame_end() Execution")
+            self._run_frame_hook(node, node.on_frame_end, shared, exec_ctx, "Node on_frame_end() Execution")
 
-        return exec_ctx.exec_count or 0
+        return exec_ctx.exec_count
+
+    def _run_frame_hook(
+        self,
+        node: BaseNode,
+        hook: Callable[[ExecutionContext], None],
+        shared_node_ids: frozenset[str],
+        exec_ctx: ExecutionContext,
+        operation: str,
+    ) -> None:
+        """Run a frame hook of ``node``, under its ``exec_lock`` when it is a shared data node.
+
+        A shared node whose lock the frame gave up waiting for (``cancel`` set) is skipped.
+        """
+        shared = node.node_id in shared_node_ids
+        if shared and not self._acquire_exec_lock(node, exec_ctx.cancel):
+            return
+        try:
+            hook(exec_ctx)
+        except Exception as e:
+            self.catch_exception(e, node, operation)
+        finally:
+            if shared:
+                node.wrapper.exec_lock.release()
 
     def _execute_control_node(
-        self, node_info: "ControlNodeInfo", flow: "Flow", exec_ctx: ExecutionContext
+        self, node_info: ControlNodeInfo, flow: Flow, exec_ctx: ExecutionContext
     ) -> Optional[str]:
         """
         Execute a control node.
@@ -250,18 +294,18 @@ class HaywireVM:
         exec_ctx.node = node
 
         if node_info.localized_data_flow:
-            # logger.debug(
-            #     f"> Executing Data Flow for node: {node_wrapper.node_id} on frame {exec_ctx.frame_number}"
-            # )
             # >>>>>>>>>>>
             # 1. Evaluate localized data flow
             self._evaluate_data_flow(
                 node_info.localized_data_flow,
                 exec_ctx,
+                flow.shared_node_ids,
             )
             # >>>>>>>>>>>
+            if exec_ctx.cancel is not None and exec_ctx.cancel.is_set():
+                return None
 
-        exec_ctx.exec_count = (exec_ctx.exec_count or 0) + 1
+        exec_ctx.exec_count += 1
 
         # >>>>>>>>>>>
         # 2. Execute control node
@@ -272,14 +316,9 @@ class HaywireVM:
             return None
         # >>>>>>>>>>>
 
-        # logger.debug(
-        #     f"Control node {node.node_id} completed, "
-        #     f"next outlet: {next_outlet_id}"
-        # )
-
         return next_outlet_id
 
-    def catch_exception(self, exception: Exception, node: "BaseNode", operation: str) -> None:
+    def catch_exception(self, exception: Exception, node: BaseNode, operation: str) -> None:
         """
         Handle exception during node execution.
 
@@ -298,7 +337,7 @@ class HaywireVM:
         node.wrapper._add_runtime_error(error)
 
     def _navigate_next(
-        self, next_outlet_id: Optional[str], node_info: "ControlNodeInfo", loopback_stack: List[str]
+        self, next_outlet_id: Optional[str], node_info: ControlNodeInfo, loopback_stack: List[str]
     ) -> tuple[Optional[str], Optional[str]]:
         """
         Determine next node to execute based on worker result.
@@ -350,29 +389,44 @@ class HaywireVM:
 
     def _evaluate_data_flow(
         self,
-        data_flow: "LocalizedDataFlow",
+        data_flow: LocalizedDataFlow,
         exec_ctx: ExecutionContext,
-    ):
+        shared_node_ids: frozenset[str] = frozenset(),
+    ) -> None:
         """
         Evaluate a localized data flow.
 
         Executes data nodes in sequence to update inlet values
-        for the control node.
+        for the control node. A shared data node runs under its wrapper's
+        ``exec_lock``: a group arriving while another computes it waits, then
+        finds it clean and reads the fresh outlet.
 
         Args:
             data_flow: LocalizedDataFlow to evaluate
             exec_ctx: Execution context
+            shared_node_ids: Ids of the flow's shared data nodes.
         """
         for data_node in data_flow.execution_sequence:
-            exec_ctx.exec_count = (exec_ctx.exec_count or 0) + 1
+            exec_ctx.exec_count += 1
 
-            # Execute data node
-            try:
-                data_node._execute(exec_ctx)
-            except Exception as e:
-                self.catch_exception(e, data_node, "Node Execution")
+            # Hot path: an unshared data node takes no lock and no context manager.
+            if shared_node_ids and data_node.node_id in shared_node_ids:
+                if not self._acquire_exec_lock(data_node, exec_ctx.cancel):
+                    return
+                try:
+                    self._execute_data_node(data_node, exec_ctx)
+                finally:
+                    data_node.wrapper.exec_lock.release()
+            else:
+                self._execute_data_node(data_node, exec_ctx)
 
-    def emit_callback(self, event_name: str, payload: Optional[Dict] = None):
+    def _execute_data_node(self, data_node: BaseNode, exec_ctx: ExecutionContext) -> None:
+        try:
+            data_node._execute(exec_ctx)
+        except Exception as e:
+            self.catch_exception(e, data_node, "Node Execution")
+
+    def emit_callback(self, event_name: str, payload: Optional[Dict[str, Any]] = None) -> None:
         """
         Emit a callback to trigger other flows.
 

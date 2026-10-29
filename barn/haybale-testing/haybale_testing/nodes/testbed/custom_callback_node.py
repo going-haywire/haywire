@@ -1,6 +1,6 @@
 from haywire.core.execution.event_source import CallbackEvent
 from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.execution.scheduler import QueueMode
+from haywire.core.execution.flow_queue import QueueMode
 from haywire.core.node import node, BaseNode, NodeType
 
 

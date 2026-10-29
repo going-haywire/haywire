@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 from dataclasses import asdict
 from abc import abstractmethod
 
@@ -127,11 +127,20 @@ class BaseNode(NodeData):
         pass
 
     def on_startup(self, context: ExecutionContext) -> None:
-        """Prepare the node for execution. Called once, before its first worker run."""
+        """Prepare the node for execution. Called once, before the node's first use in a run.
+
+        Runs again in the same run only if one execution group stops before
+        another starts; calls always pair with ``on_shutdown`` and never overlap.
+        """
         pass
 
     def on_frame_start(self, context: ExecutionContext) -> None:
-        """Run at the start of each frame, before any node in it executes."""
+        """Run at the start of each frame of each execution group that executes this node.
+
+        A node executed by several groups gets these calls from each of them;
+        the calls never overlap, but may interleave between groups, so start
+        and end are not guaranteed to pair.
+        """
         pass
 
     def _execute(self, context: "ExecutionContext") -> Optional[str]:
@@ -140,9 +149,8 @@ class BaseNode(NodeData):
         Resolves every dirty port and calls ``on_validate()`` first. A data node
         with no dirty port returns ``None`` without running its worker.
         """
-        if self.behavior.is_data_node:
-            if not self._has_dirty_ports:
-                return None
+        if self._is_data_node and not self._has_dirty_ports:
+            return None
 
         # Every node type resolves dirty data here: lazy pulls and deferred on_change.
         while self._has_dirty_ports:
@@ -155,10 +163,9 @@ class BaseNode(NodeData):
             self._executor = self._analyze_worker_signature()
 
         result = self._executor(context)
-
-        parsed = self._parse_worker_result(result)
-
-        return parsed
+        if result is not None and not isinstance(result, str):
+            return self._parse_worker_result(result)  # raises ValueError
+        return result
 
     @abstractmethod
     def worker(self, context: ExecutionContext, *args, **kwargs) -> str | None:
@@ -214,12 +221,42 @@ class BaseNode(NodeData):
         pass
 
     def on_frame_end(self, context: ExecutionContext) -> None:
-        """Run at the end of each frame, after every node in it has executed."""
+        """Run at the end of each frame of each execution group that executes this node.
+
+        A node executed by several groups gets these calls from each of them;
+        the calls never overlap, but may interleave between groups, so start
+        and end are not guaranteed to pair.
+        """
         pass
 
     def on_shutdown(self, context: ExecutionContext) -> None:
-        """Run when the graph stops executing."""
+        """Release what ``on_startup`` acquired. Called after the node's last use in a run."""
         pass
+
+    def post_value(self, port_id: str, value: Any) -> None:
+        """Set a port's value from a thread the node owns (a capture or tick loop).
+
+        The write is handed to the graph's validation scheduler and applied on
+        its thread, like a value the user edits; under a synchronous scheduler
+        it applies before this returns. A port that no longer exists when the
+        write is applied is ignored. Never write ports directly from such a
+        thread. Port ``on_change`` handlers and settings handlers may run
+        while ``worker()`` runs, so state they share with it needs the node's
+        own lock. See ADR 0064.
+
+        Example::
+
+            def _capture_loop(self):
+                while not self._stop.is_set():
+                    self.post_value("status", "streaming")
+        """
+
+        def deliver() -> None:
+            port = self.ports.get(port_id)
+            if port is not None:
+                port.set_value(value)
+
+        self.wrapper.graph._validation.call_soon(deliver)
 
     def on_saved(self) -> None:
         """Run whenever the graph is saved to disk, before the node is serialized."""

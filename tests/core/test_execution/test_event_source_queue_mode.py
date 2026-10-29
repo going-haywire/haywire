@@ -3,33 +3,33 @@
 Exercises the realtime-drop wiring end to end through a real haybale-testing
 event node (``TestCustomCallback``): the node's ``queue_mode`` config feeds the
 ``CallbackEvent`` it builds, assembly turns it into a Flow, and ``_register_flow``
-builds the ``FlowScheduler`` from the subscription's fields.
+builds the ``FlowQueue`` from the subscription's fields.
 
 Driven entirely through library nodes + the Interpreter; no hand-built
-``CallbackEvent``/``FlowScheduler``.
+``CallbackEvent``/``FlowQueue``.
 """
 
 import pytest
 
 from haywire.core.execution.interpreter import Interpreter
-from haywire.core.execution.scheduler import QueueMode
+from haywire.core.execution.flow_queue import QueueMode
 from haywire.core.graph.base import BaseGraph
 from haywire.core.di.config import LibrarySystemService
 
 from tests.conftest import make_edge, make_node
 
 
-def _scheduler_for(interpreter: Interpreter, callback_name: str):
-    """Return the scheduler of the flow subscribed to ``callback:<name>``."""
+def _queue_for(interpreter: Interpreter, callback_name: str):
+    """Return the queue of the flow subscribed to ``callback:<name>``."""
     flows = interpreter.event_subscriptions.get(f"callback:{callback_name}", [])
     assert len(flows) == 1, f"expected one flow for {callback_name!r}, got {len(flows)}"
-    return flows[0].scheduler
+    return flows[0].queue
 
 
 @pytest.mark.integration
 @pytest.mark.slow
 class TestEventNodeQueueMode:
-    """The queue mode chosen on the event node reaches its flow's scheduler."""
+    """The queue mode chosen on the event node reaches its flow's queue."""
 
     def _build(self, graph: BaseGraph, callback_name: str, queue_mode: str) -> BaseGraph:
         from haybale_testing.nodes.testbed.custom_callback_node import (
@@ -50,34 +50,34 @@ class TestEventNodeQueueMode:
         make_edge(graph, custom_callback.node_id, "triggered", print_msg.node_id, "exec")
         return graph
 
-    def test_drop_event_node_yields_drop_scheduler(
+    def test_drop_event_node_yields_drop_queue(
         self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
     ):
-        """A 'drop' event node assembles into a DROP scheduler with a depth-1 queue."""
+        """A 'drop' event node assembles into a DROP queue with a depth-1 queue."""
         graph = self._build(graph_with_library_system, "rt_cb", "drop")
 
         interpreter = Interpreter()
         interpreter.load_graph(graph)
         try:
-            scheduler = _scheduler_for(interpreter, "rt_cb")
-            assert scheduler.queue_mode is QueueMode.DROP
-            assert scheduler.max_queue_size == 1
-            assert scheduler.trigger_queue.maxsize == 1
+            flow_queue = _queue_for(interpreter, "rt_cb")
+            assert flow_queue.queue_mode is QueueMode.DROP
+            assert flow_queue.max_queue_size == 1
+            assert flow_queue.trigger_queue.maxsize == 1
         finally:
             interpreter.shutdown()
 
-    def test_default_event_node_yields_block_scheduler(
+    def test_default_event_node_yields_block_queue(
         self, graph_with_library_system: BaseGraph, library_system: LibrarySystemService
     ):
-        """The default 'block' event node keeps the legacy BLOCK / 100 scheduler —
+        """The default 'block' event node keeps the legacy BLOCK / 100 queue —
         existing graphs are unchanged."""
         graph = self._build(graph_with_library_system, "batch_cb", "block")
 
         interpreter = Interpreter()
         interpreter.load_graph(graph)
         try:
-            scheduler = _scheduler_for(interpreter, "batch_cb")
-            assert scheduler.queue_mode is QueueMode.BLOCK
-            assert scheduler.max_queue_size == 100
+            flow_queue = _queue_for(interpreter, "batch_cb")
+            assert flow_queue.queue_mode is QueueMode.BLOCK
+            assert flow_queue.max_queue_size == 100
         finally:
             interpreter.shutdown()
