@@ -1,4 +1,4 @@
-# haybale-core — component index (v0.2.4)
+# haybale-core — component index (v0.3.0)
 
 ## node
 - `haybale-core:node:BeginPlayNode` — Begin Player — Triggered once when execution starts  _tags: start, init, begin, event_

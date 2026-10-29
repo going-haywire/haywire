@@ -1,4 +1,4 @@
-# haybale-graph-editor — component index (v0.2.4)
+# haybale-graph-editor — component index (v0.3.0)
 
 ## setting
 - `haybale-graph-editor:setting:NodeSkinSettings` — Node Skin — Settings controlling node layout and pin geometry.
