@@ -1023,9 +1023,7 @@ window.addEventListener("wheel", function (e) {
                             .classes("hw-area-vdivider w-full flex-shrink-0")
                             .style("height: 5px; cursor: row-resize;")
                         )
-                        bottom_slot = self._build_managed_slot(
-                            SlotName.INFO, bar_place="top", show_fold_toggle=True
-                        )
+                        bottom_slot = self._build_managed_slot(SlotName.INFO, bar_place="top", foldable=True)
                         self._bottom_divider.set_visibility(bottom_slot.visible)
                         bottom_slot.render(main_col)
                         bottom_slot._on_visibility_change = self._bottom_divider.set_visibility
@@ -1194,7 +1192,7 @@ window.addEventListener("wheel", function (e) {
         self,
         slot_name: SlotName,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
-        show_fold_toggle: bool = False,
+        foldable: bool = False,
         on_visibility_change=None,
     ) -> Slot:
         """Construct and cache a Slot for ``slot_name`` from the workspace snapshot.
@@ -1222,7 +1220,7 @@ window.addEventListener("wheel", function (e) {
             name=slot_name,
             registry=self._editor_registry,
             bar_place=bar_place,
-            show_fold_toggle=show_fold_toggle,
+            foldable=foldable,
             on_visibility_change=on_visibility_change,
             visible=initial_visible,
         )

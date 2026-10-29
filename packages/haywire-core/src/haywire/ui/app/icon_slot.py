@@ -23,7 +23,6 @@ from typing import Callable, ClassVar, Literal, Optional
 from nicegui import ui
 
 from haywire.ui.app.slot import Slot
-from haywire.ui.editor.wrapper import EditorWrapper
 
 
 class IconSlot(Slot):
@@ -34,7 +33,7 @@ class IconSlot(Slot):
         to it (``switch_to`` → ``on_focus`` via ``Slot._activate``); clicking
         the active icon collapses the area, and clicking any icon while
         collapsed re-expands it — the VS Code activity-bar idiom, handled in
-        :meth:`_on_icon_clicked`. A programmatic :meth:`reveal` into a
+        :meth:`Slot._on_bar_item_clicked`. A programmatic :meth:`reveal` into a
         collapsed icon slot auto-expands it (see :attr:`_expands_on_reveal`).
         The bar is never hidden by ``set_visible`` — only the area is — so the
         icons stay clickable in both expanded and collapsed states.
@@ -96,11 +95,8 @@ class IconSlot(Slot):
         area-facing side by virtue of the row layout in :meth:`render`).
 
         There is no fold-toggle button: collapse/expand is driven by clicking
-        the icons themselves (VS Code activity-bar idiom). Clicking the active
-        icon collapses the area; clicking any icon while collapsed re-expands
-        it. The per-tab ``click`` handler carries this — ``ui.tabs`` ``on_change``
-        does not fire when the already-active tab is re-clicked, so it can't
-        detect the collapse gesture on its own.
+        the icons themselves (VS Code activity-bar idiom), see
+        :meth:`Slot._on_bar_item_clicked`.
         """
         # Filter to wrappers with a registered editor class this principal may
         # see — binding_id is the tab value for stable per-(key, binding_id)
@@ -147,7 +143,7 @@ class IconSlot(Slot):
                     # every click — including a re-click of the already-active
                     # icon (the fold gesture), which a tabs ``on_change`` would
                     # swallow.
-                    tab.on("click", lambda _e, bid=wrapper.editor_binding_id: self._on_icon_clicked(bid))
+                    tab.on("click", lambda _e, bid=wrapper.editor_binding_id: self._on_bar_item_clicked(bid))
                     with tab:
                         # Slot-owned chrome: dirty marker — a small corner dot,
                         # rendered for every editor including custom overrides.
@@ -169,44 +165,3 @@ class IconSlot(Slot):
         if self._footer_renderer is not None:
             ui.space()
             self._footer_renderer()
-
-    # ------------------------------------------------------------------
-    # User actions
-    # ------------------------------------------------------------------
-
-    def _on_icon_clicked(self, tab_id: str) -> None:
-        """VS Code-style icon click: switch, collapse, or re-expand.
-
-        The sole click handler for the icon bar — there is no tabs
-        ``on_change`` to race against, so ``self.active_binding_id`` is read
-        before this method mutates it via ``switch_to``.
-
-        Decision table (``tab_id`` is the clicked icon's binding id):
-
-        * Slot **collapsed** → expand; if the clicked icon isn't already the
-          active one, switch to it first. (Any icon re-opens the slot.)
-        * Slot **expanded** and the clicked icon **is** the active one →
-          collapse the slot (the fold gesture).
-        * Slot **expanded** and a **different** icon clicked → switch to it,
-          staying open.
-
-        ``switch_to`` runs ``editor.on_focus`` via ``Slot._activate``, so no
-        separate context notification is needed. The bar is refreshed so the
-        active highlight (and, when collapsing, any visibility-derived chrome)
-        stays in sync.
-        """
-        key, binding_id = EditorWrapper.split_id(tab_id)
-
-        if not self._visible:
-            if self.active_binding_id != tab_id:
-                self.switch_to(key, binding_id)
-            self.set_visible(True)
-            self._refresh_bar()
-            return
-
-        if self.active_binding_id == tab_id:
-            self.set_visible(False)
-            return
-
-        self.switch_to(key, binding_id)
-        self._refresh_bar()

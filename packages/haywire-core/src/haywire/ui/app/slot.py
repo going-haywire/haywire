@@ -38,7 +38,7 @@ class Slot(ABC):
         registry: EditorTypeRegistry,
         on_visibility_change: Optional[Callable[[bool], object]] = None,
         bar_place: Literal["left", "right", "top", "bottom"] = "left",
-        show_fold_toggle: bool = False,
+        foldable: bool = False,
         visible: bool = True,
         size: int = 300,
     ):
@@ -54,12 +54,14 @@ class Slot(ABC):
             bar_place: Where the bar renders relative to the area.
                 ``"left"``/``"right"`` for icon slots (horizontal layout);
                 ``"top"``/``"bottom"`` for tab slots (vertical layout).
-            show_fold_toggle: Render a fold toggle on the bar. When ``True``
-                the content box uses a fixed pixel size (resizable/foldable);
-                when ``False`` it fills remaining space with ``flex: 1``.
+            foldable: For a vertical slot, re-clicking the active tab folds the
+                area and any tab click unfolds it (see
+                :meth:`_on_bar_item_clicked`), and the content box uses a fixed
+                pixel size; when ``False`` it fills remaining space with
+                ``flex: 1``.
             visible: Initial visibility of the slot's area container.
             size: Initial pixel size for the slot's content box (width for
-                horizontal slots, height for vertical fold-toggle slots).
+                horizontal slots, height for vertical foldable slots).
 
         After construction, callers must populate the slot via
         :meth:`populate_from_snapshot` or :meth:`add_binding` before any
@@ -83,17 +85,16 @@ class Slot(ABC):
         self._drawn: set[str] = set()
         self._on_visibility_change = on_visibility_change
         self._bar_place = bar_place
-        self._show_fold_toggle = show_fold_toggle
+        self._foldable = foldable
         self._bar_container: Optional[ui.element] = None
-        self._fold_button: Optional[ui.element] = None
         self._tab_client: Any = None
         self._registry.add_batch_event_subscriber(self._on_lifecycle_events)
 
     _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]]
 
-    # Whether a reveal into a collapsed slot should auto-expand it. Icon slots
-    # set this True (a revealed editor should be visible); tab slots leave it
-    # False (their area is not collapsed by a click gesture). See :meth:`reveal`.
+    # Whether a reveal into a collapsed slot should auto-expand it, so a revealed
+    # editor is visible. Icon slots set this True; a foldable slot expands
+    # regardless. See :meth:`reveal`.
     _expands_on_reveal: ClassVar[bool] = False
 
     @property
@@ -219,7 +220,7 @@ class Slot(ABC):
         """Create the slot's outer content box.
 
         Size axis and flex behaviour are derived from ``_ORIENTATION`` and
-        ``show_fold_toggle``:
+        ``foldable``:
         * horizontal + fold  → fixed ``width`` from ``self._size`` (default 300)
         * vertical   + fold  → fixed ``height`` from ``self._size`` (default 200)
         * vertical   no fold → ``flex: 1`` (fills remaining vertical space)
@@ -236,7 +237,7 @@ class Slot(ABC):
                     f"overflow: hidden; background: var(--hw-bg-page); {border}"
                 )
             )
-        elif self._show_fold_toggle:
+        elif self._foldable:
             col = (
                 ui.column()
                 .classes("gap-0")
@@ -548,6 +549,36 @@ class Slot(ABC):
         self._activate(target)
         return True
 
+    def _on_bar_item_clicked(self, tab_id: str) -> None:
+        """Switch to, fold, or unfold on a click of the bar item ``tab_id``.
+
+        * Slot **folded** → unfold; if the clicked item isn't the active one,
+          switch to it first. (Any item re-opens the slot.)
+        * Slot **unfolded** and the clicked item **is** the active one →
+          fold the slot.
+        * Slot **unfolded** and a **different** item clicked → switch to it,
+          staying open.
+
+        Must be the bar's only click driver: a ``ui.tabs`` ``on_change`` runs
+        ``switch_to`` before the click arrives, so a plain cross-tab click
+        would then read as a re-click of the active item and fold the slot.
+        """
+        key, binding_id = EditorWrapper.split_id(tab_id)
+
+        if not self._visible:
+            if self.active_binding_id != tab_id:
+                self.switch_to(key, binding_id)
+            self.set_visible(True)
+            self._refresh_bar()
+            return
+
+        if self.active_binding_id == tab_id:
+            self.set_visible(False)
+            return
+
+        self.switch_to(key, binding_id)
+        self._refresh_bar()
+
     def reveal(self, command: "RevealSignal", editor_cls: "type[BaseEditor] | None" = None) -> bool:
         """Find-or-add the wrapper for ``command`` and activate it.
 
@@ -559,8 +590,8 @@ class Slot(ABC):
         ``editor_cls`` names the editor for a bare :class:`RevealSignal`, which
         carries none; omit it for a :class:`Reveal`, which does.
 
-        When :attr:`_expands_on_reveal` is set (icon slots), a reveal into a
-        currently-collapsed slot also re-opens it via :meth:`set_visible` so
+        When :attr:`_expands_on_reveal` is set (icon slots) or the slot is
+        ``foldable``, a reveal into a currently-collapsed slot also re-opens it via :meth:`set_visible` so
         the user sees the editor they triggered — even when that editor was
         already the active one behind a collapsed bar.
 
@@ -613,10 +644,10 @@ class Slot(ABC):
         """Re-open a collapsed slot ahead of a reveal, if this slot opts in.
 
         Returns ``True`` iff the slot was collapsed and has now been expanded.
-        No-op (returns ``False``) for slots with ``_expands_on_reveal`` unset
-        or slots that are already visible.
+        No-op (returns ``False``) for slots that are neither
+        ``_expands_on_reveal`` nor ``foldable``, or that are already visible.
         """
-        if self._expands_on_reveal and not self._visible:
+        if (self._expands_on_reveal or self._foldable) and not self._visible:
             self.set_visible(True)
             return True
         return False

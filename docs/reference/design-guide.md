@@ -1655,17 +1655,17 @@ in both expanded and retracted states. Users never lose sight of which bottom
 editors exist. If the registry has no bottom editors, the whole region (tab
 bar and content) is hidden.
 
-**Rule 2 — Retraction is chevron-only from a click path.** The rightmost
-control in the bottom tab bar row is a single chevron button: `expand_less`
-when expanded, `expand_more` when retracted. Clicking it toggles only the
-content panel and the divider above it — not the tab bar row itself. There
-must be no secondary close buttons or tab-level close affordances.
+**Rule 2 — The active tab is the fold control.** Clicking the active bottom
+tab retracts the area; clicking any tab while retracted expands it (switching
+to that tab first) — the same gesture as the side slots' icon bars. A click
+toggles only the content panel and the divider above it — not the tab bar row
+itself. There is no separate fold button.
 
 **Rule 3 — Drag auto-expands from retracted.** The horizontal drag divider
 above the bottom tab bar is always hit-testable. Starting a drag while the
 panel is retracted auto-expands it; releasing a drag below a small snap
 threshold (~40px) retracts it again. Both paths flow through the same
-visibility-sync helper as the chevron click so Python state and DOM state
+visibility-sync helper as the tab click so Python state and DOM state
 never drift.
 
 **Visual rules:**
@@ -1676,9 +1676,6 @@ never drift.
 - The BottomTabBar shares the `hw-slot-bar-tabs` styling with the MainTabBar
   — same `36px` height, same active/hover behaviour, same label truncation
   rules.
-- The chevron uses standard `hui.icon_action` sizing (`xs`) and flips its
-  icon between `expand_less` and `expand_more`. It must not animate its
-  rotation; the icon swap is the state signal.
 - When retracted, the content panel's `display: none` — it does not
   contribute to flex layout — so the divider sits directly against the top
   edge of the tab bar row.

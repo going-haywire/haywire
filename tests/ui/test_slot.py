@@ -750,7 +750,7 @@ def _make_tab_slot2(registry=None, visible=True, size=200):
         name=SlotName.EDIT,
         registry=registry or _FakeRegistry2({}),
         bar_place="top",
-        show_fold_toggle=False,
+        foldable=False,
         visible=visible,
         size=size,
     )
@@ -841,7 +841,7 @@ class TestSlotPopulateFromSnapshot:
             name=SlotName.EDIT,
             registry=registry,
             bar_place="top",
-            show_fold_toggle=False,
+            foldable=False,
         )
         slot.populate_from_snapshot({})
         assert any(b.editor_key == "ed:required" for b in slot.bindings)
@@ -861,7 +861,7 @@ class TestSlotPopulateFromSnapshot:
             name=SlotName.EDIT,
             registry=registry,
             bar_place="top",
-            show_fold_toggle=False,
+            foldable=False,
         )
         slot.populate_from_snapshot(data)
         assert any(b.editor_key == "ed:graph" for b in slot.bindings)
@@ -875,7 +875,7 @@ class TestSlotPopulateFromSnapshot:
             name=SlotName.EDIT,
             registry=registry,
             bar_place="top",
-            show_fold_toggle=False,
+            foldable=False,
         )
         slot.populate_from_snapshot(data)
         assert slot.bindings == []
@@ -888,7 +888,7 @@ class TestSlotPopulateFromSnapshot:
             name=SlotName.INFO,
             registry=registry,
             bar_place="top",
-            show_fold_toggle=True,
+            foldable=True,
         )
         slot.populate_from_snapshot({"visible": False, "size": 275})
         assert slot.visible is False

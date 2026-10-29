@@ -1,9 +1,9 @@
 """
 TabSlot — the Slot subclass for the EDIT / INFO slots.
 
-Renders a column containing a horizontal tab bar on top (``ui.tabs``, plus an
-optional chevron for the INFO slot that folds the area in/out) and the
-``ui.tab_panels`` area below. Wrapper mutation is inherited from :class:`Slot`
+Renders a column containing a horizontal tab bar on top (``ui.tabs``) and the
+``ui.tab_panels`` area below. In the foldable INFO slot, re-clicking the
+active tab folds the area and any tab click unfolds it. Wrapper mutation is inherited from :class:`Slot`
 (``reveal`` / ``close_binding`` / ``repayload`` / ``close_tabs_for``); the bar
 re-renders on each mutation via ``_refresh_bar``.
 
@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 class TabSlot(Slot):
     """Tabbed slot for the EDIT and INFO shell slots.
 
-    The optional ``show_fold_toggle`` flag renders the chevron expand/retract
-    button at the end of the bar — used by the INFO slot.
+    The optional ``foldable`` flag (used by the INFO slot) makes the tabs fold
+    and unfold the area, see :meth:`Slot._on_bar_item_clicked`.
     """
 
     _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]] = "vertical"
@@ -37,7 +37,7 @@ class TabSlot(Slot):
 
     def render(self, parent: ui.element) -> None:
         """Build ``[bar / area]`` or ``[area / bar]`` column inside ``parent``."""
-        wrapper_flex = "flex: 1" if not self._show_fold_toggle else "flex: 0 0 auto"
+        wrapper_flex = "flex: 1" if not self._foldable else "flex: 0 0 auto"
         with parent:
             wrapper = (
                 ui.column()
@@ -59,14 +59,16 @@ class TabSlot(Slot):
         self._area_parent_box.set_visibility(self._visible)
 
     def _render_bar_contents(self) -> None:
-        """Render tab row + optional chevron."""
+        """Render the tab row."""
         bindings = self._accessible_bindings()
         if bindings:
             active_id = self._active.editor_binding_id if self._active is not None else None
             ids = [b.editor_binding_id for b in bindings]
             initial = active_id if active_id in ids else (ids[0] if ids else None)
+            # A foldable slot is driven by the per-tab click alone (see _on_bar_item_clicked).
+            on_change = None if self._foldable else (lambda e: self._on_tab_clicked(e.value))
             with (
-                ui.tabs(value=cast(Any, initial), on_change=lambda e: self._on_tab_clicked(e.value))
+                ui.tabs(value=cast(Any, initial), on_change=on_change)
                 .props("dense align=left outside-arrows mobile-arrows")
                 .classes("hw-slot-bar-tabs")
                 # min-width: 0 lets the bar be narrower than its tabs; without it
@@ -77,6 +79,11 @@ class TabSlot(Slot):
             ):
                 for wrapper in bindings:
                     tab_el = ui.tab(name=wrapper.editor_binding_id, label="").props("no-caps")
+                    if self._foldable:
+                        tab_el.on(
+                            "click",
+                            lambda _e, bid=wrapper.editor_binding_id: self._on_bar_item_clicked(bid),
+                        )
                     with tab_el:
                         with ui.row().classes("items-center gap-1 no-wrap"):
                             # Slot-owned chrome: dirty marker renders for every
@@ -103,15 +110,6 @@ class TabSlot(Slot):
                                     .classes("hw-tab-close -mr-1")
                                     .on("click.stop", lambda _e: None)
                                 )
-
-        if self._show_fold_toggle:
-            chevron_icon = "expand_less" if self._visible else "expand_more"
-            self._fold_button = (
-                ui.button(icon=chevron_icon, on_click=self._on_fold_toggle_clicked)
-                .props("flat round dense size=sm")
-                .tooltip(f"Toggle {self.name.label} slot")
-                .classes("flex-shrink-0 mr-1")
-            )
 
     # ------------------------------------------------------------------
     # User actions
@@ -141,6 +139,3 @@ class TabSlot(Slot):
         if wrapper is None:
             return
         await wrapper.close()
-
-    def _on_fold_toggle_clicked(self) -> None:
-        self.set_visible(not self._visible)

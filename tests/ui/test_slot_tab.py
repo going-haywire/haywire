@@ -82,6 +82,7 @@ class _FakeContainer:
         self.value = None
         self.children = []
         self._props = {}
+        self.handlers: dict = {}
 
     def clear(self):
         self.clear_calls += 1
@@ -110,7 +111,9 @@ class _FakeContainer:
     def tooltip(self, *_a, **_k):
         return self
 
-    def on(self, *_a, **_k):
+    def on(self, event, handler=None, *_a, **_k):
+        if handler is not None:
+            self.handlers.setdefault(event, []).append(handler)
         return self
 
     def __enter__(self):
@@ -451,3 +454,77 @@ def test_the_slot_wrapper_carries_its_name(monkeypatch):
 
     wrapper = created[0][1]
     assert wrapper._props.get("text") == 'data-hw-slot="info"'
+
+
+def _click_tab(created, binding_id):
+    """Fire the per-tab 'click' handler the TabSlot wired for ``binding_id``."""
+    tab = next(c for (kind, c) in created if kind == "tab" and c._kwargs.get("name") == binding_id)
+    for handler in tab.handlers.get("click", []):
+        handler(SimpleNamespace())
+
+
+def _foldable_info_slot(monkeypatch, vis_calls):
+    created = _install_ui_fakes(monkeypatch)
+    slot = _slot(
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
+        name=SlotName.INFO,
+        registry=_FakeRegistry(),
+        bar_place="top",
+        foldable=True,
+        on_visibility_change=vis_calls.append,
+    )
+    _add(slot, editor_key="a", editor_cls=_editor_cls("a", opens=OpenBehavior.ON_CONTEXT))
+    _add(slot, editor_key="b", editor_cls=_editor_cls("b", opens=OpenBehavior.ON_CONTEXT))
+    slot._active = _find(slot, "a")
+    _render(slot, _FakeContainer())
+    return slot, created
+
+
+def test_foldable_tab_slot_click_active_tab_folds_and_unfolds(monkeypatch):
+    vis_calls: list = []
+    slot, created = _foldable_info_slot(monkeypatch, vis_calls)
+
+    _click_tab(created, "a")
+    assert slot.visible is False
+    _click_tab(created, "a")
+    assert slot.visible is True
+    assert vis_calls == [False, True]
+
+
+def test_foldable_tab_slot_click_other_tab_switches_and_stays_open(monkeypatch):
+    vis_calls: list = []
+    slot, created = _foldable_info_slot(monkeypatch, vis_calls)
+
+    _click_tab(created, "b")
+    assert slot.active_key == "b"
+    assert slot.visible is True
+    assert vis_calls == []
+
+
+def test_foldable_tab_slot_click_other_tab_while_folded_unfolds_and_switches(monkeypatch):
+    vis_calls: list = []
+    slot, created = _foldable_info_slot(monkeypatch, vis_calls)
+
+    _click_tab(created, "a")
+    _click_tab(created, "b")
+    assert slot.active_key == "b"
+    assert slot.visible is True
+
+
+def test_foldable_tab_slot_has_no_fold_button_or_tabs_on_change(monkeypatch):
+    slot, created = _foldable_info_slot(monkeypatch, [])
+
+    assert not [c for (kind, c) in created if kind == "button" and c._kwargs.get("icon") != "close"]
+    tabs = [c for (kind, c) in created if kind == "tabs"]
+    assert tabs
+    assert all(t._kwargs.get("on_change") is None for t in tabs)
+
+
+def test_foldable_tab_slot_reveal_into_folded_slot_unfolds(monkeypatch):
+    vis_calls: list = []
+    slot, created = _foldable_info_slot(monkeypatch, vis_calls)
+    _click_tab(created, "a")
+
+    assert slot.reveal(Reveal(editor=_editor_cls("a", opens=OpenBehavior.ON_CONTEXT))) is True
+    assert slot.visible is True
+    assert vis_calls == [False, True]
