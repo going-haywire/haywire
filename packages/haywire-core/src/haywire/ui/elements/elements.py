@@ -19,10 +19,11 @@ is to encode the 90% case — not to prevent customisation.
 
 from __future__ import annotations
 
+import inspect as _inspect
 import json as _json
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Awaitable, Callable
 
 from nicegui import ui
 from nicegui.elements.mixins.text_element import TextElement as _TextElement
@@ -565,18 +566,31 @@ def menu_dismiss() -> Callable[[], None]:
     return dismiss if dismiss is not None else lambda: None
 
 
-def _with_dismiss(on_click: Callable, closes: bool) -> Callable[..., None]:
-    """Wrap a click handler so it closes the ambient menu after ``on_click``, when ``closes``."""
+def _with_dismiss(on_click: Callable, closes: bool) -> Callable[..., Any]:
+    """Wrap a click handler so it closes the ambient menu after ``on_click``, when ``closes``.
+
+    A coroutine ``on_click`` returns is returned for NiceGUI to await, and the menu closes after it.
+    """
     dismiss = _menu_dismiss.get() if closes else None
 
-    def _run(_e: object = None) -> None:
+    def _run(_e: object = None) -> Any:
         # The command runs first: closing a menu can clear the gesture state
         # (click position, active node) the command still reads.
-        on_click()
+        result = on_click()
+        if _inspect.isawaitable(result):
+            # Returned, not scheduled: NiceGUI awaits it under the handler's slot.
+            return _await_then(result, dismiss)
         if dismiss is not None:
             dismiss()
+        return None
 
     return _run
+
+
+async def _await_then(awaitable: Awaitable[Any], dismiss: Callable[[], None] | None) -> None:
+    await awaitable
+    if dismiss is not None:
+        dismiss()
 
 
 _KEY_HINT_CLASSES = "text-xs hw-text-dim ml-auto font-mono"

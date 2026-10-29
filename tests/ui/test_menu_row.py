@@ -12,6 +12,7 @@ place. These tests pin the three halves of that claim:
 
 from __future__ import annotations
 
+import asyncio
 import re
 from collections.abc import AsyncGenerator
 
@@ -318,6 +319,26 @@ async def test_a_row_outside_any_menu_root_closes_nothing(user: User) -> None:
     user.find(marker="row").click()
 
     assert calls == ["copy"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_returned_coroutine_is_awaited_before_the_menu_closes(user: User) -> None:
+    calls: list[str] = []
+
+    async def _advance() -> None:
+        calls.append("advance")
+
+    @ui.page("/")
+    def page() -> None:
+        with open_flyout_group(dismiss=lambda: calls.append("dismiss")):
+            hui.icon_action("arrow_forward", on_click=_advance).mark("b")
+
+    await user.open("/")
+    user.find(marker="b").click()
+    await asyncio.sleep(0.05)
+
+    assert calls == ["advance", "dismiss"]
 
 
 @pytest.mark.unit
