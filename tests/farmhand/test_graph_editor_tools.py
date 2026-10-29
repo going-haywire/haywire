@@ -1451,3 +1451,65 @@ def test_previous_setup_tool_applies_and_refuses_bad_input(farmhand_call):
         assert editor.can_undo() is True
     finally:
         _close_all(farmhand_call)
+
+
+def test_arrange_all_moves_the_nodes_and_undoes_in_one_step(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        for _ in range(3):
+            _call(
+                farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY}
+            )
+        result = call_tool_json(
+            _call(farmhand_call, "haybale-graph-editor_arrange", {"binding_id": bid, "scope": "all"})
+        )
+        assert result["moved"] == 3
+        undo = call_tool_json(_call(farmhand_call, "haybale-graph-editor_undo", {"binding_id": bid}))
+        assert undo["performed"] is True
+        # the arrange was one step: the three nodes are still there
+        query = call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))
+        assert query["total"] == 3
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_arrange_from_a_node_needs_a_known_node(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        missing = _call(farmhand_call, "haybale-graph-editor_arrange", {"binding_id": bid, "scope": "flow"})
+        assert missing.isError is True
+        assert "[node_required]" in missing.content[0].text
+        ghost = _call(
+            farmhand_call,
+            "haybale-graph-editor_arrange",
+            {"binding_id": bid, "scope": "downstream", "node_id": "ghost"},
+        )
+        assert "[node_not_found]" in ghost.content[0].text
+        node_ids = [
+            call_tool_json(
+                _call(
+                    farmhand_call,
+                    "haybale-graph-editor_add_node",
+                    {"binding_id": bid, "registry_key": NODE_KEY},
+                )
+            )["node_id"]
+            for _ in range(2)
+        ]
+        two = _call(
+            farmhand_call,
+            "haybale-graph-editor_arrange",
+            {"binding_id": bid, "scope": "upstream", "node_ids": node_ids},
+        )
+        assert "[one_start_node]" in two.content[0].text
+        flow = call_tool_json(
+            _call(
+                farmhand_call,
+                "haybale-graph-editor_arrange",
+                {"binding_id": bid, "scope": "flow", "node_ids": node_ids},
+            )
+        )
+        assert flow["moved"] == 2
+        bad = _call(farmhand_call, "haybale-graph-editor_arrange", {"binding_id": bid, "scope": "sideways"})
+        assert "[bad_scope]" in bad.content[0].text
+    finally:
+        _close(farmhand_call, bid)

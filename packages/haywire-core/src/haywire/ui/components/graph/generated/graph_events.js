@@ -15,6 +15,8 @@ window.GraphEvents = {
     ADD_TO_STAGE: 'addToStage', // Put the selected nodes on the stage
     REMOVE_FROM_STAGE: 'removeFromStage', // Take the selected nodes off the stage
     RESTACK_NODES: 'restackNodes', // Change the stacking order of the selected nodes
+    ARRANGE_NODES: 'arrangeNodes', // Lay out the flow of nodes, a node's downstream or upstream nodes, or the whole graph
+    SELECT_CONNECTED: 'selectConnected', // Select the nodes downstream or upstream of a node
     COLLAPSE_TO_GROUP: 'collapseToGroup', // Collapse the selected nodes into a Group
     EXPAND_GROUP: 'expandGroup', // Expand a Group back into the graph around it
     ENTER_GROUP: 'enterGroup', // Enter a Graph-node: a Group or a macro placement
@@ -171,6 +173,26 @@ window.EventCreators = {
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { node_ids, how },
+      requires_broadcast: true
+    };
+  },
+
+  createArrangeNodes(node_ids, scope, sessionId = 'default') {
+    return {
+      event_type: 'arrangeNodes',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_ids, scope },
+      requires_broadcast: true
+    };
+  },
+
+  createSelectConnected(node_id, scope, sessionId = 'default') {
+    return {
+      event_type: 'selectConnected',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_id, scope },
       requires_broadcast: true
     };
   },
@@ -490,6 +512,16 @@ window.EventValidators = {
 
   validateRestack(data) {
     const requiredFields = ["node_ids", "how"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateArrangeNodes(data) {
+    const requiredFields = ["node_ids", "scope"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateSelectConnected(data) {
+    const requiredFields = ["node_id", "scope"];
     return requiredFields.every(field => field in data);
   },
 

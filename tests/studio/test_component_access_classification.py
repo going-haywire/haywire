@@ -78,7 +78,12 @@ EDIT_PANELS = {
     "ActivitySettingsPanel",
     "AddToStageMenuPanel",
     "AppearanceToolbarPanel",
+    "ArrangeAllMenuPanel",
+    "ArrangeSettingsPanel",
+    "ArrangeDownstreamMenuPanel",
+    "ArrangeFlowMenuPanel",
     "ArrangeSelectionMenuPanel",
+    "ArrangeUpstreamMenuPanel",
     "BringForwardMenuPanel",
     "BringToFrontMenuPanel",
     "CanvasSettingsPanel",
@@ -120,6 +125,7 @@ EDIT_PANELS = {
     "GraphRunSettingsPanel",
     "GroupMenuPanel",
     "InsertRerouteMenuPanel",
+    "LayoutSelectionMenuPanel",
     "LockToolbarPanel",
     "MacroSelectionMenuPanel",
     "MinimapSettingsPanel",
@@ -168,6 +174,9 @@ EDIT_PANELS = {
     "TestSessionStateMenuPanel",
     "ThemeSettingsPanel",
     "UpdateMacroMenuPanel",
+    "SelectDownstreamMenuPanel",
+    "SelectFlowSelectionMenuPanel",
+    "SelectUpstreamMenuPanel",
 }
 
 

@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 from haywire.ui.surface import Surface
 
 if TYPE_CHECKING:
+    from haywire.core.graph.arrange import ArrangeScope
     from haywire.core.graph.stacking import Restack
     from haywire.core.session.context import SessionContext
 
@@ -75,6 +76,13 @@ class SelectionActions(Protocol):
     # Stacking order of the whole selection, in the view the menu opened in.
     def restack_selection(self, how: "Restack") -> None: ...
 
+    # Flow verbs from start nodes. Arrange lays out the nodes `scope` covers:
+    # one start node keeps its place, several (FLOW only) arrange every flow
+    # they touch. Select acts on one node, offered only when it is the whole
+    # selection, and replaces the selection with the nodes `scope` covers.
+    def arrange_from(self, node_ids: list[str], scope: "ArrangeScope") -> None: ...
+    def select_from(self, node_id: str, scope: "ArrangeScope") -> None: ...
+
 
 class SelectionMenu(Surface):
     """The selection right-click menu.
@@ -117,6 +125,28 @@ class SelectionArrangeMenu(Surface):
     """
 
     id = "selection-arrange"
+    provides = SelectionActions
+
+
+class SelectionLayoutMenu(Surface):
+    """The "Layout" submenu of ``SelectionMenu`` — arrange one node's flow, downstream or upstream.
+
+    Declares no ``poll`` for the same reason ``SelectionRebuildMenu`` does not: the hosting
+    panel already gates on the selection.
+    """
+
+    id = "selection-layout"
+    provides = SelectionActions
+
+
+class SelectionSelectMenu(Surface):
+    """The "Select" submenu of ``SelectionMenu`` — select the nodes downstream or upstream of one node.
+
+    Declares no ``poll`` for the same reason ``SelectionRebuildMenu`` does not: the hosting
+    panel already gates on the selection.
+    """
+
+    id = "selection-select"
     provides = SelectionActions
 
 

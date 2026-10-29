@@ -42,6 +42,9 @@ class GraphActions(Protocol):
     # menu.
     def clear_node_card_overrides(self) -> int: ...
 
+    # Lays out the whole graph's patch view as one undo step.
+    def arrange_graph(self) -> None: ...
+
 
 class GraphContext(Surface):
     """Root of the canvas right-click menu."""

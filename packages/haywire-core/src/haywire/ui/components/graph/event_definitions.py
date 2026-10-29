@@ -200,6 +200,33 @@ class RestackEvent(BaseGraphEvent):
 
 
 @graph_event(
+    "arrangeNodes",
+    category="user",
+    description="Lay out the flow of nodes, a node's downstream or upstream nodes, or the whole graph",
+)
+@dataclass
+class ArrangeNodesEvent(BaseGraphEvent):
+    node_ids: List[str]
+    """The start nodes; one keeps its position, several arrange every flow they touch. Empty
+    for ``"all"``."""
+    scope: str
+    """An ``ArrangeScope`` value: ``"flow"``, ``"downstream"``, ``"upstream"`` or ``"all"``."""
+
+
+@graph_event(
+    "selectConnected",
+    category="user",
+    description="Select the nodes downstream or upstream of a node",
+)
+@dataclass
+class SelectConnectedEvent(BaseGraphEvent):
+    node_id: str
+    """The start node; it is not selected itself."""
+    scope: str
+    """An ``ArrangeScope`` value: ``"downstream"`` or ``"upstream"``."""
+
+
+@graph_event(
     "collapseToGroup",
     category="user",
     description="Collapse the selected nodes into a Group",

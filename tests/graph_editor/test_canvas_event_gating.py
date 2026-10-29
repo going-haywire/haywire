@@ -161,6 +161,7 @@ def test_view_mode_events():
         "selectionBounds",
         "selectionBoundsHide",
         "selectionChanged",
+        "selectConnected",
         "canvasMounted",
         "nodesMeasured",
     }

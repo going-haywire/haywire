@@ -50,6 +50,7 @@ from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_eve
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
     from haywire.core.graph.edit_route import EditRoute
+    from haywire.core.graph.arrange import ArrangeScope
     from haywire.core.graph.stacking import Restack
     from haywire.core.types.enums import Propagation
 
@@ -725,6 +726,25 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
         edit = self._context.data[EditState]
         self._emit(RestackEvent(node_ids=list(edit.selected_nodes), how=how.value))
+
+    def arrange_from(self, node_ids: list[str], scope: "ArrangeScope") -> None:
+        """Emit ArrangeNodesEvent from ``node_ids``; the canvas the menu opened on applies it."""
+        from haywire.ui.components.graph.event_definitions import ArrangeNodesEvent
+
+        self._emit(ArrangeNodesEvent(node_ids=list(node_ids), scope=scope.value))
+
+    def select_from(self, node_id: str, scope: "ArrangeScope") -> None:
+        """Emit SelectConnectedEvent from ``node_id``; the canvas the menu opened on applies it."""
+        from haywire.ui.components.graph.event_definitions import SelectConnectedEvent
+
+        self._emit(SelectConnectedEvent(node_id=node_id, scope=scope.value))
+
+    def arrange_graph(self) -> None:
+        """Emit ArrangeNodesEvent for the whole graph."""
+        from haywire.core.graph.arrange import ArrangeScope
+        from haywire.ui.components.graph.event_definitions import ArrangeNodesEvent
+
+        self._emit(ArrangeNodesEvent(node_ids=[], scope=ArrangeScope.ALL.value))
 
     def dissolve_reroute(self, node_id: str) -> None:
         """Emit DissolveRerouteEvent for the given reroute node.

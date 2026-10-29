@@ -12,12 +12,21 @@ from typing import Any, Callable, Iterable, Optional, Set, Tuple, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.core.access import LevelMode
+from haywire.core.graph.arrange import (
+    ArrangeGaps,
+    ArrangeScope,
+    arrange_layout,
+    arranged_nodes,
+    connected_nodes,
+)
 from haywire.core.graph.clipboard import build_clipboard_payload, is_haywire_payload
 from haywire.core.node.layout import PATCH, STAGE, LayoutChannel, layout_position_of, position_of
 from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.core.signals import SelectionMoved
 
 from haywire.ui.components.graph.event_definitions import (
+    ArrangeNodesEvent,
+    SelectConnectedEvent,
     SelectionChangedEvent,
     UserCopySelectedEvent,
     UserPasteClipboardEvent,
@@ -162,11 +171,55 @@ class SelectionHandlers:
         or edge.
         """
         candidates = {node_id for node_id in self.graph.node_wrappers if not is_locked(node_id)}
-        if candidates and self.selected_nodes == candidates:
-            self.selected_nodes = set()
-        else:
-            self.selected_nodes = candidates
-        self.selected_edges = set()
+        self._replace_selection(set() if candidates and self.selected_nodes == candidates else candidates)
+
+    # Selection changes no document, so it is taken in every level mode.
+    @handles_event(SelectConnectedEvent, requires=LevelMode.VIEW)
+    def process_select_connected(self, event: SelectConnectedEvent):
+        """Select the nodes downstream or upstream of ``event.node_id``, the node itself excluded.
+
+        Replaces the selection, leaving out locked nodes and nodes this canvas's view does not
+        show; the result has no active node or edge.
+        """
+        found = connected_nodes(self.graph, event.node_id, ArrangeScope(event.scope))
+        self._replace_selection(self._selectable(found - {event.node_id}))
+
+    @handles_event(ArrangeNodesEvent)
+    def process_arrange(self, event: ArrangeNodesEvent):
+        """Lay out the nodes ``event.scope`` covers from ``event.node_ids`` (one undoable op).
+
+        Then selects those nodes, leaving out locked ones, and the edges between them. Patch
+        canvas only; a stage canvas declines with a notice.
+        """
+        if self.channel.stage:
+            ui.notify("Arrange works in the patch view", type="warning")
+            return
+        editor = self.route.editor()
+        if editor is None:
+            return
+        scope = ArrangeScope(event.scope)
+        positions = arrange_layout(self.graph, scope, event.node_ids, ArrangeGaps.from_settings())
+        if not editor.move_nodes_to(positions, self.channel):
+            ui.notify("Nothing to arrange", type="warning")
+            return
+        nodes = self._selectable(arranged_nodes(self.graph, scope, event.node_ids))
+        edges = {
+            edge_id
+            for edge_id, edge in self.graph.edge_wrappers.items()
+            if edge.source_node_id in nodes and edge.sink_node_id in nodes
+        }
+        self._replace_selection(nodes, edges)
+
+    def _selectable(self, node_ids: Set[str]) -> Set[str]:
+        """The nodes of ``node_ids`` that are not locked and that this canvas's view shows."""
+        props = {n: self.graph.node_wrappers[n].node.props for n in node_ids}
+        return {n for n, p in props.items() if not p.locked and self.channel.includes(p)}
+
+    def _replace_selection(self, nodes: Set[str], edges: Optional[Set[str]] = None) -> None:
+        """Select exactly ``nodes`` and ``edges`` (none by default), with no active element,
+        here and in the browser."""
+        self.selected_nodes = nodes
+        self.selected_edges = edges or set()
 
         if self._session is not None:
             ctx = self._session.context

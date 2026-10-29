@@ -24,9 +24,11 @@ from haybale_graph_editor.surfaces.selection import (
     SelectionDetailMenu,
     SelectionDevelopMenu,
     SelectionEditMenu,
+    SelectionLayoutMenu,
     SelectionMacroMenu,
     SelectionMenu,
     SelectionRebuildMenu,
+    SelectionSelectMenu,
 )
 from haybale_graph_editor.surfaces.toolbar import NodeAppearance, SelectionToolbar
 
@@ -51,6 +53,8 @@ __all__ = [
     "PortInspector",
     "SelectionActions",
     "SelectionArrangeMenu",
+    "SelectionLayoutMenu",
+    "SelectionSelectMenu",
     "SelectionMenu",
     "SelectionRebuildMenu",
     "SelectionDetailMenu",

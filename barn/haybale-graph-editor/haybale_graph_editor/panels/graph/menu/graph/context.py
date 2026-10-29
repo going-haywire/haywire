@@ -265,3 +265,31 @@ class ResetNodeCardsMenuPanel(BasePanel):
             _ui.notify(f"{cleared} node(s) now follow the graph", type="positive")
         else:
             _ui.notify("Every node already follows the graph", type="info")
+
+
+@panel(
+    surface=GraphMoreActions,
+    label="Arrange All",
+    description="Lay out every node in the graph as one undo step.",
+    icon=hui.icon.arrange_all,
+    order=20,
+)
+class ArrangeAllMenuPanel(BasePanel):
+    """Lay out every node in the graph as one undo step.
+
+    Each part of the graph not connected to the rest becomes a band of its own; locked nodes
+    stay where they are.
+    """
+
+    actions: GraphActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        from haybale_graph_editor.state.edit_state import EditState
+
+        graph = ctx.data[EditState].active_graph
+        return graph is not None and len(graph.node_wrappers) >= 2
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            hui.menu_row("Arrange All", icon=hui.icon.arrange_all, on_click=self.actions.arrange_graph)

@@ -6,6 +6,7 @@ from haybale_studio.panels.properties.setting.canvas import CanvasSettingsPanel
 from haybale_studio.panels.properties.setting.canvas import EditorZoomPanSettingsPanel
 from haybale_studio.panels.properties.setting.canvas import MinimapSettingsPanel
 from haybale_studio.panels.properties.setting.canvas import EdgeDefaultSettingsPanel
+from haybale_studio.panels.properties.setting.canvas import ArrangeSettingsPanel
 from haybale_studio.panels.properties.setting.debug import DebugOverlaySettingsPanel
 from haybale_studio.panels.properties.setting.debug import DebugSettingsPanel
 from haybale_studio.panels.properties.setting.execution import ExecutionSettingsPanel
@@ -18,6 +19,7 @@ OpenInFileViewerPanel = OpenInFileViewerMenuPanel
 
 __all__ = [
     "ActivitySettingsPanel",
+    "ArrangeSettingsPanel",
     "CanvasSettingsPanel",
     "DebugOverlaySettingsPanel",
     "DebugSettingsPanel",

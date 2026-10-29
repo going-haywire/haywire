@@ -12,6 +12,7 @@ CanvasSettingsPanel          — grid, zoom, pan behaviour
 EditorZoomPanSettingsPanel   — zoom/pan behaviour settings
 MinimapSettingsPanel         — minimap position and visibility
 EdgeDefaultSettingsPanel     — computed edges' arrow head, head size and width; edge hit padding
+ArrangeSettingsPanel         — the gaps Arrange leaves between node cards
 
 Debug HUD visibility moved to ``DebugSurface`` — see debug.py.
 """
@@ -21,6 +22,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.core.edge.settings import EdgeDefaultSettings
+from haywire.core.graph.arrange_settings import ArrangeSettings
 from haywire.ui import elements as hui
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
 from haywire.ui.panel import BasePanel, PanelLayout
@@ -112,3 +114,23 @@ class EdgeDefaultSettingsPanel(BasePanel):
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(ctx, EdgeDefaultSettings, registry)
+
+
+@panel(
+    surface=CanvasSurface,
+    label="Arrange",
+    description="The gaps Arrange leaves between node cards.",
+    icon=hui.icon.layout,
+    order=50,
+    default_open=False,
+)
+class ArrangeSettingsPanel(BasePanel):
+    """The gaps Arrange leaves between node cards, for every graph."""
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        registry = ctx.app.library_service.get_settings_registry()
+        render_schema(ctx, ArrangeSettings, registry)

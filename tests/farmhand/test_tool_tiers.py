@@ -17,6 +17,7 @@ EDIT_TOOLS = {
     "connect",
     "remove_elements",
     "move_nodes",
+    "arrange",
     "set_property",
     "set_metadata",
     "promote_setting",

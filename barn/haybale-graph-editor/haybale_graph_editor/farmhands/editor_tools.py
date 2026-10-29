@@ -26,6 +26,7 @@ from haywire.core.farmhand import (
     truncation_note,
 )
 from haywire.core.node.inspector import NodeInstanceInspector, PortInfo, SettingInfo, _port_type_key
+from haywire.core.graph.arrange import ArrangeGaps, ArrangeScope, arrange_layout
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.setting_owner import SettingOwner
 from haywire.core.signals import GraphDataMutated
@@ -977,6 +978,64 @@ class GraphEditorMoveNodesTool(Farmhand):
             raise FarmhandError("move_failed", "Could not move the given nodes.")
         ctx.broadcast(GraphDataMutated())
         return {"summary": f"Moved {len(positions)} nodes."}
+
+
+@farmhand(
+    label="Arrange",
+    description="Auto-layout the flow of nodes, a node's downstream or upstream nodes, or the whole graph.",
+    instructions="Lay out nodes in layers along the graph's layout direction, as one undo step. "
+    "scope='flow' (every node connected to node_id by any edge), 'downstream' or 'upstream' (nodes "
+    "reached along edges from / into node_id) keeps node_id where it is and places the rest around "
+    "it. scope='flow' also takes node_ids=[...] instead: every flow those nodes touch, one band per "
+    "unconnected part, centred where the nodes were. scope='all' lays out the whole graph the same "
+    "way (no node needed). Locked nodes never move. Nodes outside the scope are not avoided. Sizes "
+    "are the cards' last rendered sizes; a node never shown in a studio counts as 200x200. Gap "
+    "sizes come from the user's Arrange settings.",
+    registry_id="arrange",
+    annotations=_MUTATING,
+)
+class GraphEditorArrangeTool(Farmhand):
+    async def run(
+        self,
+        ctx: FarmhandContext,
+        binding_id: str,
+        scope: str = "all",
+        node_id: str | None = None,
+        node_ids: list[str] | None = None,
+    ) -> dict:
+        try:
+            arrange_scope = ArrangeScope(scope)
+        except ValueError:
+            raise FarmhandError(
+                "bad_scope",
+                f"Unknown scope '{scope}'.",
+                help="Use one of: " + ", ".join(s.value for s in ArrangeScope) + ".",
+            ) from None
+        editor = _editor(ctx, binding_id)
+        starts = [*([node_id] if node_id is not None else []), *(node_ids or [])]
+        if arrange_scope is not ArrangeScope.ALL:
+            if not starts:
+                raise FarmhandError(
+                    "node_required",
+                    f"Scope '{scope}' needs a node_id.",
+                    help="Pass the start node's id, or use scope='all'.",
+                )
+            if len(set(starts)) > 1 and arrange_scope is not ArrangeScope.FLOW:
+                raise FarmhandError(
+                    "one_start_node",
+                    f"Scope '{scope}' takes one start node, got {len(set(starts))}.",
+                    help="Pass a single node_id, or use scope='flow' for several nodes.",
+                )
+            for start in starts:
+                _node(editor, start)
+        ctx.fence(editor)
+        positions = arrange_layout(editor.graph, arrange_scope, starts, ArrangeGaps.from_settings())
+        if not positions:
+            return {"summary": "Moved 0 nodes.", "moved": 0}
+        if not editor.move_nodes_to(positions):
+            raise FarmhandError("arrange_failed", "Could not move the arranged nodes.")
+        ctx.broadcast(GraphDataMutated())
+        return {"summary": f"Moved {len(positions)} nodes.", "moved": len(positions)}
 
 
 def _read_property(node, name: str):

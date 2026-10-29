@@ -47,6 +47,7 @@ from haybale_graph_editor.editors.graph_canvas.handlers.selection import (
 from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
+    from haywire.core.graph.arrange import ArrangeScope
     from haywire.core.graph.stacking import Restack
     from haywire.core.session.context import SessionContext
     from haywire.core.session.session import Session
@@ -297,6 +298,12 @@ class SelectionToolbarProvider:
 
     def restack_selection(self, how: "Restack") -> None:
         self._menu_provider.restack_selection(how)
+
+    def arrange_from(self, node_ids: list[str], scope: "ArrangeScope") -> None:
+        self._menu_provider.arrange_from(node_ids, scope)
+
+    def select_from(self, node_id: str, scope: "ArrangeScope") -> None:
+        self._menu_provider.select_from(node_id, scope)
 
     def dissolve_reroute(self, node_id: str) -> None:
         self._menu_provider.dissolve_reroute(node_id)

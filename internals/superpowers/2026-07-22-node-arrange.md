@@ -2,106 +2,243 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Depends on:** the **Node Sizing** Check the current implementation of 
-> Node sizing and verify that it fits the proposed approach.
+> **Revision 2026-10-29.** Re-settled against the current code; supersedes the 2026-07-22 plan (in git
+> history, `d60e4c102`). The July two-tier model (control spine + data clusters), `props.pinned` and
+> whole-graph-only scope are dropped — see "What changed since July" at the end.
 
-**Goal:** A "Node Arrange" action that auto-lays-out a graph into a readable left-to-right flow — control spine as columns, the data nodes feeding each control node clustered as satellites upstream of it — respecting pinned nodes, as a single undoable operation. Reachable both from the UI and from the Farmhand MCP tool.
+**Goal:** Auto-layout and flow-selection verbs for the graph editor:
 
-**Architecture:** A pure, synchronous, headless-testable function `arrange_layout(graph) -> dict[str, dict[str, float]]` in `packages/haywire-core/src/haywire/core/graph/arrange.py` (single module for v1; a per-phase subpackage split is a v2 concern). It consumes `graph.node_wrappers` / `graph.edge_wrappers`, reads per-node `props.width/height` (from the Node Sizing plan) and `props.pinned`, and returns absolute positions for every **non-pinned** node. It performs no mutation and touches no UI/DI. Two thin adapters call it and feed the result to the existing undoable sink `editor.move_nodes_to(positions)` (one `MoveNodesToAction`, one undo step): a UI action in the graph editor, and a new Farmhand tool `GraphEditorArrangeTool` (sibling of `move_nodes`/`add_node` in `barn/haybale-graph-editor/haybale_graph_editor/farmhands/editor_tools.py`).
+| Where | Verb | Acts on |
+| --- | --- | --- |
+| Node menu → **Layout** | Arrange Flow | every node connected to the node (any edge, either direction) |
+| Node menu → **Layout** | Arrange Downstream | the node + everything reachable along edges from it |
+| Node menu → **Layout** | Arrange Upstream | the node + everything that reaches it along edges |
+| Node menu → **Select** | Select Downstream | same set as Arrange Downstream — replaces the selection |
+| Node menu → **Select** | Select Upstream | same set as Arrange Upstream — replaces the selection |
+| Canvas menu (… flyout) | Arrange All | every node in the graph |
+| Farmhand | `arrange` tool | any of the four arrange scopes |
 
-**Layout model — two-tier, engine-mirrored.** Haywire's assembly already establishes the target shape: `ControlFlowBuilder.build` BFS-traverses CONTROL edges from an EVENT node and derives a `topology_order` (`packages/haywire-core/src/haywire/core/assembly/control_flow_builder.py`), and `DataFlowBuilder._backpropagate` walks DATA edges backward from each control node's inlets, stopping at control nodes (`.../assembly/data_flow_builder.py:139`). Arrange **mirrors** these two traversals (it re-implements them against `node_wrappers`/`edge_wrappers` rather than *calling* `FlowAssemblyManager`, because arrange must work on graphs that are not validly assembled — a tangled/partial graph is exactly when you reach for it). Ranks follow the **control spine**; each control node's backpropagated **data cluster** is placed as satellites immediately upstream in its column band. Layer index → posX (left→right = flow direction); order within a layer → posY. Column X cursor advances by `max_width_in_column + margin`; within a band, stack by `node.height + margin`.
+Every arrange is one undoable `MoveNodesToAction` (one Ctrl-Z).
 
-**Dual-flow.** The directed graph used for ranking is built from control edges as the spine; data edges attach clusters. Nodes with no path to any control node (pure data islands, or a graph with no EVENT node at all) fall back to **data-only ranking** (rank on DATA edges alone, sinks right). `FlowType.CALLBACK`/`NONE` do not drive layering.
+**Architecture:** One pure, synchronous, headless-testable core module
+`packages/haywire-core/src/haywire/core/graph/arrange.py`:
 
-**Roots.** Multiple EVENT nodes → each starts its own control spine, laid out as **stacked horizontal bands** (one readable strip per flow). No EVENT node → the data-only fallback for the whole graph.
+- `connected_nodes(graph, node_id, scope) -> set[str]` — the node set for a scope (also what Select uses).
+- `arrange_layout(graph, scope, node_id=None) -> dict[str, dict[str, float]]` — absolute positions for
+  the nodes that move; feed straight to `editor.move_nodes_to(positions, PATCH)`.
 
-**Pinned.** `props.pinned` (already documented "Prevent auto-layout from moving this node") is honored by **compute-but-exclude**: pinned nodes participate in ranking so their neighbors place sensibly, but their ids are omitted from the positions dict handed to `move_nodes_to` — they never move. Overlap a pinned node causes is the user's to resolve (unpin or move it). Hard-constraint pinning (lay out around fixed anchors) is a v2 concern.
+It reads `graph.node_wrappers` / `graph.edge_wrappers` (`EdgeWrapper.source_node_id → sink_node_id`),
+`node.props.posX/posY/width/height` (auto axes are measured in-browser and written back into
+`width`/`height`, so props hold real sizes; a never-rendered headless node reads the 200/200 default),
+`node.props.locked`, and the graph's `layout_direction`. No UI, no DI, no mutation.
 
-**Recenter.** After computing the layout, translate it so it aligns to the pinned nodes if any exist, else to the pre-arrange centroid of the moved nodes — so the graph tidies without leaping out of the viewport. Seed any randomness (`random.seed(0)`) so repeated arranges are deterministic.
+Adapters: (1) node-menu panels → `SelectionActions` verbs → canvas events → visual layer / selection
+handler; (2) canvas-menu panel → `GraphActions` verb → same arrange event; (3) Farmhand tool.
 
-**Tech Stack:** Python 3.12, uv workspace monorepo, pytest (`unit`, `integration`), ruff (line-length 109), mypy. Pure stdlib for the algorithm — **no** graph-layout dependency (no networkx, no ELK/Java); the bounded problem needs only plain Python over the graph's own dicts.
-
-**Source docs:** Inquisition session 2026-07-22 (this plan is the record). Research (prior-art survey + licence analysis): `.scratch/node-arrange/research.md` — note all three surveyed Blender addons are **GPL-3.0**; the algorithm is reimplemented from the public papers, no code lifted. Assembly internals: `docs/architecture/execution/*`; the `move_nodes_to` seam: `packages/haywire-core/src/haywire/core/graph/editor.py:133`.
+**Tech stack:** Python 3.12, pure stdlib (no networkx/ELK). Algorithm reimplemented from the public
+papers (research: `.scratch/node-arrange/research.md`; the surveyed Blender addons are GPL-3.0 — read,
+never copy).
 
 ---
 
 ## Settled decisions (binding)
 
-1. **Scope:** whole-graph arrange (not selection-scoped). One action lays out all non-pinned nodes.
-2. **Surfaces:** both a UI action and a Farmhand tool, over one pure core function.
-3. **Location:** single module `graph/arrange.py`; entry `arrange_layout(graph) -> dict[str, dict[str, float]]`.
-4. **Layout:** two-tier — control spine (mirrors `ControlFlowBuilder`) + backpropagated data clusters (mirrors `DataFlowBuilder`). Re-implemented, not calling `FlowAssemblyManager` (must work on invalid graphs).
-5. **Dual-flow:** control edges = spine; data edges = clusters; unranked-by-control nodes fall back to data-only ranking; CALLBACK/NONE ignored.
-6. **Roots:** multi-EVENT → stacked bands; no-EVENT → data-only.
-7. **Pinned:** compute-but-exclude (participate in ranking, omitted from the emitted positions).
-8. **Undo/center:** single `MoveNodesToAction` (one undo); recenter on pinned-if-any else centroid; seeded RNG.
-9. **v1 ranking/coords:** longest-path (or simplest topo) ranking + one/few barycenter ordering sweeps + per-column X cursor + within-column Y stacking. (Network-simplex + Brandes–Köpf are the v2 upgrade.)
+1. **Flow = weakly connected component.** "Arrange Flow" covers every node reachable from the start
+   node over any edge, ignoring direction. Works for data-only nodes; shared nodes need no special case.
+2. **Up/downstream follow all edges** (control + data), outlet → inlet; traversal is visited-guarded
+   (cycles terminate). Edges are never typed/filtered.
+3. **Node verbs need exactly one selected node.** The menu rows poll on a single selected node
+   (`_single_node(ctx)` in `selection.py` is the existing predicate) and grey otherwise. The start
+   node is unambiguous.
+4. **The start node is the anchor.** It never moves; the layout is translated so the start node keeps
+   its position. Nodes outside the arranged set are ignored — overlaps with them are the user's to fix.
+5. **No pinning.** `props.pinned` no longer exists and is not reintroduced. **`props.locked` is
+   honored** ("Protect this node from being moved…"): a locked node takes part in ranking/ordering but
+   is omitted from the emitted positions. It is the existing move-protection, not a new gate.
+6. **One algorithm for every scope:** plain layered (Sugiyama-lite) layout over the directed graph of
+   all edges inside the set — rank, a few barycenter ordering sweeps, coordinate assignment.
+   Back-edges of cycles are ignored for ranking.
+7. **Direction follows the graph's `layout_direction`.** Compute in abstract (rank axis, cross axis)
+   space, then map: L2R rank→+x; R2L rank→−x; T2B rank→+y; B2T rank→−y. Rank-axis extent of a node is
+   its width for horizontal directions, height for vertical ones (and vice versa for the cross axis).
+   Graph tier only; per-node overrides are not considered.
+8. **Patch only.** All arrange/select verbs act in the PATCH channel; the rows grey in a stage canvas
+   (`self.channel.stage`). Stage is free-form composition.
+9. **Menus:** a new **"Layout"** submenu (Arrange Flow / Downstream / Upstream) and a new **"Select"**
+   submenu (Select Downstream / Upstream) on `SelectionMenu`. The existing "Arrange" submenu stays the
+   stacking-order verbs, untouched.
+10. **Select replaces the selection** with the computed set (start node excluded), excluding locked
+    nodes (the canvas keeps locked nodes out of multi-selections — same rule as `select_all_toggle`).
+    No active node/edge afterwards.
+11. **One graph at a time.** Arrange/select act on the graph shown in the canvas; a Graph-node (Group/
+    macro placement) is one card. Interiors are not touched, boundaries are not crossed.
+12. **Also:** whole-graph "Arrange All" on the canvas context menu, and a Farmhand `arrange` tool.
+    Arrange All has no anchor: it lays out each connected component as its own band (stacked along the
+    cross axis) and recenters on the pre-arrange centroid of the moved nodes.
 
-## Explicitly out of scope (v1 non-goals)
+## Explicitly out of scope
 
-- Selection-scoped arrange (whole-graph only).
-- `pinned` as a hard positional constraint (compute-but-exclude only).
-- **Edge routing / reroute-node insertion / bend-point optimization — arrange moves nodes, never edges.**
-- Frame / cluster / group nesting layout (node-arrange's clustering is not ported).
-- Network-simplex ranking or Brandes–Köpf coordinates (v2 upgrade).
-- **Align / distribute manual toolset (the `align_nodes` idiom) — a separate possible feature, NOT arrange.**
+- Multi-node start sets (decision 3).
+- Edge routing / reroute insertion / bend points — arrange moves nodes, never edges.
+- Avoiding nodes outside the arranged set.
+- Stage-channel layout.
+- Per-node `layout_direction` mixing.
+- Network-simplex ranking / Brandes–Köpf coordinates (v2).
+- Align/distribute toolset.
+- Keyboard shortcuts (can follow via the EditorCommand convention once the verbs exist).
+- An `ArrangeSettings` bag — spacing is module constants, structured for a later mechanical lift.
 
 ---
 
-## Global Constraints
+## Global constraints
 
-- Test imports: `import haywire.core.graph.editor  # noqa: F401` first in every new test file (circular-import guard, CLAUDE.md).
-- `arrange_layout` MUST stay pure and synchronous (no UI, no DI, no client) so it is unit-testable headless. All I/O (measured sizes) is already resolved by the Node Sizing plan into `props`.
-- No new third-party dependency. If you reach for networkx/ELK, stop — re-read the Tech Stack line and the research doc's §5.
-- Reimplement the algorithm from the public papers; do not copy from the GPL-3.0 reference addons (research §4).
-- Quality gates after every task (ruff check + `ruff format --check`, mypy CI invocation, `pytest -m "not browser and not perf"` fast loop; full `pytest` before completion).
+- `arrange.py` stays pure and synchronous: no UI, no DI, no client.
+- No new third-party dependency.
+- Every `SelectionActions` verb added to the Protocol MUST be implemented by **both** implementors —
+  `handlers/context_menu.py` (emits the event) and `handlers/selection_toolbar.py` (delegates to
+  `_menu_provider`). A verb missing on either fails the *whole* menu, not just its row
+  (`render_surface` isinstance-checks the host against `provides`).
+- Hosting panels that poll true over nothing cost the menu its popup (`.insights/project_surface_popup_emptiness_contract.md`):
+  the Layout/Select hosts poll on exactly the predicate their leaves poll on, and draw a greyed
+  `submenu_row` in `draw_disabled`.
+- Test node keys come from `Cls.class_identity.registry_key` and are `isinstance`-checked
+  (`.insights/project_unknown_key_yields_error_node.md`). Tests never read repo `graphs/`.
+- Quality gates after every task: `uv run ruff check` + `uv run ruff format --check` on touched files,
+  mypy (CI invocation), smallest covering pytest tier; full `-m "not browser and not perf" -n 4` and
+  `-m browser -n 4` before completion. Baseline ruff/mypy on the touched areas before Task 1.
 
 ---
 
 ## Tasks
 
-### 1. Graph → directed-layering structures (pure, tested in isolation)
+### 1. Core: scopes and reachability
 
-- [ ] In `graph/arrange.py`, build the intermediate structures from `graph.node_wrappers`/`graph.edge_wrappers`: the set of EVENT roots; per-root control spine via BFS over CONTROL edges (mirror `ControlFlowBuilder.build`); per-control-node data cluster via backward BFS over DATA edges stopping at control nodes (mirror `DataFlowBuilder._backpropagate`); the set of nodes reachable by neither (data islands).
-- [ ] Cycle handling: the traversals must be visited-guarded (control flow may legitimately loop — Haywire is not DAG-guaranteed like Blender trees). A back-edge is skipped for ranking, not fatal.
-- [ ] Unit tests (no UI, headless): a single-EVENT linear control chain; a control node with a 3-node data cluster; a pure-data island; a control cycle (must terminate); a graph with no EVENT node.
+- [ ] `arrange.py`: `class ArrangeScope(Enum)`: `FLOW`, `DOWNSTREAM`, `UPSTREAM`, `ALL`.
+- [ ] `connected_nodes(graph, node_id, scope)`: BFS over `edge_wrappers` — DOWNSTREAM follows
+      `source→sink`, UPSTREAM `sink→source`, FLOW both; ALL returns every node id. Always contains
+      `node_id` (for non-ALL). Unknown `node_id` → empty set.
+- [ ] Unit tests (`tests/core/test_graph/test_arrange.py`): linear chain both ways; fan-in/fan-out;
+      control + data edges both followed; a cycle terminates; FLOW crosses direction changes; isolated
+      node yields `{node_id}`.
 
-### 2. Ranking + ordering
+### 2. Core: layering
 
-- [ ] Rank the control spine (longest-path / topological order along CONTROL edges). Attach each data cluster upstream of its control node (cluster nodes rank just before their consumer). Data islands: data-only ranking (sinks right).
-- [ ] One (or a few) barycenter ordering sweeps within layers to reduce crossings (the single biggest quality win over naive BFS layering — do include it).
-- [ ] Seed RNG (`random.seed(0)`) for determinism.
-- [ ] Unit tests: ranks are monotonic along control flow; a data node ranks upstream of the control node it feeds; repeated calls are byte-identical.
+- [ ] Build the induced directed graph over the set (edges with both ends inside; multi-edges collapse).
+- [ ] Cycle handling: DFS from the start node (or all sources, for ALL/FLOW) marks back-edges, which are
+      dropped for ranking.
+- [ ] Ranking: longest-path. DOWNSTREAM: start node at rank 0. UPSTREAM: start node at the max rank.
+      FLOW/ALL: sources at rank 0. Normalize to start at 0.
+- [ ] Ordering: initial order by BFS discovery, then a fixed number of alternating barycenter sweeps
+      (constant `ORDER_SWEEPS`); ties broken by node id → deterministic, no RNG.
+- [ ] Unit tests: ranks strictly increase along every non-back edge; start-node rank per scope; two
+      calls return identical results; a barycenter case where a crossing is removed.
 
-### 3. Coordinate assignment + roots/banding + pinned + recenter
+### 3. Core: coordinates, direction, anchor, locked
 
-- [ ] Assign posX per layer (column X cursor = `x += max_width_in_column + margin_x`, reading `props.width`). Assign posY within a layer by stacking (`y += node.height + margin_y`, reading `props.height`).
-- [ ] Multiple EVENT roots → stacked horizontal bands (offset each spine's band vertically). No EVENT → whole-graph data-only layout.
-- [ ] Pinned: include pinned nodes in ranking/ordering, but OMIT them from the returned positions dict.
-- [ ] Recenter: translate the computed layout to align with pinned nodes if present, else the pre-arrange centroid of the (moved) nodes. Read current positions via `props.get_position()`.
-- [ ] Spacing constants: cluster at the top of the module as named constants (`COLUMN_MARGIN`, `ROW_MARGIN`, `CLUSTER_OFFSET`, …) with a `# TODO: promote to ArrangeSettings` note — hardcoded for v1, structured so a future settings bag is a mechanical lift.
-- [ ] Unit tests: pinned node absent from output but its neighbors placed around it; two-EVENT graph produces two non-overlapping vertical bands; output centroid ≈ input centroid when no pins.
+- [ ] Abstract coordinates: rank axis cursor advances by `max rank-extent in the rank + RANK_GAP`;
+      cross axis stacks by `cross-extent + CROSS_GAP`, each rank centered on the cross axis.
+- [ ] ALL: lay out each weakly connected component separately, stack components along the cross axis
+      with `BAND_GAP`.
+- [ ] Map abstract → canvas per `layout_direction` (decision 7). Positions are top-left (`posX/posY`):
+      for R2L/B2T, mirror using each node's own extent so cards don't overlap after negation.
+- [ ] Anchor: translate so the start node's computed position equals its current one. ALL: translate
+      so the centroid of moved nodes equals their pre-arrange centroid.
+- [ ] Drop locked nodes and the start node from the returned dict (both stay put).
+- [ ] Constants at module top (`RANK_GAP`, `CROSS_GAP`, `BAND_GAP`, `ORDER_SWEEPS`) with
+      `# TODO: promote to ArrangeSettings`.
+- [ ] Unit tests: start node absent from output and its neighbours placed relative to it; no two
+      arranged cards overlap (rect test with props sizes); each of the four directions puts a
+      downstream node on the correct side; locked node absent; ALL: two components don't overlap and
+      the centroid is preserved; result is byte-identical across calls.
 
-### 4. UI action
+### 4. Arrange in the canvas
 
-- [ ] Add a graph-editor action (menu entry / command; wire a keyboard shortcut if the editor has a binding convention) that calls `arrange_layout(graph)` then `editor.move_nodes_to(positions)`. Confirm it lands as one undoable `MoveNodesToAction` (one Ctrl-Z reverts the whole arrange).
-- [ ] Test (browser harness, `@pytest.mark.browser`): trigger arrange on a small graph; assert nodes moved to computed positions and a single undo restores all prior positions.
+- [ ] `event_definitions.py`: `ArrangeNodesEvent(node_id: Optional[str], scope: str)` (graph_event,
+      category "user", mirroring `RestackEvent`).
+- [ ] `visual_layer.py`: `@handles_event(ArrangeNodesEvent) process_arrange` — return if
+      `self.channel.stage`; `positions = arrange_layout(graph, ArrangeScope(event.scope), event.node_id)`;
+      `editor.move_nodes_to(positions, self.channel)`; `ui.notify` "Nothing to arrange" (warning) on
+      empty — mirror `process_restack`.
+- [ ] `SelectionActions.arrange_from(node_id: str, scope: ArrangeScope)` — context_menu emits the event;
+      selection_toolbar delegates.
+- [ ] `GraphActions.arrange_graph()` — emits `ArrangeNodesEvent(node_id=None, scope="all")`; find the
+      GraphActions implementor(s) and add it to each.
+- [ ] Tests: handler-level test that the event yields one undo step and one Ctrl-Z restores all prior
+      positions (see existing restack/stage handler tests for the fixture pattern).
 
-### 5. Farmhand tool
+### 5. Select in the canvas
 
-- [ ] Add `GraphEditorArrangeTool` (registry_id e.g. `arrange`) in `barn/haybale-graph-editor/haybale_graph_editor/farmhands/editor_tools.py`, mirroring `GraphEditorMoveNodesTool`: resolve the editor via `_editor(ctx, binding_id)`, `ctx.fence(editor)`, compute + `move_nodes_to`, `ctx.broadcast(GraphDataMutated())`, return a summary. Headless-safe (no client needed — arrange is pure and sizes are already in `props`).
-- [ ] Test (`tests/farmhand/…`): the tool arranges an open graph and reports the node count moved.
+- [ ] `SelectConnectedEvent(node_id: str, scope: str)` (DOWNSTREAM/UPSTREAM only).
+- [ ] `handlers/selection.py`: handler beside `select_all_toggle` — set =
+      `connected_nodes(...) − locked`, write it to the handler and `EditState` exactly as
+      `select_all_toggle` does (clear edges, no active node/edge, publish `SelectionMoved`,
+      `sync_selections`). Extract the shared tail of `select_all_toggle` into a private helper rather
+      than copying it.
+- [ ] `SelectionActions.select_from(node_id: str, scope: ArrangeScope)` on both implementors.
+- [ ] Tests: selection equals the computed set; locked node excluded; `EditState` mirrors it.
 
-### 6. Full verification
+### 6. Menus
 
-- [ ] `uv run pytest` (full, incl. browser + the farmhand tests) green.
-- [ ] `uv run ruff check .`, `uv run ruff format --check .`, `uv run mypy` (CI invocation) — no new findings.
-- [ ] Manual smoke: build a tangled multi-EVENT graph with a few pinned nodes in the running app, run arrange from the UI and via the Farmhand tool, confirm readable bands, pinned nodes unmoved, one-undo revert.
+- [ ] `surfaces/selection.py`: `SelectionLayoutMenu` and `SelectionSelectMenu` (no `poll`, like
+      `SelectionArrangeMenu`; docstring says why).
+- [ ] New `panels/graph/menu/selection/layout.py`: host `LayoutSelectionMenuPanel`
+      (surface=SelectionMenu, hosts=(SelectionLayoutMenu,), view band, `order` next to Arrange's 420)
+      + three leaf panels via a `_ArrangeMenuPanel` base (`scope`, `row_label`, `row_icon`), shaped like
+      `_RestackMenuPanel`. Same file: host `SelectSelectionMenuPanel` + two leaves via
+      `_SelectMenuPanel`. Poll: exactly one selected node, and not a stage canvas for Layout. Hosts
+      draw a greyed `submenu_row` in `draw_disabled` when the selection is non-empty.
+- [ ] Access: arrange is an edit (EDIT, like the restack rows); select is view-level. Check how the
+      restack rows / other selection-menu rows declare `requires` (ADR 0060) and follow it.
+- [ ] Canvas menu: `ArrangeAllMenuPanel` on `GraphMoreActions` (beside `ResetNodeCardsMenuPanel`),
+      polls `active_graph` has ≥ 2 nodes, patch canvas only.
+- [ ] Icons: add `layout`, `arrange_flow`, `arrange_downstream`, `arrange_upstream`, `select_flow`,
+      `select_downstream`, `select_upstream` (Material names) to `hui.icon` with one-line docstrings,
+      as the existing entries do.
+- [ ] Tests (`tests/ui/graph_canvas/`, follow `test_selection_edit_menu.py`): rows poll true for one
+      node, grey for two or none, grey in a stage canvas; clicking a row calls the right verb with the
+      right scope; the toolbar ⋯ still renders (both implementors satisfy the Protocol).
 
-### 7. Glossary update — DO LAST, only after the above has landed
+### 7. Farmhand tool
 
-> Do not touch `glossary.md` until tasks 1–6 are complete and merged. Then add, following `GLOSSARY_FORMAT.md`:
-- [ ] **Node Arrange** — the whole-graph auto-layout action; two-tier (control spine + data clusters), respects pinned, one undo step.
-- [ ] **Arrange band** — one EVENT flow's horizontal strip in a multi-EVENT arrange.
-- [ ] **data cluster / satellites** — the data nodes backpropagated from a control node's inlets, placed upstream of it by arrange.
-- [ ] Reconcile with existing **Control Flow** / **LocalizedDataFlow** entries (arrange mirrors those traversals; cross-reference rather than redefine).
+- [ ] `GraphEditorArrangeTool` (registry_id `arrange`) in `farmhands/editor_tools.py`, beside
+      `GraphEditorMoveNodesTool`: args `binding_id`, `scope` (`flow|downstream|upstream|all`),
+      `node_id` (required unless `all`). `_editor` → `ctx.fence(editor)` → `arrange_layout` →
+      `move_nodes_to(positions, PATCH)` → `ctx.broadcast(GraphDataMutated())` → summary with the
+      moved count. Unknown node → `FarmhandError` with `ids`; nothing to move → summary "0 nodes",
+      not an error. `annotations=_MUTATING`; `instructions` notes locked nodes and the start node never
+      move, and that headless-only nodes size as 200×200 until rendered.
+- [ ] Optional `select`-style query is NOT added: `graph_editor_query_graph` already lists edges.
+- [ ] Test in `tests/farmhand/…` mirroring the move_nodes tool test.
+
+### 8. Verification
+
+- [ ] Full gates (see Global constraints). Commit anything under `barn/haybale-testing` before the full
+      suite (`.insights/project_docs_test_reverts_barn_testing.md`).
+- [ ] Live check in the running studio: mixed control/data graph with a cycle, a locked node, a
+      Group card; each of the five node verbs + Arrange All; one Ctrl-Z per arrange; T2B graph arranges
+      top-down; rows greyed in the stage view and with two nodes selected; Farmhand `arrange` via MCP.
+
+### 9. Docs + glossary — after landing only
+
+- [ ] Graph-editor docs page for the Layout/Select submenus and Arrange All (follow
+      `docs/reference/doc-authoring.md`); regenerate library docs (`uv run haywire docs
+      barn/haybale-graph-editor`).
+- [ ] Glossary (after merge): **Arrange** collision — the stacking-order submenu already uses the word;
+      add **Layout (verbs)** / **Arrange Flow/Downstream/Upstream** and **Flow (arrange sense)** =
+      weakly connected component, cross-referencing Control Flow / execution group so the three senses
+      of "flow" stay distinct.
+
+---
+
+## What changed since July
+
+- `props.pinned` is gone → replaced by the anchor (start node) + existing `props.locked`.
+- "Arrange" now names the stacking-order submenu → new verbs live under "Layout".
+- `LayoutDirection` (framework < graph < node) exists → layout follows the graph tier.
+- `LayoutChannel` PATCH/STAGE → patch only.
+- Node sizes: `width`/`height` + `size_adapt` (auto axes written back from the render) → props still a
+  valid size source.
+- Multiple same-type event nodes and execution groups (ADR 0064) made "flow = event spine" ambiguous →
+  flow = weakly connected component, single algorithm for all scopes.
+- `move_nodes_to(positions, channel)` gained `channel`.
+- Groups/Subgraphs/reroutes exist → per-graph only, Graph-node = one card, reroute = ordinary node.
