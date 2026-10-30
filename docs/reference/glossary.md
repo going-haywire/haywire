@@ -373,8 +373,7 @@ A haybale library's dependencies live across three manifests with different audi
 
 | Term | Definition | Aliases to avoid |
 | --- | --- | --- |
-| **Failed node** | A node whose last run raised (`BaseNode.failed`), from the raise until a run returns normally. It stays dirty, so the next evaluation retries it, and it blocks every node reading its data. Distinct from `error_runtime`, the recorded error, which stays until revalidation. See [failed and blocked nodes](../architecture/execution/failures/failures-arch.md) and [ADR 0066](../adr/0066-failed-nodes-block-their-consumers.md) | Errored node (ambiguous with any error state) |
-| **Blocked node** | A node skipped in a pass because a node feeding its data inlets is failed or blocked; it keeps its dirty ports, shows a `blocked` warning naming the failed node, and runs again once the source recovers. Exec edges never block | Poisoned node, skipped node |
+| **Bail** | What a run does after a node's worker raises: it stops running the current branch, frame or run, as the graph's run policy `on_exception_bail` says (`branch` by default: a loop goes on with its next item). The failing node is retried at its next evaluation. See [worker exceptions](../architecture/execution/failures/exceptions-arch.md) and [ADR 0066](../adr/0066-a-worker-exception-bails-by-run-policy.md) | Abort, poison, block |
 
 ## Volumes
 

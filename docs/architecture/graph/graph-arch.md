@@ -46,7 +46,9 @@ When migrating, draw from:
 
 Each `GraphEntry` owns a `GraphRunSettings` bag (purely local, never
 registry-backed) describing *how* it runs within its haystack — currently the
-`autorestart` flag. It is persisted under the `[graphs.run]` table of the
+`autorestart` flag and the `on_exception_bail` policy (`branch`, `frame` or
+`run`: how far a run gives up when a worker raises; see
+[worker exceptions](../execution/failures/exceptions-arch.md)). It is persisted under the `[graphs.run]` table of the
 haystack TOML (omitted when at defaults; sparse). When a running graph is
 auto-stopped by a reassembly-requiring validation change
 (`HaystackState._on_entry_validation`) and `autorestart` is set, the entry is

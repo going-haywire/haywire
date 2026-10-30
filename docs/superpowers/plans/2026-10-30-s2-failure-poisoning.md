@@ -29,6 +29,28 @@ nodes, keeps a pass-local blocked set, records `ExecutionContext.failures`, and 
 | S2-Q7 | A failed node poisons **all** its outlets (partial writes included) — the check is per node, not per port. |
 | S2-Q8 | New frozen benchmark nodes live in `barn/haybale-testing/haybale_testing/nodes/benchmark/` and are committed **before** any full-suite run (the docs test reverts uncommitted edits there). |
 
+**Amendment S2-Q9 (2026-10-30, after the final review, user decision "b"):** blocking moves from every
+data node to the **control node only**. A raising node is still failed and stays dirty (retried). Data
+nodes are never blocked and never skipped. A control node is skipped (blocked, warning, `failures` entry, its
+branch ends) when any node of its localized data flow, or any external source feeding that flow, is failed
+or blocked after the flow has been evaluated. `LocalizedDataFlow.upstream` (per node) becomes
+`LocalizedDataFlow.sources` (one tuple per flow: the sequence plus external data sources). Supersedes S2-Q2,
+S2-Q3 and S2-Q5 where they speak of data nodes. Why: per-data-node blocking bought only skipped work on a
+failing pass and cross-flow staleness, which the persisted flags cover; its machinery held all three review
+bugs.
+
+**Amendment S2-Q10 (2026-10-30, user decision; supersedes S2-Q1..Q9 except the benchmark cases):**
+no poisoning machinery. Once a node has raised, efficiency no longer matters, only visibility and
+reproducibility. On a worker exception the VM (1) reports it as before (ledger, `error_runtime`), (2) marks
+the node's data inlets dirty so the next evaluation retries it, (3) records it in
+`ExecutionContext.failures`, and (4) **bails** by the graph's run policy
+`GraphRunSettings.on_exception_bail`: `run` (stop the run), `frame` (end the frame), `branch` (end the current
+branch: back to the enclosing loop, else the frame ends — default). `error_runtime` set by a worker failure is
+cleared at the start of the flow's next frame. The policy reaches the VM as callables through the
+`Interpreter` (`exception_bail`, `on_bail_run`); `bail: run` schedules the entry's `stop_execution` through
+`graph._validation.call_soon` (the autorestart route, ADR 0064 D9). Removed: failed/blocked flags,
+`failure_counts`, `LocalizedDataFlow.sources`, blocked warnings, the removal hook.
+
 ## Global Constraints
 
 - Happy path: `_evaluate_data_flow` adds at most one integer test per data node while `_failed_count == 0`.
