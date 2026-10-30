@@ -99,6 +99,15 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 | S1-Q3 | Picker widget (volume select + relative field + browse popup + status line); volumes are defined in an **ADMIN Volumes editor** and the CLI — no in-widget define action (amends Q7B). |
 | S1-Q4 | The eager-then-lazy folder tree moves from `LazyFileBrowserEditor` into a core element both use. |
 
+**S1 deviations from plan**
+
+- CLI `set` absolutises a relative folder against cwd (plan Step 1 said refuse); the store still refuses relative locations.
+- PathWidget's mode reaches ports via `PATH._configure_port`.
+- `FolderTreeModel` gains `extensions=` and a shared `DEFAULT_EXCLUDE_DIRS`.
+- `Volume.label` defaults to the volume's name.
+- A declared default that raises or is relative is logged and the volume is reported undefined.
+- `project` is undefined in the CLI (no workspace root outside the studio).
+
 ### 2.2 Batch nodes — haybale-core (Q8, Q11, Q12, Q31)
 - **`Run Button`** — EVENT widget node; emits one Trigger; OPERATE tier.
 - **`For Each File`** — LOOPBACK. Inputs: folder, glob (stdlib `pathlib` glob, `**` recursive),
@@ -259,7 +268,7 @@ node per evaluation, so it must be ~free when nothing failed:
 | # | slice | where | needs | status |
 |---|---|---|---|---|
 | S0 | **spike:** IMAGE value class + accessors + benchmarks (camera frame u8 BGR → GPU fp16 → SR → display within 33 ms at 1080p) | haybale-image | — | done — gate met after tuning (778d98316, merged to master 2026-10-30) — [plan](2026-10-30-s0-image-value-spike.md) |
-| S1 | PATH types, volumes (née anchors), resolver, volumes.toml, picker, Volumes editor, CLI | haywire-core builtin + haybale-studio + CLI | — | planned — [plan](2026-10-30-s1-volumes.md) |
+| S1 | PATH types, volumes (née anchors), resolver, volumes.toml, picker, Volumes editor, CLI | haywire-core builtin + haybale-studio + CLI | — | done (feat/s1-volumes @ 046d84c44, unmerged, 2026-10-30) — [plan](2026-10-30-s1-volumes.md) |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | open |
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | open |
 | S5 | rest of haybale-image | haybale-image | S0, S1 | open |
