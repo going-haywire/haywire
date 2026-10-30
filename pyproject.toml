@@ -30,6 +30,7 @@ haybale-haystack = { workspace = true }
 haybale-graph-editor = { workspace = true }
 haybale-marketplace = { workspace = true }
 haybale-share = { workspace = true }
+haybale-image = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -59,6 +60,7 @@ dev = [
     "haybale-graph-editor",
     "haybale-marketplace",
     "haybale-share",
+    "haybale-image",
     "mkdocs-material>=9.7.6",
     "deptry>=0.25.1",
 ]
@@ -77,6 +79,7 @@ mypy_path = [
     "barn/haybale-haystack",
     "barn/haybale-graph-editor",
     "barn/haybale-marketplace",
+    "barn/haybale-image",
 ]
 
 # haybale_visiongraph.* and cv2 are absent in CI: the library is a separate
@@ -96,6 +99,10 @@ module = [
     "cv2",
     "depthai",
     "psutil",
+    "torch",
+    "torch.*",
+    "spandrel",
+    "spandrel.*",
 ]
 ignore_missing_imports = true
 
