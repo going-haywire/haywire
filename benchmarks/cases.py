@@ -157,9 +157,185 @@ def _prepare_node_execute_bare() -> Prepared:
     return Prepared(run=run, ops=inner, repeats=15, warmup=5)
 
 
+# ---------------------------------------------------------------------------
+# micro cases: ImageValue storage conversions (haybale-image)
+#
+# Each run() wraps a fresh value so the per-value cache never hides the
+# conversion. Inputs come from a fixed-seed generator. GPU cases synchronize
+# before returning so the timing covers the device work.
+# ---------------------------------------------------------------------------
+_IMG_REPEATS = 30
+_SR_MODEL_ENV = "HAYWIRE_BENCH_SR_MODEL"
+_SR_MODEL_SHA256 = "27985aa2198711ecd72f9bb274ec7b164e018fc9ce2933daaa7c7ab36a2bd3fe"
+
+
+def _bgr_frame(height: int, width: int):
+    import numpy as np
+
+    return np.random.default_rng(0).integers(0, 256, (height, width, 3), dtype=np.uint8)
+
+
+def _gpu_device() -> Optional[str]:
+    """``"cuda"`` or ``"mps"`` when torch and that device are available, else ``None``."""
+    try:
+        import torch
+    except ImportError:
+        return None
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return None
+
+
+def _sync(device: str) -> None:
+    import torch
+
+    if device == "cuda":
+        torch.cuda.synchronize()
+    else:
+        torch.mps.synchronize()
+
+
+def _prepare_img_wrap_1080p() -> Prepared:
+    from haybale_image.value import ChannelOrder, ImageValue
+
+    frame = _bgr_frame(1080, 1920)
+
+    def run() -> None:
+        ImageValue.from_array(frame, order=ChannelOrder.BGR)
+
+    return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
+
+
+def _prepare_img_cpu_f32_1080p() -> Prepared:
+    import numpy as np
+
+    from haybale_image.value import ChannelOrder, ImageValue
+
+    frame = _bgr_frame(1080, 1920)
+
+    def run() -> None:
+        ImageValue.from_array(frame, order=ChannelOrder.BGR).array(np.float32, ChannelOrder.RGB)
+
+    return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
+
+
+def _prepare_img_gpu_up_f16_1080p() -> Prepared:
+    import torch
+
+    from haybale_image.value import ChannelOrder, ImageValue
+
+    dev = _gpu_device()
+    assert dev is not None
+    frame = _bgr_frame(1080, 1920)
+
+    def run() -> None:
+        ImageValue.from_array(frame, order=ChannelOrder.BGR).tensor(dev, torch.float16)
+        _sync(dev)
+
+    return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
+
+
+def _prepare_img_gpu_down_u8_1080p() -> Prepared:
+    import numpy as np
+    import torch
+
+    from haybale_image.value import ChannelOrder, ImageValue
+
+    dev = _gpu_device()
+    assert dev is not None
+    t_f16 = ImageValue.from_array(_bgr_frame(1080, 1920)).tensor(dev, torch.float16)
+    _sync(dev)
+
+    def run() -> None:
+        ImageValue.from_tensor(t_f16).array(np.uint8, ChannelOrder.BGR)
+
+    return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
+
+
+def _prepare_img_gpu_trip_1080p() -> Prepared:
+    import numpy as np
+    import torch
+
+    from haybale_image.value import ChannelOrder, ImageValue
+
+    dev = _gpu_device()
+    assert dev is not None
+    frame = _bgr_frame(1080, 1920)
+
+    def run() -> None:
+        t = ImageValue.from_array(frame, order=ChannelOrder.BGR).tensor(dev, torch.float16)
+        ImageValue.from_tensor(t).array(np.uint8, ChannelOrder.BGR)
+
+    return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
+
+
+def _sr_model_path() -> Optional[str]:
+    """Return ``$HAYWIRE_BENCH_SR_MODEL``, or ``None`` if unset, missing, or spandrel absent."""
+    import importlib.util
+    import os
+
+    path = os.environ.get(_SR_MODEL_ENV)
+    if not path or not os.path.isfile(path) or importlib.util.find_spec("spandrel") is None:
+        return None
+    return path
+
+
+def _prepare_img_sr2x_540p() -> Prepared:
+    import hashlib
+
+    import numpy as np
+    import torch
+    from spandrel import ModelLoader
+
+    from haybale_image.value import ChannelOrder, ImageValue
+
+    dev = _gpu_device()
+    path = _sr_model_path()
+    assert dev is not None and path is not None
+    with open(path, "rb") as f:
+        digest = hashlib.sha256(f.read()).hexdigest()
+    if digest != _SR_MODEL_SHA256:
+        raise ValueError(f"{path} has sha256 {digest}, expected {_SR_MODEL_SHA256}")
+    model = ModelLoader().load_from_file(path).to(dev).eval()
+    dtype = torch.float32
+    if model.supports_half:
+        model = model.half()
+        dtype = torch.float16
+    frame = _bgr_frame(540, 960)
+
+    def run() -> None:
+        t = ImageValue.from_array(frame, order=ChannelOrder.BGR).tensor(dev, dtype)
+        with torch.inference_mode():
+            out = model(t)
+        ImageValue.from_tensor(out).array(np.uint8, ChannelOrder.BGR)
+
+    return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
+
+
+def _image_cases() -> List[Case]:
+    """The ``img_*`` cases this environment can run: GPU cases need torch + CUDA/MPS, SR also a model."""
+    cases = [
+        Case("img_wrap_1080p", "micro", "ns", _prepare_img_wrap_1080p),
+        Case("img_cpu_f32_1080p", "micro", "ns", _prepare_img_cpu_f32_1080p),
+    ]
+    if _gpu_device() is None:
+        return cases
+    cases += [
+        Case("img_gpu_up_f16_1080p", "micro", "ns", _prepare_img_gpu_up_f16_1080p),
+        Case("img_gpu_down_u8_1080p", "micro", "ns", _prepare_img_gpu_down_u8_1080p),
+        Case("img_gpu_trip_1080p", "micro", "ns", _prepare_img_gpu_trip_1080p),
+    ]
+    if _sr_model_path() is not None:
+        cases.append(Case("img_sr2x_540p", "micro", "ns", _prepare_img_sr2x_540p))
+    return cases
+
+
 CASES: List[Case] = [
     Case("graph_loop", "graph", "ns", _prepare_graph_loop),
     Case("node_execute_bare", "micro", "ns", _prepare_node_execute_bare),
+    *_image_cases(),
 ]
 
 

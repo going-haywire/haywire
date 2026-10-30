@@ -114,6 +114,21 @@ commits and is close to the run-to-run noise (back-to-back runs of one commit
 differ by up to ±2% at the minimum, ±4% across sessions). Compare commits
 interleaved and side by side, never against an old row.
 
+## Image cases (`img_*`)
+
+The `img_*` cases time `ImageValue` storage conversions from `haybale-image` on a
+fixed-seed 1080p BGR uint8 frame. `img_wrap_1080p` and `img_cpu_f32_1080p` always
+run. The GPU cases (`img_gpu_up_f16_1080p`, `img_gpu_down_u8_1080p`,
+`img_gpu_trip_1080p`) register only when torch imports and CUDA or MPS is
+available, and `img_sr2x_540p` also needs spandrel and `HAYWIRE_BENCH_SR_MODEL`
+pointing at the sha256-pinned Real-ESRGAN v2 animevideo xsx2 model. Torch is not
+in the workspace lock, so run them with an overlay:
+
+```
+HAYWIRE_BENCH_SR_MODEL=/path/to/RealESRGANv2-animevideo-xsx2.pth \
+  uv run --with torch --with spandrel python benchmarks/run.py img_
+```
+
 ## Adding a case
 
 1. If it needs a node or graph, add a **frozen** one (new file in
