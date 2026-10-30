@@ -108,3 +108,13 @@ def test_rebuild_resets_sentinels(tmp_path: Path) -> None:
     c = model.node(c_id)
     assert c is not None
     assert model.is_sentinel(c["children"][0]["id"])
+
+
+def test_extensions_limit_files_ignoring_case(tmp_path: Path) -> None:
+    (tmp_path / "dir").mkdir()
+    (tmp_path / "dir" / "inner.png").write_text("x")
+    (tmp_path / "a.PNG").write_text("x")
+    (tmp_path / "b.txt").write_text("x")
+    model = FolderTreeModel(tmp_path, extensions=frozenset({".png"}))
+    assert [n["label"] for n in model.nodes] == ["dir", "a.PNG"]
+    assert [n["label"] for n in model.nodes[0]["children"]] == ["inner.png"]

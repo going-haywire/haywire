@@ -26,11 +26,14 @@ class FolderTreeModel:
 
     ``nodes`` holds q-tree node dicts (``id`` is the absolute path string,
     ``label`` the entry name). Folders past the batch depth carry a single
-    sentinel child until ``expand_sentinel`` loads them.
+    sentinel child until ``expand_sentinel`` loads them. ``extensions``
+    (``".png"``-style, matched ignoring case) limits the files shown; empty
+    shows every file.
 
     Example::
 
         model = FolderTreeModel(Path("/project"), show_files=False)
+        images = FolderTreeModel(Path("/scans"), extensions=frozenset({".png", ".jpg"}))
         model.expand_sentinel("/project/a/b/c")  # load the next batch
     """
 
@@ -40,11 +43,13 @@ class FolderTreeModel:
         *,
         show_files: bool = True,
         exclude_dirs: frozenset[str] = frozenset(),
+        extensions: frozenset[str] = frozenset(),
         batch_depth: int = 3,
     ) -> None:
         self.root = root
         self.show_files = show_files
         self.exclude_dirs = exclude_dirs
+        self.extensions = frozenset(ext.lower() for ext in extensions)
         self.batch_depth = batch_depth
         self.nodes: list[dict] = []
         self._by_id: dict[str, dict] = {}
@@ -93,9 +98,11 @@ class FolderTreeModel:
         if entry.name.startswith(".") and entry.name != ".haywire":
             return True
         is_dir = entry.is_dir()
-        if is_dir and entry.name in self.exclude_dirs:
+        if is_dir:
+            return entry.name in self.exclude_dirs
+        if not self.show_files:
             return True
-        return not is_dir and not self.show_files
+        return bool(self.extensions) and entry.suffix.lower() not in self.extensions
 
     def _build_subtree(self, path: Path, depth: int) -> list[dict]:
         items: list[dict] = []

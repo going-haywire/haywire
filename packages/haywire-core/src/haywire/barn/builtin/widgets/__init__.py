@@ -12,6 +12,7 @@ from .color_widget import ColorWidget
 from .fold_widget import FoldWidget
 from .note_text_widget import NoteTextWidget
 from .optional_widget import OptionalWidget
+from .path_widget import PathWidget
 from .progress_widget import ProgressWidget
 from .vec_widget import VecWidget
 
@@ -30,4 +31,5 @@ __all__ = [
     "FoldWidget",
     "NoteTextWidget",
     "ProgressWidget",
+    "PathWidget",
 ]
