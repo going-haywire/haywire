@@ -788,8 +788,10 @@ with hui.editor_toolbar():
 
 **Rule:** a file path in a header, toolbar or row is drawn with
 `hui.fitted_path(path)`, not a truncated label. It crops the path's middle to
-fit (`/Volumes/Ddrive/../haywire/repo`, then `../repo`), so the root and the
-file name stay visible, and shows the full path as its tooltip. Give it a width
+fit, keeping as many leading and trailing parts as the width allows and giving
+them back one at a time as it widens (`/Volumes/Ddrive/../nodes/graph_node.py`,
+down to `../graph_node.py`), so the root and the file name stay visible, and
+shows the full path as its tooltip. Give it a width
 (`flex-1` in a row, `w-full` in a column) and a text style; `text=` or
 `set_text()` shows a placeholder such as "not saved". Tab labels show a name,
 not a path, and need none of this.

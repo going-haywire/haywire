@@ -107,7 +107,7 @@ async def test_a_row_is_the_name_over_a_fitted_location_line(
     line = _one(user, "volume-location-models")
     assert line.props["title"] == str(target)
     assert "hw-path-fit" in line.classes
-    assert [child.text for child in line.default_slot.children][0] == str(target)
+    assert line.props["data-hw-text"] == str(target)
     await user.should_see(marker="volume-missing-models")
     await user.should_not_see(marker="volume-missing-home")
     await user.should_not_see("configured")  # no source column

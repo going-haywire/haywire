@@ -35,8 +35,7 @@ def _shown_location(page: Page) -> str:
     return page.evaluate(
         """long => {
             const line = [...document.querySelectorAll('.hw-path-fit')].find(l => l.title === long);
-            const shown = [...line.children].filter(c => getComputedStyle(c).visibility === 'visible');
-            return shown.map(c => c.textContent).join('|');
+            return line.textContent;
         }""",
         _LONG,
     )
@@ -56,7 +55,7 @@ def test_rows_fit_a_narrow_slot_and_refit_when_it_widens(page: Page, harness) ->
     assert geo["buttonRight"] <= geo["hostRight"] + 0.5, geo
     page.wait_for_function(
         "long => { const l = [...document.querySelectorAll('.hw-path-fit')].find(l => l.title === long);"
-        " return l.getAttribute('data-hw-fit') !== '0'; }",
+        " return l.getAttribute('data-hw-fit') === 'crop'; }",
         arg=_LONG,
     )
     assert _shown_location(page) != _LONG
@@ -64,7 +63,7 @@ def test_rows_fit_a_narrow_slot_and_refit_when_it_widens(page: Page, harness) ->
     page.evaluate("host => { document.querySelector(host).style.width = '900px'; }", _HOST)
     page.wait_for_function(
         "long => { const l = [...document.querySelectorAll('.hw-path-fit')].find(l => l.title === long);"
-        " return l.getAttribute('data-hw-fit') === '0'; }",
+        " return l.getAttribute('data-hw-fit') === 'full'; }",
         arg=_LONG,
     )
     assert _shown_location(page) == _LONG

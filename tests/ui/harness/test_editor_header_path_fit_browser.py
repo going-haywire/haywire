@@ -13,16 +13,14 @@ _LINE = '[data-testid="header-host"] .hw-path-fit'
 def _shown(page: Page) -> str:
     return page.evaluate(
         """sel => {
-            const line = document.querySelector(sel);
-            return [...line.children].filter(c => getComputedStyle(c).visibility === 'visible')
-                .map(c => c.textContent.replace(/‎/g, '')).join('|');
+            return document.querySelector(sel).textContent;
         }""",
         _LINE,
     )
 
 
 def _fit_is(page: Page, test: str) -> None:
-    """Wait until the line's chosen rendering ``fit`` (an index string, or null) passes ``test``."""
+    """Wait until the line's kind of rendering, ``fit`` (``full``, ``crop``, ``tail``), passes ``test``."""
     page.wait_for_function(
         f"sel => {{ const l = document.querySelector(sel); const fit = l && l.getAttribute('data-hw-fit');"
         f" return Boolean(l) && ({test}); }}",
@@ -32,7 +30,7 @@ def _fit_is(page: Page, test: str) -> None:
 
 def test_the_header_path_crops_when_narrow_and_shows_in_full_when_wide(page: Page, harness) -> None:
     goto_ready(page, f"{harness}/code-editor-header?width=300")
-    _fit_is(page, "fit !== null && fit !== '0'")
+    _fit_is(page, "fit === 'crop' || fit === 'tail'")
     full = page.get_attribute(_LINE, "title")
     assert full
     assert full.endswith("/projects/haywire/graphs/a_rather_long_file_name.txt")
@@ -50,5 +48,5 @@ def test_the_header_path_crops_when_narrow_and_shows_in_full_when_wide(page: Pag
     page.evaluate(
         "() => { document.querySelector('[data-testid=\"header-host\"]').style.width = '1400px'; }"
     )
-    _fit_is(page, "fit === '0'")
+    _fit_is(page, "fit === 'full'")
     assert _shown(page) == full

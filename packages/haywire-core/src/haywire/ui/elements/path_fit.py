@@ -1,99 +1,130 @@
 """A one-line path that crops its middle to fit the width it is given.
 
-``crop_candidates`` builds the renderings of a path, longest first;
-``fitted_path`` draws them all into one line, and a script in the browser shows
-the first that fits, choosing again whenever the line is resized or its
-renderings change. The full path is the line's tooltip. When even the shortest
-rendering does not fit, it ends in an ellipsis.
+``fitted_path`` draws one line carrying the path's text and parts; a script in
+the browser writes into it the longest rendering that fits, and chooses again
+whenever the line is resized or its path changes. A rendering keeps ``a``
+leading and ``b`` trailing parts around ``..`` (``a, b >= 1``); the longest
+string that fits wins, ties going to more trailing, then more leading parts,
+so parts come back one at a time as the line widens. Below one part on each
+side come ``../a/b`` and ``../b``; when even ``../b`` does not fit, its start is
+cut, so the file name stays. The full path is the line's tooltip.
 
-The stylesheet (``PATH_FIT_CSS``) is part of the studio's ``STATIC_CSS``; a page
-built without it shows every rendering stacked. The script is sent once per
-page by the first line drawn on it.
+The stylesheet (``PATH_FIT_CSS``) is part of the studio's ``STATIC_CSS``. The
+script is sent once per page by the first line drawn on it; until it runs, a
+line shows its full text, cut at the end.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import PurePath, PureWindowsPath
 
 from nicegui import ui
 
 #: Class of a fitted-path line; the script observes every element carrying it.
 FIT_CLASS = "hw-path-fit"
-#: Attribute the script sets on a line: the index of the rendering it shows.
+#: Attribute the script sets on a line: the kind of rendering, ``full``, ``crop``, ``tail`` or ``text``.
 FIT_ATTR = "data-hw-fit"
-#: Most renderings ``crop_candidates`` returns; the CSS has one selector per index.
-MAX_CANDIDATES = 5
+#: Attribute carrying the line's text: the full path, or plain text.
+TEXT_ATTR = "data-hw-text"
+#: Attribute carrying a path's parts, as written by ``parts_attr``; absent for plain text.
+PARTS_ATTR = "data-hw-parts"
 
 
-def crop_candidates(path: PurePath) -> list[str]:
-    """Return renderings of ``path``, longest first, each hiding more of its middle.
-
-    The order is: the full path; its two leading and two trailing parts around
-    ``..``; one leading and one trailing part; ``..`` and the last two parts;
-    ``..`` and the last part. A rendering that would hide nothing is left out.
+def parts_attr(path: PurePath) -> str:
+    """Return ``path`` as the JSON list ``[anchor, separator, *parts]`` the script crops from.
 
     Example::
 
-        crop_candidates(PurePosixPath("/Volumes/Ddrive/06_tool/haywire/haywire-repo"))
-        # ["/Volumes/Ddrive/06_tool/haywire/haywire-repo",
-        #  "/Volumes/Ddrive/../haywire/haywire-repo",
-        #  "/Volumes/../haywire-repo",
-        #  "../haywire/haywire-repo",
-        #  "../haywire-repo"]
+        parts_attr(PurePosixPath("/Volumes/data/repo"))  # '["/", "/", "Volumes", "data", "repo"]'
+        parts_attr(PurePosixPath("graphs/a.haywire"))    # '["", "/", "graphs", "a.haywire"]'
     """
     sep = "\\" if isinstance(path, PureWindowsPath) else "/"
     anchor = path.anchor
-    parts = list(path.parts[1:] if anchor else path.parts)
-    candidates = [str(path)]
-
-    def around(lead: int, trail: int) -> None:
-        if len(parts) > lead + trail:
-            candidates.append(anchor + sep.join([*parts[:lead], "..", *parts[-trail:]]))
-
-    def tail(trail: int) -> None:
-        if len(parts) > trail:
-            candidates.append(sep.join(["..", *parts[-trail:]]))
-
-    around(2, 2)
-    around(1, 1)
-    tail(2)
-    tail(1)
-    return candidates
+    parts = path.parts[1:] if anchor else path.parts
+    return json.dumps([anchor, sep, *parts])
 
 
-# Every rendering but the chosen one is lifted out of the flow and hidden, so it
-# still has its natural width for the script to measure.
 PATH_FIT_CSS = (
-    f" .{FIT_CLASS} {{ position: relative; min-width: 0; overflow: hidden; white-space: nowrap; }}"
-    f" .{FIT_CLASS} > * {{ position: absolute; left: 0; top: 0; visibility: hidden; white-space: nowrap; }}"
-    # The last of several renderings cuts its start, so the file name stays; text-align keeps it left.
-    f" .{FIT_CLASS} > :last-child:not(:first-child) {{ direction: rtl; text-align: left; }}"
-    f" .{FIT_CLASS}:not([{FIT_ATTR}]) > :first-child,"
-    + ",".join(f" .{FIT_CLASS}[{FIT_ATTR}='{i}'] > :nth-child({i + 1})" for i in range(MAX_CANDIDATES))
-    + " { position: static; visibility: visible; overflow: hidden; text-overflow: ellipsis; }"
+    f" .{FIT_CLASS} {{ min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }}"
+    # Before the script writes the line, it shows its text, cut at the end.
+    f" .{FIT_CLASS}:empty::before {{ content: attr({TEXT_ATTR}); }}"
+    # The text stays left-to-right inside a line that cuts its start, so ``../`` keeps its place.
+    f" .{FIT_CLASS} > span {{ unicode-bidi: isolate; direction: ltr; }}"
+    f" .{FIT_CLASS}[{FIT_ATTR}='tail'] {{ direction: rtl; text-align: left; }}"
 )
 
-# One ResizeObserver serves every line on the page. The fit writes only the line's
-# own attribute, which Vue does not render, so a re-render keeps the choice.
+# One ResizeObserver serves every line on the page. A line's renderings and their
+# widths (canvas measureText in the line's font) are cached until its text, parts
+# or font change, so a resize only scans the cached widths. The script writes a
+# span of its own into the line, which Vue does not render, so a re-render keeps it.
 _SCRIPT = """(function () {
   if (!window.hwPathFit) {
-    var watched = new Set();
-    var fit = function (el) {
-      var width = el.clientWidth;
-      if (!width) return;
-      var kids = el.children, pick = kids.length - 1;
-      for (var i = 0; i < kids.length; i++) {
-        if (kids[i].scrollWidth <= width) { pick = i; break; }
+    var watched = new Set(), cache = new WeakMap(), widthOf = new WeakMap();
+    var ctx = document.createElement("canvas").getContext("2d");
+    var rank = function (text, partsJson) {
+      if (partsJson === null) return [{ text: text, kind: "text" }];
+      var spec = JSON.parse(partsJson), anchor = spec[0], sep = spec[1], p = spec.slice(2), n = p.length;
+      var splits = [];
+      for (var a = 1; a < n; a++) {
+        for (var b = 1; a + b < n; b++) {
+          splits.push({ a: a, b: b, text: anchor + p.slice(0, a).concat("..", p.slice(n - b)).join(sep) });
+        }
       }
-      var value = String(pick);
-      if (el.getAttribute("%(attr)s") !== value) el.setAttribute("%(attr)s", value);
+      splits.sort(function (x, y) { return y.text.length - x.text.length || y.b - x.b || y.a - x.a; });
+      var out = [{ text: text, kind: "full" }];
+      splits.forEach(function (s) { out.push({ text: s.text, kind: "crop" }); });
+      if (n > 2) out.push({ text: ["..", p[n - 2], p[n - 1]].join(sep), kind: "crop" });
+      if (n > 1) out.push({ text: ".." + sep + p[n - 1], kind: "tail" });
+      return out;
+    };
+    // Reads only: the rendering a line of this width shows.
+    var choose = function (el, width) {
+      var cs = getComputedStyle(el);
+      var font = [cs.fontStyle, cs.fontWeight, cs.fontSize, cs.fontFamily].join(" ");
+      var spacing = parseFloat(cs.letterSpacing) || 0;
+      var text = el.getAttribute("%(text)s") || "", parts = el.getAttribute("%(parts)s");
+      var key = font + "|" + spacing + "|" + text + "|" + parts, entry = cache.get(el);
+      if (!entry || entry.key !== key) {
+        var ranked = rank(text, parts);
+        ctx.font = font;
+        entry = { key: key, ranked: ranked, widths: ranked.map(function (r) {
+          return ctx.measureText(r.text).width + spacing * r.text.length;
+        }) };
+        cache.set(el, entry);
+      }
+      for (var i = 0; i < entry.ranked.length; i++) {
+        if (entry.widths[i] <= width + 0.01) return entry.ranked[i];
+      }
+      return entry.ranked[entry.ranked.length - 1];
+    };
+    var show = function (el, pick) {
+      var span = el.firstElementChild;
+      if (!span || span.tagName !== "SPAN") {
+        span = document.createElement("span");
+        el.replaceChildren(span);
+      }
+      if (span.textContent !== pick.text) span.textContent = pick.text;
+      if (el.getAttribute("%(fit)s") !== pick.kind) el.setAttribute("%(fit)s", pick.kind);
+    };
+    // Every choice is made before any line is written, so many lines cost one layout.
+    var refit = function (els) {
+      var picks = [];
+      els.forEach(function (el) {
+        var width = widthOf.get(el);
+        if (width !== undefined && el.isConnected) picks.push([el, choose(el, width)]);
+      });
+      picks.forEach(function (p) { show(p[0], p[1]); });
     };
     var observer = new ResizeObserver(function (entries) {
-      entries.forEach(function (entry) { fit(entry.target); });
+      var els = entries.map(function (entry) {
+        widthOf.set(entry.target, entry.contentRect.width);
+        return entry.target;
+      });
+      refit(els);
     });
     var adopt = function (el) {
       if (!watched.has(el)) { watched.add(el); observer.observe(el); }
-      fit(el);
     };
     var prune = function () {
       watched.forEach(function (el) {
@@ -102,12 +133,11 @@ _SCRIPT = """(function () {
     };
     var pruneSoon = null;
     // Lines mounted later (a panel shown for the first time, a re-created
-    // element) join on arrival, and a line whose renderings were replaced
-    // chooses again; only the added subtrees are queried.
+    // element) join on arrival; a line whose text or parts change chooses again.
     new MutationObserver(function (records) {
+      var changed = new Set();
       records.forEach(function (record) {
-        var target = record.target;
-        if (target.nodeType === 1 && target.classList.contains("%(cls)s")) adopt(target);
+        if (record.type === "attributes") { changed.add(record.target); return; }
         record.addedNodes.forEach(function (node) {
           if (node.nodeType !== 1) return;
           if (node.classList.contains("%(cls)s")) adopt(node);
@@ -117,7 +147,17 @@ _SCRIPT = """(function () {
           pruneSoon = setTimeout(function () { pruneSoon = null; prune(); }, 1000);
         }
       });
-    }).observe(document.documentElement, { childList: true, subtree: true });
+      if (changed.size) refit(changed);
+    }).observe(document.documentElement, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ["%(text)s", "%(parts)s"],
+    });
+    // A web font that arrives late changes every width.
+    if (document.fonts) {
+      document.fonts.addEventListener("loadingdone", function () {
+        watched.forEach(function (el) { cache.delete(el); });
+        refit(watched);
+      });
+    }
     window.hwPathFit = {
       scan: function () {
         prune();
@@ -126,7 +166,7 @@ _SCRIPT = """(function () {
     };
   }
   requestAnimationFrame(function () { window.hwPathFit.scan(); });
-})();""" % {"attr": FIT_ATTR, "cls": FIT_CLASS}
+})();""" % {"fit": FIT_ATTR, "text": TEXT_ATTR, "parts": PARTS_ATTR, "cls": FIT_CLASS}
 
 
 def ensure_path_fit_script() -> None:
@@ -141,12 +181,14 @@ def ensure_path_fit_script() -> None:
 class FittedPath(ui.element):
     """One line showing a path, its middle cropped to fit the width the line is given.
 
-    The line carries no text style of its own: chain ``.classes()`` for size,
-    colour and font, and give it a width (``w-full``, or ``flex-1`` in a row).
-    Hovering shows the full path. ``set_text`` shows plain text instead, uncropped
-    and without a tooltip, for a placeholder such as "not saved". Showing what
-    the line already shows again changes nothing, so a caller may call either
-    on every refresh.
+    The line keeps as many leading and trailing parts as fit, the file name
+    side first, and gives them back one at a time as it widens. It carries no
+    text style of its own: chain ``.classes()`` for size, colour and font, and
+    give it a width (``w-full``, or ``flex-1`` in a row). Hovering shows the
+    full path. ``set_text`` shows plain text instead, uncropped and without a
+    tooltip, for a placeholder such as "not saved". Showing what the line
+    already shows again changes nothing, so a caller may call either on every
+    refresh.
 
     Example::
 
@@ -161,7 +203,6 @@ class FittedPath(ui.element):
         super().__init__("div")
         self.classes(FIT_CLASS)
         self.path: PurePath | None = None
-        self._renderings: list[str] = []
         ensure_path_fit_script()
         if path is not None:
             self.set_path(path)
@@ -170,31 +211,23 @@ class FittedPath(ui.element):
 
     def set_path(self, path: PurePath) -> None:
         """Show ``path``, cropped to fit, with the full path as the tooltip."""
-        if self._show(crop_candidates(path)) or self.path != path:
-            # Assigned rather than passed through props(): a quote in a path would break its parsing.
-            self._props["title"] = str(path)
-            self.update()
+        # Assigned rather than passed through props(): a quote in a path would break its parsing.
+        self._show({TEXT_ATTR: str(path), PARTS_ATTR: parts_attr(path), "title": str(path)})
         self.path = path
 
     def set_text(self, text: str) -> None:
         """Show ``text`` as it is, with no tooltip."""
-        if self._show([text]) or self.path is not None:
-            self._props.pop("title", None)
-            self.update()
+        self._show({TEXT_ATTR: text})
         self.path = None
 
-    def _show(self, renderings: list[str]) -> bool:
-        """Draw ``renderings`` unless they are already drawn; return whether they were drawn."""
-        if renderings == self._renderings:
-            return False
-        self._renderings = renderings
-        self.clear()
-        with self:
-            for i, rendering in enumerate(renderings):
-                # Left-to-right marks keep a leading ``..`` in order inside the right-to-left last rendering.
-                last_of_many = len(renderings) > 1 and i == len(renderings) - 1
-                ui.label(f"\u200e{rendering}\u200e" if last_of_many else rendering)
-        return True
+    def _show(self, props: dict[str, str]) -> None:
+        """Set the line's text props to ``props``, dropping the others, unless they are already set."""
+        shown = {key: self._props[key] for key in (TEXT_ATTR, PARTS_ATTR, "title") if key in self._props}
+        if shown == props:
+            return
+        for key in shown:
+            self._props.pop(key)
+        self._props.update(props)
 
 
 def fitted_path(path: PurePath | None = None, *, text: str = "") -> FittedPath:

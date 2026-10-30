@@ -1,7 +1,8 @@
-"""The middle-cropped renderings of a path a fitted path offers the browser, longest first."""
+"""What a fitted path hands the browser: the path's text, its parts, and the full path as tooltip."""
 
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncGenerator
 from pathlib import PurePosixPath, PureWindowsPath
 
@@ -11,49 +12,28 @@ from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
 from haywire.ui import elements as hui
-from haywire.ui.elements.path_fit import FIT_CLASS, MAX_CANDIDATES, PATH_FIT_CSS, crop_candidates
+from haywire.ui.elements.path_fit import FIT_CLASS, PARTS_ATTR, PATH_FIT_CSS, TEXT_ATTR, parts_attr
 
 pytestmark = pytest.mark.unit
 
 
-def test_a_deep_path_yields_every_candidate_in_order() -> None:
-    path = PurePosixPath("/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo")
-    assert crop_candidates(path) == [
-        "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo",
-        "/Volumes/Ddrive/../haywire/haywire-repo",
-        "/Volumes/../haywire-repo",
-        "../haywire/haywire-repo",
-        "../haywire-repo",
-    ]
+def test_parts_carry_the_anchor_the_separator_and_every_part() -> None:
+    path = PurePosixPath("/Volumes/Ddrive/haywire/repo")
+    assert json.loads(parts_attr(path)) == ["/", "/", "Volumes", "Ddrive", "haywire", "repo"]
 
 
-def test_a_candidate_that_elides_nothing_is_left_out() -> None:
-    # Four parts: two leading + two trailing would hide nothing.
-    path = PurePosixPath("/a/b/c/d")
-    assert crop_candidates(path) == ["/a/b/c/d", "/a/../d", "../c/d", "../d"]
-
-
-def test_a_short_path_has_only_the_shortenings_that_hide_something() -> None:
-    assert crop_candidates(PurePosixPath("/a/b")) == ["/a/b", "../b"]
-    assert crop_candidates(PurePosixPath("/a")) == ["/a"]
-    assert crop_candidates(PurePosixPath("/")) == ["/"]
+def test_a_relative_path_has_no_anchor() -> None:
+    assert json.loads(parts_attr(PurePosixPath("graphs/foo.haywire"))) == ["", "/", "graphs", "foo.haywire"]
 
 
 def test_a_windows_path_keeps_its_drive_and_separator() -> None:
-    path = PureWindowsPath("C:/Users/me/projects/haywire/repo")
-    assert crop_candidates(path) == [
-        "C:\\Users\\me\\projects\\haywire\\repo",
-        "C:\\Users\\me\\..\\haywire\\repo",
-        "C:\\Users\\..\\repo",
-        "..\\haywire\\repo",
-        "..\\repo",
-    ]
+    path = PureWindowsPath("C:/Users/me/repo")
+    assert json.loads(parts_attr(path)) == ["C:\\", "\\", "Users", "me", "repo"]
 
 
-def test_no_path_yields_more_candidates_than_the_css_has_selectors_for() -> None:
-    deep = "/".join(f"d{i}" for i in range(30))
-    for path in (PurePosixPath("/" + deep), PurePosixPath(deep), PureWindowsPath("C:/" + deep)):
-        assert len(crop_candidates(path)) <= MAX_CANDIDATES
+def test_a_very_long_path_keeps_every_part() -> None:
+    path = PurePosixPath("/" + "/".join(f"d{i}" for i in range(30)))
+    assert json.loads(parts_attr(path))[2:] == [f"d{i}" for i in range(30)]
 
 
 @pytest.fixture
@@ -67,13 +47,8 @@ async def user() -> AsyncGenerator[User, None]:
         yield u
 
 
-def _shown(line: ui.element) -> list[str]:
-    # The last rendering of a path carries direction marks (see FittedPath); they are not text a reader sees.
-    return [child.text.strip("\u200e") for child in line.default_slot.children]  # type: ignore[attr-defined]
-
-
 @pytest.mark.anyio
-async def test_a_fitted_path_draws_every_rendering_and_titles_the_full_path(user: User) -> None:
+async def test_a_fitted_path_hands_over_its_parts_and_titles_the_full_path(user: User) -> None:
     built: dict[str, hui.FittedPath] = {}
     path = PurePosixPath("/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo")
 
@@ -84,13 +59,15 @@ async def test_a_fitted_path_draws_every_rendering_and_titles_the_full_path(user
     await user.open("/")
     line = built["line"]
     assert FIT_CLASS in line.classes
-    assert _shown(line) == crop_candidates(path)
+    assert line.props[TEXT_ATTR] == str(path)
+    assert line.props[PARTS_ATTR] == parts_attr(path)
     assert line.props["title"] == str(path)
     assert line.path == path
+    assert not line.default_slot.children
 
 
 @pytest.mark.anyio
-async def test_set_path_and_set_text_replace_the_renderings(user: User) -> None:
+async def test_set_path_and_set_text_replace_what_is_shown(user: User) -> None:
     built: dict[str, hui.FittedPath] = {}
 
     @ui.page("/")
@@ -99,16 +76,19 @@ async def test_set_path_and_set_text_replace_the_renderings(user: User) -> None:
 
     await user.open("/")
     line = built["line"]
-    assert _shown(line) == ["Untitled"]
+    assert line.props[TEXT_ATTR] == "Untitled"
+    assert PARTS_ATTR not in line.props
     assert "title" not in line.props
     assert line.path is None
 
     line.set_path(PurePosixPath("/a/b/c/d"))
-    assert _shown(line) == crop_candidates(PurePosixPath("/a/b/c/d"))
+    assert line.props[TEXT_ATTR] == "/a/b/c/d"
+    assert line.props[PARTS_ATTR] == parts_attr(PurePosixPath("/a/b/c/d"))
     assert line.props["title"] == "/a/b/c/d"
 
     line.set_text("not saved")
-    assert _shown(line) == ["not saved"]
+    assert line.props[TEXT_ATTR] == "not saved"
+    assert PARTS_ATTR not in line.props
     assert "title" not in line.props
     assert line.path is None
 
@@ -142,7 +122,7 @@ def test_the_stylesheet_ships_with_the_studio() -> None:
 
 
 @pytest.mark.anyio
-async def test_showing_the_same_path_or_text_again_keeps_the_drawn_renderings(user: User) -> None:
+async def test_showing_the_same_path_or_text_again_sends_nothing(user: User) -> None:
     built: dict[str, hui.FittedPath] = {}
 
     @ui.page("/")
@@ -151,14 +131,16 @@ async def test_showing_the_same_path_or_text_again_keeps_the_drawn_renderings(us
 
     await user.open("/")
     line = built["line"]
-    drawn = list(line.default_slot.children)
+    updates: list[None] = []
+    line.update = lambda: updates.append(None)  # type: ignore[method-assign]
     line.set_path(PurePosixPath("/a/b/c/d"))
-    assert line.default_slot.children == drawn
+    assert updates == []
 
     line.set_text("not saved")
-    drawn = list(line.default_slot.children)
+    assert updates
+    sent = len(updates)
     line.set_text("not saved")
-    assert line.default_slot.children == drawn
+    assert len(updates) == sent
 
 
 @pytest.mark.anyio
