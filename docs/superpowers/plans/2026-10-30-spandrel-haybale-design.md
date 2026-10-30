@@ -67,24 +67,37 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 ## 2. Settled design
 
 ### 2.1 Paths — haywire-core builtin (Q3–Q7, Q30)
-- **Anchored path:** a PATH value is `(anchor, relative)` — anchor is its own field, never a
+- **Volume path:** a PATH value is `(volume, relative)` — volume is its own field, never a
   parsed string prefix (no in-band sentinel).
 - **Types:** base `PATH`; derived `FILE_PATH`, `FOLDER_PATH`. "Must exist" vs "write target" and
   extension filters are port/widget options, not types.
-- **Anchors:** `project:` (derived from `workspace_root`, not editable), `home:`, plus
-  library-contributed anchors (e.g. `models:` from haybale-models). Users add named anchors for
-  outside folders (e.g. `scans:` → `/Volumes/Scans`).
-- **No absolute anchor** (Q6C). Every graph stays portable by construction.
-- **Locations** live in an `AnchorSettings` table at the **global (per-machine) tier**; editing
-  it is ADMIN. Libraries that need env vars (`VISIONGRAPH_ASSET_DIR`, `HF_HOME`) set them *from*
-  the anchor — the anchor is the single source.
-- **Resolver** refuses a resolved path that escapes its anchor root (`..`, outward symlink),
+- **Volumes:** `project` (derived from `workspace_root`, not editable), `home`, plus
+  library-contributed volumes (e.g. `models` from haybale-models). Users add named volumes for
+  outside folders (e.g. `scans` -> `/Volumes/Scans`).
+- **No absolute volume** (Q6C). Every graph stays portable by construction.
+- **Locations** live in the framework file `~/.haywire/volumes.toml` (per machine; S1-Q1b); declared
+  volumes are class-registry entries (S1-Q2). Editing is ADMIN. Libraries that need env vars
+  (`VISIONGRAPH_ASSET_DIR`, `HF_HOME`) set them *from* the volume — the volume is the single source.
+- **Resolver** refuses a resolved path that escapes its volume root (`..`, outward symlink),
   checked on the resolved path.
-- **Undefined anchor** (Q7B): value kept verbatim; widget shows "anchor undefined"; node errors at
-  run time via the ledger; ADMIN gets "define anchor…" on the widget.
-- **Picker:** server-side filesystem browser (the browser cannot give server paths), rooted at
-  anchors only; mode from the derived type (file / folder / save target). Reuse
-  `LazyFileBrowserEditor`'s eager-then-lazy tree approach.
+- **Undefined volume** (Q7B, amended by S1-Q3): value kept verbatim; widget shows "volume undefined";
+  node errors at run time via the ledger; ADMIN action is "fix in the Volumes editor or
+  `haywire volumes set`".
+- **Picker** (S1-Q3/Q4): server-side filesystem browser (the browser cannot give server paths) —
+  volume select + relative field + browse popup + status line, rooted at volumes only; mode from the
+  derived type (file / folder / save target). The eager-then-lazy tree is a shared core element, also
+  used by `LazyFileBrowserEditor`. No in-widget define action.
+
+**S1 decisions (2026-10-30)**
+
+| # | decision |
+|---|---|
+| S1-Q0 | The concept is called **volume** (not "anchor": that word is the UI attach point of flyouts/popups/pins). Value = **volume path**. |
+| S1-Q1a | `~/.haywire/db/<name>/` uses the **top-level module name**; fix the three drifted docstrings. |
+| S1-Q1b | Volume locations live in the framework file **`~/.haywire/volumes.toml`** (not settings — the app never writes the global settings tier, and workspace `settings.json` is committed). |
+| S1-Q2 | Volumes are declared **Surface-style** (class registry on import, hot-reload supersede, collision raises); `volumes.toml` entry wins over the declared default; an entry may name an undeclared volume (ADMIN-defined outside folder). |
+| S1-Q3 | Picker widget (volume select + relative field + browse popup + status line); volumes are defined in an **ADMIN Volumes editor** and the CLI — no in-widget define action (amends Q7B). |
+| S1-Q4 | The eager-then-lazy folder tree moves from `LazyFileBrowserEditor` into a core element both use. |
 
 ### 2.2 Batch nodes — haybale-core (Q8, Q11, Q12, Q31)
 - **`Run Button`** — EVENT widget node; emits one Trigger; OPERATE tier.
@@ -92,7 +105,7 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
   recursive, limit, `on_error = continue | stop`. Outlets: `loop_body`, path, relative subdir,
   stem, index, `failed` (list of paths), `completed`. Progress via ProgressSettings (index/total).
 - **`Path Exists?`** — control branch (`exists` / `missing`) on any `PATH`.
-- **`Output Path`** — data node: `anchor-folder / relative-subdir / stem + suffix . ext`. The
+- **`Output Path`** — data node: `volume-folder / relative-subdir / stem + suffix . ext`. The
   single home of "mirror the input subfolder structure".
 - Resume pattern: `For Each → Path Exists? →(missing)→ Save`. Upscale is a DATA node pulled only
   by Save's localized data flow, so an `exists` branch never runs it. Save keeps
@@ -203,8 +216,8 @@ node per evaluation, so it must be ~free when nothing failed:
   usage, download (resumable, mirror fallback, progress, digest-verified), remove.
 - **Needs-list:** on graph open, collect model references from nodes → "needs N models (X MB) —
   fetch all".
-- **Store (Q16B):** `models:` anchor (contributed by this library, Q17C) = human folders
-  (`models:/openmodeldb/4x-UltraSharp.pth`, user subfolders allowed) + `models:/.index.json`
+- **Store (Q16B):** `models` volume (contributed by this library, Q17C) = human folders
+  (`models/openmodeldb/4x-UltraSharp.pth`, user subfolders allowed) + `models/.index.json`
   (sha256 → path + source; re-hash only on size/mtime change). Dropped-in files become indexed
   *local* models on next scan. Moved/renamed files still resolve by digest.
 - **HF (Q15C):** `hf://` resolves through `huggingface_hub` into the HF cache (`HF_HOME`);
@@ -284,20 +297,20 @@ that final task is incomplete.
 ## 5. To land with the code (not edited inline)
 
 ### Glossary terms
-- **Anchor** — a named, per-machine root location (`project:`, `home:`, `models:`, user-named).
-- **Anchored path** — a PATH value `(anchor, relative)`; the only path form a graph stores.
+- **Volume** — a named, per-machine root location (`project`, `home`, `models`, user-named).
+- **Volume path** — a PATH value `(volume, relative)`; the only path form a graph stores.
 - **Failed node** — a node whose last worker run raised; stays dirty, retried at next evaluation.
 - **Blocked node** — a node skipped because a data-inlet source is failed or blocked.
 - **Image layout** — channel arrangement (gray/RGB/RGBA), carried by the type.
 - **Image storage** — dtype, channel order, residency; invisible to wires, reached via accessors.
 - **Model reference** — source URI + sha256 identifying a model file.
 - **Model catalog** — a library-declared list of model references with metadata.
-- **Model store** — the `models:` anchor's folders + digest index.
+- **Model store** — the `models` volume's folders + digest index.
 - **Needs-list** — the set of model references a graph's nodes require, offered for fetch.
 - Flag: "Adapter" stays reserved for type-changing conversions; storage conversion is not one.
 
 ### ADR candidates
-1. Anchored paths; no absolute anchor.
+1. Volumes: named per-machine locations; no absolute paths in graphs.
 2. Failure poisoning + failed-stays-dirty (execution semantics change).
 3. IMAGE: fixed semantics, free storage, accessor-only pixel access.
 4. Models identified by digest; HF cache used, never deleted.
