@@ -140,13 +140,11 @@ class PathWidget(BaseWidget):
             return
         if self._dialog is not None:
             self._dialog.delete()
-        # One eager level: a volume can be a whole home folder, and expanding loads deeper on demand.
         model = FolderTreeModel(
             root,
             show_files=self._mode != "folder",
             extensions=self._extensions,
             exclude_dirs=DEFAULT_EXCLUDE_DIRS,
-            batch_depth=1,
         )
         picked = {"folder": ""}
 
