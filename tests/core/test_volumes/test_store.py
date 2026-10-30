@@ -151,6 +151,45 @@ def test_unreadable_file_lists_only_project_and_refuses_writes(tmp_path, volume_
     assert volume_store.path.read_text() == "this is [not toml"
 
 
+def test_a_write_keeps_comments_skipped_entries_and_other_tables(tmp_path, volume_store):
+    volume_store.path.write_text(
+        "# my notes\n"
+        '[volumes]\narchive = "/x/archive"\nbad = "~/rel"\n'
+        '[volumes."lib:volume:keep"]\nlabel = "Keep"\nlocation = "/k"\nextra = 1\n'
+        "[other]\nk = 1\n"
+    )
+    assert ensure_volume(MODELS, label="M", description="", location=tmp_path) is True
+    text = volume_store.path.read_text()
+    assert "# my notes" in text
+    assert 'bad = "~/rel"' in text
+    assert "extra = 1" in text
+    assert "[other]" in text
+    fresh = VolumeStore(volume_store.path)
+    archive, keep = fresh.entry(user_volume_key("archive")), fresh.entry("lib:volume:keep")
+    assert archive is not None
+    assert archive.location == Path("/x/archive")
+    assert keep is not None
+    assert keep.label == "Keep"
+    assert fresh.entry(MODELS) is not None
+
+
+def test_removing_a_legacy_entry_deletes_its_line(volume_store):
+    volume_store.path.write_text('[volumes]\narchive = "/x/archive"\nbad = "~/rel"\n')
+    assert volume_store.remove(user_volume_key("archive")) is True
+    text = volume_store.path.read_text()
+    assert "archive" not in text
+    assert 'bad = "~/rel"' in text
+
+
+def test_ensure_logs_an_os_error_instead_of_raising(tmp_path, volume_store, caplog, monkeypatch):
+    def boom(*_a, **_k):
+        raise PermissionError("read-only home")
+
+    monkeypatch.setattr(VolumeStore, "_replace_file", boom)
+    assert ensure_volume(MODELS, label="M", description="", location=tmp_path) is False
+    assert "read-only home" in caplog.text
+
+
 def test_ensure_on_an_unreadable_file_logs_and_adds_nothing(tmp_path, volume_store, caplog):
     volume_store.path.write_text("this is [not toml")
     assert ensure_volume(MODELS, label="M", description="", location=tmp_path) is False

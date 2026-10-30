@@ -108,19 +108,25 @@ class VolumeStore:
 
     def _load(self) -> dict[str, VolumeEntry]:
         """Parse the file; raise ``_Unreadable`` if it isn't TOML or ``volumes`` isn't a table."""
+        return self._read_doc()[1]
+
+    def _read_doc(self) -> tuple[Any, dict[str, VolumeEntry], dict[str, str]]:
+        """Return the tomlkit document, its valid entries, and each entry's key as written in the file."""
         try:
-            doc = plain(read_toml(self.path))
+            doc = read_toml(self.path)
         except Exception as exc:
             raise _Unreadable(str(exc)) from exc
-        table = doc.get("volumes", {})
+        table = plain(doc).get("volumes", {})
         if not isinstance(table, dict):
             raise _Unreadable("[volumes] is not a table")
-        result: dict[str, VolumeEntry] = {}
+        entries: dict[str, VolumeEntry] = {}
+        written_as: dict[str, str] = {}
         for raw_key, raw in table.items():
             entry = self._parse(raw_key, raw)
             if entry is not None:
-                result[entry.key] = entry
-        return result
+                entries[entry.key] = entry
+                written_as[entry.key] = raw_key
+        return doc, entries, written_as
 
     def _parse(self, raw_key: str, raw: Any) -> VolumeEntry | None:
         label: Any
@@ -233,7 +239,7 @@ class VolumeStore:
         """Add the volume unless *key* already exists; return whether it was added.
 
         Never changes an existing volume and never creates *location*. An unreadable
-        file is logged and left alone, and nothing is added.
+        file, or one that cannot be written, is logged and left alone, and nothing is added.
 
         Raises:
             ValueError: If *key* is invalid or the project volume, or *location* is
@@ -253,43 +259,68 @@ class VolumeStore:
 
         try:
             self._mutate(apply)
-        except _UnreadableFileError as exc:
+        except (_UnreadableFileError, OSError) as exc:
             logger.error("Volume %r not added: %s", key, exc)
+            return False
         return added
 
     def _mutate(self, apply: Callable[[dict[str, VolumeEntry]], bool]) -> None:
-        """Re-read the file, let *apply* change the entries, and write them back if it returns True."""
+        """Re-read the file, let *apply* change the entries, and write back what changed.
+
+        Only the changed volumes' tables are rewritten; comments, skipped entries and
+        other tables stay as they are. Valid entries in the older ``name = "/abs"``
+        form are rewritten as tables.
+        """
         with _lock_for(self.path):
             if self.path.exists():
                 try:
-                    entries = self._load()
+                    doc, entries, written_as = self._read_doc()
                 except _Unreadable as exc:
                     raise _UnreadableFileError(f"The volumes file {self.path} is unreadable: {exc}") from exc
             else:
-                entries = {}
-            if apply(entries):
-                self._write(entries)
-                st = self.path.stat()
-                self._stamp, self._cache = (st.st_mtime_ns, st.st_size), dict(entries)
+                doc, entries, written_as = tomlkit.document(), {}, {}
+            before = dict(entries)
+            if not apply(entries):
+                return
+            _sync(doc, before, entries, written_as)
+            self._replace_file(tomlkit.dumps(doc))
+            st = self.path.stat()
+            self._stamp, self._cache = (st.st_mtime_ns, st.st_size), dict(entries)
 
-    def _write(self, entries: dict[str, VolumeEntry]) -> None:
-        doc = tomlkit.document()
-        table = tomlkit.table(is_super_table=True)
-        for entry in sorted(entries.values(), key=lambda e: e.key):
-            assert entry.location is not None
-            item = tomlkit.table()
-            item["label"] = entry.label
-            item["description"] = entry.description
-            item["location"] = str(entry.location)
-            table[entry.key] = item
-        doc["volumes"] = table
+    def _replace_file(self, text: str) -> None:
+        """Write *text* to a temporary file next to the volumes file, then rename it over it."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temp = self.path.with_name(f"{self.path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
         try:
-            temp.write_text(tomlkit.dumps(doc), encoding="utf-8")
+            temp.write_text(text, encoding="utf-8")
             os.replace(temp, self.path)
         finally:
             temp.unlink(missing_ok=True)
+
+
+def _sync(
+    doc: Any, before: dict[str, VolumeEntry], after: dict[str, VolumeEntry], written_as: dict[str, str]
+) -> None:
+    """Bring the ``volumes`` table of *doc* from *before* to *after*, touching only what differs."""
+    table = doc.get("volumes")
+    if table is None:
+        table = tomlkit.table(is_super_table=True)
+        doc["volumes"] = table
+    for key in before.keys() - after.keys():
+        del table[written_as[key]]
+    for key, entry in after.items():
+        legacy = written_as.get(key, key) != key
+        if before.get(key) == entry and not legacy:
+            continue
+        if legacy:
+            del table[written_as[key]]
+        assert entry.location is not None
+        item = table[key] if key in table else tomlkit.table()
+        item["label"] = entry.label
+        item["description"] = entry.description
+        item["location"] = str(entry.location)
+        if key not in table:
+            table[key] = item
 
 
 def _project_entry() -> VolumeEntry:
