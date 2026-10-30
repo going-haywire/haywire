@@ -198,6 +198,25 @@ class MyState(AppState):
 
 Pass `__name__` — the same idiom as `logging.getLogger(__name__)`. The top-level package is derived automatically (`haybale_mylib.state` → `haybale_mylib`). The directory is created on first call and the call is idempotent. Do **not** call it in `__init__` — `on_enable` is the right lifecycle point, consistent with all other resolved dependencies.
 
+**A library that needs a volume.** If your library reads or writes files that users should be able to place (model weights, a scan folder), give it a volume: call `ensure_volume` from `on_enable`. It adds the volume to `~/.haywire/volumes.toml` only when the key is absent, so it never overrides where the user moved it, and it never creates the folder. Graphs then refer to files as `(volume key, relative)`; see [volumes](../../architecture/volumes/volumes-arch.md).
+
+```python
+from haywire.core.state import AppState, state
+from haywire.core.storage import library_storage_dir
+from haywire.core.volumes import ensure_volume
+
+
+@state
+class ModelsState(AppState):
+    def on_enable(self) -> None:
+        ensure_volume(
+            "haybale-models:volume:models",
+            label="Models",
+            description="Models on this machine",
+            location=library_storage_dir(__name__) / "models",  # suggested; the user may move it
+        )
+```
+
 ## 4. One comprehensive example
 
 A library `haybale_midi` that exercises both scopes: an `AppState` (`MidiPool`) holding live device handles plus a composed `LibrarySettings` for poll rate, and a `SessionState` (`MidiSelection`) tracking which device the active session has picked. Plus a panel and a worker reading both.

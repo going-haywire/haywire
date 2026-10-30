@@ -319,6 +319,7 @@ def _check_location(location: Path) -> None:
         raise ValueError(f"Volume location must be absolute: {location}")
 
 
+# --8<-- [start:ensure-volume]
 def ensure_volume(
     key: str, *, label: str, description: str, location: Path, store: VolumeStore | None = None
 ) -> bool:
@@ -344,6 +345,7 @@ def ensure_volume(
     """
     target = store if store is not None else get_volume_store()
     return target.ensure(key, label=label, description=description, location=location)
+# --8<-- [end:ensure-volume]
 
 
 _store: VolumeStore | None = None
