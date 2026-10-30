@@ -190,6 +190,41 @@ class SwitchWidget(BaseWidget):
         )
 
 
+@widget(description="button widget")
+class ButtonWidget(BaseWidget):
+    """
+    Push button for boolean ports: a click sets the port to ``True``.
+
+    The button shows as pending while the port is ``True``; whatever consumes
+    the press sets it back to ``False``. A click the port refuses changes nothing.
+
+    Config options (via ``ButtonWidget.config(properties={...})``):
+
+    - ``text`` (str): Button label (default: ``"Run"``).
+    - ``icon`` (str): Material icon name shown before the label (default: none).
+
+    Example::
+
+        ButtonWidget.config(properties={'text': 'Run', 'icon': 'play_arrow'})
+    """
+
+    def build(self) -> Any:
+        props = self._config.get("properties", {})
+        self._button = ui.button(props.get("text", "Run"), icon=props.get("icon")).classes("w-full text-xs")
+        self._button.on("click", self._on_click)
+        return self._button
+
+    def _on_click(self) -> None:
+        self.set_value(True)
+
+    def on_model_changed(self, value: Any) -> None:
+        pending = PrimitiveUnwrappingConverter(default_value=False).to_view(value) is True
+        if pending:
+            self._button.props("loading")
+        else:
+            self._button.props(remove="loading")
+
+
 @widget(description="slider widget")
 class SliderWidget(BaseWidget):
     """

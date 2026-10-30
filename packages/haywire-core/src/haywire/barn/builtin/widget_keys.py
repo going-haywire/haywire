@@ -9,6 +9,7 @@ by @widget for the class of the same name; test_widget_keys.py enforces it.
 NUMBER_WIDGET = "haywire-core:widget:NumberWidget"
 TEXT_WIDGET = "haywire-core:widget:TextWidget"
 SWITCH_WIDGET = "haywire-core:widget:SwitchWidget"
+BUTTON_WIDGET = "haywire-core:widget:ButtonWidget"
 SELECT_WIDGET = "haywire-core:widget:SelectWidget"
 SLIDER_WIDGET = "haywire-core:widget:SliderWidget"
 COLOR_WIDGET = "haywire-core:widget:ColorWidget"

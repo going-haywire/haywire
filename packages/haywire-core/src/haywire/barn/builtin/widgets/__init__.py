@@ -1,5 +1,6 @@
 from .arrow_head_widget import ArrowHeadWidget
 from .basic_widgets import (
+    ButtonWidget,
     CheckboxWidget,
     NumberWidget,
     SelectWidget,
@@ -21,6 +22,7 @@ __all__ = [
     "TextWidget",
     "CheckboxWidget",
     "SwitchWidget",
+    "ButtonWidget",
     "SliderWidget",
     "SelectWidget",
     "SimpleLabelWidget",
