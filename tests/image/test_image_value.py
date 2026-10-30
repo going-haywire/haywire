@@ -63,3 +63,69 @@ def test_non_contiguous_input_wraps():
 def test_order_argument_is_a_channel_order():
     v = ImageValue.from_array(np.zeros((2, 2, 3), dtype=np.uint8), order=ChannelOrder.BGR)
     assert v.layout is Layout.RGB
+
+
+# --- array() accessor -----------------------------------------------------
+
+
+def _u8(values, shape=None):
+    a = np.array(values, dtype=np.uint8)
+    return a.reshape(shape) if shape else a
+
+
+def test_same_storage_is_zero_copy():
+    a = np.arange(72, dtype=np.uint8).reshape(4, 6, 3)
+    out = ImageValue.from_array(a, order=ChannelOrder.BGR).array(np.uint8, ChannelOrder.BGR)
+    assert np.shares_memory(out, a)
+
+
+def test_order_swap_keeps_alpha_last():
+    a = np.arange(16, dtype=np.uint8).reshape(2, 2, 4)
+    out = ImageValue.from_array(a, order=ChannelOrder.BGR).array(np.uint8, ChannelOrder.RGB)
+    np.testing.assert_array_equal(out, a[..., [2, 1, 0, 3]])
+
+
+def test_gray_ignores_order():
+    v = ImageValue.from_array(np.arange(6, dtype=np.uint8).reshape(2, 3))
+    np.testing.assert_array_equal(v.array(order=ChannelOrder.BGR), v.array(order=ChannelOrder.RGB))
+
+
+def test_u8_to_float_scales():
+    out = ImageValue.from_array(_u8([255, 0, 51], (1, 3))).array(np.float32)
+    assert out.dtype == np.float32
+    np.testing.assert_allclose(out, [[1.0, 0.0, 0.2]], atol=1e-6)
+
+
+def test_u16_to_float_scales():
+    out = ImageValue.from_array(np.full((1, 1), 65535, dtype=np.uint16)).array(np.float32)
+    assert out[0, 0] == pytest.approx(1.0)
+
+
+def test_float_to_u8_clips_and_rounds():
+    a = np.array([[-0.1, 0.0, 0.5, 1.0, 1.03]], dtype=np.float32)
+    out = ImageValue.from_array(a).array(np.uint8)
+    np.testing.assert_array_equal(out, [[0, 0, 128, 255, 255]])
+
+
+def test_u8_to_u16_is_times_257():
+    out = ImageValue.from_array(_u8([255, 1], (1, 2))).array(np.uint16)
+    np.testing.assert_array_equal(out, [[65535, 257]])
+
+
+def test_float16_target():
+    out = ImageValue.from_array(_u8([128], (1, 1))).array(np.float16)
+    assert out.dtype == np.float16
+    assert float(out[0, 0]) == pytest.approx(128 / 255, abs=1e-3)
+
+
+def test_returned_arrays_are_read_only():
+    v = ImageValue.from_array(np.zeros((2, 2, 3), dtype=np.uint8), order=ChannelOrder.BGR)
+    for out in (v.array(np.uint8, ChannelOrder.BGR), v.array(np.uint8), v.array(np.float32)):
+        with pytest.raises(ValueError, match="read-only"):
+            out[0, 0, 0] = 1
+
+
+def test_accessor_is_cached():
+    v = ImageValue.from_array(np.zeros((2, 2, 3), dtype=np.uint8))
+    assert v.array(np.float32) is v.array(np.float32)
+    assert v.array(np.float16) is not v.array(np.float32)

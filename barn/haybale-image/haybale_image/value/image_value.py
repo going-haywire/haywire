@@ -2,25 +2,13 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
-
-class Layout(StrEnum):
-    """Which channels an image has, independent of how they are stored."""
-
-    GRAY = "gray"
-    RGB = "rgb"
-    RGBA = "rgba"
-
-
-class ChannelOrder(StrEnum):
-    """Order of the colour channels in a buffer; alpha, when present, is always last."""
-
-    RGB = "rgb"
-    BGR = "bgr"
+from haybale_image.value import _numpy_ops
+from haybale_image.value.enums import ChannelOrder, Layout
 
 
 ARRAY_DTYPES: frozenset[np.dtype] = frozenset(
@@ -151,6 +139,34 @@ class ImageValue:
     def source_depth(self) -> int:
         """Bit depth the pixels came from: 8, 16 or 32."""
         return self._source_depth
+
+    def array(self, dtype: npt.DTypeLike = np.float32, order: ChannelOrder = ChannelOrder.RGB) -> np.ndarray:
+        """Return the pixels as a read-only numpy array, converted on first use and cached.
+
+        Returns the stored buffer itself (as a read-only view) when it already has
+        ``dtype`` and ``order``. Float results span [0, 1]; converting to an
+        integer dtype clips to [0, 1] first, then rounds half to even.
+
+        Args:
+            dtype: ``uint8``, ``uint16``, ``float16`` or ``float32``.
+            order: Channel order of the result; ignored for gray images.
+
+        Returns:
+            ``H×W`` for gray images, ``H×W×C`` otherwise.
+
+        Raises:
+            TypeError: ``dtype`` is not one of the supported dtypes.
+        """
+        target = np.dtype(dtype)
+        if target not in ARRAY_DTYPES:
+            raise TypeError(f"unsupported image dtype {target}; use uint8, uint16, float16 or float32")
+        key = ("array", target, order)
+        cached = self._cache.get(key)
+        if cached is None:
+            if not isinstance(self._primary, np.ndarray):
+                raise NotImplementedError("array() of a tensor-backed image")
+            cached = self._cache[key] = _numpy_ops.convert(self._primary, self._order, target, order)
+        return cached
 
     @property
     def residency(self) -> str:
