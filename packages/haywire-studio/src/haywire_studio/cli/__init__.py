@@ -35,6 +35,7 @@ from haywire_studio.cli import (
     sslcmd,
     user,
     verify,
+    volumescmd,
 )
 
 
@@ -57,6 +58,7 @@ SUBCOMMANDS: Sequence[_SubcommandModule] = (
     networkcmd,
     farmhandcmd,
     securitycmd,
+    volumescmd,
 )
 
 __all__ = ["SUBCOMMANDS"]
