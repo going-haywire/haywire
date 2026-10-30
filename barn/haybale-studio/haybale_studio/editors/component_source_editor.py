@@ -89,7 +89,7 @@ class ComponentSourceEditor(BaseEditor):
         # UI handles (nullable; reset in cleanup)
         self._editor: Optional[ui.codemirror] = None
         self._save_button: Optional[ui.button] = None
-        self._path_label: Optional[ui.label] = None
+        self._path_line: Optional[hui.FittedPath] = None
         self._readonly_badge: Optional[ui.element] = None
         self._pin_banner: Optional[ui.element] = None
         self._conflict_banner: Optional[ui.element] = None
@@ -147,7 +147,7 @@ class ComponentSourceEditor(BaseEditor):
         self._unsubscribe_lifecycle()
         self._editor = None
         self._save_button = None
-        self._path_label = None
+        self._path_line = None
         self._readonly_badge = None
         self._pin_banner = None
         self._conflict_banner = None
@@ -248,8 +248,7 @@ class ComponentSourceEditor(BaseEditor):
                 .tooltip("Open in editor")
             )
             ui.icon(hui.icon.node_source, size="14px").classes("hw-text-dim")
-            label_text = str(self._path) if self._path is not None else "—"
-            self._path_label = hui.hint(label_text).classes("truncate font-mono flex-1")
+            self._path_line = hui.fitted_path(self._path, text="—").classes("hw-hint font-mono flex-1")
 
             if not self._is_editable:
                 self._readonly_badge = hui.hint("Read-only").style(

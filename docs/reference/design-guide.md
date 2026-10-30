@@ -783,8 +783,16 @@ with hui.slot_header("Files", icon="folder"):
     hui.icon_action("refresh", tooltip="Refresh", on_click=self._refresh)
 
 with hui.editor_toolbar():
-    ui.label(str(path)).classes("text-xs hw-text-muted truncate flex-1")
+    hui.fitted_path(path).classes("hw-hint font-mono flex-1")
 ```
+
+**Rule:** a file path in a header, toolbar or row is drawn with
+`hui.fitted_path(path)`, not a truncated label. It crops the path's middle to
+fit (`/Volumes/Ddrive/../haywire/repo`, then `../repo`), so the root and the
+file name stay visible, and shows the full path as its tooltip. Give it a width
+(`flex-1` in a row, `w-full` in a column) and a text style; `text=` or
+`set_text()` shows a placeholder such as "not saved". Tab labels show a name,
+not a path, and need none of this.
 
 ### 8.2 `hui.info_bar(label, badge=None, suffix=None)`
 

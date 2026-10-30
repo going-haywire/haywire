@@ -382,24 +382,6 @@ STATIC_CSS = (
     # `pointer-events: none` from that INLINE style, which wins over this rule:
     # there it is load-bearing, stopping an empty flyout opening on hover.
     " .hw-menu-row.hw-disabled { opacity: 0.4; cursor: default; }"
-    # ── hw-elide-left utility class ──
-    # Truncate text at the START instead of the end, for paths and other
-    # strings whose tail identifies them: the filename stays visible, and
-    # widening the pane reveals the path back towards the root.
-    #
-    # `direction: rtl` moves the ellipsis to the left edge. A path's segments
-    # are strong-ltr runs, so the separators between them ( `/`, `-`, `.` are
-    # bidi-neutral) resolve to ltr and keep their order; `text-align: left`
-    # keeps a short path against the left edge.
-    #
-    # The element needs `min-width: 0` from its own classes to shrink at all.
-    " .hw-elide-left {"
-    "   white-space: nowrap;"
-    "   overflow: hidden;"
-    "   text-overflow: ellipsis;"
-    "   direction: rtl;"
-    "   text-align: left;"
-    " }"
     # ── compact-fields utility class ──
     # Apply to any container (panel, node widget area) that needs tight
     # Quasar field rendering.  CSS custom properties allow themes to

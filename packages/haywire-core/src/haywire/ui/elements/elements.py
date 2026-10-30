@@ -118,7 +118,7 @@ def slot_header(title: str | None = None, *, icon: str | None = None, is_dirty: 
             hui.icon_action("refresh", tooltip="Refresh", on_click=self._refresh)
 
         with hui.slot_header():
-            ui.label(str(path)).classes("text-xs hw-text-muted truncate flex-1")
+            hui.fitted_path(path).classes("hw-hint font-mono flex-1")
     """
     row = (
         ui.row()

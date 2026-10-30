@@ -7,6 +7,7 @@ Routes:
   GET  /schema?class=...     — render a LibrarySettings/FrameworkSettings via render_schema()
   GET  /copy-button          — a bare hui.code_snippet() with its copy button
   GET  /volumes-editor?width= — the Volumes editor in a host of the given width
+  GET  /code-editor-header?width= — the code editor's header in a host of the given width
   POST /api/set?key=&value=  — write a value to the SettingsRegistry workspace tier
 """
 
@@ -2637,6 +2638,37 @@ def register_routes(library_service) -> None:
         with ui.element("div").style(f"width: {width}px; height: 400px").props('data-testid="volumes-host"'):
             container = ui.column().classes("w-full h-full")
             VolumesEditor(MagicMock()).draw(context, container)
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /code-editor-header?width=<px>
+    #
+    # The real CodeEditor drawn into a host of the given width, open on a file
+    # under a temporary directory nested deep enough to need cropping. Backs
+    # test_editor_header_path_fit_browser.py (the header path crops to fit).
+    # -------------------------------------------------------------------------
+
+    @ui.page("/code-editor-header")
+    async def code_editor_header_page(width: int = 300):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import MagicMock
+
+        from haybale_studio.editors.code_editor import CodeEditor
+
+        if theme_css:
+            ui.add_css(theme_css)
+        folder = Path(tempfile.mkdtemp(prefix="haywire-harness-header-")) / "projects" / "haywire" / "graphs"
+        folder.mkdir(parents=True)
+        target = folder / "a_rather_long_file_name.txt"
+        target.write_text("hello", encoding="utf-8")
+        wrapper = MagicMock()
+        wrapper._binding_id = str(target)
+        context = MagicMock()
+        context.active_workbench_theme_key = "dark"
+        with ui.element("div").style(f"width: {width}px; height: 300px").props('data-testid="header-host"'):
+            container = ui.column().classes("w-full h-full")
+            CodeEditor(wrapper).draw(context, container)
         _stamp_synced()
 
     # -------------------------------------------------------------------------

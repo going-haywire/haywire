@@ -101,9 +101,10 @@ class FileViewerEditor(BaseEditor):
                 # Slim header showing the open file path
                 with hui.editor_toolbar():
                     ui.icon("description", size="14px").classes("hw-text-dim")
-                    label_text = str(self._last_file) if self._last_file else "No file open"
                     label_cls = "hw-text-body" if self._last_file else "hw-text-muted"
-                    ui.label(label_text).classes(f"text-xs {label_cls} truncate font-mono flex-1")
+                    hui.fitted_path(self._last_file, text="No file open").classes(
+                        f"text-xs {label_cls} font-mono flex-1"
+                    )
 
                 # Content area
                 with ui.scroll_area().classes("flex-1 w-full"):

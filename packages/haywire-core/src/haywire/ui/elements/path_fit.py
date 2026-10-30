@@ -142,7 +142,9 @@ class FittedPath(ui.element):
     The line carries no text style of its own: chain ``.classes()`` for size,
     colour and font, and give it a width (``w-full``, or ``flex-1`` in a row).
     Hovering shows the full path. ``set_text`` shows plain text instead, uncropped
-    and without a tooltip, for a placeholder such as "not saved".
+    and without a tooltip, for a placeholder such as "not saved". Showing what
+    the line already shows again changes nothing, so a caller may call either
+    on every refresh.
 
     Example::
 
@@ -157,6 +159,7 @@ class FittedPath(ui.element):
         super().__init__("div")
         self.classes(FIT_CLASS)
         self.path: PurePath | None = None
+        self._renderings: list[str] = []
         ensure_path_fit_script()
         if path is not None:
             self.set_path(path)
@@ -165,24 +168,29 @@ class FittedPath(ui.element):
 
     def set_path(self, path: PurePath) -> None:
         """Show ``path``, cropped to fit, with the full path as the tooltip."""
+        if self._show(crop_candidates(path)):
+            # Assigned rather than passed through props(): a quote in a path would break its parsing.
+            self._props["title"] = str(path)
+            self.update()
         self.path = path
-        self._show(crop_candidates(path))
-        # Assigned rather than passed through props(): a quote in a path would break its parsing.
-        self._props["title"] = str(path)
-        self.update()
 
     def set_text(self, text: str) -> None:
         """Show ``text`` as it is, with no tooltip."""
+        if self._show([text]) or self.path is not None:
+            self._props.pop("title", None)
+            self.update()
         self.path = None
-        self._show([text])
-        self._props.pop("title", None)
-        self.update()
 
-    def _show(self, renderings: list[str]) -> None:
+    def _show(self, renderings: list[str]) -> bool:
+        """Draw ``renderings`` unless they are already drawn; return whether they were drawn."""
+        if renderings == self._renderings:
+            return False
+        self._renderings = renderings
         self.clear()
         with self:
             for rendering in renderings:
                 ui.label(rendering)
+        return True
 
 
 def fitted_path(path: PurePath | None = None, *, text: str = "") -> FittedPath:

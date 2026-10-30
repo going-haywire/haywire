@@ -138,3 +138,23 @@ def test_the_stylesheet_ships_with_the_studio() -> None:
     from haywire.ui.app.shell import STATIC_CSS
 
     assert PATH_FIT_CSS in STATIC_CSS
+
+
+@pytest.mark.anyio
+async def test_showing_the_same_path_or_text_again_keeps_the_drawn_renderings(user: User) -> None:
+    built: dict[str, hui.FittedPath] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        built["line"] = hui.fitted_path(PurePosixPath("/a/b/c/d"))
+
+    await user.open("/")
+    line = built["line"]
+    drawn = list(line.default_slot.children)
+    line.set_path(PurePosixPath("/a/b/c/d"))
+    assert line.default_slot.children == drawn
+
+    line.set_text("not saved")
+    drawn = list(line.default_slot.children)
+    line.set_text("not saved")
+    assert line.default_slot.children == drawn

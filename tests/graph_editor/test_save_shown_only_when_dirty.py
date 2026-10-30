@@ -22,7 +22,7 @@ pytestmark = pytest.mark.unit
 def _graph_editor(document: Any) -> Any:
     """A GraphEditor whose header refresh runs against ``document``, everything else stubbed."""
     editor: Any = GraphEditor.__new__(GraphEditor)
-    editor._graph_name_label = MagicMock()
+    editor._path_line = MagicMock()
     editor._dirty_marker = MagicMock()
     editor._save_button = MagicMock()
     editor._levels = {}
@@ -110,3 +110,19 @@ def test_component_source_hides_save_after_saving(tmp_path, monkeypatch):
     editor._save()
 
     editor._save_button.set_visibility.assert_called_with(False)
+
+
+def test_the_graph_header_shows_the_project_relative_path_cropped_to_fit():
+    editor = _graph_editor(SimpleNamespace(path=Path("/ws/graphs/deep/a.haywire"), unsaved=False))
+
+    editor._update_header(SimpleNamespace(can_edit=lambda: True))
+
+    editor._path_line.set_path.assert_called_with(Path("graphs/deep/a.haywire"))
+
+
+def test_the_graph_header_says_not_saved_for_a_document_without_a_file():
+    editor = _graph_editor(SimpleNamespace(path=None, unsaved=True))
+
+    editor._update_header(SimpleNamespace(can_edit=lambda: True))
+
+    editor._path_line.set_text.assert_called_with("not saved")

@@ -84,7 +84,7 @@ class CodeEditor(BaseEditor):
         self._tab_panels = None  # ui.tab_panels (only present when .md)
         self._mode_button: Optional[ui.button] = None
         self._save_button: Optional[ui.button] = None
-        self._path_label: Optional[ui.label] = None
+        self._path_line: Optional[hui.FittedPath] = None
         self._context: Optional["SessionContext"] = None
 
     # ------------------------------------------------------------------
@@ -163,8 +163,9 @@ class CodeEditor(BaseEditor):
             with ui.column().classes("w-full h-full gap-0"):
                 with hui.editor_toolbar():
                     ui.icon("description", size="14px").classes("hw-text-dim")
-                    label_text = str(path) if path is not None else "Untitled"
-                    self._path_label = hui.hint(label_text).classes("truncate font-mono flex-1")
+                    self._path_line = hui.fitted_path(path, text="Untitled").classes(
+                        "hw-hint font-mono flex-1"
+                    )
 
                     # Preview button only for markdown
                     if is_md:
@@ -374,8 +375,8 @@ class CodeEditor(BaseEditor):
         new_payload = str(target)
         if old is None or str(old) != new_payload:
             self.wrapper.repayload(new_payload, new_label=target.name)
-        if self._path_label is not None:
-            self._path_label.text = new_payload
+        if self._path_line is not None:
+            self._path_line.set_path(target)
         self._update_save_state()
         ui.notify(f"Saved {target.name}", type="positive")
         dialog.close()
@@ -450,5 +451,5 @@ class CodeEditor(BaseEditor):
         self._tab_panels = None
         self._mode_button = None
         self._save_button = None
-        self._path_label = None
+        self._path_line = None
         self._context = None
