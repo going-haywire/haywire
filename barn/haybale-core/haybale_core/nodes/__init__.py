@@ -1,3 +1,4 @@
+from haybale_core.nodes.for_each_file import ForEachFileNode
 from haybale_core.nodes.for_loop import ForLoopNode
 from haybale_core.nodes.logger import LoggerNode
 from haybale_core.nodes.output_path import OutputPathNode
@@ -14,6 +15,7 @@ from haybale_core.nodes.events.tick_event import TickEventNode
 __all__ = [
     "BeginPlayNode",
     "ControlSwitch",
+    "ForEachFileNode",
     "ForLoopNode",
     "LoggerNode",
     "OutputPathNode",
