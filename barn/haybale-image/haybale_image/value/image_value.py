@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
@@ -10,6 +10,8 @@ import numpy.typing as npt
 from haybale_image.value import _numpy_ops
 from haybale_image.value.enums import ChannelOrder, Layout
 
+if TYPE_CHECKING:
+    import torch
 
 ARRAY_DTYPES: frozenset[np.dtype] = frozenset(
     np.dtype(d) for d in (np.uint8, np.uint16, np.float16, np.float32)
@@ -115,6 +117,44 @@ class ImageValue:
         )
         return cls(data, order, layout, depth, int(data.shape[0]), int(data.shape[1]))
 
+    @classmethod
+    def from_tensor(
+        cls,
+        data: torch.Tensor,
+        *,
+        order: ChannelOrder = ChannelOrder.RGB,
+        source_depth: int | None = None,
+    ) -> ImageValue:
+        """Wrap a torch image without copying it or moving it off its device.
+
+        The value takes ownership of ``data``: the caller must not write to it
+        afterwards. Requires torch.
+
+        Args:
+            data: ``C×H×W`` or ``1×C×H×W`` with C = 1 (gray), 3 (RGB) or 4 (RGBA),
+                dtype ``uint8``, ``float16``, ``bfloat16`` or ``float32``. Float
+                values span [0, 1].
+            order: Channel order of ``data``'s colour channels.
+            source_depth: Bit depth the pixels came from (8, 16 or 32); defaults
+                to 8 for ``uint8`` and 32 for float dtypes.
+
+        Raises:
+            TypeError: ``data`` has an unsupported dtype.
+            ValueError: ``data`` has an unsupported shape, or ``source_depth`` is
+                not 8, 16 or 32.
+        """
+        from haybale_image.value import _torch_ops
+
+        _torch_ops.check_tensor_dtype(data.dtype)
+        chw = _torch_ops.tensor_layout(data)
+        layout = _LAYOUT_BY_CHANNELS[int(chw.shape[0])]
+        depth = (
+            _torch_ops.default_source_depth(chw.dtype)
+            if source_depth is None
+            else check_source_depth(source_depth)
+        )
+        return cls(chw, order, layout, depth, int(chw.shape[1]), int(chw.shape[2]))
+
     @property
     def layout(self) -> Layout:
         """Which channels the image has."""
@@ -163,9 +203,52 @@ class ImageValue:
         key = ("array", target, order)
         cached = self._cache.get(key)
         if cached is None:
-            if not isinstance(self._primary, np.ndarray):
-                raise NotImplementedError("array() of a tensor-backed image")
-            cached = self._cache[key] = _numpy_ops.convert(self._primary, self._order, target, order)
+            if isinstance(self._primary, np.ndarray):
+                cached = _numpy_ops.convert(self._primary, self._order, target, order)
+            else:
+                from haybale_image.value import _torch_ops
+
+                cached = _torch_ops.download(self._primary, self._order, target, order)
+            self._cache[key] = cached
+        return cached
+
+    def tensor(
+        self,
+        device: str | torch.device,
+        dtype: torch.dtype | None = None,
+        order: ChannelOrder = ChannelOrder.RGB,
+    ) -> torch.Tensor:
+        """Return the pixels as a ``1×C×H×W`` torch tensor on ``device``, converted on first use and cached.
+
+        A numpy-backed image transfers in its stored dtype and converts on
+        ``device``, so a uint8 camera frame crosses at a quarter of the float32
+        size. Float results span [0, 1]. Treat the result as read-only: it is
+        shared by every caller asking for the same ``device``, ``dtype`` and
+        ``order``. Requires torch.
+
+        Args:
+            device: Target device, e.g. ``"cuda"``, ``"mps"`` or ``"cpu"``.
+            dtype: ``torch.uint8``, ``float16``, ``bfloat16`` or ``float32``;
+                ``None`` means ``torch.float32``.
+            order: Channel order of the result; ignored for gray images.
+
+        Raises:
+            TypeError: ``dtype`` is not one of the supported dtypes.
+        """
+        import torch
+
+        from haybale_image.value import _torch_ops
+
+        target = _torch_ops.check_tensor_dtype(torch.float32 if dtype is None else dtype)
+        dev = torch.device(device)
+        key = ("tensor", str(dev), target, order)
+        cached = self._cache.get(key)
+        if cached is None:
+            if isinstance(self._primary, np.ndarray):
+                cached = _torch_ops.upload(self._primary, self._order, dev, target, order)
+            else:
+                cached = _torch_ops.convert_tensor(self._primary, self._order, dev, target, order)
+            self._cache[key] = cached
         return cached
 
     @property
