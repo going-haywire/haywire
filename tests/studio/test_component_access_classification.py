@@ -27,7 +27,7 @@ VIEW_EDITORS = {
     "PropertiesEditor",
     "ShortcutsEditor",
 }
-ADMIN_EDITORS = {"RosterEditor"}
+ADMIN_EDITORS = {"RosterEditor", "VolumesEditor"}
 
 #: Panels a principal below edit reaches: the account menu, the file browser's viewer entry, and
 #: the Properties editor's inspector tabs, read-only below edit (ADR 0060).
