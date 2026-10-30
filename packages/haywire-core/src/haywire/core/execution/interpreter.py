@@ -10,7 +10,7 @@ The Interpreter is responsible for:
 """
 
 from __future__ import annotations
-from typing import Dict, List, Optional, Any, TYPE_CHECKING
+from typing import Callable, Dict, List, Optional, Any, TYPE_CHECKING
 import time
 import logging
 
@@ -69,6 +69,8 @@ class Interpreter:
         global_context: Optional[Dict[str, Any]] = None,
         max_stack_depth: int = 1000,
         library_state_container: Optional["LibraryStateContainer"] = None,
+        exception_bail: Optional[Callable[[], str]] = None,
+        on_bail_run: Optional[Callable[[], None]] = None,
     ):
         """
         Initialize interpreter.
@@ -78,6 +80,8 @@ class Interpreter:
             max_stack_depth: Maximum VM stack depth
             library_state_container: Optional pool of LibraryState instances.
                 Forwarded to the VM so worker functions get exec_ctx.app_data.
+            exception_bail: The run's bail policy when a worker raises; see ``HaywireVM``.
+            on_bail_run: Asks the run's owner to stop the run; see ``HaywireVM``.
         """
         # Core components
         self.assembly_manager = FlowAssemblyManager()
@@ -85,6 +89,8 @@ class Interpreter:
             global_context=global_context,
             max_stack_depth=max_stack_depth,
             library_state_container=library_state_container,
+            exception_bail=exception_bail,
+            on_bail_run=on_bail_run,
         )
         self.callback_manager = CallbackManager()
 
@@ -161,11 +167,18 @@ class Interpreter:
         """
         Start graph execution by dispatching BEGIN_PLAY.
 
-        Call after load_graph(). Dispatches the BEGIN_PLAY system event
-        which triggers BeginPlayNode flows.
+        Call after load_graph(). Clears the runtime errors of every node in the
+        loaded flows, then dispatches the BEGIN_PLAY system event which triggers
+        BeginPlayNode flows.
         """
         if self._executing:
             return
+
+        # A run starts clean: worker errors from an earlier run stay visible only until now.
+        for flow in self._all_flows():
+            flow.nodes_with_worker_error = []
+            for node in flow.get_all_nodes():
+                node.wrapper.clear_runtime_errors()
 
         self._executing = True
         self.dispatch_system_event(SystemEventType.BEGIN_PLAY)

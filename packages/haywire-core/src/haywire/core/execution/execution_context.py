@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 import logging
 import threading
 
@@ -50,11 +50,10 @@ class ExecutionContext:
     cancel: Optional[threading.Event] = None
     """Set when a stop that timed out kills the run: the frame ends at its next control node.
     ``None`` outside an execution group's frame."""
-    failures: List[Tuple[str, Union[BaseException, Literal["blocked"]]]] = field(default_factory=list)
-    """This frame's failures, in order: ``(node_id, exception)`` for a node whose run raised,
-    ``(node_id, "blocked")`` for a node skipped because a data source failed (ADR 0066)."""
-    blocked_changed: Optional[List[BaseNode]] = None
-    """Nodes whose blocked state changed this frame; the VM updates their cards' warnings at its end."""
+    failures: List[Tuple[BaseNode, Exception]] = field(default_factory=list)
+    """This frame's worker exceptions, in order, each with the node that raised it (ADR 0066)."""
+    bail: Optional[str] = None
+    """Set by the VM when a worker raises: how far this frame bails (``run``, ``frame``, ``branch``)."""
 
     def emit_callback(self, event_name: str, payload: Optional[Dict[str, Any]] = None) -> None:
         """

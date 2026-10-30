@@ -263,7 +263,7 @@ def _prepare_graph_loop_half_failing() -> Prepared:
     graph.get_node_wrapper(ids["loop"]).node.ports["end"].set_value(_HALF_LOOP_END)
     fire, _node_count = _fire_only_flow(graph)
     # Fixed per-iteration count (loop node, data node, sink) plus BeginPlay and the loop's exit:
-    # a blocked sink does not execute, so counting executions would shrink the denominator.
+    # a sink skipped by the bail does not execute, so counting executions would shrink the denominator.
     return Prepared(run=fire, ops=3 * _HALF_LOOP_END + 2, repeats=15, warmup=5)
 
 

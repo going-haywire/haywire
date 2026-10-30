@@ -17,7 +17,7 @@ from .user_data import NodeCache, NodeStore
 from haywire.core.settings import NodeSettings, Settings
 
 if TYPE_CHECKING:
-    from haywire.core.node import BaseNode, NodeWrapper
+    from haywire.core.node import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
 
 #: One criterion a :meth:`NodeData.rejig` filter selects ports by: an exact
@@ -97,11 +97,6 @@ class NodeData:
         # Keyed by port id: a str caches its hash at C level, while a set of
         # DataPort would call the Python-level DataPort.__hash__ on every mark.
         self._has_dirty_ports: Dict[str, DataPort] = {}
-        # Instance attribute, read on every _execute: a class-level default costs an MRO walk per read.
-        self._failed: bool = False
-        self._blocked: bool = False
-        self._blocked_message: str = ""
-        self._blocked_root: Optional["BaseNode"] = None
 
         # ---------------------------------------------------------------------
         # Internal state

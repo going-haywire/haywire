@@ -58,12 +58,6 @@ class LocalizedDataFlow:
     """ID of the control node this data flow belongs to"""
     execution_sequence: List["BaseNode"] = field(default_factory=list)
     """Ordered list of data nodes to evaluate"""
-    upstream: Dict[str, tuple["BaseNode", ...]] = field(default_factory=dict)
-    """For each node in the sequence and the control node: the nodes feeding its data inlets.
-
-    Includes sources outside the sequence (a control node's data outlet); exec edges
-    are not sources. The VM reads it only while some node is failed (ADR 0066).
-    """
 
     def __str__(self) -> str:
         return f"LocalizedDataFlow(control={self.control_node_id}, nodes={len(self.execution_sequence)})"
@@ -141,6 +135,8 @@ class Flow:
 
         # Cache for nodes (populated on first access after assembly)
         self._all_nodes_cache: Optional[List["BaseNode"]] = None
+        self.nodes_with_worker_error: List["BaseNode"] = []
+        """Nodes whose worker raised in this flow's last frame; their errors clear as the next starts."""
         self._nodes_with_on_frame_start_cache: Optional[List["BaseNode"]] = None
         self._nodes_with_on_frame_end_cache: Optional[List["BaseNode"]] = None
 

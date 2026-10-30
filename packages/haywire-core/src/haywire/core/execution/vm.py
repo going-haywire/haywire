@@ -9,14 +9,13 @@ from haywire.core.execution.callback_manager import CallbackManager
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.execution.flow import ControlNodeInfo, LocalizedDataFlow, overrides
 from haywire.core.errors.haywire_exception import HaywireException
-from haywire.core.execution.failures import failure_counts
 from haywire.core.node.behavior import NodeType
 from haywire.core.state.data_namespace import AppDataNamespace
 
 if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
-    from haywire.core.node import BaseNode
     from haywire.core.execution.event_source import Trigger
+    from haywire.core.node import BaseNode
     from haywire.core.state import LibraryStateContainer
 
 logger = logging.getLogger(__name__)
@@ -42,6 +41,8 @@ class HaywireVM:
         global_context: Optional[Dict[str, Any]] = None,
         max_stack_depth: int = 1000,
         library_state_container: Optional[LibraryStateContainer] = None,
+        exception_bail: Optional[Callable[[], str]] = None,
+        on_bail_run: Optional[Callable[[], None]] = None,
     ) -> None:
         """
         Initialize VM.
@@ -52,9 +53,17 @@ class HaywireVM:
             library_state_container: Container exposing app-global LibraryState
                 instances to worker functions via exec_ctx.app_data[Cls].
                 Optional — when None, exec_ctx.app_data is None.
+            exception_bail: Returns how far a frame bails when a worker raises:
+                ``"run"``, ``"frame"`` or ``"branch"``. Read at each exception, so a
+                changed policy applies at once. ``None``, or any other value, means
+                ``"branch"``.
+            on_bail_run: Called when a frame bails with ``"run"``; asks the run's owner
+                to stop it. Called on the runner thread, so it must not stop the run itself.
         """
         self.global_context = global_context or {}
         self.max_stack_depth = max_stack_depth
+        self._exception_bail = exception_bail
+        self._on_bail_run = on_bail_run
 
         # Callback manager reference (set by interpreter)
         self.callback_manager: Optional[CallbackManager] = None
@@ -193,6 +202,12 @@ class HaywireVM:
         exec_ctx = self._create_execution_context(flow, trigger, frame_number)
         exec_ctx.cancel = cancel
 
+        # A worker error shows on its card until the next frame of the flow that raised it.
+        if flow.nodes_with_worker_error:
+            for failed in flow.nodes_with_worker_error:
+                failed.wrapper.clear_runtime_errors()
+            flow.nodes_with_worker_error = []
+
         shared = flow.shared_node_ids
         for node in flow.get_nodes_with_on_frame_start():
             self._run_frame_hook(
@@ -221,6 +236,13 @@ class HaywireVM:
             next_outlet_id = self._execute_control_node(node_info, flow, exec_ctx)
             # >>>>>>>>>>>
 
+            if exec_ctx.bail is not None:
+                if exec_ctx.bail != "branch":
+                    break
+                # The branch ends here: back to the enclosing loop, or the frame ends.
+                exec_ctx.bail = None
+                next_outlet_id = None
+
             # Only push to loopback stack if taking a loopback outlet
             if node_info.is_loopback and next_outlet_id:
                 # .get(), not [...]: a worker may return any string, and an id
@@ -241,7 +263,11 @@ class HaywireVM:
                 next_outlet_id, node_info, loopback_stack
             )
 
-        self._sync_blocked_warnings(exec_ctx)
+        if exec_ctx.failures:
+            flow.nodes_with_worker_error = list(dict.fromkeys(node for node, _ in exec_ctx.failures))
+        if exec_ctx.bail == "run" and self._on_bail_run is not None:
+            self._on_bail_run()
+
         for node in flow.get_nodes_with_on_frame_end():
             self._run_frame_hook(node, node.on_frame_end, shared, exec_ctx, "Node on_frame_end() Execution")
 
@@ -295,16 +321,19 @@ class HaywireVM:
         # Update context with current node
         exec_ctx.node = node
 
-        data_flow = node_info.localized_data_flow
-        if data_flow:
+        if node_info.localized_data_flow:
             # >>>>>>>>>>>
             # 1. Evaluate localized data flow
-            self._evaluate_data_flow(data_flow, exec_ctx, flow.shared_node_ids)
+            self._evaluate_data_flow(
+                node_info.localized_data_flow,
+                exec_ctx,
+                flow.shared_node_ids,
+            )
             # >>>>>>>>>>>
             if exec_ctx.cancel is not None and exec_ctx.cancel.is_set():
                 return None
-            # A control node whose data inlets are poisoned does not run; the branch ends as for None.
-            if failure_counts.flagged and self._is_poisoned(node, data_flow, exec_ctx):
+            # A data node raised: the control node does not run on what it left behind.
+            if exec_ctx.bail is not None:
                 return None
 
         exec_ctx.exec_count += 1
@@ -316,8 +345,6 @@ class HaywireVM:
         except Exception as e:
             self._fail(e, node, exec_ctx)
             return None
-        if failure_counts.flagged:
-            self._clear_flags(node, exec_ctx)
         # >>>>>>>>>>>
 
         return next_outlet_id
@@ -403,8 +430,7 @@ class HaywireVM:
         Executes data nodes in sequence to update inlet values
         for the control node. A shared data node runs under its wrapper's
         ``exec_lock``: a group arriving while another computes it waits, then
-        finds it clean and reads the fresh outlet. A data node with a failed or
-        blocked data source is blocked instead of run (ADR 0066).
+        finds it clean and reads the fresh outlet.
 
         Args:
             data_flow: LocalizedDataFlow to evaluate
@@ -414,74 +440,18 @@ class HaywireVM:
         for data_node in data_flow.execution_sequence:
             exec_ctx.exec_count += 1
 
-            # Hot path: one integer test while no node is failed or blocked.
-            if failure_counts.flagged:
-                if self._is_poisoned(data_node, data_flow, exec_ctx):
-                    continue
-                if shared_node_ids and data_node.node_id in shared_node_ids:
-                    # Clears the node's flags itself, while it still holds the node's exec_lock.
-                    if self._execute_shared_data_node(data_node, exec_ctx) is None:
-                        return
-                elif self._execute_data_node(data_node, exec_ctx):
-                    self._clear_flags(data_node, exec_ctx)
-                continue
-
             # Hot path: an unshared data node takes no lock and no context manager.
             if shared_node_ids and data_node.node_id in shared_node_ids:
-                if self._execute_shared_data_node(data_node, exec_ctx) is None:
+                if not self._acquire_exec_lock(data_node, exec_ctx.cancel):
                     return
+                try:
+                    ok = self._execute_data_node(data_node, exec_ctx)
+                finally:
+                    data_node.wrapper.exec_lock.release()
             else:
-                self._execute_data_node(data_node, exec_ctx)
-
-    def _execute_shared_data_node(self, data_node: BaseNode, exec_ctx: ExecutionContext) -> Optional[bool]:
-        """Run a shared data node under its wrapper's ``exec_lock``.
-
-        Returns whether it returned normally, or ``None`` when the frame was cancelled
-        while waiting for the lock. A normal return clears the node's failed and blocked
-        flags before the lock is released, so a group taking the lock next sees the node
-        as this run left it.
-        """
-        if not self._acquire_exec_lock(data_node, exec_ctx.cancel):
-            return None
-        try:
-            ok = self._execute_data_node(data_node, exec_ctx)
-            if ok and failure_counts.flagged:
-                self._clear_flags(data_node, exec_ctx)
-            return ok
-        finally:
-            data_node.wrapper.exec_lock.release()
-
-    def _clear_flags(self, node: BaseNode, exec_ctx: ExecutionContext) -> None:
-        """Clear ``node``'s failed and blocked flags after a normal run."""
-        node._clear_failed()
-        if node._clear_blocked():
-            self._note_blocked_change(exec_ctx, node)
-
-    def _is_poisoned(
-        self,
-        node: BaseNode,
-        data_flow: LocalizedDataFlow,
-        exec_ctx: ExecutionContext,
-    ) -> bool:
-        """Block ``node`` if a data source of it is failed or blocked; return whether it was.
-
-        Sources come before ``node`` in the pass, so a blocked source was blocked again
-        (or cleared) in this pass; one outside the pass (a control node) is blocked until
-        it next runs. A blocked node keeps its dirty ports, is recorded in
-        ``exec_ctx.failures``, and shows a warning naming the failed node behind it.
-        """
-        for source in data_flow.upstream.get(node.node_id, ()):
-            if source._failed:
-                root = source
-            elif source._blocked and source._blocked_root is not None:
-                root = source._blocked_root
-            else:
-                continue
-            exec_ctx.failures.append((node.node_id, "blocked"))
-            if node._mark_blocked(root):
-                self._note_blocked_change(exec_ctx, node)
-            return True
-        return False
+                ok = self._execute_data_node(data_node, exec_ctx)
+            if not ok:
+                return  # the frame bails; the rest of this data flow would only feed the skipped node
 
     def _execute_data_node(self, data_node: BaseNode, exec_ctx: ExecutionContext) -> bool:
         """Run ``data_node``; return whether it returned normally (a raise is recorded, not raised)."""
@@ -493,29 +463,17 @@ class HaywireVM:
         return True
 
     def _fail(self, exception: Exception, node: BaseNode, exec_ctx: ExecutionContext) -> None:
-        """Record a worker failure: the node is failed, its resolved ports dirty again, the error stored."""
-        node._restore_dirty_ports()
-        node._mark_failed()
-        if node._clear_blocked():
-            self._note_blocked_change(exec_ctx, node)
-        exec_ctx.failures.append((node.node_id, exception))
+        """Record a worker exception and set how far the frame bails (ADR 0066).
+
+        The node's data inlets are marked dirty again, so the next evaluation retries it.
+        """
+        for port in node.ports.values():
+            if port.is_dependent and port.is_inlet():
+                node.mark_port_as_dirty(port)
+        exec_ctx.failures.append((node, exception))
         self.catch_exception(exception, node, "Node Execution")
-
-    @staticmethod
-    def _note_blocked_change(exec_ctx: ExecutionContext, node: BaseNode) -> None:
-        """Remember that ``node``'s blocked state changed, for the warning sync at the end of the frame."""
-        if exec_ctx.blocked_changed is None:
-            exec_ctx.blocked_changed = []
-        exec_ctx.blocked_changed.append(node)
-
-    @staticmethod
-    def _sync_blocked_warnings(exec_ctx: ExecutionContext) -> None:
-        """Show or drop each changed node's ``blocked`` warning once, as it stands at the frame's end."""
-        if exec_ctx.blocked_changed is None:
-            return
-        for node in dict.fromkeys(exec_ctx.blocked_changed):
-            node.wrapper._sync_blocked_warning(node._blocked_message if node._blocked else None)
-        exec_ctx.blocked_changed = None
+        policy = self._exception_bail() if self._exception_bail is not None else "branch"
+        exec_ctx.bail = policy if policy in ("run", "frame", "branch") else "branch"
 
     def emit_callback(self, event_name: str, payload: Optional[Dict[str, Any]] = None) -> None:
         """

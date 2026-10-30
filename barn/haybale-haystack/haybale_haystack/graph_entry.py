@@ -152,7 +152,12 @@ class GraphEntry(GraphContainer):
             )
 
         library_state_container = get_library_state_container()
-        interpreter = Interpreter(library_state_container=library_state_container)
+        interpreter = Interpreter(
+            library_state_container=library_state_container,
+            exception_bail=lambda: self.run_settings.on_exception_bail,
+            # Stopping waits for the runner threads, so it cannot run on the runner that bailed.
+            on_bail_run=lambda: self.graph._validation.call_soon(self._stop_after_bail),
+        )
         try:
             interpreter.load_graph(self.graph)
         except RuntimeError as exc:
@@ -178,6 +183,14 @@ class GraphEntry(GraphContainer):
         if result.ok:
             self.start()
         return result
+
+    def _stop_after_bail(self) -> None:
+        """Stop the run after a worker exception bailed it, and tell every session's haystack UI."""
+        if self.haystack is None:
+            self.stop_execution()
+            return
+        self.haystack.stop_execution(self)
+        self.haystack._broadcast_data_mutated()
 
     def stop_execution(self) -> None:
         """Stop execution and shut down the Interpreter."""

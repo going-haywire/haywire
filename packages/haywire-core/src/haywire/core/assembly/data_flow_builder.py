@@ -56,7 +56,6 @@ class DataFlowBuilder:
 
         if not data_inlets:
             logger.debug(f"No data inlets on {control_node.node_id}")
-            data_flow.upstream = {control_node.node_id: ()}
             return data_flow  # No data dependencies
 
         # Backpropagate from each inlet
@@ -83,27 +82,9 @@ class DataFlowBuilder:
             for node_id in execution_sequence
             if (wrapper := graph.get_node_wrapper(node_id)) is not None
         ]
-        data_flow.upstream = {
-            node.node_id: DataFlowBuilder._data_sources(node, graph)
-            for node in (*data_flow.execution_sequence, control_node)
-        }
         logger.debug(f"Localized data flow built: {len(execution_sequence)} nodes")
 
         return data_flow
-
-    @staticmethod
-    def _data_sources(node: "BaseNode", graph: "BaseGraph") -> tuple["BaseNode", ...]:
-        """Return the nodes feeding ``node``'s data inlets, each once, in inlet order."""
-        sources: dict[str, "BaseNode"] = {}
-        for port in node.ports.values():
-            if not (port.is_dependent and port.is_inlet()):
-                continue
-            # Inlet side, like _backpropagate: a FlatGraphView splices Group crossings only there.
-            for edge in graph._get_edge_wrappers_for_port(node.node_id, port.id, incoming=True):
-                wrapper = graph.get_node_wrapper(edge.source_node_id)
-                if wrapper is not None and edge.source_node_id not in sources:
-                    sources[edge.source_node_id] = wrapper.node
-        return tuple(sources.values())
 
     @staticmethod
     def _backpropagate(
