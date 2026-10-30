@@ -1,6 +1,6 @@
 import pytest
 
-from haywire.core.volumes import VolumePath
+from haywire.core.volumes import PROJECT_KEY, VolumePath
 
 pytestmark = pytest.mark.integration
 
@@ -30,8 +30,8 @@ def test_round_trip_keeps_relative_verbatim(library_system):
 
 def test_default_is_project_root(library_system):
     path_cls, _, _ = _types(library_system)
-    assert path_cls.class_identity.default == {"value": {"volume": "project", "relative": ""}}
-    assert path_cls.from_dict({"value": {}}) == VolumePath("project", "")
+    assert path_cls.class_identity.default == {"value": {"volume": PROJECT_KEY, "relative": ""}}
+    assert path_cls.from_dict({"value": {}}) == VolumePath(PROJECT_KEY, "")
 
 
 def test_hierarchy(library_system):

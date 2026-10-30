@@ -15,8 +15,9 @@ from haywire.barn.builtin.types.path import FILE_PATH, FOLDER_PATH, PATH
 from haywire.barn.builtin.widgets.path_widget import PathWidget
 from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
-from haywire.core.volumes import VolumePath, VolumeStore, set_volume_store
-from haywire.core.volumes import volume as volume_mod
+from haywire.core.volumes import PROJECT_KEY, VolumePath, VolumeStore, set_volume_store
+
+SCANS = "user:volume:scans"
 
 
 @pytest.fixture(autouse=True)
@@ -27,12 +28,10 @@ def volume_store(tmp_path: Path) -> Any:
     set_volume_store(None)
 
 
-@pytest.fixture(autouse=True)
-def volume_registry() -> Any:
-    snapshot = dict(volume_mod._VOLUME_BY_NAME)
-    yield
-    volume_mod._VOLUME_BY_NAME.clear()
-    volume_mod._VOLUME_BY_NAME.update(snapshot)
+def _put(store: VolumeStore, name: str, root: Path, label: str | None = None) -> str:
+    key = f"user:volume:{name}"
+    store.add(key, label=label or name, description="", location=root)
+    return key
 
 
 @pytest.fixture
@@ -66,7 +65,7 @@ def _scans(tmp_path: Path, store: VolumeStore) -> Path:
     (root / "day1" / "a.png").write_text("x")
     (root / "day1" / "notes.txt").write_text("x")
     (root / "top.PNG").write_text("x")
-    store.set("scans", root)
+    store.add(SCANS, label="Scans", description="", location=root)
     return root
 
 
@@ -102,32 +101,32 @@ def _labels(nodes: list[dict]) -> list[str]:
 @pytest.mark.anyio
 async def test_choosing_a_volume_keeps_relative(user: User, tmp_path: Path, volume_store) -> None:
     _scans(tmp_path, volume_store)
-    port = _port(VolumePath("project", "sub/a.png"))
+    port = _port(VolumePath(PROJECT_KEY, "sub/a.png"))
     await _open(user, port)
 
     select = cast(ui.select, user.find(marker="path-volume").elements.pop())
-    assert cast(dict, select.options)["project"] == "Project"
-    assert cast(dict, select.options)["scans"] == "scans"
-    select.value = "scans"  # what a pick in the dropdown does server-side
+    assert cast(dict, select.options)[PROJECT_KEY] == "Project"
+    assert cast(dict, select.options)[SCANS] == "Scans"
+    select.value = SCANS  # what a pick in the dropdown does server-side
 
-    assert port.get_value() == VolumePath("scans", "sub/a.png")
+    assert port.get_value() == VolumePath(SCANS, "sub/a.png")
 
 
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_typing_relative_is_kept_verbatim(user: User) -> None:
-    port = _port(VolumePath("project", ""))
+    port = _port(VolumePath(PROJECT_KEY, ""))
     await _open(user, port)
 
     user.find(marker="path-relative").trigger("update:value", "sub\\odd/../x.png")
 
-    assert port.get_value() == VolumePath("project", "sub\\odd/../x.png")
+    assert port.get_value() == VolumePath(PROJECT_KEY, "sub\\odd/../x.png")
 
 
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_status_names_an_undefined_volume(user: User) -> None:
-    port = _port(VolumePath("scans", "a.png"))
+    port = _port(VolumePath(SCANS, "a.png"))
     await _open(user, port)
 
     assert _status(user) == "volume 'scans' is not defined on this machine"
@@ -135,10 +134,38 @@ async def test_status_names_an_undefined_volume(user: User) -> None:
 
 @pytest.mark.unit
 @pytest.mark.anyio
+async def test_an_unknown_volume_stays_selected_under_its_name(user: User) -> None:
+    port = _port(VolumePath(SCANS, "a.png"))
+    await _open(user, port)
+
+    select = cast(ui.select, user.find(marker="path-volume").elements.pop())
+    assert select.value == SCANS
+    assert cast(dict, select.options)[SCANS] == "scans"
+    assert port.get_value() == VolumePath(SCANS, "a.png")
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_opening_the_dropdown_lists_a_volume_added_meanwhile(
+    user: User, tmp_path: Path, volume_store
+) -> None:
+    port = _port(VolumePath(PROJECT_KEY, ""))
+    await _open(user, port)
+    _scans(tmp_path, volume_store)
+
+    # NiceGUI registers Quasar's popup-show as popupShow.
+    user.find(marker="path-volume").trigger("popupShow")
+
+    select = cast(ui.select, user.find(marker="path-volume").elements.pop())
+    assert cast(dict, select.options)[SCANS] == "Scans"
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
 async def test_status_names_a_missing_location(user: User, tmp_path: Path, volume_store) -> None:
     missing = tmp_path / "unplugged"
-    volume_store.set("drive", missing)
-    port = _port(VolumePath("drive", "a.png"))
+    _put(volume_store, "drive", missing)
+    port = _port(VolumePath("user:volume:drive", "a.png"))
     await _open(user, port)
 
     assert _status(user) == f"location missing: {missing}"
@@ -148,7 +175,7 @@ async def test_status_names_a_missing_location(user: User, tmp_path: Path, volum
 @pytest.mark.anyio
 async def test_status_shows_an_escape_without_raising(user: User, tmp_path: Path, volume_store) -> None:
     _scans(tmp_path, volume_store)
-    port = _port(VolumePath("scans", "../outside.png"))
+    port = _port(VolumePath(SCANS, "../outside.png"))
     await _open(user, port)
 
     assert "escapes its volume" in _status(user)
@@ -158,10 +185,10 @@ async def test_status_shows_an_escape_without_raising(user: User, tmp_path: Path
 @pytest.mark.anyio
 async def test_status_follows_a_model_change(user: User, tmp_path: Path, volume_store) -> None:
     root = _scans(tmp_path, volume_store)
-    port = _port(VolumePath("nowhere", ""))
+    port = _port(VolumePath("user:volume:nowhere", ""))
     await _open(user, port)
 
-    port.set_value(VolumePath("scans", "day1/a.png"))
+    port.set_value(VolumePath(SCANS, "day1/a.png"))
 
     assert _status(user) == str((root / "day1" / "a.png").resolve())
 
@@ -170,7 +197,7 @@ async def test_status_follows_a_model_change(user: User, tmp_path: Path, volume_
 @pytest.mark.anyio
 async def test_folder_mode_browses_folders_only(user: User, tmp_path: Path, volume_store) -> None:
     _scans(tmp_path, volume_store)
-    port = _port(VolumePath("scans", ""), {"mode": "folder"})
+    port = _port(VolumePath(SCANS, ""), {"mode": "folder"})
     await _open(user, port)
 
     user.find(marker="path-browse").click()
@@ -182,22 +209,22 @@ async def test_folder_mode_browses_folders_only(user: User, tmp_path: Path, volu
 @pytest.mark.anyio
 async def test_folder_pick_sets_relative_on_confirm(user: User, tmp_path: Path, volume_store) -> None:
     root = _scans(tmp_path, volume_store)
-    port = _port(VolumePath("scans", ""), {"mode": "folder"})
+    port = _port(VolumePath(SCANS, ""), {"mode": "folder"})
     await _open(user, port)
 
     user.find(marker="path-browse").click()
     user.find(kind=ui.tree).trigger("update:selected", str(root / "day1"))
-    await user.should_see(marker="path-picked", content="scans:day1")
+    await user.should_see(marker="path-picked", content="Scans:day1")
     user.find(kind=ui.button, content="Select").click()
 
-    assert port.get_value() == VolumePath("scans", "day1")
+    assert port.get_value() == VolumePath(SCANS, "day1")
 
 
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_file_mode_hides_other_extensions(user: User, tmp_path: Path, volume_store) -> None:
     _scans(tmp_path, volume_store)
-    port = _port(VolumePath("scans", ""), {"mode": "file", "extensions": [".png"]})
+    port = _port(VolumePath(SCANS, ""), {"mode": "file", "extensions": [".png"]})
     await _open(user, port)
 
     user.find(marker="path-browse").click()
@@ -209,20 +236,20 @@ async def test_file_mode_hides_other_extensions(user: User, tmp_path: Path, volu
 @pytest.mark.anyio
 async def test_file_pick_sets_the_posix_relative(user: User, tmp_path: Path, volume_store) -> None:
     root = _scans(tmp_path, volume_store)
-    port = _port(VolumePath("scans", ""), {"mode": "file"})
+    port = _port(VolumePath(SCANS, ""), {"mode": "file"})
     await _open(user, port)
 
     user.find(marker="path-browse").click()
     user.find(kind=ui.tree).trigger("update:selected", str(root / "day1" / "a.png"))
 
-    assert port.get_value() == VolumePath("scans", "day1/a.png")
+    assert port.get_value() == VolumePath(SCANS, "day1/a.png")
 
 
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_save_mode_joins_folder_and_name(user: User, tmp_path: Path, volume_store) -> None:
     root = _scans(tmp_path, volume_store)
-    port = _port(VolumePath("scans", ""), {"mode": "save"})
+    port = _port(VolumePath(SCANS, ""), {"mode": "save"})
     await _open(user, port)
 
     user.find(marker="path-browse").click()
@@ -230,7 +257,7 @@ async def test_save_mode_joins_folder_and_name(user: User, tmp_path: Path, volum
     cast(Any, user.find(marker="path-save-name").elements.pop()).value = "out.png"
     user.find(kind=ui.button, content="Select").click()
 
-    assert port.get_value() == VolumePath("scans", "day1/out.png")
+    assert port.get_value() == VolumePath(SCANS, "day1/out.png")
 
 
 @pytest.mark.integration
@@ -263,8 +290,8 @@ async def test_browse_loads_three_levels_and_skips_excluded(
     (root / "a" / "b" / "c" / "d").mkdir(parents=True)
     (root / "a" / "b" / "c" / "d" / "deep.txt").write_text("x")
     (root / "node_modules" / "pkg").mkdir(parents=True)
-    volume_store.set("big", root)
-    port = _port(VolumePath("big", ""), {"mode": "folder"})
+    _put(volume_store, "big", root)
+    port = _port(VolumePath("user:volume:big", ""), {"mode": "folder"})
     await _open(user, port)
 
     user.find(marker="path-browse").click()

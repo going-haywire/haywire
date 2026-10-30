@@ -3,11 +3,20 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from nicegui import ui
 
-from haywire.core.volumes import VolumeError, VolumePath, list_volumes, location_of, resolve
+from haywire.core.volumes import (
+    PROJECT_KEY,
+    VolumeError,
+    VolumePath,
+    VolumeUndefinedError,
+    list_volumes,
+    location_of,
+    resolve,
+    volume_name,
+)
 from haywire.ui import elements as hui
 from haywire.ui.elements import FolderTreeModel, folder_tree
 from haywire.ui.elements.folder_tree import DEFAULT_EXCLUDE_DIRS
@@ -19,7 +28,7 @@ _MODES = ("file", "folder", "save")
 
 @widget(description="Pick a file or folder inside a volume")
 class PathWidget(BaseWidget):
-    """Pick a file or folder inside a volume such as `project`, `home` or `models`.
+    """Pick a file or folder inside a volume such as the project folder or `models`.
 
     Choose the volume, then type the path inside it or browse to it. The line
     below shows where the path points on this machine, or what is wrong: a
@@ -57,6 +66,8 @@ class PathWidget(BaseWidget):
                     .mark("path-volume")
                 )
                 self._select.on_value_change(self._on_volume_picked)
+                # Volumes added in the Volumes editor show up the next time the list opens.
+                self._select.on("popup-show", lambda _e: self._refresh_options())
                 self._input = (
                     ui.input(value="", placeholder="path inside the volume")
                     .classes("flex-1 min-w-0")
@@ -80,9 +91,7 @@ class PathWidget(BaseWidget):
     def on_model_changed(self, value: Any) -> None:
         """Show *value* in the select, the path field and the status line."""
         path = self._current(value)
-        options = {s.name: s.label for s in list_volumes()}
-        options.setdefault(path.volume, path.volume)
-        self._select.set_options(options, value=path.volume)
+        self._refresh_options(path.volume)
         if self._input.value != path.relative:
             self._input.value = path.relative
         text, ok = self._status_of(path)
@@ -93,9 +102,17 @@ class PathWidget(BaseWidget):
         )
         self._browse.set_enabled(self._location(path.volume) is not None)
 
+    def _refresh_options(self, selected: str | None = None) -> None:
+        """List every volume by label; a value's unknown volume stays listed under its name."""
+        if selected is None:
+            selected = self._current(self.get_value()).volume
+        options = {s.key: s.label for s in list_volumes()}
+        options.setdefault(selected, volume_name(selected))
+        self._select.set_options(options, value=selected)
+
     @staticmethod
     def _current(value: Any) -> VolumePath:
-        return value if isinstance(value, VolumePath) else VolumePath("project", "")
+        return value if isinstance(value, VolumePath) else VolumePath(PROJECT_KEY, "")
 
     @staticmethod
     def _location(volume: str) -> Path | None:
@@ -114,6 +131,8 @@ class PathWidget(BaseWidget):
             if not location.exists():
                 return f"location missing: {location}", False
             return str(resolve(path)), True
+        except VolumeUndefinedError as exc:
+            return f"volume '{volume_name(exc.volume)}' is not defined on this machine", False
         except VolumeError as exc:
             return str(exc), False
 
@@ -135,6 +154,7 @@ class PathWidget(BaseWidget):
 
     def _open_browser(self) -> None:
         volume = self._current(self.get_value()).volume
+        shown = cast(dict, self._select.options).get(volume, volume_name(volume))
         root = self._location(volume)
         if root is None:
             return
@@ -162,7 +182,7 @@ class PathWidget(BaseWidget):
                 name.value = path.name
                 path = path.parent
             picked["folder"] = relative(path)
-            picked_label.text = f"{volume}:{picked['folder'] or '/'}"
+            picked_label.text = f"{shown}:{picked['folder'] or '/'}"
 
         def confirm() -> None:
             target = picked["folder"]
@@ -176,12 +196,12 @@ class PathWidget(BaseWidget):
 
         # Parented to the widget root so the dialog goes away with the widget.
         with self._root, ui.dialog() as dialog, hui.dialog_card("w-[480px]"):
-            hui.heading(f"Browse {volume}")
+            hui.heading(f"Browse {shown}")
             with ui.scroll_area().classes("w-full h-72"):
                 folder_tree(model, on_select=on_pick)
             with ui.row().classes("w-full flex-nowrap items-center gap-1") as picked_row:
                 hui.hint("Selected:")
-                picked_label = hui.hint(f"{volume}:/").classes("font-mono truncate").mark("path-picked")
+                picked_label = hui.hint(f"{shown}:/").classes("font-mono truncate").mark("path-picked")
             name = hui.input_field(label="File name").mark("path-save-name")
             picked_row.set_visibility(self._mode != "file")
             name.set_visibility(self._mode == "save")
