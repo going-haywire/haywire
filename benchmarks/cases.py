@@ -158,6 +158,142 @@ def _prepare_node_execute_bare() -> Prepared:
 
 
 # ---------------------------------------------------------------------------
+# failure-path cases (S2, failure poisoning)
+#
+# One control node (BenchSinkNode) whose localized data flow is a 32-node chain of
+# BenchDataPassNode plus a fan-in joining node 16 and node 32. The root's own inlet
+# is set every run so the whole chain is dirty and evaluates each frame.
+# ---------------------------------------------------------------------------
+_CHAIN_LENGTH = 32
+_HALF_LOOP_END = 500
+
+
+def _fire_only_flow(graph):
+    """Assemble ``graph``; return a callable firing its busiest flow and that flow's exec count."""
+    from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager
+    from haywire.core.execution.event_source import Trigger
+    from haywire.core.execution.vm import HaywireVM
+
+    graph.force_validation()
+    flows = FlowAssemblyManager().assemble_graph(graph)
+    vm = HaywireVM()
+
+    def fire_one(flow) -> int:
+        trig = Trigger(source_key=flow.get_subscription_key(), payload={}, timestamp=0.0)
+        return vm.execute_control_flow(flow, trig)
+
+    flow = max(flows, key=fire_one)
+    return (lambda: fire_one(flow)), fire_one(flow)
+
+
+def _build_chain_graph(root_raises: bool):
+    from haybale_core.nodes.events.begin_play import BeginPlayNode
+    from haybale_testing.nodes.benchmark.bench_data_pass_node import BenchDataPassNode
+    from haybale_testing.nodes.benchmark.bench_data_raise_node import BenchDataRaiseNode
+    from haybale_testing.nodes.benchmark.bench_fan_in_node import BenchFanInNode
+    from haybale_testing.nodes.benchmark.bench_sink_node import BenchSinkNode
+
+    from haywire.core.graph.base import BaseGraph
+
+    graph = BaseGraph(filestem="bench chain")
+
+    def make(cls) -> str:
+        nw = graph.create_node_wrapper(cls.class_identity.registry_key, position=(0, 0))
+        assert nw is not None, f"failed to create benchmark node {cls.__name__}"
+        return nw.node_id
+
+    begin, sink, fan_in = make(BeginPlayNode), make(BenchSinkNode), make(BenchFanInNode)
+    chain = [
+        make(BenchDataRaiseNode if (root_raises and i == 0) else BenchDataPassNode)
+        for i in range(_CHAIN_LENGTH)
+    ]
+    graph.create_edge_wrapper(begin, "exec", sink, "exec_in")
+    for upstream, downstream in zip(chain, chain[1:], strict=False):
+        graph.create_edge_wrapper(upstream, "y", downstream, "x")
+    graph.create_edge_wrapper(chain[_CHAIN_LENGTH // 2 - 1], "y", fan_in, "a")
+    graph.create_edge_wrapper(chain[-1], "y", fan_in, "b")
+    graph.create_edge_wrapper(fan_in, "y", sink, "x")
+    return graph, graph.get_node_wrapper(chain[0]).node
+
+
+def _prepare_chain(root_raises: bool) -> Prepared:
+    graph, root = _build_chain_graph(root_raises)
+    fire, node_count = _fire_only_flow(graph)
+    counter = {"i": 0}
+
+    def run() -> None:
+        counter["i"] += 1
+        root.ports["x"].set_value(float(counter["i"]))
+        fire()
+
+    return Prepared(run=run, ops=max(node_count, _CHAIN_LENGTH + 2), repeats=15, warmup=5)
+
+
+def _prepare_graph_data_chain_ok() -> Prepared:
+    return _prepare_chain(root_raises=False)
+
+
+def _prepare_graph_data_chain_root_fails() -> Prepared:
+    return _prepare_chain(root_raises=True)
+
+
+def _prepare_graph_loop_half_failing() -> Prepared:
+    from haybale_core.nodes.events.begin_play import BeginPlayNode
+    from haybale_core.nodes.for_loop import ForLoopNode
+    from haybale_testing.nodes.benchmark.bench_loop_raise_node import BenchLoopRaiseNode
+    from haybale_testing.nodes.benchmark.bench_sink_node import BenchSinkNode
+
+    from haywire.core.graph.base import BaseGraph
+
+    graph = BaseGraph(filestem="bench loop half failing")
+    ids = {}
+    for short, cls in {
+        "begin": BeginPlayNode,
+        "loop": ForLoopNode,
+        "raise": BenchLoopRaiseNode,
+        "sink": BenchSinkNode,
+    }.items():
+        nw = graph.create_node_wrapper(cls.class_identity.registry_key, position=(0, 0))
+        assert nw is not None, f"failed to create benchmark node {cls.__name__}"
+        ids[short] = nw.node_id
+    graph.create_edge_wrapper(ids["begin"], "exec", ids["loop"], "execute")
+    graph.create_edge_wrapper(ids["loop"], "loop_body", ids["sink"], "exec_in")
+    graph.create_edge_wrapper(ids["loop"], "index", ids["raise"], "x")
+    graph.create_edge_wrapper(ids["raise"], "y", ids["sink"], "x")
+    graph.get_node_wrapper(ids["loop"]).node.ports["end"].set_value(_HALF_LOOP_END)
+    fire, _node_count = _fire_only_flow(graph)
+    # Fixed per-iteration count (loop node, data node, sink) plus BeginPlay and the loop's exit:
+    # a blocked sink does not execute, so counting executions would shrink the denominator.
+    return Prepared(run=fire, ops=3 * _HALF_LOOP_END + 2, repeats=15, warmup=5)
+
+
+def _prepare_node_execute_raises() -> Prepared:
+    from haybale_testing.nodes.benchmark.bench_data_raise_node import BenchDataRaiseNode, BenchFailure
+
+    from haywire.core.execution.execution_context import ExecutionContext
+    from haywire.core.graph.base import BaseGraph
+
+    graph = BaseGraph(filestem="bench raises")
+    nw = graph.create_node_wrapper(BenchDataRaiseNode.class_identity.registry_key, position=(0, 0))
+    assert nw is not None, "failed to create BenchDataRaiseNode"
+    graph.force_validation()
+    node = nw.node
+    port = node.ports["x"]
+    ctx = ExecutionContext(global_ctx={}, local_ctx={})
+    inner = 2000
+
+    def run() -> None:
+        for i in range(inner):
+            port.set_value(float(i))  # dirty the inlet so every call reaches the worker
+            try:
+                node._execute(ctx)
+            except BenchFailure:
+                pass
+
+    return Prepared(run=run, ops=inner, repeats=15, warmup=5)
+
+
+# ---------------------------------------------------------------------------
 # micro cases: ImageValue storage conversions (haybale-image)
 #
 # Each run() wraps a fresh value so the per-value cache never hides the
@@ -335,6 +471,10 @@ def _image_cases() -> List[Case]:
 CASES: List[Case] = [
     Case("graph_loop", "graph", "ns", _prepare_graph_loop),
     Case("node_execute_bare", "micro", "ns", _prepare_node_execute_bare),
+    Case("graph_data_chain_ok", "graph", "ns", _prepare_graph_data_chain_ok),
+    Case("graph_data_chain_root_fails", "graph", "ns", _prepare_graph_data_chain_root_fails),
+    Case("graph_loop_half_failing", "graph", "ns", _prepare_graph_loop_half_failing),
+    Case("node_execute_raises", "micro", "ns", _prepare_node_execute_raises),
     *_image_cases(),
 ]
 

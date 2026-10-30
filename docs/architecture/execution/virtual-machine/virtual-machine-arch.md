@@ -21,6 +21,8 @@ see-also:
 
 **Scope.** VM stacks, execution context, pause/resume, control-flow translation.
 
+What the VM does when a worker raises is written up in [failed and blocked nodes](../failures/failures-arch.md).
+
 ## Source material
 
 When migrating, draw from:

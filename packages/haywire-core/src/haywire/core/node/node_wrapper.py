@@ -771,6 +771,26 @@ class NodeWrapper:
         else:
             self._state.error_runtime = error
 
+    def clear_failure_flags(self) -> None:
+        """Clear the node's failed and blocked flags, e.g. when it leaves its graph (ADR 0066)."""
+        node = self._node_instance
+        if node is not None:
+            node._clear_failed()
+            node._clear_blocked()
+
+    def _sync_blocked_warning(self, message: Optional[str]) -> None:
+        """Show the ``blocked`` warning with ``message``, or none for ``None``; redraw only on a change.
+
+        See ADR 0066.
+        """
+        current = next((w.message for w in self._state.warnings if w.kind == "blocked"), None)
+        if current == message:
+            return
+        self._state.warnings[:] = [w for w in self._state.warnings if w.kind != "blocked"]
+        if message is not None:
+            self._state.add_warning(NodeWarning(message=message, source_version=None, kind="blocked"))
+        self.redraw()
+
     def clear_runtime_errors(self) -> None:
         """Clear all runtime errors and trigger redraw if any existed"""
         if self._state.error_runtime is not None:

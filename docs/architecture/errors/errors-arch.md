@@ -69,6 +69,8 @@ Each boundary calls `report_failure` and then does what it did before: return `F
 
 Node build stages, edges, the VM, assembly, library scans and widget and editor construction log their own `HaywireException`s with richer context; a boundary that catches one of those adds nothing twice (see §4).
 
+A worker's exception is recorded by the VM, which also marks the node failed and blocks the nodes reading its data; see [failed and blocked nodes](../execution/failures/failures-arch.md).
+
 **Actions.** `ActionBase.execute` and `undo` (`packages/haywire-core/src/haywire/core/undo/base_action.py`) re-raise a `Refusal` unchanged and wrap anything else in `RuntimeError`, so a refusal raised inside an action still reaches the history boundary as a refusal.
 
 **Farmhand.** A failure's error line ends in `(ledger_seq=<n>)`, so the agent can point the user at the entry; `_format_tool_error` in `host.py` renders all three forms.

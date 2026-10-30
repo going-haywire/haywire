@@ -502,6 +502,9 @@ class BaseGraph:
         connected_edges = self._get_all_edges(node_id)
 
         wrapper = self.node_wrappers.pop(node_id)
+        # The wrapper lives on in the undo history; a failed or blocked node out of the graph
+        # must not keep the VM's process-wide failure count up. Undoing brings it back dirty.
+        wrapper.clear_failure_flags()
 
         wrapper.set_as_registered(False)
 

@@ -129,6 +129,18 @@ HAYWIRE_BENCH_SR_MODEL=/path/to/RealESRGANv2-animevideo-xsx2.pth \
   uv run --with torch --with spandrel python benchmarks/run.py img_
 ```
 
+## Failure-path cases
+
+These cases measure what a raising node costs (ADR 0066, failure poisoning). All
+use frozen nodes from `nodes/benchmark/`:
+
+| case | what it runs |
+|---|---|
+| `graph_data_chain_ok` | one control node (`BenchSinkNode`) whose data flow is a 32-node chain of `BenchDataPassNode` plus a fan-in; every node succeeds. The root's inlet is set before each frame, so the whole chain evaluates. Measures the per-node check in the happy path |
+| `graph_data_chain_root_fails` | the same topology with `BenchDataRaiseNode` as the root: the exception path, the dirty re-insert and the blocking of everything downstream |
+| `graph_loop_half_failing` | a ForLoop (500 iterations) whose body's data node (`BenchLoopRaiseNode`) raises on every odd index |
+| `node_execute_raises` | micro: `_execute` on a `BenchDataRaiseNode` with a dirty inlet, 2000 calls |
+
 ## Adding a case
 
 1. If it needs a node or graph, add a **frozen** one (new file in

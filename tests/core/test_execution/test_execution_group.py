@@ -38,6 +38,11 @@ class _Node:
     on_shutdown = BaseNode.on_shutdown
     on_frame_start = BaseNode.on_frame_start
     on_frame_end = BaseNode.on_frame_end
+    # The VM's failure bookkeeping (ADR 0066), borrowed like the hooks above.
+    _failed = False
+    _mark_failed = BaseNode._mark_failed
+    _clear_failed = BaseNode._clear_failed
+    _restore_dirty_ports = BaseNode._restore_dirty_ports
 
     def __init__(self, node_id: str):
         self.node_id = node_id

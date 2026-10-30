@@ -169,6 +169,17 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 - Out of first cut: adapter exceptions during transport; a general `accepts_failed` port
   capability for a future Try/Fallback node (never a per-node-kind gate).
 
+**S2 deviations from plan (2026-10-30)**
+
+- A failed node re-marks **all its inlets** dirty, not just the ports it had resolved: recording them cost ~4% on the happy path. On a retry `on_change` fires for unchanged inlets too.
+- The fast-path counts live in `haywire.core.execution.failures.failure_counts` (`failed`, `flagged` = failed or blocked), not on `BaseNode` (circular import from the VM).
+- Failure handling sits in the VM (`_fail`), not in `_execute`: a try block there cost +12% on `node_execute_bare`.
+- `blocked` warnings are synced once at the end of the frame; a redraw per toggle started a validation timer thread per loop iteration.
+- Acceptance as measured (interleaved, min of 3): `graph_loop` +2.1%, `graph_data_chain_ok` +1.2–3.5%, `node_execute_bare` +2.7% on byte-identical code (session noise), `node_execute_raises` −0.1%; `graph_data_chain_root_fails` +11% and `graph_loop_half_failing` +8% (the blocking bookkeeping, ~0.3 µs per blocked node vs ~1.5 µs to run one). "root_fails < chain_ok" cannot hold — the per-frame exception and logging dominate, and did before S2 too.
+- `on_error=continue|stop` tests move to S4 (`For Each File` does not exist yet); S2 tests the `failures` bookkeeping.
+- The shared-node case is tested as two flows on one VM sharing a failed source, not as threaded execution groups; the final review's cross-thread race (flags cleared after the lock was released) is fixed by clearing inside `exec_lock`, tested by spying the lock release.
+- A blocked node remembers the failed node behind it, so a blocked control node poisons its data outlet in other flows too (final review).
+
 **Hot-path budget & performance tests (mandatory for this slice).** The check runs once per data
 node per evaluation, so it must be ~free when nothing failed:
 - Fast path: a failure counter (flow- or pass-scoped) that is zero in the happy path — the
@@ -297,7 +308,7 @@ node per evaluation, so it must be ~free when nothing failed:
 | S0 | **spike:** IMAGE value class + accessors + benchmarks (camera frame u8 BGR → GPU fp16 → SR → display within 33 ms at 1080p) | haybale-image | — | done — gate met after tuning (778d98316, merged to master 2026-10-30) — plan removed after landing (git history) |
 | S1 | PATH types, volumes (née anchors), resolver, volumes.toml, picker, Volumes editor, CLI | haywire-core builtin + haybale-studio + CLI | — | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
 | S1b | the volumes file is the volume list (S1b-Q1–Q9) | haywire-core builtin + haybale-studio + CLI | S1 | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
-| S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | planned — [plan](2026-10-30-s2-failure-poisoning.md) |
+| S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | done (squashed on feat/s2-failure-poisoning, backup tag spandrel-s2-full, unmerged, 2026-10-30; live check pending) — [plan](2026-10-30-s2-failure-poisoning.md) |
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | open |
 | S5 | rest of haybale-image | haybale-image | S0, S1 | open |
 | S6 | haybale-models | haybale-models | S1 | open |

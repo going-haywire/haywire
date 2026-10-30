@@ -7,6 +7,7 @@ from abc import abstractmethod
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.node.properties import NodeProperties  # re-exported for type hints
 from ..execution.execution_context import ExecutionContext
+from ..execution.failures import failure_counts
 from .data import NodeData
 from haywire.core.settings import Settings
 
@@ -167,6 +168,72 @@ class BaseNode(NodeData):
             return self._parse_worker_result(result)  # raises ValueError
         return result
 
+    def _restore_dirty_ports(self) -> None:
+        """Mark every inlet dirty, so the next evaluation runs the node again after it raised.
+
+        Only inlets are ever dirty, so this covers whatever the failed run resolved;
+        the others resolve once more on the retry, which fires their ``on_change``
+        with the current value.
+        """
+        for port in self.ports.values():
+            if port.is_inlet():
+                self._has_dirty_ports.setdefault(port.id, port)
+
+    @property
+    def failed(self) -> bool:
+        """Whether the node's last run raised; it stays dirty until a run returns normally."""
+        return self._failed
+
+    def _mark_failed(self) -> None:
+        """Mark the node failed; its data consumers are blocked until it runs normally again."""
+        with failure_counts.lock:
+            if not self._failed:
+                self._failed = True
+                failure_counts.failed += 1
+                failure_counts.flagged += 1
+
+    def _clear_failed(self) -> None:
+        """Clear ``failed``; does nothing when the node is not failed."""
+        if not self._failed:
+            return
+        with failure_counts.lock:
+            if self._failed:
+                self._failed = False
+                failure_counts.failed -= 1
+                failure_counts.flagged -= 1
+
+    @property
+    def blocked(self) -> bool:
+        """Whether the node was skipped because a data source failed, and has not run since."""
+        return self._blocked
+
+    def _mark_blocked(self, root: "BaseNode") -> bool:
+        """Mark the node blocked by the failed node ``root``; return whether it was not already.
+
+        The card's warning, naming ``root``, is updated by the VM at the end of the frame.
+        """
+        if self._blocked:  # unlocked read: the common case while a source stays failed
+            return False
+        with failure_counts.lock:
+            if self._blocked:
+                return False
+            self._blocked = True
+            failure_counts.flagged += 1
+        self._blocked_root = root
+        self._blocked_message = f"skipped: {root.identity.label} failed"
+        return True
+
+    def _clear_blocked(self) -> bool:
+        """Clear ``blocked``; return whether it was set. The VM updates the card's warning."""
+        if not self._blocked:
+            return False
+        with failure_counts.lock:
+            if not self._blocked:
+                return False
+            self._blocked = False
+            failure_counts.flagged -= 1
+        return True
+
     @abstractmethod
     def worker(self, context: ExecutionContext, *args, **kwargs) -> str | None:
         """The node's execution logic. Every concrete node overrides it.
@@ -290,6 +357,9 @@ class BaseNode(NodeData):
 
     def _cleanup(self) -> None:
         """Clean up resources when node is destroyed."""
+        # A removed or rebuilt node must not keep the process-wide counts above zero.
+        self._clear_failed()
+        self._clear_blocked()
         # Isolated so a raising on_teardown() cannot block the store/settings
         # cleanup below, or the node could not be re-instantiated. After a failed
         # init() post_init() never ran, so teardown may hit unset attributes.

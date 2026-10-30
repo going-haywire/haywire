@@ -138,6 +138,7 @@ nav:
           - Flow: architecture/execution/flow/flow-arch.md
           - Virtual machine: architecture/execution/virtual-machine/virtual-machine-arch.md
           - Lazy evaluation: architecture/execution/lazy-evaluation/lazy-evaluation-arch.md
+          - Failed and blocked nodes: architecture/execution/failures/failures-arch.md
           - Callbacks: architecture/execution/callbacks/callbacks-arch.md
       - Library system: architecture/library-system/library-system-arch.md
       - Sharing — pipeline: architecture/sharing/share-pipeline-arch.md
