@@ -26,14 +26,14 @@ class RunButtonNode(BaseNode):
     `Trigger`. Every press of *Run* then starts each connected Tick Event's flow
     once; the Tick Event's *Delta Time* is the time since the previous press.
 
-    ```
+    ```text
     Begin Play → Start                 Tick Event.Listen → Trigger
                                        Tick Event → For Each File → …
     ```
 
-    The button works from *Start* until *Stop* or until the graph stops. Presses
-    made before the node picks them up count as one. A press made while the graph
-    is stopped shows as pending and is cleared when the graph starts again.
+    The button works from *Start* until *Stop* or until the graph stops. A press
+    made while the graph is stopped shows as pending and is cleared when the graph
+    starts again.
     """
 
     class button(NodeSettings):
@@ -57,14 +57,9 @@ class RunButtonNode(BaseNode):
         self.add(EXEC.as_outlet("stopped", label="Stopped"))
 
     def post_init(self) -> None:
-        self._thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
-        self._stop_event = threading.Event()
-        self._wake = threading.Event()
         self._context: Optional[ExecutionContext] = None
         self._last_emit: Optional[float] = None
-        # True from an emit until the posted release lands, so one press emits once.
-        self._consumed = False
         self._settings._subscribe_field("run", self._on_run_changed)
 
     @property
@@ -72,79 +67,33 @@ class RunButtonNode(BaseNode):
         return self.button
 
     def on_shutdown(self, context: ExecutionContext) -> None:
-        """Stop the button thread when the graph stops."""
-        self._stop_thread()
-
-    def on_teardown(self) -> None:
-        """Stop the button thread when the node is destroyed."""
-        self._stop_thread()
+        """Disarm the button when the graph stops."""
+        self._context = None
 
     def worker(self, context: ExecutionContext) -> Optional[str]:
         if context.control_pin == "start":
-            return self._handle_start(context)
+            with self._lock:
+                self._settings.run = False
+                self._last_emit = None
+                self._context = context
+            return "started"
         if context.control_pin == "stop":
-            return self._handle_stop()
+            with self._lock:
+                armed, self._context = self._context is not None, None
+            return "stopped" if armed else None
         return None
 
     def _on_run_changed(self, value: Any, _old: Any) -> None:
-        # Runs inside the press's own write: only wake the thread, which resets and emits.
-        if value is True:
-            self._wake.set()
-        else:
-            self._consumed = False
-
-    def _handle_start(self, context: ExecutionContext) -> str:
+        if value is not True:
+            return
         with self._lock:
-            if self._thread is not None and self._thread.is_alive():
-                return "started"
-            self._settings.run = False
-            self._consumed = False
-            self._context = context
-            self._last_emit = None
-            # One stop event per thread, so a restart never clears the event an exiting thread has not seen.
-            self._stop_event = threading.Event()
-            self._wake.clear()
-            self._thread = threading.Thread(
-                target=self._run, args=(self._stop_event,), name=f"RunButton-{self.node_id}", daemon=True
-            )
-            self._thread.start()
-        return "started"
-
-    def _handle_stop(self) -> Optional[str]:
-        with self._lock:
-            if self._thread is None:
-                return None
-        self._stop_thread()
-        return "stopped"
-
-    def _stop_thread(self) -> None:
-        with self._lock:
-            thread, self._thread = self._thread, None
-            self._stop_event.set()
-            self._wake.set()
-            self._context = None
-        if thread is not None and thread is not threading.current_thread():
-            thread.join(timeout=2.0)
-
-    def _run(self, stop_event: threading.Event) -> None:
-        while not stop_event.is_set():
-            self._wake.wait()
-            if stop_event.is_set():
-                return
-            self._wake.clear()
-            self._consume()
-
-    def _consume(self) -> bool:
-        """Emit one trigger to every listener if *Run* is pressed, and release the button."""
-        context = self._context
-        if context is None or self._settings.run is not True or self._consumed:
-            return False
-        self._consumed = True
-        # The button's port is written on the validation thread, never from this one (ADR 0064).
-        self.post_value("button.run", False)
-        now = time.monotonic()
-        delta = 0.0 if self._last_emit is None else now - self._last_emit
-        self._last_emit = now
+            context = self._context
+            if context is None:
+                return  # not running: the press stays pending until Start clears it
+            now = time.monotonic()
+            delta = 0.0 if self._last_emit is None else now - self._last_emit
+            self._last_emit = now
         for name in list(self.value("callbacks").values()):
             context.emit_callback(event_name=name, payload={"delta_time": delta})
-        return True
+        # Released after this write is done, on the validation thread (ADR 0064).
+        self.post_value("button.run", False)

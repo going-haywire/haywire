@@ -151,7 +151,7 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 - **Run Button** triggers a flow in a *running* graph, TickEmit-shaped: inlets `start`/`stop`/`callbacks`,
   outlets `started`/`stopped`; the listener is the existing **Tick Event** (payload `delta_time` = time since
   the previous emit). The press is a BOOL setting promoted as CONFIG, drawn by a new builtin **`ButtonWidget`**;
-  a click writes `True` through the edit route (OPERATE gate), a node-owned thread resets it and emits. Clicks
+  a click writes `True` through the edit route (OPERATE gate); the node emits and releases it (see deviations). Clicks
   before pickup coalesce; picked-up runs queue (`BLOCK`); `start` clears a stale press.
 - **For Each File:** `pattern` = `;`-separated file-**name** patterns, case-insensitive; `recursive` sets depth;
   dot-names skipped; symlinked folders not entered, outward file links skipped; listing taken once at `execute`,
@@ -168,8 +168,10 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
   plain loopback return (`_navigate_next` re-enters a node already on the loopback stack with no inlet), so it
   acts as "next file"; wired from another flow it shares For Each File's execution group (ADR 0064) and arrives in
   a later frame, after the loop closed. For Loop's Break has the same limitation. Needs a VM change; left open.
-- Run Button releases its press with `post_value` (ADR 0064: a node-owned thread never writes a port directly); a
-  flag keeps one press from emitting twice until the release lands.
+- **Run Button has no thread** (reverses Q5c, user decision 2026-10-31): the press's field subscription emits to
+  the listeners at once (enqueueing waits only on a full `BLOCK` queue) and releases the button with `post_value`,
+  which runs after the press's own write. A press while the button is still held changes nothing, so it emits
+  nothing.
 - Live check found an S1 defect: a `PATH` port's default and any JSON write (Farmhand `set_property`) stayed a
   plain dict, so nodes failed on `.volume` and the graph could not be saved. Fixed with `PATHField` (converts on
   default and on every write, as `INTField` does).
