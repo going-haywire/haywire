@@ -50,11 +50,6 @@ async def _open(user: User) -> None:
     await user.open("/")
 
 
-def _field(user: User, marker: str) -> ui.input:
-    (el,) = user.find(marker=marker).elements
-    return el  # type: ignore[return-value]
-
-
 async def _type(user: User, marker: str, text: str) -> None:
     el: ui.input = user.find(marker=marker).elements.pop()  # type: ignore[assignment]
     el.set_value(text)
@@ -146,4 +141,6 @@ async def test_malformed_file_shows_the_message_instead_of_crashing(
     await _type(user, "volume-add-name", "scans")
     await _type(user, "volume-add-location", str(tmp_path))
     user.find(marker="volume-add").click()
+    # The TOML parser's position text ("... at line 1 col 8 ...") is the stable part of its message.
+    await user.should_see("line 1")
     assert not _fresh(store)
