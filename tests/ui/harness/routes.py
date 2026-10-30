@@ -6,6 +6,7 @@ Routes:
   GET  /node?class=...&bag=  — render a NodeSettings bag via render_reactive()
   GET  /schema?class=...     — render a LibrarySettings/FrameworkSettings via render_schema()
   GET  /copy-button          — a bare hui.code_snippet() with its copy button
+  GET  /volumes-editor?width= — the Volumes editor in a host of the given width
   POST /api/set?key=&value=  — write a value to the SettingsRegistry workspace tier
 """
 
@@ -2606,6 +2607,36 @@ def register_routes(library_service) -> None:
 
         with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
             hui.code_snippet("copy-me")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /volumes-editor?width=<px>
+    #
+    # The real VolumesEditor drawn into a host of the given width, reading a
+    # temporary volumes file that holds one long configured location. Backs
+    # test_volumes_editor_browser.py (rows fit the slot width).
+    # -------------------------------------------------------------------------
+
+    @ui.page("/volumes-editor")
+    async def volumes_editor_page(width: int = 300):
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import MagicMock
+
+        from haybale_studio.editors.volumes_editor import VolumesEditor
+
+        from haywire.core.volumes import VolumeStore, set_volume_store
+
+        if theme_css:
+            ui.add_css(theme_css)
+        store = VolumeStore(Path(tempfile.mkdtemp(prefix="haywire-harness-volumes-")) / "volumes.toml")
+        store.set("long", Path("/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo"))
+        set_volume_store(store)
+        context = MagicMock()
+        context.can_admin.return_value = True
+        with ui.element("div").style(f"width: {width}px; height: 400px").props('data-testid="volumes-host"'):
+            container = ui.column().classes("w-full h-full")
+            VolumesEditor(MagicMock()).draw(context, container)
         _stamp_synced()
 
     # -------------------------------------------------------------------------

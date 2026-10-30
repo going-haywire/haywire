@@ -58,7 +58,13 @@ class VolumesEditor(BaseEditor):
                         hui.icon_action(hui.icon.add, tooltip="Add a volume", on_click=self._open_add).mark(
                             "volume-add"
                         )
-                with ui.scroll_area().classes("flex-1 w-full"):
+                # QScrollArea's content box is absolute and shrinks to its widest line; a full
+                # width pins rows to the slot so the location line crops instead of overflowing.
+                with (
+                    ui.scroll_area()
+                    .classes("flex-1 w-full")
+                    .props('content-style="width: 100%" content-active-style="width: 100%"')
+                ):
                     self._rows = ui.column().classes("w-full gap-0 p-1")
             self._dialog_host = root
             self._draw_rows()
@@ -129,8 +135,9 @@ class VolumesEditor(BaseEditor):
         dialog = self._new_dialog().mark("volume-dialog")
         with dialog, hui.dialog_card("w-[480px] max-w-full"):
             hui.heading(name)
-            if status.label and status.label != name:
-                hui.hint(status.label)
+            label = _distinct_label(status)
+            if label is not None:
+                hui.hint(label)
             if status.description:
                 ui.label(status.description).classes("text-sm")
             with ui.column().classes("w-full gap-0"):
@@ -209,6 +216,13 @@ class VolumesEditor(BaseEditor):
             return
         dialog.close()
         self._draw_rows()
+
+
+def _distinct_label(status: VolumeStatus) -> str | None:
+    """Return the volume's label, or ``None`` when it is empty or only re-cases the name."""
+    if not status.label or status.label.casefold() == status.name.casefold():
+        return None
+    return status.label
 
 
 def _dialog_error() -> ui.label:

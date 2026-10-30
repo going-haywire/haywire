@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Iterator
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -271,3 +272,28 @@ async def test_remove_is_absent_for_a_default_source_volume(user: User, store: V
     user.find(marker="volume-open-home").click()
     assert _dialog_open(user)
     await user.should_not_see(marker="volume-dialog-remove")
+
+
+def _texts(user: User, text: str) -> list[Any]:
+    return [el for el in user.find(kind=ui.label).elements if getattr(el, "text", None) == text]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(("name", "label"), [("project", "Project"), ("home", "Home")])
+async def test_a_label_that_only_recases_the_name_is_not_shown_again(
+    user: User, store: VolumeStore, name: str, label: str
+) -> None:
+    await _open(user)
+    user.find(marker=f"volume-open-{name}").click()
+    assert _dialog_open(user)
+    assert _texts(user, label) == []
+    assert _texts(user, name)  # the name itself is shown once, as the heading
+
+
+def test_a_label_differing_from_the_name_is_shown(store: VolumeStore) -> None:
+    from haybale_studio.editors.volumes_editor import _distinct_label
+
+    status = next(s for s in list_volumes() if s.name == "project")
+    assert _distinct_label(status) is None
+    assert _distinct_label(replace(status, label="Workspace")) == "Workspace"
+    assert _distinct_label(replace(status, label="")) is None
