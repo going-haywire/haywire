@@ -22,7 +22,7 @@ def _port() -> DataPort:
         id="run",
         type_cls=BOOL,
         port_type=PortType.CONFIG,
-        default=False,
+        default={"value": False},
     )
 
 
