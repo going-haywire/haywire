@@ -177,6 +177,10 @@ node per evaluation, so it must be ~free when nothing failed:
   `img_gpu_trip_1080p` **3.18 ms** (gate ≤ 3 ms: missed by 6 %; gate "< cpu_f32": met);
   `img_sr2x_540p` 63.9 ms end to end with Real-ESRGAN v2 animevideo xsx2 fp16 (model-bound; over
   the 33 ms frame budget on this machine). **Gate failed → Q27 reopened.**
+  Rerun after the final-review fixes (commit cad5d961a, same session): trip 3.37 ms, up 1.38 ms,
+  down 2.08 ms, cpu_f32 5.17 ms, sr2x 65.4 ms — unchanged code paths moved +2…6 % too, so the
+  delta is session noise (README: ±4 % across sessions), not the fixes. The reviewer measured an
+  in-place `clamp_/mul_/round_` download at ~0.2 ms faster; not applied — input for Q27.
   Deviations from the S0 plan: `Layout`/`ChannelOrder` live in `haybale_image/value/enums.py`;
   `_torch_ops.convert_tensor` added for tensor→tensor hops; torch tests run with
   `uv run --with torch python -m pytest`; `uv.lock` records torch as an optional extra but
