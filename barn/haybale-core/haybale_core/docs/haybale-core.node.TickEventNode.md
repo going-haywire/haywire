@@ -2,7 +2,7 @@
 
 `haybale-core:node:TickEventNode` · kind: node
 
-Triggered periodically by a connected TickEmitNode
+Triggered by a connected emitter (Tick Emit, Run Button)
 
 ## Ports
 
@@ -14,11 +14,11 @@ Triggered periodically by a connected TickEmitNode
 
 ## Notes
 
-Listens for tick callbacks from a connected TickEmitNode.
+Runs its flow each time a connected emitter triggers it.
 
-Connect the callback outlet to a TickEmitNode's callback inlet
-to receive periodic tick events.
+Connect the `Listen` outlet to the `Trigger` inlet of a Tick Emit (periodic
+ticks) or a Run Button (one trigger per press).
 
 Outputs:
     exec: Control flow
-    delta_time: Time since last tick (seconds)
+    delta_time: Time since the emitter's previous trigger (seconds)

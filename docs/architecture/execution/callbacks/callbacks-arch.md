@@ -64,6 +64,8 @@ Both coexist. A graph can have some callbacks edge-wired and others matched by n
 - **Listener** — an EVENT node whose `event_subscription` is a `CallbackEvent(event_name=...)`. It roots its own Flow and, in edge-based mode, publishes its subscription on a CALLBACK outlet.
 - **Emitter** — a node that calls `context.emit_callback(...)`, usually a CONTROL node (core's `TickEmitNode`, haybale-visiongraph's `OakDCameraNode`). In edge-based mode it reads the names to emit from its pooled callback inlet; `TickEmitNode` reads them from a background thread, outside any execution frame.
 
+Core's `TickEventNode` is a generic listener: it runs its flow for any emitter wired to it, `TickEmitNode` (periodic ticks) or `RunButtonNode` (one trigger per press of its button). Its `delta_time` outlet is the time since that emitter's previous trigger.
+
 By design, every callback-listener Flow has its own EVENT-node entry — typically `CallbackEvent(event_name=...)`.
 
 ### 2.4 Through reroutes and Subgraph boundaries
@@ -109,6 +111,8 @@ Each Flow registered for event_name runs
 ```
 
 The listener Flow runs through the standard VM dispatch — it's a Flow like any other; the only thing special is how it was *triggered*.
+
+Emitting enqueues one trigger per listener flow. A listener whose queue mode is `BLOCK` and whose queue is full makes the emitting thread wait up to 5 s for room (a runner thread never waits: the trigger is dropped). An emitter triggered from the UI therefore emits from a thread it owns, never from the UI event loop: `RunButtonNode`'s button only wakes its thread, which emits.
 
 ### 3.3 Statistics
 

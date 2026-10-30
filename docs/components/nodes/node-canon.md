@@ -208,6 +208,8 @@ Override only what you need.
 
 `on_startup` and `on_shutdown` run once per run, and more than once only if one execution group stops before another starts; calls always pair and never overlap. A node executed by several execution groups gets `on_frame_start`/`on_frame_end` from each of them; the calls never overlap, but may interleave between groups, so start and end are not guaranteed to pair.
 
+`on_frame_end` also runs when the frame ended early: after a worker exception bailed the frame or the run (ADR 0066), and after a stop cancelled it. It is where a node closes state that spans several of its own runs in one frame, such as a loop that never got back control (core's For Each File closes its progress bar there).
+
 **Threading contract.** A node never runs on two threads at once, but three things still reach it from outside its frames:
 
 - A value written to an outlet crosses into other execution groups as written. Never mutate a value object in place once it is on an outlet; write a new one.
