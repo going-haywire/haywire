@@ -44,6 +44,7 @@ from haywire.ui.app.slot import Slot
 from haywire.ui.components.access_gate import AccessGate
 from haywire.ui.components.keymap import KeymapListener
 from haywire.ui.editor.identity import SlotName
+from haywire.ui.elements.path_fit import PATH_FIT_CSS
 from haywire.ui.keymap import build_keymap, report_new_keymap_problems
 
 logger = logging.getLogger(__name__)
@@ -654,6 +655,7 @@ STATIC_CSS = (
     # The doc panel's own padding replaces the tooltip wrapper's.
     " .cm-tooltip.cm-completionInfo { padding: 0; }"
 ) + ACTIVE_SLOT_CSS
+STATIC_CSS += PATH_FIT_CSS
 
 
 class AppShell:

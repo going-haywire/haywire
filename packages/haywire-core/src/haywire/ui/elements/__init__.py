@@ -37,6 +37,7 @@ from haywire.ui.elements.flyout import (  # noqa: F401
 )
 from haywire.ui.elements.folder_tree import FolderTreeModel, folder_tree  # noqa: F401
 from haywire.ui.elements.icons import AppIcon  # noqa: F401
+from haywire.ui.elements.path_fit import FittedPath, fitted_path  # noqa: F401
 
 # Module-level alias: hui.icon.add, hui.icon.canvas, etc.
 icon = AppIcon

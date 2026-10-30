@@ -12,7 +12,6 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
-from haybale_studio.editors.path_fit import fitted_path, install_path_fit
 from haywire.core.access import AccessTier
 from haywire.core.session.context import SessionContext
 from haywire.core.volumes import VolumeStatus, VolumeStore, get_volume_store, list_volumes
@@ -89,7 +88,6 @@ class VolumesEditor(BaseEditor):
             can_write = self._can_write()
             for status in statuses:
                 self._draw_row(status, editable=can_write and status.configurable)
-            install_path_fit()
 
     def _draw_row(self, status: VolumeStatus, *, editable: bool) -> None:
         name = status.name
@@ -106,7 +104,9 @@ class VolumesEditor(BaseEditor):
                     )
                 else:
                     with ui.row().classes("w-full items-center no-wrap gap-1 min-w-0"):
-                        fitted_path(status.location).classes("flex-1").mark(f"volume-location-{name}")
+                        hui.fitted_path(status.location).classes("hw-hint flex-1 h-4").mark(
+                            f"volume-location-{name}"
+                        )
                         if not status.exists:
                             ui.label("missing").classes("text-xs text-negative flex-shrink-0").mark(
                                 f"volume-missing-{name}"
