@@ -162,6 +162,16 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 - **Output Path:** validates its parts and raises naming the part; extension with or without a dot.
 - No VM change, no ADR, no glossary term.
 
+**S4 deviations from plan (2026-10-31)**
+
+- `break_loop` (Q16) exists but works only when wired from outside the loop body: the VM routes an edge back into
+  a node already on the loopback stack as a plain loopback return (`_navigate_next`), so a Break wired from the
+  body acts as "next file". For Loop has the same limitation; fixing it is a VM change, left open.
+- Live check found an S1 defect: a `PATH` port's default and any JSON write (Farmhand `set_property`) stayed a
+  plain dict, so nodes failed on `.volume` and the graph could not be saved. Fixed with `PATHField` (converts on
+  default and on every write, as `INTField` does).
+- `haywire docs --all` also regenerated pages earlier slices had left stale (own commit).
+
 ### 2.3 Failure poisoning — haywire-core VM (Q9, Q10, Q37) — **ADR required**
 1. **`failed` flag** per node, separate from `error_runtime`. Set when a worker raises (data or
    control); cleared when the worker next returns normally. `error_runtime` stays the sticky
@@ -328,7 +338,7 @@ node per evaluation, so it must be ~free when nothing failed:
 | S1 | PATH types, volumes (née anchors), resolver, volumes.toml, picker, Volumes editor, CLI | haywire-core builtin + haybale-studio + CLI | — | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
 | S1b | the volumes file is the volume list (S1b-Q1–Q9) | haywire-core builtin + haybale-studio + CLI | S1 | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | done (squashed on feat/s2-failure-poisoning, backup tag spandrel-s2-full, unmerged, 2026-10-30; reworked to bail-by-policy S2-Q10; live check passed) — [plan](2026-10-30-s2-failure-poisoning.md) |
-| S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | planned — [plan](2026-10-30-s4-batch-nodes.md) |
+| S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | done (on feat/s4-batch-nodes, unmerged, 2026-10-31; live check passed) — [plan](2026-10-30-s4-batch-nodes.md) |
 | S5 | rest of haybale-image | haybale-image | S0, S1 | open |
 | S6 | haybale-models | haybale-models | S1 | open |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | open |
