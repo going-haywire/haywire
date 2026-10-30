@@ -7,7 +7,7 @@ The section vocabulary:
   - [[caches]]: refresh cache (Haybale with via/last_seen/stale set), project-only
 
 Files:
-  - Global marketplace (~/.haywire/db/haybale-marketplace/marketplace.toml):
+  - Global marketplace (~/.haywire/db/haybale_marketplace/marketplace.toml):
       [[markets]], [[stalls]], optionally [[haybales]]
   - Project marketplace (<project>/.haywire/marketplace.toml):
       [[heaps]], [[caches]]
@@ -157,7 +157,7 @@ def _parse_heap_entry(raw: dict) -> dict:
 
 
 def parse_global_marketplace(path: Path) -> MarketplaceFile:
-    """Parse ~/.haywire/db/haybale-marketplace/marketplace.toml.
+    """Parse ~/.haywire/db/haybale_marketplace/marketplace.toml.
 
     Returns an empty MarketplaceFile if the path does not exist.
     Raises MalformedMarketplaceError on TOML parse or schema errors.

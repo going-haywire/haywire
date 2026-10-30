@@ -34,7 +34,7 @@ class Subscription:
 
 @dataclass
 class MarketplaceFile:
-    """Parsed ~/.haywire/db/haybale-marketplace/marketplace.toml.
+    """Parsed ~/.haywire/db/haybale_marketplace/marketplace.toml.
 
     Three section types:
       - [[markets]]: subscriptions to remote marketplaces

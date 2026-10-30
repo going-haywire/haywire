@@ -10,6 +10,8 @@ def library_storage_dir(caller_module: str) -> Path:
 
     Pass ``__name__`` as the argument — the top-level package is derived
     automatically, so ``haybale_marketplace.config`` → ``haybale_marketplace``.
+    The folder is named after the top-level **module** (``haybale_marketplace``),
+    never the distribution (``haybale-marketplace``).
     """
     top = caller_module.split(".")[0]
     path = Path.home() / ".haywire" / "db" / top

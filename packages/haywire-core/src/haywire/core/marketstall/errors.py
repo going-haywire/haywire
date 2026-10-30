@@ -7,7 +7,7 @@ class MalformedMarketplaceError(RuntimeError):
     """Raised when a marketplace or marketstall file is invalid.
 
     Covers TOML parse errors and schema violations in both
-    ~/.haywire/db/haybale-marketplace/marketplace.toml (global) and
+    ~/.haywire/db/haybale_marketplace/marketplace.toml (global) and
     <project>/.haywire/marketplace.toml (project).
     """
 

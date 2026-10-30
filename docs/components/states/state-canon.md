@@ -185,7 +185,7 @@ from haywire.core.state import (
 from haywire.core.signals import signal_field
 ```
 
-**Per-library persistent storage.** If your `AppState` needs to read or write files that should survive across sessions (a cache, a database, saved state), use `library_storage_dir(__name__)` from `haywire.core.storage`. It returns (and lazily creates) `~/.haywire/db/<your_top_package>/` — a directory that belongs to your library and is never touched by the framework on uninstall.
+**Per-library persistent storage.** If your `AppState` needs to read or write files that should survive across sessions (a cache, a database, saved state), use `library_storage_dir(__name__)` from `haywire.core.storage`. It returns (and lazily creates) `~/.haywire/db/<your_top_package>/` — a directory that belongs to your library and is never touched by the framework on uninstall. The folder is named after the top-level **module** (`haybale_marketplace`), never the distribution (`haybale-marketplace`).
 
 ```python
 from haywire.core.storage import library_storage_dir
