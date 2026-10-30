@@ -14,7 +14,6 @@ Runs the loop body once for each file in a folder that matches the pattern
 | `recursive` | inlet | `haywire-core:type:BOOL` | True or False |
 | `limit` | inlet | `haywire-core:type:INT` | Whole number |
 | `on_error` | inlet | `haywire-core:type:STRING` | Text data |
-| `break_loop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `progress.main` | config | `haywire-core:type:PROGRESS` |  |
 | `loop_body` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `path` | outlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
@@ -51,7 +50,7 @@ is skipped. The list of files is taken when the loop starts.
 For each file the loop sets `Path`, `Subfolder` (its folder relative to `Folder`,
 empty at the top), `Stem` (its name without extension), `Extension` (such as
 `.png`), `Index` (from 0) and `Total`. When the loop ends, `Failed` lists the
-files whose iteration failed, and `Completed` runs. `Break` ends the loop early.
+files whose iteration failed, and `Completed` runs.
 
 Resume a batch by skipping files whose result is already saved:
 

@@ -155,7 +155,7 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
   before pickup coalesce; picked-up runs queue (`BLOCK`); `start` clears a stale press.
 - **For Each File:** `pattern` = `;`-separated file-**name** patterns, case-insensitive; `recursive` sets depth;
   dot-names skipped; symlinked folders not entered, outward file links skipped; listing taken once at `execute`,
-  sorted, `limit` after sorting; adds `break_loop`, `extension` and `total`. An unlistable folder raises.
+  sorted, `limit` after sorting; adds `extension` and `total` (no `break_loop`, see deviations). An unlistable folder raises.
   `on_error` acts under bail `branch` only (`frame`/`run` abandon the loop); `on_frame_end` closes an abandoned
   loop's progress.
 - **Path Exists?:** plain `exists()`; an unresolvable path raises.
@@ -164,9 +164,12 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 
 **S4 deviations from plan (2026-10-31)**
 
-- `break_loop` (Q16) exists but works only when wired from outside the loop body: the VM routes an edge back into
-  a node already on the loopback stack as a plain loopback return (`_navigate_next`), so a Break wired from the
-  body acts as "next file". For Loop has the same limitation; fixing it is a VM change, left open.
+- **No `break_loop`** (reverses Q16, after the final review): a Break wired from the loop body reaches the VM as a
+  plain loopback return (`_navigate_next` re-enters a node already on the loopback stack with no inlet), so it
+  acts as "next file"; wired from another flow it shares For Each File's execution group (ADR 0064) and arrives in
+  a later frame, after the loop closed. For Loop's Break has the same limitation. Needs a VM change; left open.
+- Run Button releases its press with `post_value` (ADR 0064: a node-owned thread never writes a port directly); a
+  flag keeps one press from emitting twice until the release lands.
 - Live check found an S1 defect: a `PATH` port's default and any JSON write (Farmhand `set_property`) stayed a
   plain dict, so nodes failed on `.volume` and the graph could not be saved. Fixed with `PATHField` (converts on
   default and on every write, as `INTField` does).

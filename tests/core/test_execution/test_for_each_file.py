@@ -1,7 +1,6 @@
 """For Each File: a loop over a folder's files that records the files whose iteration failed (ADR 0066)."""
 
 import importlib
-from types import SimpleNamespace
 from typing import Any, Callable, Optional
 
 import pytest
@@ -154,19 +153,10 @@ def test_progress_is_idle_after_completion(graph_with_library_system, monkeypatc
     assert batch.each.progress.main == PROGRESS()
 
 
-def test_break_loop(graph_with_library_system, scans):
-    # Worker-level: the VM routes an edge back into a node on the loopback stack as a
-    # plain loopback return, so a break wired from inside the body never arrives as one.
+def test_has_no_break_inlet(graph_with_library_system):
+    # A break would arrive as a loopback return or in a later frame, so the node offers none.
     each = _Batch(graph_with_library_system).each
-    context = SimpleNamespace(control_pin="execute", failures=[])
-
-    assert each.worker(context) == "loop_body"
-    context.control_pin = "break_loop"
-    assert each.worker(context) == "completed"
-
-    assert each.ports["index"].get_value() == 0
-    assert each.ports["failed"].get_value() == []
-    assert each.progress.main == PROGRESS()
+    assert "break_loop" not in each.ports
 
 
 def test_second_run_starts_fresh(graph_with_library_system, monkeypatch, scans):

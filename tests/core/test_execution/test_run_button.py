@@ -164,3 +164,18 @@ def test_restart_emits_on_the_new_context(button):
 
     assert _wait_for(lambda: len(new) == 1)
     assert old == []
+
+
+def test_release_goes_through_post_value(button, monkeypatch):
+    calls: list = []
+    posted: list = []
+    _listen(button, "tick")
+    button._context = _context("start", calls)
+    monkeypatch.setattr(button, "post_value", lambda port_id, value: posted.append((port_id, value)))
+
+    button.button.run = True
+
+    assert button._consume() is True
+    assert posted == [("button.run", False)]
+    assert button._consume() is False  # the release has not landed yet: no second emit
+    assert len(calls) == 1

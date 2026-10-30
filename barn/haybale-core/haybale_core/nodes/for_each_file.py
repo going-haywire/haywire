@@ -44,7 +44,7 @@ class ForEachFileNode(BaseNode):
     For each file the loop sets `Path`, `Subfolder` (its folder relative to `Folder`,
     empty at the top), `Stem` (its name without extension), `Extension` (such as
     `.png`), `Index` (from 0) and `Total`. When the loop ends, `Failed` lists the
-    files whose iteration failed, and `Completed` runs. `Break` ends the loop early.
+    files whose iteration failed, and `Completed` runs.
 
     Resume a batch by skipping files whose result is already saved:
 
@@ -76,7 +76,6 @@ class ForEachFileNode(BaseNode):
                 widget=SelectWidget.config(properties={"options": list(ON_ERROR)}),
             )
         )
-        self.add(EXEC.as_inlet("break_loop", label="Break"))
 
         self.add(EXEC.as_outlet("loop_body", label="Loop Body", needs_loopback=True))
         self.add(FILE_PATH.as_outlet("path", label="Path"))
@@ -102,9 +101,7 @@ class ForEachFileNode(BaseNode):
             self._begin()
             return self._emit(context)
         if self._span is None:
-            return None  # no loop open: a stray loopback return or break
-        if context.control_pin == "break_loop":
-            return self._finish()
+            return None  # no loop open: a stray loopback return
         if len(context.failures) > self._failures_seen:
             self._failed.append(self._path(self._files[self._index]))
             if self.value("on_error") == "stop":

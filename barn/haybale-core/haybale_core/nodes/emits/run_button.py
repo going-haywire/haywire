@@ -63,6 +63,8 @@ class RunButtonNode(BaseNode):
         self._wake = threading.Event()
         self._context: Optional[ExecutionContext] = None
         self._last_emit: Optional[float] = None
+        # True from an emit until the posted release lands, so one press emits once.
+        self._consumed = False
         self._settings._subscribe_field("run", self._on_run_changed)
 
     @property
@@ -88,12 +90,15 @@ class RunButtonNode(BaseNode):
         # Runs inside the press's own write: only wake the thread, which resets and emits.
         if value is True:
             self._wake.set()
+        else:
+            self._consumed = False
 
     def _handle_start(self, context: ExecutionContext) -> str:
         with self._lock:
             if self._thread is not None and self._thread.is_alive():
                 return "started"
             self._settings.run = False
+            self._consumed = False
             self._context = context
             self._last_emit = None
             # One stop event per thread, so a restart never clears the event an exiting thread has not seen.
@@ -132,9 +137,11 @@ class RunButtonNode(BaseNode):
     def _consume(self) -> bool:
         """Emit one trigger to every listener if *Run* is pressed, and release the button."""
         context = self._context
-        if context is None or self._settings.run is not True:
+        if context is None or self._settings.run is not True or self._consumed:
             return False
-        self._settings.run = False
+        self._consumed = True
+        # The button's port is written on the validation thread, never from this one (ADR 0064).
+        self.post_value("button.run", False)
         now = time.monotonic()
         delta = 0.0 if self._last_emit is None else now - self._last_emit
         self._last_emit = now
