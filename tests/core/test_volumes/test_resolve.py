@@ -66,14 +66,16 @@ def test_relative_joins_posix_parts(tmp_path, at):
     assert resolve(VolumePath(V, "")) == root.resolve()
 
 
-def test_escape_by_dotdot_raises(tmp_path, at):
+def test_any_dotdot_segment_is_refused(tmp_path, at):
     root = tmp_path / "root"
     root.mkdir()
     at(root)
-    for rel in ("../x", "a/../../x"):
-        with pytest.raises(VolumeEscapeError):
+    for rel in ("../x", "a/../../x", "a/../b", "a/.."):
+        with pytest.raises(VolumeEscapeError) as ei:
             resolve(VolumePath(V, rel))
-    assert resolve(VolumePath(V, "a/../b")) == (root / "b").resolve()
+        assert "'..'" in ei.value.reason
+    assert resolve(VolumePath(V, "a/./b")) == (root / "a" / "b").resolve()
+    assert resolve(VolumePath(V, "a..b/c..")) == (root / "a..b" / "c..").resolve()
 
 
 @pytest.mark.parametrize("rel", ["/etc/passwd", "C:\\x", "C:/x"])

@@ -62,8 +62,8 @@ def resolve(path: VolumePath, store: VolumeStore | None = None) -> Path:
 
     Raises:
         VolumeUndefinedError: If the volume has no location.
-        VolumeEscapeError: If ``relative`` is not a string, contains a NUL byte,
-            is absolute, or resolves outside the volume.
+        VolumeEscapeError: If ``relative`` is not a string, contains a NUL byte or a
+            ``..`` segment, is absolute, or resolves outside the volume (a symlink).
         VolumeError: If the path cannot be resolved (a symlink loop, an OS error).
     """
     root = location_of(path.volume, store)
@@ -75,6 +75,8 @@ def resolve(path: VolumePath, store: VolumeStore | None = None) -> Path:
     if PurePosixPath(relative).is_absolute() or PureWindowsPath(relative).drive:
         raise VolumeEscapeError(path, f"{relative!r} is an absolute path")
     parts = PurePosixPath(relative).parts
+    if ".." in parts:
+        raise VolumeEscapeError(path, "'..' is not allowed in a volume path")
     try:
         target = root.joinpath(*parts).resolve()
         real_root = root.resolve()
