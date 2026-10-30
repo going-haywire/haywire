@@ -82,8 +82,11 @@ class ProjectVolume(Volume):
 
     @classmethod
     def default(cls) -> Path | None:
-        """Return the ambient workspace root as of this call."""
-        return get_workspace_root()
+        """Return the ambient workspace root as of this call, or ``None`` if none is set."""
+        try:
+            return get_workspace_root()
+        except RuntimeError:
+            return None
 
 
 class HomeVolume(Volume):
