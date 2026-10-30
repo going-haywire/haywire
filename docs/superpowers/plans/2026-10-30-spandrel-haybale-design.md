@@ -71,12 +71,15 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
   parsed string prefix (no in-band sentinel).
 - **Types:** base `PATH`; derived `FILE_PATH`, `FOLDER_PATH`. "Must exist" vs "write target" and
   extension filters are port/widget options, not types.
-- **Volumes:** `project` (derived from `workspace_root`, not editable), `home`, plus
-  library-contributed volumes (e.g. `models` from haybale-models). Users add named volumes for
-  outside folders (e.g. `scans` -> `/Volumes/Scans`).
+- **Volumes** (S1b-Q1–Q3): `~/.haywire/volumes.toml` is the single list of volumes — key, label,
+  description, location. The only built-in is `project` (`haywire-core:volume:project`, derived from
+  `workspace_root`, never stored, not editable). Keys follow `<library-id>:volume:<name>` and are fixed
+  once created; libraries add theirs once (e.g. `haybale-models:volume:models`, S1b-Q4); users add
+  `user:volume:<name>` for outside folders (e.g. `user:volume:scans` -> `/Volumes/Scans`).
 - **No absolute volume** (Q6C). Every graph stays portable by construction.
-- **Locations** live in the framework file `~/.haywire/volumes.toml` (per machine; S1-Q1b); declared
-  volumes are class-registry entries (S1-Q2). Editing is ADMIN. Libraries that need env vars
+- **Locations** live in the framework file `~/.haywire/volumes.toml` (per machine; S1-Q1b), next to
+  each volume's label and description; label, description and location are editable, the key is not
+  (S1b-Q3). Editing is ADMIN. Libraries that need env vars
   (`VISIONGRAPH_ASSET_DIR`, `HF_HOME`) set them *from* the volume — the volume is the single source.
 - **Resolver** refuses a resolved path that escapes its volume root (`..`, outward symlink),
   checked on the resolved path.
@@ -95,7 +98,7 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 | S1-Q0 | The concept is called **volume** (not "anchor": that word is the UI attach point of flyouts/popups/pins). Value = **volume path**. |
 | S1-Q1a | `~/.haywire/db/<name>/` uses the **top-level module name**; fix the three drifted docstrings. |
 | S1-Q1b | Volume locations live in the framework file **`~/.haywire/volumes.toml`** (not settings — the app never writes the global settings tier, and workspace `settings.json` is committed). |
-| S1-Q2 | Volumes are declared **Surface-style** (class registry on import, hot-reload supersede, collision raises); `volumes.toml` entry wins over the declared default; an entry may name an undeclared volume (ADMIN-defined outside folder). |
+| S1-Q2 | ~~Volumes are declared **Surface-style** (class registry on import, hot-reload supersede, collision raises); `volumes.toml` entry wins over the declared default; an entry may name an undeclared volume (ADMIN-defined outside folder).~~ **Superseded by S1b-Q1/Q4.** |
 | S1-Q3 | Picker widget (volume select + relative field + browse popup + status line); volumes are defined in an **ADMIN Volumes editor** and the CLI — no in-widget define action (amends Q7B). |
 | S1-Q4 | The eager-then-lazy folder tree moves from `LazyFileBrowserEditor` into a core element both use. |
 
@@ -104,9 +107,24 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 - CLI `set` absolutises a relative folder against cwd (plan Step 1 said refuse); the store still refuses relative locations.
 - PathWidget's mode reaches ports via `PATH._configure_port`.
 - `FolderTreeModel` gains `extensions=` and a shared `DEFAULT_EXCLUDE_DIRS`.
-- `Volume.label` defaults to the volume's name.
-- A declared default that raises or is relative is logged and the volume is reported undefined.
+- ~~`Volume.label` defaults to the volume's name.~~ (superseded by S1b-Q1/Q4: no class registry)
+- ~~A declared default that raises or is relative is logged and the volume is reported undefined.~~
+  (superseded by S1b-Q1/Q4)
 - `project` is undefined in the CLI (no workspace root outside the studio).
+
+**S1b decisions (2026-10-30, after the S1 live check)**
+
+| # | decision |
+|---|---|
+| S1b-Q1 | `~/.haywire/volumes.toml` is the **single store**: one entry per volume with key, label, description, location. No volume exists outside it except `project`. |
+| S1b-Q2 | Volume **key** follows the registry-key pattern `<library-id>:volume:<name>` (e.g. `haybale-models:volume:models`); volumes a user adds get `user:volume:<name>`. The key is **fixed once created**; renaming means a new volume. |
+| S1b-Q3 | Everything stored in the file is **editable** (label, description, location). `project` (`haywire-core:volume:project`, = ambient workspace root) is built in, never stored, never editable. There is **no `home` volume**. |
+| S1b-Q4 | A library adds its volume from its **`AppState.on_enable`** via `ensure_volume(key, label, description, location)`: writes the entry only when the key is absent, never creates the folder, safe on every enable / hot reload. |
+| S1b-Q5 | **Deleting** a library's volume is a reset: the library adds it back with its suggested location on its next enable. Uninstalling a library leaves its entry as an ordinary volume. |
+| S1b-Q6 | A PATH value stores the **key** (`VolumePath.volume`); the UI shows the label. |
+| S1b-Q7 | **No source column, no state words.** Status carries facts: location (`None` = not set), exists, editable. |
+| S1b-Q8 | Suggested model location: `~/.haywire/db/<module>/models` (S6, haybale-models) — suggested, not enforced. Any future "reset library data" tool must leave a `models` folder alone. |
+| S1b-Q9 | The store serializes read-modify-write with a process lock and writes atomically (temp file + rename). |
 
 ### 2.2 Batch nodes — haybale-core (Q8, Q11, Q12, Q31)
 - **`Run Button`** — EVENT widget node; emits one Trigger; OPERATE tier.
@@ -225,7 +243,9 @@ node per evaluation, so it must be ~free when nothing failed:
   usage, download (resumable, mirror fallback, progress, digest-verified), remove.
 - **Needs-list:** on graph open, collect model references from nodes → "needs N models (X MB) —
   fetch all".
-- **Store (Q16B):** `models` volume (contributed by this library, Q17C) = human folders
+- **Store (Q16B):** `models` volume (`haybale-models:volume:models`, added by this library's
+  AppState via `ensure_volume`, S1b-Q4; suggested location `~/.haywire/db/haybale_models/models`,
+  S1b-Q8 — suggested, not enforced; a future "reset library data" tool leaves `models` alone) = human folders
   (`models/openmodeldb/4x-UltraSharp.pth`, user subfolders allowed) + `models/.index.json`
   (sha256 → path + source; re-hash only on size/mtime change). Dropped-in files become indexed
   *local* models on next scan. Moved/renamed files still resolve by digest.
@@ -269,6 +289,7 @@ node per evaluation, so it must be ~free when nothing failed:
 |---|---|---|---|---|
 | S0 | **spike:** IMAGE value class + accessors + benchmarks (camera frame u8 BGR → GPU fp16 → SR → display within 33 ms at 1080p) | haybale-image | — | done — gate met after tuning (778d98316, merged to master 2026-10-30) — [plan](2026-10-30-s0-image-value-spike.md) |
 | S1 | PATH types, volumes (née anchors), resolver, volumes.toml, picker, Volumes editor, CLI | haywire-core builtin + haybale-studio + CLI | — | done (feat/s1-volumes @ 046d84c44, unmerged, 2026-10-30) — [plan](2026-10-30-s1-volumes.md) |
+| S1b | the volumes file is the volume list (S1b-Q1–Q9) | haywire-core builtin + haybale-studio + CLI | S1 | planned — [plan](2026-10-30-s1b-volumes-file.md) |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | open |
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | open |
 | S5 | rest of haybale-image | haybale-image | S0, S1 | open |
