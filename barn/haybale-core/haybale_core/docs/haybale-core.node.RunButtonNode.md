@@ -29,11 +29,11 @@ Wire `Begin Play` to `Start`, and the `Listen` outlet of each Tick Event to
 `Trigger`. Every press of *Run* then starts each connected Tick Event's flow
 once; the Tick Event's *Delta Time* is the time since the previous press.
 
-```
+```text
 Begin Play → Start                 Tick Event.Listen → Trigger
                                    Tick Event → For Each File → …
 ```
 
-The button works from *Start* until *Stop* or until the graph stops. Presses
-made before the node picks them up count as one. A press made while the graph
-is stopped shows as pending and is cleared when the graph starts again.
+The button works from *Start* until *Stop* or until the graph stops. A press
+made while the graph is stopped shows as pending and is cleared when the graph
+starts again.
