@@ -33,8 +33,12 @@ class AppIcon:
     """Canvas & nodes scope."""
 
     # ── Graph ────────────────────────────────────────────────────────────────
-    haystack: Final[str] = "storage"
+    haystack: Final[str] = "play_arrow"
     """Multi-graph file browser."""
+
+    # ── Volumes ──────────────────────────────────────────────────────────────
+    volumes: Final[str] = "storage"
+    """Volumes editor: where each named root lives on this machine."""
 
     # ── Library  ───────────────────────────────────────────────────────────
     library: Final[str] = "storefront"
@@ -280,6 +284,8 @@ class AppIcon:
     """Persist to disk action."""
     edit: Final[str] = "edit"
     """Open for editing action."""
+    view: Final[str] = "visibility"
+    """Open read-only: show an item's details without the controls to change it."""
     edit_document: Final[str] = "edit_note"
     """Open a document for editing (distinct from `edit`'s bare pencil)."""
     reset: Final[str] = "restart_alt"
