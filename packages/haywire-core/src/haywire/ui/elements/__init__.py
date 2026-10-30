@@ -35,6 +35,7 @@ from haywire.ui.elements.flyout import (  # noqa: F401
     open_flyout_group,
     open_on_hover,
 )
+from haywire.ui.elements.folder_tree import FolderTreeModel, folder_tree  # noqa: F401
 from haywire.ui.elements.icons import AppIcon  # noqa: F401
 
 # Module-level alias: hui.icon.add, hui.icon.canvas, etc.
