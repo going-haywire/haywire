@@ -406,6 +406,7 @@ def info_row(
     *,
     copy_value: str | None = None,
     label_width: str = "w-16",
+    copyable: bool = True,
 ) -> ui.row:
     """
     A key-value metadata row with optional copy-to-clipboard button.
@@ -413,6 +414,7 @@ def info_row(
     Visual rules:
     - Row: ``w-full items-center gap-1 py-0.5``
     - Copy button (if ``copy_value`` provided): ``hui.icon_action("content_copy")``
+    - ``copyable=False`` drops the copy button (for values nobody copies)
     - Label: ``text-xs hw-text-dim``, fixed width ``w-16 flex-shrink-0``
     - Value: ``text-xs font-mono truncate flex-1 hw-text-body``
     - Long values (>40 chars) get a full-value tooltip automatically
@@ -430,7 +432,7 @@ def info_row(
     effective_copy = copy_value if copy_value is not None else value
     row = ui.row().classes("w-full items-center gap-1 py-0.5 min-w-0")
     with row:
-        if copy_value is not None or True:  # always show copy for info rows
+        if copyable:
             _copy_button(effective_copy)
         ui.label(label).classes(f"text-xs hw-text-dim {label_width} flex-shrink-0")
         lbl = ui.label(value).classes("text-xs font-mono truncate flex-1 hw-text-body")
@@ -1334,9 +1336,9 @@ def dialog_actions(
     *,
     confirm_label: str = "OK",
     cancel_label: str = "Cancel",
-) -> None:
+) -> ui.button:
     """
-    A standardised action row for modal dialogs.
+    A standardised action row for modal dialogs; returns the confirm button.
 
     Renders a right-aligned row with a Cancel button and a confirm button.
     The confirm button is styled with ``var(--hw-positive)`` for theme-aware
@@ -1356,7 +1358,7 @@ def dialog_actions(
     """
     with action_row().classes("mt-2"):
         ui.button(cancel_label, on_click=on_cancel).props("flat dense")
-        confirm_button(confirm_label, on_click=on_confirm)
+        return confirm_button(confirm_label, on_click=on_confirm)
 
 
 def action_row() -> ui.row:

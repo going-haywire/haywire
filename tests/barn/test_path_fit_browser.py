@@ -68,3 +68,18 @@ def test_a_second_install_fits_lines_added_since(page: Page) -> None:
     page.evaluate(_SCRIPT)
     _wait_fit(page, "late", "2")
     assert _fit(page, "w600") == "0"
+
+
+def test_a_line_mounted_after_install_is_fitted_without_another_scan(page: Page) -> None:
+    _page_with_lines(page, [600])
+    _wait_fit(page, "w600", "0")
+    # No second install: a panel mounting later must still be picked up, also nested in a wrapper.
+    page.evaluate(
+        "html => document.body.insertAdjacentHTML('beforeend', html)",
+        '<section id="panel"><div id="late" class="'
+        + FIT_CLASS
+        + f'" style="{_LINE_STYLE}; width: 200px">'
+        + "".join(f"<div>{escape(c)}</div>" for c in crop_candidates(_PATH))
+        + "</div></section>",
+    )
+    _wait_fit(page, "late", "2")

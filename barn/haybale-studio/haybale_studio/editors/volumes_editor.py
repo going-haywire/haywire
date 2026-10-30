@@ -14,6 +14,7 @@ from pathlib import Path
 
 from haybale_studio.editors.path_fit import fitted_path, install_path_fit
 from haywire.core.access import AccessTier
+from haywire.core.session.context import SessionContext
 from haywire.core.volumes import VolumeStatus, VolumeStore, get_volume_store, list_volumes
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
@@ -42,7 +43,7 @@ class VolumesEditor(BaseEditor):
 
     def __init__(self, wrapper) -> None:
         super().__init__(wrapper)
-        self._context = None
+        self._context: SessionContext | None = None
         self._rows: ui.column | None = None
         self._dialog_host: ui.element | None = None
         self._dialog: ui.dialog | None = None
@@ -133,11 +134,12 @@ class VolumesEditor(BaseEditor):
             if status.description:
                 ui.label(status.description).classes("text-sm")
             with ui.column().classes("w-full gap-0"):
-                hui.info_row("Source", status.source, label_width="w-20")
+                hui.info_row("Source", status.source, label_width="w-20", copyable=False)
                 hui.info_row(
                     "Exists",
                     "yes" if status.exists else ("missing" if status.location else "—"),
                     label_width="w-20",
+                    copyable=False,
                 )
                 if not editable:
                     hui.info_row(
@@ -179,18 +181,17 @@ class VolumesEditor(BaseEditor):
                 .mark("volume-add-location")
             )
             error = _dialog_error()
-            with hui.action_row().classes("mt-2"):
-                ui.button("Cancel", on_click=dialog.close).props("flat dense")
-                hui.confirm_button(
-                    "Add",
-                    on_click=lambda: self._write(
-                        dialog,
-                        error,
-                        lambda store: store.set(
-                            (name.value or "").strip(), Path((location.value or "").strip())
-                        ),
+            hui.dialog_actions(
+                on_confirm=lambda: self._write(
+                    dialog,
+                    error,
+                    lambda store: store.set(
+                        (name.value or "").strip(), Path((location.value or "").strip())
                     ),
-                ).mark("volume-add-confirm")
+                ),
+                on_cancel=dialog.close,
+                confirm_label="Add",
+            ).mark("volume-add-confirm")
         dialog.open()
 
     # -- mutations ------------------------------------------------------
@@ -212,7 +213,7 @@ class VolumesEditor(BaseEditor):
 
 def _dialog_error() -> ui.label:
     """Draw a hidden error line for a dialog."""
-    label = ui.label("").classes("text-xs hw-text-danger whitespace-pre-line").mark("volume-dialog-error")
+    label = hui.error_label("").classes("whitespace-pre-line").mark("volume-dialog-error")
     label.set_visibility(False)
     return label
 

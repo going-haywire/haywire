@@ -18,6 +18,8 @@ from nicegui import ui
 FIT_CLASS = "hw-path-fit"
 #: Attribute the script sets on a line: the index of the rendering it shows.
 FIT_ATTR = "data-hw-fit"
+#: Most renderings ``crop_candidates`` returns; the CSS has one selector per index.
+MAX_CANDIDATES = 5
 
 
 def crop_candidates(path: PurePath) -> list[str]:
@@ -61,7 +63,7 @@ def crop_candidates(path: PurePath) -> list[str]:
 _CSS = (
     f".{FIT_CLASS} > * {{ position: absolute; left: 0; top: 0; visibility: hidden; white-space: nowrap; }}"
     f" .{FIT_CLASS}:not([{FIT_ATTR}]) > :first-child,"
-    + ",".join(f" .{FIT_CLASS}[{FIT_ATTR}='{i}'] > :nth-child({i + 1})" for i in range(5))
+    + ",".join(f" .{FIT_CLASS}[{FIT_ATTR}='{i}'] > :nth-child({i + 1})" for i in range(MAX_CANDIDATES))
     + " { position: static; visibility: visible; overflow: hidden; text-overflow: ellipsis; }"
 )
 
@@ -86,20 +88,32 @@ _SCRIPT = """(function () {
     var observer = new ResizeObserver(function (entries) {
       entries.forEach(function (entry) { fit(entry.target); });
     });
+    var adopt = function (el) {
+      if (!watched.has(el)) { watched.add(el); observer.observe(el); }
+      fit(el);
+    };
+    // Lines mounted after the script ran (a panel shown for the first time, a
+    // re-created element) join on arrival; only the added subtrees are queried.
+    new MutationObserver(function (records) {
+      records.forEach(function (record) {
+        record.addedNodes.forEach(function (node) {
+          if (node.nodeType !== 1) return;
+          if (node.matches(".%s")) adopt(node);
+          node.querySelectorAll(".%s").forEach(adopt);
+        });
+      });
+    }).observe(document.body, { childList: true, subtree: true });
     window.hwPathFit = {
       scan: function () {
         watched.forEach(function (el) {
           if (!el.isConnected) { observer.unobserve(el); watched.delete(el); }
         });
-        document.querySelectorAll(".%s").forEach(function (el) {
-          if (!watched.has(el)) { watched.add(el); observer.observe(el); }
-          fit(el);
-        });
+        document.querySelectorAll(".%s").forEach(adopt);
       },
     };
   }
   requestAnimationFrame(function () { window.hwPathFit.scan(); });
-})();""" % (json.dumps(_CSS), FIT_ATTR, FIT_ATTR, FIT_CLASS)
+})();""" % (json.dumps(_CSS), FIT_ATTR, FIT_ATTR, FIT_CLASS, FIT_CLASS, FIT_CLASS)
 
 
 def fitted_path(path: PurePath) -> ui.element:

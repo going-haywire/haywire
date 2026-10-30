@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import PurePosixPath, PureWindowsPath
 
 import pytest
-from haybale_studio.editors.path_fit import crop_candidates
+from haybale_studio.editors.path_fit import MAX_CANDIDATES, crop_candidates
 
 pytestmark = pytest.mark.unit
 
@@ -42,3 +42,9 @@ def test_a_windows_path_keeps_its_drive_and_separator() -> None:
         "..\\haywire\\repo",
         "..\\repo",
     ]
+
+
+def test_no_path_yields_more_candidates_than_the_css_has_selectors_for() -> None:
+    deep = "/".join(f"d{i}" for i in range(30))
+    for path in (PurePosixPath("/" + deep), PurePosixPath(deep), PureWindowsPath("C:/" + deep)):
+        assert len(crop_candidates(path)) <= MAX_CANDIDATES

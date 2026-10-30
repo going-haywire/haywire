@@ -228,3 +228,46 @@ async def test_malformed_file_shows_the_message_in_the_modal_instead_of_crashing
     await user.should_see("line 1")
     assert _dialog_open(user)
     assert not _fresh(store)
+
+
+@pytest.mark.anyio
+async def test_a_configurable_volume_without_write_access_is_view_only(
+    user: User, store: VolumeStore
+) -> None:
+    await _open(user, can_admin=False)
+    user.find(marker="volume-open-home").click()
+    assert _dialog_open(user)
+    await user.should_not_see(marker="volume-dialog-location")
+    await user.should_not_see(marker="volume-dialog-save")
+    await user.should_not_see(marker="volume-dialog-remove")
+
+
+@pytest.mark.anyio
+async def test_a_session_demoted_after_draw_gets_the_error_in_the_modal(
+    user: User, store: VolumeStore
+) -> None:
+    contexts: list[MagicMock] = []
+
+    @ui.page("/")
+    def page() -> None:
+        context = MagicMock()
+        context.can_admin.return_value = True
+        contexts.append(context)
+        VolumesEditor(MagicMock()).draw(context, ui.column())
+
+    await user.open("/")
+    user.find(marker="volume-open-home").click()
+    await _type(user, "volume-dialog-location", "/tmp")
+    contexts[0].can_admin.return_value = False
+    user.find(marker="volume-dialog-save").click()
+    await user.should_see("needs admin access")
+    assert _dialog_open(user)
+    assert _fresh(store) == {}
+
+
+@pytest.mark.anyio
+async def test_remove_is_absent_for_a_default_source_volume(user: User, store: VolumeStore) -> None:
+    await _open(user)
+    user.find(marker="volume-open-home").click()
+    assert _dialog_open(user)
+    await user.should_not_see(marker="volume-dialog-remove")
