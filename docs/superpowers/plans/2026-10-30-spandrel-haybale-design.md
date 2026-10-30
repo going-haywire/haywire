@@ -180,7 +180,14 @@ node per evaluation, so it must be ~free when nothing failed:
   Rerun after the final-review fixes (commit cad5d961a, same session): trip 3.37 ms, up 1.38 ms,
   down 2.08 ms, cpu_f32 5.17 ms, sr2x 65.4 ms — unchanged code paths moved +2…6 % too, so the
   delta is session noise (README: ±4 % across sessions), not the fixes. The reviewer measured an
-  in-place `clamp_/mul_/round_` download at ~0.2 ms faster; not applied — input for Q27.
+  in-place `clamp_/mul_/round_` download at ~0.2 ms faster.
+  **Tuning (commit 778d98316):** on MPS a fancy-index channel swap and a permute copy each cost a
+  full pass; every conversion now writes one copy in the destination layout with channels in
+  target order, then scales in place. Interleaved A/B (min of 8 alternating rounds): up 1.28 →
+  0.53 ms, down 1.94 → 0.74 ms, trip 3.43 → 1.45 ms. Harness, 3 runs: `img_gpu_trip_1080p`
+  1.19–1.31 ms, `img_cpu_f32_1080p` 5.0–5.3 ms, `img_sr2x_540p` 63.0–63.1 ms (model-bound).
+  **Gate met (≤ 3 ms and < cpu_f32) → Q27A stands.** SR at 33 ms needs a faster model or GPU,
+  not a different value design.
   Deviations from the S0 plan: `Layout`/`ChannelOrder` live in `haybale_image/value/enums.py`;
   `_torch_ops.convert_tensor` added for tensor→tensor hops; torch tests run with
   `uv run --with torch python -m pytest`; `uv.lock` records torch as an optional extra but
@@ -238,7 +245,7 @@ node per evaluation, so it must be ~free when nothing failed:
 
 | # | slice | where | needs | status |
 |---|---|---|---|---|
-| S0 | **spike:** IMAGE value class + accessors + benchmarks (camera frame u8 BGR → GPU fp16 → SR → display within 33 ms at 1080p) | haybale-image | — | done — gate FAILED, Q27 reopened (a6fddf81f6e3 on `feat/s0-image-value-spike`, unmerged, 2026-10-30) — [plan](2026-10-30-s0-image-value-spike.md) |
+| S0 | **spike:** IMAGE value class + accessors + benchmarks (camera frame u8 BGR → GPU fp16 → SR → display within 33 ms at 1080p) | haybale-image | — | done — gate met after tuning (778d98316, merged to master 2026-10-30) — [plan](2026-10-30-s0-image-value-spike.md) |
 | S1 | PATH types, anchors, resolver, AnchorSettings, picker | haywire-core builtin | — | open |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | open |
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | open |
