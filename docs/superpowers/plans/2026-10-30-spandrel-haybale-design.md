@@ -146,6 +146,22 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
   `if_exists = overwrite | skip | unique-suffix` as a safety net.
 - Ship the full pattern as a **macro** ("Batch Upscale Folder") once spandrel lands.
 
+**S4 decisions (2026-10-30, inquisition S4-Q1–Q20; full table in the [S4 plan](2026-10-30-s4-batch-nodes.md))**
+
+- **Run Button** triggers a flow in a *running* graph, TickEmit-shaped: inlets `start`/`stop`/`callbacks`,
+  outlets `started`/`stopped`; the listener is the existing **Tick Event** (payload `delta_time` = time since
+  the previous emit). The press is a BOOL setting promoted as CONFIG, drawn by a new builtin **`ButtonWidget`**;
+  a click writes `True` through the edit route (OPERATE gate), a node-owned thread resets it and emits. Clicks
+  before pickup coalesce; picked-up runs queue (`BLOCK`); `start` clears a stale press.
+- **For Each File:** `pattern` = `;`-separated file-**name** patterns, case-insensitive; `recursive` sets depth;
+  dot-names skipped; symlinked folders not entered, outward file links skipped; listing taken once at `execute`,
+  sorted, `limit` after sorting; adds `break_loop`, `extension` and `total`. An unlistable folder raises.
+  `on_error` acts under bail `branch` only (`frame`/`run` abandon the loop); `on_frame_end` closes an abandoned
+  loop's progress.
+- **Path Exists?:** plain `exists()`; an unresolvable path raises.
+- **Output Path:** validates its parts and raises naming the part; extension with or without a dot.
+- No VM change, no ADR, no glossary term.
+
 ### 2.3 Failure poisoning — haywire-core VM (Q9, Q10, Q37) — **ADR required**
 1. **`failed` flag** per node, separate from `error_runtime`. Set when a worker raises (data or
    control); cleared when the worker next returns normally. `error_runtime` stays the sticky
@@ -312,7 +328,7 @@ node per evaluation, so it must be ~free when nothing failed:
 | S1 | PATH types, volumes (née anchors), resolver, volumes.toml, picker, Volumes editor, CLI | haywire-core builtin + haybale-studio + CLI | — | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
 | S1b | the volumes file is the volume list (S1b-Q1–Q9) | haywire-core builtin + haybale-studio + CLI | S1 | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | done (squashed on feat/s2-failure-poisoning, backup tag spandrel-s2-full, unmerged, 2026-10-30; reworked to bail-by-policy S2-Q10; live check passed) — [plan](2026-10-30-s2-failure-poisoning.md) |
-| S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | open |
+| S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | planned — [plan](2026-10-30-s4-batch-nodes.md) |
 | S5 | rest of haybale-image | haybale-image | S0, S1 | open |
 | S6 | haybale-models | haybale-models | S1 | open |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | open |
