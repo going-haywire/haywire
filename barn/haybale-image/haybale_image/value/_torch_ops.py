@@ -35,8 +35,13 @@ def _rescale(t: torch.Tensor, src_max: int | None, dtype: torch.dtype, dst_max: 
     if src_max == dst_max and t.dtype == dtype:
         return t
     if dst_max is None:
-        work = t.to(dtype)
-        return work if src_max is None else work * (1.0 / src_max)
+        if src_max is None:
+            return t.to(dtype)
+        if src_max == 255 and dtype == torch.float16:
+            # 0..255 is exact in float16, so the camera path scales without a float32 pass.
+            return t.to(dtype) * (1.0 / 255)
+        # Other integers scale in float32: 65535 overflows float16, bfloat16 would round twice.
+        return (t.to(torch.float32) / src_max).to(dtype)
     # Integer targets: clamp in [0, 1], then round half to even, in float32 for exact 16-bit values.
     unit = t.to(torch.float32) if src_max is None else t.to(torch.float32) / src_max
     return torch.round(unit.clamp(0.0, 1.0) * dst_max).to(dtype)
@@ -66,18 +71,34 @@ def upload(
     if src_order != order:
         t = _swap_colour_order(t)
     dst_max = 255 if dtype == torch.uint8 else None
-    return _rescale(t, src_max, dtype, dst_max).unsqueeze(0)
+    return _unshared(_rescale(t, src_max, dtype, dst_max).unsqueeze(0), host)
 
 
 def convert_tensor(
     src: torch.Tensor, src_order: ChannelOrder, device: torch.device, dtype: torch.dtype, order: ChannelOrder
 ) -> torch.Tensor:
-    """Return CHW ``src`` as a ``1×C×H×W`` tensor of ``dtype`` on ``device``, converting after the move."""
-    t = src.to(device, non_blocking=True)
+    """Return CHW ``src`` as a ``1×C×H×W`` tensor of ``dtype`` on ``device``.
+
+    Converts on the GPU side of the move: after it when uploading, before it when downloading.
+    """
+    src_max = 255 if src.dtype == torch.uint8 else None
+    dst_max = 255 if dtype == torch.uint8 else None
+    downloading = device.type == "cpu" and src.device.type != "cpu"
+    # A non-blocking device-to-host copy returns before the data arrives, so downloads block.
+    t = src if downloading else src.to(device, non_blocking=True)
     if src_order != order:
         t = _swap_colour_order(t)
-    src_max = 255 if src.dtype == torch.uint8 else None
-    return _rescale(t, src_max, dtype, 255 if dtype == torch.uint8 else None).unsqueeze(0)
+    t = _rescale(t, src_max, dtype, dst_max)
+    if downloading:
+        t = t.to(device)
+    return _unshared(t.unsqueeze(0), src)
+
+
+def _unshared(result: torch.Tensor, source: torch.Tensor) -> torch.Tensor:
+    """Return ``result``, cloned if it shares memory with ``source``."""
+    if result.untyped_storage().data_ptr() == source.untyped_storage().data_ptr():
+        return result.clone()
+    return result
 
 
 def download(src: torch.Tensor, src_order: ChannelOrder, dtype: np.dtype, order: ChannelOrder) -> np.ndarray:

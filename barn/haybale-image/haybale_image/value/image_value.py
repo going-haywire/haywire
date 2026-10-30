@@ -146,7 +146,7 @@ class ImageValue:
         from haybale_image.value import _torch_ops
 
         _torch_ops.check_tensor_dtype(data.dtype)
-        chw = _torch_ops.tensor_layout(data)
+        chw = _torch_ops.tensor_layout(data.detach())
         layout = _LAYOUT_BY_CHANNELS[int(chw.shape[0])]
         depth = (
             _torch_ops.default_source_depth(chw.dtype)

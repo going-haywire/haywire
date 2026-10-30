@@ -78,3 +78,53 @@ def test_gpu_residency():
     t = v.tensor(dev, torch.float16)
     assert t.device.type == dev
     assert ImageValue.from_tensor(t).residency.startswith(dev)
+
+
+# --- final-review fixes -----------------------------------------------------
+
+
+def test_u16_to_f16_tensor_does_not_overflow():
+    a = np.array([[0, 32768, 65504, 65535]], dtype=np.uint16)
+    t = ImageValue.from_array(a).tensor("cpu", torch.float16)
+    assert torch.isfinite(t).all()
+    assert float(t[0, 0, 0, 3]) == pytest.approx(1.0)
+
+
+def test_u8_to_bf16_tensor_scales():
+    t = ImageValue.from_array(np.array([[128]], dtype=np.uint8)).tensor("cpu", torch.bfloat16)
+    assert float(t[0, 0, 0, 0]) == pytest.approx(128 / 255, rel=1 / 128)
+
+
+def test_tensor_does_not_alias_array_primary():
+    a = np.zeros((2, 2, 3), dtype=np.uint8)
+    v = ImageValue.from_array(a)
+    before = v.array(np.uint8)
+    v.tensor("cpu", torch.uint8).add_(7)
+    assert int(a.max()) == 0
+    assert int(before.max()) == 0
+    v.tensor("cpu").sub_(0.5)
+    assert int(a.max()) == 0
+
+
+def test_tensor_does_not_alias_tensor_primary():
+    t = torch.zeros(3, 2, 2)
+    ImageValue.from_tensor(t).tensor("cpu").add_(0.25)
+    assert float(t.max()) == 0.0
+
+
+def test_from_tensor_detaches_autograd():
+    t = torch.rand(3, 4, 5, requires_grad=True)
+    v = ImageValue.from_tensor(t)
+    assert v.array(np.uint8).shape == (4, 5, 3)
+    assert not v.tensor("cpu").requires_grad
+
+
+def test_gpu_tensor_to_cpu_tensor_converts():
+    dev = _gpu()
+    if dev is None:
+        pytest.skip("no CUDA or MPS device")
+    a = np.random.default_rng(3).integers(0, 256, (5, 7, 3), dtype=np.uint8)
+    on_gpu = ImageValue.from_array(a, order=ChannelOrder.BGR).tensor(dev, torch.float16)
+    back = ImageValue.from_tensor(on_gpu).tensor("cpu", torch.uint8, ChannelOrder.BGR)
+    assert back.device.type == "cpu"
+    np.testing.assert_array_equal(back[0].permute(1, 2, 0).numpy(), a)
