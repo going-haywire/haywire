@@ -1,5 +1,6 @@
-"""Volumes: named roots that graphs reference by ``(volume, relative)`` instead of absolute paths."""
+"""Volumes: named roots that graphs reference by ``(volume key, relative)`` instead of absolute paths."""
 
+from haywire.core.volumes.keys import PROJECT_KEY, VOLUME_KEY_RE, user_volume_key, volume_name
 from haywire.core.volumes.resolve import (
     VolumeError,
     VolumeEscapeError,
@@ -9,25 +10,31 @@ from haywire.core.volumes.resolve import (
     location_of,
     resolve,
 )
-from haywire.core.volumes.store import VolumeStore, get_volume_store, set_volume_store
+from haywire.core.volumes.store import (
+    VolumeEntry,
+    VolumeStore,
+    ensure_volume,
+    get_volume_store,
+    set_volume_store,
+)
 from haywire.core.volumes.value import VolumePath
-from haywire.core.volumes.volume import HomeVolume, ProjectVolume, Volume, all_volumes, volume_by_name
 
 __all__ = [
-    "HomeVolume",
-    "ProjectVolume",
-    "Volume",
+    "PROJECT_KEY",
+    "VOLUME_KEY_RE",
+    "VolumeEntry",
     "VolumeError",
     "VolumeEscapeError",
     "VolumePath",
     "VolumeStatus",
-    "VolumeUndefinedError",
     "VolumeStore",
-    "all_volumes",
+    "VolumeUndefinedError",
+    "ensure_volume",
     "get_volume_store",
     "list_volumes",
     "location_of",
     "resolve",
     "set_volume_store",
-    "volume_by_name",
+    "user_volume_key",
+    "volume_name",
 ]

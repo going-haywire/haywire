@@ -2,7 +2,7 @@ import dataclasses
 
 import pytest
 
-from haywire.core.volumes import VolumePath
+from haywire.core.volumes import PROJECT_KEY, VolumePath
 
 pytestmark = pytest.mark.unit
 
@@ -14,11 +14,11 @@ def test_round_trip():
 
 
 def test_from_empty_dict_defaults():
-    assert VolumePath.from_dict({}) == VolumePath("project", "")
+    assert VolumePath.from_dict({}) == VolumePath(PROJECT_KEY, "")
 
 
 def test_str():
-    assert str(VolumePath("models", "a/b.pth")) == "models:a/b.pth"
+    assert str(VolumePath("haybale-models:volume:models", "a/b.pth")) == "models:a/b.pth"
 
 
 def test_frozen():

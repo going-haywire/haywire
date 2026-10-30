@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Literal
 
+from haywire.core.volumes.keys import PROJECT_KEY
 from haywire.core.volumes.store import VolumeStore, get_volume_store
 from haywire.core.volumes.value import VolumePath
-from haywire.core.volumes.volume import Volume, all_volumes, volume_by_name
-
-logger = logging.getLogger(__name__)
 
 __all__ = [
     "VolumeError",
@@ -45,54 +41,20 @@ class VolumeEscapeError(VolumeError):
         self.reason = reason
 
 
-def _default_of(declared: type[Volume]) -> Path | None:
-    """Return *declared*'s default location, or ``None`` if it has none, raises, or is not absolute.
+def location_of(key: str, store: VolumeStore | None = None) -> Path:
+    """Return the root of volume *key*; never creates it.
 
-    A failing or relative default is logged, so one bad library declaration
-    leaves only its own volume undefined.
-    """
-    try:
-        location = declared.default()
-    except Exception:
-        logger.exception("Volume %r: default() raised; treating it as undefined", declared.name)
-        return None
-    if location is not None and not Path(location).is_absolute():
-        logger.warning(
-            "Volume %r: default() returned %r, which is not absolute; treating it as undefined",
-            declared.name,
-            str(location),
-        )
-        return None
-    return location
-
-
-def _locate(name: str, store: VolumeStore) -> tuple[Path | None, Literal["configured", "default", "fixed"]]:
-    declared = volume_by_name(name)
-    if declared is not None and not declared.configurable:
-        return _default_of(declared), "fixed"
-    configured = store.configured().get(name)
-    if configured is not None:
-        return configured, "configured"
-    if declared is not None:
-        return _default_of(declared), "default"
-    return None, "default"
-
-
-def location_of(name: str, store: VolumeStore | None = None) -> Path:
-    """Return the root of volume *name*; never creates it.
-
-    Order: non-configurable declared volume's default, then the ``volumes.toml``
-    entry, then the declared default.
-
-    A declared default that raises or is not absolute counts as none.
+    The project volume is the open project's folder; every other volume's root is
+    its location in the volumes file.
 
     Raises:
-        VolumeUndefinedError: If none of these yields a location.
+        VolumeUndefinedError: If there is no volume *key* on this machine, or *key*
+            is the project volume and no project is open.
     """
-    location, _ = _locate(name, store if store is not None else get_volume_store())
-    if location is None:
-        raise VolumeUndefinedError(name)
-    return location
+    entry = (store if store is not None else get_volume_store()).entry(key)
+    if entry is None or entry.location is None:
+        raise VolumeUndefinedError(key)
+    return entry.location
 
 
 def resolve(path: VolumePath, store: VolumeStore | None = None) -> Path:
@@ -140,41 +102,38 @@ def _escape_reason(real_root: Path, root: Path, parts: tuple[str, ...]) -> str:
 
 @dataclass(frozen=True)
 class VolumeStatus:
-    """Where a volume stands on this machine."""
+    """A volume as people see it on this machine.
 
-    name: str
+    ``location`` is ``None`` when it has none (the project volume with no project
+    open); ``exists`` says whether the folder is there; ``editable`` is ``False``
+    only for the project volume.
+    """
+
+    key: str
     label: str
     description: str
     location: Path | None
-    source: Literal["configured", "default", "fixed", "undefined"]
     exists: bool
-    declared: bool
-    configurable: bool
+    editable: bool
 
 
 def list_volumes(store: VolumeStore | None = None) -> list[VolumeStatus]:
-    """Return the status of every declared or configured volume.
-
-    ``project`` and ``home`` come first, the rest sorted by name.
-    """
+    """Return every volume: the project volume first, the rest sorted by label."""
     store = store if store is not None else get_volume_store()
-    names = {v.name for v in all_volumes()} | set(store.configured())
     result: list[VolumeStatus] = []
-    for name in names:
-        declared = volume_by_name(name)
-        location, source = _locate(name, store)
+    for entry in store.entries():
+        try:
+            exists = entry.location is not None and entry.location.exists()
+        except OSError:
+            exists = False
         result.append(
             VolumeStatus(
-                name=name,
-                label=declared.label if declared else name,
-                description=declared.description if declared else "",
-                location=location,
-                source=source if location is not None else "undefined",
-                exists=location is not None and location.exists(),
-                declared=declared is not None,
-                configurable=declared.configurable if declared else True,
+                key=entry.key,
+                label=entry.label,
+                description=entry.description,
+                location=entry.location,
+                exists=exists,
+                editable=entry.key != PROJECT_KEY,
             )
         )
-    first = {"project": 0, "home": 1}
-    result.sort(key=lambda s: (first.get(s.name, 2), s.name))
     return result

@@ -1,217 +1,158 @@
 import sys
-from pathlib import Path
 
 import pytest
 
 from haywire.core.di import context
 from haywire.core.volumes import (
-    Volume,
+    PROJECT_KEY,
     VolumeError,
     VolumeEscapeError,
     VolumePath,
+    VolumeStore,
     VolumeUndefinedError,
     list_volumes,
     location_of,
     resolve,
-    set_volume_store,
 )
-from haywire.core.volumes.volume import ProjectVolume
 
 pytestmark = pytest.mark.unit
 
-
-def _declare(name, default=None, configurable=True):
-    return type(
-        f"V_{name}",
-        (Volume,),
-        {
-            "name": name,
-            "label": name.title(),
-            "configurable": configurable,
-            "default": classmethod(lambda cls: default),
-        },
-    )
+V = "user:volume:v"
 
 
-def test_configured_beats_default(tmp_path, volume_store):
-    _declare("scans", tmp_path / "default")
-    volume_store.set("scans", tmp_path / "conf")
-    assert location_of("scans") == tmp_path / "conf"
+@pytest.fixture
+def at(volume_store):
+    """Put volume ``V`` at a location."""
+
+    def _at(location):
+        volume_store.add(V, label="v", description="", location=location)
+
+    return _at
 
 
-def test_default_used_when_unconfigured(tmp_path):
-    _declare("scans", tmp_path / "default")
-    assert location_of("scans") == tmp_path / "default"
+def test_stored_volume_resolves(tmp_path, volume_store):
+    volume_store.add("user:volume:scans", label="Scans", description="", location=tmp_path / "s")
+    assert location_of("user:volume:scans") == tmp_path / "s"
 
 
-def test_project_ignores_configuration(tmp_path, volume_store, workspace_root_restore):
+def test_project_is_the_workspace_root(tmp_path, workspace_root_restore):
     context.set_workspace_root(tmp_path / "ws")
-    volume_store.path.write_text('[volumes]\nproject = "/x"\n')
-    assert location_of("project") == tmp_path / "ws"
+    assert location_of(PROJECT_KEY) == tmp_path / "ws"
 
 
 def test_project_undefined_without_workspace_root(workspace_root_restore):
     context._workspace_root = None
-    assert ProjectVolume.default() is None
     with pytest.raises(VolumeUndefinedError):
-        location_of("project")
+        location_of(PROJECT_KEY)
 
 
-def test_undeclared_configured_volume_resolves(tmp_path, volume_store):
-    volume_store.set("scans", tmp_path / "s")
-    assert location_of("scans") == tmp_path / "s"
-
-
-def test_undefined_volume_raises():
+def test_unknown_volume_raises():
     with pytest.raises(VolumeUndefinedError) as ei:
-        location_of("scans")
-    assert ei.value.volume == "scans"
-    assert str(ei.value) == "volume 'scans' is not defined on this machine"
+        location_of("user:volume:scans")
+    assert ei.value.volume == "user:volume:scans"
+    assert str(ei.value) == "volume 'user:volume:scans' is not defined on this machine"
 
 
 def test_explicit_store_argument(tmp_path):
-    from haywire.core.volumes import VolumeStore
-
     other = VolumeStore(tmp_path / "other.toml")
-    other.set("scans", tmp_path / "o")
-    assert location_of("scans", other) == tmp_path / "o"
+    other.add("user:volume:scans", label="S", description="", location=tmp_path / "o")
+    assert location_of("user:volume:scans", other) == tmp_path / "o"
 
 
-def test_relative_joins_posix_parts(tmp_path, volume_store):
+def test_relative_joins_posix_parts(tmp_path, at):
     root = tmp_path / "root"
-    volume_store.set("v", root)
-    assert resolve(VolumePath("v", "a/b/c.png")) == (root / "a" / "b" / "c.png").resolve()
-    assert resolve(VolumePath("v", "")) == root.resolve()
+    at(root)
+    assert resolve(VolumePath(V, "a/b/c.png")) == (root / "a" / "b" / "c.png").resolve()
+    assert resolve(VolumePath(V, "")) == root.resolve()
 
 
-def test_escape_by_dotdot_raises(tmp_path, volume_store):
+def test_escape_by_dotdot_raises(tmp_path, at):
     root = tmp_path / "root"
     root.mkdir()
-    volume_store.set("v", root)
+    at(root)
     for rel in ("../x", "a/../../x"):
         with pytest.raises(VolumeEscapeError):
-            resolve(VolumePath("v", rel))
-    assert resolve(VolumePath("v", "a/../b")) == (root / "b").resolve()
+            resolve(VolumePath(V, rel))
+    assert resolve(VolumePath(V, "a/../b")) == (root / "b").resolve()
 
 
 @pytest.mark.parametrize("rel", ["/etc/passwd", "C:\\x", "C:/x"])
-def test_absolute_relative_raises(tmp_path, volume_store, rel):
-    volume_store.set("v", tmp_path / "root")
+def test_absolute_relative_raises(tmp_path, at, rel):
+    at(tmp_path / "root")
     with pytest.raises(VolumeEscapeError) as ei:
-        resolve(VolumePath("v", rel))
-    assert ei.value.path == VolumePath("v", rel)
+        resolve(VolumePath(V, rel))
+    assert ei.value.path == VolumePath(V, rel)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="backslash is a separator on Windows")
-def test_backslash_is_literal_on_posix(tmp_path, volume_store):
+def test_backslash_is_literal_on_posix(tmp_path, at):
     root = tmp_path / "root"
-    volume_store.set("v", root)
-    assert resolve(VolumePath("v", "sub\\file.png")) == (root / "sub\\file.png").resolve()
+    at(root)
+    assert resolve(VolumePath(V, "sub\\file.png")) == (root / "sub\\file.png").resolve()
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
-def test_outward_symlink_raises(tmp_path, volume_store):
+def test_outward_symlink_raises(tmp_path, at):
     root = tmp_path / "root"
     root.mkdir()
     (tmp_path / "outside").mkdir()
     (root / "link").symlink_to(tmp_path / "outside")
-    volume_store.set("v", root)
+    at(root)
     with pytest.raises(VolumeEscapeError) as ei:
-        resolve(VolumePath("v", "link/f.txt"))
+        resolve(VolumePath(V, "link/f.txt"))
     assert "link" in ei.value.reason
 
 
-def test_missing_location_still_resolves(tmp_path, volume_store):
+def test_missing_location_still_resolves(tmp_path, at):
     root = tmp_path / "nope"
-    volume_store.set("v", root)
-    assert resolve(VolumePath("v", "a")) == (root / "a").resolve()
+    at(root)
+    assert resolve(VolumePath(V, "a")) == (root / "a").resolve()
     assert not root.exists()
-
-
-def test_list_volumes_reports_sources(tmp_path, volume_store, workspace_root_restore):
-    context.set_workspace_root(tmp_path)
-    (tmp_path / "conf").mkdir()
-    _declare("aaa_default", tmp_path / "d")
-    _declare("zzz_none")
-    _declare("mmm_conf", tmp_path / "unused")
-    volume_store.set("mmm_conf", tmp_path / "conf")
-    volume_store.set("extra", tmp_path / "nowhere")
-    by = {s.name: s for s in list_volumes()}
-    names = [s.name for s in list_volumes()]
-    assert names[:2] == ["project", "home"]
-    assert names[2:] == sorted(names[2:])
-
-    def row(n):
-        return (by[n].source, by[n].exists, by[n].declared, by[n].configurable)
-
-    assert row("project") == ("fixed", True, True, False)
-    assert row("aaa_default") == ("default", False, True, True)
-    assert row("mmm_conf") == ("configured", True, True, True)
-    assert row("zzz_none") == ("undefined", False, True, True)
-    assert by["zzz_none"].location is None
-    assert row("extra") == ("configured", False, False, True)
-    assert by["extra"].label == "extra"
-
-
-def test_store_swap_used_by_default(tmp_path, volume_store):
-    volume_store.set("v", tmp_path)
-    assert location_of("v") == tmp_path
-    set_volume_store(None)
 
 
 # ---- errors outside the escape/undefined cases stay VolumeErrors ----
 
 
-def test_nul_byte_in_relative_is_an_escape(tmp_path, volume_store):
-    volume_store.set("v", tmp_path)
+def test_nul_byte_in_relative_is_an_escape(tmp_path, at):
+    at(tmp_path)
     with pytest.raises(VolumeEscapeError) as ei:
-        resolve(VolumePath("v", "a\0b"))
+        resolve(VolumePath(V, "a\0b"))
     assert "NUL" in ei.value.reason
 
 
-def test_non_string_relative_is_an_escape(tmp_path, volume_store):
-    volume_store.set("v", tmp_path)
+def test_non_string_relative_is_an_escape(tmp_path, at):
+    at(tmp_path)
     with pytest.raises(VolumeEscapeError) as ei:
-        resolve(VolumePath("v", 5))  # type: ignore[arg-type]  # a hand-edited graph
+        resolve(VolumePath(V, 5))  # type: ignore[arg-type]  # a hand-edited graph
     assert "not a string" in ei.value.reason
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
-def test_symlink_loop_is_a_volume_error(tmp_path, volume_store):
+def test_symlink_loop_is_a_volume_error(tmp_path, at):
     root = tmp_path / "root"
     root.mkdir()
     (root / "loop").symlink_to(root / "loop")
-    volume_store.set("v", root)
+    at(root)
     with pytest.raises(VolumeError) as ei:
-        resolve(VolumePath("v", "loop/x"))
+        resolve(VolumePath(V, "loop/x"))
     assert "cannot be resolved" in str(ei.value)
 
 
-def test_label_less_volume_lists_under_its_name():
-    type("V_nolabel", (Volume,), {"name": "nolabel"})
-    by = {s.name: s for s in list_volumes()}
-    assert by["nolabel"].label == "nolabel"
+def test_list_volumes_reports_facts(tmp_path, volume_store, workspace_root_restore):
+    context.set_workspace_root(tmp_path)
+    (tmp_path / "here").mkdir()
+    volume_store.add("user:volume:b", label="beta", description="d", location=tmp_path / "here")
+    volume_store.add("user:volume:a", label="Alpha", description="", location=tmp_path / "gone")
+    statuses = list_volumes()
+    assert [s.key for s in statuses] == [PROJECT_KEY, "user:volume:a", "user:volume:b"]
+    by = {s.key: s for s in statuses}
+    assert (by[PROJECT_KEY].editable, by[PROJECT_KEY].exists) == (False, True)
+    assert (by["user:volume:a"].editable, by["user:volume:a"].exists) == (True, False)
+    assert (by["user:volume:b"].label, by["user:volume:b"].description) == ("beta", "d")
+    assert not hasattr(by["user:volume:b"], "source")
 
 
-def _raising_default(cls):
-    raise OSError("drive gone")
-
-
-def test_raising_default_is_reported_undefined(tmp_path, caplog):
-    type("V_boom", (Volume,), {"name": "boom", "label": "Boom", "default": classmethod(_raising_default)})
-    _declare("fine", tmp_path)
-    by = {s.name: s for s in list_volumes()}
-    assert (by["boom"].source, by["boom"].location, by["boom"].exists) == ("undefined", None, False)
-    assert by["fine"].source == "default"
-    assert "drive gone" in caplog.text
-    with pytest.raises(VolumeUndefinedError):
-        location_of("boom")
-
-
-def test_relative_default_is_treated_as_undefined(caplog):
-    _declare("rel", Path("not/absolute"))
-    by = {s.name: s for s in list_volumes()}
-    assert (by["rel"].source, by["rel"].location) == ("undefined", None)
-    assert "not absolute" in caplog.text
-    with pytest.raises(VolumeUndefinedError):
-        location_of("rel")
+def test_project_without_root_lists_without_location(workspace_root_restore):
+    context._workspace_root = None
+    (project,) = list_volumes()
+    assert (project.location, project.exists) == (None, False)

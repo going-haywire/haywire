@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from haywire.core.volumes.keys import PROJECT_KEY, volume_name
+
 __all__ = ["VolumePath"]
 
 
 @dataclass(frozen=True)
 class VolumePath:
-    """A location inside a named volume: ``(volume, relative)``.
+    """A location inside a volume: ``(volume, relative)``, where ``volume`` is the volume key.
 
     ``relative`` is a POSIX-style string (``/`` separators) kept verbatim; nothing
     in this class rewrites or validates it.
@@ -24,9 +26,9 @@ class VolumePath:
 
     @classmethod
     def from_dict(cls, data: dict) -> VolumePath:
-        """Build from :meth:`to_dict` output; missing keys default to ``"project"`` and ``""``."""
-        return cls(volume=data.get("volume", "project"), relative=data.get("relative", ""))
+        """Build from :meth:`to_dict` output; a missing volume means the project volume."""
+        return cls(volume=data.get("volume", PROJECT_KEY), relative=data.get("relative", ""))
 
     def __str__(self) -> str:
-        """Return ``"volume:relative"`` (display only; not parseable)."""
-        return f"{self.volume}:{self.relative}"
+        """Return ``"<volume name>:<relative>"`` (display only; not parseable)."""
+        return f"{volume_name(self.volume)}:{self.relative}"
