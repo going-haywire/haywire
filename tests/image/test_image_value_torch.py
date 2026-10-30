@@ -128,3 +128,19 @@ def test_gpu_tensor_to_cpu_tensor_converts():
     back = ImageValue.from_tensor(on_gpu).tensor("cpu", torch.uint8, ChannelOrder.BGR)
     assert back.device.type == "cpu"
     np.testing.assert_array_equal(back[0].permute(1, 2, 0).numpy(), a)
+
+
+def test_rgba_swap_keeps_alpha_last_through_tensor():
+    a = np.arange(16, dtype=np.uint8).reshape(2, 2, 4)
+    t = ImageValue.from_array(a, order=ChannelOrder.BGR).tensor("cpu", torch.uint8)
+    np.testing.assert_array_equal(t[0].permute(1, 2, 0).numpy(), a[..., [2, 1, 0, 3]])
+    back = ImageValue.from_tensor(t).array(np.uint8, ChannelOrder.BGR)
+    np.testing.assert_array_equal(back, a)
+
+
+@pytest.mark.parametrize("dtype", [torch.uint8, torch.float16, torch.float32])
+def test_gray_round_trips_through_tensor(dtype):
+    a = np.random.default_rng(4).integers(0, 256, (3, 5), dtype=np.uint8)
+    t = ImageValue.from_array(a).tensor("cpu", dtype, ChannelOrder.BGR)
+    assert tuple(t.shape) == (1, 1, 3, 5)
+    np.testing.assert_array_equal(ImageValue.from_tensor(t).array(np.uint8), a)
