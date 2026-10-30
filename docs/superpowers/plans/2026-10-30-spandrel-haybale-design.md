@@ -171,6 +171,16 @@ node per evaluation, so it must be ~free when nothing failed:
   batch previews.
 - **Visiongraph adapters (S9):** `RGB_FRAME`/`GRAY_FRAME` ↔ `IMAGE_*` as zero-copy wraps tagging
   storage BGR u8.
+- **S0 result (2026-10-30, host MB-41545, Apple M1 Max, MPS, torch 2.15.0, commit a6fddf81f6e3):**
+  min per op — `img_wrap_1080p` 1.9 µs; `img_cpu_f32_1080p` 5.05 ms (input side only of the
+  rejected Q24C path); `img_gpu_up_f16_1080p` 1.26 ms; `img_gpu_down_u8_1080p` 1.96 ms;
+  `img_gpu_trip_1080p` **3.18 ms** (gate ≤ 3 ms: missed by 6 %; gate "< cpu_f32": met);
+  `img_sr2x_540p` 63.9 ms end to end with Real-ESRGAN v2 animevideo xsx2 fp16 (model-bound; over
+  the 33 ms frame budget on this machine). **Gate failed → Q27 reopened.**
+  Deviations from the S0 plan: `Layout`/`ChannelOrder` live in `haybale_image/value/enums.py`;
+  `_torch_ops.convert_tensor` added for tensor→tensor hops; torch tests run with
+  `uv run --with torch python -m pytest`; `uv.lock` records torch as an optional extra but
+  no sync installs it.
 
 ### 2.5 Models — new `haybale-models` (monorepo `barn/`) (Q13–Q17, Q21, Q34)
 - **Model reference (Q13B):** source URI (`hf://org/repo/path@rev`, `https://…`, or local) +
@@ -224,7 +234,7 @@ node per evaluation, so it must be ~free when nothing failed:
 
 | # | slice | where | needs | status |
 |---|---|---|---|---|
-| S0 | **spike:** IMAGE value class + accessors + benchmarks (camera frame u8 BGR → GPU fp16 → SR → display within 33 ms at 1080p) | haybale-image | — | planned — [plan](2026-10-30-s0-image-value-spike.md) |
+| S0 | **spike:** IMAGE value class + accessors + benchmarks (camera frame u8 BGR → GPU fp16 → SR → display within 33 ms at 1080p) | haybale-image | — | done — gate FAILED, Q27 reopened (a6fddf81f6e3 on `feat/s0-image-value-spike`, unmerged, 2026-10-30) — [plan](2026-10-30-s0-image-value-spike.md) |
 | S1 | PATH types, anchors, resolver, AnchorSettings, picker | haywire-core builtin | — | open |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | open |
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | open |
