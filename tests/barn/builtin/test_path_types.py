@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from haywire.core.volumes import PROJECT_KEY, VolumePath
@@ -50,3 +52,39 @@ def test_widget_modes(library_system):
         assert cls.class_identity.widget_key == widget_keys.PATH_WIDGET
     assert file_cls.class_identity.widget_config["properties"]["mode"] == "file"
     assert folder_cls.class_identity.widget_config["properties"]["mode"] == "folder"
+
+
+def _port(path_type: Any) -> Any:
+    from haywire.core.types.enums import PortType
+    from haywire.core.types.port import DataPort
+
+    return DataPort(
+        registry_id="p",
+        registry_key=path_type.class_identity.registry_key,
+        label="P",
+        id="p",
+        type_cls=path_type,
+        port_type=PortType.INLET,
+    )
+
+
+def test_a_port_default_is_a_volume_path(library_system):
+    for cls in _types(library_system):
+        assert _port(cls).get_value() == VolumePath(PROJECT_KEY, "")
+
+
+@pytest.mark.parametrize(
+    "written",
+    [
+        {"volume": "user:volume:scans", "relative": "a/b.png"},
+        {"value": {"volume": "user:volume:scans", "relative": "a/b.png"}},
+        VolumePath("user:volume:scans", "a/b.png"),
+    ],
+)
+def test_a_written_dict_is_stored_as_a_volume_path(library_system, written):
+    path_cls, file_cls, folder_cls = _types(library_system)
+    for cls in (path_cls, file_cls, folder_cls):
+        port = _port(cls)
+        port.set_value(written)
+        assert port.get_value() == VolumePath("user:volume:scans", "a/b.png")
+        assert port.data.to_dict()["value"] == {"volume": "user:volume:scans", "relative": "a/b.png"}

@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Any
 
 from haywire.barn.builtin import widget_keys
-from haywire.core.types import PrimitiveType
+from haywire.core.types import PrimitiveField, PrimitiveType
 from haywire.core.types import type as type_decorator
 from haywire.core.volumes import PROJECT_KEY, VolumePath
 from ..wires import DataWire
@@ -46,6 +46,32 @@ class PATH(PrimitiveType[VolumePath]):
         for key, value in own.items():
             properties.setdefault(key, value)
         port.widget_config = {**port.widget_config, "properties": properties}
+
+
+class PATHField(PrimitiveField):
+    """DataField for the path types: stores a ``VolumePath``, building one from a dict it is given.
+
+    Accepts ``{"volume", "relative"}`` and the serialized form ``{"value": {...}}``,
+    for the type's default and for every write.
+    """
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self._default = _as_volume_path(self._default)
+        self._value = self._default
+
+    def _set_own(self, value: Any) -> None:
+        self._value = _as_volume_path(value)
+
+
+def _as_volume_path(value: Any) -> Any:
+    if isinstance(value, dict):
+        inner = value.get("value")
+        return VolumePath.from_dict(inner if isinstance(inner, dict) else value)
+    return value
+
+
+PATH.field_class = PATHField
 
 
 @type_decorator(
