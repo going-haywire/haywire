@@ -1,6 +1,7 @@
 from haybale_core.nodes.for_loop import ForLoopNode
 from haybale_core.nodes.logger import LoggerNode
 from haybale_core.nodes.output_path import OutputPathNode
+from haybale_core.nodes.path_exists import PathExistsNode
 from haybale_core.nodes.print import PrintNode
 from haybale_core.nodes.switch import ControlSwitch
 from haybale_core.nodes.emits.run_button import RunButtonNode
@@ -16,6 +17,7 @@ __all__ = [
     "ForLoopNode",
     "LoggerNode",
     "OutputPathNode",
+    "PathExistsNode",
     "PrintNode",
     "RunButtonNode",
     "ShutdownNode",
