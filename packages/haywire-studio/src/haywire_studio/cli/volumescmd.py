@@ -49,7 +49,7 @@ def _set(args: argparse.Namespace) -> int:
         folder = Path.cwd() / folder
     try:
         get_volume_store().set(args.name, folder)
-    except (ValueError, TypeError) as exc:
+    except (ValueError, TypeError, OSError) as exc:
         # ValueError also covers the TOML parser's decode errors on a malformed file.
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -60,7 +60,7 @@ def _set(args: argparse.Namespace) -> int:
 def _remove(args: argparse.Namespace) -> int:
     try:
         removed = get_volume_store().remove(args.name)
-    except (ValueError, TypeError) as exc:
+    except (ValueError, TypeError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     if not removed:

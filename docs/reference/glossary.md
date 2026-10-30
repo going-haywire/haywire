@@ -377,7 +377,6 @@ A haybale library's dependencies live across three manifests with different audi
 | **Volume path** | The value a graph stores for a location: `VolumePath(volume, relative)`, with `relative` a POSIX-style string kept verbatim. Carried by the `PATH`, `FILE_PATH` and `FOLDER_PATH` types and edited with `PathWidget`. Resolved on demand by `resolve()`, which refuses a result outside its volume | Absolute path, file path string |
 | **Volumes file** | `~/.haywire/volumes.toml`, table `[volumes]`, `name = "/absolute/location"`: where each configurable volume lives on this machine. Re-read when it changes; written by the Volumes editor and `haywire volumes`. Not a setting: the app never writes the global settings tier, and workspace settings are committed | Volumes setting |
 
-
 ## Access & Authentication
 
 Off by default. When enabled, these terms describe *who may reach the studio* and *what surfaces they see*. The watertight boundary is **no-access vs access**; the tiers within access guard against ignorance, not malice — an `edit` **Principal** can author a Python node, which is arbitrary code execution on the host.

@@ -21,7 +21,7 @@ level: framework
 - **D3** Where a volume lives on this machine is kept in `~/.haywire/volumes.toml`, not in settings. An entry may name a volume nobody declared.
 - **D4** Resolution order: a non-configurable volume's default; else the `volumes.toml` entry; else the declared default; else `VolumeUndefinedError`. Resolving never creates a folder, and a root that does not exist still resolves.
 - **D5** Escapes are refused on the **resolved** path: `..`, an absolute `relative` (POSIX or drive-letter), and a symlink inside the volume pointing outside it raise `VolumeEscapeError`.
-- **D6** A malformed volumes file, or an entry with an invalid name or a relative location, is logged and ignored.
+- **D6** When reading, a malformed volumes file, or an entry with an invalid name or a relative location, is logged and ignored. Writing (`set`, `remove`) raises on a malformed file instead of overwriting it.
 - **D7** Volumes are defined in an ADMIN-only Volumes editor and the `haywire volumes` CLI. The path widget picks a volume and a relative path; it cannot define a volume.
 - **D8** The concept is called **volume**, not "anchor": "anchor" is the UI attach point of flyouts, popups and pins.
 

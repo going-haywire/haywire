@@ -198,6 +198,21 @@ def _ambient_settings_registry():
 
 
 # ==============================================================================
+# Volume store isolation
+# ==============================================================================
+# Anything that lists or resolves volumes (path widgets, the Volumes editor, an
+# app shell drawing them) reads the ambient VolumeStore, which defaults to the
+# developer's real ~/.haywire/volumes.toml. Every test gets one on tmp_path.
+@pytest.fixture(autouse=True)
+def _isolated_volume_store(tmp_path):
+    from haywire.core.volumes import VolumeStore, set_volume_store
+
+    set_volume_store(VolumeStore(tmp_path / "volumes.toml"))
+    yield
+    set_volume_store(None)
+
+
+# ==============================================================================
 # Path Fixtures
 # ==============================================================================
 

@@ -45,7 +45,8 @@ def test_expand_sentinel_loads_three_more_levels(tmp_path: Path) -> None:
     d = _find(c["children"], "d")
     e = _find(d["children"], "e")
     assert [n["label"] for n in e["children"]] == ["deep.txt"]
-    # Already loaded: the data half is a no-op reload that still reports success.
+    # Already loaded: expanding again reloads the same subtree and still reports success.
+    assert model.expand_sentinel(c_id) is True
     assert model.node(str(tmp_path / "a" / "b" / "c" / "d" / "e")) is not None
 
 

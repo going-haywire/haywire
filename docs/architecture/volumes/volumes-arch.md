@@ -18,7 +18,7 @@ Code: `packages/haywire-core/src/haywire/core/volumes/`.
 
 `VolumePath(volume, relative)` is a frozen dataclass. `relative` is a POSIX-style string (`/` separators) kept **verbatim**: nothing in the class rewrites or validates it. It serializes as `{"volume": ..., "relative": ...}`; missing keys default to `project` and an empty string.
 
-The `PATH`, `FILE_PATH` and `FOLDER_PATH` types (`haywire/barn/builtin/types/path.py`) carry a `VolumePath`. `FILE_PATH` and `FOLDER_PATH` differ from `PATH` only in the `mode` their widget starts with. Their default is `project` with an empty `relative`.
+The `PATH`, `FILE_PATH` and `FOLDER_PATH` types (`haywire/barn/builtin/types/path.py`) carry a `VolumePath`. `PATH` leaves the widget `mode` unset (the widget defaults to `file`); `FILE_PATH` and `FOLDER_PATH` preset it to `file` and `folder`. Their default is `project` with an empty `relative`.
 
 ## Declaring a volume
 
@@ -47,7 +47,7 @@ Two volumes are declared by the framework. `project` is the ambient workspace ro
 models = "/Volumes/Fast/models"
 ```
 
-`VolumeStore` reads it, re-reading when the file's modification time or size changes, and writes it through `haywire.core.tomlio`. A malformed file, an invalid name, or a location that is not absolute is logged and ignored; the rest still applies. An entry may name a volume nobody declared (a folder an administrator defined outside any library). `set()` raises `ValueError` for an invalid name, a non-configurable volume, or a relative location. The ambient store comes from `get_volume_store()`; `set_volume_store()` installs another one, which tests use with a store on a temporary path.
+`VolumeStore` reads it, re-reading when the file's modification time or size changes, and writes it through `haywire.core.tomlio`. When reading, a malformed file, an invalid name, or a location that is not absolute is logged and ignored; the rest still applies. `set()` and `remove()` raise the parser's `ValueError` on a malformed file instead of overwriting it. An entry may name a volume nobody declared (a folder an administrator defined outside any library). `set()` raises `ValueError` for an invalid name, a non-configurable volume, or a relative location. The ambient store comes from `get_volume_store()`; `set_volume_store()` installs another one, which tests use with a store on a temporary path.
 
 The file is not a setting: the app never writes the global settings tier, and workspace `settings.json` is committed with the project, while a volume location is per machine.
 

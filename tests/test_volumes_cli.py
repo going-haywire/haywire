@@ -92,3 +92,15 @@ def test_remove_existing(store, tmp_path):
 def test_remove_unknown_fails(store, capsys):
     assert _run(["volumes", "remove", "nope"]) != 0
     assert "nope" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("command", [["set", "models", "/abs/m"], ["remove", "models"]])
+def test_unwritable_file_is_an_error_not_a_traceback(tmp_path, capsys, command):
+    # The volumes "file" is a directory, so reading or writing it raises an OSError.
+    (tmp_path / "volumes.toml").mkdir()
+    set_volume_store(VolumeStore(tmp_path / "volumes.toml"))
+    try:
+        assert _run(["volumes", *command]) == 1
+    finally:
+        set_volume_store(None)
+    assert capsys.readouterr().err.startswith("error: ")
