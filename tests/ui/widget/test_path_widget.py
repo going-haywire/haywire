@@ -82,7 +82,7 @@ async def _open(user: User, port: DataPort) -> PathWidget:
 
 
 def _status(user: User) -> str:
-    return cast(Any, user.find(marker="path-status").elements.pop()).text
+    return cast(Any, user.find(marker="path-status").elements.pop()).props["data-hw-text"]
 
 
 def _tree(user: User) -> ui.tree:
@@ -110,6 +110,25 @@ async def test_choosing_a_volume_keeps_relative(user: User, tmp_path: Path, volu
     select.value = SCANS  # what a pick in the dropdown does server-side
 
     assert port.get_value() == VolumePath(SCANS, "sub/a.png")
+
+
+def test_the_widget_does_not_size_its_node_from_its_content() -> None:
+    # A long path must not floor the node at the path's full width (see widget-canon "Declared size").
+    assert PathWidget.class_identity.min_width is not None
+    assert PathWidget.class_identity.min_height is None
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_resolved_path_is_a_cropping_line_with_the_full_path_as_tooltip(
+    user: User, tmp_path: Path, volume_store
+) -> None:
+    root = _scans(tmp_path, volume_store)
+    await _open(user, _port(VolumePath(SCANS, "day1/a.png")))
+
+    line = cast(Any, user.find(marker="path-status").elements.pop())
+    assert "hw-path-fit" in line.classes
+    assert line.props["title"] == str((root / "day1" / "a.png").resolve())
 
 
 @pytest.mark.unit

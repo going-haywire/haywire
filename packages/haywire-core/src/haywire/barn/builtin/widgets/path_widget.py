@@ -26,14 +26,17 @@ from haywire.ui.widget.decorator import widget
 _MODES = ("file", "folder", "save")
 
 
-@widget(description="Pick a file or folder inside a volume")
+# min_width: a long path must not floor the node at its full width; the status line crops instead.
+@widget(description="Pick a file or folder inside a volume", min_width=200)
 class PathWidget(BaseWidget):
     """Pick a file or folder inside a volume such as the project folder or `models`.
 
     Choose the volume, then type the path inside it or browse to it. The line
-    below shows where the path points on this machine, or what is wrong: a
-    volume that is not defined here, or a volume whose folder is missing (an
-    unplugged drive, say). Volumes are defined in the Volumes editor.
+    below shows where the path points on this machine, cropped in the middle to
+    fit (hover for the full path), or what is wrong: a volume that is not
+    defined here, a volume whose folder is missing (an unplugged drive, say), or
+    a path that leaves its volume (`..` is not allowed). Volumes are added in
+    the Volumes editor.
 
     Options (in `properties`):
 
@@ -82,7 +85,7 @@ class PathWidget(BaseWidget):
                     .mark("path-browse")
                     .tooltip("Browse")
                 )
-            self._status = ui.label("").classes("text-xs truncate").mark("path-status")
+            self._status = hui.fitted_path(text="").classes("text-xs w-full").mark("path-status")
         self._root = root
         return root
 
@@ -95,7 +98,10 @@ class PathWidget(BaseWidget):
         if self._input.value != path.relative:
             self._input.value = path.relative
         text, ok = self._status_of(path)
-        self._status.text = text
+        if ok:
+            self._status.set_path(Path(text))
+        else:
+            self._status.set_text(text)
         self._status.classes(
             add="hw-text-muted" if ok else "hw-text-warning",
             remove="hw-text-warning" if ok else "hw-text-muted",

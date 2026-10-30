@@ -7,6 +7,7 @@ Routes:
   GET  /schema?class=...     — render a LibrarySettings/FrameworkSettings via render_schema()
   GET  /copy-button          — a bare hui.code_snippet() with its copy button
   GET  /volumes-editor?width= — the Volumes editor in a host of the given width
+  GET  /graph-path-demo      — a Path Demo node holding a very long resolved path
   GET  /code-editor-header?width= — the code editor's header in a host of the given width
   POST /api/set?key=&value=  — write a value to the SettingsRegistry workspace tier
 """
@@ -2204,6 +2205,42 @@ def register_routes(library_service) -> None:
             )
 
         _mount_graph_canvas(library_service, graph, editor, testid="widgetbox")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-path-demo
+    #
+    # A Path Demo node whose File inlet points at a file 30 folders deep inside a
+    # temporary volume, so its status line holds a very long resolved path. The
+    # node's size floor must not follow that path. Backs test_path_widget_floor.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-path-demo")
+    async def graph_path_demo_page():
+        import tempfile
+        from pathlib import Path
+
+        from haywire.core.graph.editor import Editor
+        from haywire.core.volumes import VolumePath, VolumeStore, set_volume_store
+
+        root = Path(tempfile.mkdtemp(prefix="haywire-harness-path-demo-"))
+        deep = root.joinpath(*(f"folder-number-{i:02d}" for i in range(30)))
+        deep.mkdir(parents=True)
+        (deep / "picture.png").write_text("x")
+        store = VolumeStore(root / "volumes.toml")
+        store.add("user:volume:deep", label="Deep", description="", location=root)
+        set_volume_store(store)
+
+        graph = _harness_graph("Path Demo Fixture")
+        editor = Editor(graph, library_service.get_node_factory())
+        wrapper = graph.create_node_wrapper("haybale-example:node:PathDemoNode", position=(3600.0, 3700.0))
+        assert wrapper is not None, "could not create PathDemoNode"
+        relative = deep.relative_to(root).as_posix() + "/picture.png"
+        wrapper.node.ports["file"].set_value(VolumePath("user:volume:deep", relative))
+        ui.label(wrapper.node_id).props(f'id="path-node-id" data-node="{wrapper.node_id}"')
+        ui.label(str((deep / "picture.png").resolve())).props('id="path-full"')
+
+        _mount_graph_canvas(library_service, graph, editor, testid="pathdemo")
         _stamp_synced()
 
     # -------------------------------------------------------------------------

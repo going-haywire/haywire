@@ -81,10 +81,10 @@ The `PATH`, `FILE_PATH` and `FOLDER_PATH` types (`haywire/barn/builtin/types/pat
 
 ### Escape refusal
 
-The check runs on the **resolved** path, so it covers every way out of the root. `resolve` raises `VolumeEscapeError` when:
+`relative` is checked as written, then the **resolved** path is checked against the resolved root, which catches a symlink leading out. `resolve` raises `VolumeEscapeError` when:
 
 - `relative` is absolute, in POSIX form (`/etc`) or with a Windows drive (`C:\x`);
-- `..` segments lead outside the root;
+- `relative` has a `..` segment, even one that would stay inside the root (`a/../b`): a volume path names its target directly;
 - a symlink inside the volume points outside it (the message names the symlinked component);
 - `relative` is not a string, or contains a NUL byte.
 
@@ -96,7 +96,7 @@ A symlink loop or an OS error while resolving raises `VolumeError`. A backslash 
 
 ## Picking a path
 
-`PathWidget` (`haywire/barn/builtin/widgets/path_widget.py`) is the widget for the three path types: a volume select listing volumes by label, a text field for `relative`, and a browse button. The volume list is refreshed each time it opens, so a volume added meanwhile shows up. A value whose volume is not on this machine keeps it, listed under its name. A status line shows where the path points on this machine, or what is wrong: the volume is not defined here, or its folder is missing. The widget has no way to add a volume.
+`PathWidget` (`haywire/barn/builtin/widgets/path_widget.py`) is the widget for the three path types: a volume select listing volumes by label, a text field for `relative`, and a browse button. The volume list is refreshed each time it opens, so a volume added meanwhile shows up. A value whose volume is not on this machine keeps it, listed under its name. A status line shows where the path points on this machine, cropped in its middle to fit (`hui.fitted_path`), or what is wrong: the volume is not defined here, or its folder is missing. The widget declares `min_width`, so a long path never sets the node's minimum width. The widget has no way to add a volume.
 
 Its `mode` property selects `file` (existing file), `folder`, or `save` (a folder plus a file name typed in the browser). `extensions` filters the files the browser lists. The browser popup is built from the shared folder tree in `haywire/ui/elements/folder_tree.py` (`FolderTreeModel` and `folder_tree`), the same eager-then-lazy tree the file browser editor uses.
 
