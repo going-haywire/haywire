@@ -2631,7 +2631,12 @@ def register_routes(library_service) -> None:
         if theme_css:
             ui.add_css(theme_css)
         store = VolumeStore(Path(tempfile.mkdtemp(prefix="haywire-harness-volumes-")) / "volumes.toml")
-        store.set("long", Path("/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo"))
+        store.add(
+            "user:volume:long",
+            label="long",
+            description="",
+            location=Path("/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo"),
+        )
         set_volume_store(store)
         context = MagicMock()
         context.can_admin.return_value = True

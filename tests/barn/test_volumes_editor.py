@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Iterator
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -15,7 +14,7 @@ from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
 from haywire.core.access import AccessTier
-from haywire.core.volumes import VolumeStore, list_volumes, set_volume_store
+from haywire.core.volumes import PROJECT_KEY, VolumeEntry, VolumeStore, set_volume_store
 from haywire.ui import elements as hui
 
 pytestmark = pytest.mark.unit
@@ -40,8 +39,16 @@ def store(tmp_path: Path) -> Iterator[VolumeStore]:
     set_volume_store(None)
 
 
-def _fresh(store: VolumeStore) -> dict[str, Path]:
-    return VolumeStore(store.path).configured()
+MODELS = "haybale-models:volume:models"
+SCANS = "user:volume:scans"
+
+
+def _fresh(store: VolumeStore) -> dict[str, VolumeEntry]:
+    return {e.key: e for e in VolumeStore(store.path).entries() if e.key != PROJECT_KEY}
+
+
+def _scans(store: VolumeStore, location: Path) -> None:
+    store.add(SCANS, label="Scans", description="Scanner drive", location=location)
 
 
 async def _open(user: User, *, can_admin: bool = True) -> None:
@@ -96,105 +103,144 @@ async def test_header_carries_the_title_and_the_add_button(user: User, store: Vo
 
 
 @pytest.mark.anyio
-async def test_a_row_is_the_name_over_a_fitted_location_line(
+async def test_a_row_is_the_label_over_a_fitted_location_line(
     user: User, store: VolumeStore, tmp_path: Path
 ) -> None:
     target = tmp_path / "not-there-yet"
-    store.set("models", target)
+    store.add(MODELS, label="Models", description="", location=target)
     await _open(user)
-    for status in list_volumes():
-        await user.should_see(status.name)
+    await user.should_see("Models")
+    await user.should_see("Project")
     line = _one(user, "volume-location-models")
     assert line.props["title"] == str(target)
     assert "hw-path-fit" in line.classes
-    assert line.props["data-hw-text"] == str(target)
     await user.should_see(marker="volume-missing-models")
-    await user.should_not_see(marker="volume-missing-home")
-    await user.should_not_see("configured")  # no source column
-    await user.should_not_see(marker="volume-location-project")
+    await user.should_not_see(MODELS)  # the key is a detail, not a row line
+    for word in ("configured", "default", "fixed", "Source"):
+        await user.should_not_see(word)
     await user.should_see(marker="volume-undefined-project")
-    await user.should_see("not defined on this machine")
 
 
 @pytest.mark.anyio
-async def test_the_row_button_edits_a_configurable_volume_and_views_project(
-    user: User, store: VolumeStore
+async def test_the_row_button_edits_a_stored_volume_and_views_project(
+    user: User, store: VolumeStore, tmp_path: Path
 ) -> None:
+    _scans(store, tmp_path)
     await _open(user)
-    assert _one(user, "volume-open-home").props["icon"] == hui.icon.edit
+    assert _one(user, "volume-open-scans").props["icon"] == hui.icon.edit
     assert _one(user, "volume-open-project").props["icon"] == hui.icon.view
 
 
 @pytest.mark.anyio
-async def test_without_write_access_every_row_only_views(user: User, store: VolumeStore) -> None:
+async def test_without_write_access_every_row_only_views(
+    user: User, store: VolumeStore, tmp_path: Path
+) -> None:
+    _scans(store, tmp_path)
     await _open(user, can_admin=False)
-    assert _one(user, "volume-open-home").props["icon"] == hui.icon.view
+    assert _one(user, "volume-open-scans").props["icon"] == hui.icon.view
     await user.should_not_see(marker="volume-add")
+    user.find(marker="volume-open-scans").click()
+    assert _dialog_open(user)
+    await user.should_see("Scanner drive")
+    for marker in (
+        "volume-dialog-label",
+        "volume-dialog-location",
+        "volume-dialog-save",
+        "volume-dialog-delete",
+    ):
+        await user.should_not_see(marker=marker)
 
 
 @pytest.mark.anyio
-async def test_the_view_modal_shows_details_without_controls(user: User, store: VolumeStore) -> None:
+async def test_the_project_modal_is_read_only_and_shows_the_key(user: User, store: VolumeStore) -> None:
     await _open(user)
     user.find(marker="volume-open-project").click()
     assert _dialog_open(user)
-    await user.should_see("The current project's workspace root.")
-    await user.should_see("undefined")
+    await user.should_see(PROJECT_KEY)
+    await user.should_see("The open project's folder")
     await user.should_not_see(marker="volume-dialog-location")
     await user.should_not_see(marker="volume-dialog-save")
 
 
 @pytest.mark.anyio
-async def test_save_in_the_edit_modal_writes_closes_and_redraws(
+async def test_save_updates_label_description_and_location_but_never_the_key(
     user: User, store: VolumeStore, tmp_path: Path
 ) -> None:
+    _scans(store, tmp_path / "a")
     await _open(user)
-    target = tmp_path / "elsewhere"
-    target.mkdir()
-    user.find(marker="volume-open-home").click()
-    await user.should_not_see(marker="volume-dialog-remove")  # home is not configured yet
-    await _type(user, "volume-dialog-location", str(target))
+    user.find(marker="volume-open-scans").click()
+    await user.should_see(SCANS)
+    await user.should_not_see(marker="volume-dialog-reset-note")  # a user volume has no library
+    await _type(user, "volume-dialog-label", "Scans 2")
+    await _type(user, "volume-dialog-description", "")
+    await _type(user, "volume-dialog-location", str(tmp_path / "b"))
     user.find(marker="volume-dialog-save").click()
-    assert _fresh(store) == {"home": target}
+    assert _fresh(store) == {SCANS: VolumeEntry(SCANS, "Scans 2", "", tmp_path / "b")}
     assert not _dialog_open(user)
-    assert _one(user, "volume-location-home").props["title"] == str(target)
+    assert _one(user, "volume-location-scans").props["title"] == str(tmp_path / "b")
 
 
 @pytest.mark.anyio
 async def test_a_store_error_shows_in_the_edit_modal_and_keeps_it_open(
-    user: User, store: VolumeStore
+    user: User, store: VolumeStore, tmp_path: Path
 ) -> None:
+    _scans(store, tmp_path)
     await _open(user)
-    user.find(marker="volume-open-home").click()
+    user.find(marker="volume-open-scans").click()
     await _type(user, "volume-dialog-location", "rel/dir")
     user.find(marker="volume-dialog-save").click()
     await user.should_see("must be absolute")
     assert _dialog_open(user)
-    assert _fresh(store) == {}
+    assert _fresh(store)[SCANS].location == tmp_path
 
 
 @pytest.mark.anyio
-async def test_remove_in_the_edit_modal_drops_the_configured_entry(
-    user: User, store: VolumeStore, tmp_path: Path
-) -> None:
-    store.set("scans", tmp_path)
+async def test_delete_drops_the_volume(user: User, store: VolumeStore, tmp_path: Path) -> None:
+    _scans(store, tmp_path)
     await _open(user)
     user.find(marker="volume-open-scans").click()
-    user.find(marker="volume-dialog-remove").click()
+    user.find(marker="volume-dialog-delete").click()
     assert _fresh(store) == {}
     assert not _dialog_open(user)
     await user.should_not_see(marker="volume-row-scans")
 
 
 @pytest.mark.anyio
-async def test_the_add_modal_adds_a_configured_row(user: User, store: VolumeStore, tmp_path: Path) -> None:
+async def test_a_library_volume_says_delete_is_a_reset(
+    user: User, store: VolumeStore, tmp_path: Path
+) -> None:
+    store.add(MODELS, label="Models", description="", location=tmp_path)
+    await _open(user)
+    user.find(marker="volume-open-models").click()
+    await user.should_see(marker="volume-dialog-reset-note")
+    await user.should_see("suggested location")
+
+
+@pytest.mark.anyio
+async def test_the_add_modal_adds_a_user_volume(user: User, store: VolumeStore, tmp_path: Path) -> None:
+    await _open(user)
+    user.find(marker="volume-add").click()
+    await _type(user, "volume-add-name", "scans")
+    await user.should_see("Key: user:volume:scans")
+    await _type(user, "volume-add-label", "Scans")
+    await _type(user, "volume-add-description", "Scanner drive")
+    await _type(user, "volume-add-location", str(tmp_path))
+    user.find(marker="volume-add-confirm").click()
+    assert _fresh(store) == {SCANS: VolumeEntry(SCANS, "Scans", "Scanner drive", tmp_path)}
+    assert not _dialog_open(user)
+    await user.should_see(marker="volume-location-scans")
+
+
+@pytest.mark.anyio
+async def test_an_empty_label_in_the_add_modal_falls_back_to_the_name(
+    user: User, store: VolumeStore, tmp_path: Path
+) -> None:
     await _open(user)
     user.find(marker="volume-add").click()
     await _type(user, "volume-add-name", "scans")
     await _type(user, "volume-add-location", str(tmp_path))
     user.find(marker="volume-add-confirm").click()
-    assert _fresh(store) == {"scans": tmp_path}
-    assert not _dialog_open(user)
-    await user.should_see(marker="volume-location-scans")
+    assert _fresh(store)[SCANS].label == "scans"
 
 
 @pytest.mark.anyio
@@ -216,6 +262,20 @@ async def test_invalid_input_in_the_add_modal_shows_the_store_message_and_writes
 
 
 @pytest.mark.anyio
+async def test_adding_an_existing_name_shows_the_error(
+    user: User, store: VolumeStore, tmp_path: Path
+) -> None:
+    _scans(store, tmp_path)
+    await _open(user)
+    user.find(marker="volume-add").click()
+    await _type(user, "volume-add-name", "scans")
+    await _type(user, "volume-add-location", str(tmp_path / "other"))
+    user.find(marker="volume-add-confirm").click()
+    await user.should_see("already exists")
+    assert _fresh(store)[SCANS].location == tmp_path
+
+
+@pytest.mark.anyio
 async def test_malformed_file_shows_the_message_in_the_modal_instead_of_crashing(
     user: User, store: VolumeStore, tmp_path: Path
 ) -> None:
@@ -225,28 +285,16 @@ async def test_malformed_file_shows_the_message_in_the_modal_instead_of_crashing
     await _type(user, "volume-add-name", "scans")
     await _type(user, "volume-add-location", str(tmp_path))
     user.find(marker="volume-add-confirm").click()
-    # The TOML parser's position text ("... at line 1 col 8 ...") is the stable part of its message.
-    await user.should_see("line 1")
+    await user.should_see("unreadable")
     assert _dialog_open(user)
-    assert not _fresh(store)
-
-
-@pytest.mark.anyio
-async def test_a_configurable_volume_without_write_access_is_view_only(
-    user: User, store: VolumeStore
-) -> None:
-    await _open(user, can_admin=False)
-    user.find(marker="volume-open-home").click()
-    assert _dialog_open(user)
-    await user.should_not_see(marker="volume-dialog-location")
-    await user.should_not_see(marker="volume-dialog-save")
-    await user.should_not_see(marker="volume-dialog-remove")
+    assert store.path.read_text() == "[volumes\nbroken"
 
 
 @pytest.mark.anyio
 async def test_a_session_demoted_after_draw_gets_the_error_in_the_modal(
-    user: User, store: VolumeStore
+    user: User, store: VolumeStore, tmp_path: Path
 ) -> None:
+    _scans(store, tmp_path)
     contexts: list[MagicMock] = []
 
     @ui.page("/")
@@ -257,43 +305,10 @@ async def test_a_session_demoted_after_draw_gets_the_error_in_the_modal(
         VolumesEditor(MagicMock()).draw(context, ui.column())
 
     await user.open("/")
-    user.find(marker="volume-open-home").click()
+    user.find(marker="volume-open-scans").click()
     await _type(user, "volume-dialog-location", "/tmp")
     contexts[0].can_admin.return_value = False
     user.find(marker="volume-dialog-save").click()
     await user.should_see("needs admin access")
     assert _dialog_open(user)
-    assert _fresh(store) == {}
-
-
-@pytest.mark.anyio
-async def test_remove_is_absent_for_a_default_source_volume(user: User, store: VolumeStore) -> None:
-    await _open(user)
-    user.find(marker="volume-open-home").click()
-    assert _dialog_open(user)
-    await user.should_not_see(marker="volume-dialog-remove")
-
-
-def _texts(user: User, text: str) -> list[Any]:
-    return [el for el in user.find(kind=ui.label).elements if getattr(el, "text", None) == text]
-
-
-@pytest.mark.anyio
-@pytest.mark.parametrize(("name", "label"), [("project", "Project"), ("home", "Home")])
-async def test_a_label_that_only_recases_the_name_is_not_shown_again(
-    user: User, store: VolumeStore, name: str, label: str
-) -> None:
-    await _open(user)
-    user.find(marker=f"volume-open-{name}").click()
-    assert _dialog_open(user)
-    assert _texts(user, label) == []
-    assert _texts(user, name)  # the name itself is shown once, as the heading
-
-
-def test_a_label_differing_from_the_name_is_shown(store: VolumeStore) -> None:
-    from haybale_studio.editors.volumes_editor import _distinct_label
-
-    status = next(s for s in list_volumes() if s.name == "project")
-    assert _distinct_label(status) is None
-    assert _distinct_label(replace(status, label="Workspace")) == "Workspace"
-    assert _distinct_label(replace(status, label="")) is None
+    assert _fresh(store)[SCANS].location == tmp_path
