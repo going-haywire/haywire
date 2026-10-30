@@ -345,6 +345,8 @@ def ensure_volume(
     """
     target = store if store is not None else get_volume_store()
     return target.ensure(key, label=label, description=description, location=location)
+
+
 # --8<-- [end:ensure-volume]
 
 

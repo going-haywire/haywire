@@ -126,6 +126,13 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 | S1b-Q8 | Suggested model location: `~/.haywire/db/<module>/models` (S6, haybale-models) — suggested, not enforced. Any future "reset library data" tool must leave a `models` folder alone. |
 | S1b-Q9 | The store serializes read-modify-write with a process lock and writes atomically (temp file + rename). |
 
+**S1b deviations from plan**
+
+- `ensure_volume` on an unreadable volumes file logs and adds nothing instead of raising, so a broken file never stops a library from enabling.
+- `haywire volumes add` makes a relative folder absolute against the current directory, like `set`.
+- The PathWidget's "not defined" status names the volume by the key's name part.
+- `list_volumes` treats an OS error checking a location as "missing".
+
 ### 2.2 Batch nodes — haybale-core (Q8, Q11, Q12, Q31)
 - **`Run Button`** — EVENT widget node; emits one Trigger; OPERATE tier.
 - **`For Each File`** — LOOPBACK. Inputs: folder, glob (stdlib `pathlib` glob, `**` recursive),
@@ -289,7 +296,7 @@ node per evaluation, so it must be ~free when nothing failed:
 |---|---|---|---|---|
 | S0 | **spike:** IMAGE value class + accessors + benchmarks (camera frame u8 BGR → GPU fp16 → SR → display within 33 ms at 1080p) | haybale-image | — | done — gate met after tuning (778d98316, merged to master 2026-10-30) — [plan](2026-10-30-s0-image-value-spike.md) |
 | S1 | PATH types, volumes (née anchors), resolver, volumes.toml, picker, Volumes editor, CLI | haywire-core builtin + haybale-studio + CLI | — | done (feat/s1-volumes @ 046d84c44, unmerged, 2026-10-30) — [plan](2026-10-30-s1-volumes.md) |
-| S1b | the volumes file is the volume list (S1b-Q1–Q9) | haywire-core builtin + haybale-studio + CLI | S1 | planned — [plan](2026-10-30-s1b-volumes-file.md) |
+| S1b | the volumes file is the volume list (S1b-Q1–Q9) | haywire-core builtin + haybale-studio + CLI | S1 | done (feat/s1-volumes @ a4cb1f576, unmerged, 2026-10-30) — [plan](2026-10-30-s1b-volumes-file.md) |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | open |
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | open |
 | S5 | rest of haybale-image | haybale-image | S0, S1 | open |
