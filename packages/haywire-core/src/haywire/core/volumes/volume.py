@@ -72,6 +72,7 @@ def all_volumes() -> list[type[Volume]]:
     return list(_VOLUME_BY_NAME.values())
 
 
+# --8<-- [start:project-volume]
 class ProjectVolume(Volume):
     """The current project's workspace root. Follows project switches."""
 
@@ -87,6 +88,9 @@ class ProjectVolume(Volume):
             return get_workspace_root()
         except RuntimeError:
             return None
+
+
+# --8<-- [end:project-volume]
 
 
 class HomeVolume(Volume):
