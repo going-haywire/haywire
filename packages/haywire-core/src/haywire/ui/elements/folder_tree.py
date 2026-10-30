@@ -1,10 +1,10 @@
 """
 Eager-then-lazy folder tree.
 
-``FolderTreeModel`` walks a folder three levels deep up front and plants a
-"Click to load children" sentinel under every folder that still has unloaded
-contents; expanding the sentinel loads three more levels. ``folder_tree``
-renders a model as a ``ui.tree``.
+``FolderTreeModel`` walks a folder ``batch_depth`` levels deep up front (three
+by default) and plants a "Click to load children" sentinel under every folder
+that still has unloaded contents; expanding the sentinel loads ``batch_depth``
+more levels. ``folder_tree`` renders a model as a ``ui.tree``.
 
 Symlinked directories are leaves (never followed). Excluded directory names
 and dot-entries (except ``.haywire``) are skipped.
@@ -16,13 +16,18 @@ from pathlib import Path
 
 from nicegui import ui
 
+DEFAULT_EXCLUDE_DIRS: frozenset[str] = frozenset(
+    {"__pycache__", ".venv", "venv", "node_modules", "dist", "build", ".git"}
+)
+"""Directory names a project-style tree skips: caches, virtualenvs, build output, VCS."""
+
 # Suffix of the id of a folder's "load more" sentinel child.
 _LOAD_MORE_ID = "__load_more__"
 _SENTINEL_SEP = "::"
 
 
 class FolderTreeModel:
-    """Q-tree node dicts for a folder, loaded three levels at a time.
+    """Q-tree node dicts for a folder, loaded ``batch_depth`` levels at a time.
 
     ``nodes`` holds q-tree node dicts (``id`` is the absolute path string,
     ``label`` the entry name). Folders past the batch depth carry a single
@@ -77,7 +82,7 @@ class FolderTreeModel:
         return any(self.is_sentinel(child["id"]) for child in node.get("children") or [])
 
     def expand_sentinel(self, node_id: str) -> bool:
-        """Load three more levels under folder ``node_id``; return whether children were loaded."""
+        """Load ``batch_depth`` more levels under folder ``node_id``; return whether children were loaded."""
         node = self._by_id.get(node_id)
         if node is None:
             return False

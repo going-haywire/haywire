@@ -196,11 +196,12 @@ async def test_folder_pick_sets_relative_on_confirm(user: User, tmp_path: Path, 
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_file_mode_hides_other_extensions(user: User, tmp_path: Path, volume_store) -> None:
-    _scans(tmp_path, volume_store)
+    root = _scans(tmp_path, volume_store)
     port = _port(VolumePath("scans", ""), {"mode": "file", "extensions": [".png"]})
     await _open(user, port)
 
     user.find(marker="path-browse").click()
+    user.find(kind=ui.tree).trigger("update:expanded", [str(root / "day1")])
 
     assert _labels(_tree(user).props["nodes"]) == ["day1", "a.png", "top.PNG"]
 
@@ -252,3 +253,22 @@ def test_an_explicit_port_mode_wins(library_system) -> None:
         cast(Any, spec), library_system.get_type_registry(), cast(Any, None), cast(Any, None)
     )
     assert PathWidget(port)._mode == "save"
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_browse_loads_one_level_and_skips_excluded(user: User, tmp_path: Path, volume_store) -> None:
+    root = tmp_path / "big"
+    (root / "a" / "b" / "c").mkdir(parents=True)
+    (root / "a" / "b" / "c" / "deep.txt").write_text("x")
+    (root / "node_modules" / "pkg").mkdir(parents=True)
+    volume_store.set("big", root)
+    port = _port(VolumePath("big", ""), {"mode": "folder"})
+    await _open(user, port)
+
+    user.find(marker="path-browse").click()
+
+    nodes = _tree(user).props["nodes"]
+    assert [n["label"] for n in nodes] == ["a"]
+    # Only the root's entries are walked; "a" carries the load-more sentinel.
+    assert [n["label"] for n in nodes[0]["children"]] == ["Click to load children"]

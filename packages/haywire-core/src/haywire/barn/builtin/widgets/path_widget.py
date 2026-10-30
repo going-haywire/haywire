@@ -10,6 +10,7 @@ from nicegui import ui
 from haywire.core.volumes import VolumeError, VolumePath, list_volumes, location_of, resolve
 from haywire.ui import elements as hui
 from haywire.ui.elements import FolderTreeModel, folder_tree
+from haywire.ui.elements.folder_tree import DEFAULT_EXCLUDE_DIRS
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.decorator import widget
 
@@ -139,7 +140,14 @@ class PathWidget(BaseWidget):
             return
         if self._dialog is not None:
             self._dialog.delete()
-        model = FolderTreeModel(root, show_files=self._mode != "folder", extensions=self._extensions)
+        # One eager level: a volume can be a whole home folder, and expanding loads deeper on demand.
+        model = FolderTreeModel(
+            root,
+            show_files=self._mode != "folder",
+            extensions=self._extensions,
+            exclude_dirs=DEFAULT_EXCLUDE_DIRS,
+            batch_depth=1,
+        )
         picked = {"folder": ""}
 
         def relative(path: Path) -> str:

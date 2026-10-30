@@ -30,7 +30,7 @@ from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
-from haywire.ui.elements.folder_tree import FolderTreeModel, folder_tree
+from haywire.ui.elements.folder_tree import DEFAULT_EXCLUDE_DIRS, FolderTreeModel, folder_tree
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -52,17 +52,7 @@ if TYPE_CHECKING:
 class LazyFileBrowserEditor(BaseEditor):
     """File tree that loads three levels at a time on demand."""
 
-    _EXCLUDE_DIRS: frozenset = frozenset(
-        {
-            "__pycache__",
-            ".venv",
-            "venv",
-            "node_modules",
-            "dist",
-            "build",
-            ".git",
-        }
-    )
+    _EXCLUDE_DIRS: frozenset = DEFAULT_EXCLUDE_DIRS
 
     def __init__(self, wrapper):
         super().__init__(wrapper)
