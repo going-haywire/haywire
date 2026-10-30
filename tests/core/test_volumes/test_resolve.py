@@ -1,9 +1,12 @@
 import sys
+from pathlib import Path
+
 import pytest
 
 from haywire.core.di import context
 from haywire.core.volumes import (
     Volume,
+    VolumeError,
     VolumeEscapeError,
     VolumePath,
     VolumeUndefinedError,
@@ -154,3 +157,61 @@ def test_store_swap_used_by_default(tmp_path, volume_store):
     volume_store.set("v", tmp_path)
     assert location_of("v") == tmp_path
     set_volume_store(None)
+
+
+# ---- errors outside the escape/undefined cases stay VolumeErrors ----
+
+
+def test_nul_byte_in_relative_is_an_escape(tmp_path, volume_store):
+    volume_store.set("v", tmp_path)
+    with pytest.raises(VolumeEscapeError) as ei:
+        resolve(VolumePath("v", "a\0b"))
+    assert "NUL" in ei.value.reason
+
+
+def test_non_string_relative_is_an_escape(tmp_path, volume_store):
+    volume_store.set("v", tmp_path)
+    with pytest.raises(VolumeEscapeError) as ei:
+        resolve(VolumePath("v", 5))  # type: ignore[arg-type]  # a hand-edited graph
+    assert "not a string" in ei.value.reason
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
+def test_symlink_loop_is_a_volume_error(tmp_path, volume_store):
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "loop").symlink_to(root / "loop")
+    volume_store.set("v", root)
+    with pytest.raises(VolumeError) as ei:
+        resolve(VolumePath("v", "loop/x"))
+    assert "cannot be resolved" in str(ei.value)
+
+
+def test_label_less_volume_lists_under_its_name():
+    type("V_nolabel", (Volume,), {"name": "nolabel"})
+    by = {s.name: s for s in list_volumes()}
+    assert by["nolabel"].label == "nolabel"
+
+
+def _raising_default(cls):
+    raise OSError("drive gone")
+
+
+def test_raising_default_is_reported_undefined(tmp_path, caplog):
+    type("V_boom", (Volume,), {"name": "boom", "label": "Boom", "default": classmethod(_raising_default)})
+    _declare("fine", tmp_path)
+    by = {s.name: s for s in list_volumes()}
+    assert (by["boom"].source, by["boom"].location, by["boom"].exists) == ("undefined", None, False)
+    assert by["fine"].source == "default"
+    assert "drive gone" in caplog.text
+    with pytest.raises(VolumeUndefinedError):
+        location_of("boom")
+
+
+def test_relative_default_is_treated_as_undefined(caplog):
+    _declare("rel", Path("not/absolute"))
+    by = {s.name: s for s in list_volumes()}
+    assert (by["rel"].source, by["rel"].location) == ("undefined", None)
+    assert "not absolute" in caplog.text
+    with pytest.raises(VolumeUndefinedError):
+        location_of("rel")

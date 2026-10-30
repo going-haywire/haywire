@@ -27,9 +27,10 @@ class Volume(ABC):
     """A declared volume.
 
     Subclass and set ``name`` (matching ``^[a-z][a-z0-9_-]*$``) and ``label`` to
-    register it on import. Declaring a name already held by a class from another
-    module or qualname raises ``ValueError``; re-declaring the same module and
-    qualname (hot reload) replaces the earlier class.
+    register it on import; a missing ``label`` defaults to ``name``. Declaring a
+    name already held by a class from another module or qualname raises
+    ``ValueError``; re-declaring the same module and qualname (hot reload)
+    replaces the earlier class.
     """
 
     name: ClassVar[str]
@@ -59,6 +60,8 @@ class Volume(ABC):
                     f"Volume name collision: {cls.__module__}.{cls.__qualname__} and "
                     f"{existing.__module__}.{existing.__qualname__} both declare name={name!r}"
                 )
+        if not isinstance(getattr(cls, "label", None), str):
+            cls.label = name
         _VOLUME_BY_NAME[name] = cls
 
 

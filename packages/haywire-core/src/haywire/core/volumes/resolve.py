@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Literal
 
 from haywire.core.volumes.store import VolumeStore, get_volume_store
 from haywire.core.volumes.value import VolumePath
-from haywire.core.volumes.volume import all_volumes, volume_by_name
+from haywire.core.volumes.volume import Volume, all_volumes, volume_by_name
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "VolumeError",
@@ -42,15 +45,36 @@ class VolumeEscapeError(VolumeError):
         self.reason = reason
 
 
+def _default_of(declared: type[Volume]) -> Path | None:
+    """Return *declared*'s default location, or ``None`` if it has none, raises, or is not absolute.
+
+    A failing or relative default is logged, so one bad library declaration
+    leaves only its own volume undefined.
+    """
+    try:
+        location = declared.default()
+    except Exception:
+        logger.exception("Volume %r: default() raised; treating it as undefined", declared.name)
+        return None
+    if location is not None and not Path(location).is_absolute():
+        logger.warning(
+            "Volume %r: default() returned %r, which is not absolute; treating it as undefined",
+            declared.name,
+            str(location),
+        )
+        return None
+    return location
+
+
 def _locate(name: str, store: VolumeStore) -> tuple[Path | None, Literal["configured", "default", "fixed"]]:
     declared = volume_by_name(name)
     if declared is not None and not declared.configurable:
-        return declared.default(), "fixed"
+        return _default_of(declared), "fixed"
     configured = store.configured().get(name)
     if configured is not None:
         return configured, "configured"
     if declared is not None:
-        return declared.default(), "default"
+        return _default_of(declared), "default"
     return None, "default"
 
 
@@ -59,6 +83,8 @@ def location_of(name: str, store: VolumeStore | None = None) -> Path:
 
     Order: non-configurable declared volume's default, then the ``volumes.toml``
     entry, then the declared default.
+
+    A declared default that raises or is not absolute counts as none.
 
     Raises:
         VolumeUndefinedError: If none of these yields a location.
@@ -74,18 +100,29 @@ def resolve(path: VolumePath, store: VolumeStore | None = None) -> Path:
 
     Raises:
         VolumeUndefinedError: If the volume has no location.
-        VolumeEscapeError: If ``relative`` is absolute or resolves outside the volume.
+        VolumeEscapeError: If ``relative`` is not a string, contains a NUL byte,
+            is absolute, or resolves outside the volume.
+        VolumeError: If the path cannot be resolved (a symlink loop, an OS error).
     """
     root = location_of(path.volume, store)
     relative = path.relative
+    if not isinstance(relative, str):
+        raise VolumeEscapeError(path, f"relative path {relative!r} is not a string")
+    if "\0" in relative:
+        raise VolumeEscapeError(path, "relative path contains a NUL byte")
     if PurePosixPath(relative).is_absolute() or PureWindowsPath(relative).drive:
         raise VolumeEscapeError(path, f"{relative!r} is an absolute path")
     parts = PurePosixPath(relative).parts
-    target = root.joinpath(*parts).resolve()
-    real_root = root.resolve()
-    if target.is_relative_to(real_root):
-        return target
-    raise VolumeEscapeError(path, _escape_reason(real_root, root, parts))
+    try:
+        target = root.joinpath(*parts).resolve()
+        real_root = root.resolve()
+        if target.is_relative_to(real_root):
+            return target
+        reason = _escape_reason(real_root, root, parts)
+    except (OSError, RuntimeError) as exc:
+        # Symlink loop: RuntimeError on Python 3.12, OSError from 3.13 on.
+        raise VolumeError(f"{path} cannot be resolved: {exc}") from exc
+    raise VolumeEscapeError(path, reason)
 
 
 def _escape_reason(real_root: Path, root: Path, parts: tuple[str, ...]) -> str:
