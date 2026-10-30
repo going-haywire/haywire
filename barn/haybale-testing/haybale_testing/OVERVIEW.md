@@ -8,7 +8,12 @@ Test library for test support
 - **Array Callback Probe** — Test-only: an array-of-CALLBACK outlet and inlet.
 - **Array Exec Probe** — Test-only: an array-of-EXEC outlet and inlet on a control node.
 - **Bench Bare Node** — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.
+- **Bench Data Pass Node** — FROZEN: data node passing x + 1 on, for measuring data-flow evaluation.
+- **Bench Data Raise Node** — FROZEN: data node whose worker always raises, for measuring the failure path.
 - **Bench Exec Node** — FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.
+- **Bench Fan In Node** — FROZEN: data node adding two inputs, for measuring a fan-in in data-flow evaluation.
+- **Bench Loop Raise Node** — FROZEN: data node raising on odd input, for measuring a loop with failures.
+- **Bench Sink Node** — FROZEN: control node with one data inlet, ending the branch.
 - **Callback Relay Probe** — Test-only: copies a callback inlet's value to its outlet on write, with a suffix.
 - **Control Payload TestNode** — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).
 - **Display** — Displays input values for debugging

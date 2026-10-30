@@ -7,6 +7,7 @@ Visual graph editor library — host-agnostic
 
 ## Farmhands
 - **Add node** — Add a node by registry key. Call studio_describe_component first to learn its ports.
+- **Arrange** — Auto-layout the flow of nodes, a node's downstream or upstream nodes, or the whole graph.
 - **Connect** — Connect an outlet to an inlet.
 - **Demote setting** — Remove a promoted port, returning the field to a plain setting. One undo step.
 - **Inspect node** — One node's ports, settings, and health, at a chosen depth.
@@ -32,6 +33,10 @@ Visual graph editor library — host-agnostic
 - **Appearance** — The ⧉ icon that drops the appearance fields above the toolbar.
 - **Appearance** — The selected node's appearance props, or a form applying to every selected node.
 - **Arrange** — The "Arrange" row: a submenu over the stacking-order verbs.
+- **Arrange All** — Lay out every node in the graph as one undo step.
+- **Arrange Downstream** — Lay out the nodes downstream of this node, keeping this node in place.
+- **Arrange Flow** — Lay out every node connected to the selected nodes.
+- **Arrange Upstream** — Lay out the nodes upstream of this node, keeping this node in place.
 - **Bring Forward** — Move each selected node one step up: above the next node over it.
 - **Bring to Front** — Paint the selected nodes above every other node in this view.
 - **Clone to Library** — Write a copy of this node's class into a library, as a new node to edit.
@@ -65,6 +70,7 @@ Visual graph editor library — host-agnostic
 - **Graph Metadata** — Renders the metadata of the active graph.
 - **Graph Settings** — Renders the properties of the active graph.
 - **Insert Reroute** — Split the active edge and insert a reroute node in between. Available for every edge.
+- **Layout** — The "Layout" row: a submenu laying out the flow around the selected nodes.
 - **Lock** — Lock or unlock one node, as protection against accidental manipulation.
 - **Macro** — The "Macro" row — a submenu over the verbs between a card and a macro.
 - **Modified instance** — Offer to put a modified instance back to its macro, or to cut it loose.
@@ -90,7 +96,12 @@ Visual graph editor library — host-agnostic
 - **Reset Selection** — Reset every node/edge in the selection in one step.
 - **Reset to default** — Put the backing setting back to its declared default, from the pin.
 - **Revalidate Selection** — Revalidate every node/edge in the selection in one step.
+- **Rotate Clockwise** — Turn the layout of the selected nodes a quarter turn clockwise, in place.
+- **Rotate Counter-clockwise** — Turn the layout of the selected nodes a quarter turn counter-clockwise, in place.
 - **Save new Macro** — Save a Group as a new macro. Only visible when the right-clicked node is a Graph-node.
+- **Select** — The "Select" row: a submenu selecting the nodes downstream or upstream of this node.
+- **Select Downstream** — Select every node downstream of this node, instead of this node.
+- **Select Upstream** — Select every node upstream of this node, instead of this node.
 - **Send Backward** — Move each selected node one step down: below the next node under it.
 - **Send to Back** — Paint the selected nodes below every other node in this view.
 - **Set to none** — Clear the backing setting to absence (OPTIONAL[T] fields only).
@@ -106,6 +117,7 @@ Visual graph editor library — host-agnostic
 - **Style** — The connection's colour, line and arrow heads, where its connection type allows it.
 - **Style** — The icon that drops the selected edges' colour, line and arrow heads above the toolbar.
 - **Theme** — The node theme colouring this card, as a row opening its source.
+- **Trim Canvas** — Centre every node on a canvas trimmed to them, then fit the view, as an icon shortcut.
 - **Type** — The pin's data type, as a row that opens the type's source.
 - **Widget** — The widget editing this pin, as a row that opens the widget's source.
 

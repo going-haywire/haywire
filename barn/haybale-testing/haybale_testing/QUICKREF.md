@@ -5,7 +5,12 @@
 - `haybale-testing:node:ArrayCallbackProbeNode` — Array Callback Probe — Test-only: an array-of-CALLBACK outlet and inlet.  _tags: test, array, callback, container_
 - `haybale-testing:node:ArrayExecProbeNode` — Array Exec Probe — Test-only: an array-of-EXEC outlet and inlet on a control node.  _tags: test, array, exec, container_
 - `haybale-testing:node:BenchBareNode` — Bench Bare Node — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.  _tags: benchmark, frozen, bare, dispatch_
+- `haybale-testing:node:BenchDataPassNode` — Bench Data Pass Node — FROZEN: data node passing x + 1 on, for measuring data-flow evaluation.  _tags: benchmark, frozen, data, chain_
+- `haybale-testing:node:BenchDataRaiseNode` — Bench Data Raise Node — FROZEN: data node whose worker always raises, for measuring the failure path.  _tags: benchmark, frozen, data, raise, failure_
 - `haybale-testing:node:BenchExecNode` — Bench Exec Node — FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.  _tags: benchmark, frozen, exec, conduit, control-edge_
+- `haybale-testing:node:BenchFanInNode` — Bench Fan In Node — FROZEN: data node adding two inputs, for measuring a fan-in in data-flow evaluation.  _tags: benchmark, frozen, data, fan-in_
+- `haybale-testing:node:BenchLoopRaiseNode` — Bench Loop Raise Node — FROZEN: data node raising on odd input, for measuring a loop with failures.  _tags: benchmark, frozen, data, raise, loop_
+- `haybale-testing:node:BenchSinkNode` — Bench Sink Node — FROZEN: control node with one data inlet, ending the branch.  _tags: benchmark, frozen, control, sink_
 - `haybale-testing:node:CallbackRelayProbeNode` — Callback Relay Probe — Test-only: copies a callback inlet's value to its outlet on write, with a suffix.  _tags: test, callback, relay, loop_
 - `haybale-testing:node:ControlPayloadTestNode` — Control Payload TestNode — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).  _tags: test, control, exec, payload, conduit_
 - `haybale-testing:node:DisplayNode` — Display — Displays input values for debugging  _tags: display, debug, output, basic_

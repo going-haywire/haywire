@@ -22,6 +22,7 @@
 
 ## panel
 - `haybale-studio:panel:ActivitySettingsPanel` — Activity — Farmhand activity tracker: in-memory history size, audit log path.
+- `haybale-studio:panel:ArrangeSettingsPanel` — Arrange — The gaps Arrange leaves between node cards.
 - `haybale-studio:panel:CanvasSettingsPanel` — Grid — Grid, zoom, pan and background pattern.
 - `haybale-studio:panel:DebugOverlaySettingsPanel` — Debug Overlay — Performance/debug HUD visibility and position.
 - `haybale-studio:panel:DebugSettingsPanel` — Log Levels — Logging, execution visibility, visual debugging and data inspection.
@@ -53,6 +54,7 @@
 - `haybale-studio:editor:RosterEditor` — Accounts — Manage who may reach this studio
 - `haybale-studio:editor:ShortcutsEditor` — Shortcuts — Keyboard shortcuts of every editor, grouped by editor.
 - `haybale-studio:editor:TerminalEditor` — Log — Application output. Captures Python logging and print() output.
+- `haybale-studio:editor:VolumesEditor` — Volumes — Where each volume lives on this machine
 
 ## theme
 - `haybale-studio:theme:DefaultNodeTheme` — Default Node Theme — Default node rendering theme — works on both dark and light backgrounds.

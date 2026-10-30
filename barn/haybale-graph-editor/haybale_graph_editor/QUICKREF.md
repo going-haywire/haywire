@@ -5,6 +5,7 @@
 
 ## farmhand
 - `haybale-graph-editor:farmhand:add_node` — Add node — Add a node by registry key. Call studio_describe_component first to learn its ports.
+- `haybale-graph-editor:farmhand:arrange` — Arrange — Auto-layout the flow of nodes, a node's downstream or upstream nodes, or the whole graph.
 - `haybale-graph-editor:farmhand:connect` — Connect — Connect an outlet to an inlet.
 - `haybale-graph-editor:farmhand:demote_setting` — Demote setting — Remove a promoted port, returning the field to a plain setting. One undo step.
 - `haybale-graph-editor:farmhand:inspect_node` — Inspect node — One node's ports, settings, and health, at a chosen depth.
@@ -26,7 +27,11 @@
 ## panel
 - `haybale-graph-editor:panel:AddToStageMenuPanel` — Add to Stage — Put the selected nodes on the stage; offered when the selection holds an off-stage node.
 - `haybale-graph-editor:panel:AppearanceToolbarPanel` — Appearance — The ⧉ icon that drops the appearance fields above the toolbar.
+- `haybale-graph-editor:panel:ArrangeAllMenuPanel` — Arrange All — Lay out every node in the graph as one undo step.
+- `haybale-graph-editor:panel:ArrangeDownstreamMenuPanel` — Arrange Downstream — Lay out the nodes downstream of this node, keeping this node in place.
+- `haybale-graph-editor:panel:ArrangeFlowMenuPanel` — Arrange Flow — Lay out every node connected to the selected nodes.
 - `haybale-graph-editor:panel:ArrangeSelectionMenuPanel` — Arrange — The "Arrange" row: a submenu over the stacking-order verbs.
+- `haybale-graph-editor:panel:ArrangeUpstreamMenuPanel` — Arrange Upstream — Lay out the nodes upstream of this node, keeping this node in place.
 - `haybale-graph-editor:panel:BringForwardMenuPanel` — Bring Forward — Move each selected node one step up: above the next node over it.
 - `haybale-graph-editor:panel:BringToFrontMenuPanel` — Bring to Front — Paint the selected nodes above every other node in this view.
 - `haybale-graph-editor:panel:ClearDetailOverridesMenuPanel` — Reset Detail — Drop each selected node's own detail rank, so it follows the graph's again.
@@ -70,6 +75,7 @@
 - `haybale-graph-editor:panel:GraphSettingsPanel` — Graph Settings — Renders the properties of the active graph.
 - `haybale-graph-editor:panel:GroupMenuPanel` — Expand Group — Expand a Group back into the graph around it.
 - `haybale-graph-editor:panel:InsertRerouteMenuPanel` — Insert Reroute — Split the active edge and insert a reroute node in between. Available for every edge.
+- `haybale-graph-editor:panel:LayoutSelectionMenuPanel` — Layout — The "Layout" row: a submenu laying out the flow around the selected nodes.
 - `haybale-graph-editor:panel:LockToolbarPanel` — Lock — Lock or unlock one node, as protection against accidental manipulation.
 - `haybale-graph-editor:panel:MacroSelectionMenuPanel` — Macro — The "Macro" row — a submenu over the verbs between a card and a macro.
 - `haybale-graph-editor:panel:ModifiedInstanceMenuPanel` — Modified instance — Offer to put a modified instance back to its macro, or to cut it loose.
@@ -102,10 +108,16 @@
 - `haybale-graph-editor:panel:ResetSelectionMenuPanel` — Reset Selection — Reset every node/edge in the selection in one step.
 - `haybale-graph-editor:panel:ResetSettingMenuPanel` — Reset to default — Put the backing setting back to its declared default, from the pin.
 - `haybale-graph-editor:panel:RevalidateSelectionMenuPanel` — Revalidate Selection — Revalidate every node/edge in the selection in one step.
+- `haybale-graph-editor:panel:RotateClockwiseMenuPanel` — Rotate Clockwise — Turn the layout of the selected nodes a quarter turn clockwise, in place.
+- `haybale-graph-editor:panel:RotateCounterClockwiseMenuPanel` — Rotate Counter-clockwise — Turn the layout of the selected nodes a quarter turn counter-clockwise, in place.
 - `haybale-graph-editor:panel:SaveNewMacroMenuPanel` — Save new Macro — Save a Group as a new macro. Only visible when the right-clicked node is a Graph-node.
+- `haybale-graph-editor:panel:SelectDownstreamMenuPanel` — Select Downstream — Select every node downstream of this node, instead of this node.
+- `haybale-graph-editor:panel:SelectFlowSelectionMenuPanel` — Select — The "Select" row: a submenu selecting the nodes downstream or upstream of this node.
+- `haybale-graph-editor:panel:SelectUpstreamMenuPanel` — Select Upstream — Select every node upstream of this node, instead of this node.
 - `haybale-graph-editor:panel:SelectionOverflowPanel` — More — The ⋯ — a panel that hosts the selection right-click menu.
 - `haybale-graph-editor:panel:SendBackwardMenuPanel` — Send Backward — Move each selected node one step down: below the next node under it.
 - `haybale-graph-editor:panel:SendToBackMenuPanel` — Send to Back — Paint the selected nodes below every other node in this view.
+- `haybale-graph-editor:panel:TrimCanvasPanel` — Trim Canvas — Centre every node on a canvas trimmed to them, then fit the view, as an icon shortcut.
 
 ## editor
 - `haybale-graph-editor:editor:GraphEditor` — Graph Editor — Visual node graph editor for wiring data processing pipelines.

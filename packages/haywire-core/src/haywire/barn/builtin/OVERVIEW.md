@@ -17,10 +17,13 @@ Framework-owned primitive types and adapters
 - **Choices** — A string constrained to a set of options (options live per-use in widget_config)
 - **Color** — Hex or rgba color string
 - **Execution Signal** — Signal for controlling execution flow between nodes
+- **File path** — A file inside a named volume such as the project folder or `models`.
 - **Float** — Decimal number
 - **Fold** — Hides or shows the ports inside it
+- **Folder path** — A folder inside a named volume such as the project folder or `models`.
 - **Integer** — Whole number
 - **Optional** — A value of the wrapped type, or absence
+- **Path** — A file or folder inside a named volume such as the project folder or `models`. The graph stores the volume and the path within it, so it keeps working on another machine.
 - **Progress** — Whether a node is busy, how far it is, and what it is doing
 - **String** — Text data
 - **Vec2f** — 2D float vector
@@ -39,12 +42,14 @@ Framework-owned primitive types and adapters
 
 ## Widgets
 - **ArrowHeadWidget** — Arrow head picker
+- **ButtonWidget** — button widget
 - **CheckboxWidget** — checkbox widget
 - **ColorWidget** — Color picker widget
 - **FoldWidget** — Fold header
 - **NoteTextWidget** — Note text
 - **NumberWidget** — Fast number input widget
 - **OptionalWidget** — Optional value — the wrapped type's widget, plus an absence state
+- **PathWidget** — Pick a file or folder inside a volume
 - **ProgressWidget** — Progress bar
 - **SelectWidget** — select widget
 - **SimpleLabelWidget** — Simple label for display only
@@ -54,6 +59,7 @@ Framework-owned primitive types and adapters
 - **VecWidget** — Vector component editor widget
 
 ## Settings
+- **arrange** — 
 - **debug** — 
 - **editor.pan_zoom** — 
 - **farmhand.activity** — 

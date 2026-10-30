@@ -29,6 +29,7 @@ Library for haywire studio
 ## Panels
 - **Activity** — Farmhand activity tracker: in-memory history size, audit log path.
 - **Agent activity** — Opens the ActivityEditor.
+- **Arrange** — The gaps Arrange leaves between node cards.
 - **Debug Overlay** — Performance/debug HUD visibility and position.
 - **Default Skins** — Node Default Skins.
 - **Developer mode** — Toggles developer mode for this session.
@@ -59,6 +60,7 @@ Library for haywire studio
 - **Log** — Application output. Captures Python logging and print() output.
 - **Properties** — Context-sensitive property panels for the active selection.
 - **Shortcuts** — Keyboard shortcuts of every editor, grouped by editor.
+- **Volumes** — Where each volume lives on this machine
 
 ## Themes
 - **Default Node Theme** — Default node rendering theme — works on both dark and light backgrounds.
