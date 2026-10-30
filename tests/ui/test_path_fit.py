@@ -68,7 +68,8 @@ async def user() -> AsyncGenerator[User, None]:
 
 
 def _shown(line: ui.element) -> list[str]:
-    return [child.text for child in line.default_slot.children]  # type: ignore[attr-defined]
+    # The last rendering of a path carries direction marks (see FittedPath); they are not text a reader sees.
+    return [child.text.strip("\u200e") for child in line.default_slot.children]  # type: ignore[attr-defined]
 
 
 @pytest.mark.anyio
@@ -158,3 +159,18 @@ async def test_showing_the_same_path_or_text_again_keeps_the_drawn_renderings(us
     drawn = list(line.default_slot.children)
     line.set_text("not saved")
     assert line.default_slot.children == drawn
+
+
+@pytest.mark.anyio
+async def test_set_path_after_set_text_of_the_same_string_still_sets_the_tooltip(user: User) -> None:
+    built: dict[str, hui.FittedPath] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        built["line"] = hui.fitted_path(text="/a")
+
+    await user.open("/")
+    line = built["line"]
+    line.set_path(PurePosixPath("/a"))
+    assert line.props["title"] == "/a"
+    assert line.path == PurePosixPath("/a")

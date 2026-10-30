@@ -66,6 +66,8 @@ def crop_candidates(path: PurePath) -> list[str]:
 PATH_FIT_CSS = (
     f" .{FIT_CLASS} {{ position: relative; min-width: 0; overflow: hidden; white-space: nowrap; }}"
     f" .{FIT_CLASS} > * {{ position: absolute; left: 0; top: 0; visibility: hidden; white-space: nowrap; }}"
+    # The last of several renderings cuts its start, so the file name stays; text-align keeps it left.
+    f" .{FIT_CLASS} > :last-child:not(:first-child) {{ direction: rtl; text-align: left; }}"
     f" .{FIT_CLASS}:not([{FIT_ATTR}]) > :first-child,"
     + ",".join(f" .{FIT_CLASS}[{FIT_ATTR}='{i}'] > :nth-child({i + 1})" for i in range(MAX_CANDIDATES))
     + " { position: static; visibility: visible; overflow: hidden; text-overflow: ellipsis; }"
@@ -109,7 +111,7 @@ _SCRIPT = """(function () {
         record.addedNodes.forEach(function (node) {
           if (node.nodeType !== 1) return;
           if (node.classList.contains("%(cls)s")) adopt(node);
-          node.querySelectorAll(".%(cls)s").forEach(adopt);
+          Array.prototype.forEach.call(node.getElementsByClassName("%(cls)s"), adopt);
         });
         if (record.removedNodes.length && watched.size && !pruneSoon) {
           pruneSoon = setTimeout(function () { pruneSoon = null; prune(); }, 1000);
@@ -168,7 +170,7 @@ class FittedPath(ui.element):
 
     def set_path(self, path: PurePath) -> None:
         """Show ``path``, cropped to fit, with the full path as the tooltip."""
-        if self._show(crop_candidates(path)):
+        if self._show(crop_candidates(path)) or self.path != path:
             # Assigned rather than passed through props(): a quote in a path would break its parsing.
             self._props["title"] = str(path)
             self.update()
@@ -188,8 +190,10 @@ class FittedPath(ui.element):
         self._renderings = renderings
         self.clear()
         with self:
-            for rendering in renderings:
-                ui.label(rendering)
+            for i, rendering in enumerate(renderings):
+                # Left-to-right marks keep a leading ``..`` in order inside the right-to-left last rendering.
+                last_of_many = len(renderings) > 1 and i == len(renderings) - 1
+                ui.label(f"\u200e{rendering}\u200e" if last_of_many else rendering)
         return True
 
 

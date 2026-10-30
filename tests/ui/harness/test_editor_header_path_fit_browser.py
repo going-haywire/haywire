@@ -15,7 +15,7 @@ def _shown(page: Page) -> str:
         """sel => {
             const line = document.querySelector(sel);
             return [...line.children].filter(c => getComputedStyle(c).visibility === 'visible')
-                .map(c => c.textContent).join('|');
+                .map(c => c.textContent.replace(/‎/g, '')).join('|');
         }""",
         _LINE,
     )

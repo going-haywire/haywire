@@ -95,3 +95,36 @@ def test_a_line_whose_renderings_are_replaced_chooses_again(page: Page) -> None:
         "Object.assign(document.createElement('div'), {textContent: '/short'})); }"
     )
     _wait_fit(page, "w200", "0")
+
+
+def test_the_last_rendering_keeps_the_file_name_when_even_it_is_too_narrow(page: Page) -> None:
+    path = PurePosixPath("graphs/foo.haywire")
+    candidates = crop_candidates(path)
+    assert candidates == ["graphs/foo.haywire", "../foo.haywire"]
+    # The last rendering is drawn the way FittedPath draws it: direction marks around its text.
+    divs = "".join(f"<div>{escape(c)}</div>" for c in candidates[:-1])
+    divs += f"<div>\u200e{escape(candidates[-1])}\u200e</div>"
+    page.set_content(
+        f"<html><head><style>{PATH_FIT_CSS}</style></head><body>"
+        f'<div id="n" class="{FIT_CLASS}" style="{_LINE_STYLE}; width: 50px">{divs}</div></body></html>'
+    )
+    page.evaluate(_SCRIPT)
+    _wait_fit(page, "n", "1")
+    shown = page.evaluate(
+        """() => {
+          const el = document.querySelector('#n > :nth-child(2)');
+          const text = el.firstChild, s = text.data;
+          const rect = (i) => { const r = document.createRange(); r.setStart(text, i); r.setEnd(text, i + 1);
+                                return r.getBoundingClientRect(); };
+          const host = el.getBoundingClientRect();
+          return {
+            tailRight: rect(s.length - 2).right, hostRight: host.right,
+            dotLeft: rect(1).left, fLeft: rect(4).left,
+            overflow: getComputedStyle(el).textOverflow,
+          };
+        }"""
+    )
+    # The end of the name sits inside the line (the start is what is cut) and "../" still reads first.
+    assert shown["tailRight"] <= shown["hostRight"] + 1
+    assert shown["dotLeft"] < shown["fLeft"]
+    assert shown["overflow"] == "ellipsis"
