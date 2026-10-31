@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from haybale_image.value import ChannelOrder, ImageValue, Layout
+from haybale_image.value import NO_METADATA, ChannelOrder, ImageMetadata, ImageValue, Layout
 
 pytestmark = pytest.mark.unit
 
@@ -129,3 +129,42 @@ def test_accessor_is_cached():
     v = ImageValue.from_array(np.zeros((2, 2, 3), dtype=np.uint8))
     assert v.array(np.float32) is v.array(np.float32)
     assert v.array(np.float16) is not v.array(np.float32)
+
+
+# --- metadata, empty images, derive ------------------------------------------
+
+
+def test_empty_has_layout_and_no_pixels():
+    for layout, shape in ((Layout.GRAY, (0, 0)), (Layout.RGB, (0, 0, 3)), (Layout.RGBA, (0, 0, 4))):
+        img = ImageValue.empty(layout)
+        assert img.layout is layout
+        assert img.is_empty
+        assert img.array(np.uint8).shape == shape
+        assert img.source_depth == 8
+
+
+def test_non_empty_is_not_empty():
+    assert not ImageValue.from_array(np.zeros((2, 2), np.uint8)).is_empty
+
+
+def test_metadata_defaults_to_none():
+    assert ImageValue.from_array(np.zeros((2, 2), np.uint8)).metadata == NO_METADATA
+
+
+def test_derive_carries_metadata():
+    meta = ImageMetadata(icc=b"icc", exif=b"exif")
+    src = ImageValue.from_array(np.zeros((2, 2), np.uint8), metadata=meta)
+    out = src.derive(ImageValue.from_array(np.ones((4, 4, 3), np.uint8)))
+    assert out.metadata == meta
+    assert out.width == 4
+
+
+def test_with_metadata_shares_cache_and_primary():
+    img = ImageValue.from_array(np.zeros((2, 2, 3), np.uint8))
+    a = img.array()
+    other = img.with_metadata(ImageMetadata(icc=b"x"))
+    assert other.array() is a
+    assert other._cache is img._cache
+    assert other._primary is img._primary
+    assert other.metadata.icc == b"x"
+    assert img.metadata == NO_METADATA

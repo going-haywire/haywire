@@ -9,6 +9,7 @@ import numpy.typing as npt
 
 from haybale_image.value import _numpy_ops
 from haybale_image.value.enums import ChannelOrder, Layout
+from haybale_image.value.metadata import NO_METADATA, ImageMetadata
 
 if TYPE_CHECKING:
     import torch
@@ -56,7 +57,16 @@ class ImageValue:
         bgr = img.array(np.uint8, ChannelOrder.BGR)  # the camera buffer itself
     """
 
-    __slots__ = ("_primary", "_order", "_layout", "_source_depth", "_height", "_width", "_cache")
+    __slots__ = (
+        "_primary",
+        "_order",
+        "_layout",
+        "_source_depth",
+        "_height",
+        "_width",
+        "_cache",
+        "_metadata",
+    )
 
     def __init__(
         self,
@@ -66,6 +76,7 @@ class ImageValue:
         source_depth: int,
         height: int,
         width: int,
+        metadata: ImageMetadata = NO_METADATA,
     ) -> None:
         """Wrap an already validated buffer; use ``from_array`` or ``from_tensor`` instead."""
         self._primary = primary
@@ -75,6 +86,7 @@ class ImageValue:
         self._height = height
         self._width = width
         self._cache: dict[tuple[Any, ...], Any] = {}
+        self._metadata = metadata
 
     @classmethod
     def from_array(
@@ -83,6 +95,7 @@ class ImageValue:
         *,
         order: ChannelOrder = ChannelOrder.RGB,
         source_depth: int | None = None,
+        metadata: ImageMetadata = NO_METADATA,
     ) -> ImageValue:
         """Wrap a numpy image without copying it.
 
@@ -96,6 +109,7 @@ class ImageValue:
             order: Channel order of ``data``'s colour channels.
             source_depth: Bit depth the pixels came from (8, 16 or 32); defaults
                 to the depth of ``data``'s dtype.
+            metadata: ICC and EXIF blocks to carry with the image.
 
         Raises:
             TypeError: ``data`` has an unsupported dtype.
@@ -115,7 +129,7 @@ class ImageValue:
         depth = (
             default_source_depth(data.dtype) if source_depth is None else check_source_depth(source_depth)
         )
-        return cls(data, order, layout, depth, int(data.shape[0]), int(data.shape[1]))
+        return cls(data, order, layout, depth, int(data.shape[0]), int(data.shape[1]), metadata)
 
     @classmethod
     def from_tensor(
@@ -124,6 +138,7 @@ class ImageValue:
         *,
         order: ChannelOrder = ChannelOrder.RGB,
         source_depth: int | None = None,
+        metadata: ImageMetadata = NO_METADATA,
     ) -> ImageValue:
         """Wrap a torch image without copying it or moving it off its device.
 
@@ -137,6 +152,7 @@ class ImageValue:
             order: Channel order of ``data``'s colour channels.
             source_depth: Bit depth the pixels came from (8, 16 or 32); defaults
                 to 8 for ``uint8`` and 32 for float dtypes.
+            metadata: ICC and EXIF blocks to carry with the image.
 
         Raises:
             TypeError: ``data`` has an unsupported dtype.
@@ -153,7 +169,36 @@ class ImageValue:
             if source_depth is None
             else check_source_depth(source_depth)
         )
-        return cls(chw, order, layout, depth, int(chw.shape[1]), int(chw.shape[2]))
+        return cls(chw, order, layout, depth, int(chw.shape[1]), int(chw.shape[2]), metadata)
+
+    @classmethod
+    def empty(cls, layout: Layout) -> ImageValue:
+        """Return a 0×0 uint8 image with ``layout`` and ``source_depth`` 8."""
+        channels = {Layout.GRAY: 0, Layout.RGB: 3, Layout.RGBA: 4}[layout]
+        shape = (0, 0) if channels == 0 else (0, 0, channels)
+        return cls(np.zeros(shape, np.uint8), ChannelOrder.RGB, layout, 8, 0, 0)
+
+    @property
+    def is_empty(self) -> bool:
+        """Whether the image has no pixels (width or height is 0)."""
+        return self._width == 0 or self._height == 0
+
+    @property
+    def metadata(self) -> ImageMetadata:
+        """ICC and EXIF blocks carried with the image."""
+        return self._metadata
+
+    def with_metadata(self, metadata: ImageMetadata) -> ImageValue:
+        """Return a value with the same pixels and conversion cache but ``metadata``."""
+        out = ImageValue(
+            self._primary, self._order, self._layout, self._source_depth, self._height, self._width, metadata
+        )
+        out._cache = self._cache
+        return out
+
+    def derive(self, new: ImageValue) -> ImageValue:
+        """Return ``new`` carrying this image's metadata."""
+        return new.with_metadata(self._metadata)
 
     @property
     def layout(self) -> Layout:
