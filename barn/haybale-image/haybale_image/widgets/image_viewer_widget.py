@@ -22,9 +22,13 @@ class ImageViewerWidget(BaseWidget):
 
     - `mode`: `stream` (default) sends every image as JPEG, for images that change
       many times a second; `still` sends the image as PNG only when the view asks for
-      it, for large images that change rarely. Click a still image to see it at its
-      natural size (1:1) and scroll it; click again to fit it.
+      it, for large images that change rarely. Click a still image to enlarge the
+      view; click again to fit it.
     - `quality`: JPEG quality in `stream` mode, 0 to 100 (default `80`).
+    - `enlarge`: in `still` mode, how many times wider the view gets on a click; its
+      height follows the image's shape (default `2`).
+    - `zoom`: how many times the enlarged view's width the image shows (default `2`;
+      `1` fits it); drag inside it to move around the image.
     - `frame_width`: CSS width of a border around the view (default `0`, none).
     - `frame_color`: CSS color of that border (default `var(--hw-border)`).
 
@@ -54,7 +58,9 @@ class ImageViewerWidget(BaseWidget):
         frame_width = props.get("frame_width", "0")
         frame_color = props.get("frame_color", "var(--hw-border)")
         # flex: 1 grows into the size the host node gives; min-height: 0 lets it shrink again.
-        self._viewer = ImageViewer(self._backend).style(
+        self._viewer = ImageViewer(
+            self._backend, enlarge=props.get("enlarge", 2.0), zoom=props.get("zoom", 2.0)
+        ).style(
             f"width: 100%; flex: 1; min-width: 0; min-height: 0; border: {frame_width} solid {frame_color};"
         )
         return self._viewer

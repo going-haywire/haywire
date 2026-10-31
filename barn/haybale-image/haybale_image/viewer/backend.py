@@ -279,13 +279,19 @@ class ImageViewer(Element, component="image_viewer.js"):
 
     Args:
         backend: The route to show; its type picks the mode.
+        enlarge: In still mode, how many times wider the view gets on a click.
+        zoom: How many times the enlarged view's width the image shows (1 fits it).
     """
 
-    def __init__(self, backend: StreamingBackend | StillBackend) -> None:
+    def __init__(
+        self, backend: StreamingBackend | StillBackend, enlarge: float = 2.0, zoom: float = 2.0
+    ) -> None:
         super().__init__()
         self._props["endpoint"] = backend.endpoint
         self._props["mode"] = "still" if isinstance(backend, StillBackend) else "stream"
         self._props["version"] = 0
+        self._props["enlarge"] = enlarge
+        self._props["zoom"] = zoom
 
     def set_version(self, version: int) -> None:
         """Make the viewer fetch the still image ``version``; 0 shows no image."""

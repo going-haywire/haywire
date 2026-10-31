@@ -6,20 +6,33 @@
  *   loading indicator spinning; a fetch() read does not. The fetch is aborted on
  *   unmount so the server sees the viewer leave.
  * still: an <img> on `endpoint?v=version`; the server bumps `version` when the
- *   image changes. Version 0 shows nothing. A click toggles 1:1, which shows the
- *   image at its natural size in a scroll box of the height the fitted view had.
+ *   image changes. Version 0 shows nothing. A click makes the view `enlarge` times
+ *   wider, as tall as the image's aspect ratio needs, and shows the image `zoom`
+ *   times the view's width in a scroll box; each new image reshapes the view.
+ *   Dragging inside it pans, a click without a drag goes back.
  */
+
+const WIDTH_VAR = '--hw-widget-min-width'  // the node's width floor, see haywire.ui.widget.sizing
+const DRAG_SLOP = 4  // px a press may move and still count as a click
 
 export default {
   template: `
     <div
       ref="box"
       class="hw-image-viewer"
-      :class="{ 'hw-image-1to1': oneToOne }"
       :style="containerStyle"
-      @click="toggleOneToOne"
+      @click="toggleEnlarged"
     >
-      <img ref="img" :src="stillSrc" :style="imageStyle" />
+      <div
+        v-if="enlarged"
+        ref="scroll"
+        data-interactive="true"
+        :style="scrollStyle"
+        @mousedown="startPan"
+      >
+        <img :src="stillSrc" :style="imageStyle" draggable="false" @load="onEnlargedLoad" />
+      </div>
+      <img v-else ref="img" :src="stillSrc" :style="imageStyle" />
       <div v-if="error" class="hw-image-viewer-error text-xs" style="color: var(--hw-text-muted)">{{ errorMessage }}</div>
     </div>
   `,
@@ -27,15 +40,20 @@ export default {
   props: {
     endpoint: { type: String, required: true },
     mode: { type: String, default: 'stream' },
-    version: { type: Number, default: 0 }
+    version: { type: Number, default: 0 },
+    enlarge: { type: Number, default: 2 },
+    zoom: { type: Number, default: 2 }
   },
 
   data() {
     return {
       error: false,
       errorMessage: 'Stream unavailable',
-      oneToOne: false,
-      fixedHeight: null
+      enlarged: false,
+      viewWidth: 0,
+      viewHeight: 0,
+      imageWidth: 0,
+      panning: false
     }
   },
 
@@ -48,7 +66,7 @@ export default {
     containerStyle() {
       // min-height gives intrinsic size: a percentage height has nothing to resolve
       // against before the host node has measured once.
-      const style = {
+      return {
         position: 'relative',
         width: '100%',
         minHeight: '120px',
@@ -57,21 +75,35 @@ export default {
         alignItems: 'center',
         justifyContent: 'center',
         overflow: 'hidden',
-        cursor: this.mode === 'still' ? (this.oneToOne ? 'zoom-out' : 'zoom-in') : 'default'
+        cursor: this.mode === 'still' ? (this.enlarged ? 'zoom-out' : 'zoom-in') : 'default'
       }
-      if (this.oneToOne) {
-        // Block display: a flex box would centre, and so clip, an image larger than it.
-        style.display = 'block'
-        style.overflow = 'auto'
-        style.height = `${this.fixedHeight}px`
+    },
+
+    scrollStyle() {
+      // The scroll box is a child: on the root, the host's `flex: 1` would override the
+      // fixed height and the node would grow to the image's natural height.
+      // Block display: a flex box would centre, and so clip, an image larger than it.
+      return {
+        display: 'block',
+        overflow: 'auto',
+        flex: '0 0 auto',
+        width: `${this.viewWidth}px`,
+        height: `${this.viewHeight}px`,
+        cursor: this.panning ? 'grabbing' : 'grab'
       }
-      return style
     },
 
     imageStyle() {
       const hidden = this.error || (this.mode === 'still' && !this.version)
-      if (this.oneToOne) {
-        return { display: hidden ? 'none' : 'block', maxWidth: 'none', maxHeight: 'none' }
+      if (this.enlarged) {
+        return {
+          display: hidden ? 'none' : 'block',
+          width: `${this.imageWidth}px`,
+          height: 'auto',
+          maxWidth: 'none',
+          maxHeight: 'none',
+          userSelect: 'none'
+        }
       }
       // flex: 1 1 auto with min sizes 0: the <img> is a replaced flex item whose
       // flex-basis is its natural size, and only this lets object-fit scale it down.
@@ -90,10 +122,94 @@ export default {
   },
 
   methods: {
-    toggleOneToOne() {
+    toggleEnlarged() {
+      if (this._dragged) {
+        this._dragged = false  // the click that ends a pan
+        return
+      }
       if (this.mode !== 'still' || !this.version) return
-      if (!this.oneToOne) this.fixedHeight = this.$refs.box.clientHeight
-      this.oneToOne = !this.oneToOne
+      if (this.enlarged) {
+        this._restoreWidthFloor()
+        this.enlarged = false
+        return
+      }
+      const box = this.$refs.box
+      const img = this.$refs.img
+      this.viewWidth = Math.round(box.clientWidth * this.enlarge)
+      if (img && img.naturalWidth) {
+        this._fitView(img.naturalWidth, img.naturalHeight)
+      } else {
+        this.viewHeight = Math.round(box.clientHeight * this.enlarge)
+        this.imageWidth = Math.round(this.viewWidth * this.zoom)
+      }
+      this._raiseWidthFloor(this.viewWidth)
+      this.enlarged = true
+      this.$nextTick(() => this._centre())
+    },
+
+    /** Shape the enlarged view after the image: its width stays, its height follows the aspect ratio. */
+    _fitView(naturalWidth, naturalHeight) {
+      this.viewHeight = Math.round((this.viewWidth * naturalHeight) / naturalWidth)
+      this.imageWidth = Math.round(this.viewWidth * this.zoom)
+    },
+
+    /** A new image arrived while enlarged: take its shape and look at its centre. */
+    onEnlargedLoad(event) {
+      const img = event.target
+      if (!img.naturalWidth) return
+      this._fitView(img.naturalWidth, img.naturalHeight)
+      this.$nextTick(() => this._centre())
+    },
+
+    /** Raise the node's width floor so the card grows to the enlarged view. */
+    _raiseWidthFloor(px) {
+      const host = this.$el.closest('.widget-container') || this.$el
+      this._floorHost = host
+      this._savedFloor = host.style.getPropertyValue(WIDTH_VAR)
+      host.style.setProperty(WIDTH_VAR, `${px}px`)
+    },
+
+    _restoreWidthFloor() {
+      const host = this._floorHost
+      if (!host) return
+      if (this._savedFloor) host.style.setProperty(WIDTH_VAR, this._savedFloor)
+      else host.style.removeProperty(WIDTH_VAR)
+      this._floorHost = null
+    },
+
+    _centre() {
+      const scroll = this.$refs.scroll
+      if (!scroll) return
+      scroll.scrollLeft = (scroll.scrollWidth - scroll.clientWidth) / 2
+      scroll.scrollTop = (scroll.scrollHeight - scroll.clientHeight) / 2
+    },
+
+    /** Pan the enlarged view by dragging; the canvas leaves data-interactive presses alone. */
+    startPan(event) {
+      if (event.button !== 0) return
+      const scroll = this.$refs.scroll
+      const startX = event.clientX
+      const startY = event.clientY
+      const left = scroll.scrollLeft
+      const top = scroll.scrollTop
+      this._dragged = false
+      const move = (e) => {
+        const dx = e.clientX - startX
+        const dy = e.clientY - startY
+        if (!this._dragged && Math.hypot(dx, dy) < DRAG_SLOP) return
+        this._dragged = true
+        this.panning = true
+        scroll.scrollLeft = left - dx
+        scroll.scrollTop = top - dy
+      }
+      const up = () => {
+        window.removeEventListener('mousemove', move)
+        window.removeEventListener('mouseup', up)
+        this.panning = false
+      }
+      window.addEventListener('mousemove', move)
+      window.addEventListener('mouseup', up)
+      event.preventDefault()
     },
 
     /** Open the MJPEG stream and show its frames; reconnect after 1 s until unmounted. */
@@ -201,7 +317,13 @@ export default {
     if (this.mode === 'stream') this._startStream()
   },
 
+  updated() {
+    // A server update re-applies the element's style, and with it the declared width floor.
+    if (this.enlarged && this._floorHost) this._floorHost.style.setProperty(WIDTH_VAR, `${this.viewWidth}px`)
+  },
+
   beforeUnmount() {
+    this._restoreWidthFloor()
     this._stopped = true
     if (this._abort) {
       this._abort.abort()
