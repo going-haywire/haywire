@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y \
   git \
   curl \
   jq \
+  libgl1 \
+  libglib2.0-0 \
   && rm -rf /var/lib/apt/lists/*
 
 # --- Node 22 (required by the Pi CLI) ---------------------------------------
