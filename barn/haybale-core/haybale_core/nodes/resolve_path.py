@@ -28,11 +28,11 @@ class ResolvePathNode(BaseNode):
         from haywire.barn.builtin.types import PATH, STRING
 
         self.add(PATH.as_inlet("path", label="Path"))
-        self.add(STRING.as_outlet(
-            "resolved", 
-            label="Resolved", 
-            description="absolute location of a path on this machine"
-        ))
+        self.add(
+            STRING.as_outlet(
+                "resolved", label="Resolved", description="absolute location of a path on this machine"
+            )
+        )
 
     def worker(self, context: ExecutionContext, path: VolumePath) -> None:
         self.out("resolved", str(resolve(path)))

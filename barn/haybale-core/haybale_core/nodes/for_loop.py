@@ -74,18 +74,16 @@ class ForLoopNode(BaseNode):
         self.add(INT.as_outlet("index", label="Index", default=0))
 
         # Completed outlet - executes when loop finishes
-        self.add(EXEC.as_outlet(
-            "completed", 
-            label="Completed",
-            description="Signal the loop completed"
-        ))
+        self.add(EXEC.as_outlet("completed", label="Completed", description="Signal the loop completed"))
 
         # Stopped outlet - executes when Break ended the loop
-        self.add(EXEC.as_outlet(
-            "stopped", 
-            label="Stopped",
-            description="Signal if the loop was interruted and was never completed"
-        ))
+        self.add(
+            EXEC.as_outlet(
+                "stopped",
+                label="Stopped",
+                description="Signal if the loop was interruted and was never completed",
+            )
+        )
 
     def post_init(self):
         # Initialize loop state

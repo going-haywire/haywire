@@ -67,11 +67,7 @@ class ForEachFileNode(BaseNode):
         from haywire.barn.builtin.widgets import NumberWidget, SelectWidget
 
         self.add(EXEC.as_inlet("execute", label="Execute"))
-        self.add(EXEC.as_inlet(
-            "break_loop", 
-            label="Break",
-            description="Signal to stop loop"
-        ))
+        self.add(EXEC.as_inlet("break_loop", label="Break", description="Signal to stop loop"))
         self.add(FOLDER_PATH.as_inlet("folder", label="Folder"))
         self.add(STRING.as_inlet("pattern", label="Pattern", default="*"))
         self.add(BOOL.as_inlet("recursive", label="Subfolders", default=False))
@@ -94,19 +90,17 @@ class ForEachFileNode(BaseNode):
         self.add(INT.as_outlet("total", label="Total", default=0))
         self.add(ArrayType[FILE_PATH].as_outlet("failed", label="Failed"))
 
-            # Completed outlet - executes when loop finishes
-        self.add(EXEC.as_outlet(
-            "completed", 
-            label="Completed",
-            description="Signal the loop completed"
-        ))
+        # Completed outlet - executes when loop finishes
+        self.add(EXEC.as_outlet("completed", label="Completed", description="Signal the loop completed"))
 
         # Stopped outlet - executes when Break ended the loop
-        self.add(EXEC.as_outlet(
-            "stopped", 
-            label="Stopped",
-            description="Signal if the loop was interruted and was never completed"
-        ))
+        self.add(
+            EXEC.as_outlet(
+                "stopped",
+                label="Stopped",
+                description="Signal if the loop was interruted and was never completed",
+            )
+        )
 
     def post_init(self) -> None:
         self._folder: Optional[VolumePath] = None
