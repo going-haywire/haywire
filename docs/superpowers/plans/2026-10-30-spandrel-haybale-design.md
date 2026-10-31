@@ -369,7 +369,7 @@ node per evaluation, so it must be ~free when nothing failed:
 | S1b | the volumes file is the volume list (S1b-Q1–Q9) | haywire-core builtin + haybale-studio + CLI | S1 | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | done (squashed on feat/s2-failure-poisoning, backup tag spandrel-s2-full, unmerged, 2026-10-30; reworked to bail-by-policy S2-Q10; live check passed) — [plan](2026-10-30-s2-failure-poisoning.md) |
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | done (merged ff to master 4add63fc2, 2026-10-31; live check passed; deferred minors listed in §2.2) — [plan](2026-10-30-s4-batch-nodes.md) |
-| S5 | rest of haybale-image | haybale-image | S0, S1 | open |
+| S5 | rest of haybale-image | haybale-image (+ Split Path, Create Folder in haybale-core) | S0, S1 | planned — [plan](2026-10-31-s5-haybale-image.md) |
 | S6 | haybale-models | haybale-models | S1 | open |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | open |
 | S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | open |
