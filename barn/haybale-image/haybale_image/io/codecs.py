@@ -134,16 +134,22 @@ def _read_header(data: bytes) -> tuple[Image.Image | None, int, ImageMetadata]:
     """
     try:
         header = Image.open(BytesIO(data))
-        exif = header.getexif()
+    except (UnidentifiedImageError, OSError, EOFError, SyntaxError, ValueError, struct.error):
+        return None, 1, NO_METADATA
+    icc = header.info.get("icc_profile") or None
+    orientation, exif_bytes = 1, None
+    try:
+        # PngImageFile.getexif() decodes every pixel unless an eXIf chunk precedes IDAT;
+        # the base implementation reads only ``info`` (and the TIFF IFD), never pixels.
+        exif = Image.Image.getexif(header)
         orientation = int(exif.get(_ORIENTATION, 1))
-        exif_bytes = None
         if "exif" in header.info:
             if _ORIENTATION in exif:
                 exif[_ORIENTATION] = 1
             exif_bytes = exif.tobytes()
-    except (UnidentifiedImageError, OSError, EOFError, SyntaxError, ValueError, struct.error):
-        return None, 1, NO_METADATA
-    return header, orientation, ImageMetadata(icc=header.info.get("icc_profile") or None, exif=exif_bytes)
+    except (OSError, EOFError, SyntaxError, ValueError, struct.error):
+        orientation, exif_bytes = 1, None  # damaged EXIF: keep the ICC, skip orientation
+    return header, orientation, ImageMetadata(icc=icc, exif=exif_bytes)
 
 
 def _orient(a: np.ndarray, orientation: int) -> np.ndarray:

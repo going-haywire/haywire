@@ -235,6 +235,32 @@ def test_exif_passthrough_jpeg(tmp_path):
     assert Image.open(path).getexif()[0x010F] == "Haywire"
 
 
+def test_png_header_read_does_not_decode(tmp_path, srgb_icc, monkeypatch):
+    from PIL import ImageFile
+
+    src = _gradient(Layout.RGB, 8).with_metadata(ImageMetadata(icc=srgb_icc))
+    path = _write(tmp_path, src, Format.PNG)
+    assert Image.open(path).info.get("icc_profile") == srgb_icc
+    loads = []
+    real = ImageFile.ImageFile.load
+    monkeypatch.setattr(ImageFile.ImageFile, "load", lambda self: loads.append(1) or real(self))
+    loaded = read_image(path)
+    assert loads == []
+    assert loaded.metadata.icc == srgb_icc
+
+
+def test_png_exif_passthrough(tmp_path):
+    exif = Image.Exif()
+    exif[0x010F] = "Haywire"
+    path = tmp_path / "e.png"
+    Image.fromarray(np.zeros((4, 6, 3), np.uint8)).save(path, exif=exif)
+    carried = read_image(path).metadata.exif
+    assert carried is not None
+    e = Image.Exif()
+    e.load(carried)
+    assert e[0x010F] == "Haywire"
+
+
 def test_sixteen_bit_drops_metadata(tmp_path, srgb_icc):
     src = _gradient(Layout.RGB, 16).with_metadata(ImageMetadata(icc=srgb_icc))
     loaded = read_image(_write(tmp_path, src, Format.PNG))
