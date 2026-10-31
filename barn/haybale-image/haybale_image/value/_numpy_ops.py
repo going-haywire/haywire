@@ -65,14 +65,17 @@ def convert_layout(a: np.ndarray, src: Layout, dst: Layout, order: ChannelOrder)
         if a.dtype in _INT_MAX:
             np.rint(luma, out=luma)
         return luma.astype(a.dtype, copy=False)
+    if src is Layout.GRAY:
+        if dst is Layout.RGB:
+            return np.dstack((a, a, a))  # a stacked fill beats a broadcast into a strided view
+        out = np.empty((*a.shape[:2], 4), a.dtype)
+        for channel in range(3):
+            out[..., channel] = a
+        out[..., 3] = alpha_opaque(a.dtype)
+        return out
     height, width = a.shape[:2]
     out = np.empty((height, width, 3 if dst is Layout.RGB else 4), a.dtype)
-    if src is Layout.GRAY:
-        out[..., :3] = a[..., None]
-    else:
-        out[..., :3] = a[..., :3]
-    if dst is Layout.RGBA and src is not Layout.RGBA:
+    out[..., :3] = a[..., :3]
+    if dst is Layout.RGBA:
         out[..., 3] = alpha_opaque(a.dtype)
-    elif dst is Layout.RGBA:
-        out[..., 3] = a[..., 3]
     return out
