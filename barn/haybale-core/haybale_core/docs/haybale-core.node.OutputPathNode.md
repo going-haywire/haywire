@@ -14,6 +14,7 @@ Builds a file path from a folder, a subfolder, a name and an extension
 | `suffix` | inlet | `haywire-core:type:STRING` | Text data |
 | `extension` | inlet | `haywire-core:type:STRING` | Text data |
 | `path` | outlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
+| `out_folder` | outlet | `haywire-core:type:FOLDER_PATH` | A folder inside a named volume such as the project folder or `models`. |
 
 ## Notes
 
@@ -32,6 +33,13 @@ input folder's structure under another folder:
 For Each File.Subfolder → Subfolder
 For Each File.Stem      → Name        Suffix = "_x4"
 For Each File.Extension → Extension
+```
+
+`Folder` is the folder the file goes in. Save Image does not create folders, so
+create it first:
+
+```
+Output Path.Folder → Create Folder → Save Image
 ```
 
 The node reports an error naming the part when a name is empty or contains

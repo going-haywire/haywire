@@ -15,8 +15,8 @@ Iterate with start, end, and step control
 | `break_loop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `loop_body` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `index` | outlet | `haywire-core:type:INT` | Whole number |
-| `completed` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `stopped` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `completed` | outlet | `haywire-core:type:EXEC` | Signal the loop completed |
+| `stopped` | outlet | `haywire-core:type:EXEC` | Signal if the loop was interruted and was never completed |
 
 ## Notes
 

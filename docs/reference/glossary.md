@@ -177,7 +177,7 @@ Macro is registered and placed.
 | **detach** | EdgeWrapper operation: edge is explicitly deleted and fully removed from both port dictionaries | destroy, remove |
 | **displacement** | When a newly linked edge takes the slot of an existing edge on a single-connection port; the displaced edge leaves `linked` and stays in the **Link set**'s `all` tier | override, eviction |
 | **re-enablement** | When an active edge is removed and the port's **Link set** scans its `all` tier FIFO for a functional candidate to restore | fallback restoration |
-| **Adapter** | A converter object that transforms values between incompatible DATA port types during transport. See [components/adapters](../components/adapters/adapter-canon.md) | Converter (prefer Adapter), transformer |
+| **Adapter** | A converter object that transforms values between incompatible DATA port types during transport. Reserved for type-changing conversions; an image's storage conversion is not one. See [components/adapters](../components/adapters/adapter-canon.md) | Converter (prefer Adapter), transformer |
 | **Adapter chain** | An ordered pipeline of one or more Adapters that converts a source type to a compatible sink type | — |
 
 ---
@@ -383,6 +383,14 @@ A haybale library's dependencies live across three manifests with different audi
 | **Volume key** | A volume's identity, in the registry-key pattern `<library-id>:volume:<name>` (`haybale-models:volume:models`); a volume a user adds is `user:volume:<name>`, and the project volume is `haywire-core:volume:project`. The prefix says who added the volume. A key never changes once the volume exists; a graph stores it in every **Volume path** | Volume name (the name is only the key's last part) |
 | **Volume path** | The value a graph stores for a location: `VolumePath(volume, relative)`, with `volume` a **Volume key** and `relative` a POSIX-style string kept verbatim. Carried by the `PATH`, `FILE_PATH` and `FOLDER_PATH` types and edited with `PathWidget`. Resolved on demand by `resolve()`, which refuses a result outside its volume | Absolute path, file path string |
 | **Volumes file** | `~/.haywire/volumes.toml`: the list of volumes on this machine, one `[volumes."<key>"]` table each with `label`, `description` and an absolute `location`. Everything but the key is editable. Written by the Volumes editor, `haywire volumes`, and libraries' `ensure_volume` (only when the key is absent). Not a setting: the app never writes the global settings tier, and workspace settings are committed | Volumes setting |
+
+## Images
+
+| Term | Definition | Aliases to avoid |
+| --- | --- | --- |
+| **Image layout** | Which channels an image has: gray, RGB or RGBA. Carried by the image type (`IMAGE_GRAY`, `IMAGE_RGB`, `IMAGE_RGBA`); `IMAGE` accepts any | Color mode, channel count |
+| **Image storage** | How an image's pixels are held: dtype, channel order (RGB/BGR) and residency (array, or tensor on a device). Invisible to wires; nodes reach pixels only through the value's accessors. Changing storage is never an **Adapter** | Pixel format |
+| **Image metadata** | The ICC profile and EXIF block an image carries from Load Image to Save Image | Tags |
 
 ## Access & Authentication
 

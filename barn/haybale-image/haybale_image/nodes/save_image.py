@@ -76,7 +76,8 @@ class SaveImageNode(BaseNode):
       `name_1.png`, `name_2.png`, and so on.
     - `Depth`: `source` keeps the image's own bit depth; `8`, `16` and `32` (float)
       ask for that depth. A format that cannot store it gets the deepest it can
-      (JPEG is always 8-bit, PNG at most 16-bit).
+      (JPEG is always 8-bit, PNG at most 16-bit). 16-bit and float saves drop the
+      image's ICC profile and EXIF block.
 
     `Saved` is the file that now holds the image: the suffixed name for
     `unique-suffix`, and the existing file for `skip`.

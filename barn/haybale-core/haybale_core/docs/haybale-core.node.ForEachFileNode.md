@@ -9,7 +9,7 @@ Runs the loop body once for each file in a folder that matches the pattern
 | id | direction | type | description |
 |---|---|---|---|
 | `execute` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `break_loop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `break_loop` | inlet | `haywire-core:type:EXEC` | Signal to stop loop |
 | `folder` | inlet | `haywire-core:type:FOLDER_PATH` | A folder inside a named volume such as the project folder or `models`. |
 | `pattern` | inlet | `haywire-core:type:STRING` | Text data |
 | `recursive` | inlet | `haywire-core:type:BOOL` | True or False |
@@ -24,8 +24,8 @@ Runs the loop body once for each file in a folder that matches the pattern
 | `index` | outlet | `haywire-core:type:INT` | Whole number |
 | `total` | outlet | `haywire-core:type:INT` | Whole number |
 | `failed` | outlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
-| `completed` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `stopped` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `completed` | outlet | `haywire-core:type:EXEC` | Signal the loop completed |
+| `stopped` | outlet | `haywire-core:type:EXEC` | Signal if the loop was interruted and was never completed |
 
 ## Settings
 

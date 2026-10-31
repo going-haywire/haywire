@@ -202,6 +202,11 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 10. Not live-checked: Run Button pending spinner and VIEW-mode refusal in a real browser (Chrome extension was not
     connected).
 
+**Follow-ups booked from S5**
+
+- Delete File / Delete Folder — lead option OS trash via `send2trash`, not a trash volume (`/tmp` self-wipes; cross-disk moves copy) (S5-Q13).
+- Resize node (S5-Q21).
+
 ### 2.3 Failure poisoning — haywire-core VM (Q9, Q10, Q37) — **ADR required**
 1. **`failed` flag** per node, separate from `error_runtime`. Set when a worker raises (data or
    control); cleared when the worker next returns normally. `error_runtime` stays the sticky
@@ -310,6 +315,21 @@ node per evaluation, so it must be ~free when nothing failed:
   `uv run --with torch python -m pytest`; `uv.lock` records torch as an optional extra but
   no sync installs it.
 
+**S5 decisions (2026-10-31):** see the decision table in [the S5 plan](2026-10-31-s5-haybale-image.md).
+
+**S5 deviations from plan**
+
+- No `format` inlet on Save Image: the extension is the format (S5-Q7).
+- AVIF is not an optional extra: Pillow wheels carry it.
+- No tensor helper wrappers: `ImageValue.from_tensor` / `.tensor()` already are.
+- IMAGE's `@type` default is a descriptive dict (`{width: 0, height: 0, layout}`); `IMAGEField` and `IMAGE.__init__` turn it into an empty `ImageValue` (`@type` refuses non-JSON defaults) — PATHField pattern.
+- GIF is written with Pillow (cv2 5's GIF encoder fails on gray and dithers colour).
+- Format limits found while building: gray reads back as RGB from WebP and GIF; GIF/JPEG/BMP drop alpha; TIFF carries ICC but not EXIF; float RGB(A) TIFF carries no metadata; an opaque RGBA saved with metadata via Pillow (WebP/AVIF) reads back RGB; 16-bit / float saves drop ICC/EXIF; a PNG whose eXIf chunk follows the pixel data is not seen (header-only read).
+- Save Image's per-format bags are module-level classes attached with `bag()` (mypy typing); `tiff_compression` is `setting[CHOICES]`; the path inlet uses the PathWidget `save` mode; BMP/GIF/TGA hide all bags.
+- Output Path's new outlet has id `out_folder` (the inlet already uses `folder`).
+- `atomic_write` takes `placeholder=` so only a claimed unique-suffix placeholder is removed on failure.
+- Benchmarks: six `img_*` cases recorded (codec fixtures are random noise — worst-case entropy).
+
 ### 2.5 Models — new `haybale-models` (monorepo `barn/`) (Q13–Q17, Q21, Q34)
 - **Model reference (Q13B):** source URI (`hf://org/repo/path@rev`, `https://…`, or local) +
   sha256. Plain local paths allowed. Graph stores the reference → runnable on a fresh machine.
@@ -369,7 +389,7 @@ node per evaluation, so it must be ~free when nothing failed:
 | S1b | the volumes file is the volume list (S1b-Q1–Q9) | haywire-core builtin + haybale-studio + CLI | S1 | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | done (squashed on feat/s2-failure-poisoning, backup tag spandrel-s2-full, unmerged, 2026-10-30; reworked to bail-by-policy S2-Q10; live check passed) — [plan](2026-10-30-s2-failure-poisoning.md) |
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | done (merged ff to master 4add63fc2, 2026-10-31; live check passed; deferred minors listed in §2.2) — [plan](2026-10-30-s4-batch-nodes.md) |
-| S5 | rest of haybale-image | haybale-image (+ Split Path, Create Folder in haybale-core) | S0, S1 | planned — [plan](2026-10-31-s5-haybale-image.md) |
+| S5 | rest of haybale-image | haybale-image (+ Split Path, Create Folder in haybale-core) | S0, S1 | done (feat/s5-haybale-image, head dd3a62bfc + docs commit, 2026-10-31; merge pending) — [plan](2026-10-31-s5-haybale-image.md) |
 | S6 | haybale-models | haybale-models | S1 | open |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | open |
 | S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | open |

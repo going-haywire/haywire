@@ -6,6 +6,7 @@ Fundamental components for haywire graphs
 ### Core
 - **Begin Player** — Triggered once when execution starts
 - **Control Switch** — Switches control flow based on condition
+- **Create Folder** — Creates a folder inside a volume, including any folders above it
 - **Float Number** — A number box that sends a decimal number, and shows the one it is fed
 - **Float Slider** — A slider that sends a decimal number, and shows the one it is fed
 - **For Each File** — Runs the loop body once for each file in a folder that matches the pattern
@@ -20,6 +21,7 @@ Fundamental components for haywire graphs
 - **Resolve Path** — Gives the absolute location of a path on this machine, as text
 - **Run Button** — A button on the card that triggers connected Tick Event flows while the graph runs
 - **Shutdown** — Triggered when execution is shutting down
+- **Split Path** — Splits a path into its volume, folder, name and extension
 - **Text** — A text field that sends its text on Enter, and shows the text it is fed
 - **Tick** — Triggered by a connected emitter (Tick Emit, Run Button)
 - **Tick Emit** — Emits tick callbacks at a configurable framerate

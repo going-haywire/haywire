@@ -3,6 +3,7 @@
 ## node
 - `haybale-core:node:BeginPlayNode` — Begin Player — Triggered once when execution starts  _tags: start, init, begin, event_
 - `haybale-core:node:ControlSwitch` — Control Switch — Switches control flow based on condition  _tags: switch, control, flow, event_
+- `haybale-core:node:CreateFolderNode` — Create Folder — Creates a folder inside a volume, including any folders above it  _tags: folder, create, mkdir, directory, output, batch_
 - `haybale-core:node:FloatNumberNode` — Float Number — A number box that sends a decimal number, and shows the one it is fed  _tags: float, number, value, widget, control, stage_
 - `haybale-core:node:FloatSliderNode` — Float Slider — A slider that sends a decimal number, and shows the one it is fed  _tags: float, slider, widget, control, stage_
 - `haybale-core:node:ForEachFileNode` — For Each File — Runs the loop body once for each file in a folder that matches the pattern  _tags: loop, for, each, file, folder, batch, iterate, glob_
@@ -17,6 +18,7 @@
 - `haybale-core:node:ResolvePathNode` — Resolve Path — Gives the absolute location of a path on this machine, as text  _tags: path, resolve, absolute, location, file, folder, volume_
 - `haybale-core:node:RunButtonNode` — Run Button — A button on the card that triggers connected Tick Event flows while the graph runs  _tags: run, button, trigger, press, batch, emit_
 - `haybale-core:node:ShutdownNode` — Shutdown — Triggered when execution is shutting down  _tags: stop, end, cleanup, event_
+- `haybale-core:node:SplitPathNode` — Split Path — Splits a path into its volume, folder, name and extension  _tags: path, split, folder, parent, name, stem, extension, volume_
 - `haybale-core:node:TextNode` — Text — A text field that sends its text on Enter, and shows the text it is fed  _tags: text, string, field, widget, control, stage_
 - `haybale-core:node:TickEmitNode` — Tick Emit — Emits tick callbacks at a configurable framerate  _tags: tick, frame, loop, emit, fps, timer_
 - `haybale-core:node:TickEventNode` — Tick — Triggered by a connected emitter (Tick Emit, Run Button)  _tags: frame, update, loop, event, tick_

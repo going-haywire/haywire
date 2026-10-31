@@ -18,7 +18,8 @@ class LoadImageNode(BaseNode):
     """Reads an image file from a volume into an `Image`.
 
     Gray files stay gray, files with transparency become RGBA and everything else
-    is RGB. The camera's rotation (EXIF orientation) is applied to the pixels.
+    is RGB. The camera's rotation (EXIF orientation) is applied to the pixels on
+    load, because OpenCV's reader ignores it.
     16-bit and float files are read at full precision; see Image Info's `Depth`.
 
     The node reports an error naming the file when it is missing or is not an
