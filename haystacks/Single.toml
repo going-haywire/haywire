@@ -12,7 +12,14 @@ execute = false
 
 [graphs.run.values]
 on_exception_bail = "run"
+[[graphs]]
+path = "graphs/files.haywire"
+execute = false
+
+[[graphs]]
+path = "graphs/loop_break.haywire"
+execute = true
 
 [haystack]
 name = "Single"
-active_graph = "graphs/loop.haywire"
+active_graph = "graphs/loop_break.haywire"

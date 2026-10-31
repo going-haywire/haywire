@@ -155,19 +155,23 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
   before pickup coalesce; picked-up runs queue (`BLOCK`); `start` clears a stale press.
 - **For Each File:** `pattern` = `;`-separated file-**name** patterns, case-insensitive; `recursive` sets depth;
   dot-names skipped; symlinked folders not entered, outward file links skipped; listing taken once at `execute`,
-  sorted, `limit` after sorting; adds `extension` and `total` (no `break_loop`, see deviations). An unlistable folder raises.
+  sorted, `limit` after sorting; adds `break_loop`, `extension`, `total` and `stopped` (see deviations). An unlistable folder raises.
   `on_error` acts under bail `branch` only (`frame`/`run` abandon the loop); `on_frame_end` closes an abandoned
   loop's progress.
 - **Path Exists?:** plain `exists()`; an unresolvable path raises.
 - **Output Path:** validates its parts and raises naming the part; extension with or without a dot.
-- No VM change, no ADR, no glossary term.
+- No ADR, no glossary term (the VM fix below is a bug fix, not a semantics decision).
 
 **S4 deviations from plan (2026-10-31)**
 
-- **No `break_loop`** (reverses Q16, after the final review): a Break wired from the loop body reaches the VM as a
-  plain loopback return (`_navigate_next` re-enters a node already on the loopback stack with no inlet), so it
-  acts as "next file"; wired from another flow it shares For Each File's execution group (ADR 0064) and arrives in
-  a later frame, after the loop closed. For Loop's Break has the same limitation. Needs a VM change; left open.
+- **VM fix: an edge back into a looping node keeps its inlet.** `_navigate_next` re-entered a node already on the
+  loopback stack with no inlet, so a Break wired from the loop body arrived as "next iteration" (For Loop's Break
+  never worked from the body). Now the edge's inlet is passed; an implicit return (branch ends) still enters with
+  none. An edge from the body back into `execute` therefore restarts the loop (the Group-straddle test fixture
+  wired one and was fixed to let its branch end). A Break from another flow still has no effect (frame border).
+- **`stopped` outlet on For Loop and For Each File** (user request): Break, and For Each File's `on_error=stop`,
+  end the loop through `stopped`; `completed` fires only when the loop ran through. For Loop's Break used to fire
+  `completed`. For Each File keeps `break_loop` (Q16).
 - **Run Button has no thread** (reverses Q5c, user decision 2026-10-31): the press's field subscription emits to
   the listeners at once (enqueueing waits only on a full `BLOCK` queue) and releases the button with `post_value`,
   which runs after the press's own write. A press while the button is still held changes nothing, so it emits
@@ -176,6 +180,27 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
   plain dict, so nodes failed on `.volume` and the graph could not be saved. Fixed with `PATHField` (converts on
   default and on every write, as `INTField` does).
 - `haywire docs --all` also regenerated pages earlier slices had left stale (own commit).
+- **Copied callback listeners publish their own id**: a copied Tick Event / Custom Callback kept the original's id
+  on its Listen outlet, so emitters wired to the copy triggered the original's flow. Fixed in `post_init`.
+- **Path → text adapter + Resolve Path node** (user request): a path wired into a text inlet carries its display
+  form `volume name:relative`; Resolve Path gives the absolute location on this machine and reports an undefined
+  volume or an escape as a node error.
+
+**S4 deferred minors (from the final review and the live check; not fixed)**
+
+1. `ButtonWidget` uses raw `ui.button` (Quasar primary colour, uppercase label, `w-full` without `flex`); design
+   guide §8.8a wants `hui.button`.
+2. Each press in EDIT mode adds an undo step and marks the graph unsaved; undo looks like a no-op, redo fires a run.
+3. Output Path accepts `.`/`..` as the name; `PATHField` turns a malformed dict into the project root.
+4. File order is case-sensitive (`Z` before `a`); `limit` takes the first files in that order.
+5. `on_error` is matched exactly: a wired `"Stop"` behaves as `continue`.
+6. Docstrings: Tick Event lists port ids instead of labels; `ButtonWidget` uses reST like its siblings.
+7. For Each File shows inlet "Subfolders" and outlet "Subfolder" on one card.
+8. `failed` keeps the previous run's list until the loop ends, and after a failed `execute`.
+9. Farmhand `set_property` on a PATH port reports `set_rejected` though the write landed (read-back compares the
+   requested dict with the stored `VolumePath`).
+10. Not live-checked: Run Button pending spinner and VIEW-mode refusal in a real browser (Chrome extension was not
+    connected).
 
 ### 2.3 Failure poisoning — haywire-core VM (Q9, Q10, Q37) — **ADR required**
 1. **`failed` flag** per node, separate from `error_runtime`. Set when a worker raises (data or
@@ -343,7 +368,7 @@ node per evaluation, so it must be ~free when nothing failed:
 | S1 | PATH types, volumes (née anchors), resolver, volumes.toml, picker, Volumes editor, CLI | haywire-core builtin + haybale-studio + CLI | — | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
 | S1b | the volumes file is the volume list (S1b-Q1–Q9) | haywire-core builtin + haybale-studio + CLI | S1 | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | done (squashed on feat/s2-failure-poisoning, backup tag spandrel-s2-full, unmerged, 2026-10-30; reworked to bail-by-policy S2-Q10; live check passed) — [plan](2026-10-30-s2-failure-poisoning.md) |
-| S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | done (on feat/s4-batch-nodes, unmerged, 2026-10-31; live check passed) — [plan](2026-10-30-s4-batch-nodes.md) |
+| S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | done (on feat/s4-batch-nodes, unmerged, 2026-10-31; live check passed; deferred minors listed in §2.2) — [plan](2026-10-30-s4-batch-nodes.md) |
 | S5 | rest of haybale-image | haybale-image | S0, S1 | open |
 | S6 | haybale-models | haybale-models | S1 | open |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | open |
