@@ -54,24 +54,27 @@ class _Runner:
 
 
 class _Batch:
-    """BeginPlay → For Each File; body: a sink that records the path; completed → a second sink."""
+    """BeginPlay → For Each File; body: a sink that records the path; completed and stopped → sinks."""
 
     def __init__(self, graph: Any):
         self.begin = _add(graph, "haybale_core.nodes.events.begin_play", "BeginPlayNode")
         self.each = _add(graph, "haybale_core.nodes.for_each_file", "ForEachFileNode")
         sink = ("haybale_testing.nodes.benchmark.bench_sink_node", "BenchSinkNode")
-        self.body, self.after = _add(graph, *sink), _add(graph, *sink)
+        self.body, self.after, self.halt = _add(graph, *sink), _add(graph, *sink), _add(graph, *sink)
         _edge(graph, self.begin, "exec", self.each, "execute")
         _edge(graph, self.each, "loop_body", self.body, "exec_in")
         _edge(graph, self.each, "completed", self.after, "exec_in")
+        _edge(graph, self.each, "stopped", self.halt, "exec_in")
         self.each.ports["folder"].set_value(VolumePath(SCANS, ""))
         self.each.ports["pattern"].set_value("*.png")
         self.each.ports["recursive"].set_value(True)
         self.seen: list[tuple[str, str, int, int]] = []
         self.completed: list[list[VolumePath]] = []
+        self.stopped: list[list[VolumePath]] = []
         self.fail_on: set[str] = set()
         self.body.worker = self._body
         self.after.worker = lambda context, x: self.completed.append(self.each.ports["failed"].get_value())
+        self.halt.worker = lambda context, x: self.stopped.append(self.each.ports["failed"].get_value())
 
     def _body(self, context: Any, x: float) -> None:
         port: Callable[[str], Any] = lambda pid: self.each.ports[pid].get_value()  # noqa: E731
@@ -131,7 +134,8 @@ def test_stop_ends_at_first_failure(graph_with_library_system, monkeypatch, scan
     _Runner(graph_with_library_system, monkeypatch).fire(batch.begin)
 
     assert [s[0] for s in batch.seen] == ["a.png", "b.png"]
-    assert batch.completed == [[VolumePath(SCANS, "b.png")]]
+    assert batch.completed == []
+    assert batch.stopped == [[VolumePath(SCANS, "b.png")]]
 
 
 def test_frame_bail_abandons_and_closes_progress(graph_with_library_system, monkeypatch, scans):
@@ -153,10 +157,24 @@ def test_progress_is_idle_after_completion(graph_with_library_system, monkeypatc
     assert batch.each.progress.main == PROGRESS()
 
 
-def test_has_no_break_inlet(graph_with_library_system):
-    # A break would arrive as a loopback return or in a later frame, so the node offers none.
-    each = _Batch(graph_with_library_system).each
-    assert "break_loop" not in each.ports
+def test_break_from_the_body_stops_the_loop(graph_with_library_system, monkeypatch, scans):
+    graph = graph_with_library_system
+    batch = _Batch(graph)
+    body_edge = next(
+        eid
+        for eid, e in graph.edge_wrappers.items()
+        if e.source_node_id == batch.each.node_id and "loop_body" in eid
+    )
+    graph.remove_edge_wrapper(body_edge)
+    breaker = _add(graph, "haybale_core.nodes.print", "PrintNode")
+    _edge(graph, batch.each, "loop_body", breaker, "exec")
+    _edge(graph, breaker, "done", batch.each, "break_loop")
+
+    _Runner(graph, monkeypatch).fire(batch.begin)
+
+    assert batch.each.ports["index"].get_value() == 0
+    assert batch.completed == []
+    assert batch.stopped == [[]]
 
 
 def test_second_run_starts_fresh(graph_with_library_system, monkeypatch, scans):

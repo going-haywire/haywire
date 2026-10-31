@@ -38,6 +38,7 @@ Framework-owned primitive types and adapters
 - **FloatToIntAdapter** — Convert float to integer
 - **FloatToStringAdapter** — Convert float to integer
 - **IntToFloatAdapter** — Convert integer to float
+- **PathToStringAdapter** — Convert a path to text: the volume's name and the path inside it
 - **StringToChoicesAdapter** — String into a choices slot
 
 ## Widgets

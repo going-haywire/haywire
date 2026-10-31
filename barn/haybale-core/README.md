@@ -21,6 +21,7 @@ Fundamental components for haywire graphs
 - **Output Path** — Builds a file path from a folder, a subfolder, a name and an extension
 - **Path Exists?** — Continues on Exists or Missing, depending on whether a file or folder is there
 - **Print** — Print to the haywire UI console
+- **Resolve Path** — Gives the absolute location of a path on this machine, as text
 - **Run Button** — A button on the card that triggers connected Tick Event flows while the graph runs
 - **Shutdown** — Triggered when execution is shutting down
 - **Text** — A text field that sends its text on Enter, and shows the text it is fed

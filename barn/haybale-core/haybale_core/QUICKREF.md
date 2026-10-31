@@ -14,6 +14,7 @@
 - `haybale-core:node:OutputPathNode` — Output Path — Builds a file path from a folder, a subfolder, a name and an extension  _tags: path, file, output, save, folder, name, extension, batch_
 - `haybale-core:node:PathExistsNode` — Path Exists? — Continues on Exists or Missing, depending on whether a file or folder is there  _tags: path, exists, missing, file, folder, skip, resume, branch_
 - `haybale-core:node:PrintNode` — Print — Print to the haywire UI console
+- `haybale-core:node:ResolvePathNode` — Resolve Path — Gives the absolute location of a path on this machine, as text  _tags: path, resolve, absolute, location, file, folder, volume_
 - `haybale-core:node:RunButtonNode` — Run Button — A button on the card that triggers connected Tick Event flows while the graph runs  _tags: run, button, trigger, press, batch, emit_
 - `haybale-core:node:ShutdownNode` — Shutdown — Triggered when execution is shutting down  _tags: stop, end, cleanup, event_
 - `haybale-core:node:TextNode` — Text — A text field that sends its text on Enter, and shows the text it is fed  _tags: text, string, field, widget, control, stage_

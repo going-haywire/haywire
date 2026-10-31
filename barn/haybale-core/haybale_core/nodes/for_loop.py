@@ -31,7 +31,8 @@ class ForLoopNode(BaseNode):
     Outputs:
         loop_body: Execute on each iteration
         index: Current iteration index
-        completed: Execute when loop finishes
+        completed: Execute when the loop has run through
+        stopped: Execute when Break ended the loop
     """
 
     def init(self):
@@ -73,7 +74,18 @@ class ForLoopNode(BaseNode):
         self.add(INT.as_outlet("index", label="Index", default=0))
 
         # Completed outlet - executes when loop finishes
-        self.add(EXEC.as_outlet("completed", label="Completed"))
+        self.add(EXEC.as_outlet(
+            "completed", 
+            label="Completed",
+            description="Signal the loop completed"
+        ))
+
+        # Stopped outlet - executes when Break ended the loop
+        self.add(EXEC.as_outlet(
+            "stopped", 
+            label="Stopped",
+            description="Signal if the loop was interruted and was never completed"
+        ))
 
     def post_init(self):
         # Initialize loop state
@@ -94,7 +106,8 @@ class ForLoopNode(BaseNode):
             step: Step increment.
 
         Returns:
-            'loop_body' with the index for the next iteration, or 'completed' when the loop finishes.
+            'loop_body' with the index for the next iteration, 'completed' when the loop has run
+            through, or 'stopped' when Break ended it.
         """
         # Check which control pin triggered us
         control_pin = context.control_pin
@@ -110,7 +123,7 @@ class ForLoopNode(BaseNode):
         elif control_pin == "break_loop":
             # Break out of loop immediately
             self._loop_initialized = False
-            return "completed"
+            return "stopped"
         else:
             # Continuing from loop body return
             # Increment index

@@ -33,6 +33,7 @@
 - `haywire-core:adapter:FloatToIntAdapter` — FloatToIntAdapter — Convert float to integer
 - `haywire-core:adapter:FloatToStringAdapter` — FloatToStringAdapter — Convert float to integer
 - `haywire-core:adapter:IntToFloatAdapter` — IntToFloatAdapter — Convert integer to float
+- `haywire-core:adapter:PathToStringAdapter` — PathToStringAdapter — Convert a path to text: the volume's name and the path inside it
 - `haywire-core:adapter:StringToChoicesAdapter` — StringToChoicesAdapter — String into a choices slot
 
 ## widget

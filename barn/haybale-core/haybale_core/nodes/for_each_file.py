@@ -34,8 +34,9 @@ class ForEachFileNode(BaseNode):
     - `Subfolders`: also go through every subfolder.
     - `Limit`: only the first files, in name order; 0 takes all of them.
     - `On Error`: when an iteration fails and the graph's *On Exception* setting is
-      `branch`, `continue` goes on with the next file and `stop` ends the loop.
-      With `frame` or `run` the loop ends at the first failure, without `Completed`.
+      `branch`, `continue` goes on with the next file and `stop` ends the loop through
+      `Stopped`. With `frame` or `run` the loop ends at the first failure, without
+      `Completed` or `Stopped`.
 
     Files and folders whose names start with `.` are skipped, folders reached
     through a link are not entered, and a linked file pointing outside the folder
@@ -44,11 +45,13 @@ class ForEachFileNode(BaseNode):
     For each file the loop sets `Path`, `Subfolder` (its folder relative to `Folder`,
     empty at the top), `Stem` (its name without extension), `Extension` (such as
     `.png`), `Index` (from 0) and `Total`. When the loop ends, `Failed` lists the
-    files whose iteration failed, and `Completed` runs.
+    files whose iteration failed. `Completed` runs when every file was gone through;
+    `Stopped` runs when `Break` (wired from the loop body) or `On Error` = `stop`
+    ended the loop early.
 
     Resume a batch by skipping files whose result is already saved:
 
-    ```
+    ```text
     For Each File → Path Exists? (Path = Output Path) → Missing → Save
     ```
 
@@ -64,6 +67,11 @@ class ForEachFileNode(BaseNode):
         from haywire.barn.builtin.widgets import NumberWidget, SelectWidget
 
         self.add(EXEC.as_inlet("execute", label="Execute"))
+        self.add(EXEC.as_inlet(
+            "break_loop", 
+            label="Break",
+            description="Signal to stop loop"
+        ))
         self.add(FOLDER_PATH.as_inlet("folder", label="Folder"))
         self.add(STRING.as_inlet("pattern", label="Pattern", default="*"))
         self.add(BOOL.as_inlet("recursive", label="Subfolders", default=False))
@@ -85,7 +93,20 @@ class ForEachFileNode(BaseNode):
         self.add(INT.as_outlet("index", label="Index", default=0))
         self.add(INT.as_outlet("total", label="Total", default=0))
         self.add(ArrayType[FILE_PATH].as_outlet("failed", label="Failed"))
-        self.add(EXEC.as_outlet("completed", label="Completed"))
+
+            # Completed outlet - executes when loop finishes
+        self.add(EXEC.as_outlet(
+            "completed", 
+            label="Completed",
+            description="Signal the loop completed"
+        ))
+
+        # Stopped outlet - executes when Break ended the loop
+        self.add(EXEC.as_outlet(
+            "stopped", 
+            label="Stopped",
+            description="Signal if the loop was interruted and was never completed"
+        ))
 
     def post_init(self) -> None:
         self._folder: Optional[VolumePath] = None
@@ -105,7 +126,9 @@ class ForEachFileNode(BaseNode):
         if len(context.failures) > self._failures_seen:
             self._failed.append(self._path(self._files[self._index]))
             if self.value("on_error") == "stop":
-                return self._finish()
+                return self._finish("stopped")
+        if context.control_pin == "break_loop":
+            return self._finish("stopped")
         self._index += 1
         return self._emit(context)
 
@@ -130,7 +153,7 @@ class ForEachFileNode(BaseNode):
 
     def _emit(self, context: ExecutionContext) -> str:
         if self._index >= len(self._files):
-            return self._finish()
+            return self._finish("completed")
         relative = self._files[self._index]
         total = len(self._files)
         parent = str(relative.parent)
@@ -145,10 +168,10 @@ class ForEachFileNode(BaseNode):
         self._failures_seen = len(context.failures)
         return "loop_body"
 
-    def _finish(self) -> str:
+    def _finish(self, outlet: str) -> str:
         self.out("failed", list(self._failed))
         self._close()
-        return "completed"
+        return outlet
 
     def _close(self) -> None:
         span, self._span = self._span, None
