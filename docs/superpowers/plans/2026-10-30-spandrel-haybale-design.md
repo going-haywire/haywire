@@ -206,6 +206,10 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 
 - Delete File / Delete Folder — lead option OS trash via `send2trash`, not a trash volume (`/tmp` self-wipes; cross-disk moves copy) (S5-Q13).
 - Resize node (S5-Q21).
+- Low priority — more image formats:
+  - JPEG XL and HEIC/HEIF: neither cv2 nor Pillow decodes them here; add each as an opt-in extra (`pillow-jxl-plugin` / `pillow-heif`) plus extension and round-trip test. HEIC brings libheif/libde265 (LGPL, HEVC patents) — decide on licensing first.
+  - DDS: read-only via Pillow for the common BCn variants; a GPU texture format (mipmaps, cubemaps) that fits "one image" poorly.
+  - EXR and Radiance HDR: cv2 already encodes/decodes them; blocked on an inquisition about HDR semantics of the IMAGE value (values above 1, linear vs. display-referred, what View/Save do with them). Relevant to S7 too.
 
 ### 2.3 Failure poisoning — haywire-core VM (Q9, Q10, Q37) — **ADR required**
 1. **`failed` flag** per node, separate from `error_runtime`. Set when a worker raises (data or
