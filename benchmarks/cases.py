@@ -450,11 +450,102 @@ def _prepare_img_sr2x_540p() -> Prepared:
     return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
 
 
+def _encoded_1080p_file(fmt_name: str, suffix: str):
+    """Encode the 1080p frame once in ``fmt_name`` and write it to a temp file; return the path."""
+    import tempfile
+    from pathlib import Path
+
+    from haybale_image.io.codecs import EncodeOptions, encode_image
+    from haybale_image.io.formats import Format
+    from haybale_image.value import ChannelOrder, ImageValue
+
+    img = ImageValue.from_array(_bgr_frame(1080, 1920), order=ChannelOrder.BGR)
+    path = Path(tempfile.mkdtemp(prefix="hw_bench_img_")) / f"frame{suffix}"
+    path.write_bytes(encode_image(img, getattr(Format, fmt_name), EncodeOptions()))
+    return path
+
+
+def _prepare_img_load(fmt_name: str, suffix: str) -> Prepared:
+    from haybale_image.io.codecs import read_image
+
+    path = _encoded_1080p_file(fmt_name, suffix)
+
+    def run() -> None:
+        read_image(path)
+
+    return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
+
+
+def _prepare_img_load_png8_1080p() -> Prepared:
+    return _prepare_img_load("PNG", ".png")
+
+
+def _prepare_img_load_jpeg_1080p() -> Prepared:
+    return _prepare_img_load("JPEG", ".jpg")
+
+
+def _prepare_img_save(fmt_name: str) -> Prepared:
+    from haybale_image.io.codecs import EncodeOptions, encode_image
+    from haybale_image.io.formats import Format
+    from haybale_image.value import ChannelOrder, ImageValue
+
+    img = ImageValue.from_array(_bgr_frame(1080, 1920), order=ChannelOrder.BGR)
+    fmt, options = getattr(Format, fmt_name), EncodeOptions()
+
+    def run() -> None:
+        encode_image(img, fmt, options)
+
+    return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
+
+
+def _prepare_img_save_png8_1080p() -> Prepared:
+    return _prepare_img_save("PNG")
+
+
+def _prepare_img_save_jpeg_1080p() -> Prepared:
+    return _prepare_img_save("JPEG")
+
+
+def _prepare_img_adapt_gray_to_rgb_1080p() -> Prepared:
+    from haybale_image.value import ChannelOrder, ImageValue, Layout, convert_layout
+
+    gray = _bgr_frame(1080, 1920)[..., 0].copy()
+    img = ImageValue.from_array(gray, order=ChannelOrder.BGR)
+
+    def run() -> None:
+        convert_layout(img, Layout.RGB)
+
+    return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
+
+
+def _prepare_img_view_stream_encode_1080p() -> Prepared:
+    from haybale_image.value import ChannelOrder, ImageValue
+    from haybale_image.viewer.backend import StreamingBackend
+
+    # stream() returns early unless its queue reader runs, and that needs an event
+    # loop. Setting the private _is_running flag makes the real stream() encode and
+    # queue (a full size-1 queue drops its oldest frame) with no server or loop.
+    backend = StreamingBackend()
+    backend._is_running = True
+    img = ImageValue.from_array(_bgr_frame(1080, 1920), order=ChannelOrder.BGR)
+
+    def run() -> None:
+        backend.stream(img)
+
+    return Prepared(run=run, ops=1, repeats=_IMG_REPEATS, warmup=5)
+
+
 def _image_cases() -> List[Case]:
     """The ``img_*`` cases this environment can run: GPU cases need torch + CUDA/MPS, SR also a model."""
     cases = [
         Case("img_wrap_1080p", "micro", "ns", _prepare_img_wrap_1080p),
         Case("img_cpu_f32_1080p", "micro", "ns", _prepare_img_cpu_f32_1080p),
+        Case("img_load_png8_1080p", "micro", "ns", _prepare_img_load_png8_1080p),
+        Case("img_load_jpeg_1080p", "micro", "ns", _prepare_img_load_jpeg_1080p),
+        Case("img_save_png8_1080p", "micro", "ns", _prepare_img_save_png8_1080p),
+        Case("img_save_jpeg_1080p", "micro", "ns", _prepare_img_save_jpeg_1080p),
+        Case("img_adapt_gray_to_rgb_1080p", "micro", "ns", _prepare_img_adapt_gray_to_rgb_1080p),
+        Case("img_view_stream_encode_1080p", "micro", "ns", _prepare_img_view_stream_encode_1080p),
     ]
     if _gpu_device() is None:
         return cases
