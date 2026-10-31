@@ -2,7 +2,7 @@
   "format_version": 4,
   "filestem": "files",
   "created_at": "2026-10-31T11:01:24.544024",
-  "modified_at": "2026-10-31T12:32:26.077945",
+  "modified_at": "2026-10-31T17:05:51.300781",
   "meta": {
     "values": {},
     "promoted": {}
@@ -773,7 +773,7 @@
             "field_data": {
               "value": {
                 "volume": "haywire-core:volume:project",
-                "relative": "graph"
+                "relative": "graphs"
               }
             }
           },
@@ -1153,6 +1153,8 @@
             "values": {
               "posX": 4020.0,
               "posY": 4080.0,
+              "width": 266,
+              "height": 721,
               "z": 5
             },
             "promoted": {}
@@ -1170,6 +1172,8 @@
           "values": {
             "posX": 4020.0,
             "posY": 4080.0,
+            "width": 266,
+            "height": 721,
             "z": 5
           },
           "promoted": {}
@@ -1391,7 +1395,44 @@
             "field_data": {
               "value": {
                 "volume": "haywire-core:volume:project",
-                "relative": "webcam.haywire"
+                "relative": ""
+              }
+            }
+          },
+          "out_folder": {
+            "kwargs": {
+              "registry_id": "FOLDER_PATH",
+              "registry_key": "haywire-core:type:FOLDER_PATH",
+              "label": "Parent",
+              "description": "A folder inside a named volume such as the project folder or `models`.",
+              "class_name": "FOLDER_PATH",
+              "module": "haywire.barn.builtin.types.path",
+              "default": {
+                "value": {
+                  "volume": "haywire-core:volume:project",
+                  "relative": ""
+                }
+              },
+              "store_strategy": 4,
+              "color": "#c9a66b",
+              "widget_key": "haywire-core:widget:PathWidget",
+              "widget_config": {
+                "properties": {
+                  "mode": "folder"
+                }
+              },
+              "id": "out_folder",
+              "port_type": "outlet",
+              "order": 6,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FOLDER_PATH"
+            },
+            "field_data": {
+              "value": {
+                "volume": "haywire-core:volume:project",
+                "relative": ""
               }
             }
           }
@@ -1402,7 +1443,7 @@
               "posX": 4400.0,
               "posY": 4400.0,
               "width": 266,
-              "height": 326,
+              "height": 354,
               "z": 7
             },
             "promoted": {}
@@ -1413,7 +1454,7 @@
             "posX": 4400.0,
             "posY": 4400.0,
             "width": 266,
-            "height": 326,
+            "height": 354,
             "z": 7
           },
           "promoted": {}

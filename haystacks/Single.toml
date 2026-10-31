@@ -18,8 +18,12 @@ execute = false
 
 [[graphs]]
 path = "graphs/loop_break.haywire"
-execute = true
+execute = false
+
+[[graphs]]
+path = "graphs/images.haywire"
+execute = false
 
 [haystack]
 name = "Single"
-active_graph = "graphs/loop_break.haywire"
+active_graph = "graphs/images.haywire"

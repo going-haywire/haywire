@@ -2,7 +2,7 @@
   "format_version": 4,
   "filestem": "loop_break",
   "created_at": "2026-10-31T11:55:12.848474",
-  "modified_at": "2026-10-31T12:32:26.920550",
+  "modified_at": "2026-10-31T17:07:19.880427",
   "meta": {
     "values": {},
     "promoted": {}
@@ -58,15 +58,15 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 1793445709.2340858
+              "value": 1793454348.997365
             }
           }
         },
         "settings": {
           "props": {
             "values": {
-              "posX": 3400.0,
-              "posY": 3700.0,
+              "posX": 3280.0,
+              "posY": 3660.0,
               "width": 256,
               "height": 138
             },
@@ -75,8 +75,8 @@
         },
         "props": {
           "values": {
-            "posX": 3400.0,
-            "posY": 3700.0,
+            "posX": 3280.0,
+            "posY": 3660.0,
             "width": 256,
             "height": 138
           },
@@ -297,7 +297,7 @@
               "registry_id": "EXEC",
               "registry_key": "haywire-core:type:EXEC",
               "label": "Completed",
-              "description": "Signal for controlling execution flow between nodes",
+              "description": "Signal the loop completed",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
               "default": {
@@ -319,7 +319,7 @@
               "registry_id": "EXEC",
               "registry_key": "haywire-core:type:EXEC",
               "label": "Stopped",
-              "description": "Signal for controlling execution flow between nodes",
+              "description": "Signal if the loop was interruted and was never completed",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
               "default": {
@@ -341,7 +341,7 @@
           "props": {
             "values": {
               "posX": 3700.0,
-              "posY": 3700.0,
+              "posY": 3540.0,
               "width": 256,
               "height": 388,
               "z": 1
@@ -352,7 +352,7 @@
         "props": {
           "values": {
             "posX": 3700.0,
-            "posY": 3700.0,
+            "posY": 3540.0,
             "width": 256,
             "height": 388,
             "z": 1
@@ -476,8 +476,8 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 4050.0,
-              "posY": 3600.0,
+              "posX": 4167.6,
+              "posY": 3509.4,
               "width": 256,
               "height": 166,
               "z": 2
@@ -487,8 +487,8 @@
         },
         "props": {
           "values": {
-            "posX": 4050.0,
-            "posY": 3600.0,
+            "posX": 4167.6,
+            "posY": 3509.4,
             "width": 256,
             "height": 166,
             "z": 2
@@ -606,8 +606,8 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 4160.0,
-              "posY": 3820.0,
+              "posX": 4167.6,
+              "posY": 3775.4,
               "width": 266,
               "height": 186,
               "z": 3
@@ -617,8 +617,8 @@
         },
         "props": {
           "values": {
-            "posX": 4160.0,
-            "posY": 3820.0,
+            "posX": 4167.6,
+            "posY": 3775.4,
             "width": 266,
             "height": 186,
             "z": 3
@@ -736,8 +736,8 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 4160.0,
-              "posY": 4020.0,
+              "posX": 4167.6,
+              "posY": 4061.4,
               "width": 266,
               "height": 186,
               "z": 4
@@ -747,8 +747,8 @@
         },
         "props": {
           "values": {
-            "posX": 4160.0,
-            "posY": 4020.0,
+            "posX": 4167.6,
+            "posY": 4061.4,
             "width": 266,
             "height": 186,
             "z": 4
@@ -818,14 +818,6 @@
       ],
       "propagation": "eager"
     },
-    "PrintNode_656d2f51[done]->ForLoopNode_3f3a83f3[break_loop]": {
-      "source_node_id": "PrintNode_656d2f51",
-      "outlet_port_id": "done",
-      "sink_node_id": "ForLoopNode_3f3a83f3",
-      "inlet_port_id": "break_loop",
-      "chain_adapter_keys": [],
-      "propagation": "eager"
-    },
     "ForLoopNode_3f3a83f3[completed]->PrintNode_b241c62d[exec]": {
       "source_node_id": "ForLoopNode_3f3a83f3",
       "outlet_port_id": "completed",
@@ -839,6 +831,14 @@
       "outlet_port_id": "stopped",
       "sink_node_id": "PrintNode_a833523d",
       "inlet_port_id": "exec",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "PrintNode_656d2f51[done]->ForLoopNode_3f3a83f3[break_loop]": {
+      "source_node_id": "PrintNode_656d2f51",
+      "outlet_port_id": "done",
+      "sink_node_id": "ForLoopNode_3f3a83f3",
+      "inlet_port_id": "break_loop",
       "chain_adapter_keys": [],
       "propagation": "eager"
     }

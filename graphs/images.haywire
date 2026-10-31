@@ -1,0 +1,2162 @@
+{
+  "format_version": 4,
+  "filestem": "images",
+  "created_at": "2026-10-31T14:46:35.619432",
+  "modified_at": "2026-10-31T19:10:20.014647",
+  "meta": {
+    "values": {},
+    "promoted": {}
+  },
+  "nodes": {
+    "LoadImageNode_d8d1eee5": {
+      "node_id": "LoadImageNode_d8d1eee5",
+      "registry_key": "haybale-image:node:LoadImageNode",
+      "node_data": {
+        "node_id": "LoadImageNode_d8d1eee5",
+        "ports": {
+          "path": {
+            "kwargs": {
+              "registry_id": "FILE_PATH",
+              "registry_key": "haywire-core:type:FILE_PATH",
+              "label": "Path",
+              "description": "A file inside a named volume such as the project folder or `models`.",
+              "class_name": "FILE_PATH",
+              "module": "haywire.barn.builtin.types.path",
+              "default": {
+                "value": {
+                  "volume": "haywire-core:volume:project",
+                  "relative": ""
+                }
+              },
+              "store_strategy": 2,
+              "color": "#c9a66b",
+              "widget_key": "haywire-core:widget:PathWidget",
+              "widget_config": {
+                "properties": {
+                  "mode": "file"
+                }
+              },
+              "id": "path",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FILE_PATH"
+            },
+            "field_data": {
+              "value": {
+                "volume": "haywire-core:volume:project",
+                "relative": "assets/pexels-audstories-png16-gray.png"
+              }
+            }
+          },
+          "image": {
+            "kwargs": {
+              "registry_id": "IMAGE",
+              "registry_key": "haybale-image:type:IMAGE",
+              "label": "Image",
+              "description": "A picture of any channel layout. Pixels are kept as made and converted on demand.",
+              "class_name": "IMAGE",
+              "module": "haybale_image.types.image",
+              "default": {
+                "value": {
+                  "width": 0,
+                  "height": 0,
+                  "layout": "gray"
+                }
+              },
+              "store_strategy": 1,
+              "color": "#3f8fd2",
+              "id": "image",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-image:type:IMAGE"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 4300.0,
+              "posY": 3820.0,
+              "width": 343,
+              "height": 138,
+              "size_adapt": "manual_width",
+              "z": 1
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 4300.0,
+            "posY": 3820.0,
+            "width": 343,
+            "height": 138,
+            "size_adapt": "manual_width",
+            "z": 1
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "LoadImageNode",
+          "registry_key": "haybale-image:node:LoadImageNode",
+          "label": "Load Image",
+          "description": "Reads an image file from a volume",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "LoadImageNode",
+          "module": "haybale_image.nodes.load_image",
+          "tags": [],
+          "search_tags": [
+            "image",
+            "load",
+            "open",
+            "read",
+            "file",
+            "png",
+            "jpg",
+            "tiff",
+            "import"
+          ],
+          "menu": "image/io",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Image",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-image/haybale_image",
+          "module_name": "haybale_image",
+          "name": "haybale-image",
+          "linked_libraries": [],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "ViewImageNode_54894688": {
+      "node_id": "ViewImageNode_54894688",
+      "registry_key": "haybale-image:node:ViewImageNode",
+      "node_data": {
+        "node_id": "ViewImageNode_54894688",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "image": {
+            "kwargs": {
+              "registry_id": "IMAGE",
+              "registry_key": "haybale-image:type:IMAGE",
+              "label": "Image",
+              "description": "A picture of any channel layout. Pixels are kept as made and converted on demand.",
+              "class_name": "IMAGE",
+              "module": "haybale_image.types.image",
+              "default": {
+                "value": {
+                  "width": 0,
+                  "height": 0,
+                  "layout": "gray"
+                }
+              },
+              "store_strategy": 1,
+              "color": "#3f8fd2",
+              "widget_key": "haybale-image:widget:ImageViewerWidget",
+              "widget_config": {
+                "properties": {
+                  "mode": "still"
+                }
+              },
+              "id": "image",
+              "port_type": "inlet",
+              "order": 1,
+              "show_widget": "when_linked"
+            },
+            "recipe": {
+              "registry_key": "haybale-image:type:IMAGE"
+            }
+          },
+          "mode": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Mode",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": "stream"
+              },
+              "store_strategy": 4,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:SelectWidget",
+              "widget_config": {
+                "properties": {
+                  "options": [
+                    "stream",
+                    "still"
+                  ]
+                }
+              },
+              "id": "mode",
+              "port_type": "config",
+              "order": 2,
+              "on_change": "hb_on_mode_changed",
+              "show_widget": "always"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "still"
+            }
+          },
+          "next": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Next",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "next",
+              "port_type": "outlet",
+              "order": 3,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "image_out": {
+            "kwargs": {
+              "registry_id": "IMAGE",
+              "registry_key": "haybale-image:type:IMAGE",
+              "label": "Image Out",
+              "description": "A picture of any channel layout. Pixels are kept as made and converted on demand.",
+              "class_name": "IMAGE",
+              "module": "haybale_image.types.image",
+              "default": {
+                "value": {
+                  "width": 0,
+                  "height": 0,
+                  "layout": "gray"
+                }
+              },
+              "store_strategy": 1,
+              "color": "#3f8fd2",
+              "id": "image_out",
+              "port_type": "outlet",
+              "order": 4,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-image:type:IMAGE"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 4720.0,
+              "posY": 3600.0,
+              "width": 280,
+              "height": 240,
+              "size_adapt": "manual_width",
+              "z": 2
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 4720.0,
+            "posY": 3600.0,
+            "width": 280,
+            "height": 240,
+            "size_adapt": "manual_width",
+            "z": 2
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "ViewImageNode",
+          "registry_key": "haybale-image:node:ViewImageNode",
+          "label": "View Image",
+          "description": "Shows an image on the node, as a live stream or as a still picture",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "ViewImageNode",
+          "module": "haybale_image.nodes.view_image",
+          "tags": [],
+          "search_tags": [
+            "image",
+            "view",
+            "show",
+            "preview",
+            "display",
+            "viewer",
+            "stream"
+          ],
+          "menu": "image",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Image",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-image/haybale_image",
+          "module_name": "haybale_image",
+          "name": "haybale-image",
+          "linked_libraries": [],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "ImageInfoNode_94540f7e": {
+      "node_id": "ImageInfoNode_94540f7e",
+      "registry_key": "haybale-image:node:ImageInfoNode",
+      "node_data": {
+        "node_id": "ImageInfoNode_94540f7e",
+        "ports": {
+          "image": {
+            "kwargs": {
+              "registry_id": "IMAGE",
+              "registry_key": "haybale-image:type:IMAGE",
+              "label": "Image",
+              "description": "A picture of any channel layout. Pixels are kept as made and converted on demand.",
+              "class_name": "IMAGE",
+              "module": "haybale_image.types.image",
+              "default": {
+                "value": {
+                  "width": 0,
+                  "height": 0,
+                  "layout": "gray"
+                }
+              },
+              "store_strategy": 1,
+              "color": "#3f8fd2",
+              "id": "image",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haybale-image:type:IMAGE"
+            }
+          },
+          "width": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Width",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "width",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 1365
+            }
+          },
+          "height": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Height",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "height",
+              "port_type": "outlet",
+              "order": 2,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 2048
+            }
+          },
+          "layout": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Layout",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": ""
+              },
+              "store_strategy": 4,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:TextWidget",
+              "id": "layout",
+              "port_type": "outlet",
+              "order": 3,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "gray"
+            }
+          },
+          "depth": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Depth",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "depth",
+              "port_type": "outlet",
+              "order": 4,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 16
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 5140.0,
+              "posY": 3720.0,
+              "width": 256,
+              "height": 222,
+              "z": 3
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 5140.0,
+            "posY": 3720.0,
+            "width": 256,
+            "height": 222,
+            "z": 3
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "ImageInfoNode",
+          "registry_key": "haybale-image:node:ImageInfoNode",
+          "label": "Image Info",
+          "description": "Reports the width, height, channel layout and bit depth of an image",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "ImageInfoNode",
+          "module": "haybale_image.nodes.image_info",
+          "tags": [],
+          "search_tags": [
+            "image",
+            "info",
+            "size",
+            "width",
+            "height",
+            "layout",
+            "depth",
+            "channels"
+          ],
+          "menu": "image",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Image",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-image/haybale_image",
+          "module_name": "haybale_image",
+          "name": "haybale-image",
+          "linked_libraries": [],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "PrintNode_f5b20dbb": {
+      "node_id": "PrintNode_f5b20dbb",
+      "registry_key": "haybale-core:node:PrintNode",
+      "node_data": {
+        "node_id": "PrintNode_f5b20dbb",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execution Signal",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "done": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execution Signal",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "done",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "message": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "String",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": "Hello, World!"
+              },
+              "store_strategy": 2,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:TextWidget",
+              "id": "message",
+              "port_type": "inlet",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "Hello, World!"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 5460.0,
+              "posY": 3580.0,
+              "width": 256,
+              "height": 166,
+              "z": 4
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 5460.0,
+            "posY": 3580.0,
+            "width": 256,
+            "height": 166,
+            "z": 4
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "PrintNode",
+          "registry_key": "haybale-core:node:PrintNode",
+          "label": "Print",
+          "description": "Print to the haywire UI console",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "PrintNode",
+          "module": "haybale_core.nodes.print",
+          "tags": [],
+          "search_tags": [],
+          "menu": "core/utils",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Core",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "name": "haybale-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    },
+    "TickEventNode_1559316e": {
+      "node_id": "TickEventNode_1559316e",
+      "registry_key": "haybale-core:node:TickEventNode",
+      "node_data": {
+        "node_id": "TickEventNode_1559316e",
+        "ports": {
+          "listen_callback": {
+            "kwargs": {
+              "registry_id": "CALLBACK",
+              "registry_key": "haywire-core:type:CALLBACK",
+              "label": "Listen",
+              "description": "Signal for callback execution between nodes",
+              "class_name": "CALLBACK",
+              "module": "haywire.barn.builtin.types.callback",
+              "default": {
+                "value": "TickEventNode_f06e7bcb"
+              },
+              "store_strategy": 8,
+              "color": "#ff3c00",
+              "id": "listen_callback",
+              "port_type": "outlet",
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:CALLBACK"
+            },
+            "field_data": {
+              "value": "TickEventNode_1559316e"
+            }
+          },
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "delta_time": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Delta Time",
+              "description": "Decimal number",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 4,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "delta_time",
+              "port_type": "outlet",
+              "order": 2,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 0.01623508404009044
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3140.0,
+              "posY": 3640.0,
+              "width": 256,
+              "height": 166,
+              "z": 7
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3140.0,
+            "posY": 3640.0,
+            "width": 256,
+            "height": 166,
+            "z": 7
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "TickEventNode",
+          "registry_key": "haybale-core:node:TickEventNode",
+          "label": "Tick",
+          "description": "Triggered by a connected emitter (Tick Emit, Run Button)",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "TickEventNode",
+          "module": "haybale_core.nodes.events.tick_event",
+          "tags": [],
+          "search_tags": [
+            "frame",
+            "update",
+            "loop",
+            "event",
+            "tick"
+          ],
+          "menu": "core/event",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Core",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "name": "haybale-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    },
+    "ShutdownNode_88eb2a2e": {
+      "node_id": "ShutdownNode_88eb2a2e",
+      "registry_key": "haybale-core:node:ShutdownNode",
+      "node_data": {
+        "node_id": "ShutdownNode_88eb2a2e",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "outlet",
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Shutdown Time",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 1793470163.668501
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3140.0,
+              "posY": 3440.0,
+              "width": 256,
+              "height": 138,
+              "z": 8
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3140.0,
+            "posY": 3440.0,
+            "width": 256,
+            "height": 138,
+            "z": 8
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "ShutdownNode",
+          "registry_key": "haybale-core:node:ShutdownNode",
+          "label": "Shutdown",
+          "description": "Triggered when execution is shutting down",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "ShutdownNode",
+          "module": "haybale_core.nodes.events.shutdown",
+          "tags": [],
+          "search_tags": [
+            "stop",
+            "end",
+            "cleanup",
+            "event"
+          ],
+          "menu": "core/event",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Core",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "name": "haybale-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    },
+    "BeginPlayNode_bd837ba5": {
+      "node_id": "BeginPlayNode_bd837ba5",
+      "registry_key": "haybale-core:node:BeginPlayNode",
+      "node_data": {
+        "node_id": "BeginPlayNode_bd837ba5",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "outlet",
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Start Time",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 1793470160.510577
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3140.0,
+              "posY": 3280.0,
+              "width": 256,
+              "height": 138,
+              "z": 9
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3140.0,
+            "posY": 3280.0,
+            "width": 256,
+            "height": 138,
+            "z": 9
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "BeginPlayNode",
+          "registry_key": "haybale-core:node:BeginPlayNode",
+          "label": "Begin Player",
+          "description": "Triggered once when execution starts",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "BeginPlayNode",
+          "module": "haybale_core.nodes.events.begin_play",
+          "tags": [],
+          "search_tags": [
+            "start",
+            "init",
+            "begin",
+            "event"
+          ],
+          "menu": "core/event",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Core",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "name": "haybale-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    },
+    "TickEmitNode_a1fa2a5d": {
+      "node_id": "TickEmitNode_a1fa2a5d",
+      "registry_key": "haybale-core:node:TickEmitNode",
+      "node_data": {
+        "node_id": "TickEmitNode_a1fa2a5d",
+        "ports": {
+          "start": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Start",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "start",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "stop": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Stop",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "stop",
+              "port_type": "inlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "target_fps": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Target FPS",
+              "description": "Targeted Frames per second - needs a start signal to be applied",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 60.0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "widget_config": {
+                "properties": {
+                  "min": 0.1,
+                  "max": 240,
+                  "step": 1
+                }
+              },
+              "id": "target_fps",
+              "port_type": "inlet",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 0.5
+            }
+          },
+          "callback_names": {
+            "kwargs": {
+              "registry_id": "PooledType",
+              "registry_key": "haybale-core:type:PooledType",
+              "label": "Trigger",
+              "description": "Multi-source aggregation",
+              "class_name": "PooledType",
+              "module": "haybale_core.types.pooled_type",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 2,
+              "color": "#ff3c00",
+              "id": "callback_names",
+              "port_type": "inlet",
+              "order": 3
+            },
+            "recipe": {
+              "registry_key": "haybale-core:type:PooledType",
+              "element_type": {
+                "registry_key": "haywire-core:type:CALLBACK"
+              }
+            }
+          },
+          "started": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Started",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "started",
+              "port_type": "outlet",
+              "order": 4,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "stopped": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Stopped",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "stopped",
+              "port_type": "outlet",
+              "order": 5,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3520.0,
+              "posY": 3260.0,
+              "width": 256,
+              "height": 268,
+              "z": 10
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3520.0,
+            "posY": 3260.0,
+            "width": 256,
+            "height": 268,
+            "z": 10
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "TickEmitNode",
+          "registry_key": "haybale-core:node:TickEmitNode",
+          "label": "Tick Emit",
+          "description": "Emits tick callbacks at a configurable framerate",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "TickEmitNode",
+          "module": "haybale_core.nodes.emits.tick_emit",
+          "tags": [],
+          "search_tags": [
+            "tick",
+            "frame",
+            "loop",
+            "emit",
+            "fps",
+            "timer"
+          ],
+          "menu": "core/emit",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Core",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "name": "haybale-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    },
+    "BeginPlayNode_a76e8f05": {
+      "node_id": "BeginPlayNode_a76e8f05",
+      "registry_key": "haybale-core:node:BeginPlayNode",
+      "node_data": {
+        "node_id": "BeginPlayNode_a76e8f05",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "outlet",
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Start Time",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 1793470160.510746
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3080.0,
+              "posY": 3980.0,
+              "width": 256,
+              "height": 138,
+              "z": 11
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3080.0,
+            "posY": 3980.0,
+            "width": 256,
+            "height": 138,
+            "z": 11
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "BeginPlayNode",
+          "registry_key": "haybale-core:node:BeginPlayNode",
+          "label": "Begin Player",
+          "description": "Triggered once when execution starts",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "BeginPlayNode",
+          "module": "haybale_core.nodes.events.begin_play",
+          "tags": [],
+          "search_tags": [
+            "start",
+            "init",
+            "begin",
+            "event"
+          ],
+          "menu": "core/event",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Core",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "name": "haybale-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    },
+    "ListFilesNode_e44c4eef": {
+      "node_id": "ListFilesNode_e44c4eef",
+      "registry_key": "haybale-core:node:ListFilesNode",
+      "node_data": {
+        "node_id": "ListFilesNode_e44c4eef",
+        "ports": {
+          "execute": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "execute",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "folder": {
+            "kwargs": {
+              "registry_id": "FOLDER_PATH",
+              "registry_key": "haywire-core:type:FOLDER_PATH",
+              "label": "Folder",
+              "description": "A folder inside a named volume such as the project folder or `models`.",
+              "class_name": "FOLDER_PATH",
+              "module": "haywire.barn.builtin.types.path",
+              "default": {
+                "value": {
+                  "volume": "haywire-core:volume:project",
+                  "relative": ""
+                }
+              },
+              "store_strategy": 2,
+              "color": "#c9a66b",
+              "widget_key": "haywire-core:widget:PathWidget",
+              "widget_config": {
+                "properties": {
+                  "mode": "folder"
+                }
+              },
+              "id": "folder",
+              "port_type": "inlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FOLDER_PATH"
+            },
+            "field_data": {
+              "value": {
+                "volume": "haywire-core:volume:project",
+                "relative": "assets"
+              }
+            }
+          },
+          "pattern": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Pattern",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": "*"
+              },
+              "store_strategy": 2,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:TextWidget",
+              "id": "pattern",
+              "port_type": "inlet",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "*"
+            }
+          },
+          "recursive": {
+            "kwargs": {
+              "registry_id": "BOOL",
+              "registry_key": "haywire-core:type:BOOL",
+              "label": "Subfolders",
+              "description": "True or False",
+              "class_name": "BOOL",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": false
+              },
+              "store_strategy": 2,
+              "color": "#4caf50",
+              "widget_key": "haywire-core:widget:SwitchWidget",
+              "id": "recursive",
+              "port_type": "inlet",
+              "order": 3
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:BOOL"
+            },
+            "field_data": {
+              "value": false
+            }
+          },
+          "limit": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Limit",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 2,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "limit",
+              "port_type": "inlet",
+              "order": 4
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 0
+            }
+          },
+          "next": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Next",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "next",
+              "port_type": "outlet",
+              "order": 5,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "files": {
+            "kwargs": {
+              "registry_id": "ArrayType",
+              "registry_key": "haybale-core:type:ArrayType",
+              "label": "Files",
+              "description": "Homogeneous typed array",
+              "class_name": "ArrayType",
+              "module": "haybale_core.types.array_type",
+              "default": {
+                "value": []
+              },
+              "store_strategy": 4,
+              "color": "#c9a66b",
+              "id": "files",
+              "port_type": "outlet",
+              "order": 6,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-core:type:ArrayType",
+              "element_type": {
+                "registry_key": "haywire-core:type:FILE_PATH"
+              }
+            },
+            "field_data": {
+              "value": [
+                {
+                  "value": {
+                    "volume": "haywire-core:volume:project",
+                    "relative": "AGENTS.md"
+                  }
+                },
+                {
+                  "value": {
+                    "volume": "haywire-core:volume:project",
+                    "relative": "CLAUDE.md"
+                  }
+                },
+                {
+                  "value": {
+                    "volume": "haywire-core:volume:project",
+                    "relative": "LICENSE"
+                  }
+                },
+                {
+                  "value": {
+                    "volume": "haywire-core:volume:project",
+                    "relative": "README.md"
+                  }
+                },
+                {
+                  "value": {
+                    "volume": "haywire-core:volume:project",
+                    "relative": "mkdocs.yml"
+                  }
+                },
+                {
+                  "value": {
+                    "volume": "haywire-core:volume:project",
+                    "relative": "open_issues.md"
+                  }
+                },
+                {
+                  "value": {
+                    "volume": "haywire-core:volume:project",
+                    "relative": "profile_report.json"
+                  }
+                },
+                {
+                  "value": {
+                    "volume": "haywire-core:volume:project",
+                    "relative": "pyproject.toml"
+                  }
+                },
+                {
+                  "value": {
+                    "volume": "haywire-core:volume:project",
+                    "relative": "skills-lock.json"
+                  }
+                },
+                {
+                  "value": {
+                    "volume": "haywire-core:volume:project",
+                    "relative": "uv.lock"
+                  }
+                }
+              ]
+            }
+          },
+          "total": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Total",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "total",
+              "port_type": "outlet",
+              "order": 7,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 10
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3460.0,
+              "posY": 3960.0,
+              "width": 266,
+              "height": 412,
+              "z": 12
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3460.0,
+            "posY": 3960.0,
+            "width": 266,
+            "height": 412,
+            "z": 12
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "ListFilesNode",
+          "registry_key": "haybale-core:node:ListFilesNode",
+          "label": "List Files",
+          "description": "Lists the files in a folder that match the pattern, each time it runs",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "ListFilesNode",
+          "module": "haybale_core.nodes.list_files",
+          "tags": [],
+          "search_tags": [
+            "list",
+            "files",
+            "folder",
+            "glob",
+            "batch",
+            "array",
+            "directory"
+          ],
+          "menu": "core/paths",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Core",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "name": "haybale-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    },
+    "StepArrayNode_68abde4b": {
+      "node_id": "StepArrayNode_68abde4b",
+      "registry_key": "haybale-core:node:StepArrayNode",
+      "node_data": {
+        "node_id": "StepArrayNode_68abde4b",
+        "ports": {
+          "start": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Start",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "start",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "next": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Next",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "next",
+              "port_type": "inlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "stop": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Stop",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "stop",
+              "port_type": "inlet",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "array": {
+            "kwargs": {
+              "registry_id": "ArrayType",
+              "registry_key": "haybale-core:type:ArrayType",
+              "label": "Array",
+              "description": "Homogeneous typed array",
+              "class_name": "ArrayType",
+              "module": "haybale_core.types.array_type",
+              "default": {
+                "value": []
+              },
+              "store_strategy": 2,
+              "color": "#c9a66b",
+              "id": "array",
+              "port_type": "inlet",
+              "order": 3,
+              "on_connect": "hb_adopt_array"
+            },
+            "recipe": {
+              "registry_key": "haybale-core:type:ArrayType",
+              "element_type": {
+                "registry_key": "haywire-core:type:FILE_PATH"
+              }
+            }
+          },
+          "item": {
+            "kwargs": {
+              "registry_id": "FILE_PATH",
+              "registry_key": "haywire-core:type:FILE_PATH",
+              "label": "Item",
+              "description": "A file inside a named volume such as the project folder or `models`.",
+              "class_name": "FILE_PATH",
+              "module": "haywire.barn.builtin.types.path",
+              "default": {
+                "value": {
+                  "volume": "haywire-core:volume:project",
+                  "relative": ""
+                }
+              },
+              "store_strategy": 4,
+              "color": "#c9a66b",
+              "widget_key": "haywire-core:widget:PathWidget",
+              "widget_config": {
+                "properties": {
+                  "mode": "file"
+                }
+              },
+              "id": "item",
+              "port_type": "outlet",
+              "order": 4,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FILE_PATH"
+            },
+            "field_data": {
+              "value": {
+                "volume": "haywire-core:volume:project",
+                "relative": "uv.lock"
+              }
+            }
+          },
+          "mode": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Mode",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": "once"
+              },
+              "store_strategy": 2,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:SelectWidget",
+              "widget_config": {
+                "properties": {
+                  "options": [
+                    "once",
+                    "loop",
+                    "palindrome"
+                  ]
+                }
+              },
+              "id": "mode",
+              "port_type": "inlet",
+              "order": 5
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "loop"
+            }
+          },
+          "step": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Step",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "step",
+              "port_type": "outlet",
+              "order": 6,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "index": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Index",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "index",
+              "port_type": "outlet",
+              "order": 7,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 9
+            }
+          },
+          "total": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Total",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "total",
+              "port_type": "outlet",
+              "order": 8,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 10
+            }
+          },
+          "completed": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Completed",
+              "description": "Signal the array ran out (once) or a round ended (loop, palindrome)",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "completed",
+              "port_type": "outlet",
+              "order": 9,
+              "needs_loopback": true,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3900.0,
+              "posY": 3700.0,
+              "width": 256,
+              "height": 380,
+              "z": 13
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3900.0,
+            "posY": 3700.0,
+            "width": 256,
+            "height": 380,
+            "z": 13
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "StepArrayNode",
+          "registry_key": "haybale-core:node:StepArrayNode",
+          "label": "Step Array",
+          "description": "Goes through an array one item at a time, each time Next runs",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "StepArrayNode",
+          "module": "haybale_core.nodes.step_array",
+          "tags": [],
+          "search_tags": [
+            "step",
+            "array",
+            "next",
+            "sequence",
+            "slideshow",
+            "playlist",
+            "iterate"
+          ],
+          "menu": "core/control/loops",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Core",
+          "version": "0.3.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "name": "haybale-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    }
+  },
+  "edges": {
+    "LoadImageNode_d8d1eee5[image]->ViewImageNode_54894688[image]": {
+      "source_node_id": "LoadImageNode_d8d1eee5",
+      "outlet_port_id": "image",
+      "sink_node_id": "ViewImageNode_54894688",
+      "inlet_port_id": "image",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "ViewImageNode_54894688[image_out]->ImageInfoNode_94540f7e[image]": {
+      "source_node_id": "ViewImageNode_54894688",
+      "outlet_port_id": "image_out",
+      "sink_node_id": "ImageInfoNode_94540f7e",
+      "inlet_port_id": "image",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "ViewImageNode_54894688[next]->PrintNode_f5b20dbb[exec]": {
+      "source_node_id": "ViewImageNode_54894688",
+      "outlet_port_id": "next",
+      "sink_node_id": "PrintNode_f5b20dbb",
+      "inlet_port_id": "exec",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "ImageInfoNode_94540f7e[width]->PrintNode_f5b20dbb[message]": {
+      "source_node_id": "ImageInfoNode_94540f7e",
+      "outlet_port_id": "width",
+      "sink_node_id": "PrintNode_f5b20dbb",
+      "inlet_port_id": "message",
+      "chain_adapter_keys": [
+        "haywire-core:adapter:IntToFloatAdapter",
+        "haywire-core:adapter:FloatToStringAdapter"
+      ],
+      "propagation": "eager"
+    },
+    "BeginPlayNode_bd837ba5[exec]->TickEmitNode_a1fa2a5d[start]": {
+      "source_node_id": "BeginPlayNode_bd837ba5",
+      "outlet_port_id": "exec",
+      "sink_node_id": "TickEmitNode_a1fa2a5d",
+      "inlet_port_id": "start",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "ShutdownNode_88eb2a2e[exec]->TickEmitNode_a1fa2a5d[stop]": {
+      "source_node_id": "ShutdownNode_88eb2a2e",
+      "outlet_port_id": "exec",
+      "sink_node_id": "TickEmitNode_a1fa2a5d",
+      "inlet_port_id": "stop",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "BeginPlayNode_a76e8f05[exec]->ListFilesNode_e44c4eef[execute]": {
+      "source_node_id": "BeginPlayNode_a76e8f05",
+      "outlet_port_id": "exec",
+      "sink_node_id": "ListFilesNode_e44c4eef",
+      "inlet_port_id": "execute",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "ListFilesNode_e44c4eef[files]->StepArrayNode_68abde4b[array]": {
+      "source_node_id": "ListFilesNode_e44c4eef",
+      "outlet_port_id": "files",
+      "sink_node_id": "StepArrayNode_68abde4b",
+      "inlet_port_id": "array",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "StepArrayNode_68abde4b[item]->LoadImageNode_d8d1eee5[path]": {
+      "source_node_id": "StepArrayNode_68abde4b",
+      "outlet_port_id": "item",
+      "sink_node_id": "LoadImageNode_d8d1eee5",
+      "inlet_port_id": "path",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "TickEventNode_1559316e[listen_callback]->TickEmitNode_a1fa2a5d[callback_names]": {
+      "source_node_id": "TickEventNode_1559316e",
+      "outlet_port_id": "listen_callback",
+      "sink_node_id": "TickEmitNode_a1fa2a5d",
+      "inlet_port_id": "callback_names",
+      "chain_adapter_keys": []
+    },
+    "TickEventNode_1559316e[exec]->StepArrayNode_68abde4b[next]": {
+      "source_node_id": "TickEventNode_1559316e",
+      "outlet_port_id": "exec",
+      "sink_node_id": "StepArrayNode_68abde4b",
+      "inlet_port_id": "next",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "ListFilesNode_e44c4eef[next]->StepArrayNode_68abde4b[start]": {
+      "source_node_id": "ListFilesNode_e44c4eef",
+      "outlet_port_id": "next",
+      "sink_node_id": "StepArrayNode_68abde4b",
+      "inlet_port_id": "start",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "StepArrayNode_68abde4b[step]->ViewImageNode_54894688[exec]": {
+      "source_node_id": "StepArrayNode_68abde4b",
+      "outlet_port_id": "step",
+      "sink_node_id": "ViewImageNode_54894688",
+      "inlet_port_id": "exec",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    }
+  },
+  "variables": {},
+  "props": {
+    "values": {},
+    "promoted": {}
+  },
+  "subgraphs": {}
+}

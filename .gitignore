@@ -223,3 +223,4 @@ packages/haywire-core/src/haywire/_baked_docs/*
 # Local symlink to external dev project (machine-specific path)
 barn/haybale-visiongraph
 
+assets/*
