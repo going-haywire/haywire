@@ -38,7 +38,7 @@ class OutputPathNode(BaseNode):
     create it first:
 
     ```
-    Output Path.Folder → Create Folder → Save Image
+    Output Path.Parent → Create Folder → Save Image
     ```
 
     The node reports an error naming the part when a name is empty or contains
@@ -54,7 +54,7 @@ class OutputPathNode(BaseNode):
         self.add(STRING.as_inlet("suffix", label="Suffix", default=""))
         self.add(STRING.as_inlet("extension", label="Extension", default=""))
         self.add(FILE_PATH.as_outlet("path", label="Path"))
-        self.add(FOLDER_PATH.as_outlet("out_folder", label="Folder"))
+        self.add(FOLDER_PATH.as_outlet("out_folder", label="Parent"))
 
     def worker(
         self,

@@ -39,7 +39,7 @@ For Each File.Extension → Extension
 create it first:
 
 ```
-Output Path.Folder → Create Folder → Save Image
+Output Path.Parent → Create Folder → Save Image
 ```
 
 The node reports an error naming the part when a name is empty or contains

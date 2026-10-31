@@ -27,5 +27,5 @@ reported when the path leads outside its volume or a file is in the way.
 Save Image does not create folders; create the output folder first:
 
 ```
-Output Path.Folder → Create Folder → Save Image
+Output Path.Parent → Create Folder → Save Image
 ```
