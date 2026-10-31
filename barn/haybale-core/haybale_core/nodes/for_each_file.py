@@ -3,12 +3,12 @@
 from pathlib import PurePosixPath
 from typing import Optional
 
-from haybale_core.file_listing import list_files
+from haybale_core.file_listing import folder_root, list_files
 from haywire.barn.builtin.progress import ProgressSettings, ProgressSpan, progress_field
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import bag
-from haywire.core.volumes import VolumePath, resolve
+from haywire.core.volumes import VolumePath
 
 ON_ERROR = ("continue", "stop")
 
@@ -132,10 +132,7 @@ class ForEachFileNode(BaseNode):
 
     def _begin(self) -> None:
         folder: VolumePath = self.value("folder")
-        root = resolve(folder)
-        if not root.is_dir():
-            reason = "is not a folder" if root.exists() else "does not exist"
-            raise NotADirectoryError(f"folder '{folder}' {reason}")
+        root = folder_root(folder)
         files = list_files(root, self.value("pattern") or "", recursive=bool(self.value("recursive")))
         limit = int(self.value("limit") or 0)
         self._folder = folder

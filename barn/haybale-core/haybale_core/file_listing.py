@@ -4,10 +4,31 @@ import fnmatch
 import logging
 import os
 from pathlib import Path, PurePosixPath
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from haywire.core.volumes import VolumePath
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["list_files"]
+__all__ = ["folder_root", "list_files"]
+
+
+def folder_root(folder: "VolumePath") -> Path:
+    """Return the location of *folder* on this machine, checked to be a folder.
+
+    Raises:
+        NotADirectoryError: *folder* does not exist, or is a file.
+        VolumeUndefinedError: *folder*'s volume has no location.
+        VolumeEscapeError: *folder* leads outside its volume.
+    """
+    from haywire.core.volumes import resolve
+
+    root = resolve(folder)
+    if not root.is_dir():
+        reason = "is not a folder" if root.exists() else "does not exist"
+        raise NotADirectoryError(f"folder '{folder}' {reason}")
+    return root
 
 
 def list_files(root: Path, pattern: str, *, recursive: bool) -> list[PurePosixPath]:
