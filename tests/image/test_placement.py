@@ -72,7 +72,7 @@ def test_failed_write_leaves_no_file(tmp_path: Path, monkeypatch: pytest.MonkeyP
 
     monkeypatch.setattr(os, "replace", boom)
     with pytest.raises(OSError, match="disk gone"):
-        placement.atomic_write(target, b"data")
+        placement.atomic_write(target, b"data", placeholder=True)
     assert list(tmp_path.iterdir()) == []
 
 
@@ -84,3 +84,20 @@ def test_failed_write_keeps_existing_data(tmp_path: Path, monkeypatch: pytest.Mo
         placement.atomic_write(target, b"new")
     assert [p.name for p in tmp_path.iterdir()] == ["a.png"]
     assert target.read_bytes() == b"old"
+
+
+def test_failed_overwrite_keeps_empty_existing_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target = tmp_path / "a.png"
+    target.write_bytes(b"")
+    monkeypatch.setattr(os, "replace", lambda *_a, **_k: (_ for _ in ()).throw(OSError("x")))
+    with pytest.raises(OSError, match="x"):
+        placement.atomic_write(target, b"new")
+    assert [p.name for p in tmp_path.iterdir()] == ["a.png"]
+
+
+def test_fsync_failure_cleans_temp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target = tmp_path / "a.png"
+    monkeypatch.setattr(os, "fsync", lambda *_a, **_k: (_ for _ in ()).throw(OSError("sync")))
+    with pytest.raises(OSError, match="sync"):
+        placement.atomic_write(target, b"new")
+    assert list(tmp_path.iterdir()) == []

@@ -30,9 +30,11 @@ def claim_target(target: Path, if_exists: IfExists) -> Path | None:
 
     - OVERWRITE: returns ``target``; nothing is created.
     - SKIP: returns ``None`` if ``target`` exists, else ``target``; nothing is created.
+      This is check-then-act, not a claim: a concurrent save may still create the file.
     - UNIQUE_SUFFIX: claims ``target`` (or ``stem_1.ext``, ``stem_2.ext``, ...) with
       ``O_CREAT | O_EXCL``, so concurrent saves never pick the same path. The claimed
-      file is an empty placeholder that ``atomic_write`` then replaces.
+      file is an empty placeholder that ``atomic_write`` then replaces; the caller must
+      pass ``placeholder=True`` to ``atomic_write`` for it.
 
     Args:
         target: Requested file path.
@@ -61,17 +63,18 @@ def claim_target(target: Path, if_exists: IfExists) -> Path | None:
         n += 1
 
 
-def atomic_write(target: Path, data: bytes) -> None:
+def atomic_write(target: Path, data: bytes, *, placeholder: bool = False) -> None:
     """Write ``data`` to ``target`` so readers never see a partial file.
 
     Writes ``.<name>.<uuid8>.tmp`` beside the target (same filesystem), fsyncs it,
     then ``os.replace``s it over ``target``. On failure the temp is removed and the
-    error re-raised; if ``target`` is then an empty file (a placeholder claimed by
-    ``claim_target``, which never holds data) it is removed too.
+    error re-raised; ``target`` is removed too only when ``placeholder`` is true.
 
     Args:
         target: Destination file path.
         data: Bytes to write.
+        placeholder: True when ``target`` is the empty placeholder that ``claim_target``
+            created for ``IfExists.UNIQUE_SUFFIX``; it is then removed if the write fails.
     """
     tmp = target.with_name(f".{target.name}.{uuid.uuid4().hex[:8]}.tmp")
     try:
@@ -83,7 +86,7 @@ def atomic_write(target: Path, data: bytes) -> None:
     except BaseException:
         with contextlib.suppress(OSError):
             tmp.unlink(missing_ok=True)
-        with contextlib.suppress(OSError):
-            if target.exists() and target.stat().st_size == 0:
-                target.unlink()
+        if placeholder:
+            with contextlib.suppress(OSError):
+                target.unlink(missing_ok=True)
         raise
