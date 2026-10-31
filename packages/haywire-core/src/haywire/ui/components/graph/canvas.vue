@@ -507,9 +507,10 @@ export default {
          *  every unlinked pin leaves the layout, so a linked pin below one
          *  slides up and its edge has to follow.
          *
-         *  Trap: the slot's ResizeObserver does not cover this. It fires on the
-         *  slot's own box, and a purely internal shift — a hidden pin above a
-         *  visible one on a manual-height card — leaves that box unchanged.
+         *  Trap: the slot's ResizeObserver (`_queueEdgesIfResized`) does not
+         *  cover this. It fires on the slot's own box, and a purely internal
+         *  shift — a hidden pin above a visible one on a manual-height card —
+         *  leaves that box unchanged.
          *
          *  Node MOVES are not routed here: `_syncNodePosition` and the drag
          *  handler call `_updateEdgesForNode` themselves.
@@ -649,6 +650,7 @@ export default {
                 if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
                     this._fitResizeGadget();
                 }
+                this._queueEdgesIfResized(nodeId, slot);
                 const mode = slot.getAttribute('data-node-props-size-adapt') || 'auto';
                 const autoW = (mode === 'auto' || mode === 'manual_height');
                 const autoH = (mode === 'auto' || mode === 'manual_width');
@@ -681,6 +683,31 @@ export default {
             const obs = new ResizeObserver(emit);
             obs.observe(slot);
             slot.__hwSizeObs = obs;
+        },
+
+        /** Repaint a node's edges when its card's layout box really changed size.
+         *
+         *  Content that grows a card — an image loading, a viewer enlarging, a
+         *  widget appearing — moves the pins on its right and bottom edges.
+         *  Only this observer sees it, since no server message is involved.
+         *
+         *  Trap: an edge refresh per style mutation was removed once already
+         *  (a3e1e1148): it fired on every hover-magnifier transform. This path
+         *  stays quiet because a ResizeObserver never sees transforms, the first
+         *  size after mount is only recorded (a graph load repaints nothing), a
+         *  change within 1px is ignored, and `_queueDetailRelayout` coalesces to
+         *  one repaint of this node's edges per frame.
+         */
+        _queueEdgesIfResized(nodeId, slot) {
+            const width = slot.offsetWidth;
+            const height = slot.offsetHeight;
+            const last = slot.__hwEdgeSize;
+            slot.__hwEdgeSize = { width, height };
+            if (!last) return;
+            if (Math.abs(width - last.width) <= 1.0 && Math.abs(height - last.height) <= 1.0) return;
+            const stats = window.__hwMeasureStats;
+            if (stats) stats.edgeRelayouts = (stats.edgeRelayouts || 0) + 1;
+            this._queueDetailRelayout(nodeId);
         },
 
         /** Coalesce this frame's measurements into ONE server message.
