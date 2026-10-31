@@ -69,8 +69,9 @@ class ImageViewerWidget(BaseWidget):
             backend.stream(image)
         elif isinstance(backend, StillBackend):
             version = backend.show(image)
-            if self._viewer is not None:
-                self._viewer.set_version(0 if image.is_empty else version)
+            viewer = self._viewer  # local: _on_cleanup on the loop may clear it meanwhile
+            if viewer is not None:
+                viewer.set_version(0 if image.is_empty else version)
 
     def _on_cleanup(self) -> None:
         if self._backend is not None:

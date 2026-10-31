@@ -72,16 +72,31 @@ def test_stream_without_viewer_loop_encodes_nothing(imencode_calls):
         backend.cleanup()
 
 
+def _solid(color: tuple[int, ...]) -> Any:
+    value_mod = importlib.import_module("haybale_image.value")
+    return value_mod.ImageValue.from_array(np.full((8, 12, len(color)), color, np.uint8))
+
+
+def _drain(backend: Any) -> list[bytes]:
+    queued = []
+    while not backend._thread_queue.empty():
+        queued.append(backend._thread_queue.get_nowait())
+    return queued
+
+
+def _decode(data: bytes) -> Any:
+    cv2 = _backend_mod().cv2
+    return cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_UNCHANGED)
+
+
 def test_stream_drop1_keeps_latest(imencode_calls):
     backend = _backend_mod().StreamingBackend()
     try:
 
         async def go() -> list[bytes]:
-            backend.stream(_image("rgb"))
-            backend.stream(_image("rgba"))  # alpha dropped before JPEG
-            queued = []
-            while not backend._thread_queue.empty():
-                queued.append(backend._thread_queue.get_nowait())
+            backend.stream(_solid((30, 30, 30)))  # gray, dropped by the second frame
+            backend.stream(_solid((255, 0, 0, 255)))  # RGBA red: the frame that must survive
+            queued = _drain(backend)
             backend.cleanup()
             return queued
 
@@ -89,6 +104,29 @@ def test_stream_drop1_keeps_latest(imencode_calls):
         assert imencode_calls == [".jpg", ".jpg"]
         assert len(queued) == 1
         assert queued[0][:2] == b"\xff\xd8"  # JPEG SOI
+        decoded = _decode(queued[0])
+        assert decoded.shape[2] == 3
+        b, g, r = (float(decoded[..., i].mean()) for i in range(3))
+        assert r > 200  # the second (red) frame, not the gray one
+        assert g < 60
+        assert b < 60
+    finally:
+        backend.cleanup()
+
+
+def test_stream_rgba_encodes_three_channels():
+    backend = _backend_mod().StreamingBackend()
+    try:
+
+        async def go() -> list[bytes]:
+            backend.stream(_solid((0, 255, 0, 128)))
+            queued = _drain(backend)
+            backend.cleanup()
+            return queued
+
+        queued = asyncio.run(go())
+        assert len(queued) == 1
+        assert _decode(queued[0]).shape[2] == 3
     finally:
         backend.cleanup()
 
