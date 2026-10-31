@@ -406,16 +406,13 @@ class HaywireVM:
 
         next_node_id, inlet_port_id = outlet_target
 
-        # Case 3: Node is already on the loopback stack.
+        # Case 3: an edge back into a node on the loopback stack (a Break wired from the body).
         if next_node_id in loopback_stack:
-            # Unwind the stack back to that point to avoid duplicate frames.
-            # Return None for inlet_id to indicate this is a loopback return
-            # and not a fresh entry through an inlet.
+            # Unwind the stack back to that node so its frames are not duplicated.
             loopback_index = loopback_stack.index(next_node_id)
-            # Truncate stack to remove this node and everything after
             del loopback_stack[loopback_index:]
-            return (next_node_id, None)  # Loopback return, no specific inlet
 
+        # The edge's inlet goes with it; only a branch end (above) re-enters with no inlet.
         return (next_node_id, inlet_port_id)
 
     def _evaluate_data_flow(

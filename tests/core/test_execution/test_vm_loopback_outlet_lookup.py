@@ -71,3 +71,50 @@ def test_a_real_loopback_outlet_still_pushes_and_re_enters():
     # loop → tail → (branch ends, pop) → loop again
     assert exec_count == 3
     assert node._execute.call_count == 2
+
+
+def _pins_seen(node: MagicMock) -> list:
+    return [call.args[0].control_pin for call in node._execute.call_args_list]
+
+
+def test_an_edge_back_into_a_looping_node_enters_through_its_inlet():
+    """A Break wired from the loop body arrives as that inlet, not as the loopback return."""
+    body = MagicMock()
+    body.needs_loopback = True
+    node = _node("loop", returns=None, ports={"body": body})
+    pins: list = []
+
+    def execute(ctx):
+        pins.append(ctx.control_pin)
+        return "body" if ctx.control_pin is None and len(pins) == 1 else None
+
+    node._execute.side_effect = execute
+    tail = _node("tail", returns="done")
+    info = ControlNodeInfo(node=node, is_loopback=True, outlet_map={"body": ("tail", "exec")})
+    tail_info = ControlNodeInfo(node=tail, outlet_map={"done": ("loop", "break_loop")})
+
+    HaywireVM().execute_control_flow(_flow({"loop": info, "tail": tail_info}, "loop"), MagicMock())
+
+    assert pins == [None, "break_loop"]
+
+
+def test_a_branch_end_still_returns_without_an_inlet():
+    """The implicit return to the loop (branch ends, stack pops) keeps entering with no inlet."""
+    body = MagicMock()
+    body.needs_loopback = True
+    node = _node("loop", returns=None, ports={"body": body})
+    pins: list = []
+
+    def execute(ctx):
+        pins.append(ctx.control_pin)
+        return "body" if len(pins) == 1 else None
+
+    node._execute.side_effect = execute
+    tail = _node("tail", returns=None)
+    info = ControlNodeInfo(node=node, is_loopback=True, outlet_map={"body": ("tail", "exec")})
+
+    HaywireVM().execute_control_flow(
+        _flow({"loop": info, "tail": ControlNodeInfo(node=tail)}, "loop"), MagicMock()
+    )
+
+    assert pins == [None, None]

@@ -255,9 +255,8 @@ def loop_body_inside_a_group(graph_with_library_system: BaseGraph):
     loop.node.ports["step"].set_value(1)
 
     graph.create_edge_wrapper(begin.node_id, "exec", loop.node_id, "execute")
-    # The loop body leaves the host and runs inside the Group.
+    # The loop body leaves the host and runs inside the Group; its branch ends there and returns to the loop.
     graph.create_edge_wrapper(loop.node_id, "loop_body", card.node_id, "in_exec")
-    graph.create_edge_wrapper(card.node_id, "out_exec", loop.node_id, "execute")
     graph.create_edge_wrapper(loop.node_id, "completed", after.node_id, "exec")
 
     graph.force_validation()
@@ -287,14 +286,24 @@ class TestALoopStraddlingTheBoundary:
         assert info is not None
         assert info.is_loopback is True
 
-    def test_the_body_runs_and_the_loop_completes(self, loop_body_inside_a_group):
+    def test_the_body_runs_and_the_loop_completes(self, loop_body_inside_a_group, monkeypatch):
         """The push is in the host, the pop inside the Group: one frame terminates."""
         graph, _definition, _card, _loop, inner_print, after = loop_body_inside_a_group
+        runs: list[str] = []
+        for wrapper in (inner_print, after):
+            node, original = wrapper.node, wrapper.node._execute
 
-        executed = _run_one_frame(graph)
+            def recording(context, _node=node, _original=original):
+                runs.append(_node.node_id)
+                return _original(context)
 
-        assert executed > 0
-        assert after.node._run_count > 0 if hasattr(after.node, "_run_count") else True
+            # The VM runs a node through ``_execute``; the worker itself is bound when the node is built.
+            monkeypatch.setattr(node, "_execute", recording)
+
+        _run_one_frame(graph)
+
+        assert runs.count(inner_print.node_id) == 3  # end=3: one pass per index, inside the Group
+        assert runs.count(after.node_id) == 1
 
 
 # ---------------------------------------------------------------------------
