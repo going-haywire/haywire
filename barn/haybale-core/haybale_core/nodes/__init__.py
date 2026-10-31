@@ -4,6 +4,7 @@ from haybale_core.nodes.logger import LoggerNode
 from haybale_core.nodes.output_path import OutputPathNode
 from haybale_core.nodes.path_exists import PathExistsNode
 from haybale_core.nodes.print import PrintNode
+from haybale_core.nodes.resolve_path import ResolvePathNode
 from haybale_core.nodes.switch import ControlSwitch
 from haybale_core.nodes.emits.run_button import RunButtonNode
 from haybale_core.nodes.emits.tick_emit import TickEmitNode
@@ -21,6 +22,7 @@ __all__ = [
     "OutputPathNode",
     "PathExistsNode",
     "PrintNode",
+    "ResolvePathNode",
     "RunButtonNode",
     "ShutdownNode",
     "TickEmitNode",
