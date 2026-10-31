@@ -243,7 +243,12 @@ def test_png_header_read_does_not_decode(tmp_path, srgb_icc, monkeypatch):
     assert Image.open(path).info.get("icc_profile") == srgb_icc
     loads = []
     real = ImageFile.ImageFile.load
-    monkeypatch.setattr(ImageFile.ImageFile, "load", lambda self: loads.append(1) or real(self))
+
+    def fake(self):
+        loads.append(1)
+        return real(self)
+
+    monkeypatch.setattr(ImageFile.ImageFile, "load", fake)
     loaded = read_image(path)
     assert loads == []
     assert loaded.metadata.icc == srgb_icc
