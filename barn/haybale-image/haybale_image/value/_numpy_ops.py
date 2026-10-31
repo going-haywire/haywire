@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from haybale_image.value.enums import ChannelOrder
+from haybale_image.value.enums import ChannelOrder, Layout
 
 # Largest value of each integer dtype; float dtypes span [0, 1].
 _INT_MAX = {np.dtype(np.uint8): 255, np.dtype(np.uint16): 65535}
@@ -46,3 +46,33 @@ def convert(src: np.ndarray, src_order: ChannelOrder, dtype: np.dtype, order: Ch
     """Return ``src`` stored as ``dtype`` in ``order``, read-only; a view of ``src`` when nothing changes."""
     out = src if src_order == order else swap_colour_order(src)
     return read_only(convert_dtype(out, dtype))
+
+
+# Rec. 601 luma weights for colour channels stored in RGB order.
+LUMA_RGB = (0.299, 0.587, 0.114)
+
+
+def alpha_opaque(dtype: np.dtype) -> int | float:
+    """Return the fully opaque alpha value of ``dtype``: its integer maximum, or 1.0 for floats."""
+    return _INT_MAX.get(np.dtype(dtype), 1.0)
+
+
+def convert_layout(a: np.ndarray, src: Layout, dst: Layout, order: ChannelOrder) -> np.ndarray:
+    """Return ``a`` (stored in ``order``) as layout ``dst``, same dtype and order, in one new buffer."""
+    if dst is Layout.GRAY:
+        weights = LUMA_RGB if order == ChannelOrder.RGB else LUMA_RGB[::-1]
+        luma = a[..., :3].astype(np.float32, copy=False) @ np.array(weights, np.float32)
+        if a.dtype in _INT_MAX:
+            np.rint(luma, out=luma)
+        return luma.astype(a.dtype, copy=False)
+    height, width = a.shape[:2]
+    out = np.empty((height, width, 3 if dst is Layout.RGB else 4), a.dtype)
+    if src is Layout.GRAY:
+        out[..., :3] = a[..., None]
+    else:
+        out[..., :3] = a[..., :3]
+    if dst is Layout.RGBA and src is not Layout.RGBA:
+        out[..., 3] = alpha_opaque(a.dtype)
+    elif dst is Layout.RGBA:
+        out[..., 3] = a[..., 3]
+    return out

@@ -10,7 +10,8 @@ from typing import Literal
 import numpy as np
 import torch
 
-from haybale_image.value.enums import ChannelOrder
+from haybale_image.value._numpy_ops import LUMA_RGB
+from haybale_image.value.enums import ChannelOrder, Layout
 
 TENSOR_DTYPES: frozenset[torch.dtype] = frozenset(
     {torch.uint8, torch.float16, torch.bfloat16, torch.float32}
@@ -167,3 +168,23 @@ def check_tensor_dtype(dtype: torch.dtype) -> torch.dtype:
 def default_source_depth(dtype: torch.dtype) -> int:
     """Return the bit depth a tensor of ``dtype`` came from: 8 for uint8, else 32."""
     return 8 if dtype == torch.uint8 else 32
+
+
+def convert_layout(t: torch.Tensor, src: Layout, dst: Layout, order: ChannelOrder) -> torch.Tensor:
+    """Return CHW ``t`` (stored in ``order``) as layout ``dst``, same dtype, order and device."""
+    _, height, width = t.shape
+    if dst is Layout.GRAY:
+        weights = LUMA_RGB if order == ChannelOrder.RGB else LUMA_RGB[::-1]
+        w = torch.tensor(weights, dtype=torch.float32, device=t.device)
+        luma = torch.einsum("chw,c->hw", t[:3].to(torch.float32), w)
+        if not t.dtype.is_floating_point:
+            luma = luma.round_()
+        return luma.to(t.dtype).unsqueeze(0)
+    out = torch.empty((3 if dst is Layout.RGB else 4, height, width), dtype=t.dtype, device=t.device)
+    out[:3] = t.expand(3, height, width) if src is Layout.GRAY else t[:3]
+    if dst is Layout.RGBA:
+        if src is Layout.RGBA:
+            out[3] = t[3]
+        else:
+            out[3] = 255 if t.dtype == torch.uint8 else 1.0
+    return out
