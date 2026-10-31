@@ -34,6 +34,13 @@ class OutputPathNode(BaseNode):
     For Each File.Extension → Extension
     ```
 
+    `Folder` is the folder the file goes in. Save Image does not create folders, so
+    create it first:
+
+    ```
+    Output Path.Folder → Create Folder → Save Image
+    ```
+
     The node reports an error naming the part when a name is empty or contains
     `/` or `\\`, or when the subfolder is absolute or contains `..`.
     """
@@ -47,6 +54,7 @@ class OutputPathNode(BaseNode):
         self.add(STRING.as_inlet("suffix", label="Suffix", default=""))
         self.add(STRING.as_inlet("extension", label="Extension", default=""))
         self.add(FILE_PATH.as_outlet("path", label="Path"))
+        self.add(FOLDER_PATH.as_outlet("out_folder", label="Folder"))
 
     def worker(
         self,
@@ -57,7 +65,10 @@ class OutputPathNode(BaseNode):
         suffix: str = "",
         extension: str = "",
     ) -> None:
-        self.out("path", compose_output_path(folder, subdir, stem, suffix, extension))
+        path = compose_output_path(folder, subdir, stem, suffix, extension)
+        parent = PurePosixPath(path.relative).parent
+        self.out("path", path)
+        self.out("out_folder", VolumePath(path.volume, "" if str(parent) == "." else str(parent)))
         return None
 
 

@@ -69,3 +69,11 @@ def test_rejects(graph_with_library_system, kwargs, match):
     node = _node(graph_with_library_system)
     with pytest.raises(ValueError, match=match):
         _compose(node, VolumePath(SCANS, "out"), **kwargs)
+
+
+def test_folder_outlet_is_parent(graph_with_library_system):
+    node = _node(graph_with_library_system)
+    _compose(node, VolumePath(SCANS, "out"), "a/b")
+    assert node.ports["out_folder"].get_value() == VolumePath(SCANS, "out/a/b")
+    _compose(node, VolumePath(SCANS, ""), "")
+    assert node.ports["out_folder"].get_value() == VolumePath(SCANS, "")
