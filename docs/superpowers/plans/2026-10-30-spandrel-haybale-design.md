@@ -320,7 +320,7 @@ node per evaluation, so it must be ~free when nothing failed:
 **S5 deviations from plan**
 
 - No `format` inlet on Save Image: the extension is the format (S5-Q7).
-- AVIF is not an optional extra: Pillow wheels carry it.
+- AVIF is supported out of the box, not as an optional extra: Pillow wheels carry it.
 - No tensor helper wrappers: `ImageValue.from_tensor` / `.tensor()` already are.
 - IMAGE's `@type` default is a descriptive dict (`{width: 0, height: 0, layout}`); `IMAGEField` and `IMAGE.__init__` turn it into an empty `ImageValue` (`@type` refuses non-JSON defaults) — PATHField pattern.
 - GIF is written with Pillow (cv2 5's GIF encoder fails on gray and dithers colour).
@@ -336,9 +336,25 @@ node per evaluation, so it must be ~free when nothing failed:
 - View Image still mode fed by a live source pushes a prop update per frame (whole-page re-render) and encodes a PNG per fetch — throttle version pushes.
 - Save Image `_shown_format` is read and written from UI and runner threads without a lock (worst case: briefly stale bag visibility).
 - Overwrite via `os.replace` replaces a symlink with a regular file and drops the old mode/owner.
-- Browser live check owed: still render, 1:1 toggle, MJPEG, mode rebuild, Save Image `.jpg` bag visibility after reload (Farmhand cannot write a FILE_PATH inlet).
-- 10/12-bit AVIF: cv2 returns unscaled uint16 (0..1023/0..4095); the codec reads the bit depth from the av1C box and scales to full range (found in the user's live test).
+- Live check: still render confirmed by the user (2026-10-31, 10-bit AVIF). Not yet checked in a browser: 1:1 toggle, MJPEG stream, mode rebuild, Save Image `.jpg` bag visibility after reload (Farmhand cannot write a FILE_PATH inlet).
+- Fixed after the live test: 10/12-bit AVIF — cv2 returns unscaled uint16 (0..1023/0..4095); the codec reads the bit depth from the av1C box and scales to full range.
 - 12-bit TIFF (BitsPerSample=12) not verified: no available tool (Pillow, cv2, tifffile absent) writes one for a test, so TIFF handling is unchanged; it may decode unscaled like AVIF.
+- If the av1C box cannot be parsed, a 10/12-bit AVIF still loads dark (values left as decoded).
+
+**S5 deferred minors (per-task reviews; triaged "stay deferred" by the final review)**
+
+1. Value: `with_metadata` values share one conversion cache (a concurrent first fill converts twice; harmless); no `from_tensor(metadata=)` test.
+2. Layout: RGB→GRAY accumulates in float32 (cv2 uses fixed-point); torch alpha hardcodes 255 instead of `alpha_opaque`; no float16/bfloat16 luma tests; torch paths tested on CPU only (MPS/CUDA untested).
+3. Helpers: `unpremultiply` has no float-dtype guard (uint8 input gives wrong results); `premultiply` copies twice; a vacuous `is not None` assert in `test_helpers.py`; RGBA `to_pil` test checks the mode only.
+4. Types: `_as_image` falls back to GRAY on a dict without `layout` (should use the type's `LAYOUT`); dict writes are discarded silently; no field round-trip tests.
+5. Codecs: TIFF EXIF (`get_ifd(0x8769)`) not carried; a PNG eXIf chunk after the pixel data or an XMP-only orientation is not seen (header-only read); `_read_header` mutates the cached Exif; `options.depth or` should be `is None`; a bomb-sized TGA/palette file gives the generic "cannot read image" error; the huge-image fallback's docstring/warning do not say orientation is skipped; no AVIF-metadata or PNG/WebP-EXIF tests.
+6. Placement: the temp name adds ~14 characters (names near 255 bytes fail); SKIP is check-then-act.
+7. Load Image / Image Info: no BGR→RGB pixel assertion and no corrupt-file test at node level; Image Info RGB/RGBA untested.
+8. Save Image: only the JPEG bag → `EncodeOptions` wiring is tested (a cross-wired bag would pass); no test for all bags hidden on BMP/GIF/TGA or for an unknown extension in the worker; a hand-edited `depth`/`if_exists` raises Python's raw `int()`/enum error.
+9. Path nodes: a volume root that is a file gives a generic OS error from Create Folder; Split Path has no dotfile/no-extension tests; Output Path's docstring sentence "`Folder` is the folder the file goes in" predates the `Parent` outlet label.
+10. Viewer: stream mode keeps the last frame on an empty image (still mode hides it); the stream queue reader polls every 0.1 s until cleanup (inherited from visiongraph); the mode-change test checks the config only; `backend.py` holds both backends and the element.
+11. Benchmarks: codec fixtures are random noise (worst-case entropy); the temp dir is never cleaned; the stream case sets the private `_is_running`.
+12. Tests: `tests/image/test_library.py` checks the installed environment, not the pyproject declaration; several tasks have no recorded RED run.
 
 ### 2.5 Models — new `haybale-models` (monorepo `barn/`) (Q13–Q17, Q21, Q34)
 - **Model reference (Q13B):** source URI (`hf://org/repo/path@rev`, `https://…`, or local) +
