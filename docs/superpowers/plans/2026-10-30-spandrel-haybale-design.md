@@ -202,6 +202,15 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 10. Not live-checked: Run Button pending spinner and VIEW-mode refusal in a real browser (Chrome extension was not
     connected).
 
+**S4b decisions (2026-10-31, inquisition after S5; built inline, no plan file)**
+
+- **List Files** (`core/paths`): a CONTROL node that lists the folder on every `Execute` (same rules as For Each File) and outputs `Files` (`ArrayType[FILE_PATH]`) and `Total`.
+- **Loop Array** (`core/control/loops`, LOOPBACK): the `Array` inlet is an open `ADD` slot that takes `ArrayType[T]` from the wire; `Item` becomes `T`, `Failed` `ArrayType[T]`. Keeps For Each File's `On Error` (`continue | stop`), `Break`, `Completed`/`Stopped`, progress. Empty or unwired array → `Completed`.
+- **Step Array** (`core/control/loops`): `Start` snapshots the array and steps item 0, `Next` advances, `Stop` forgets; `mode = once | loop | palindrome` (palindrome does not repeat the ends). In loop/palindrome `Completed` fires at every return to item 0, then `Step`. `Next` before `Start` does nothing; state resets on graph start.
+- Pacing comes from Tick Emit (0.5 FPS = 2 s per item); no timer node.
+- For Each File stays as it is.
+- Deviation: a worker fires one outlet, so Step Array is a LOOPBACK node whose `Completed` loops back to fire `Step` for item 0 in the same frame.
+
 **Follow-ups booked from S5**
 
 - Delete File / Delete Folder — lead option OS trash via `send2trash`, not a trash volume (`/tmp` self-wipes; cross-disk moves copy) (S5-Q13).
@@ -419,7 +428,8 @@ node per evaluation, so it must be ~free when nothing failed:
 | S1b | the volumes file is the volume list (S1b-Q1–Q9) | haywire-core builtin + haybale-studio + CLI | S1 | done (merged ff to master 17f31b352, 2026-10-30; plan removed after landing) |
 | S2 | failure poisoning + failed-stays-dirty **+ benchmarks (§2.3)** | haywire-core VM | — | done (squashed on feat/s2-failure-poisoning, backup tag spandrel-s2-full, unmerged, 2026-10-30; reworked to bail-by-policy S2-Q10; live check passed) — [plan](2026-10-30-s2-failure-poisoning.md) |
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | done (merged ff to master 4add63fc2, 2026-10-31; live check passed; deferred minors listed in §2.2) — [plan](2026-10-30-s4-batch-nodes.md) |
-| S5 | rest of haybale-image | haybale-image (+ Split Path, Create Folder in haybale-core) | S0, S1 | done (feat/s5-haybale-image, head dd3a62bfc + docs commit, 2026-10-31; merge pending) — [plan](2026-10-31-s5-haybale-image.md) |
+| S5 | rest of haybale-image | haybale-image (+ Split Path, Create Folder in haybale-core) | S0, S1 | done (merged ff to master b2fbfb565, 2026-10-31; still render live-checked, rest listed in §2.4) — [plan](2026-10-31-s5-haybale-image.md) |
+| S4b | List Files, Loop Array, Step Array | haybale-core | S4 | done (fcc03b7e2, merged with S5, 2026-10-31; slideshow live-checked) — decisions in §2.2 |
 | S6 | haybale-models | haybale-models | S1 | open |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | open |
 | S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | open |
