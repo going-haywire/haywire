@@ -56,6 +56,8 @@ class TestCustomCallbackNode(BaseNode):
         self.add(FLOAT.as_outlet("payload", label="Payload"))
 
     def post_init(self):
+        # A copy or a loaded graph restores the saved id; the listener publishes the id it listens on.
+        self.ports["listen_callback"].set_value(self.node_id)
         self._update_subscription(None, None)
 
     def redraw(self, *args, **kwargs) -> None:

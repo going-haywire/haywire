@@ -36,6 +36,8 @@ class TickEventNode(BaseNode):
         self.add(FLOAT.as_outlet("delta_time", label="Delta Time"))
 
     def post_init(self):
+        # A copy or a loaded graph restores the saved id; the listener publishes the id it listens on.
+        self.ports["listen_callback"].set_value(self.node_id)
         # Subscribe to callbacks using this node's ID
         self.event_subscription = CallbackEvent(event_name=self.node_id)
 
