@@ -337,6 +337,8 @@ node per evaluation, so it must be ~free when nothing failed:
 - Save Image `_shown_format` is read and written from UI and runner threads without a lock (worst case: briefly stale bag visibility).
 - Overwrite via `os.replace` replaces a symlink with a regular file and drops the old mode/owner.
 - Browser live check owed: still render, 1:1 toggle, MJPEG, mode rebuild, Save Image `.jpg` bag visibility after reload (Farmhand cannot write a FILE_PATH inlet).
+- 10/12-bit AVIF: cv2 returns unscaled uint16 (0..1023/0..4095); the codec reads the bit depth from the av1C box and scales to full range (found in the user's live test).
+- 12-bit TIFF (BitsPerSample=12) not verified: no available tool (Pillow, cv2, tifffile absent) writes one for a test, so TIFF handling is unchanged; it may decode unscaled like AVIF.
 
 ### 2.5 Models — new `haybale-models` (monorepo `barn/`) (Q13–Q17, Q21, Q34)
 - **Model reference (Q13B):** source URI (`hf://org/repo/path@rev`, `https://…`, or local) +

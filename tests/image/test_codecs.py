@@ -1,10 +1,13 @@
 import io
+import struct
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
 from PIL import Image, ImageCms, ImageOps
 
+from haybale_image.io._avif import avif_bit_depth
 from haybale_image.io.codecs import EncodeOptions, encode_image, read_image
 from haybale_image.io.formats import DEPTHS, Format, best_depth, format_for
 from haybale_image.value import ImageMetadata, ImageValue, Layout, convert_layout
@@ -312,3 +315,53 @@ def test_huge_gif_names_the_file(tmp_path, monkeypatch):
     monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 10)
     with pytest.raises(ValueError, match="huge.gif"):
         read_image(path)
+
+
+def _avif_gradient(tmp_path: Path, depth: int) -> Path:
+    peak = (1 << depth) - 1
+    ramp = np.tile(np.linspace(0, peak, 64).astype(np.uint16), (64, 1))
+    pixels = np.dstack([ramp] * 3)
+    ok, buf = cv2.imencode(".avif", pixels, [cv2.IMWRITE_AVIF_DEPTH, depth, cv2.IMWRITE_AVIF_QUALITY, 100])
+    assert ok
+    path = tmp_path / f"deep{depth}.avif"
+    path.write_bytes(buf.tobytes())
+    return path
+
+
+@pytest.mark.parametrize("depth", [10, 12])
+def test_avif_deep_scales_to_full_range(tmp_path, depth):
+    loaded = read_image(_avif_gradient(tmp_path, depth))
+    assert loaded.source_depth == 16
+    assert loaded.array(np.uint16).max() >= 64000
+    assert loaded.array(np.uint8).max() >= 250
+
+
+def test_avif_8bit_unchanged(tmp_path):
+    loaded = read_image(_write(tmp_path, _gradient(Layout.RGB, 8), Format.AVIF))
+    assert loaded.source_depth == 8
+
+
+def _box(kind: bytes, payload: bytes, *, large: bool = False) -> bytes:
+    if large:
+        return struct.pack(">I4sQ", 1, kind, 16 + len(payload)) + payload
+    return struct.pack(">I", 8 + len(payload)) + kind + payload
+
+
+def _avif_with(flags: int, *, large: bool = False) -> bytes:
+    av1c = _box(b"av1C", bytes([0x81, 0x00, flags, 0x00]), large=large)
+    ipco = _box(b"ipco", av1c, large=large)
+    iprp = _box(b"iprp", ipco, large=large)
+    meta = _box(b"meta", b"\x00\x00\x00\x00" + iprp, large=large)
+    return _box(b"ftyp", b"avif\x00\x00\x00\x00") + meta
+
+
+@pytest.mark.parametrize(("flags", "bits"), [(0x00, 8), (0x40, 10), (0x60, 12)])
+@pytest.mark.parametrize("large", [False, True])
+def test_av1c_bit_depth(flags, bits, large):
+    assert avif_bit_depth(_avif_with(flags, large=large)) == bits
+
+
+def test_av1c_missing_or_garbage_is_none():
+    assert avif_bit_depth(_box(b"ftyp", b"avif0000")) is None
+    assert avif_bit_depth(b"") is None
+    assert avif_bit_depth(b"\xff" * 40) is None

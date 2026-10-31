@@ -21,6 +21,7 @@ import numpy as np
 from PIL import Image, UnidentifiedImageError
 
 from haybale_image.helpers import from_cv_bgr, from_pil, to_pil
+from haybale_image.io._avif import avif_bit_depth
 from haybale_image.io.formats import HOLDS_METADATA, Format, best_depth
 from haybale_image.value import NO_METADATA, ChannelOrder, ImageMetadata, ImageValue, Layout, convert_layout
 
@@ -105,7 +106,17 @@ def read_image(path: Path) -> ImageValue:
         raise ValueError(f"cannot read image {path.name}") from exc
     if pixels is None:
         raise ValueError(f"cannot read image {path.name}")
+    if pixels.dtype == np.uint16 and path.suffix.lower() == ".avif":
+        pixels = _scale_to_full_range(pixels, avif_bit_depth(data))
     return from_cv_bgr(np.ascontiguousarray(_orient(pixels, orientation)), metadata)
+
+
+def _scale_to_full_range(pixels: np.ndarray, bits: int | None) -> np.ndarray:
+    """OpenCV returns 10/12-bit AVIF unscaled (0..1023 / 0..4095); map to 0..65535."""
+    if bits not in (10, 12):
+        return pixels
+    maxv = (1 << bits) - 1
+    return ((pixels.astype(np.uint32) * 65535 + maxv // 2) // maxv).astype(np.uint16)
 
 
 def encode_image(img: ImageValue, fmt: Format, options: EncodeOptions) -> bytes:
