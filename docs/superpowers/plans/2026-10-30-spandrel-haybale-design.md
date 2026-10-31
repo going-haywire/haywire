@@ -330,6 +330,14 @@ node per evaluation, so it must be ~free when nothing failed:
 - `atomic_write` takes `placeholder=` so only a claimed unique-suffix placeholder is removed on failure.
 - Benchmarks: six `img_*` cases recorded (codec fixtures are random noise — worst-case entropy).
 
+**S5 deferred minors (final review; not fixed)**
+
+- ICC profile kept when it no longer matches the layout (CMYK JPEG → RGB keeps a CMYK profile; GRAY↔RGB adapters keep the profile). `encode_image` should drop an ICC whose colour space (header bytes 16–19) does not match the written layout.
+- View Image still mode fed by a live source pushes a prop update per frame (whole-page re-render) and encodes a PNG per fetch — throttle version pushes.
+- Save Image `_shown_format` is read and written from UI and runner threads without a lock (worst case: briefly stale bag visibility).
+- Overwrite via `os.replace` replaces a symlink with a regular file and drops the old mode/owner.
+- Browser live check owed: still render, 1:1 toggle, MJPEG, mode rebuild, Save Image `.jpg` bag visibility after reload (Farmhand cannot write a FILE_PATH inlet).
+
 ### 2.5 Models — new `haybale-models` (monorepo `barn/`) (Q13–Q17, Q21, Q34)
 - **Model reference (Q13B):** source URI (`hf://org/repo/path@rev`, `https://…`, or local) +
   sha256. Plain local paths allowed. Graph stores the reference → runnable on a fresh machine.
