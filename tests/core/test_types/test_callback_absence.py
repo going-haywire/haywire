@@ -132,36 +132,42 @@ class TestEverySaveGoesThroughTheField:
     """Each path that writes port values writes an absent callback as null and loads it absent."""
 
     @staticmethod
-    def _listener_set_absent(graph):
-        listener = make_node(graph, LISTEN, position=(0, 0))
-        listener.node.out("listen_callback", None)  # its default is its node id; absence must survive
-        return listener
+    def _probe_set_absent(graph):
+        # A plain callback outlet: a listener's Listen outlet always publishes its own id.
+        module = importlib.import_module("haybale_testing.nodes.testbed.callback_relay_probe")
+        cls = module.CallbackRelayProbeNode
+        probe = make_node(graph, cls.class_identity.registry_key, position=(0, 0))
+        assert isinstance(probe.node, cls), "an unknown key yields an ErrorNode"
+        probe.node.out("out", "a")
+        probe.node.out("out", None)
+        return probe
 
     def test_the_graph_file(self, graph_with_library_system):
         graph = graph_with_library_system
-        listener = self._listener_set_absent(graph)
+        probe = self._probe_set_absent(graph)
         data = graph.to_dict()
-        assert _port_block(data["nodes"][listener.node_id], "listen_callback")["field_data"] is None
+        assert _port_block(data["nodes"][probe.node_id], "out")["field_data"] is None
 
         graph.clear()
         graph.load_from_dict(data)
 
-        assert graph.node_wrappers[listener.node_id].node.value("listen_callback") is None
+        assert graph.node_wrappers[probe.node_id].node.value("out") is None
 
     def test_a_node_copy_and_undo_snapshot(self, graph_with_library_system):
         """Clipboard and the undo actions (Collapse, Expand, Detach, Promote) use `wrapper.serialize`."""
         from haywire.core.graph.clipboard import build_clipboard_payload
 
         graph = graph_with_library_system
-        listener = self._listener_set_absent(graph)
-        payload = build_clipboard_payload(graph, [listener.node_id], [], session_id="s")
-        node_data = payload["nodes"][listener.node_id]["node_data"]
-        assert _port_block(node_data, "listen_callback")["field_data"] is None
+        probe = self._probe_set_absent(graph)
+        payload = build_clipboard_payload(graph, [probe.node_id], [], session_id="s")
+        node_data = payload["nodes"][probe.node_id]["node_data"]
+        assert _port_block(node_data, "out")["field_data"] is None
 
-        restored = make_node(graph, LISTEN, position=(500, 0))
+        restored = make_node(graph, probe.node.class_identity.registry_key, position=(500, 0))
+        restored.node.out("out", "b")
         restored.node._initialize_from_dict(node_data)
 
-        assert restored.node.value("listen_callback") is None
+        assert restored.node.value("out") is None
 
     def test_a_subgraph_definition(self, graph_with_library_system):
         """`_DropSubgraph` and the clipboard's subgraphs serialize through `definition.to_dict`."""
