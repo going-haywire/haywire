@@ -294,3 +294,21 @@ def test_unknown_tiff_compression_raises():
 
 def read_image_bytes(data: bytes) -> np.ndarray:
     return np.asarray(Image.open(io.BytesIO(data)).convert("RGB"))
+
+
+def test_huge_png_header_falls_back_to_cv2(tmp_path, monkeypatch):
+    path = _write(tmp_path, _gradient(Layout.RGB, 8), Format.PNG)
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 10)
+    with pytest.raises(Image.DecompressionBombError):
+        Image.open(path)
+    loaded = read_image(path)
+    assert loaded.array(np.uint8).size > 0
+    assert loaded.metadata == ImageMetadata()
+
+
+def test_huge_gif_names_the_file(tmp_path, monkeypatch):
+    path = tmp_path / "huge.gif"
+    Image.new("P", (10, 10)).save(path)
+    monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 10)
+    with pytest.raises(ValueError, match="huge.gif"):
+        read_image(path)

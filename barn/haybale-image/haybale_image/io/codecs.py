@@ -8,7 +8,9 @@ decodes what OpenCV cannot (GIF, TGA, palette, CMYK and similar modes) and write
 
 from __future__ import annotations
 
+import logging
 import struct
+import warnings
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -21,6 +23,8 @@ from PIL import Image, UnidentifiedImageError
 from haybale_image.helpers import from_cv_bgr, from_pil, to_pil
 from haybale_image.io.formats import HOLDS_METADATA, Format, best_depth
 from haybale_image.value import NO_METADATA, ChannelOrder, ImageMetadata, ImageValue, Layout, convert_layout
+
+logger = logging.getLogger(__name__)
 
 _ORIENTATION = 0x0112
 _PIL_DECODED_MODES = frozenset({"P", "LA", "I", "F", "CMYK", "1"})
@@ -86,7 +90,7 @@ def read_image(path: Path) -> ImageValue:
         ValueError: The file is not a decodable image.
     """
     data = path.read_bytes()
-    header, orientation, metadata = _read_header(data)
+    header, orientation, metadata = _read_header(data, path.name)
     try:
         if header is not None and (
             header.format in _PIL_DECODED_FORMATS or header.mode in _PIL_DECODED_MODES
@@ -127,13 +131,24 @@ def encode_image(img: ImageValue, fmt: Format, options: EncodeOptions) -> bytes:
     return _encode_cv(img, fmt, depth, options)
 
 
-def _read_header(data: bytes) -> tuple[Image.Image | None, int, ImageMetadata]:
+def _read_header(data: bytes, name: str) -> tuple[Image.Image | None, int, ImageMetadata]:
     """Open ``data`` lazily with Pillow; return the image, EXIF orientation and metadata to carry.
 
-    Returns ``(None, 1, NO_METADATA)`` when Pillow cannot parse the header.
+    Returns ``(None, 1, NO_METADATA)`` when Pillow cannot parse the header, or refuses
+    it as a decompression bomb (OpenCV then decodes; metadata is lost).
+
+    Raises:
+        ValueError: A GIF that Pillow refuses as a decompression bomb; only Pillow decodes GIF.
     """
     try:
-        header = Image.open(BytesIO(data))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", Image.DecompressionBombWarning)
+            header = Image.open(BytesIO(data))
+    except Image.DecompressionBombError as exc:
+        if data[:4] == b"GIF8":
+            raise ValueError(f"cannot read image {name}: too large for Pillow ({exc})") from exc
+        logger.warning("%s exceeds Pillow's pixel limit; decoding with OpenCV, metadata is not read", name)
+        return None, 1, NO_METADATA
     except (UnidentifiedImageError, OSError, EOFError, SyntaxError, ValueError, struct.error):
         return None, 1, NO_METADATA
     icc = header.info.get("icc_profile") or None
