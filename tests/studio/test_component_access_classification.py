@@ -24,6 +24,7 @@ VIEW_EDITORS = {
     "HaystackEditor",
     "LazyFileBrowserEditor",
     "LogEditor",
+    "ModelsEditor",
     "PropertiesEditor",
     "ShortcutsEditor",
 }

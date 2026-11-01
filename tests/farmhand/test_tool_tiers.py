@@ -10,6 +10,7 @@ ADMIN_TOOLS = {
     "dismiss_errors",
     "install_library",
     "uninstall_library",
+    "fetch",
 }
 
 EDIT_TOOLS = {
@@ -54,6 +55,8 @@ VIEW_TOOLS = {
     "block",
     "echo",
     "fail",
+    "list",
+    "needs",
 }
 
 
@@ -68,6 +71,7 @@ def _tool_classes():
     import haybale_haystack.farmhands.graph_tools as graph_tools
     import haybale_marketplace.farmhands.catalog_tools as catalog_tools
     import haybale_marketplace.farmhands.install_tools as install_tools
+    import haybale_models.farmhands.model_tools as model_tools
     import haybale_studio.farmhands.authoring as authoring
     import haybale_studio.farmhands.catalog as catalog
     import haybale_studio.farmhands.errors as errors
@@ -82,6 +86,7 @@ def _tool_classes():
         graph_tools,
         catalog_tools,
         install_tools,
+        model_tools,
         authoring,
         catalog,
         errors,

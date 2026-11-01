@@ -31,6 +31,7 @@ haybale-graph-editor = { workspace = true }
 haybale-marketplace = { workspace = true }
 haybale-share = { workspace = true }
 haybale-image = { workspace = true }
+haybale-models = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -61,6 +62,7 @@ dev = [
     "haybale-marketplace",
     "haybale-share",
     "haybale-image",
+    "haybale-models",
     "mkdocs-material>=9.7.6",
     "deptry>=0.25.1",
 ]
@@ -80,6 +82,7 @@ mypy_path = [
     "barn/haybale-graph-editor",
     "barn/haybale-marketplace",
     "barn/haybale-image",
+    "barn/haybale-models",
 ]
 
 # haybale_visiongraph.* and cv2 are absent in CI: the library is a separate
