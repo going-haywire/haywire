@@ -5,6 +5,8 @@ Provides fixtures for different test scopes and scenarios.
 """
 
 import importlib
+import inspect
+import sys
 from pathlib import Path
 from typing import Any, Callable, Generator, TYPE_CHECKING
 
@@ -246,6 +248,7 @@ _DI_CONTEXT_GLOBALS = (
     "_node_factory",
     "_adapter_factory",
     "_type_registry",
+    "_model_catalog_registry",
     "_settings_registry",
     "_session_manager",
     "_workspace_root",
@@ -337,6 +340,36 @@ def own_ambient_di(library_system):
     di_context.set_settings_registry(library_system.get_settings_registry())
     yield
     _restore_ambient_di(snap)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _isolated_library_storage(tmp_path_factory: pytest.TempPathFactory):
+    """Keep every library's ``library_storage_dir`` out of the real ``~/.haywire/db/``.
+
+    Any test that initialises a library system enables every library, and a library may
+    create folders there (haybale-models makes its default models folder). The name is
+    patched at its source and in every module that already bound it; modules imported
+    later bind the patched one.
+    """
+    import haywire.core.storage as storage
+
+    storage_root = tmp_path_factory.mktemp("library-storage")
+
+    original = storage.library_storage_dir
+
+    def _temp_library_storage_dir(caller_module: str) -> Path:
+        if not isinstance(inspect.getattr_static(Path, "home"), classmethod):
+            return original(caller_module)  # a test redirected the home directory itself
+        path = storage_root / caller_module.split(".")[0]
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    with pytest.MonkeyPatch.context() as patcher:
+        patcher.setattr(storage, "library_storage_dir", _temp_library_storage_dir)
+        for module in list(sys.modules.values()):
+            if getattr(module, "library_storage_dir", None) is original:
+                patcher.setattr(module, "library_storage_dir", _temp_library_storage_dir)
+        yield
 
 
 @pytest.fixture(scope="session")

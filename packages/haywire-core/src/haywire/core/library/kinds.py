@@ -6,10 +6,11 @@ from __future__ import annotations
 
 
 def kind_registry_map() -> dict[str, type]:
-    """Registry-key kind segment -> registry class (the ten registries + farmhand)."""
+    """Registry-key kind segment -> registry class (the component registries + farmhand)."""
     from haywire.core.adapter.registry import AdapterRegistry
     from haywire.core.farmhand import FarmhandRegistry
     from haywire.core.macro.registry import MacroRegistry
+    from haywire.core.models.registry import ModelCatalogRegistry
     from haywire.core.node.registry import NodeRegistry
     from haywire.core.settings import SettingsRegistry
     from haywire.core.state import LibraryStateRegistry
@@ -23,6 +24,7 @@ def kind_registry_map() -> dict[str, type]:
     return {
         "node": NodeRegistry,
         "macro": MacroRegistry,
+        "model": ModelCatalogRegistry,
         "type": TypeRegistry,
         "adapter": AdapterRegistry,
         "widget": WidgetRegistry,
@@ -39,6 +41,7 @@ def kind_registry_map() -> dict[str, type]:
 KIND_FOLDERS = {
     "node": "nodes",
     "macro": "macros",
+    "model": "catalog",
     "type": "types",
     "adapter": "adapters",
     "widget": "widgets",
@@ -54,6 +57,7 @@ KIND_FOLDERS = {
 _KIND_TO_AREA = {
     "node": "nodes",
     "macro": "macros",
+    "model": "models",
     "type": "datatypes",
     "adapter": "adapters",
     "widget": "widgets",

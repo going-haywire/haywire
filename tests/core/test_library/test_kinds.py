@@ -3,6 +3,7 @@ from haywire.core.library.kinds import kind_registry_map, KIND_FOLDERS, canon_ar
 EXPECTED = {
     "node",
     "macro",
+    "model",
     "type",
     "adapter",
     "widget",

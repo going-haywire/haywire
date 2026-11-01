@@ -69,6 +69,10 @@ class AppIcon:
     macro: Final[str] = "extension"
     """A macro — a Subgraph that lives in its own file. Distinct from ``subgraph``:
     a level bar shows both at once."""
+    notice: Final[str] = "error_outline"
+    """A graph notice — a message a library attaches to an open graph."""
+    models: Final[str] = "model_training"
+    """Machine-learning models."""
     node: Final[str] = "memory"
     """Node main icon."""
     edge: Final[str] = "cable"

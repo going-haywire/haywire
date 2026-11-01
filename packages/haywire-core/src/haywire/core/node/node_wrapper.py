@@ -8,7 +8,7 @@ import threading
 import logging
 from contextlib import contextmanager
 from collections.abc import Mapping
-from typing import List, Optional, Any, Dict, Iterator, TYPE_CHECKING
+from typing import Iterable, List, Optional, Any, Dict, Iterator, TYPE_CHECKING
 from dataclasses import dataclass, field
 
 from ..graph.types import ChangeReason
@@ -114,6 +114,19 @@ class NodeWrapperState:
     def add_warning(self, warning: NodeWarning) -> None:
         """Append an advisory warning."""
         self.warnings.append(warning)
+
+    def replace_warnings(self, kind: str, warnings: Iterable[NodeWarning]) -> bool:
+        """Make *warnings* the only warnings of *kind*; warnings of other kinds stay.
+
+        Returns:
+            Whether the warning list changed.
+        """
+        new = list(warnings)
+        old = [w for w in self.warnings if w.kind == kind]
+        if old == new:
+            return False
+        self.warnings[:] = [w for w in self.warnings if w.kind != kind] + new
+        return True
 
     def has_warning(self) -> bool:
         """True if any advisory warning is present."""
@@ -259,11 +272,8 @@ class NodeWrapper:
         """
         with self._lock:
             self._previous_setup = data
-            self._state.warnings[:] = [w for w in self._state.warnings if w.kind != "previous_setup"]
-            if data is not None:
-                self._state.add_warning(
-                    NodeWarning(message=PREVIOUS_SETUP_WARNING, source_version=None, kind="previous_setup")
-                )
+            held = [] if data is None else [NodeWarning(PREVIOUS_SETUP_WARNING, None, "previous_setup")]
+            self._state.replace_warnings("previous_setup", held)
 
     @property
     def is_stand_in(self) -> bool:
@@ -827,6 +837,21 @@ class NodeWrapper:
         if graph and self.state.is_registered:
             graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_VALUE_CHANGED)
             graph._validation.mark_graph_dirty(ChangeReason.GRAPH_CONTENT_CHANGED)
+
+    def replace_warnings(self, kind: str, warnings: Iterable[NodeWarning]) -> bool:
+        """Replace this node's warnings of *kind*, redrawing the card if they changed.
+
+        Safe from worker threads: takes only the node lock (a leaf acquisition, never
+        the graph's validation lock). The redraw is requested after the lock is released.
+
+        Returns:
+            True if the warnings changed.
+        """
+        with self._lock:
+            changed = self.state.replace_warnings(kind, warnings)
+        if changed:
+            self.redraw()
+        return changed
 
     def redraw(self) -> None:
         """Request a redraw of the node in the UI."""
