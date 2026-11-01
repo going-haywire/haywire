@@ -1,5 +1,8 @@
 # haybale-marketplace — component index (v0.3.0)
 
+## setting
+- `haybale-marketplace:setting:MarketplaceSettings` — Marketplace — How libraries are installed
+
 ## farmhand
 - `haybale-marketplace:farmhand:dry_run_install` — Dry-run install — Resolve what an install would remove/upgrade, without installing (informational valve).
 - `haybale-marketplace:farmhand:get_library_docs` — Get library docs — Docs for an installed library (OVERVIEW/QUICKREF/README) or an available one.
@@ -11,6 +14,9 @@
 ## state
 - `haybale-marketplace:state:LibraryManagerState` — Library Manager State — Publishes the LibraryManager for editor consumption.
 - `haybale-marketplace:state:MarketplaceState` — Marketplace State — Owns marketplace orchestration for the studio library.
+
+## panel
+- `haybale-marketplace:panel:MarketplaceSettingsPanel` — Marketplace — How libraries are installed: which PyTorch build they fetch.
 
 ## editor
 - `haybale-marketplace:editor:LibraryBrowserEditor` — Marketplace — Searchable list of installed and available libraries.

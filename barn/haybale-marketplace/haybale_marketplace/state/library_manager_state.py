@@ -43,7 +43,18 @@ class LibraryManagerState(AppState):
         self.manager = LibraryManager(
             registry,
             project_dir=str(workspace_root) if workspace_root else None,
+            torch_backend=self._torch_backend,
         )
+
+    @staticmethod
+    def _torch_backend() -> str:
+        from haybale_marketplace.settings.marketplace_settings import MarketplaceSettings
+
+        try:
+            return str(MarketplaceSettings().torch_backend)
+        except Exception:
+            logger.debug("torch_backend unreadable; using auto", exc_info=True)
+            return "auto"
 
     def on_disable(self) -> None:
         self.manager = None

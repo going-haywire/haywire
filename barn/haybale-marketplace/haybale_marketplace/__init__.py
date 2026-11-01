@@ -3,9 +3,11 @@ from pathlib import Path
 from haywire.core.farmhand import FarmhandRegistry
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
+from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.state import LibraryStateRegistry
 
 from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.panel.registry import PanelRegistry
 
 
 @library(
@@ -31,6 +33,11 @@ class Library(BaseLibrary):
             registry_cls=LibraryStateRegistry,
         )
 
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "settings"),
+            registry_cls=SettingsRegistry,
+        )
+
         # Register MCP tools (canonical order: after state — tools reference marketplace states)
         self.add_folder_to_registry(
             folder_path=str(base_path / "farmhands"),
@@ -40,6 +47,11 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(
             folder_path=str(base_path / "editors"),
             registry_cls=EditorTypeRegistry,
+        )
+
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "panels"),
+            registry_cls=PanelRegistry,
         )
 
     def validate(self) -> bool:

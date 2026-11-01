@@ -183,14 +183,24 @@ class LibraryManager:
 
     Bridges between uv package management (subprocess) and the
     haywire library registry (in-process).
+
+    Args:
+        torch_backend: Returns the ``--torch-backend`` value every install and
+            dry run passes to uv (``auto``, ``cpu``, ``cu126``, …; blank means
+            ``auto``). Called for each uv run, so a changed setting applies at once.
     """
 
     def __init__(
-        self, library_registry: LibraryRegistry, venv_path: str | None = None, project_dir: str | None = None
+        self,
+        library_registry: LibraryRegistry,
+        venv_path: str | None = None,
+        project_dir: str | None = None,
+        torch_backend: Callable[[], str] = lambda: "auto",
     ):
         self.registry: LibraryRegistry = library_registry
         self.venv_path = venv_path or self._detect_venv()
         self.project_dir = Path(project_dir) if project_dir else None
+        self._torch_backend = torch_backend
 
     def _detect_venv(self) -> str | None:
         """Detect the current virtual environment path."""
@@ -427,6 +437,9 @@ class LibraryManager:
                 args += ["--refresh-package", pkg]
         if constraints is not None:
             args += ["-c", str(constraints)]
+        # Torch wheels differ per machine (CUDA, ROCm, CPU), so the backend is the
+        # environment's choice, applied to every library install.
+        args += ["--torch-backend", self._torch_backend().strip() or "auto"]
         return args
 
     async def _constraints_caused_failure(self, install_spec: str) -> bool:

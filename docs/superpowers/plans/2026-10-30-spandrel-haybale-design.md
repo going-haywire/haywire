@@ -134,7 +134,7 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 - The PathWidget's "not defined" status names the volume by the key's name part.
 - `list_volumes` treats an OS error checking a location as "missing".
 
-**S1b follow-up — PRIORITY (found in the S6 live check, 2026-11-01)**
+**S1b follow-up — DONE 2026-11-01 (uncommitted; found in the S6 live check)**. Deviations: `ensure_volume` also backfills `suggested` on an existing entry (volumes added before this change get one on the library's next enable); a library volume with no recorded suggestion shows no Reset button; `VolumeStore.remove` itself refuses library keys, so the CLI `remove` does too, and a new `haywire volumes reset` exists; open gap: an uninstalled library's volume can no longer be deleted except by hand-editing the file.
 
 - A volume a library added (key not `user:volume:…`) shows **Delete** in the Volumes editor. Delete means "reset" (the library re-adds it with its suggested location), but only at the library's next `on_enable`; until then the volume is undefined and the library breaks (Models refuses to scan and download). Decision (b): library volumes get **Reset to suggested location** instead of Delete — `ensure_volume` also stores the suggested location in the entry (`suggested` field in `volumes.toml`) and Reset writes it back at once, so the volume never disappears. Only user volumes (`user:volume:…`) can be deleted. Tell by the key.
 
@@ -470,6 +470,7 @@ The state icon is an indicator only (not clickable): a widget cannot reach its s
 - Every `uv pip install` / dry-run passes `--torch-backend <setting>`; framework setting,
   default `auto`, overridable (`cpu`, `cu126`, …). Torch is an environment property, not a
   library one. Covers `git+URL` consumer installs.
+- **S3 deviations (2026-11-01):** a `LibrarySettings` of haybale-marketplace (`MarketplaceSettings.torch_backend`, namespace `marketplace`, Barns panel at EDIT), not a haywire-core `FrameworkSettings` — follows NetworkSettings/ModelsSettings; `CHOICES` with 13 suggested backends plus any typed value (`SelectWidget` gained `new_value_mode`: copies its options, shows a non-option value as an extra option of that widget only; a bad value fails in uv's own message), blank reads as `auto`; passed on local editable installs too; uninstall gets none. `LibraryManager` takes a `torch_backend` callable, read per uv run. `uv sync` paths (update/rename) untouched.
 
 ### 2.7 Spandrel — existing `haybale-spandrel` project (Q19–Q23, Q33)
 - Project scaffold `haybale-spandrel-dev` at `../haybale-spandrel`, barn member
@@ -503,7 +504,7 @@ The state icon is an indicator only (not clickable): a widget cannot reach its s
 | S5 | rest of haybale-image | haybale-image (+ Split Path, Create Folder in haybale-core) | S0, S1 | done (merged ff to master b2fbfb565, 2026-10-31; still render live-checked, rest listed in §2.4) — [plan](2026-10-31-s5-haybale-image.md) |
 | S4b | List Files, Loop Array, Step Array | haybale-core | S4 | done (fcc03b7e2, merged with S5, 2026-10-31; slideshow live-checked) — decisions in §2.2 |
 | S6 | haybale-models (+ graph notices in graph-editor/haystack, catalog registry in core) | haybale-models | S1 | done (merged ff to master 4f2ebd3b2, 2026-11-01; live check passed incl. the S6b model picker; follow-ups and deferred minors listed in §2.1 and §2.5) — [plan](2026-10-31-s6-haybale-models.md) |
-| S3 | `--torch-backend` setting | haybale-marketplace | — | open |
+| S3 | `--torch-backend` setting | haybale-marketplace | — | done (2026-11-01, uncommitted; no slice plan — implemented inline; deviations in §2.6) |
 | S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | open |
 | S8 | extra arches | haybale-spandrel-extra | S7 | open |
 | S9 | visiongraph frame adapters | haybale-visiongraph | S5 | open |

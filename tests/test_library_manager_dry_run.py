@@ -148,6 +148,50 @@ async def test_dry_run_local_dir_omits_no_sources(tmp_path):
 
 
 @pytest.mark.unit
+@pytest.mark.parametrize(("setting", "passed"), [("cu126", "cu126"), (" cpu ", "cpu"), ("", "auto")])
+async def test_every_resolve_passes_the_torch_backend(tmp_path, setting, passed):
+    """Install, dry run and local editable installs all pass ``--torch-backend``, read per call."""
+    mgr = _make_manager()
+    mgr._torch_backend = lambda: setting
+    seen: list[list[str]] = []
+
+    async def fake_run(args, on_output):
+        seen.append(list(args))
+        return True, ""
+
+    mgr.registry.list_names.return_value = []
+    with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+        await mgr.dry_run("haybale-foo")
+        await mgr.dry_run(str(tmp_path))
+        await mgr.install("haybale-foo", lambda line: None)
+
+    assert seen
+    for args in seen:
+        assert args[args.index("--torch-backend") + 1] == passed
+
+
+@pytest.mark.unit
+def test_the_default_torch_backend_is_auto():
+    from haybale_marketplace.settings.marketplace_settings import MarketplaceSettings
+
+    assert _make_manager()._torch_backend() == "auto"
+    assert MarketplaceSettings.torch_backend._default == "auto"
+
+
+@pytest.mark.unit
+def test_the_settings_panel_renders_marketplace_settings_under_barns(monkeypatch):
+    from haybale_marketplace.panels import marketplace_settings_panel as mod
+    from haywire.barn.builtin.surfaces import Barns
+
+    assert mod.MarketplaceSettingsPanel.class_identity.surface is Barns
+    calls = []
+    monkeypatch.setattr(mod, "render_schema", lambda ctx, schema_cls, registry: calls.append(schema_cls))
+    panel = mod.MarketplaceSettingsPanel.__new__(mod.MarketplaceSettingsPanel)
+    panel.draw(MagicMock(), MagicMock())
+    assert calls == [mod.MarketplaceSettings]
+
+
+@pytest.mark.unit
 async def test_dry_run_resolver_error_raises():
     """dry_run() must raise RuntimeError when uv exits non-zero."""
     mgr = _make_manager()
@@ -236,8 +280,8 @@ async def test_install_passes_identical_flags_to_dry_run():
 
     dry_flags = [a for a in seen[0] if a.startswith("-") and a != "-c"]
     install_flags = [a for a in seen[1] if a.startswith("-") and a != "-c"]
-    assert dry_flags == ["--dry-run", "--no-sources", "--refresh-package"]
-    assert install_flags == ["--no-sources", "--refresh-package"]
+    assert dry_flags == ["--dry-run", "--no-sources", "--refresh-package", "--torch-backend"]
+    assert install_flags == ["--no-sources", "--refresh-package", "--torch-backend"]
     assert "-c" in seen[0]
     assert "-c" in seen[1]
     # The refreshed package must be the one being installed, in both calls.

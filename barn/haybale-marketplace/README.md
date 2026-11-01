@@ -6,6 +6,9 @@
 
 Library installer + browser editors
 
+## Settings
+- **Marketplace** — How libraries are installed
+
 ## Farmhands
 - **Dry-run install** — Resolve what an install would remove/upgrade, without installing (informational valve).
 - **Get library docs** — Docs for an installed library (OVERVIEW/QUICKREF/README) or an available one.
@@ -17,6 +20,9 @@ Library installer + browser editors
 ## States
 - **Library Manager State** — Publishes the LibraryManager for editor consumption.
 - **Marketplace State** — Owns marketplace orchestration for the studio library.
+
+## Panels
+- **Marketplace** — How libraries are installed: which PyTorch build they fetch.
 
 ## Editors
 - **Library Detail** — Detailed information for the selected library.
