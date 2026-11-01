@@ -30,6 +30,7 @@ from haybale_models.editors import models_editor as editor_module
 from haybale_models.editors.models_editor import ModelsEditor
 from haybale_models.hf import HfCachedFile
 from haybale_models.keys import MODELS_VOLUME
+from haybale_models.signals import ModelsChanged
 from haybale_models.state.models_state import ModelsState
 from haybale_models.state.models_view_state import ModelsViewState
 from haybale_models.store.index import ModelIndex
@@ -113,7 +114,9 @@ class _Harness:
             catalog=catalog,
             hf_cache=tmp_path / "hf",
             fetch=self._fetch,
+            needed_reports=lambda: self.reports,
         )
+        self.reports: dict[str, Any] = {}
         self.graphs = GraphAppState()
         self.graphs._signal_emit = lambda signal: None  # type: ignore[method-assign]
         self.view = SimpleNamespace(graph_filter=None)
@@ -192,6 +195,11 @@ def _open_graph(harness: _Harness, library_system: Any, value: ModelRef, name: s
     )
 
 
+def _report_for(harness: _Harness, binding: str = "g1") -> None:
+    graph = harness.graphs.get(binding).editor.graph  # type: ignore[union-attr]
+    harness.reports[binding] = ModelsEditor._needs_of(cast(Any, harness.models), graph)
+
+
 def test_identity() -> None:
     identity = ModelsEditor.class_identity
     assert identity.label == "Models"
@@ -207,10 +215,12 @@ async def test_sections_list_catalog_local_and_hf(
     h.put("loose/other.bin", OTHER)
     hf = [HfCachedFile("org/repo", "abcdef123456", "w.safetensors", 5000, Path("/x"))]
     monkeypatch.setattr(editor_module, "list_cache", lambda root: hf)
+    h.editor._expansion["hf"] = True
     await _open(user, h)
 
     texts = h.texts()
-    assert {"Catalog", "Local", "Hugging Face cache"} <= set(texts)
+    assert {"Catalog", "Local"} <= set(texts)
+    assert h.marked("models-hf-section")
     assert "local" in texts  # Sharp resolves through its digest
     assert "not downloaded" in texts  # Soft
     assert "loose/other.bin" in texts  # no catalog resource claims it
@@ -292,12 +302,89 @@ async def test_hf_rows_have_no_remove(user: User, env: Any, monkeypatch: pytest.
     h = env()
     hf = [HfCachedFile("org/repo", "abcdef123456", "w.bin", 10, Path("/x"))]
     monkeypatch.setattr(editor_module, "list_cache", lambda root: hf)
+    h.editor._expansion["hf"] = True
     await _open(user, h)
 
     assert len(h.marked("models-hf-row")) == 1
     assert not h.marked("models-remove")  # nothing local, and HF rows never carry one
     user.find(marker="models-hf-reveal").click()
     assert h.marked("models-hf-location")
+
+
+@pytest.mark.anyio
+async def test_hf_section_is_collapsed_with_count_and_size_and_builds_no_rows(
+    user: User, env: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    h = env()
+    hf = [HfCachedFile("org/repo", "abcdef123456", f"w{i}.bin", 1000, Path("/x")) for i in range(3)]
+    monkeypatch.setattr(editor_module, "list_cache", lambda root: hf)
+    await _open(user, h)
+
+    (section,) = h.marked("models-hf-section")
+    assert section.props["label"] == "HF cache — 3 files, 3.0 KB"
+    assert not section.props["model-value"]
+    assert not h.marked("models-hf-row")
+
+
+@pytest.mark.anyio
+async def test_finished_hf_download_refreshes_hf_rows_once(
+    user: User, env: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    h = env()
+    reads: list[int] = []
+    cached: list[HfCachedFile] = []
+
+    def fake_list(root: Path) -> list[HfCachedFile]:
+        reads.append(1)
+        return list(cached)
+
+    monkeypatch.setattr(editor_module, "list_cache", fake_list)
+    h.editor._expansion["hf"] = True
+    await _open(user, h)
+    assert len(reads) == 1
+    assert not h.marked("models-hf-row")
+
+    cached.append(HfCachedFile("Org/repo", "abcdef123456", "w.bin", 10, Path("/x")))
+    job = DownloadJob("dl-1", "W", None, 10, ("hf://Org/repo/w.bin",), state="running")
+    h.models.queue.job_list = [job]
+    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())  # progress tick
+    assert len(reads) == 1
+
+    job.state = "done"
+    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())
+    thread = h.editor._hf_thread
+    assert thread is not None
+    thread.join(5)
+    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())  # same finished set
+    assert len(reads) == 2
+    h.redraw()
+    assert len(h.marked("models-hf-row")) == 1
+
+
+@pytest.mark.anyio
+async def test_hf_rows_sort_case_insensitively(
+    user: User, env: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import haybale_models.hf as hf_module
+
+    class _File:
+        def __init__(self, name: str) -> None:
+            self.file_name = name
+            self.file_path = Path("/snap") / name
+            self.size_on_disk = 1
+            self.blob_path = Path("/b")
+
+    def repo(rid: str) -> Any:
+        rev = SimpleNamespace(commit_hash="c", snapshot_path=Path("/snap"), files=[_File("f")])
+        return SimpleNamespace(repo_type="model", repo_id=rid, revisions=[rev])
+
+    monkeypatch.setattr(
+        hf_module.huggingface_hub,
+        "scan_cache_dir",
+        lambda root: SimpleNamespace(repos=[repo("Kim2091/x"), repo("alpha/y"), repo("Zed/z")]),
+    )
+    rows = hf_module.list_cache(Path(__file__).parent)
+    assert [r.repo_id for r in rows] == ["alpha/y", "Kim2091/x", "Zed/z"]
 
 
 @pytest.mark.anyio
@@ -312,6 +399,63 @@ async def test_progress_shown_from_queue(user: User, env: Any) -> None:
     assert len(h.marked("models-cancel")) == 1
     user.find(marker="models-cancel").click()
     assert h.models.queue.cancelled == ["dl-1"]
+
+
+@pytest.mark.anyio
+async def test_progress_tick_updates_status_without_redraw(user: User, env: Any) -> None:
+    h = env()
+    job = DownloadJob("dl-1", "Sharp", SHA, 100, (URL,), state="running", done_bytes=45, total_bytes=100)
+    h.models.queue.job_list = [job]
+    await _open(user, h)
+    h.wrapper.redraw.reset_mock()
+
+    job.done_bytes = 80
+    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())
+
+    h.wrapper.redraw.assert_not_called()
+    assert "downloading 80 %" in h.texts()
+    assert "downloading 45 %" not in h.texts()
+
+
+@pytest.mark.anyio
+async def test_job_state_change_redraws(user: User, env: Any) -> None:
+    h = env()
+    job = DownloadJob("dl-1", "Sharp", SHA, 100, (URL,), state="running", done_bytes=45, total_bytes=100)
+    h.models.queue.job_list = [job]
+    await _open(user, h)
+    h.wrapper.redraw.reset_mock()
+
+    job.state = "failed"
+    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())
+
+    h.wrapper.redraw.assert_called_once()
+
+
+@pytest.mark.anyio
+async def test_scroll_position_is_restored_after_a_redraw(
+    user: User, env: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    h = env()
+    await _open(user, h)
+    h.editor._on_scroll(SimpleNamespace(vertical_position=240.0))
+    calls: list[float] = []
+    monkeypatch.setattr(ui.scroll_area, "scroll_to", lambda self, *, pixels=None, **kw: calls.append(pixels))
+
+    h.redraw()
+
+    assert calls == [240.0]
+
+
+@pytest.mark.anyio
+async def test_unknown_progress_says_downloading_without_percent(user: User, env: Any) -> None:
+    h = env()
+    h.models.queue.job_list = [
+        DownloadJob("dl-1", "Sharp", SHA, 100, (URL,), state="running", done_bytes=0, total_bytes=100)
+    ]
+    await _open(user, h)
+
+    assert "downloading…" in h.texts()
+    assert "downloading 0 %" not in h.texts()
 
 
 @pytest.mark.anyio
@@ -463,3 +607,214 @@ async def test_graph_filter_change_redraws_through_the_session_bus() -> None:
     assert len(redraws) == 1
     view.graph_filter = None
     assert len(redraws) == 2
+
+
+ADDR = "https://example.invalid/files/pasted.pth"
+
+
+@pytest.mark.anyio
+async def test_filter_lists_needed_pasted_address_and_its_download_status(
+    user: User, env: Any, library_system: Any
+) -> None:
+    h = env()
+    _open_graph(h, library_system, ModelRef(urls=(ADDR,)))
+    h.view.graph_filter = "g1"
+    await _open(user, h)
+
+    assert len(h.marked("models-address-row")) == 1
+    assert not h.marked("models-row")
+    assert "pasted.pth" in h.texts()
+    assert "not downloaded" in h.texts()
+    assert "None of the missing models are in the catalog." not in h.texts()
+    assert "Catalog" not in h.texts()
+    assert len(h.marked("models-download")) == 1
+    assert not h.marked("models-cancel")
+
+    h.models.queue.job_list = [
+        DownloadJob("dl-9", "pasted", None, None, (ADDR,), state="running", done_bytes=30, total_bytes=100)
+    ]
+    h.redraw()
+    assert "downloading 30 %" in h.texts()
+    assert not h.marked("models-download")
+    user.find(marker="models-cancel").click()
+    assert h.models.queue.cancelled == ["dl-9"]
+
+
+@pytest.mark.anyio
+async def test_address_download_enqueues_and_is_admin_gated(
+    user: User, env: Any, library_system: Any
+) -> None:
+    h = env()
+    _open_graph(h, library_system, ModelRef(urls=(ADDR,)))
+    h.view.graph_filter = "g1"
+    await _open(user, h)
+    h.tier = AccessTier.VIEW  # demoted after the draw
+    user.find(marker="models-download").click()
+    assert h.fetched == []
+    h.tier = AccessTier.ADMIN
+    user.find(marker="models-download").click()
+    assert [s.ref.source for s in h.fetched] == [ADDR]
+
+
+@pytest.mark.anyio
+async def test_address_row_has_no_actions_below_admin(user: User, env: Any, library_system: Any) -> None:
+    h = env(AccessTier.VIEW)
+    _open_graph(h, library_system, ModelRef(urls=(ADDR,)))
+    h.view.graph_filter = "g1"
+    await _open(user, h)
+    assert h.marked("models-address-row")
+    assert not h.marked("models-download")
+    assert not h.marked("models-cancel")
+
+
+@pytest.mark.anyio
+async def test_unfiltered_downloads_section_lists_non_catalog_jobs_only(user: User, env: Any) -> None:
+    h = env()
+    h.models.queue.job_list = [
+        DownloadJob("dl-1", "pasted", None, None, (ADDR,), state="running", done_bytes=10, total_bytes=100),
+        DownloadJob("dl-2", "Sharp", SHA, 100, (URL,), state="running", done_bytes=5, total_bytes=100),
+        DownloadJob("dl-3", "broken", None, None, ("https://b.invalid/x",), state="failed", error="boom"),
+        DownloadJob("dl-4", "done", None, None, ("https://d.invalid/y",), state="done"),
+    ]
+    await _open(user, h)
+
+    assert len(h.marked("models-download-row")) == 2
+    assert "Downloads" in h.texts()
+    assert "downloading 10 %" in h.texts()
+    assert "failed: boom" in h.texts()
+    assert len(h.marked("models-cancel")) == 2  # catalog row + the one active non-catalog job
+    h.models.queue.job_list = [j for j in h.models.queue.job_list if j.id != "dl-2"]
+    h.redraw()
+    assert len(h.marked("models-cancel")) == 1
+    user.find(marker="models-cancel").click()
+    assert h.models.queue.cancelled == ["dl-1"]
+
+    h.tier = AccessTier.VIEW
+    h.redraw()
+    assert len(h.marked("models-download-row")) == 2
+    assert not h.marked("models-cancel")
+
+
+@pytest.mark.anyio
+async def test_unfiltered_view_lists_graph_with_missing_model_without_walking(
+    user: User, env: Any, library_system: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    h = env()
+    _open_graph(h, library_system, ModelRef(catalog=KEY))
+    _report_for(h)
+    walks: list[Any] = []
+    monkeypatch.setattr(editor_module, "collect_needs", lambda *a, **k: walks.append(a))
+    await _open(user, h)
+
+    assert len(h.marked("models-needed-row")) == 1
+    assert "Needed" in h.texts()
+    assert "Rig" in h.texts()
+    assert "1 model, 2.4 MB" in h.texts()
+    assert walks == []
+
+
+@pytest.mark.anyio
+async def test_needed_show_sets_the_graph_filter(user: User, env: Any, library_system: Any) -> None:
+    h = env(AccessTier.VIEW)
+    _open_graph(h, library_system, ModelRef(catalog=KEY))
+    _report_for(h)
+    await _open(user, h)
+
+    assert not h.marked("models-needed-fetch")
+    user.find(marker="models-needed-show").click()
+    assert h.view.graph_filter == "g1"
+
+
+@pytest.mark.anyio
+async def test_needed_fetch_enqueues_and_rechecks_at_click(
+    user: User, env: Any, library_system: Any
+) -> None:
+    h = env()
+    _open_graph(h, library_system, ModelRef(catalog=KEY))
+    _report_for(h)
+    await _open(user, h)
+
+    assert h.marked("models-needed-fetch")
+    h.tier = AccessTier.VIEW  # demoted after the draw
+    user.find(marker="models-needed-fetch").click()
+    assert h.fetched == []
+    h.tier = AccessTier.ADMIN
+    user.find(marker="models-needed-fetch").click()
+    assert [s.entry.name for s in h.fetched] == ["Sharp"]
+
+
+@pytest.mark.anyio
+async def test_needed_section_absent_when_nothing_is_missing(
+    user: User, env: Any, library_system: Any
+) -> None:
+    h = env()
+    h.put("alpha/Sharp/sharp.pth", DATA)
+    _open_graph(h, library_system, ModelRef(catalog=KEY))
+    _report_for(h)
+    await _open(user, h)
+
+    assert not h.marked("models-needed-row")
+    assert "Needed" not in h.texts()
+
+
+@pytest.mark.anyio
+async def test_needed_lists_graph_name_and_each_missing_model_with_an_action(
+    user: User, env: Any, library_system: Any
+) -> None:
+    h = env()
+    _open_graph(h, library_system, ModelRef(catalog=KEY), name="Rig")
+    _report_for(h)
+    await _open(user, h)
+
+    assert "Rig" in h.texts()
+    assert len(h.marked("models-needed-model")) == 1
+    assert "Sharp" in h.texts()
+    assert any(t.endswith("2.4 MB") for t in h.texts())
+    assert len(h.marked("models-needed-download")) == 1
+    user.find(marker="models-needed-download").click()
+    assert [s.entry.name for s in h.fetched] == ["Sharp"]
+
+
+@pytest.mark.anyio
+async def test_needed_model_line_has_no_action_below_admin(
+    user: User, env: Any, library_system: Any
+) -> None:
+    h = env(AccessTier.VIEW)
+    _open_graph(h, library_system, ModelRef(catalog=KEY))
+    _report_for(h)
+    await _open(user, h)
+    assert h.marked("models-needed-model")
+    assert not h.marked("models-needed-download")
+
+
+@pytest.mark.anyio
+async def test_needed_model_progress_tick_updates_in_place(
+    user: User, env: Any, library_system: Any
+) -> None:
+    h = env()
+    _open_graph(h, library_system, ModelRef(urls=(ADDR,)))
+    _report_for(h)
+    job = DownloadJob("dl-9", "pasted", None, None, (ADDR,), state="running", done_bytes=30, total_bytes=100)
+    h.models.queue.job_list = [job]
+    await _open(user, h)
+    assert "pasted.pth" in h.texts()
+    assert h.marked("models-needed-cancel")
+    h.wrapper.redraw.reset_mock()
+
+    job.done_bytes = 60
+    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())
+
+    h.wrapper.redraw.assert_not_called()
+    assert "downloading 60 %" in h.texts()
+    assert "downloading 30 %" not in h.texts()
+
+
+@pytest.mark.anyio
+async def test_catalog_row_shows_name_and_a_detail_line(user: User, env: Any) -> None:
+    h = env()
+    await _open(user, h)
+
+    assert "Sharp" in h.texts()
+    assert any(" · MIT ·" in t for t in h.texts())
+    assert "not downloaded" in h.texts()
+    assert h.marked("models-download")

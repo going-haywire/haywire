@@ -259,6 +259,7 @@ class NeedsWatcher:
         self._lock = threading.Lock()
         self._run_lock = threading.Lock()
         self._watched: dict[int, _Watched] = {}
+        self._reports: dict[str, NeedsReport] = {}
         self._timers: dict[str, threading.Timer] = {}
         self._deadlines: dict[str, float] = {}
         self._running = 0
@@ -297,6 +298,7 @@ class NeedsWatcher:
             for w in watched:
                 w.closed = True
             self._watched.clear()
+            self._reports.clear()
             timers = list(self._timers.values())
             self._timers.clear()
             self._deadlines.clear()
@@ -317,6 +319,11 @@ class NeedsWatcher:
         """Drop our warning; the consumer's other "model" warnings stay."""
         if [x for x in wrapper.state.warnings if x.kind == KIND] == [MISSING_WARNING]:
             wrapper.replace_warnings(KIND, [])
+
+    def latest_reports(self) -> dict[str, NeedsReport]:
+        """Return the latest report of every open graph that misses models, keyed by binding id."""
+        with self._lock:
+            return dict(self._reports)
 
     def wait_idle(self, timeout: float = 5.0) -> bool:
         """Block until no re-walk is pending or running; ``False`` on timeout. For tests."""
@@ -344,6 +351,7 @@ class NeedsWatcher:
             for key in [k for k in self._watched if k not in current]:
                 gone = self._watched.pop(key)
                 gone.closed = True
+                self._reports.pop(gone.binding_id, None)
                 removed.append(gone)
             for key, (binding_id, graph) in current.items():
                 w = self._watched.get(key)
@@ -351,6 +359,7 @@ class NeedsWatcher:
                     w = self._watched[key] = _Watched(binding_id, graph)
                     added.append(w)
                 elif w.binding_id != binding_id:
+                    self._reports.pop(w.binding_id, None)
                     w.binding_id = binding_id
                     w.text = None
                     added.append(w)
@@ -459,6 +468,11 @@ class NeedsWatcher:
                 return
             self._reconcile(w)
             report = collect_needs(w.root, self._resolve)
+            with self._lock:
+                if report.missing and w in self._watched.values():
+                    self._reports[binding_id] = report
+                else:
+                    self._reports.pop(binding_id, None)
             self._update_warnings(w, report)
             self._update_notice(w, report)
 

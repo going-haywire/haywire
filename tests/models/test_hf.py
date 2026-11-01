@@ -101,6 +101,31 @@ def test_download_reports_progress_from_incomplete_file(
     assert not any(t.name == "hf-progress" for t in threading.enumerate())
 
 
+def test_preallocated_incomplete_blob_reports_unknown_progress(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(hf, "POLL_INTERVAL_S", 0.01)
+    blobs = tmp_path / "models--o--r" / "blobs"
+    blobs.mkdir(parents=True)
+    final = tmp_path / "final.bin"
+    seen: list[int] = []
+    polled = threading.Event()
+
+    def on_progress(done: int, total: int | None) -> None:
+        seen.append(done)
+        polled.set()
+
+    def fake_dl(*a: object, **k: object) -> str:
+        (blobs / "abc.x.incomplete").write_bytes(b"x" * 10)  # sparse file at full size
+        assert polled.wait(5)
+        final.write_bytes(b"y" * 10)
+        return str(final)
+
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_dl)
+    hf.download("hf://o/r/a.bin", tmp_path, 10, on_progress, threading.Event())
+    assert seen[0] == 0
+
+
 def test_download_cancel_discards_result(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     cancel = threading.Event()
     final = tmp_path / "f.bin"

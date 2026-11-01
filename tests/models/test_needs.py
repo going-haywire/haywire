@@ -157,10 +157,14 @@ def test_notice_posted_on_open_and_retracted_when_resolved(env: Any, graph: Any)
     assert notice.requires == AccessTier.VIEW
     assert notice.icon == "model_training"
 
+    assert list(env.watcher.latest_reports()) == ["g1"]
+    assert len(env.watcher.latest_reports()["g1"].missing) == 1
+
     env.put()
     env.settle()
 
     assert env.graphs.notices("g1") == []
+    assert env.watcher.latest_reports() == {}
 
 
 def test_unknown_size_is_counted(env: Any, graph: Any) -> None:

@@ -114,7 +114,10 @@ def download(
         while not stop.wait(POLL_INTERVAL_S):
             if cancel.is_set():
                 return
-            on_progress(_incomplete_size(cache_dir, ref.repo_id), expected_size)
+            seen = _incomplete_size(cache_dir, ref.repo_id)
+            # A blob already at full size while the download runs is a preallocated file, not progress.
+            known = seen > 0 and (expected_size is None or seen < expected_size)
+            on_progress(seen if known else 0, expected_size)
 
     poller = threading.Thread(target=poll, name="hf-progress", daemon=True)
     poller.start()
@@ -149,5 +152,7 @@ def list_cache(cache_dir: Path) -> list[HfCachedFile]:
                 except ValueError:
                     rel = f.file_name
                 rows.append(HfCachedFile(repo.repo_id, rev.commit_hash, rel, f.size_on_disk, f.blob_path))
-    rows.sort(key=lambda r: (r.repo_id, r.revision, r.path_in_repo))
+    rows.sort(
+        key=lambda r: (r.repo_id.lower(), r.repo_id, r.revision, r.path_in_repo.lower(), r.path_in_repo)
+    )
     return rows

@@ -23,7 +23,7 @@ from haybale_models.signals import ModelsChanged
 from haybale_models.store.index import ModelIndex
 
 if TYPE_CHECKING:
-    from haybale_models.needs import NeedsWatcher
+    from haybale_models.needs import NeedsReport, NeedsWatcher
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,10 @@ class ModelsState(AppState):
         for spec in specs:
             ids.extend(self.queue.enqueue_all(spec, principal))
         return ids
+
+    def needed_reports(self) -> dict[str, NeedsReport]:
+        """Return the latest needs report of every open graph that misses models, by binding id."""
+        return self._needs.latest_reports() if self._needs is not None else {}
 
     def _on_models_changed(self) -> None:
         """Publish ``ModelsChanged`` on the event loop; dropped while no loop runs.
