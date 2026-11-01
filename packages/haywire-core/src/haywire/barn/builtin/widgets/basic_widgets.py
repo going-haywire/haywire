@@ -274,12 +274,19 @@ class SelectWidget(BaseWidget):
       setting/port was declared (e.g. available theme skins).
     - ``clearable`` (bool): If ``True``, shows a clear button to reset the selection.
     - ``multiple`` (bool): If ``True``, allows selecting multiple values.
+    - ``new_value_mode`` (``"add-unique"``, ``"add"`` or ``"toggle"``): Lets the
+      user filter the options by typing and keep typed text that is not an
+      option (committed with Enter). A value that is not an option, typed or
+      loaded, is shown as an extra option of this widget only; the declared
+      options never change.
 
     Example::
 
         SelectWidget.config(properties={'options': ['Low', 'Medium', 'High']})
         SelectWidget.config(properties={'options': {0: 'Off', 1: 'On'}, 'clearable': True})
         SelectWidget.config(properties={'options': lambda: list_available_skins()})
+        # Suggestions, plus any typed value:
+        SelectWidget.config(properties={'options': ['auto', 'cpu'], 'new_value_mode': 'add-unique'})
     """
 
     def build(self) -> Any:
@@ -288,14 +295,36 @@ class SelectWidget(BaseWidget):
         # Resolve callable options at build time for dynamic option lists
         if callable(options):
             options = options()
+        # A copy: NiceGUI appends typed values to the list it is given, and the declared
+        # options are shared by every widget of the port (and saved with a plain port).
+        options = dict(options) if isinstance(options, dict) else list(options)
 
         kwargs: dict[str, Any] = {"options": options, "value": None}
 
-        for prop in ["clearable", "multiple"]:
+        for prop in ["clearable", "multiple", "new_value_mode"]:
             if prop in props:
                 kwargs[prop] = props[prop]
 
         return self.bind(ui.select(**kwargs).classes("w-full text-xs"))
+
+    def on_model_changed(self, value: Any) -> None:
+        self._show_custom_value(PrimitiveUnwrappingConverter().to_view(value))
+        super().on_model_changed(value)
+
+    def _show_custom_value(self, value: Any) -> None:
+        """Add *value* to this widget's options when it accepts typed values and *value* is not one."""
+        element = self.ui_element
+        props = self._config.get("properties", {})
+        if element is None or not props.get("new_value_mode") or props.get("multiple"):
+            return
+        options = element.options
+        if value is None or value == "" or value in options:
+            return
+        if isinstance(options, dict):
+            options[value] = value
+        else:
+            options.append(value)
+        element.update()
 
 
 @widget(description="Simple label for display only")
