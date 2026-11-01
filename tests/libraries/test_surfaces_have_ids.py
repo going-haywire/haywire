@@ -111,6 +111,17 @@ def test_app_settings_has_id():
     assert surface_by_id("app") is AppSettings
 
 
+def test_barns_surface_sits_directly_after_app_settings():
+    from haywire.barn.builtin.surfaces import AppSettings, Barns, ExecutionInspector
+    from haywire.ui import elements as hui
+
+    assert Barns.id == "barns"
+    assert surface_by_id("barns") is Barns
+    assert Barns.presentation.label == "Barns"
+    assert Barns.presentation.icon == hui.icon.barns == "house_siding"
+    assert AppSettings.order < Barns.order < ExecutionInspector.order
+
+
 def test_execution_inspector_has_id():
     from haywire.barn.builtin.surfaces import ExecutionInspector
 

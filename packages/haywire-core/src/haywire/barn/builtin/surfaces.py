@@ -24,6 +24,14 @@ class AppSettings(Surface):
     presentation = Presentation(label="Application", icon=hui.icon.app)
 
 
+class Barns(Surface):
+    """Library-wide settings tab: where libraries put their library-wide settings panels."""
+
+    id = "barns"
+    order = 15
+    presentation = Presentation(label="Barns", icon=hui.icon.barns)
+
+
 class ExecutionInspector(Surface):
     """Execution settings tab."""
 

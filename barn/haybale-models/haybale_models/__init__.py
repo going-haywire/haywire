@@ -2,7 +2,7 @@
 
 Component folders (registered in ``register_components``):
   - ``state``: ``ModelsState`` with the two model volumes.
-  - ``settings``, ``types``, ``widgets``, ``nodes``, ``editors``, ``farmhands``.
+  - ``settings``, ``types``, ``widgets``, ``nodes``, ``editors``, ``farmhands``, ``panels``.
 
 Never imports ``torch``: variant choice comes from the consuming node's settings.
 """
@@ -17,6 +17,7 @@ from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.state import LibraryStateRegistry
 from haywire.core.types.registry import TypeRegistry
 from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 
 
@@ -37,6 +38,7 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(folder_path=str(base_path / "nodes"), registry_cls=NodeRegistry)
         self.add_folder_to_registry(folder_path=str(base_path / "editors"), registry_cls=EditorTypeRegistry)
         self.add_folder_to_registry(folder_path=str(base_path / "farmhands"), registry_cls=FarmhandRegistry)
+        self.add_folder_to_registry(folder_path=str(base_path / "panels"), registry_cls=PanelRegistry)
 
     def validate(self) -> bool:
         return True

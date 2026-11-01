@@ -54,6 +54,8 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 
 ## 3. Important concepts
 
+**Library-wide settings get a panel.** A `LibrarySettings` class that users should edit gets a panel on the `Barns` surface (`haywire.barn.builtin.surfaces.Barns`, the "Barns" tab right below "Application" in the Properties editor) that calls `render_schema()` on it; see `ImageSettingsPanel` in `haybale-image`.
+
 **The four Settings classes.** All four inherit from `Settings`. Pick by scope:
 
 | Class | Where you declare it | Persisted to | Instances |

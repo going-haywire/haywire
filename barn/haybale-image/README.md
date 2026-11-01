@@ -29,3 +29,6 @@ Image types, IO and viewers shared by vision and ML libraries
 
 ## Settings
 - **Image** — Defaults for saving images
+
+## Panels
+- **Image** — Defaults for saving images.

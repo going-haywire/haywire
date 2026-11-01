@@ -27,6 +27,8 @@ class AppIcon:
     # ── Scope tabs (Properties sidebar) ──────────────────────────────────────
     app: Final[str] = "home"
     """Application-wide settings scope."""
+    barns: Final[str] = "house_siding"
+    """Library-wide settings scope (the Barns tab)."""
     execution: Final[str] = "rocket_launch"
     """Execution behaviour scope."""
     canvas: Final[str] = "view_compact_alt"

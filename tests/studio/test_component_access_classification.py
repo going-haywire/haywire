@@ -77,6 +77,8 @@ EDIT_EDITORS = {
 }
 EDIT_PANELS = {
     "ActivitySettingsPanel",
+    "ModelsSettingsPanel",
+    "ImageSettingsPanel",
     "AddToStageMenuPanel",
     "AppearanceToolbarPanel",
     "ArrangeAllMenuPanel",

@@ -154,6 +154,7 @@ class SelectionMenu(Surface):
 | Surface class | `id` | Kind | `poll(ctx)` |
 |---|---|---|---|
 | `AppSettings` | `app` | inspector | always true |
+| `Barns` | `barns` | inspector | always true |
 | `ExecutionInspector` | `execution` | inspector | always true |
 | `CanvasSettings` | `canvas` | inspector | always true |
 | `GraphInspector` | `graph` | inspector | active graph not None |

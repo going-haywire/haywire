@@ -22,3 +22,6 @@
 
 ## setting
 - `haybale-image:setting:ImageSettings` — Image — Defaults for saving images
+
+## panel
+- `haybale-image:panel:ImageSettingsPanel` — Image — Defaults for saving images.

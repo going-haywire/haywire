@@ -6,8 +6,8 @@ Provides:
     numpy array or torch tensor on any device), reached only through accessors.
 
 Component folders (registered in ``register_components``):
-  - ``settings``, ``types``, ``adapters``, ``widgets``, ``nodes``: the IMAGE types,
-    adapters, widgets and IO nodes.
+  - ``settings``, ``types``, ``adapters``, ``widgets``, ``nodes``, ``panels``: the IMAGE types,
+    adapters, widgets, IO nodes and the library settings panel.
 """
 
 from pathlib import Path
@@ -18,6 +18,7 @@ from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.types.registry import TypeRegistry
+from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 
 
@@ -36,6 +37,7 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(folder_path=str(base_path / "adapters"), registry_cls=AdapterRegistry)
         self.add_folder_to_registry(folder_path=str(base_path / "widgets"), registry_cls=WidgetRegistry)
         self.add_folder_to_registry(folder_path=str(base_path / "nodes"), registry_cls=NodeRegistry)
+        self.add_folder_to_registry(folder_path=str(base_path / "panels"), registry_cls=PanelRegistry)
 
     def validate(self) -> bool:
         return True
