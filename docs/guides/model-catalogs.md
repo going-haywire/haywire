@@ -31,7 +31,7 @@ Put one `.json` file per **catalog entry** in a `catalog/` folder of your librar
 --8<-- "barn/haybale-example/haybale_example/__init__.py:48:51"
 ```
 
-The entry's registry key is `<library-id>:model:<file stem>`, such as `haybale-example:model:1x-BroadcastToStudio-Compact-onnx`. A stem starts with a letter or digit and continues with letters, digits, `_` or `-`.
+The entry's registry key is `<library-id>:catalog:<file stem>` (component kind `catalog`, registered by `CatalogRegistry`), such as `haybale-example:catalog:1x-BroadcastToStudio-Compact-onnx`. A stem starts with a letter or digit and continues with letters, digits, `_` or `-`.
 
 ### 2.1 File format
 

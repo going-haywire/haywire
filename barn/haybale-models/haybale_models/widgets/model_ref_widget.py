@@ -20,7 +20,7 @@ from haybale_models.store.layout import volume_path_of
 from haybale_models.value.model_ref import ModelRef
 
 from haywire.core.access import LevelMode
-from haywire.core.models import CatalogEntry
+from haywire.core.catalog import CatalogEntry
 from haywire.core.volumes import VolumeError, location_of
 from haywire.ui import elements as hui
 from haywire.ui.access_stamp import stamp_requires

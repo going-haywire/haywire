@@ -13,7 +13,7 @@ from typing import Any
 import pytest
 
 from haywire.core.farmhand.activity import activity_tracker
-from haywire.core.models import ModelFile, Resource
+from haywire.core.catalog import ModelFile, Resource
 from haywire.core.volumes import VolumeStore
 
 from haybale_models import hf

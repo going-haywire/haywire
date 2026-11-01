@@ -7,7 +7,7 @@ import pytest
 
 from haybale_models.value import ModelRef
 
-CATALOG = ModelRef(catalog="haybale-x:model:4x-Demo")
+CATALOG = ModelRef(catalog="haybale-x:catalog:4x-Demo")
 FILE = ModelRef(urls=("hf://org/repo/m.safetensors@main",), sha256="a" * 64, size=10, label="m")
 
 
@@ -30,13 +30,13 @@ def test_forms_and_accessors():
 
 def test_to_dict_omits_empty_fields():
     assert ModelRef().to_dict() == {}
-    assert CATALOG.to_dict() == {"catalog": "haybale-x:model:4x-Demo"}
+    assert CATALOG.to_dict() == {"catalog": "haybale-x:catalog:4x-Demo"}
     assert ModelRef.from_dict({}) == ModelRef.empty()
 
 
 def test_both_forms_at_once_raises():
     with pytest.raises(ValueError, match="catalog reference"):
-        ModelRef(catalog="a:model:b", urls=("https://x/y.pth",))
+        ModelRef(catalog="a:catalog:b", urls=("https://x/y.pth",))
 
 
 def test_pinned_fills_digest_and_size():

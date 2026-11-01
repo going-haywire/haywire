@@ -75,6 +75,8 @@ class AppIcon:
     """A graph notice — a message a library attaches to an open graph."""
     models: Final[str] = "model_training"
     """Machine-learning models."""
+    catalog: Final[str] = "menu_book"
+    """A catalog entry — a library's JSON description of a downloadable resource."""
     node: Final[str] = "memory"
     """Node main icon."""
     edge: Final[str] = "cable"

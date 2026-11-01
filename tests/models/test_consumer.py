@@ -8,7 +8,7 @@ from typing import Any, cast
 
 import pytest
 
-from haywire.core.models import ModelFile, Resource
+from haywire.core.catalog import ModelFile, Resource
 from haywire.core.node.node_wrapper import NodeWrapperState
 from haywire.core.volumes import VolumeStore, location_of
 
@@ -19,7 +19,7 @@ from haybale_models.resolver import ModelMissing
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
 
-KEY = "lib:model:demo"
+KEY = "lib:catalog:demo"
 
 
 def sha(data: bytes) -> str:

@@ -6,7 +6,7 @@ from typing import Any
 from haybale_models.matcher import candidates, entry_matches, matches
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.models import ModelFile, Resource
+from haywire.core.catalog import ModelFile, Resource
 
 
 def res(**tags: Any) -> Resource:

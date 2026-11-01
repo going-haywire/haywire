@@ -16,7 +16,7 @@ level: library
 
 **Decision.**
 
-- **D1** A **model reference** is either a **file reference** (source URI(s) and, once pinned, a sha256) or a **catalog reference** (`<library-id>:model:<stem>`).
+- **D1** A **model reference** is either a **file reference** (source URI(s) and, once pinned, a sha256) or a **catalog reference** (`<library-id>:catalog:<stem>`).
 - **D2** Files resolve by sha256 through the index wherever they sit in the models volume; a file reference without a digest resolves by source URI until the user pins it.
 - **D3** A catalog reference stores no digest and no variant. It follows the catalog: the file used is the variant that best fits this machine.
 - **D4** The variant is chosen from an ordered list of tag sets: the node's `model_preference(port_id)`, else the port's `prefer`, else `[{}]`. A tag a variant lacks is a wildcard.

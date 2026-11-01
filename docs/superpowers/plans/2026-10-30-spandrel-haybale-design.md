@@ -377,7 +377,7 @@ node per evaluation, so it must be ~free when nothing failed:
 ### 2.5 Models — new `haybale-models` (monorepo `barn/`) (Q13–Q17, Q21, Q34)
 - **Model reference (Q13B):** source URI (`hf://org/repo/path@rev`, `https://…`, or local) +
   sha256. Plain local paths allowed. Graph stores the reference → runnable on a fresh machine.
-- **Model catalog (Q14D):** a component kind libraries register (entries = reference + metadata
+- **Model catalog (Q14D; kind later renamed `catalog`):** a component kind libraries register (entries = reference + metadata
   in OpenModelDB's shape: architecture, scale, channels, license, size, sha256, mirror urls).
   Subscribable feeds later.
 - **Models editor:** one, framework-wide: lists every library's catalog + local models, disk
@@ -403,6 +403,7 @@ node per evaluation, so it must be ~free when nothing failed:
 
 **S6 deviations from plan:**
 - Nothing was committed during execution; the slice was committed afterwards as six commits (`ab52290dc..eeaf9db5a` on `feat/s6-haybale-models`).
+- Catalog component kind renamed `model` → `catalog` (key `<lib>:catalog:<stem>`, `CatalogRegistry`) and the core module `haywire.core.models` → `haywire.core.catalog`, so "model" means only the model itself.
 - Model stems follow their own rule (`[A-Za-z0-9][A-Za-z0-9_-]*`, so `4x-Demo` is valid), not the macro registry's.
 - A download target takes an optional digest lookup to add `-<sha8>` on a same-name, different-digest file; without one it never suffixes.
 - `ResolvedModel.key` is the pool key (sha256 when known, else `path:` + absolute path); `sha256` stays honest and is empty when unknown.

@@ -41,7 +41,7 @@ from haybale_models.status import resource_status
 from haybale_models.store.index import IndexRecord
 
 if TYPE_CHECKING:
-    from haywire.core.models import CatalogEntry, Resource
+    from haywire.core.catalog import CatalogEntry, Resource
     from haywire.core.session.context import SessionContext
     from haywire.ui.editor.wrapper import EditorWrapper
     from nicegui.element import Element

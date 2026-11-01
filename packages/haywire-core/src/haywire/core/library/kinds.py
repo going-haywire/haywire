@@ -10,7 +10,7 @@ def kind_registry_map() -> dict[str, type]:
     from haywire.core.adapter.registry import AdapterRegistry
     from haywire.core.farmhand import FarmhandRegistry
     from haywire.core.macro.registry import MacroRegistry
-    from haywire.core.models.registry import ModelCatalogRegistry
+    from haywire.core.catalog.registry import CatalogRegistry
     from haywire.core.node.registry import NodeRegistry
     from haywire.core.settings import SettingsRegistry
     from haywire.core.state import LibraryStateRegistry
@@ -24,7 +24,7 @@ def kind_registry_map() -> dict[str, type]:
     return {
         "node": NodeRegistry,
         "macro": MacroRegistry,
-        "model": ModelCatalogRegistry,
+        "catalog": CatalogRegistry,
         "type": TypeRegistry,
         "adapter": AdapterRegistry,
         "widget": WidgetRegistry,
@@ -41,7 +41,7 @@ def kind_registry_map() -> dict[str, type]:
 KIND_FOLDERS = {
     "node": "nodes",
     "macro": "macros",
-    "model": "catalog",
+    "catalog": "catalog",
     "type": "types",
     "adapter": "adapters",
     "widget": "widgets",
@@ -57,7 +57,7 @@ KIND_FOLDERS = {
 _KIND_TO_AREA = {
     "node": "nodes",
     "macro": "macros",
-    "model": "models",
+    "catalog": "catalogs",
     "type": "datatypes",
     "adapter": "adapters",
     "widget": "widgets",

@@ -8,8 +8,8 @@ import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haywire.core.di.context import get_model_catalog_registry
-from haywire.core.models import ModelCatalogRegistry
+from haywire.core.di.context import get_catalog_registry
+from haywire.core.catalog import CatalogRegistry
 from haywire.core.state.base import AppState
 from haywire.core.state.decorator import state
 from haywire.core.storage import library_storage_dir
@@ -102,9 +102,9 @@ class ModelsState(AppState):
             logger.exception("model scan failed")
 
     @property
-    def catalog(self) -> ModelCatalogRegistry:
+    def catalog(self) -> CatalogRegistry:
         """The model catalog registry."""
-        return get_model_catalog_registry()
+        return get_catalog_registry()
 
     @property
     def hf_cache(self) -> Path | None:

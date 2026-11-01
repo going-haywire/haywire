@@ -1,4 +1,4 @@
-"""``ModelCatalogRegistry``: an OpenModelDB-shaped JSON file becomes a catalog entry."""
+"""``CatalogRegistry``: an OpenModelDB-shaped JSON file becomes a catalog entry."""
 
 import json
 import copy
@@ -45,9 +45,9 @@ def lib_identity(folder):
 
 @pytest.fixture
 def catalog_registry():
-    from haywire.core.models import ModelCatalogRegistry
+    from haywire.core.catalog import CatalogRegistry
 
-    return ModelCatalogRegistry()
+    return CatalogRegistry()
 
 
 @pytest.fixture
@@ -62,7 +62,7 @@ def test_openmodeldb_file_parses_unchanged(tmp_path, catalog_registry, identity)
     write(tmp_path / "4x-Demo.json", doc)
     catalog_registry.add_folder(str(tmp_path), identity)
 
-    entry = catalog_registry.entry("haybale-x:model:4x-Demo")
+    entry = catalog_registry.entry("haybale-x:catalog:4x-Demo")
     assert entry is not None
     assert entry.architecture == "esrgan"
     assert entry.scale == 4
@@ -77,7 +77,7 @@ def test_openmodeldb_file_parses_unchanged(tmp_path, catalog_registry, identity)
     assert res.variant_name() == "pytorch-pth"
     assert not res.is_bundle
     assert res.total_size == 67025055
-    assert entry.class_identity.registry_key == "haybale-x:model:4x-Demo"
+    assert entry.class_identity.registry_key == "haybale-x:catalog:4x-Demo"
     assert entry.class_library is identity
     assert entry.path == tmp_path / "4x-Demo.json"
     assert entry.fields()["architecture"] == "esrgan"
@@ -119,7 +119,7 @@ def test_variant_tags_and_bundle(tmp_path, catalog_registry, identity):
     write(tmp_path / "multi.json", doc)
     catalog_registry.add_folder(str(tmp_path), identity)
 
-    entry = catalog_registry.entry("haybale-x:model:multi")
+    entry = catalog_registry.entry("haybale-x:catalog:multi")
     assert entry is not None
     flat, bundle, bare = entry.resources
     assert flat.variant_name() == "pytorch-pth-torch-fp16"
@@ -144,7 +144,7 @@ def _failed(registry, key):
 def test_bad_sha256_is_refused_and_keeps_previous(tmp_path, catalog_registry, identity):
     path = write(tmp_path / "Demo.json", OMDB_DEMO)
     catalog_registry.add_folder(str(tmp_path), identity)
-    before = catalog_registry.entry("haybale-x:model:Demo")
+    before = catalog_registry.entry("haybale-x:catalog:Demo")
     assert before is not None
 
     bad: dict = copy.deepcopy(OMDB_DEMO)
@@ -153,8 +153,8 @@ def test_bad_sha256_is_refused_and_keeps_previous(tmp_path, catalog_registry, id
     write(path, bad)
     catalog_registry.register_file(str(path), identity)
 
-    assert catalog_registry.entry("haybale-x:model:Demo") is before
-    assert _failed(catalog_registry, "haybale-x:model:Demo")
+    assert catalog_registry.entry("haybale-x:catalog:Demo") is before
+    assert _failed(catalog_registry, "haybale-x:catalog:Demo")
     assert before.name == "4x Demo"
 
 
@@ -173,8 +173,8 @@ def test_malformed_documents_are_refused(tmp_path, catalog_registry, identity, d
     write(tmp_path / "Bad.json", doc)
     catalog_registry.add_folder(str(tmp_path), identity)
 
-    assert catalog_registry.entry("haybale-x:model:Bad") is None
-    assert _failed(catalog_registry, "haybale-x:model:Bad")
+    assert catalog_registry.entry("haybale-x:catalog:Bad") is None
+    assert _failed(catalog_registry, "haybale-x:catalog:Bad")
     assert catalog_registry.entries() == []
 
 
@@ -183,8 +183,8 @@ def test_empty_resources_refused_queues_failure(tmp_path, catalog_registry, iden
     write(tmp_path / "Empty.json", {"name": "n", "resources": []})
     catalog_registry.add_folder(str(tmp_path), identity)
 
-    assert catalog_registry.entry("haybale-x:model:Empty") is None
-    assert _failed(catalog_registry, "haybale-x:model:Empty")
+    assert catalog_registry.entry("haybale-x:catalog:Empty") is None
+    assert _failed(catalog_registry, "haybale-x:catalog:Empty")
 
 
 @pytest.mark.unit
@@ -196,50 +196,50 @@ def test_bad_stem_is_skipped(tmp_path, catalog_registry, identity):
 
 
 @pytest.mark.unit
-def test_kind_maps_know_model():
+def test_kind_maps_know_catalog():
     from haywire.core.library.kinds import KIND_FOLDERS, canon_area, kind_registry_map
-    from haywire.core.models import ModelCatalogRegistry
+    from haywire.core.catalog import CatalogRegistry
 
-    assert kind_registry_map()["model"] is ModelCatalogRegistry
-    assert KIND_FOLDERS["model"] == "catalog"
-    assert canon_area("model") == "models"
+    assert kind_registry_map()["catalog"] is CatalogRegistry
+    assert KIND_FOLDERS["catalog"] == "catalog"
+    assert canon_area("catalog") == "catalogs"
 
 
 @pytest.mark.unit
 def test_models_scan_after_macros():
     from haywire.core.library.base import BaseLibrary
 
-    assert BaseLibrary._REGISTRY_SCAN_PRIORITY["ModelCatalogRegistry"] == 76
+    assert BaseLibrary._REGISTRY_SCAN_PRIORITY["CatalogRegistry"] == 76
 
 
 @pytest.mark.unit
 def test_injector_provides_the_ambient_singleton(test_injector):
-    from haywire.core.di.context import get_model_catalog_registry
-    from haywire.core.models import ModelCatalogRegistry
+    from haywire.core.di.context import get_catalog_registry
+    from haywire.core.catalog import CatalogRegistry
 
-    registry = test_injector.get(ModelCatalogRegistry)
+    registry = test_injector.get(CatalogRegistry)
 
-    assert get_model_catalog_registry() is registry
-    assert test_injector.get(ModelCatalogRegistry) is registry
+    assert get_catalog_registry() is registry
+    assert test_injector.get(CatalogRegistry) is registry
 
 
 @pytest.mark.integration
 def test_library_gets_the_registry(library_system):
-    from haywire.core.models import ModelCatalogRegistry
+    from haywire.core.catalog import CatalogRegistry
 
-    singleton = library_system.get_model_catalog_registry()
+    singleton = library_system.get_catalog_registry()
     registry = library_system.get_library_registry()
-    assert registry._class_registries[ModelCatalogRegistry] is singleton
+    assert registry._class_registries[CatalogRegistry] is singleton
     libs = [registry._libraries[name] for name in registry.list_names()]
     assert libs
-    assert all(lib.get_registry(ModelCatalogRegistry) is singleton for lib in libs if lib is not None)
+    assert all(lib.get_registry(CatalogRegistry) is singleton for lib in libs if lib is not None)
 
 
 def test_a_catalog_key_resolves_like_any_component(library_system):
     """The component docs and source editors find a catalog entry by its key."""
-    key = "haybale-example:model:4x-Compact-Pretrain"
+    key = "haybale-example:catalog:4x-Compact-Pretrain"
 
-    assert library_system.get_registry_for_key(key) is library_system.get_model_catalog_registry()
+    assert library_system.get_registry_for_key(key) is library_system.get_catalog_registry()
     entry = library_system.lookup_component_class(key)
     assert entry is not None
     assert entry.class_identity.registry_key == key

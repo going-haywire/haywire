@@ -97,10 +97,10 @@ def test_resolve_model_missing_raises_named_message(graph_with_library_system, s
     ModelRef = importlib.import_module("haybale_models.value.model_ref").ModelRef
     ModelMissing = importlib.import_module("haybale_models.resolver").ModelMissing
     node = _node(graph_with_library_system)
-    ref = ModelRef(catalog="haybale-nowhere:model:gone")
+    ref = ModelRef(catalog="haybale-nowhere:catalog:gone")
     node.ports["model"].set_value(ref)
 
-    with pytest.raises(ModelMissing, match="catalog entry haybale-nowhere:model:gone is not installed"):
+    with pytest.raises(ModelMissing, match="catalog entry haybale-nowhere:catalog:gone is not installed"):
         node.worker(None, model=ref)
 
 

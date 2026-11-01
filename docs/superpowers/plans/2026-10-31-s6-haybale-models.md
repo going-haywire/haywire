@@ -4,7 +4,7 @@
 
 **Goal:** Give haywire one way to name, find, fetch, verify, store and share-load ML model files: a `MODEL_REF` value a graph stores, catalog entries libraries ship, a digest-indexed store on a volume, the Hugging Face cache as a second volume, a download queue, a refcounted pool of loaded models, a Models editor, and a needs-list shown on the haystack row through a new, library-extensible graph-notice store.
 
-**Architecture:** Core gains one registry kind (`ModelCatalogRegistry`, a `DocumentRegistry` of OpenModelDB-shaped JSON files in a library's `catalog/` folder). graph-editor's `GraphAppState` gains an open/close listener and a notice store (Observable Store pattern); haystack draws notices on the row beside play; graph-editor itself posts the load-time compatibility findings as the first producer. Everything model-specific lives in the new `barn/haybale-models`: `ModelRef` + `MODEL_REF` type + widget, variant matcher, index, HF bridge, resolver, download queue, `LoadedModels` pool, `ModelsState` (AppState), needs-list, Models editor, Farmhand tools, `Resolve Model` node. haybale-example ships a demo catalog.
+**Architecture:** Core gains one registry kind (`CatalogRegistry`, a `DocumentRegistry` of OpenModelDB-shaped JSON files in a library's `catalog/` folder). graph-editor's `GraphAppState` gains an open/close listener and a notice store (Observable Store pattern); haystack draws notices on the row beside play; graph-editor itself posts the load-time compatibility findings as the first producer. Everything model-specific lives in the new `barn/haybale-models`: `ModelRef` + `MODEL_REF` type + widget, variant matcher, index, HF bridge, resolver, download queue, `LoadedModels` pool, `ModelsState` (AppState), needs-list, Models editor, Farmhand tools, `Resolve Model` node. haybale-example ships a demo catalog.
 
 **Tech Stack:** Python 3.12, NiceGUI, `huggingface_hub>=1.0`, `httpx`, stdlib `hashlib` / `http.server` (tests).
 
@@ -14,8 +14,8 @@
 
 | # | decision |
 |---|---|
-| S6-Q1 | A **model reference** is either a **file reference** (URI(s) + sha256, digest optional) or a **catalog reference** (`<library>:model:<stem>`; the file is a host-picked variant of the entry). |
-| S6-Q2 | `ModelCatalogRegistry(DocumentRegistry)` in **haywire-core**; one JSON file per entry; key `<library>:model:<filestem>`. |
+| S6-Q1 | A **model reference** is either a **file reference** (URI(s) + sha256, digest optional) or a **catalog reference** (`<library>:catalog:<stem>`; the file is a host-picked variant of the entry). |
+| S6-Q2 | `CatalogRegistry(DocumentRegistry)` in **haywire-core**; one JSON file per entry; key `<library>:catalog:<filestem>`. |
 | S6-Q3 | Entry = **OpenModelDB superset**: every OpenModelDB field keeps its name; resources add `backend`, `precision`, `hf://` urls and `files[]` bundles; entries add `purpose`, `requires`. A missing tag = runs anywhere. |
 | S6-Q4 | Port option `filter` (entry field → allowed values) narrows the picker across all libraries; never refuses a pasted ref. |
 | S6-Q5 | A catalog reference **follows the catalog** (no digest pin). Bit-exact reproducibility = file reference. |
@@ -48,13 +48,13 @@
 
 ## Global Constraints
 
-- haywire-core never imports `huggingface_hub`, `httpx` or anything model-specific beyond `haywire/core/models/`; haybale-models never imports `torch`.
+- haywire-core never imports `huggingface_hub`, `httpx` or anything model-specific beyond `haywire/core/catalog/`; haybale-models never imports `torch`.
 - Dependency direction: haybale-models → haybale-graph-editor → haywire-core; haystack never imports haybale-models; graph-editor never imports haybale-studio (memory: library independence).
 - No relative imports under `barn/` (ruff TID252).
 - Every file path inside a volume goes through `haywire.core.volumes.resolve()` / `location_of()`; nothing hardcodes `~/.haywire`.
 - The resolver and every worker are **offline**: no network call on the run path (`huggingface_hub.try_to_load_from_cache`, never `hf_hub_download`, in resolution).
 - Download and remove require `AccessTier.ADMIN`; Pin digest goes through the edit route (EDIT); browsing is VIEW.
-- Library keys: volumes `haybale-models:volume:models`, `haybale-models:volume:hf-cache`; catalog keys `<library-id>:model:<stem>`.
+- Library keys: volumes `haybale-models:volume:models`, `haybale-models:volume:hf-cache`; catalog keys `<library-id>:catalog:<stem>`.
 - Displayed docstrings (registered components) use Markdown, others reST — `.claude/rules/python-docs.md`.
 - Design tokens / anti-patterns: `docs/reference/design-guide.md` (use `hui.*`, not raw `ui.button`).
 - Torch tests (none expected here): `uv run --with torch python -m pytest …`.
@@ -77,12 +77,12 @@
 ## File structure
 
 ```
-packages/haywire-core/src/haywire/core/models/__init__.py      create: exports
-packages/haywire-core/src/haywire/core/models/entry.py         create: ModelFile, Resource, CatalogEntry
-packages/haywire-core/src/haywire/core/models/registry.py      create: ModelCatalogRegistry
+packages/haywire-core/src/haywire/core/catalog/__init__.py      create: exports
+packages/haywire-core/src/haywire/core/catalog/entry.py         create: ModelFile, Resource, CatalogEntry
+packages/haywire-core/src/haywire/core/catalog/registry.py      create: CatalogRegistry
 packages/haywire-core/src/haywire/core/di/config.py            modify: provide + wire + ambient set
-packages/haywire-core/src/haywire/core/di/context.py           modify: set/get_model_catalog_registry
-packages/haywire-core/src/haywire/core/library/kinds.py        modify: "model" kind
+packages/haywire-core/src/haywire/core/di/context.py           modify: set/get_catalog_registry
+packages/haywire-core/src/haywire/core/library/kinds.py        modify: "catalog" kind
 packages/haywire-core/src/haywire/core/library/base.py         modify: scan priority 76
 packages/haywire-core/src/haywire/core/node/node_wrapper.py    modify: NodeWrapperState.replace_warnings(kind, ...)
 packages/haywire-core/src/haywire/ui/elements/icons.py         modify: icon.models, icon.notice
@@ -133,11 +133,11 @@ tests/models/test_*.py                                         one per haybale-m
 
 ## Phase A — framework
 
-### Task 1: `ModelCatalogRegistry` and catalog entries in core
+### Task 1: `CatalogRegistry` and catalog entries in core
 
 **Files:**
-- Create: `packages/haywire-core/src/haywire/core/models/{__init__,entry,registry}.py`
-- Modify: `di/config.py` (provider beside `provide_macro_registry` :217, `injector.get` beside :413, `add_class_registry` beside :437, `get_model_catalog_registry` beside :723), `di/context.py` (`_model_catalog_registry` global + `set_`/`get_model_catalog_registry`, mirroring `_type_registry`), `library/kinds.py` (`"model": ModelCatalogRegistry`, folder `"catalog"`, area `"models"`), `library/base.py` `_REGISTRY_SCAN_PRIORITY` (`"ModelCatalogRegistry": 76`)
+- Create: `packages/haywire-core/src/haywire/core/catalog/{__init__,entry,registry}.py`
+- Modify: `di/config.py` (provider beside `provide_macro_registry` :217, `injector.get` beside :413, `add_class_registry` beside :437, `get_catalog_registry` beside :723), `di/context.py` (`_catalog_registry` global + `set_`/`get_catalog_registry`, mirroring `_type_registry`), `library/kinds.py` (`"model": CatalogRegistry`, folder `"catalog"`, area `"models"`), `library/base.py` `_REGISTRY_SCAN_PRIORITY` (`"CatalogRegistry": 76`)
 - Modify: `tests/conftest.py` — add the new ambient global to the snapshot/restore that already covers `_type_registry`
 - Test: `tests/core/test_models/test_catalog_registry.py`
 
@@ -146,8 +146,8 @@ tests/models/test_*.py                                         one per haybale-m
   - `ModelFile(path: str, sha256: str | None, size: int | None, urls: tuple[str, ...])` — frozen dataclass; `path` is the file's name inside a bundle (`""` for single-file resources).
   - `Resource(platform: str, type: str, size: int | None, sha256: str | None, urls: tuple[str, ...], files: tuple[ModelFile, ...], backend: str | None, precision: str | None)` — frozen; `.tags() -> dict[str, str]` returns the non-`None` of `platform`, `type`, `backend`, `precision`; `.variant_name() -> str` = `"-".join` of tag values in that order (`"pytorch-pth-fp16"`), or `"default"` when there are none; `.is_bundle -> bool`; `.total_size -> int | None`.
   - `CatalogEntry(name, author, license, architecture, scale, purpose, tags, description, size, input_channels, output_channels, requires, resources: tuple[Resource, ...], document: dict, path: Path, content_hash: str, identity: BaseIdentity, library: LibraryIdentity)` with `class_identity` / `class_library` properties (MacroTemplate shape), `.fields() -> dict[str, Any]` (entry-level fields a port `filter` matches against: `architecture`, `scale`, `purpose`, `tags`, `license`, `input_channels`, `output_channels`).
-  - `ModelCatalogRegistry(DocumentRegistry[CatalogEntry])`, `SUFFIX = ".json"`, key `f"{library.name}:model:{path.stem}"`, `.entry(key) -> CatalogEntry | None`, `.entries() -> list[CatalogEntry]`.
-  - `haywire.core.di.context.get_model_catalog_registry() -> ModelCatalogRegistry`.
+  - `CatalogRegistry(DocumentRegistry[CatalogEntry])`, `SUFFIX = ".json"`, key `f"{library.name}:catalog:{path.stem}"`, `.entry(key) -> CatalogEntry | None`, `.entries() -> list[CatalogEntry]`.
+  - `haywire.core.di.context.get_catalog_registry() -> CatalogRegistry`.
 
 Parsing rules: OpenModelDB field names are read as-is (`inputChannels`, `outputChannels`, `resources[].platform/type/size/sha256/urls`); a single-file resource with no `files` becomes `files=(ModelFile("", sha256, size, urls),)`; a bundle resource has `files: [{path, sha256, size, urls}]` and no top-level `sha256`. Refused (→ `CLASS_RELOAD_FAILED`, previous element kept): not a JSON object; no `resources` or an empty list; a resource with neither `urls`/`sha256` nor `files`; a `sha256` that is not 64 hex chars; a filestem failing MacroRegistry's `_STEM_RULE` (skip with the same logged message). `purpose` and `tags` are lists of strings; `scale`/`size`/channels ints or absent.
 
@@ -158,7 +158,7 @@ def test_openmodeldb_file_parses_unchanged(tmp_path, catalog_registry, lib_ident
     # verbatim OpenModelDB shape: one resource, pth, sha256, two mirror urls
     write(tmp_path / "4x-Demo.json", OMDB_DEMO)
     catalog_registry.add_folder(str(tmp_path), lib_identity)
-    entry = catalog_registry.entry("haybale-x:model:4x-Demo")
+    entry = catalog_registry.entry("haybale-x:catalog:4x-Demo")
     assert entry.architecture == "esrgan" and entry.scale == 4
     (res,) = entry.resources
     assert res.tags() == {"platform": "pytorch", "type": "pth"}
@@ -168,10 +168,10 @@ def test_openmodeldb_file_parses_unchanged(tmp_path, catalog_registry, lib_ident
 def test_variant_tags_and_bundle(...):           # backend/precision read; files[] bundle, is_bundle True, total_size summed
 def test_bad_sha256_is_refused_and_keeps_previous(...):  # CLASS_RELOAD_FAILED queued; old entry still returned
 def test_empty_resources_refused(...):
-def test_kind_maps_know_model():
-    assert kind_registry_map()["model"] is ModelCatalogRegistry
-    assert KIND_FOLDERS["model"] == "catalog"
-def test_library_gets_the_registry(test_injector):  # a library's get_registry(ModelCatalogRegistry) is the DI singleton
+def test_kind_maps_know_catalog():
+    assert kind_registry_map()["catalog"] is CatalogRegistry
+    assert KIND_FOLDERS["catalog"] == "catalog"
+def test_library_gets_the_registry(test_injector):  # a library's get_registry(CatalogRegistry) is the DI singleton
 ```
 
 - [ ] **Step 2: Run, expect failures** — `uv run pytest tests/core/test_models/ -q` → ImportError.
@@ -315,7 +315,7 @@ def test_import_without_torch():                     # subprocess: import haybal
 
 ```python
 def test_round_trip_both_forms():
-    for ref in (ModelRef(catalog="haybale-x:model:4x-Demo"),
+    for ref in (ModelRef(catalog="haybale-x:catalog:4x-Demo"),
                 ModelRef(urls=("hf://org/repo/m.safetensors@main",), sha256="a"*64, size=10)):
         assert ModelRef.from_dict(ref.to_dict()) == ref
 def test_both_forms_at_once_raises():   # ModelRef(catalog=..., urls=(...)) → ValueError
@@ -433,7 +433,7 @@ def test_list_cache_missing_folder_is_empty(tmp_path): ...
   - `ResolvedModel(files: dict[str, Path], sha256: str, size: int, ref: ModelRef, entry: CatalogEntry | None, resource: Resource | None, rank: int, better_unfetched: Resource | None)` — `files[""]` is the single file; `.path` = `files[""]` or the bundle folder; `sha256` is the single file's digest or, for a bundle, `sha256` of the sorted `"path:sha"` lines (the pool key).
   - `FetchSpec(entry: CatalogEntry | None, resource: Resource | None, ref: ModelRef | None)` — frozen; what to fetch: a catalog variant, or a file ref's sources. `.identity -> tuple` (`(entry key, resource.variant_name())` or `(ref.sha256 or ref.source,)`) for dedup.
   - `ModelMissing(Exception)` with `.ref`, `.wanted: list[FetchSpec]` (what the needs-list would fetch), `.reason: str` — message `"model missing — fetch it from Models"`, or `"no model chosen"` for an empty ref, or the volume problem text.
-  - `resolve(ref: ModelRef, preference: Preference, *, catalog: ModelCatalogRegistry, index: ModelIndex, hf_cache: Path | None) -> ResolvedModel`.
+  - `resolve(ref: ModelRef, preference: Preference, *, catalog: CatalogRegistry, index: ModelIndex, hf_cache: Path | None) -> ResolvedModel`.
 
 Order (spec §2.5, Q7): catalog ref → `candidates(entry.resources, preference)`; walk in rank order, return the **first resource whose every file is local** (index by sha256; HF cache for `hf://` urls); set `better_unfetched` to the best-ranked candidate if it is not the one returned. File ref → index by `sha256`, else HF cache (`hf://`), else index `by_source(first url)` when `sha256` is `None`. Nothing local → `ModelMissing` with the rank-0 candidate (catalog) or the ref's source (file) in `wanted`. Unknown catalog key → `ModelMissing(reason="catalog entry … is not installed")`. A resource whose `sha256` is `None` resolves only through `by_source`.
 
@@ -499,7 +499,7 @@ def test_replace_warnings_keeps_other_kinds():      # core
 
 **Files:**
 - Create: `haybale_models/widgets/model_ref_widget.py`, `haybale_models/nodes/resolve_model.py`, `barn/haybale-example/haybale_example/catalog/*.json`
-- Modify: `barn/haybale-example/haybale_example/__init__.py` (`add_folder_to_registry(base/"catalog", ModelCatalogRegistry)`), its `pyproject.toml` (`haybale-models>=0.3.0`) and `haybale.toml` (`linked_libraries += "haybale_models"`)
+- Modify: `barn/haybale-example/haybale_example/__init__.py` (`add_folder_to_registry(base/"catalog", CatalogRegistry)`), its `pyproject.toml` (`haybale-models>=0.3.0`) and `haybale.toml` (`linked_libraries += "haybale_models"`)
 - Test: `tests/models/test_model_ref_widget.py`, `tests/models/test_resolve_model.py`, `tests/models/test_demo_catalog.py`
 
 **Interfaces:**

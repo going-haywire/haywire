@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from typing import Any
 
-from haywire.core.models import CatalogEntry, Resource
+from haywire.core.catalog import CatalogEntry, Resource
 
 #: Ordered tag sets, best first. A tag a resource lacks is a wildcard.
 Preference = list[dict[str, str]]

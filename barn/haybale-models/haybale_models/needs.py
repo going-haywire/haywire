@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
 from haywire.core.access import AccessTier
-from haywire.core.models import ModelCatalogRegistry
+from haywire.core.catalog import CatalogRegistry
 from haywire.ui import elements as hui
 
 from haybale_graph_editor.notices import GraphNotice
@@ -214,7 +214,7 @@ class _Models(Protocol):
     def queue(self) -> DownloadQueue: ...
 
     @property
-    def catalog(self) -> ModelCatalogRegistry: ...
+    def catalog(self) -> CatalogRegistry: ...
 
     @property
     def hf_cache(self) -> Path | None: ...

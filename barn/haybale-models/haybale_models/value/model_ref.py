@@ -10,7 +10,7 @@ from typing import Any
 class ModelRef:
     """A reference to a model, in exactly one of two forms.
 
-    - **Catalog reference**: ``catalog`` holds an entry key such as ``haybale-x:model:4x-Demo``;
+    - **Catalog reference**: ``catalog`` holds an entry key such as ``haybale-x:catalog:4x-Demo``;
       everything else is empty. It follows the catalog, so it carries no digest.
     - **File reference**: ``urls`` and/or ``sha256`` identify one file. A file picked from a
       volume has ``sha256``, ``size`` and ``label`` but no ``urls``; it resolves by digest.

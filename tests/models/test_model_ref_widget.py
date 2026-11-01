@@ -21,7 +21,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.models import ModelCatalogRegistry
+from haywire.core.catalog import CatalogRegistry
 from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
 from haywire.core.undo.config import UndoConfig
@@ -82,7 +82,7 @@ def state(models_env: VolumeStore, tmp_path: Path, monkeypatch: pytest.MonkeyPat
     consumer = _mod("haybale_models.consumer")
     location_of(keys.MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
     location_of(keys.HF_VOLUME).mkdir(parents=True, exist_ok=True)
-    catalog = ModelCatalogRegistry()
+    catalog = CatalogRegistry()
     for label, name, entries in (
         ("Beta", "haybale-beta", {"4x-Sharp": _entry("Sharp", "esrgan", SHA)}),
         (
@@ -240,18 +240,18 @@ async def test_card_without_a_model_is_red_and_says_no_model(user: User, state: 
 @pytest.mark.anyio
 async def test_card_shows_a_local_catalog_entry_green_by_name(user: User, state: Any) -> None:
     _put(state, "lib/sharp.pth")
-    widget = await _open(user, _direct(_port(ModelRef(catalog="haybale-beta:model:4x-Sharp"))))
+    widget = await _open(user, _direct(_port(ModelRef(catalog="haybale-beta:catalog:4x-Sharp"))))
 
     assert "hw-text-success" in _icon_classes(widget)
     assert widget._name.text == "Sharp"
-    assert "Catalog: haybale-beta:model:4x-Sharp" in widget._name_tip.text
+    assert "Catalog: haybale-beta:catalog:4x-Sharp" in widget._name_tip.text
     assert "Here: pytorch-pth, 7 B (local)" in widget._name_tip.text
 
 
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_card_shows_a_missing_model_amber(user: User, state: Any) -> None:
-    widget = await _open(user, _direct(_port(ModelRef(catalog="haybale-alpha:model:4x-Soft"))))
+    widget = await _open(user, _direct(_port(ModelRef(catalog="haybale-alpha:catalog:4x-Soft"))))
 
     assert widget._icon.props["name"] == "model_training"
     assert "hw-text-warning" in _icon_classes(widget)
@@ -303,7 +303,7 @@ async def test_card_uses_the_nodes_model_preference(user: User, state: Any, tmp_
     _put(state, "a/fp16.pth", b"two")
     state.index.add(root / "a/fp32.pth", "d" * 64, None)
     state.index.add(root / "a/fp16.pth", "e" * 64, None)
-    port = _port(ModelRef(catalog="haybale-gamma:model:4x-Dual"), {"prefer": [{"precision": "fp32"}]})
+    port = _port(ModelRef(catalog="haybale-gamma:catalog:4x-Dual"), {"prefer": [{"precision": "fp32"}]})
     node = SimpleNamespace(model_preference=lambda _pid: [{"precision": "fp16"}, {}])
     port._wrapper = SimpleNamespace(node=node, is_cleaned_up=False)  # type: ignore[assignment]
     widget = await _open(user, _direct(port))
@@ -341,7 +341,7 @@ async def test_card_pin_hashes_a_file_of_unknown_digest(
     ("ref", "tab"),
     [
         ({}, "catalog"),
-        ({"catalog": "haybale-beta:model:4x-Sharp"}, "catalog"),
+        ({"catalog": "haybale-beta:catalog:4x-Sharp"}, "catalog"),
         ({"urls": ["hf://org/repo/m.pth"]}, "hf"),
         ({"urls": ["https://example.invalid/m.pth"]}, "address"),
         ({"sha256": "a" * 64, "size": 1, "label": "x.pth"}, "files"),
@@ -390,13 +390,13 @@ async def test_choosing_shows_the_choice_and_use_writes_it(user: User, state: An
     assert _current_name(user) == "Sharp"
     assert port.get_value() == ModelRef()  # nothing stored before Use
     user.find(marker="model-ref-use").click()
-    await _eventually(lambda: port.get_value() == ModelRef(catalog="haybale-beta:model:4x-Sharp"))
+    await _eventually(lambda: port.get_value() == ModelRef(catalog="haybale-beta:catalog:4x-Sharp"))
 
 
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_cancel_stores_nothing(user: User, state: Any) -> None:
-    port = _port(ModelRef(catalog="haybale-beta:model:4x-Sharp"))
+    port = _port(ModelRef(catalog="haybale-beta:catalog:4x-Sharp"))
     await _open(user, _direct(port))
     _open_picker(user)
 
@@ -404,13 +404,13 @@ async def test_cancel_stores_nothing(user: User, state: Any) -> None:
     user.find(marker="model-ref-cancel").click()
     await asyncio.sleep(0.05)
 
-    assert port.get_value() == ModelRef(catalog="haybale-beta:model:4x-Sharp")
+    assert port.get_value() == ModelRef(catalog="haybale-beta:catalog:4x-Sharp")
 
 
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_clear_then_use_stores_no_model(user: User, state: Any) -> None:
-    port = _port(ModelRef(catalog="haybale-beta:model:4x-Sharp"))
+    port = _port(ModelRef(catalog="haybale-beta:catalog:4x-Sharp"))
     await _open(user, _direct(port))
     _open_picker(user)
 
@@ -651,7 +651,7 @@ async def test_use_is_an_undoable_edit(
     _click_row(user, "model-ref-catalog-pick", "Sharp")
     user.find(marker="model-ref-use").click()
 
-    await _eventually(lambda: port.get_value() == ModelRef(catalog="haybale-beta:model:4x-Sharp"))
+    await _eventually(lambda: port.get_value() == ModelRef(catalog="haybale-beta:catalog:4x-Sharp"))
     assert editor.can_undo() is True
     editor.undo()
     assert port.get_value().is_empty

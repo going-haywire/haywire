@@ -15,10 +15,10 @@ from haybale_models.resolver import FetchSpec, ModelMissing, resolve
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
 
-from haywire.core.models import ModelCatalogRegistry, ModelFile, Resource
+from haywire.core.catalog import CatalogRegistry, ModelFile, Resource
 from haywire.core.volumes import VolumeStore, location_of
 
-KEY = "lib:model:demo"
+KEY = "lib:catalog:demo"
 
 
 def sha(data: bytes) -> str:
@@ -37,13 +37,11 @@ def res(
     return Resource("pytorch", "pth", None, digest, urls, files, None, precision)
 
 
-def make_catalog(*resources: Resource) -> ModelCatalogRegistry:
+def make_catalog(*resources: Resource) -> CatalogRegistry:
     entry = SimpleNamespace(
         resources=resources, class_identity=SimpleNamespace(registry_key=KEY), name="demo"
     )
-    return cast(
-        ModelCatalogRegistry, SimpleNamespace(entry=lambda k: cast(Any, entry) if k == KEY else None)
-    )
+    return cast(CatalogRegistry, SimpleNamespace(entry=lambda k: cast(Any, entry) if k == KEY else None))
 
 
 @pytest.fixture
@@ -157,8 +155,8 @@ def test_empty_ref_says_no_model_chosen(index: ModelIndex) -> None:
 
 def test_unknown_catalog_key(index: ModelIndex) -> None:
     with pytest.raises(ModelMissing, match="is not installed") as exc:
-        resolve(ModelRef(catalog="x:model:nope"), [], catalog=make_catalog(), index=index, hf_cache=None)
-    assert "x:model:nope" in exc.value.reason
+        resolve(ModelRef(catalog="x:catalog:nope"), [], catalog=make_catalog(), index=index, hf_cache=None)
+    assert "x:catalog:nope" in exc.value.reason
 
 
 def test_volume_problem_is_the_reason(models_env: VolumeStore) -> None:

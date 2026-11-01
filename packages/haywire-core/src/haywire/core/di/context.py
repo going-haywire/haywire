@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from ..node.factory import NodeFactory
     from ..adapter.factory import AdapterFactory
     from ..types.registry import TypeRegistry
-    from ..models.registry import ModelCatalogRegistry
+    from ..catalog.registry import CatalogRegistry
     from ..settings import SettingsRegistry
     from ..session.session_manager import SessionManager
     from ..signals import SignalDispatcher
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 _node_factory: Optional["NodeFactory"] = None
 _adapter_factory: Optional["AdapterFactory"] = None
 _type_registry: Optional["TypeRegistry"] = None
-_model_catalog_registry: Optional["ModelCatalogRegistry"] = None
+_catalog_registry: Optional["CatalogRegistry"] = None
 _settings_registry: Optional["SettingsRegistry"] = None
 _session_manager: Optional["SessionManager"] = None
 _signal_dispatcher: Optional["SignalDispatcher"] = None
@@ -67,9 +67,9 @@ def set_type_registry(registry: "TypeRegistry") -> None:
     _type_registry = registry
 
 
-def set_model_catalog_registry(registry: "ModelCatalogRegistry") -> None:
-    global _model_catalog_registry
-    _model_catalog_registry = registry
+def set_catalog_registry(registry: "CatalogRegistry") -> None:
+    global _catalog_registry
+    _catalog_registry = registry
 
 
 def set_settings_registry(registry: "SettingsRegistry") -> None:
@@ -148,13 +148,13 @@ def get_type_registry() -> "TypeRegistry":
     return _type_registry
 
 
-def get_model_catalog_registry() -> "ModelCatalogRegistry":
-    if _model_catalog_registry is None:
+def get_catalog_registry() -> "CatalogRegistry":
+    if _catalog_registry is None:
         raise RuntimeError(
-            "ModelCatalogRegistry not set in ambient context. Ensure DI is initialised before "
+            "CatalogRegistry not set in ambient context. Ensure DI is initialised before "
             "resolving model references."
         )
-    return _model_catalog_registry
+    return _catalog_registry
 
 
 def get_settings_registry() -> "SettingsRegistry":

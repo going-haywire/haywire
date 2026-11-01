@@ -137,9 +137,9 @@ def coverage_report(doc: LibraryDoc) -> list[str]:
         gaps = []
         if not c.description:
             gaps.append("no description")
-        # A macro and a model catalog entry are documents: their prose is the
+        # A macro and a catalog entry are documents: their prose is the
         # description alone, so the missing docstring is the format, not a gap.
-        if not c.docstring and c.kind not in ("macro", "model"):
+        if not c.docstring and c.kind not in ("macro", "catalog"):
             gaps.append("no docstring")
         if c.kind in _PORT_BEARING_KINDS and not c.ports:
             gaps.append("no ports (instantiation may have failed)")

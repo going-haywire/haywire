@@ -6,7 +6,7 @@ from typing import Any
 
 from haybale_models.store.layout import target_path
 
-from haywire.core.models import ModelFile, Resource
+from haywire.core.catalog import ModelFile, Resource
 
 ROOT = Path("/root")
 

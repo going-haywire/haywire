@@ -1,7 +1,7 @@
 # Demo model catalog
 
 Each `.json` file here is one model catalog entry, registered as
-`haybale-example:model:<file name without .json>`.
+`haybale-example:catalog:<file name without .json>`.
 
 - `2x-Compact-Pretrain.json`, `4x-Compact-Pretrain.json`: copied verbatim from the
   [OpenModelDB data repository](https://github.com/OpenModelDB/open-model-database),

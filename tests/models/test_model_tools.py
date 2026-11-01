@@ -17,7 +17,7 @@ from haywire.core.farmhand import FarmhandError
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.models import ModelCatalogRegistry
+from haywire.core.catalog import CatalogRegistry
 from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
 from haywire.core.volumes import VolumeStore, location_of
 
@@ -35,7 +35,7 @@ pytestmark = pytest.mark.integration
 
 DATA = b"weights-weights"
 SHA = hashlib.sha256(DATA).hexdigest()
-KEY = "haybale-alpha:model:Sharp"
+KEY = "haybale-alpha:catalog:Sharp"
 URL = "https://example.invalid/sharp.pth"
 
 
@@ -79,7 +79,7 @@ class _Ctx:
 
 class _Env:
     def __init__(self, tmp_path: Path) -> None:
-        catalog = ModelCatalogRegistry()
+        catalog = CatalogRegistry()
         folder = tmp_path / "catalog" / "haybale-alpha"
         folder.mkdir(parents=True)
         (folder / "Sharp.json").write_text(json.dumps(_doc("Sharp", SHA, URL)))
@@ -201,7 +201,7 @@ def test_fetch_enqueues_and_returns_ids(env: _Env, library_system: Any) -> None:
 
 def test_fetch_errors(env: _Env) -> None:
     with pytest.raises(FarmhandError) as unknown:
-        env.run(ModelsFetchTool, keys=["haybale-alpha:model:Nope"])
+        env.run(ModelsFetchTool, keys=["haybale-alpha:catalog:Nope"])
     assert unknown.value.code == "unknown_model"
     assert unknown.value.help is not None
     with pytest.raises(FarmhandError):

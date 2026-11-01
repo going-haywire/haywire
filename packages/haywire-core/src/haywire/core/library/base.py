@@ -265,7 +265,7 @@ class BaseLibrary(ABC):
         "NodeRegistry": 70,
         # After NodeRegistry: macro containment reads node classes.
         "MacroRegistry": 75,
-        "ModelCatalogRegistry": 76,
+        "CatalogRegistry": 76,
         "SkinRegistry": 80,
         "PanelRegistry": 90,
         "EditorTypeRegistry": 100,

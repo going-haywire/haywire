@@ -20,7 +20,7 @@ from haywire.core.access import AccessTier
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.models import ModelCatalogRegistry
+from haywire.core.catalog import CatalogRegistry
 from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
 from haywire.core.volumes import VolumeStore, location_of
 
@@ -45,7 +45,7 @@ DATA = b"weights-weights"
 SHA = hashlib.sha256(DATA).hexdigest()
 OTHER = b"other-bytes"
 OTHER_SHA = hashlib.sha256(OTHER).hexdigest()
-KEY = "haybale-alpha:model:Sharp"
+KEY = "haybale-alpha:catalog:Sharp"
 URL = "https://example.invalid/sharp.pth"
 ADDR = "https://example.invalid/files/pasted.pth"
 
@@ -98,7 +98,7 @@ async def user() -> AsyncGenerator[User, None]:
 class _Harness:
     def __init__(self, tmp_path: Path, tier: AccessTier) -> None:
         self.tier = tier
-        catalog = ModelCatalogRegistry()
+        catalog = CatalogRegistry()
         folder = tmp_path / "catalog" / "haybale-alpha"
         folder.mkdir(parents=True)
         (folder / "Sharp.json").write_text(json.dumps(_doc("Sharp", SHA, URL)))

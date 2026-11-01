@@ -15,14 +15,14 @@ from .entry import CatalogEntry, ModelFile, Resource
 
 logger = logging.getLogger(__name__)
 
-_MODEL_KIND = "model"
+_CATALOG_KIND = "catalog"
 #: An entry's filestem becomes its registry key. Unlike a macro's, it may start
 #: with a digit: OpenModelDB names lead with the scale ("4xNomos8k").
 _STEM_RULE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 _SHA256 = re.compile(r"[0-9a-fA-F]{64}")
 
 
-class ModelCatalogRegistry(DocumentRegistry[CatalogEntry]):
+class CatalogRegistry(DocumentRegistry[CatalogEntry]):
     """Model catalog entries, one OpenModelDB-shaped JSON file each.
 
     A file is refused rather than registered when it is not a JSON object,
@@ -34,7 +34,7 @@ class ModelCatalogRegistry(DocumentRegistry[CatalogEntry]):
     SUFFIX = ".json"
 
     def _document_key(self, path: Path, library_identity: LibraryIdentity) -> str:
-        return f"{library_identity.name}:{_MODEL_KIND}:{path.stem}"
+        return f"{library_identity.name}:{_CATALOG_KIND}:{path.stem}"
 
     def add_folder(
         self,

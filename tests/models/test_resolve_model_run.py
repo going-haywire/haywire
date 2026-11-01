@@ -90,7 +90,7 @@ def test_resolve_model_size_reaches_a_downstream_print(
             label="T", name="haybale-t", folder_path=str(tmp_path), module_name="haybale_t"
         )
         state.catalog.add_folder(str(folder), identity)
-        ref = ModelRef(catalog=f"haybale-t:model:demo_{reload}")
+        ref = ModelRef(catalog=f"haybale-t:catalog:demo_{reload}")
     resolve.ports["model"].set_value(ref.to_dict() if via == "dict" else ref)
 
     if reload:

@@ -30,7 +30,7 @@ from ..library.utils import (
     ADAPTER,
     EDITOR,
     FARMHAND,
-    MODEL,
+    CATALOG,
     NODE,
     PANEL,
     SETTING,
@@ -42,7 +42,7 @@ from ..library.utils import (
     split_reg_key,
 )
 from ..macro.registry import MacroRegistry
-from ..models.registry import ModelCatalogRegistry
+from ..catalog.registry import CatalogRegistry
 from ..node.registry import NodeRegistry
 from ..farmhand.registry import FarmhandRegistry
 from ..adapter.registry import AdapterRegistry
@@ -57,7 +57,7 @@ from .context import (
     set_node_factory,
     set_adapter_factory,
     set_library_state_container,
-    set_model_catalog_registry,
+    set_catalog_registry,
     set_type_registry,
     set_settings_registry,
     set_session_manager,
@@ -223,10 +223,10 @@ class HaywireModule(Module):
 
     @provider
     @singleton
-    def provide_model_catalog_registry(self) -> ModelCatalogRegistry:
-        """Provide singleton ModelCatalogRegistry."""
-        registry = ModelCatalogRegistry()
-        set_model_catalog_registry(registry)
+    def provide_catalog_registry(self) -> CatalogRegistry:
+        """Provide singleton CatalogRegistry."""
+        registry = CatalogRegistry()
+        set_catalog_registry(registry)
         return registry
 
     @provider
@@ -422,7 +422,7 @@ class LibrarySystemService:
         widget_registry = self.injector.get(WidgetRegistry)
         node_registry = self.injector.get(NodeRegistry)
         macro_registry = self.injector.get(MacroRegistry)
-        model_catalog_registry = self.injector.get(ModelCatalogRegistry)
+        catalog_registry = self.injector.get(CatalogRegistry)
         skin_registry = self.injector.get(SkinRegistry)
         panel_registry = self.injector.get(PanelRegistry)
         editor_registry = self.injector.get(EditorTypeRegistry)
@@ -447,7 +447,7 @@ class LibrarySystemService:
         library_registry.add_class_registry(WidgetRegistry, widget_registry)
         library_registry.add_class_registry(NodeRegistry, node_registry)
         library_registry.add_class_registry(MacroRegistry, macro_registry)
-        library_registry.add_class_registry(ModelCatalogRegistry, model_catalog_registry)
+        library_registry.add_class_registry(CatalogRegistry, catalog_registry)
         library_registry.add_class_registry(SkinRegistry, skin_registry)
         library_registry.add_class_registry(PanelRegistry, panel_registry)
         library_registry.add_class_registry(EditorTypeRegistry, editor_registry)
@@ -737,9 +737,9 @@ class LibrarySystemService:
         """Get the macro registry."""
         return self.injector.get(MacroRegistry)
 
-    def get_model_catalog_registry(self) -> ModelCatalogRegistry:
+    def get_catalog_registry(self) -> CatalogRegistry:
         """Get the model catalog registry."""
-        return self.injector.get(ModelCatalogRegistry)
+        return self.injector.get(CatalogRegistry)
 
     def get_skin_registry(self) -> SkinRegistry:
         """Get the skin registry."""
@@ -819,7 +819,7 @@ class LibrarySystemService:
         PANEL: "get_panel_registry",
         EDITOR: "get_editor_registry",
         FARMHAND: "get_farmhand_registry",
-        MODEL: "get_model_catalog_registry",
+        CATALOG: "get_catalog_registry",
     }
 
     def get_registry_for_key(self, registry_key: str) -> Optional["BaseRegistry"]:

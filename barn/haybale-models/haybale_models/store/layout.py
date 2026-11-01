@@ -6,7 +6,7 @@ from urllib.parse import unquote, urlsplit
 
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
 
-from haywire.core.models import CatalogEntry, ModelFile, Resource
+from haywire.core.catalog import CatalogEntry, ModelFile, Resource
 from haywire.core.volumes import VolumeError, VolumePath, location_of
 
 _FALLBACK_NAME = "model.bin"

@@ -18,7 +18,7 @@ from haybale_models.matcher import Preference, candidates
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
 
-from haywire.core.models import CatalogEntry, ModelCatalogRegistry, ModelFile, Resource
+from haywire.core.catalog import CatalogEntry, CatalogRegistry, ModelFile, Resource
 
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 _MISSING = "model missing — fetch it from Models"
@@ -86,7 +86,7 @@ def resolve(
     ref: ModelRef,
     preference: Preference,
     *,
-    catalog: ModelCatalogRegistry,
+    catalog: CatalogRegistry,
     index: ModelIndex,
     hf_cache: Path | None,
 ) -> ResolvedModel:
@@ -101,7 +101,7 @@ def resolve(
 def _resolve_catalog(
     ref: ModelRef,
     preference: Preference,
-    catalog: ModelCatalogRegistry,
+    catalog: CatalogRegistry,
     index: ModelIndex,
     hf_cache: Path | None,
 ) -> ResolvedModel:

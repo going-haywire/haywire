@@ -29,7 +29,7 @@ from haybale_models.store.index import ModelIndex
 from haybale_models.store.layout import target_path
 
 from haywire.core.di.context import activity_tracker
-from haywire.core.models import ModelFile
+from haywire.core.catalog import ModelFile
 from haywire.core.volumes import VolumeError, location_of
 
 logger = logging.getLogger(__name__)

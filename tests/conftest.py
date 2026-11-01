@@ -248,7 +248,7 @@ _DI_CONTEXT_GLOBALS = (
     "_node_factory",
     "_adapter_factory",
     "_type_registry",
-    "_model_catalog_registry",
+    "_catalog_registry",
     "_settings_registry",
     "_session_manager",
     "_workspace_root",
