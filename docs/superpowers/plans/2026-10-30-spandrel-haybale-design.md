@@ -446,6 +446,25 @@ Still open:
 15. Farmhand tools: `in_hf`/locate logic is duplicated between the tool and the editor (only the status text is shared); `status.py` docstring says "every file" where callers use any.
 16. Tests: `tests/models/conftest.py` docstring about redirecting HOME is stale; the session-wide `library_storage_dir` redirect shares one per-package dir across tests in a worker; `ModelsState.on_enable` creates the default models folder even when the volume was moved. Pre-existing (fails at `eec4193cf` too): `tests/image/test_save_image_node.py::test_library_default_reaches_node` under `-m integration -n 4`.
 
+**S6b — model picker dialog (settled with the user 2026-11-01, implemented inline)**
+
+The `MODEL_REF` widget is the model picker of every node with a `MODEL_REF` inlet. The select + address field + status line looked incomplete in every state (a Models-folder file has neither a catalog key nor an address to show), so the card shrinks to one row and the choosing moves into a dialog.
+
+| # | decision |
+|---|---|
+| S6b-1 | Card row: `[state icon] name [pin] [edit]`. Details only in the name's tooltip (stored key/address, sha256 short form, the variant/file used here, size, where). |
+| S6b-2 | State icons: resolved `model_training` success green; resolved but not pinned `online_prediction` warning; missing `model_training` warning; no model `model_training` error. |
+| S6b-3 | Name: catalog entry `name`; `hf://user/repo/file` → `repo`; otherwise the reference's `label` (file name); empty → "no model". Short; the tooltip carries the rest. Two catalog entries with the same `name` (the demo's 2x/4x "Compact Pretrain") are told apart only in the tooltip. |
+| S6b-4 | Pin button on the card only when the reference is unpinned and its file is on this machine (digest known or hashable); one click = one undo step. |
+| S6b-5 | Dialog: "Current" area on top (form, name, key/address copyable, sha256 or "not pinned", what it resolves to here, Clear) + four tabs — Catalog (port-`filter`ed entries by library, variant · state · size), Models Volume (files, picked by digest; hashed off the UI thread), Hugging Face (cached model files as `org/repo/path`), Address (`hf://` / `https://`; `hf://` asks the Hub for the digest). Every tab has a search field. |
+| S6b-6 | Clicking a row only chooses (shown in Current); **Use** stores it and closes, **Cancel** drops it. Opens on the tab of the current reference (Catalog for none). |
+| S6b-7 | **Use** pins a file reference whose digest is known at that moment (amends S6-Q12: no separate Pin step when the digest is known); an address whose file is not here yet is stored unpinned and pinned later from the card. |
+| S6b-8 | The dialog never downloads (S6-Q17 kept); missing models are fetched in the Models editor. |
+
+**Models editor (2026-11-01):** a "Show:" filter row like the marketplace's — toggles Catalog, Models, Huggingface and a search toggle (search narrows every section; hiding it clears it). Sections renamed: Local → Models, HF cache → Huggingface. The disk-usage line is gone: each section header counts what it lists as "N file(s), SIZE" ("Models — 2 files, 1.2 MB"), the tooltip gives the whole volume ("Hugging Face cache: 16.1 GB in all, shared with other tools"). The Needed section is always shown; Huggingface lists only files a catalog entry or an open graph uses (no Reveal location — the Volumes editor shows the cache's location).
+
+The state icon is an indicator only (not clickable): a widget cannot reach its session to publish `Reveal` (the client→session map is private to `haywire_studio.app`), and the haystack notice already leads to the Models editor.
+
 ### 2.6 Torch install — haybale-marketplace (Q18B)
 - Every `uv pip install` / dry-run passes `--torch-backend <setting>`; framework setting,
   default `auto`, overridable (`cpu`, `cu126`, …). Torch is an environment property, not a
