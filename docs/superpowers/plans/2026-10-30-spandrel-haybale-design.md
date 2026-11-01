@@ -502,7 +502,7 @@ The state icon is an indicator only (not clickable): a widget cannot reach its s
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | done (merged ff to master 4add63fc2, 2026-10-31; live check passed; deferred minors listed in §2.2) — [plan](2026-10-30-s4-batch-nodes.md) |
 | S5 | rest of haybale-image | haybale-image (+ Split Path, Create Folder in haybale-core) | S0, S1 | done (merged ff to master b2fbfb565, 2026-10-31; still render live-checked, rest listed in §2.4) — [plan](2026-10-31-s5-haybale-image.md) |
 | S4b | List Files, Loop Array, Step Array | haybale-core | S4 | done (fcc03b7e2, merged with S5, 2026-10-31; slideshow live-checked) — decisions in §2.2 |
-| S6 | haybale-models (+ graph notices in graph-editor/haystack, catalog registry in core) | haybale-models | S1 | implemented (`ab52290dc..eeaf9db5a` on `feat/s6-haybale-models`, unmerged, 2026-11-01; studio boot + volumes checked, UI/Farmhand live check pending; open items and deferred minors listed in §2.5) — [plan](2026-10-31-s6-haybale-models.md) |
+| S6 | haybale-models (+ graph notices in graph-editor/haystack, catalog registry in core) | haybale-models | S1 | done (merged ff to master 4f2ebd3b2, 2026-11-01; live check passed incl. the S6b model picker; follow-ups and deferred minors listed in §2.1 and §2.5) — [plan](2026-10-31-s6-haybale-models.md) |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | open |
 | S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | open |
 | S8 | extra arches | haybale-spandrel-extra | S7 | open |
