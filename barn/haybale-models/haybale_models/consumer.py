@@ -91,7 +91,7 @@ def _warnings(resolved: ResolvedModel) -> list[NodeWarning]:
         variant = resolved.better_unfetched.variant_name()
         messages.append(f"Preferred variant {variant} is not downloaded — Show in Models")
     if resolved.ref.is_file and not resolved.ref.sha256:
-        messages.append("Not pinned — Pin digest on the card")
+        messages.append("Not pinned — use the pin on the card")
     return [NodeWarning(message=m, source_version=None, kind=KIND) for m in messages]
 
 

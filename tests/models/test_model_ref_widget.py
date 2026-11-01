@@ -1,4 +1,4 @@
-"""ModelRefWidget: filtered catalog select, Other… address and browse, status line, Pin digest."""
+"""ModelRefWidget: the card row (state icon, name, pin, edit) and the picker dialog (Current + four tabs)."""
 
 from __future__ import annotations
 
@@ -30,7 +30,6 @@ from haywire.ui.widget.factory import WidgetFactory
 
 from tests.conftest import edit_route, make_node
 
-OTHER = "__other__"
 DATA = b"weights"
 SHA = hashlib.sha256(DATA).hexdigest()
 
@@ -151,198 +150,12 @@ def _direct(port: DataPort) -> Callable[[], Any]:
     return build
 
 
-def _select(user: User) -> ui.select:
-    return cast(ui.select, user.find(marker="model-ref-select").elements.pop())
-
-
-def _status(user: User) -> str:
-    return cast(ui.label, user.find(marker="model-ref-status").elements.pop()).text
-
-
 async def _eventually(check: Callable[[], bool]) -> None:
     for _ in range(200):
         if check():
             return
         await asyncio.sleep(0.01)
     raise AssertionError("condition not met")
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_select_lists_only_filtered_entries(user: User, state: Any) -> None:
-    _put(state, "lib/sharp.pth")
-    port = _port(ModelRef(), {"filter": {"architecture": ["esrgan"]}})
-    await _open(user, _direct(port))
-
-    user.find(marker="model-ref-select").trigger("popupShow")
-    options = cast(dict, _select(user).options)
-
-    # Grouped by library label (Alpha before Beta), then by name; Other… last.
-    assert list(options) == ["haybale-alpha:model:4x-Soft", "haybale-beta:model:4x-Sharp", OTHER]
-    assert options["haybale-alpha:model:4x-Soft"] == "Soft — not downloaded, 2.4 MB"
-    assert options["haybale-beta:model:4x-Sharp"] == "Sharp — local, 7 B"
-    assert options[OTHER] == "Other…"
-    assert _status(user) == "no model chosen"
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_model_change_resolves_once_and_popup_resolves_the_catalog(
-    user: User, state: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    module = _mod("haybale_models.widgets.model_ref_widget")
-    real = module.resolve
-    calls: list[Any] = []
-
-    def counting(*args: Any, **kwargs: Any) -> Any:
-        calls.append(args[0])
-        return real(*args, **kwargs)
-
-    monkeypatch.setattr(module, "resolve", counting)
-    port = _port(ModelRef())
-    await _open(user, _direct(port))
-    assert calls == []
-
-    port.set_value(ModelRef(catalog="haybale-beta:model:4x-Sharp"))
-    assert len(calls) <= 1
-
-    calls.clear()
-    user.find(marker="model-ref-select").trigger("popupShow")
-    assert len(calls) == 3
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_status_uses_the_nodes_model_preference(user: User, state: Any, tmp_path: Path) -> None:
-    doc = _entry("Dual", "esrgan", "d" * 64)
-    doc["resources"] = [
-        {**doc["resources"][0], "precision": "fp32", "sha256": "d" * 64},
-        {**doc["resources"][0], "precision": "fp16", "sha256": "e" * 64},
-    ]
-    folder = tmp_path / "catalogs" / "haybale-gamma"
-    folder.mkdir(parents=True)
-    (folder / "4x-Dual.json").write_text(json.dumps(doc))
-    state.catalog.add_folder(
-        str(folder),
-        LibraryIdentity(
-            label="Gamma", name="haybale-gamma", folder_path=str(folder), module_name="haybale-gamma"
-        ),
-    )
-    _put(state, "a/fp32.pth", b"one")
-    _put(state, "a/fp16.pth", b"two")
-    # Both are local only if the index knows them by digest; index by the entries' digests.
-    state.index.add(location_of(_mod("haybale_models.keys").MODELS_VOLUME) / "a/fp32.pth", "d" * 64, None)
-    state.index.add(location_of(_mod("haybale_models.keys").MODELS_VOLUME) / "a/fp16.pth", "e" * 64, None)
-    port = _port(ModelRef(catalog="haybale-gamma:model:4x-Dual"), {"prefer": [{"precision": "fp32"}]})
-    node = SimpleNamespace(model_preference=lambda _pid: [{"precision": "fp16"}, {}])
-    port._wrapper = SimpleNamespace(node=node, is_cleaned_up=False)  # type: ignore[assignment]
-    await _open(user, _direct(port))
-
-    assert "fp16" in _status(user)
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_picking_an_entry_writes_a_catalog_ref(user: User, state: Any) -> None:
-    _put(state, "lib/sharp.pth")
-    port = _port(ModelRef())
-    await _open(user, _direct(port))
-
-    _select(user).value = "haybale-beta:model:4x-Sharp"
-
-    assert port.get_value() == ModelRef(catalog="haybale-beta:model:4x-Sharp")
-    assert _status(user) == "resolved: pytorch-pth, 7 B"
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_other_uri_writes_file_ref(user: User, state: Any) -> None:
-    port = _port(ModelRef())
-    await _open(user, _direct(port))
-
-    _select(user).value = OTHER
-    assert port.get_value() == ModelRef()
-    uri = cast(ui.input, user.find(marker="model-ref-uri").elements.pop())
-    assert uri.visible
-    uri.value = "https://example.invalid/m.pth"
-    user.find(marker="model-ref-uri").trigger("keydown.enter")
-
-    await _eventually(lambda: port.get_value() == ModelRef(urls=("https://example.invalid/m.pth",)))
-    assert _status(user) == "missing — Show in Models"
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_an_address_without_scheme_is_not_written(user: User, state: Any) -> None:
-    port = _port(ModelRef())
-    await _open(user, _direct(port))
-    _select(user).value = OTHER
-
-    cast(ui.input, user.find(marker="model-ref-uri").elements.pop()).value = "example.invalid/m.pth"
-    user.find(marker="model-ref-uri").trigger("keydown.enter")
-    await asyncio.sleep(0.05)
-
-    assert port.get_value() == ModelRef()
-    assert _status(user) == "an address starts with hf:// or https://"
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_an_hf_address_is_pinned_when_the_hub_answers(
-    user: User, state: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    hf = _mod("haybale_models.hf")
-    asked: list[str] = []
-
-    def remote(uri: str) -> tuple[str, int]:
-        asked.append(uri)
-        return SHA, 7
-
-    monkeypatch.setattr(hf, "remote_sha256", remote)
-    port = _port(ModelRef())
-    await _open(user, _direct(port))
-    _select(user).value = OTHER
-
-    cast(ui.input, user.find(marker="model-ref-uri").elements.pop()).value = "hf://org/repo/m.pth"
-    user.find(marker="model-ref-uri").trigger("keydown.enter")
-
-    pinned = ModelRef(urls=("hf://org/repo/m.pth",), sha256=SHA, size=7)
-    await _eventually(lambda: port.get_value() == pinned)
-    user.find(marker="model-ref-uri").trigger("blur")
-    await asyncio.sleep(0.05)
-    assert asked == ["hf://org/repo/m.pth"]
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_status_says_not_pinned_and_shows_pin(user: User, state: Any) -> None:
-    _put(state, "dl/m.pth", source="https://example.invalid/m.pth")
-    port = _port(ModelRef(urls=("https://example.invalid/m.pth",)))
-    await _open(user, _direct(port))
-
-    assert _status(user) == "not pinned — Pin digest"
-    pin = user.find(marker="model-ref-pin").elements.pop()
-    assert pin.visible
-    assert pin.props["data-hw-requires"] == "edit"
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_a_picked_unindexed_file_is_hashed_then_written(user: User, state: Any) -> None:
-    keys = _mod("haybale_models.keys")
-    path = location_of(keys.MODELS_VOLUME) / "mine" / "x.pth"
-    path.parent.mkdir(parents=True)
-    path.write_bytes(DATA)
-    port = _port(ModelRef())
-    await _open(user, _direct(port))
-    _select(user).value = OTHER
-
-    user.find(marker="model-ref-browse").click()
-    user.find(marker="model-ref-tree-models").trigger("update:selected", str(path))
-
-    await _eventually(lambda: port.get_value() == ModelRef(sha256=SHA, size=7, label="x.pth"))
-    assert state.index.sha256_at(path) == SHA
-    assert _status(user) == "resolved: x.pth, 7 B"
 
 
 def _cache_file(
@@ -362,31 +175,285 @@ def _cache_file(
     return link
 
 
-def _picks(user: User) -> list[ui.element]:
+# =============================================================================
+# Helpers for the card and the dialog
+# =============================================================================
+
+
+def _widget_mod() -> Any:
+    return _mod("haybale_models.widgets.model_ref_widget")
+
+
+def _icon_classes(widget: Any) -> list[str]:
+    return list(widget._icon.classes)
+
+
+def _open_picker(user: User, tab: str | None = None) -> None:
+    user.find(marker="model-ref-edit").click()
+    if tab is not None:
+        panels = cast(ui.tab_panels, user.find(marker="model-ref-tabs").elements.pop())
+        panels.value = tab
+
+
+def _rows(user: User, marker: str) -> list[ui.element]:
     try:
-        return list(user.find(marker="model-ref-hf-pick").elements)
+        return sorted(user.find(marker=marker).elements, key=lambda e: e.id)
     except AssertionError:  # nothing listed yet
         return []
 
 
-def _hf_labels(user: User) -> list[str]:
-    return sorted(next(c.text for c in r.descendants() if isinstance(c, ui.label)) for r in _picks(user))
+def _row_labels(user: User, marker: str) -> list[str]:
+    return [next(c.text for c in r.descendants() if isinstance(c, ui.label)) for r in _rows(user, marker)]
+
+
+def _click_row(user: User, marker: str, label: str) -> None:
+    for row in _rows(user, marker):
+        if next(c.text for c in row.descendants() if isinstance(c, ui.label)) == label:
+            for listener in list(row._event_listeners.values()):
+                if listener.type == "click":
+                    row._handle_event({"listener_id": listener.id, "args": {}})
+            return
+    raise AssertionError(f"no row {label!r}")
+
+
+def _current_name(user: User) -> str:
+    return cast(ui.label, user.find(marker="model-ref-current-name").elements.pop()).text
+
+
+# =============================================================================
+# The card
+# =============================================================================
 
 
 @pytest.mark.unit
 @pytest.mark.anyio
-async def test_hf_browser_lists_only_model_files_as_org_repo_path(user: User, state: Any) -> None:
+async def test_card_without_a_model_is_red_and_says_no_model(user: User, state: Any) -> None:
+    widget = await _open(user, _direct(_port(ModelRef())))
+
+    assert widget._icon.props["name"] == "model_training"
+    assert "hw-text-danger" in _icon_classes(widget)
+    assert widget._name.text == "no model"
+    assert not widget._pin.visible
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_card_shows_a_local_catalog_entry_green_by_name(user: User, state: Any) -> None:
+    _put(state, "lib/sharp.pth")
+    widget = await _open(user, _direct(_port(ModelRef(catalog="haybale-beta:model:4x-Sharp"))))
+
+    assert "hw-text-success" in _icon_classes(widget)
+    assert widget._name.text == "Sharp"
+    assert "Catalog: haybale-beta:model:4x-Sharp" in widget._name_tip.text
+    assert "Here: pytorch-pth, 7 B (local)" in widget._name_tip.text
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_card_shows_a_missing_model_amber(user: User, state: Any) -> None:
+    widget = await _open(user, _direct(_port(ModelRef(catalog="haybale-alpha:model:4x-Soft"))))
+
+    assert widget._icon.props["name"] == "model_training"
+    assert "hw-text-warning" in _icon_classes(widget)
+    assert widget._name.text == "Soft"
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_card_shows_an_unpinned_address_with_its_pin(user: User, state: Any) -> None:
+    _put(state, "dl/m.pth", source="https://example.invalid/m.pth")
+    widget = await _open(user, _direct(_port(ModelRef(urls=("https://example.invalid/m.pth",)))))
+
+    assert widget._icon.props["name"] == "online_prediction"
+    assert "hw-text-warning" in _icon_classes(widget)
+    assert widget._name.text == "m.pth"
+    assert widget._pin.visible
+    assert widget._pin.props["data-hw-requires"] == "edit"
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_card_names_an_hf_reference_by_its_repo(user: User, state: Any) -> None:
+    ref = ModelRef(urls=("hf://org/my-repo/sub/m.pth",), sha256=SHA, size=7, label="m.pth")
+    widget = await _open(user, _direct(_port(ref)))
+
+    assert widget._name.text == "my-repo"
+    assert "Address: hf://org/my-repo/sub/m.pth" in widget._name_tip.text
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_card_uses_the_nodes_model_preference(user: User, state: Any, tmp_path: Path) -> None:
+    doc = _entry("Dual", "esrgan", "d" * 64)
+    doc["resources"] = [
+        {**doc["resources"][0], "precision": "fp32", "sha256": "d" * 64},
+        {**doc["resources"][0], "precision": "fp16", "sha256": "e" * 64},
+    ]
+    folder = tmp_path / "catalogs" / "haybale-gamma"
+    folder.mkdir(parents=True)
+    (folder / "4x-Dual.json").write_text(json.dumps(doc))
+    state.catalog.add_folder(
+        str(folder),
+        LibraryIdentity(
+            label="Gamma", name="haybale-gamma", folder_path=str(folder), module_name="haybale-gamma"
+        ),
+    )
+    root = location_of(_mod("haybale_models.keys").MODELS_VOLUME)
+    _put(state, "a/fp32.pth", b"one")
+    _put(state, "a/fp16.pth", b"two")
+    state.index.add(root / "a/fp32.pth", "d" * 64, None)
+    state.index.add(root / "a/fp16.pth", "e" * 64, None)
+    port = _port(ModelRef(catalog="haybale-gamma:model:4x-Dual"), {"prefer": [{"precision": "fp32"}]})
+    node = SimpleNamespace(model_preference=lambda _pid: [{"precision": "fp16"}, {}])
+    port._wrapper = SimpleNamespace(node=node, is_cleaned_up=False)  # type: ignore[assignment]
+    widget = await _open(user, _direct(port))
+
+    assert "fp16" in widget._name_tip.text
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_card_pin_hashes_a_file_of_unknown_digest(
+    user: User, state: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    snapshot = state.hf_cache / "models--org--repo" / "snapshots" / "abc" / "cfg.json"
+    snapshot.parent.mkdir(parents=True)
+    snapshot.write_bytes(DATA)
+    monkeypatch.setattr(_mod("huggingface_hub"), "try_to_load_from_cache", lambda *a, **k: str(snapshot))
+    unpinned = ModelRef(urls=("hf://org/repo/cfg.json",))
+    port = _port(unpinned)
+    widget = await _open(user, _direct(port))
+    assert widget._pin.visible
+
+    user.find(marker="model-ref-pin").click()
+
+    await _eventually(lambda: port.get_value() == unpinned.pinned(SHA, 7))
+    assert "hw-text-success" in _icon_classes(widget)
+
+
+# =============================================================================
+# The picker dialog
+# =============================================================================
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("ref", "tab"),
+    [
+        ({}, "catalog"),
+        ({"catalog": "haybale-beta:model:4x-Sharp"}, "catalog"),
+        ({"urls": ["hf://org/repo/m.pth"]}, "hf"),
+        ({"urls": ["https://example.invalid/m.pth"]}, "address"),
+        ({"sha256": "a" * 64, "size": 1, "label": "x.pth"}, "files"),
+    ],
+)
+def test_picker_opens_on_the_tab_of_the_reference(ref: dict, tab: str) -> None:
+    model_ref = _mod("haybale_models.value.model_ref").ModelRef
+    assert _widget_mod()._tab_for(model_ref.from_dict(ref)) == tab
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_catalog_tab_lists_only_filtered_entries_by_library(user: User, state: Any) -> None:
+    _put(state, "lib/sharp.pth")
+    await _open(user, _direct(_port(ModelRef(), {"filter": {"architecture": ["esrgan"]}})))
+    _open_picker(user)
+
+    # Grouped by library label (Alpha before Beta), then by name.
+    assert _row_labels(user, "model-ref-catalog-pick") == ["Soft", "Sharp"]
+    texts = [lbl.text for lbl in user.find(kind=ui.label).elements]
+    assert "pytorch-pth · local · 7 B" in texts
+    assert "pytorch-pth · not downloaded · 2.4 MB" in texts
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_catalog_search_narrows_the_list(user: User, state: Any) -> None:
+    await _open(user, _direct(_port(ModelRef())))
+    _open_picker(user)
+
+    cast(ui.input, user.find(marker="model-ref-catalog-search").elements.pop()).value = "fas"
+
+    await _eventually(lambda: _row_labels(user, "model-ref-catalog-pick") == ["Fast"])
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_choosing_shows_the_choice_and_use_writes_it(user: User, state: Any) -> None:
+    _put(state, "lib/sharp.pth")
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user)
+
+    _click_row(user, "model-ref-catalog-pick", "Sharp")
+
+    assert _current_name(user) == "Sharp"
+    assert port.get_value() == ModelRef()  # nothing stored before Use
+    user.find(marker="model-ref-use").click()
+    await _eventually(lambda: port.get_value() == ModelRef(catalog="haybale-beta:model:4x-Sharp"))
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_cancel_stores_nothing(user: User, state: Any) -> None:
+    port = _port(ModelRef(catalog="haybale-beta:model:4x-Sharp"))
+    await _open(user, _direct(port))
+    _open_picker(user)
+
+    _click_row(user, "model-ref-catalog-pick", "Soft")
+    user.find(marker="model-ref-cancel").click()
+    await asyncio.sleep(0.05)
+
+    assert port.get_value() == ModelRef(catalog="haybale-beta:model:4x-Sharp")
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_clear_then_use_stores_no_model(user: User, state: Any) -> None:
+    port = _port(ModelRef(catalog="haybale-beta:model:4x-Sharp"))
+    await _open(user, _direct(port))
+    _open_picker(user)
+
+    user.find(marker="model-ref-clear").click()
+    assert _current_name(user) == "no model"
+    user.find(marker="model-ref-use").click()
+
+    await _eventually(lambda: port.get_value().is_empty)
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_models_folder_file_is_hashed_then_chosen(user: User, state: Any) -> None:
+    keys = _mod("haybale_models.keys")
+    path = location_of(keys.MODELS_VOLUME) / "mine" / "x.pth"
+    path.parent.mkdir(parents=True)
+    path.write_bytes(DATA)
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user, "files")
+    await _eventually(lambda: bool(_rows(user, "model-ref-file-pick")))
+
+    assert _row_labels(user, "model-ref-file-pick") == ["mine/x.pth"]
+    _click_row(user, "model-ref-file-pick", "mine/x.pth")
+    await _eventually(lambda: _current_name(user) == "x.pth")
+    user.find(marker="model-ref-use").click()
+
+    await _eventually(lambda: port.get_value() == ModelRef(sha256=SHA, size=7, label="x.pth"))
+    assert state.index.sha256_at(path) == SHA
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_hf_tab_lists_only_model_files_as_org_repo_path(user: User, state: Any) -> None:
     _cache_file(state, "org/repo", "c0ffee", "m.pth", main=True)
     _cache_file(state, "org/repo", "c0ffee", "sub/W.SafeTensors", main=True)
     _cache_file(state, "org/repo", "c0ffee", "config.json", b"{}", main=True)
     _cache_file(state, "other/tok", "beef", "tokenizer.model", b"t")
     await _open(user, _direct(_port(ModelRef())))
-    _select(user).value = OTHER
+    _open_picker(user, "hf")
+    await _eventually(lambda: bool(_rows(user, "model-ref-hf-pick")))
 
-    user.find(marker="model-ref-browse").click()
-    await _eventually(lambda: bool(_picks(user)))
-
-    assert _hf_labels(user) == ["org/repo/m.pth", "org/repo/sub/W.SafeTensors"]
+    assert sorted(_row_labels(user, "model-ref-hf-pick")) == ["org/repo/m.pth", "org/repo/sub/W.SafeTensors"]
     for label in user.find(kind=ui.label).elements:
         assert "models--" not in label.text
         assert "snapshots" not in label.text
@@ -394,24 +461,27 @@ async def test_hf_browser_lists_only_model_files_as_org_repo_path(user: User, st
 
 @pytest.mark.unit
 @pytest.mark.anyio
-async def test_hf_browser_search_narrows_the_list(user: User, state: Any) -> None:
-    _cache_file(state, "org/repo", "c0ffee", "a.pth", main=True)
-    _cache_file(state, "org/repo", "c0ffee", "b.pth", b"b", main=True)
-    await _open(user, _direct(_port(ModelRef())))
-    _select(user).value = OTHER
-    user.find(marker="model-ref-browse").click()
-    await _eventually(lambda: len(_picks(user)) == 2)
+async def test_an_hf_file_is_chosen_pinned_by_its_address(user: User, state: Any) -> None:
+    _cache_file(state, "org/repo", "c0ffee", "m.pth")
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user, "hf")
+    await _eventually(lambda: bool(_rows(user, "model-ref-hf-pick")))
 
-    cast(ui.input, user.find(marker="model-ref-hf-search").elements.pop()).value = "b.p"
+    _click_row(user, "model-ref-hf-pick", "org/repo/m.pth")
+    assert _current_name(user) == "repo"
+    user.find(marker="model-ref-use").click()
 
-    await _eventually(lambda: _hf_labels(user) == ["org/repo/b.pth"])
+    await _eventually(
+        lambda: port.get_value()
+        == ModelRef(urls=("hf://org/repo/m.pth@c0ffee",), sha256=SHA, size=7, label="m.pth")
+    )
 
 
 @pytest.mark.unit
 def test_hf_rows_take_main_else_the_newest_revision(state: Any) -> None:
     import os
 
-    widget_mod = _mod("haybale_models.widgets.model_ref_widget")
     old = _cache_file(state, "org/a", "old", "m.pth", b"1")
     _cache_file(state, "org/a", "new", "m.pth", b"2")
     os.utime(old.resolve(), (1, 1))
@@ -419,28 +489,88 @@ def test_hf_rows_take_main_else_the_newest_revision(state: Any) -> None:
     os.utime(pinned.resolve(), (1, 1))
     _cache_file(state, "org/b", "c2", "m.pth", b"4")
 
-    uris = {r.label: r.uri for r in widget_mod._hf_model_rows(state.hf_cache)}
+    uris = {r.label: r.uri for r in _widget_mod()._hf_model_rows(state.hf_cache)}
 
     assert uris == {"org/a/m.pth": "hf://org/a/m.pth@new", "org/b/m.pth": "hf://org/b/m.pth"}
 
 
+def _enter_address(user: User, text: str) -> None:
+    cast(ui.input, user.find(marker="model-ref-uri").elements.pop()).value = text
+    user.find(marker="model-ref-uri").trigger("keydown.enter")
+
+
 @pytest.mark.unit
 @pytest.mark.anyio
-async def test_a_picked_hf_file_writes_a_pinned_hf_address(user: User, state: Any) -> None:
-    _cache_file(state, "org/repo", "c0ffee", "m.pth")
+async def test_an_https_address_on_this_machine_is_pinned_on_use(user: User, state: Any) -> None:
+    _put(state, "dl/m.pth", source="https://example.invalid/m.pth")
     port = _port(ModelRef())
     await _open(user, _direct(port))
-    _select(user).value = OTHER
-    user.find(marker="model-ref-browse").click()
-    await _eventually(lambda: bool(_picks(user)))
+    _open_picker(user, "address")
 
-    user.find(marker="model-ref-hf-pick").click()
+    _enter_address(user, "https://example.invalid/m.pth")
+    await _eventually(lambda: _current_name(user) == "m.pth")
+    user.find(marker="model-ref-use").click()
 
     await _eventually(
-        lambda: port.get_value()
-        == ModelRef(urls=("hf://org/repo/m.pth@c0ffee",), sha256=SHA, size=7, label="m.pth")
+        lambda: port.get_value() == ModelRef(urls=("https://example.invalid/m.pth",)).pinned(SHA, 7)
     )
-    assert _status(user) == "resolved: m.pth, 7 B"
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_an_https_address_not_here_is_stored_unpinned(user: User, state: Any) -> None:
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user, "address")
+
+    _enter_address(user, "https://example.invalid/far.pth")
+    await _eventually(lambda: _current_name(user) == "far.pth")
+    user.find(marker="model-ref-use").click()
+
+    await _eventually(lambda: port.get_value() == ModelRef(urls=("https://example.invalid/far.pth",)))
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_an_hf_address_is_pinned_when_the_hub_answers(
+    user: User, state: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked: list[str] = []
+
+    def remote(uri: str) -> tuple[str, int]:
+        asked.append(uri)
+        return SHA, 7
+
+    monkeypatch.setattr(_mod("haybale_models.hf"), "remote_sha256", remote)
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user, "address")
+
+    _enter_address(user, "hf://org/repo/m.pth")
+    pinned = ModelRef(urls=("hf://org/repo/m.pth",), sha256=SHA, size=7)
+    await _eventually(
+        lambda: cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop()).text
+        == "Pinned from the Hub."
+    )
+    user.find(marker="model-ref-use").click()
+
+    await _eventually(lambda: port.get_value() == pinned)
+    assert asked == ["hf://org/repo/m.pth"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_an_address_without_scheme_is_not_taken(user: User, state: Any) -> None:
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user, "address")
+
+    _enter_address(user, "example.invalid/m.pth")
+    await asyncio.sleep(0.05)
+
+    note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
+    assert note.text == "An address starts with hf:// or https://"
+    assert _current_name(user) == "no model"
 
 
 # =============================================================================
@@ -488,7 +618,7 @@ def _routed(library_system, held_graph: BaseGraph, editor: Editor, mode: LevelMo
 
 @pytest.mark.integration
 @pytest.mark.anyio
-async def test_pin_digest_is_an_undoable_edit(
+async def test_card_pin_is_an_undoable_edit(
     user: User, state: Any, library_system, held_graph: BaseGraph, editor: Editor
 ) -> None:
     _put(state, "dl/m.pth", source="https://example.invalid/m.pth")
@@ -501,17 +631,35 @@ async def test_pin_digest_is_an_undoable_edit(
     user.find(marker="model-ref-pin").click()
 
     await _eventually(lambda: port.get_value() == unpinned.pinned(SHA, 7))
-    assert _status(user) == "resolved: m.pth, 7 B"
     assert editor.can_undo() is True
     editor.undo()
     assert port.get_value().sha256 is None
     assert editor.can_undo() is False
-    assert _status(user) == "not pinned — Pin digest"
+    assert widget._pin.visible
 
 
 @pytest.mark.integration
 @pytest.mark.anyio
-async def test_view_mode_widget_is_read_only(
+async def test_use_is_an_undoable_edit(
+    user: User, state: Any, library_system, held_graph: BaseGraph, editor: Editor
+) -> None:
+    _put(state, "lib/sharp.pth")
+    port, build = _routed(library_system, held_graph, editor, LevelMode.EDIT, ModelRef())
+    await _open(user, build)
+    _open_picker(user)
+
+    _click_row(user, "model-ref-catalog-pick", "Sharp")
+    user.find(marker="model-ref-use").click()
+
+    await _eventually(lambda: port.get_value() == ModelRef(catalog="haybale-beta:model:4x-Sharp"))
+    assert editor.can_undo() is True
+    editor.undo()
+    assert port.get_value().is_empty
+
+
+@pytest.mark.integration
+@pytest.mark.anyio
+async def test_view_mode_stores_nothing(
     user: User, state: Any, library_system, held_graph: BaseGraph, editor: Editor
 ) -> None:
     _put(state, "dl/m.pth", source="https://example.invalid/m.pth")
@@ -519,33 +667,14 @@ async def test_view_mode_widget_is_read_only(
     port, build = _routed(library_system, held_graph, editor, LevelMode.VIEW, unpinned)
     await _open(user, build)
 
-    _select(user).value = "haybale-beta:model:4x-Sharp"
     user.find(marker="model-ref-pin").click()
+    _open_picker(user)
+    _click_row(user, "model-ref-catalog-pick", "Sharp")
+    user.find(marker="model-ref-use").click()
     await asyncio.sleep(0.05)
 
     assert port.get_value() == unpinned
-    assert _select(user).value == OTHER
     assert editor.can_undo() is False
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_pin_hashes_a_file_of_unknown_digest(
-    user: User, state: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    snapshot = state.hf_cache / "models--org--repo" / "snapshots" / "abc" / "cfg.json"
-    snapshot.parent.mkdir(parents=True)
-    snapshot.write_bytes(DATA)
-    monkeypatch.setattr(_mod("huggingface_hub"), "try_to_load_from_cache", lambda *a, **k: str(snapshot))
-    unpinned = ModelRef(urls=("hf://org/repo/cfg.json",))
-    port = _port(unpinned)
-    await _open(user, _direct(port))
-    assert _status(user) == "not pinned — Pin digest"
-
-    user.find(marker="model-ref-pin").click()
-
-    await _eventually(lambda: port.get_value() == unpinned.pinned(SHA, 7))
-    assert _status(user) == "resolved: cfg.json, 7 B"
 
 
 class _DeadWrapper:
@@ -575,26 +704,3 @@ async def test_preference_falls_back_when_the_wrapper_is_cleaned_up(user: User, 
     port._wrapper = SimpleNamespace(node=node, is_cleaned_up=True)  # type: ignore[assignment]
     widget = await _open(user, _direct(port))
     assert widget._preference() == [{"precision": "fp16"}]
-
-
-@pytest.mark.integration
-@pytest.mark.anyio
-async def test_hf_pick_is_an_undoable_edit(
-    user: User, state: Any, library_system, held_graph: BaseGraph, editor: Editor
-) -> None:
-    _cache_file(state, "org/repo", "c0ffee", "m.pth", main=True)
-    port, build = _routed(library_system, held_graph, editor, LevelMode.EDIT, ModelRef())
-    await _open(user, build)
-    _select(user).value = OTHER
-    user.find(marker="model-ref-browse").click()
-    await _eventually(lambda: bool(_picks(user)))
-
-    user.find(marker="model-ref-hf-pick").click()
-
-    await _eventually(
-        lambda: port.get_value()
-        == ModelRef(urls=("hf://org/repo/m.pth",), sha256=SHA, size=7, label="m.pth")
-    )
-    assert editor.can_undo() is True
-    editor.undo()
-    assert port.get_value().is_empty

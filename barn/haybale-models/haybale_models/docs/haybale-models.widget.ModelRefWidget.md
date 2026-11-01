@@ -10,25 +10,29 @@ Pick a model
 
 ## Notes
 
-Pick a model from the catalog, or name a file.
+Pick the model a node uses.
 
-The list shows the catalog entries the port accepts, by library, each with
-whether it is on this machine (`local`, `HF cache` or `not downloaded`) and
-its size. A catalog entry follows the catalog: an update to the entry
-reaches every graph that uses it.
+The card shows one line: a state icon, the model's name and an edit button.
 
-Choose **Other…** to name one file instead: type its address (`hf://org/repo/file`
-or `https://…`) and press Enter, or browse. The browser shows the Models folder and the
-model files in the Hugging Face cache, listed as `org/repo/file`. A file picked
-from the Models folder is named by its sha256; one picked from the cache is named
-by its `hf://` address and its sha256, so it works offline. An address
-without a digest works, but the card says **not pinned**; **Pin digest** records
-the digest of the file on this machine so the graph always gets exactly that
-file. For an `hf://` address the digest is asked from the Hub once, when the
-address is entered.
+- Green icon: the model is on this machine.
+- Amber `online_prediction` icon: an address that is not pinned yet; the pin
+  button next to it records the digest of the file on this machine.
+- Amber icon: the model is not on this machine; fetch it in the Models editor.
+- Red icon: no model chosen.
 
-The line below says what the reference resolves to, or what is wrong. The
-picker never downloads: missing models are fetched in the Models editor.
+Hover the name for the details. The edit button opens the picker, with the
+choice at the top and four tabs:
+
+- **Catalog**: the catalog entries this port accepts. A catalog entry follows
+  the catalog: each machine uses the variant that suits it best.
+- **Models Volume**: a file in the Models volume, named by its sha256.
+- **Hugging Face**: a model file in the Hugging Face cache, named by its `hf://`
+  address and its sha256, so it works offline.
+- **Address**: an `hf://` or `https://` address. An `hf://` address is pinned when
+  the Hub answers; an `https://` address once the file is on this machine.
+
+**Use** stores the choice (pinned when its digest is known), **Cancel** drops it.
+The picker never downloads: missing models are fetched in the Models editor.
 
 Options (in `properties`):
 

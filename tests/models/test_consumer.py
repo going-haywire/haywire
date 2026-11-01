@@ -103,7 +103,7 @@ def test_unpinned_file_ref_warns_and_missing_clears(env: Any) -> None:
     env.index.add(path, sha(b"w"), "https://x/w.pth")
     node = make_node(ModelRef(urls=("https://x/w.pth",)))
     consumer.resolve_port(node, "m")
-    assert [w.message for w in node.wrapper.state.warnings] == ["Not pinned — Pin digest on the card"]
+    assert [w.message for w in node.wrapper.state.warnings] == ["Not pinned — use the pin on the card"]
     node.ports["m"].get_value = lambda: ModelRef(urls=("https://x/none",))
     with pytest.raises(ModelMissing):
         consumer.resolve_port(node, "m")
