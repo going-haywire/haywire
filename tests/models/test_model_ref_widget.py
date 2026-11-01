@@ -345,26 +345,102 @@ async def test_a_picked_unindexed_file_is_hashed_then_written(user: User, state:
     assert _status(user) == "resolved: x.pth, 7 B"
 
 
+def _cache_file(
+    state: Any, repo: str, commit: str, name: str, data: bytes = DATA, main: bool = False
+) -> Path:
+    """Add one file to the temp HF cache in HF's own layout (blob + snapshot symlink)."""
+    folder = state.hf_cache / ("models--" + repo.replace("/", "--"))
+    (folder / "blobs").mkdir(parents=True, exist_ok=True)
+    blob = folder / "blobs" / hashlib.sha256(data).hexdigest()
+    blob.write_bytes(data)
+    link = folder / "snapshots" / commit / name
+    link.parent.mkdir(parents=True, exist_ok=True)
+    link.symlink_to(blob)
+    if main:
+        (folder / "refs").mkdir(exist_ok=True)
+        (folder / "refs" / "main").write_text(commit)
+    return link
+
+
+def _picks(user: User) -> list[ui.element]:
+    try:
+        return list(user.find(marker="model-ref-hf-pick").elements)
+    except AssertionError:  # nothing listed yet
+        return []
+
+
+def _hf_labels(user: User) -> list[str]:
+    return sorted(next(c.text for c in r.descendants() if isinstance(c, ui.label)) for r in _picks(user))
+
+
 @pytest.mark.unit
 @pytest.mark.anyio
-async def test_a_picked_hf_snapshot_file_writes_its_hf_address(user: User, state: Any) -> None:
-    repo = state.hf_cache / "models--org--repo"
-    (repo / "blobs").mkdir(parents=True)
-    (repo / "blobs" / SHA).write_bytes(DATA)
-    snapshot = repo / "snapshots" / "c0ffee" / "m.pth"
-    snapshot.parent.mkdir(parents=True)
-    snapshot.symlink_to(repo / "blobs" / SHA)
-    port = _port(ModelRef())
-    await _open(user, _direct(port))
+async def test_hf_browser_lists_only_model_files_as_org_repo_path(user: User, state: Any) -> None:
+    _cache_file(state, "org/repo", "c0ffee", "m.pth", main=True)
+    _cache_file(state, "org/repo", "c0ffee", "sub/W.SafeTensors", main=True)
+    _cache_file(state, "org/repo", "c0ffee", "config.json", b"{}", main=True)
+    _cache_file(state, "other/tok", "beef", "tokenizer.model", b"t")
+    await _open(user, _direct(_port(ModelRef())))
     _select(user).value = OTHER
 
     user.find(marker="model-ref-browse").click()
-    user.find(marker="model-ref-tree-hugging").trigger("update:selected", str(snapshot))
+    await _eventually(lambda: bool(_picks(user)))
+
+    assert _hf_labels(user) == ["org/repo/m.pth", "org/repo/sub/W.SafeTensors"]
+    for label in user.find(kind=ui.label).elements:
+        assert "models--" not in label.text
+        assert "snapshots" not in label.text
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_hf_browser_search_narrows_the_list(user: User, state: Any) -> None:
+    _cache_file(state, "org/repo", "c0ffee", "a.pth", main=True)
+    _cache_file(state, "org/repo", "c0ffee", "b.pth", b"b", main=True)
+    await _open(user, _direct(_port(ModelRef())))
+    _select(user).value = OTHER
+    user.find(marker="model-ref-browse").click()
+    await _eventually(lambda: len(_picks(user)) == 2)
+
+    cast(ui.input, user.find(marker="model-ref-hf-search").elements.pop()).value = "b.p"
+
+    await _eventually(lambda: _hf_labels(user) == ["org/repo/b.pth"])
+
+
+@pytest.mark.unit
+def test_hf_rows_take_main_else_the_newest_revision(state: Any) -> None:
+    import os
+
+    widget_mod = _mod("haybale_models.widgets.model_ref_widget")
+    old = _cache_file(state, "org/a", "old", "m.pth", b"1")
+    _cache_file(state, "org/a", "new", "m.pth", b"2")
+    os.utime(old.resolve(), (1, 1))
+    pinned = _cache_file(state, "org/b", "c1", "m.pth", b"3", main=True)
+    os.utime(pinned.resolve(), (1, 1))
+    _cache_file(state, "org/b", "c2", "m.pth", b"4")
+
+    uris = {r.label: r.uri for r in widget_mod._hf_model_rows(state.hf_cache)}
+
+    assert uris == {"org/a/m.pth": "hf://org/a/m.pth@new", "org/b/m.pth": "hf://org/b/m.pth"}
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_picked_hf_file_writes_a_pinned_hf_address(user: User, state: Any) -> None:
+    _cache_file(state, "org/repo", "c0ffee", "m.pth")
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _select(user).value = OTHER
+    user.find(marker="model-ref-browse").click()
+    await _eventually(lambda: bool(_picks(user)))
+
+    user.find(marker="model-ref-hf-pick").click()
 
     await _eventually(
         lambda: port.get_value()
         == ModelRef(urls=("hf://org/repo/m.pth@c0ffee",), sha256=SHA, size=7, label="m.pth")
     )
+    assert _status(user) == "resolved: m.pth, 7 B"
 
 
 # =============================================================================
@@ -499,3 +575,26 @@ async def test_preference_falls_back_when_the_wrapper_is_cleaned_up(user: User, 
     port._wrapper = SimpleNamespace(node=node, is_cleaned_up=True)  # type: ignore[assignment]
     widget = await _open(user, _direct(port))
     assert widget._preference() == [{"precision": "fp16"}]
+
+
+@pytest.mark.integration
+@pytest.mark.anyio
+async def test_hf_pick_is_an_undoable_edit(
+    user: User, state: Any, library_system, held_graph: BaseGraph, editor: Editor
+) -> None:
+    _cache_file(state, "org/repo", "c0ffee", "m.pth", main=True)
+    port, build = _routed(library_system, held_graph, editor, LevelMode.EDIT, ModelRef())
+    await _open(user, build)
+    _select(user).value = OTHER
+    user.find(marker="model-ref-browse").click()
+    await _eventually(lambda: bool(_picks(user)))
+
+    user.find(marker="model-ref-hf-pick").click()
+
+    await _eventually(
+        lambda: port.get_value()
+        == ModelRef(urls=("hf://org/repo/m.pth",), sha256=SHA, size=7, label="m.pth")
+    )
+    assert editor.can_undo() is True
+    editor.undo()
+    assert port.get_value().is_empty

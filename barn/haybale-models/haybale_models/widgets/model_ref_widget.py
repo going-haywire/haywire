@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import re
+from dataclasses import dataclass
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 from nicegui import background_tasks, run, ui
@@ -28,8 +31,9 @@ from haywire.ui.widget.decorator import widget
 _OTHER = "__other__"
 _SCHEMES = ("hf://", "https://")
 _CHUNK = 1024 * 1024
-# The HF cache keeps file contents in blobs/ and names them in snapshots/; only names are picked.
-_HF_EXCLUDE_DIRS = DEFAULT_EXCLUDE_DIRS | {"blobs", "refs"}
+_MODEL_SUFFIXES = frozenset({".safetensors", ".pth", ".pt", ".ckpt", ".onnx", ".bin", ".gguf"})
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+_HF_ROW_LIMIT = 200
 
 
 @widget(description="Pick a model", min_width=220)
@@ -42,8 +46,10 @@ class ModelRefWidget(BaseWidget):
     reaches every graph that uses it.
 
     Choose **Other…** to name one file instead: type its address (`hf://org/repo/file`
-    or `https://…`) and press Enter, or browse the Models and Hugging Face cache
-    folders. A file picked from a folder is named by its sha256. An address
+    or `https://…`) and press Enter, or browse. The browser shows the Models folder and the
+    model files in the Hugging Face cache, listed as `org/repo/file`. A file picked
+    from the Models folder is named by its sha256; one picked from the cache is named
+    by its `hf://` address and its sha256, so it works offline. An address
     without a digest works, but the card says **not pinned**; **Pin digest** records
     the digest of the file on this machine so the graph always gets exactly that
     file. For an `hf://` address the digest is asked from the Hub once, when the
@@ -97,7 +103,7 @@ class ModelRefWidget(BaseWidget):
                 self._uri.on("blur", lambda _e: self._on_uri_entered())
                 self._browse = hui.icon_action(
                     hui.icon.folder_open,
-                    tooltip="Browse the model folders",
+                    tooltip="Browse the model files",
                     on_click=self._open_browser,
                 ).mark("model-ref-browse")
             self._other_row = other_row
@@ -265,12 +271,6 @@ class ModelRefWidget(BaseWidget):
     async def _on_file_picked(self, path: Path) -> None:
         """Write a file reference for *path*, hashing it first when no digest is known."""
         size = path.stat().st_size
-        hf_uri = _hf_uri_of(path)
-        if hf_uri is not None:
-            blob = path.resolve().name
-            sha = blob if len(blob) == 64 and all(c in "0123456789abcdef" for c in blob) else None
-            self._write(ModelRef(urls=(hf_uri,), sha256=sha, size=size if sha else None, label=path.name))
-            return
         index = consumer.models_state().index
         sha = index.sha256_at(path)
         if sha is None:
@@ -280,11 +280,20 @@ class ModelRefWidget(BaseWidget):
             index.add(path, sha, None)
         self._write(ModelRef(sha256=sha, size=size, label=path.name))
 
+    def _on_hf_picked(self, row: _HfRow) -> None:
+        """Write a pinned ``hf://`` reference for a cached file; it resolves from the cache."""
+        file = row.file
+        sha = file.blob_path.name if _SHA256.fullmatch(file.blob_path.name) else None
+        self._write(
+            ModelRef(urls=(row.uri,), sha256=sha, size=file.size, label=Path(file.path_in_repo).name)
+        )
+
     # ---- browser --------------------------------------------------------
 
     def _open_browser(self) -> None:
-        roots = [(label, root) for label, root in _browse_roots() if root.is_dir()]
-        if not roots:
+        models_root = _location(MODELS_VOLUME)
+        hf_root = _location(HF_VOLUME)
+        if models_root is None and hf_root is None:
             return
         if self._dialog is not None:
             self._dialog.delete()
@@ -295,19 +304,122 @@ class ModelRefWidget(BaseWidget):
                 # Hashing an unindexed file runs on a worker thread; the write follows on the loop.
                 background_tasks.create(self._on_file_picked(path), name="model-ref-pick")
 
+        def on_hf_pick(row: _HfRow) -> None:
+            dialog.close()
+            self._on_hf_picked(row)
+
         # Parented to the widget root so the dialog goes away with the widget.
         with self._root, ui.dialog() as dialog, hui.dialog_card("w-[480px]"):
             hui.heading("Browse models")
             with ui.scroll_area().classes("w-full h-72"):
-                for label, root in roots:
-                    hui.section_label(label)
-                    excluded = _HF_EXCLUDE_DIRS if label == "Hugging Face cache" else DEFAULT_EXCLUDE_DIRS
-                    model = FolderTreeModel(root, exclude_dirs=excluded)
-                    folder_tree(model, on_select=on_pick).mark(f"model-ref-tree-{label.split()[0].lower()}")
+                if models_root is not None:
+                    hui.section_label("Models")
+                    model = FolderTreeModel(models_root, exclude_dirs=DEFAULT_EXCLUDE_DIRS)
+                    folder_tree(model, on_select=on_pick).mark("model-ref-tree-models")
+                if hf_root is not None:
+                    hui.section_label("Hugging Face cache")
+                    search = hui.input_field(placeholder="Search…", clearable=True).mark(
+                        "model-ref-hf-search"
+                    )
+                    holder = ui.column().classes("w-full gap-0").mark("model-ref-hf-list")
+                    with holder:
+                        ui.label("Scanning…").classes("text-xs hw-text-muted")
+                    background_tasks.create(
+                        _fill_hf_list(hf_root, holder, search, on_hf_pick), name="model-ref-hf-scan"
+                    )
             with hui.action_row():
                 hui.button("Cancel", on_click=dialog.close).classes("w-auto").mark("model-ref-cancel")
         self._dialog = dialog
         dialog.open()
+
+
+@dataclass(frozen=True)
+class _HfRow:
+    """One pickable cached model file and the address that names it."""
+
+    file: hf.HfCachedFile
+    uri: str
+
+    @property
+    def label(self) -> str:
+        return f"{self.file.repo_id}/{self.file.path_in_repo}"
+
+
+async def _fill_hf_list(
+    cache_dir: Path, holder: ui.column, search: ui.input, on_pick: Callable[[_HfRow], None]
+) -> None:
+    """Scan the HF cache off the UI thread, then list its model files under *holder*."""
+    rows = await run.io_bound(_hf_model_rows, cache_dir)
+    if rows is None or holder.is_deleted:  # shutting down, or the dialog went away
+        return
+
+    def draw() -> None:
+        needle = str(search.value or "").strip().lower()
+        shown = [r for r in rows if needle in r.label.lower()]
+        holder.clear()
+        with holder:
+            if not shown:
+                ui.label("No model files cached" if not rows else "No match").classes(
+                    "text-xs hw-text-muted"
+                )
+            for row in shown[:_HF_ROW_LIMIT]:
+                hui.list_item(
+                    row.label, sublabel=_size_text(row.file.size), on_click=lambda r=row: on_pick(r)
+                ).mark("model-ref-hf-pick")
+            if len(shown) > _HF_ROW_LIMIT:
+                ui.label(f"{len(shown) - _HF_ROW_LIMIT} more — narrow the search").classes(
+                    "text-xs hw-text-muted"
+                )
+
+    search.on_value_change(lambda _e: draw())
+    draw()
+
+
+def _hf_model_rows(cache_dir: Path) -> list[_HfRow]:
+    """Return the model files in the HF cache, one row per ``(repo, path)``, ordered by label.
+
+    Only files with a model suffix (``.safetensors``, ``.pth``, ``.pt``, ``.ckpt``, ``.onnx``,
+    ``.bin``, ``.gguf``, any case) are listed. When a path is cached at several revisions, the
+    revision ``refs/main`` points to wins; otherwise the one whose blob is newest. The address
+    omits ``@revision`` for ``main``.
+    """
+    best: dict[tuple[str, str], tuple[tuple[bool, float], hf.HfCachedFile]] = {}
+    mains: dict[str, str | None] = {}
+    for file in hf.list_cache(cache_dir):
+        if Path(file.path_in_repo).suffix.lower() not in _MODEL_SUFFIXES:
+            continue
+        if file.repo_id not in mains:
+            mains[file.repo_id] = _main_revision(cache_dir, file.repo_id)
+        try:
+            mtime = file.blob_path.stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        rank = (file.revision == mains[file.repo_id], mtime)
+        key = (file.repo_id, file.path_in_repo)
+        if key not in best or rank >= best[key][0]:
+            best[key] = (rank, file)
+    rows = []
+    for _rank, file in best.values():
+        suffix = "" if file.revision == mains[file.repo_id] else f"@{file.revision}"
+        rows.append(_HfRow(file, f"hf://{file.repo_id}/{file.path_in_repo}{suffix}"))
+    rows.sort(key=lambda r: (r.label.lower(), r.label))
+    return rows
+
+
+def _main_revision(cache_dir: Path, repo_id: str) -> str | None:
+    ref = cache_dir / ("models--" + repo_id.replace("/", "--")) / "refs" / "main"
+    try:
+        return ref.read_text().strip() or None
+    except OSError:
+        return None
+
+
+def _location(volume: str) -> Path | None:
+    try:
+        root = location_of(volume)
+    except VolumeError:
+        return None
+    return root if root.is_dir() else None
 
 
 def _as_ref(value: Any) -> ModelRef:
@@ -344,26 +456,3 @@ def _sha256_of(path: Path) -> str:
         while chunk := fh.read(_CHUNK):
             digest.update(chunk)
     return digest.hexdigest()
-
-
-def _browse_roots() -> list[tuple[str, Path]]:
-    roots: list[tuple[str, Path]] = []
-    for label, volume in (("Models", MODELS_VOLUME), ("Hugging Face cache", HF_VOLUME)):
-        try:
-            roots.append((label, location_of(volume)))
-        except VolumeError:
-            continue
-    return roots
-
-
-def _hf_uri_of(path: Path) -> str | None:
-    """``hf://org/repo/file@commit`` for a snapshot file in the HF cache volume, else ``None``."""
-    found = volume_path_of(path)
-    if found is None or found.volume != HF_VOLUME:
-        return None
-    parts = found.relative.split("/")
-    # models--<org>--<repo>/snapshots/<commit>/<path in repo>
-    if len(parts) < 4 or parts[1] != "snapshots" or not parts[0].startswith("models--"):
-        return None
-    repo = parts[0][len("models--") :].replace("--", "/")
-    return f"hf://{repo}/{'/'.join(parts[3:])}@{parts[2]}"

@@ -22,7 +22,6 @@ Model references, local model store, downloads and graph needs-list
 
 ## States
 - **Models** — Model volumes, file index, download queue and the pool of loaded models
-- **Models View** — Per-session view state of the Models editor.
 
 ## Panels
 - **Models** — Model download behaviour: how many files download in parallel.

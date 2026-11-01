@@ -1,4 +1,4 @@
-"""ModelsEditor: catalog / local / HF sections, filter + Fetch all, admin gating, remove, progress."""
+"""ModelsEditor: needed / catalog / local / HF sections, Fetch all, admin gating, remove, progress."""
 
 from __future__ import annotations
 
@@ -30,9 +30,10 @@ from haybale_models.editors import models_editor as editor_module
 from haybale_models.editors.models_editor import ModelsEditor
 from haybale_models.hf import HfCachedFile
 from haybale_models.keys import MODELS_VOLUME
+from haybale_models.needs import collect_needs
+from haybale_models.resolver import resolve
 from haybale_models.signals import ModelsChanged
 from haybale_models.state.models_state import ModelsState
-from haybale_models.state.models_view_state import ModelsViewState
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
 
@@ -46,6 +47,7 @@ OTHER = b"other-bytes"
 OTHER_SHA = hashlib.sha256(OTHER).hexdigest()
 KEY = "haybale-alpha:model:Sharp"
 URL = "https://example.invalid/sharp.pth"
+ADDR = "https://example.invalid/files/pasted.pth"
 
 
 def _doc(name: str, sha: str, url: str) -> dict[str, Any]:
@@ -119,9 +121,8 @@ class _Harness:
         self.reports: dict[str, Any] = {}
         self.graphs = GraphAppState()
         self.graphs._signal_emit = lambda signal: None  # type: ignore[method-assign]
-        self.view = SimpleNamespace(graph_filter=None)
         self.ctx = SimpleNamespace(
-            data={ModelsViewState: self.view},
+            data={},
             app_data={ModelsState: self.models, GraphAppState: self.graphs},
             principal="alice",
             can_access=lambda required: self.tier.satisfies(required),
@@ -197,7 +198,11 @@ def _open_graph(harness: _Harness, library_system: Any, value: ModelRef, name: s
 
 def _report_for(harness: _Harness, binding: str = "g1") -> None:
     graph = harness.graphs.get(binding).editor.graph  # type: ignore[union-attr]
-    harness.reports[binding] = ModelsEditor._needs_of(cast(Any, harness.models), graph)
+    m = harness.models
+    harness.reports[binding] = collect_needs(
+        graph,
+        lambda ref, pref: resolve(ref, pref, catalog=m.catalog, index=m.index, hf_cache=m.hf_cache),
+    )
 
 
 def test_identity() -> None:
@@ -207,48 +212,7 @@ def test_identity() -> None:
 
 
 @pytest.mark.anyio
-async def test_sections_list_catalog_local_and_hf(
-    user: User, env: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    h = env()
-    h.put("alpha/Sharp/sharp.pth", DATA)
-    h.put("loose/other.bin", OTHER)
-    hf = [HfCachedFile("org/repo", "abcdef123456", "w.safetensors", 5000, Path("/x"))]
-    monkeypatch.setattr(editor_module, "list_cache", lambda root: hf)
-    h.editor._expansion["hf"] = True
-    await _open(user, h)
-
-    texts = h.texts()
-    assert {"Catalog", "Local"} <= set(texts)
-    assert h.marked("models-hf-section")
-    assert "local" in texts  # Sharp resolves through its digest
-    assert "not downloaded" in texts  # Soft
-    assert "loose/other.bin" in texts  # no catalog resource claims it
-    assert "alpha/Sharp/sharp.pth" not in texts
-    assert OTHER_SHA[:12] in texts
-    assert "org/repo/w.safetensors" in texts
-    assert any(t.startswith("models: ") for t in texts)
-    assert "HF cache: 5.0 KB" in texts
-
-
 @pytest.mark.anyio
-async def test_filter_shows_only_graph_needs_and_fetch_all_enqueues(
-    user: User, env: Any, library_system: Any
-) -> None:
-    h = env()
-    _open_graph(h, library_system, ModelRef(catalog=KEY))
-    h.view.graph_filter = "g1"
-    await _open(user, h)
-
-    assert len(h.marked("models-row")) == 1
-    assert "Needed by Rig" in [el.text for el in h.marked("models-filter-chip")]
-    user.find(marker="models-fetch-all").click()
-    assert [s.entry.name for s in h.fetched] == ["Sharp"]
-
-    user.find(marker="models-filter-clear").click()
-    assert h.view.graph_filter is None
-
-
 @pytest.mark.anyio
 async def test_download_button_hidden_below_admin(user: User, env: Any) -> None:
     h = env(AccessTier.VIEW)
@@ -298,69 +262,8 @@ async def test_remove_confirm_says_when_unused(user: User, env: Any) -> None:
 
 
 @pytest.mark.anyio
-async def test_hf_rows_have_no_remove(user: User, env: Any, monkeypatch: pytest.MonkeyPatch) -> None:
-    h = env()
-    hf = [HfCachedFile("org/repo", "abcdef123456", "w.bin", 10, Path("/x"))]
-    monkeypatch.setattr(editor_module, "list_cache", lambda root: hf)
-    h.editor._expansion["hf"] = True
-    await _open(user, h)
-
-    assert len(h.marked("models-hf-row")) == 1
-    assert not h.marked("models-remove")  # nothing local, and HF rows never carry one
-    user.find(marker="models-hf-reveal").click()
-    assert h.marked("models-hf-location")
-
-
 @pytest.mark.anyio
-async def test_hf_section_is_collapsed_with_count_and_size_and_builds_no_rows(
-    user: User, env: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    h = env()
-    hf = [HfCachedFile("org/repo", "abcdef123456", f"w{i}.bin", 1000, Path("/x")) for i in range(3)]
-    monkeypatch.setattr(editor_module, "list_cache", lambda root: hf)
-    await _open(user, h)
-
-    (section,) = h.marked("models-hf-section")
-    assert section.props["label"] == "HF cache — 3 files, 3.0 KB"
-    assert not section.props["model-value"]
-    assert not h.marked("models-hf-row")
-
-
 @pytest.mark.anyio
-async def test_finished_hf_download_refreshes_hf_rows_once(
-    user: User, env: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    h = env()
-    reads: list[int] = []
-    cached: list[HfCachedFile] = []
-
-    def fake_list(root: Path) -> list[HfCachedFile]:
-        reads.append(1)
-        return list(cached)
-
-    monkeypatch.setattr(editor_module, "list_cache", fake_list)
-    h.editor._expansion["hf"] = True
-    await _open(user, h)
-    assert len(reads) == 1
-    assert not h.marked("models-hf-row")
-
-    cached.append(HfCachedFile("Org/repo", "abcdef123456", "w.bin", 10, Path("/x")))
-    job = DownloadJob("dl-1", "W", None, 10, ("hf://Org/repo/w.bin",), state="running")
-    h.models.queue.job_list = [job]
-    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())  # progress tick
-    assert len(reads) == 1
-
-    job.state = "done"
-    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())
-    thread = h.editor._hf_thread
-    assert thread is not None
-    thread.join(5)
-    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())  # same finished set
-    assert len(reads) == 2
-    h.redraw()
-    assert len(h.marked("models-hf-row")) == 1
-
-
 @pytest.mark.anyio
 async def test_hf_rows_sort_case_insensitively(
     user: User, env: Any, monkeypatch: pytest.MonkeyPatch
@@ -481,19 +384,6 @@ async def test_remove_never_unlinks_a_symlink_escaping_the_volume(
 
 
 @pytest.mark.anyio
-async def test_filter_says_everything_present_when_nothing_is_missing(
-    user: User, env: Any, library_system: Any
-) -> None:
-    h = env()
-    h.put("alpha/Sharp/sharp.pth", DATA)
-    _open_graph(h, library_system, ModelRef(catalog=KEY))
-    h.view.graph_filter = "g1"
-    await _open(user, h)
-
-    assert "Everything this graph needs is present" in h.texts()
-    assert not h.marked("models-row")
-
-
 @pytest.mark.anyio
 async def test_one_locate_per_catalog_row_per_draw(
     user: User, env: Any, monkeypatch: pytest.MonkeyPatch
@@ -514,161 +404,14 @@ async def test_one_locate_per_catalog_row_per_draw(
     assert len(calls) == 2
 
 
-class _FakeTimer:
-    def __init__(self, delay: float, callback: Any, once: bool = False) -> None:
-        self.delay, self.callback = delay, callback
-        self.is_deleted = False
-        self._is_canceled = False
-
-    def cancel(self) -> None:
-        self._is_canceled = True
-
-
 @pytest.mark.anyio
-async def test_reused_needs_report_gets_one_trailing_redraw_that_recomputes(
-    user: User, env: Any, library_system: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    clock = [100.0]
-    monkeypatch.setattr(editor_module.time, "monotonic", lambda: clock[0])
-    timers: list[_FakeTimer] = []
-
-    def fake_timer(delay: float, callback: Any, once: bool = False) -> _FakeTimer:
-        timers.append(_FakeTimer(delay, callback, once))
-        return timers[-1]
-
-    monkeypatch.setattr(editor_module.ui, "timer", fake_timer)
-    h = env()
-    _open_graph(h, library_system, ModelRef(catalog=KEY))
-    h.view.graph_filter = "g1"
-    await _open(user, h)
-    assert len(h.marked("models-row")) == 1  # computed: Sharp is missing
-    for t in timers:  # mount's own trailing redraw has fired
-        t.is_deleted = True
-    timers.clear()
-
-    h.put("alpha/Sharp/sharp.pth", DATA)  # the model arrives
-    clock[0] += 0.3
-    for _ in range(5):  # burst of signal redraws inside the TTL reuses the stale report
-        h.redraw()
-    assert len(h.marked("models-row")) == 1
-    assert len(timers) == 1  # one coalesced trailing redraw
-    assert timers[0].delay == pytest.approx(0.7 + 0.05)
-
-    clock[0] += 0.8
-    timers[0].callback()  # the trailing redraw recomputes
-    assert "Everything this graph needs is present" in h.texts()
-    assert not h.marked("models-row")
-
-
 @pytest.mark.anyio
-async def test_cleanup_cancels_the_trailing_redraw(
-    user: User, env: Any, library_system: Any, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    timers: list[_FakeTimer] = []
-
-    def fake_timer(delay: float, callback: Any, once: bool = False) -> _FakeTimer:
-        timers.append(_FakeTimer(delay, callback, once))
-        return timers[-1]
-
-    monkeypatch.setattr(editor_module.ui, "timer", fake_timer)
-    h = env()
-    _open_graph(h, library_system, ModelRef(catalog=KEY))
-    h.view.graph_filter = "g1"
-    await _open(user, h)
-    assert timers  # mount's second draw reused the report
-    h.editor.cleanup()
-    assert all(t._is_canceled for t in timers)
-
-
 @pytest.mark.anyio
-async def test_graph_filter_change_redraws_through_the_session_bus() -> None:
-    """Setting or clearing ``graph_filter`` reaches the editor as a redraw, not only on a later signal."""
-    import weakref
-
-    from haywire.core.session.session import Session
-    from haywire.ui.editor.registry import EditorTypeRegistry
-    from haywire.ui.editor.wrapper import EditorWrapper
-
-    session = Session(app_state=MagicMock(), workspace_manager=MagicMock(), dispatcher=MagicMock())
-    session.context.app = SimpleNamespace()
-    wrapper = EditorWrapper(
-        editor_key=ModelsEditor.class_identity.registry_key,
-        editor_cls=ModelsEditor,
-        registry=EditorTypeRegistry(),
-        session=session,
-    )
-    assert wrapper._instantiate() is True
-    redraws: list[EditorWrapper] = []
-    wrapper.set_redraw_callback(redraws.append)
-    view = ModelsViewState()
-    view.session = weakref.ref(session)
-
-    view.graph_filter = "g1"
-    assert len(redraws) == 1
-    view.graph_filter = None
-    assert len(redraws) == 2
-
-
-ADDR = "https://example.invalid/files/pasted.pth"
-
-
 @pytest.mark.anyio
-async def test_filter_lists_needed_pasted_address_and_its_download_status(
-    user: User, env: Any, library_system: Any
-) -> None:
-    h = env()
-    _open_graph(h, library_system, ModelRef(urls=(ADDR,)))
-    h.view.graph_filter = "g1"
-    await _open(user, h)
-
-    assert len(h.marked("models-address-row")) == 1
-    assert not h.marked("models-row")
-    assert "pasted.pth" in h.texts()
-    assert "not downloaded" in h.texts()
-    assert "None of the missing models are in the catalog." not in h.texts()
-    assert "Catalog" not in h.texts()
-    assert len(h.marked("models-download")) == 1
-    assert not h.marked("models-cancel")
-
-    h.models.queue.job_list = [
-        DownloadJob("dl-9", "pasted", None, None, (ADDR,), state="running", done_bytes=30, total_bytes=100)
-    ]
-    h.redraw()
-    assert "downloading 30 %" in h.texts()
-    assert not h.marked("models-download")
-    user.find(marker="models-cancel").click()
-    assert h.models.queue.cancelled == ["dl-9"]
-
-
 @pytest.mark.anyio
-async def test_address_download_enqueues_and_is_admin_gated(
-    user: User, env: Any, library_system: Any
-) -> None:
-    h = env()
-    _open_graph(h, library_system, ModelRef(urls=(ADDR,)))
-    h.view.graph_filter = "g1"
-    await _open(user, h)
-    h.tier = AccessTier.VIEW  # demoted after the draw
-    user.find(marker="models-download").click()
-    assert h.fetched == []
-    h.tier = AccessTier.ADMIN
-    user.find(marker="models-download").click()
-    assert [s.ref.source for s in h.fetched] == [ADDR]
-
-
 @pytest.mark.anyio
-async def test_address_row_has_no_actions_below_admin(user: User, env: Any, library_system: Any) -> None:
-    h = env(AccessTier.VIEW)
-    _open_graph(h, library_system, ModelRef(urls=(ADDR,)))
-    h.view.graph_filter = "g1"
-    await _open(user, h)
-    assert h.marked("models-address-row")
-    assert not h.marked("models-download")
-    assert not h.marked("models-cancel")
-
-
 @pytest.mark.anyio
-async def test_unfiltered_downloads_section_lists_non_catalog_jobs_only(user: User, env: Any) -> None:
+async def test_downloads_section_lists_non_catalog_jobs_only(user: User, env: Any) -> None:
     h = env()
     h.models.queue.job_list = [
         DownloadJob("dl-1", "pasted", None, None, (ADDR,), state="running", done_bytes=10, total_bytes=100),
@@ -696,14 +439,19 @@ async def test_unfiltered_downloads_section_lists_non_catalog_jobs_only(user: Us
 
 
 @pytest.mark.anyio
-async def test_unfiltered_view_lists_graph_with_missing_model_without_walking(
+async def test_view_lists_graph_with_missing_model_without_walking(
     user: User, env: Any, library_system: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     h = env()
     _open_graph(h, library_system, ModelRef(catalog=KEY))
     _report_for(h)
     walks: list[Any] = []
-    monkeypatch.setattr(editor_module, "collect_needs", lambda *a, **k: walks.append(a))
+
+    def _spy(*a: Any, **k: Any) -> Any:
+        walks.append(a)
+        return iter(())
+
+    monkeypatch.setattr(editor_module, "iter_model_refs", _spy)
     await _open(user, h)
 
     assert len(h.marked("models-needed-row")) == 1
@@ -714,17 +462,6 @@ async def test_unfiltered_view_lists_graph_with_missing_model_without_walking(
 
 
 @pytest.mark.anyio
-async def test_needed_show_sets_the_graph_filter(user: User, env: Any, library_system: Any) -> None:
-    h = env(AccessTier.VIEW)
-    _open_graph(h, library_system, ModelRef(catalog=KEY))
-    _report_for(h)
-    await _open(user, h)
-
-    assert not h.marked("models-needed-fetch")
-    user.find(marker="models-needed-show").click()
-    assert h.view.graph_filter == "g1"
-
-
 @pytest.mark.anyio
 async def test_needed_fetch_enqueues_and_rechecks_at_click(
     user: User, env: Any, library_system: Any
@@ -818,3 +555,97 @@ async def test_catalog_row_shows_name_and_a_detail_line(user: User, env: Any) ->
     assert any(" · MIT ·" in t for t in h.texts())
     assert "not downloaded" in h.texts()
     assert h.marked("models-download")
+
+
+HF_CAT_URL = "hf://org/cat/w1.safetensors"
+HF_GRAPH_URL = "hf://org/graph/w2.safetensors@main"
+
+
+def _hf_catalog_entry(h: _Harness, tmp_path: Path) -> None:
+    folder = tmp_path / "catalog" / "haybale-alpha"
+    doc = _doc("HfModel", "d" * 64, HF_CAT_URL)
+    (folder / "HfModel.json").write_text(json.dumps(doc))
+    h.models.catalog.register_file(
+        folder / "HfModel.json",
+        LibraryIdentity(
+            label="Alpha", name="haybale-alpha", folder_path=str(folder), module_name="haybale-alpha"
+        ),
+    )
+
+
+@pytest.mark.anyio
+async def test_hf_section_lists_only_used_files_with_their_users(
+    user: User, env: Any, library_system: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    h = env()
+    _hf_catalog_entry(h, tmp_path)
+    _open_graph(h, library_system, ModelRef(urls=(HF_GRAPH_URL,)), name="Rig")
+    hf = [
+        HfCachedFile("org/cat", "abcdef123456", "w1.safetensors", 5000, Path("/x")),
+        HfCachedFile("org/graph", "abcdef123456", "w2.safetensors", 7000, Path("/y")),
+        HfCachedFile("org/other", "abcdef123456", "unrelated.bin", 9000, Path("/z")),
+    ]
+    monkeypatch.setattr(editor_module, "list_cache", lambda root: hf)
+    await _open(user, h)
+
+    texts = h.texts()
+    assert "org/cat/w1.safetensors" in texts
+    assert "org/graph/w2.safetensors" in texts
+    assert "org/other/unrelated.bin" not in texts
+    assert len(h.marked("models-hf-row")) == 2
+    used = [el.text for el in h.marked("models-hf-used")]
+    assert "catalog: HfModel" in used
+    assert "graph: Rig" in used
+    assert "HF cache: 21.0 KB" in texts  # the header still counts the whole cache
+    assert not h.marked("models-remove")
+    user.find(marker="models-hf-reveal").click()
+    assert h.marked("models-hf-location")
+
+
+@pytest.mark.anyio
+async def test_hf_section_hidden_when_no_cached_file_is_used(
+    user: User, env: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    h = env()
+    hf = [HfCachedFile("org/other", "abcdef123456", "unrelated.bin", 9000, Path("/z"))]
+    monkeypatch.setattr(editor_module, "list_cache", lambda root: hf)
+    await _open(user, h)
+
+    assert not h.marked("models-hf-section")
+    assert not h.marked("models-hf-row")
+    assert "HF cache" not in h.texts()
+
+
+@pytest.mark.anyio
+async def test_finished_hf_download_refreshes_hf_rows_once(
+    user: User, env: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    h = env()
+    _hf_catalog_entry(h, tmp_path)
+    reads: list[int] = []
+    cached: list[HfCachedFile] = []
+
+    def fake_list(root: Path) -> list[HfCachedFile]:
+        reads.append(1)
+        return list(cached)
+
+    monkeypatch.setattr(editor_module, "list_cache", fake_list)
+    await _open(user, h)
+    assert len(reads) == 1
+    assert not h.marked("models-hf-row")
+
+    cached.append(HfCachedFile("org/cat", "abcdef123456", "w1.safetensors", 10, Path("/x")))
+    job = DownloadJob("dl-1", "W", None, 10, (HF_CAT_URL,), state="running")
+    h.models.queue.job_list = [job]
+    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())  # progress tick
+    assert len(reads) == 1
+
+    job.state = "done"
+    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())
+    thread = h.editor._hf_thread
+    assert thread is not None
+    thread.join(5)
+    h.editor._on_models_changed(cast(Any, h.ctx), ModelsChanged())  # same finished set
+    assert len(reads) == 2
+    h.redraw()
+    assert len(h.marked("models-hf-row")) == 1

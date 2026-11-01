@@ -1,16 +1,16 @@
 """ModelsEditor — the model files on this machine and where they come from.
 
-Three sections: the **Catalog** (every resource of every installed catalog entry, with its
-status), **Local** (files in the models volume that no catalog resource claims) and the
-**Hugging Face cache** (read-only; haywire never deletes there). Download, cancel, remove and
-*Fetch all* need admin access and are re-checked at click time.
+A **Needed** section lists what the open graphs lack; below it the **Catalog** (every resource
+of every installed catalog entry, with its status), **Local** (files in the models volume that
+no catalog resource claims) and the **Hugging Face cache** (read-only; haywire never deletes
+there), which lists only files a catalog entry or an open graph refers to. Download, cancel,
+remove and *Fetch all* need admin access and are re-checked at click time.
 """
 
 from __future__ import annotations
 
 import logging
 import threading
-import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
@@ -31,16 +31,14 @@ from haybale_graph_editor.notices import GraphNoticesChanged
 from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_models.consumer import preference_for
 from haybale_models.download import DownloadJob
-from haybale_models.hf import HfCachedFile, list_cache
+from haybale_models.hf import HfCachedFile, list_cache, parse_hf
 from haybale_models.keys import MODELS_VOLUME
-from haybale_models.needs import NeededModel, NeedsReport, job_matches, tree, collect_needs, format_size
+from haybale_models.needs import NeededModel, format_size, iter_model_refs, job_matches
 from haybale_models.resolver import FetchSpec, ModelMissing, locate_resource, resolve
 from haybale_models.signals import ModelsChanged
 from haybale_models.state.models_state import ModelsState
-from haybale_models.state.models_view_state import ModelsViewState
 from haybale_models.status import resource_status
 from haybale_models.store.index import IndexRecord
-from haybale_models.value.model_ref import ModelRef
 
 if TYPE_CHECKING:
     from haywire.core.models import CatalogEntry, Resource
@@ -75,8 +73,6 @@ class _Located:
         return self.found is not None and not self.in_hf
 
 
-NEEDS_TTL_S = 1.0
-
 _LiveText = Callable[[dict[str, DownloadJob], dict[Path, float]], str]
 
 
@@ -93,9 +89,10 @@ class ModelsEditor(BaseEditor):
     Each catalog resource shows its status: `local`, `HF cache`, `downloading`, `failed` or
     `not downloaded`. Download, Cancel and Remove need admin access; a removal names the open
     graphs that use the file and the bytes it frees. Opening the editor and **Rescan** index
-    the files in the models volume on a background thread. When the notice of a graph sent you
-    here, only the resources that graph needs are listed, and **Fetch all** downloads them.
-    The Hugging Face cache is read-only: **Reveal location** shows where it lives.
+    the files in the models volume on a background thread. The **Needed** section lists, per
+    open graph, the models it lacks; **Fetch all** downloads them. The Hugging Face section
+    shows the cached files that catalog entries or open graphs use, and what uses each;
+    **Reveal location** shows where the cache lives.
     """
 
     def __init__(self, wrapper: EditorWrapper) -> None:
@@ -105,17 +102,13 @@ class ModelsEditor(BaseEditor):
         self._hf_thread: threading.Thread | None = None
         self._hf_again = False
         self._hf_seen: frozenset[str] = frozenset()
-        self._expansion: dict[str, bool] = {}
         self._hf_revealed = False
         self._started = False
-        self._needs_cache: tuple[str, float, NeedsReport | None] | None = None
-        self._trailing: Any = None
         self._structure: tuple[Any, ...] | None = None
         self._live: list[tuple[ui.label, _LiveText]] = []
         self._scroll_top = 0.0
-        self._drawn_filter: str | None = None
 
-    @react_on(ModelsChanged, GraphNoticesChanged, ModelsViewState.graph_filter)
+    @react_on(ModelsChanged, GraphNoticesChanged)
     def _on_models_changed(self, ctx: SessionContext, signal: object) -> None:
         """Redraw on a structural change; a download progress tick only rewrites the status labels."""
         if not self._started or not isinstance(signal, ModelsChanged):
@@ -138,7 +131,6 @@ class ModelsEditor(BaseEditor):
     def _structure_of(self, context: SessionContext, models: ModelsState) -> tuple[Any, ...]:
         """Return what decides the rows of a draw; a progress tick leaves it unchanged."""
         return (
-            context.data[ModelsViewState].graph_filter,
             context.can_access(AccessTier.ADMIN),
             tuple((j.id, j.state) for j in models.queue.jobs()),
             frozenset(r.sha256 for r in models.index.records()),
@@ -246,18 +238,9 @@ class ModelsEditor(BaseEditor):
         self._live = []
         admin = context.can_access(AccessTier.ADMIN)
         graphs = context.app_data[GraphAppState]
-        filter_id = context.data[ModelsViewState].graph_filter
-        graph_container = graphs.get(filter_id) if filter_id else None
-        report = (
-            self._cached_needs(models, filter_id, graph_container, container) if graph_container else None
-        )
-        needed = {s.spec.identity for s in report.missing if s.spec.entry is not None} if report else None
         jobs = models.queue.jobs()
         records = models.index.records()
         self._structure = self._structure_of(context, models)
-        if filter_id != self._drawn_filter:
-            self._drawn_filter = filter_id
-            self._scroll_top = 0.0
         with container:
             with ui.column().classes("w-full h-full gap-0"):
                 with hui.slot_header("Models", icon=hui.icon.models):
@@ -265,22 +248,17 @@ class ModelsEditor(BaseEditor):
                         hui.icon.refresh, tooltip="Rescan", on_click=lambda: self._rescan(models)
                     ).mark("models-rescan")
                 self._draw_usage(records)
-                if graph_container is not None and report is not None:
-                    self._draw_filter(context, models, graph_container.display_name, report, admin)
                 with (
                     ui.scroll_area(on_scroll=self._on_scroll)
                     .classes("flex-1 w-full")
                     .props('content-style="width: 100%" content-active-style="width: 100%"') as area
                 ):
                     with ui.column().classes("w-full gap-0 p-1"):
-                        if report is not None:
-                            self._draw_needs(context, models, jobs, report, needed or set(), admin)
-                        else:
-                            self._draw_needed(context, models, graphs, jobs, admin)
-                            claimed, shown = self._draw_catalog(context, models, jobs, None, admin)
-                            self._draw_downloads(context, models, jobs, shown, admin)
-                            self._draw_local(context, models, records, claimed, admin)
-                            self._draw_hf(models)
+                        self._draw_needed(context, models, graphs, jobs, admin)
+                        claimed, shown = self._draw_catalog(context, models, jobs, admin)
+                        self._draw_downloads(context, models, jobs, shown, admin)
+                        self._draw_local(context, models, records, claimed, admin)
+                        self._draw_hf(models, graphs)
                 if self._scroll_top > 0:
                     area.scroll_to(pixels=self._scroll_top)
 
@@ -301,7 +279,7 @@ class ModelsEditor(BaseEditor):
         if not rows:
             return
         hui.section_label("Needed")
-        for binding_id, name, report in sorted(rows, key=lambda r: r[1].lower()):
+        for _binding_id, name, report in sorted(rows, key=lambda r: r[1].lower()):
             n = len(report.missing)
             size = format_size(report.total_bytes)
             if report.unknown_size:
@@ -310,9 +288,6 @@ class ModelsEditor(BaseEditor):
                 with ui.row().classes("w-full items-center no-wrap gap-2 px-2 py-1"):
                     hui.subject(name).classes("truncate flex-1 min-w-0").tooltip(name)
                     hui.hint(f"{n} {'model' if n == 1 else 'models'}, {size}").classes("flex-shrink-0")
-                    hui.button("Show", on_click=lambda b=binding_id: self._show_graph(context, b)).classes(
-                        "w-auto"
-                    ).mark("models-needed-show")
                     if admin:
                         hui.button(
                             "Fetch all",
@@ -374,55 +349,6 @@ class ModelsEditor(BaseEditor):
                     on_click=lambda: self._download(context, models, spec),
                 ).mark("models-needed-download")
 
-    @staticmethod
-    def _show_graph(context: SessionContext, binding_id: str) -> None:
-        context.data[ModelsViewState].graph_filter = binding_id
-
-    def _cached_needs(
-        self, models: ModelsState, filter_id: str | None, container: Any, host: Element
-    ) -> NeedsReport | None:
-        """Return the needs of the filtered graph, reusing a report younger than ``NEEDS_TTL_S``.
-
-        A reused report schedules one trailing redraw at its expiry, which recomputes it.
-        """
-        key = filter_id or ""
-        cached = self._needs_cache
-        now = time.monotonic()
-        if cached is not None and cached[0] == key and now - cached[1] < NEEDS_TTL_S:
-            self._schedule_trailing(host, NEEDS_TTL_S - (now - cached[1]))
-            return cached[2]
-        report = self._needs_of(models, container.editor.graph)
-        self._needs_cache = (key, now, report)
-        return report
-
-    def _schedule_trailing(self, host: Element, delay: float) -> None:
-        """Arrange one redraw after *delay* seconds unless one is already pending."""
-        pending = self._trailing
-        if pending is not None and not pending.is_deleted and not pending._is_canceled:
-            return
-        # Parented above the redrawn container: a timer inside it would be deleted by the next redraw.
-        parent = host.parent_slot.parent if host.parent_slot is not None else host
-        with parent:
-            self._trailing = ui.timer(delay + 0.05, self.wrapper.redraw, once=True)
-
-    def cleanup(self) -> None:
-        pending = self._trailing
-        self._trailing = None
-        if pending is not None and not pending.is_deleted:
-            pending.cancel()
-
-    @staticmethod
-    def _needs_of(models: ModelsState, graph: Any) -> NeedsReport | None:
-        if graph is None:
-            return None
-
-        def resolve_fn(ref: ModelRef, preference: Any) -> Any:
-            return resolve(
-                ref, preference, catalog=models.catalog, index=models.index, hf_cache=models.hf_cache
-            )
-
-        return collect_needs(graph, resolve_fn)
-
     def _draw_usage(self, records: list[IndexRecord]) -> None:
         used = format_size(sum(r.size for r in records))
         if self._hf_rows is None:
@@ -433,22 +359,6 @@ class ModelsEditor(BaseEditor):
             hui.hint(f"models: {used}").mark("models-usage")
             hui.hint(hf_text).mark("models-hf-usage")
 
-    def _draw_filter(
-        self, context: SessionContext, models: ModelsState, name: str, report: NeedsReport, admin: bool
-    ) -> None:
-        with ui.row().classes("w-full items-center no-wrap gap-1 px-2 py-1"):
-            hui.tag(f"Needed by {name}", color="primary").mark("models-filter-chip")
-            hui.icon_action(
-                hui.icon.close, tooltip="Show everything", on_click=lambda: self._clear_filter(context)
-            ).mark("models-filter-clear")
-            ui.element("div").classes("flex-1")
-            if admin and report.missing:
-                hui.button(
-                    "Fetch all",
-                    icon=hui.icon.download,
-                    on_click=lambda: self._fetch_all(context, models, report.missing),
-                ).classes("w-auto").mark("models-fetch-all")
-
     # -- catalog -----------------------------------------------------------------
 
     def _draw_catalog(
@@ -456,7 +366,6 @@ class ModelsEditor(BaseEditor):
         context: SessionContext,
         models: ModelsState,
         jobs: list[DownloadJob],
-        needed: set[tuple[Any, ...]] | None,
         admin: bool,
     ) -> tuple[set[str], set[str]]:
         """Draw the Catalog section; returns the occupied digests and the job ids its rows show."""
@@ -466,22 +375,15 @@ class ModelsEditor(BaseEditor):
         by_library: dict[str, list[CatalogEntry]] = {}
         for entry in models.catalog.entries():
             by_library.setdefault(entry.library.label or entry.library.name, []).append(entry)
-        filtered = needed is not None
         hf_root = models.hf_cache
         drawn = False
         for library in sorted(by_library, key=str.lower):
             rows: list[_Located] = []
             for entry in sorted(by_library[library], key=lambda e: e.name.lower()):
                 for resource in entry.resources:
-                    if (
-                        needed is not None
-                        and FetchSpec(entry=entry, resource=resource).identity not in needed
-                    ):
-                        continue
-                    # One locate per resource; HF and claimed-set work only when unfiltered.
-                    found = locate_resource(resource, models.index, None if filtered else hf_root)
+                    found = locate_resource(resource, models.index, hf_root)
                     in_hf = found is not None and hf_root is not None and self._under(found[0], hf_root)
-                    if found is not None and not filtered:
+                    if found is not None:
                         claimed.update(sha for p in found[0].values() if (sha := models.index.sha256_at(p)))
                     rows.append(_Located(entry, resource, found, in_hf))
             if not rows:
@@ -494,26 +396,6 @@ class ModelsEditor(BaseEditor):
             hui.hint("Nothing in the catalog.").classes("px-2")
         return claimed, shown
 
-    def _draw_needs(
-        self,
-        context: SessionContext,
-        models: ModelsState,
-        jobs: list[DownloadJob],
-        report: NeedsReport,
-        catalog_needed: set[tuple[Any, ...]],
-        admin: bool,
-    ) -> None:
-        """Draw what the filtered graph lacks: catalog variants, then addresses."""
-        addresses = [m for m in report.missing if m.spec.entry is None]
-        if catalog_needed:
-            self._draw_catalog(context, models, jobs, catalog_needed, admin)
-        if addresses:
-            hui.section_label("Addresses")
-            for needed in addresses:
-                self._draw_address_row(context, models, jobs, needed, admin)
-        if not report.missing and not report.nodes:
-            hui.hint("Everything this graph needs is present").classes("px-2")
-
     @staticmethod
     def _basename(url: str) -> str:
         return PurePosixPath(urlparse(url).path).name or url
@@ -521,52 +403,6 @@ class ModelsEditor(BaseEditor):
     @staticmethod
     def _shorten(text: str, limit: int = 48) -> str:
         return text if len(text) <= limit else text[: limit - 1] + "…"
-
-    def _draw_address_row(
-        self,
-        context: SessionContext,
-        models: ModelsState,
-        jobs: list[DownloadJob],
-        needed: NeededModel,
-        admin: bool,
-    ) -> None:
-        spec = needed.spec
-        ref = spec.ref
-        source = (ref.source if ref is not None else None) or ""
-        label = needed.label if needed.label and needed.label != source else None
-        label = label or (self._basename(source) if source else (ref.sha256 or "")[:12] if ref else "")
-        matching = [j for j in jobs if job_matches(j, spec)]
-        active = [j for j in matching if j.state in ("queued", "running")]
-        with (
-            ui.column()
-            .classes("w-full gap-0 px-2 py-1 rounded hw-list-item-hover")
-            .mark("models-address-row")
-        ):
-            with ui.row().classes("w-full items-center no-wrap gap-2"):
-                hui.subject(label).classes("truncate flex-1 min-w-0").tooltip(source or label)
-                if admin and active:
-                    hui.icon_action(
-                        hui.icon.close,
-                        tooltip="Cancel download",
-                        on_click=lambda ids=[j.id for j in active]: self._cancel(context, models, ids),
-                    ).mark("models-cancel")
-                elif admin:
-                    hui.icon_action(
-                        hui.icon.download,
-                        tooltip="Download",
-                        on_click=lambda: self._download(context, models, spec),
-                    ).mark("models-download")
-            with ui.row().classes("w-full items-center no-wrap gap-1"):
-                size = format_size(needed.size) if needed.size is not None else "—"
-                hui.hint(f"{self._shorten(source, 32) + ' · ' if source else ''}{size} ·").classes(
-                    "truncate min-w-0"
-                ).tooltip(source or size)
-                self._live_status(
-                    hui.hint(resource_status(False, False, matching))
-                    .classes("flex-shrink-0")
-                    .mark("models-status"),
-                    self._job_status(False, False, [j.id for j in matching]),
-                )
 
     def _draw_downloads(
         self,
@@ -748,42 +584,80 @@ class ModelsEditor(BaseEditor):
 
     # -- HF cache -------------------------------------------------------------------
 
-    def _draw_hf(self, models: ModelsState) -> None:
+    def _hf_users(
+        self, models: ModelsState, graphs: GraphAppState
+    ) -> dict[tuple[str, str], tuple[set[str], set[str]]]:
+        """Map ``(repo id, path)`` of every ``hf://`` file in use to its catalog entries and open graphs."""
+        users: dict[tuple[str, str], tuple[set[str], set[str]]] = {}
+
+        def add(url: str, catalog_name: str | None, graph_name: str | None) -> None:
+            if not url.startswith("hf://"):
+                return
+            try:
+                uri = parse_hf(url)
+            except ValueError:
+                return
+            names, graph_names = users.setdefault((uri.repo_id.lower(), uri.path), (set(), set()))
+            if catalog_name:
+                names.add(catalog_name)
+            if graph_name:
+                graph_names.add(graph_name)
+
+        def entry_urls(entry: CatalogEntry) -> list[str]:
+            urls: list[str] = []
+            for resource in entry.resources:
+                urls.extend(resource.urls)
+                for f in resource.files:
+                    urls.extend(f.urls)
+            return urls
+
+        for entry in models.catalog.entries():
+            for url in entry_urls(entry):
+                add(url, entry.name, None)
+        for container in graphs.all_containers():
+            graph = container.editor.graph
+            if graph is None:
+                continue
+            for _wrapper, _port_id, ref in iter_model_refs(graph):
+                found = models.catalog.entry(ref.catalog) if ref.catalog else None
+                for url in entry_urls(found) if found is not None else ref.urls:
+                    add(url, None, container.display_name)
+        return users
+
+    def _draw_hf(self, models: ModelsState, graphs: GraphAppState) -> None:
+        """Draw the cached Hugging Face files that a catalog entry or an open graph refers to."""
         root = models.hf_cache
-        rows = self._hf_rows
-        if rows is None:
-            title = "HF cache — scanning…"
-        else:
-            title = f"HF cache — {len(rows)} files, {format_size(sum(r.size for r in rows))}"
-        with hui.expansion_section(
-            title, default_open=False, state=self._expansion, panel_key="hf"
-        ) as section:
-            section.mark("models-hf-section")
-            section.on("update:modelValue", self.wrapper.redraw)
-            if not self._expansion.get("hf", False):
-                return  # rows are built only while open: hundreds of them at every progress redraw
-            with ui.row().classes("w-full items-center gap-2 px-2"):
-                hui.hint("External: shared with other tools, never deleted here.")
-                if root is not None:
-                    hui.button("Reveal location", on_click=self._toggle_reveal).classes("w-auto").mark(
-                        "models-hf-reveal"
-                    )
-            if self._hf_revealed and root is not None:
-                with ui.column().classes("w-full px-2"):
-                    hui.info_row("Location", str(root), label_width="w-16").mark("models-hf-location")
-            if root is None:
-                hui.hint("The Hugging Face cache volume is not available.").classes("px-2")
-                return
-            if rows is None:
-                hui.hint("Scanning…").classes("px-2")
-                return
-            if not rows:
-                hui.hint("Nothing cached.").classes("px-2")
-            for row in rows:
-                with ui.row().classes("w-full items-center no-wrap gap-2 px-2 py-1").mark("models-hf-row"):
+        if root is None or not self._hf_rows:
+            return
+        users = self._hf_users(models, graphs)
+        rows = [
+            (r, users[key]) for r in self._hf_rows if (key := (r.repo_id.lower(), r.path_in_repo)) in users
+        ]
+        if not rows:
+            return
+        hui.section_label("HF cache")
+        with ui.row().classes("w-full items-center gap-2 px-2").mark("models-hf-section"):
+            hui.hint("External: shared with other tools, never deleted here.")
+            hui.button("Reveal location", on_click=self._toggle_reveal).classes("w-auto").mark(
+                "models-hf-reveal"
+            )
+        if self._hf_revealed:
+            with ui.column().classes("w-full px-2"):
+                hui.info_row("Location", str(root), label_width="w-16").mark("models-hf-location")
+        for row, (entries, graph_names) in rows:
+            used = "; ".join(
+                part
+                for part in (
+                    f"catalog: {', '.join(sorted(entries, key=str.lower))}" if entries else "",
+                    f"graph: {', '.join(sorted(graph_names, key=str.lower))}" if graph_names else "",
+                )
+                if part
+            )
+            with ui.column().classes("w-full gap-0 px-2 py-1").mark("models-hf-row"):
+                with ui.row().classes("w-full items-center no-wrap gap-2"):
                     hui.subject(f"{row.repo_id}/{row.path_in_repo}").classes("truncate flex-1 min-w-0")
-                    hui.hint(row.revision[:8]).classes("font-mono flex-shrink-0")
                     hui.hint(format_size(row.size)).classes("flex-shrink-0")
+                hui.hint(used).classes("truncate").mark("models-hf-used")
 
     def _toggle_reveal(self) -> None:
         self._hf_revealed = not self._hf_revealed
@@ -793,13 +667,8 @@ class ModelsEditor(BaseEditor):
 
     def _rescan(self, models: ModelsState) -> None:
         self._hf_rows = None
-        self._needs_cache = None
         self._start_scan(models)
         self.wrapper.redraw()
-
-    @staticmethod
-    def _clear_filter(context: SessionContext) -> None:
-        context.data[ModelsViewState].graph_filter = None
 
     @staticmethod
     def _refuse(client: Any) -> None:
@@ -856,36 +725,17 @@ class ModelsEditor(BaseEditor):
 
     @staticmethod
     def _graph_uses(models: ModelsState, graph: Any, shas: set[str]) -> bool:
-        from haybale_models.types.model_ref import MODEL_REF
-
-        for level in tree(graph):
-            for wrapper in list(level.node_wrappers.values()):
-                node = wrapper.node
-                for port_id, port in list(getattr(node, "ports", {}).items()):
-                    if not (port.is_inlet() or port.is_config()):
-                        continue
-                    if not (isinstance(port.type_cls, type) and issubclass(port.type_cls, MODEL_REF)):
-                        continue
-                    if port.is_linked():
-                        continue
-                    value = port.get_value()
-                    ref = value if isinstance(value, ModelRef) else ModelRef.from_dict(value or {})
-                    if ref.is_empty:
-                        continue
-                    try:
-                        preference = preference_for(node, port_id)
-                    except Exception:
-                        preference = [{}]
-                    try:
-                        found = resolve(
-                            ref, preference, catalog=models.catalog, index=models.index, hf_cache=None
-                        )
-                    except ModelMissing:
-                        continue
-                    if found.sha256 in shas or any(
-                        models.index.sha256_at(p) in shas for p in found.files.values()
-                    ):
-                        return True
+        for wrapper, port_id, ref in iter_model_refs(graph):
+            try:
+                preference = preference_for(wrapper.node, port_id)
+            except Exception:
+                preference = [{}]
+            try:
+                found = resolve(ref, preference, catalog=models.catalog, index=models.index, hf_cache=None)
+            except ModelMissing:
+                continue
+            if found.sha256 in shas or any(models.index.sha256_at(p) in shas for p in found.files.values()):
+                return True
         return False
 
     def _confirm_remove(self, context: SessionContext, models: ModelsState, removal: _Removal) -> None:

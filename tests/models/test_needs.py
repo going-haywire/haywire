@@ -22,7 +22,6 @@ from haybale_models.consumer import MISSING_WARNING
 from haybale_models.download import DownloadJob
 from haybale_models.keys import MODELS_VOLUME, NEEDS_NOTICE
 from haybale_models.needs import NeedsWatcher, format_size
-from haybale_models.state.models_view_state import ModelsViewState
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
 
@@ -363,22 +362,18 @@ def test_removed_subgraph_is_unsubscribed_on_rewalk(env: Any, graph: Any) -> Non
     assert len(definition._validation._callbacks) == count - 1
 
 
-def test_action_sets_filter_and_reveals(env: Any, graph: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_action_reveals_the_editor(env: Any, graph: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     _add(graph, ref())
     env.open(graph)
     env.settle()
     published: list[Any] = []
-    view = SimpleNamespace(graph_filter=None)
-    context = SimpleNamespace(
-        data={ModelsViewState: view}, session=SimpleNamespace(publish=published.append)
-    )
+    context = SimpleNamespace(session=SimpleNamespace(publish=published.append))
     editor_cls = type("ModelsEditor", (), {})
     module = types.ModuleType("haybale_models.editors.models_editor")
     module.ModelsEditor = editor_cls  # type: ignore[attr-defined]
     monkeypatch.setitem(sys.modules, "haybale_models.editors.models_editor", module)
     env.graphs.notices("g1")[0].action(context)
 
-    assert view.graph_filter == "g1"
     assert len(published) == 1
     assert published[0].editor is editor_cls
 

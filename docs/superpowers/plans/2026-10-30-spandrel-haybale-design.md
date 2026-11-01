@@ -416,7 +416,7 @@ node per evaluation, so it must be ~free when nothing failed:
 - Path traversal in layout (a `..` basename, a bundle `file.path` with `../`) is refused; download is the only writer.
 - `huggingface_hub` resolved to 2.4 (plan said at least 1.0).
 - `@library(dependencies=...)` no longer exists; `linked_libraries` in `haybale.toml` declares graph-editor.
-- The Models editor's graph filter keeps missing-only semantics; an empty filtered view says "Everything this graph needs is present". Draws do one locate per row, and the needs report is cached for up to 1 s with one trailing redraw at expiry.
+- Show in Models opens the editor; the **Needed** section at its top lists, per open graph, the missing models with status, Download/Cancel and Fetch all (there is no graph filter). The HF cache section lists only files a catalog entry or an open graph refers to, with what uses each. Draws do one locate per row.
 - Removal deletes only digests actually removed from the index; with nothing deletable it notifies and shows no dialog.
 - `models_list` `local` lists every indexed file, with no "unclaimed" filter.
 

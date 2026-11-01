@@ -18,8 +18,10 @@ its size. A catalog entry follows the catalog: an update to the entry
 reaches every graph that uses it.
 
 Choose **Other…** to name one file instead: type its address (`hf://org/repo/file`
-or `https://…`) and press Enter, or browse the Models and Hugging Face cache
-folders. A file picked from a folder is named by its sha256. An address
+or `https://…`) and press Enter, or browse. The browser shows the Models folder and the
+model files in the Hugging Face cache, listed as `org/repo/file`. A file picked
+from the Models folder is named by its sha256; one picked from the cache is named
+by its `hf://` address and its sha256, so it works offline. An address
 without a digest works, but the card says **not pinned**; **Pin digest** records
 the digest of the file on this machine so the graph always gets exactly that
 file. For an `hf://` address the digest is asked from the Hub once, when the

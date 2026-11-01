@@ -19,7 +19,6 @@
 
 ## state
 - `haybale-models:state:ModelsState` — Models — Model volumes, file index, download queue and the pool of loaded models
-- `haybale-models:state:ModelsViewState` — Models View — Per-session view state of the Models editor.
 
 ## panel
 - `haybale-models:panel:ModelsSettingsPanel` — Models — Model download behaviour: how many files download in parallel.

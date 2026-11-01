@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
@@ -30,7 +30,6 @@ from haybale_models.download import DownloadJob, DownloadQueue
 from haybale_models.keys import NEEDS_NOTICE
 from haybale_models.matcher import Preference
 from haybale_models.resolver import FetchSpec, ModelMissing, ResolvedModel, resolve
-from haybale_models.state.models_view_state import ModelsViewState
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
 
@@ -117,24 +116,18 @@ def tree(graph: BaseGraph) -> list[BaseGraph]:
     return found
 
 
-def collect_needs(graph: BaseGraph, resolve_fn: ResolveFn) -> NeedsReport:
-    """Return the models *graph* and its interiors need and lack.
+def iter_model_refs(graph: BaseGraph) -> Iterator[tuple[NodeWrapper, str, ModelRef]]:
+    """Yield ``(wrapper, port_id, ref)`` for each non-empty ``MODEL_REF`` value of *graph* and its interiors.
 
-    Only ``MODEL_REF`` ports holding their own value count: a wired port gets its value
-    from upstream and an empty one asks for nothing. Models are deduplicated by spec
-    identity.
+    Only ports holding their own value count: a wired port gets its value from upstream.
     """
     from haybale_models.types.model_ref import MODEL_REF
 
-    report = NeedsReport()
-    seen: dict[tuple[Any, ...], NeededModel] = {}
     for level in tree(graph):
         for wrapper in list(level.node_wrappers.values()):
-            node = wrapper.node
-            ports = getattr(node, "ports", None)
+            ports = getattr(wrapper.node, "ports", None)
             if not ports:
                 continue
-            marked = False
             for port_id, port in list(ports.items()):
                 if not (port.is_inlet() or port.is_config()):
                     continue
@@ -144,37 +137,46 @@ def collect_needs(graph: BaseGraph, resolve_fn: ResolveFn) -> NeedsReport:
                     continue
                 value = port.get_value()
                 ref = value if isinstance(value, ModelRef) else ModelRef.from_dict(value or {})
-                if ref.is_empty:
-                    continue
-                try:
-                    preference = preference_for(node, port_id)
-                except Exception:
-                    logger.debug("model_preference of %s failed", wrapper.node_id, exc_info=True)
-                    preference = [{}]
-                try:
-                    resolve_fn(ref, preference)
-                except ModelMissing as missing:
-                    if not marked:
-                        report.nodes.append(wrapper)
-                        marked = True
-                    if not missing.wanted:
-                        continue
-                    spec = missing.wanted[0]
-                    known = seen.get(spec.identity)
-                    if known is not None:
-                        if wrapper.node_id not in known.node_ids:
-                            known.node_ids.append(wrapper.node_id)
-                        continue
-                    size = _spec_size(spec)
-                    needed = NeededModel(
-                        wrapper.node_id, port_id, _spec_label(spec), spec, size, [wrapper.node_id]
-                    )
-                    seen[spec.identity] = needed
-                    report.missing.append(needed)
-                    if size is None:
-                        report.unknown_size += 1
-                    else:
-                        report.total_bytes += size
+                if not ref.is_empty:
+                    yield wrapper, port_id, ref
+
+
+def collect_needs(graph: BaseGraph, resolve_fn: ResolveFn) -> NeedsReport:
+    """Return the models *graph* and its interiors need and lack.
+
+    Models are deduplicated by spec identity.
+    """
+    report = NeedsReport()
+    seen: dict[tuple[Any, ...], NeededModel] = {}
+    marked: set[str] = set()
+    for wrapper, port_id, ref in iter_model_refs(graph):
+        try:
+            preference = preference_for(wrapper.node, port_id)
+        except Exception:
+            logger.debug("model_preference of %s failed", wrapper.node_id, exc_info=True)
+            preference = [{}]
+        try:
+            resolve_fn(ref, preference)
+        except ModelMissing as missing:
+            if wrapper.node_id not in marked:
+                report.nodes.append(wrapper)
+                marked.add(wrapper.node_id)
+            if not missing.wanted:
+                continue
+            spec = missing.wanted[0]
+            known = seen.get(spec.identity)
+            if known is not None:
+                if wrapper.node_id not in known.node_ids:
+                    known.node_ids.append(wrapper.node_id)
+                continue
+            size = _spec_size(spec)
+            needed = NeededModel(wrapper.node_id, port_id, _spec_label(spec), spec, size, [wrapper.node_id])
+            seen[spec.identity] = needed
+            report.missing.append(needed)
+            if size is None:
+                report.unknown_size += 1
+            else:
+                report.total_bytes += size
     return report
 
 
@@ -535,7 +537,6 @@ class NeedsWatcher:
         """One stable callable per graph, so an unchanged notice re-posts as equal."""
 
         def show_in_models(context: SessionContext) -> None:
-            context.data[ModelsViewState].graph_filter = w.binding_id
             try:
                 from haybale_models.editors.models_editor import ModelsEditor
             except ImportError:
