@@ -134,6 +134,10 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 - The PathWidget's "not defined" status names the volume by the key's name part.
 - `list_volumes` treats an OS error checking a location as "missing".
 
+**S1b follow-up — PRIORITY (found in the S6 live check, 2026-11-01)**
+
+- A volume a library added (key not `user:volume:…`) shows **Delete** in the Volumes editor. Delete means "reset" (the library re-adds it with its suggested location), but only at the library's next `on_enable`; until then the volume is undefined and the library breaks (Models refuses to scan and download). Decision (b): library volumes get **Reset to suggested location** instead of Delete — `ensure_volume` also stores the suggested location in the entry (`suggested` field in `volumes.toml`) and Reset writes it back at once, so the volume never disappears. Only user volumes (`user:volume:…`) can be deleted. Tell by the key.
+
 ### 2.2 Batch nodes — haybale-core (Q8, Q11, Q12, Q31)
 - **`Run Button`** — EVENT widget node; emits one Trigger; OPERATE tier.
 - **`For Each File`** — LOOPBACK. Inputs: folder, glob (stdlib `pathlib` glob, `**` recursive),
@@ -398,7 +402,7 @@ node per evaluation, so it must be ~free when nothing failed:
 **S6 decisions**: see the [S6 plan](2026-10-31-s6-haybale-models.md).
 
 **S6 deviations from plan:**
-- Nothing was committed during execution; the slice sits uncommitted in the working tree.
+- Nothing was committed during execution; the slice was committed afterwards as six commits (`ab52290dc..eeaf9db5a` on `feat/s6-haybale-models`).
 - Model stems follow their own rule (`[A-Za-z0-9][A-Za-z0-9_-]*`, so `4x-Demo` is valid), not the macro registry's.
 - A download target takes an optional digest lookup to add `-<sha8>` on a same-name, different-digest file; without one it never suffixes.
 - `ResolvedModel.key` is the pool key (sha256 when known, else `path:` + absolute path); `sha256` stays honest and is empty when unknown.
@@ -415,6 +419,35 @@ node per evaluation, so it must be ~free when nothing failed:
 - The Models editor's graph filter keeps missing-only semantics; an empty filtered view says "Everything this graph needs is present". Draws do one locate per row, and the needs report is cached for up to 1 s with one trailing redraw at expiry.
 - Removal deletes only digests actually removed from the index; with nothing deletable it notifies and shows no dialog.
 - `models_list` `local` lists every indexed file, with no "unclaimed" filter.
+
+**S6 open for the live check (not verifiable in tests)**
+
+- Haystack popup closes about once a second while a fetch runs: every `GraphNoticesChanged` (progress text, throttled to ~1/s) redraws the whole haystack list; `ModelsChanged` (~4 Hz per job) redraws every open Models editor. Decide after the live check: keep an open popup across a notices-only redraw, or move the percentage out of the notice text.
+- `huggingface_hub` 2.x / Xet may not stage `*.incomplete` blobs under `blobs/`; HF download progress would then sit at 0 until done.
+- Hot reload of graph-editor alone: the needs watcher may stay bound to the old `GraphAppState` (`linked_libraries` should reload haybale-models too).
+- Models editor: scan-thread `wrapper.redraw` via `call_soon_threadsafe` without a slot context; scroll position under ~4 Hz redraws.
+- Model widget: `select.set_options` during `popup-show` may reset the open popup.
+- Deleting a node that carries a model warning (`replace_warnings` on a removed wrapper).
+- The two OpenModelDB demo entries were not re-checked against upstream commit 782aac08.
+
+**S6 deferred minors (per-task and final reviews; triaged "can wait" by the final review)**
+
+1. Catalog registry: no test for a malformed `sha256` inside bundle `files[]`; a bundle file with neither `urls` nor `sha256` is accepted (unfetchable); `Resource` `platform`/`type` default `""` is hidden by `tags()` and only half documented.
+2. Graph notices: `rekey` swaps `_graphs` and moves notices under separate lock acquisitions (a post to the new id in the gap is overwritten); `_emit_notices_changed` duplicates the `_on_history_changed` loop hop; no test posts from a real worker thread or checks that `rekey` emits.
+3. Haystack row: `_dismissed_notices` is never pruned (a re-post under the same key stays dismissed); the tooltip's `\n` join renders as one line; `register` never retracts stale `haywire:compatibility:<i>` keys on re-register; findings computed after `register` are never posted; markers use `.props(data-hw-mark)`, not `.mark()`; test helpers duplicate `_render`, and `_dismiss_buttons` matches any close icon.
+4. `hf_default_cache` ignores `XDG_CACHE_HOME` and the legacy `HUGGINGFACE_HUB_CACHE` (follows the plan's literal order) — consider `huggingface_hub.constants`.
+5. `MODEL_REF`: `_configure_port` `setdefault` shares the mutable `{}`/`[]` defaults across ports (deepcopy); `pinned()` on a catalog ref raises a generic `ValueError`; a catalog ref with a `label` is refused.
+6. Matcher/layout: a multi-dot name gets the `-<sha8>` suffix before the last extension only; the matcher test stub uses `LibraryIdentity.__new__`; `entry_matches` returns `False` for an unknown filter key.
+7. Index: `_fail` notifies listeners under the scan lock (others notify outside); `by_sha256` may return a vanished path, or an arbitrary one among duplicates; an `on_progress` exception aborts `hash_pending` (no save/notify); `_lost_sources` (source kept across a move) is in memory only; no concurrency/corrupt-index tests beyond those added. Rule kept: an index listener must never call `scan()`/`hash_pending()` synchronously (it runs under `_scanning`/`_hashing`).
+8. HF bridge: an `on_progress` that raises kills the poller silently; cancel waits for `hf_hub_download` to finish (multi-GB).
+9. Resolver: `ModelFile` re-exported from `resolver`; a pinned digest is trusted as the pool key even when the file was found through the HF cache or by URL (add a comment); the pool key flips from `path:` to the digest once a file is digested (same file briefly under two keys); catalog stub and a dead `bundle()` helper in tests.
+10. Pool/consumer: the per-key lock is not reentrant (a `load` must not acquire from the pool — document); a load in flight escapes `release`/`release_all`; `acquire_port` re-resolves on every call; per-key locks are never pruned; `widget_config["properties"] = None` is not handled; consumer tests use fake nodes. All `MODEL_REF` ports of one node share one `"model"` warning list (last call wins; the needs watcher clears only a list equal to `[MISSING_WARNING]`) — key it per port when a two-port consumer lands.
+11. Widget/demo: both Compact Pretrain demo entries are named "Compact Pretrain" (2x/4x); a filtered-out installed entry is labelled "not installed"; the Other… row is not revealed on a model change; option texts are cached until the next popup-show; untested: a pasted filtered-out catalog ref (Q4), the "HF cache" status, a bundle's folder path, a VIEW-tier pick.
+12. Downloads: a 206's `Content-Range` start is not checked; HTML/4xx on a resumed attempt leaves the old `.part`; finished jobs are never pruned (`jobs()` grows); `stop()` joins up to 5 s per thread sequentially; a close-delimited truncated body with no sha/size is indexed; a re-queued job may Range-resume a leftover `.part` from a later same-host mirror (unpinned only); a target claim is held across mirrors until the job ends.
+13. Needs watcher: "Needs 1 model (0 B, 1 of unknown size)" wording; `batch_total` not reset on `rekey`; `stop()` would self-deadlock if called from inside a walk (only caller: `on_disable`).
+14. Models editor: unlinking a file the pool holds relies on POSIX semantics, with no warning; dead branches; a firing trailing timer counts as pending during its own redraw (a filter switch inside the window stays stale until the next signal); relies on NiceGUI's private `Timer._is_canceled`; the timer is faked in tests; untested: Rescan, "indexing… N %", `failed:` status, HF scanning.
+15. Farmhand tools: `in_hf`/locate logic is duplicated between the tool and the editor (only the status text is shared); `status.py` docstring says "every file" where callers use any.
+16. Tests: `tests/models/conftest.py` docstring about redirecting HOME is stale; the session-wide `library_storage_dir` redirect shares one per-package dir across tests in a worker; `ModelsState.on_enable` creates the default models folder even when the volume was moved. Pre-existing (fails at `eec4193cf` too): `tests/image/test_save_image_node.py::test_library_default_reaches_node` under `-m integration -n 4`.
 
 ### 2.6 Torch install — haybale-marketplace (Q18B)
 - Every `uv pip install` / dry-run passes `--torch-backend <setting>`; framework setting,
@@ -452,7 +485,7 @@ node per evaluation, so it must be ~free when nothing failed:
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | done (merged ff to master 4add63fc2, 2026-10-31; live check passed; deferred minors listed in §2.2) — [plan](2026-10-30-s4-batch-nodes.md) |
 | S5 | rest of haybale-image | haybale-image (+ Split Path, Create Folder in haybale-core) | S0, S1 | done (merged ff to master b2fbfb565, 2026-10-31; still render live-checked, rest listed in §2.4) — [plan](2026-10-31-s5-haybale-image.md) |
 | S4b | List Files, Loop Array, Step Array | haybale-core | S4 | done (fcc03b7e2, merged with S5, 2026-10-31; slideshow live-checked) — decisions in §2.2 |
-| S6 | haybale-models (+ graph notices in graph-editor/haystack, catalog registry in core) | haybale-models | S1 | implemented (uncommitted, 2026-11-01; studio boot + volumes checked, UI/Farmhand live check pending) — [plan](2026-10-31-s6-haybale-models.md) |
+| S6 | haybale-models (+ graph notices in graph-editor/haystack, catalog registry in core) | haybale-models | S1 | implemented (`ab52290dc..eeaf9db5a` on `feat/s6-haybale-models`, unmerged, 2026-11-01; studio boot + volumes checked, UI/Farmhand live check pending; open items and deferred minors listed in §2.5) — [plan](2026-10-31-s6-haybale-models.md) |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | open |
 | S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | open |
 | S8 | extra arches | haybale-spandrel-extra | S7 | open |
