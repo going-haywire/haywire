@@ -147,9 +147,12 @@ class BaseNode(NodeData):
         """Run the worker and return the outlet ID to follow, or ``None``.
 
         Resolves every dirty port and calls ``on_validate()`` first. A data node
-        with no dirty port returns ``None`` without running its worker.
+        runs its worker on its first execution, then only while a port is dirty:
+        a node that is new, loaded, pasted or rebuilt has no dirty port and no
+        computed outlet. The first run counts only once the worker has returned,
+        so a node whose worker raised runs again at its next execution.
         """
-        if self._is_data_node and not self._has_dirty_ports:
+        if self._is_data_node and self._has_run and not self._has_dirty_ports:
             return None
 
         # Every node type resolves dirty data here: lazy pulls and deferred on_change.
@@ -163,6 +166,7 @@ class BaseNode(NodeData):
             self._executor = self._analyze_worker_signature()
 
         result = self._executor(context)
+        self._has_run = True
         if result is not None and not isinstance(result, str):
             return self._parse_worker_result(result)  # raises ValueError
         return result

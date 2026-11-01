@@ -319,8 +319,8 @@ class DataPort(DataTypeIdentity):
         truthiness-checked it — so this method does not re-resolve it.
 
         Examples:
-            self._trigger_callback(self.on_change, old, new)
-            # → node.<on_change>(port, old, new)
+            self._trigger_callback(self.on_change, new)
+            # → node.<on_change>(port, new)
         """
         if not callback_name or not self._wrapper or self._wrapper.is_cleaned_up:
             # A graph's teardown detaches edges after cleaning up their nodes; there is nothing to call.

@@ -98,6 +98,10 @@ class NodeData:
         # DataPort would call the Python-level DataPort.__hash__ on every mark.
         self._has_dirty_ports: Dict[str, DataPort] = {}
 
+        self._has_run: bool = False
+        """Whether this instance's worker has returned once. Until it has, a data node runs even
+        with no dirty port: a new, loaded or rebuilt node has none, and no computed outlet."""
+
         # ---------------------------------------------------------------------
         # Internal state
         # ---------------------------------------------------------------------
