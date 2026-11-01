@@ -233,3 +233,14 @@ def test_library_gets_the_registry(library_system):
     libs = [registry._libraries[name] for name in registry.list_names()]
     assert libs
     assert all(lib.get_registry(ModelCatalogRegistry) is singleton for lib in libs if lib is not None)
+
+
+def test_a_catalog_key_resolves_like_any_component(library_system):
+    """The component docs and source editors find a catalog entry by its key."""
+    key = "haybale-example:model:4x-Compact-Pretrain"
+
+    assert library_system.get_registry_for_key(key) is library_system.get_model_catalog_registry()
+    entry = library_system.lookup_component_class(key)
+    assert entry is not None
+    assert entry.class_identity.registry_key == key
+    assert entry.path.name == "4x-Compact-Pretrain.json"

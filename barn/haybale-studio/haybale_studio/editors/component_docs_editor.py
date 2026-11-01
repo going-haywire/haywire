@@ -82,6 +82,7 @@ class ComponentDocsEditor(BaseEditor):
     _COMP_ICONS = {
         "nodes": hui.icon.node,
         "macros": hui.icon.macro,
+        "models": hui.icon.models,
         "widgets": hui.icon.widget,
         "types": hui.icon.type,
         "adapters": hui.icon.adapter,

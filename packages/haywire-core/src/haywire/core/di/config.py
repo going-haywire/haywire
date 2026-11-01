@@ -30,6 +30,7 @@ from ..library.utils import (
     ADAPTER,
     EDITOR,
     FARMHAND,
+    MODEL,
     NODE,
     PANEL,
     SETTING,
@@ -818,6 +819,7 @@ class LibrarySystemService:
         PANEL: "get_panel_registry",
         EDITOR: "get_editor_registry",
         FARMHAND: "get_farmhand_registry",
+        MODEL: "get_model_catalog_registry",
     }
 
     def get_registry_for_key(self, registry_key: str) -> Optional["BaseRegistry"]:
