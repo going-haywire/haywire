@@ -19,7 +19,7 @@ level: library
 - **D1** The cache is the volume `haybale-models:volume:hf-cache`. Its suggested location is Hugging Face's own resolved default (`$HF_HUB_CACHE`, else `$HF_HOME/hub`, else `~/.cache/huggingface/hub`), written once when the library first enables.
 - **D2** Every call passes `cache_dir=` explicitly. haybale-models sets no environment variable.
 - **D3** Resolution reads the cache with `try_to_load_from_cache`; only a download uses `hf_hub_download`.
-- **D4** Haywire never deletes in the HF cache. The Models editor lists it read-only as "external" and offers Reveal location.
+- **D4** Haywire never deletes in the HF cache. The Models editor lists the cached files haywire uses, read-only, as "external"; the Volumes editor shows where the cache lives.
 - **D5** `huggingface_hub` is a hard dependency of haybale-models; haywire-core never imports it.
 
 **Considered.**

@@ -205,6 +205,14 @@ def _report_for(harness: _Harness, binding: str = "g1") -> None:
     )
 
 
+def _tooltip_of(harness: _Harness, mark: str) -> str:
+    """Return the text of the tooltip aimed at the element marked *mark* (``.tooltip()`` adds a sibling)."""
+    target = f"#{harness.marked(mark)[0].html_id}"
+    assert harness.container is not None
+    tips = [el for el in harness.container.descendants() if isinstance(el, ui.tooltip)]
+    return next(t.text for t in tips if t.props.get("target") == target)
+
+
 def test_identity() -> None:
     identity = ModelsEditor.class_identity
     assert identity.label == "Models"
@@ -505,7 +513,7 @@ async def test_needed_lists_graph_name_and_each_missing_model_with_an_action(
 
     assert "Rig" in h.texts()
     assert len(h.marked("models-needed-model")) == 1
-    assert "Sharp" in h.texts()
+    assert "Sharp · 4x" in h.texts()
     assert any(t.endswith("2.4 MB") for t in h.texts())
     assert len(h.marked("models-needed-download")) == 1
     user.find(marker="models-needed-download").click()
@@ -551,8 +559,8 @@ async def test_catalog_row_shows_name_and_a_detail_line(user: User, env: Any) ->
     h = env()
     await _open(user, h)
 
-    assert "Sharp" in h.texts()
-    assert any(" · MIT ·" in t for t in h.texts())
+    assert "Sharp · 4x" in h.texts()  # name with scale (and precision, when the variant has one)
+    assert "pth · 2.4 MB · MIT ·" in h.texts()  # the format, not the full variant name
     assert "not downloaded" in h.texts()
     assert h.marked("models-download")
 
@@ -596,10 +604,12 @@ async def test_hf_section_lists_only_used_files_with_their_users(
     used = [el.text for el in h.marked("models-hf-used")]
     assert "catalog: HfModel" in used
     assert "graph: Rig" in used
-    assert "HF cache: 21.0 KB" in texts  # the header still counts the whole cache
+    assert "Huggingface — 2 files, 12.0 KB" in texts  # the header counts what it lists
+    assert _tooltip_of(h, "models-header-huggingface") == (
+        "Hugging Face cache: 21.0 KB in all, shared with other tools"
+    )
     assert not h.marked("models-remove")
-    user.find(marker="models-hf-reveal").click()
-    assert h.marked("models-hf-location")
+    assert not h.marked("models-hf-reveal")
 
 
 @pytest.mark.anyio
@@ -649,3 +659,77 @@ async def test_finished_hf_download_refreshes_hf_rows_once(
     assert len(reads) == 2
     h.redraw()
     assert len(h.marked("models-hf-row")) == 1
+
+
+# =============================================================================
+# The filter row: "Show:" toggles and search
+# =============================================================================
+
+
+@pytest.mark.anyio
+async def test_show_toggles_hide_and_bring_back_sections(user: User, env: Any) -> None:
+    h = env()
+    h.put("mine/loose.bin", b"loose")
+    await _open(user, h)
+    assert "Sharp · 4x" in h.texts()
+    assert "mine/loose.bin" in h.texts()
+
+    user.find(marker="models-filter-catalog").click()
+    assert "Sharp · 4x" not in h.texts()
+    assert not h.marked("models-header-catalog")
+    assert "mine/loose.bin" in h.texts()  # Models still lists only files no catalog entry occupies
+
+    user.find(marker="models-filter-models").click()
+    assert "mine/loose.bin" not in h.texts()
+
+    user.find(marker="models-filter-catalog").click()
+    user.find(marker="models-filter-models").click()
+    assert "Sharp · 4x" in h.texts()
+    assert "mine/loose.bin" in h.texts()
+
+
+@pytest.mark.anyio
+async def test_search_narrows_every_section_and_hiding_it_clears(user: User, env: Any) -> None:
+    h = env()
+    h.put("mine/loose.bin", b"loose")
+    await _open(user, h)
+    assert not h.marked("models-search")
+
+    user.find(marker="models-filter-search").click()
+    cast(ui.input, h.marked("models-search")[0]).value = "soft"
+    texts = h.texts()
+    assert "Soft · 4x" in texts
+    assert "Sharp · 4x" not in texts
+    assert "mine/loose.bin" not in texts
+
+    user.find(marker="models-filter-search").click()
+    assert not h.marked("models-search")
+    assert "Sharp · 4x" in h.texts()
+    assert "mine/loose.bin" in h.texts()
+
+
+@pytest.mark.anyio
+async def test_section_headers_count_what_they_list(user: User, env: Any) -> None:
+    h = env()
+    h.put("mine/loose.bin", b"loose")
+    h.put("lib/sharp.pth", DATA)  # occupied by the Sharp catalog entry
+    await _open(user, h)
+    texts = h.texts()
+
+    assert "Catalog — 2 files, 4.8 MB" in texts
+    assert "Models — 1 file, 5 B" in texts  # only the file no catalog entry occupies
+    assert _tooltip_of(h, "models-header-models").startswith("Models volume: ")
+    assert "Local" not in texts
+    assert not any(t.startswith("models: ") for t in texts)
+
+
+@pytest.mark.anyio
+async def test_rows_carry_their_sections_dot(user: User, env: Any) -> None:
+    h = env()
+    h.put("mine/loose.bin", b"loose")
+    await _open(user, h)
+
+    assert len(h.marked("models-dot-catalog")) == 2  # Sharp and Soft
+    assert len(h.marked("models-dot-models")) == 1
+    assert "bg-blue-500" in h.marked("models-dot-catalog")[0].classes
+    assert "bg-green-500" in h.marked("models-dot-models")[0].classes

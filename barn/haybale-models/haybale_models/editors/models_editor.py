@@ -75,6 +75,44 @@ class _Located:
 
 _LiveText = Callable[[dict[str, DownloadJob], dict[Path, float]], str]
 
+# The "Show:" toggles: (key, icon, Quasar colour when on, tooltip).
+_SHOW_CATALOG = "catalog"
+_SHOW_MODELS = "models"
+_SHOW_HF = "hf"
+_SHOW_TOGGLES = (
+    (_SHOW_CATALOG, "menu_book", "blue", "Catalog"),
+    (_SHOW_MODELS, "folder", "green", "Models"),
+    (_SHOW_HF, "hub", "orange", "Huggingface"),
+)
+_SHOW_COLOUR = {key: colour for key, _icon, colour, _tip in _SHOW_TOGGLES}
+
+
+def _variant_title(entry: CatalogEntry, resource: Resource | None) -> str:
+    """Return the entry's name with what tells its variants apart: scale and precision, when known."""
+    parts = [entry.name]
+    if entry.scale:
+        parts.append(f"{entry.scale}x")
+    if resource is not None and resource.precision:
+        parts.append(resource.precision)
+    return " · ".join(parts)
+
+
+def _format_of(resource: Resource) -> str:
+    """Return the file format of a variant (``onnx``, ``pth``), else its platform."""
+    return resource.type or resource.platform or resource.variant_name()
+
+
+def _files_summary(count: int, size: int) -> str:
+    """Return the section-header summary "N file(s), SIZE"."""
+    return f"{count} {'file' if count == 1 else 'files'}, {format_size(size)}"
+
+
+def _dot(section: str) -> None:
+    """Draw the coloured dot that marks a row as belonging to *section*, in its toggle's colour."""
+    ui.element("div").classes(f"w-2 h-2 rounded-full bg-{_SHOW_COLOUR[section]}-500 flex-shrink-0").mark(
+        f"models-dot-{section}"
+    )
+
 
 @editor(
     label="Models",
@@ -84,15 +122,19 @@ _LiveText = Callable[[dict[str, DownloadJob], dict[Path, float]], str]
     description="Model files on this machine and where they come from",
 )
 class ModelsEditor(BaseEditor):
-    """Lists the catalog, the local model files and the Hugging Face cache, with disk usage.
+    """Lists the model catalog, the files in the Models volume and the Hugging Face files in use.
+
+    The **Show:** row picks the sections — **Catalog**, **Models**, **Huggingface** — and the
+    search toggle opens a field that narrows every section. The **Needed** section is always
+    shown: per open graph, the models it lacks; **Fetch all** downloads them. Each section
+    header counts what the section lists; hover it for the whole volume's size.
 
     Each catalog resource shows its status: `local`, `HF cache`, `downloading`, `failed` or
-    `not downloaded`. Download, Cancel and Remove need admin access; a removal names the open
-    graphs that use the file and the bytes it frees. Opening the editor and **Rescan** index
-    the files in the models volume on a background thread. The **Needed** section lists, per
-    open graph, the models it lacks; **Fetch all** downloads them. The Hugging Face section
-    shows the cached files that catalog entries or open graphs use, and what uses each;
-    **Reveal location** shows where the cache lives.
+    `not downloaded`. **Models** lists the files in the Models volume that no catalog entry
+    occupies. **Huggingface** lists the cached files that catalog entries or open graphs use,
+    and what uses each; the Volumes editor shows where the cache lives. Download, Cancel and
+    Remove need admin access; a removal names the open graphs that use the file and the bytes
+    it frees. Opening the editor and **Rescan** index the Models volume on a background thread.
     """
 
     def __init__(self, wrapper: EditorWrapper) -> None:
@@ -102,11 +144,15 @@ class ModelsEditor(BaseEditor):
         self._hf_thread: threading.Thread | None = None
         self._hf_again = False
         self._hf_seen: frozenset[str] = frozenset()
-        self._hf_revealed = False
         self._started = False
         self._structure: tuple[Any, ...] | None = None
         self._live: list[tuple[ui.label, _LiveText]] = []
         self._scroll_top = 0.0
+        self._show = {_SHOW_CATALOG: True, _SHOW_MODELS: True, _SHOW_HF: True}
+        self._search_on = False
+        self._query = ""
+        self._list: ui.column | None = None
+        self._search_slot: ui.column | None = None
 
     @react_on(ModelsChanged, GraphNoticesChanged)
     def _on_models_changed(self, ctx: SessionContext, signal: object) -> None:
@@ -235,11 +281,6 @@ class ModelsEditor(BaseEditor):
         if not self._started:
             self._started = True
             self._start_scan(models)
-        self._live = []
-        admin = context.can_access(AccessTier.ADMIN)
-        graphs = context.app_data[GraphAppState]
-        jobs = models.queue.jobs()
-        records = models.index.records()
         self._structure = self._structure_of(context, models)
         with container:
             with ui.column().classes("w-full h-full gap-0"):
@@ -247,20 +288,105 @@ class ModelsEditor(BaseEditor):
                     hui.icon_action(
                         hui.icon.refresh, tooltip="Rescan", on_click=lambda: self._rescan(models)
                     ).mark("models-rescan")
-                self._draw_usage(records)
+                self._draw_filter_row(context)
                 with (
                     ui.scroll_area(on_scroll=self._on_scroll)
                     .classes("flex-1 w-full")
                     .props('content-style="width: 100%" content-active-style="width: 100%"') as area
                 ):
-                    with ui.column().classes("w-full gap-0 p-1"):
-                        self._draw_needed(context, models, graphs, jobs, admin)
-                        claimed, shown = self._draw_catalog(context, models, jobs, admin)
-                        self._draw_downloads(context, models, jobs, shown, admin)
-                        self._draw_local(context, models, records, claimed, admin)
-                        self._draw_hf(models, graphs)
+                    self._list = ui.column().classes("w-full gap-0 p-1")
+                    self._draw_list(context)
                 if self._scroll_top > 0:
                     area.scroll_to(pixels=self._scroll_top)
+
+    def _draw_list(self, context: SessionContext) -> None:
+        """(Re)draw the sections below the filter row, as the toggles and the search ask."""
+        box = self._list
+        if box is None or box.is_deleted:
+            return
+        models = context.app_data[ModelsState]
+        self._live = []
+        admin = context.can_access(AccessTier.ADMIN)
+        graphs = context.app_data[GraphAppState]
+        jobs = models.queue.jobs()
+        records = models.index.records()
+        query = self._query.strip().lower() if self._search_on else ""
+        box.clear()
+        with box:
+            self._draw_needed(context, models, graphs, jobs, admin)
+            claimed, shown = self._draw_catalog(
+                context, models, jobs, admin, visible=self._show[_SHOW_CATALOG], query=query
+            )
+            self._draw_downloads(context, models, jobs, shown, admin, query=query)
+            if self._show[_SHOW_MODELS]:
+                self._draw_local(context, models, records, claimed, admin, query=query)
+            if self._show[_SHOW_HF]:
+                self._draw_hf(models, graphs, query=query)
+
+    # -- filter row -------------------------------------------------------------
+
+    def _draw_filter_row(self, context: SessionContext) -> None:
+        """Draw the "Show:" toggles and the search toggle, with the search field below when it is on."""
+        with (
+            ui.column()
+            .classes("w-full px-2 py-1.5 gap-1 flex-shrink-0")
+            .style("border-bottom: 1px solid var(--hw-border);")
+            .mark("models-filter")
+        ):
+            with ui.row().classes("items-center gap-0.5 w-full"):
+                hui.hint("Show:").classes("mr-1")
+                for key, icon, colour, tip in _SHOW_TOGGLES:
+                    self._make_toggle(context, key, icon, colour, tip)
+                with (
+                    ui.button()
+                    .props("flat round dense size=xs")
+                    .tooltip("Search")
+                    .mark("models-filter-search") as btn
+                ):
+                    search_icon = ui.icon("search").classes("hw-use-props-color")
+                    search_icon.props(f"color={'blue' if self._search_on else 'grey'}")
+                btn.on("click", lambda ie=search_icon: self._toggle_search(context, ie))
+            self._search_slot = ui.column().classes("w-full gap-0")
+            self._draw_search_field(context)
+
+    def _make_toggle(self, context: SessionContext, key: str, icon: str, colour: str, tip: str) -> None:
+        with ui.button().props("flat round dense size=xs").tooltip(tip).mark(f"models-filter-{key}") as btn:
+            icon_el = ui.icon(icon).classes("hw-use-props-color")
+            icon_el.props(f"color={colour if self._show[key] else 'grey'}")
+
+        def toggle() -> None:
+            self._show[key] = not self._show[key]
+            icon_el.props(f"color={colour if self._show[key] else 'grey'}")
+            self._draw_list(context)
+
+        btn.on("click", lambda: toggle())
+
+    def _toggle_search(self, context: SessionContext, icon_el: ui.icon) -> None:
+        self._search_on = not self._search_on
+        icon_el.props(f"color={'blue' if self._search_on else 'grey'}")
+        if not self._search_on:
+            # Hiding the search clears it, so a hidden query never narrows the list.
+            self._query = ""
+            self._draw_list(context)
+        self._draw_search_field(context)
+
+    def _draw_search_field(self, context: SessionContext) -> None:
+        slot = self._search_slot
+        if slot is None or slot.is_deleted:
+            return
+        slot.clear()
+        if not self._search_on:
+            return
+        with slot:
+            field = hui.input_field(
+                placeholder="Search models…", value=self._query, clearable=True, autofocus=True
+            ).mark("models-search")
+
+            def changed(e: Any) -> None:
+                self._query = str(e.value or "")
+                self._draw_list(context)
+
+            field.on_value_change(changed)
 
     def _draw_needed(
         self,
@@ -309,8 +435,8 @@ class ModelsEditor(BaseEditor):
         spec = needed.spec
         source = (spec.ref.source if spec.ref is not None else None) or ""
         if spec.entry is not None:
-            label = spec.entry.name
-            variant = spec.resource.variant_name() if spec.resource is not None else ""
+            label = _variant_title(spec.entry, spec.resource)
+            variant = _format_of(spec.resource) if spec.resource is not None else ""
             address = None
         else:
             label = needed.label if needed.label and needed.label != source else ""
@@ -349,15 +475,12 @@ class ModelsEditor(BaseEditor):
                     on_click=lambda: self._download(context, models, spec),
                 ).mark("models-needed-download")
 
-    def _draw_usage(self, records: list[IndexRecord]) -> None:
-        used = format_size(sum(r.size for r in records))
-        if self._hf_rows is None:
-            hf_text = "HF cache: scanning…"
-        else:
-            hf_text = f"HF cache: {format_size(sum(r.size for r in self._hf_rows))}"
-        with ui.row().classes("w-full items-center gap-3 px-2 py-1"):
-            hui.hint(f"models: {used}").mark("models-usage")
-            hui.hint(hf_text).mark("models-hf-usage")
+    @staticmethod
+    def _header(title: str, summary: str, total: str | None = None) -> None:
+        """Draw a section header "TITLE — summary", with the whole volume's total as its tooltip."""
+        label = hui.section_label(f"{title} — {summary}").mark(f"models-header-{title.lower()}")
+        if total:
+            label.tooltip(total)
 
     # -- catalog -----------------------------------------------------------------
 
@@ -367,16 +490,22 @@ class ModelsEditor(BaseEditor):
         models: ModelsState,
         jobs: list[DownloadJob],
         admin: bool,
+        *,
+        visible: bool = True,
+        query: str = "",
     ) -> tuple[set[str], set[str]]:
-        """Draw the Catalog section; returns the occupied digests and the job ids its rows show."""
-        hui.section_label("Catalog")
+        """Draw the Catalog section; returns the occupied digests and the job ids its rows show.
+
+        The digests are collected even when the section is hidden, so the Models section still
+        lists only the files no catalog entry occupies.
+        """
         claimed: set[str] = set()
         shown: set[str] = set()
         by_library: dict[str, list[CatalogEntry]] = {}
         for entry in models.catalog.entries():
             by_library.setdefault(entry.library.label or entry.library.name, []).append(entry)
         hf_root = models.hf_cache
-        drawn = False
+        grouped: list[tuple[str, list[_Located]]] = []
         for library in sorted(by_library, key=str.lower):
             rows: list[_Located] = []
             for entry in sorted(by_library[library], key=lambda e: e.name.lower()):
@@ -385,15 +514,22 @@ class ModelsEditor(BaseEditor):
                     in_hf = found is not None and hf_root is not None and self._under(found[0], hf_root)
                     if found is not None:
                         claimed.update(sha for p in found[0].values() if (sha := models.index.sha256_at(p)))
+                    if query and query not in f"{library} {entry.name} {resource.variant_name()}".lower():
+                        continue
                     rows.append(_Located(entry, resource, found, in_hf))
-            if not rows:
-                continue
-            drawn = True
+            if rows:
+                grouped.append((library, rows))
+        if not visible:
+            return claimed, shown
+        located = [row for _library, rows in grouped for row in rows]
+        size = sum(r.resource.total_size or 0 for r in located)
+        self._header("Catalog", _files_summary(len(located), size))
+        for library, rows in grouped:
             hui.hint(library).classes("px-2 pt-1")
             for row in rows:
                 shown.update(self._draw_catalog_row(context, models, jobs, row, admin))
-        if not drawn:
-            hui.hint("Nothing in the catalog.").classes("px-2")
+        if not grouped:
+            hui.hint("No match." if query else "Nothing in the catalog.").classes("px-2")
         return claimed, shown
 
     @staticmethod
@@ -411,9 +547,17 @@ class ModelsEditor(BaseEditor):
         jobs: list[DownloadJob],
         shown: set[str],
         admin: bool,
+        *,
+        query: str = "",
     ) -> None:
         """Draw the active and failed jobs that no catalog row shows."""
-        rest = [j for j in jobs if j.state in ("queued", "running", "failed") and j.id not in shown]
+        rest = [
+            j
+            for j in jobs
+            if j.state in ("queued", "running", "failed")
+            and j.id not in shown
+            and (not query or query in f"{j.label} {' '.join(j.sources)}".lower())
+        ]
         if not rest:
             return
         hui.section_label("Downloads")
@@ -483,11 +627,15 @@ class ModelsEditor(BaseEditor):
         size = resource.total_size
         with ui.column().classes("w-full gap-0 px-2 py-1 rounded hw-list-item-hover").mark("models-row"):
             with ui.row().classes("w-full items-center no-wrap gap-2"):
-                hui.subject(entry.name).classes("truncate flex-1 min-w-0").tooltip(entry.name)
+                _dot(_SHOW_CATALOG)
+                title = _variant_title(entry, resource)
+                hui.subject(title).classes("truncate flex-1 min-w-0").tooltip(
+                    f"{title} — {resource.variant_name()}"
+                )
                 if admin:
                     self._catalog_actions(context, models, entry, resource, spec, local, in_hf, active)
             with ui.row().classes("w-full items-center no-wrap gap-1"):
-                detail = f"{resource.variant_name()} · {format_size(size) if size is not None else '—'}"
+                detail = f"{_format_of(resource)} · {format_size(size) if size is not None else '—'}"
                 hui.hint(f"{detail} · {entry.license or '—'} ·").classes("truncate min-w-0")
                 self._live_status(
                     hui.hint(status).classes("flex-shrink-0").mark("models-status"),
@@ -525,7 +673,7 @@ class ModelsEditor(BaseEditor):
                 hui.icon.delete,
                 tooltip="Remove",
                 on_click=lambda: self._confirm_remove(
-                    context, models, _Removal(f"{entry.name} ({resource.variant_name()})", shas)
+                    context, models, _Removal(_variant_title(entry, resource), shas)
                 ),
             ).mark("models-remove")
 
@@ -538,10 +686,17 @@ class ModelsEditor(BaseEditor):
         records: list[IndexRecord],
         claimed: set[str],
         admin: bool,
+        *,
+        query: str = "",
     ) -> None:
-        hui.section_label("Local")
         loose = sorted(
-            (r for r in records if r.sha256 not in claimed), key=lambda r: (r.relative.lower(), r.relative)
+            (
+                r
+                for r in records
+                if r.sha256 not in claimed
+                and (not query or query in f"{r.relative} {r.source or ''}".lower())
+            ),
+            key=lambda r: (r.relative.lower(), r.relative),
         )
         try:
             root: Path | None = location_of(MODELS_VOLUME)
@@ -550,14 +705,23 @@ class ModelsEditor(BaseEditor):
         pending = models.index.pending() if root is not None else {}
         if models.index.problem:
             hui.error_label(models.index.problem)
+        if query:
+            pending = {p: f for p, f in pending.items() if query in p.name.lower()}
+        count = len(loose) + len(pending)
+        self._header(
+            "Models",
+            _files_summary(count, sum(r.size for r in loose)),
+            f"Models volume: {format_size(sum(r.size for r in records))} in all",
+        )
         if not loose and not pending:
-            hui.hint("No other files in the models volume.").classes("px-2")
+            hui.hint("No match." if query else "No other files in the models volume.").classes("px-2")
         for rec in loose:
             with (
                 ui.row()
                 .classes("w-full items-center no-wrap gap-2 px-2 py-1 rounded hw-list-item-hover")
                 .mark("models-row")
             ):
+                _dot(_SHOW_MODELS)
                 hui.subject(rec.relative).classes("truncate flex-1 min-w-0")
                 hui.hint(format_size(rec.size)).classes("flex-shrink-0")
                 hui.hint(rec.sha256[:12]).classes("font-mono flex-shrink-0")
@@ -576,6 +740,7 @@ class ModelsEditor(BaseEditor):
             except ValueError:
                 name = path.name
             with ui.row().classes("w-full items-center no-wrap gap-2 px-2 py-1").mark("models-row"):
+                _dot(_SHOW_MODELS)
                 hui.subject(name).classes("truncate flex-1 min-w-0")
                 self._live_status(
                     hui.hint(f"indexing… {int(fraction * 100)} %").classes("flex-shrink-0"),
@@ -624,26 +789,29 @@ class ModelsEditor(BaseEditor):
                     add(url, None, container.display_name)
         return users
 
-    def _draw_hf(self, models: ModelsState, graphs: GraphAppState) -> None:
+    def _draw_hf(self, models: ModelsState, graphs: GraphAppState, *, query: str = "") -> None:
         """Draw the cached Hugging Face files that a catalog entry or an open graph refers to."""
         root = models.hf_cache
         if root is None or not self._hf_rows:
             return
         users = self._hf_users(models, graphs)
         rows = [
-            (r, users[key]) for r in self._hf_rows if (key := (r.repo_id.lower(), r.path_in_repo)) in users
+            (r, users[key])
+            for r in self._hf_rows
+            if (key := (r.repo_id.lower(), r.path_in_repo)) in users
+            and (not query or query in f"{r.repo_id}/{r.path_in_repo}".lower())
         ]
         if not rows:
             return
-        hui.section_label("HF cache")
+        listed = sum(r.size for r, _u in rows)
+        cache = format_size(sum(r.size for r in self._hf_rows))
+        self._header(
+            "Huggingface",
+            _files_summary(len(rows), listed),
+            f"Hugging Face cache: {cache} in all, shared with other tools",
+        )
         with ui.row().classes("w-full items-center gap-2 px-2").mark("models-hf-section"):
-            hui.hint("External: shared with other tools, never deleted here.")
-            hui.button("Reveal location", on_click=self._toggle_reveal).classes("w-auto").mark(
-                "models-hf-reveal"
-            )
-        if self._hf_revealed:
-            with ui.column().classes("w-full px-2"):
-                hui.info_row("Location", str(root), label_width="w-16").mark("models-hf-location")
+            hui.hint("From Hugging Face chache.")
         for row, (entries, graph_names) in rows:
             used = "; ".join(
                 part
@@ -655,13 +823,10 @@ class ModelsEditor(BaseEditor):
             )
             with ui.column().classes("w-full gap-0 px-2 py-1").mark("models-hf-row"):
                 with ui.row().classes("w-full items-center no-wrap gap-2"):
+                    _dot(_SHOW_HF)
                     hui.subject(f"{row.repo_id}/{row.path_in_repo}").classes("truncate flex-1 min-w-0")
                     hui.hint(format_size(row.size)).classes("flex-shrink-0")
                 hui.hint(used).classes("truncate").mark("models-hf-used")
-
-    def _toggle_reveal(self) -> None:
-        self._hf_revealed = not self._hf_revealed
-        self.wrapper.redraw()
 
     # -- actions ----------------------------------------------------------------------
 
