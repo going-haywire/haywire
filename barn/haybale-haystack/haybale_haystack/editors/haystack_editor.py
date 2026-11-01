@@ -8,6 +8,7 @@ from nicegui import ui
 
 from haywire.core.access import AccessTier, LevelMode
 from haywire.ui import elements as hui
+from haywire.ui.components.popup import Popup
 from haywire.ui.editor import BaseEditor, SlotName, editor
 from haywire.core.session import (
     IAppState,
@@ -27,6 +28,7 @@ from haywire.core.signals import (
 )
 from haywire.ui.modals import confirm_modal, pick_modal, rename_modal
 
+from haybale_graph_editor.notices import GraphNotice, GraphNoticesChanged
 from haybale_graph_editor.state.edit_state import EditState
 from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_graph_editor.editors.graph_editor import GraphEditor, definition_path
@@ -75,12 +77,16 @@ class HaystackEditor(BaseEditor):
     def __init__(self, wrapper):
         super().__init__(wrapper)
         self._list_container = None
+        self._dismissed_notices: set[tuple[str, str]] = set()
+        self._notice_popups: list[Popup] = []
 
     # ------------------------------------------------------------------
     # Signal-bus subscriptions / draw
     # ------------------------------------------------------------------
 
-    @redraw_on(ActiveGraphMoved, GraphDataMutated, GraphUnsavedChanged, HaystackReloaded)
+    @redraw_on(
+        ActiveGraphMoved, GraphDataMutated, GraphUnsavedChanged, HaystackReloaded, GraphNoticesChanged
+    )
     def _refresh_on_state_move(self, context: "SessionContext", event) -> None:
         """Empty body — the decorator triggers ``wrapper.redraw()`` after
         this returns, which re-runs ``draw`` and ``_render_list``."""
@@ -225,6 +231,7 @@ class HaystackEditor(BaseEditor):
         if self._list_container is None:
             return
         self._list_container.clear()
+        self._delete_notice_popups()
 
         app = context.app
         if app is None:
@@ -309,6 +316,8 @@ class HaystackEditor(BaseEditor):
                     on_click=lambda eid=eid: self._on_start_execution(eid, context),
                 )
 
+            self._render_notices(eid, context)
+
             # Dirty dot — amber when unsaved, hidden when clean
             if is_unsaved:
                 ui.element("div").classes("w-2 h-2 rounded-full flex-shrink-0 bg-amber-400").style(
@@ -363,6 +372,74 @@ class HaystackEditor(BaseEditor):
                             "Release from memory" if not entry.kind.is_haystack_member() else "Remove",
                             on_click=lambda eid=eid: self._on_entry_delete(eid, context),
                         )
+
+    # ------------------------------------------------------------------
+    # graph notices
+    # ------------------------------------------------------------------
+
+    def _delete_notice_popups(self) -> None:
+        for popup in self._notice_popups:
+            popup.delete()
+        self._notice_popups.clear()
+
+    def _visible_notices(self, binding_id: str, context: "SessionContext") -> list[GraphNotice]:
+        """Return the notices on a graph that this editor has not dismissed."""
+        posted = list(context.app_data[GraphAppState].notices(binding_id))
+        return [n for n in posted if (binding_id, n.key) not in self._dismissed_notices]
+
+    def _render_notices(self, binding_id: str, context: "SessionContext") -> None:
+        """Draw the notice icon with its count and the popup listing each notice and its action."""
+        notices = self._visible_notices(binding_id, context)
+        if not notices:
+            return
+        popup = Popup(title="Notices", closable=True, backdrop_click_close=True, escape_close=True)
+        self._notice_popups.append(popup)
+        with popup:
+            for notice in notices:
+                self._render_notice_line(binding_id, notice, popup, context)
+        btn = hui.icon_action(
+            hui.icon.notice,
+            tooltip="\n".join(n.text for n in notices),
+        )
+        btn.props("data-hw-mark=graph-notice").on("click.stop", popup.open)
+        with btn:
+            ui.badge(str(len(notices))).props("floating")
+
+    def _render_notice_line(
+        self, binding_id: str, notice: GraphNotice, popup: Popup, context: "SessionContext"
+    ) -> None:
+        with ui.row().classes("w-full items-center gap-2 no-wrap"):
+            ui.label(notice.text).classes("flex-1 text-sm")
+            if notice.action is not None and notice.action_label and context.can_access(notice.requires):
+                hui.button(
+                    notice.action_label,
+                    on_click=lambda n=notice: self._run_notice_action(n, popup, context),
+                ).props("data-hw-mark=graph-notice-action").classes("w-auto")
+            if notice.dismissable:
+                hui.icon_action(
+                    hui.icon.close,
+                    tooltip="Dismiss",
+                    on_click=lambda k=notice.key: self._dismiss_notice(binding_id, k, context),
+                )
+
+    def _run_notice_action(self, notice: GraphNotice, popup: Popup, context: "SessionContext") -> None:
+        """Run a notice's action with this session's context, then close the popup."""
+        client = ui.context.client
+        popup.close()
+        if notice.action is None:
+            return
+        try:
+            notice.action(context)
+        except Exception as exc:
+            logger.warning(f"HaystackEditor: notice action {notice.key} failed: {exc}")
+            with client:
+                ui.notify(f"{notice.action_label or 'Action'} failed: {exc}", type="negative")
+
+    def _dismiss_notice(self, binding_id: str, key: str, context: "SessionContext") -> None:
+        """Hide a notice in this editor instance only."""
+        self._dismissed_notices.add((binding_id, key))
+        # The list redraw deletes the popup (and this button's slot) holding the handler.
+        self._render_list(context)
 
     # ------------------------------------------------------------------
     # per-entry file actions
@@ -899,4 +976,5 @@ class HaystackEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def cleanup(self) -> None:
+        self._delete_notice_popups()
         self._list_container = None

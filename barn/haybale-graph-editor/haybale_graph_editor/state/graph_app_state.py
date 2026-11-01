@@ -15,6 +15,8 @@ and bridging each registered file's undo history to ``GraphHistoryChanged``.
 from __future__ import annotations
 
 import logging
+import threading
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Optional
 
 from haywire.core.graph.base import BaseGraph
@@ -22,6 +24,7 @@ from haywire.core.signals import GraphHistoryChanged
 from haywire.core.state.base import AppState
 from haywire.core.state.decorator import state
 
+from haybale_graph_editor.notices import GraphNotice, GraphNoticesChanged
 from haybale_graph_editor.protocols import GraphContainer
 
 if TYPE_CHECKING:
@@ -45,6 +48,71 @@ class GraphAppState(AppState):
     def __init__(self) -> None:
         super().__init__()
         self._graphs: dict[str, GraphContainer] = {}
+        self._graphs_listeners: list[Callable[[], None]] = []
+        self._notices: dict[str, dict[str, GraphNotice]] = {}
+        self._notices_lock = threading.Lock()
+
+    def add_graphs_listener(self, cb: Callable[[], None]) -> None:
+        """Call ``cb()`` after a graph is registered, unregistered or rekeyed.
+
+        Listeners take no arguments; re-read :meth:`all_containers`. They run on
+        the thread that changed the registry and must not raise.
+        """
+        if cb not in self._graphs_listeners:
+            self._graphs_listeners.append(cb)
+
+    def remove_graphs_listener(self, cb: Callable[[], None]) -> None:
+        """Stop calling ``cb``. Idempotent."""
+        if cb in self._graphs_listeners:
+            self._graphs_listeners.remove(cb)
+
+    def _notify_graphs(self) -> None:
+        for cb in list(self._graphs_listeners):
+            try:
+                cb()
+            except Exception:
+                logger.exception("graphs listener failed")
+
+    def post_notice(self, binding_id: str, notice: GraphNotice) -> None:
+        """Attach ``notice`` to the graph under ``binding_id``, replacing the one with the same key.
+
+        Ignored when no graph is registered under ``binding_id``. Safe to call
+        from any thread.
+        """
+        with self._notices_lock:
+            if binding_id not in self._graphs:
+                logger.debug("post_notice: unknown binding %s", binding_id)
+                return
+            bucket = self._notices.setdefault(binding_id, {})
+            if bucket.get(notice.key) == notice:
+                return
+            bucket[notice.key] = notice
+        self._emit_notices_changed()
+
+    def retract_notice(self, binding_id: str, key: str) -> None:
+        """Remove the notice ``key`` from a graph. Idempotent; safe from any thread."""
+        with self._notices_lock:
+            bucket = self._notices.get(binding_id)
+            if bucket is None or key not in bucket:
+                return
+            del bucket[key]
+            if not bucket:
+                del self._notices[binding_id]
+        self._emit_notices_changed()
+
+    def notices(self, binding_id: str) -> list[GraphNotice]:
+        """Return the notices on a graph in the order they were first posted."""
+        with self._notices_lock:
+            return list(self._notices.get(binding_id, {}).values())
+
+    def _emit_notices_changed(self) -> None:
+        """Publish ``GraphNoticesChanged`` on the event loop; dropped while no loop runs."""
+        from nicegui import core
+
+        loop = core.loop
+        if loop is None or not loop.is_running():
+            return
+        loop.call_soon_threadsafe(self._signal_emit, GraphNoticesChanged())
 
     def register(self, container: GraphContainer) -> None:
         """Add or replace a container under its current ``binding_id``."""
@@ -53,12 +121,24 @@ class GraphAppState(AppState):
             replaced.editor.history_manager.remove_listener(self._on_history_changed)
         self._graphs[container.binding_id] = container
         container.editor.history_manager.add_listener(self._on_history_changed)
+        findings = getattr(container.editor.graph, "library_compatibility_findings", None) or []
+        for i, finding in enumerate(findings):
+            self.post_notice(
+                container.binding_id,
+                GraphNotice(key=f"haywire:compatibility:{i}", text=finding, dismissable=True),
+            )
+        self._notify_graphs()
 
     def unregister(self, binding_id: str) -> None:
         """Remove a container by ``binding_id``. Idempotent."""
         container = self._graphs.pop(binding_id, None)
         if container is not None:
             container.editor.history_manager.remove_listener(self._on_history_changed)
+            with self._notices_lock:
+                had_notices = self._notices.pop(binding_id, None) is not None
+            if had_notices:
+                self._emit_notices_changed()
+            self._notify_graphs()
 
     def _on_history_changed(self) -> None:
         """Publish ``GraphHistoryChanged`` on the event loop; dropped while no loop runs."""
@@ -103,6 +183,13 @@ class GraphAppState(AppState):
         if container is None:
             return
         self._graphs[new_id] = container
+        with self._notices_lock:
+            moved = self._notices.pop(old_id, None)
+            if moved is not None:
+                self._notices[new_id] = moved
+        if moved is not None:
+            self._emit_notices_changed()
+        self._notify_graphs()
 
     def all_containers(self) -> list[GraphContainer]:
         """Snapshot of all registered containers. Mutating the list does
