@@ -1,4 +1,4 @@
-"""``haywire volumes`` — list, add, set, remove."""
+"""``haywire volumes`` — list, add, set, remove, reset."""
 
 from __future__ import annotations
 
@@ -140,6 +140,24 @@ def test_remove_deletes(store, tmp_path, capsys):
     assert _run(["volumes", "remove", "scans"]) == 0
     assert store.entry(SCANS) is None
     assert SCANS in capsys.readouterr().out
+
+
+def test_remove_refuses_a_library_volume(store, tmp_path, capsys):
+    store.ensure(MODELS, label="Models", description="", location=tmp_path)
+    assert _run(["volumes", "remove", "models"]) == 1
+    assert "reset" in capsys.readouterr().err
+    assert store.entry(MODELS) is not None
+
+
+def test_reset_writes_the_suggested_location_back(store, tmp_path, capsys):
+    store.ensure(MODELS, label="Models", description="", location=tmp_path / "m")
+    store.update(MODELS, location=tmp_path / "elsewhere")
+    assert _run(["volumes", "reset", "models"]) == 0
+    assert store.entry(MODELS).location == tmp_path / "m"
+    assert f"{MODELS} -> {tmp_path / 'm'}" in capsys.readouterr().out
+    store.add(SCANS, label="Scans", description="", location=tmp_path)
+    assert _run(["volumes", "reset", "scans"]) == 1
+    assert "user volume" in capsys.readouterr().err
 
 
 def test_malformed_file_errors_on_stderr(store, tmp_path, capsys):

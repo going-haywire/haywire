@@ -13,7 +13,13 @@ from typing import Any
 import tomlkit
 
 from haywire.core.tomlio import plain, read_toml
-from haywire.core.volumes.keys import PROJECT_KEY, VOLUME_KEY_RE, user_volume_key, volume_name
+from haywire.core.volumes.keys import (
+    PROJECT_KEY,
+    VOLUME_KEY_RE,
+    is_user_volume_key,
+    user_volume_key,
+    volume_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +31,15 @@ class VolumeEntry:
     """One volume: its key, the label and description people see, and its location.
 
     ``location`` is ``None`` only for the project volume while no project is open.
+    ``suggested`` is the location the volume's library suggests, ``None`` for a
+    user volume and for a library volume whose library has not recorded one.
     """
 
     key: str
     label: str
     description: str
     location: Path | None
+    suggested: Path | None = None
 
 
 _PATH_LOCKS: dict[Path, threading.Lock] = {}
@@ -53,9 +62,12 @@ class _UnreadableFileError(ValueError):
 class VolumeStore:
     """Reads and writes the volumes file.
 
-    Each ``[volumes."<key>"]`` table holds ``label``, ``description`` and an
-    absolute ``location``. The project volume (``PROJECT_KEY``) is built in: it is
-    the open project's folder, never stored, and cannot be changed. An entry in the
+    Each ``[volumes."<key>"]`` table holds ``label``, ``description``, an
+    absolute ``location`` and, for a library's volume, the absolute ``suggested``
+    location its library gave. Only a user volume (``user:volume:<name>``) can be
+    deleted; a library's volume is reset to its suggested location. The project
+    volume (``PROJECT_KEY``) is built in: it is the open project's folder, never
+    stored, and cannot be changed. An entry in the
     older ``[volumes] name = "/abs"`` form reads as the user volume ``name`` and is
     rewritten in the table form on the next write. Bad entries are logged and
     skipped; an unreadable file lists only the project volume and refuses writes.
@@ -69,6 +81,11 @@ class VolumeStore:
         store.update("user:volume:scans", label="Scanner drive")
         store.entry("user:volume:scans").location  # Path("/Volumes/Scans")
         store.remove("user:volume:scans")          # True
+
+        # A library's volume: ensure records the suggestion, reset writes it back.
+        store.ensure("haybale-models:volume:models", label="Models", description="", location=Path("/m"))
+        store.update("haybale-models:volume:models", location=Path("/Volumes/Big/models"))
+        store.reset("haybale-models:volume:models")  # Path("/m")
     """
 
     def __init__(self, path: Path | None = None) -> None:
@@ -132,6 +149,7 @@ class VolumeStore:
         label: Any
         description: Any
         location: Any
+        suggested: Any = None
         if isinstance(raw, str):
             try:
                 key = user_volume_key(raw_key)
@@ -147,6 +165,7 @@ class VolumeStore:
             label = raw.get("label") or volume_name(key)
             description = raw.get("description", "")
             location = raw.get("location")
+            suggested = raw.get("suggested")
         else:
             logger.warning("Ignoring volume %r in %s: not a table", raw_key, self.path)
             return None
@@ -159,7 +178,14 @@ class VolumeStore:
         if not isinstance(label, str) or not isinstance(description, str):
             logger.warning("Ignoring volume %r in %s: label and description must be text", key, self.path)
             return None
-        return VolumeEntry(key, label, description, Path(location))
+        if suggested is not None and (not isinstance(suggested, str) or not Path(suggested).is_absolute()):
+            logger.warning(
+                "Ignoring the suggested location of volume %r in %s: not absolute", key, self.path
+            )
+            suggested = None
+        return VolumeEntry(
+            key, label, description, Path(location), Path(suggested) if suggested is not None else None
+        )
 
     # ----------------------------------------------------------------- writes
 
@@ -216,15 +242,15 @@ class VolumeStore:
         self._mutate(apply)
 
     def remove(self, key: str) -> bool:
-        """Delete volume *key*; return whether it existed.
-
-        A library's volume comes back with its suggested location the next time
-        the library adds it (see :func:`ensure_volume`).
+        """Delete user volume *key*; return whether it existed.
 
         Raises:
-            ValueError: If *key* is the project volume, or if the file is unreadable.
+            ValueError: If *key* is the project volume or a library's volume (see
+                :meth:`reset`), or if the file is unreadable.
         """
         _check_writable(key)
+        if not is_user_volume_key(key):
+            raise ValueError(f"{key!r} is a library's volume: reset it to its suggested location instead")
         removed = False
 
         def apply(entries: dict[str, VolumeEntry]) -> bool:
@@ -235,11 +261,43 @@ class VolumeStore:
         self._mutate(apply)
         return removed
 
+    def reset(self, key: str) -> Path:
+        """Set the location of library volume *key* back to its suggested location; return it.
+
+        Label and description stay as they are. The folder is not created.
+
+        Raises:
+            ValueError: If *key* is the project volume or a user volume, there is no
+                volume *key*, it has no suggested location, or the file is unreadable.
+        """
+        _check_writable(key)
+        if is_user_volume_key(key):
+            raise ValueError(f"{key!r} is a user volume: it has no suggested location")
+        result: Path | None = None
+
+        def apply(entries: dict[str, VolumeEntry]) -> bool:
+            nonlocal result
+            current = entries.get(key)
+            if current is None:
+                raise ValueError(f"There is no volume {key!r}")
+            if current.suggested is None:
+                raise ValueError(f"Volume {key!r} has no suggested location")
+            result = current.suggested
+            entries[key] = replace(current, location=current.suggested)
+            return current.location != current.suggested
+
+        self._mutate(apply)
+        assert result is not None
+        return result
+
     def ensure(self, key: str, *, label: str, description: str, location: Path) -> bool:
         """Add the volume unless *key* already exists; return whether it was added.
 
-        Never changes an existing volume and never creates *location*. An unreadable
-        file, or one that cannot be written, is logged and left alone, and nothing is added.
+        *location* is also recorded as the volume's suggested location, also on an
+        existing volume, so :meth:`reset` can write it back. Never changes an existing
+        volume's label, description or location, and never creates *location*. An
+        unreadable file, or one that cannot be written, is logged and left alone, and
+        nothing is added.
 
         Raises:
             ValueError: If *key* is invalid or the project volume, or *location* is
@@ -251,9 +309,13 @@ class VolumeStore:
 
         def apply(entries: dict[str, VolumeEntry]) -> bool:
             nonlocal added
-            if key in entries:
-                return False
-            entries[key] = VolumeEntry(key, label or volume_name(key), description, location)
+            current = entries.get(key)
+            if current is not None:
+                if current.suggested == location:
+                    return False
+                entries[key] = replace(current, suggested=location)
+                return True
+            entries[key] = VolumeEntry(key, label or volume_name(key), description, location, location)
             added = True
             return True
 
@@ -319,6 +381,10 @@ def _sync(
         item["label"] = entry.label
         item["description"] = entry.description
         item["location"] = str(entry.location)
+        if entry.suggested is not None:
+            item["suggested"] = str(entry.suggested)
+        elif "suggested" in item:
+            del item["suggested"]
         if key not in table:
             table[key] = item
 
@@ -356,9 +422,10 @@ def ensure_volume(
 ) -> bool:
     """Add a library's volume unless it already exists; return whether it was added.
 
-    Call it from the library's ``AppState.on_enable``. It never changes a volume
-    the user edited and never creates the folder, so it is safe on every enable
-    and hot reload; a volume the user deleted comes back with *location*.
+    Call it from the library's ``AppState.on_enable``. *location* is recorded as
+    the volume's suggested location, which a reset writes back. It never changes a
+    volume's label, description or location once the volume exists and never creates
+    the folder, so it is safe on every enable and hot reload.
 
     Raises:
         ValueError: See :meth:`VolumeStore.ensure`.

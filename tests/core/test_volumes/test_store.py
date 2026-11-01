@@ -81,24 +81,66 @@ def test_duplicate_add_and_unknown_update_are_refused(tmp_path, volume_store):
 
 
 def test_remove_reports_whether_it_existed(tmp_path, volume_store):
-    volume_store.add(MODELS, label="M", description="", location=tmp_path)
-    assert volume_store.remove(MODELS) is True
-    assert volume_store.remove(MODELS) is False
+    key = user_volume_key("scans")
+    volume_store.add(key, label="S", description="", location=tmp_path)
+    assert volume_store.remove(key) is True
+    assert volume_store.remove(key) is False
+
+
+def test_a_library_volume_cannot_be_removed(tmp_path, volume_store):
+    volume_store.ensure(MODELS, label="M", description="", location=tmp_path)
+    with pytest.raises(ValueError, match="reset"):
+        volume_store.remove(MODELS)
+    assert volume_store.entry(MODELS) is not None
 
 
 def test_ensure_adds_once_and_never_overwrites(tmp_path, volume_store):
     assert volume_store.ensure(MODELS, label="Models", description="", location=tmp_path / "m") is True
     volume_store.update(MODELS, location=tmp_path / "elsewhere", label="Mine")
     assert volume_store.ensure(MODELS, label="Models", description="", location=tmp_path / "m") is False
-    assert volume_store.entry(MODELS) == VolumeEntry(MODELS, "Mine", "", tmp_path / "elsewhere")
+    assert volume_store.entry(MODELS) == VolumeEntry(
+        MODELS, "Mine", "", tmp_path / "elsewhere", tmp_path / "m"
+    )
 
 
-def test_remove_then_ensure_restores_the_suggestion(tmp_path, volume_store):
+def test_ensure_records_the_suggestion_on_an_existing_volume(tmp_path, volume_store):
+    volume_store.path.write_text(f'[volumes."{MODELS}"]\nlabel = "Mine"\nlocation = "{tmp_path / "x"}"\n')
+    assert volume_store.ensure(MODELS, label="Models", description="", location=tmp_path / "m") is False
+    assert VolumeStore(volume_store.path).entry(MODELS) == VolumeEntry(
+        MODELS, "Mine", "", tmp_path / "x", tmp_path / "m"
+    )
+    stamp = volume_store.path.stat().st_mtime_ns
+    volume_store.ensure(MODELS, label="Models", description="", location=tmp_path / "m")
+    assert volume_store.path.stat().st_mtime_ns == stamp  # nothing changed, nothing written
+
+
+def test_reset_writes_the_suggestion_back(tmp_path, volume_store):
     ensure_volume(MODELS, label="Models", description="", location=tmp_path / "m")
-    volume_store.update(MODELS, location=tmp_path / "elsewhere")
-    volume_store.remove(MODELS)
-    assert ensure_volume(MODELS, label="Models", description="", location=tmp_path / "m") is True
-    assert volume_store.entry(MODELS).location == tmp_path / "m"
+    volume_store.update(MODELS, location=tmp_path / "elsewhere", label="Mine")
+    assert volume_store.reset(MODELS) == tmp_path / "m"
+    assert VolumeStore(volume_store.path).entry(MODELS) == VolumeEntry(
+        MODELS, "Mine", "", tmp_path / "m", tmp_path / "m"
+    )
+
+
+def test_reset_is_refused_without_a_suggestion(tmp_path, volume_store):
+    volume_store.add(MODELS, label="M", description="", location=tmp_path)
+    with pytest.raises(ValueError, match="no suggested location"):
+        volume_store.reset(MODELS)
+    key = user_volume_key("scans")
+    volume_store.add(key, label="S", description="", location=tmp_path)
+    with pytest.raises(ValueError, match="user volume"):
+        volume_store.reset(key)
+    with pytest.raises(ValueError, match="no volume"):
+        volume_store.reset("lib:volume:nope")
+    with pytest.raises(ValueError, match="project"):
+        volume_store.reset(PROJECT_KEY)
+
+
+def test_a_relative_suggestion_is_ignored(tmp_path, volume_store, caplog):
+    volume_store.path.write_text(f'[volumes."{MODELS}"]\nlocation = "{tmp_path}"\nsuggested = "rel"\n')
+    assert volume_store.entry(MODELS) == VolumeEntry(MODELS, "models", "", tmp_path)
+    assert "suggested location" in caplog.text
 
 
 def test_ensure_never_creates_the_folder(tmp_path, volume_store):

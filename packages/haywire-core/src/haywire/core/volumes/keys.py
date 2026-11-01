@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-__all__ = ["PROJECT_KEY", "VOLUME_KEY_RE", "user_volume_key", "volume_name"]
+__all__ = ["PROJECT_KEY", "VOLUME_KEY_RE", "is_user_volume_key", "user_volume_key", "volume_name"]
 
 VOLUME_KEY_RE = re.compile(r"^[a-z][a-z0-9-]*:volume:[a-z][a-z0-9_-]*$")
 _NAME_RE = re.compile(r"^[a-z][a-z0-9_-]*$")
@@ -26,6 +26,11 @@ def user_volume_key(name: str) -> str:
             " starting with a letter"
         )
     return f"user:volume:{name}"
+
+
+def is_user_volume_key(key: str) -> bool:
+    """Return whether *key* names a volume a user added (``user:volume:<name>``), not a library's."""
+    return key.startswith("user:volume:")
 
 
 def volume_name(key: str) -> str:

@@ -108,7 +108,8 @@ class VolumeStatus:
 
     ``location`` is ``None`` when it has none (the project volume with no project
     open); ``exists`` says whether the folder is there; ``editable`` is ``False``
-    only for the project volume.
+    only for the project volume; ``suggested`` is the location a library volume
+    resets to (see ``VolumeStore.reset``), ``None`` when there is none.
     """
 
     key: str
@@ -117,6 +118,7 @@ class VolumeStatus:
     location: Path | None
     exists: bool
     editable: bool
+    suggested: Path | None = None
 
 
 def list_volumes(store: VolumeStore | None = None) -> list[VolumeStatus]:
@@ -136,6 +138,7 @@ def list_volumes(store: VolumeStore | None = None) -> list[VolumeStatus]:
                 location=entry.location,
                 exists=exists,
                 editable=entry.key != PROJECT_KEY,
+                suggested=entry.suggested,
             )
         )
     return result

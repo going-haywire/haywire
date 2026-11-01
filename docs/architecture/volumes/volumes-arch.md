@@ -23,7 +23,8 @@ Code: `packages/haywire-core/src/haywire/core/volumes/`.
 [volumes."haybale-models:volume:models"]
 label = "Models"
 description = "Models on this machine"
-location = "/Users/me/.haywire/db/haybale_models/models"
+location = "/Volumes/Big/models"
+suggested = "/Users/me/.haywire/db/haybale_models/models"
 
 [volumes."user:volume:scans"]
 label = "Scans"
@@ -31,7 +32,7 @@ description = "Scanner drive"
 location = "/Volumes/Scans"
 ```
 
-Everything in an entry except its key can be changed: label, description and location. `location` must be absolute; `label` defaults to the key's name part.
+Everything in an entry except its key can be changed: label, description and location. `location` must be absolute; `label` defaults to the key's name part. `suggested`, on a library's volume only, is the location its library suggests (see below); the library writes it, and a non-absolute one is ignored with a warning.
 
 `VolumeStore` reads and writes the file. It re-reads the file when its modification time or size changes. A write re-reads the file under a per-file lock, applies the change, and replaces the file atomically (a temporary file renamed over it), so libraries adding volumes from several threads at once lose nothing. When reading, a bad entry (an invalid key, a relative location) is logged and skipped. An unreadable file lists only the project volume, and writes to it raise `ValueError` instead of overwriting it. An entry in the older form `[volumes] scans = "/abs"` reads as the user volume `scans` and is rewritten in the table form on the next write.
 
@@ -63,7 +64,9 @@ A library adds its volume from its `AppState.on_enable` with `ensure_volume`:
 --8<-- "packages/haywire-core/src/haywire/core/volumes/store.py:ensure-volume"
 ```
 
-`ensure_volume` writes the entry only when the key is absent. It never changes a volume the user edited and never creates the folder: the library creates it when it first writes there. It is safe on every enable and hot reload. Deleting a library's volume therefore resets it: the library adds it back with its suggested location the next time it starts. Uninstalling the library leaves its entry in the file as an ordinary volume.
+`ensure_volume` adds the entry only when the key is absent, and records its `location` as the entry's `suggested` location, also on an entry that already exists. It never changes a volume's label, description or location once the volume exists, and never creates the folder: the library creates it when it first writes there. It is safe on every enable and hot reload; it writes the file only when something changed.
+
+A library's volume cannot be deleted. `VolumeStore.reset(key)` (the editor's "Reset to suggested location", `haywire volumes reset`) writes `suggested` back to `location` at once, so the volume never disappears while its library depends on it. Only user volumes (`user:volume:…`) can be deleted; the key tells which is which (`is_user_volume_key`). Uninstalling the library leaves its entry in the file.
 
 The suggested location of a library's volume is the library's choice. For model weights the suggestion is `~/.haywire/db/<module>/models`, so a tool that resets a library's data under `~/.haywire/db/` has to leave a `models` folder alone.
 
@@ -92,7 +95,7 @@ A symlink loop or an OS error while resolving raises `VolumeError`. A backslash 
 
 ## Status
 
-`list_volumes()` returns a `VolumeStatus` per volume: `key`, `label`, `description`, `location` (`None` when there is none), `exists` (whether the folder is there) and `editable` (`False` only for the project volume). The project volume comes first, the rest sorted by label.
+`list_volumes()` returns a `VolumeStatus` per volume: `key`, `label`, `description`, `location` (`None` when there is none), `exists` (whether the folder is there), `editable` (`False` only for the project volume) and `suggested` (the location a library volume resets to, `None` when there is none). The project volume comes first, the rest sorted by label.
 
 ## Picking a path
 
@@ -104,17 +107,18 @@ Its `mode` property selects `file` (existing file), `folder`, or `save` (a folde
 
 `VolumesEditor` (`barn/haybale-studio/haybale_studio/editors/volumes_editor.py`) is an editor with `requires=AccessTier.ADMIN`. It shows one row per volume: the label, and below it the location (or "not defined on this machine") with a missing marker. The location line crops its middle to fit the row (`hui.fitted_path`, `haywire/ui/elements/path_fit.py`: the line carries the path's parts, and a ResizeObserver script writes the longest split of them that fits), with the full path as its tooltip.
 
-A row's button opens the volume's details in a modal. When the session holds `admin`, the modal edits label, description and location (the key is shown, not editable) and offers Delete; for a library's volume it says that deleting resets it. The project volume, and every volume for a session without `admin`, opens read-only. The header's add button opens an Add modal: a name (the key is `user:volume:<name>`), label, description and location. Writes go through `VolumeStore`; a store error shows in the modal and keeps it open. Locations are typed as absolute server paths, since the browser cannot pick a folder on the server.
+A row's button opens the volume's details in a modal. When the session holds `admin`, the modal edits label, description and location (the key is shown, not editable). A user volume offers Delete; a library's volume shows its suggested location and offers "Reset to suggested location" instead (no button when no suggestion is recorded). The project volume, and every volume for a session without `admin`, opens read-only. The header's add button opens an Add modal: a name (the key is `user:volume:<name>`), label, description and location. Writes go through `VolumeStore`; a store error shows in the modal and keeps it open. Locations are typed as absolute server paths, since the browser cannot pick a folder on the server.
 
 ## The CLI
 
-`haywire volumes` (`packages/haywire-studio/src/haywire_studio/cli/volumescmd.py`) edits the same file on the server. `set` and `remove` take a key, or its name part when exactly one volume has that name. Folders are made absolute against the current directory and never created.
+`haywire volumes` (`packages/haywire-studio/src/haywire_studio/cli/volumescmd.py`) edits the same file on the server. `set`, `remove` and `reset` take a key, or its name part when exactly one volume has that name. Folders are made absolute against the current directory and never created.
 
 | Command | Effect |
 | --- | --- |
 | `haywire volumes list` | One line per volume: key, label, location, `(missing)` |
 | `haywire volumes add NAME FOLDER [--label L] [--description D]` | Add `user:volume:NAME` |
 | `haywire volumes set VOLUME [--location F] [--label L] [--description D]` | Change the given fields |
-| `haywire volumes remove VOLUME` | Delete the volume; exits 1 if there is none |
+| `haywire volumes remove VOLUME` | Delete a user volume; exits 1 if there is none or it is a library's |
+| `haywire volumes reset VOLUME` | Set a library's volume back to its suggested location |
 
 The CLI runs without a workspace root, so the project volume has no location there.

@@ -18,6 +18,7 @@ from haywire.core.volumes import (
     VolumeStatus,
     VolumeStore,
     get_volume_store,
+    is_user_volume_key,
     list_volumes,
     user_volume_key,
     volume_name,
@@ -42,12 +43,12 @@ class VolumesEditor(BaseEditor):
     """One row per volume: its label, and below it where it lives on this machine.
 
     A row's button opens the volume's details: to change its label, description
-    and location, or delete it, when this session may; to read them otherwise.
-    The project volume is always the open project's folder and cannot be changed.
-    The header's add button adds a volume. A location that does not exist on this
-    machine (unplugged drive, folder not created yet) is marked *missing*; it is
-    still a valid location. Deleting a volume a library added resets it: the
-    library adds it back with its suggested location the next time it starts.
+    and location when this session may, to read them otherwise. A volume a user
+    added can be deleted; a volume a library added cannot, and is reset to the
+    location its library suggests instead. The project volume is always the open
+    project's folder and cannot be changed. The header's add button adds a volume.
+    A location that does not exist on this machine (unplugged drive, folder not
+    created yet) is marked *missing*; it is still a valid location.
     """
 
     def __init__(self, wrapper) -> None:
@@ -173,17 +174,25 @@ class VolumesEditor(BaseEditor):
                 .props('autocomplete="off"')
                 .mark("volume-dialog-location")
             )
-            if not key.startswith("user:"):
+            user_volume = is_user_volume_key(key)
+            if not user_volume:
                 hui.hint(
-                    "Deleting resets it: its library adds it back with its suggested location "
-                    "the next time it starts."
-                ).mark("volume-dialog-reset-note")
+                    f"Suggested location: {status.suggested}"
+                    if status.suggested is not None
+                    else "Its library has not recorded a suggested location."
+                ).mark("volume-dialog-suggested")
             error = _dialog_error()
             with hui.action_row().classes("mt-2"):
-                ui.button(
-                    "Delete",
-                    on_click=lambda: self._write(dialog, error, lambda store: store.remove(key)),
-                ).props("flat dense").classes("hw-text-danger mr-auto").mark("volume-dialog-delete")
+                if user_volume:
+                    ui.button(
+                        "Delete",
+                        on_click=lambda: self._write(dialog, error, lambda store: store.remove(key)),
+                    ).props("flat dense").classes("hw-text-danger mr-auto").mark("volume-dialog-delete")
+                elif status.suggested is not None:
+                    ui.button(
+                        "Reset to suggested location",
+                        on_click=lambda: self._write(dialog, error, lambda store: store.reset(key)),
+                    ).props("flat dense").classes("mr-auto").mark("volume-dialog-reset")
                 ui.button("Cancel", on_click=dialog.close).props("flat dense")
                 hui.confirm_button(
                     "Save",

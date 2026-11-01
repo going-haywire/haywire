@@ -1,9 +1,10 @@
 """``haywire volumes`` — the volumes on this machine and where each one lives.
 
 Volumes are stored in ``~/.haywire/volumes.toml`` (see :mod:`haywire.core.volumes`).
-``set`` and ``remove`` take a volume key, or its name part when exactly one volume
-has that name. Folders are made absolute against the current directory and are
-never created. ``list`` works without a workspace root: the project volume then
+``set``, ``remove`` and ``reset`` take a volume key, or its name part when exactly
+one volume has that name. ``remove`` deletes only user volumes; ``reset`` sets a
+library's volume back to its suggested location. Folders are made absolute against
+the current directory and are never created. ``list`` works without a workspace root: the project volume then
 shows no location, because the CLI entry never sets one.
 
 Named ``volumescmd`` to match the other ``*cmd`` modules.
@@ -46,9 +47,13 @@ def register(subparsers: argparse._SubParsersAction) -> None:
     change.add_argument("--description", help="Description shown for the volume")
     change.set_defaults(handler=_set)
 
-    drop = actions.add_parser("remove", help="Delete a volume (a library adds its own back on next start)")
+    drop = actions.add_parser("remove", help="Delete a volume you added (key user:volume:<name>)")
     drop.add_argument("volume", help="Volume key, or its name when unique")
     drop.set_defaults(handler=_remove)
+
+    reset = actions.add_parser("reset", help="Set a library's volume back to its suggested location")
+    reset.add_argument("volume", help="Volume key, or its name when unique")
+    reset.set_defaults(handler=_reset)
 
 
 def _list(args: argparse.Namespace) -> int:
@@ -122,4 +127,14 @@ def _remove(args: argparse.Namespace) -> int:
     if not removed:
         return _error(f"There is no volume {key!r}")
     print(f"removed {key}")
+    return 0
+
+
+def _reset(args: argparse.Namespace) -> int:
+    try:
+        key = _key(args.volume)
+        location = get_volume_store().reset(key)
+    except (ValueError, OSError) as exc:
+        return _error(exc)
+    print(f"{key} -> {location}")
     return 0

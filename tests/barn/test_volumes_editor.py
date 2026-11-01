@@ -170,7 +170,8 @@ async def test_save_updates_label_description_and_location_but_never_the_key(
     await _open(user)
     user.find(marker="volume-open-scans").click()
     await user.should_see(SCANS)
-    await user.should_not_see(marker="volume-dialog-reset-note")  # a user volume has no library
+    await user.should_not_see(marker="volume-dialog-suggested")  # a user volume has no library
+    await user.should_not_see(marker="volume-dialog-reset")
     await _type(user, "volume-dialog-label", "Scans 2")
     await _type(user, "volume-dialog-description", "")
     await _type(user, "volume-dialog-location", str(tmp_path / "b"))
@@ -206,14 +207,31 @@ async def test_delete_drops_the_volume(user: User, store: VolumeStore, tmp_path:
 
 
 @pytest.mark.anyio
-async def test_a_library_volume_says_delete_is_a_reset(
+async def test_a_library_volume_resets_instead_of_deleting(
+    user: User, store: VolumeStore, tmp_path: Path
+) -> None:
+    store.ensure(MODELS, label="Models", description="", location=tmp_path / "m")
+    store.update(MODELS, location=tmp_path / "elsewhere", label="Mine")
+    await _open(user)
+    user.find(marker="volume-open-models").click()
+    await user.should_see(f"Suggested location: {tmp_path / 'm'}")
+    await user.should_not_see(marker="volume-dialog-delete")
+    user.find(marker="volume-dialog-reset").click()
+    assert _fresh(store) == {MODELS: VolumeEntry(MODELS, "Mine", "", tmp_path / "m", tmp_path / "m")}
+    assert not _dialog_open(user)
+    assert _one(user, "volume-location-models").props["title"] == str(tmp_path / "m")
+
+
+@pytest.mark.anyio
+async def test_a_library_volume_without_a_suggestion_has_no_reset(
     user: User, store: VolumeStore, tmp_path: Path
 ) -> None:
     store.add(MODELS, label="Models", description="", location=tmp_path)
     await _open(user)
     user.find(marker="volume-open-models").click()
-    await user.should_see(marker="volume-dialog-reset-note")
-    await user.should_see("suggested location")
+    await user.should_see("has not recorded a suggested location")
+    await user.should_not_see(marker="volume-dialog-reset")
+    await user.should_not_see(marker="volume-dialog-delete")
 
 
 @pytest.mark.anyio

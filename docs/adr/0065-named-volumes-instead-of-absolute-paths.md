@@ -21,7 +21,7 @@ level: framework
 - **D2** `~/.haywire/volumes.toml` is the **single list** of volumes on this machine: one entry per volume with key, label, description and location. Everything in an entry except the key can be edited.
 - **D3** A **volume key** follows the registry-key pattern `<library-id>:volume:<name>`; a volume a user adds is `user:volume:<name>`. A key never changes; renaming means a new volume.
 - **D4** The **project volume** (`haywire-core:volume:project`) is built in: the ambient workspace root, read on every call, never stored, never editable. There is no other built-in volume.
-- **D5** A library adds its volume from its `AppState.on_enable` with `ensure_volume(key, label, description, location)`, which writes only when the key is absent and never creates the folder. Deleting a library's volume resets it: the library adds it back on its next start. Uninstalling a library leaves its entry as an ordinary volume.
+- **D5** A library adds its volume from its `AppState.on_enable` with `ensure_volume(key, label, description, location)`, which adds the entry only when the key is absent, records `location` as the entry's `suggested` location (also on an existing entry), and never creates the folder. Only a user volume (`user:volume:…`) can be deleted; a library's volume is **reset** instead, which writes `suggested` back to `location` at once, so the volume never disappears while its library depends on it. Uninstalling a library leaves its entry in the file.
 - **D6** Resolution: the project volume → the file entry → `VolumeUndefinedError`. Resolving never creates a folder, and a root that does not exist still resolves.
 - **D7** Escapes are refused: any `..` segment in `relative` (even one that stays inside), an absolute `relative` (POSIX or drive-letter), and — checked on the **resolved** path — a symlink inside the volume pointing outside it raise `VolumeEscapeError`.
 - **D8** Bad entries are logged and skipped when reading. An unreadable file lists only the project volume; writes raise instead of overwriting it, and `ensure_volume` logs and adds nothing. Writes are serialized per file and replace it atomically.
@@ -39,6 +39,7 @@ level: framework
 - *Model weights in a visible folder or the platform data folder.* Kept beside the library's other data; a user can move the volume anywhere.
 - *Defining a volume from inside the path widget.* Spreads an administrative write over every node card; one editor and the CLI keep it behind ADMIN.
 - *Naming the concept "anchor".* Collides with the UI term.
+- *Deleting a library's volume as the reset.* The library re-adds it only on its next enable; until then the volume is undefined and the library breaks (Models refused to scan and download).
 
 **Consequences.**
 
