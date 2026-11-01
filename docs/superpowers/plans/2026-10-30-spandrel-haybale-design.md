@@ -420,16 +420,13 @@ node per evaluation, so it must be ~free when nothing failed:
 - Removal deletes only digests actually removed from the index; with nothing deletable it notifies and shows no dialog.
 - `models_list` `local` lists every indexed file, with no "unclaimed" filter.
 
-**S6 open for the live check (not verifiable in tests)**
+**S6 live check (2026-11-01)**
 
-- Haystack popup closes about once a second while a fetch runs: every `GraphNoticesChanged` (progress text, throttled to ~1/s) redraws the whole haystack list; `ModelsChanged` (~4 Hz per job) redraws every open Models editor. Decide after the live check: keep an open popup across a notices-only redraw, or move the percentage out of the notice text.
-- `huggingface_hub` 2.x / Xet may not stage `*.incomplete` blobs under `blobs/`; HF download progress would then sit at 0 until done.
-- Hot reload of graph-editor alone: the needs watcher may stay bound to the old `GraphAppState` (`linked_libraries` should reload haybale-models too).
-- Models editor: scan-thread `wrapper.redraw` via `call_soon_threadsafe` without a slot context; scroll position under ~4 Hz redraws.
-- Model widget: `select.set_options` during `popup-show` may reset the open popup.
-- Deleting a node that carries a model warning (`replace_warnings` on a removed wrapper).
-- The two OpenModelDB demo entries were not re-checked against upstream commit 782aac08.
+Passed: notice + filtered Models editor, Fetch all (catalog and pasted address), Pin digest + undo, `hf://` download (auto-pin from `lfs.sha256`, progress moves under Xet — the `*.incomplete` glob matches Xet's temp blob), Remove (confirmation names the graph, notice returns), Rescan of a dropped-in file, VIEW tier, deleting a node with a model warning, needs watcher across a graph-editor hot reload, Farmhand `models_list` / `models_needs` / `models_fetch`, Models editor scroll position during downloads (progress updates in place, no redraw), model picker stays open while statuses fill in, library-wide compatibility notice on the row (tested with a temporary `compatibility_warnings()` in haybale-example, removed afterwards; dismiss hides it per editor). The two OpenModelDB demo entries are byte-identical to upstream `data/models/` at commit `782aac08`. Fixed during the check: filter redraw, notice icon/popup look, Barns properties surface + Models/Image settings panels, the data-node first-run gap (ADR 0070), Addresses and Downloads sections, HF list refresh/sort/collapse, a "Needed" section in the unfiltered editor. The notice popup closing on "Show in Models" is intended.
 
+Still open:
+- **Follow-up — reloading graph-editor corrupts the open page.** After a graph-editor hot reload the Properties editor (`PropertiesEditor._rebuild_content`, `GraphSettingsPanel.draw`) draws into deleted slots ("The parent element this slot belongs to has been deleted"); the page needs a browser refresh. Not S6 code and not a regression (pre-existing, per the user).
+- Follow-up idea: deprecated nodes (`deprecation_warning` in the node decorator, shown on the card only) could post a graph notice ("This graph uses N deprecated nodes") as a third producer.
 **S6 deferred minors (per-task and final reviews; triaged "can wait" by the final review)**
 
 1. Catalog registry: no test for a malformed `sha256` inside bundle `files[]`; a bundle file with neither `urls` nor `sha256` is accepted (unfetchable); `Resource` `platform`/`type` default `""` is hidden by `tags()` and only half documented.
