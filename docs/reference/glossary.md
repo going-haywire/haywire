@@ -384,6 +384,21 @@ A haybale library's dependencies live across three manifests with different audi
 | **Volume path** | The value a graph stores for a location: `VolumePath(volume, relative)`, with `volume` a **Volume key** and `relative` a POSIX-style string kept verbatim. Carried by the `PATH`, `FILE_PATH` and `FOLDER_PATH` types and edited with `PathWidget`. Resolved on demand by `resolve()`, which refuses a result outside its volume | Absolute path, file path string |
 | **Volumes file** | `~/.haywire/volumes.toml`: the list of volumes on this machine, one `[volumes."<key>"]` table each with `label`, `description` and an absolute `location`. Everything but the key is editable. Written by the Volumes editor, `haywire volumes`, and libraries' `ensure_volume` (only when the key is absent). Not a setting: the app never writes the global settings tier, and workspace settings are committed | Volumes setting |
 
+## Models
+
+| Term | Definition | Aliases to avoid |
+| --- | --- | --- |
+| **Model reference** | What a graph stores to name a model: a **File reference** or a **Catalog reference**. Carried by the `MODEL_REF` type and edited with its widget. See [model catalogs guide](../guides/model-catalogs.md) and [ADR 0067](../adr/0067-models-are-identified-by-digest.md) | Model path, model id |
+| **File reference** | A **Model reference** to one file by source URI(s) and, once pinned, its sha256. Without a digest it resolves by source URI and the card says "not pinned"; **Pin digest** records the digest. The only form that reproduces a file bit for bit | Pinned path |
+| **Catalog reference** | A **Model reference** to a **Catalog entry**, `<library-id>:model:<stem>`. Stores no digest and no variant: the file used is the **Variant** that best fits this machine, and an update to the entry reaches every graph that uses it | Model key |
+| **Model catalog** | The **Catalog entries** every library ships: one JSON file per entry in a library's `catalog/` folder, in OpenModelDB's shape, registered by `ModelCatalogRegistry`. Not a marketplace: it lists models, not libraries | Model registry, model list |
+| **Catalog entry** | One model with its metadata (architecture, scale, license, purpose) and its **Variants**. Key `<library-id>:model:<file stem>` | Model, catalog item |
+| **Variant** | One downloadable form of a **Catalog entry**: a file or a bundle of files, tagged with platform, type, backend and precision. A tag it lacks means it runs anywhere. Chosen by the node's `model_preference` or the port's `prefer`, never by the graph | Resource (the JSON field name), flavour |
+| **Model store** | The `models` volume (`haybale-models:volume:models`): human folders plus a digest index. Files resolve by sha256 wherever they sit in it. The Hugging Face cache is a second volume, listed read-only and never deleted by haywire ([ADR 0068](../adr/0068-the-hugging-face-cache-is-a-volume.md)) | Model folder, weights folder |
+| **Needs-list** | The models an open graph's nodes refer to that this machine does not have, interiors of subgraphs and macros included. Shown as a **Graph notice** and in the Models editor filtered to that graph | Missing list |
+| **Graph notice** | A message a library posts about one open graph through `GraphAppState.post_notice`, shown on its **HaystackEditor** row as an icon with a count, with an optional action. Never disables play. See [graph notices](../guides/graph-notices.md) and [ADR 0069](../adr/0069-graph-notices-are-a-library-extensible-store.md) | Graph warning (a **NodeWarning** belongs to one card), alert |
+| **Loaded-models pool** | The models loaded in memory, shared between nodes and keyed by resolved file plus a variant key. A node holds a model for the length of a run; a model is freed when no running node holds it | Model cache (the Hugging Face cache is a different thing) |
+
 ## Images
 
 | Term | Definition | Aliases to avoid |

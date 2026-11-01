@@ -80,7 +80,8 @@ Decision numbers (Qn) refer to the inquisition; each is recorded with its reason
 - **Locations** live in the framework file `~/.haywire/volumes.toml` (per machine; S1-Q1b), next to
   each volume's label and description; label, description and location are editable, the key is not
   (S1b-Q3). Editing is ADMIN. Libraries that need env vars
-  (`VISIONGRAPH_ASSET_DIR`, `HF_HOME`) set them *from* the volume — the volume is the single source.
+  (`VISIONGRAPH_ASSET_DIR`, `HF_HOME`) read their location from the volume and pass it explicitly
+  (`cache_dir=`); haybale-models sets no env var (S6-Q9) — the volume is the single source.
 - **Resolver** refuses a resolved path that escapes its volume root (`..`, outward symlink),
   checked on the resolved path.
 - **Undefined volume** (Q7B, amended by S1-Q3): value kept verbatim; widget shows "volume undefined";
@@ -394,6 +395,27 @@ node per evaluation, so it must be ~free when nothing failed:
 - **`LoadedModels` pool (Q21B):** keyed `(sha256, variant_key)`, refcounted by holder nodes;
   libraries supply `load(path)` and `release(obj)`. No eviction yet.
 
+**S6 decisions**: see the [S6 plan](2026-10-31-s6-haybale-models.md).
+
+**S6 deviations from plan:**
+- Nothing was committed during execution; the slice sits uncommitted in the working tree.
+- Model stems follow their own rule (`[A-Za-z0-9][A-Za-z0-9_-]*`, so `4x-Demo` is valid), not the macro registry's.
+- A download target takes an optional digest lookup to add `-<sha8>` on a same-name, different-digest file; without one it never suffixes.
+- `ResolvedModel.key` is the pool key (sha256 when known, else `path:` + absolute path); `sha256` stays honest and is empty when unknown.
+- Core `NodeWrapper.replace_warnings(kind, warnings)` was added; the consumer and the needs-list use it. A missing non-empty ref sets the "Model missing" warning, an empty ref clears it.
+- The scan runs on library enable (S6-Q19), which no task had listed; `ModelsState.on_enable` starts it on a daemon thread.
+- The widget's status line uses the owning node's `model_preference` when the port has an owner, else the port's `prefer`, so it matches the worker.
+- Catalog-wide status is resolved when the picker popup opens; a model change resolves only the current ref.
+- A mirror switch deletes the `.part` file; resume only applies across restarts of the same URL.
+- Two jobs writing the same target: the second fails fast ("another download is writing ...").
+- Downloads send `Accept-Encoding: identity` (Range offsets are raw bytes); the activity tracker starts inside the `try`.
+- Path traversal in layout (a `..` basename, a bundle `file.path` with `../`) is refused; download is the only writer.
+- `huggingface_hub` resolved to 2.4 (plan said at least 1.0).
+- `@library(dependencies=...)` no longer exists; `linked_libraries` in `haybale.toml` declares graph-editor.
+- The Models editor's graph filter keeps missing-only semantics; an empty filtered view says "Everything this graph needs is present". Draws do one locate per row, and the needs report is cached for up to 1 s with one trailing redraw at expiry.
+- Removal deletes only digests actually removed from the index; with nothing deletable it notifies and shows no dialog.
+- `models_list` `local` lists every indexed file, with no "unclaimed" filter.
+
 ### 2.6 Torch install — haybale-marketplace (Q18B)
 - Every `uv pip install` / dry-run passes `--torch-backend <setting>`; framework setting,
   default `auto`, overridable (`cpu`, `cu126`, …). Torch is an environment property, not a
@@ -430,7 +452,7 @@ node per evaluation, so it must be ~free when nothing failed:
 | S4 | Run Button, For Each File, Path Exists?, Output Path | haybale-core | S1, S2 | done (merged ff to master 4add63fc2, 2026-10-31; live check passed; deferred minors listed in §2.2) — [plan](2026-10-30-s4-batch-nodes.md) |
 | S5 | rest of haybale-image | haybale-image (+ Split Path, Create Folder in haybale-core) | S0, S1 | done (merged ff to master b2fbfb565, 2026-10-31; still render live-checked, rest listed in §2.4) — [plan](2026-10-31-s5-haybale-image.md) |
 | S4b | List Files, Loop Array, Step Array | haybale-core | S4 | done (fcc03b7e2, merged with S5, 2026-10-31; slideshow live-checked) — decisions in §2.2 |
-| S6 | haybale-models | haybale-models | S1 | open |
+| S6 | haybale-models (+ graph notices in graph-editor/haystack, catalog registry in core) | haybale-models | S1 | implemented (uncommitted, 2026-11-01; studio boot + volumes checked, UI/Farmhand live check pending) — [plan](2026-10-31-s6-haybale-models.md) |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | open |
 | S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | open |
 | S8 | extra arches | haybale-spandrel-extra | S7 | open |
@@ -470,17 +492,17 @@ that final task is incomplete.
 - **Blocked node** — a node skipped because a data-inlet source is failed or blocked.
 - **Image layout** — channel arrangement (gray/RGB/RGBA), carried by the type.
 - **Image storage** — dtype, channel order, residency; invisible to wires, reached via accessors.
-- **Model reference** — source URI + sha256 identifying a model file.
-- **Model catalog** — a library-declared list of model references with metadata.
-- **Model store** — the `models` volume's folders + digest index.
-- **Needs-list** — the set of model references a graph's nodes require, offered for fetch.
+- ~~**Model reference** — source URI + sha256 identifying a model file.~~ (landed in S6)
+- ~~**Model catalog** — a library-declared list of model references with metadata.~~ (landed in S6)
+- ~~**Model store** — the `models` volume's folders + digest index.~~ (landed in S6)
+- ~~**Needs-list** — the set of model references a graph's nodes require, offered for fetch.~~ (landed in S6)
 - Flag: "Adapter" stays reserved for type-changing conversions; storage conversion is not one.
 
 ### ADR candidates
 1. Volumes: named per-machine locations; no absolute paths in graphs.
 2. Failure poisoning + failed-stays-dirty (execution semantics change).
 3. IMAGE: fixed semantics, free storage, accessor-only pixel access.
-4. Models identified by digest; HF cache used, never deleted.
+4. ~~Models identified by digest; HF cache used, never deleted.~~ (landed in S6: ADRs 0067, 0068)
 5. Torch backend is an environment property passed on every install.
 
 ### `.insights/` traps

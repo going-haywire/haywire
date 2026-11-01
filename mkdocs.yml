@@ -125,6 +125,8 @@ nav:
       - Publishing to PyPI: guides/publish-to-pypi.md
       - Subscribing to marketplaces: guides/subscribing-to-marketplaces.md
       - Security: guides/security.md
+      - Model catalogs: guides/model-catalogs.md
+      - Graph notices: guides/graph-notices.md
 
   - Architecture:
       - Overview: architecture/overview/overview-arch.md
