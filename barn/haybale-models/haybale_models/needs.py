@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from haywire.core.access import AccessTier
 from haywire.core.models import ModelCatalogRegistry
+from haywire.ui import elements as hui
 
 from haybale_graph_editor.notices import GraphNotice
 from haybale_models.consumer import KIND, MISSING_WARNING, preference_for
@@ -511,6 +512,7 @@ class NeedsWatcher:
                 action_label="Show in Models",
                 action=w.action,
                 requires=AccessTier.VIEW,
+                icon=hui.icon.models,
             ),
         )
 

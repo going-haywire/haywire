@@ -24,6 +24,8 @@ class GraphNotice:
 
     ``key`` is namespaced by the producer (``haybale-models:needs``). The
     action button is shown only to sessions that satisfy ``requires``.
+    ``icon`` is a Material icon name shown with the notice; ``None`` shows the
+    generic notice icon.
 
     Example::
 
@@ -36,6 +38,7 @@ class GraphNotice:
     action: Callable[[SessionContext], None] | None = None
     requires: AccessTier = AccessTier.VIEW
     dismissable: bool = False
+    icon: str | None = None
 
 
 @dataclass(frozen=True)

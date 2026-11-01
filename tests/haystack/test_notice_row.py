@@ -91,15 +91,23 @@ def _marked(elements: list[Any], mark: str) -> list[Any]:
     return [el for el in elements if el.props.get("data-hw-mark") == mark]
 
 
-def test_row_shows_notice_icon_with_count(setup):
+def _notice_icon(button: Any) -> Any:
+    """Return the q-icon inside the notice button."""
+    (icon,) = button.default_slot.children
+    return icon
+
+
+def test_row_shows_notice_icon_tinted_without_count(setup):
     editor, context, gas = setup
     gas.post_notice("id", GraphNotice("t:a", "Needs 2 models (10 MB)"))
     gas.post_notice("id", GraphNotice("t:b", "Other"))
     elements = _render(editor, context)
-    (icon,) = _marked(elements, "graph-notice")
-    assert icon.props["icon"] == "error_outline"
-    badges = [el for el in elements if isinstance(el, ui.badge)]
-    assert [b.text for b in badges] == ["2"]
+    (button,) = _marked(elements, "graph-notice")
+    icon = _notice_icon(button)
+    assert icon.props["name"] == "error_outline"
+    assert not [el for el in elements if isinstance(el, ui.badge)]
+    assert "hw-use-props-color" in icon.classes
+    assert "hw-text-warning" in icon.classes
     tips = [el for el in elements if isinstance(el, ui.tooltip)]
     assert any(t.text == "Needs 2 models (10 MB)\nOther" for t in tips)
 
@@ -178,3 +186,33 @@ def test_dismiss_button_only_when_dismissable(setup):
     assert _dismiss_buttons(_render_keep(editor, context)) == []
     gas.post_notice("id", GraphNotice("t:b", "loose", dismissable=True))
     assert len(_dismiss_buttons(_render_keep(editor, context))) == 1
+
+
+def test_row_shows_shared_notice_icon(setup):
+    editor, context, gas = setup
+    gas.post_notice("id", GraphNotice("t:a", "a", icon="model_training"))
+    gas.post_notice("id", GraphNotice("t:b", "b", icon="model_training"))
+    (button,) = _marked(_render(editor, context), "graph-notice")
+    icon = _notice_icon(button)
+    assert icon.props["name"] == "model_training"
+    assert "hw-use-props-color" in icon.classes
+    assert "hw-text-warning" in icon.classes
+
+
+def test_row_uses_generic_icon_when_icons_differ(setup):
+    editor, context, gas = setup
+    gas.post_notice("id", GraphNotice("t:a", "a", icon="model_training"))
+    gas.post_notice("id", GraphNotice("t:b", "b"))
+    (button,) = _marked(_render(editor, context), "graph-notice")
+    assert _notice_icon(button).props["name"] == "error_outline"
+
+
+def test_popup_line_carries_icon_in_warning_colour(setup):
+    editor, context, gas = setup
+    gas.post_notice("id", GraphNotice("t:a", "a", icon="model_training"))
+    gas.post_notice("id", GraphNotice("t:b", "b"))
+    elements = _render(editor, context)
+    lines = _marked(elements, "graph-notice-line-icon")
+    assert [el.props["name"] for el in lines] == ["model_training", "error_outline"]
+    assert all("hw-text-warning" in el.classes for el in lines)
+    assert all("hw-use-props-color" in el.classes for el in lines)

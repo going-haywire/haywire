@@ -103,7 +103,7 @@ class ModelsEditor(BaseEditor):
         self._needs_cache: tuple[str, float, NeedsReport | None] | None = None
         self._trailing: Any = None
 
-    @redraw_on(ModelsChanged, GraphNoticesChanged)
+    @redraw_on(ModelsChanged, GraphNoticesChanged, ModelsViewState.graph_filter)
     def _on_models_changed(self, ctx: SessionContext, signal: object) -> None:
         pass
 

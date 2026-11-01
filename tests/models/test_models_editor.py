@@ -434,3 +434,32 @@ async def test_cleanup_cancels_the_trailing_redraw(
     assert timers  # mount's second draw reused the report
     h.editor.cleanup()
     assert all(t._is_canceled for t in timers)
+
+
+@pytest.mark.anyio
+async def test_graph_filter_change_redraws_through_the_session_bus() -> None:
+    """Setting or clearing ``graph_filter`` reaches the editor as a redraw, not only on a later signal."""
+    import weakref
+
+    from haywire.core.session.session import Session
+    from haywire.ui.editor.registry import EditorTypeRegistry
+    from haywire.ui.editor.wrapper import EditorWrapper
+
+    session = Session(app_state=MagicMock(), workspace_manager=MagicMock(), dispatcher=MagicMock())
+    session.context.app = SimpleNamespace()
+    wrapper = EditorWrapper(
+        editor_key=ModelsEditor.class_identity.registry_key,
+        editor_cls=ModelsEditor,
+        registry=EditorTypeRegistry(),
+        session=session,
+    )
+    assert wrapper._instantiate() is True
+    redraws: list[EditorWrapper] = []
+    wrapper.set_redraw_callback(redraws.append)
+    view = ModelsViewState()
+    view.session = weakref.ref(session)
+
+    view.graph_filter = "g1"
+    assert len(redraws) == 1
+    view.graph_filter = None
+    assert len(redraws) == 2

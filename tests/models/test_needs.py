@@ -155,6 +155,7 @@ def test_notice_posted_on_open_and_retracted_when_resolved(env: Any, graph: Any)
     assert notice.text == "Needs 1 model (12.0 MB)"
     assert notice.action_label == "Show in Models"
     assert notice.requires == AccessTier.VIEW
+    assert notice.icon == "model_training"
 
     env.put()
     env.settle()

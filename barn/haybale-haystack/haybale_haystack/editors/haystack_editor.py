@@ -388,39 +388,54 @@ class HaystackEditor(BaseEditor):
         return [n for n in posted if (binding_id, n.key) not in self._dismissed_notices]
 
     def _render_notices(self, binding_id: str, context: "SessionContext") -> None:
-        """Draw the notice icon with its count and the popup listing each notice and its action."""
+        """Draw the notice icon, tinted warning, and the popup listing each notice and its action."""
         notices = self._visible_notices(binding_id, context)
         if not notices:
             return
-        popup = Popup(title="Notices", closable=True, backdrop_click_close=True, escape_close=True)
+        popup = Popup(
+            title="Notices", width="26rem", closable=True, backdrop_click_close=True, escape_close=True
+        )
         self._notice_popups.append(popup)
         with popup:
             for notice in notices:
                 self._render_notice_line(binding_id, notice, popup, context)
-        btn = hui.icon_action(
-            hui.icon.notice,
-            tooltip="\n".join(n.text for n in notices),
-        )
-        btn.props("data-hw-mark=graph-notice").on("click.stop", popup.open)
+        icons = {n.icon for n in notices}
+        shared = icons.pop() if len(icons) == 1 else None
+        btn = ui.button().props("flat round dense size=xs data-hw-mark=graph-notice")
         with btn:
-            ui.badge(str(len(notices))).props("floating")
+            # The icon carries the opt-out: the .hw-panel dim rule beats an inline colour.
+            ui.icon(shared or hui.icon.notice).classes("hw-use-props-color hw-text-warning")
+        btn.tooltip("\n".join(n.text for n in notices))
+        btn.on("click.stop", popup.open)
 
     def _render_notice_line(
         self, binding_id: str, notice: GraphNotice, popup: Popup, context: "SessionContext"
     ) -> None:
-        with ui.row().classes("w-full items-center gap-2 no-wrap"):
-            ui.label(notice.text).classes("flex-1 text-sm")
+        with (
+            ui.column()
+            .classes("w-full gap-1 p-2 rounded")
+            .style(
+                "border-left: 3px solid var(--hw-warning);"
+                " background: color-mix(in srgb, var(--hw-warning) 12%, transparent)"
+            )
+        ):
+            with ui.row().classes("w-full items-start gap-2 no-wrap"):
+                ui.icon(notice.icon or hui.icon.notice, size="sm").classes(
+                    "hw-use-props-color hw-text-warning"
+                ).props("data-hw-mark=graph-notice-line-icon")
+                ui.label(notice.text).classes("flex-1 min-w-0 text-sm")
+                if notice.dismissable:
+                    hui.icon_action(
+                        hui.icon.close,
+                        tooltip="Dismiss",
+                        on_click=lambda k=notice.key: self._dismiss_notice(binding_id, k, context),
+                    )
             if notice.action is not None and notice.action_label and context.can_access(notice.requires):
-                hui.button(
-                    notice.action_label,
-                    on_click=lambda n=notice: self._run_notice_action(n, popup, context),
-                ).props("data-hw-mark=graph-notice-action").classes("w-auto")
-            if notice.dismissable:
-                hui.icon_action(
-                    hui.icon.close,
-                    tooltip="Dismiss",
-                    on_click=lambda k=notice.key: self._dismiss_notice(binding_id, k, context),
-                )
+                with ui.row().classes("w-full justify-end"):
+                    hui.button(
+                        notice.action_label,
+                        on_click=lambda n=notice: self._run_notice_action(n, popup, context),
+                    ).props("data-hw-mark=graph-notice-action").classes("w-auto")
 
     def _run_notice_action(self, notice: GraphNotice, popup: Popup, context: "SessionContext") -> None:
         """Run a notice's action with this session's context, then close the popup."""
