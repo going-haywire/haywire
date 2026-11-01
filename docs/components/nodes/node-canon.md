@@ -164,6 +164,38 @@ restores them directly. That gives one rule with two parts:
 Neither hook is the place to open a camera or a file. That waits until the
 graph runs — the next section.
 
+### Where a node keeps its state
+
+Saving, loading, copy and paste, undo of a delete, and a rebuild all recreate a
+node from the same three things. A node whose state lives only there comes back
+exactly as it was — whichever of these created it:
+
+| State | Lives in | Carried by save, copy, undo |
+|---|---|---|
+| Values the user sets or wires | **ports** | yes |
+| Configuration the user chooses | **settings** (your `NodeSettings` bags) | yes |
+| Anything else the node must remember — a counter, a picked item, a recorded take | **`self.store`** (`NodeStore`) | yes |
+| Objects built in code — helpers, parsers, lookup tables | **`post_init()`**, from the three above | rebuilt |
+| Values derived from the graph's structure | **`on_assembly()`** | rebuilt |
+| Devices, files, threads, loaded models | **`on_startup()`**, released in `on_shutdown()` | rebuilt per run |
+| Buffers and anything recomputable | **`self.cache`** (`NodeCache`) | never kept |
+
+The rule: **nothing the node relies on may exist only in a plain attribute.**
+An attribute set in `worker()` or an `on_change` handler survives neither a save
+nor a copy — the copy starts without it and behaves differently.
+
+Three details a copy exposes that a save and reload hide:
+
+- **A copy gets a new node id.** Do not store ids of nodes, your own included,
+  where a pasted copy would keep pointing at the original.
+- **A store value is copied, not shared.** Keep store values to plain data
+  (numbers, strings, lists, dicts) so the copy cannot change the original.
+- **Outlet values are not trusted after a copy.** They are recomputed: a data
+  node runs its worker once on its first execution after it is created, loaded,
+  pasted or rebuilt
+  ([ADR 0070](../../adr/0070-a-data-node-runs-at-least-once-per-instance.md)).
+  Your worker must therefore tolerate that extra run.
+
 **When you edit the class (hot-reload),** every placed node of it is rebuilt
 through `init()`: fresh, with only its arrangement kept (position, stacking order,
 place on stage), so your port changes show
