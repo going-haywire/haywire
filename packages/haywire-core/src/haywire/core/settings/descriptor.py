@@ -234,6 +234,15 @@ class setting(SettingDescriptor, Generic[T]):
                     self._description = getattr(mirrors, "_description", "")
                 if self._type is object:
                     self._type = getattr(mirrors, "_type", object)
+                # A mirror draws like its source unless it says otherwise.
+                if widget is None:
+                    self._widget_spec = getattr(mirrors, "_widget_spec", {})
+                if widget_config is None:
+                    self._widget_config_override = getattr(mirrors, "_widget_config_override", {})
+                if min is None:
+                    self._min = getattr(mirrors, "_min", None)
+                if max is None:
+                    self._max = getattr(mirrors, "_max", None)
         else:
             self._mirror_key = ""
 
