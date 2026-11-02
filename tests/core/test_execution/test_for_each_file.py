@@ -105,6 +105,18 @@ def test_iterates_matching_files_in_order(graph_with_library_system, monkeypatch
     assert batch.each.ports["extension"].get_value() == ".png"
 
 
+def test_paths_remember_the_folder_as_their_base(graph_with_library_system, monkeypatch, scans):
+    (scans / "sub" / "deeper").mkdir()
+    (scans / "sub" / "deeper" / "e.png").write_bytes(b"x")
+    batch = _Batch(graph_with_library_system)
+    batch.each.ports["folder"].set_value(VolumePath(SCANS, "sub"))
+
+    _Runner(graph_with_library_system, monkeypatch).fire(batch.begin)
+
+    path = batch.each.ports["path"].get_value()
+    assert (path.relative, path.base, path.subpath) == ("sub/deeper/e.png", "sub", "deeper/e.png")
+
+
 def test_limit(graph_with_library_system, monkeypatch, scans):
     batch = _Batch(graph_with_library_system)
     batch.each.ports["limit"].set_value(2)

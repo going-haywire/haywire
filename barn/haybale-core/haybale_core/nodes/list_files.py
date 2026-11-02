@@ -21,9 +21,11 @@ class ListFilesNode(BaseNode):
     - `Subfolders`: also list the files of every subfolder.
     - `Limit`: only the first files, in name order; 0 takes all of them.
 
-    `Files` holds the paths in name order and `Total` how many there are. Files and
-    folders whose names start with `.` are skipped, folders reached through a link
-    are not entered, and a linked file pointing outside the folder is skipped.
+    `Files` holds the paths in name order and `Total` how many there are. Each path
+    remembers `Folder` as its base, so Split Path can give its `Subfolder` below it.
+    Files and folders whose names start with `.` are skipped, folders reached
+    through a link are not entered, and a linked file pointing outside the folder
+    is skipped.
 
     The folder is read again every time `Execute` runs, so files added meanwhile
     are found. Go through the list with Loop Array or Step Array:
@@ -60,7 +62,9 @@ class ListFilesNode(BaseNode):
         if limit > 0:
             relatives = relatives[:limit]
         base = [part for part in folder.relative.split("/") if part]
-        files = [VolumePath(folder.volume, "/".join(base + list(r.parts))) for r in relatives]
+        files = [
+            VolumePath(folder.volume, "/".join(base + list(r.parts)), base="/".join(base)) for r in relatives
+        ]
         self.out("files", files)
         self.out("total", len(files))
         return "next"

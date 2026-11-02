@@ -21,13 +21,13 @@ Fundamental components for haywire graphs
 - **Logger** — Log a message to the Python logging system at a configurable severity
 - **Loop Array** — Runs the loop body once for each item of an array
 - **Menu** — A drop-down that sends the item picked, and shows the item it is fed
-- **Output Path** — Builds a file path from a folder, a subfolder, a name and an extension
+- **Output Path** — Builds a file path from a folder, a subfolder, a stem and an extension
 - **Path Exists?** — Continues on Exists or Missing, depending on whether a file or folder is there
 - **Print** — Print to the haywire UI console
 - **Resolve Path** — Gives the absolute location of a path on this machine, as text
 - **Run Button** — A button on the card that triggers connected Tick Event flows while the graph runs
 - **Shutdown** — Triggered when execution is shutting down
-- **Split Path** — Splits a path into its volume, folder, name and extension
+- **Split Path** — Splits a path into its volume, base, subfolder, stem and extension
 - **Step Array** — Goes through an array one item at a time, each time Next runs
 - **Text** — A text field that sends its text on Enter, and shows the text it is fed
 - **Tick** — Triggered by a connected emitter (Tick Emit, Run Button)

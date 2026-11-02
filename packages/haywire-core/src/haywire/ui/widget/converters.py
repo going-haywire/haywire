@@ -96,6 +96,22 @@ class PrimitiveUnwrappingConverter(BindingConverter):
         return view_value
 
 
+class DisplayTextConverter(PrimitiveUnwrappingConverter):
+    """Unwraps like ``PrimitiveUnwrappingConverter``, then turns any other value into ``str(value)``.
+
+    Text, numbers and ``None`` pass unchanged. For a widget that displays a value
+    as text, such as a label showing a path as ``scans:in/a.png``. Read-only:
+    ``to_model`` passes the view value through.
+    """
+
+    def to_view(self, model_value: Any) -> Any:
+        """Return the unwrapped value, or its ``str()`` when it is not text, a number or ``None``."""
+        value = super().to_view(model_value)
+        if value is None or isinstance(value, (str, int, float)):
+            return value
+        return str(value)
+
+
 class CompositeConverter(BindingConverter):
     """
     Chains multiple converters in sequence.

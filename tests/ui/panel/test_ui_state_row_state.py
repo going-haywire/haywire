@@ -289,3 +289,38 @@ class TestCategoryGroupHiding:
         group = _find_category_group(anchor, "advanced")
         assert group is not None
         assert group.visible is False
+
+
+class HideWidgetSettings(Settings):
+    shown = setting[FLOAT](1.0, label="Shown")
+    widgetless = setting[FLOAT](2.0, label="Widgetless", ui_state=UiState.HIDE_WIDGET)
+
+
+def _widget_cells(row) -> list:
+    """The value-column cells under *row* (outside its menu), whatever widget they hold."""
+    return [el for el in _walk_skip_menus(row) if "sf-widget" in getattr(el, "_classes", [])]
+
+
+class TestHideWidget:
+    def test_seeded_row_keeps_its_label_but_hides_the_widget(self):
+        anchor = _render(HideWidgetSettings())
+        row = _find_field_row(anchor, "widgetless")
+        assert row is not None
+        assert row.visible is True
+        assert row._props.get("data-ui-state") == "hide_widget"
+        cells = _widget_cells(row)
+        assert cells
+        assert all(cell.visible is False for cell in cells)
+
+    def test_live_toggle_shows_and_hides_the_widget(self):
+        bag = HideWidgetSettings()
+        anchor = _render(bag)
+        row = _find_field_row(anchor, "shown")
+        assert all(cell.visible for cell in _widget_cells(row))
+
+        bag._set_ui_state("shown", UiState.HIDE_WIDGET)
+        assert row.visible is True
+        assert not any(cell.visible for cell in _widget_cells(row))
+
+        bag._set_ui_state("shown", UiState.NORMAL)
+        assert all(cell.visible for cell in _widget_cells(row))

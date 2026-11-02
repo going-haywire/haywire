@@ -44,7 +44,8 @@ class ForEachFileNode(BaseNode):
 
     For each file the loop sets `Path`, `Subfolder` (its folder relative to `Folder`,
     empty at the top), `Stem` (its name without extension), `Extension` (such as
-    `.png`), `Index` (from 0) and `Total`. When the loop ends, `Failed` lists the
+    `.png`), `Index` (from 0) and `Total`. `Path` remembers `Folder` as its base, so
+    Split Path gives the same `Subfolder`. When the loop ends, `Failed` lists the
     files whose iteration failed. `Completed` runs when every file was gone through;
     `Stopped` runs when `Break` (wired from the loop body) or `On Error` = `stop`
     ended the loop early.
@@ -173,5 +174,5 @@ class ForEachFileNode(BaseNode):
 
     def _path(self, relative: PurePosixPath) -> VolumePath:
         assert self._folder is not None
-        parts = [part for part in self._folder.relative.split("/") if part] + list(relative.parts)
-        return VolumePath(self._folder.volume, "/".join(parts))
+        base = [part for part in self._folder.relative.split("/") if part]
+        return VolumePath(self._folder.volume, "/".join(base + list(relative.parts)), base="/".join(base))

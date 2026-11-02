@@ -84,6 +84,7 @@ def test_list_files_paths_keep_the_folder(graph_with_library_system, scans):
         VolumePath(SCANS, "sub/c.png"),
         VolumePath(SCANS, "sub/d.png"),
     ]
+    assert {p.base for p in lister.ports["files"].get_value()} == {"sub"}
 
 
 def test_list_files_limit(graph_with_library_system, scans):

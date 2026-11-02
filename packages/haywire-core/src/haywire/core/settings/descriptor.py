@@ -59,19 +59,22 @@ class Promotable(Flag):
 class UiState(IntEnum):
     """Presentation state of a settings field in the properties panel.
 
-    Pure chrome: a DISABLED or HIDDEN field stays fully readable/writable
-    from code, keeps its value, and serializes normally.
+    Pure chrome: a DISABLED, HIDE_WIDGET or HIDDEN field stays fully
+    readable/writable from code, keeps its value, and serializes normally.
     Severity-ordered, so ``Settings._effective_ui_state`` composes multiple
-    sources by ``max()``: NORMAL < DISABLED < HIDDEN.
+    sources by ``max()``: NORMAL < DISABLED < HIDE_WIDGET < HIDDEN.
 
     - NORMAL: rendered, interactive.
     - DISABLED: rendered, non-interactive (exists but locked).
+    - HIDE_WIDGET: the row shows its label and menu, so the field can still be
+      promoted, but no widget.
     - HIDDEN: row not rendered.
     """
 
     NORMAL = 0
     DISABLED = 1
-    HIDDEN = 2
+    HIDE_WIDGET = 2
+    HIDDEN = 3
 
 
 class setting(SettingDescriptor, Generic[T]):

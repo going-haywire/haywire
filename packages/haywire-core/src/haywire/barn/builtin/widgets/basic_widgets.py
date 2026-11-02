@@ -10,7 +10,7 @@ from haywire.ui import elements as hui
 from haywire.ui.modals import text_modal
 from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.converters import PrimitiveUnwrappingConverter
+from haywire.ui.widget.converters import DisplayTextConverter, PrimitiveUnwrappingConverter
 from haywire.ui.components.number.drag import NumberDrag
 
 
@@ -332,8 +332,8 @@ class SimpleLabelWidget(BaseWidget):
     """
     Read-only label widget that displays the port value as text.
 
-    No configuration options — the label renders the raw value with no
-    additional styling controls.
+    Text and numbers show as they are; any other value, such as a path, shows in
+    its text form (`scans:in/a.png`). No configuration options.
 
     Example::
 
@@ -345,5 +345,5 @@ class SimpleLabelWidget(BaseWidget):
             ui.label("").classes("text-base text-xs"),
             prop="text",
             one_way=True,
-            converter=PrimitiveUnwrappingConverter(default_value=""),
+            converter=DisplayTextConverter(default_value=""),
         )

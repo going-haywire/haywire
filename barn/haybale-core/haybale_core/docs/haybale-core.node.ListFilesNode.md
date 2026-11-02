@@ -26,9 +26,11 @@ Lists the files in a folder that match the pattern, each time it runs.
 - `Subfolders`: also list the files of every subfolder.
 - `Limit`: only the first files, in name order; 0 takes all of them.
 
-`Files` holds the paths in name order and `Total` how many there are. Files and
-folders whose names start with `.` are skipped, folders reached through a link
-are not entered, and a linked file pointing outside the folder is skipped.
+`Files` holds the paths in name order and `Total` how many there are. Each path
+remembers `Folder` as its base, so Split Path can give its `Subfolder` below it.
+Files and folders whose names start with `.` are skipped, folders reached
+through a link are not entered, and a linked file pointing outside the folder
+is skipped.
 
 The folder is read again every time `Execute` runs, so files added meanwhile
 are found. Go through the list with Loop Array or Step Array:

@@ -26,6 +26,8 @@ Supports:
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Any, Callable, ClassVar, NamedTuple, TypeVar, TYPE_CHECKING
 
 from typing_extensions import dataclass_transform
@@ -86,6 +88,8 @@ class Settings:
     # with an instance attribute when constructed.
     _registry: "SettingsRegistry | None" = None
     _namespace: ClassVar[str] = ""
+    # Each class caches its own map in _settings_descriptors().
+    _settings_descriptor_map: ClassVar["Mapping[str, setting] | None"] = None
     # Set by the settings decorator on registerable subclasses (Library/
     # FrameworkSettings). Declared here so SettingsRegistry can bind
     # BaseRegistry[Settings] against the RegisteredClass structural bound.
@@ -143,6 +147,9 @@ class Settings:
         # Dedicated UI-state channel: callback(name, state) on each transition.
         # Value subscribers never hear a chrome change, and vice versa.
         self._ui_state_listeners: list[Callable[[str, UiState], None]] = []
+        # Promotion channel: callback(name, direction | None) when a field is
+        # promoted, demoted, or restored from a saved graph with another direction.
+        self._promotion_listeners: list[Callable[[str, PortType | None], None]] = []
         self._registry: "SettingsRegistry | None" = registry
         self._cleaned_up: bool = False
         # Back-reference to the owning node (None for standalone Framework/Library
@@ -202,7 +209,11 @@ class Settings:
         if name not in fields:
             logger.warning("set_promoted: unknown field %r on %s — ignored", name, type(self).__name__)
             return
-        self._promoted_keys[fields[name].storage_key] = Promotion(direction, show_widget, order)
+        key = fields[name].storage_key
+        before = self._promoted_keys.get(key)
+        self._promoted_keys[key] = Promotion(direction, show_widget, order)
+        if before is None or before.direction is not direction:
+            self._announce_promotion(name, direction)
 
     def _set_promoted_show_widget(self, name: str, strategy: ShowWidgetStrategy | None) -> None:
         """Record *name*'s widget-visibility choice, keeping its direction.
@@ -248,7 +259,8 @@ class Settings:
         fields = type(self)._settings_descriptors()
         if name not in fields:
             return
-        self._promoted_keys.pop(fields[name].storage_key, None)
+        if self._promoted_keys.pop(fields[name].storage_key, None) is not None:
+            self._announce_promotion(name, None)
 
     def _is_promoted(self, name: str) -> bool:
         """True if field *name* is currently promoted. False for unknown names."""
@@ -624,6 +636,7 @@ class Settings:
         # The saved block is authoritative, so drop promote_default seeds first:
         # a demotion is an absence there, and an absence only beats a seed once
         # the seed is gone.
+        before = {key: record.direction for key, record in self._promoted_keys.items()}
         self._promoted_keys.clear()
         for key, record in data.get("promoted", {}).items():
             if not isinstance(record, dict):
@@ -639,6 +652,11 @@ class Settings:
                 ShowWidgetStrategy(raw_strategy) if raw_strategy is not None else None,
                 record.get("order"),
             )
+        for name, descriptor in fields.items():
+            after = self._promoted_keys.get(descriptor.storage_key)
+            direction_after = after.direction if after is not None else None
+            if before.get(descriptor.storage_key) is not direction_after:
+                self._announce_promotion(name, direction_after)
 
     # -------------------------------------------------------------------------
     # Reset
@@ -701,6 +719,7 @@ class Settings:
                 pass
         self._graph_mirror_adapters.clear()
         self._ui_state_listeners.clear()
+        self._promotion_listeners.clear()
 
     # -------------------------------------------------------------------------
     # Introspection
@@ -783,7 +802,7 @@ class Settings:
     def _effective_ui_state(self, name: str) -> UiState:
         """Return *name*'s composed presentation state.
 
-        Severity max (``NORMAL < DISABLED < HIDDEN``, the ``UiState`` int
+        Severity max (``NORMAL < DISABLED < HIDE_WIDGET < HIDDEN``, the ``UiState`` int
         order) over every source:
 
         - the imperative state (``ui_state=`` seed + :meth:`_set_ui_state`),
@@ -830,20 +849,59 @@ class Settings:
         except ValueError:
             pass
 
-    @classmethod
-    def _settings_descriptors(cls) -> dict[str, setting]:
-        """Return all setting descriptors on this class, keyed by attribute name.
+    def _subscribe_promotion(self, callback: Callable[[str, PortType | None], None]) -> None:
+        """Register ``callback(name, direction)`` for promotion changes of this bag's fields.
 
-        Walks the MRO base-first, so inherited fields come before the ones a
-        subclass declares. Internal; :func:`settings_fields` is the supported
-        spelling outside the settings package.
+        Fires when a field is promoted (*direction* is the port direction), demoted
+        (*direction* is ``None``), or restored from a saved graph in a state that
+        differs from the one it had. Never fires for a value change. Idempotent per
+        callback.
+
+        Example::
+
+            def post_init(self) -> None:
+                self.parts._subscribe_promotion(self._on_promotion)
+
+            def _on_promotion(self, name: str, direction: PortType | None) -> None:
+                self.run_again()  # fill a newly promoted part on the next run
         """
-        result: dict[str, setting] = {}
-        for klass in reversed(cls.__mro__):
-            for name, val in klass.__dict__.items():
-                if isinstance(val, setting):
-                    result[name] = val
-        return result
+        if callback not in self._promotion_listeners:
+            self._promotion_listeners.append(callback)
+
+    def _unsubscribe_promotion(self, callback: Callable[[str, PortType | None], None]) -> None:
+        """Remove a previously registered promotion callback (no-op if absent)."""
+        try:
+            self._promotion_listeners.remove(callback)
+        except ValueError:
+            pass
+
+    def _announce_promotion(self, name: str, direction: PortType | None) -> None:
+        for listener in list(self._promotion_listeners):
+            try:
+                listener(name, direction)
+            except Exception as e:
+                logger.error(f"promotion listener error for '{name}': {e}")
+
+    @classmethod
+    def _settings_descriptors(cls) -> Mapping[str, setting]:
+        """Return all setting descriptors on this class, keyed by attribute name, read-only.
+
+        Inherited fields come before the ones a subclass declares. Computed once
+        per class, so a ``setting`` attached to the class after the first call is
+        not seen. Internal; :func:`settings_fields` is the supported spelling
+        outside the settings package.
+        """
+        # cls.__dict__, not getattr: a subclass must not reuse its base's map.
+        cached = cls.__dict__.get("_settings_descriptor_map")
+        if cached is None:
+            result: dict[str, setting] = {}
+            for klass in reversed(cls.__mro__):
+                for name, val in klass.__dict__.items():
+                    if isinstance(val, setting):
+                        result[name] = val
+            cached = MappingProxyType(result)
+            cls._settings_descriptor_map = cached
+        return cached
 
 
 _BagT = TypeVar("_BagT", bound="Settings")
@@ -873,7 +931,7 @@ def bag(settings_cls: "type[_BagT]") -> _BagT:
     return settings_cls  # type: ignore[return-value]
 
 
-def settings_fields(bag_or_cls: "Settings | type[Settings]") -> dict[str, setting]:
+def settings_fields(bag_or_cls: "Settings | type[Settings]") -> Mapping[str, setting]:
     """Every ``setting`` descriptor on a bag, by field name, declaration order.
 
     The supported way to iterate a bag's fields — accepts an instance or the

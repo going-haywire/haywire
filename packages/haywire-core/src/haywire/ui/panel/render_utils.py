@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import inspect
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from itertools import groupby
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
@@ -205,7 +205,7 @@ def render_schema(ctx: "SessionContext", schema_cls: type["Settings"], registry:
     ``LibrarySettings`` and ``FrameworkSettings``, which block deep
     subclassing.
     """
-    prop_fields: dict[str, setting] = schema_cls._settings_descriptors()
+    prop_fields: Mapping[str, setting] = schema_cls._settings_descriptors()
     ordered_defns = [
         defn
         for defn in prop_fields.values()
@@ -551,7 +551,10 @@ def _render_field_row(
                         ("Settings source", _component_key(getattr(defn, "_owner_cls", None))),
                         ("Panel source", _component_key(drawing_panel())),
                     )
-        callback, _set_enabled, _resync = _resolve_widget_instance(defn, on_edit, cell=cell)
+        callback, _set_enabled, _resync, set_widget_visible = _resolve_widget_instance(
+            defn, on_edit, cell=cell
+        )
+        set_widget_visible(defn._ui_state is not UiState.HIDE_WIDGET)
 
     # The registry stores subscriptions as weakrefs, so this closure must be kept
     # alive by something with the row's lifetime — the cleanup callback anchored
@@ -865,6 +868,7 @@ def _render_reactive_field_row(
     row_props += f' data-ui-state="{obj._effective_ui_state(attr_name).name.lower()}"'
 
     widget_set_enabled: Callable[[bool], None] | None = None
+    widget_set_visible: Callable[[bool], None] | None = None
     with ui.row().classes(row_classes).props(row_props) as row_element:
         _render_label()
         if is_promoted_input:
@@ -878,7 +882,7 @@ def _render_reactive_field_row(
         else:
             on_edit = _bag_on_edit(obj, attr_name, error_container, route, on_refused=_show_model_again)
             requires = required_mode(LevelMode.EDIT, defn.operable) if route is not None else None
-            value_apply, widget_set_enabled, resync_view = _resolve_widget_instance(
+            value_apply, widget_set_enabled, resync_view, widget_set_visible = _resolve_widget_instance(
                 defn, on_edit, bag=obj, requires=requires
             )
 
@@ -888,6 +892,8 @@ def _render_reactive_field_row(
         row_element.props(f'data-ui-state="{state.name.lower()}"')
         if widget_set_enabled is not None:
             widget_set_enabled(state is UiState.NORMAL)
+        if widget_set_visible is not None:
+            widget_set_visible(state is not UiState.HIDE_WIDGET)
         _refresh_reset_item()
         if on_ui_state_applied is not None:
             on_ui_state_applied()
@@ -931,7 +937,7 @@ def _resolve_widget_instance(
     bag: "Settings | None" = None,
     cell: "DataField | None" = None,
     requires: LevelMode | None = None,
-) -> tuple[Callable[[Any], None] | None, Callable[[bool], None], Callable[[], None]]:
+) -> tuple[Callable[[Any], None] | None, Callable[[bool], None], Callable[[], None], Callable[[bool], None]]:
     """Build the shared ``BaseWidget`` for *defn* via a ``SettingWidgetModel``.
 
     An unknown widget key falls back to a read-only label, so a missing widget
@@ -946,11 +952,12 @@ def _resolve_widget_instance(
             (``stamp_requires``); ``None`` stamps nothing.
 
     Returns:
-        ``(apply_callback, set_enabled, resync)``. ``apply_callback`` is
-        ``None`` for a real widget, which hears cell writes itself, and the
+        ``(apply_callback, set_enabled, resync, set_visible)``. ``apply_callback``
+        is ``None`` for a real widget, which hears cell writes itself, and the
         label fallback's ``apply(value)`` otherwise. ``set_enabled`` is never
         ``None``. ``resync()`` shows the cell's current value in the widget
-        again, for an edit the write policy refused.
+        again, for an edit the write policy refused. ``set_visible(bool)`` shows
+        or hides the widget, leaving the row's label and menu in place.
     """
     from haywire.ui.widget.globals import get_widget_class
     from haywire.ui.panel.setting_widget_model import SettingWidgetModel
@@ -960,8 +967,8 @@ def _resolve_widget_instance(
     if widget_cls is None:
         shared_cell = cell if cell is not None else (bag._cell_for(defn) if bag is not None else None)
         value = shared_cell.get_value() if shared_cell is not None else None
-        apply_label, set_label_enabled = _build_label_widget(value)
-        return apply_label, set_label_enabled, lambda: None
+        apply_label, set_label_enabled, set_label_visible = _build_label_widget(value)
+        return apply_label, set_label_enabled, lambda: None, set_label_visible
 
     shared_cell = cell if cell is not None else (bag._cell_for(defn) if bag is not None else None)
     assert shared_cell is not None, f"no cell for setting widget {defn._attr_name!r}"
@@ -1004,10 +1011,15 @@ def _resolve_widget_instance(
         if isinstance(widget, BaseWidget):
             widget.on_model_changed(model.get_value())
 
-    return None, set_enabled, _resync
+    def _set_visible(visible: bool) -> None:
+        widget_cell.set_visibility(visible)
+
+    return None, set_enabled, _resync, _set_visible
 
 
-def _build_label_widget(value: Any) -> tuple[Callable[[Any], None], Callable[[bool], None]]:
+def _build_label_widget(
+    value: Any,
+) -> tuple[Callable[[Any], None], Callable[[bool], None], Callable[[bool], None]]:
     """Display-only ``label`` widget — no ``.value`` (set_text, not BindableProperty).
 
     ``apply(value)`` exists solely for this label fallback (no cell binding);
@@ -1033,7 +1045,10 @@ def _build_label_widget(value: Any) -> tuple[Callable[[Any], None], Callable[[bo
         else:
             _lbl.style(add=DISABLED_STYLE)
 
-    return _apply_label, _set_label_enabled
+    def _set_label_visible(visible: bool, _lbl=lbl) -> None:
+        _lbl.set_visibility(visible)
+
+    return _apply_label, _set_label_enabled, _set_label_visible
 
 
 def _request_canvas_redraw(node: "NodeData") -> None:

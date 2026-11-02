@@ -11,26 +11,26 @@ _FORBIDDEN = ("/", "\\", "\0")
 
 @node(
     label="Output Path",
-    description="Builds a file path from a folder, a subfolder, a name and an extension",
+    description="Builds a file path from a folder, a subfolder, a stem and an extension",
     menu="core/paths",
-    search_tags=["path", "file", "output", "save", "folder", "name", "extension", "batch"],
+    search_tags=["path", "file", "output", "save", "folder", "name", "stem", "extension", "batch"],
     node_type=NodeType.DATA,
 )
 class OutputPathNode(BaseNode):
-    """Builds a file path from a folder, a subfolder, a name and an extension.
+    """Builds a file path from a folder, a subfolder, a stem and an extension.
 
-    The result is `Folder / Subfolder / Name + Suffix + Extension`, in the same
+    The result is `Folder / Subfolder / Stem + Suffix + Extension`, in the same
     volume as `Folder`. Nothing is created on disk.
 
     - `Subfolder`: a relative path such as `a/b`; empty puts the file directly in `Folder`.
-    - `Extension`: `png` and `.png` both work; empty gives a name without extension.
+    - `Extension`: `png` and `.png` both work; empty gives a file name without extension.
 
     Fed from For Each File's `Subfolder`, `Stem` and `Extension`, it mirrors the
     input folder's structure under another folder:
 
     ```
     For Each File.Subfolder → Subfolder
-    For Each File.Stem      → Name        Suffix = "_x4"
+    For Each File.Stem      → Stem        Suffix = "_x4"
     For Each File.Extension → Extension
     ```
 
@@ -41,7 +41,7 @@ class OutputPathNode(BaseNode):
     Output Path.Parent → Create Folder → Save Image
     ```
 
-    The node reports an error naming the part when a name is empty or contains
+    The node reports an error naming the part when the stem is empty or contains
     `/` or `\\`, or when the subfolder is absolute or contains `..`.
     """
 
@@ -50,7 +50,7 @@ class OutputPathNode(BaseNode):
 
         self.add(FOLDER_PATH.as_inlet("folder", label="Folder"))
         self.add(STRING.as_inlet("subdir", label="Subfolder", default=""))
-        self.add(STRING.as_inlet("stem", label="Name", default=""))
+        self.add(STRING.as_inlet("stem", label="Stem", default=""))
         self.add(STRING.as_inlet("suffix", label="Suffix", default=""))
         self.add(STRING.as_inlet("extension", label="Extension", default=""))
         self.add(FILE_PATH.as_outlet("path", label="Path"))

@@ -333,9 +333,22 @@ The seed is a **default, not a policy**. It is written into `_promoted_keys` whe
 
 **Do not hand-write `bag._promote(...)` in node code.** In `post_init()` it is an outright bug: that hook runs on graph load too, *after* promotions are restored, so an unconditional promote silently re-promotes a field the user demoted and the demotion can never stick — `_promote()` is a no-op only when the field is *currently* promoted, and cannot tell "the user demoted this" from "nobody has decided yet". `init()` avoids that (it runs only on a fresh drop) but still spreads a declaration across two places. The imperative call remains available for genuinely dynamic cases.
 
-**Presentation state (`UiState`: `ui_state=` / `enabled_when` / `visible_when`).** A setting has a three-valued presentation state in the panel — `UiState.NORMAL` (rendered, interactive), `UiState.DISABLED` (rendered but non-interactive: Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise), and `UiState.HIDDEN` (the row is not rendered at all; a category whose rows are ALL hidden hides its header too). DISABLED means *exists but locked*; HIDDEN means *does not apply right now* (e.g. a manual-focus value while focus mode is AUTO). This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of state; there is no write guard in the settings layer, values keep serializing normally, and the state itself is never persisted.
+**Hearing promotion changes (`_subscribe_promotion`).** A bag announces when one of its fields is promoted, demoted, or restored from a saved graph in a different state: `bag._subscribe_promotion(cb)` with `cb(name, direction)`, where `direction` is the port direction or `None` for a demotion (removed via `_unsubscribe_promotion` / `_cleanup()`). It is a channel of its own, like the UI-state channel: it never fires for a value change, and value subscribers never hear it. Every route that changes a promotion record goes through the bag, so the Setting-row menu, Farmhand, undo and graph load all reach it. Use it when a node works out only what is promoted — Split Path computes only promoted parts, calls `run_again()` when a part is promoted and resets it to its placeholder when it is demoted:
 
-Three composable sources, combined by **severity max** (`NORMAL < DISABLED < HIDDEN` — `UiState` is an `IntEnum` in that order):
+```python
+def post_init(self) -> None:
+    self.parts._subscribe_promotion(self._on_promotion)
+
+def _on_promotion(self, name: str, direction: PortType | None) -> None:
+    if direction is None:
+        self.parts._reset(name)   # back to "<promote to evaluate>"
+    else:
+        self.run_again()          # fill the new part on the next run
+```
+
+**Presentation state (`UiState`: `ui_state=` / `enabled_when` / `visible_when`).** A setting has a four-valued presentation state in the panel — `UiState.NORMAL` (rendered, interactive), `UiState.DISABLED` (rendered but non-interactive: Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise), `UiState.HIDE_WIDGET` (the row keeps its label and Setting-row menu, so the field stays promotable, but draws no widget — for a field whose value means nothing in the panel, such as a path a node only hands on), and `UiState.HIDDEN` (the row is not rendered at all; a category whose rows are ALL hidden hides its header too). DISABLED means *exists but locked*; HIDDEN means *does not apply right now* (e.g. a manual-focus value while focus mode is AUTO). This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of state; there is no write guard in the settings layer, values keep serializing normally, and the state itself is never persisted.
+
+Three composable sources, combined by **severity max** (`NORMAL < DISABLED < HIDE_WIDGET < HIDDEN` — `UiState` is an `IntEnum` in that order):
 
 ```python
 from haywire.core.settings import NodeSettings, UiState, setting
