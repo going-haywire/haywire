@@ -13,6 +13,7 @@ Writes an image to a file in a volume, in the format its extension names
 | `path` | inlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
 | `if_exists` | config | `haywire-core:type:STRING` | Text data |
 | `depth` | config | `haywire-core:type:STRING` | Text data |
+| `progress.main` | config | `haywire-core:type:PROGRESS` |  |
 | `next` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `saved` | outlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
 
@@ -26,6 +27,7 @@ Writes an image to a file in a volume, in the format its extension names
 | `lossless` | webp | `None` | Save WebP files without losing detail; WebP quality is then ignored |
 | `compression` | tiff | `None` | Compression of saved TIFF files; none of them loses detail |
 | `quality` | avif | `None` | Quality of saved AVIF files, from 0 (smallest) to 100 (best) |
+| `main` | progress | `PROGRESS(active=False, fraction=None, label='')` |  |
 
 ## Notes
 
@@ -49,6 +51,8 @@ never left behind.
 The quality and compression settings default to the library's *Image* settings;
 change them here for this node only. Only the settings of the format `Path` names
 are shown.
+
+The Saving bar shows while the file is encoded and written.
 
 The folder must already exist; add Create Folder before Save Image to make it.
 An empty image, an unknown extension and a volume that is not defined on this

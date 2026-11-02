@@ -49,6 +49,25 @@ def test_loads_png_as_rgb(graph_with_library_system, scans):
     assert str(img.layout) == "rgb"
 
 
+def test_loading_bar_sweeps_while_decoding(graph_with_library_system, scans, monkeypatch):
+    from haywire.barn.builtin.types.progress import PROGRESS
+
+    node = _load(graph_with_library_system)
+    mod = importlib.import_module("haybale_image.nodes.load_image")
+    seen: list[tuple[bool, Any, str]] = []
+    real = mod.read_image
+
+    def recording(path: Any) -> Any:
+        bar = node.progress.main
+        seen.append((bar.active, bar.fraction, bar.label))
+        return real(path)
+
+    monkeypatch.setattr(mod, "read_image", recording)
+    node.worker(MagicMock(), path=VolumePath(SCANS, "rgb.png"))
+    assert seen == [(True, None, "decoding")]
+    assert node.progress.main == PROGRESS()
+
+
 def test_missing_file_raises_naming_it(graph_with_library_system, scans):
     node = _load(graph_with_library_system)
     with pytest.raises(FileNotFoundError, match="nope.png"):

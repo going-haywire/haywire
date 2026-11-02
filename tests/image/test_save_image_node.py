@@ -65,6 +65,28 @@ def test_saves_png_and_reports_saved(graph_with_library_system, scans):
     assert node.ports["saved"].get_value() == VolumePath(SCANS, "out.png")
 
 
+def test_saving_bar_sweeps_while_encoding_and_writing(graph_with_library_system, scans, monkeypatch):
+    from haywire.barn.builtin.types.progress import PROGRESS
+
+    node = _save(graph_with_library_system)
+    mod = importlib.import_module("haybale_image.nodes.save_image")
+    seen: list[tuple[bool, Any, str]] = []
+
+    def record(real: Any) -> Any:
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
+            bar = node.progress.main
+            seen.append((bar.active, bar.fraction, bar.label))
+            return real(*args, **kwargs)
+
+        return wrapped
+
+    monkeypatch.setattr(mod, "encode_image", record(mod.encode_image))
+    monkeypatch.setattr(mod, "atomic_write", record(mod.atomic_write))
+    _run(node, "out.png")
+    assert seen == [(True, None, "encoding"), (True, None, "writing")]
+    assert node.progress.main == PROGRESS()
+
+
 def test_skip_keeps_existing_and_reports_it(graph_with_library_system, scans):
     (scans / "out.png").write_bytes(b"keep")
     node = _save(graph_with_library_system)

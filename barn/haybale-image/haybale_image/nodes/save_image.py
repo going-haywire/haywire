@@ -3,6 +3,7 @@
 from pathlib import Path, PurePosixPath
 from typing import Any, Optional
 
+from haywire.barn.builtin.progress import ProgressSettings, progress_field
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import NodeSettings, UiState, bag, shadow
@@ -57,6 +58,12 @@ class AvifSaveSettings(NodeSettings):
     quality = shadow(ImageSettings.avif_quality)
 
 
+class SaveProgress(ProgressSettings):
+    """Encoding and writing the file."""
+
+    main = progress_field("Saving")
+
+
 @node(
     label="Save Image",
     description="Writes an image to a file in a volume, in the format its extension names",
@@ -86,6 +93,8 @@ class SaveImageNode(BaseNode):
     change them here for this node only. Only the settings of the format `Path` names
     are shown.
 
+    The Saving bar shows while the file is encoded and written.
+
     The folder must already exist; add Create Folder before Save Image to make it.
     An empty image, an unknown extension and a volume that is not defined on this
     machine are reported as errors.
@@ -100,6 +109,7 @@ class SaveImageNode(BaseNode):
     webp = bag(WebpSaveSettings)
     tiff = bag(TiffSaveSettings)
     avif = bag(AvifSaveSettings)
+    progress = bag(SaveProgress)
 
     def init(self) -> None:
         from haywire.barn.builtin.types import EXEC, FILE_PATH, STRING
@@ -177,11 +187,10 @@ class SaveImageNode(BaseNode):
         if claimed is None:
             self.out("saved", path)
             return "next"
-        atomic_write(
-            claimed,
-            encode_image(image, fmt, self._encode_options(depth)),
-            placeholder=policy is IfExists.UNIQUE_SUFFIX,
-        )
+        with self.progress.busy("main", "encoding") as span:
+            data = encode_image(image, fmt, self._encode_options(depth))
+            span.step(None, "writing")
+            atomic_write(claimed, data, placeholder=policy is IfExists.UNIQUE_SUFFIX)
         self.out("saved", _sibling(path, claimed))
         return "next"
 
