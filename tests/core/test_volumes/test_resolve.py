@@ -105,6 +105,51 @@ def test_outward_symlink_raises(tmp_path, at):
     assert "link" in ei.value.reason
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
+def test_a_symlinked_location_is_kept_as_configured(tmp_path, at):
+    (tmp_path / "real").mkdir()
+    (tmp_path / "link").symlink_to(tmp_path / "real")
+    at(tmp_path / "link")
+    assert resolve(VolumePath(V, "a/x.png")) == tmp_path / "link" / "a" / "x.png"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
+def test_an_inward_symlink_is_kept_not_followed(tmp_path, at):
+    root = tmp_path / "root"
+    (root / "2026").mkdir(parents=True)
+    (root / "latest").symlink_to(root / "2026")
+    at(root)
+    assert resolve(VolumePath(V, "latest/x.png")) == root / "latest" / "x.png"
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
+def test_an_outward_symlink_below_a_symlinked_location_raises(tmp_path, at):
+    (tmp_path / "real").mkdir()
+    (tmp_path / "outside").mkdir()
+    (tmp_path / "real" / "out").symlink_to(tmp_path / "outside")
+    (tmp_path / "link").symlink_to(tmp_path / "real")
+    at(tmp_path / "link")
+    with pytest.raises(VolumeEscapeError):
+        resolve(VolumePath(V, "out/x.png"))
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
+def test_a_dangling_outward_symlink_raises(tmp_path, at):
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "f.png").symlink_to(tmp_path / "not-there.png")
+    at(root)
+    with pytest.raises(VolumeEscapeError):
+        resolve(VolumePath(V, "f.png"))
+
+
+def test_a_path_below_a_missing_folder_resolves(tmp_path, at):
+    root = tmp_path / "root"
+    root.mkdir()
+    at(root)
+    assert resolve(VolumePath(V, "new/sub/x.png")) == root / "new" / "sub" / "x.png"
+
+
 def test_missing_location_still_resolves(tmp_path, at):
     root = tmp_path / "nope"
     at(root)

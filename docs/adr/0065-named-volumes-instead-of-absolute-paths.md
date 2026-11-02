@@ -1,6 +1,6 @@
 ---
 name: named-volumes-instead-of-absolute-paths
-description: Graphs store paths as (volume key, relative); ~/.haywire/volumes.toml is the list of volumes on the machine; libraries add theirs from AppState.on_enable; escapes are refused on the resolved path
+description: Graphs store paths as (volume key, relative); ~/.haywire/volumes.toml is the list of volumes on the machine; libraries add theirs from AppState.on_enable; escapes are refused, symlinks below the root are checked and not followed in the result
 status: accepted
 see-also: ADR-0016, ADR-0060
 level: framework
@@ -22,8 +22,8 @@ level: framework
 - **D3** A **volume key** follows the registry-key pattern `<library-id>:volume:<name>`; a volume a user adds is `user:volume:<name>`. A key never changes; renaming means a new volume.
 - **D4** The **project volume** (`haywire-core:volume:project`) is built in: the ambient workspace root, read on every call, never stored, never editable. There is no other built-in volume.
 - **D5** A library adds its volume from its `AppState.on_enable` with `ensure_volume(key, label, description, location)`, which adds the entry only when the key is absent, records `location` as the entry's `suggested` location (also on an existing entry), and never creates the folder. Only a user volume (`user:volume:…`) can be deleted; a library's volume is **reset** instead, which writes `suggested` back to `location` at once, so the volume never disappears while its library depends on it. Uninstalling a library leaves its entry in the file.
-- **D6** Resolution: the project volume → the file entry → `VolumeUndefinedError`. Resolving never creates a folder, and a root that does not exist still resolves.
-- **D7** Escapes are refused: any `..` segment in `relative` (even one that stays inside), an absolute `relative` (POSIX or drive-letter), and — checked on the **resolved** path — a symlink inside the volume pointing outside it raise `VolumeEscapeError`.
+- **D6** Resolution: the project volume → the file entry → `VolumeUndefinedError`. Resolving never creates a folder, and a root that does not exist still resolves. The resolved path is the location as configured joined with `relative`; symlinks are checked (D7), not followed in the result.
+- **D7** Escapes are refused: any `..` segment in `relative` (even one that stays inside), an absolute `relative` (POSIX or drive-letter), and a symlink inside the volume pointing outside it raise `VolumeEscapeError`. Components below the root are checked with `lstat`; only a symlink among them makes the resolver follow the path and the root and compare them.
 - **D8** Bad entries are logged and skipped when reading. An unreadable file lists only the project volume; writes raise instead of overwriting it, and `ensure_volume` logs and adds nothing. Writes are serialized per file and replace it atomically.
 - **D9** Volumes are edited in an ADMIN-only Volumes editor and the `haywire volumes` CLI. The path widget picks a volume and a relative path; it cannot add a volume. Status carries facts (location, exists, editable), not a source.
 - **D10** The suggested location for model weights is `~/.haywire/db/<module>/models`. Any tool that resets library data under `~/.haywire/db/` has to leave a `models` folder alone.
@@ -39,6 +39,7 @@ level: framework
 - *Model weights in a visible folder or the platform data folder.* Kept beside the library's other data; a user can move the volume anywhere.
 - *Defining a volume from inside the path widget.* Spreads an administrative write over every node card; one editor and the CLI keep it behind ADMIN.
 - *Naming the concept "anchor".* Collides with the UI term.
+- *Returning the symlink-followed path.* Followed the whole absolute path twice on every call (~80 µs, most of it outside the volume) and showed a location that did not match the Volumes editor; the check needs only the components inside the volume.
 - *Deleting a library's volume as the reset.* The library re-adds it only on its next enable; until then the volume is undefined and the library breaks (Models refused to scan and download).
 
 **Consequences.**

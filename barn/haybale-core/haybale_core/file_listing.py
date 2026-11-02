@@ -41,7 +41,7 @@ def list_files(root: Path, pattern: str, *, recursive: bool) -> list[PurePosixPa
     is skipped with a warning. A subfolder that cannot be read is skipped with a warning.
 
     Args:
-        root: An existing folder, already symlink-resolved.
+        root: An existing folder.
         recursive: Also list the files of every subfolder.
 
     Raises:
@@ -50,7 +50,7 @@ def list_files(root: Path, pattern: str, *, recursive: bool) -> list[PurePosixPa
 
     Example::
 
-        list_files(Path("/scans").resolve(), "*.png;*.jpg", recursive=True)
+        list_files(Path("/scans"), "*.png;*.jpg", recursive=True)
         # [PurePosixPath('a.png'), PurePosixPath('raw/b.JPG')]
     """
     patterns = [p.strip().casefold() for p in pattern.split(";") if p.strip()] or ["*"]
@@ -59,6 +59,7 @@ def list_files(root: Path, pattern: str, *, recursive: bool) -> list[PurePosixPa
             raise ValueError(f"pattern '{p}' contains a folder separator; patterns match file names")
 
     found: set[PurePosixPath] = set()
+    real_root = root.resolve()
     pending: list[tuple[Path, PurePosixPath]] = [(root, PurePosixPath())]
     first = True
     while pending:
@@ -81,7 +82,7 @@ def list_files(root: Path, pattern: str, *, recursive: bool) -> list[PurePosixPa
                     continue
                 if entry.is_symlink():
                     target = Path(entry.path).resolve()
-                    if not target.is_relative_to(root):
+                    if not target.is_relative_to(real_root):
                         logger.warning(f"Skipping '{relative / entry.name}': it links outside the folder")
                         continue
                     if not target.is_file():

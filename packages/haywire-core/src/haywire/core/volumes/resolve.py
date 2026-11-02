@@ -1,7 +1,9 @@
-"""Resolving a :class:`~haywire.core.volumes.VolumePath` to a real path, and reporting volume status."""
+"""Resolving a :class:`~haywire.core.volumes.VolumePath` to a path on this machine; volume status."""
 
 from __future__ import annotations
 
+import os
+import stat
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
@@ -58,7 +60,11 @@ def location_of(key: str, store: VolumeStore | None = None) -> Path:
 
 
 def resolve(path: VolumePath, store: VolumeStore | None = None) -> Path:
-    """Return the absolute, symlink-resolved path for *path*; never creates anything.
+    """Return where *path* is on this machine: its volume's location joined with ``relative``.
+
+    The location is used as configured, even when it is a symlink. A symlink inside
+    the volume is followed only to check that it stays inside; the returned path
+    keeps it. Never creates anything; the path need not exist.
 
     Raises:
         VolumeUndefinedError: If the volume has no location.
@@ -77,16 +83,35 @@ def resolve(path: VolumePath, store: VolumeStore | None = None) -> Path:
     parts = PurePosixPath(relative).parts
     if ".." in parts:
         raise VolumeEscapeError(path, "'..' is not allowed in a volume path")
+    target = root.joinpath(*parts)
+    if not _has_symlink(root, parts):
+        return target
     try:
-        target = root.joinpath(*parts).resolve()
         real_root = root.resolve()
-        if target.is_relative_to(real_root):
+        if target.resolve().is_relative_to(real_root):
             return target
         reason = _escape_reason(real_root, root, parts)
     except (OSError, RuntimeError) as exc:
         # Symlink loop: RuntimeError on Python 3.12, OSError from 3.13 on.
         raise VolumeError(f"{path} cannot be resolved: {exc}") from exc
     raise VolumeEscapeError(path, reason)
+
+
+def _has_symlink(root: Path, parts: tuple[str, ...]) -> bool:
+    """True if a component of ``root/parts`` below *root* is a symlink.
+
+    Stops at the first component that cannot be read: what does not exist cannot be
+    a link, and what cannot be looked at cannot be opened through either.
+    """
+    current = str(root)
+    for part in parts:
+        current = os.path.join(current, part)
+        try:
+            if stat.S_ISLNK(os.lstat(current).st_mode):
+                return True
+        except OSError:
+            return False
+    return False
 
 
 def _escape_reason(real_root: Path, root: Path, parts: tuple[str, ...]) -> str:

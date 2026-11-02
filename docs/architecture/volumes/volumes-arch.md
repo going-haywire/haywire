@@ -74,17 +74,19 @@ The suggested location of a library's volume is the library's choice. For model 
 
 `VolumePath(volume, relative)` is a frozen dataclass; `volume` is the volume key. `relative` is a POSIX-style string (`/` separators) kept **verbatim**: nothing in the class rewrites or validates it. It serializes as `{"volume": ..., "relative": ...}`; a missing volume means the project volume.
 
+An optional third field, `base`, marks the folder a listing started from, a leading part of `relative`. List Files and For Each File set it to their `Folder`; every other node that builds a path leaves it empty. `subpath` is the part of `relative` below `base` (all of `relative` when `base` is empty or not a leading part). `base` takes no part in equality or hashing, and is serialized only when set. Split Path splits a path at its base into `Base`, `Subfolder`, `Name` and `Extension`.
+
 The `PATH`, `FILE_PATH` and `FOLDER_PATH` types (`haywire/barn/builtin/types/path.py`) carry a `VolumePath`. `PATH` leaves the widget `mode` unset (the widget defaults to `file`); `FILE_PATH` and `FOLDER_PATH` preset it to `file` and `folder`. Their default is the project volume with an empty `relative`.
 
 ## Resolution
 
 `location_of(key)` returns the volume's root: the open project's folder for the project volume, otherwise the entry's location. A key with no entry, or the project volume with no project open, raises `VolumeUndefinedError`.
 
-`resolve(path)` joins `relative` onto that root and returns the symlink-resolved absolute path. Resolving never creates a folder, and a root that does not exist yet (an unplugged drive, a folder not downloaded yet) still resolves.
+`resolve(path)` joins `relative` onto that root and returns the result as configured: a root that is itself a symlink stays as written, and so does a symlink inside the volume that stays inside it. Resolving never creates a folder, and a root that does not exist yet (an unplugged drive, a folder not downloaded yet) still resolves. Code that compares a resolved path with symlink-followed paths (such as `list_files` checking where a linked file leads) follows the root's link itself.
 
 ### Escape refusal
 
-`relative` is checked as written, then the **resolved** path is checked against the resolved root, which catches a symlink leading out. `resolve` raises `VolumeEscapeError` when:
+`relative` is checked as written. Then each component below the root is looked at with `lstat`, stopping at the first one that does not exist; only when one of them is a symlink are the path and the root followed (`Path.resolve()`) and compared, which catches a symlink leading out. A path with no symlink inside the volume costs a few `lstat` calls and nothing more. `resolve` raises `VolumeEscapeError` when:
 
 - `relative` is absolute, in POSIX form (`/etc`) or with a Windows drive (`C:\x`);
 - `relative` has a `..` segment, even one that would stay inside the root (`a/../b`): a volume path names its target directly;

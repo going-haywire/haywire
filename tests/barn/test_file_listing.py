@@ -24,7 +24,7 @@ def _touch(root: Path, *names: str) -> None:
 
 
 def _names(root: Path, pattern: str, recursive: bool = False) -> list[str]:
-    return [str(p) for p in list_files(root.resolve(), pattern, recursive=recursive)]
+    return [str(p) for p in list_files(root, pattern, recursive=recursive)]
 
 
 def test_patterns_union_sorted_deduped(tmp_path):
@@ -75,6 +75,15 @@ def test_outward_symlinked_file_skipped_with_warning(tmp_path, caplog):
     warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
     assert len(warnings) == 1
     assert "out.png" in warnings[0].getMessage()
+
+
+def test_inward_symlinked_file_listed_below_a_symlinked_root(tmp_path):
+    real = tmp_path / "real"
+    _touch(real, "in.png")
+    (real / "inward.png").symlink_to(real / "in.png")
+    (tmp_path / "root").symlink_to(real)
+
+    assert _names(tmp_path / "root", "*.png") == ["in.png", "inward.png"]
 
 
 @pytest.mark.parametrize("pattern", ["a/*.png", "*.png;b\\*.png"])

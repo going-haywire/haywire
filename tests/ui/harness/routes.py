@@ -2238,7 +2238,7 @@ def register_routes(library_service) -> None:
         relative = deep.relative_to(root).as_posix() + "/picture.png"
         wrapper.node.ports["file"].set_value(VolumePath("user:volume:deep", relative))
         ui.label(wrapper.node_id).props(f'id="path-node-id" data-node="{wrapper.node_id}"')
-        ui.label(str((deep / "picture.png").resolve())).props('id="path-full"')
+        ui.label(str(deep / "picture.png")).props('id="path-full"')
 
         _mount_graph_canvas(library_service, graph, editor, testid="pathdemo")
         _stamp_synced()
