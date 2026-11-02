@@ -51,6 +51,23 @@ def test_a_fresh_data_node_runs_once_then_waits_for_a_dirty_port(graph_with_libr
     assert node.ports["y"].get_value() == 6.0
 
 
+def test_run_again_makes_a_clean_data_node_run_once_more(graph_with_library_system):
+    node = _add(graph_with_library_system, f"{_BENCH}.bench_data_pass_node", "BenchDataPassNode")
+    node.ports["x"].set_value(2.0)
+    node._has_dirty_ports.clear()
+    context = MagicMock()
+    node._execute(context)
+
+    node.ports["y"].set_value(-1.0)
+    node.run_again()
+    node._execute(context)
+    assert node.ports["y"].get_value() == 3.0
+
+    node.ports["y"].set_value(-1.0)  # the extra run is owed once only
+    node._execute(context)
+    assert node.ports["y"].get_value() == -1.0
+
+
 def test_a_first_run_that_raises_runs_again_without_a_dirty_port(graph_with_library_system):
     node = _add(graph_with_library_system, f"{_BENCH}.bench_data_pass_node", "BenchDataPassNode")
     node._has_dirty_ports.clear()  # no dirty inlet, as for a node with no data inlets

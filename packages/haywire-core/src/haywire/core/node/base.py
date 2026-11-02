@@ -237,6 +237,22 @@ class BaseNode(NodeData):
         """Release what ``on_startup`` acquired. Called after the node's last use in a run."""
         pass
 
+    def run_again(self) -> None:
+        """Make a data node run its worker at its next execution, even with no dirty port.
+
+        For a data node whose outlet hands out something it releases, such as a
+        loaded model freed in ``on_shutdown()``: the next run computes the outlet
+        afresh instead of passing on the released object. No effect on control
+        nodes, which run whenever they are reached.
+
+        Example::
+
+            def on_shutdown(self, context):
+                release(self.cache.model)
+                self.run_again()
+        """
+        self._has_run = False
+
     def post_value(self, port_id: str, value: Any) -> None:
         """Set a port's value from a thread the node owns (a capture or tick loop).
 
