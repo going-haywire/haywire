@@ -505,7 +505,7 @@ The state icon is an indicator only (not clickable): a widget cannot reach its s
 | S4b | List Files, Loop Array, Step Array | haybale-core | S4 | done (fcc03b7e2, merged with S5, 2026-10-31; slideshow live-checked) — decisions in §2.2 |
 | S6 | haybale-models (+ graph notices in graph-editor/haystack, catalog registry in core) | haybale-models | S1 | done (merged ff to master 4f2ebd3b2, 2026-11-01; live check passed incl. the S6b model picker; follow-ups and deferred minors listed in §2.1 and §2.5) — [plan](2026-10-31-s6-haybale-models.md) |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | done (9d651f6b2 + widget 4dfdbd423 on master, 2026-11-01; live-checked; no slice plan — implemented inline; deviations in §2.6) |
-| S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | open |
+| S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | planned — [plan](2026-11-01-s7-spandrel-nodes.md) |
 | S8 | extra arches | haybale-spandrel-extra | S7 | open |
 | S9 | visiongraph frame adapters | haybale-visiongraph | S5 | open |
 
