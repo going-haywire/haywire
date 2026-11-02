@@ -9,13 +9,14 @@ members = [
     "packages/*",
     "barn/*",
 ]
-# haybale-visiongraph lives in its own repo and is symlinked into barn/ for
-# local editing. It is installed into the venv manually via
-# `uv pip install -e .../barn/haybale-visiongraph`, NOT as a workspace member —
-# excluding it here stops the `barn/*` glob from pulling the gitignored symlink
-# into uv.lock (which CI can't resolve).
+# haybale-visiongraph and haybale-spandrel live in their own repos and are
+# symlinked into barn/ for local editing. They are installed into the venv
+# manually via `uv pip install -e .../barn/<name>`, NOT as workspace members —
+# excluding them here stops the `barn/*` glob from pulling the gitignored
+# symlinks into uv.lock (which CI can't resolve).
 exclude = [
     "barn/haybale-visiongraph",
+    "barn/haybale-spandrel",
 ]
 
 [tool.uv.sources]
@@ -99,6 +100,7 @@ module = [
     "pygments.*",
     "visiongraph.*",
     "haybale_visiongraph.*",
+    "haybale_spandrel.*",
     "cv2",
     "depthai",
     "psutil",

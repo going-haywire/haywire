@@ -220,7 +220,8 @@ packages/haywire-core/src/haywire/_baked_docs/*
 # Haywire project config (user-local, not repo state)
 .haywire/
 
-# Local symlink to external dev project (machine-specific path)
+# Local symlinks to external dev projects (machine-specific paths)
 barn/haybale-visiongraph
+barn/haybale-spandrel
 
 assets/*

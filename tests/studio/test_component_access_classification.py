@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Iterator
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -195,10 +197,18 @@ def _expected(name: str, view: set[str], edit: set[str], admin: set[str]) -> Acc
     return None
 
 
+_REPO = Path(__file__).resolve().parents[2]
+
+
 def _classes(library_system, registry_cls) -> dict[str, type]:
+    """The registered classes from this repo; libraries installed from elsewhere are left out."""
     registry = library_system.injector.get(registry_cls)
     classes = (registry.get(key) for key in registry.list_names())
-    return {cls.__name__: cls for cls in classes if cls is not None}
+    return {
+        cls.__name__: cls
+        for cls in classes
+        if cls is not None and Path(inspect.getfile(cls)).resolve().is_relative_to(_REPO)
+    }
 
 
 @pytest.fixture
