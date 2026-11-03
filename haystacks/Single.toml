@@ -24,6 +24,18 @@ execute = false
 path = "graphs/images.haywire"
 execute = false
 
+[[graphs]]
+path = "graphs/models.haywire"
+execute = false
+
+[[graphs]]
+path = "graphs/spandrel.haywire"
+execute = false
+
+[[graphs]]
+path = "graphs/spandrel-upscale.haywire"
+execute = false
+
 [haystack]
 name = "Single"
-active_graph = "graphs/images.haywire"
+active_graph = "graphs/spandrel-upscale.haywire"

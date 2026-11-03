@@ -2,7 +2,7 @@
   "format_version": 4,
   "filestem": "images",
   "created_at": "2026-10-31T14:46:35.619432",
-  "modified_at": "2026-10-31T19:10:20.014647",
+  "modified_at": "2026-11-03T13:46:33.345034",
   "meta": {
     "values": {},
     "promoted": {}
@@ -19,7 +19,7 @@
               "registry_id": "FILE_PATH",
               "registry_key": "haywire-core:type:FILE_PATH",
               "label": "Path",
-              "description": "A file inside a named volume such as the project folder or `models`.",
+              "description": "Image file to read",
               "class_name": "FILE_PATH",
               "module": "haywire.barn.builtin.types.path",
               "default": {
@@ -45,7 +45,7 @@
             "field_data": {
               "value": {
                 "volume": "haywire-core:volume:project",
-                "relative": "assets/pexels-audstories-png16-gray.png"
+                "relative": ""
               }
             }
           },
@@ -54,7 +54,7 @@
               "registry_id": "IMAGE",
               "registry_key": "haybale-image:type:IMAGE",
               "label": "Image",
-              "description": "A picture of any channel layout. Pixels are kept as made and converted on demand.",
+              "description": "The decoded image",
               "class_name": "IMAGE",
               "module": "haybale_image.types.image",
               "default": {
@@ -81,21 +81,27 @@
             "values": {
               "posX": 4300.0,
               "posY": 3820.0,
-              "width": 343,
-              "height": 138,
-              "size_adapt": "manual_width",
+              "width": 256,
+              "height": 177,
               "z": 1
             },
             "promoted": {}
+          },
+          "progress": {
+            "values": {},
+            "promoted": {
+              "progress.main": {
+                "direction": "config"
+              }
+            }
           }
         },
         "props": {
           "values": {
             "posX": 4300.0,
             "posY": 3820.0,
-            "width": 343,
-            "height": 138,
-            "size_adapt": "manual_width",
+            "width": 256,
+            "height": 177,
             "z": 1
           },
           "promoted": {}
@@ -155,7 +161,7 @@
               "registry_id": "EXEC",
               "registry_key": "haywire-core:type:EXEC",
               "label": "Execute",
-              "description": "Signal for controlling execution flow between nodes",
+              "description": "Shows the image",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
               "default": {
@@ -175,7 +181,7 @@
               "registry_id": "IMAGE",
               "registry_key": "haybale-image:type:IMAGE",
               "label": "Image",
-              "description": "A picture of any channel layout. Pixels are kept as made and converted on demand.",
+              "description": "Image to show",
               "class_name": "IMAGE",
               "module": "haybale_image.types.image",
               "default": {
@@ -190,7 +196,9 @@
               "widget_key": "haybale-image:widget:ImageViewerWidget",
               "widget_config": {
                 "properties": {
-                  "mode": "still"
+                  "mode": "still",
+                  "enlarge": 3.0,
+                  "zoom": 1.0
                 }
               },
               "id": "image",
@@ -202,47 +210,12 @@
               "registry_key": "haybale-image:type:IMAGE"
             }
           },
-          "mode": {
-            "kwargs": {
-              "registry_id": "STRING",
-              "registry_key": "haywire-core:type:STRING",
-              "label": "Mode",
-              "description": "Text data",
-              "class_name": "STRING",
-              "module": "haywire.barn.builtin.types.specs",
-              "default": {
-                "value": "stream"
-              },
-              "store_strategy": 4,
-              "color": "#ffc107",
-              "widget_key": "haywire-core:widget:SelectWidget",
-              "widget_config": {
-                "properties": {
-                  "options": [
-                    "stream",
-                    "still"
-                  ]
-                }
-              },
-              "id": "mode",
-              "port_type": "config",
-              "order": 2,
-              "on_change": "hb_on_mode_changed",
-              "show_widget": "always"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:STRING"
-            },
-            "field_data": {
-              "value": "still"
-            }
-          },
           "next": {
             "kwargs": {
               "registry_id": "EXEC",
               "registry_key": "haywire-core:type:EXEC",
               "label": "Next",
-              "description": "Signal for controlling execution flow between nodes",
+              "description": "Runs after showing",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
               "default": {
@@ -252,7 +225,7 @@
               "color": "#004cff",
               "id": "next",
               "port_type": "outlet",
-              "order": 3,
+              "order": 2,
               "show_widget": "never"
             },
             "recipe": {
@@ -264,7 +237,7 @@
               "registry_id": "IMAGE",
               "registry_key": "haybale-image:type:IMAGE",
               "label": "Image Out",
-              "description": "A picture of any channel layout. Pixels are kept as made and converted on demand.",
+              "description": "The same image, passed on",
               "class_name": "IMAGE",
               "module": "haybale_image.types.image",
               "default": {
@@ -278,7 +251,7 @@
               "color": "#3f8fd2",
               "id": "image_out",
               "port_type": "outlet",
-              "order": 4,
+              "order": 3,
               "show_widget": "never"
             },
             "recipe": {
@@ -291,11 +264,14 @@
             "values": {
               "posX": 4720.0,
               "posY": 3600.0,
-              "width": 280,
-              "height": 240,
-              "size_adapt": "manual_width",
+              "width": 256,
+              "height": 194,
               "z": 2
             },
+            "promoted": {}
+          },
+          "viewer": {
+            "values": {},
             "promoted": {}
           }
         },
@@ -303,9 +279,8 @@
           "values": {
             "posX": 4720.0,
             "posY": 3600.0,
-            "width": 280,
-            "height": 240,
-            "size_adapt": "manual_width",
+            "width": 256,
+            "height": 194,
             "z": 2
           },
           "promoted": {}
@@ -363,7 +338,7 @@
               "registry_id": "IMAGE",
               "registry_key": "haybale-image:type:IMAGE",
               "label": "Image",
-              "description": "A picture of any channel layout. Pixels are kept as made and converted on demand.",
+              "description": "Image to describe",
               "class_name": "IMAGE",
               "module": "haybale_image.types.image",
               "default": {
@@ -387,7 +362,7 @@
               "registry_id": "INT",
               "registry_key": "haywire-core:type:INT",
               "label": "Width",
-              "description": "Whole number",
+              "description": "Width in pixels",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
               "default": {
@@ -405,7 +380,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 1365
+              "value": 0
             }
           },
           "height": {
@@ -413,7 +388,8 @@
               "registry_id": "INT",
               "registry_key": "haywire-core:type:INT",
               "label": "Height",
-              "description": "Whole number",
+              "description": "Height in pixels",
+              "hidden": true,
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
               "default": {
@@ -431,7 +407,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 2048
+              "value": 0
             }
           },
           "layout": {
@@ -439,7 +415,8 @@
               "registry_id": "STRING",
               "registry_key": "haywire-core:type:STRING",
               "label": "Layout",
-              "description": "Text data",
+              "description": "Channels: gray, rgb or rgba",
+              "hidden": true,
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
               "default": {
@@ -457,7 +434,7 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "gray"
+              "value": ""
             }
           },
           "depth": {
@@ -465,7 +442,8 @@
               "registry_id": "INT",
               "registry_key": "haywire-core:type:INT",
               "label": "Depth",
-              "description": "Whole number",
+              "description": "Bits per channel of the source file, such as 8 or 16",
+              "hidden": true,
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
               "default": {
@@ -483,7 +461,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 16
+              "value": 0
             }
           }
         },
@@ -493,7 +471,7 @@
               "posX": 5140.0,
               "posY": 3720.0,
               "width": 256,
-              "height": 222,
+              "height": 138,
               "z": 3
             },
             "promoted": {}
@@ -504,7 +482,7 @@
             "posX": 5140.0,
             "posY": 3720.0,
             "width": 256,
-            "height": 222,
+            "height": 138,
             "z": 3
           },
           "promoted": {}
@@ -1390,7 +1368,7 @@
               "registry_id": "EXEC",
               "registry_key": "haywire-core:type:EXEC",
               "label": "Execute",
-              "description": "Signal for controlling execution flow between nodes",
+              "description": "Lists the folder's files again",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
               "default": {
@@ -1410,7 +1388,7 @@
               "registry_id": "FOLDER_PATH",
               "registry_key": "haywire-core:type:FOLDER_PATH",
               "label": "Folder",
-              "description": "A folder inside a named volume such as the project folder or `models`.",
+              "description": "Folder to list",
               "class_name": "FOLDER_PATH",
               "module": "haywire.barn.builtin.types.path",
               "default": {
@@ -1441,87 +1419,12 @@
               }
             }
           },
-          "pattern": {
-            "kwargs": {
-              "registry_id": "STRING",
-              "registry_key": "haywire-core:type:STRING",
-              "label": "Pattern",
-              "description": "Text data",
-              "class_name": "STRING",
-              "module": "haywire.barn.builtin.types.specs",
-              "default": {
-                "value": "*"
-              },
-              "store_strategy": 2,
-              "color": "#ffc107",
-              "widget_key": "haywire-core:widget:TextWidget",
-              "id": "pattern",
-              "port_type": "inlet",
-              "order": 2
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:STRING"
-            },
-            "field_data": {
-              "value": "*"
-            }
-          },
-          "recursive": {
-            "kwargs": {
-              "registry_id": "BOOL",
-              "registry_key": "haywire-core:type:BOOL",
-              "label": "Subfolders",
-              "description": "True or False",
-              "class_name": "BOOL",
-              "module": "haywire.barn.builtin.types.specs",
-              "default": {
-                "value": false
-              },
-              "store_strategy": 2,
-              "color": "#4caf50",
-              "widget_key": "haywire-core:widget:SwitchWidget",
-              "id": "recursive",
-              "port_type": "inlet",
-              "order": 3
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:BOOL"
-            },
-            "field_data": {
-              "value": false
-            }
-          },
-          "limit": {
-            "kwargs": {
-              "registry_id": "INT",
-              "registry_key": "haywire-core:type:INT",
-              "label": "Limit",
-              "description": "Whole number",
-              "class_name": "INT",
-              "module": "haywire.barn.builtin.types.specs",
-              "default": {
-                "value": 0
-              },
-              "store_strategy": 2,
-              "color": "#f7b0ff",
-              "widget_key": "haywire-core:widget:NumberWidget",
-              "id": "limit",
-              "port_type": "inlet",
-              "order": 4
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:INT"
-            },
-            "field_data": {
-              "value": 0
-            }
-          },
           "next": {
             "kwargs": {
               "registry_id": "EXEC",
               "registry_key": "haywire-core:type:EXEC",
               "label": "Next",
-              "description": "Signal for controlling execution flow between nodes",
+              "description": "Runs after the files are listed",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
               "default": {
@@ -1531,7 +1434,7 @@
               "color": "#004cff",
               "id": "next",
               "port_type": "outlet",
-              "order": 5,
+              "order": 2,
               "show_widget": "never"
             },
             "recipe": {
@@ -1543,7 +1446,7 @@
               "registry_id": "ArrayType",
               "registry_key": "haybale-core:type:ArrayType",
               "label": "Files",
-              "description": "Homogeneous typed array",
+              "description": "The matching files, in name order",
               "class_name": "ArrayType",
               "module": "haybale_core.types.array_type",
               "default": {
@@ -1553,7 +1456,7 @@
               "color": "#c9a66b",
               "id": "files",
               "port_type": "outlet",
-              "order": 6,
+              "order": 3,
               "show_widget": "never"
             },
             "recipe": {
@@ -1563,94 +1466,7 @@
               }
             },
             "field_data": {
-              "value": [
-                {
-                  "value": {
-                    "volume": "haywire-core:volume:project",
-                    "relative": "AGENTS.md"
-                  }
-                },
-                {
-                  "value": {
-                    "volume": "haywire-core:volume:project",
-                    "relative": "CLAUDE.md"
-                  }
-                },
-                {
-                  "value": {
-                    "volume": "haywire-core:volume:project",
-                    "relative": "LICENSE"
-                  }
-                },
-                {
-                  "value": {
-                    "volume": "haywire-core:volume:project",
-                    "relative": "README.md"
-                  }
-                },
-                {
-                  "value": {
-                    "volume": "haywire-core:volume:project",
-                    "relative": "mkdocs.yml"
-                  }
-                },
-                {
-                  "value": {
-                    "volume": "haywire-core:volume:project",
-                    "relative": "open_issues.md"
-                  }
-                },
-                {
-                  "value": {
-                    "volume": "haywire-core:volume:project",
-                    "relative": "profile_report.json"
-                  }
-                },
-                {
-                  "value": {
-                    "volume": "haywire-core:volume:project",
-                    "relative": "pyproject.toml"
-                  }
-                },
-                {
-                  "value": {
-                    "volume": "haywire-core:volume:project",
-                    "relative": "skills-lock.json"
-                  }
-                },
-                {
-                  "value": {
-                    "volume": "haywire-core:volume:project",
-                    "relative": "uv.lock"
-                  }
-                }
-              ]
-            }
-          },
-          "total": {
-            "kwargs": {
-              "registry_id": "INT",
-              "registry_key": "haywire-core:type:INT",
-              "label": "Total",
-              "description": "Whole number",
-              "class_name": "INT",
-              "module": "haywire.barn.builtin.types.specs",
-              "default": {
-                "value": 0
-              },
-              "store_strategy": 4,
-              "color": "#f7b0ff",
-              "widget_key": "haywire-core:widget:NumberWidget",
-              "id": "total",
-              "port_type": "outlet",
-              "order": 7,
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:INT"
-            },
-            "field_data": {
-              "value": 10
+              "value": []
             }
           }
         },
@@ -1659,19 +1475,27 @@
             "values": {
               "posX": 3460.0,
               "posY": 3960.0,
-              "width": 266,
-              "height": 412,
+              "width": 263,
+              "height": 278,
               "z": 12
             },
             "promoted": {}
+          },
+          "listing": {
+            "values": {},
+            "promoted": {
+              "listing.pattern": {
+                "direction": "config"
+              }
+            }
           }
         },
         "props": {
           "values": {
             "posX": 3460.0,
             "posY": 3960.0,
-            "width": 266,
-            "height": 412,
+            "width": 263,
+            "height": 278,
             "z": 12
           },
           "promoted": {}
@@ -1729,7 +1553,7 @@
               "registry_id": "EXEC",
               "registry_key": "haywire-core:type:EXEC",
               "label": "Start",
-              "description": "Signal for controlling execution flow between nodes",
+              "description": "Reads the array and steps to its first item",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
               "default": {
@@ -1749,7 +1573,7 @@
               "registry_id": "EXEC",
               "registry_key": "haywire-core:type:EXEC",
               "label": "Next",
-              "description": "Signal for controlling execution flow between nodes",
+              "description": "Steps to the next item",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
               "default": {
@@ -1770,7 +1594,7 @@
               "registry_id": "EXEC",
               "registry_key": "haywire-core:type:EXEC",
               "label": "Stop",
-              "description": "Signal for controlling execution flow between nodes",
+              "description": "Forgets the array; Next does nothing until Start",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
               "default": {
@@ -1791,7 +1615,7 @@
               "registry_id": "ArrayType",
               "registry_key": "haybale-core:type:ArrayType",
               "label": "Array",
-              "description": "Homogeneous typed array",
+              "description": "The items to step through",
               "class_name": "ArrayType",
               "module": "haybale_core.types.array_type",
               "default": {
@@ -1816,7 +1640,7 @@
               "registry_id": "FILE_PATH",
               "registry_key": "haywire-core:type:FILE_PATH",
               "label": "Item",
-              "description": "A file inside a named volume such as the project folder or `models`.",
+              "description": "The current item",
               "class_name": "FILE_PATH",
               "module": "haywire.barn.builtin.types.path",
               "default": {
@@ -1844,7 +1668,7 @@
             "field_data": {
               "value": {
                 "volume": "haywire-core:volume:project",
-                "relative": "uv.lock"
+                "relative": ""
               }
             }
           },
@@ -1853,7 +1677,7 @@
               "registry_id": "STRING",
               "registry_key": "haywire-core:type:STRING",
               "label": "Mode",
-              "description": "Text data",
+              "description": "At the end: once stops, loop starts over, palindrome turns back",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
               "default": {
@@ -1879,7 +1703,7 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "loop"
+              "value": "once"
             }
           },
           "step": {
@@ -1887,7 +1711,7 @@
               "registry_id": "EXEC",
               "registry_key": "haywire-core:type:EXEC",
               "label": "Step",
-              "description": "Signal for controlling execution flow between nodes",
+              "description": "Runs with each item",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
               "default": {
@@ -1909,7 +1733,7 @@
               "registry_id": "INT",
               "registry_key": "haywire-core:type:INT",
               "label": "Index",
-              "description": "Whole number",
+              "description": "Position of the current item, from 0",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
               "default": {
@@ -1927,7 +1751,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 9
+              "value": 0
             }
           },
           "total": {
@@ -1935,7 +1759,7 @@
               "registry_id": "INT",
               "registry_key": "haywire-core:type:INT",
               "label": "Total",
-              "description": "Whole number",
+              "description": "Number of items",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
               "default": {
@@ -1953,7 +1777,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 10
+              "value": 0
             }
           },
           "completed": {
@@ -1985,8 +1809,6 @@
             "values": {
               "posX": 3900.0,
               "posY": 3700.0,
-              "width": 256,
-              "height": 380,
               "z": 13
             },
             "promoted": {}
@@ -1996,8 +1818,6 @@
           "values": {
             "posX": 3900.0,
             "posY": 3700.0,
-            "width": 256,
-            "height": 380,
             "z": 13
           },
           "promoted": {}
