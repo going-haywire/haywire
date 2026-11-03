@@ -194,7 +194,10 @@ Three details a copy exposes that a save and reload hide:
   node runs its worker once on its first execution after it is created, loaded,
   pasted or rebuilt
   ([ADR 0070](../../adr/0070-a-data-node-runs-at-least-once-per-instance.md)).
-  Your worker must therefore tolerate that extra run.
+  Your worker must therefore tolerate that extra run. To make a clean data node
+  run once more with no dirty port, call `self.run_again()`: a model loader does
+  it in `on_shutdown()` after releasing the model its outlet handed out, so the
+  next run loads it again instead of passing on the released one.
 
 **When you edit the class (hot-reload),** every placed node of it is rebuilt
 through `init()`: fresh, with only its arrangement kept (position, stacking order,

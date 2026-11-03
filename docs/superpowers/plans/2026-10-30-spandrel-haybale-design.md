@@ -490,6 +490,35 @@ The state icon is an indicator only (not clickable): a widget cannot reach its s
   declares its non-commercial license; base stays MIT. A model that failed to detect before the
   extra library loaded retries via failed-stays-dirty.
 
+**S7 deviations (landed 2026-11-03; details in the [S7 plan](2026-11-01-s7-spandrel-nodes.md)):**
+- **Model kinds (ADR 0071).** `MODEL` became `MODEL_BASE` with kinds `IMAGE_MODEL` (SR, FaceSR,
+  Restoration) and `INPAINT_MODEL`; Upscale Image takes the first, Inpaint the second, Model Info
+  any. The loader node (labelled **Load Spandrel Model**, key unchanged) has a bare `ADD` outlet
+  that takes the kind of the first inlet it is connected to, keeps it until reset, and only then
+  shows its Model picker, filtered by the kind's `catalog_filter`. Load Model has no
+  architecture/scale outlets: Model Info (labelled **Spandrel Model Info**) carries them.
+- `on_reload = "none"` (not `restart`): the pool lives in haybale-models, which survives a
+  spandrel reload; Load Model lets go of its hold in `on_teardown`.
+- **`BaseNode.run_again()`** (S7-Q19): Load Model releases its pool hold in `on_shutdown` and runs
+  again on the next run (ADR 0070 would keep the clean data node from re-running). The release hook
+  only empties the CUDA/MPS cache; it no longer moves weights to the CPU.
+- **MPS limit:** a convolution over ≥ 2³¹ elements fails on Apple GPUs; automatic tiles are capped
+  so a tile's output stays below it, and `run_tiled` halves the tile and retries on that error as on
+  out-of-memory. A custom scale above the model's runs the model again on a shrunk input, so no
+  pass grows larger than the result.
+- **No LaMa catalog entry:** no spandrel-loadable published file (HF TorchScript has a `model.` key
+  prefix; the Lightning checkpoint is refused by spandrel's restricted unpickler). Inpaint is tested
+  with a `LaMa(in_nc=4)` fixture; the live Inpaint check (step 7) is a **priority follow-up**.
+- Catalog entries declare `purpose: ["SR"]`. The model picker and Models editor describe entries
+  (scale, architecture, tags; description in the hover tip) and the picker's Models Volume tab leaves
+  out catalog variants (haybale-models).
+- Framework changes found on the way, each with its own commit: `shadow()` mirrors keep their
+  source's widget, options and range; progress bars on Load/Save Image; `store=StoreStrategy.NEVER`
+  settings; `UiState.HIDE_WIDGET`; a settings promotion channel; user-hidden ports; hover tips with
+  data types; the edge rebuild after a port is retyped while linking; the node-title docs icon.
+- The **Upscaler** macro (List Files → Loop Array → Load Image → Upscale Image → Save Image,
+  skipping finished files) ships in haybale-spandrel's `macros/`.
+
 ---
 
 ## 3. Build order (Q36C)
@@ -505,7 +534,7 @@ The state icon is an indicator only (not clickable): a widget cannot reach its s
 | S4b | List Files, Loop Array, Step Array | haybale-core | S4 | done (fcc03b7e2, merged with S5, 2026-10-31; slideshow live-checked) — decisions in §2.2 |
 | S6 | haybale-models (+ graph notices in graph-editor/haystack, catalog registry in core) | haybale-models | S1 | done (merged ff to master 4f2ebd3b2, 2026-11-01; live check passed incl. the S6b model picker; follow-ups and deferred minors listed in §2.1 and §2.5) — [plan](2026-10-31-s6-haybale-models.md) |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | done (9d651f6b2 + widget 4dfdbd423 on master, 2026-11-01; live-checked; no slice plan — implemented inline; deviations in §2.6) |
-| S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | planned — [plan](2026-11-01-s7-spandrel-nodes.md) |
+| S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | done (haywire-repo `feat/s7-spandrel` 9c2a6096b…, haybale-spandrel `feat/s7-spandrel` b5da8d9…cc6788c, merged ff to master 2026-11-03; live check passed incl. batch + Upscaler macro; Inpaint live check is a priority follow-up; deviations in §2.7) — [plan](2026-11-01-s7-spandrel-nodes.md) |
 | S8 | extra arches | haybale-spandrel-extra | S7 | open |
 | S9 | visiongraph frame adapters | haybale-visiongraph | S5 | open |
 
@@ -547,9 +576,11 @@ that final task is incomplete.
 - ~~**Model catalog** — a library-declared list of model references with metadata.~~ (landed in S6)
 - ~~**Model store** — the `models` volume's folders + digest index.~~ (landed in S6)
 - ~~**Needs-list** — the set of model references a graph's nodes require, offered for fetch.~~ (landed in S6)
+- ~~**Loaded model**, **Model kind**~~ (landed in S7)
 - Flag: "Adapter" stays reserved for type-changing conversions; storage conversion is not one.
 
 ### ADR candidates
+- ~~Model loaders live with their framework library; model kinds are types.~~ (landed in S7: ADR 0071)
 1. Volumes: named per-machine locations; no absolute paths in graphs.
 2. Failure poisoning + failed-stays-dirty (execution semantics change).
 3. IMAGE: fixed semantics, free storage, accessor-only pixel access.
