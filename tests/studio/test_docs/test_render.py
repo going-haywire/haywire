@@ -96,6 +96,38 @@ def test_render_component_node_lists_ports():
     assert "Does the resize." in out  # verbatim docstring
 
 
+def test_a_multi_line_port_description_stays_in_its_table_row():
+    rec = ComponentRecord(
+        registry_key="lib:node:list",
+        kind="node",
+        library_id="lib",
+        label="List",
+        description="Lists",
+        deprecation="",
+        hidden=False,
+        search_tags=[],
+        menu="",
+        docstring="",
+        ports=[
+            PortInfo(
+                "pattern",
+                "inlet",
+                "Pattern",
+                "Such as *.png\nseparate with ; or |",
+                "haywire-core:wire:DataWire",
+                "dependent",
+                "haywire-core:type:STRING",
+                False,
+                "",
+            )
+        ],
+        settings=[],
+        extra={},
+    )
+    (row,) = [line for line in render_component(rec).splitlines() if line.startswith("| `pattern`")]
+    assert row.endswith("| Such as \\*.png<br>separate with ; or \\| |")
+
+
 def test_render_component_orders_ports_inlet_config_outlet():
     """Ports render grouped by direction: inlets, then configs, then outlets."""
     rec = ComponentRecord(

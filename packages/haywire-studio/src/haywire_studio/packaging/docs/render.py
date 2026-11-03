@@ -106,7 +106,7 @@ def render_component(rec: ComponentRecord) -> str:
         ]
         for p in sorted(rec.ports, key=lambda pt: _DIRECTION_ORDER.get(pt.direction, 99)):
             data_type = f"`{p.data_type}`" if p.data_type else ""
-            lines.append(f"| `{p.id}` | {p.direction} | {data_type} | {p.description} |")
+            lines.append(f"| `{p.id}` | {p.direction} | {data_type} | {_cell(p.description)} |")
         lines.append("")
     documented_settings = [s for s in rec.settings if s.bag != "props"]
     if rec.kind in _PORT_BEARING_KINDS and documented_settings:
@@ -117,7 +117,7 @@ def render_component(rec: ComponentRecord) -> str:
             "|---|---|---|---|",
         ]
         for s in documented_settings:
-            lines.append(f"| `{s.name}` | {s.bag} | `{s.default!r}` | {s.description} |")
+            lines.append(f"| `{s.name}` | {s.bag} | `{s.default!r}` | {_cell(s.description)} |")
         lines.append("")
     if rec.extra:
         lines += ["## Details", ""]
@@ -172,3 +172,11 @@ def render_readme(doc: LibraryDoc, notes: str, existing_readme: str | None) -> s
         parts += [notes.strip(), ""]
     parts += [marker, "", _catalog_body(doc)]
     return "\n".join(parts).rstrip() + "\n"
+
+
+def _cell(text: str) -> str:
+    """Return plain *text* fit for one Markdown table cell.
+
+    A line break becomes ``<br>``; ``|`` and ``*`` are escaped.
+    """
+    return text.replace("|", "\\|").replace("*", "\\*").replace("\n", "<br>")

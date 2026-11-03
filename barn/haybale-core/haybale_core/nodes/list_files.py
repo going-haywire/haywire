@@ -1,6 +1,6 @@
 """List Files — the files of a folder, as a list of paths."""
 
-from haybale_core.file_listing import folder_root, list_files
+from haybale_core.file_listing import PATTERN_DESCRIPTION, folder_root, list_files
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.volumes import VolumePath
@@ -45,7 +45,7 @@ class ListFilesNode(BaseNode):
 
         self.add(EXEC.as_inlet("execute", label="Execute"))
         self.add(FOLDER_PATH.as_inlet("folder", label="Folder"))
-        self.add(STRING.as_inlet("pattern", label="Pattern", default="*"))
+        self.add(STRING.as_inlet("pattern", label="Pattern", default="*", description=PATTERN_DESCRIPTION))
         self.add(BOOL.as_inlet("recursive", label="Subfolders", default=False))
         self.add(INT.as_inlet("limit", label="Limit", default=0, widget=NumberWidget.config()))
 

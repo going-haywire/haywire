@@ -74,6 +74,7 @@
 - `haybale-graph-editor:panel:GraphMorePanel` — More Actions — The "…" — a panel that is itself a host.
 - `haybale-graph-editor:panel:GraphSettingsPanel` — Graph Settings — Renders the properties of the active graph.
 - `haybale-graph-editor:panel:GroupMenuPanel` — Expand Group — Expand a Group back into the graph around it.
+- `haybale-graph-editor:panel:HidePinMenuPanel` — Hide pin — Hides this pin's row on the node card; the Ports panel shows it again.
 - `haybale-graph-editor:panel:InsertRerouteMenuPanel` — Insert Reroute — Split the active edge and insert a reroute node in between. Available for every edge.
 - `haybale-graph-editor:panel:LayoutSelectionMenuPanel` — Layout — The "Layout" row: a submenu laying out the flow around the selected nodes.
 - `haybale-graph-editor:panel:LockToolbarPanel` — Lock — Lock or unlock one node, as protection against accidental manipulation.

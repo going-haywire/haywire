@@ -69,6 +69,7 @@ Visual graph editor library — host-agnostic
 - **Graph Info** — Displays counts and framework-written metadata for the active graph.
 - **Graph Metadata** — Renders the metadata of the active graph.
 - **Graph Settings** — Renders the properties of the active graph.
+- **Hide pin** — Hides this pin's row on the node card; the Ports panel shows it again.
 - **Insert Reroute** — Split the active edge and insert a reroute node in between. Available for every edge.
 - **Layout** — The "Layout" row: a submenu laying out the flow around the selected nodes.
 - **Lock** — Lock or unlock one node, as protection against accidental manipulation.

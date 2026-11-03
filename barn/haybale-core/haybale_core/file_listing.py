@@ -11,7 +11,15 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["folder_root", "list_files"]
+__all__ = ["PATTERN_DESCRIPTION", "folder_root", "list_files"]
+
+#: Description of a Pattern inlet that ``list_files`` matches against, one hover-tip line per rule.
+PATTERN_DESCRIPTION = (
+    "File names to match, such as *.png\n\n"
+    "Separate patterns with ; as in *.png;*.jpg\n"
+    "* any characters, \n? one character, \n[abc] one of a, b or c\n"
+    "Upper and lower case match alike; \nempty matches every file"
+)
 
 
 def folder_root(folder: "VolumePath") -> Path:

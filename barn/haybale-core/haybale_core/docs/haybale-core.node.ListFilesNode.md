@@ -10,7 +10,7 @@ Lists the files in a folder that match the pattern, each time it runs
 |---|---|---|---|
 | `execute` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
 | `folder` | inlet | `haywire-core:type:FOLDER_PATH` | A folder inside a named volume such as the project folder or `models`. |
-| `pattern` | inlet | `haywire-core:type:STRING` | Text data |
+| `pattern` | inlet | `haywire-core:type:STRING` | File names to match, such as \*.png<br>Several patterns: separate them with ; as in \*.png;\*.jpg<br>\* any characters, ? one character, [abc] one of a, b or c<br>Upper and lower case match alike; empty matches every file |
 | `recursive` | inlet | `haywire-core:type:BOOL` | True or False |
 | `limit` | inlet | `haywire-core:type:INT` | Whole number |
 | `next` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |

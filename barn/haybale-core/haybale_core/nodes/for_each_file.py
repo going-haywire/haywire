@@ -3,7 +3,7 @@
 from pathlib import PurePosixPath
 from typing import Optional
 
-from haybale_core.file_listing import folder_root, list_files
+from haybale_core.file_listing import PATTERN_DESCRIPTION, folder_root, list_files
 from haywire.barn.builtin.progress import ProgressSettings, ProgressSpan, progress_field
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
@@ -70,7 +70,7 @@ class ForEachFileNode(BaseNode):
         self.add(EXEC.as_inlet("execute", label="Execute"))
         self.add(EXEC.as_inlet("break_loop", label="Break", description="Signal to stop loop"))
         self.add(FOLDER_PATH.as_inlet("folder", label="Folder"))
-        self.add(STRING.as_inlet("pattern", label="Pattern", default="*"))
+        self.add(STRING.as_inlet("pattern", label="Pattern", default="*", description=PATTERN_DESCRIPTION))
         self.add(BOOL.as_inlet("recursive", label="Subfolders", default=False))
         self.add(INT.as_inlet("limit", label="Limit", default=0, widget=NumberWidget.config()))
         self.add(

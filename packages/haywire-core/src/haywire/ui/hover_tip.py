@@ -2,10 +2,10 @@
 
 An element with ``data-hw-tip`` (a bold first line), optionally ``data-hw-tip-type``
 (a data-type name after it, as ``Label: TYPE``) and ``data-hw-tip-desc`` (a second
-line) shows a tooltip while the pointer is over it. One script per page serves
-every such element, so the server registers no listener for it and a hover makes
-no round trip. ``add_pin_tooltip`` writes the
-attributes; ``add_hover_tip_script`` installs the script.
+line, where a newline starts a new line) shows a tooltip while the pointer is over
+it. The tip wraps at 320 px. One script per page serves every such element, so the
+server registers no listener for it and a hover makes no round trip.
+``set_hover_tip`` writes the attributes; ``add_hover_tip_script`` installs the script.
 """
 
 from __future__ import annotations
@@ -27,13 +27,15 @@ _SCRIPT = """<script>
 (function () {
   if (window.__hwHoverTip) return;
   window.__hwHoverTip = true;
-  var tip = null, anchor = null, GAP = 10, MARGIN = 4;
+  var tip = null, anchor = null, GAP = 10, MARGIN = 4, MAX_WIDTH = 320;
   function box() {
     if (!tip) {
       tip = document.createElement("div");
       tip.className = "q-tooltip q-tooltip--style no-pointer-events text-xs hw-hover-tip";
       tip.setAttribute("role", "tooltip");
       tip.style.display = "none";
+      tip.style.maxWidth = MAX_WIDTH + "px";
+      tip.style.overflowWrap = "anywhere";
       document.body.appendChild(tip);
     }
     return tip;
@@ -64,6 +66,7 @@ _SCRIPT = """<script>
     var desc = el.getAttribute("data-hw-tip-desc");
     if (desc) {
       var line = document.createElement("div");
+      line.style.whiteSpace = "pre-line";
       line.textContent = desc;
       t.appendChild(line);
     }

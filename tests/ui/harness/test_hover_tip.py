@@ -53,6 +53,24 @@ def test_the_tip_names_the_pins_data_type(page: Page, harness) -> None:
     expect(page.locator(f"{_TIP} .hw-hover-tip-type")).to_have_text(type_name)
 
 
+def test_a_long_description_wraps_and_keeps_its_line_breaks(page: Page, harness) -> None:
+    _open(page, harness)
+    pin = page.locator(_PIN).first
+    pin.evaluate("el => el.setAttribute('data-hw-tip-desc', 'first line\\n' + 'word '.repeat(80))")
+
+    pin.hover()
+
+    tip = page.locator(_TIP)
+    expect(tip).to_be_visible()
+    box = tip.bounding_box()
+    assert box is not None
+    assert box["width"] <= 340
+    lines = page.evaluate(
+        "() => document.querySelector('.hw-hover-tip').innerText.split('\\n').map(l => l.trim())"
+    )
+    assert "first line" in lines
+
+
 def test_leaving_the_pin_hides_it(page: Page, harness) -> None:
     _open(page, harness)
     _hover_first_pin(page)
