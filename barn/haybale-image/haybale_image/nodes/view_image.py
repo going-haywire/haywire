@@ -71,17 +71,18 @@ class ViewImageNode(BaseNode):
         from haybale_image.types.image import IMAGE
         from haybale_image.widgets.image_viewer_widget import ImageViewerWidget
 
-        self.add(EXEC.as_inlet("exec", label="Execute"))
+        self.add(EXEC.as_inlet("exec", label="Execute", description="Shows the image"))
         self.add(
             IMAGE.as_inlet(
                 "image",
                 label="Image",
                 show_widget=ShowWidgetStrategy.WHEN_LINKED,
                 widget=ImageViewerWidget.config(properties={"mode": VIEW_MODES[0]}),
+                description="Image to show",
             )
         )
-        self.add(EXEC.as_outlet("next", label="Next"))
-        self.add(IMAGE.as_outlet("image_out", label="Image Out"))
+        self.add(EXEC.as_outlet("next", label="Next", description="Runs after showing"))
+        self.add(IMAGE.as_outlet("image_out", label="Image Out", description="The same image, passed on"))
 
     def post_init(self) -> None:
         for name in ("mode", "enlarge", "zoom"):

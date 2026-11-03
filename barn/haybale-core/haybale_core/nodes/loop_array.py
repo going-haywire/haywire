@@ -52,8 +52,10 @@ class LoopArrayNode(BaseNode):
         from haywire.barn.builtin.types import EXEC, INT, STRING
         from haywire.barn.builtin.widgets import SelectWidget
 
-        self.add(EXEC.as_inlet("execute", label="Execute"))
-        self.add(EXEC.as_inlet("break_loop", label="Break", description="Signal to stop loop"))
+        self.add(EXEC.as_inlet("execute", label="Execute", description="Starts the loop over the array"))
+        self.add(
+            EXEC.as_inlet("break_loop", label="Break", description="Ends the loop early, through Stopped")
+        )
         self._add_array_ports(None)
         self.add(
             STRING.as_inlet(
@@ -61,18 +63,31 @@ class LoopArrayNode(BaseNode):
                 label="On Error",
                 default="continue",
                 widget=SelectWidget.config(properties={"options": list(ON_ERROR)}),
+                description="After a failed iteration: continue with the next item, or stop",
             )
         )
 
-        self.add(EXEC.as_outlet("loop_body", label="Loop Body", needs_loopback=True))
-        self.add(INT.as_outlet("index", label="Index", default=0))
-        self.add(INT.as_outlet("total", label="Total", default=0))
-        self.add(EXEC.as_outlet("completed", label="Completed", description="Signal the loop completed"))
+        self.add(
+            EXEC.as_outlet(
+                "loop_body", label="Loop Body", needs_loopback=True, description="Runs once per item"
+            )
+        )
+        self.add(
+            INT.as_outlet(
+                "index", label="Index", default=0, description="Position of the current item, from 0"
+            )
+        )
+        self.add(INT.as_outlet("total", label="Total", default=0, description="Number of items"))
+        self.add(
+            EXEC.as_outlet(
+                "completed", label="Completed", description="Runs when every item was gone through"
+            )
+        )
         self.add(
             EXEC.as_outlet(
                 "stopped",
                 label="Stopped",
-                description="Signal if the loop was interrupted and was never completed",
+                description="Runs when Break or On Error = stop ended the loop early",
             )
         )
 
@@ -97,13 +112,26 @@ class LoopArrayNode(BaseNode):
 
         self._element = element
         if element is None:
-            self.add(ADD.as_inlet("array", label="Array", on_connect="hb_adopt_array"))
-            self.add(ADD.as_outlet("item", label="Item"))
-            self.add(ADD.as_outlet("failed", label="Failed"))
+            self.add(
+                ADD.as_inlet(
+                    "array",
+                    label="Array",
+                    on_connect="hb_adopt_array",
+                    description="The items to go through",
+                )
+            )
+            self.add(ADD.as_outlet("item", label="Item", description="The current item"))
+            self.add(ADD.as_outlet("failed", label="Failed", description="Items whose iteration failed"))
             return
-        self.add(array_of(element).as_inlet("array", label="Array", on_connect="hb_adopt_array"))
-        self.add(element.as_outlet("item", label="Item"))
-        self.add(array_of(element).as_outlet("failed", label="Failed"))
+        self.add(
+            array_of(element).as_inlet(
+                "array", label="Array", on_connect="hb_adopt_array", description="The items to go through"
+            )
+        )
+        self.add(element.as_outlet("item", label="Item", description="The current item"))
+        self.add(
+            array_of(element).as_outlet("failed", label="Failed", description="Items whose iteration failed")
+        )
 
     def worker(self, context: ExecutionContext) -> Optional[str]:
         if context.control_pin == "execute":

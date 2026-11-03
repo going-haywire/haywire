@@ -29,10 +29,10 @@ class PathExistsNode(BaseNode):
     def init(self) -> None:
         from haywire.barn.builtin.types import EXEC, PATH
 
-        self.add(EXEC.as_inlet("exec", label="Execute"))
-        self.add(PATH.as_inlet("path", label="Path"))
-        self.add(EXEC.as_outlet("exists", label="Exists"))
-        self.add(EXEC.as_outlet("missing", label="Missing"))
+        self.add(EXEC.as_inlet("exec", label="Execute", description="Checks the path"))
+        self.add(PATH.as_inlet("path", label="Path", description="File or folder to look for"))
+        self.add(EXEC.as_outlet("exists", label="Exists", description="Runs when it is there"))
+        self.add(EXEC.as_outlet("missing", label="Missing", description="Runs when it is not there"))
 
     def worker(self, context: ExecutionContext, path: VolumePath) -> str:
         return "exists" if resolve(path).exists() else "missing"

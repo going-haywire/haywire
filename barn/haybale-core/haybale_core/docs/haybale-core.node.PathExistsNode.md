@@ -8,10 +8,10 @@ Continues on Exists or Missing, depending on whether a file or folder is there
 
 | id | direction | type | description |
 |---|---|---|---|
-| `exec` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `path` | inlet | `haywire-core:type:PATH` | A file or folder inside a named volume such as the project folder or `models`. The graph stores the volume and the path within it, so it keeps working on another machine. |
-| `exists` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `missing` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `exec` | inlet | `haywire-core:type:EXEC` | Checks the path |
+| `path` | inlet | `haywire-core:type:PATH` | File or folder to look for |
+| `exists` | outlet | `haywire-core:type:EXEC` | Runs when it is there |
+| `missing` | outlet | `haywire-core:type:EXEC` | Runs when it is not there |
 
 ## Notes
 

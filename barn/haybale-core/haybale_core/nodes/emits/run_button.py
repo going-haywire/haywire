@@ -50,11 +50,17 @@ class RunButtonNode(BaseNode):
         from haybale_core.types import PooledType
         from haywire.barn.builtin.types import CALLBACK, EXEC
 
-        self.add(EXEC.as_inlet("start", label="Start"))
-        self.add(EXEC.as_inlet("stop", label="Stop"))
-        self.add(PooledType[CALLBACK].as_inlet("callbacks", label="Trigger"))
-        self.add(EXEC.as_outlet("started", label="Started"))
-        self.add(EXEC.as_outlet("stopped", label="Stopped"))
+        self.add(EXEC.as_inlet("start", label="Start", description="Enables the button"))
+        self.add(EXEC.as_inlet("stop", label="Stop", description="Disables the button"))
+        self.add(
+            PooledType[CALLBACK].as_inlet(
+                "callbacks",
+                label="Trigger",
+                description="Tick Event Listen outlets whose flows a press triggers",
+            )
+        )
+        self.add(EXEC.as_outlet("started", label="Started", description="Runs after Start"))
+        self.add(EXEC.as_outlet("stopped", label="Stopped", description="Runs after Stop"))
 
     def post_init(self) -> None:
         self._lock = threading.Lock()

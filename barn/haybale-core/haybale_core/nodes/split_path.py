@@ -66,7 +66,7 @@ class SplitPathNode(BaseNode):
     def init(self) -> None:
         from haywire.barn.builtin.types import FOLDER_PATH, PATH, STRING
 
-        self.add(PATH.as_inlet("path", label="Path"))
+        self.add(PATH.as_inlet("path", label="Path", description="Path to split"))
         outlets = (
             (FOLDER_PATH, "volume", "Volume", "The volume's root folder: <volume>"),
             (FOLDER_PATH, "base", "Base", "The folder the path was listed from: <volume>/<base>"),

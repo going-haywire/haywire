@@ -8,10 +8,10 @@ Shows an image on the node, as a live stream or as a still picture
 
 | id | direction | type | description |
 |---|---|---|---|
-| `exec` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `image` | inlet | `haybale-image:type:IMAGE` | A picture of any channel layout. Pixels are kept as made and converted on demand. |
-| `next` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `image_out` | outlet | `haybale-image:type:IMAGE` | A picture of any channel layout. Pixels are kept as made and converted on demand. |
+| `exec` | inlet | `haywire-core:type:EXEC` | Shows the image |
+| `image` | inlet | `haybale-image:type:IMAGE` | Image to show |
+| `next` | outlet | `haywire-core:type:EXEC` | Runs after showing |
+| `image_out` | outlet | `haybale-image:type:IMAGE` | The same image, passed on |
 
 ## Settings
 

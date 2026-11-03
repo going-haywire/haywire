@@ -8,9 +8,9 @@ Reads an image file from a volume
 
 | id | direction | type | description |
 |---|---|---|---|
-| `path` | inlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
+| `path` | inlet | `haywire-core:type:FILE_PATH` | Image file to read |
 | `progress.main` | config | `haywire-core:type:PROGRESS` |  |
-| `image` | outlet | `haybale-image:type:IMAGE` | A picture of any channel layout. Pixels are kept as made and converted on demand. |
+| `image` | outlet | `haybale-image:type:IMAGE` | The decoded image |
 
 ## Settings
 

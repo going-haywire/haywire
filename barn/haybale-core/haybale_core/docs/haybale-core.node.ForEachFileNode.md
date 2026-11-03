@@ -8,24 +8,24 @@ Runs the loop body once for each file in a folder that matches the pattern
 
 | id | direction | type | description |
 |---|---|---|---|
-| `execute` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `break_loop` | inlet | `haywire-core:type:EXEC` | Signal to stop loop |
-| `folder` | inlet | `haywire-core:type:FOLDER_PATH` | A folder inside a named volume such as the project folder or `models`. |
-| `pattern` | inlet | `haywire-core:type:STRING` | File names to match, such as \*.png<br>Several patterns: separate them with ; as in \*.png;\*.jpg<br>\* any characters, ? one character, [abc] one of a, b or c<br>Upper and lower case match alike; empty matches every file |
-| `recursive` | inlet | `haywire-core:type:BOOL` | True or False |
-| `limit` | inlet | `haywire-core:type:INT` | Whole number |
-| `on_error` | inlet | `haywire-core:type:STRING` | Text data |
+| `execute` | inlet | `haywire-core:type:EXEC` | Starts the loop over the folder's files |
+| `break_loop` | inlet | `haywire-core:type:EXEC` | Ends the loop early, through Stopped |
+| `folder` | inlet | `haywire-core:type:FOLDER_PATH` | Folder to go through |
+| `pattern` | inlet | `haywire-core:type:STRING` | File names to match, such as \*.png<br><br>Separate patterns with ; as in \*.png;\*.jpg<br>\* any characters, <br>? one character, <br>[abc] one of a, b or c<br>Upper and lower case match alike; <br>empty matches every file |
+| `recursive` | inlet | `haywire-core:type:BOOL` | Also go through every subfolder |
+| `limit` | inlet | `haywire-core:type:INT` | Only the first files, in name order; 0 takes all |
+| `on_error` | inlet | `haywire-core:type:STRING` | After a failed iteration: continue with the next file, or stop |
 | `progress.main` | config | `haywire-core:type:PROGRESS` |  |
-| `loop_body` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `path` | outlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
-| `subdir` | outlet | `haywire-core:type:STRING` | Text data |
-| `stem` | outlet | `haywire-core:type:STRING` | Text data |
-| `extension` | outlet | `haywire-core:type:STRING` | Text data |
-| `index` | outlet | `haywire-core:type:INT` | Whole number |
-| `total` | outlet | `haywire-core:type:INT` | Whole number |
-| `failed` | outlet | `haybale-core:type:ArrayType` | Homogeneous typed array |
-| `completed` | outlet | `haywire-core:type:EXEC` | Signal the loop completed |
-| `stopped` | outlet | `haywire-core:type:EXEC` | Signal if the loop was interruted and was never completed |
+| `loop_body` | outlet | `haywire-core:type:EXEC` | Runs once per file |
+| `path` | outlet | `haywire-core:type:FILE_PATH` | The current file |
+| `subdir` | outlet | `haywire-core:type:STRING` | The current file's folder below Folder; empty at the top |
+| `stem` | outlet | `haywire-core:type:STRING` | The current file's name without extension |
+| `extension` | outlet | `haywire-core:type:STRING` | The current file's extension, such as .png |
+| `index` | outlet | `haywire-core:type:INT` | Position of the current file, from 0 |
+| `total` | outlet | `haywire-core:type:INT` | Number of files in the loop |
+| `failed` | outlet | `haybale-core:type:ArrayType` | Files whose iteration failed |
+| `completed` | outlet | `haywire-core:type:EXEC` | Runs when every file was gone through |
+| `stopped` | outlet | `haywire-core:type:EXEC` | Runs when Break or On Error = stop ended the loop early |
 
 ## Settings
 

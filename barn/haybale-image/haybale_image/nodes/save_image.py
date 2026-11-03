@@ -117,8 +117,8 @@ class SaveImageNode(BaseNode):
 
         from haybale_image.types.image import IMAGE
 
-        self.add(EXEC.as_inlet("exec", label="Execute"))
-        self.add(IMAGE.as_inlet("image", label="Image"))
+        self.add(EXEC.as_inlet("exec", label="Execute", description="Saves the image"))
+        self.add(IMAGE.as_inlet("image", label="Image", description="Image to save"))
         self.add(
             FILE_PATH.as_inlet(
                 "path",
@@ -127,6 +127,7 @@ class SaveImageNode(BaseNode):
                     properties={"mode": "save", "extensions": list(FORMAT_BY_EXTENSION)}
                 ),
                 on_change="hb_on_path_changed",
+                description="File to write; its extension picks the format",
             )
         )
         self.add(
@@ -135,6 +136,7 @@ class SaveImageNode(BaseNode):
                 default=IfExists.OVERWRITE.value,
                 label="If Exists",
                 widget=SelectWidget.config(properties={"options": [m.value for m in IfExists]}),
+                description="When the file exists: overwrite, skip, or unique-suffix (adds a number)",
             )
         )
         self.add(
@@ -143,10 +145,13 @@ class SaveImageNode(BaseNode):
                 default="source",
                 label="Depth",
                 widget=SelectWidget.config(properties={"options": list(DEPTH_CHOICES)}),
+                description="Bits per channel: source keeps the image's own, or 8, 16, 32",
             )
         )
-        self.add(EXEC.as_outlet("next", label="Next"))
-        self.add(FILE_PATH.as_outlet("saved", label="Saved"))
+        self.add(EXEC.as_outlet("next", label="Next", description="Runs after saving"))
+        self.add(
+            FILE_PATH.as_outlet("saved", label="Saved", description="The file written, or the one skipped")
+        )
 
     def post_init(self) -> None:
         self._shown_format: Optional[Format] = None  # None: every format's settings are shown

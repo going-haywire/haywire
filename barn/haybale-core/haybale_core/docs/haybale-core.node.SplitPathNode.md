@@ -8,7 +8,7 @@ Splits a path into its volume, base, subfolder, stem and extension
 
 | id | direction | type | description |
 |---|---|---|---|
-| `path` | inlet | `haywire-core:type:PATH` | A file or folder inside a named volume such as the project folder or `models`. The graph stores the volume and the path within it, so it keeps working on another machine. |
+| `path` | inlet | `haywire-core:type:PATH` | Path to split |
 | `volume` | outlet | `haywire-core:type:FOLDER_PATH` | The volume's root folder: <volume> |
 | `base` | outlet | `haywire-core:type:FOLDER_PATH` | The folder the path was listed from: <volume>/<base> |
 | `parent` | outlet | `haywire-core:type:FOLDER_PATH` | The folder the file is in: <volume>/<base>/<sub> |

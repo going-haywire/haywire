@@ -26,11 +26,15 @@ class ImageInfoNode(BaseNode):
 
         from haybale_image.types.image import IMAGE
 
-        self.add(IMAGE.as_inlet("image", label="Image"))
-        self.add(INT.as_outlet("width", label="Width"))
-        self.add(INT.as_outlet("height", label="Height"))
-        self.add(STRING.as_outlet("layout", label="Layout"))
-        self.add(INT.as_outlet("depth", label="Depth"))
+        self.add(IMAGE.as_inlet("image", label="Image", description="Image to describe"))
+        self.add(INT.as_outlet("width", label="Width", description="Width in pixels"))
+        self.add(INT.as_outlet("height", label="Height", description="Height in pixels"))
+        self.add(STRING.as_outlet("layout", label="Layout", description="Channels: gray, rgb or rgba"))
+        self.add(
+            INT.as_outlet(
+                "depth", label="Depth", description="Bits per channel of the source file, such as 8 or 16"
+            )
+        )
 
     def worker(self, context: ExecutionContext, image: ImageValue) -> None:
         self.out("width", image.width)

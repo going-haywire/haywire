@@ -48,13 +48,37 @@ class OutputPathNode(BaseNode):
     def init(self) -> None:
         from haywire.barn.builtin.types import FILE_PATH, FOLDER_PATH, STRING
 
-        self.add(FOLDER_PATH.as_inlet("folder", label="Folder"))
-        self.add(STRING.as_inlet("subdir", label="Subfolder", default=""))
-        self.add(STRING.as_inlet("stem", label="Stem", default=""))
-        self.add(STRING.as_inlet("suffix", label="Suffix", default=""))
-        self.add(STRING.as_inlet("extension", label="Extension", default=""))
-        self.add(FILE_PATH.as_outlet("path", label="Path"))
-        self.add(FOLDER_PATH.as_outlet("out_folder", label="Parent"))
+        self.add(FOLDER_PATH.as_inlet("folder", label="Folder", description="Folder the file goes in"))
+        self.add(
+            STRING.as_inlet(
+                "subdir",
+                label="Subfolder",
+                default="",
+                description="Subfolders below Folder, such as a/b; may be empty",
+            )
+        )
+        self.add(
+            STRING.as_inlet("stem", label="Stem", default="", description="File name without extension")
+        )
+        self.add(
+            STRING.as_inlet(
+                "suffix", label="Suffix", default="", description="Added after the stem, such as _x4"
+            )
+        )
+        self.add(
+            STRING.as_inlet(
+                "extension",
+                label="Extension",
+                default="",
+                description="File extension, png or .png; empty for none",
+            )
+        )
+        self.add(FILE_PATH.as_outlet("path", label="Path", description="The composed file path"))
+        self.add(
+            FOLDER_PATH.as_outlet(
+                "out_folder", label="Parent", description="The folder the file goes in, subfolders included"
+            )
+        )
 
     def worker(
         self,

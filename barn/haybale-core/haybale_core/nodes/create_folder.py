@@ -33,10 +33,10 @@ class CreateFolderNode(BaseNode):
     def init(self) -> None:
         from haywire.barn.builtin.types import EXEC, FOLDER_PATH
 
-        self.add(EXEC.as_inlet("exec", label="Execute"))
-        self.add(FOLDER_PATH.as_inlet("path", label="Path"))
-        self.add(EXEC.as_outlet("next", label="Next"))
-        self.add(FOLDER_PATH.as_outlet("folder", label="Folder"))
+        self.add(EXEC.as_inlet("exec", label="Execute", description="Creates the folder"))
+        self.add(FOLDER_PATH.as_inlet("path", label="Path", description="Folder to create"))
+        self.add(EXEC.as_outlet("next", label="Next", description="Runs once the folder exists"))
+        self.add(FOLDER_PATH.as_outlet("folder", label="Folder", description="The folder, now created"))
 
     def worker(self, context: ExecutionContext, path: VolumePath) -> str:
         target = resolve(path)

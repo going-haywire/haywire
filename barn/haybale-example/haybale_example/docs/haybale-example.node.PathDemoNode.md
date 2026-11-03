@@ -8,17 +8,17 @@ Picks files and folders inside volumes and shows where they are on this machine.
 
 | id | direction | type | description |
 |---|---|---|---|
-| `path` | inlet | `haywire-core:type:PATH` | A file or folder inside a named volume such as the project folder or `models`. The graph stores the volume and the path within it, so it keeps working on another machine. |
-| `file` | inlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
-| `image` | inlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
-| `folder` | inlet | `haywire-core:type:FOLDER_PATH` | A folder inside a named volume such as the project folder or `models`. |
-| `save_to` | inlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
-| `path_resolved` | outlet | `haywire-core:type:STRING` | Text data |
-| `file_resolved` | outlet | `haywire-core:type:STRING` | Text data |
-| `image_resolved` | outlet | `haywire-core:type:STRING` | Text data |
-| `folder_resolved` | outlet | `haywire-core:type:STRING` | Text data |
-| `save_to_resolved` | outlet | `haywire-core:type:STRING` | Text data |
-| `problems` | outlet | `haywire-core:type:STRING` | Text data |
+| `path` | inlet | `haywire-core:type:PATH` | A file or a folder |
+| `file` | inlet | `haywire-core:type:FILE_PATH` | An existing file |
+| `image` | inlet | `haywire-core:type:FILE_PATH` | A PNG or JPEG file |
+| `folder` | inlet | `haywire-core:type:FOLDER_PATH` | A folder |
+| `save_to` | inlet | `haywire-core:type:FILE_PATH` | A file to save to; it need not exist yet |
+| `path_resolved` | outlet | `haywire-core:type:STRING` | Where Path is on this machine |
+| `file_resolved` | outlet | `haywire-core:type:STRING` | Where File is on this machine |
+| `image_resolved` | outlet | `haywire-core:type:STRING` | Where Image is on this machine |
+| `folder_resolved` | outlet | `haywire-core:type:STRING` | Where Folder is on this machine |
+| `save_to_resolved` | outlet | `haywire-core:type:STRING` | Where Save to is on this machine |
+| `problems` | outlet | `haywire-core:type:STRING` | Why an inlet could not be resolved, one line each |
 
 ## Notes
 

@@ -8,10 +8,10 @@ Creates a folder inside a volume, including any folders above it
 
 | id | direction | type | description |
 |---|---|---|---|
-| `exec` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `path` | inlet | `haywire-core:type:FOLDER_PATH` | A folder inside a named volume such as the project folder or `models`. |
-| `next` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `folder` | outlet | `haywire-core:type:FOLDER_PATH` | A folder inside a named volume such as the project folder or `models`. |
+| `exec` | inlet | `haywire-core:type:EXEC` | Creates the folder |
+| `path` | inlet | `haywire-core:type:FOLDER_PATH` | Folder to create |
+| `next` | outlet | `haywire-core:type:EXEC` | Runs once the folder exists |
+| `folder` | outlet | `haywire-core:type:FOLDER_PATH` | The folder, now created |
 
 ## Notes
 

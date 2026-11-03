@@ -43,15 +43,34 @@ class ListFilesNode(BaseNode):
         from haywire.barn.builtin.types import BOOL, EXEC, FILE_PATH, FOLDER_PATH, INT, STRING
         from haywire.barn.builtin.widgets import NumberWidget
 
-        self.add(EXEC.as_inlet("execute", label="Execute"))
-        self.add(FOLDER_PATH.as_inlet("folder", label="Folder"))
+        self.add(EXEC.as_inlet("execute", label="Execute", description="Lists the folder's files again"))
+        self.add(FOLDER_PATH.as_inlet("folder", label="Folder", description="Folder to list"))
         self.add(STRING.as_inlet("pattern", label="Pattern", default="*", description=PATTERN_DESCRIPTION))
-        self.add(BOOL.as_inlet("recursive", label="Subfolders", default=False))
-        self.add(INT.as_inlet("limit", label="Limit", default=0, widget=NumberWidget.config()))
+        self.add(
+            BOOL.as_inlet(
+                "recursive",
+                label="Subfolders",
+                default=False,
+                description="Also list the files of every subfolder",
+            )
+        )
+        self.add(
+            INT.as_inlet(
+                "limit",
+                label="Limit",
+                default=0,
+                widget=NumberWidget.config(),
+                description="Only the first files, in name order; 0 takes all",
+            )
+        )
 
-        self.add(EXEC.as_outlet("next", label="Next"))
-        self.add(ArrayType[FILE_PATH].as_outlet("files", label="Files"))
-        self.add(INT.as_outlet("total", label="Total", default=0))
+        self.add(EXEC.as_outlet("next", label="Next", description="Runs after the files are listed"))
+        self.add(
+            ArrayType[FILE_PATH].as_outlet(
+                "files", label="Files", description="The matching files, in name order"
+            )
+        )
+        self.add(INT.as_outlet("total", label="Total", default=0, description="Number of files found"))
 
     def worker(self, context: ExecutionContext) -> str:
         folder: VolumePath = self.value("folder")

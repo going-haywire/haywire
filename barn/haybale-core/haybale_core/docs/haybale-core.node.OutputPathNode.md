@@ -8,13 +8,13 @@ Builds a file path from a folder, a subfolder, a stem and an extension
 
 | id | direction | type | description |
 |---|---|---|---|
-| `folder` | inlet | `haywire-core:type:FOLDER_PATH` | A folder inside a named volume such as the project folder or `models`. |
-| `subdir` | inlet | `haywire-core:type:STRING` | Text data |
-| `stem` | inlet | `haywire-core:type:STRING` | Text data |
-| `suffix` | inlet | `haywire-core:type:STRING` | Text data |
-| `extension` | inlet | `haywire-core:type:STRING` | Text data |
-| `path` | outlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
-| `out_folder` | outlet | `haywire-core:type:FOLDER_PATH` | A folder inside a named volume such as the project folder or `models`. |
+| `folder` | inlet | `haywire-core:type:FOLDER_PATH` | Folder the file goes in |
+| `subdir` | inlet | `haywire-core:type:STRING` | Subfolders below Folder, such as a/b; may be empty |
+| `stem` | inlet | `haywire-core:type:STRING` | File name without extension |
+| `suffix` | inlet | `haywire-core:type:STRING` | Added after the stem, such as _x4 |
+| `extension` | inlet | `haywire-core:type:STRING` | File extension, png or .png; empty for none |
+| `path` | outlet | `haywire-core:type:FILE_PATH` | The composed file path |
+| `out_folder` | outlet | `haywire-core:type:FOLDER_PATH` | The folder the file goes in, subfolders included |
 
 ## Notes
 

@@ -47,8 +47,8 @@ class LoadImageNode(BaseNode):
 
         from haybale_image.types.image import IMAGE
 
-        self.add(FILE_PATH.as_inlet("path", label="Path"))
-        self.add(IMAGE.as_outlet("image", label="Image"))
+        self.add(FILE_PATH.as_inlet("path", label="Path", description="Image file to read"))
+        self.add(IMAGE.as_outlet("image", label="Image", description="The decoded image"))
 
     def worker(self, context: ExecutionContext, path: VolumePath) -> None:
         target = resolve(path)

@@ -27,10 +27,10 @@ class ResolvePathNode(BaseNode):
     def init(self) -> None:
         from haywire.barn.builtin.types import PATH, STRING
 
-        self.add(PATH.as_inlet("path", label="Path"))
+        self.add(PATH.as_inlet("path", label="Path", description="Path to resolve"))
         self.add(
             STRING.as_outlet(
-                "resolved", label="Resolved", description="absolute location of a path on this machine"
+                "resolved", label="Resolved", description="Absolute location of the path on this machine"
             )
         )
 

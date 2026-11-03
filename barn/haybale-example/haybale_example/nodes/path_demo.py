@@ -39,26 +39,42 @@ class PathDemoNode(BaseNode):
         from haywire.barn.builtin.types import FILE_PATH, FOLDER_PATH, PATH, STRING
         from haywire.barn.builtin.widgets import PathWidget
 
-        self.add(PATH.as_inlet(id="path", label="Path"))
-        self.add(FILE_PATH.as_inlet(id="file", label="File"))
+        self.add(PATH.as_inlet(id="path", label="Path", description="A file or a folder"))
+        self.add(FILE_PATH.as_inlet(id="file", label="File", description="An existing file"))
         self.add(
             FILE_PATH.as_inlet(
                 id="image",
                 label="Image",
+                description="A PNG or JPEG file",
                 widget=PathWidget.config(properties={"extensions": [".png", ".jpg", ".jpeg"]}),
             )
         )
-        self.add(FOLDER_PATH.as_inlet(id="folder", label="Folder"))
+        self.add(FOLDER_PATH.as_inlet(id="folder", label="Folder", description="A folder"))
         self.add(
             FILE_PATH.as_inlet(
-                id="save_to", label="Save to", widget=PathWidget.config(properties={"mode": "save"})
+                id="save_to",
+                label="Save to",
+                description="A file to save to; it need not exist yet",
+                widget=PathWidget.config(properties={"mode": "save"}),
             )
         )
 
         for port_id in self.PATH_PORTS:
             label = self.ports[port_id].label
-            self.add(STRING.as_outlet(id=f"{port_id}_resolved", label=f"{label} resolved"))
-        self.add(STRING.as_outlet(id="problems", label="Problems"))
+            self.add(
+                STRING.as_outlet(
+                    id=f"{port_id}_resolved",
+                    label=f"{label} resolved",
+                    description=f"Where {label} is on this machine",
+                )
+            )
+        self.add(
+            STRING.as_outlet(
+                id="problems",
+                label="Problems",
+                description="Why an inlet could not be resolved, one line each",
+            )
+        )
 
     def worker(
         self,

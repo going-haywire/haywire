@@ -8,18 +8,18 @@ Runs the loop body once for each item of an array
 
 | id | direction | type | description |
 |---|---|---|---|
-| `execute` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `break_loop` | inlet | `haywire-core:type:EXEC` | Signal to stop loop |
-| `array` | inlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
-| `on_error` | inlet | `haywire-core:type:STRING` | Text data |
+| `execute` | inlet | `haywire-core:type:EXEC` | Starts the loop over the array |
+| `break_loop` | inlet | `haywire-core:type:EXEC` | Ends the loop early, through Stopped |
+| `array` | inlet | `haywire-core:type:ADD` | The items to go through |
+| `on_error` | inlet | `haywire-core:type:STRING` | After a failed iteration: continue with the next item, or stop |
 | `progress.main` | config | `haywire-core:type:PROGRESS` |  |
-| `item` | outlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
-| `failed` | outlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
-| `loop_body` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `index` | outlet | `haywire-core:type:INT` | Whole number |
-| `total` | outlet | `haywire-core:type:INT` | Whole number |
-| `completed` | outlet | `haywire-core:type:EXEC` | Signal the loop completed |
-| `stopped` | outlet | `haywire-core:type:EXEC` | Signal if the loop was interrupted and was never completed |
+| `item` | outlet | `haywire-core:type:ADD` | The current item |
+| `failed` | outlet | `haywire-core:type:ADD` | Items whose iteration failed |
+| `loop_body` | outlet | `haywire-core:type:EXEC` | Runs once per item |
+| `index` | outlet | `haywire-core:type:INT` | Position of the current item, from 0 |
+| `total` | outlet | `haywire-core:type:INT` | Number of items |
+| `completed` | outlet | `haywire-core:type:EXEC` | Runs when every item was gone through |
+| `stopped` | outlet | `haywire-core:type:EXEC` | Runs when Break or On Error = stop ended the loop early |
 
 ## Settings
 

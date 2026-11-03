@@ -8,12 +8,12 @@ A button on the card that triggers connected Tick Event flows while the graph ru
 
 | id | direction | type | description |
 |---|---|---|---|
-| `start` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `stop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `callbacks` | inlet | `haybale-core:type:PooledType` | Multi-source aggregation |
+| `start` | inlet | `haywire-core:type:EXEC` | Enables the button |
+| `stop` | inlet | `haywire-core:type:EXEC` | Disables the button |
+| `callbacks` | inlet | `haybale-core:type:PooledType` | Tick Event Listen outlets whose flows a press triggers |
 | `button.run` | config | `haywire-core:type:BOOL` | Press to trigger the connected flows once |
-| `started` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `stopped` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `started` | outlet | `haywire-core:type:EXEC` | Runs after Start |
+| `stopped` | outlet | `haywire-core:type:EXEC` | Runs after Stop |
 
 ## Settings
 

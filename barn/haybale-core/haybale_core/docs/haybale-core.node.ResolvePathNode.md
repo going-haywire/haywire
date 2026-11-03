@@ -8,8 +8,8 @@ Gives the absolute location of a path on this machine, as text
 
 | id | direction | type | description |
 |---|---|---|---|
-| `path` | inlet | `haywire-core:type:PATH` | A file or folder inside a named volume such as the project folder or `models`. The graph stores the volume and the path within it, so it keeps working on another machine. |
-| `resolved` | outlet | `haywire-core:type:STRING` | absolute location of a path on this machine |
+| `path` | inlet | `haywire-core:type:PATH` | Path to resolve |
+| `resolved` | outlet | `haywire-core:type:STRING` | Absolute location of the path on this machine |
 
 ## Notes
 

@@ -53,9 +53,15 @@ class StepArrayNode(BaseNode):
         from haywire.barn.builtin.types import EXEC, INT, STRING
         from haywire.barn.builtin.widgets import SelectWidget
 
-        self.add(EXEC.as_inlet("start", label="Start"))
-        self.add(EXEC.as_inlet("next", label="Next"))
-        self.add(EXEC.as_inlet("stop", label="Stop"))
+        self.add(
+            EXEC.as_inlet("start", label="Start", description="Reads the array and steps to its first item")
+        )
+        self.add(EXEC.as_inlet("next", label="Next", description="Steps to the next item"))
+        self.add(
+            EXEC.as_inlet(
+                "stop", label="Stop", description="Forgets the array; Next does nothing until Start"
+            )
+        )
         self._add_array_ports(None)
         self.add(
             STRING.as_inlet(
@@ -63,12 +69,17 @@ class StepArrayNode(BaseNode):
                 label="Mode",
                 default="once",
                 widget=SelectWidget.config(properties={"options": list(MODES)}),
+                description="At the end: once stops, loop starts over, palindrome turns back",
             )
         )
 
-        self.add(EXEC.as_outlet("step", label="Step"))
-        self.add(INT.as_outlet("index", label="Index", default=0))
-        self.add(INT.as_outlet("total", label="Total", default=0))
+        self.add(EXEC.as_outlet("step", label="Step", description="Runs with each item"))
+        self.add(
+            INT.as_outlet(
+                "index", label="Index", default=0, description="Position of the current item, from 0"
+            )
+        )
+        self.add(INT.as_outlet("total", label="Total", default=0, description="Number of items"))
         # needs_loopback: after the Completed branch the node runs Step for the first item again.
         self.add(
             EXEC.as_outlet(
@@ -104,11 +115,22 @@ class StepArrayNode(BaseNode):
 
         self._element = element
         if element is None:
-            self.add(ADD.as_inlet("array", label="Array", on_connect="hb_adopt_array"))
-            self.add(ADD.as_outlet("item", label="Item"))
+            self.add(
+                ADD.as_inlet(
+                    "array",
+                    label="Array",
+                    on_connect="hb_adopt_array",
+                    description="The items to step through",
+                )
+            )
+            self.add(ADD.as_outlet("item", label="Item", description="The current item"))
             return
-        self.add(array_of(element).as_inlet("array", label="Array", on_connect="hb_adopt_array"))
-        self.add(element.as_outlet("item", label="Item"))
+        self.add(
+            array_of(element).as_inlet(
+                "array", label="Array", on_connect="hb_adopt_array", description="The items to step through"
+            )
+        )
+        self.add(element.as_outlet("item", label="Item", description="The current item"))
 
     def worker(self, context: ExecutionContext) -> Optional[str]:
         pin = context.control_pin

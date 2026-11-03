@@ -8,10 +8,10 @@ Gives the file of a model on this machine, with its sha256 and size
 
 | id | direction | type | description |
 |---|---|---|---|
-| `model` | inlet | `haybale-models:type:MODEL_REF` | A model, named by a catalog entry or by a file (url and sha256). Resolve Model turns it into a path on disk. |
-| `path` | outlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
-| `sha256` | outlet | `haywire-core:type:STRING` | Text data |
-| `size` | outlet | `haywire-core:type:INT` | Whole number |
+| `model` | inlet | `haybale-models:type:MODEL_REF` | Model to look up |
+| `path` | outlet | `haywire-core:type:FILE_PATH` | The model's file on this machine |
+| `sha256` | outlet | `haywire-core:type:STRING` | The file's sha256 checksum |
+| `size` | outlet | `haywire-core:type:INT` | The file's size in bytes |
 
 ## Notes
 

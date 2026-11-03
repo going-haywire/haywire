@@ -43,10 +43,10 @@ class ResolveModelNode(BaseNode):
 
         from haybale_models.types.model_ref import MODEL_REF
 
-        self.add(MODEL_REF.as_inlet("model", label="Model"))
-        self.add(FILE_PATH.as_outlet("path", label="Path"))
-        self.add(STRING.as_outlet("sha256", label="sha256"))
-        self.add(INT.as_outlet("size", label="Size"))
+        self.add(MODEL_REF.as_inlet("model", label="Model", description="Model to look up"))
+        self.add(FILE_PATH.as_outlet("path", label="Path", description="The model's file on this machine"))
+        self.add(STRING.as_outlet("sha256", label="sha256", description="The file's sha256 checksum"))
+        self.add(INT.as_outlet("size", label="Size", description="The file's size in bytes"))
 
     def worker(self, context: ExecutionContext, model: ModelRef) -> None:
         resolved = resolve_port(self, "model")

@@ -8,15 +8,15 @@ Goes through an array one item at a time, each time Next runs
 
 | id | direction | type | description |
 |---|---|---|---|
-| `start` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `next` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `stop` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `array` | inlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
-| `mode` | inlet | `haywire-core:type:STRING` | Text data |
-| `item` | outlet | `haywire-core:type:ADD` | Grows a new port from whatever connects to it |
-| `step` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `index` | outlet | `haywire-core:type:INT` | Whole number |
-| `total` | outlet | `haywire-core:type:INT` | Whole number |
+| `start` | inlet | `haywire-core:type:EXEC` | Reads the array and steps to its first item |
+| `next` | inlet | `haywire-core:type:EXEC` | Steps to the next item |
+| `stop` | inlet | `haywire-core:type:EXEC` | Forgets the array; Next does nothing until Start |
+| `array` | inlet | `haywire-core:type:ADD` | The items to step through |
+| `mode` | inlet | `haywire-core:type:STRING` | At the end: once stops, loop starts over, palindrome turns back |
+| `item` | outlet | `haywire-core:type:ADD` | The current item |
+| `step` | outlet | `haywire-core:type:EXEC` | Runs with each item |
+| `index` | outlet | `haywire-core:type:INT` | Position of the current item, from 0 |
+| `total` | outlet | `haywire-core:type:INT` | Number of items |
 | `completed` | outlet | `haywire-core:type:EXEC` | Signal the array ran out (once) or a round ended (loop, palindrome) |
 
 ## Notes

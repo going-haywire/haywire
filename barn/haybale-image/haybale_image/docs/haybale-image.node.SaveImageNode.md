@@ -8,14 +8,14 @@ Writes an image to a file in a volume, in the format its extension names
 
 | id | direction | type | description |
 |---|---|---|---|
-| `exec` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `image` | inlet | `haybale-image:type:IMAGE` | A picture of any channel layout. Pixels are kept as made and converted on demand. |
-| `path` | inlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
-| `if_exists` | config | `haywire-core:type:STRING` | Text data |
-| `depth` | config | `haywire-core:type:STRING` | Text data |
+| `exec` | inlet | `haywire-core:type:EXEC` | Saves the image |
+| `image` | inlet | `haybale-image:type:IMAGE` | Image to save |
+| `path` | inlet | `haywire-core:type:FILE_PATH` | File to write; its extension picks the format |
+| `if_exists` | config | `haywire-core:type:STRING` | When the file exists: overwrite, skip, or unique-suffix (adds a number) |
+| `depth` | config | `haywire-core:type:STRING` | Bits per channel: source keeps the image's own, or 8, 16, 32 |
 | `progress.main` | config | `haywire-core:type:PROGRESS` |  |
-| `next` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
-| `saved` | outlet | `haywire-core:type:FILE_PATH` | A file inside a named volume such as the project folder or `models`. |
+| `next` | outlet | `haywire-core:type:EXEC` | Runs after saving |
+| `saved` | outlet | `haywire-core:type:FILE_PATH` | The file written, or the one skipped |
 
 ## Settings
 

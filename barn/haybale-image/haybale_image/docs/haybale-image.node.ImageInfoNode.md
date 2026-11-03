@@ -8,11 +8,11 @@ Reports the width, height, channel layout and bit depth of an image
 
 | id | direction | type | description |
 |---|---|---|---|
-| `image` | inlet | `haybale-image:type:IMAGE` | A picture of any channel layout. Pixels are kept as made and converted on demand. |
-| `width` | outlet | `haywire-core:type:INT` | Whole number |
-| `height` | outlet | `haywire-core:type:INT` | Whole number |
-| `layout` | outlet | `haywire-core:type:STRING` | Text data |
-| `depth` | outlet | `haywire-core:type:INT` | Whole number |
+| `image` | inlet | `haybale-image:type:IMAGE` | Image to describe |
+| `width` | outlet | `haywire-core:type:INT` | Width in pixels |
+| `height` | outlet | `haywire-core:type:INT` | Height in pixels |
+| `layout` | outlet | `haywire-core:type:STRING` | Channels: gray, rgb or rgba |
+| `depth` | outlet | `haywire-core:type:INT` | Bits per channel of the source file, such as 8 or 16 |
 
 ## Notes
 

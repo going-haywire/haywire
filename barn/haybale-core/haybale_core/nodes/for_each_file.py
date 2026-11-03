@@ -67,39 +67,84 @@ class ForEachFileNode(BaseNode):
         from haywire.barn.builtin.types import BOOL, EXEC, FILE_PATH, FOLDER_PATH, INT, STRING
         from haywire.barn.builtin.widgets import NumberWidget, SelectWidget
 
-        self.add(EXEC.as_inlet("execute", label="Execute"))
-        self.add(EXEC.as_inlet("break_loop", label="Break", description="Signal to stop loop"))
-        self.add(FOLDER_PATH.as_inlet("folder", label="Folder"))
+        self.add(
+            EXEC.as_inlet("execute", label="Execute", description="Starts the loop over the folder's files")
+        )
+        self.add(
+            EXEC.as_inlet("break_loop", label="Break", description="Ends the loop early, through Stopped")
+        )
+        self.add(FOLDER_PATH.as_inlet("folder", label="Folder", description="Folder to go through"))
         self.add(STRING.as_inlet("pattern", label="Pattern", default="*", description=PATTERN_DESCRIPTION))
-        self.add(BOOL.as_inlet("recursive", label="Subfolders", default=False))
-        self.add(INT.as_inlet("limit", label="Limit", default=0, widget=NumberWidget.config()))
+        self.add(
+            BOOL.as_inlet(
+                "recursive", label="Subfolders", default=False, description="Also go through every subfolder"
+            )
+        )
+        self.add(
+            INT.as_inlet(
+                "limit",
+                label="Limit",
+                default=0,
+                widget=NumberWidget.config(),
+                description="Only the first files, in name order; 0 takes all",
+            )
+        )
         self.add(
             STRING.as_inlet(
                 "on_error",
                 label="On Error",
                 default="continue",
                 widget=SelectWidget.config(properties={"options": list(ON_ERROR)}),
+                description="After a failed iteration: continue with the next file, or stop",
             )
         )
 
-        self.add(EXEC.as_outlet("loop_body", label="Loop Body", needs_loopback=True))
-        self.add(FILE_PATH.as_outlet("path", label="Path"))
-        self.add(STRING.as_outlet("subdir", label="Subfolder"))
-        self.add(STRING.as_outlet("stem", label="Stem"))
-        self.add(STRING.as_outlet("extension", label="Extension"))
-        self.add(INT.as_outlet("index", label="Index", default=0))
-        self.add(INT.as_outlet("total", label="Total", default=0))
-        self.add(ArrayType[FILE_PATH].as_outlet("failed", label="Failed"))
+        self.add(
+            EXEC.as_outlet(
+                "loop_body", label="Loop Body", needs_loopback=True, description="Runs once per file"
+            )
+        )
+        self.add(FILE_PATH.as_outlet("path", label="Path", description="The current file"))
+        self.add(
+            STRING.as_outlet(
+                "subdir",
+                label="Subfolder",
+                description="The current file's folder below Folder; empty at the top",
+            )
+        )
+        self.add(
+            STRING.as_outlet("stem", label="Stem", description="The current file's name without extension")
+        )
+        self.add(
+            STRING.as_outlet(
+                "extension", label="Extension", description="The current file's extension, such as .png"
+            )
+        )
+        self.add(
+            INT.as_outlet(
+                "index", label="Index", default=0, description="Position of the current file, from 0"
+            )
+        )
+        self.add(INT.as_outlet("total", label="Total", default=0, description="Number of files in the loop"))
+        self.add(
+            ArrayType[FILE_PATH].as_outlet(
+                "failed", label="Failed", description="Files whose iteration failed"
+            )
+        )
 
         # Completed outlet - executes when loop finishes
-        self.add(EXEC.as_outlet("completed", label="Completed", description="Signal the loop completed"))
+        self.add(
+            EXEC.as_outlet(
+                "completed", label="Completed", description="Runs when every file was gone through"
+            )
+        )
 
         # Stopped outlet - executes when Break ended the loop
         self.add(
             EXEC.as_outlet(
                 "stopped",
                 label="Stopped",
-                description="Signal if the loop was interruted and was never completed",
+                description="Runs when Break or On Error = stop ended the loop early",
             )
         )
 
