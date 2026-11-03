@@ -343,3 +343,18 @@ def test_an_unsaved_field_shows_no_override_marker():
     anchor = _render(bag)
     assert _has_override_marker(_find_field_row(anchor, "kept"))
     assert not _has_override_marker(_find_field_row(anchor, "computed"))
+
+
+class DescribedSettings(Settings):
+    gain = setting[FLOAT](1.0, label="Gain", description="How loud\nin dB")
+
+
+def test_a_row_label_carries_the_pin_style_hover_tip():
+    from haywire.ui.hover_tip import TIP_ATTR, TIP_DESC_ATTR, TIP_TYPE_ATTR
+
+    anchor = _render(DescribedSettings())
+    row = _find_field_row(anchor, "gain")
+    (label,) = [el for el in _walk_skip_menus(row) if TIP_ATTR in getattr(el, "_props", {})]
+    assert label._props[TIP_ATTR] == "gain"
+    assert label._props[TIP_TYPE_ATTR] == "FLOAT"
+    assert label._props[TIP_DESC_ATTR] == "How loud\nin dB"

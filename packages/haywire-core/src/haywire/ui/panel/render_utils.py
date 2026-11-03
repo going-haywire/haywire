@@ -36,6 +36,7 @@ from haywire.core.access import LevelMode, required_mode
 from haywire.core.settings import UiState
 from haywire.ui import elements as hui
 from haywire.ui.access_stamp import stamp_requires
+from haywire.ui.hover_tip import set_hover_tip
 from haywire.ui.panel.host_rendering import drawing_panel
 from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.widget.base import DISABLED_STYLE, BaseWidget
@@ -534,8 +535,7 @@ def _render_field_row(
     with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else "") as row:
         with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
             label = ui.label(label_text).classes("text-xs min-w-0 truncate")
-            if description:
-                label.tooltip(description)
+            _set_field_tip(label, defn, attr_name or key.split(".")[-1], description)
             # Nested in the label cell so the widget column keeps the browser's
             # native context menu (copy/paste in inputs) — as in the reactive path.
             with ui.context_menu().props('data-row-menu="true"'):
@@ -836,9 +836,8 @@ def _render_reactive_field_row(
         nonlocal label
         with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
             label = ui.label(_label_text(_should_show_dirty())).classes("text-xs truncate")
-            tooltip_parts = [p for p in (defn._description, promoted_hint) if p]
-            if tooltip_parts:
-                label.tooltip(" — ".join(tooltip_parts))
+            lines = [p for p in (defn._description, promoted_hint) if p]
+            _set_field_tip(label, defn, attr_name, "\n".join(lines))
             _build_row_menu()
 
     # Every field — scalars, vectors, color — resolves a shared BaseWidget by its
@@ -1149,3 +1148,8 @@ def _registry_reset(registry: "SettingsRegistry", key: str, error_container) -> 
             ui.label(str(exc)).classes("text-xs hw-text-danger px-2").props('data-error="true"')
         return
     error_container.clear()
+
+
+def _set_field_tip(label: ui.element, defn: "setting", name: str, description: str) -> None:
+    """Give a settings row's label the hover tip pins use: ``name: TYPE`` over *description*."""
+    set_hover_tip(label, name, type_name=getattr(defn._type, "__name__", ""), description=description)
