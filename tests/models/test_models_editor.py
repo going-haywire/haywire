@@ -560,7 +560,8 @@ async def test_catalog_row_shows_name_and_a_detail_line(user: User, env: Any) ->
     await _open(user, h)
 
     assert "Sharp · 4x" in h.texts()  # name with scale (and precision, when the variant has one)
-    assert "pth · 2.4 MB · MIT ·" in h.texts()  # the format, not the full variant name
+    # What it is (architecture), then the format, not the full variant name.
+    assert "esrgan · pth · 2.4 MB · MIT ·" in h.texts()
     assert "not downloaded" in h.texts()
     assert h.marked("models-download")
 

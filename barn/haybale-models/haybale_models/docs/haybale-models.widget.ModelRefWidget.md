@@ -25,7 +25,8 @@ choice at the top and four tabs:
 
 - **Catalog**: the catalog entries this port accepts. A catalog entry follows
   the catalog: each machine uses the variant that suits it best.
-- **Models Volume**: a file in the Models volume, named by its sha256.
+- **Models Volume**: a file in the Models volume, named by its sha256: one you
+  put there or fetched by address. Catalog variants are in the Catalog tab.
 - **Hugging Face**: a model file in the Hugging Face cache, named by its `hf://`
   address and its sha256, so it works offline.
 - **Address**: an `hf://` or `https://` address. An `hf://` address is pinned when

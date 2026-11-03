@@ -240,6 +240,7 @@ def list_item(
     label: str,
     *,
     sublabel: str | None = None,
+    caption: str | None = None,
     dot_color: str | None = None,
     on_click: Callable | None = None,
 ) -> ui.row:
@@ -255,6 +256,7 @@ def list_item(
     - Status dot (optional): ``w-2 h-2 rounded-full``, Quasar named colour
     - Label: ``text-sm font-medium truncate``
     - Sublabel: ``text-xs hw-text-dim``
+    - Caption (optional third line, such as where a listed thing is): ``text-xs hw-text-muted``
     - Parent text column: ``flex-1 gap-0 min-w-0``
 
     Usage::
@@ -274,6 +276,8 @@ def list_item(
             ui.label(label).classes("text-sm font-medium truncate")
             if sublabel:
                 ui.label(sublabel).classes("text-xs hw-text-dim")
+            if caption:
+                ui.label(caption).classes("text-xs hw-text-muted")
     return row
 
 

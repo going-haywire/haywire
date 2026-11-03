@@ -446,6 +446,22 @@ async def test_a_models_folder_file_is_hashed_then_chosen(user: User, state: Any
 
 @pytest.mark.unit
 @pytest.mark.anyio
+async def test_models_folder_tab_leaves_out_catalog_variants(user: User, state: Any) -> None:
+    keys = _mod("haybale_models.keys")
+    root = location_of(keys.MODELS_VOLUME)
+    for name, data in (("catalog/sharp.pth", DATA), ("mine/own.pth", b"own weights")):
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_bytes(data)
+        state.index.add(root / name, hashlib.sha256(data).hexdigest(), None)
+    await _open(user, _direct(_port(ModelRef())))
+    _open_picker(user, "files")
+    await _eventually(lambda: bool(_rows(user, "model-ref-file-pick")))
+
+    assert _row_labels(user, "model-ref-file-pick") == ["mine/own.pth"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
 async def test_hf_tab_lists_only_model_files_as_org_repo_path(user: User, state: Any) -> None:
     _cache_file(state, "org/repo", "c0ffee", "m.pth", main=True)
     _cache_file(state, "org/repo", "c0ffee", "sub/W.SafeTensors", main=True)

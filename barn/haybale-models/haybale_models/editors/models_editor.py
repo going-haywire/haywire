@@ -21,6 +21,7 @@ from haywire.core.access import AccessTier
 from haywire.core.session.handlers import react_on
 from haywire.core.volumes import VolumeError, location_of
 from haywire.ui import elements as hui
+from haywire.ui.hover_tip import set_hover_tip
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
@@ -30,6 +31,7 @@ from nicegui import core, ui
 from haybale_graph_editor.notices import GraphNoticesChanged
 from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_models.consumer import preference_for
+from haybale_models.describe import entry_description, entry_search_text, entry_summary
 from haybale_models.download import DownloadJob
 from haybale_models.hf import HfCachedFile, list_cache, parse_hf
 from haybale_models.keys import MODELS_VOLUME
@@ -514,7 +516,8 @@ class ModelsEditor(BaseEditor):
                     in_hf = found is not None and hf_root is not None and self._under(found[0], hf_root)
                     if found is not None:
                         claimed.update(sha for p in found[0].values() if (sha := models.index.sha256_at(p)))
-                    if query and query not in f"{library} {entry.name} {resource.variant_name()}".lower():
+                    haystack = f"{library} {resource.variant_name()} {entry_search_text(entry)}".lower()
+                    if query and query not in haystack:
                         continue
                     rows.append(_Located(entry, resource, found, in_hf))
             if rows:
@@ -629,14 +632,21 @@ class ModelsEditor(BaseEditor):
             with ui.row().classes("w-full items-center no-wrap gap-2"):
                 _dot(_SHOW_CATALOG)
                 title = _variant_title(entry, resource)
-                hui.subject(title).classes("truncate flex-1 min-w-0").tooltip(
-                    f"{title} — {resource.variant_name()}"
+                subject = hui.subject(title).classes("truncate flex-1 min-w-0")
+                set_hover_tip(
+                    subject,
+                    entry.name,
+                    type_name=resource.variant_name(),
+                    description=entry_description(entry),
                 )
                 if admin:
                     self._catalog_actions(context, models, entry, resource, spec, local, in_hf, active)
             with ui.row().classes("w-full items-center no-wrap gap-1"):
                 detail = f"{_format_of(resource)} · {format_size(size) if size is not None else '—'}"
-                hui.hint(f"{detail} · {entry.license or '—'} ·").classes("truncate min-w-0")
+                summary = entry_summary(entry, scale=False)
+                hui.hint(" · ".join(p for p in (summary, detail, entry.license or "—") if p) + " ·").classes(
+                    "truncate min-w-0"
+                )
                 self._live_status(
                     hui.hint(status).classes("flex-shrink-0").mark("models-status"),
                     self._job_status(local is not None, in_hf, [j.id for j in matching]),

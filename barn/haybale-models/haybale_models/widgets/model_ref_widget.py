@@ -13,6 +13,7 @@ from typing import Any
 from nicegui import background_tasks, run, ui
 
 from haybale_models import consumer, hf
+from haybale_models.describe import entry_description, entry_search_text, entry_summary
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
 from haybale_models.matcher import candidates, entry_matches
 from haybale_models.resolver import ModelMissing, ResolvedModel, resolve
@@ -24,6 +25,7 @@ from haywire.core.catalog import CatalogEntry
 from haywire.core.volumes import VolumeError, location_of
 from haywire.ui import elements as hui
 from haywire.ui.access_stamp import stamp_requires
+from haywire.ui.hover_tip import set_hover_tip
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.decorator import widget
 
@@ -69,7 +71,8 @@ class ModelRefWidget(BaseWidget):
 
     - **Catalog**: the catalog entries this port accepts. A catalog entry follows
       the catalog: each machine uses the variant that suits it best.
-    - **Models Volume**: a file in the Models volume, named by its sha256.
+    - **Models Volume**: a file in the Models volume, named by its sha256: one you
+      put there or fetched by address. Catalog variants are in the Catalog tab.
     - **Hugging Face**: a model file in the Hugging Face cache, named by its `hf://`
       address and its sha256, so it works offline.
     - **Address**: an `hf://` or `https://` address. An `hf://` address is pinned when
@@ -332,6 +335,7 @@ class ModelRefWidget(BaseWidget):
         entries = [e for e in consumer.models_state().catalog.entries() if entry_matches(e, self._filter)]
         entries.sort(key=lambda e: (e.class_library.label.lower(), e.name.lower()))
         rows = [(e, self._entry_detail(e)) for e in entries]
+        search_text = {id(e): entry_search_text(e) for e in entries}
 
         def draw() -> None:
             needle = str(search.value or "").strip().lower()
@@ -340,15 +344,19 @@ class ModelRefWidget(BaseWidget):
                 library = None
                 shown = 0
                 for entry, detail in rows:
-                    if needle and needle not in entry.name.lower() and needle not in detail.lower():
+                    if needle and needle not in search_text[id(entry)] and needle not in detail.lower():
                         continue
                     if entry.class_library.label != library:
                         library = entry.class_library.label
                         hui.section_label(library)
                     key = entry.class_identity.registry_key
-                    hui.list_item(
-                        entry.name, sublabel=detail, on_click=lambda k=key: self._choose(ModelRef(catalog=k))
+                    row = hui.list_item(
+                        entry.name,
+                        sublabel=entry_summary(entry) or None,
+                        caption=detail,
+                        on_click=lambda k=key: self._choose(ModelRef(catalog=k)),
                     ).mark("model-ref-catalog-pick")
+                    set_hover_tip(row, entry.name, description=entry_description(entry))
                     shown += 1
                 if not shown:
                     hui.hint("No catalog entry fits this port" if not rows else "No match")
@@ -384,8 +392,14 @@ class ModelRefWidget(BaseWidget):
         background_tasks.create(_fill_list(scan, holder, search, mark, on_pick), name=f"{mark}-scan")
 
     def _file_rows(self) -> list[_Row] | None:
+        """The Models volume's files that are no catalog entry's variant; those are in the Catalog tab."""
         root = _location(MODELS_VOLUME)
-        return _models_folder_rows(root) if root is not None else []
+        if root is None:
+            return []
+        state = consumer.models_state()
+        variants = _catalog_digests(state.catalog.entries())
+        digest_of = {rec.relative: rec.sha256 for rec in state.index.records()}
+        return [row for row in _models_folder_rows(root) if digest_of.get(row.label) not in variants]
 
     def _hf_rows(self) -> list[_Row] | None:
         root = _location(HF_VOLUME)
@@ -484,6 +498,15 @@ async def _fill_list(
 
     search.on_value_change(lambda _e: draw())
     draw()
+
+
+def _catalog_digests(entries: Any) -> set[str]:
+    """Return the sha256 of every file of every catalog variant in *entries*."""
+    digests: set[str] = set()
+    for entry in entries:
+        for resource in entry.resources:
+            digests.update(d for d in (resource.sha256, *(f.sha256 for f in resource.files)) if d)
+    return digests
 
 
 def _models_folder_rows(root: Path) -> list[_Row]:
