@@ -369,6 +369,34 @@ class PinShowWidgetMenuPanel(BasePanel):
 
 
 @panel(
+    surface=PinMenu,
+    label="Hide pin",
+    description="Hides this pin's row on the node card; the Ports panel shows it again.",
+    icon=hui.icon.hidden,
+    order=110,
+)
+class HidePinMenuPanel(BasePanel):
+    """Hides this pin's row on the node card; the Ports panel shows it again.
+
+    Not offered on a promoted pin, which is hidden by demoting its setting.
+    """
+
+    actions: PortActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        port = ctx.data[EditState].active_port
+        return port is not None and not port.promoted and not port.is_fold
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        port = ctx.data[EditState].active_port
+        if port is None:
+            return
+        with layout:
+            hui.menu_row("Hide pin", icon=hui.icon.hidden, on_click=lambda: self.actions.hide_port(port.id))
+
+
+@panel(
     surface=PinWidgetMenu,
     label="Strategy",
     description="One row per show-widget strategy, marked with the port's current choice.",

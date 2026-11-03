@@ -34,6 +34,7 @@ from haywire.core.undo.actions.graph_actions import (
     ExpandGraphNodeAction,
     PromoteGroupToMacroAction,
     ReorderPortsAction,
+    SetPortHiddenAction,
     ResetSettingAction,
     SetEdgePropagationAction,
     SetPortMetadataAction,
@@ -436,6 +437,21 @@ class Editor:
             ``False`` if the node is unknown or the reorder failed.
         """
         return self._apply(ReorderPortsAction(self.graph, node_id, ordered_ids), record=True)
+
+    def set_port_hidden(self, node_id: str, port_id: str, hidden: bool) -> bool:
+        """Hide or show a port's row on its node card as one undoable action.
+
+        A hidden port with an edge keeps its pin near the node title.
+
+        Returns:
+            ``False`` if the node or port is unknown, the port is a fold or promoted
+            from a setting, or it is already in that state.
+        """
+        wrapper = self.graph.get_node_wrapper(node_id)
+        port = wrapper.node.ports.get(port_id) if wrapper is not None else None
+        if port is None or port.hidden is hidden:
+            return False
+        return self._apply(SetPortHiddenAction(self.graph, node_id, port_id, hidden), record=True)
 
     def set_edge_propagation(self, edge_id: str, propagation: Propagation) -> bool:
         """Change an edge's propagation mode as one undoable action.

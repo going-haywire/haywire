@@ -1599,6 +1599,39 @@ class ReorderPortsAction(ActionBase):
         self._node().reorder_ports(self._previous)
 
 
+class SetPortHiddenAction(ActionBase):
+    """Undoable hide or show of a port's row on its node card; see ``NodeData.set_port_hidden``.
+
+    Raises:
+        Refusal: On execute or undo, if the node or port is not in the graph, or the
+            port cannot be hidden (a fold, a promoted port).
+    """
+
+    def __init__(self, graph: BaseGraph, node_id: str, port_id: str, hidden: bool):
+        super().__init__(description=f"{'Hide' if hidden else 'Show'} pin {port_id} on {node_id}")
+        self.graph = graph
+        self.node_id = node_id
+        self.port_id = port_id
+        self.hidden = hidden
+
+    def _set(self, hidden: bool) -> None:
+        wrapper = self.graph.get_node_wrapper(self.node_id)
+        if wrapper is None:
+            raise Refusal(f"Node '{self.node_id}' not found")
+        if self.port_id not in wrapper.node.ports:
+            raise Refusal(f"Node '{self.node_id}' has no port '{self.port_id}'")
+        try:
+            wrapper.node.set_port_hidden(self.port_id, hidden)
+        except ValueError as e:
+            raise Refusal(str(e)) from e
+
+    def _execute_impl(self) -> None:
+        self._set(self.hidden)
+
+    def _undo_impl(self) -> None:
+        self._set(not self.hidden)
+
+
 class SetEdgePropagationAction(ActionBase):
     """Undoable change of an edge's propagation mode; the edge redraws.
 

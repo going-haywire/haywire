@@ -56,6 +56,8 @@ def test_port_actions_declares_the_demote_verb():
 
         def clear_setting(self, port_id: str) -> None: ...
 
+        def hide_port(self, port_id: str) -> None: ...
+
     assert isinstance(_PortImpl(), PortActions)
 
     class _MissingValueVerbs:

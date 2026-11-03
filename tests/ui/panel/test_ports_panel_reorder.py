@@ -38,6 +38,8 @@ class _FakePort:
     description: str = ""
     type_cls: Any = None
     data_type: Any = None
+    promoted: bool = False
+    hidden: bool = False
 
     def should_show_widget(self) -> bool:
         return False

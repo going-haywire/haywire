@@ -26,7 +26,8 @@ class PortActions(Protocol):
     meaningful only on a promoted pin: the demote it dispatches to, the
     widget-visibility choice backing "Show widget", and the two value verbs —
     ``reset_setting`` and ``clear_setting`` — that put the backing field back
-    to a resting state.
+    to a resting state. ``hide_port`` hides a pin that is not promoted (a
+    promoted one is hidden by demoting it).
 
     The value verbs live here as well as on the Properties row because a
     promoted pin is where the field actually is once its widget is on the card:
@@ -43,6 +44,8 @@ class PortActions(Protocol):
     def reset_setting(self, port_id: str) -> None: ...
 
     def clear_setting(self, port_id: str) -> None: ...
+
+    def hide_port(self, port_id: str) -> None: ...
 
 
 class PinMenu(Surface):

@@ -171,6 +171,36 @@ class NodePortsPanel(BasePanel):
                 # would have been — it is what the row would otherwise not say.
                 ui.label(_type_name(port)).classes("text-xs font-mono hw-text-body shrink-0")
             self._render_pen(port, node_id, widget_factory, context)
+            self._render_visibility(port, node_id, context)
+
+    def _render_visibility(self, port, node_id: str, context: "SessionContext") -> None:
+        """The eye that hides or shows the port's row on the node card.
+
+        On a promoted port it is a greyed, inert eye: its setting is hidden by demoting it.
+        """
+        if port.promoted:
+            eye = ui.icon(hui.icon.shown).classes("text-sm hw-text-dim shrink-0 opacity-40")
+            eye.tooltip("Promoted from a setting — demote it to hide the pin")
+            return
+        button = hui.icon_action(
+            hui.icon.hidden if port.hidden else hui.icon.shown,
+            tooltip="Show or hide this pin on the node card",
+            on_click=lambda: self._toggle_hidden(port, node_id, button, context),
+        )
+        stamp_requires(button)
+
+    @staticmethod
+    def _toggle_hidden(port, node_id: str, button, context: "SessionContext") -> None:
+        """Flip the port's ``hidden`` through the edit route as one undo step, and the eye with it.
+
+        Does nothing unless the session's edit route hands out an ``Editor`` (level mode edit).
+        """
+        route = route_for(context)
+        editor = route.editor() if route is not None else None
+        if editor is None:
+            return
+        if editor.set_port_hidden(node_id, port.id, not port.hidden):
+            button.props(f"icon={hui.icon.hidden if port.hidden else hui.icon.shown}")
 
     def _render_pen(self, port, node_id: str, widget_factory, context: "SessionContext") -> None:
         """The edit affordance, shown only on ports the user can actually edit."""

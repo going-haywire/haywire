@@ -229,6 +229,9 @@ class IType(ABC):
                     WHEN_LINKED, ALWAYS (default: NOT_LINKED for inlets)
                 operable (bool): False makes every write to the widget need
                     level mode ``edit``, even from the node card (default: True)
+                hidden (bool): Start with the port's row hidden on the node card;
+                    the user shows it again from the Ports panel, and a saved
+                    graph keeps the user's choice (default: False)
                 use_mode (str): 'optional' or 'required' (default: 'optional').
                     Reported to tools; the framework does not enforce it
 
@@ -300,6 +303,9 @@ class IType(ABC):
                     WHEN_LINKED, ALWAYS (default: NEVER for outlets)
                 operable (bool): False makes every write to the widget need
                     level mode ``edit``, even from the node card (default: True)
+                hidden (bool): Start with the port's row hidden on the node card;
+                    the user shows it again from the Ports panel, and a saved
+                    graph keeps the user's choice (default: False)
                 needs_loopback (bool): Set to True if the control flow from
                     this outlet needs to loop back to the node (default: False)
                 is_linked_lazy (bool): Lock every edge leaving this outlet to
@@ -387,6 +393,9 @@ class IType(ABC):
                     WHEN_LINKED, ALWAYS (default: NOT_LINKED for swinglets)
                 operable (bool): False makes every write to the widget need
                     level mode ``edit``, even from the node card (default: True)
+                hidden (bool): Start with the port's row hidden on the node card;
+                    the user shows it again from the Ports panel, and a saved
+                    graph keeps the user's choice (default: False)
                 is_linked_lazy (bool): Lock every edge leaving this swinglet to
                     lazy propagation; see ``EdgeWrapper.locked_propagation``
                     (default: False)
@@ -450,6 +459,9 @@ class IType(ABC):
                     both show and WHEN_LINKED hides (default: ALWAYS for config)
                 operable (bool): False makes every write to the widget need
                     level mode ``edit``, even from the node card (default: True)
+                hidden (bool): Start with the port's row hidden on the node card;
+                    the user shows it again from the Ports panel, and a saved
+                    graph keeps the user's choice (default: False)
                 use_mode (str): 'optional' or 'required' (default: 'optional').
                     Reported to tools; the framework does not enforce it
 

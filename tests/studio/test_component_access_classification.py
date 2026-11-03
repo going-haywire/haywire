@@ -130,6 +130,7 @@ EDIT_PANELS = {
     "GraphMorePanel",
     "GraphRunSettingsPanel",
     "GroupMenuPanel",
+    "HidePinMenuPanel",
     "InsertRerouteMenuPanel",
     "LayoutSelectionMenuPanel",
     "RotateClockwiseMenuPanel",

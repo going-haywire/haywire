@@ -217,6 +217,21 @@ already saved.
 
 Reordering is one undo step per drop.
 
+### Hiding a port
+
+The graph user may hide a port's whole row on the node card (pin, label and
+widget) with **Hide pin** in the pin's right-click menu, or with the eye in the
+**Properties → Ports** panel, which is also where a hidden port is shown again.
+The choice is `DataPort.hidden`, saved with the port, and each hide or show is
+one undo step that marks the graph unsaved. A hidden port with an edge keeps its
+pin in the stack near the node title, the same way a collapsed fold's linked
+ports do, so the edge keeps an endpoint. The node itself is unaffected: a hidden
+port still takes and gives values.
+
+A port promoted from a setting is not hidden this way. Promotion is what puts the
+setting on the card, so demoting it is how it leaves; the Ports panel shows its
+eye greyed out, and the pin menu offers no Hide pin. A fold has no eye either.
+
 ### Swinglets
 
 A swinglet is a port that may be either end of an edge, on any wire type: `T.as_swinglet(id, **kwargs)`. A link can leave it or arrive at it, so a card needs one pin where an inlet/outlet pair would need two. Compound and wrapper types are subscripted first (`ArrayType[FLOAT].as_swinglet('numbers')`); a pooled type refuses it. `as_swinglet` defaults to `store_strategy = HAS_WIDGET | NODE_SET` and `show_widget = NOT_LINKED`; a type's own declaration wins. The design is in [ADR 0048](../adr/0048-swinglets.md).

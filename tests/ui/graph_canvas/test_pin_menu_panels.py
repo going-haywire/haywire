@@ -17,6 +17,7 @@ from haywire.core.signals import RevealComponentSource
 from haywire.core.types.enums import PortOrigin
 from haybale_graph_editor.panels.graph.menu.port.port import (
     DetachSettingMenuPanel,
+    HidePinMenuPanel,
     PinEditMenuPanel,
     PinShowWidgetMenuPanel,
     PortShowWidgetStrategyPanel,
@@ -64,6 +65,7 @@ def _port(
         promoted=origin is PortOrigin.PROMOTED,
         origin=origin,
         is_user_removable=lambda: origin is not PortOrigin.DECLARED,
+        is_fold=False,
     )
 
 
@@ -291,3 +293,19 @@ def test_value_verbs_poll_false_without_a_port():
 
     assert ResetSettingMenuPanel.poll(_ctx(None)) is False
     assert ClearSettingMenuPanel.poll(_ctx(None)) is False
+
+
+# ---------------------------------------------------------------------------
+# Hide pin row
+# ---------------------------------------------------------------------------
+
+
+def test_hide_pin_polls_on_any_pin_but_a_promoted_one():
+    assert HidePinMenuPanel.poll(_ctx(_port())) is True
+    assert HidePinMenuPanel.poll(_ctx(_port(origin=PortOrigin.RESOLVED))) is True
+    assert HidePinMenuPanel.poll(_ctx(_port(promoted=True))) is False
+    assert HidePinMenuPanel.poll(_ctx(None)) is False
+
+
+def test_hide_pin_draws_no_greyed_row_where_it_does_not_apply():
+    assert "draw_disabled" not in vars(HidePinMenuPanel)

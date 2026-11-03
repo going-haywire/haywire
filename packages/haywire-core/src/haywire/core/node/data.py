@@ -518,6 +518,28 @@ class NodeData:
         if self.wrapper:
             self.wrapper.mark_layout_changed()
 
+    def set_port_hidden(self, port_id: str, hidden: bool) -> bool:
+        """Hide or show *port_id*'s row on the node card; see ``DataPort.hidden``.
+
+        Returns:
+            Whether the port's state changed.
+
+        Raises:
+            KeyError: No port has this id.
+            ValueError: The port is a fold or promoted from a setting, which the user
+                hides by closing the fold or demoting the setting.
+        """
+        port = self.ports[port_id]
+        if port.is_fold or port.promoted:
+            kind = "a fold" if port.is_fold else "promoted from a setting"
+            raise ValueError(f"Port '{port_id}' is {kind} and cannot be hidden")
+        if port.hidden is hidden:
+            return False
+        port.hidden = hidden
+        if self.wrapper:
+            self.wrapper.mark_layout_changed()
+        return True
+
     # =========================================================================
     # Port Value Access
     # =========================================================================
@@ -595,9 +617,11 @@ class NodeData:
     def iter_visible_ports(self) -> Iterator[DataPort]:
         """Yield the ports drawn on the node card, in display order.
 
-        A port inside a closed fold is skipped.
+        A port the user hid (``DataPort.hidden``) and a port inside a closed fold are skipped.
         """
         for port in self._iter_ports():
+            if port.hidden:
+                continue
             if port.parent_fold and self._is_any_ancestor_collapsed(port):
                 continue
             yield port
@@ -662,7 +686,7 @@ class NodeData:
         return bool(self.get_ports(is_role=WireRole.SEQUENCE, has_pin=True))
 
     def iter_hidden_connected_ports(self, is_inlet: bool) -> Iterator[DataPort]:
-        """Yield linked ports that a collapsed ancestor fold hides, in display order.
+        """Yield linked ports that the user or a collapsed ancestor fold hides, in display order.
 
         Their pins are drawn near the node title so an edge keeps an endpoint.
         Fold control ports are left out.

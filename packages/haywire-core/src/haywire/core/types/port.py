@@ -183,6 +183,13 @@ class DataPort(DataTypeIdentity):
     in their lane. It draws no pin of its own — see ``has_pin()``.
     """
 
+    hidden: bool = False
+    """True if the user hid this port's row on the node card.
+
+    A hidden port with an edge still draws its pin near the node title, so the edge
+    keeps an endpoint. Saved with the port.
+    """
+
     needs_loopback: bool = False
     """Set to True if the control flow from this outlet needs to loop back to the node"""
 

@@ -838,6 +838,21 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         if editor.remove_port(wrapper.node_id, port_id):
             self._redraw_node(wrapper.node_id)
 
+    def hide_port(self, port_id: str) -> None:
+        """Hide the row of ``port_id`` on the right-clicked node, as one undo step.
+
+        Needs level mode edit; the Ports panel shows it again.
+        """
+        from haybale_graph_editor.state.graph_app_state import route_for
+
+        wrapper = self._context.data[EditState].active_node
+        route = route_for(self._context)
+        editor = route.editor() if route is not None else None
+        if wrapper is None or editor is None:
+            return
+        if editor.set_port_hidden(wrapper.node_id, port_id, True):
+            self._redraw_node(wrapper.node_id)
+
     def reset_setting(self, port_id: str) -> None:
         """Reset the setting behind the promoted port ``port_id`` to the value it takes when not set locally.
 
