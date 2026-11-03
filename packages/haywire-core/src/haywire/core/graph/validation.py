@@ -16,6 +16,7 @@ from .types import ChangeReason, ValidationResult
 from .scheduler import ScheduleHandle, ThreadingTimerScheduler, ValidationScheduler
 
 if TYPE_CHECKING:
+    from ..edge.edge_wrapper import EdgeWrapper
     from .base import BaseGraph
 
 logger = logging.getLogger(__name__)
@@ -126,6 +127,16 @@ class ValidationManager:
             self._schedule_validation()
 
             logger.info(f"Marked node dirty: {node_id} (reason: {reason.value})")
+
+    @staticmethod
+    def _rebuild_edge(edge_wrapper: "EdgeWrapper") -> None:
+        """Build *edge_wrapper* again, then link it if it works now or unlink it if it stopped working."""
+        was_functional = edge_wrapper.is_functional()
+        edge_wrapper.build()
+        if edge_wrapper.is_functional():
+            edge_wrapper.link()
+        elif was_functional:
+            edge_wrapper.unlink()
 
     def mark_edge_dirty(self, edge_id: str, reason: ChangeReason) -> None:
         """Mark an edge as needing validation and restart the debounce.
@@ -443,22 +454,25 @@ class ValidationManager:
                         validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue
 
+                    found_edge_wrapper = self._graph.get_edge_wrapper(edge_id)
+
                     if reason.requires_adding():
+                        # A node may have retyped a port from on_connect while the new edge
+                        # linked, after its chain was built: build it again for the new type.
+                        if (
+                            found_edge_wrapper is not None
+                            and not found_edge_wrapper.built_for_current_ports()
+                        ):
+                            self._rebuild_edge(found_edge_wrapper)
                         validated_edges[edge_id] = reason
                         validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue
 
-                    found_edge_wrapper = self._graph.get_edge_wrapper(edge_id)
                     if reason.requires_rebuild() or reason.requires_validation():
                         # Rebuild unconditionally: the node may have changed the
                         # type of a port that kept its id.
                         if found_edge_wrapper:
-                            was_functional = found_edge_wrapper.is_functional()
-                            found_edge_wrapper.build()
-                            if found_edge_wrapper.is_functional():
-                                found_edge_wrapper.link()
-                            elif was_functional:
-                                found_edge_wrapper.unlink()
+                            self._rebuild_edge(found_edge_wrapper)
                             validated_edges[edge_id] = reason
                             validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                             continue

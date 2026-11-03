@@ -178,6 +178,8 @@ class EdgeWrapper:
         )
 
         self._source_type: Optional[type[IType]] = None
+        # The (source, sink) types the adapter chain was last built against; see built_for_current_ports.
+        self._built_types: Optional[tuple[type[IType], type[IType]]] = None
 
         # The style bag, bound while the edge validates; see _bind_style.
         self._style: Optional["EdgeSettings"] = None
@@ -639,6 +641,23 @@ class EdgeWrapper:
 
         logger.debug(".. rebuilding failed with errors.")
 
+    def built_for_current_ports(self) -> bool:
+        """Return whether the adapter chain was last built against the types its two ports carry now.
+
+        False when a node retyped one of the ports after the chain was built, as a node
+        does from ``on_connect`` while the edge links. True for an edge never built or
+        whose ports are gone: there is nothing newer to build against.
+        """
+        if self._built_types is None or self._graph is None:
+            return True
+        source = self._graph.get_node_wrapper(self.source_node_id)
+        sink = self._graph.get_node_wrapper(self.sink_node_id)
+        outlet = source.node.ports.get(self.outlet_port_id) if source is not None else None
+        inlet = sink.node.ports.get(self.inlet_port_id) if sink is not None else None
+        if outlet is None or inlet is None:
+            return True
+        return self._built_types == (outlet.stored_type, inlet.stored_type)
+
     def _fit_propagation(self) -> None:
         """Fit the chosen mode to the wire type; runs only once the edge has validated."""
         wire = self.wire_type
@@ -693,6 +712,7 @@ class EdgeWrapper:
             sink_type = inlet_port.stored_type
             source_type = outlet_port.stored_type
 
+            self._built_types = (source_type, sink_type)
             # Create new chain
             first_adapter, error = adapter_factory.create_chain(source_type, sink_type, self._edge_id)
 
