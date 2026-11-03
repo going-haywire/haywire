@@ -1280,6 +1280,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1607,6 +1611,76 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/model-catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model catalogs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/graph-notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1622,6 +1696,8 @@
   
     
     
+      
+        
       
         
       
@@ -1828,6 +1904,8 @@
   
     
     
+      
+        
       
         
       
@@ -2100,6 +2178,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../architecture/execution/failures/exceptions-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker exceptions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
         
   
@@ -2352,6 +2465,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../architecture/volumes/volumes-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2380,10 +2528,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_13" >
         
           
-          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_13" id="__nav_6_13_label" tabindex="0">
             
   
   
@@ -2401,8 +2549,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_12">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3177,6 +3325,7 @@
 <li>Code that deliberately writes the model directly goes around the route and is outside what the tiers promise.</li>
 </ul>
 <p><strong>Amendment (ADR 0060).</strong> The inspector polls no longer read the level mode: <code>can_edit_graph</code> is gone, the inspector tabs show in every mode, and the page's <code>AccessGate</code> greys their stamped writers by the session mode (ADR 0060). This supersedes the consequence that properties panels show only in level mode <code>edit</code>. The route still refuses a write below the mode it needs.</p>
+<p><strong>Amendment (values the graph does not save).</strong> The unsaved rule now reaches below the bag. A port whose <code>StoreStrategy</code> never stores (<code>NEVER</code>), a settings field declared <code>setting(..., store=StoreStrategy.NEVER)</code>, and a port promoted from such a field are written directly by the route, like a bag no document saves: no unsaved mark, no undo step. The properties row of such a field shows no <code>•</code> and no Reset, since there is no saved value to override.</p>
 
 
 

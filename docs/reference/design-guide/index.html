@@ -1286,6 +1286,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1613,6 +1617,76 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/model-catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model catalogs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/graph-notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1628,6 +1702,8 @@
   
     
     
+      
+        
       
         
       
@@ -1834,6 +1910,8 @@
   
     
     
+      
+        
       
         
       
@@ -2106,6 +2184,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../architecture/execution/failures/exceptions-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker exceptions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
         
   
@@ -2358,6 +2471,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../architecture/volumes/volumes-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2386,10 +2534,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_13" >
         
           
-          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_13" id="__nav_6_13_label" tabindex="0">
             
   
   
@@ -2407,8 +2555,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_12">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -6892,8 +7040,17 @@ in the text colour — near-white on the dark theme. Write
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">hui</span><span class="o">.</span><span class="n">icon_action</span><span class="p">(</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Refresh&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_refresh</span><span class="p">)</span>
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
 </span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">editor_toolbar</span><span class="p">():</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">ui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">))</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;text-xs hw-text-muted truncate flex-1&quot;</span><span class="p">)</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">hui</span><span class="o">.</span><span class="n">fitted_path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;hw-hint font-mono flex-1&quot;</span><span class="p">)</span>
 </span></code></pre></div>
+<p><strong>Rule:</strong> a file path in a header, toolbar or row is drawn with
+<code>hui.fitted_path(path)</code>, not a truncated label. It crops the path's middle to
+fit, keeping as many leading and trailing parts as the width allows and giving
+them back one at a time as it widens (<code>/Volumes/Ddrive/../nodes/graph_node.py</code>,
+down to <code>../graph_node.py</code>), so the root and the file name stay visible, and
+shows the full path as its tooltip. Give it a width
+(<code>flex-1</code> in a row, <code>w-full</code> in a column) and a text style; <code>text=</code> or
+<code>set_text()</code> shows a placeholder such as "not saved". Tab labels show a name,
+not a path, and need none of this.</p>
 <h3 id="82-huiinfo_barlabel-badgenone-suffixnone">8.2 <code>hui.info_bar(label, badge=None, suffix=None)</code><a class="headerlink" href="#82-huiinfo_barlabel-badgenone-suffixnone" title="Permanent link">&para;</a></h3>
 <p>A contextual metadata bar (e.g. showing the open file name + language + size).</p>
 <p><strong>Visual rules:</strong></p>

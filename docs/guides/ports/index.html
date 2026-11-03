@@ -1288,6 +1288,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1501,6 +1505,17 @@
     <span class="md-ellipsis">
       
         Ordering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hiding-a-port" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hiding a port
       
     </span>
   </a>
@@ -1831,6 +1846,76 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model catalogs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../graph-notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1846,6 +1931,8 @@
   
     
     
+      
+        
       
         
       
@@ -2052,6 +2139,8 @@
   
     
     
+      
+        
       
         
       
@@ -2324,6 +2413,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../architecture/execution/failures/exceptions-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker exceptions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
         
   
@@ -2576,6 +2700,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../architecture/volumes/volumes-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2604,10 +2763,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_13" >
         
           
-          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_13" id="__nav_6_13_label" tabindex="0">
             
   
   
@@ -2625,8 +2784,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_12">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3403,6 +3562,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#hiding-a-port" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hiding a port
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#swinglets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3776,6 +3946,18 @@ a new version of a library appends rather than landing at its declared
 position — so reordering a node's <code>init()</code> calls does not move ports on graphs
 already saved.</p>
 <p>Reordering is one undo step per drop.</p>
+<h3 id="hiding-a-port">Hiding a port<a class="headerlink" href="#hiding-a-port" title="Permanent link">&para;</a></h3>
+<p>The graph user may hide a port's whole row on the node card (pin, label and
+widget) with <strong>Hide pin</strong> in the pin's right-click menu, or with the eye in the
+<strong>Properties → Ports</strong> panel, which is also where a hidden port is shown again.
+The choice is <code>DataPort.hidden</code>, saved with the port, and each hide or show is
+one undo step that marks the graph unsaved. A hidden port with an edge keeps its
+pin in the stack near the node title, the same way a collapsed fold's linked
+ports do, so the edge keeps an endpoint. The node itself is unaffected: a hidden
+port still takes and gives values.</p>
+<p>A port promoted from a setting is not hidden this way. Promotion is what puts the
+setting on the card, so demoting it is how it leaves; the Ports panel shows its
+eye greyed out, and the pin menu offers no Hide pin. A fold has no eye either.</p>
 <h3 id="swinglets">Swinglets<a class="headerlink" href="#swinglets" title="Permanent link">&para;</a></h3>
 <p>A swinglet is a port that may be either end of an edge, on any wire type: <code>T.as_swinglet(id, **kwargs)</code>. A link can leave it or arrive at it, so a card needs one pin where an inlet/outlet pair would need two. Compound and wrapper types are subscripted first (<code>ArrayType[FLOAT].as_swinglet('numbers')</code>); a pooled type refuses it. <code>as_swinglet</code> defaults to <code>store_strategy = HAS_WIDGET | NODE_SET</code> and <code>show_widget = NOT_LINKED</code>; a type's own declaration wins. The design is in <a href="../../adr/0048-swinglets/">ADR 0048</a>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_swinglet</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>

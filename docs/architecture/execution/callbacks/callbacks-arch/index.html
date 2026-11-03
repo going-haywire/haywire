@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/architecture/execution/callbacks/callbacks-arch/">
       
       
-        <link rel="prev" href="../../lazy-evaluation/lazy-evaluation-arch/">
+        <link rel="prev" href="../../failures/exceptions-arch/">
       
       
         <link rel="next" href="../../../library-system/library-system-arch/">
@@ -1286,6 +1286,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1613,6 +1617,76 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../guides/model-catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model catalogs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../guides/graph-notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1630,6 +1704,8 @@
   
     
     
+      
+        
       
         
       
@@ -1839,6 +1915,8 @@
   
     
     
+      
+        
       
         
       
@@ -2095,6 +2173,41 @@
   
   
     <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../failures/exceptions-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker exceptions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -2640,6 +2753,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../../volumes/volumes-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2671,10 +2819,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_13" >
         
           
-          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_13" id="__nav_6_13_label" tabindex="">
             
   
   
@@ -2692,8 +2840,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_12">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3723,6 +3871,7 @@
 <li><strong>Listener</strong> — an EVENT node whose <code>event_subscription</code> is a <code>CallbackEvent(event_name=...)</code>. It roots its own Flow and, in edge-based mode, publishes its subscription on a CALLBACK outlet.</li>
 <li><strong>Emitter</strong> — a node that calls <code>context.emit_callback(...)</code>, usually a CONTROL node (core's <code>TickEmitNode</code>, haybale-visiongraph's <code>OakDCameraNode</code>). In edge-based mode it reads the names to emit from its pooled callback inlet; <code>TickEmitNode</code> reads them from a background thread, outside any execution frame.</li>
 </ul>
+<p>Core's <code>TickEventNode</code> is a generic listener: it runs its flow for any emitter wired to it, <code>TickEmitNode</code> (periodic ticks) or <code>RunButtonNode</code> (one trigger per press of its button). Its <code>delta_time</code> outlet is the time since that emitter's previous trigger.</p>
 <p>By design, every callback-listener Flow has its own EVENT-node entry — typically <code>CallbackEvent(event_name=...)</code>.</p>
 <h3 id="24-through-reroutes-and-subgraph-boundaries">2.4 Through reroutes and Subgraph boundaries<a class="headerlink" href="#24-through-reroutes-and-subgraph-boundaries" title="Permanent link">&para;</a></h3>
 <p>A callback edge may pass through reroutes. Every port on a callback flow is <strong>immediate</strong>: an edge-driven write fires <code>on_change</code> at once, and a reroute's inlet forwards to its outlet from that handler (<code>RerouteNode.forward_immediate</code>), so the subscription reaches the emitter without any node executing. Callback edges have no propagation — see <a href="../../edges/edges-arch/">edges-arch §3.3</a>.</p>
@@ -3753,6 +3902,7 @@
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  (independently, not as part of the emitter&#39;s control chain)
 </span></code></pre></div>
 <p>The listener Flow runs through the standard VM dispatch — it's a Flow like any other; the only thing special is how it was <em>triggered</em>.</p>
+<p>Emitting enqueues one trigger per listener flow. A listener whose queue mode is <code>BLOCK</code> and whose queue is full makes the emitting thread wait up to 5 s for room (a runner thread never waits: the trigger is dropped). An emitter triggered from the UI therefore emits from a thread it owns, never from the UI event loop: <code>RunButtonNode</code>'s button only wakes its thread, which emits.</p>
 <h3 id="33-statistics">3.3 Statistics<a class="headerlink" href="#33-statistics" title="Permanent link">&para;</a></h3>
 <p>The Interpreter exposes callback statistics for debugging:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">stats</span> <span class="o">=</span> <span class="n">interpreter</span><span class="o">.</span><span class="n">get_statistics</span><span class="p">()</span>

@@ -1286,6 +1286,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1613,6 +1617,76 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/model-catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model catalogs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/graph-notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1630,6 +1704,8 @@
   
     
     
+      
+        
       
         
       
@@ -2026,6 +2102,8 @@
       
         
       
+        
+      
     
     
     
@@ -2269,6 +2347,41 @@
   
   
     <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/failures/exceptions-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker exceptions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -2538,6 +2651,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../volumes/volumes-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2569,10 +2717,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_13" >
         
           
-          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_13" id="__nav_6_13_label" tabindex="">
             
   
   
@@ -2590,8 +2738,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_12">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3496,7 +3644,9 @@ see-also:
 <h2 id="run-policy">Run policy<a class="headerlink" href="#run-policy" title="Permanent link">&para;</a></h2>
 <p>Each <code>GraphEntry</code> owns a <code>GraphRunSettings</code> bag (purely local, never
 registry-backed) describing <em>how</em> it runs within its haystack — currently the
-<code>autorestart</code> flag. It is persisted under the <code>[graphs.run]</code> table of the
+<code>autorestart</code> flag and the <code>on_exception_bail</code> policy (<code>branch</code>, <code>frame</code> or
+<code>run</code>: how far a run gives up when a worker raises; see
+<a href="../../execution/failures/exceptions-arch/">worker exceptions</a>). It is persisted under the <code>[graphs.run]</code> table of the
 haystack TOML (omitted when at defaults; sparse). When a running graph is
 auto-stopped by a reassembly-requiring validation change
 (<code>HaystackState._on_entry_validation</code>) and <code>autorestart</code> is set, the entry is

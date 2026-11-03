@@ -792,6 +792,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="5. Why init() is skipped when a graph is loaded">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-a-node-keeps-its-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where a node keeps its state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1514,6 +1531,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1841,6 +1862,76 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/model-catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model catalogs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/graph-notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1856,6 +1947,8 @@
   
     
     
+      
+        
       
         
       
@@ -2062,6 +2155,8 @@
   
     
     
+      
+        
       
         
       
@@ -2334,6 +2429,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../architecture/execution/failures/exceptions-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker exceptions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
         
   
@@ -2586,6 +2716,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../../architecture/volumes/volumes-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2614,10 +2779,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_13" >
         
           
-          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_13" id="__nav_6_13_label" tabindex="0">
             
   
   
@@ -2635,8 +2800,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_12">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3409,6 +3574,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="5. Why init() is skipped when a graph is loaded">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#where-a-node-keeps-its-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where a node keeps its state
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3753,6 +3935,74 @@ restores them directly. That gives one rule with two parts:</p>
 </ul>
 <p>Neither hook is the place to open a camera or a file. That waits until the
 graph runs — the next section.</p>
+<h3 id="where-a-node-keeps-its-state">Where a node keeps its state<a class="headerlink" href="#where-a-node-keeps-its-state" title="Permanent link">&para;</a></h3>
+<p>Saving, loading, copy and paste, undo of a delete, and a rebuild all recreate a
+node from the same three things. A node whose state lives only there comes back
+exactly as it was — whichever of these created it:</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Lives in</th>
+<th>Carried by save, copy, undo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Values the user sets or wires</td>
+<td><strong>ports</strong></td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Configuration the user chooses</td>
+<td><strong>settings</strong> (your <code>NodeSettings</code> bags)</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Anything else the node must remember — a counter, a picked item, a recorded take</td>
+<td><strong><code>self.store</code></strong> (<code>NodeStore</code>)</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Objects built in code — helpers, parsers, lookup tables</td>
+<td><strong><code>post_init()</code></strong>, from the three above</td>
+<td>rebuilt</td>
+</tr>
+<tr>
+<td>Values derived from the graph's structure</td>
+<td><strong><code>on_assembly()</code></strong></td>
+<td>rebuilt</td>
+</tr>
+<tr>
+<td>Devices, files, threads, loaded models</td>
+<td><strong><code>on_startup()</code></strong>, released in <code>on_shutdown()</code></td>
+<td>rebuilt per run</td>
+</tr>
+<tr>
+<td>Buffers and anything recomputable</td>
+<td><strong><code>self.cache</code></strong> (<code>NodeCache</code>)</td>
+<td>never kept</td>
+</tr>
+</tbody>
+</table>
+<p>The rule: <strong>nothing the node relies on may exist only in a plain attribute.</strong>
+An attribute set in <code>worker()</code> or an <code>on_change</code> handler survives neither a save
+nor a copy — the copy starts without it and behaves differently.</p>
+<p>Three details a copy exposes that a save and reload hide:</p>
+<ul>
+<li><strong>A copy gets a new node id.</strong> Do not store ids of nodes, your own included,
+  where a pasted copy would keep pointing at the original.</li>
+<li><strong>A store value is copied, not shared.</strong> Keep store values to plain data
+  (numbers, strings, lists, dicts) so the copy cannot change the original.</li>
+<li><strong>Outlet values are not trusted after a copy.</strong> They are recomputed: a data
+  node runs its worker once on its first execution after it is created, loaded,
+  pasted or rebuilt
+  (<a href="../../../adr/0070-a-data-node-runs-at-least-once-per-instance/">ADR 0070</a>).
+  Your worker must therefore tolerate that extra run. To make a clean data node
+  run once more with no dirty port, call <code>self.run_again()</code>: a model loader does
+  it in <code>on_shutdown()</code> after releasing the model its outlet handed out, so the
+  next run loads it again instead of passing on the released one.</li>
+</ul>
 <p><strong>When you edit the class (hot-reload),</strong> every placed node of it is rebuilt
 through <code>init()</code>: fresh, with only its arrangement kept (position, stacking order,
 place on stage), so your port changes show
@@ -3838,6 +4088,7 @@ undoable and also drops a held previous setup
 </table>
 <p>Override only what you need.</p>
 <p><code>on_startup</code> and <code>on_shutdown</code> run once per run, and more than once only if one execution group stops before another starts; calls always pair and never overlap. A node executed by several execution groups gets <code>on_frame_start</code>/<code>on_frame_end</code> from each of them; the calls never overlap, but may interleave between groups, so start and end are not guaranteed to pair.</p>
+<p><code>on_frame_end</code> also runs when the frame ended early: after a worker exception bailed the frame or the run (ADR 0066), and after a stop cancelled it. It is where a node closes state that spans several of its own runs in one frame, such as a loop that never got back control (core's For Each File closes its progress bar there).</p>
 <p><strong>Threading contract.</strong> A node never runs on two threads at once, but three things still reach it from outside its frames:</p>
 <ul>
 <li>A value written to an outlet crosses into other execution groups as written. Never mutate a value object in place once it is on an outlet; write a new one.</li>

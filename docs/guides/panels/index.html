@@ -1280,6 +1280,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1607,6 +1611,76 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model-catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model catalogs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../graph-notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1622,6 +1696,8 @@
   
     
     
+      
+        
       
         
       
@@ -1828,6 +1904,8 @@
   
     
     
+      
+        
       
         
       
@@ -2100,6 +2178,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../architecture/execution/failures/exceptions-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker exceptions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../architecture/execution/callbacks/callbacks-arch/" class="md-nav__link">
         
   
@@ -2352,6 +2465,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../architecture/volumes/volumes-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2380,10 +2528,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_13" >
         
           
-          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_13" id="__nav_6_13_label" tabindex="0">
             
   
   
@@ -2401,8 +2549,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_12">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3337,7 +3485,7 @@
 <p>from: <code>NodeInfoPanel</code> — registry_key: <code>haybale-graph-editor:panel:NodeInfoPanel</code></p>
 <p><strong>Type-specific:</strong> no <code>provides</code> on <code>NodeInspector</code> — introspect panels are display-only and declare no <code>actions:</code> annotation. <code>poll()</code> gates on <code>ctx.data[EditState].active_node</code>, so the panel appears only while a node is selected. <code>with layout:</code> places all rows inside the panel's container.</p>
 <h2 id="properties-settings-panel">Properties / settings panel<a class="headerlink" href="#properties-settings-panel" title="Permanent link">&para;</a></h2>
-<p>Settings panels register against inspector Surfaces for settings scopes (<code>CanvasSettings</code>, <code>AppSettings</code>, <code>ExecutionInspector</code>, <code>DebugSurface</code>) and render a schema using <code>render_schema()</code> in the PropertiesEditor.</p>
+<p>Settings panels register against inspector Surfaces for settings scopes (<code>CanvasSettings</code>, <code>AppSettings</code>, <code>Barns</code> (library-wide settings), <code>ExecutionInspector</code>, <code>DebugSurface</code>) and render a schema using <code>render_schema()</code> in the PropertiesEditor.</p>
 <p>Source: <code>barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py</code></p>
 <p><code>CanvasSettingsPanel</code> renders the entire <code>CanvasSettings</code> schema into the panel:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">CanvasSurface</span><span class="p">,</span>

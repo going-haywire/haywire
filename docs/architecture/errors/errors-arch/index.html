@@ -16,7 +16,7 @@
         <link rel="prev" href="../../session-and-state/session-and-state-arch/">
       
       
-        <link rel="next" href="../../studio/studio-arch/">
+        <link rel="next" href="../../volumes/volumes-arch/">
       
       
         
@@ -1286,6 +1286,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1613,6 +1617,76 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/model-catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model catalogs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/graph-notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1630,6 +1704,8 @@
   
     
     
+      
+        
       
         
       
@@ -1837,6 +1913,8 @@
   
     
     
+      
+        
       
         
       
@@ -2095,6 +2173,41 @@
   
   
     <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/failures/exceptions-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker exceptions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
   
 
   
@@ -2484,6 +2597,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../volumes/volumes-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2515,10 +2663,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_13" >
         
           
-          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_13" id="__nav_6_13_label" tabindex="">
             
   
   
@@ -2536,8 +2684,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_12">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3479,6 +3627,7 @@
 </tbody>
 </table>
 <p>Node build stages, edges, the VM, assembly, library scans and widget and editor construction log their own <code>HaywireException</code>s with richer context; a boundary that catches one of those adds nothing twice (see §4).</p>
+<p>A worker's exception is recorded by the VM, which then retries the node at its next evaluation and bails by the graph's run policy; see <a href="../../execution/failures/exceptions-arch/">worker exceptions</a>.</p>
 <p><strong>Actions.</strong> <code>ActionBase.execute</code> and <code>undo</code> (<code>packages/haywire-core/src/haywire/core/undo/base_action.py</code>) re-raise a <code>Refusal</code> unchanged and wrap anything else in <code>RuntimeError</code>, so a refusal raised inside an action still reaches the history boundary as a refusal.</p>
 <p><strong>Farmhand.</strong> A failure's error line ends in <code>(ledger_seq=&lt;n&gt;)</code>, so the agent can point the user at the entry; <code>_format_tool_error</code> in <code>host.py</code> renders all three forms.</p>
 <h2 id="4-the-ledger">4. The ledger<a class="headerlink" href="#4-the-ledger" title="Permanent link">&para;</a></h2>
