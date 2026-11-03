@@ -10,8 +10,6 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import ThreadingTimerScheduler
 from haywire.core.graph.types import ChangeReason
-from haywire.core.node.promotion import promote_setting
-from haywire.core.types.enums import PortType
 from haywire.core.undo.config import UndoConfig
 
 from tests.conftest import make_edge, make_node
@@ -19,7 +17,8 @@ from tests.conftest import make_edge, make_node
 pytestmark = pytest.mark.integration
 
 _ADD = "haybale-testing:node:TestAddFloatNode"
-_SPLIT_PATH = "haybale-core:node:SplitPathNode"
+#: Its progress bar is a promoted setting (a card row).
+_FOR_EACH_FILE = "haybale-core:node:ForEachFileNode"
 
 
 @pytest.fixture
@@ -83,11 +82,10 @@ def test_the_choice_is_saved_with_the_node(held_graph: BaseGraph, editor: Editor
 
 def test_unchanged_unknown_and_promoted_ports_are_refused(held_graph: BaseGraph, editor: Editor):
     node = make_node(held_graph, _ADD).node
-    split = make_node(held_graph, _SPLIT_PATH).node
-    promote_setting(split, "parts", "subfolder", PortType.OUTLET)
+    loop = make_node(held_graph, _FOR_EACH_FILE).node
 
     assert editor.set_port_hidden(node.node_id, "value_a", False) is False
     assert editor.set_port_hidden(node.node_id, "nope", True) is False
-    assert editor.set_port_hidden(split.node_id, "parts.subfolder", True) is False
-    assert split.ports["parts.subfolder"].hidden is False
+    assert editor.set_port_hidden(loop.node_id, "progress.main", True) is False
+    assert loop.ports["progress.main"].hidden is False
     assert editor.can_undo() is False

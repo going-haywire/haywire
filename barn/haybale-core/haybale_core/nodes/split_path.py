@@ -1,67 +1,14 @@
 """Split Path — take a file path apart into its volume, base, subfolder, stem and extension."""
 
 from pathlib import PurePosixPath
+from typing import Any
 
-from haywire.barn.builtin.types import FOLDER_PATH, STRING
-from haywire.barn.builtin.widgets import SimpleLabelWidget
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.settings import NodeSettings, Promotable, UiState, bag, setting
-from haywire.core.types.enums import PortType, StoreStrategy
 from haywire.core.volumes import VolumePath, VolumeError, resolve
 
-_NO_PATH = {"value": {"volume": "", "relative": ""}}
-
-#: What a text part shows while it is not promoted.
-NOT_EVALUATED = "<promote to evaluate>"
-
-#: What a promoted text part shows until the node runs.
-READY = "<ready>"
-
-_PATH_PARTS = ("volume", "base", "parent")
-
-
-def _path_part(label: str, description: str, order: int) -> "setting":
-    return setting[FOLDER_PATH](
-        _NO_PATH,
-        label=label,
-        description=description,
-        order=order,
-        widget=SimpleLabelWidget.config(),
-        ui_state=UiState.HIDE_WIDGET,
-        promotable=Promotable.OUTLET,
-        store=StoreStrategy.NEVER,
-    )
-
-
-def _text_part(label: str, description: str, order: int, *, outlet: bool = False) -> "setting":
-    return setting[STRING](
-        READY if outlet else NOT_EVALUATED,
-        label=label,
-        description=description,
-        order=order,
-        widget=SimpleLabelWidget.config(),
-        promotable=Promotable.OUTLET | Promotable.CONFIG,
-        promote_default=PortType.OUTLET if outlet else None,
-        store=StoreStrategy.NEVER,
-    )
-
-
-class SplitPathParts(NodeSettings):
-    """The parts of the incoming path; promote the ones you need to outlets or card rows."""
-
-    volume = _path_part("Volume", "The volume's root folder: <volume>", 0)
-    base = _path_part("Base", "The folder the path was listed from: <volume>/<base>", 1)
-    parent = _path_part("Parent", "The folder the file is in: <volume>/<base>/<sub>", 2)
-    base_folder = _text_part("Basefolder", "<base>, inside the volume", 3)
-    subfolder = _text_part("Subfolder", "<sub>, inside the base", 4)
-    folder = _text_part("Folder", "<base>/<sub>, inside the volume", 5, outlet=True)
-    stem = _text_part("Stem", "<stem>, the file name without extension", 6, outlet=True)
-    extension = _text_part("Extension", "<ext>, with the dot", 7, outlet=True)
-    name = _text_part("Name", "<stem><ext>, the file name", 8)
-    base_on_disk = _text_part("Base on Disk", "Where <volume>/<base> is on this machine", 9)
-    parent_on_disk = _text_part("Parent on Disk", "Where <volume>/<base>/<sub> is on this machine", 10)
-    path_on_disk = _text_part("Path on Disk", "Where the file is on this machine", 11)
+#: The outlets a new node shows; the rest start hidden.
+SHOWN = ("folder", "stem", "extension")
 
 
 @node(
@@ -85,14 +32,7 @@ class SplitPathNode(BaseNode):
     below it, empty unless `Subfolders` was on. A path typed in by hand has no
     base, so `<sub>` is its whole folder.
 
-    Every part is a setting. Promote the ones you need to an outlet, or to a row
-    on the card to look at them while the graph runs. Only promoted parts are
-    worked out; the others show `<promote to evaluate>`. A promoted part shows
-    `<ready>` until the node runs. The graph saves which parts are promoted, never
-    their values. The parts that are paths can only become
-    outlets, and show no value in the properties.
-
-    | Part | Kind | Holds |
+    | Outlet | Kind | Holds |
     |---|---|---|
     | `Volume` | path | `<volume>` |
     | `Base` | path | `<volume>/<base>` |
@@ -107,7 +47,9 @@ class SplitPathNode(BaseNode):
     | `Parent on Disk` | text | where `<volume>/<base>/<sub>` is on this machine |
     | `Path on Disk` | text | where the file is on this machine |
 
-    `Folder`, `Stem` and `Extension` are outlets on a new node. The `on Disk` parts
+    A new node shows `Folder`, `Stem` and `Extension`; show the others from the
+    Ports panel. Only connected outlets are worked out; connecting one makes the
+    node run again. The `on Disk` outlets
     differ between machines, and are empty when the volume is not defined here.
     Nothing is read from disk.
 
@@ -121,22 +63,38 @@ class SplitPathNode(BaseNode):
     ```
     """
 
-    parts = bag(SplitPathParts)
-
     def init(self) -> None:
-        from haywire.barn.builtin.types import PATH
+        from haywire.barn.builtin.types import FOLDER_PATH, PATH, STRING
 
         self.add(PATH.as_inlet("path", label="Path"))
+        outlets = (
+            (FOLDER_PATH, "volume", "Volume", "The volume's root folder: <volume>"),
+            (FOLDER_PATH, "base", "Base", "The folder the path was listed from: <volume>/<base>"),
+            (FOLDER_PATH, "parent", "Parent", "The folder the file is in: <volume>/<base>/<sub>"),
+            (STRING, "base_folder", "Basefolder", "<base>, inside the volume"),
+            (STRING, "subfolder", "Subfolder", "<sub>, inside the base"),
+            (STRING, "folder", "Folder", "<base>/<sub>, inside the volume"),
+            (STRING, "stem", "Stem", "<stem>, the file name without extension"),
+            (STRING, "extension", "Extension", "<ext>, with the dot"),
+            (STRING, "name", "Name", "<stem><ext>, the file name"),
+            (STRING, "base_on_disk", "Base on Disk", "Where <volume>/<base> is on this machine"),
+            (STRING, "parent_on_disk", "Parent on Disk", "Where <volume>/<base>/<sub> is on this machine"),
+            (STRING, "path_on_disk", "Path on Disk", "Where the file is on this machine"),
+        )
+        for type_cls, port_id, label, description in outlets:
+            self.add(
+                type_cls.as_outlet(
+                    port_id,
+                    label=label,
+                    description=description,
+                    hidden=port_id not in SHOWN,
+                    on_connect="_on_outlet_connected",
+                )
+            )
 
-    def post_init(self) -> None:
-        self.parts._subscribe_promotion(self._on_promotion)
-
-    def _on_promotion(self, name: str, direction: PortType | None) -> None:
-        """Fill a newly promoted part on the next run; a demoted one shows the placeholder again."""
-        if direction is not None:
-            self.run_again()
-        if name not in _PATH_PARTS:
-            setattr(self.parts, name, NOT_EVALUATED if direction is None else READY)
+    def _on_outlet_connected(self, port: Any, edge: Any) -> None:
+        """An outlet connected for the first time has no value yet: work it out on the next run."""
+        self.run_again()
 
     def worker(self, context: ExecutionContext, path: VolumePath) -> None:
         relative = PurePosixPath(path.relative)
@@ -157,10 +115,9 @@ class SplitPathNode(BaseNode):
             "parent_on_disk": lambda: _on_disk(VolumePath(path.volume, folder)),
             "path_on_disk": lambda: _on_disk(path),
         }
-        parts = self.parts
-        for part, value in compute.items():
-            if parts._is_promoted(part):
-                setattr(parts, part, value())
+        for port_id, value in compute.items():
+            if self.ports[port_id].is_linked():
+                self.out(port_id, value())
         return None
 
 

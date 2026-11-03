@@ -350,7 +350,8 @@ def test_an_interior_route_reaches_only_interior_nodes(route: EditRoute, held_gr
 
 # ---- values the graph does not save are written directly ----
 
-_SPLIT_PATH = "haybale-core:node:SplitPathNode"
+#: For Each File's progress bar: a setting declared store=NEVER, promoted to a card row.
+_FOR_EACH_FILE = "haybale-core:node:ForEachFileNode"
 
 
 def test_a_port_that_never_stores_is_written_without_a_step_or_mark(
@@ -373,13 +374,16 @@ def test_a_port_that_never_stores_is_written_without_a_step_or_mark(
 def test_a_setting_the_graph_does_not_save_is_written_without_a_step_or_mark(
     held_graph: BaseGraph, editor: Editor, route: EditRoute
 ):
-    wrapper = make_node(held_graph, _SPLIT_PATH)
+    from haywire.barn.builtin.types import PROGRESS
+
+    wrapper = make_node(held_graph, _FOR_EACH_FILE)
     held_graph._validation.force_immediate_validation()
-    parts = cast(Any, wrapper.node).parts
+    bars = cast(Any, wrapper.node).progress
+    busy = PROGRESS(active=True, label="x")
 
-    assert route.set_setting(parts, "subfolder", "a/b", minimum=LevelMode.EDIT) is True
+    assert route.set_setting(bars, "main", busy, minimum=LevelMode.EDIT) is True
 
-    assert parts.subfolder == "a/b"
+    assert bars.main == busy
     assert editor.can_undo() is False
     assert held_graph._validation.force_immediate_validation() is None
 
@@ -387,15 +391,14 @@ def test_a_setting_the_graph_does_not_save_is_written_without_a_step_or_mark(
 def test_a_port_promoted_from_an_unsaved_setting_is_written_without_a_step_or_mark(
     held_graph: BaseGraph, editor: Editor, route: EditRoute
 ):
-    from haywire.core.node.promotion import promote_setting
-    from haywire.core.types.enums import PortType
+    from haywire.barn.builtin.types import PROGRESS
 
-    wrapper = make_node(held_graph, _SPLIT_PATH)
-    promote_setting(wrapper.node, "parts", "subfolder", PortType.CONFIG)
+    wrapper = make_node(held_graph, _FOR_EACH_FILE)
     held_graph._validation.force_immediate_validation()
+    busy = PROGRESS(active=True, label="x")
 
-    assert route.set_port(wrapper.node_id, "parts.subfolder", "a/b", minimum=LevelMode.OPERATE) is True
+    assert route.set_port(wrapper.node_id, "progress.main", busy, minimum=LevelMode.OPERATE) is True
 
-    assert cast(Any, wrapper.node).parts.subfolder == "a/b"
+    assert cast(Any, wrapper.node).progress.main == busy
     assert editor.can_undo() is False
     assert held_graph._validation.force_immediate_validation() is None
