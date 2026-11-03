@@ -304,7 +304,9 @@ async def test_card_uses_the_nodes_model_preference(user: User, state: Any, tmp_
     state.index.add(root / "a/fp32.pth", "d" * 64, None)
     state.index.add(root / "a/fp16.pth", "e" * 64, None)
     port = _port(ModelRef(catalog="haybale-gamma:catalog:4x-Dual"), {"prefer": [{"precision": "fp32"}]})
-    node = SimpleNamespace(model_preference=lambda _pid: [{"precision": "fp16"}, {}])
+    node = SimpleNamespace(
+        model_preference=lambda _pid: [{"precision": "fp16"}, {}], model_filter=lambda _pid: {}
+    )
     port._wrapper = SimpleNamespace(node=node, is_cleaned_up=False)  # type: ignore[assignment]
     widget = await _open(user, _direct(port))
 
@@ -704,3 +706,14 @@ async def test_preference_falls_back_when_the_wrapper_is_cleaned_up(user: User, 
     port._wrapper = SimpleNamespace(node=node, is_cleaned_up=True)  # type: ignore[assignment]
     widget = await _open(user, _direct(port))
     assert widget._preference() == [{"precision": "fp16"}]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_the_edit_button_is_unavailable_while_the_port_says_so(user: User, state: Any) -> None:
+    await _open(
+        user, _direct(_port(ModelRef(), {"unavailable": "Connect the Model outlet to choose a model"}))
+    )
+
+    edit = cast(ui.button, user.find(marker="model-ref-edit").elements.pop())
+    assert edit.enabled is False

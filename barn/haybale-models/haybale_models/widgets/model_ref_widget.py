@@ -82,6 +82,9 @@ class ModelRefWidget(BaseWidget):
 
     - `filter`: catalog field to allowed values, such as `{"architecture": ["esrgan"]}`;
       only matching entries are listed.
+    - `unavailable`: when set, the edit button is unavailable and this text is its
+      tooltip, for a node that cannot take a model yet. A node that learns later which
+      models fit sets `filter` and drops `unavailable` by rebuilding the port in `rejig`.
     - `prefer`: ordered list of tag sets for choosing a variant, such as
       `[{"precision": "fp16"}, {}]`.
 
@@ -94,6 +97,7 @@ class ModelRefWidget(BaseWidget):
         super().__init__(port)
         props = self._config.get("properties", {})
         self._filter: dict[str, list[Any]] = dict(props.get("filter") or {})
+        self._unavailable: str = str(props.get("unavailable") or "")
         prefer = props.get("prefer")
         self._prefer: list[dict[str, str]] = list(prefer) if prefer else [{}]
         self._dialog: ui.dialog | None = None
@@ -116,9 +120,13 @@ class ModelRefWidget(BaseWidget):
                 "model-ref-pin"
             )
             stamp_requires(self._pin, LevelMode.EDIT)
-            hui.icon_action(hui.icon.edit, tooltip="Choose a model", on_click=self._open_picker).mark(
-                "model-ref-edit"
-            )
+            edit = hui.icon_action(
+                hui.icon.edit,
+                tooltip=self._unavailable or "Choose a model",
+                on_click=self._open_picker,
+            ).mark("model-ref-edit")
+            if self._unavailable:
+                edit.disable()
         self._root = root
         return root
 

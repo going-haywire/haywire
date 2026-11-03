@@ -36,6 +36,7 @@ class SettingWidgetModel:
         cell: DataField,
         on_edit: Callable[[Any], bool | None],
         requires: LevelMode | None = None,
+        wrapper: Any = None,
     ) -> None:
         """
         Args:
@@ -43,8 +44,12 @@ class SettingWidgetModel:
                 refuse the write; any other result counts as accepted.
             requires: The level mode a write needs, which the widget's element is stamped
                 with (``data-hw-requires``); ``None`` when no route takes the writes.
+            wrapper: The ``NodeWrapper`` of the port this model stands for, so a widget
+                can ask its node (``_wrapper`` on a ``DataPort``); ``None`` for a
+                settings field.
         """
         self.id = field_id
+        self._wrapper = wrapper
         self.requires = requires
         self.widget_config = widget_config or {}
         # ALWAYS the shared cell — the bag's instance cell or the registry-owned

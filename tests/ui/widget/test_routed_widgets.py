@@ -88,6 +88,19 @@ def test_a_port_widget_writes_through_its_route(library_system, held_graph: Base
 
 
 @pytest.mark.integration
+def test_a_port_widget_can_reach_its_node(library_system, held_graph: BaseGraph):
+    """A widget asks its node through ``model._wrapper``, as the model picker asks for ``model_filter``."""
+    wrapper = _add_node(held_graph)
+    port = wrapper.node.ports["value_a"]
+    route = _route(held_graph, library_system, LevelMode.EDIT)
+
+    widget = _render(library_system, port, wrapper.node_id, route=route, minimum=LevelMode.OPERATE)
+
+    assert isinstance(widget.port, SettingWidgetModel)
+    assert widget.port._wrapper is wrapper
+
+
+@pytest.mark.integration
 def test_a_route_below_the_minimum_refuses_and_snaps_back(library_system, held_graph: BaseGraph):
     wrapper = _add_node(held_graph)
     held_graph._validation.force_immediate_validation()

@@ -38,6 +38,9 @@ Options (in `properties`):
 
 - `filter`: catalog field to allowed values, such as `{"architecture": ["esrgan"]}`;
   only matching entries are listed.
+- `unavailable`: when set, the edit button is unavailable and this text is its
+  tooltip, for a node that cannot take a model yet. A node that learns later which
+  models fit sets `filter` and drops `unavailable` by rebuilding the port in `rejig`.
 - `prefer`: ordered list of tag sets for choosing a variant, such as
   `[{"precision": "fp16"}, {}]`.
 

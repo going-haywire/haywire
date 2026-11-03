@@ -48,6 +48,7 @@ def _widget_model_for(
         cell=port.data,
         on_edit=write if write is not None else _refuse,
         requires=required_mode(minimum, port.operable) if write is not None else None,
+        wrapper=port._wrapper,
     )
 
 
