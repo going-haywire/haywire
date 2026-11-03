@@ -11,10 +11,7 @@ Runs the loop body once for each file in a folder that matches the pattern
 | `execute` | inlet | `haywire-core:type:EXEC` | Starts the loop over the folder's files |
 | `break_loop` | inlet | `haywire-core:type:EXEC` | Ends the loop early, through Stopped |
 | `folder` | inlet | `haywire-core:type:FOLDER_PATH` | Folder to go through |
-| `pattern` | inlet | `haywire-core:type:STRING` | File names to match, such as \*.png<br><br>Separate patterns with ; as in \*.png;\*.jpg<br>\* any characters, <br>? one character, <br>[abc] one of a, b or c<br>Upper and lower case match alike; <br>empty matches every file |
-| `recursive` | inlet | `haywire-core:type:BOOL` | Also go through every subfolder |
-| `limit` | inlet | `haywire-core:type:INT` | Only the first files, in name order; 0 takes all |
-| `on_error` | inlet | `haywire-core:type:STRING` | After a failed iteration: continue with the next file, or stop |
+| `listing.pattern` | config | `haywire-core:type:STRING` | File names to match, such as \*.png<br><br>Separate patterns with ; as in \*.png;\*.jpg<br>\* any characters, <br>? one character, <br>[abc] one of a, b or c<br>Upper and lower case match alike; <br>empty matches every file |
 | `progress.main` | config | `haywire-core:type:PROGRESS` |  |
 | `loop_body` | outlet | `haywire-core:type:EXEC` | Runs once per file |
 | `path` | outlet | `haywire-core:type:FILE_PATH` | The current file |
@@ -22,7 +19,6 @@ Runs the loop body once for each file in a folder that matches the pattern
 | `stem` | outlet | `haywire-core:type:STRING` | The current file's name without extension |
 | `extension` | outlet | `haywire-core:type:STRING` | The current file's extension, such as .png |
 | `index` | outlet | `haywire-core:type:INT` | Position of the current file, from 0 |
-| `total` | outlet | `haywire-core:type:INT` | Number of files in the loop |
 | `failed` | outlet | `haybale-core:type:ArrayType` | Files whose iteration failed |
 | `completed` | outlet | `haywire-core:type:EXEC` | Runs when every file was gone through |
 | `stopped` | outlet | `haywire-core:type:EXEC` | Runs when Break or On Error = stop ended the loop early |
@@ -31,6 +27,11 @@ Runs the loop body once for each file in a folder that matches the pattern
 
 | name | bag | default | description |
 |---|---|---|---|
+| `pattern` | listing | `'*'` | File names to match, such as \*.png<br><br>Separate patterns with ; as in \*.png;\*.jpg<br>\* any characters, <br>? one character, <br>[abc] one of a, b or c<br>Upper and lower case match alike; <br>empty matches every file |
+| `recursive` | listing | `False` | Also list the files of every subfolder |
+| `limit` | listing | `0` | Only the first files, in name order; 0 takes all |
+| `total` | listing | `0` | Number of files found |
+| `on_error` | errors | `'continue'` | After a failed iteration: continue with the next one, or stop |
 | `main` | progress | `PROGRESS(active=False, fraction=None, label='')` |  |
 
 ## Notes
@@ -45,6 +46,10 @@ Runs the loop body once for each file in a folder that matches the pattern.
   `branch`, `continue` goes on with the next file and `stop` ends the loop through
   `Stopped`. With `frame` or `run` the loop ends at the first failure, without
   `Completed` or `Stopped`.
+
+Pattern shows as a row on the card; the others are in the properties. Promote
+one to a row, or to an inlet to drive it from the graph. `Total` can be
+promoted to an outlet.
 
 Files and folders whose names start with `.` are skipped, folders reached
 through a link are not entered, and a linked file pointing outside the folder

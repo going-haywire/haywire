@@ -3,12 +3,11 @@
 from typing import Any, Optional
 
 from haybale_core.array_ports import array_element_type, array_of
+from haybale_core.loop_settings import LoopErrors
 from haywire.barn.builtin.progress import ProgressSettings, ProgressSpan, progress_field
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import bag
-
-ON_ERROR = ("continue", "stop")
 
 
 class LoopArrayProgress(ProgressSettings):
@@ -46,26 +45,17 @@ class LoopArrayNode(BaseNode):
     ```
     """
 
+    errors = bag(LoopErrors)
     progress = bag(LoopArrayProgress)
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import EXEC, INT, STRING
-        from haywire.barn.builtin.widgets import SelectWidget
+        from haywire.barn.builtin.types import EXEC, INT
 
         self.add(EXEC.as_inlet("execute", label="Execute", description="Starts the loop over the array"))
         self.add(
             EXEC.as_inlet("break_loop", label="Break", description="Ends the loop early, through Stopped")
         )
         self._add_array_ports(None)
-        self.add(
-            STRING.as_inlet(
-                "on_error",
-                label="On Error",
-                default="continue",
-                widget=SelectWidget.config(properties={"options": list(ON_ERROR)}),
-                description="After a failed iteration: continue with the next item, or stop",
-            )
-        )
 
         self.add(
             EXEC.as_outlet(
@@ -142,7 +132,7 @@ class LoopArrayNode(BaseNode):
             return None  # no loop open: a stray loopback return
         if len(context.failures) > self._failures_seen:
             self._failed.append(self._items[self._index])
-            if self.value("on_error") == "stop":
+            if self.errors.on_error == "stop":
                 return self._finish("stopped")
         if context.control_pin == "break_loop":
             return self._finish("stopped")

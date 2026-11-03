@@ -56,12 +56,48 @@ def scans(tmp_path):
 def _list_files(graph: Any, pattern: str = "*.png") -> Any:
     lister = _add(graph, "haybale_core.nodes.list_files", "ListFilesNode")
     lister.ports["folder"].set_value(VolumePath(SCANS, ""))
-    lister.ports["pattern"].set_value(pattern)
-    lister.ports["recursive"].set_value(True)
+    lister.listing.pattern = pattern
+    lister.listing.recursive = True
     return lister
 
 
 # ---------------------------------------------------------------- List Files
+
+
+def test_list_files_shows_only_pattern_on_a_new_card(graph_with_library_system):
+    from haywire.core.types.enums import PortType
+
+    lister = _add(graph_with_library_system, "haybale_core.nodes.list_files", "ListFilesNode")
+
+    kinds = {pid: lister.ports[pid].port_type for pid in lister.ports if pid.startswith("listing.")}
+    assert kinds == {"listing.pattern": PortType.CONFIG}
+
+
+def test_list_files_takes_a_promoted_pattern_from_an_edge(graph_with_library_system, scans):
+    from haywire.core.node.promotion import demote_setting, promote_setting
+    from haywire.core.types.enums import PortType
+
+    graph = graph_with_library_system
+    lister = _list_files(graph)
+    demote_setting(lister, "listing.pattern")
+    promote_setting(lister, "listing", "pattern", PortType.INLET)
+    source = _add(graph, "haybale_core.nodes.split_path", "SplitPathNode")
+    graph.create_edge_wrapper(source.node_id, "extension", lister.node_id, "listing.pattern")
+    source.ports["extension"].set_value("*.txt")
+    lister.ports["listing.pattern"].resolve_dirty_data()
+
+    lister.worker(None)
+
+    assert [p.relative for p in lister.ports["files"].get_value()] == ["d.txt"]
+
+
+def test_list_files_saves_its_options_but_never_the_total(graph_with_library_system, scans):
+    lister = _list_files(graph_with_library_system)
+    lister.worker(None)
+
+    values = lister.listing._to_dict()["values"]
+
+    assert values == {"pattern": "*.png", "recursive": True}
 
 
 def test_list_files_lists_paths_in_name_order(graph_with_library_system, scans):
@@ -70,7 +106,7 @@ def test_list_files_lists_paths_in_name_order(graph_with_library_system, scans):
     assert lister.worker(None) == "next"
 
     assert [p.relative for p in lister.ports["files"].get_value()] == ["a.png", "b.png", "sub/c.png"]
-    assert lister.ports["total"].get_value() == 3
+    assert lister.listing.total == 3
 
 
 def test_list_files_paths_keep_the_folder(graph_with_library_system, scans):
@@ -89,11 +125,11 @@ def test_list_files_paths_keep_the_folder(graph_with_library_system, scans):
 
 def test_list_files_limit(graph_with_library_system, scans):
     lister = _list_files(graph_with_library_system)
-    lister.ports["limit"].set_value(2)
+    lister.listing.limit = 2
 
     lister.worker(None)
 
-    assert lister.ports["total"].get_value() == 2
+    assert lister.listing.total == 2
 
 
 def test_list_files_reads_the_folder_on_every_run(graph_with_library_system, scans):
@@ -103,7 +139,7 @@ def test_list_files_reads_the_folder_on_every_run(graph_with_library_system, sca
 
     lister.worker(None)
 
-    assert lister.ports["total"].get_value() == 4
+    assert lister.listing.total == 4
 
 
 def test_list_files_missing_folder_raises(graph_with_library_system, scans):
@@ -180,6 +216,14 @@ def test_loop_array_keeps_its_types_through_save_and_load(graph_with_library_sys
     assert node.ports["array"].is_linked()
 
 
+def test_loop_array_keeps_on_error_in_the_properties(graph_with_library_system):
+    loop = _add(graph_with_library_system, "haybale_core.nodes.loop_array", "LoopArrayNode")
+
+    assert "errors.on_error" not in loop.ports
+    assert "on_error" not in loop.ports
+    assert loop.errors.on_error == "continue"
+
+
 def test_loop_array_goes_through_every_item(graph_with_library_system, scans):
     batch = _Loop(graph_with_library_system)
 
@@ -192,7 +236,7 @@ def test_loop_array_goes_through_every_item(graph_with_library_system, scans):
 
 def test_loop_array_empty_array_completes_at_once(graph_with_library_system, scans):
     batch = _Loop(graph_with_library_system)
-    batch.lister.ports["pattern"].set_value("*.jpg")
+    batch.lister.listing.pattern = "*.jpg"
 
     _Runner(graph_with_library_system).fire(batch.begin)
 
@@ -213,7 +257,7 @@ def test_loop_array_continue_records_failed(graph_with_library_system, scans):
 def test_loop_array_stop_ends_through_stopped(graph_with_library_system, scans):
     batch = _Loop(graph_with_library_system)
     batch.fail_on = {"a.png"}
-    batch.loop.ports["on_error"].set_value("stop")
+    batch.loop.errors.on_error = "stop"
 
     _Runner(graph_with_library_system, bail="branch").fire(batch.begin)
 
@@ -326,7 +370,7 @@ def test_step_array_stop_forgets_the_array(graph_with_library_system, scans):
 
 def test_step_array_single_item_loop_repeats_it(graph_with_library_system, scans):
     s = _Steps(graph_with_library_system, "loop")
-    s.lister.ports["pattern"].set_value("a.png")
+    s.lister.listing.pattern = "a.png"
     run = _Runner(graph_with_library_system)
 
     run.fire(s.begin)
@@ -337,7 +381,7 @@ def test_step_array_single_item_loop_repeats_it(graph_with_library_system, scans
 
 def test_step_array_empty_array_completes_at_start(graph_with_library_system, scans):
     s = _Steps(graph_with_library_system, "loop")
-    s.lister.ports["pattern"].set_value("*.jpg")
+    s.lister.listing.pattern = "*.jpg"
     run = _Runner(graph_with_library_system)
 
     run.fire(s.begin)

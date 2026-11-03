@@ -6,12 +6,17 @@ import os
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
+from haywire.barn.builtin.types import BOOL, INT, STRING
+from haywire.barn.builtin.widgets import NumberWidget, SimpleLabelWidget
+from haywire.core.settings import NodeSettings, Promotable, setting
+from haywire.core.types.enums import PortType, StoreStrategy
+
 if TYPE_CHECKING:
     from haywire.core.volumes import VolumePath
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["PATTERN_DESCRIPTION", "folder_root", "list_files"]
+__all__ = ["PATTERN_DESCRIPTION", "FileListing", "folder_root", "list_files"]
 
 #: Description of a Pattern inlet that ``list_files`` matches against, one hover-tip line per rule.
 PATTERN_DESCRIPTION = (
@@ -20,6 +25,47 @@ PATTERN_DESCRIPTION = (
     "* any characters, \n? one character, \n[abc] one of a, b or c\n"
     "Upper and lower case match alike; \nempty matches every file"
 )
+
+
+_INPUT = Promotable.INLET | Promotable.CONFIG
+
+
+class FileListing(NodeSettings):
+    """Which files a listing takes — name pattern, subfolders, how many — and how many it found.
+
+    Pattern shows as a row on the card; Subfolders and Limit are in the properties
+    and can be promoted to a row or an inlet, Total to a row or an outlet. Total is
+    worked out on each run and never saved.
+    """
+
+    pattern = setting[STRING](
+        "*",
+        label="Pattern",
+        description=PATTERN_DESCRIPTION,
+        promotable=_INPUT,
+        promote_default=PortType.CONFIG,
+    )
+    recursive = setting[BOOL](
+        False,
+        label="Subfolders",
+        description="Also list the files of every subfolder",
+        promotable=_INPUT,
+    )
+    limit = setting[INT](
+        0,
+        label="Limit",
+        description="Only the first files, in name order; 0 takes all",
+        widget=NumberWidget.config(),
+        promotable=_INPUT,
+    )
+    total = setting[INT](
+        0,
+        label="Total",
+        description="Number of files found",
+        widget=SimpleLabelWidget.config(),
+        promotable=Promotable.OUTLET | Promotable.CONFIG,
+        store=StoreStrategy.NEVER,
+    )
 
 
 def folder_root(folder: "VolumePath") -> Path:

@@ -3,14 +3,13 @@
 from pathlib import PurePosixPath
 from typing import Optional
 
-from haybale_core.file_listing import PATTERN_DESCRIPTION, folder_root, list_files
+from haybale_core.file_listing import FileListing, folder_root, list_files
+from haybale_core.loop_settings import LoopErrors
 from haywire.barn.builtin.progress import ProgressSettings, ProgressSpan, progress_field
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import bag
 from haywire.core.volumes import VolumePath
-
-ON_ERROR = ("continue", "stop")
 
 
 class ForEachProgress(ProgressSettings):
@@ -38,6 +37,10 @@ class ForEachFileNode(BaseNode):
       `Stopped`. With `frame` or `run` the loop ends at the first failure, without
       `Completed` or `Stopped`.
 
+    Pattern shows as a row on the card; the others are in the properties. Promote
+    one to a row, or to an inlet to drive it from the graph. `Total` can be
+    promoted to an outlet.
+
     Files and folders whose names start with `.` are skipped, folders reached
     through a link are not entered, and a linked file pointing outside the folder
     is skipped. The list of files is taken when the loop starts.
@@ -60,12 +63,13 @@ class ForEachFileNode(BaseNode):
     or it is a file) is reported as an error.
     """
 
+    listing = bag(FileListing)
+    errors = bag(LoopErrors)
     progress = bag(ForEachProgress)
 
     def init(self) -> None:
         from haybale_core.types import ArrayType
-        from haywire.barn.builtin.types import BOOL, EXEC, FILE_PATH, FOLDER_PATH, INT, STRING
-        from haywire.barn.builtin.widgets import NumberWidget, SelectWidget
+        from haywire.barn.builtin.types import EXEC, FILE_PATH, FOLDER_PATH, INT, STRING
 
         self.add(
             EXEC.as_inlet("execute", label="Execute", description="Starts the loop over the folder's files")
@@ -74,30 +78,6 @@ class ForEachFileNode(BaseNode):
             EXEC.as_inlet("break_loop", label="Break", description="Ends the loop early, through Stopped")
         )
         self.add(FOLDER_PATH.as_inlet("folder", label="Folder", description="Folder to go through"))
-        self.add(STRING.as_inlet("pattern", label="Pattern", default="*", description=PATTERN_DESCRIPTION))
-        self.add(
-            BOOL.as_inlet(
-                "recursive", label="Subfolders", default=False, description="Also go through every subfolder"
-            )
-        )
-        self.add(
-            INT.as_inlet(
-                "limit",
-                label="Limit",
-                default=0,
-                widget=NumberWidget.config(),
-                description="Only the first files, in name order; 0 takes all",
-            )
-        )
-        self.add(
-            STRING.as_inlet(
-                "on_error",
-                label="On Error",
-                default="continue",
-                widget=SelectWidget.config(properties={"options": list(ON_ERROR)}),
-                description="After a failed iteration: continue with the next file, or stop",
-            )
-        )
 
         self.add(
             EXEC.as_outlet(
@@ -125,7 +105,6 @@ class ForEachFileNode(BaseNode):
                 "index", label="Index", default=0, description="Position of the current file, from 0"
             )
         )
-        self.add(INT.as_outlet("total", label="Total", default=0, description="Number of files in the loop"))
         self.add(
             ArrayType[FILE_PATH].as_outlet(
                 "failed", label="Failed", description="Files whose iteration failed"
@@ -165,7 +144,7 @@ class ForEachFileNode(BaseNode):
             return None  # no loop open: a stray loopback return
         if len(context.failures) > self._failures_seen:
             self._failed.append(self._path(self._files[self._index]))
-            if self.value("on_error") == "stop":
+            if self.errors.on_error == "stop":
                 return self._finish("stopped")
         if context.control_pin == "break_loop":
             return self._finish("stopped")
@@ -179,8 +158,9 @@ class ForEachFileNode(BaseNode):
     def _begin(self) -> None:
         folder: VolumePath = self.value("folder")
         root = folder_root(folder)
-        files = list_files(root, self.value("pattern") or "", recursive=bool(self.value("recursive")))
-        limit = int(self.value("limit") or 0)
+        listing = self.listing
+        files = list_files(root, listing.pattern or "", recursive=bool(listing.recursive))
+        limit = int(listing.limit or 0)
         self._folder = folder
         self._files = files[:limit] if limit > 0 else files
         self._index = 0
@@ -199,7 +179,7 @@ class ForEachFileNode(BaseNode):
         self.out("stem", relative.stem)
         self.out("extension", relative.suffix)
         self.out("index", self._index)
-        self.out("total", total)
+        self.listing.total = total
         assert self._span is not None
         self._span.step(self._index / total)
         self._failures_seen = len(context.failures)

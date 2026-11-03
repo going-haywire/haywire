@@ -11,7 +11,6 @@ Runs the loop body once for each item of an array
 | `execute` | inlet | `haywire-core:type:EXEC` | Starts the loop over the array |
 | `break_loop` | inlet | `haywire-core:type:EXEC` | Ends the loop early, through Stopped |
 | `array` | inlet | `haywire-core:type:ADD` | The items to go through |
-| `on_error` | inlet | `haywire-core:type:STRING` | After a failed iteration: continue with the next item, or stop |
 | `progress.main` | config | `haywire-core:type:PROGRESS` |  |
 | `item` | outlet | `haywire-core:type:ADD` | The current item |
 | `failed` | outlet | `haywire-core:type:ADD` | Items whose iteration failed |
@@ -25,6 +24,7 @@ Runs the loop body once for each item of an array
 
 | name | bag | default | description |
 |---|---|---|---|
+| `on_error` | errors | `'continue'` | After a failed iteration: continue with the next one, or stop |
 | `main` | progress | `PROGRESS(active=False, fraction=None, label='')` |  |
 
 ## Notes

@@ -1,8 +1,9 @@
 """List Files — the files of a folder, as a list of paths."""
 
-from haybale_core.file_listing import PATTERN_DESCRIPTION, folder_root, list_files
+from haybale_core.file_listing import FileListing, folder_root, list_files
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
+from haywire.core.settings import bag
 from haywire.core.volumes import VolumePath
 
 
@@ -21,6 +22,10 @@ class ListFilesNode(BaseNode):
     - `Subfolders`: also list the files of every subfolder.
     - `Limit`: only the first files, in name order; 0 takes all of them.
 
+    Pattern shows as a row on the card; the others are in the properties. Promote
+    one to a row, or to an inlet to drive it from the graph. `Total` can be
+    promoted to an outlet.
+
     `Files` holds the paths in name order and `Total` how many there are. Each path
     remembers `Folder` as its base, so Split Path can give its `Subfolder` below it.
     Files and folders whose names start with `.` are skipped, folders reached
@@ -38,31 +43,14 @@ class ListFilesNode(BaseNode):
     or it is a file) is reported as an error.
     """
 
+    listing = bag(FileListing)
+
     def init(self) -> None:
         from haybale_core.types import ArrayType
-        from haywire.barn.builtin.types import BOOL, EXEC, FILE_PATH, FOLDER_PATH, INT, STRING
-        from haywire.barn.builtin.widgets import NumberWidget
+        from haywire.barn.builtin.types import EXEC, FILE_PATH, FOLDER_PATH
 
         self.add(EXEC.as_inlet("execute", label="Execute", description="Lists the folder's files again"))
         self.add(FOLDER_PATH.as_inlet("folder", label="Folder", description="Folder to list"))
-        self.add(STRING.as_inlet("pattern", label="Pattern", default="*", description=PATTERN_DESCRIPTION))
-        self.add(
-            BOOL.as_inlet(
-                "recursive",
-                label="Subfolders",
-                default=False,
-                description="Also list the files of every subfolder",
-            )
-        )
-        self.add(
-            INT.as_inlet(
-                "limit",
-                label="Limit",
-                default=0,
-                widget=NumberWidget.config(),
-                description="Only the first files, in name order; 0 takes all",
-            )
-        )
 
         self.add(EXEC.as_outlet("next", label="Next", description="Runs after the files are listed"))
         self.add(
@@ -70,14 +58,12 @@ class ListFilesNode(BaseNode):
                 "files", label="Files", description="The matching files, in name order"
             )
         )
-        self.add(INT.as_outlet("total", label="Total", default=0, description="Number of files found"))
 
     def worker(self, context: ExecutionContext) -> str:
         folder: VolumePath = self.value("folder")
-        relatives = list_files(
-            folder_root(folder), self.value("pattern") or "", recursive=bool(self.value("recursive"))
-        )
-        limit = int(self.value("limit") or 0)
+        listing = self.listing
+        relatives = list_files(folder_root(folder), listing.pattern or "", recursive=bool(listing.recursive))
+        limit = int(listing.limit or 0)
         if limit > 0:
             relatives = relatives[:limit]
         base = [part for part in folder.relative.split("/") if part]
@@ -85,5 +71,5 @@ class ListFilesNode(BaseNode):
             VolumePath(folder.volume, "/".join(base + list(r.parts)), base="/".join(base)) for r in relatives
         ]
         self.out("files", files)
-        self.out("total", len(files))
+        listing.total = len(files)
         return "next"

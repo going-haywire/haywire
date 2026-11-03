@@ -66,8 +66,8 @@ class _Batch:
         _edge(graph, self.each, "completed", self.after, "exec_in")
         _edge(graph, self.each, "stopped", self.halt, "exec_in")
         self.each.ports["folder"].set_value(VolumePath(SCANS, ""))
-        self.each.ports["pattern"].set_value("*.png")
-        self.each.ports["recursive"].set_value(True)
+        self.each.listing.pattern = "*.png"
+        self.each.listing.recursive = True
         self.seen: list[tuple[str, str, int, int]] = []
         self.completed: list[list[VolumePath]] = []
         self.stopped: list[list[VolumePath]] = []
@@ -79,7 +79,7 @@ class _Batch:
     def _body(self, context: Any, x: float) -> None:
         port: Callable[[str], Any] = lambda pid: self.each.ports[pid].get_value()  # noqa: E731
         path = port("path")
-        self.seen.append((path.relative, port("subdir"), port("index"), port("total")))
+        self.seen.append((path.relative, port("subdir"), port("index"), self.each.listing.total))
         if path.relative in self.fail_on:
             raise RuntimeError(f"cannot process {path.relative}")
 
@@ -105,6 +105,17 @@ def test_iterates_matching_files_in_order(graph_with_library_system, monkeypatch
     assert batch.each.ports["extension"].get_value() == ".png"
 
 
+def test_a_new_card_shows_only_pattern(graph_with_library_system):
+    from haywire.core.types.enums import PortType
+
+    each = _add(graph_with_library_system, "haybale_core.nodes.for_each_file", "ForEachFileNode")
+
+    kinds = {
+        pid: each.ports[pid].port_type for pid in each.ports if pid.split(".")[0] in ("listing", "errors")
+    }
+    assert kinds == {"listing.pattern": PortType.CONFIG}
+
+
 def test_paths_remember_the_folder_as_their_base(graph_with_library_system, monkeypatch, scans):
     (scans / "sub" / "deeper").mkdir()
     (scans / "sub" / "deeper" / "e.png").write_bytes(b"x")
@@ -119,7 +130,7 @@ def test_paths_remember_the_folder_as_their_base(graph_with_library_system, monk
 
 def test_limit(graph_with_library_system, monkeypatch, scans):
     batch = _Batch(graph_with_library_system)
-    batch.each.ports["limit"].set_value(2)
+    batch.each.listing.limit = 2
 
     _Runner(graph_with_library_system, monkeypatch).fire(batch.begin)
 
@@ -141,7 +152,7 @@ def test_continue_records_failed_and_goes_on(graph_with_library_system, monkeypa
 def test_stop_ends_at_first_failure(graph_with_library_system, monkeypatch, scans):
     batch = _Batch(graph_with_library_system)
     batch.fail_on = {"b.png"}
-    batch.each.ports["on_error"].set_value("stop")
+    batch.each.errors.on_error = "stop"
 
     _Runner(graph_with_library_system, monkeypatch).fire(batch.begin)
 
