@@ -5,7 +5,7 @@ NodePortsPanel — lists inlet, swinglet, outlet, and config ports on the select
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from nicegui import ui
 
@@ -26,6 +26,8 @@ from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.access_stamp import stamp_requires
 from haywire.ui.panel.decorator import panel
+from haywire.ui.hover_tip import set_hover_tip
+from haywire.ui.skin.pin_render import port_type_name
 from haywire.ui.utils import anchor_cleanup_to_element
 
 from haybale_graph_editor.surfaces import PortInspector
@@ -63,26 +65,17 @@ def _split_lanes(ports: list) -> list[tuple[str, str, list]]:
     ]
 
 
-def _identity_tooltip(port: object) -> str:
-    """The port's id, plus its description when the author wrote one.
+def _own_description(port: object) -> str:
+    """The port's description when the author wrote one, else ``""``.
 
     A port with no description of its own carries its *type's*, which every
     port of that type would repeat — noise rather than documentation, so it is
     left out.
     """
-    port_id = str(getattr(port, "id", "?"))
     description = getattr(port, "description", "") or ""
     type_cls = getattr(port, "type_cls", None)
     type_description = getattr(getattr(type_cls, "class_identity", None), "description", "")
-    if description and description != type_description:
-        return f"{port_id}\n{description}"
-    return port_id
-
-
-def _type_name(port: object) -> str:
-    """Human-readable data-type name for a port's read-only metadata row."""
-    port_type = getattr(port, "data_type", None)
-    return port_type.__class__.__name__ if port_type else "—"
+    return description if description != type_description else ""
 
 
 @panel(
@@ -159,17 +152,15 @@ class NodePortsPanel(BasePanel):
             hui.error_label(f"Error rendering port '{getattr(port, 'id', '?')}'")
 
     def _render_port_header(self, port, node_id: str, widget_factory, context: "SessionContext") -> None:
-        """The port's name, its type when nothing else shows it, and the pen."""
-        shows_widget = (
-            widget_factory is not None and port.widget_key is not None and port.should_show_widget()
-        )
+        """The port's name (its id, type and description on the hover tip), the pen and the eye."""
         with ui.row().classes("w-full items-center gap-1 no-wrap px-2 pt-1"):
             name = hui.hint(port.label or port.id).classes("truncate flex-1 min-w-0")
-            name.tooltip(_identity_tooltip(port))
-            if not shows_widget:
-                # The value slot is empty, so the type goes where the widget
-                # would have been — it is what the row would otherwise not say.
-                ui.label(_type_name(port)).classes("text-xs font-mono hw-text-body shrink-0")
+            set_hover_tip(
+                name,
+                str(port.id),
+                type_name=port_type_name(cast(Any, port)),
+                description=_own_description(port),
+            )
             self._render_pen(port, node_id, widget_factory, context)
             self._render_visibility(port, node_id, context)
 

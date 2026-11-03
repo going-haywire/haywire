@@ -21,7 +21,7 @@ from nicegui.elements.mixins.text_element import TextElement
 from haywire.core.access import LevelMode
 from haywire.core.types import DataPort, LayoutDirection
 from haywire.ui.access_stamp import stamp_requires
-from haywire.ui.hover_tip import TIP_ATTR, TIP_DESC_ATTR
+from haywire.ui.hover_tip import set_hover_tip
 
 from ..utils import generate_pin_uuid
 from .pin_icons import DEFAULT_PIN_ICONS, PinIconResolver
@@ -100,10 +100,20 @@ def resolve_graph_layout_direction(wrapper: "NodeWrapper") -> LayoutDirection:
         return LayoutDirection.LEFT_TO_RIGHT
 
 
-def add_pin_tooltip(pin_el: ui.element, pin: DataPort, trigger_el: ui.element | None = None) -> None:
-    """Show a port's label and description while the pointer is over its pin.
+def port_type_name(port: DataPort) -> str:
+    """Return *port*'s data-type name as code spells it, or ``—``.
 
-    The description line is omitted when the port has no description. The text
+    For example ``FLOAT`` or ``ArrayType[FILE_PATH]``.
+    """
+    type_cls = getattr(port, "type_cls", None)
+    return getattr(type_cls, "__name__", "") or "—"
+
+
+def add_pin_tooltip(pin_el: ui.element, pin: DataPort, trigger_el: ui.element | None = None) -> None:
+    """Show a port's label, data type and description while the pointer is over its pin.
+
+    The first line reads ``Label: TYPE`` (see ``port_type_name``); the description
+    line is omitted when the port has no description. The text
     is written onto the trigger as attributes and drawn by the page's hover-tip
     script (see ``haywire.ui.hover_tip``), so a pin registers no listener and a
     hover makes no round trip. Pages built by ``AppShell`` install that script.
@@ -122,10 +132,7 @@ def add_pin_tooltip(pin_el: ui.element, pin: DataPort, trigger_el: ui.element | 
     trigger = trigger_el if trigger_el is not None else pin_el
     if trigger_el is None:
         stamp_requires(pin_el, LevelMode.VIEW)
-    trigger.props[TIP_ATTR] = pin.label
-    description = (pin.description or "").strip()
-    if description:
-        trigger.props[TIP_DESC_ATTR] = description
+    set_hover_tip(trigger, pin.label, type_name=port_type_name(pin), description=pin.description or "")
 
 
 def render_pin(

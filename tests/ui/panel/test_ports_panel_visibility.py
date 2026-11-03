@@ -72,3 +72,11 @@ def test_a_promoted_port_shows_an_inert_eye():
     icons = [e for e in _walk(anchor) if getattr(e, "_props", {}).get("name") == "visibility"]
     assert len(icons) == 1
     assert "opacity-40" in icons[0]._classes
+
+
+def test_the_name_carries_the_pin_style_hover_tip():
+    from haywire.ui.hover_tip import TIP_ATTR, TIP_DESC_ATTR
+
+    anchor, _calls = _render(_FakePort(id="break_loop", label="Break", description="Signal to stop loop"))
+    (name,) = [e for e in _walk(anchor) if e._props.get(TIP_ATTR) == "break_loop"]
+    assert name._props[TIP_DESC_ATTR] == "Signal to stop loop"

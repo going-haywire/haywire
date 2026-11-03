@@ -42,6 +42,17 @@ def test_hovering_a_pin_shows_its_label(page: Page, harness) -> None:
     expect(page.locator(f"{_TIP} .text-weight-bold")).to_have_text(label)
 
 
+def test_the_tip_names_the_pins_data_type(page: Page, harness) -> None:
+    _open(page, harness)
+    pin = page.locator(_PIN).first
+    type_name = pin.get_attribute("data-hw-tip-type") or ""
+
+    pin.hover()
+
+    assert type_name
+    expect(page.locator(f"{_TIP} .hw-hover-tip-type")).to_have_text(type_name)
+
+
 def test_leaving_the_pin_hides_it(page: Page, harness) -> None:
     _open(page, harness)
     _hover_first_pin(page)

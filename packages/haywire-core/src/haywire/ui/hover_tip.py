@@ -1,9 +1,10 @@
 """Hover tips drawn in the browser, for elements that carry their text as attributes.
 
-An element with ``data-hw-tip`` (a bold first line) and optionally
-``data-hw-tip-desc`` (a second line) shows a tooltip while the pointer is over
-it. One script per page serves every such element, so the server registers no
-listener for it and a hover makes no round trip. ``add_pin_tooltip`` writes the
+An element with ``data-hw-tip`` (a bold first line), optionally ``data-hw-tip-type``
+(a data-type name after it, as ``Label: TYPE``) and ``data-hw-tip-desc`` (a second
+line) shows a tooltip while the pointer is over it. One script per page serves
+every such element, so the server registers no listener for it and a hover makes
+no round trip. ``add_pin_tooltip`` writes the
 attributes; ``add_hover_tip_script`` installs the script.
 """
 
@@ -15,6 +16,8 @@ from nicegui import ui
 TIP_ATTR = "data-hw-tip"
 #: Attribute holding a hover tip's optional second line.
 TIP_DESC_ATTR = "data-hw-tip-desc"
+#: Attribute holding an optional data-type name, shown after the first line's text.
+TIP_TYPE_ATTR = "data-hw-tip-type"
 
 # Quasar's own tooltip classes give the tip QTooltip's look and its z-index (9000).
 # Placed as QTooltip places by default: centred below the trigger, flipped above
@@ -43,10 +46,21 @@ _SCRIPT = """<script>
     anchor = el;
     var t = box();
     t.replaceChildren();
-    var title = document.createElement("div");
+    var head = document.createElement("div");
+    var title = document.createElement("span");
     title.className = "text-weight-bold";
     title.textContent = el.getAttribute("data-hw-tip");
-    t.appendChild(title);
+    head.appendChild(title);
+    var type = el.getAttribute("data-hw-tip-type");
+    if (type) {
+      head.appendChild(document.createTextNode(": "));
+      var name = document.createElement("span");
+      name.className = "font-mono hw-hover-tip-type";
+      name.style.opacity = "0.75";
+      name.textContent = type;
+      head.appendChild(name);
+    }
+    t.appendChild(head);
     var desc = el.getAttribute("data-hw-tip-desc");
     if (desc) {
       var line = document.createElement("div");
@@ -70,6 +84,20 @@ _SCRIPT = """<script>
   document.addEventListener("wheel", hide, { capture: true, passive: true });
 })();
 </script>"""
+
+
+def set_hover_tip(element: ui.element, title: str, *, type_name: str = "", description: str = "") -> None:
+    """Make *element* show a hover tip: *title* in bold, ``: type_name`` after it, *description* below.
+
+    An empty *type_name* or *description* is left out. The page must have the
+    script (``add_hover_tip_script``); ``AppShell`` installs it on studio pages.
+    """
+    element.props[TIP_ATTR] = title
+    if type_name:
+        element.props[TIP_TYPE_ATTR] = type_name
+    description = description.strip()
+    if description:
+        element.props[TIP_DESC_ATTR] = description
 
 
 def add_hover_tip_script() -> None:

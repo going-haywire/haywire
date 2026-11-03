@@ -15,7 +15,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.types.enums import PortOrigin
 from haywire.ui.panel.port_default_widget_model import PortDefaultWidgetModel
 
-from haybale_graph_editor.panels.properties.introspect.node_ports import _identity_tooltip
+from haybale_graph_editor.panels.properties.introspect.node_ports import _own_description
 
 from tests.conftest import make_node
 
@@ -56,15 +56,9 @@ class TestWhichPortsAreEditable:
         assert ports["declared"].origin is not PortOrigin.RESOLVED
 
 
-class TestTheRowTooltip:
-    def test_it_carries_the_port_id(self, ports):
-        assert _identity_tooltip(ports["resolved"]).startswith("resolved")
-
+class TestTheRowTooltipDescription:
     def test_it_carries_an_authored_description(self, ports):
-        tooltip = _identity_tooltip(ports["documented"])
-
-        assert "documented" in tooltip
-        assert "How strict the filter is" in tooltip
+        assert _own_description(ports["documented"]) == "How strict the filter is"
 
     def test_it_leaves_out_the_types_own_blurb(self, ports):
         """An undocumented port inherits its type's description; every port of
@@ -72,7 +66,7 @@ class TestTheRowTooltip:
         port = ports["resolved"]
 
         assert port.description == port.type_cls.class_identity.description
-        assert _identity_tooltip(port) == "resolved"
+        assert _own_description(port) == ""
 
 
 class TestTheDefaultValueModel:
