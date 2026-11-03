@@ -574,8 +574,9 @@ class Settings:
     def _to_dict(self) -> dict:
         """Serialize to the format-v3 ``{"values": {...}, "promoted": {...}}`` shape.
 
-        ``values`` holds only fields that are locally set and whose value
-        differs from the descriptor default, keyed by attribute name.
+        ``values`` holds only fields that are locally set, saved
+        (``setting(store=...)``) and whose value differs from the descriptor
+        default, keyed by attribute name.
 
         ``promoted`` holds this bag's promotion records, ``storage_key → {...}``.
         Each record carries ``"direction"`` (``"inlet"``/``"outlet"``/
@@ -587,7 +588,7 @@ class Settings:
         fields = type(self)._settings_descriptors()
         values: dict = {}
         for name, descriptor in fields.items():
-            if not self._is_set(descriptor):
+            if not descriptor.saved or not self._is_set(descriptor):
                 continue
             val = self._local_value(descriptor)
             if val != descriptor._default:

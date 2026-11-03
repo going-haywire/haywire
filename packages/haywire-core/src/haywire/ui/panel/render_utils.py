@@ -658,9 +658,10 @@ def _render_reactive_field_row(
     # truth (its widget stays editable), so its chrome stays; an inlet-driven or
     # inlet-promoted row is read-only, so resetting there is meaningless. Plain
     # fields get the same affordance as mirrors, only the tooltip/meaning differs
-    # by field kind.
+    # by field kind. A field the graph does not save (store=NEVER) has no opinion
+    # to show or reset.
     def _has_local_opinion() -> bool:
-        return obj._is_locally_set(attr_name) and not is_promoted_input
+        return defn.saved and obj._is_locally_set(attr_name) and not is_promoted_input
 
     # The • dirty prefix is narrower than "has a reset button": it's suppressed for
     # ANY promotion direction (not just inlet) and while the row is DISABLED — a

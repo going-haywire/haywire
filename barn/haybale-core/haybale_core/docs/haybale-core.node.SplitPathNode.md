@@ -48,7 +48,8 @@ base, so `<sub>` is its whole folder.
 Every part is a setting. Promote the ones you need to an outlet, or to a row
 on the card to look at them while the graph runs. Only promoted parts are
 worked out; the others show `<promote to evaluate>`. A promoted part shows
-`<ready>` until the node runs. The parts that are paths can only become
+`<ready>` until the node runs. The graph saves which parts are promoted, never
+their values. The parts that are paths can only become
 outlets, and show no value in the properties.
 
 | Part | Kind | Holds |

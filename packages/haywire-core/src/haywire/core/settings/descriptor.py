@@ -21,6 +21,7 @@ from enum import Flag, IntEnum, auto
 from typing import TYPE_CHECKING, Any, Callable, Generic, TypeVar, overload
 
 from haywire.core.types.base import WrapperType
+from haywire.core.types.enums import StoreStrategy
 from haywire.core.types.interface import IType
 
 from .base import SettingDescriptor
@@ -165,6 +166,15 @@ class setting(SettingDescriptor, Generic[T]):
             it (default ``True``). ``False`` makes every write to it need level
             mode ``edit``, so a locked canvas shows the widget without letting it
             change the value.
+        store: Whether the graph saves this field's value: ``StoreStrategy.ALWAYS``
+            (the default) or ``StoreStrategy.NEVER``, for a value the node works
+            out itself. A ``NEVER`` field's value is left out of the saved graph,
+            an edit to it marks nothing unsaved and adds no undo step, and its row
+            shows no override marker or Reset. Its promotion is still saved. A
+            mirror takes its source's choice unless given one.
+
+    Raises:
+        TypeError: *store* is neither ``StoreStrategy.ALWAYS`` nor ``StoreStrategy.NEVER``.
     """
 
     def __init__(
@@ -187,7 +197,14 @@ class setting(SettingDescriptor, Generic[T]):
         promotable: Promotable = Promotable.ALL,
         promote_default: "PortType | None" = None,
         operable: bool = True,
+        store: "StoreStrategy | None" = None,
     ) -> None:
+        if store is not None and store not in (StoreStrategy.ALWAYS, StoreStrategy.NEVER):
+            raise TypeError(
+                f"setting field '{label or '?'}' store= must be StoreStrategy.ALWAYS or "
+                f"StoreStrategy.NEVER; got {store!r}"
+            )
+        self._store: StoreStrategy = store if store is not None else StoreStrategy.ALWAYS
         self._default = default
         # With type_ absent, _type stays the sentinel ``object`` so __set_name__
         # resolves it from the setting[IType] generic arg and enforces it there.
@@ -246,6 +263,8 @@ class setting(SettingDescriptor, Generic[T]):
                     self._min = getattr(mirrors, "_min", None)
                 if max is None:
                     self._max = getattr(mirrors, "_max", None)
+                if store is None:
+                    self._store = getattr(mirrors, "_store", StoreStrategy.ALWAYS)
         else:
             self._mirror_key = ""
 
@@ -315,6 +334,11 @@ class setting(SettingDescriptor, Generic[T]):
     @_mirror_key.setter
     def _mirror_key(self, value: str) -> None:
         self.__mirror_key = value
+
+    @property
+    def saved(self) -> bool:
+        """Whether the graph saves this field's value (``store=`` is not ``StoreStrategy.NEVER``)."""
+        return self._store is not StoreStrategy.NEVER
 
     @property
     def operable(self) -> bool:

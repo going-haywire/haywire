@@ -139,8 +139,9 @@ You never hand-write these — they are what TOML and the registry use under the
 | `widget` | Explicit widget contract — a `{"key", "config"}` dict from `WidgetCls.config(...)`. Wins outright over the field IType's declared default widget |
 | `widget_config` | Bare property overrides layered on top of whichever widget was selected (IType default or explicit `widget=`) — e.g. `{"options": [...]}` for a `CHOICES` field |
 | `mirrors` | Source descriptor or full key, on a DIFFERENT class — same effect as `shadow()` directly |
-| `ui_state` | Initial `UiState` (`NORMAL`/`DISABLED`/`HIDDEN`) seed — controls widget presentation and rendering |
+| `ui_state` | Initial `UiState` (`NORMAL`/`DISABLED`/`HIDE_WIDGET`/`HIDDEN`) seed — controls widget presentation and rendering |
 | `promotable` | Which port directions this field may be promoted to (default `ALL`) |
+| `store` | `StoreStrategy.ALWAYS` (default) or `StoreStrategy.NEVER`, for a value the node works out itself. A `NEVER` field's value is left out of the saved graph (its promotion is still saved), an edit to it through the edit route marks nothing unsaved and adds no undo step, and its row shows no `•` or Reset. A mirror takes its source's choice unless given one; any other `StoreStrategy` raises `TypeError` |
 | `validator` | `Callable(value) -> bool`; return `False` to reject. Checked before `setattr` |
 | `metadata` | Arbitrary dict attached to the descriptor as `._metadata` |
 

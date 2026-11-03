@@ -59,6 +59,11 @@ class TestBusy:
         assert not settings._is_locally_set("main")
         assert settings._to_dict()["values"] == {}
 
+    def test_a_running_bar_is_not_saved(self):
+        settings = _settings()
+        with settings.busy("main", "inferring"):
+            assert settings._to_dict()["values"] == {}
+
     def test_exception_resets_to_idle_and_propagates(self):
         settings = _settings()
         with pytest.raises(ValueError, match="boom"):

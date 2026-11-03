@@ -53,3 +53,5 @@ level: core
 - Code that deliberately writes the model directly goes around the route and is outside what the tiers promise.
 
 **Amendment (ADR 0060).** The inspector polls no longer read the level mode: `can_edit_graph` is gone, the inspector tabs show in every mode, and the page's `AccessGate` greys their stamped writers by the session mode (ADR 0060). This supersedes the consequence that properties panels show only in level mode `edit`. The route still refuses a write below the mode it needs.
+
+**Amendment (values the graph does not save).** The unsaved rule now reaches below the bag. A port whose `StoreStrategy` never stores (`NEVER`), a settings field declared `setting(..., store=StoreStrategy.NEVER)`, and a port promoted from such a field are written directly by the route, like a bag no document saves: no unsaved mark, no undo step. The properties row of such a field shows no `•` and no Reset, since there is no saved value to override.

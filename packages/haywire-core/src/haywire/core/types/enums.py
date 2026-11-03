@@ -297,6 +297,11 @@ class StoreStrategy(IntFlag):
     ALWAYS = 4
     NODE_SET = 8
 
+    @property
+    def never_stores(self) -> bool:
+        """Whether a port with this strategy never saves its value (``NEVER`` or ``NONE``)."""
+        return bool(self & StoreStrategy.NEVER) or self == StoreStrategy.NONE
+
     def should_store(self, *, has_widget: bool, node_set: bool) -> bool:
         """Resolve whether a port with this strategy should serialize its own value.
 
@@ -304,7 +309,7 @@ class StoreStrategy(IntFlag):
         store if any set flag matches the port's current state (OR semantics —
         there is no AND combination).
         """
-        if self & StoreStrategy.NEVER or self == StoreStrategy.NONE:
+        if self.never_stores:
             return False
         if self & StoreStrategy.ALWAYS:
             return True

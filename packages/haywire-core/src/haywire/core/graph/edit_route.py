@@ -117,7 +117,10 @@ class EditRoute:
     def set_port(self, node_id: str, port_id: str, value: Any, *, minimum: LevelMode) -> bool:
         """Set a port's own value.
 
-        A ``port_id`` that names no port of the node needs level mode ``EDIT``.
+        A ``port_id`` that names no port of the node needs level mode ``EDIT``. A port
+        the graph does not save (``StoreStrategy.NEVER``, or promoted from a setting
+        declared ``store=StoreStrategy.NEVER``) is written directly: the write marks
+        nothing unsaved and adds no undo step.
 
         Returns:
             ``False`` if the mode is below ``minimum``, or the node or port is unknown, or the
@@ -125,7 +128,27 @@ class EditRoute:
         """
         if not self.allows(required_mode(minimum, self._port_operable(node_id, port_id))):
             return False
+        port = self._unsaved_port(node_id, port_id)
+        if port is not None:
+            port.set_value(value)
+            return True
         return self._editor().set_property(node_id, port_id, value, record=self._records(), merge_owner=self)
+
+    def _unsaved_port(self, node_id: str, port_id: str) -> Any:
+        """Return the port *port_id* if it holds an own value the graph does not save, else ``None``."""
+        wrapper = self._editor().graph.get_node_wrapper(node_id)
+        node = wrapper.node if wrapper is not None else None
+        if node is None:
+            return None
+        port = node.ports.get(port_id)
+        if port is None or port.data is None or not port.data.accepts_own_value():
+            return None
+        if port.promoted:
+            from haywire.core.node.promotion import _resolve_promoted
+
+            _bag, descriptor = _resolve_promoted(node, port_id)
+            return None if descriptor.saved else port
+        return port if port.store_strategy.never_stores else None
 
     def _port_operable(self, node_id: str, port_id: str) -> bool:
         """Return whether *port_id* names an operable port; a name that is no port is not one."""
@@ -197,15 +220,17 @@ class EditRoute:
     ) -> tuple[list[SettingOwner] | None, list[Settings]]:
         """Return the owners of the bags the document saves and the bags it does not.
 
+        A bag counts as not saved for a field declared ``store=StoreStrategy.NEVER``.
         The owners are ``None`` if any bag lacks the field ``name``.
         """
         graph = self._editor().graph
         saved: list[SettingOwner] = []
         direct: list[Settings] = []
         for bag in bags:
-            if name not in type(bag)._settings_descriptors():
+            descriptor = type(bag)._settings_descriptors().get(name)
+            if descriptor is None:
                 return None, []
-            owner = setting_owner(graph, bag)
+            owner = setting_owner(graph, bag) if descriptor.saved else None
             if owner is None:
                 direct.append(bag)
             else:

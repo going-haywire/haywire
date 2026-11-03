@@ -16,7 +16,7 @@ from typing import Any, TypeVar
 
 from haywire.barn.builtin.types.progress import PROGRESS
 from haywire.core.settings import NodeSettings, Promotable, setting, settings_fields
-from haywire.core.types.enums import PortType
+from haywire.core.types.enums import PortType, StoreStrategy
 
 #: Shortest interval between two writes from ``ProgressSpan.step``, in seconds.
 STEP_INTERVAL_S = 0.05
@@ -30,8 +30,9 @@ def progress_field(label: str = "Progress", **kwargs: Any) -> "setting[PROGRESS]
     """Return a progress bar field for a ``ProgressSettings`` subclass.
 
     The bar is a row on the node card by default; the user can hide it with
-    Demote, and it never becomes a pin. Further keyword arguments go to
-    ``setting()`` (``description``, ``order``, ...).
+    Demote, and it never becomes a pin. The graph saves whether the bar is shown,
+    never its state. Further keyword arguments go to ``setting()``
+    (``description``, ``order``, ...).
 
     Example::
 
@@ -44,6 +45,7 @@ def progress_field(label: str = "Progress", **kwargs: Any) -> "setting[PROGRESS]
         label=label,
         promotable=Promotable.CONFIG,
         promote_default=PortType.CONFIG,
+        store=StoreStrategy.NEVER,
         **kwargs,
     )
 

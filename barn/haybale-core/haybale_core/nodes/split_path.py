@@ -7,7 +7,7 @@ from haywire.barn.builtin.widgets import SimpleLabelWidget
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import NodeSettings, Promotable, UiState, bag, setting
-from haywire.core.types.enums import PortType
+from haywire.core.types.enums import PortType, StoreStrategy
 from haywire.core.volumes import VolumePath, VolumeError, resolve
 
 _NO_PATH = {"value": {"volume": "", "relative": ""}}
@@ -30,6 +30,7 @@ def _path_part(label: str, description: str, order: int) -> "setting":
         widget=SimpleLabelWidget.config(),
         ui_state=UiState.HIDE_WIDGET,
         promotable=Promotable.OUTLET,
+        store=StoreStrategy.NEVER,
     )
 
 
@@ -42,6 +43,7 @@ def _text_part(label: str, description: str, order: int, *, outlet: bool = False
         widget=SimpleLabelWidget.config(),
         promotable=Promotable.OUTLET | Promotable.CONFIG,
         promote_default=PortType.OUTLET if outlet else None,
+        store=StoreStrategy.NEVER,
     )
 
 
@@ -86,7 +88,8 @@ class SplitPathNode(BaseNode):
     Every part is a setting. Promote the ones you need to an outlet, or to a row
     on the card to look at them while the graph runs. Only promoted parts are
     worked out; the others show `<promote to evaluate>`. A promoted part shows
-    `<ready>` until the node runs. The parts that are paths can only become
+    `<ready>` until the node runs. The graph saves which parts are promoted, never
+    their values. The parts that are paths can only become
     outlets, and show no value in the properties.
 
     | Part | Kind | Holds |

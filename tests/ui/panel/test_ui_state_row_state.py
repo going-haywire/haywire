@@ -25,6 +25,7 @@ import pytest
 from nicegui import Client, ui
 
 from haywire.core.settings import Settings, UiState, setting
+from haywire.core.types.enums import StoreStrategy
 from haywire.ui.panel.render_utils import render_settings
 from haywire.barn.builtin.types import BOOL, FLOAT
 
@@ -324,3 +325,21 @@ class TestHideWidget:
 
         bag._set_ui_state("shown", UiState.NORMAL)
         assert all(cell.visible for cell in _widget_cells(row))
+
+
+class UnsavedSettings(Settings):
+    kept = setting[FLOAT](1.0, label="Kept")
+    computed = setting[FLOAT](2.0, label="Computed", store=StoreStrategy.NEVER)
+
+
+def _has_override_marker(row) -> bool:
+    return any((getattr(el, "text", "") or "").startswith("•") for el in _walk_skip_menus(row))
+
+
+def test_an_unsaved_field_shows_no_override_marker():
+    bag = UnsavedSettings()
+    bag.kept = 5.0
+    bag.computed = 7.0
+    anchor = _render(bag)
+    assert _has_override_marker(_find_field_row(anchor, "kept"))
+    assert not _has_override_marker(_find_field_row(anchor, "computed"))

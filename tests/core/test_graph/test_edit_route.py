@@ -346,3 +346,56 @@ def test_an_interior_route_reaches_only_interior_nodes(route: EditRoute, held_gr
     inner = route.for_subgraph(definition)
 
     assert inner.set_port(host_node.node_id, "value_a", 1.0, minimum=LevelMode.EDIT) is False
+
+
+# ---- values the graph does not save are written directly ----
+
+_SPLIT_PATH = "haybale-core:node:SplitPathNode"
+
+
+def test_a_port_that_never_stores_is_written_without_a_step_or_mark(
+    held_graph: BaseGraph, editor: Editor, route: EditRoute
+):
+    from haywire.core.types.enums import StoreStrategy
+
+    wrapper = make_node(held_graph, _ADD)
+    held_graph._validation.force_immediate_validation()
+    port = wrapper.node.ports["value_a"]
+    port.store_strategy = StoreStrategy.NEVER
+
+    assert route.set_port(wrapper.node_id, "value_a", 4.0, minimum=LevelMode.OPERATE) is True
+
+    assert port.data.get_own_value() == 4.0
+    assert editor.can_undo() is False
+    assert held_graph._validation.force_immediate_validation() is None
+
+
+def test_a_setting_the_graph_does_not_save_is_written_without_a_step_or_mark(
+    held_graph: BaseGraph, editor: Editor, route: EditRoute
+):
+    wrapper = make_node(held_graph, _SPLIT_PATH)
+    held_graph._validation.force_immediate_validation()
+    parts = cast(Any, wrapper.node).parts
+
+    assert route.set_setting(parts, "subfolder", "a/b", minimum=LevelMode.EDIT) is True
+
+    assert parts.subfolder == "a/b"
+    assert editor.can_undo() is False
+    assert held_graph._validation.force_immediate_validation() is None
+
+
+def test_a_port_promoted_from_an_unsaved_setting_is_written_without_a_step_or_mark(
+    held_graph: BaseGraph, editor: Editor, route: EditRoute
+):
+    from haywire.core.node.promotion import promote_setting
+    from haywire.core.types.enums import PortType
+
+    wrapper = make_node(held_graph, _SPLIT_PATH)
+    promote_setting(wrapper.node, "parts", "subfolder", PortType.CONFIG)
+    held_graph._validation.force_immediate_validation()
+
+    assert route.set_port(wrapper.node_id, "parts.subfolder", "a/b", minimum=LevelMode.OPERATE) is True
+
+    assert cast(Any, wrapper.node).parts.subfolder == "a/b"
+    assert editor.can_undo() is False
+    assert held_graph._validation.force_immediate_validation() is None
