@@ -278,6 +278,16 @@ class EnterGroupEvent(BaseGraphEvent):
 
 
 @graph_event(
+    "showNodeDocs",
+    category="user",
+    description="Show the documentation of a node's component (its title's info icon)",
+)
+@dataclass
+class ShowNodeDocsEvent(BaseGraphEvent):
+    node_id: str
+
+
+@graph_event(
     "promoteToMacro",
     category="user",
     description="Turn a Group into a macro: its own file, placeable in any graph",

@@ -2,6 +2,10 @@ from abc import ABC
 from typing import TYPE_CHECKING, List
 from nicegui import ui
 
+from haywire.core.access import LevelMode
+from haywire.ui.access_stamp import stamp_requires
+from haywire.ui.hover_tip import set_hover_tip
+
 from haywire.core.errors import HaywireException
 from haywire.core.types import DataPort, LayoutDirection, PortType
 from haywire.core.node.node_wrapper import NodeWrapper
@@ -209,6 +213,21 @@ class NodeSkin(BaseSkin, ABC):
         ignores that name with nothing on screen to say why.
         """
         ui.label(node.display_label).classes("text-h6 flex-grow")
+        self._render_docs_icon(node)
+
+    def _render_docs_icon(self, node) -> None:
+        """The title's info icon: the node's description on hover, its documentation on click.
+
+        Shown only while the pointer is over the card (``.hw-node-docs`` in the canvas
+        CSS). A native tag, as a per-card ``q-icon`` costs about three times as much to
+        render. The click is the canvas's ``ShowNodeDocs`` gesture, keyed off
+        ``data-hw-node-docs``.
+        """
+        identity = type(node).class_identity
+        icon = ui.label("info_outline").classes("material-icons hw-node-docs flex-shrink-0")
+        icon.props("data-hw-node-docs")
+        set_hover_tip(icon, identity.label, description=identity.description or "")
+        stamp_requires(icon, LevelMode.VIEW)
 
     def _render_pin_column(
         self,

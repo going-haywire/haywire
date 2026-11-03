@@ -35,6 +35,7 @@ GESTURE_EVENT_TYPES = {
     "contextMenuSurface",
     "enterGroup",
     "selectionChanged",
+    "showNodeDocs",
 }
 
 

@@ -164,6 +164,7 @@ def test_view_mode_events():
         "selectConnected",
         "canvasMounted",
         "nodesMeasured",
+        "showNodeDocs",
     }
 
 
@@ -424,3 +425,21 @@ def test_enter_group_needs_operate():
     (signal,), _ = operate_layer.context.session.publish.call_args
     assert isinstance(signal, SubgraphNavigation)
     assert signal.node_id == "GraphNode_1"
+
+
+def test_show_node_docs_reveals_the_nodes_component_docs():
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    from haywire.core.signals import RevealComponentDocs
+    from haywire.ui.components.graph.event_definitions import ShowNodeDocsEvent
+
+    handlers: Any = object.__new__(VisualLayerHandlers)
+    wrapper = SimpleNamespace(registry_key="lib:node:Thing")
+    handlers.graph = SimpleNamespace(get_node_wrapper=lambda node_id: wrapper if node_id == "n1" else None)
+    handlers.context = SimpleNamespace(session=MagicMock())
+
+    VisualLayerHandlers.process_show_node_docs(handlers, ShowNodeDocsEvent(node_id="n1"))
+
+    (published,) = [c.args[0] for c in handlers.context.session.publish.call_args_list]
+    assert published == RevealComponentDocs(registry_key="lib:node:Thing")

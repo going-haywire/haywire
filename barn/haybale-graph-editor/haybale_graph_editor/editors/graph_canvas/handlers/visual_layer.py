@@ -42,6 +42,7 @@ from haywire.ui.components.graph.event_definitions import (
     AddToStageEvent,
     DissolveRerouteEvent,
     EnterGroupEvent,
+    ShowNodeDocsEvent,
     DetachFromMacroEvent,
     RevertToMacroEvent,
     ForgetMacroOriginEvent,
@@ -1214,6 +1215,18 @@ class VisualLayerHandlers:
 
         logger.info(f"📦 Entering Group {event.node_id}")
         self.context.session.publish(SubgraphNavigation(graph_id=self.graph.graph_id, node_id=event.node_id))
+
+    @handles_event(ShowNodeDocsEvent, requires=LevelMode.VIEW)
+    def process_show_node_docs(self, event: ShowNodeDocsEvent):
+        """Bring the documentation of the node's component into view, in every level mode."""
+        if self.context is None:
+            return
+        wrapper = self.graph.get_node_wrapper(event.node_id)
+        if wrapper is None:
+            return
+        from haywire.core.signals import RevealComponentDocs
+
+        self.context.session.publish(RevealComponentDocs(registry_key=wrapper.registry_key))
 
     @handles_event(PromoteToMacroEvent)
     def process_promote_to_macro(self, event: PromoteToMacroEvent):

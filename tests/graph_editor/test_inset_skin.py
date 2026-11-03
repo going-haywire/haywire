@@ -92,7 +92,8 @@ def _outside_body(ui_node: UINode) -> list[ui.element]:
 
 
 def _labels(elements: list[ui.element]) -> list[str]:
-    return [e.text for e in elements if isinstance(e, ui.label)]
+    """The text labels among *elements*; the title's docs icon is a glyph, not a label."""
+    return [e.text for e in elements if isinstance(e, ui.label) and "data-hw-node-docs" not in e._props]
 
 
 def test_the_inset_is_offered_for_graph_nodes_only(library_system) -> None:

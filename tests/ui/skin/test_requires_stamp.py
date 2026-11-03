@@ -58,11 +58,15 @@ def _render_card(library_system, wrapper, route: EditRoute | None) -> ui.element
 
 
 def _requires(container: ui.element) -> dict[str, list[ui.element]]:
-    """Each stamped mode, with the elements carrying it; pins (always ``view``) left out."""
+    """Each stamped mode, with its elements; pins and the docs icon (always ``view``) left out."""
     stamped: dict[str, list[ui.element]] = {}
     for element in container.descendants():
         mode = element._props.get("data-hw-requires")
-        if mode is not None and "data-pin-id" not in element._props:
+        if (
+            mode is not None
+            and "data-pin-id" not in element._props
+            and "data-hw-node-docs" not in element._props
+        ):
             stamped.setdefault(mode, []).append(element)
     return stamped
 

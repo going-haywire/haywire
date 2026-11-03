@@ -22,6 +22,7 @@ window.GraphEvents = {
     COLLAPSE_TO_GROUP: 'collapseToGroup', // Collapse the selected nodes into a Group
     EXPAND_GROUP: 'expandGroup', // Expand a Group back into the graph around it
     ENTER_GROUP: 'enterGroup', // Enter a Graph-node: a Group or a macro placement
+    SHOW_NODE_DOCS: 'showNodeDocs', // Show the documentation of a node's component (its title's info icon)
     PROMOTE_TO_MACRO: 'promoteToMacro', // Turn a Group into a macro: its own file, placeable in any graph
     OPEN_NEW_NODE_WIZARD: 'openNewNodeWizard', // Open the New Node wizard: write a new node class into a library
     DETACH_FROM_MACRO: 'detachFromMacro', // Turn one macro placement into a Group that no longer tracks the template
@@ -242,6 +243,16 @@ window.EventCreators = {
   createEnterGroup(node_id, sessionId = 'default') {
     return {
       event_type: 'enterGroup',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_id },
+      requires_broadcast: true
+    };
+  },
+
+  createShowNodeDocs(node_id, sessionId = 'default') {
+    return {
+      event_type: 'showNodeDocs',
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { node_id },
@@ -568,6 +579,11 @@ window.EventValidators = {
   },
 
   validateEnterGroup(data) {
+    const requiredFields = ["node_id"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateShowNodeDocs(data) {
     const requiredFields = ["node_id"];
     return requiredFields.every(field => field in data);
   },

@@ -1788,6 +1788,14 @@ export default {
                 return;
             }
 
+            // 0c. A node title's info icon shows the node's documentation; the press
+            //     then selects the node like any other press on it.
+            const docsIcon = target.closest('[data-hw-node-docs]');
+            if (docsIcon && this._allows(GraphEvents.UserInteractions.SHOW_NODE_DOCS)) {
+                const card = docsIcon.closest('[data-node-id]');
+                if (card) this.emitCanvasEvent(EventCreators.createShowNodeDocs(card.dataset.nodeId));
+            }
+
             // 1. Skip if clicking inside a popup - let popup handle it.
             //    This must run before active-mode so popup interactions
             //    never cancel a paused or active connection drag.
@@ -4651,6 +4659,11 @@ export default {
 .connection-pin {
     transform: var(--hw-pin-rotate, );
 }
+
+/* A node title's info icon shows only while the pointer is over its card. */
+.hw-node-docs { opacity: 0; transition: opacity 0.15s; cursor: help; font-size: 16px; }
+[data-node-id]:hover .hw-node-docs { opacity: 0.55; }
+.hw-node-docs:hover { opacity: 1 !important; }
 
 .connection-pin:hover {
     transform: var(--hw-pin-rotate, ) scale(1.4) !important;
