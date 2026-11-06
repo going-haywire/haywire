@@ -26,3 +26,6 @@ url = "https://going-haywire.github.io/haywire/stalls/haybale-graph-editor.toml"
 
 [[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-haystack.toml"
+
+[[stalls]]
+url = "https://going-haywire.github.io/haywire/stalls/haybale-models.toml"

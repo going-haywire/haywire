@@ -1,0 +1,18 @@
+# Marketstall for haybale-models (auto-generated; spec §2)
+# Source of truth: the package's haybale.toml in the haywire monorepo.
+# Re-generated on every release tag by scripts/generate_marketstall.py.
+
+
+[[haybales]]
+name = "haybale-models"
+label = "Models"
+version = "0.3.1"
+require = "haywire-core>=0.3.1"
+description = "Model references, local model store, downloads and graph needs-list"
+source = "pypi"
+install_spec = "haybale-models==0.3.1"
+tags = ["models", "download", "catalog"]
+on_reload = "none"
+linked_libraries = ["haybale_graph_editor"]
+origin = "https://github.com/going-haywire/haywire"
+origin_provider = "github"
