@@ -1,4 +1,4 @@
-# haybale-haystack — component index (v0.3.1)
+# haybale-haystack — component index (v0.3.2)
 
 ## setting
 - `haybale-haystack:setting:HaystackSettings` — Haystack — Per-workspace settings for haystack scalars.

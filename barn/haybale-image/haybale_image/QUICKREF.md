@@ -1,4 +1,4 @@
-# haybale-image — component index (v0.3.0)
+# haybale-image — component index (v0.3.2)
 
 ## node
 - `haybale-image:node:ImageInfoNode` — Image Info — Reports the width, height, channel layout and bit depth of an image  _tags: image, info, size, width, height, layout, depth, channels_

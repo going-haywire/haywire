@@ -1,4 +1,4 @@
-# haybale-models — component index (v0.3.1)
+# haybale-models — component index (v0.3.2)
 
 ## node
 - `haybale-models:node:ResolveModelNode` — Resolve Model — Gives the file of a model on this machine, with its sha256 and size  _tags: model, resolve, file, path, weights, catalog, sha256_
