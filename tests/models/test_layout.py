@@ -10,7 +10,8 @@ from haybale_models.store.layout import safe_name, target_path
 
 from haywire.core.catalog import ModelFile, Resource
 
-ROOT = Path("/root")
+# Absent on every machine: target_path stats its result, and a real directory can refuse that.
+ROOT = Path("/nonexistent/models-root")
 
 
 def entry() -> Any:
