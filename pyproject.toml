@@ -216,6 +216,7 @@ pip_publish_order = [
     "haybale-share",
     "haybale-graph-editor",
     "haybale-haystack",
+    "haybale-models",
 ]
 
 # Packages published via git subdirectory URL (binary deps or deferred from PyPI).
@@ -266,4 +267,5 @@ marketplace = [
     "haybale-share",
     "haybale-graph-editor",
     "haybale-haystack",
+    "haybale-models",
 ]

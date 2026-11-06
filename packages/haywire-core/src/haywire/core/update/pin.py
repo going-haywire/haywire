@@ -35,6 +35,7 @@ LOCKSTEP_DISTS: tuple[str, ...] = (
     "haybale-share",
     "haybale-graph-editor",
     "haybale-haystack",
+    "haybale-models",
 )
 
 
