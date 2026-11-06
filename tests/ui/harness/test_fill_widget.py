@@ -51,8 +51,15 @@ def _pick_color(page: Page, index: int = 0, *, x: int = 30, y: int = 30) -> str:
 
 
 def _set_kind(page: Page, label: str) -> None:
+    """Switch to the gradient kind *label* and wait for the server to redraw the stops.
+
+    The redraw replaces every stop row, so a row measured before it can be gone by
+    the time it is read. Only a gradient has a second stop.
+    """
     page.locator("[data-fill-kind]").first.click()
     page.get_by_role("option", name=label).click()
+    expect(_echo(page)).to_contain_text(f"{label.lower()}-gradient")
+    expect(page.locator('[data-fill-stop="1"]')).to_be_visible()
 
 
 def test_switching_to_linear_produces_a_gradient(page: Page, harness):
