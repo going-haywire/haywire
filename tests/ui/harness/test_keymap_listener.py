@@ -222,6 +222,33 @@ def test_graph_keyboard_paste_lands_at_pointer(page: Page, harness):
     assert abs(box["y"] - target_y) < 3, (box, target_y)
 
 
+def test_a_pasted_node_drawn_late_still_shows_as_selected(page: Page, harness):
+    """The selection reaches the browser ahead of the node; the delay is what a busy server adds."""
+    goto_ready(page, f"{harness}/graph-keymap?validation_delay_ms=1000")
+    wait_for_canvas_settled(page)
+    (original,) = _node_ids(page)
+    card = page.locator(f'[id="{original}"] .ui-node-slot').bounding_box()
+    assert card is not None
+
+    page.mouse.click(card["x"] + 30, card["y"] + 14)
+    expect(page.locator(".node-selected")).to_have_count(1)
+    page.keyboard.press("Control+c")
+    expect(page.locator("#clipboard-json")).not_to_have_text("")
+
+    page.mouse.move(card["x"] + 40, card["y"] + card["height"] + 120)
+    _dispatch_paste(page, page.locator("#clipboard-json").inner_text())
+
+    page.wait_for_function(
+        "() => new Set([...document.querySelectorAll('.graph-canvas [data-node-id]')]"
+        ".map(el => el.dataset.nodeId)).size === 2"
+    )
+    (pasted,) = [node_id for node_id in _node_ids(page) if node_id != original]
+    selected = page.locator(".node-selected")
+    expect(selected).to_have_count(1)
+    expect(selected).to_have_attribute("data-node-id", pasted)
+    expect(page.locator(f'[id="{pasted}"].node-active')).to_have_count(1)
+
+
 def test_keys_native_inside_dialog(page: Page, harness):
     _open(page, harness)
     _click_root(page, _TWO)

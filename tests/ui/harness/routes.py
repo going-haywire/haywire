@@ -43,17 +43,22 @@ def _resolve_class(dotted: str):
     return getattr(mod, class_name)
 
 
-def _harness_graph(name: str):
+def _harness_graph(name: str, validation_delay_ms: float = 50.0):
     """A graph validated on the NiceGUI event loop, as in the running studio (``LoopScheduler``).
 
     On the default timer scheduler a validation pass ran on its own thread while NiceGUI
     serialised the page, which surfaced as "dictionary changed size during iteration" in
     ``build_response`` (F13). On the loop the two never overlap.
+
+    Args:
+        name: The graph's name.
+        validation_delay_ms: Debounce before a validation pass, which is what draws a new
+            node. A long one stands in for a server too busy to draw it promptly.
     """
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.scheduler import LoopScheduler
 
-    return BaseGraph(name, validation_scheduler=LoopScheduler())
+    return BaseGraph(name, validation_delay_ms=validation_delay_ms, validation_scheduler=LoopScheduler())
 
 
 def _stamp_synced() -> None:
@@ -473,16 +478,17 @@ def _build_reroute_graph(node_factory):
     return graph, editor, reroute_id
 
 
-def _build_size_graph(node_factory):
+def _build_size_graph(node_factory, validation_delay_ms: float = 50.0):
     """A single node, for the node-sizing gadget/measure tests.
 
     One TestPrintNode is enough: the sizing feature is per-node and needs no
     edges. Returns (graph, editor, node) so the route can drive size props and
     the test can select/resize it. See test_node_size_measure / test_resize_gadget.
+    ``validation_delay_ms`` is passed to ``_harness_graph``.
     """
     from haywire.core.graph.editor import Editor
 
-    graph = _harness_graph("Size Fixture")
+    graph = _harness_graph("Size Fixture", validation_delay_ms)
     editor = Editor(graph, node_factory)
 
     node = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3700.0))
@@ -2485,11 +2491,12 @@ def register_routes(library_service) -> None:
     # Standing in for the AppShell, the page runs a "copy" command as
     # copy_selection() and a "paste" command as paste(position, text) on the
     # canvas manager. #clipboard-json shows the session clipboard after a copy.
+    # ?validation_delay_ms= delays the drawing of new nodes (see _harness_graph).
     # Backs test_keymap_listener.py.
     # -------------------------------------------------------------------------
 
     @ui.page("/graph-keymap")
-    async def graph_keymap_page():
+    async def graph_keymap_page(validation_delay_ms: float = 50.0):
         import json
 
         from haywire.ui.components.keymap import KeymapListener
@@ -2497,7 +2504,7 @@ def register_routes(library_service) -> None:
         from haybale_graph_editor.editors.graph_editor import GraphEditor
         from haybale_graph_editor.state.edit_state import EditState
 
-        graph, editor, _ = _build_size_graph(library_service.get_node_factory())
+        graph, editor, _ = _build_size_graph(library_service.get_node_factory(), validation_delay_ms)
         clipboard_json = ui.label("").props('id="clipboard-json"').style("display: none")
 
         with (

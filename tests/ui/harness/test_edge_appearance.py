@@ -545,3 +545,46 @@ def test_an_edge_whose_culled_end_was_never_measured_is_not_drawn(page: Page, ha
     _open(page, harness)
 
     assert page.evaluate(_MEASURE_WITH_AN_UNMEASURED_CULLED_END, "[result]->") is False
+
+
+#: Select the edge whose id contains the given fragment while it does not exist, add it back after
+#: ``delay_ms``, and report the marks it carries once its geometry has been laid out.
+_SELECT_THEN_ADD_EDGE = """async ([frag, delay_ms]) => {
+    let canvas = null;
+    for (let i = 0; i < 5000 && !canvas; i++) {
+        const c = getElement(i);
+        if (c && c.$el && c.$el.dataset && c.$el.dataset.testid === 'edge-appearance-canvas') canvas = c;
+    }
+    const edge_id = [...canvas.edgePaths.keys()].find((id) => id.includes(frag));
+    const info = canvas.edgePaths.get(edge_id);
+    const addition = {
+        edge_id,
+        sourceNodeId: info.outletNodeId,
+        outletPinId: info.outletPinUUID,
+        sinkNodeId: info.inletNodeId,
+        inletPinId: info.inletPinUUID,
+        outletPinFallback: info.outletPinFallback,
+        inletPinFallback: info.inletPinFallback,
+    };
+    canvas._removeEdge(edge_id);
+    canvas._syncSelections({ nodes: [], edges: [edge_id], active: { kind: 'edge', id: edge_id } });
+    await new Promise((resolve) => setTimeout(resolve, delay_ms));
+    canvas._syncEdgeAddition(addition);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const path = canvas.edgePaths.get(edge_id).path;
+    return {
+        selected: path.classList.contains('connection-selected'),
+        active: path.classList.contains('connection-active'),
+        glowDrawn: !!document.getElementById(edge_id + '_glow')?.getAttribute('d'),
+        handles: document.querySelectorAll('.hw-edge-handle').length,
+    };
+}"""
+
+
+def test_an_edge_added_after_its_selection_shows_as_selected(page: Page, harness) -> None:
+    """A selection can name an edge the canvas has not drawn yet, for as long as the server takes."""
+    _open(page, harness)
+
+    marks = page.evaluate(_SELECT_THEN_ADD_EDGE, ["[result]->", 1000])
+
+    assert marks == {"selected": True, "active": True, "glowDrawn": True, "handles": 2}

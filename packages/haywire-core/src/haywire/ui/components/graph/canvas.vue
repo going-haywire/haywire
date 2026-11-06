@@ -407,6 +407,8 @@ export default {
     mounted() {
         console.log('GraphCanvas Vue component mounted with container ID:', this.containerId);
         this._pendingNodeIds = new Set();
+        // Selected or active nodes not in the DOM yet. See _applyNodeMarks.
+        this._nodesAwaitingMarks = new Set();
         // Edges whose pins were not reachable when the batch arrived, by
         // edge_id -> the payload to retry with. See _syncEdgeAddition.
         this._pendingEdges = new Map();
@@ -1533,6 +1535,8 @@ export default {
             const { nodeId } = data;
             let selectionChanged = false;
 
+            this._nodesAwaitingMarks.delete(nodeId);
+
             if (this.selectionState.selectedNodes.has(nodeId)) {
                 this.selectionState.selectedNodes.delete(nodeId);
                 selectionChanged = true;
@@ -1651,6 +1655,7 @@ export default {
             
             this.selectionState.selectedNodes.clear();
             this.selectionState.selectedEdges.clear();
+            this._nodesAwaitingMarks.clear();
         },
 
         _syncNodeRedraw(data) {
@@ -3315,6 +3320,7 @@ export default {
             
             // ENHANCED: Store the full connection info instead of just the path
             this.edgePaths.set(edge_id, edgeInfo);
+            this._applyEdgeMarks(edge_id);
 
             const clickHandler = (e) => {
                 e.preventDefault();
@@ -3883,12 +3889,19 @@ export default {
                     }
                 }
 
+                for (const nodeId of [...this._nodesAwaitingMarks]) {
+                    if (this._ownById(nodeId)) {
+                        this._nodesAwaitingMarks.delete(nodeId);
+                        this._applyNodeMarks(nodeId);
+                    }
+                }
+
                 // Parked edges are retried on the same signal: the DOM change
                 // that brought a node back is what makes its pins reachable.
                 this._flushPendingEdges();
 
                 // Nothing left to wait for — stop watching to save resources.
-                if (this._pendingNodeIds.size === 0 && this._pendingEdges.size === 0) {
+                if (this._pendingNodeIds.size === 0 && this._pendingEdges.size === 0 && this._nodesAwaitingMarks.size === 0) {
                     console.log(`[PendingObserver] Nothing pending — disconnecting watcher.`);
                     this._pendingNodeWatcher.disconnect();
                     this._pendingNodeWatcher = null;
@@ -3903,7 +3916,13 @@ export default {
         // VISUAL SELECTION UPDATES
         // =============================================================================
 
-        _updateNodeVisualSelection(nodeId, selected, _retries = 6) {
+        // A selection can name an element the browser has not drawn yet: right
+        // after a paste the selection sync arrives ahead of the new node, by
+        // however long the server takes to validate and draw it. A missing node
+        // waits on the pending watcher (_applyNodeMarks) and a missing edge is
+        // marked when it is created (_applyEdgeMarks).
+
+        _updateNodeVisualSelection(nodeId, selected) {
             const nodeElement = this._ownById(nodeId);
             if (nodeElement) {
                 if (selected) {
@@ -3911,16 +3930,14 @@ export default {
                 } else {
                     nodeElement.classList.remove('node-selected');
                 }
-            } else if (selected && _retries > 0) {
-                // The node's DOM element may not have rendered yet — e.g. right
-                // after a paste, where node-addition (a NiceGUI element pushed
-                // over the socket) and the selection sync arrive close together.
-                // Retry shortly until it appears.
-                setTimeout(() => this._updateNodeVisualSelection(nodeId, selected, _retries - 1), 50);
+            } else if (selected) {
+                this._nodesAwaitingMarks.add(nodeId);
+                this._ensurePendingWatcher();
             }
+            if (!selected) this._nodesAwaitingMarks.delete(nodeId);
         },
 
-        _updateEdgeVisualSelection(edge_id, selected, _retries = 6) {
+        _updateEdgeVisualSelection(edge_id, selected) {
             const edgeInfo = this.edgePaths.get(edge_id);
             if (edgeInfo && edgeInfo.path) {
                 if (selected) {
@@ -3929,14 +3946,10 @@ export default {
                     edgeInfo.path.classList.remove('connection-selected');
                 }
                 this._setEdgeGlow(edge_id, selected);
-            } else if (selected && _retries > 0) {
-                // Edge path may not be registered yet (e.g. just after a paste);
-                // retry shortly until edgePaths has it.
-                setTimeout(() => this._updateEdgeVisualSelection(edge_id, selected, _retries - 1), 50);
             }
         },
 
-        _updateNodeVisualActive(nodeId, active, _retries = 6) {
+        _updateNodeVisualActive(nodeId, active) {
             const nodeElement = this._ownNode(nodeId);
             if (nodeElement) {
                 if (active) {
@@ -3944,12 +3957,13 @@ export default {
                 } else {
                     nodeElement.classList.remove('node-active');
                 }
-            } else if (active && _retries > 0) {
-                setTimeout(() => this._updateNodeVisualActive(nodeId, active, _retries - 1), 50);
+            } else if (active) {
+                this._nodesAwaitingMarks.add(nodeId);
+                this._ensurePendingWatcher();
             }
         },
 
-        _updateEdgeVisualActive(edge_id, active, _retries = 6) {
+        _updateEdgeVisualActive(edge_id, active) {
             const edgeInfo = this.edgePaths.get(edge_id);
             if (edgeInfo && edgeInfo.path) {
                 if (active) {
@@ -3958,9 +3972,21 @@ export default {
                     edgeInfo.path.classList.remove('connection-active');
                 }
                 this._setEdgeHandles(edge_id, active);
-            } else if (active && _retries > 0) {
-                setTimeout(() => this._updateEdgeVisualActive(edge_id, active, _retries - 1), 50);
             }
+        },
+
+        /** Give a node that just arrived the marks the current selection holds for it. */
+        _applyNodeMarks(nodeId) {
+            const active = this.selectionState.activeElement;
+            this._updateNodeVisualSelection(nodeId, this.selectionState.selectedNodes.has(nodeId));
+            this._updateNodeVisualActive(nodeId, !!active && active.kind === 'node' && active.id === nodeId);
+        },
+
+        /** Give a newly created edge the marks the current selection holds for it. */
+        _applyEdgeMarks(edge_id) {
+            const active = this.selectionState.activeElement;
+            if (this.selectionState.selectedEdges.has(edge_id)) this._updateEdgeVisualSelection(edge_id, true);
+            if (active && active.kind === 'edge' && active.id === edge_id) this._updateEdgeVisualActive(edge_id, true);
         },
 
         // =============================================================================
