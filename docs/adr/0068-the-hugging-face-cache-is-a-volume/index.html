@@ -3280,6 +3280,9 @@
 
 
 <h1 id="the-hugging-face-cache-is-a-volume-shared-by-default-never-deleted-by-haywire">The Hugging Face cache is a volume, shared by default, never deleted by haywire<a class="headerlink" href="#the-hugging-face-cache-is-a-volume-shared-by-default-never-deleted-by-haywire" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Superseded in part by <a href="../0073-framework-caches-are-removable-for-fetched-files/">ADR 0073</a>.</strong> D4 (never delete) now has one exception, for framework cache volumes only: a file haybale-models itself fetched for a catalog entry, recorded in <code>fetched.json</code>. <a href="../0074-the-catalog-entry-entitles-remove/">ADR 0074</a> extends it: a catalog entry entitles Remove of its own files in any cache, the Hugging Face cache included.</p>
+</blockquote>
 <p><strong>Context.</strong></p>
 <ul>
 <li><code>hf://</code> model references download through <code>huggingface_hub</code>, into a cache that other tools on the machine use too.</li>

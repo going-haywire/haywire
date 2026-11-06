@@ -5581,6 +5581,16 @@ Macro is registered and placed.</p>
 <td>Model path, model id</td>
 </tr>
 <tr>
+<td><strong>Model source</strong></td>
+<td>What haybale-models uses to find and fetch the files behind one kind of address (<code>hf://</code>, <code>https://</code>): label, volume, offline <code>find</code>, <code>fetch</code> with progress (and cancel when it declares <code>cancels_running</code>), <code>remove</code>. haybale-models' built-ins (<code>https</code>/<code>http</code>, <code>hf</code>, and the folder sources for the framework caches <code>torchhub</code>, <code>rembg</code>, <code>keras</code>, <code>ultralytics</code>; see <strong>Cache volume</strong>), keyed by address prefix. An address no source provides shows "source unavailable". See <a href="../../adr/0072-model-sources/">ADR 0072</a>. Not to be confused with <code>HaywireLibrarySource</code> / <code>SignalSource</code></td>
+<td>Adapter, scheme</td>
+</tr>
+<tr>
+<td><strong>Consumer</strong> <em>(models)</em></td>
+<td>The node or library that uses a model, as in <code>consumer.py</code> (<code>release_node</code>, the pool hold). Not a source of models and not a consumer of a marketstall</td>
+<td>—</td>
+</tr>
+<tr>
 <td><strong>File reference</strong></td>
 <td>A <strong>Model reference</strong> to one file by source URI(s) and, once pinned, its sha256. Without a digest it resolves by source URI and the card shows it amber with a pin; the pin, or <strong>Use</strong> in the picker when the file is on this machine, records the digest. The only form that reproduces a file bit for bit</td>
 <td>Pinned path</td>
@@ -5611,6 +5621,21 @@ Macro is registered and placed.</p>
 <td>Model folder, weights folder</td>
 </tr>
 <tr>
+<td><strong>Cache volume</strong></td>
+<td>A volume for a framework's own model folder, served by a folder <strong>Model source</strong> (<code>torchhub</code>, <code>rembg</code>, <code>keras</code>, <code>ultralytics</code>): key <code>haybale-models:volume:&lt;prefix&gt;</code>, adopted by a lookup when the framework's suggested folder already exists; a missing one waits for the first fetch into it. A fetch creates the folder only at the suggested location. A catalog <code>cache</code> address (<code>torchhub://&lt;file&gt;</code>) names where a file belongs in one. A catalog entry entitles Remove of its files there, whoever fetched them; fetches are recorded in <code>fetched.json</code>. See <a href="../../adr/0074-the-catalog-entry-entitles-remove/">ADR 0074</a></td>
+<td>Framework folder, weights folder</td>
+</tr>
+<tr>
+<td><strong>Assisted download</strong></td>
+<td>Fetching a model file through the user's own browser after automatic download failed, and handing it to haybale-models by a drop zone in the Models editor. Same checks and records as an automatic download. See <a href="../../guides/model-catalogs/#54-assisted-download">model catalogs §5.4</a></td>
+<td>manual download</td>
+</tr>
+<tr>
+<td><strong>Whole-repo address</strong></td>
+<td><code>hf://org/repo@&lt;commit&gt;</code>: a <strong>Catalog entry</strong> resource address naming a whole Hugging Face repository by a 40-hex commit (a branch is refused), optionally narrowed by the resource's <code>include</code> patterns. It resolves to the snapshot folder in the Hugging Face cache and has no digest; the commit identifies it. Catalog-only: the model picker refuses it. See <a href="../../guides/model-catalogs/#22-whole-repo-hf-addresses">Model catalogs</a></td>
+<td>Repo address, snapshot address</td>
+</tr>
+<tr>
 <td><strong>Needs-list</strong></td>
 <td>The models an open graph's nodes refer to that this machine does not have, interiors of subgraphs and macros included. Shown as a <strong>Graph notice</strong> and in the Needed section of the Models editor</td>
 <td>Missing list</td>
@@ -5619,6 +5644,11 @@ Macro is registered and placed.</p>
 <td><strong>Graph notice</strong></td>
 <td>A message a library posts about one open graph through <code>GraphAppState.post_notice</code>, shown on its <strong>HaystackEditor</strong> row as an icon with a count, with an optional action. Never disables play. See <a href="../../guides/graph-notices/">graph notices</a> and <a href="../../adr/0069-graph-notices-are-a-library-extensible-store/">ADR 0069</a></td>
 <td>Graph warning (a <strong>NodeWarning</strong> belongs to one card), alert</td>
+</tr>
+<tr>
+<td><strong>Non-commercial architecture</strong></td>
+<td>A spandrel architecture from <code>spandrel_extra_arches</code> (AdaCode, CodeFormer, DDColor, FeMaSR, M3SNet, MAT, MIRNet2, MPRNet, Restormer, SRFormer) whose <em>code</em> is licensed for non-commercial use only. haybale-spandrel loads models of one only while the Spandrel setting <em>Non-commercial architectures</em> (off by default) is on, and marks them on the card and in Model Info. Distinct from a model's own licence, which belongs to its weights</td>
+<td>extra arch, NC model (the weights' licence is a separate question)</td>
 </tr>
 <tr>
 <td><strong>Loaded model</strong></td>

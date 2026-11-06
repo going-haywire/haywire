@@ -1734,6 +1734,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#22-whole-repo-hf-addresses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Whole-repo hf:// addresses
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-recommended-and-commercial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 recommended and commercial
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1775,6 +1797,67 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-model-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Model sources
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Model sources">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-lookup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Lookup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-source-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Source unavailable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-cache-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Cache sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-assisted-download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Assisted download
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3445,6 +3528,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#22-whole-repo-hf-addresses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Whole-repo hf:// addresses
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-recommended-and-commercial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 recommended and commercial
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3486,6 +3591,67 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-model-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Model sources
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Model sources">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-lookup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Lookup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-source-unavailable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Source unavailable
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-cache-sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Cache sources
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-assisted-download" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Assisted download
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3541,6 +3707,16 @@
 </tr>
 <tr>
 <td>entry</td>
+<td><code>recommended</code></td>
+<td>Optional: <code>true</code> offers the model under the <code>Recommended</code> filter of the Choose a model picker; see <a href="#23-recommended-and-commercial">§2.3</a></td>
+</tr>
+<tr>
+<td>entry</td>
+<td><code>commercial</code></td>
+<td>Optional: <code>true</code> states the model may be used commercially; left out, it reads <code>non-commercial</code>; see <a href="#23-recommended-and-commercial">§2.3</a></td>
+</tr>
+<tr>
+<td>entry</td>
 <td><code>requires</code></td>
 <td>An object of requirements for the entry; kept on the entry as <code>entry.requires</code> (not part of <code>fields()</code>), not interpreted by haybale-models</td>
 </tr>
@@ -3557,12 +3733,27 @@
 <tr>
 <td>resource</td>
 <td><code>urls</code></td>
-<td><code>https://</code> and <code>hf://org/repo/path@rev</code> addresses, tried in order</td>
+<td><code>https://</code> and <code>hf://org/repo/path@rev</code> addresses, tried in order; <code>hf://org/repo@&lt;commit&gt;</code> names a whole repo (<a href="#22-whole-repo-hf-addresses">§2.2</a>)</td>
+</tr>
+<tr>
+<td>resource</td>
+<td><code>include</code></td>
+<td>Optional, with a whole-repo address: file patterns (<code>allow_patterns</code>, fnmatch) selecting part of the repo; empty means the whole repo</td>
+</tr>
+<tr>
+<td>resource</td>
+<td><code>cache</code></td>
+<td>Optional: the cache volume address where the file belongs, such as <code>torchhub://resnet18-f37072fd.pth</code>; see <a href="#53-cache-sources">§5.3</a></td>
 </tr>
 <tr>
 <td>resource</td>
 <td><code>files</code></td>
 <td>A bundle: a list of <code>{path, sha256, size, urls}</code>; <code>path</code> is the file's name inside the variant's folder</td>
+</tr>
+<tr>
+<td>file</td>
+<td><code>cache</code></td>
+<td>Optional, per file of a bundle: the same address, for that file</td>
 </tr>
 </tbody>
 </table>
@@ -3607,6 +3798,21 @@
 </span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="p">}</span>
 </span></code></pre></div>
 <p>Give every file a <code>sha256</code> where you can: a download is verified against it, and a file with a digest is found again wherever it moves. <code>hf://</code> urls land in the Hugging Face cache, never in the models folder (<a href="../../adr/0068-the-hugging-face-cache-is-a-volume/">ADR 0068</a>).</p>
+<h3 id="22-whole-repo-hf-addresses">2.2 Whole-repo hf:// addresses<a class="headerlink" href="#22-whole-repo-hf-addresses" title="Permanent link">&para;</a></h3>
+<p><code>hf://org/repo@&lt;commit&gt;</code> names a whole Hugging Face repository (a model folder such as a transformers or diffusers checkout). Rules:</p>
+<ul>
+<li><strong>A commit, not a branch.</strong> The revision is 40 lower-case hex characters; a branch or tag is refused ("a whole-repo hf:// address needs a commit (40 hex characters), not a branch"). The commit is the identity: there is no digest.</li>
+<li><strong><code>include</code></strong> (on the resource) narrows the download to matching files, such as <code>["*.json", "*.safetensors"]</code>. Two entries with the same <code>repo@commit</code> but different <code>include</code> are separate downloads and resolve separately.</li>
+<li><strong>It resolves to the folder.</strong> The Resolve Model node and workers get the snapshot folder in the Hugging Face cache; status reads <code>HF cache</code>.</li>
+<li><strong>Offline completeness.</strong> The snapshot counts as present only when Hugging Face's cached tree listing for the commit exists and says it is complete, and at least one file matches <code>include</code>. A snapshot without a listing (per-file downloads, other tools) is fetched again; cached files are reused. A fetch that leaves it incomplete fails with <code>incomplete snapshot of …</code>, and one where <code>include</code> matches nothing fails with <code>no file of … matches include […]</code>.</li>
+<li><strong>Remove</strong> deletes the entry's snapshot files (those matching <code>include</code>), and each blob no other snapshot of the repo links to.</li>
+<li><strong>Catalog only.</strong> The model picker refuses a whole-repo address.</li>
+<li>Other addresses in the same resource's <code>urls</code> that do not name a folder are skipped.</li>
+</ul>
+<h3 id="23-recommended-and-commercial">2.3 recommended and commercial<a class="headerlink" href="#23-recommended-and-commercial" title="Permanent link">&para;</a></h3>
+<p>Both are <code>true</code> or left out; any other value counts as left out.</p>
+<p><strong><code>recommended</code></strong> is a filter in the Choose a model picker. Its <code>Recommended</code> chip appears when the entries fitting the port hold both flagged and unflagged ones, and starts off. It sorts nothing, and the Models editor ignores it.</p>
+<p><strong><code>commercial</code></strong> is your statement, as the author, that the model may be used commercially. Haywire does not read <code>license</code> to decide: it is free text. Left out, the Models editor and hover tips read <code>&lt;licence&gt; · non-commercial</code>, whatever the licence says, so setting the record straight is on you. Weigh the weights' licence and the architecture's.</p>
 <h2 id="3-using-a-model_ref-port">3. Using a MODEL_REF port<a class="headerlink" href="#3-using-a-model_ref-port" title="Permanent link">&para;</a></h2>
 <p>Add the port in <code>init()</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">MODEL_REF</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="n">widget_config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;filter&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;scale&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">]}}})</span>
@@ -3620,6 +3826,7 @@
 <p>The worker uses the best match <strong>on this machine</strong>. If a higher preference exists but is not downloaded, the node gets a warning and the needs-list offers it.</p>
 <h3 id="31-loading-and-releasing">3.1 Loading and releasing<a class="headerlink" href="#31-loading-and-releasing" title="Permanent link">&para;</a></h3>
 <p><strong>Workers never download.</strong> The resolver and every worker are offline; a missing model raises <code>ModelMissing</code>, and the user fetches it in the Models editor.</p>
+<p><strong>Pass the resolved path, never a name.</strong> A node hands the path the resolver returned (for a file in a cache volume too) to its framework's loader. It never passes the framework a model name: the framework would look in its own cache, fetch behind haybale-models' back, and bypass the offline guarantee above.</p>
 <p>A node acquires its model lazily, in the worker, and releases it when the run ends. The pool is keyed by the resolved file plus a variant key you choose (device and dtype, say):</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>    <span class="k">return</span> <span class="p">[</span><span class="n">NodeWarning</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">source_version</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="n">KIND</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">]</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
@@ -3639,9 +3846,97 @@
 </span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="p">)</span>
 </span></code></pre></div>
 <p>Call <code>release_node(self)</code> from <code>on_shutdown</code>, and again from <code>on_teardown</code> as a backstop. The pool frees a model at once when its last holder releases it. There is no eviction: a model stays loaded while any running node holds it.</p>
+<p>A node that needs what a catalog entry says about a model, not just its file, sets <code>catalog_only: true</code> in <code>properties</code>: the picker then offers catalog entries only.</p>
 <h2 id="4-where-files-live">4. Where files live<a class="headerlink" href="#4-where-files-live" title="Permanent link">&para;</a></h2>
-<p>The models volume (<code>haybale-models:volume:models</code>) holds catalog downloads as <code>&lt;library-id&gt;/&lt;entry-stem&gt;/&lt;file&gt;</code> (bundles: <code>…/&lt;variant&gt;/&lt;file&gt;</code>) and pasted urls as <code>downloads/&lt;host&gt;/&lt;file&gt;</code>. Files you drop into it are indexed on the next scan. The Hugging Face cache is a second volume, listed read-only. Both locations are the user's to move in the Volumes editor (<a href="../../adr/0065-named-volumes-instead-of-absolute-paths/">ADR 0065</a>).</p>
+<p>The models volume (<code>haybale-models:volume:models</code>) holds catalog downloads as <code>&lt;library-id&gt;/&lt;entry-stem&gt;/&lt;file&gt;</code> (bundles: <code>…/&lt;variant&gt;/&lt;file&gt;</code>) and pasted urls as <code>downloads/&lt;host&gt;/&lt;file&gt;</code>. Files you drop into it are indexed on the next scan. The Hugging Face cache is a second volume, listed read-only. A framework's cache folder becomes a <strong>cache volume</strong> the first time a file is fetched into it (<a href="#53-cache-sources">§5.3</a>). Each location is the user's to move in the Volumes editor (<a href="../../adr/0065-named-volumes-instead-of-absolute-paths/">ADR 0065</a>).</p>
 <p>Download and remove need ADMIN access; browsing is VIEW; pinning a digest goes through the edit route.</p>
+<h2 id="5-model-sources">5. Model sources<a class="headerlink" href="#5-model-sources" title="Permanent link">&para;</a></h2>
+<p>A <strong>model source</strong> is what haybale-models uses to find and fetch the files behind one kind of address. An address starts with a prefix (<code>hf://org/repo/file</code>, <code>https://host/file</code>); the source that owns the prefix knows where such files live and how to get them. <code>label</code> is the source's human-readable name.</p>
+<p>Built in:</p>
+<table>
+<thead>
+<tr>
+<th>Prefix</th>
+<th>Label</th>
+<th>Files live in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>https</code>, <code>http</code></td>
+<td>Web</td>
+<td>the models volume (<code>downloads/&lt;host&gt;/&lt;file&gt;</code> for pasted addresses)</td>
+</tr>
+<tr>
+<td><code>hf</code></td>
+<td>Hugging Face</td>
+<td>the Hugging Face cache volume, read-only to lookups</td>
+</tr>
+</tbody>
+</table>
+<p>Cache sources (below) serve folders that other tools use too.</p>
+<p>A source offers <code>find</code> (offline lookup of a file already present; it never hashes a whole cache) and <code>fetch</code> (get the file with progress, and cancel where the source declares <code>cancels_running</code>), <code>remove</code> (delete one of its files). A failed fetch raises <code>SourceFailed</code>, and the next address of the resource is tried.</p>
+<h3 id="51-lookup">5.1 Lookup<a class="headerlink" href="#51-lookup" title="Permanent link">&para;</a></h3>
+<p>A source is found by the address prefix alone (case-insensitive); an address is tried in the order the resource lists it. A library that keeps its models somewhere else manages those files itself.</p>
+<h3 id="52-source-unavailable">5.2 Source unavailable<a class="headerlink" href="#52-source-unavailable" title="Permanent link">&para;</a></h3>
+<p>An address whose prefix no source provides is never hidden. Its row shows <code>source unavailable: &lt;prefix&gt;:// not provided</code>, and the editor offers no Download for it. This also applies to prefixes such as <code>ftp://</code>.</p>
+<h3 id="53-cache-sources">5.3 Cache sources<a class="headerlink" href="#53-cache-sources" title="Permanent link">&para;</a></h3>
+<p>A resource or a file of a bundle may carry <code>cache</code>, an address such as <code>torchhub://resnet18-f37072fd.pth</code>: where the file belongs, so the framework's own loader finds it. <code>urls</code> keeps meaning where to download from; <code>hf://</code> is never a <code>cache</code> (it stays in <code>urls</code>). When the catalog loads, it checks only the form of a <code>cache</code> address: one that is not an address like <code>torchhub://&lt;file&gt;</code> refuses the entry. A <code>cache</code> whose prefix no cache source serves shows as "source unavailable", and one that reaches outside its cache folder fails the fetch.</p>
+<p>Four cache sources are built in. Each follows the framework's own environment variables and reads no framework code:</p>
+<table>
+<thead>
+<tr>
+<th>Prefix</th>
+<th>Label</th>
+<th>Default folder</th>
+<th>Environment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>torchhub</code></td>
+<td>Torch Hub</td>
+<td><code>~/.cache/torch/hub/checkpoints</code></td>
+<td><code>TORCH_HOME</code> (else <code>XDG_CACHE_HOME/torch</code>)</td>
+</tr>
+<tr>
+<td><code>rembg</code></td>
+<td>rembg</td>
+<td><code>~/.rembg</code> when it exists, else <code>~/.u2net</code></td>
+<td><code>U2NET_HOME</code>, then <code>REMBG_HOME</code>; <code>XDG_DATA_HOME</code></td>
+</tr>
+<tr>
+<td><code>keras</code></td>
+<td>Keras</td>
+<td><code>~/.keras/models</code></td>
+<td><code>KERAS_HOME</code></td>
+</tr>
+<tr>
+<td><code>ultralytics</code></td>
+<td>Ultralytics</td>
+<td><code>weights_dir</code> of its <code>settings.json</code>, else <code>&lt;config dir&gt;/weights</code></td>
+<td><code>YOLO_CONFIG_DIR</code>, <code>XDG_CONFIG_HOME</code></td>
+</tr>
+</tbody>
+</table>
+<p>The Ultralytics config dir is <code>~/Library/Application Support/Ultralytics</code> on macOS, <code>~/AppData/Roaming/Ultralytics</code> on Windows, <code>~/.config/Ultralytics</code> elsewhere. Its fallback is a Haywire choice: Ultralytics' own default depends on the working directory.</p>
+<ul>
+<li><strong>Cache volumes appear on first need.</strong> A volume <code>haybale-models:volume:&lt;prefix&gt;</code> (such as <code>haybale-models:volume:torchhub</code>) is created only when a fetch fills it, or when its suggested folder already exists. A framework never used on this machine adds nothing to the Volumes editor. The user may relocate a cache volume there; status, lookup and Remove follow.</li>
+<li><strong>Torch Hub names carry a digest.</strong> A file name ends in <code>-&lt;sha256 prefix&gt;.&lt;ext&gt;</code>; a pinned reference never accepts a name whose prefix contradicts the pin. The other three sources identify a file by name only; <code>find</code> never hashes a cache.</li>
+<li><strong>Status.</strong> A file in a cache volume reads <code>&lt;label&gt; cache</code>, for example <code>Torch Hub cache</code>. The Resolve Model node outputs its path.</li>
+<li><strong>The picker never accepts cache addresses.</strong> A pasted <code>torchhub://...</code> is refused; only <code>https://</code>, <code>http://</code> and <code>hf://</code> are download addresses. Cache addresses come from catalog entries.</li>
+<li><strong>An unserved <code>cache</code> reads "source unavailable".</strong> If no cache source serves the address's prefix, the row reads <code>source unavailable: &lt;prefix&gt;:// not provided</code> and offers no Download.</li>
+<li><strong>Fetching into a cache</strong> goes through the entry's <code>https://</code> urls to the <code>cache</code> address. A fetch never overwrites a file in a cache that haybale-models did not fetch: an accepted existing file counts as present; a different one fails the job with <code>a different file already exists at &lt;path&gt;</code>.</li>
+<li><strong>The catalog entry entitles Remove.</strong> A catalog row whose files are found offers Remove for exactly those files, in whichever volume holds them (Models volume, a cache volume, the Hugging Face cache), whoever fetched them: the same row can download them again. The confirmation names every catalog entry and graph that uses the files, and for a cache says: "This file is in the shared <label> cache; other tools may use it." Files no catalog entry resolves to are never touched. Remove needs ADMIN, like Fetch.</li>
+<li><strong>Fetch records.</strong> Every file fetched into a cache volume is recorded in <code>fetched.json</code> (in the library's storage folder), keyed by volume and relative path. A record supplies the file's digest for pin checks; Remove deletes it.</li>
+<li><strong>Cancel only where a download can stop.</strong> A queued download can always be cancelled; a running one only when its source stops mid-transfer (<code>https://</code>). A running Hugging Face download shows no Cancel and runs to the end.</li>
+</ul>
+<p>See <a href="../../adr/0072-model-sources/">ADR 0072</a> and <a href="../../adr/0074-the-catalog-entry-entitles-remove/">ADR 0074</a>.</p>
+<h3 id="54-assisted-download">5.4 Assisted download<a class="headerlink" href="#54-assisted-download" title="Permanent link">&para;</a></h3>
+<p>Some hosts (Mega, Google Drive, OneDrive…) answer a script with a web page, not the file. Nothing recognises such a host: the download fails like any other, and the row then offers <strong>Download in browser</strong> (ADMIN). The dialog links each address of the file; the user gets it in their browser and drops it on the dialog. It is checked and stored like a downloaded file, under its uploaded name where the entry does not fix one.</p>
+<p>The offer needs something that would find the stored file: a digest, a <code>cache</code> address, or an <code>https://</code> address. A whole-repo <code>hf://</code> address and an <code>hf://</code> file without a digest get no offer.</p>
+<p><strong>Give every file a <code>sha256</code>.</strong> With one, a wrong file is refused with what was expected. Without one, the dialog warns <code>No digest in the catalog: this file can't be verified.</code> and accepts what it gets. List a direct address first and a file host after it: the automatic download then succeeds without the user.</p>
+<p>Agents see a failed job's <code>assisted</code> and <code>page_urls</code> in <code>models_list</code>, and send the user to the dialog; they have no upload path.</p>
 
 
 
