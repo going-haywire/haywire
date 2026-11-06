@@ -36,6 +36,10 @@ execute = false
 path = "graphs/spandrel-upscale.haywire"
 execute = false
 
+[[graphs]]
+path = "graphs/webcam.haywire"
+execute = false
+
 [haystack]
 name = "Single"
 active_graph = "graphs/spandrel-upscale.haywire"
