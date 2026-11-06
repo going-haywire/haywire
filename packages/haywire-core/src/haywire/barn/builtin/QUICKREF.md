@@ -1,4 +1,4 @@
-# haywire-core — component index (v0.3.0)
+# haywire-core — component index (v0.3.1)
 
 ## node
 - `haywire-core:node:AnnotationNode` — Annotation — A box of text for diagrams; links to other annotations with styled arrows  _tags: note, comment, diagram, arrow, annotation_

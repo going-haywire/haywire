@@ -3,7 +3,7 @@
 # Edited in the studio's library overview — no reinstall, no reload.
 
 name = "haybale-models"
-version = "0.3.0"
+version = "0.3.1"
 label = "Models"
 description = "Model references, local model store, downloads and graph needs-list"
 tags = ["models", "download", "catalog"]
