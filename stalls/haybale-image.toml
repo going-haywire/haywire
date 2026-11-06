@@ -1,0 +1,17 @@
+# Marketstall for haybale-image (auto-generated; spec §2)
+# Source of truth: the package's haybale.toml in the haywire monorepo.
+# Re-generated on every release tag by scripts/generate_marketstall.py.
+
+
+[[haybales]]
+name = "haybale-image"
+label = "Image"
+version = "0.3.2"
+require = "haywire-core>=0.3.2"
+description = "Image types, IO and viewers shared by vision and ML libraries"
+source = "pypi"
+install_spec = "haybale-image==0.3.2"
+tags = ["image"]
+on_reload = "none"
+origin = "https://github.com/going-haywire/haywire"
+origin_provider = "github"
