@@ -570,6 +570,12 @@ STATIC_CSS = (
     " .hw-subject { font-size: 0.75rem; line-height: 1rem; font-weight: 500;"
     "   color: var(--hw-text-body) !important; }"
     " .hw-hint { font-size: 0.75rem; line-height: 1rem; color: var(--hw-text-muted) !important; }"
+    # hui.filter_chip: quiet at rest, accent when selected; no check icon, so a click never reflows.
+    " .q-chip.hw-filter-chip { background: transparent; color: var(--hw-text-muted);"
+    "   border: 1px solid var(--hw-border); }"
+    " .q-chip.hw-filter-chip.q-chip--selected { background: var(--hw-accent);"
+    "   color: var(--hw-text-on-accent); border-color: var(--hw-accent); }"
+    " .q-chip.hw-filter-chip .q-chip__icon--left { display: none; }"
     # One step in from where the section label's text starts; nested lists step once more.
     " .hw-indented { padding-left: calc(var(--hw-inset) + var(--hw-indent-step)); }"
     " .hw-indented .hw-indented { padding-left: var(--hw-indent-step); }"

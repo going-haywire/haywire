@@ -194,6 +194,8 @@ class AppIcon:
     """Stop icon inside a circle"""
     download: Final[str] = "download"
     """Download icon."""
+    filter: Final[str] = "filter_alt"
+    """Filter icon: shows or hides a list's filters."""
     find_replace: Final[str] = "find_replace"
     """Find and replace icon."""
     locked: Final[str] = "lock"

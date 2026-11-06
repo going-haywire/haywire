@@ -98,10 +98,13 @@ def state(models_env: VolumeStore, tmp_path: Path, monkeypatch: pytest.MonkeyPat
         catalog.add_folder(
             str(folder), LibraryIdentity(label=label, name=name, folder_path=str(folder), module_name=name)
         )
+    index = _mod("haybale_models.store.index").ModelIndex()
+    hf_root = location_of(keys.HF_VOLUME)
     fake = SimpleNamespace(
-        index=_mod("haybale_models.store.index").ModelIndex(),
+        index=index,
         catalog=catalog,
-        hf_cache=location_of(keys.HF_VOLUME),
+        hf_cache=hf_root,
+        sources=_mod("haybale_models.sources").builtin_sources(index, hf_cache=lambda: hf_root),
     )
     monkeypatch.setattr(consumer, "models_state", lambda: fake)
     return fake
@@ -591,6 +594,66 @@ async def test_an_address_without_scheme_is_not_taken(user: User, state: Any) ->
     assert _current_name(user) == "no model"
 
 
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_an_address_with_an_unknown_prefix_is_not_taken(user: User, state: Any) -> None:
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user, "address")
+
+    _enter_address(user, "ftp://x/w.pth")
+    await asyncio.sleep(0.05)
+
+    note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
+    assert note.text == "An address starts with hf:// or https://"
+    assert _current_name(user) == "no model"
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_picker_refuses_a_cache_address(user: User, state: Any) -> None:
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user, "address")
+
+    _enter_address(user, "torchhub://w.pth")
+    await asyncio.sleep(0.05)
+
+    note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
+    assert note.text == "An address starts with hf:// or https://"
+    assert _current_name(user) == "no model"
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_picker_refuses_a_whole_repo_address(user: User, state: Any) -> None:
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user, "address")
+
+    _enter_address(user, "hf://org/repo@" + "a" * 40)
+    await asyncio.sleep(0.05)
+
+    note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
+    assert note.text == "A whole-repo address belongs in a catalog entry."
+    assert _current_name(user) == "no model"
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_a_malformed_hf_address_is_refused(user: User, state: Any) -> None:
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user, "address")
+
+    _enter_address(user, "hf://onlyone")
+    await asyncio.sleep(0.05)
+
+    note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
+    assert "org/repo/path" in note.text
+    assert _current_name(user) == "no model"
+
+
 # =============================================================================
 # Through the edit route
 # =============================================================================
@@ -733,3 +796,166 @@ async def test_the_edit_button_is_unavailable_while_the_port_says_so(user: User,
 
     edit = cast(ui.button, user.find(marker="model-ref-edit").elements.pop())
     assert edit.enabled is False
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_picker_accepts_an_http_address(user: User, state: Any) -> None:
+    port = _port(ModelRef())
+    await _open(user, _direct(port))
+    _open_picker(user, "address")
+
+    _enter_address(user, "http://host/w.pth")
+    await asyncio.sleep(0.05)
+
+    note = cast(ui.label, user.find(marker="model-ref-uri-note").elements.pop())
+    assert not note.text.startswith("An address starts with")
+
+
+def _recommend(state: Any, *names: str) -> None:
+    for entry in state.catalog.entries():
+        entry.recommended = entry.name in names
+
+
+def _recommended_chip(user: User) -> ui.chip:
+    return cast(ui.chip, user.find(marker="model-ref-recommended").elements.pop())
+
+
+def _has_marker(user: User, marker: str) -> bool:
+    assert user.client is not None
+    return any(marker in el._markers for el in user.client.layout.descendants())  # type: ignore[attr-defined]
+
+
+def _has_recommended_chip(user: User) -> bool:
+    return bool(user.find(marker="model-ref-tabs").elements) and any(
+        "model-ref-recommended" in el._markers  # type: ignore[attr-defined]
+        for el in next(iter(user.find(marker="model-ref-tabs").elements)).descendants()
+    )
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_no_chip_when_nothing_is_flagged(user: User, state: Any) -> None:
+    await _open(user, _direct(_port(ModelRef())))
+    _open_picker(user)
+    assert not _has_recommended_chip(user)
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_no_chip_when_everything_is_flagged(user: User, state: Any) -> None:
+    _recommend(state, "Fast", "Soft", "Sharp")
+    await _open(user, _direct(_port(ModelRef())))
+    _open_picker(user)
+    assert not _has_recommended_chip(user)
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_chip_is_off_at_first_and_shows_all(user: User, state: Any) -> None:
+    _recommend(state, "Sharp")
+    await _open(user, _direct(_port(ModelRef())))
+    _open_picker(user)
+    assert _has_recommended_chip(user)
+    assert _recommended_chip(user).selected is False
+    assert _row_labels(user, "model-ref-catalog-pick") == ["Fast", "Soft", "Sharp"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_chip_narrows_and_combines_with_search(user: User, state: Any) -> None:
+    _recommend(state, "Sharp", "Soft")
+    await _open(user, _direct(_port(ModelRef())))
+    _open_picker(user)
+    _recommended_chip(user).set_selected(True)
+    await _eventually(lambda: _row_labels(user, "model-ref-catalog-pick") == ["Soft", "Sharp"])
+    cast(ui.input, user.find(marker="model-ref-catalog-search").elements.pop()).value = "sha"
+    await _eventually(lambda: _row_labels(user, "model-ref-catalog-pick") == ["Sharp"])
+    cast(ui.input, user.find(marker="model-ref-catalog-search").elements.pop()).value = "fas"
+    await _eventually(lambda: _row_labels(user, "model-ref-catalog-pick") == [])
+    _recommended_chip(user).set_selected(False)
+    await _eventually(lambda: _row_labels(user, "model-ref-catalog-pick") == ["Fast"])
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_the_port_filter_decides_whether_the_chip_appears(user: User, state: Any) -> None:
+    _recommend(state, "Fast")  # compact; the port lists only esrgan
+    await _open(user, _direct(_port(ModelRef(), {"filter": {"architecture": ["esrgan"]}})))
+    _open_picker(user)
+    assert not _has_recommended_chip(user)
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_order_ignores_the_flag(user: User, state: Any) -> None:
+    _recommend(state, "Sharp")
+    await _open(user, _direct(_port(ModelRef())))
+    _open_picker(user)
+    assert _row_labels(user, "model-ref-catalog-pick")[0] == "Fast"
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_reopening_the_picker_resets_the_chip(user: User, state: Any) -> None:
+    _recommend(state, "Sharp")
+    await _open(user, _direct(_port(ModelRef())))
+    _open_picker(user)
+    _recommended_chip(user).set_selected(True)
+    await _eventually(lambda: _row_labels(user, "model-ref-catalog-pick") == ["Sharp"])
+    _open_picker(user)
+    assert _recommended_chip(user).selected is False
+    assert _row_labels(user, "model-ref-catalog-pick") == ["Fast", "Soft", "Sharp"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_catalog_search_takes_several_words_in_any_order(user: User, state: Any) -> None:
+    await _open(user, _direct(_port(ModelRef())))
+    _open_picker(user)
+    search = cast(ui.input, user.find(marker="model-ref-catalog-search").elements.pop())
+    search.value = "esrgan sha"
+    await _eventually(lambda: _row_labels(user, "model-ref-catalog-pick") == ["Sharp"])
+    search.value = "sha esrgan"
+    await _eventually(lambda: _row_labels(user, "model-ref-catalog-pick") == ["Sharp"])
+    search.value = "sha compact"
+    await _eventually(lambda: _row_labels(user, "model-ref-catalog-pick") == [])
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_catalog_only_draws_no_other_tabs(user: User, state: Any) -> None:
+    await _open(user, _direct(_port(ModelRef(), {"catalog_only": True})))
+    _open_picker(user)
+    assert _row_labels(user, "model-ref-catalog-pick") == ["Fast", "Soft", "Sharp"]
+    assert not _has_marker(user, "model-ref-tabs")
+    assert not _has_marker(user, "model-ref-file")
+    assert not _has_marker(user, "model-ref-address")
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_catalog_only_still_chooses(user: User, state: Any) -> None:
+    port = _port(ModelRef(), {"catalog_only": True})
+    await _open(user, _direct(port))
+    _open_picker(user)
+    _click_row(user, "model-ref-catalog-pick", "Sharp")
+    user.find(marker="model-ref-use").click()
+    await _eventually(lambda: port.get_value() == ModelRef(catalog="haybale-beta:catalog:4x-Sharp"))
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_catalog_only_combines_with_filter(user: User, state: Any) -> None:
+    props = {"catalog_only": True, "filter": {"architecture": ["compact"]}}
+    await _open(user, _direct(_port(ModelRef(), props)))
+    _open_picker(user)
+    assert _row_labels(user, "model-ref-catalog-pick") == ["Fast"]
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_tabs_stay_by_default(user: User, state: Any) -> None:
+    await _open(user, _direct(_port(ModelRef())))
+    _open_picker(user)
+    assert _has_marker(user, "model-ref-tabs")

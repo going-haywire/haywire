@@ -23,7 +23,8 @@ Nothing is downloaded here: a model that is not on this machine is an
 error until it is fetched in the Models editor.
 
 - `Path`: the file, as a path inside the `Models` or `Hugging Face cache`
-  volume. For a model made of several files, the folder holding them.
+  volume. For a model made of several files, or a whole-repo `hf://`
+  address, the folder holding them.
 - `sha256`: the file's digest, empty when it is not known yet.
 - `Size`: the size in bytes, of all files together for a model made of
   several files.

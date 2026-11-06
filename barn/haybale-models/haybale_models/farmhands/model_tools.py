@@ -16,7 +16,15 @@ from haywire.core.farmhand import (
 from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_models.matcher import candidates
 from haybale_models.needs import NeedsReport, collect_needs, job_matches
-from haybale_models.resolver import FetchSpec, locate_resource, resolve
+from haybale_models.resolver import (
+    FetchSpec,
+    addresses_of,
+    locate_resource,
+    place_of,
+    resolve,
+    unserved_cache,
+)
+from haybale_models.download import DownloadJob
 from haybale_models.state.models_state import ModelsState
 from haybale_models.status import resource_status
 from haybale_models.value.model_ref import ModelRef
@@ -40,9 +48,25 @@ def _report(ctx: FarmhandContext, binding_id: str) -> NeedsReport:
     models = _models(ctx)
 
     def resolve_fn(ref: ModelRef, preference: Any) -> Any:
-        return resolve(ref, preference, catalog=models.catalog, index=models.index, hf_cache=models.hf_cache)
+        return resolve(ref, preference, catalog=models.catalog, index=models.index, sources=models.sources)
 
     return collect_needs(graph, resolve_fn)
+
+
+def _job_row(models: ModelsState, job: DownloadJob) -> dict[str, Any]:
+    """Return the report of one download job; a job the user can finish says so."""
+    row: dict[str, Any] = {
+        "id": job.id,
+        "label": job.label,
+        "state": job.state,
+        "done_bytes": job.done_bytes,
+        "total_bytes": job.total_bytes,
+        "error": job.error,
+    }
+    if models.queue.assistable(job.id):
+        row["assisted"] = True
+        row["page_urls"] = [url for a in job.sources if (url := models.sources.page_url(a)) is not None]
+    return row
 
 
 @farmhand(
@@ -50,7 +74,7 @@ def _report(ctx: FarmhandContext, binding_id: str) -> NeedsReport:
     description="Catalog entries with per-variant status, indexed local files and download jobs.",
     instructions="Lists the model catalog (every entry with each variant's size and status: local, "
     "HF cache, queued, downloading N %, failed, not downloaded), the files indexed in the models "
-    "volume, and the download jobs. detail=true adds license and description to catalog rows.",
+    "volume, and the download jobs. detail=true adds license, commercial and description to catalog rows.",
     registry_id="list",
     annotations=ToolAnnotations(read_only_hint=True),
     requires=AccessTier.VIEW,
@@ -62,29 +86,33 @@ class ModelsListTool(Farmhand):
     queued, downloading, failed or not downloaded), every file indexed in the models
     volume, and every download job with its progress. Call it first, to learn the
     catalog keys that `models_fetch` takes and to follow a download. Pass
-    `detail=true` to add license and description to the catalog rows.
+    `detail=true` to add license, commercial (whether the author states the model may be used
+    commercially) and description to the catalog rows.
+
+    A failed job with `assisted` true can be finished by the user: they get the file from one of its
+    `page_urls` and hand it over with Download in browser in the Models editor.
     """
 
     async def run(self, ctx: FarmhandContext, detail: bool = False) -> dict:
         models = _models(ctx)
         jobs = models.queue.jobs()
-        hf_root = models.hf_cache
         catalog: list[dict[str, Any]] = []
         for entry in models.catalog.entries():
             variants = []
             for resource in entry.resources:
-                found = locate_resource(resource, models.index, hf_root)
-                in_hf = (
-                    found is not None
-                    and hf_root is not None
-                    and any(p.is_relative_to(hf_root) for p in found[0].values())
-                )
+                found = locate_resource(resource, models.index, models.sources)
+                place = None if found is None else place_of(found[0].values(), models.sources)
                 matching = [j for j in jobs if job_matches(j, FetchSpec(entry=entry, resource=resource))]
                 variants.append(
                     {
                         "variant": resource.variant_name(),
                         "size": resource.total_size,
-                        "status": resource_status(found is not None and not in_hf, in_hf, matching),
+                        "status": resource_status(
+                            place,
+                            matching,
+                            unavailable=unserved_cache(resource, models.sources)
+                            or models.sources.unavailable(addresses_of(resource)),
+                        ),
                     }
                 )
             row: dict[str, Any] = {
@@ -94,28 +122,21 @@ class ModelsListTool(Farmhand):
             }
             if detail:
                 row["license"] = entry.license
+                row["commercial"] = entry.commercial
                 row["description"] = entry.description
             catalog.append(row)
         local = [
             {"relative": r.relative, "size": r.size, "sha256": r.sha256} for r in models.index.records()
         ]
-        job_rows = [
-            {
-                "id": j.id,
-                "label": j.label,
-                "state": j.state,
-                "done_bytes": j.done_bytes,
-                "total_bytes": j.total_bytes,
-                "error": j.error,
-            }
-            for j in jobs
-        ]
+        job_rows = [_job_row(models, j) for j in jobs]
         return {
             "summary": f"{len(catalog)} catalog entries, {len(local)} local files, {len(job_rows)} jobs.",
             "catalog": catalog,
             "local": local,
             "jobs": job_rows,
-            "help": "Run models_fetch keys=[<key>] to download a catalog entry (admin).",
+            "help": "Run models_fetch keys=[<key>] to download a catalog entry (admin). A job with "
+            "assisted=true failed but can be finished by the user: send them to Download in browser in "
+            "the Models editor, with its page_urls.",
         }
 
 

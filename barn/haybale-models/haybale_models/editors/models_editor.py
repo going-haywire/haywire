@@ -2,9 +2,10 @@
 
 A **Needed** section lists what the open graphs lack; below it the **Catalog** (every resource
 of every installed catalog entry, with its status), **Local** (files in the models volume that
-no catalog resource claims) and the **Hugging Face cache** (read-only; haywire never deletes
-there), which lists only files a catalog entry or an open graph refers to. Download, cancel,
-remove and *Fetch all* need admin access and are re-checked at click time.
+no catalog resource claims) and the **Hugging Face cache**, which lists only files a catalog
+entry or an open graph refers to. A catalog row removes its own files from whichever volume
+holds them. Download, cancel, remove and *Fetch all* need admin access and are re-checked at
+click time.
 """
 
 from __future__ import annotations
@@ -21,23 +22,43 @@ from haywire.core.access import AccessTier
 from haywire.core.session.handlers import react_on
 from haywire.core.volumes import VolumeError, location_of
 from haywire.ui import elements as hui
+from haywire.ui.elements.flyout import MENU_CARD_CLASS
 from haywire.ui.hover_tip import set_hover_tip
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
 from haywire.ui.modals import confirm_modal
+from huggingface_hub.utils import filter_repo_objects
 from nicegui import core, ui
 
 from haybale_graph_editor.notices import GraphNoticesChanged
 from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_models.consumer import preference_for
-from haybale_models.describe import entry_description, entry_search_text, entry_summary
+from haybale_models.describe import (
+    entry_description,
+    entry_search_text,
+    entry_summary,
+    search_matches,
+)
 from haybale_models.download import DownloadJob
-from haybale_models.hf import HfCachedFile, list_cache, parse_hf
-from haybale_models.keys import MODELS_VOLUME
+from haybale_models.editors.assisted_dialog import assisted_slots, open_assisted_dialog
+from haybale_models.filters import FILTER_FIELDS, entry_facts, row_matches, values_on_offer
+from haybale_models.hf import HfCachedFile, is_whole_repo, list_cache, parse_hf, parse_hf_repo
+from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
 from haybale_models.needs import NeededModel, format_size, iter_model_refs, job_matches
-from haybale_models.resolver import FetchSpec, ModelMissing, locate_resource, resolve
+from haybale_models.resolver import (
+    FetchSpec,
+    ModelMissing,
+    addresses_of,
+    files_of,
+    locate_resource,
+    place_of,
+    resolve,
+    unserved_cache,
+)
 from haybale_models.signals import ModelsChanged
+from haybale_models.sources import ModelSource, SourceSet
+from haybale_models.sources.https import HttpsSource
 from haybale_models.state.models_state import ModelsState
 from haybale_models.status import resource_status
 from haybale_models.store.index import IndexRecord
@@ -55,10 +76,13 @@ NOT_USED = "not used by an open graph"
 
 @dataclass
 class _Removal:
-    """What a Remove click deletes: the files of one or more digests."""
+    """What a Remove click deletes: Models-volume files by digest, and files in cache volumes."""
 
     label: str
     shas: set[str] = field(default_factory=set)
+    """Digests of the Models-volume files."""
+    cache_paths: tuple[Path, ...] = ()
+    """Files in cache volumes (framework caches and the Hugging Face cache)."""
 
 
 @dataclass
@@ -68,11 +92,25 @@ class _Located:
     entry: CatalogEntry
     resource: Resource
     found: tuple[dict[str, Path], str, str, int] | None
-    in_hf: bool
+    place: str | None
+    """The ``ModelSource.place`` of the found files; ``None`` when not found."""
 
     @property
     def local(self) -> bool:
-        return self.found is not None and not self.in_hf
+        return self.place == "local"
+
+
+@dataclass(frozen=True)
+class _CacheFile:
+    """A file in a cache volume, checked to resolve inside it."""
+
+    source: ModelSource
+    root: Path
+    """The volume root, resolved."""
+    path: Path
+    """The path as found (a Hugging Face snapshot file is a link to its blob)."""
+    relative: str
+    """Posix path inside the volume, as a fetch record keeps it."""
 
 
 _LiveText = Callable[[dict[str, DownloadJob], dict[Path, float]], str]
@@ -104,9 +142,28 @@ def _format_of(resource: Resource) -> str:
     return resource.type or resource.platform or resource.variant_name()
 
 
+def _status_hint(status: str) -> ui.label:
+    """Draw a row's status; a long error is cut, with the whole text as its tooltip."""
+    label = hui.hint(status).classes("truncate min-w-0 max-w-[50%]")
+    if status.startswith("failed"):
+        label.tooltip(status)
+    return label
+
+
 def _files_summary(count: int, size: int) -> str:
     """Return the section-header summary "N file(s), SIZE"."""
     return f"{count} {'file' if count == 1 else 'files'}, {format_size(size)}"
+
+
+def _in_cache_volume(sources: SourceSet, path: Path) -> bool:
+    """Whether a model source other than the Models volume's holds *path*."""
+    held = sources.holding(path)
+    return held is not None and held.place != "local"
+
+
+def _stoppable(jobs: list[DownloadJob]) -> list[DownloadJob]:
+    """The active jobs Cancel can stop now: queued ones, and running ones whose source stops."""
+    return [j for j in jobs if j.state == "queued" or (j.state == "running" and j.cancellable)]
 
 
 def _dot(section: str) -> None:
@@ -126,17 +183,25 @@ def _dot(section: str) -> None:
 class ModelsEditor(BaseEditor):
     """Lists the model catalog, the files in the Models volume and the Hugging Face files in use.
 
-    The **Show:** row picks the sections — **Catalog**, **Models**, **Huggingface** — and the
-    search toggle opens a field that narrows every section. The **Needed** section is always
-    shown: per open graph, the models it lacks; **Fetch all** downloads them. Each section
-    header counts what the section lists; hover it for the whole volume's size.
+    The **Filters** icon in the header opens the filter section. Its **Show:** row picks the sections
+    (**Catalog**, **Models**, **Huggingface**). Its search toggle opens a field that narrows every
+    section: each word must appear, in any order, and scale, licence and `commercial` count too. Its
+    **+** adds a filter on library, purpose, tags, architecture, scale, commercial use or status, which
+    narrows the catalog. Closing it switches them all off, so a closed section always means the full
+    list, and reopening it brings them back.
+    The **Needed** section is always shown: per open graph, the models it lacks; **Fetch all**
+    downloads them. Each section header counts what the section lists; hover it for the whole
+    volume's size.
 
+    A catalog row reads `non-commercial` unless its author states the model may be used commercially.
     Each catalog resource shows its status: `local`, `HF cache`, `downloading`, `failed` or
     `not downloaded`. **Models** lists the files in the Models volume that no catalog entry
     occupies. **Huggingface** lists the cached files that catalog entries or open graphs use,
     and what uses each; the Volumes editor shows where the cache lives. Download, Cancel and
     Remove need admin access; a removal names the open graphs that use the file and the bytes
-    it frees. Opening the editor and **Rescan** index the Models volume on a background thread.
+    it frees. Cancel is offered only while a download can still be stopped: a Hugging Face
+    download, once started, runs to the end. Opening the editor and **Rescan** index the Models
+    volume on a background thread.
     """
 
     def __init__(self, wrapper: EditorWrapper) -> None:
@@ -151,6 +216,13 @@ class ModelsEditor(BaseEditor):
         self._live: list[tuple[ui.label, _LiveText]] = []
         self._scroll_top = 0.0
         self._show = {_SHOW_CATALOG: True, _SHOW_MODELS: True, _SHOW_HF: True}
+        self._filters_open = False
+        self._selected: dict[str, set[str]] = {}
+        self._offered: dict[str, list[str]] = {}
+        self._filter_host: ui.column | None = None
+        self._fields_slot: ui.column | None = None
+        self._added: list[str] = []
+        self._selects: dict[str, ui.select] | None = None
         self._search_on = False
         self._query = ""
         self._list: ui.column | None = None
@@ -180,8 +252,9 @@ class ModelsEditor(BaseEditor):
         """Return what decides the rows of a draw; a progress tick leaves it unchanged."""
         return (
             context.can_access(AccessTier.ADMIN),
-            tuple((j.id, j.state) for j in models.queue.jobs()),
+            tuple((j.id, j.state, j.cancellable) for j in models.queue.jobs()),
             frozenset(r.sha256 for r in models.index.records()),
+            frozenset(models.records.all()),
             tuple((e.library.name, e.name) for e in models.catalog.entries()),
             tuple(
                 sorted(
@@ -290,7 +363,17 @@ class ModelsEditor(BaseEditor):
                     hui.icon_action(
                         hui.icon.refresh, tooltip="Rescan", on_click=lambda: self._rescan(models)
                     ).mark("models-rescan")
-                self._draw_filter_row(context)
+                    with (
+                        ui.button()
+                        .props("flat round dense size=sm")
+                        .tooltip("Filters")
+                        .mark("models-filters") as filters_btn
+                    ):
+                        filters_icon = ui.icon(hui.icon.filter).classes("hw-use-props-color")
+                        filters_icon.props(f"color={'blue' if self._filters_open else 'grey'}")
+                    filters_btn.on("click", lambda ie=filters_icon: self._toggle_filters(context, ie))
+                self._filter_host = ui.column().classes("w-full gap-0 flex-shrink-0")
+                self._draw_filter_section(context)
                 with (
                     ui.scroll_area(on_scroll=self._on_scroll)
                     .classes("flex-1 w-full")
@@ -312,20 +395,123 @@ class ModelsEditor(BaseEditor):
         graphs = context.app_data[GraphAppState]
         jobs = models.queue.jobs()
         records = models.index.records()
-        query = self._query.strip().lower() if self._search_on else ""
+        query = self._query.strip().lower() if self._filters_open and self._search_on else ""
         box.clear()
         with box:
             self._draw_needed(context, models, graphs, jobs, admin)
             claimed, shown = self._draw_catalog(
-                context, models, jobs, admin, visible=self._show[_SHOW_CATALOG], query=query
+                context, models, jobs, admin, visible=self._shows(_SHOW_CATALOG), query=query
             )
             self._draw_downloads(context, models, jobs, shown, admin, query=query)
-            if self._show[_SHOW_MODELS]:
+            if self._shows(_SHOW_MODELS):
                 self._draw_local(context, models, records, claimed, admin, query=query)
-            if self._show[_SHOW_HF]:
+            if self._shows(_SHOW_HF):
                 self._draw_hf(models, graphs, query=query)
+        self._sync_fields(context)
 
     # -- filter row -------------------------------------------------------------
+
+    def _shows(self, section: str) -> bool:
+        """Return whether *section* is drawn: always while the filter section is closed."""
+        return not self._filters_open or self._show[section]
+
+    def _toggle_filters(self, context: SessionContext, icon_el: ui.icon) -> None:
+        """Open or close the filter section; while closed its settings stay but do not apply."""
+        self._filters_open = not self._filters_open
+        icon_el.props(f"color={'blue' if self._filters_open else 'grey'}")
+        self._draw_filter_section(context)
+        self._draw_list(context)
+
+    def _draw_filter_section(self, context: SessionContext) -> None:
+        """Draw the filter section into its host while it is open."""
+        host = self._filter_host
+        if host is None or host.is_deleted:
+            return
+        host.clear()
+        self._search_slot = None
+        self._fields_slot = None
+        self._selects = None
+        if self._filters_open:
+            with host:
+                self._draw_filter_row(context)
+
+    def _sync_fields(self, context: SessionContext) -> None:
+        """Bring the filter fields up to date, keeping their selects so an open dropdown stays open."""
+        if self._fields_slot is None or self._fields_slot.is_deleted:
+            return
+        if self._selects is None or list(self._selects) != self._added:
+            self._draw_fields(context)
+            return
+        for key, select in self._selects.items():
+            values = self._offered.get(key, [])
+            if select.options != values:
+                select.set_options(values, value=self._selected_values(key))
+
+    def _selected_values(self, key: str) -> list[str]:
+        chosen = self._selected.get(key, set())
+        return [value for value in self._offered.get(key, []) if value in chosen]
+
+    def _draw_fields(self, context: SessionContext) -> None:
+        """Draw a row per added field, then the button that adds another."""
+        slot = self._fields_slot
+        if slot is None or slot.is_deleted:
+            return
+        slot.clear()
+        self._selects = {}
+        labels = dict(FILTER_FIELDS)
+        with slot:
+            for key in self._added:
+                with ui.row().classes("w-full items-center no-wrap gap-1"):
+                    hui.hint(labels[key]).classes("w-20 flex-shrink-0 truncate")
+                    self._selects[key] = (
+                        hui.select_field(
+                            options=self._offered.get(key, []),
+                            value=self._selected_values(key),
+                            multiple=True,
+                            with_input=True,
+                            min_width="0",
+                            on_change=lambda e, k=key: self._on_field(context, k, e.value),
+                        )
+                        .props("use-chips")
+                        .classes("flex-1 min-w-0")
+                        .mark(f"models-select-{key}")
+                    )
+                    hui.icon_action(
+                        hui.icon.close,
+                        tooltip="Remove this filter",
+                        on_click=lambda k=key: self._remove_field(context, k),
+                    ).mark(f"models-filter-remove-{key}")
+            unused = [(key, label) for key, label in FILTER_FIELDS if key not in self._added]
+            if unused:
+                with hui.icon_action(hui.icon.add, tooltip="Add a filter").mark("models-filter-add"):
+                    menu = ui.menu().classes(MENU_CARD_CLASS)
+
+                    def close_menu() -> None:
+                        # Adding a field redraws this row's slot, which deletes the menu first.
+                        if not menu.is_deleted:
+                            menu.close()
+
+                    with menu, hui.open_flyout_group(dismiss=close_menu):
+                        for key, label in unused:
+                            hui.menu_row(label, on_click=lambda k=key: self._add_field(context, k)).mark(
+                                f"models-filter-add-{key}"
+                            )
+
+    def _add_field(self, context: SessionContext, key: str) -> None:
+        self._added.append(key)
+        self._draw_fields(context)
+
+    def _remove_field(self, context: SessionContext, key: str) -> None:
+        self._added.remove(key)
+        self._selected.pop(key, None)
+        self._draw_fields(context)
+        self._draw_list(context)
+
+    def _on_field(self, context: SessionContext, key: str, values: list[str] | None) -> None:
+        chosen = set(values or [])
+        if chosen != self._selected.get(key, set()):
+            self._selected[key] = chosen
+            self._draw_list(context)
 
     def _draw_filter_row(self, context: SessionContext) -> None:
         """Draw the "Show:" toggles and the search toggle, with the search field below when it is on."""
@@ -350,6 +536,9 @@ class ModelsEditor(BaseEditor):
                 btn.on("click", lambda ie=search_icon: self._toggle_search(context, ie))
             self._search_slot = ui.column().classes("w-full gap-0")
             self._draw_search_field(context)
+            self._fields_slot = (
+                ui.column().classes("w-full gap-0.5 max-h-40 overflow-y-auto").mark("models-filter-fields")
+            )
 
     def _make_toggle(self, context: SessionContext, key: str, icon: str, colour: str, tip: str) -> None:
         with ui.button().props("flat round dense size=xs").tooltip(tip).mark(f"models-filter-{key}") as btn:
@@ -449,6 +638,13 @@ class ModelsEditor(BaseEditor):
         size = format_size(needed.size) if needed.size is not None else "—"
         matching = [j for j in jobs if job_matches(j, spec)]
         active = [j for j in matching if j.state in ("queued", "running")]
+        if spec.entry is not None and spec.resource is not None:
+            addresses = addresses_of(spec.resource)
+        else:
+            addresses = spec.ref.urls if spec.ref is not None else ()
+        unavailable = models.sources.unavailable(addresses)
+        if spec.resource is not None:
+            unavailable = unserved_cache(spec.resource, models.sources) or unavailable
         with (
             ui.row()
             .classes("w-full items-center no-wrap gap-2 pl-5 pr-2 rounded hw-list-item-hover")
@@ -457,25 +653,28 @@ class ModelsEditor(BaseEditor):
             hui.hint(label).classes("truncate flex-1 min-w-0").tooltip(address or label)
             hui.hint(f"{variant} · {size}" if variant else size).classes("flex-shrink-0")
             self._live_status(
-                hui.hint(resource_status(False, False, matching))
-                .classes("flex-shrink-0")
-                .mark("models-needed-status"),
-                self._job_status(False, False, [j.id for j in matching]),
+                _status_hint(resource_status(None, matching, unavailable=unavailable)).mark(
+                    "models-needed-status"
+                ),
+                self._job_status(None, [j.id for j in matching], unavailable),
             )
             if not admin:
                 return
             if active:
-                hui.icon_action(
-                    hui.icon.close,
-                    tooltip="Cancel download",
-                    on_click=lambda ids=[j.id for j in active]: self._cancel(context, models, ids),
-                ).mark("models-needed-cancel")
-            else:
+                if stoppable := _stoppable(active):
+                    hui.icon_action(
+                        hui.icon.close,
+                        tooltip="Cancel download",
+                        on_click=lambda ids=[j.id for j in stoppable]: self._cancel(context, models, ids),
+                    ).mark("models-needed-cancel")
+            elif unavailable is None:
                 hui.icon_action(
                     hui.icon.download,
                     tooltip="Download",
                     on_click=lambda: self._download(context, models, spec),
                 ).mark("models-needed-download")
+            if not active:
+                self._assisted_action(context, models, matching, "models-needed-assisted")
 
     @staticmethod
     def _header(title: str, summary: str, total: str | None = None) -> None:
@@ -506,22 +705,36 @@ class ModelsEditor(BaseEditor):
         by_library: dict[str, list[CatalogEntry]] = {}
         for entry in models.catalog.entries():
             by_library.setdefault(entry.library.label or entry.library.name, []).append(entry)
-        hf_root = models.hf_cache
-        grouped: list[tuple[str, list[_Located]]] = []
+        needed = {m.spec.identity for r in models.needed_reports().values() for m in r.missing}
+        candidates: list[tuple[str, _Located, dict[str, set[str]]]] = []
         for library in sorted(by_library, key=str.lower):
             rows: list[_Located] = []
             for entry in sorted(by_library[library], key=lambda e: e.name.lower()):
                 for resource in entry.resources:
-                    found = locate_resource(resource, models.index, hf_root)
-                    in_hf = found is not None and hf_root is not None and self._under(found[0], hf_root)
+                    found = locate_resource(resource, models.index, models.sources)
+                    place = None if found is None else place_of(found[0].values(), models.sources)
                     if found is not None:
                         claimed.update(sha for p in found[0].values() if (sha := models.index.sha256_at(p)))
-                    haystack = f"{library} {resource.variant_name()} {entry_search_text(entry)}".lower()
-                    if query and query not in haystack:
-                        continue
-                    rows.append(_Located(entry, resource, found, in_hf))
-            if rows:
-                grouped.append((library, rows))
+                    identity = FetchSpec(entry=entry, resource=resource).identity
+                    facts = entry_facts(entry, on_machine=found is not None, needed=identity in needed)
+                    candidates.append((library, _Located(entry, resource, found, place), facts))
+        self._offered = values_on_offer(facts for _library, _row, facts in candidates)
+        # A value the catalog no longer offers has no chip to clear it with.
+        self._selected = {
+            key: chosen & set(self._offered[key])
+            for key, chosen in self._selected.items()
+            if key in self._offered
+        }
+        grouped: list[tuple[str, list[_Located]]] = []
+        for library, row, facts in candidates:
+            haystack = f"{library} {row.resource.variant_name()} {entry_search_text(row.entry)}".lower()
+            if not search_matches(query, haystack) or (
+                self._filters_open and not row_matches(facts, self._selected)
+            ):
+                continue
+            if not grouped or grouped[-1][0] != library:
+                grouped.append((library, []))
+            grouped[-1][1].append(row)
         if not visible:
             return claimed, shown
         located = [row for _library, rows in grouped for row in rows]
@@ -532,7 +745,8 @@ class ModelsEditor(BaseEditor):
             for row in rows:
                 shown.update(self._draw_catalog_row(context, models, jobs, row, admin))
         if not grouped:
-            hui.hint("No match." if query else "Nothing in the catalog.").classes("px-2")
+            narrowed = query or any(self._selected.values())
+            hui.hint("No match." if narrowed else "Nothing in the catalog.").classes("px-2")
         return claimed, shown
 
     @staticmethod
@@ -559,7 +773,7 @@ class ModelsEditor(BaseEditor):
             for j in jobs
             if j.state in ("queued", "running", "failed")
             and j.id not in shown
-            and (not query or query in f"{j.label} {' '.join(j.sources)}".lower())
+            and search_matches(query, f"{j.label} {' '.join(j.sources)}")
         ]
         if not rest:
             return
@@ -579,17 +793,17 @@ class ModelsEditor(BaseEditor):
                         source
                     )
                 self._live_status(
-                    hui.hint(resource_status(False, False, [job]))
-                    .classes("flex-shrink-0")
-                    .mark("models-status"),
-                    self._job_status(False, False, [job.id]),
+                    _status_hint(resource_status(None, [job])).mark("models-status"),
+                    self._job_status(None, [job.id]),
                 )
-                if admin and job.state in ("queued", "running"):
+                if admin and _stoppable([job]):
                     hui.icon_action(
                         hui.icon.close,
                         tooltip="Cancel download",
                         on_click=lambda jid=job.id: self._cancel(context, models, [jid]),
                     ).mark("models-cancel")
+                if admin and job.state == "failed":
+                    self._assisted_action(context, models, [job], "models-download-assisted")
 
     @staticmethod
     def _indexing_status(path: Path, fraction: float) -> _LiveText:
@@ -599,17 +813,13 @@ class ModelsEditor(BaseEditor):
         return text_of
 
     @staticmethod
-    def _job_status(local: bool, in_hf: bool, job_ids: list[str]) -> _LiveText:
+    def _job_status(place: str | None, job_ids: list[str], unavailable: str | None = None) -> _LiveText:
         """Return a function giving the status text of a row from the current jobs."""
 
         def text_of(by_id: dict[str, DownloadJob], _pending: dict[Path, float]) -> str:
-            return resource_status(local, in_hf, [by_id[i] for i in job_ids if i in by_id])
+            return resource_status(place, [by_id[i] for i in job_ids if i in by_id], unavailable=unavailable)
 
         return text_of
-
-    @staticmethod
-    def _under(files: dict[str, Path], root: Path) -> bool:
-        return any(p.is_relative_to(root) for p in files.values())
 
     def _draw_catalog_row(
         self,
@@ -623,10 +833,12 @@ class ModelsEditor(BaseEditor):
         entry, resource = row.entry, row.resource
         spec = FetchSpec(entry=entry, resource=resource)
         local = row.found if row.local else None
-        in_hf = row.in_hf
+        place = row.place
         matching = [j for j in jobs if job_matches(j, spec)]
-        active = [j for j in matching if j.state in ("queued", "running")]
-        status = resource_status(local is not None, in_hf, matching)
+        unavailable = unserved_cache(resource, models.sources) or models.sources.unavailable(
+            addresses_of(resource)
+        )
+        status = resource_status(place, matching, unavailable=unavailable)
         size = resource.total_size
         with ui.column().classes("w-full gap-0 px-2 py-1 rounded hw-list-item-hover").mark("models-row"):
             with ui.row().classes("w-full items-center no-wrap gap-2"):
@@ -640,16 +852,33 @@ class ModelsEditor(BaseEditor):
                     description=entry_description(entry),
                 )
                 if admin:
-                    self._catalog_actions(context, models, entry, resource, spec, local, in_hf, active)
+                    cached = (
+                        () if row.found is None or row.local else tuple(files_of(row.found[0], resource))
+                    )
+                    self._catalog_actions(
+                        context,
+                        models,
+                        entry,
+                        resource,
+                        spec,
+                        local,
+                        place,
+                        matching,
+                        unavailable,
+                        cached,
+                    )
             with ui.row().classes("w-full items-center no-wrap gap-1"):
                 detail = f"{_format_of(resource)} · {format_size(size) if size is not None else '—'}"
                 summary = entry_summary(entry, scale=False)
                 hui.hint(" · ".join(p for p in (summary, detail, entry.license or "—") if p) + " ·").classes(
                     "truncate min-w-0"
                 )
+                if not entry.commercial:
+                    # Its own element: a long summary before it must not cut it off.
+                    hui.hint("non-commercial ·").classes("flex-shrink-0").mark("models-non-commercial")
                 self._live_status(
-                    hui.hint(status).classes("flex-shrink-0").mark("models-status"),
-                    self._job_status(local is not None, in_hf, [j.id for j in matching]),
+                    _status_hint(status).mark("models-status"),
+                    self._job_status(place, [j.id for j in matching], unavailable),
                 )
         return [j.id for j in matching]
 
@@ -661,22 +890,33 @@ class ModelsEditor(BaseEditor):
         resource: Resource,
         spec: FetchSpec,
         local: tuple[dict[str, Path], str, str, int] | None,
-        in_hf: bool,
-        active: list[DownloadJob],
+        place: str | None,
+        matching: list[DownloadJob],
+        unavailable: str | None,
+        cached: tuple[Path, ...] = (),
     ) -> None:
-        """Draw the Cancel, Download and Remove actions of a catalog row."""
+        """Draw the Cancel, Download, Download in browser and Remove actions of a catalog row.
+
+        No Download action is drawn when *unavailable* names a prefix no model source serves.
+        A found row gets Remove wherever its files lie: the catalog entry entitles it. Files in
+        the Models volume must each be indexed; files in cache volumes must resolve inside them.
+        """
+        active = [j for j in matching if j.state in ("queued", "running")]
         if active:
-            hui.icon_action(
-                hui.icon.close,
-                tooltip="Cancel download",
-                on_click=lambda ids=[j.id for j in active]: self._cancel(context, models, ids),
-            ).mark("models-cancel")
-        elif local is None and not in_hf:
-            hui.icon_action(
-                hui.icon.download,
-                tooltip="Download",
-                on_click=lambda: self._download(context, models, spec),
-            ).mark("models-download")
+            if stoppable := _stoppable(active):
+                hui.icon_action(
+                    hui.icon.close,
+                    tooltip="Cancel download",
+                    on_click=lambda ids=[j.id for j in stoppable]: self._cancel(context, models, ids),
+                ).mark("models-cancel")
+        elif place is None:
+            if unavailable is None:
+                hui.icon_action(
+                    hui.icon.download,
+                    tooltip="Download",
+                    on_click=lambda: self._download(context, models, spec),
+                ).mark("models-download")
+            self._assisted_action(context, models, matching, "models-assisted")
         if local is not None:
             shas = {sha for p in local[0].values() if (sha := models.index.sha256_at(p))}
             hui.icon_action(
@@ -686,6 +926,40 @@ class ModelsEditor(BaseEditor):
                     context, models, _Removal(_variant_title(entry, resource), shas)
                 ),
             ).mark("models-remove")
+            return
+        in_cache = tuple(p for p in cached if _in_cache_volume(models.sources, p))
+        in_models = [models.index.sha256_at(p) for p in cached if p not in in_cache]
+        if not in_cache or not all(in_models) or self._cache_files(models, in_cache) is None:
+            return
+        removal = _Removal(
+            _variant_title(entry, resource),
+            {sha for sha in in_models if sha},
+            cache_paths=in_cache,
+        )
+        hui.icon_action(
+            hui.icon.delete,
+            tooltip="Remove",
+            on_click=lambda: self._confirm_remove(context, models, removal),
+        ).mark("models-remove")
+
+    def _assisted_action(
+        self, context: SessionContext, models: ModelsState, jobs: list[DownloadJob], mark: str
+    ) -> None:
+        """Draw Download in browser when one of *jobs* can be finished that way."""
+        slots = assisted_slots(models.queue, jobs)
+        if slots:
+            hui.icon_action(
+                hui.icon.open_external,
+                tooltip="Download in browser",
+                on_click=lambda: self._open_assisted(context, models, slots),
+            ).mark(mark)
+
+    def _open_assisted(self, context: SessionContext, models: ModelsState, slots: list[DownloadJob]) -> None:
+        client = ui.context.client
+        if not context.can_access(AccessTier.ADMIN):
+            self._refuse(client)
+            return
+        open_assisted_dialog(models, context.principal, slots)
 
     # -- local ---------------------------------------------------------------------
 
@@ -703,8 +977,7 @@ class ModelsEditor(BaseEditor):
             (
                 r
                 for r in records
-                if r.sha256 not in claimed
-                and (not query or query in f"{r.relative} {r.source or ''}".lower())
+                if r.sha256 not in claimed and search_matches(query, f"{r.relative} {r.source or ''}")
             ),
             key=lambda r: (r.relative.lower(), r.relative),
         )
@@ -716,7 +989,7 @@ class ModelsEditor(BaseEditor):
         if models.index.problem:
             hui.error_label(models.index.problem)
         if query:
-            pending = {p: f for p, f in pending.items() if query in p.name.lower()}
+            pending = {p: f for p, f in pending.items() if search_matches(query, p.name)}
         count = len(loose) + len(pending)
         self._header(
             "Models",
@@ -761,55 +1034,88 @@ class ModelsEditor(BaseEditor):
 
     def _hf_users(
         self, models: ModelsState, graphs: GraphAppState
-    ) -> dict[tuple[str, str], tuple[set[str], set[str]]]:
-        """Map ``(repo id, path)`` of every ``hf://`` file in use to its catalog entries and open graphs."""
-        users: dict[tuple[str, str], tuple[set[str], set[str]]] = {}
+    ) -> tuple[
+        dict[tuple[str, str], tuple[set[str], set[str]]],
+        dict[tuple[str, str, tuple[str, ...]], tuple[set[str], set[str]]],
+    ]:
+        """Map the ``hf://`` files and whole-repo uses in play to their catalog entries and open graphs.
 
-        def add(url: str, catalog_name: str | None, graph_name: str | None) -> None:
+        The first map is keyed ``(repo id, path)`` for file addresses; the second
+        ``(repo id, commit, include)`` for whole-repo addresses. Repo ids are lower-cased.
+        """
+        users: dict[tuple[str, str], tuple[set[str], set[str]]] = {}
+        repo_users: dict[tuple[str, str, tuple[str, ...]], tuple[set[str], set[str]]] = {}
+
+        def add(
+            url: str, include: tuple[str, ...], catalog_name: str | None, graph_name: str | None
+        ) -> None:
             if not url.startswith("hf://"):
                 return
             try:
-                uri = parse_hf(url)
+                if is_whole_repo(url):
+                    repo = parse_hf_repo(url)
+                    names, graph_names = repo_users.setdefault(
+                        (repo.repo_id.lower(), repo.commit, include), (set(), set())
+                    )
+                else:
+                    uri = parse_hf(url)
+                    names, graph_names = users.setdefault((uri.repo_id.lower(), uri.path), (set(), set()))
             except ValueError:
                 return
-            names, graph_names = users.setdefault((uri.repo_id.lower(), uri.path), (set(), set()))
             if catalog_name:
                 names.add(catalog_name)
             if graph_name:
                 graph_names.add(graph_name)
 
-        def entry_urls(entry: CatalogEntry) -> list[str]:
-            urls: list[str] = []
+        def entry_urls(entry: CatalogEntry) -> list[tuple[str, tuple[str, ...]]]:
+            urls: list[tuple[str, tuple[str, ...]]] = []
             for resource in entry.resources:
-                urls.extend(resource.urls)
+                urls.extend((u, resource.include) for u in resource.urls)
                 for f in resource.files:
-                    urls.extend(f.urls)
+                    urls.extend((u, resource.include) for u in f.urls)
             return urls
 
         for entry in models.catalog.entries():
-            for url in entry_urls(entry):
-                add(url, entry.name, None)
+            for url, include in entry_urls(entry):
+                add(url, include, entry.name, None)
         for container in graphs.all_containers():
             graph = container.editor.graph
             if graph is None:
                 continue
             for _wrapper, _port_id, ref in iter_model_refs(graph):
                 found = models.catalog.entry(ref.catalog) if ref.catalog else None
-                for url in entry_urls(found) if found is not None else ref.urls:
-                    add(url, None, container.display_name)
-        return users
+                for url, include in entry_urls(found) if found is not None else [(u, ()) for u in ref.urls]:
+                    add(url, include, None, container.display_name)
+        return users, repo_users
 
     def _draw_hf(self, models: ModelsState, graphs: GraphAppState, *, query: str = "") -> None:
         """Draw the cached Hugging Face files that a catalog entry or an open graph refers to."""
         root = models.hf_cache
         if root is None or not self._hf_rows:
             return
-        users = self._hf_users(models, graphs)
+        users, repo_users = self._hf_users(models, graphs)
+
+        def users_of(r: HfCachedFile) -> tuple[set[str], set[str]] | None:
+            entries: set[str] = set()
+            graph_names: set[str] = set()
+            found = False
+            if (hit := users.get((r.repo_id.lower(), r.path_in_repo))) is not None:
+                found = True
+                entries |= hit[0]
+                graph_names |= hit[1]
+            for (repo, commit, include), (e, g) in repo_users.items():
+                if repo != r.repo_id.lower() or commit != r.revision:
+                    continue
+                if list(filter_repo_objects([r.path_in_repo], allow_patterns=list(include) or None)):
+                    found = True
+                    entries |= e
+                    graph_names |= g
+            return (entries, graph_names) if found else None
+
         rows = [
-            (r, users[key])
+            (r, hit)
             for r in self._hf_rows
-            if (key := (r.repo_id.lower(), r.path_in_repo)) in users
-            and (not query or query in f"{r.repo_id}/{r.path_in_repo}".lower())
+            if (hit := users_of(r)) is not None and search_matches(query, f"{r.repo_id}/{r.path_in_repo}")
         ]
         if not rows:
             return
@@ -869,8 +1175,10 @@ class ModelsEditor(BaseEditor):
         if not context.can_access(AccessTier.ADMIN):
             self._refuse(client)
             return
-        for job_id in job_ids:
-            models.queue.cancel(job_id)
+        refused = [job_id for job_id in job_ids if not models.queue.cancel(job_id)]
+        if refused:
+            with client:
+                ui.notify("This download can no longer be stopped; it runs to the end.", type="warning")
 
     # -- remove -------------------------------------------------------------------------
 
@@ -889,27 +1197,73 @@ class ModelsEditor(BaseEditor):
                 found.append((rec, path))
         return found
 
-    def _using_graphs(self, context: SessionContext, models: ModelsState, shas: set[str]) -> list[str]:
-        """Names of the open graphs holding a model reference that resolves to one of *shas*."""
+    @staticmethod
+    def _cache_files(models: ModelsState, paths: tuple[Path, ...]) -> list[_CacheFile] | None:
+        """The cache files of *paths*, or ``None`` unless every one lies inside a cache volume.
+
+        A path counts when a source other than the Models volume's holds it, and both the path
+        and what it resolves to lie inside that source's volume.
+        """
+        if not paths:
+            return None
+        files: list[_CacheFile] = []
+        for path in paths:
+            source = models.sources.holding(path)
+            root = source.root() if source is not None and source.place != "local" else None
+            if source is None or root is None:
+                return None
+            resolved, resolved_root = path.resolve(), root.resolve()
+            if not resolved.is_relative_to(resolved_root) or resolved == resolved_root:
+                return None
+            if not (path.absolute().is_relative_to(root.absolute()) or path.is_relative_to(resolved_root)):
+                return None
+            try:
+                relative = path.relative_to(root)
+            except ValueError:
+                relative = path.relative_to(resolved_root)
+            files.append(_CacheFile(source, resolved_root, path, relative.as_posix()))
+        return files
+
+    def _using_graphs(
+        self,
+        context: SessionContext,
+        models: ModelsState,
+        shas: set[str],
+        cache_paths: frozenset[Path] = frozenset(),
+    ) -> list[str]:
+        """Names of the open graphs referring to a file of *shas* or *cache_paths*."""
         names: list[str] = []
         for graph_container in context.app_data[GraphAppState].all_containers():
             graph = graph_container.editor.graph
-            if graph is not None and self._graph_uses(models, graph, shas):
+            if graph is not None and self._graph_uses(models, graph, shas, cache_paths):
                 names.append(graph_container.display_name)
         return names
 
     @staticmethod
-    def _graph_uses(models: ModelsState, graph: Any, shas: set[str]) -> bool:
+    def _graph_uses(
+        models: ModelsState, graph: Any, shas: set[str], cache_paths: frozenset[Path] = frozenset()
+    ) -> bool:
+        """Whether *graph* refers to a file of *shas* (by digest) or of *cache_paths* (by path)."""
+        sources = models.sources if cache_paths else SourceSet([HttpsSource(models.index)])
         for wrapper, port_id, ref in iter_model_refs(graph):
             try:
                 preference = preference_for(wrapper.node, port_id)
             except Exception:
                 preference = [{}]
             try:
-                found = resolve(ref, preference, catalog=models.catalog, index=models.index, hf_cache=None)
+                found = resolve(
+                    ref,
+                    preference,
+                    catalog=models.catalog,
+                    index=models.index,
+                    sources=sources,
+                )
             except ModelMissing:
                 continue
             if found.sha256 in shas or any(models.index.sha256_at(p) in shas for p in found.files.values()):
+                return True
+            files = files_of(found.files, found.resource) if found.resource else list(found.files.values())
+            if cache_paths and any(p.resolve() in cache_paths for p in files):
                 return True
         return False
 
@@ -917,6 +1271,9 @@ class ModelsEditor(BaseEditor):
         client = ui.context.client
         if not context.can_access(AccessTier.ADMIN):
             self._refuse(client)
+            return
+        if removal.cache_paths:
+            self._confirm_cache_remove(context, models, removal, client)
             return
         files = self._files_of(models, removal.shas)
         if not files:
@@ -935,10 +1292,85 @@ class ModelsEditor(BaseEditor):
             on_confirm=lambda: self._remove(context, models, removal, client),
         )
 
+    def _confirm_cache_remove(
+        self, context: SessionContext, models: ModelsState, removal: _Removal, client: Any
+    ) -> None:
+        files = self._cache_files(models, removal.cache_paths)
+        if files is None:
+            with client:
+                ui.notify("Nothing to delete: the file is not inside its cache volume.", type="warning")
+            return
+        in_models = self._files_of(models, removal.shas) if removal.shas else []
+        freed = sum(f.path.stat().st_size for f in files if f.path.is_file())
+        freed += sum(rec.size for rec, _ in in_models)
+        resolved = frozenset(f.path.resolve() for f in files)
+        titles = self._entries_sharing(models, resolved)
+        users = ", ".join(self._using_graphs(context, models, removal.shas, resolved))
+        shared = "; ".join(
+            dict.fromkeys(
+                f"This file is in the shared {f.source.label} cache; other tools may use it." for f in files
+            )
+        )
+        confirm_modal(
+            title="Remove model file",
+            message=(
+                f"Delete {removal.label} ({format_size(freed)})? "
+                f"Catalog entries: {', '.join(sorted(titles))}. Used by: {users or NOT_USED}. {shared}"
+            ),
+            confirm_label="Delete",
+            danger=True,
+            on_confirm=lambda: self._remove(context, models, removal, client),
+        )
+
+    @staticmethod
+    def _entries_sharing(models: ModelsState, paths: frozenset[Path]) -> set[str]:
+        """Titles of the catalog entries whose located files include one of *paths*."""
+        titles: set[str] = set()
+        for entry in models.catalog.entries():
+            for resource in entry.resources:
+                found = locate_resource(resource, models.index, models.sources)
+                if found is not None and any(p.resolve() in paths for p in files_of(found[0], resource)):
+                    titles.add(_variant_title(entry, None))
+        return titles
+
+    def _remove_cache_files(self, models: ModelsState, removal: _Removal, client: Any) -> bool:
+        """Delete the cache files through their model sources, and any fetch records of them.
+
+        Returns ``False`` when a path is not inside a cache volume; nothing is deleted then.
+        """
+        files = self._cache_files(models, removal.cache_paths)
+        if files is None:
+            with client:
+                ui.notify("Nothing to delete: the file is not inside its cache volume.", type="warning")
+            return False
+        failed: list[str] = []
+        for f in files:
+            try:
+                f.source.remove(f.path)
+            except (OSError, ValueError) as exc:
+                failed.append(f"{f.path.name}: {exc}")
+                continue
+            try:
+                models.records.remove(f.source.volume, f.relative)
+            except OSError:
+                logger.warning("could not save the fetch records after deleting %s", f.path, exc_info=True)
+        if failed:
+            with client:
+                ui.notify("Could not delete " + "; ".join(failed), type="negative")
+        if any(f.source.volume == HF_VOLUME for f in files):
+            self._refresh_hf(models)
+        models.files_changed()
+        self.wrapper.redraw()
+        return True
+
     def _remove(self, context: SessionContext, models: ModelsState, removal: _Removal, client: Any) -> None:
-        """Delete the files and their index records; only ever inside the models volume."""
+        """Delete the files and their records: recorded cache files, then those inside the models volume."""
         if not context.can_access(AccessTier.ADMIN):
             self._refuse(client)
+            return
+        if removal.cache_paths and not self._remove_cache_files(models, removal, client):
+            return
+        if not removal.shas:
             return
         try:
             root = location_of(MODELS_VOLUME).resolve()

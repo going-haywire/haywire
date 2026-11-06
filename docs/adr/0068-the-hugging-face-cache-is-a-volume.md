@@ -2,11 +2,13 @@
 name: the-hugging-face-cache-is-a-volume
 description: The Hugging Face cache is the volume haybale-models:volume:hf-cache, shared with other HF tools by default, always passed as cache_dir, never deleted by haywire
 status: accepted
-see-also: ADR-0065, ADR-0067
+see-also: ADR-0065, ADR-0067, ADR-0073, ADR-0074
 level: library
 ---
 
 # The Hugging Face cache is a volume, shared by default, never deleted by haywire
+
+> **Superseded in part by [ADR 0073](0073-framework-caches-are-removable-for-fetched-files.md).** D4 (never delete) now has one exception, for framework cache volumes only: a file haybale-models itself fetched for a catalog entry, recorded in `fetched.json`. [ADR 0074](0074-the-catalog-entry-entitles-remove.md) extends it: a catalog entry entitles Remove of its own files in any cache, the Hugging Face cache included.
 
 **Context.**
 

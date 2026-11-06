@@ -25,6 +25,7 @@ from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_models.download import DownloadJob
 from haybale_models.farmhands.model_tools import ModelsFetchTool, ModelsListTool, ModelsNeedsTool
 from haybale_models.keys import MODELS_VOLUME
+from haybale_models.sources import builtin_sources
 from haybale_models.state.models_state import ModelsState
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
@@ -63,6 +64,10 @@ class _Container:
 class _Queue:
     def __init__(self) -> None:
         self.job_list: list[DownloadJob] = []
+        self.assist: set[str] = set()
+
+    def assistable(self, job_id: str) -> bool:
+        return job_id in self.assist
 
     def jobs(self) -> list[DownloadJob]:
         return list(self.job_list)
@@ -95,11 +100,13 @@ class _Env:
             self.fetched.append((specs, principal))
             return ["job-1"]
 
+        index = ModelIndex()
         self.models = SimpleNamespace(
-            index=ModelIndex(),
+            index=index,
             queue=_Queue(),
             catalog=catalog,
             hf_cache=tmp_path / "hf",
+            sources=builtin_sources(index, hf_cache=lambda: tmp_path / "hf"),
             fetch=fetch,
         )
         self.graphs = GraphAppState()
@@ -207,3 +214,64 @@ def test_fetch_errors(env: _Env) -> None:
     with pytest.raises(FarmhandError):
         env.run(ModelsFetchTool)
     assert env.fetched == []
+
+
+def test_list_names_the_cache_of_a_cache_file(
+    env: _Env, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("TORCH_HOME", str(tmp_path / "torch"))
+    checkpoints = tmp_path / "torch" / "hub" / "checkpoints"
+    checkpoints.mkdir(parents=True)
+    (checkpoints / "sharp.pth").write_bytes(b"w" * 2_400_000)  # the catalog size
+    path = tmp_path / "catalog" / "haybale-alpha" / "Sharp.json"
+    doc = _doc("Sharp", SHA, URL)
+    doc["resources"][0]["cache"] = "torchhub://sharp.pth"
+    path.write_text(json.dumps(doc))
+    env.models.catalog.register_file(
+        path,
+        LibraryIdentity(
+            label="Alpha", name="haybale-alpha", folder_path=str(path.parent), module_name="haybale-alpha"
+        ),
+    )
+    statuses = [v["status"] for e in env.run(ModelsListTool)["catalog"] for v in e["variants"]]
+    assert statuses == ["Torch Hub cache"]
+
+
+def test_list_marks_a_failed_job_assisted(env: _Env) -> None:
+    address = "https://mega.nz/file/x#k"
+    job = DownloadJob(
+        "dl-1", "Sharp", SHA, None, (address, "hf://org/repo/f.bin@abc", "nope://x"), state="failed"
+    )
+    env.models.queue.job_list.append(job)
+    env.models.queue.assist.add(job.id)
+    row = env.run(ModelsListTool)["jobs"][0]
+    assert row["assisted"] is True
+    assert row["page_urls"] == [address, "https://huggingface.co/org/repo/blob/abc/f.bin"]
+
+
+def test_other_jobs_have_no_assisted_key(env: _Env) -> None:
+    env.models.queue.job_list.extend(
+        [
+            DownloadJob("dl-1", "a", SHA, None, (URL,), state="running"),
+            DownloadJob("dl-2", "b", SHA, None, (URL,), state="done"),
+            DownloadJob("dl-3", "c", None, None, ("hf://org/repo@" + "a" * 40,), state="failed"),
+        ]
+    )
+    for row in env.run(ModelsListTool)["jobs"]:
+        assert "assisted" not in row
+        assert "page_urls" not in row
+
+
+def test_list_help_says_how_to_finish_an_assisted_job(env: _Env) -> None:
+    assert "Download in browser" in env.run(ModelsListTool)["help"]
+    assert "Download in browser" in (ModelsListTool.__doc__ or "")
+
+
+def test_detail_reports_commercial(env: _Env) -> None:
+    assert env.run(ModelsListTool, detail=True)["catalog"][0]["commercial"] is False
+    env.models.catalog.entries()[0].commercial = True
+    assert env.run(ModelsListTool, detail=True)["catalog"][0]["commercial"] is True
+
+
+def test_brief_rows_omit_commercial(env: _Env) -> None:
+    assert "commercial" not in env.run(ModelsListTool)["catalog"][0]

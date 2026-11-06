@@ -34,8 +34,12 @@ def state(models_env: VolumeStore, monkeypatch: pytest.MonkeyPatch, library_syst
     hf_root = location_of(keys.HF_VOLUME)
     hf_root.mkdir(parents=True, exist_ok=True)
     real = consumer.models_state()
+    index = index_mod.ModelIndex()
+    sources = importlib.import_module("haybale_models.sources").builtin_sources(
+        index, hf_cache=lambda: hf_root
+    )
     fake = SimpleNamespace(
-        index=index_mod.ModelIndex(), catalog=real.catalog, hf_cache=hf_root, pool=real.pool
+        index=index, catalog=real.catalog, hf_cache=hf_root, sources=sources, pool=real.pool
     )
     monkeypatch.setattr(consumer, "models_state", lambda: fake)
     return fake
@@ -106,5 +110,22 @@ def test_resolve_model_missing_raises_named_message(graph_with_library_system, s
 
 def test_a_file_outside_both_volumes_is_refused(tmp_path: Path, state) -> None:
     resolve_model = importlib.import_module("haybale_models.nodes.resolve_model")
-    with pytest.raises(ValueError, match="neither"):
+    with pytest.raises(ValueError, match="in no model volume"):
         resolve_model._volume_path(tmp_path / "elsewhere.pth")
+
+
+def test_resolve_model_outputs_a_cache_volume_path(
+    graph_with_library_system, state, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ModelRef = importlib.import_module("haybale_models.value.model_ref").ModelRef
+    monkeypatch.setenv("TORCH_HOME", str(tmp_path / "torch"))
+    checkpoints = tmp_path / "torch" / "hub" / "checkpoints"
+    checkpoints.mkdir(parents=True)
+    (checkpoints / "w.pth").write_bytes(b"weights")
+    node = _node(graph_with_library_system)
+    ref = ModelRef(urls=("torchhub://w.pth",))
+    node.ports["model"].set_value(ref)
+
+    node.worker(None, model=ref)
+
+    assert _outputs(node)["path"] == VolumePath("haybale-models:volume:torchhub", "w.pth")

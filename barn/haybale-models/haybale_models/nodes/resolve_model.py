@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from haybale_models import consumer
 from haybale_models.consumer import resolve_port
 from haybale_models.store.layout import volume_path_of
 from haybale_models.value.model_ref import ModelRef
@@ -29,7 +30,8 @@ class ResolveModelNode(BaseNode):
     error until it is fetched in the Models editor.
 
     - `Path`: the file, as a path inside the `Models` or `Hugging Face cache`
-      volume. For a model made of several files, the folder holding them.
+      volume. For a model made of several files, or a whole-repo `hf://`
+      address, the folder holding them.
     - `sha256`: the file's digest, empty when it is not known yet.
     - `Size`: the size in bytes, of all files together for a model made of
       several files.
@@ -57,8 +59,8 @@ class ResolveModelNode(BaseNode):
 
 
 def _volume_path(path: Path) -> VolumePath:
-    """Return *path* as a path inside the models or HF cache volume; ``ValueError`` if in neither."""
-    found = volume_path_of(path)
+    """Return *path* as a path inside a model volume; ``ValueError`` if in none."""
+    found = volume_path_of(path, consumer.models_state().sources)
     if found is None:
-        raise ValueError(f"model file {path} is in neither the Models nor the Hugging Face cache volume")
+        raise ValueError(f"model file {path} is in no model volume")
     return found

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from pathlib import Path
 import importlib
 import sys
 import types
@@ -22,10 +23,13 @@ from haybale_models.consumer import MISSING_WARNING
 from haybale_models.download import DownloadJob
 from haybale_models.keys import MODELS_VOLUME, NEEDS_NOTICE
 from haybale_models.needs import NeedsWatcher, format_size
+from haybale_models.sources import builtin_sources
 from haybale_models.store.index import ModelIndex
+from haybale_models.store.records import FetchRecord, FetchRecords
 from haybale_models.value.model_ref import ModelRef
 
 from tests.conftest import make_edge, make_node
+from tests.models.conftest import make_hf_snapshot
 
 pytestmark = pytest.mark.integration
 
@@ -92,7 +96,7 @@ def _node_key() -> str:
 
 
 @pytest.fixture
-def env(models_env: VolumeStore, monkeypatch: pytest.MonkeyPatch, library_system: Any) -> Any:
+def env(models_env: VolumeStore, tmp_path: Any, monkeypatch: pytest.MonkeyPatch, library_system: Any) -> Any:
     from nicegui import core
 
     monkeypatch.setattr(core, "loop", _Loop())
@@ -100,7 +104,14 @@ def env(models_env: VolumeStore, monkeypatch: pytest.MonkeyPatch, library_system
     root.mkdir(parents=True, exist_ok=True)
     graphs = GraphAppState()
     monkeypatch.setattr(graphs, "_signal_emit", lambda signal: None)
-    models = SimpleNamespace(index=ModelIndex(), queue=_Queue(), catalog=_Catalog(), hf_cache=None)
+    index = ModelIndex()
+    models = SimpleNamespace(
+        index=index,
+        queue=_Queue(),
+        records=FetchRecords(tmp_path / "fetched.json"),
+        catalog=_Catalog(),
+        sources=builtin_sources(index, hf_cache=lambda: None),
+    )
     watcher = NeedsWatcher(graphs, cast(Any, models), debounce_s=0.02, throttle_s=0.0)
     watcher.start()
 
@@ -472,3 +483,66 @@ def test_steady_notifications_do_not_starve_the_walk(env: Any, monkeypatch: pyte
         assert first_run_at is not None
     finally:
         watcher.stop()
+
+
+def test_a_records_change_rewalks_the_graphs_and_stop_unsubscribes(env: Any, graph: Any) -> None:
+    _add(graph, ref())
+    env.open(graph)
+    env.settle()
+    assert _texts(env) == ["Needs 1 model (12.0 MB)"]
+
+    env.models.queue.job_list = [  # no queue notification: only the records change tells the watcher
+        DownloadJob("dl-1", "m", SHA, SIZE, (URL,), state="running", done_bytes=3_000_000, total_bytes=SIZE)
+    ]
+    env.models.records.add(FetchRecord("v", "m.bin", SHA, "lib:catalog:m", URL))
+    env.settle()
+    assert _texts(env) == ["Fetching 1 of 1 — 25 %"]
+
+    env.watcher.stop()
+    assert env.models.records._listeners == []
+    env.watcher.start()  # the fixture's teardown stops it again
+
+
+def test_job_matches_requires_the_same_include():
+    from haywire.core.catalog import ModelFile, Resource
+    from haybale_models.needs import job_matches
+    from haybale_models.resolver import FetchSpec
+
+    address = "hf://org/repo@" + "a" * 40
+
+    def spec_of(include):
+        resource = Resource(
+            "diffusers",
+            "dir",
+            None,
+            None,
+            (address,),
+            (ModelFile("", None, None, (address,)),),
+            include=include,
+        )
+        return FetchSpec(entry=SimpleNamespace(), resource=resource)  # type: ignore[arg-type]
+
+    job = DownloadJob("dl-1", "m", None, None, (address,), include=("*.onnx",))
+    assert not job_matches(job, spec_of(("*.safetensors",)))
+    assert job_matches(job, spec_of(("*.onnx",)))
+
+
+def test_refresh_notices_a_file_gone_from_a_cache(env: Any, graph: Any, tmp_path: Path) -> None:
+    """A file removed from the Hugging Face cache touches neither the index, the queue nor the records."""
+    commit = "c" * 40
+    hub = tmp_path / "hub"
+    hub.mkdir()
+    snap = make_hf_snapshot(hub, "o/r", commit, {"w.bin": DATA}, None, linked=True)
+    env.models.sources = builtin_sources(env.models.index, hf_cache=lambda: hub)
+    _add(graph, ModelRef(urls=(f"hf://o/r/w.bin@{commit}",), sha256=SHA, size=len(DATA)))
+    env.open(graph)
+    env.settle()
+    assert env.watcher.latest_reports() == {}
+
+    env.models.sources.lookup("hf://o").remove(snap / "w.bin")
+    env.settle()
+    assert env.watcher.latest_reports() == {}  # nothing told it yet
+
+    env.watcher.refresh()
+    env.settle()
+    assert len(env.watcher.latest_reports()["g1"].missing) == 1

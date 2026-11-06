@@ -30,12 +30,12 @@ from haybale_models.download import DownloadJob, DownloadQueue
 from haybale_models.keys import NEEDS_NOTICE
 from haybale_models.matcher import Preference
 from haybale_models.resolver import FetchSpec, ModelMissing, ResolvedModel, resolve
+from haybale_models.sources import SourceSet
 from haybale_models.store.index import ModelIndex
+from haybale_models.store.records import FetchRecords
 from haybale_models.value.model_ref import ModelRef
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from haywire.core.graph.base import BaseGraph
     from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.core.session.context import SessionContext
@@ -181,7 +181,10 @@ def collect_needs(graph: BaseGraph, resolve_fn: ResolveFn) -> NeedsReport:
 
 
 def _spec_files(spec: FetchSpec) -> list[tuple[str | None, tuple[str, ...]]]:
-    """Return ``(sha256, sources)`` of every file of *spec*, to match download jobs."""
+    """Return ``(sha256, sources)`` of every file of *spec*, to match download jobs.
+
+    A job's ``include`` is compared separately, against the spec resource's (see :func:`job_matches`).
+    """
     if spec.resource is not None:
         bundle = spec.resource.is_bundle
         return [
@@ -197,11 +200,15 @@ def _spec_files(spec: FetchSpec) -> list[tuple[str | None, tuple[str, ...]]]:
 
 
 def job_matches(job: DownloadJob, spec: FetchSpec) -> bool:
-    """Return whether *job* downloads a file of *spec* (same digest, or same first source)."""
+    """Return whether *job* downloads a file of *spec*.
+
+    Same digest, or same first source and same ``include`` (``()`` for a ref spec).
+    """
+    include = spec.resource.include if spec.resource is not None else ()
     for sha, sources in _spec_files(spec):
         if sha and job.sha256 == sha:
             return True
-        if sources and job.sources[:1] == sources[:1]:
+        if sources and job.sources[:1] == sources[:1] and job.include == include:
             return True
     return False
 
@@ -214,10 +221,13 @@ class _Models(Protocol):
     def queue(self) -> DownloadQueue: ...
 
     @property
+    def records(self) -> FetchRecords: ...
+
+    @property
     def catalog(self) -> CatalogRegistry: ...
 
     @property
-    def hf_cache(self) -> Path | None: ...
+    def sources(self) -> SourceSet: ...
 
 
 @dataclass
@@ -277,6 +287,7 @@ class NeedsWatcher:
         self._graphs.add_graphs_listener(self._sync)
         self._models.index.add_listener(self._kick_all)
         self._models.queue.add_listener(self._kick_all)
+        self._models.records.add_listener(self._kick_all)
         try:
             self._models.catalog.add_batch_event_subscriber(self._on_catalog)
         except Exception:
@@ -291,6 +302,7 @@ class NeedsWatcher:
         self._graphs.remove_graphs_listener(self._sync)
         self._models.index.remove_listener(self._kick_all)
         self._models.queue.remove_listener(self._kick_all)
+        self._models.records.remove_listener(self._kick_all)
         try:
             self._models.catalog.remove_batch_event_subscriber(self._on_catalog)
         except Exception:
@@ -401,6 +413,10 @@ class NeedsWatcher:
 
     # -- scheduling ----------------------------------------------------------------
 
+    def refresh(self) -> None:
+        """Check every open graph again, for a change no index, queue or record reports."""
+        self._kick_all()
+
     def _kick_all(self) -> None:
         """Index, queue or catalog changed: re-walk every graph. Runs under foreign locks."""
         with self._lock:
@@ -460,7 +476,7 @@ class NeedsWatcher:
 
     def _resolve(self, ref: ModelRef, preference: Preference) -> ResolvedModel:
         m = self._models
-        return resolve(ref, preference, catalog=m.catalog, index=m.index, hf_cache=m.hf_cache)
+        return resolve(ref, preference, catalog=m.catalog, index=m.index, sources=m.sources)
 
     def _run(self, binding_id: str) -> None:
         with self._run_lock:

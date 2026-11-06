@@ -27,7 +27,8 @@ class CatalogRegistry(DocumentRegistry[CatalogEntry]):
 
     A file is refused rather than registered when it is not a JSON object,
     lists no resources, holds a resource that names neither a source nor
-    files, or carries a malformed ``sha256``. Each refusal reports
+    files, carries a malformed ``sha256``, or has an ``include`` that is not a
+    list of strings. Each refusal reports
     ``CLASS_RELOAD_FAILED`` against the entry's key.
     """
 
@@ -113,6 +114,8 @@ class CatalogRegistry(DocumentRegistry[CatalogEntry]):
             content_hash=self._hash(text),
             identity=identity,
             library=library_identity,
+            recommended=document.get("recommended") is True,
+            commercial=document.get("commercial") is True,
         )
 
     def entry(self, registry_key: str) -> CatalogEntry | None:
@@ -163,6 +166,24 @@ def _digest(path: Path, value: Any) -> str | None:
     return value.lower()
 
 
+def _cache(raw: dict[str, Any]) -> str | None:
+    value = raw.get("cache")
+    if value is None:
+        return None
+    if not isinstance(value, str) or "://" not in value:
+        raise ValueError("cache must be an address like 'torchhub://<file>'")
+    return value
+
+
+def _include(raw: dict[str, Any]) -> tuple[str, ...]:
+    value = raw.get("include")
+    if value is None:
+        return ()
+    if not isinstance(value, list) or not all(isinstance(p, str) for p in value):
+        raise ValueError("include must be a list of file patterns")
+    return tuple(value)
+
+
 def _urls(value: Any) -> tuple[str, ...]:
     return tuple(str(u) for u in value) if isinstance(value, list) else ()
 
@@ -192,6 +213,8 @@ def _parse_resource(path: Path, raw: Any) -> Resource:
         files=files,
         backend=_opt_str(raw.get("backend")),
         precision=_opt_str(raw.get("precision")),
+        cache=_cache(raw),
+        include=_include(raw),
     )
 
 
@@ -203,4 +226,5 @@ def _parse_file(path: Path, raw: Any) -> ModelFile:
         sha256=_digest(path, raw.get("sha256")),
         size=_opt_int(raw.get("size")),
         urls=_urls(raw.get("urls")),
+        cache=_cache(raw),
     )

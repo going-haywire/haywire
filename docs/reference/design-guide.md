@@ -440,6 +440,7 @@ how you draw it.
 | Subject       | `.hw-subject`       | `hui.subject()`       | `text-xs font-medium`, `--hw-text-body` | The name a row or box is about (a package, a conflict).       |
 | Body          | —                   | `ui.label().classes("text-sm")` | `text-sm`                    | A statement or a question the user acts on.                   |
 | Hint          | `.hw-hint`          | `hui.hint()`          | `text-xs`, `--hw-text-muted`           | Explanation, status, metadata.                                |
+| Filter chip   | `.hw-filter-chip`   | `hui.filter_chip()`   | Outline and `--hw-text-muted` at rest; `--hw-accent` fill while selected, no check icon | A value a list can be filtered by. |
 
 **Rule:** a screen has at most one heading. In a step flow the stepper draws
 it from the flow's `STEP_TITLES`; a panel never draws its own, and never

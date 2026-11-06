@@ -177,3 +177,17 @@ def test_on_enable_scans_in_background(models_env, monkeypatch, request):
     monkeypatch.setattr(state.index, "hash_pending", lambda: None)
     state.on_enable()
     assert ran.wait(2)
+
+
+def test_files_changed_tells_the_needs_watcher_and_publishes(models_env, monkeypatch):
+    state = ModelsState()
+    published: list[bool] = []
+    monkeypatch.setattr(state, "_on_models_changed", lambda: published.append(True))
+    refreshed: list[bool] = []
+    state._needs = SimpleNamespace(refresh=lambda: refreshed.append(True))  # type: ignore[assignment]
+    state.files_changed()
+    assert published == [True]
+    assert refreshed == [True]
+    state._needs = None
+    state.files_changed()
+    assert published == [True, True]

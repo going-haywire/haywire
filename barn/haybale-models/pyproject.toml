@@ -8,7 +8,7 @@ license = {text = "MIT"}
 dependencies = [
     "haywire-core>=0.3.0",
     "haybale-graph-editor>=0.3.0",
-    "huggingface_hub>=1.0",
+    "huggingface_hub>=2.4",
     "httpx>=0.28",
 ]
 keywords = ["models"]

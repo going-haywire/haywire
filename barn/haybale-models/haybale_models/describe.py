@@ -12,7 +12,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from haywire.core.catalog import CatalogEntry
 
-__all__ = ["entry_description", "entry_search_text", "entry_summary"]
+from haybale_models.filters import COMMERCIAL, NON_COMMERCIAL
+
+_NOT_NON_COMMERCIAL = re.compile(r"(?<!non-)commercial")
+
+__all__ = ["entry_description", "entry_search_text", "entry_summary", "search_matches"]
 
 #: Tags shown in a summary line; the rest are counted (``+2``).
 SUMMARY_TAGS = 4
@@ -56,18 +60,49 @@ def entry_description(entry: CatalogEntry) -> str:
         facts.append("Purpose: " + ", ".join(entry.purpose))
     if entry.author:
         facts.append("By " + entry.author)
-    if entry.license:
-        facts.append("Licence: " + entry.license)
+    if licence := entry_licence_text(entry):
+        facts.append("Licence: " + licence)
     return "\n".join(part for part in (text, " · ".join(facts)) if part)
 
 
-def entry_search_text(entry: CatalogEntry) -> str:
-    """Return the lower-case text a search over *entry* matches.
+def entry_licence_text(entry: CatalogEntry) -> str:
+    """Return *entry*'s licence, followed by ``non-commercial`` unless its author states otherwise.
 
-    Its name, architecture, purpose, tags and description.
+    Empty for a commercial entry without a licence.
     """
-    words = [entry.name, entry.architecture, *entry.purpose, *entry.tags, _plain(entry.description)]
+    parts = [entry.license, "" if entry.commercial else NON_COMMERCIAL]
+    return " · ".join(part for part in parts if part)
+
+
+def entry_search_text(entry: CatalogEntry) -> str:
+    """Return the lower-case text a search over *entry* matches; see :func:`search_matches`.
+
+    Its name, scale (``4x``), architecture, purpose, tags, licence, commercial use and description.
+    """
+    words = [
+        entry.name,
+        f"{entry.scale}x" if entry.scale else "",
+        entry.architecture,
+        *entry.purpose,
+        *entry.tags,
+        entry.license,
+        COMMERCIAL if entry.commercial else NON_COMMERCIAL,
+        _plain(entry.description),
+    ]
     return " ".join(w for w in words if w).lower()
+
+
+def search_matches(query: str, text: str) -> bool:
+    """Return whether every word of *query* appears somewhere in *text*, ignoring case.
+
+    A word may be part of a longer one, in any order. An empty query matches everything. The word
+    ``commercial`` does not match ``non-commercial``.
+    """
+    text = text.lower()
+    return all(
+        _NOT_NON_COMMERCIAL.search(text) if word == COMMERCIAL else word in text
+        for word in query.lower().split()
+    )
 
 
 def _plain(markdown: str) -> str:

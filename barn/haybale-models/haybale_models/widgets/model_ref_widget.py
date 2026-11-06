@@ -13,11 +13,11 @@ from typing import Any
 from nicegui import background_tasks, run, ui
 
 from haybale_models import consumer, hf
-from haybale_models.describe import entry_description, entry_search_text, entry_summary
+from haybale_models.describe import entry_description, entry_search_text, entry_summary, search_matches
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
 from haybale_models.matcher import candidates, entry_matches
 from haybale_models.resolver import ModelMissing, ResolvedModel, resolve
-from haybale_models.store.layout import volume_path_of
+from haybale_models.sources import prefix_of
 from haybale_models.value.model_ref import ModelRef
 
 from haywire.core.access import LevelMode
@@ -29,7 +29,6 @@ from haywire.ui.hover_tip import set_hover_tip
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.decorator import widget
 
-_SCHEMES = ("hf://", "https://")
 _CHUNK = 1024 * 1024
 _MODEL_SUFFIXES = frozenset({".safetensors", ".pth", ".pt", ".ckpt", ".onnx", ".bin", ".gguf"})
 _SHA256 = re.compile(r"[0-9a-f]{64}")
@@ -88,6 +87,9 @@ class ModelRefWidget(BaseWidget):
     - `unavailable`: when set, the edit button is unavailable and this text is its
       tooltip, for a node that cannot take a model yet. A node that learns later which
       models fit sets `filter` and drops `unavailable` by rebuilding the port in `rejig`.
+    - `catalog_only`: when true, only catalog entries can be chosen: the other tabs are not shown,
+      for a node that needs what a catalog entry says about the model. A value already saved stays
+      shown until it is replaced.
     - `prefer`: ordered list of tag sets for choosing a variant, such as
       `[{"precision": "fp16"}, {}]`.
 
@@ -101,6 +103,7 @@ class ModelRefWidget(BaseWidget):
         props = self._config.get("properties", {})
         self._filter: dict[str, list[Any]] = dict(props.get("filter") or {})
         self._unavailable: str = str(props.get("unavailable") or "")
+        self._catalog_only: bool = bool(props.get("catalog_only"))
         prefer = props.get("prefer")
         self._prefer: list[dict[str, str]] = list(prefer) if prefer else [{}]
         self._dialog: ui.dialog | None = None
@@ -173,6 +176,8 @@ class ModelRefWidget(BaseWidget):
         source = ref.source or ""
         if source.startswith("hf://"):
             try:
+                if hf.is_whole_repo(source):
+                    return hf.parse_hf_repo(source).repo_id.split("/", 1)[-1]
                 return hf.parse_hf(source).repo_id.split("/", 1)[-1]
             except ValueError:
                 pass
@@ -213,7 +218,7 @@ class ModelRefWidget(BaseWidget):
     def _resolve(self, ref: ModelRef) -> ResolvedModel:
         state = consumer.models_state()
         return resolve(
-            ref, self._preference(), catalog=state.catalog, index=state.index, hf_cache=state.hf_cache
+            ref, self._preference(), catalog=state.catalog, index=state.index, sources=state.sources
         )
 
     def _write(self, ref: ModelRef) -> None:
@@ -257,21 +262,26 @@ class ModelRefWidget(BaseWidget):
         with self._root, ui.dialog() as dialog, hui.dialog_card("w-[520px]"):
             hui.heading("Choose a model")
             self._current = ui.column().classes("w-full gap-0").mark("model-ref-current")
-            tabs_el, _tabs = hui.tabs(
-                (_TAB_CATALOG, "Catalog", "menu_book"),
-                (_TAB_FILES, "Models Volume", hui.icon.folder_open),
-                (_TAB_HF, "Hugging Face", "hub"),
-                (_TAB_ADDRESS, "Address", "link"),
-            )
-            with ui.tab_panels(tabs_el, value=_tab_for(current)).classes("w-full").mark("model-ref-tabs"):
-                with ui.tab_panel(_TAB_CATALOG):
-                    self._build_catalog_tab()
-                with ui.tab_panel(_TAB_FILES):
-                    self._build_list_tab("model-ref-file", self._file_rows, self._on_file_chosen)
-                with ui.tab_panel(_TAB_HF):
-                    self._build_list_tab("model-ref-hf", self._hf_rows, self._on_hf_chosen)
-                with ui.tab_panel(_TAB_ADDRESS):
-                    self._build_address_tab(current)
+            if self._catalog_only:
+                self._build_catalog_tab()
+            else:
+                tabs_el, _tabs = hui.tabs(
+                    (_TAB_CATALOG, "Catalog", "menu_book"),
+                    (_TAB_FILES, "Models Volume", hui.icon.folder_open),
+                    (_TAB_HF, "Hugging Face", "hub"),
+                    (_TAB_ADDRESS, "Address", "link"),
+                )
+                with (
+                    ui.tab_panels(tabs_el, value=_tab_for(current)).classes("w-full").mark("model-ref-tabs")
+                ):
+                    with ui.tab_panel(_TAB_CATALOG):
+                        self._build_catalog_tab()
+                    with ui.tab_panel(_TAB_FILES):
+                        self._build_list_tab("model-ref-file", self._file_rows, self._on_file_chosen)
+                    with ui.tab_panel(_TAB_HF):
+                        self._build_list_tab("model-ref-hf", self._hf_rows, self._on_hf_chosen)
+                    with ui.tab_panel(_TAB_ADDRESS):
+                        self._build_address_tab(current)
             with hui.action_row().classes("mt-2"):
                 ui.button("Cancel", on_click=dialog.close).props("flat dense").mark("model-ref-cancel")
                 use = hui.confirm_button("Use", on_click=self._on_use).mark("model-ref-use")
@@ -331,11 +341,14 @@ class ModelRefWidget(BaseWidget):
 
     def _build_catalog_tab(self) -> None:
         search = hui.input_field(placeholder="Search…", clearable=True).mark("model-ref-catalog-search")
-        holder = ui.column().classes("w-full gap-0").mark("model-ref-catalog-list")
         entries = [e for e in consumer.models_state().catalog.entries() if entry_matches(e, self._filter)]
         entries.sort(key=lambda e: (e.class_library.label.lower(), e.name.lower()))
         rows = [(e, self._entry_detail(e)) for e in entries]
         search_text = {id(e): entry_search_text(e) for e in entries}
+        chip: ui.chip | None = None
+        if {e.recommended for e in entries} == {True, False}:
+            chip = hui.filter_chip("Recommended", on_change=lambda _e: draw()).mark("model-ref-recommended")
+        holder = ui.column().classes("w-full gap-0").mark("model-ref-catalog-list")
 
         def draw() -> None:
             needle = str(search.value or "").strip().lower()
@@ -344,7 +357,9 @@ class ModelRefWidget(BaseWidget):
                 library = None
                 shown = 0
                 for entry, detail in rows:
-                    if needle and needle not in search_text[id(entry)] and needle not in detail.lower():
+                    if not search_matches(needle, f"{search_text[id(entry)]} {detail}"):
+                        continue
+                    if chip is not None and chip.selected and not entry.recommended:
                         continue
                     if entry.class_library.label != library:
                         library = entry.class_library.label
@@ -438,9 +453,22 @@ class ModelRefWidget(BaseWidget):
             text = str(uri.value or "").strip()
             if not text:
                 return
-            if not text.startswith(_SCHEMES):
-                note.text = "An address starts with hf:// or https://"
+            sources = consumer.models_state().sources
+            if prefix_of(text) not in sources.download_prefixes():
+                note.text = "An address starts with " + " or ".join(
+                    f"{p}://" for p in sorted(sources.primary_download_prefixes())
+                )
                 return
+            if hf.is_whole_repo(text):
+                note.text = "A whole-repo address belongs in a catalog entry."
+                return
+            source = sources.lookup(text)
+            if source is not None:
+                try:
+                    source.parse(text)
+                except ValueError as exc:
+                    note.text = str(exc)
+                    return
             ref = ModelRef(urls=(text,))
             if self._draft.source == text and self._draft.sha256:
                 return
@@ -484,7 +512,7 @@ async def _fill_list(
 
     def draw() -> None:
         needle = str(search.value or "").strip().lower()
-        shown = [r for r in rows if needle in r.label.lower()]
+        shown = [r for r in rows if search_matches(needle, r.label)]
         holder.clear()
         with holder, ui.scroll_area().classes("w-full h-64"):
             if not shown:
@@ -600,8 +628,8 @@ def _as_ref(value: Any) -> ModelRef:
 
 
 def _where(resolved: ResolvedModel) -> str:
-    found = volume_path_of(resolved.path)
-    return "HF cache" if found is not None and found.volume == HF_VOLUME else "local"
+    held = consumer.models_state().sources.holding(resolved.path)
+    return "local" if held is None else held.place
 
 
 def _variant(resolved: ResolvedModel) -> str:

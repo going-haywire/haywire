@@ -16,14 +16,19 @@ from haywire.core.farmhand.activity import activity_tracker
 from haywire.core.catalog import ModelFile, Resource
 from haywire.core.volumes import VolumeStore
 
+from tests.models.conftest import make_hf_snapshot
+
 from haybale_models import hf
 from haybale_models.download import DownloadJob, DownloadQueue
 from haybale_models.resolver import FetchSpec
+from haybale_models.sources import builtin_sources
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
 
 DATA = bytes(range(256)) * 400  # ~100 kB
 SHA = hashlib.sha256(DATA).hexdigest()
+BAD_NAME = "w-aaaaaaaa.pth"
+"""A torch hub name whose hash prefix contradicts ``SHA``."""
 
 
 class Env:
@@ -32,7 +37,9 @@ class Env:
         self.index = ModelIndex()
         self.parallel = 2
         self.hf_dir: Path | None = tmp / "hf"
-        self.queue = DownloadQueue(self.index, lambda: self.hf_dir, lambda: self.parallel)
+        self.queue = DownloadQueue(
+            self.index, builtin_sources(self.index, hf_cache=lambda: self.hf_dir), lambda: self.parallel
+        )
 
     def wait(self, job_id: str, timeout: float = 4.0) -> DownloadJob:
         deadline = time.monotonic() + timeout
@@ -241,7 +248,7 @@ def test_download_refuses_undefined_volume(env, http_server, monkeypatch):
     def boom(key: str, store: Any = None) -> Path:
         raise VolumeUndefinedError(key)
 
-    monkeypatch.setattr("haybale_models.download.location_of", boom)
+    monkeypatch.setattr("haybale_models.sources.base.location_of", boom)
     job = env.run(spec(http_server.file("/v2", DATA)))
     assert job.state == "failed"
     assert job.error is not None
@@ -303,7 +310,7 @@ def test_bundle_path_traversal_fails_job(env, http_server):
 
 def test_target_outside_volume_root_is_refused(env, http_server, monkeypatch):
     outside = env.tmp / "elsewhere" / "w.bin"
-    monkeypatch.setattr("haybale_models.download.target_path", lambda **kw: outside)
+    monkeypatch.setattr("haybale_models.sources.https.target_path", lambda **kw: outside)
     job = env.run(spec(http_server.file("/o", DATA)))
     assert job.state == "failed"
     assert job.error is not None
@@ -361,19 +368,55 @@ def test_hf_without_cache_volume_fails(env, monkeypatch):
     assert "cache volume unavailable" in (job.error or "")
 
 
-def test_hf_cancel_marks_cancelled(env, monkeypatch):
-    started = threading.Event()
+def test_hf_volume_problem_falls_through_to_https(env, http_server):
+    env.hf_dir = None
+    job = env.run(spec("hf://o/r/w.pth", http_server.file("/w.pth", DATA)))
+    assert job.state == "done", job.error
+    assert job.target is not None
+    assert job.target.is_relative_to(env.tmp / "models")
+
+
+def test_running_hf_job_is_not_cancellable(env, monkeypatch):
+    started, release = threading.Event(), threading.Event()
+    blob = env.tmp / "hf" / "blobs" / "w.bin"
 
     def fake(uri, cache_dir, expected_size, on_progress, cancel):
         started.set()
-        cancel.wait(3)
-        raise hf.DownloadCancelled(uri)
+        release.wait(3)
+        blob.parent.mkdir(parents=True, exist_ok=True)
+        blob.write_bytes(DATA)
+        return blob
 
     monkeypatch.setattr(hf, "download", fake)
-    job_id = env.queue.enqueue(spec("hf://org/repo/w.bin"), None)
+    job_id = env.queue.enqueue(spec("hf://org/repo/w.bin", sha=None), None)
     assert started.wait(2)
-    env.queue.cancel(job_id)
+    assert env.job(job_id).cancellable is False
+    assert env.queue.cancel(job_id) is False
+    assert env.job(job_id).state == "running"
+    release.set()
+    assert env.wait(job_id).state == "done"
+
+
+def test_running_https_job_is_cancellable(env, http_server):
+    job_id = env.queue.enqueue(spec(http_server.file("/k", DATA, hold_half=True)), None)
+    wait_until(lambda: env.job(job_id).done_bytes > 0)
+    assert env.job(job_id).cancellable is True
+    assert env.queue.cancel(job_id) is True
+    http_server.release.set()
     assert env.wait(job_id).state == "cancelled"
+
+
+def test_cancellable_follows_the_running_address(env, http_server, monkeypatch):
+    def fail(uri, cache_dir, expected_size, on_progress, cancel):
+        raise OSError("hub down")
+
+    monkeypatch.setattr(hf, "download", fail)
+    url = http_server.file("/f", DATA, hold_half=True)
+    job_id = env.queue.enqueue(spec("hf://org/repo/w.bin", url), None)
+    wait_until(lambda: env.job(job_id).done_bytes > 0)
+    assert env.job(job_id).cancellable is True
+    http_server.release.set()
+    assert env.wait(job_id).state == "done"
 
 
 def test_mirror_switch_discards_the_partial_file(env, http_server):
@@ -414,3 +457,489 @@ def test_raising_tracker_fails_the_job(env, http_server, monkeypatch):
     job = env.run(spec(http_server.file("/t", DATA)))
     assert job.state == "failed"
     assert job.error == "tracker down"
+
+
+def test_fetch_writes_to_request_target_and_skips_the_index(env, http_server):
+    from haybale_models.sources.base import FetchRequest
+    from haybale_models.sources.https import HttpsSource
+
+    url = http_server.file("/t.pth", DATA)
+    root = env.tmp / "models"
+    target = root / "elsewhere" / "t.pth"
+    claimed: list[Path] = []
+    request = FetchRequest(
+        address=url,
+        root=root,
+        sha256=SHA,
+        size=len(DATA),
+        entry=None,
+        resource=None,
+        file=None,
+        on_progress=lambda d, t: None,
+        cancel=threading.Event(),
+        claim=claimed.append,
+        fresh=False,
+        target=target,
+    )
+    assert HttpsSource(env.index).fetch(request) == target
+    assert target.read_bytes() == DATA
+    assert claimed == [Path("elsewhere/t.pth")]
+    assert env.index.by_sha256(SHA) is None
+
+
+def _cache_queue(env: Env, records: Any) -> DownloadQueue:
+    from haybale_models.sources import SourceSet
+    from haybale_models.sources.folder import TorchHubSource
+    from haybale_models.sources.https import HttpsSource
+
+    sources = SourceSet(
+        [
+            HttpsSource(env.index),
+            TorchHubSource(
+                name="torchhub", label="Torch Hub", locate=lambda: env.tmp / "torch", description=""
+            ),
+        ]
+    )
+    return DownloadQueue(env.index, sources, lambda: 2, records)
+
+
+def _cache_spec(url: str, sha: str | None = SHA, name: str = "w.pth") -> FetchSpec:
+    entry = SimpleNamespace(class_identity=SimpleNamespace(registry_key="lib:catalog:demo"), name="demo")
+    resource = Resource(
+        "pytorch", "pth", None, sha, (url,), (ModelFile("", sha, None, (url,)),), cache=f"torchhub://{name}"
+    )
+    return FetchSpec(entry=entry, resource=resource)  # type: ignore[arg-type]
+
+
+def _run_on(queue: DownloadQueue, spec_: FetchSpec) -> DownloadJob:
+    job_id = queue.enqueue(spec_, "tester")
+    wait_until(lambda: all(j.state not in ("queued", "running") for j in queue.jobs()))
+    return next(j for j in queue.jobs() if j.id == job_id)
+
+
+def test_cache_file_is_fetched_into_the_cache_and_recorded(env, http_server):
+    from haybale_models.store.records import FetchRecords
+
+    records = FetchRecords(env.tmp / "fetched.json")
+    queue = _cache_queue(env, records)
+    try:
+        job = _run_on(queue, _cache_spec(http_server.file("/w.pth", DATA)))
+        assert job.state == "done", job.error
+        assert (env.tmp / "torch" / "w.pth").read_bytes() == DATA
+        assert job.target == env.tmp / "torch" / "w.pth"
+        assert env.index.by_sha256(SHA) is None
+        found = records.at("haybale-models:volume:torchhub", "w.pth")
+        assert found[0].entry_key == "lib:catalog:demo"
+        assert found[0].sha256 == SHA
+    finally:
+        queue.stop()
+
+
+def test_present_cache_file_is_not_queued(env, http_server):
+    from haybale_models.store.records import FetchRecords
+
+    (env.tmp / "torch").mkdir()
+    (env.tmp / "torch" / "w.pth").write_bytes(DATA)
+    queue = _cache_queue(env, FetchRecords(env.tmp / "fetched.json"))
+    try:
+        assert queue.enqueue(_cache_spec(http_server.file("/w.pth", DATA)), "tester") == ""
+        assert http_server.sent == {}
+    finally:
+        queue.stop()
+
+
+def test_unrecorded_file_in_the_cache_is_never_overwritten(env, http_server):
+    from haybale_models.store.records import FetchRecords
+
+    (env.tmp / "torch").mkdir()
+    (env.tmp / "torch" / BAD_NAME).write_bytes(b"someone else's file")
+    records = FetchRecords(env.tmp / "fetched.json")
+    queue = _cache_queue(env, records)
+    try:
+        job = _run_on(queue, _cache_spec(http_server.file("/w.pth", DATA), name=BAD_NAME))
+        assert job.state == "failed"
+        assert job.error == f"a different file already exists at {env.tmp / 'torch' / BAD_NAME}"
+        assert (env.tmp / "torch" / BAD_NAME).read_bytes() == b"someone else's file"
+        assert http_server.sent == {}
+    finally:
+        queue.stop()
+
+
+def test_recorded_file_in_the_cache_may_be_replaced(env, http_server):
+    from haybale_models.store.records import FetchRecord, FetchRecords
+
+    (env.tmp / "torch").mkdir()
+    (env.tmp / "torch" / BAD_NAME).write_bytes(b"stale")
+    records = FetchRecords(env.tmp / "fetched.json")
+    records.add(
+        FetchRecord(
+            "haybale-models:volume:torchhub",
+            BAD_NAME,
+            "0" * 64,
+            "lib:catalog:demo",
+            f"torchhub://{BAD_NAME}",
+        )
+    )
+    queue = _cache_queue(env, records)
+    try:
+        job = _run_on(queue, _cache_spec(http_server.file("/w.pth", DATA), name=BAD_NAME))
+        assert job.state == "done", job.error
+        assert (env.tmp / "torch" / BAD_NAME).read_bytes() == DATA
+    finally:
+        queue.stop()
+
+
+def test_unusable_cache_volume_fails_the_job(env, http_server):
+    from haybale_models.store.records import FetchRecords
+
+    (env.tmp / "torch").write_text("a file where the cache folder should be")
+    queue = _cache_queue(env, FetchRecords(env.tmp / "fetched.json"))
+    try:
+        job = _run_on(queue, _cache_spec(http_server.file("/w.pth", DATA)))
+        assert job.state == "failed"
+        assert job.error is not None
+        assert job.error.startswith("Torch Hub cache volume unavailable: ")
+    finally:
+        queue.stop()
+
+
+def test_cache_source_that_raises_does_not_break_enqueue(env, http_server, monkeypatch):
+    from haybale_models.sources.folder import TorchHubSource
+    from haybale_models.store.records import FetchRecords
+
+    def boom(self, address):
+        raise OSError("disk gone")
+
+    monkeypatch.setattr(TorchHubSource, "find", boom)
+    queue = _cache_queue(env, FetchRecords(env.tmp / "fetched.json"))
+    try:
+        job = _run_on(queue, _cache_spec(http_server.file("/w.pth", DATA)))
+        assert job.state in ("done", "failed")
+    finally:
+        queue.stop()
+
+
+def test_unrecorded_unpinned_cache_file_completes_without_fetching(env, http_server, monkeypatch):
+    from haybale_models import download
+    from haybale_models.store.records import FetchRecords
+
+    (env.tmp / "torch").mkdir()
+    (env.tmp / "torch" / "w.pth").write_bytes(b"whatever")
+    records = FetchRecords(env.tmp / "fetched.json")
+    queue = _cache_queue(env, records)
+    # the file appears after planning: planning saw nothing
+    monkeypatch.setattr(download, "find_accepted", lambda *a, **k: None)
+    try:
+        job = _run_on(queue, _cache_spec(http_server.file("/w.pth", DATA), sha=None))
+        assert job.state == "done", job.error
+        assert job.target == env.tmp / "torch" / "w.pth"
+        assert (env.tmp / "torch" / "w.pth").read_bytes() == b"whatever"
+        assert http_server.sent == {}
+        assert records.at("haybale-models:volume:torchhub", "w.pth") == []
+    finally:
+        queue.stop()
+
+
+def test_source_that_cannot_fill_a_cache_falls_through_to_next_mirror(env, http_server):
+    from haybale_models.sources import SourceSet
+    from haybale_models.sources.folder import TorchHubSource
+    from haybale_models.sources.https import HttpsSource
+    from haybale_models.store.records import FetchRecords
+
+    class Plain(HttpsSource):
+        name = "plain"
+        prefixes = ("plain",)  # type: ignore[assignment]
+        fills_target = False
+
+    sources = SourceSet(
+        [
+            Plain(env.index),
+            HttpsSource(env.index),
+            TorchHubSource(
+                name="torchhub", label="Torch Hub", locate=lambda: env.tmp / "torch", description=""
+            ),
+        ]
+    )
+    queue = DownloadQueue(env.index, sources, lambda: 2, FetchRecords(env.tmp / "fetched.json"))
+    try:
+        spec_ = _cache_spec("plain://x/w.pth")
+        url = http_server.file("/w.pth", DATA)
+        mfile = ModelFile("", SHA, None, ("plain://x/w.pth", url))
+        spec_ = FetchSpec(
+            entry=spec_.entry,
+            resource=Resource("pytorch", "pth", None, SHA, mfile.urls, (mfile,), cache="torchhub://w.pth"),
+        )
+        job = _run_on(queue, spec_)
+        assert job.state == "done", job.error
+        assert (env.tmp / "torch" / "w.pth").read_bytes() == DATA
+    finally:
+        queue.stop()
+
+
+def test_source_that_cannot_fill_a_cache_fails_alone(env, http_server):
+    from haybale_models.sources import SourceSet
+    from haybale_models.sources.folder import TorchHubSource
+    from haybale_models.sources.https import HttpsSource
+    from haybale_models.store.records import FetchRecords
+
+    class Plain(HttpsSource):
+        name = "plain"
+        prefixes = ("plain",)  # type: ignore[assignment]
+        fills_target = False
+
+    sources = SourceSet(
+        [
+            Plain(env.index),
+            TorchHubSource(
+                name="torchhub", label="Torch Hub", locate=lambda: env.tmp / "torch", description=""
+            ),
+        ]
+    )
+    queue = DownloadQueue(env.index, sources, lambda: 2, FetchRecords(env.tmp / "fetched.json"))
+    try:
+        job = _run_on(queue, _cache_spec("plain://x/w.pth"))
+        assert job.state == "failed"
+        assert job.error == "plain:// cannot fill a cache (plain://x/w.pth)"
+    finally:
+        queue.stop()
+
+
+def test_failing_record_write_keeps_the_job_done(env, http_server, caplog):
+    from haybale_models.store.records import FetchRecords
+
+    class Broken(FetchRecords):
+        def add(self, record):
+            raise OSError("read-only")
+
+    queue = _cache_queue(env, Broken(env.tmp / "fetched.json"))
+    try:
+        with caplog.at_level("WARNING"):
+            job = _run_on(queue, _cache_spec(http_server.file("/w.pth", DATA)))
+        assert job.state == "done", job.error
+        assert (env.tmp / "torch" / "w.pth").read_bytes() == DATA
+        assert any(r.levelname == "WARNING" for r in caplog.records)
+    finally:
+        queue.stop()
+
+
+def test_unrecorded_cache_file_of_the_wrong_size_is_never_overwritten(env, http_server):
+    from haybale_models.store.records import FetchRecords
+
+    (env.tmp / "torch").mkdir()
+    (env.tmp / "torch" / "w.pth").write_bytes(b"short")
+    queue = _cache_queue(env, FetchRecords(env.tmp / "fetched.json"))
+    url = http_server.file("/w.pth", DATA)
+    mfile = ModelFile("", None, len(DATA), (url,))
+    spec_ = FetchSpec(
+        entry=_cache_spec(url).entry,
+        resource=Resource("pytorch", "pth", len(DATA), None, (url,), (mfile,), cache="torchhub://w.pth"),
+    )
+    try:
+        job = _run_on(queue, spec_)
+        assert job.state == "failed"
+        assert job.error == f"a different file already exists at {env.tmp / 'torch' / 'w.pth'}"
+        assert (env.tmp / "torch" / "w.pth").read_bytes() == b"short"
+        assert http_server.sent == {}
+    finally:
+        queue.stop()
+
+
+def test_stale_record_does_not_license_an_overwrite(env, http_server):
+    from haybale_models.store.records import FetchRecord, FetchRecords
+
+    (env.tmp / "torch").mkdir()
+    (env.tmp / "torch" / BAD_NAME).write_bytes(b"replaced by someone else")
+    records = FetchRecords(env.tmp / "fetched.json")
+    records.add(
+        FetchRecord(
+            "haybale-models:volume:torchhub", BAD_NAME, SHA, "lib:catalog:demo", f"torchhub://{BAD_NAME}", 3
+        )
+    )
+    queue = _cache_queue(env, records)
+    try:
+        job = _run_on(queue, _cache_spec(http_server.file("/w.pth", DATA), name=BAD_NAME))
+        assert job.state == "failed"
+        assert job.error == f"a different file already exists at {env.tmp / 'torch' / BAD_NAME}"
+    finally:
+        queue.stop()
+
+
+def test_fetch_records_the_file_size(env, http_server):
+    from haybale_models.store.records import FetchRecords
+
+    records = FetchRecords(env.tmp / "fetched.json")
+    queue = _cache_queue(env, records)
+    try:
+        job = _run_on(queue, _cache_spec(http_server.file("/w.pth", DATA)))
+        assert job.state == "done", job.error
+        assert records.at("haybale-models:volume:torchhub", "w.pth")[0].size == len(DATA)
+    finally:
+        queue.stop()
+
+
+def test_relocated_cache_volume_with_a_missing_folder_fails_the_job(env, http_server, models_env):
+    from haybale_models.store.records import FetchRecords
+
+    queue = _cache_queue(env, FetchRecords(env.tmp / "fetched.json"))
+    from haybale_models.sources.folder import FolderSource
+
+    source = queue._sources.lookup("torchhub://w.pth")
+    assert isinstance(source, FolderSource)
+    source.ensure()
+    moved = env.tmp / "moved" / "torch"
+    models_env.update(source.volume, location=moved)
+    try:
+        job = _run_on(queue, _cache_spec(http_server.file("/w.pth", DATA)))
+        assert job.state == "failed"
+        assert job.error == f"Torch Hub cache volume folder does not exist: {moved}"
+        assert not (env.tmp / "moved").exists()
+        assert not (env.tmp / "torch").exists()
+        assert http_server.sent == {}
+    finally:
+        queue.stop()
+
+
+C = "a" * 40
+
+
+def whole_spec(include: tuple[str, ...] = (), urls: tuple[str, ...] = (f"hf://org/repo@{C}",)) -> FetchSpec:
+    entry = SimpleNamespace(class_identity=SimpleNamespace(registry_key="lib:catalog:demo"), name="demo")
+    resource = Resource(
+        "diffusers", "dir", None, None, urls, (ModelFile("", None, None, urls),), include=include
+    )
+    return FetchSpec(entry=entry, resource=resource)  # type: ignore[arg-type]
+
+
+def test_whole_repo_fetch_downloads_the_snapshot(env, monkeypatch):
+    seen: dict[str, Any] = {}
+
+    def fake(uri, cache_dir, include, expected_size, on_progress, cancel):
+        # the snapshot appears only when fetched: a present one is not queued at all
+        seen.update(uri=uri, include=include)
+        seen["snapshot"] = make_hf_snapshot(
+            env.tmp / "hf", "org/repo", C, {"a.safetensors": b"1"}, ["a.safetensors"]
+        )
+        return seen["snapshot"]
+
+    monkeypatch.setattr(hf, "download_snapshot", fake)
+    job = env.run(whole_spec(include=("*.safetensors",)))
+    assert job.state == "done", job.error
+    assert job.target == seen["snapshot"]
+    assert seen["include"] == ("*.safetensors",)
+
+
+def test_whole_repo_with_a_branch_fails_the_fetch(env, monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError("must not download")
+
+    monkeypatch.setattr(hf, "download_snapshot", boom)
+    job = env.run(whole_spec(urls=("hf://org/repo@main",)))
+    assert job.state == "failed"
+    assert "needs a commit" in (job.error or "")
+
+
+def test_include_matching_nothing_fails_the_fetch(env, monkeypatch):
+    def fake(*a, **k):
+        raise ValueError(f"no file of org/repo@{C} matches include ['*.gguf']")
+
+    monkeypatch.setattr(hf, "download_snapshot", fake)
+    job = env.run(whole_spec(include=("*.gguf",)))
+    assert job.state == "failed"
+    assert "matches include" in (job.error or "")
+
+
+def test_whole_repo_fetch_that_leaves_a_partial_snapshot_fails(env, monkeypatch):
+    snapshot = make_hf_snapshot(env.tmp / "hf", "org/repo", C, {"a.bin": b"1"}, ["a.bin", "missing.bin"])
+    monkeypatch.setattr(hf, "download_snapshot", lambda *a, **k: snapshot)
+    job = env.run(whole_spec())
+    assert job.state == "failed"
+    assert "incomplete snapshot" in (job.error or "")
+
+
+def test_running_whole_repo_job_is_not_cancellable(env, monkeypatch):
+    started, release = threading.Event(), threading.Event()
+
+    def fake(uri, cache_dir, include, expected_size, on_progress, cancel):
+        started.set()
+        release.wait(3)
+        return make_hf_snapshot(cache_dir, "org/repo", C, {"a.bin": b"1"}, ["a.bin"])
+
+    monkeypatch.setattr(hf, "download_snapshot", fake)
+    job_id = env.queue.enqueue(whole_spec(), None)
+    assert started.wait(2)
+    assert env.queue.cancel(job_id) is False
+    release.set()
+    assert env.wait(job_id).state == "done"
+
+
+def test_present_snapshot_is_not_queued(env, monkeypatch):
+    make_hf_snapshot(env.hf_dir, "org/repo", C, {"a.bin": b"1"}, ["a.bin"])
+    monkeypatch.setattr(hf, "download_snapshot", lambda *a, **k: pytest.fail("must not download"))
+    assert env.queue.enqueue_all(whole_spec(), None) == []
+
+
+def test_same_repo_different_include_are_two_jobs(env, monkeypatch):
+    release = threading.Event()
+    monkeypatch.setattr(hf, "download_snapshot", lambda *a, **k: release.wait(3) and Path("/nonexistent"))
+    first = env.queue.enqueue(whole_spec(include=("*.onnx",)), None)
+    second = env.queue.enqueue(whole_spec(include=("*.safetensors",)), None)
+    release.set()
+    assert first
+    assert second
+    assert first != second
+
+
+def test_same_whole_repo_spec_dedups(env, monkeypatch):
+    release = threading.Event()
+    monkeypatch.setattr(hf, "download_snapshot", lambda *a, **k: release.wait(3) and Path("/nonexistent"))
+    first = env.queue.enqueue(whole_spec(include=("*.onnx",)), None)
+    second = env.queue.enqueue(whole_spec(include=("*.onnx",)), None)
+    release.set()
+    assert first == second
+
+
+def test_folder_resource_skips_a_file_mirror(env, monkeypatch, http_server):
+    def boom(*a, **k):
+        raise ValueError("snapshot failed")
+
+    monkeypatch.setattr(hf, "download_snapshot", boom)
+    mirror = http_server.file("/w.bin", DATA)
+    job = env.run(whole_spec(urls=(f"hf://org/repo@{C}", mirror)))
+    assert job.state == "failed"
+    assert "not a folder address" in (job.error or "")
+    assert not list((env.tmp / "models").rglob("w.bin"))
+
+
+def test_file_ref_with_whole_repo_address_is_not_queued(env, monkeypatch):
+    monkeypatch.setattr(hf, "download_snapshot", lambda *a, **k: pytest.fail("must not download"))
+    assert env.queue.enqueue_all(spec(f"hf://org/repo@{C}", sha=None), None) == []
+
+
+def test_a_failed_job_reads_reason_first_then_address(env, http_server):
+    url = http_server.status("/gone", 404)
+    job = env.run(spec(url))
+    assert job.error == f"HTTP 404 ({url})"
+
+
+def test_an_unserved_address_reads_reason_first(env):
+    job = env.run(spec("nope://x"))
+    assert job.error == "source unavailable: nope:// not provided (nope://x)"
+
+
+def test_expected_download_failures_stay_out_of_the_ledger(env, http_server, error_ledger):
+    env.run(spec(http_server.status("/gone", 404)))
+    env.run(spec(http_server.html("/page")))
+    env.run(spec(http_server.file("/bad", b"wrong")))
+    env.run(spec("nope://x"))
+    assert error_ledger.current_seq == 0
+
+
+def test_a_bug_in_a_fetch_reaches_the_ledger_and_fails_the_job(env, http_server, error_ledger, monkeypatch):
+    def broken(self: Any, request: Any) -> Path:
+        raise TypeError("a bug")
+
+    monkeypatch.setattr("haybale_models.sources.https.HttpsSource.fetch", broken)
+    job = env.run(spec(http_server.file("/w.pth", DATA)))
+    assert job.state == "failed"
+    assert "a bug" in (job.error or "")
+    assert error_ledger.current_seq == 1

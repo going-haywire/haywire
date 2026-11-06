@@ -1,7 +1,21 @@
 """Tests verifying DI wiring of LibraryStateRegistry + LibraryStateContainer."""
 
+from collections.abc import Iterator
+
+import pytest
+
+from tests.conftest import _restore_ambient_di, _snapshot_ambient_di
+
 from haywire.core.di.config import create_haywire_injector
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+
+
+@pytest.fixture(autouse=True)
+def _contain_initialize() -> Iterator[None]:
+    """Restore the ambient DI globals that ``LibrarySystemService.initialize()`` repoints."""
+    snap = _snapshot_ambient_di()
+    yield
+    _restore_ambient_di(snap)
 
 
 class TestDIWiring:

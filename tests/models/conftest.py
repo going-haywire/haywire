@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import os
 import threading
 import time
 from collections.abc import Iterator
@@ -9,8 +11,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-import pytest
+from unittest.mock import patch
 
+import pytest
+from huggingface_hub._tree_cache import TreeCacheEntry, write_tree_cache
+
+from haywire.core.errors.ledger import ErrorLedger
 from haywire.core.volumes import VolumeStore, get_volume_store, set_volume_store
 
 
@@ -153,3 +159,59 @@ def http_server() -> Iterator[FakeServer]:
     server = FakeServer()
     yield server
     server.close()
+
+
+def _publish_shared(root: Path, blob: Path, data: bytes) -> None:
+    """Store *data* as the Hub's cache-wide shared store does, with *blob* linking to it."""
+    from huggingface_hub.utils import _shared_blobs
+
+    blob.write_bytes(data)
+    assert _shared_blobs.publish_blob_to_shared_store(
+        blob_path=str(blob),
+        xet_hash=hashlib.sha256(b"xet:" + data).hexdigest(),
+        cache_dir=root,
+        expected_size=len(data),
+    )
+
+
+def make_hf_snapshot(
+    root: Path,
+    repo: str,
+    commit: str,
+    files: dict[str, bytes],
+    listed: list[str] | None,
+    *,
+    linked: bool = False,
+    shared: bool = False,
+) -> Path:
+    """Write a cache snapshot of ``repo`` at ``commit`` under ``root``; ``listed`` adds its tree listing.
+
+    With ``linked``, each file is a relative symlink to ``blobs/<sha256>``, as the Hub's cache lays it out.
+    """
+    storage = root / ("models--" + repo.replace("/", "--"))
+    snap = storage / "snapshots" / commit
+    snap.mkdir(parents=True)
+    for rel, data in files.items():
+        (snap / rel).parent.mkdir(parents=True, exist_ok=True)
+        if linked:
+            blob = storage / "blobs" / hashlib.sha256(data).hexdigest()
+            blob.parent.mkdir(exist_ok=True)
+            if shared:
+                _publish_shared(root, blob, data)
+            else:
+                blob.write_bytes(data)
+            (snap / rel).symlink_to(os.path.relpath(blob, (snap / rel).parent))
+        else:
+            (snap / rel).write_bytes(data)
+    if listed is not None:
+        entries = {p: TreeCacheEntry(size=len(files.get(p, b"")), blob_id="0" * 40) for p in listed}
+        write_tree_cache(str(storage), commit, entries)
+    return snap
+
+
+@pytest.fixture
+def error_ledger() -> Iterator[ErrorLedger]:
+    """A fresh error ledger that failures reported during the test land in."""
+    ledger = ErrorLedger()
+    with patch("haywire.core.errors.ledger.get_error_ledger", return_value=ledger):
+        yield ledger

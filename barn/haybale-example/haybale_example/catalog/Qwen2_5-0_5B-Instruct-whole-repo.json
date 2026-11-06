@@ -1,0 +1,29 @@
+{
+    "name": "Qwen2.5 0.5B Instruct (whole repo)",
+    "author": "Qwen",
+    "license": "apache-2.0",
+    "commercial": true,
+    "tags": [
+        "llm",
+        "whole-repo"
+    ],
+    "description": "Demo of a whole-repo Hugging Face address: the snapshot of Qwen/Qwen2.5-0.5B-Instruct at one commit, limited by include patterns to the config, tokenizer and model.safetensors files (about 1 GB, Xet-stored). Resolves to the snapshot folder. Useful for checking fetch progress and cancel on a large file.",
+    "architecture": "qwen2",
+    "purpose": [
+        "text-generation"
+    ],
+    "resources": [
+        {
+            "platform": "pytorch",
+            "type": "safetensors",
+            "size": 997914508,
+            "urls": [
+                "hf://Qwen/Qwen2.5-0.5B-Instruct@7ae557604adf67be50417f59c2c2f167def9a775"
+            ],
+            "include": [
+                "*.json",
+                "model.safetensors"
+            ]
+        }
+    ]
+}

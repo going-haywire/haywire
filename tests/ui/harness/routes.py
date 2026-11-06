@@ -2638,6 +2638,134 @@ def register_routes(library_service) -> None:
     # ui.notify(). See test_copy_button_browser.py.
     # -------------------------------------------------------------------------
 
+    @ui.page("/assisted-upload")
+    async def assisted_upload_page(sha: str = "", size: int | None = None):
+        """A real queue with one failed job, and the assisted download dialog for it."""
+        import asyncio
+        import tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+
+        from haywire.core.volumes import VolumeStore, set_volume_store
+
+        from haybale_models.download import DownloadQueue
+        from haybale_models.editors.assisted_dialog import open_assisted_dialog
+        from haybale_models.keys import MODELS_VOLUME
+        from haybale_models.resolver import FetchSpec
+        from haybale_models.sources import builtin_sources
+        from haybale_models.store.index import ModelIndex
+        from haybale_models.value.model_ref import ModelRef
+
+        folder = Path(tempfile.mkdtemp(prefix="hw-assisted-"))
+        # A store of its own: the default one is the developer's real ~/.haywire/volumes.toml.
+        store = VolumeStore(folder / "volumes.toml")
+        set_volume_store(store)
+        (folder / "models").mkdir()
+        store.ensure(MODELS_VOLUME, label="Models", description="", location=folder / "models")
+        index = ModelIndex()
+        sources = builtin_sources(index, hf_cache=lambda: None)
+        queue = DownloadQueue(index, sources, lambda: 2)
+        job_id = queue.enqueue(
+            FetchSpec(
+                ref=ModelRef(
+                    urls=("http://127.0.0.1:9/gone.pth",), sha256=sha or None, size=size, label="demo"
+                )
+            ),
+            None,
+        )
+        while next(j for j in queue.jobs() if j.id == job_id).state in ("queued", "running"):
+            await asyncio.sleep(0.02)
+        job = next(j for j in queue.jobs() if j.id == job_id)
+        models = SimpleNamespace(queue=queue, sources=sources)
+        open_assisted_dialog(models, None, [job])  # type: ignore[arg-type]
+        _stamp_synced()
+
+    @ui.page("/models-filters")
+    async def models_filters_page():
+        """A real Models editor over two catalog entries, on a volume store of its own."""
+        import json
+        import tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+
+        from haywire.core.catalog import CatalogRegistry
+        from haywire.core.library.identity import LibraryIdentity
+        from haywire.core.volumes import VolumeStore, set_volume_store
+
+        from haybale_graph_editor.state.graph_app_state import GraphAppState
+        from haybale_models.download import DownloadQueue
+        from haybale_models.editors.models_editor import ModelsEditor
+        from haybale_models.keys import MODELS_VOLUME
+        from haybale_models.sources import builtin_sources
+        from haybale_models.state.models_state import ModelsState
+        from haybale_models.store.index import ModelIndex
+        from haybale_models.store.records import FetchRecords
+
+        from haywire.ui.app.shell import STATIC_CSS
+
+        if theme_css:
+            ui.add_css(theme_css)
+        ui.add_css(STATIC_CSS)
+        folder = Path(tempfile.mkdtemp(prefix="hw-filters-"))
+        # A store of its own: the default one is the developer's real ~/.haywire/volumes.toml.
+        store = VolumeStore(folder / "volumes.toml")
+        set_volume_store(store)
+        (folder / "models").mkdir()
+        store.ensure(MODELS_VOLUME, label="Models", description="", location=folder / "models")
+        catalog_dir = folder / "catalog"
+        catalog_dir.mkdir()
+        for name, tag in (("Aaa", "anime"), ("Bbb", "photo")):
+            resource = {
+                "platform": "pytorch",
+                "type": "pth",
+                "size": 5,
+                "urls": [f"https://x.invalid/{name}"],
+            }
+            (catalog_dir / f"{name}.json").write_text(
+                json.dumps({"name": name, "license": "MIT", "tags": [tag], "resources": [resource]})
+            )
+        catalog = CatalogRegistry()
+        catalog.add_folder(
+            str(catalog_dir),
+            LibraryIdentity(
+                label="L", name="haybale-l", folder_path=str(catalog_dir), module_name="haybale-l"
+            ),
+        )
+        index = ModelIndex()
+        sources = builtin_sources(index, hf_cache=lambda: folder / "hf")
+        models = SimpleNamespace(
+            index=index,
+            records=FetchRecords(folder / "fetched.json"),
+            queue=DownloadQueue(index, sources, lambda: 1),
+            catalog=catalog,
+            hf_cache=folder / "hf",
+            sources=sources,
+            fetch=lambda _specs, _principal: [],
+            needed_reports=dict,
+        )
+        graphs = GraphAppState()
+        graphs._signal_emit = lambda signal: None  # type: ignore[method-assign]
+        context = SimpleNamespace(
+            data={},
+            app_data={ModelsState: models, GraphAppState: graphs},
+            principal=None,
+            can_access=lambda _required: True,
+        )
+        container = ui.column().classes("w-96 h-96")
+        ModelsEditor(MagicMock()).draw(context, container)  # type: ignore[arg-type]
+        _stamp_synced()
+
+    @ui.page("/filter-chip")
+    async def filter_chip_page():
+        from haywire.ui.app.shell import STATIC_CSS
+
+        if theme_css:
+            ui.add_css(theme_css)
+        ui.add_css(STATIC_CSS)
+        hui.filter_chip("probe")
+        _stamp_synced()
+
     @ui.page("/copy-button")
     async def copy_button_page():
         if theme_css:

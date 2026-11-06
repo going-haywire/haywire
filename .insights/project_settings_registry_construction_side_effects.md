@@ -66,5 +66,16 @@ changes which registry those instances read and write.
   This is what the `_ambient_settings_registry` autouse fixture in
   [tests/conftest.py](../tests/conftest.py) now does.
 
+**Library settings classes carry the same back-reference.** `SettingsRegistry` writes
+`cls._registry` on every `LibrarySettings` class it registers, so a bare `ImageSettings()`
+binds to whichever registry registered the class last. Any second library system
+(`LibrarySystemService.initialize()` on a fresh injector, as `test_di_wiring.py` does) repoints
+every library settings class at a registry that dies with the test. Symptom: a later test that
+writes a library setting through a bare constructor while a node reads it through the session
+registry sees the old value (`test_library_default_reaches_node`: `assert 95 == 40`), only in
+the full run and only when the session library system was built first. The
+`_ambient_settings_registry` autouse fixture restores each class's back-reference too
+(found 2026-11-05).
+
 Related: [project_di_context.md](project_di_context.md) (ambient DI uses module-level
 globals, not ContextVar — same "global state persists across tests" family).

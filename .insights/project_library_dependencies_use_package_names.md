@@ -1,8 +1,10 @@
 ---
-name: @library dependencies are package names, not library ids
+name: linked_libraries are module names, not library ids
 description: The `@library(dependencies=[...])` list contains Python package names (haybale_core, haybale_studio), not the library `id` from the same decorator. The framework concatenates each entry with a "." and matches it as a module-path prefix for hot-reload scope tracking.
 type: project
 ---
+**Update 2026-11-06:** `@library` no longer takes `dependencies`. The list is `linked_libraries` in the library's `haybale.toml`, consumed by `registry/base.py:_get_tracking_scopes`. Everything below applies to it. A declaration in `pyproject.toml` alone is not enough: `haybale-visiongraph` was missing `haybale_models` here until MS7 review.
+
 The `@library` decorator takes two superficially-similar arguments:
 
 - `id="graph_editor"` — a short library identifier used in logs, error messages, and as a registry key.

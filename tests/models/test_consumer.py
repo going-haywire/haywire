@@ -16,6 +16,7 @@ from haybale_models import consumer
 from haybale_models.keys import MODELS_VOLUME
 from haybale_models.pool import LoadedModels
 from haybale_models.resolver import ModelMissing
+from haybale_models.sources import builtin_sources
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
 
@@ -63,7 +64,12 @@ def env(models_env: VolumeStore, monkeypatch: pytest.MonkeyPatch) -> Any:
         name="demo",
     )
     catalog = SimpleNamespace(entry=lambda k: entry if k == KEY else None)
-    state = SimpleNamespace(pool=LoadedModels(), index=index, catalog=catalog, hf_cache=None)
+    state = SimpleNamespace(
+        pool=LoadedModels(),
+        index=index,
+        catalog=catalog,
+        sources=builtin_sources(index, hf_cache=lambda: None),
+    )
     monkeypatch.setattr(consumer, "models_state", lambda: state)
 
     def put(name: str, data: bytes) -> None:

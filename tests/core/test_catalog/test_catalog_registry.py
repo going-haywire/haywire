@@ -87,6 +87,8 @@ def test_openmodeldb_file_parses_unchanged(tmp_path, catalog_registry, identity)
         "purpose",
         "tags",
         "license",
+        "recommended",
+        "commercial",
         "input_channels",
         "output_channels",
     }
@@ -138,6 +140,110 @@ def _failed(registry, key):
 
     event = registry.get_lastevent(key)
     return event is not None and event.event_type is LifeCycleEventType.CLASS_RELOAD_FAILED
+
+
+@pytest.mark.unit
+def test_resource_cache_is_parsed(tmp_path, catalog_registry, identity):
+    doc = copy.deepcopy(OMDB_DEMO)
+    doc["resources"] = [
+        {
+            "urls": ["https://x/r.pth"],
+            "sha256": HASH_A,
+            "cache": "torchhub://r-1234abcd.pth",
+        }
+    ]
+    write(tmp_path / "Cached.json", doc)
+    catalog_registry.add_folder(str(tmp_path), identity)
+
+    entry = catalog_registry.entry("haybale-x:catalog:Cached")
+    assert entry is not None
+    assert entry.resources[0].cache == "torchhub://r-1234abcd.pth"
+    assert entry.resources[0].files[0].cache is None
+
+
+@pytest.mark.unit
+def test_file_cache_is_parsed_in_a_bundle(tmp_path, catalog_registry, identity):
+    doc = copy.deepcopy(OMDB_DEMO)
+    doc["resources"] = [
+        {
+            "files": [
+                {"path": "a.xml", "sha256": HASH_A, "urls": ["u1"], "cache": "keras://a.xml"},
+                {"path": "a.bin", "sha256": HASH_B, "urls": ["u2"]},
+            ]
+        }
+    ]
+    write(tmp_path / "Bundle.json", doc)
+    catalog_registry.add_folder(str(tmp_path), identity)
+
+    entry = catalog_registry.entry("haybale-x:catalog:Bundle")
+    assert entry is not None
+    assert [f.cache for f in entry.resources[0].files] == ["keras://a.xml", None]
+    assert entry.resources[0].cache is None
+
+
+@pytest.mark.unit
+def test_cache_without_address_is_refused(tmp_path, catalog_registry, identity):
+    from pathlib import Path
+
+    from haywire.core.catalog.registry import _parse_resource
+
+    bad = {"urls": ["u"], "cache": "r.pth"}
+    with pytest.raises(ValueError, match="cache must be an address"):
+        _parse_resource(Path("Bad.json"), bad)
+
+    for resource in (
+        bad,
+        {"files": [{"path": "a", "urls": ["u"], "cache": "a"}]},
+    ):
+        doc = copy.deepcopy(OMDB_DEMO)
+        doc["resources"] = [resource]
+        write(tmp_path / "Bad.json", doc)
+        catalog_registry.add_folder(str(tmp_path), identity)
+        assert catalog_registry.entry("haybale-x:catalog:Bad") is None
+        assert _failed(catalog_registry, "haybale-x:catalog:Bad")
+
+
+@pytest.mark.unit
+def test_resource_include_is_parsed(tmp_path, catalog_registry, identity):
+    doc = copy.deepcopy(OMDB_DEMO)
+    doc["resources"] = [{"urls": ["hf://o/r@" + "a" * 40], "include": ["*.safetensors", "config.json"]}]
+    write(tmp_path / "Inc.json", doc)
+    catalog_registry.add_folder(str(tmp_path), identity)
+
+    entry = catalog_registry.entry("haybale-x:catalog:Inc")
+    assert entry is not None
+    assert entry.resources[0].include == ("*.safetensors", "config.json")
+
+
+@pytest.mark.unit
+def test_include_defaults_to_empty(tmp_path, catalog_registry, identity):
+    doc = copy.deepcopy(OMDB_DEMO)
+    doc["resources"] = [{"urls": ["https://x/r.pth"], "sha256": HASH_A}]
+    write(tmp_path / "NoInc.json", doc)
+    catalog_registry.add_folder(str(tmp_path), identity)
+
+    entry = catalog_registry.entry("haybale-x:catalog:NoInc")
+    assert entry is not None
+    assert entry.resources[0].include == ()
+
+
+@pytest.mark.unit
+def test_include_not_a_list_of_strings_is_refused(tmp_path, catalog_registry, identity):
+    from pathlib import Path
+
+    from haywire.core.catalog.registry import _parse_resource
+
+    for bad_include in ("*.bin", [1]):
+        bad = {"urls": ["u"], "include": bad_include}
+        with pytest.raises(ValueError, match="include must be a list"):
+            _parse_resource(Path("Bad.json"), bad)
+
+        doc = copy.deepcopy(OMDB_DEMO)
+        doc["resources"] = [bad]
+        write(tmp_path / "BadInc.json", doc)
+        catalog_registry.add_folder(str(tmp_path), identity)
+        assert catalog_registry.entry("haybale-x:catalog:BadInc") is None
+        assert _failed(catalog_registry, "haybale-x:catalog:BadInc")
 
 
 @pytest.mark.unit
@@ -244,3 +350,37 @@ def test_a_catalog_key_resolves_like_any_component(library_system):
     assert entry is not None
     assert entry.class_identity.registry_key == key
     assert entry.path.name == "4x-Compact-Pretrain.json"
+
+
+def _flagged(tmp_path, **flags):
+    from haywire.core.catalog import CatalogRegistry
+
+    write(tmp_path / "flagged.json", {**OMDB_DEMO, **flags})
+    registry = CatalogRegistry()
+    registry.add_folder(str(tmp_path), lib_identity(tmp_path))
+    return registry.entries()[0]
+
+
+def test_flags_default_to_false(tmp_path):
+    entry = _flagged(tmp_path)
+    assert entry.recommended is False
+    assert entry.commercial is False
+
+
+@pytest.mark.parametrize("value", ["true", 1, None, "yes"])
+def test_only_json_true_sets_a_flag(tmp_path, value):
+    entry = _flagged(tmp_path, recommended=value, commercial=value)
+    assert entry.recommended is False
+    assert entry.commercial is False
+
+
+def test_json_true_sets_the_flags(tmp_path):
+    entry = _flagged(tmp_path, recommended=True, commercial=True)
+    assert entry.recommended is True
+    assert entry.commercial is True
+
+
+def test_flags_join_the_fields_a_port_filter_reads(tmp_path):
+    fields = _flagged(tmp_path, recommended=True, commercial=True).fields()
+    assert fields["recommended"] is True
+    assert fields["commercial"] is True

@@ -76,7 +76,7 @@ def resolve_port(node: BaseNode, port_id: str) -> ResolvedModel:
             preference_for(node, port_id),
             catalog=state.catalog,
             index=state.index,
-            hf_cache=state.hf_cache,
+            sources=state.sources,
         )
     except ModelMissing:
         node.wrapper.replace_warnings(KIND, [] if ref.is_empty else [MISSING_WARNING])

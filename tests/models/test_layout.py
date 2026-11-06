@@ -4,7 +4,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from haybale_models.store.layout import target_path
+import pytest
+
+from haybale_models.store.layout import safe_name, target_path
 
 from haywire.core.catalog import ModelFile, Resource
 
@@ -98,3 +100,61 @@ def test_bundle_path_traversal_refused():
                 sha256=None,
                 root=ROOT,
             )
+
+
+@pytest.mark.parametrize(
+    ("raw", "safe"),
+    [
+        ("a/b.pth", "b.pth"),
+        ("a\\b.pth", "b.pth"),
+        ("..", "model.bin"),
+        (".", "model.bin"),
+        ("", "model.bin"),
+        ("x\0.pth", "model.bin"),
+        ("m#1?.pth", "m#1?.pth"),
+        ("modèle.pth", "modèle.pth"),
+        ("../../up.pth", "up.pth"),
+    ],
+)
+def test_safe_name(raw: str, safe: str) -> None:
+    assert safe_name(raw) == safe
+
+
+def test_target_path_uses_the_given_name_for_a_catalog_file():
+    p = target_path(
+        entry=entry(),
+        resource=None,
+        file=None,
+        url="https://mega.nz/file/Bc0SmIyK#key",
+        sha256=None,
+        root=ROOT,
+        name="2x-Compact-Pretrain.pth",
+    )
+    assert p == ROOT / "lib" / "my-model" / "2x-Compact-Pretrain.pth"
+
+
+def test_target_path_uses_the_given_name_for_a_pasted_url():
+    p = target_path(
+        entry=None,
+        resource=None,
+        file=None,
+        url="https://mega.nz/file/Bc0SmIyK#key",
+        sha256=None,
+        root=ROOT,
+        name="w.pth",
+    )
+    assert p == ROOT / "downloads" / "mega.nz" / "w.pth"
+
+
+def test_a_bundle_file_keeps_its_declared_path_whatever_the_name():
+    f = ModelFile("sub/m.bin", None, None, ())
+    p = target_path(
+        entry=entry(),
+        resource=resource(precision="fp16"),
+        file=f,
+        url="https://h/m.bin",
+        sha256=None,
+        root=ROOT,
+        name="other.bin",
+    )
+    assert p.name == "m.bin"

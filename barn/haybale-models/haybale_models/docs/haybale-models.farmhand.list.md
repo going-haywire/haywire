@@ -6,7 +6,7 @@ Catalog entries with per-variant status, indexed local files and download jobs.
 
 ## Agent Instructions
 
-Lists the model catalog (every entry with each variant's size and status: local, HF cache, queued, downloading N %, failed, not downloaded), the files indexed in the models volume, and the download jobs. detail=true adds license and description to catalog rows.
+Lists the model catalog (every entry with each variant's size and status: local, HF cache, queued, downloading N %, failed, not downloaded), the files indexed in the models volume, and the download jobs. detail=true adds license, commercial and description to catalog rows.
 
 ## Details
 
@@ -21,4 +21,8 @@ Returns every catalog entry with its variants (size and status: local, HF cache,
 queued, downloading, failed or not downloaded), every file indexed in the models
 volume, and every download job with its progress. Call it first, to learn the
 catalog keys that `models_fetch` takes and to follow a download. Pass
-`detail=true` to add license and description to the catalog rows.
+`detail=true` to add license, commercial (whether the author states the model may be used
+commercially) and description to the catalog rows.
+
+A failed job with `assisted` true can be finished by the user: they get the file from one of its
+`page_urls` and hand it over with Download in browser in the Models editor.

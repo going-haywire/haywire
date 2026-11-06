@@ -20,7 +20,9 @@ from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
 from haybale_models.pool import LoadedModels
 from haybale_models.resolver import FetchSpec
 from haybale_models.signals import ModelsChanged
+from haybale_models.sources import builtin_sources
 from haybale_models.store.index import ModelIndex
+from haybale_models.store.records import FetchRecords
 
 if TYPE_CHECKING:
     from haybale_models.needs import NeedsReport, NeedsWatcher
@@ -55,10 +57,15 @@ class ModelsState(AppState):
         """Models loaded in memory, shared between nodes."""
         self.index = ModelIndex()
         """Index of the files in the models volume."""
-        self.queue = DownloadQueue(self.index, lambda: self.hf_cache, self._max_parallel)
+        self.records = FetchRecords(library_storage_dir("haybale_models") / "fetched.json")
+        """Files fetched into cache volumes, by volume and path inside it."""
+        self.sources = builtin_sources(self.index, hf_cache=lambda: self.hf_cache, records=self.records)
+        """Model sources: how each kind of address finds and fetches a file."""
+        self.queue = DownloadQueue(self.index, self.sources, self._max_parallel, self.records)
         """The process-wide download queue."""
         self.queue.add_listener(self._on_models_changed)
         self.index.add_listener(self._on_models_changed)
+        self.records.add_listener(self._on_models_changed)
         self._needs: NeedsWatcher | None = None
 
     @staticmethod
@@ -77,6 +84,15 @@ class ModelsState(AppState):
         for spec in specs:
             ids.extend(self.queue.enqueue_all(spec, principal))
         return ids
+
+    def files_changed(self) -> None:
+        """Report that files changed in a cache volume, which nothing here watches.
+
+        Open graphs are checked again, so a node using a removed file learns it is gone.
+        """
+        self._on_models_changed()
+        if self._needs is not None:
+            self._needs.refresh()
 
     def needed_reports(self) -> dict[str, NeedsReport]:
         """Return the latest needs report of every open graph that misses models, by binding id."""

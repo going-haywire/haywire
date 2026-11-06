@@ -16,19 +16,25 @@ class ModelFile:
     """One file of a resource.
 
     ``path`` is the file's name inside a bundle; ``""`` for a single-file resource.
+    ``cache`` is the address where a framework expects the file (``keras://a.xml``),
+    or ``None``.
     """
 
     path: str
     sha256: str | None
     size: int | None
     urls: tuple[str, ...]
+    cache: str | None = None
 
 
 @dataclass(frozen=True)
 class Resource:
     """One downloadable variant of a catalog entry: a file or a bundle of files.
 
-    A tag the resource lacks (``None``) means it runs anywhere.
+    A tag the resource lacks (``None``) means it runs anywhere. ``cache`` is the
+    address where a framework expects the resource's file (``torchhub://r.pth``),
+    or ``None``. ``include`` holds the file patterns a whole-folder address
+    fetches; empty means everything.
     """
 
     platform: str
@@ -39,6 +45,8 @@ class Resource:
     files: tuple[ModelFile, ...]
     backend: str | None = None
     precision: str | None = None
+    cache: str | None = None
+    include: tuple[str, ...] = ()
 
     def tags(self) -> dict[str, str]:
         """The tags this resource carries, omitting those it lacks."""
@@ -95,6 +103,10 @@ class CatalogEntry:
     content_hash: str
     identity: BaseIdentity
     library: LibraryIdentity
+    recommended: bool = False
+    """The author recommends this model to someone choosing one."""
+    commercial: bool = False
+    """The author states this model may be used commercially; unset reads as non-commercial."""
 
     @property
     def class_identity(self) -> BaseIdentity:
@@ -112,6 +124,8 @@ class CatalogEntry:
             "purpose": self.purpose,
             "tags": self.tags,
             "license": self.license,
+            "recommended": self.recommended,
+            "commercial": self.commercial,
             "input_channels": self.input_channels,
             "output_channels": self.output_channels,
         }

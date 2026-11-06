@@ -42,6 +42,9 @@ Options (in `properties`):
 - `unavailable`: when set, the edit button is unavailable and this text is its
   tooltip, for a node that cannot take a model yet. A node that learns later which
   models fit sets `filter` and drops `unavailable` by rebuilding the port in `rejig`.
+- `catalog_only`: when true, only catalog entries can be chosen: the other tabs are not shown,
+  for a node that needs what a catalog entry says about the model. A value already saved stays
+  shown until it is replaced.
 - `prefer`: ordered list of tag sets for choosing a variant, such as
   `[{"precision": "fp16"}, {}]`.
 

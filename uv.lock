@@ -1136,7 +1136,7 @@ requires-dist = [
     { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "httpx", specifier = ">=0.28" },
-    { name = "huggingface-hub", specifier = ">=1.0" },
+    { name = "huggingface-hub", specifier = ">=2.4" },
 ]
 
 [[package]]

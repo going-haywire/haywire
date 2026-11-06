@@ -474,7 +474,7 @@ The state icon is an indicator only (not clickable): a widget cannot reach its s
 
 ### 2.7 Spandrel — existing `haybale-spandrel` project (Q19–Q23, Q33)
 - Project scaffold `haybale-spandrel-dev` at `../haybale-spandrel`, barn member
-  `barn/haybale-spandrel`; add `barn/haybale-spandrel-extra` (lockstep, ADR 0023).
+  `barn/haybale-spandrel` (no separate extra library — see S8 below).
 - **Nodes (Q23B):** Load Model (model reference → `MODEL` + architecture/scale/channels/purpose
   outlets; `MODEL` is `store_strategy=NEVER`), Upscale Image (SR + 1x restoration; tiling
   `auto | none | N px` with auto from memory budget and `ModelTiling.INTERNAL` respected; custom
@@ -486,9 +486,16 @@ The state icon is an indicator only (not clickable): a widget cannot reach its s
   (fp32 + status note), never refuses.
 - **Pool use (Q20B):** variant key `(device, dtype)`; release hook `del` + `torch.cuda.empty_cache()`.
   `on_reload = "restart"` (hot-reload drops the pool module).
-- **Extra arches (Q19B, Q33A):** `haybale-spandrel-extra` registers `EXTRA_REGISTRY` on load,
-  declares its non-commercial license; base stays MIT. A model that failed to detect before the
-  extra library loaded retries via failed-stays-dirty.
+- **Non-commercial architectures (S8, reverses Q19B/Q33A, 2026-11-03):** no separate library.
+  haybale-spandrel depends on `spandrel_extra_arches` and imports it only when the library setting
+  *Non-commercial architectures* (off) is on, loading through a copy of `MAIN_REGISTRY` +
+  `EXTRA_REGISTRY` (`ModelLoader(registry=...)`; the global registry is never changed). All ten are
+  non-commercial (licence table in the library's NOTES.md; the wheel ships no licence files and its
+  metadata says MIT). A model that failed while off loads on the next run after turning it on
+  (failed-stays-dirty). **S8 deviations:** the setting applies from the next graph start (a loaded
+  Load Model does not re-run on a library-setting change); the pool key gains the flag; a
+  non-commercial model's card shows a licence note and its status ends in "· non-commercial"; Model
+  Info gains a `Non-commercial` outlet; an unsupported model while off names the setting.
 
 **S7 deviations (landed 2026-11-03; details in the [S7 plan](2026-11-01-s7-spandrel-nodes.md)):**
 - **Model kinds (ADR 0071).** `MODEL` became `MODEL_BASE` with kinds `IMAGE_MODEL` (SR, FaceSR,
@@ -535,7 +542,7 @@ The state icon is an indicator only (not clickable): a widget cannot reach its s
 | S6 | haybale-models (+ graph notices in graph-editor/haystack, catalog registry in core) | haybale-models | S1 | done (merged ff to master 4f2ebd3b2, 2026-11-01; live check passed incl. the S6b model picker; follow-ups and deferred minors listed in §2.1 and §2.5) — [plan](2026-10-31-s6-haybale-models.md) |
 | S3 | `--torch-backend` setting | haybale-marketplace | — | done (9d651f6b2 + widget 4dfdbd423 on master, 2026-11-01; live-checked; no slice plan — implemented inline; deviations in §2.6) |
 | S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | done (haywire-repo `feat/s7-spandrel` 9c2a6096b…, haybale-spandrel `feat/s7-spandrel` b5da8d9…cc6788c, merged ff to master 2026-11-03; live check passed incl. batch + Upscaler macro; Inpaint live check is a priority follow-up; deviations in §2.7) — [plan](2026-11-01-s7-spandrel-nodes.md) |
-| S8 | extra arches | haybale-spandrel-extra | S7 | open |
+| S8 | extra arches → non-commercial architectures setting (reverses Q19B/Q33A, 2026-11-03) | haybale-spandrel | S7 | done (haybale-spandrel 30aa239 + haywire-repo on `feat/s8-noncommercial`, 2026-11-04, unmerged; deviations in §2.7) — [plan](2026-11-03-s8-noncommercial-arches.md) |
 | S9 | visiongraph frame adapters | haybale-visiongraph | S5 | open |
 
 If S0 misses the realtime budget, revisit Q27 before S1.

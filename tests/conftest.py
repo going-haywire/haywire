@@ -167,7 +167,8 @@ def cached_packages_distributions():
 # would therefore hijack where later-defined FrameworkSettings register and empty a
 # queue the real session registry still needs.
 #
-# So we snapshot ALL THREE pieces of global state a fallback would touch
+# So we snapshot ALL THREE pieces of global state a fallback would touch, plus each
+# LibrarySettings class's registry back-reference
 # (``di_context._settings_registry``, ``FrameworkSettings._registry``, and the
 # ``_pending_global`` list contents) and restore them verbatim on teardown, leaving
 # a DI-less test's fallback fully contained. When nothing is set, we install a
@@ -176,6 +177,21 @@ def cached_packages_distributions():
 # The session library-system registry (set once via ``provide_settings_registry``)
 # is not re-run per test, so a test that needs that registry in place takes the
 # ``library_system`` fixture (as ``graph_with_library_system`` does).
+_UNSET = object()
+
+
+def _library_settings_classes() -> list[type]:
+    from haywire.core.settings.settings_library import LibrarySettings
+
+    found: list[type] = []
+    pending: list[type] = [LibrarySettings]
+    while pending:
+        cls = pending.pop()
+        found.append(cls)
+        pending.extend(cls.__subclasses__())
+    return found
+
+
 @pytest.fixture(autouse=True)
 def _ambient_settings_registry():
     from haywire.core.di import context as di_context
@@ -185,6 +201,9 @@ def _ambient_settings_registry():
     prev_ambient = di_context._settings_registry
     prev_fw_registry = fw.FrameworkSettings._registry
     prev_pending = list(fw._pending_global)
+    # A second library system's initialize() re-registers every library settings class,
+    # repointing its registry back-reference (cls._registry) at a registry that dies with it.
+    prev_library = {cls: cls.__dict__.get("_registry", _UNSET) for cls in _library_settings_classes()}
 
     if prev_ambient is None:
         # Constructing this drains _pending_global and repoints
@@ -197,6 +216,11 @@ def _ambient_settings_registry():
         di_context._settings_registry = prev_ambient
         fw.FrameworkSettings._registry = prev_fw_registry
         fw._pending_global[:] = prev_pending
+        for cls, registry in prev_library.items():
+            if registry is not _UNSET:
+                cls._registry = registry  # type: ignore[attr-defined]
+            elif "_registry" in cls.__dict__:
+                delattr(cls, "_registry")
 
 
 # ==============================================================================

@@ -366,6 +366,27 @@ def hint(text: str) -> ui.label:
     return ui.label(text).classes("hw-hint")
 
 
+def filter_chip(text: str, *, selected: bool = False, on_change: Callable | None = None) -> ui.chip:
+    """A value a list can be filtered by: quiet at rest, accent while selected.
+
+    Visual rules: ``.hw-filter-chip``.
+
+    Args:
+        text: The value.
+        selected: Whether it starts selected.
+        on_change: Called with a value-change event when a click selects or deselects it.
+
+    Usage::
+
+        hui.filter_chip("anime", selected=True, on_change=lambda e: narrow(e.value))
+    """
+    return (
+        ui.chip(text, color=None, selectable=True, selected=selected, on_selection_change=on_change)
+        .props("dense")
+        .classes("hw-filter-chip")
+    )
+
+
 def indented(*, gap: str = "gap-0.5") -> ui.column:
     """A column one indent step (``--hw-indent-step``, 12px) in from its label (§4.6).
 
