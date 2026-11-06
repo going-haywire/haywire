@@ -3544,10 +3544,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#lockstep_unpublished-publish_order-start-publishing" class="md-nav__link">
+  <a href="#lockstep_unpublished-pip_publish_order-start-publishing" class="md-nav__link">
     <span class="md-ellipsis">
       
-        lockstep_unpublished → publish_order (start publishing)
+        lockstep_unpublished → pip_publish_order (start publishing)
       
     </span>
   </a>
@@ -3555,10 +3555,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#publish_order-lockstep_unpublished-stop-publishing" class="md-nav__link">
+  <a href="#pip_publish_order-lockstep_unpublished-stop-publishing" class="md-nav__link">
     <span class="md-ellipsis">
       
-        publish_order → lockstep_unpublished (stop publishing)
+        pip_publish_order → lockstep_unpublished (stop publishing)
       
     </span>
   </a>
@@ -3610,16 +3610,16 @@ prerequisites, configuration locations, release procedure, and recovery procedur
 locations, recovery procedures, and per-step detail.</p>
 <h2 id="prerequisites-one-time">Prerequisites (one-time)<a class="headerlink" href="#prerequisites-one-time" title="Permanent link">&para;</a></h2>
 <h3 id="pypi-trusted-publisher">PyPI Trusted Publisher<a class="headerlink" href="#pypi-trusted-publisher" title="Permanent link">&para;</a></h3>
-<p>Each package in <code>[tool.haywire.release].publish_order</code> must be registered as a Trusted
+<p>Each package in <code>[tool.haywire.release].pip_publish_order</code> must be registered as a Trusted
 Publisher on PyPI before the first publish workflow run.</p>
-<p>For each package name in <code>publish_order</code>:</p>
+<p>For each package name in <code>pip_publish_order</code>:</p>
 <ol>
 <li>Reserve the project on PyPI: create an account, claim the name (if not already present),
    then go to <strong>Project → Settings → Publishing</strong>.</li>
 <li>Click <strong>Add a new pending publisher</strong> (for first-time projects) or <strong>Add a new trusted
    publisher</strong> (for already-published projects).</li>
 <li>Fill in:</li>
-<li><strong>Owner:</strong> <code>maybites</code></li>
+<li><strong>Owner:</strong> <code>going-haywire</code></li>
 <li><strong>Repository name:</strong> <code>haywire</code></li>
 <li><strong>Workflow name:</strong> <code>publish.yml</code></li>
 <li><strong>Environment name:</strong> <code>pypi</code> (matches <code>.github/workflows/publish.yml</code>)</li>
@@ -3695,7 +3695,7 @@ URL <code>https://going-haywire.github.io/haywire/marketplace.toml</code> resolv
 </span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="p">]</span>
 </span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="c1"># Packages versioned in lockstep with the release but NOT published.</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># The bump script keeps these on the same version as `publish_order` so internal users</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># The bump script keeps these on the same version as `pip_publish_order` so internal users</span>
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="c1"># (dev installs, internal test fixtures) stay coherent.</span>
 </span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="c1">#  - haybale-visiongraph: Tier 2 git-only (binary deps, deferred from PyPI).</span>
 </span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1">#  - haybale-testing, haybale-TEST_A: Tier 3 internal test fixtures.</span>
@@ -3723,7 +3723,7 @@ documentation only; if it ever disagrees with this section, the section wins.</p
 <ol>
 <li>Run <code>/haywire-release</code> — the skill prompts for the new version (e.g. <code>0.0.2</code>).</li>
 <li>The skill runs the gate tests: <code>pytest -m "not integration"</code>. Failure stops here.</li>
-<li>The skill patches every <code>pyproject.toml</code> referenced by <code>publish_order + lockstep_unpublished</code>:</li>
+<li>The skill patches every <code>pyproject.toml</code> referenced by <code>pip_publish_order + lockstep_unpublished</code>:</li>
 <li><code>[project] version = "0.0.2"</code></li>
 <li>All <code>&gt;=</code> inter-package constraints updated to the new floor (e.g. <code>haywire-core&gt;=0.0.2</code>).</li>
 <li>The skill re-locks (<code>uv lock</code>) and <strong>bakes the docs</strong>
@@ -3776,7 +3776,7 @@ bump is a local step, this is the only thing standing between a forgotten
 <code>scripts/bump_version.py</code> run and a green release that publishes nothing — Job 3 reads its
 versions from <code>pyproject.toml</code>, would find the previous release already on PyPI, and skip
 every package as "already published". Failure stops the pipeline before any wheel is built.</p>
-<p>Then, for every package in <code>publish_order</code>, run <code>uv build</code> and collect the resulting wheel and sdist
+<p>Then, for every package in <code>pip_publish_order</code>, run <code>uv build</code> and collect the resulting wheel and sdist
 into the workflow's artifact storage. All builds happen before any publish — a build failure
 in any package stops the pipeline before anything reaches PyPI. This catches build errors
 (missing files, invalid metadata, dependency resolution failures) without leaving partial
@@ -3784,7 +3784,7 @@ state on PyPI.</p>
 <p>If Job 2 fails, nothing publishes. Fix the build error, push a new tag (or re-run the
 workflow), and try again.</p>
 <h4 id="job-3-publish-wheels-sequential-dependency-order-idempotent-fail-fast">Job 3 — publish wheels (sequential, dependency order, idempotent, fail-fast)<a class="headerlink" href="#job-3-publish-wheels-sequential-dependency-order-idempotent-fail-fast" title="Permanent link">&para;</a></h4>
-<p>For each package in <code>publish_order</code>:</p>
+<p>For each package in <code>pip_publish_order</code>:</p>
 <ol>
 <li>Check whether <code>name == version</code> already exists on PyPI
    (<code>GET https://pypi.org/pypi/&lt;name&gt;/&lt;version&gt;/json</code> → 200 means already published).</li>
@@ -3853,7 +3853,7 @@ deploy issue). Fix the cause and re-run the workflow on the same tag:</p>
 walks through to Job 4 and re-attempts the deploy.</p>
 <h2 id="adding-a-new-package-to-the-release-set">Adding a new package to the release set<a class="headerlink" href="#adding-a-new-package-to-the-release-set" title="Permanent link">&para;</a></h2>
 <ol>
-<li>Add the pip distribution name to <code>[tool.haywire.release].publish_order</code> in the workspace
+<li>Add the pip distribution name to <code>[tool.haywire.release].pip_publish_order</code> in the workspace
    root <code>pyproject.toml</code>. Insert it at the correct position (after all its dependencies).</li>
 <li>Register the new package as a Trusted Publisher on PyPI (see Prerequisites above).</li>
 <li>Confirm <code>uv build --package &lt;name&gt;</code> works locally.</li>
@@ -3861,11 +3861,11 @@ walks through to Job 4 and re-attempts the deploy.</p>
 <li>Cut the next release; the new package will publish on the same tag as the rest.</li>
 </ol>
 <h2 id="moving-a-package-between-tiers">Moving a package between tiers<a class="headerlink" href="#moving-a-package-between-tiers" title="Permanent link">&para;</a></h2>
-<h3 id="lockstep_unpublished-publish_order-start-publishing"><code>lockstep_unpublished</code> → <code>publish_order</code> (start publishing)<a class="headerlink" href="#lockstep_unpublished-publish_order-start-publishing" title="Permanent link">&para;</a></h3>
+<h3 id="lockstep_unpublished-pip_publish_order-start-publishing"><code>lockstep_unpublished</code> → <code>pip_publish_order</code> (start publishing)<a class="headerlink" href="#lockstep_unpublished-pip_publish_order-start-publishing" title="Permanent link">&para;</a></h3>
 <p>A package is in <code>lockstep_unpublished</code> because it's not yet ready for PyPI (e.g.
 <code>haybale-visiongraph</code> has binary deps) or is internal-only. To start publishing it:</p>
 <ol>
-<li>Move the package name from <code>lockstep_unpublished</code> to <code>publish_order</code> in
+<li>Move the package name from <code>lockstep_unpublished</code> to <code>pip_publish_order</code> in
    <code>[tool.haywire.release]</code>, at the correct dependency position.</li>
 <li>Register the new package as a Trusted Publisher on PyPI.</li>
 <li>Verify <code>uv build --package &lt;name&gt;</code> succeeds.</li>
@@ -3874,9 +3874,9 @@ walks through to Job 4 and re-attempts the deploy.</p>
 <p>On the next release, the package is published to PyPI for the first time. Existing users who
 installed via <code>source = "git"</code> (from a third-party marketstall, if any) keep their git install
 until they re-install; the new marketplace has <code>source = "pypi"</code> for new installs.</p>
-<h3 id="publish_order-lockstep_unpublished-stop-publishing"><code>publish_order</code> → <code>lockstep_unpublished</code> (stop publishing)<a class="headerlink" href="#publish_order-lockstep_unpublished-stop-publishing" title="Permanent link">&para;</a></h3>
+<h3 id="pip_publish_order-lockstep_unpublished-stop-publishing"><code>pip_publish_order</code> → <code>lockstep_unpublished</code> (stop publishing)<a class="headerlink" href="#pip_publish_order-lockstep_unpublished-stop-publishing" title="Permanent link">&para;</a></h3>
 <ol>
-<li>Move the package name from <code>publish_order</code> to <code>lockstep_unpublished</code>.</li>
+<li>Move the package name from <code>pip_publish_order</code> to <code>lockstep_unpublished</code>.</li>
 <li>Update the §5 tier table.</li>
 </ol>
 <p>The next release stops publishing this package. Already-published PyPI versions remain
