@@ -18,17 +18,17 @@ locations, recovery procedures, and per-step detail.
 
 ### PyPI Trusted Publisher
 
-Each package in `[tool.haywire.release].publish_order` must be registered as a Trusted
+Each package in `[tool.haywire.release].pip_publish_order` must be registered as a Trusted
 Publisher on PyPI before the first publish workflow run.
 
-For each package name in `publish_order`:
+For each package name in `pip_publish_order`:
 
 1. Reserve the project on PyPI: create an account, claim the name (if not already present),
    then go to **Project → Settings → Publishing**.
 2. Click **Add a new pending publisher** (for first-time projects) or **Add a new trusted
    publisher** (for already-published projects).
 3. Fill in:
-   - **Owner:** `maybites`
+   - **Owner:** `going-haywire`
    - **Repository name:** `haywire`
    - **Workflow name:** `publish.yml`
    - **Environment name:** `pypi` (matches `.github/workflows/publish.yml`)
@@ -78,7 +78,7 @@ publish_order = [
 ]
 
 # Packages versioned in lockstep with the release but NOT published.
-# The bump script keeps these on the same version as `publish_order` so internal users
+# The bump script keeps these on the same version as `pip_publish_order` so internal users
 # (dev installs, internal test fixtures) stay coherent.
 #  - haybale-visiongraph: Tier 2 git-only (binary deps, deferred from PyPI).
 #  - haybale-testing, haybale-TEST_A: Tier 3 internal test fixtures.
@@ -112,7 +112,7 @@ docs_branch = "main"
 
 1. Run `/haywire-release` — the skill prompts for the new version (e.g. `0.0.2`).
 2. The skill runs the gate tests: `pytest -m "not integration"`. Failure stops here.
-3. The skill patches every `pyproject.toml` referenced by `publish_order + lockstep_unpublished`:
+3. The skill patches every `pyproject.toml` referenced by `pip_publish_order + lockstep_unpublished`:
    - `[project] version = "0.0.2"`
    - All `>=` inter-package constraints updated to the new floor (e.g. `haywire-core>=0.0.2`).
 4. The skill re-locks (`uv lock`) and **bakes the docs**
@@ -178,7 +178,7 @@ bump is a local step, this is the only thing standing between a forgotten
 versions from `pyproject.toml`, would find the previous release already on PyPI, and skip
 every package as "already published". Failure stops the pipeline before any wheel is built.
 
-Then, for every package in `publish_order`, run `uv build` and collect the resulting wheel and sdist
+Then, for every package in `pip_publish_order`, run `uv build` and collect the resulting wheel and sdist
 into the workflow's artifact storage. All builds happen before any publish — a build failure
 in any package stops the pipeline before anything reaches PyPI. This catches build errors
 (missing files, invalid metadata, dependency resolution failures) without leaving partial
@@ -189,7 +189,7 @@ workflow), and try again.
 
 #### Job 3 — publish wheels (sequential, dependency order, idempotent, fail-fast)
 
-For each package in `publish_order`:
+For each package in `pip_publish_order`:
 
 1. Check whether `name == version` already exists on PyPI
    (`GET https://pypi.org/pypi/<name>/<version>/json` → 200 means already published).
@@ -281,7 +281,7 @@ walks through to Job 4 and re-attempts the deploy.
 
 ## Adding a new package to the release set
 
-1. Add the pip distribution name to `[tool.haywire.release].publish_order` in the workspace
+1. Add the pip distribution name to `[tool.haywire.release].pip_publish_order` in the workspace
    root `pyproject.toml`. Insert it at the correct position (after all its dependencies).
 2. Register the new package as a Trusted Publisher on PyPI (see Prerequisites above).
 3. Confirm `uv build --package <name>` works locally.
@@ -290,12 +290,12 @@ walks through to Job 4 and re-attempts the deploy.
 
 ## Moving a package between tiers
 
-### `lockstep_unpublished` → `publish_order` (start publishing)
+### `lockstep_unpublished` → `pip_publish_order` (start publishing)
 
 A package is in `lockstep_unpublished` because it's not yet ready for PyPI (e.g.
 `haybale-visiongraph` has binary deps) or is internal-only. To start publishing it:
 
-1. Move the package name from `lockstep_unpublished` to `publish_order` in
+1. Move the package name from `lockstep_unpublished` to `pip_publish_order` in
    `[tool.haywire.release]`, at the correct dependency position.
 2. Register the new package as a Trusted Publisher on PyPI.
 3. Verify `uv build --package <name>` succeeds.
@@ -305,9 +305,9 @@ On the next release, the package is published to PyPI for the first time. Existi
 installed via `source = "git"` (from a third-party marketstall, if any) keep their git install
 until they re-install; the new marketplace has `source = "pypi"` for new installs.
 
-### `publish_order` → `lockstep_unpublished` (stop publishing)
+### `pip_publish_order` → `lockstep_unpublished` (stop publishing)
 
-1. Move the package name from `publish_order` to `lockstep_unpublished`.
+1. Move the package name from `pip_publish_order` to `lockstep_unpublished`.
 2. Update the §5 tier table.
 
 The next release stops publishing this package. Already-published PyPI versions remain
