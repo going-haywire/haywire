@@ -38,4 +38,5 @@ means removing and adding it, which drops its wires.
 
 A node that makes new pixels drops the fields unless its help says it keeps them; to
 keep one anyway, read it before that node and stamp it after. Changing an image's
-channels keeps them. Fields are not saved, either with the graph or in image files.
+channels keeps them. Fields are not saved with the graph; Save Image can store them
+in a PNG file.

@@ -45,7 +45,7 @@ CARRIER  (core, hidden)            CarrierValue  (core)
   carrier; the upstream value and other branches never see it.
 - **ICC and EXIF stay in `ImageMetadata`.** They describe the file and are used by Save Image.
   The Metadata node can neither read nor change them. Metadata Info lists them read-only.
-- Save Image does not write fields to the file. `codecs.py` needs no change.
+- Save Image writes fields to a PNG only when **Write Fields** is on (added 2026-11-07, see ADR 0075).
 
 ### What keeps fields
 

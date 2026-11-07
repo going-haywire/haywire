@@ -71,6 +71,7 @@ def test_a_type_option_shows_the_hover_tip_with_class_library_and_description(
     expect(tip).to_contain_text("Boolean: BOOL")
     expect(tip).to_contain_text("True or False")
     expect(tip).to_contain_text("Library: haywire-core")
+    expect(tip).to_contain_text("Can be saved in image files")
     expect(page.locator(".q-menu .q-tooltip")).to_have_count(0)
 
 

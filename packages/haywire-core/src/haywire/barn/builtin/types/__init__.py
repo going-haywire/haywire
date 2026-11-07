@@ -11,6 +11,7 @@ from .optional import OPTIONAL
 from .path import FILE_PATH, FOLDER_PATH, PATH
 from .progress import PROGRESS
 from .specs import BOOL, FLOAT, INT, STRING, FLOATField, INTField
+from .matrices import MAT3, MAT4
 from .vectors import VEC2F, VEC2I, VEC3F, VEC3I, VEC4F, VEC4I
 
 __all__ = [
@@ -31,6 +32,8 @@ __all__ = [
     "VEC3I",
     "VEC4I",
     "VEC2F",
+    "MAT3",
+    "MAT4",
     "VEC3F",
     "VEC4F",
     "COLOR",

@@ -203,3 +203,100 @@ def test_load_outlet_wires_into_save(graph_with_library_system):
     edge = graph.create_edge_wrapper(load.node_id, "image", save.node_id, "image")
     assert edge is not None
     assert save.ports["image"].data.has_linked_value()
+
+
+def _bundle_stamps(image: Any) -> Any:
+    from haywire.barn.builtin.types import FLOAT, INT, VEC3F
+    from haywire.core.settings import Vec3f
+
+    return (
+        image.stamped("camera_timestamp", 1.5, FLOAT)
+        .stamped("camera_frame_number", 7, INT)
+        .stamped("offset", Vec3f([1.0, 2.0, 3.0]), VEC3F)
+    )
+
+
+def _load_back(graph: Any, rel: str) -> tuple[Any, Any]:
+    load = _add(graph, "haybale_image.nodes.load_image", "LoadImageNode")
+    load.worker(MagicMock(), path=VolumePath(SCANS, rel))
+    return load.ports["image"].get_value(), load
+
+
+@pytest.mark.parametrize("dtype", [np.uint8, np.uint16])
+def test_write_fields_round_trips_through_a_png(graph_with_library_system, scans, dtype):
+    node = _save(graph_with_library_system)
+    node.png.write_fields = True
+    _run(node, "out.png", _bundle_stamps(_image(dtype)))
+    back, load = _load_back(graph_with_library_system, "out.png")
+    assert back.fields["camera_timestamp"].value == 1.5
+    assert back.fields["camera_frame_number"].value == 7
+    assert back.fields["offset"].value == [1.0, 2.0, 3.0]
+    assert back.source_depth == {np.uint8: 8, np.uint16: 16}[dtype]
+    assert load.wrapper.state.warnings == []
+
+
+def test_fields_are_not_written_by_default(graph_with_library_system, scans):
+    _run(_save(graph_with_library_system), "out.png", _bundle_stamps(_image()))
+    back, _ = _load_back(graph_with_library_system, "out.png")
+    assert dict(back.fields) == {}
+
+
+def test_write_fields_applies_to_png_only(graph_with_library_system, scans):
+    node = _save(graph_with_library_system)
+    node.png.write_fields = True
+    _run(node, "out.jpg", _bundle_stamps(_image()))
+    back, _ = _load_back(graph_with_library_system, "out.jpg")
+    assert dict(back.fields) == {}
+
+
+def test_an_unstorable_field_fails_loudly_and_writes_no_file(graph_with_library_system, scans):
+    from haybale_image.types.image import IMAGE_RGB
+
+    node = _save(graph_with_library_system)
+    node.png.write_fields = True
+    image = _bundle_stamps(_image()).stamped("preview", _image(), IMAGE_RGB)
+    with pytest.raises(ValueError, match=r"preview \(IMAGE_RGB, this type is not saved\)"):
+        _run(node, "out.png", image, if_exists="unique-suffix")
+    assert list(scans.glob("out*")) == []
+
+
+def test_write_fields_keeps_the_icc_profile(graph_with_library_system, scans):
+    value_mod = importlib.import_module("haybale_image.value")
+    node = _save(graph_with_library_system)
+    node.png.write_fields = True
+    image = _bundle_stamps(_image().with_metadata(value_mod.ImageMetadata(icc=b"profile")))
+    _run(node, "out.png", image)
+    back, _ = _load_back(graph_with_library_system, "out.png")
+    assert back.metadata.icc == b"profile"
+    assert back.fields["camera_frame_number"].value == 7
+
+
+def test_a_field_whose_type_is_gone_loads_the_image_and_warns(graph_with_library_system, scans):
+    import json
+
+    from haybale_image.io.png_text import FIELDS_KEYWORD, with_text_chunk
+
+    codecs = importlib.import_module("haybale_image.io.codecs")
+    options = codecs.EncodeOptions()
+    fmt = importlib.import_module("haybale_image.io.formats").Format.PNG
+    doc = {
+        "version": 1,
+        "fields": {
+            "kept": {"type": "haywire-core:type:INT", "data": {"value": 4}},
+            "lost": {"type": "nolib:type:GONE", "data": {"value": 1}},
+        },
+    }
+    (scans / "out.png").write_bytes(
+        with_text_chunk(codecs.encode_image(_image(), fmt, options), FIELDS_KEYWORD, json.dumps(doc))
+    )
+    back, load = _load_back(graph_with_library_system, "out.png")
+    assert not back.is_empty
+    assert set(back.fields) == {"kept"}
+    warnings = load.wrapper.state.warnings
+    assert len(warnings) == 1
+    assert "lost" in warnings[0].message
+    assert "nolib:type:GONE" in warnings[0].message
+
+    (scans / "out.png").write_bytes(codecs.encode_image(_image(), fmt, options))
+    load.worker(MagicMock(), path=VolumePath(SCANS, "out.png"))
+    assert load.wrapper.state.warnings == []

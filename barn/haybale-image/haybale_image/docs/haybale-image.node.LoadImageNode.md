@@ -27,6 +27,9 @@ is RGB. The camera's rotation (EXIF orientation) is applied to the pixels on
 load, because OpenCV's reader ignores it.
 16-bit and float files are read at full precision; see Image Info's `Depth`.
 
+Fields that Save Image stored in a PNG come back on the image. A field whose type
+is not installed here is left out, with a warning on the node naming it.
+
 The Loading bar shows while the file is read and decoded.
 
 The node reports an error naming the file when it is missing or is not an

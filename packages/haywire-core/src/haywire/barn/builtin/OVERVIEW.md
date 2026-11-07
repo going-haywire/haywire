@@ -24,6 +24,8 @@ Framework-owned primitive types and adapters
 - **Float** — Decimal number
 - **Folder path** — A folder inside a named volume such as the project folder or `models`.
 - **Integer** — Whole number
+- **Matrix 3x3** — 3x3 matrix: a 2D transform, a homography, a camera matrix or a 3D rotation
+- **Matrix 4x4** — 4x4 matrix: a 3D transform, a view or a projection
 - **Optional** — A value of the wrapped type, or absence
 - **Path** — A file or folder inside a named volume such as the project folder or `models`. The graph stores the volume and the path within it, so it keeps working on another machine.
 - **String** — Text data
@@ -49,6 +51,7 @@ Framework-owned primitive types and adapters
 - **ColorWidget** — Color picker widget
 - **FieldListWidget** — List of fields, each a key and a type
 - **FoldWidget** — Fold header
+- **MatrixWidget** — Matrix editor widget, one number per cell
 - **NoteTextWidget** — Note text
 - **NumberWidget** — Fast number input widget
 - **OptionalWidget** — Optional value — the wrapped type's widget, plus an absence state

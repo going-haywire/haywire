@@ -8,6 +8,7 @@ from typing import Any
 
 from nicegui import ui
 
+from haywire.barn.builtin.field_text import can_be_saved
 from haywire.barn.builtin.types import FIELD_LIST, FLOAT, is_valid_key
 from haywire.core.di.context import get_type_registry
 from haywire.ui import elements as hui
@@ -37,17 +38,20 @@ class TypeChoice:
         class_name: The type's class name.
         library: The id of the library the type comes from.
         description: What the type holds, empty if it does not say.
+        saved_in_files: Whether Save Image can write a field of this type to a file.
     """
 
     label: str
     class_name: str
     library: str
     description: str
+    saved_in_files: bool
 
     @property
     def tip_text(self) -> str:
-        """Return the hover tip's lines below the title: the description, then the library."""
-        lines = [self.description, f"Library: {self.library}"]
+        """Return the hover tip's lines below the title: description, library, whether it can be saved."""
+        saving = "Can be saved in image files" if self.saved_in_files else "Not saved in files"
+        lines = [self.description, f"Library: {self.library}", saving]
         return "\n".join(line for line in lines if line)
 
 
@@ -69,7 +73,9 @@ def type_choices(registry: Any) -> dict[str, TypeChoice]:
         if counts[label] > 1 and not key.startswith(_CORE_PREFIX):
             label = f"{label} ({library})"
         class_name = registry.get_type_class(key).__name__
-        choices[key] = TypeChoice(label, class_name, library, identity.description or "")
+        choices[key] = TypeChoice(
+            label, class_name, library, identity.description or "", can_be_saved(identity)
+        )
     return dict(sorted(choices.items(), key=lambda item: item[1].label.lower()))
 
 

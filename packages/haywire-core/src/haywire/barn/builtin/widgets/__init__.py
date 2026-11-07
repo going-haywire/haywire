@@ -16,6 +16,7 @@ from .note_text_widget import NoteTextWidget
 from .optional_widget import OptionalWidget
 from .path_widget import PathWidget
 from .progress_widget import ProgressWidget
+from .matrix_widget import MatrixWidget
 from .vec_widget import VecWidget
 
 __all__ = [
@@ -28,6 +29,7 @@ __all__ = [
     "SliderWidget",
     "SelectWidget",
     "SimpleLabelWidget",
+    "MatrixWidget",
     "VecWidget",
     "ColorWidget",
     "OptionalWidget",

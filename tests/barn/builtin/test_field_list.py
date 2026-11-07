@@ -6,6 +6,7 @@ import pytest
 
 from haywire.barn.builtin.types import FIELD_LIST, FLOAT, INT, FieldEntry, is_valid_key
 from haywire.barn.builtin.widgets.field_list_widget import TypeChoice, type_choices
+from haywire.core.types.enums import StoreStrategy
 from haywire.core.types.utils import serialize_element_type
 
 
@@ -102,7 +103,9 @@ class TestTypeChoices:
         return SimpleNamespace(
             list_value_type_keys=lambda: list(identities),
             get_identity=lambda key: SimpleNamespace(
-                label=identities[key][0], description=identities[key][1]
+                label=identities[key][0],
+                description=identities[key][1],
+                store_strategy=StoreStrategy.NEVER if key.endswith("NOSAVE") else StoreStrategy.NONE,
             ),
             get_type_class=lambda key: SimpleNamespace(__name__=key.rsplit(":", 1)[-1]),
         )
@@ -119,17 +122,22 @@ class TestTypeChoices:
             )
         )
         assert choices["haywire-core:type:INT"] == TypeChoice(
-            "Integer", "INT", "haywire-core", "Whole number"
+            "Integer", "INT", "haywire-core", "Whole number", True
         )
         assert choices["lib-a:type:INT"].label == "Integer (lib-a)"
         assert choices["lib-b:type:INT"].label == "Integer (lib-b)"
         assert choices["lib-a:type:ONLY"].label == "Only"
 
-    def test_the_tip_text_lists_the_description_then_the_library(self):
-        assert (
-            TypeChoice("Integer", "INT", "lib-a", "Whole number").tip_text == "Whole number\nLibrary: lib-a"
-        )
-        assert TypeChoice("Integer", "INT", "lib-a", "").tip_text == "Library: lib-a"
+    def test_the_tip_text_lists_description_library_and_whether_it_can_be_saved(self):
+        with_description = TypeChoice("Integer", "INT", "lib-a", "Whole number", True)
+        assert with_description.tip_text == "Whole number\nLibrary: lib-a\nCan be saved in image files"
+        without = TypeChoice("Integer", "INT", "lib-a", "", False)
+        assert without.tip_text == "Library: lib-a\nNot saved in files"
+
+    def test_a_type_declared_never_is_not_saved_in_files(self):
+        choices = type_choices(self._registry({"a:type:KEEP": ("Keep", ""), "a:type:NOSAVE": ("No", "")}))
+        assert choices["a:type:KEEP"].saved_in_files is True
+        assert choices["a:type:NOSAVE"].saved_in_files is False
 
     def test_choices_sort_by_label_ignoring_case(self):
         choices = type_choices(self._registry({"a:type:Z": ("zeta", ""), "a:type:B": ("Beta", "")}))
