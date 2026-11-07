@@ -2,7 +2,7 @@
 # Runs on every pull request and on master. CI runs every test (--maxfail=0 overrides
 # pyproject's 5) so one run shows every failure. A draft PR runs on Linux only; once it is
 # ready for review, the test tiers run on macOS too. A newer push cancels the run of
-# an older one on the same branch. See docs/superpowers/plans/2026-11-07-development-workflow.md.
+# an older one on the same branch. See .insights/project_pr_workflow.md.
 name: CI
 
 on:

@@ -38,7 +38,7 @@ UI/UX visual rules, tokens, and anti-patterns are canonical in `docs/reference/d
 
 ## Git and pull requests
 
-Full workflow and its reasons: [docs/superpowers/plans/2026-11-07-development-workflow.md](docs/superpowers/plans/2026-11-07-development-workflow.md).
+CI details, merge and tag mechanics, and the hook's limits: [.insights/project_pr_workflow.md](.insights/project_pr_workflow.md).
 
 - Work happens on a branch (`feat/…`, `fix/…`, `chore/…`) started from an up-to-date `master`; never commit on `master`.
 - Commit freely on a branch, without asking: a branch commit is a checkpoint, and the PR's squash merge is what `master` keeps.

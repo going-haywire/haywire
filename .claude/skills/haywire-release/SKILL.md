@@ -42,10 +42,10 @@ or commit them first.
 ## Procedure
 
 The procedure runs in the steps below, with a non-blocking dependency audit at Step
-2.5. `master` only receives changes through PRs whose checks passed (see
-[the workflow plan](../../../docs/superpowers/plans/2026-11-07-development-workflow.md),
-section 9), so the release does not run the test suite locally: it checks CI's result
-for the commit it releases, and the version bump goes through a PR like any change. Each step includes the exact command to
+2.5. `master` only receives changes through PRs whose checks passed (CLAUDE.md, *Git
+and pull requests*), so the release does not run the test suite locally: it checks CI's
+result for the commit it releases, and the version bump goes through a PR like any
+change. Each step includes the exact command to
 run, what to expect, and what to do on failure.
 
 ### Step 0 — show the current release version
