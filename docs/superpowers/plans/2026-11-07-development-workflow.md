@@ -1,6 +1,6 @@
 # Development workflow: branches, pull requests, CI and parallel work
 
-Status: agreed 2026-11-07 (decisions A–D as recommended); not started.
+Status: agreed 2026-11-07 (decisions A–D as recommended). Steps 1–5 done 2026-11-07 (CI landed in PR #7); step 6, parallel work, open.
 
 The goal: work on several things at once, never wait for the full test suite on this
 machine, and only let tested work reach `master`. GitHub does the testing and the gating.

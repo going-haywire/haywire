@@ -36,9 +36,20 @@ Run `uv run mkdocs serve` to preview the published site at `http://127.0.0.1:800
 
 UI/UX visual rules, tokens, and anti-patterns are canonical in `docs/reference/design-guide.md` — see the Documentation section above. Do not create a second design-rules doc under `.insights/`.
 
+## Git and pull requests
+
+Full workflow and its reasons: [docs/superpowers/plans/2026-11-07-development-workflow.md](docs/superpowers/plans/2026-11-07-development-workflow.md).
+
+- Work happens on a branch (`feat/…`, `fix/…`, `chore/…`) started from an up-to-date `master`; never commit on `master`.
+- Commit freely on a branch, without asking: a branch commit is a checkpoint, and the PR's squash merge is what `master` keeps.
+- Push the branch and open a PR (`gh pr create --draft`) on the first push. Every push runs CI (`.github/workflows/ci.yml`). Read results with `gh pr checks`, `gh run watch`, `gh run view --log-failed`, and fix failures with further commits.
+- `master` accepts changes only through a PR whose checks passed (a GitHub ruleset). Merge only on the user's word ("merge"): `gh pr merge --squash`, after the checks are green. Mark a PR ready (`gh pr ready`) when its work is done; macOS joins the checks then.
+- Destructive git commands stay with the user: force pushes, deleting remote branches, pushing tags, hard resets, `clean -f`, `branch -D`, discarding all changes with `checkout .` or `restore .`. `.claude/hooks/block-dangerous-git.sh` blocks them and checks the whole command line, so keep `git branch -d` and the like out of a command that pushes.
+- Releases: `/haywire-release` (bump through a PR; the user pushes the tag).
+
 ## Testing
 
-- Always run the full test suite (`pytest` or equivalent) after any refactor or multi-file change and confirm all tests pass before presenting work as complete.
+- Before a commit: `ruff check` and `ruff format --check` on the changed files, mypy on the changed packages, and the tests of the areas changed. The full suite is CI's job on every push; run it locally (`/verify`, about 5 minutes) only when asked.
 - Use `force_immediate_validation()` only when you need the `ValidationResult` synchronously, or for graphs left on the default (timer) scheduler. See ADR 0002.
 
 ### Pre-edit baseline
@@ -66,14 +77,14 @@ uv run haywire
 uv run haywire docs barn/haybale-mylib   # one library
 uv run haywire docs --all                # every in-repo library, one load
 
-# Tests — pick the SMALLEST tier that covers the change; full suite once at the end.
+# Tests — pick the SMALLEST tier that covers the change; CI runs the full suite on every push.
 # Rationale, parallelism rules and traps: tests/README.md (read it before
 # changing test infrastructure or dismissing a failure as flaky).
 uv run pytest tests/path/to/file.py       # single file — the default while iterating
 uv run pytest tests/some_dir/             # one area
 uv run pytest tests/ -k "edge"            # filtered by name
-uv run pytest -m "not browser and not perf" -n 4  # pre-commit gate: ~90s, 5769 tests
-uv run pytest -m browser -n 4             # browser tier: ~43s, 135 tests
+uv run pytest -m "not browser and not perf" -n 4  # whole non-browser tier: ~4 min (CI runs it)
+uv run pytest -m browser -n 4             # browser tier: ~2 min (CI runs it)
 uv run pytest -m unit                     # unit tests only (~1m40s, 1252 tests)
 uv run pytest -m integration              # integration only (full library system, slow)
 uv run pytest --cov                       # with coverage
@@ -88,7 +99,7 @@ uv run pytest --cov                       # with coverage
 
 # Code quality
 # "Run a ruff check" / "ruff check" as a spoken instruction means BOTH commands
-# below, not just the first. CI's ruff job runs BOTH `ruff check` and
+# below, not just the first. CI's lint job runs BOTH `ruff check` and
 # `ruff format --check` — they catch disjoint problems (lint vs formatting), so
 # running only `ruff check` and calling it done is what causes CI-only failures.
 uv run ruff check .                          # lint (line-length = 109)
