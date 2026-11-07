@@ -225,7 +225,7 @@ def test_a_failed_rebuild_keeps_the_values_for_the_fix(graph_with_library_system
 
     assert isinstance(wrapper.node, TestPrintNode)
     assert not wrapper.is_stand_in
-    assert wrapper._stand_in_data is None
+    assert wrapper._kept_data is None
     assert wrapper.node.ports["message"].get_value() == "kept"
     assert wrapper.node.props.get_position() == (640.0, 320.0)
 

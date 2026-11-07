@@ -12,6 +12,7 @@ from haywire.barn.builtin.types import BUNDLE, FIELD_LIST, INT
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.setting_owner import SettingOwner
+from haywire.core.node.layout import position_of
 from haywire.core.types.enums import PortOrigin
 from tests.core.test_types.test_add_type import _make_link_node
 
@@ -385,5 +386,95 @@ def test_saving_a_node_that_failed_to_load_keeps_what_it_loaded_from(setup):
         assert wrapper.state.error_initialize is not None
         saved = wrapper.serialize(include_data=True)["node_data"]["ports"]
         assert json.dumps(saved, sort_keys=True) == before
+    finally:
+        broken.cleanup()
+
+
+def _load_with_a_gone_pin_type(graph, node_id):
+    """Load ``graph``'s data with the first pin's library gone, so the node fails to load."""
+    data = graph.to_dict()
+    ports = data["nodes"][node_id]["node_data"]["ports"]
+    ports[next(iter(ports))]["recipe"] = {"registry_key": "nolib:type:GONE"}
+    broken = BaseGraph(filestem="broken")
+    assert broken.load_from_dict(data) is True
+    wrapper = broken.get_node_wrapper(node_id)
+    assert wrapper is not None
+    assert wrapper.state.error_initialize is not None
+    return broken, wrapper, data["nodes"][node_id]["node_data"]
+
+
+def test_a_node_that_failed_to_load_stays_where_it_was_saved(setup):
+    graph, _, _, meta, _ = setup
+    meta.move(640.0, 320.0)
+    broken, wrapper, _ = _load_with_a_gone_pin_type(graph, meta.node_id)
+    try:
+        assert wrapper.node.props.get_position() == (640.0, 320.0)
+        assert position_of(wrapper.serialize(include_data=True)) == (640.0, 320.0)
+    finally:
+        broken.cleanup()
+
+
+def test_a_moved_node_that_failed_to_load_saves_its_new_position(setup):
+    graph, _, _, meta, _ = setup
+    broken, wrapper, original = _load_with_a_gone_pin_type(graph, meta.node_id)
+    try:
+        broken.move_node(meta.node_id, 111.0, 222.0)
+        saved = wrapper.serialize(include_data=True)
+        assert position_of(saved) == (111.0, 222.0)
+        assert saved["node_data"]["ports"] == original["ports"]
+    finally:
+        broken.cleanup()
+
+
+def test_a_rebuild_of_a_node_that_failed_to_load_starts_from_the_saved_data(setup):
+    graph, _, _, meta, _ = setup
+    broken, wrapper, original = _load_with_a_gone_pin_type(graph, meta.node_id)
+    try:
+        wrapper.build()
+        assert wrapper.state.error_initialize is not None
+        assert wrapper.serialize(include_data=True)["node_data"]["ports"] == original["ports"]
+    finally:
+        broken.cleanup()
+
+
+def test_a_failed_load_saved_without_data_leaves_out_port_values(setup):
+    graph, editor, owner, meta, _ = setup
+    editor.set_setting(owner, "stamp", FIELD_LIST().with_added("a", INT))
+    _validate(graph)
+    meta.node.ports["a_in"].set_value(7)
+    broken, wrapper, _ = _load_with_a_gone_pin_type(graph, meta.node_id)
+    try:
+        ports = wrapper.serialize(include_data=False)["node_data"]["ports"]
+        assert all("field_data" not in port for port in ports.values())
+    finally:
+        broken.cleanup()
+
+
+def test_a_node_that_failed_to_load_recovers_on_the_rebuild_after_the_fix(setup, monkeypatch):
+    graph, editor, owner, meta, _ = setup
+    editor.set_setting(owner, "stamp", FIELD_LIST().with_added("a", INT))
+    _validate(graph)
+    meta.node.ports["a_in"].set_value(7)
+    meta.move(640.0, 320.0)
+    data = graph.to_dict()
+
+    def fails(self):
+        raise RuntimeError("broken for now")
+
+    with monkeypatch.context() as broken_class:
+        broken_class.setattr(MetadataNode, "post_init", fails)
+        broken = BaseGraph(filestem="broken")
+        assert broken.load_from_dict(data) is True
+    try:
+        wrapper = broken.get_node_wrapper(meta.node_id)
+        assert wrapper is not None
+        assert wrapper.state.error_initialize is not None
+
+        wrapper.build()
+
+        assert wrapper.state.error_initialize is None
+        assert wrapper._kept_data is None
+        assert wrapper.node.ports["a_in"].get_value() == 7
+        assert wrapper.node.props.get_position() == (640.0, 320.0)
     finally:
         broken.cleanup()
