@@ -46,6 +46,8 @@ CI details, merge and tag mechanics, and the hook's limits: [.insights/project_p
 - `master` accepts changes only through a PR whose checks passed (a GitHub ruleset). Merge only on the user's word ("merge"): `gh pr merge --squash`, after the checks are green. Mark a PR ready (`gh pr ready`) when its work is done; macOS joins the checks then.
 - Destructive git commands stay with the user: force pushes, deleting remote branches, pushing tags, hard resets, `clean -f`, `branch -D`, discarding all changes with `checkout .` or `restore .`. `.claude/hooks/block-dangerous-git.sh` blocks them and checks the whole command line, so keep `git branch -d` and the like out of a command that pushes.
 - Releases: `/haywire-release` (bump through a PR; the user pushes the tag).
+- Procedures (starting, PRs, CI, merging, worktrees): the `haywire-workflow` skill.
+- Whenever the user has to decide or review something, give them what they need in one look: the URL of every PR, issue or CI run involved, markdown links to the local files and lines that matter, the options lettered with a recommendation, and the evidence. They should never have to go and find it.
 
 ## Testing
 
