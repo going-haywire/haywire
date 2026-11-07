@@ -1,8 +1,7 @@
 #!/bin/bash
 # Blocks destructive git commands. Plain pushes of branches (master included) are
 # allowed; anything that rewrites or deletes remote history, or pushes a tag (which
-# publishes a release), stays with the user. See
-# docs/superpowers/plans/2026-11-07-development-workflow.md, section 6.
+# publishes a release), stays with the user. See CLAUDE.md, "Git and pull requests".
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command')

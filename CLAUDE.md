@@ -16,7 +16,6 @@ When user runs a slash command or skill, execute it immediately without asking c
 
 Before editing any file, read it first. Before modifying a function, grep for all callers. Research before you edit.
 
-When reporting to me, be extremly concise and sacrifice grammar for the sake of concision.
 
 ### Package Layout
 
@@ -36,128 +35,38 @@ Run `uv run mkdocs serve` to preview the published site at `http://127.0.0.1:800
 
 UI/UX visual rules, tokens, and anti-patterns are canonical in `docs/reference/design-guide.md` — see the Documentation section above. Do not create a second design-rules doc under `.insights/`.
 
+## Git and pull requests
+
+Procedures: the `haywire-workflow` skill; releases: `/haywire-release`. The non-obvious parts: [.insights/project_pr_workflow.md](.insights/project_pr_workflow.md).
+
+- Work on a branch started from an up-to-date `master`; never commit on `master`.
+- Commit and push freely on a branch, without asking; open a draft PR on the first push. CI runs on every push.
+- `master` takes changes only through a PR whose checks passed. Merge only on the user's word ("merge"), once the checks are green.
+- Destructive git commands stay with the user: `.claude/hooks/block-dangerous-git.sh` lists and blocks them.
+- Whenever the user has to decide or review something, give them what they need in one look: the URL of every PR, issue or CI run involved, markdown links to the local files and lines that matter, the options lettered with a recommendation, and the evidence. They should never have to go and find it.
+
 ## Testing
 
-- Always run the full test suite (`pytest` or equivalent) after any refactor or multi-file change and confirm all tests pass before presenting work as complete.
+- Before a commit: `ruff check` and `ruff format --check` on the changed files, mypy on the changed packages, and the tests of the areas changed. The full suite is CI's job on every push; run it locally (`/verify`, about 5 minutes) only when asked.
 - Use `force_immediate_validation()` only when you need the `ValidationResult` synchronously, or for graphs left on the default (timer) scheduler. See ADR 0002.
-
-### Pre-edit baseline
-
-Before any **substantial** change — multi-file refactors, signature changes, type-system edits, anything where post-edit failures would be hard to attribute — establish a baseline first:
-
-```sh
-# Lint + type-check the area about to be touched (faster than the
-# full repo and surfaces only the relevant pre-existing noise).
-uv run ruff check <path/to/file_or_dir>
-uv run mypy <path/to/file_or_dir>
-```
-
-The code base has no errors - if this is not the case - initialze an error fix session interactively with the user. After your edit, re-run the same commands. Anything new is yours.
-
-For trivial edits (a one-line fix, a rename inside one file, a docstring), this baseline step is unnecessary
 
 ### Commands
 
 ```sh
-# Run the app
-uv run haywire
-
-# Generate deterministic library docs (README/OVERVIEW/QUICKREF/docs/*.md)
-uv run haywire docs barn/haybale-mylib   # one library
+uv run haywire                           # run the app
+uv run haywire docs barn/haybale-mylib   # generate one library's docs (README/OVERVIEW/QUICKREF/docs/*.md)
 uv run haywire docs --all                # every in-repo library, one load
-
-# Tests — pick the SMALLEST tier that covers the change; full suite once at the end.
-# Rationale, parallelism rules and traps: tests/README.md (read it before
-# changing test infrastructure or dismissing a failure as flaky).
-uv run pytest tests/path/to/file.py       # single file — the default while iterating
-uv run pytest tests/some_dir/             # one area
-uv run pytest tests/ -k "edge"            # filtered by name
-uv run pytest -m "not browser and not perf" -n 4  # pre-commit gate: ~90s, 5769 tests
-uv run pytest -m browser -n 4             # browser tier: ~43s, 135 tests
-uv run pytest -m unit                     # unit tests only (~1m40s, 1252 tests)
-uv run pytest -m integration              # integration only (full library system, slow)
-uv run pytest --cov                       # with coverage
-# -n 4 specifically: -n 8 flakes the cost-measuring tests, and --dist loadfile
-# silently drops tests. A run that HANGS to the 120s timeout (rather than
-# failing) is a lock cycle, not flakiness — see tests/README.md.
-
-# Redirect long runs — `addopts` has -v, so the tail gets buried. The exit code
-# is the pass/fail signal; use a timeout ≥ 600000 ms for the full suite.
-#   uv run pytest -m "not browser and not perf" -q > /tmp/t.log 2>&1; echo "exit=$?"
-#   grep -E "^FAILED|^ERROR" /tmp/t.log
-
-# Code quality
-# "Run a ruff check" / "ruff check" as a spoken instruction means BOTH commands
-# below, not just the first. CI's ruff job runs BOTH `ruff check` and
-# `ruff format --check` — they catch disjoint problems (lint vs formatting), so
-# running only `ruff check` and calling it done is what causes CI-only failures.
-uv run ruff check .                          # lint (line-length = 109)
-uv run ruff format --check .                 # verify formatting — same as CI; fails on drift
-uv run ruff format .                         # apply formatting in place to FIX drift, then re-commit
-# type checking (haybale-visiongraph is a gitignored local-only symlink — excluded so this matches CI)
-uv run mypy packages/haywire-core/src/ packages/haywire-studio/src/ barn/haybale-core/haybale_core/ barn/haybale-studio/haybale_studio/ barn/haybale-marketplace/haybale_marketplace/ barn/haybale-share/haybale_share/ barn/haybale-graph-editor/haybale_graph_editor/ barn/haybale-haystack/haybale_haystack/ barn/haybale-testing/haybale_testing/ barn/haybale-example/haybale_example/ barn/haybale-TEST_A/haybale_test_a/ barn/haybale-image/haybale_image/ barn/haybale-models/haybale_models/ tests/
+uv run ruff check .                      # lint (line-length = 109)
+uv run ruff format --check .             # formatting; "ruff check" as an instruction means both
 ```
+
+mypy's paths are the `types` job in `.github/workflows/ci.yml` (`haybale-visiongraph` and `haybale-spandrel` are local-only links and stay out). Choosing and running tests, and the pre-edit baseline: the `haywire-workflow` skill; test tiers, parallelism and traps: `tests/README.md`.
 
 ## Traps and gotchas
 
-Things that aren't visible from the code itself — bugs we hit, framework quirks, "don't do X because Y" rules. Long-form versions live in [.insights/](.insights/); read the relevant file before debugging in that area.
+This codebase has many silent failure modes (NiceGUI slots and events, test isolation, DI globals, registries, edge and pin rendering, settings). Each known one has a file in `.insights/`, indexed in [.insights/INDEX.md](.insights/INDEX.md). Check the index first whenever a symptom is silent or surprising: assume a known trap before a new bug.
 
-### Framework gotchas (NiceGUI / Quasar / Vue 3)
-
-- [feedback_nicegui_async.md](.insights/feedback_nicegui_async.md) — slot stack is per-asyncio-task; `asyncio.ensure_future()` makes `ui.notify()` crash (return the coroutine instead). Also: a handler that redraws its own container deletes its slot mid-flight — capture `ui.context.client` first, `ui.notify()` under `with client:`; and a `ui.timer` created during a draw can outlive a redrawn slot — re-parent it to a stable element. And page/session/card teardown belongs on `on_delete`: `on_disconnect` fires on every websocket drop, also one the page reconnects from.
-- [feedback_nicegui_dialog_theming.md](.insights/feedback_nicegui_dialog_theming.md) — `.style()` color doesn't reach Quasar pseudo-elements; use `hui.dialog_card()` (carries `hw-panel`).
-- [feedback_nicegui_compact_panels.md](.insights/feedback_nicegui_compact_panels.md) — `compact-fields` utility class for dense field layouts.
-- [feedback_nicegui_headless_tab_panels.md](.insights/feedback_nicegui_headless_tab_panels.md) — `ui.tab_panels` works without `ui.tabs`; keep-alive container pattern.
-- [feedback_nicegui_nested_menu_flyouts.md](.insights/feedback_nicegui_nested_menu_flyouts.md) — nested `ui.menu` flyouts: 3.x drops closed-menu DOM, QMenu z-6000 < Popup z-7001, hover-open + sibling/cascade close must be wired (no close-timers). Vue 3 doesn't proxy `_`-prefixed `data()` properties (also applies to `Popup`'s own SFC).
-- [project_nicegui_input_update_value_event.md](.insights/project_nicegui_input_update_value_event.md) — `ui.input` emits `update:value`, not `update:modelValue`; a widget binding on the wrong event silently drops all user edits in-browser. Other value elements (checkbox/switch/select/color) use `update:modelValue`.
-- [feedback_nicegui_outbox_updatevalue_stomp.md](.insights/feedback_nicegui_outbox_updatevalue_stomp.md) — render-time `updateValue` messages flush after the websocket connects and stomp early user input (edit silently reverted server-side). Harness pages stamp `data-hw-synced` last; tests use `goto_ready`. Also: autofocus into a dynamically-shown popup silently no-ops — needs `ui.timer(0.1, ...) + run_javascript`.
-- [feedback_nicegui_lifespan_task_scope.md](.insights/feedback_nicegui_lifespan_task_scope.md) — `app.on_startup`/`on_shutdown` handlers run in different tasks; an anyio task-group context entered in one and exited in the other crashes shutdown with a cancel-scope error. Use the single-runner-task pattern (found via the MCP mount prototype).
-- [feedback_quasar_menu_width_inline_leaves.md](.insights/feedback_quasar_menu_width_inline_leaves.md) — a flyout stretching to the viewport edge is an *inline-level leaf* (`QBtn` is `inline-flex`), not a menu-width bug: `w-full` evaporates in intrinsic sizing, so the menu's max-content is the SUM of the leaves on one line. Fix the leaf (`display: flex`); `width`/`max-width` on the menu only re-measures or truncates.
-- [project_wheel_gesture_classification.md](.insights/project_wheel_gesture_classification.md) — trackpad vs mouse wheel cannot be decided per event (a fast vertical swipe looks exactly like a wheel notch), so `handleWheel` classifies the FIRST event of a gesture and latches it. Symptom of getting it wrong: zoom jumps mid-pan, in the direction of travel. Check with `wheelcheck.py`.
-- [project_browser_rendering_cost.md](.insights/project_browser_rendering_cost.md) — browser rendering cost, and how each was first mismeasured. (1) Measure worst frame gap / main-thread wait in BOTH engines, never fps: fps rewards an unpainted canvas (87 vs 38 fps with 152 of 300 cards missing). (2) NiceGUI re-renders the whole page per server message with no memoization; a `q-icon`/`.vue` element costs ~3x a native tag, so per-port/per-node elements are native tags borrowing CSS classes (`PinGlyph`); the walk enters only slots a component invokes; client-side culling is undone in ~2 s. (3) A 512-node load stalls 1–3 s at a time; cost is per element, batching was reverted (`b07adc60a`), and the canvas/minimap readers atop the profile only pay passes the frame needs anyway. (4) Chrome-only: a per-widget 3D transform (`scale3d`/`translateZ`) or an element inserted over the canvas costs ~500 ms per `Layerize`; `will-change` promotion leaves cards unpainted — check with `paintcheck.py`.
-- [feedback_clipboard_secure_context.md](.insights/feedback_clipboard_secure_context.md) — secure-context APIs are absent on a LAN-exposed studio over http (localhost is secure, a LAN IP isn't — so it always works where you test it). Clipboard **copy** is fixed (execCommand fallback) and keyboard paste uses the native `paste` event; the one LAN-limited path is the graph context menu's Paste (`readText()` absent → pastes only this tab's own copies). Camera/mic never applied (capture is server-side Python) — don't cite it as a symptom of plain HTTP; it bites only a future front-end `mediaDevices`/geolocation feature.
-- [project_canvas_focus_not_browser_focus.md](.insights/project_canvas_focus_not_browser_focus.md) — canvas gestures `preventDefault` their mousedown, so a click never focuses the canvas and `document.activeElement` cannot say which editor is in use; the target editor is tracked by capture-phase pointer-down (`KeymapListener`, `SessionContext.target_binding_id`). New editors get keys via `data-hw-binding`, not focusability.
-- [project_level_mode_pointer_gate.md](.insights/project_level_mode_pointer_gate.md) — the level-mode gate is `AccessGate`'s CSS keyed on one `data-hw-requires` stamp (ADR 0060): unmarked card content is `edit` (negative), panels gate only stamped writers (positive); it needs `!important` vs `.connection-pin`, `pointer-events` inherits so exempt roots get `auto` back via zero-specificity `:where()`, and the CSS and `isGated` (focus blur) must agree (parity test); gestures come from the server's handler table, so a canvas without a manager must call `set_gesture_requires`; `canvas.vue` defaults `levelMode` to `view` and `gestureRequires` to `{}` (refuses all), so a manager must push both at construction.
-- [project_cv2_distribution_clash.md](.insights/project_cv2_distribution_clash.md) — `opencv-python`, `-contrib-python` and `-headless` all install into one `cv2/`; last install wins, silently. Dev `.venv` has 4.x (visiongraph) beside contrib 5.x; reinstalling visiongraph flips `cv2` to 4.x. Check `cv2.__version__` / `hasattr(cv2, "ximgproc")`.
-
-### Test traps
-
-- [feedback_barn_module_reload_test_trap.md](.insights/feedback_barn_module_reload_test_trap.md) — top-of-file imports of barn classes go stale after `importlib.reload`. Use `importlib.import_module` + `patch.object`.
-- [project_slow_test_outliers.md](.insights/project_slow_test_outliers.md) — a multi-second test is almost always an accidental network call paid as a timeout, or serial `subprocess` spawns — not real work (`--durations=25` first). Also: `sys.modules.pop()` in a teardown deletes a pre-existing entry, causing `assert Foo is Foo` failures two files later — snapshot by prefix. Same signature's historical case (fixed): `BaseRegistry` force-reload on initial scan, fixed in `7b7d86e`.
-- [project_playwright_asyncio_order_trap.md](.insights/project_playwright_asyncio_order_trap.md) — the first Playwright test parks a running event loop in the main thread for the rest of the session; anyio tests after it fail. `tests/conftest.py` auto-marks `tests/ui/harness/` with `browser` and sorts browser tests last — Playwright tests elsewhere must carry `@pytest.mark.browser`. Ambient-DI leakage is contained by snapshot/restore in the `test_injector` fixtures; never call `create_test_injector()` directly in a test.
-- [feedback_nicegui_user_simulation_find.md](.insights/feedback_nicegui_user_simulation_find.md) — `user.find("Text", kind=ui.button)` silently ignores `kind` and clicks the lowest-id match (often a label), so the handler never fires; use `find(kind=..., content=...)`. Also: `ui.context.client` raises in the test body (use `user._client`).
-- [project_unknown_key_yields_error_node.md](.insights/project_unknown_key_yields_error_node.md) — an unknown node registry key silently yields an `ErrorNode` whose id still looks like the requested class and which accepts added ports, so a test with a stale key passes without the real node. Take keys from `Cls.class_identity.registry_key` and `isinstance`-check the node.
-- [project_docs_test_reverts_barn_testing.md](.insights/project_docs_test_reverts_barn_testing.md) — `tests/studio/test_docs/test_generate.py`'s teardown runs `git checkout -- barn/haybale-testing`, silently discarding ANY uncommitted edit there (and deleting untracked files). Commit work under that dir before running the suite; a green run is not proof it survived (`sys.modules` masks the damage until the next run).
-- [project_tests_wrote_workspace_settings.md](.insights/project_tests_wrote_workspace_settings.md) — tests used to persist into the developer's real `<repo>/.haywire/settings.json`: only the GLOBAL tier was temp-redirected, while the WORKSPACE tier (the one the app writes back to, via a descriptor's `save_to_json_debounced`) came from `workspace_root` — which the fixtures set to the real repo root. Fixed by `workspace_settings_path`; a new tier derived from `workspace_root` needs the same split if the app ever writes it.
-
-### Architecture traps
-
-- [project_di_context.md](.insights/project_di_context.md) — DI context uses module-level globals, NOT `ContextVar`. ContextVar broke hot-reload (reload captured a different ContextVar instance than the rest of the app). Don't switch back without solving that.
-- [project_settings_registry_construction_side_effects.md](.insights/project_settings_registry_construction_side_effects.md) — building a `SettingsRegistry()` is NOT inert: it repoints `FrameworkSettings._registry` and drains the global `_pending_global` queue. A throwaway registry silently steals framework-schema registration. Get it from DI; if a test must build one, snapshot/restore all three globals.
-- [project_docs_gen_reentrancy.md](.insights/project_docs_gen_reentrancy.md) — `generate_docs()` builds a 2nd library system whose `initialize()` repoints the global injector + settings registry, and instantiates every node (hardware grabs!). Never call it in-process from the studio — shell out to `haywire docs --all`.
-- [project_git_url_publishing_traps.md](.insights/project_git_url_publishing_traps.md) — haybales install via `git+URL` **clone**, so: gitignored files inside `barn/` are absent for consumers (unanchored `build/`/`dist/`/`env/` match at every depth), LFS assets arrive as pointer text, and `install_spec`/doc URLs are tag-pinned only when built through `SharePipeline` — a standalone call with no `tag` still floats to the current branch/default-HEAD.
-- [project_stale_version_diagnosis.md](.insights/project_stale_version_diagnosis.md) — "package shows the old version": site-packages vs pyproject vs uv.lock disagree; a permissive specifier does NOT unstick a dist the lock already froze, and tracebacks from an updated-in-place studio cite code that no longer exists.
-- [project_css_var_theme_silent_failures.md](.insights/project_css_var_theme_silent_failures.md) — node styling is a CSS-var cascade (ADR-0030) and every failure is quiet: `background-color` drops a gradient token wholesale, a field missing from `_CSS_TOKEN_MAP` emits nothing, and `.ui-node-slot` vars cannot reach the `[data-node-id]` rules above them. A skin's own look must be a `var()` *fallback* or it shadows every tier.
-- Canvas pin DOM attributes carry the pin's **wire key**: `data-pin-wire="{pin.wire_key or ''}"` — the wire type's id, or `*` for a bare ADD slot — and ghost pins carry `data-pin-ghost`; see `pin_render.py`. Relatedly, [project_layout_direction_pin_contract.md](.insights/project_layout_direction_pin_contract.md) — a pin's CSS side and its `data-pin-dir-x/y` vector must both come from `LayoutDirection`; a mismatch is silent (right edge, wrong curves). Skin-authoring side is in `docs/components/skins/skin-canon.md`.
-- [feedback_no_relative_imports_in_barn.md](.insights/feedback_no_relative_imports_in_barn.md) — no relative imports under `barn/` (ruff TID252, barn-scoped): reload dependency resolution needs `sys.modules` to place a `.` and silently mis-resolves mid-reload; copies and by-path loads break them.
-- [project_library_dependencies_use_package_names.md](.insights/project_library_dependencies_use_package_names.md) — `linked_libraries` in `haybale.toml` takes Python module names (e.g. `"haybale_studio"`), NOT the library `id`. Missing or misspelled entries silently break hot-reload scope tracking.
-- [feedback_css_containment_node_floor.md](.insights/feedback_css_containment_node_floor.md) — a node's size floor is CSS max-content, so widget content floors its node; percentages evaporate during intrinsic sizing. Measure the floor in manual mode (auto reads `max-w-sm` 384px). `contain: size` fixes the floor but kills aspect-driven growth — prefer `contain: inline-size`.
-- [project_settings_bags_include_props.md](.insights/project_settings_bags_include_props.md) — `_settings_bags` includes `props` (13 framework fields), so generic bag-walks need an explicit filter; a validator-rejected settings write is dropped silently (`min`/`max` are UI-only and NOT enforced), so writes must be verified by reading back.
-- [project_app_library_dependency_direction.md](.insights/project_app_library_dependency_direction.md) — barn libraries may depend on `haywire-studio`; the app must NEVER depend on a barn library (cycle). Only a library can register components, so app-owned state needing a panel/tool imports "up". Declare in pyproject only, never `linked_libraries`; baseline presence comes from the project scaffold.
-- [project_stepper_flows.md](.insights/project_stepper_flows.md) — multi-step flows use `haywire.ui.components.stepper`; the plan/apply split must exist in the pipeline first (only the last step may write), and click handlers must RETURN the coroutine, never schedule it.
-- [project_rejig_orphans_edge_port_refs.md](.insights/project_rejig_orphans_edge_port_refs.md) — `adopt_state_from`'s edge re-pointing loop is the only thing preventing an orphaned `EdgeWrapper` reference when a `rejig` retypes a port inside a validation callback (e.g. `GraphNode.reconcile_interface`, where the usual rescue batch arrives too late). Don't touch that loop without knowing this, and don't trust a test of it written on a plain node — it passes even when the loop is broken.
-- [project_undo_merge_executed_state.md](.insights/project_undo_merge_executed_state.md) — a mergeable action's `merge()` MUST call `mark_executed()` on what it returns: the merged action stands for work already applied, and an unexecuted one wedges the whole undo stack silently (`can_undo()` still says True). Never fix it by executing the merge instead — delta actions double-apply. Fences are not actions: they don't count against `max_actions`.
-- [project_surface_popup_emptiness_contract.md](.insights/project_surface_popup_emptiness_contract.md) — a hosting panel polling true only means it drew its own layout, not that anything landed inside it; context-menu emptiness is decided by rendering the whole tree and counting leaves (`counting_leaves()`), not by the root panel list. Symptom of getting this wrong: an edge-drag that never resumes, arbitrarily far from the cause.
-- [project_assembly_decides_when_pipes_decide_where.md](.insights/project_assembly_decides_when_pipes_decide_where.md) — assembly decides *when* a node runs (id-based, virtualizable); pipes decide *where* a value goes (a `Pipe` holds a direct `DataPort` reference, no graph in the path). A view over the assembler can never move a value — the Group design was redesigned on this. Also: `ControlFlowBuilder` reads control targets off the PORT, so they go through `BaseGraph.control_transitions()` instead.
-- [project_flat_view_ordering_inlet_side.md](.insights/project_flat_view_ordering_inlet_side.md) — an ordering walk over a `FlatGraphView` must use inlet-side lookups (`incoming=True`): the view splices a data-only Subgraph's crossings only there and `SubgraphOutputNode` has no outlets, so an outlet-side walk orders a Group's consumer before its interior (a silent one-frame lag).
-- [project_value_steps_amend_the_tip.md](.insights/project_value_steps_amend_the_tip.md) — value writes can't use the generic history merge (100 ms window, pending-only, flushed 500 ms after a fence), so they amend the run's own step, held explicitly by `HistoryManager` (inferring it from the history's shape lets a write amend a redone step); undo tests must run with merging and grouping on.
-- [project_pin_offset_vs_row_indent.md](.insights/project_pin_offset_vs_row_indent.md) — a pin's negative offset assumes its row starts at the card edge, so indenting a whole row insets the pin from the border (silently — edges follow via `getBoundingClientRect`). Depth insets the row's CONTENT column only.
-- [project_execution_group_lock_order.md](.insights/project_execution_group_lock_order.md) — flows sharing a control node run on one runner thread (ADR 0064); lock order is group hold → `exec_lock` → validation lock → `NodeWrapper._lock`. A runner or a thread already inside the validation lock never takes a hold; a holder drops the validation lock before waiting; restart after reassembly is deferred via `ValidationManager.call_soon` (stopping waits for runners whose frames need the lock). Mock-graph tests of `_on_entry_validation` must run `call_soon` inline.
-- [project_subgraph_scheduler_deadlock.md](.insights/project_subgraph_scheduler_deadlock.md) — a Subgraph MUST validate on its host's scheduler; `add_subgraph` enforces it. Four of five construction sites passed none, so a Subgraph of a `SyncScheduler` graph ran on a background timer, and the Graph-node card spanning both graphs took the card's `NodeWrapper._lock` and the host's validation lock in opposite orders. Both are `RLock`, so every single-threaded path works — it only hangs (never fails) under load, ~1 parallel run in 13. A hang is not a flake. Inside one graph the same pair crosses too: the validation lock always comes before a node's lock (`NodeWrapper._locked()`); `redraw()` takes no node lock.
-- [project_optional_outlet_keeps_stale_value.md](.insights/project_optional_outlet_keeps_stale_value.md) — writing `None` to an `OPTIONAL[T]` outlet does not reach a plain `T` inlet, which keeps its last value (measured); a node that must clear a reading writes a value. The Metadata node writes the pin type's default (ADR 0075).
-- [project_multi_canvas_dom_globals.md](.insights/project_multi_canvas_dom_globals.md) — edge geometry is DOM-measured, so it breaks in ways no unit test sees: pin coords must come from `svg.getScreenCTM()`, never `zoomState.zoom` (which starts at 1 each mount — measured in the field drawing edges 2.3x oversized, MIXED with correct ones, so sampling one edge to health-check the set lies). A deselected `q-tab-panel` leaves the DOM two ways that probe identically: first selection MOUNTS (messages meanwhile dropped → `CanvasMountedEvent` → `resync_edges()`), later ones `keep-alive`-DEACTIVATE (tree detached → `activated()` flushes parked edges). Nodes survive a re-mount only if their SHAPE didn't change meanwhile — a Graph-node reshaped from inside its Subgraph is flagged correctly and still not repainted (no panel to refresh), hence the belt-and-braces `redraw()`; don't "fix" it by pausing a hidden graph's scheduler. Never rename a keep-alive panel (Save-As did: `$refs` kept the detached canvas) — `Slot` names panels by stable uuid. Diagnose a live session with `.scratch/edgecheck.js`. Scoping a lookup to `this.$el` must not become a `[id="…"]` subtree scan: free in Chrome, ~0.7 ms per call in Firefox (34 s of a 52 s load); use `_lookupById`.
-
-When you discover a new trap that isn't obvious from the code, add a file to `.insights/` and a one-line entry above. Keep this list under ~20 entries — if it gets longer, demote less-load-bearing ones to a subdir `CLAUDE.md`.
+A new trap gets a file in `.insights/` and an entry in the index.
 
 ## Sandcastle
 

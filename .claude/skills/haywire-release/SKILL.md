@@ -1,12 +1,12 @@
 ---
 name: haywire-release
 description: >
-  Walk the author through cutting a release of the haywire monorepo. Runs the
-  gate tests, bumps every Tier 1+2 package to a new lockstep version (via
+  Walk the author through cutting a release of the haywire monorepo. Checks that
+  CI passed on master, bumps every Tier 1+2 package to a new lockstep version (via
   scripts/bump_version.py), shows a unified diff of every change, then on
-  confirmation commits with `chore: release vX.Y.Z`, tags `vX.Y.Z`, then hands the
-  user the `git push` command to run themselves (a local hook blocks the skill from
-  pushing) so the publish CI workflow takes over. Supports `--dry-run` to
+  confirmation commits `chore: release vX.Y.Z` on a release branch, merges it
+  through a PR once its checks pass, tags the merged commit, and hands the user the
+  tag push (a local hook blocks tag pushes) so the publish CI workflow takes over. Supports `--dry-run` to
   preview the flow without committing. Use this skill whenever the user wants
   to cut, ship, publish, release, or version-bump the monorepo. Trigger
   phrases: "/haywire-release", "cut a release", "ship a release", "release
@@ -25,7 +25,7 @@ Composes the existing tools (`scripts/bump_version.py`, `scripts/check_deps.py`,
 - The user says "let's cut a release", "release v0.0.2", "bump versions", or invokes
   `/haywire-release` directly.
 - The user has finished merging changes for the next release and the working tree on
-  `main` is clean.
+  `master` is clean.
 
 Do **not** run if the working tree has uncommitted changes — the release flow needs to
 commit only its own version bump. If there are pending changes, ask the user to stash
@@ -41,8 +41,11 @@ or commit them first.
 
 ## Procedure
 
-The procedure runs in the steps below (mirroring spec § release flow § local), with
-a non-blocking dependency audit at Step 2.5. Each step includes the exact command to
+The procedure runs in the steps below, with a non-blocking dependency audit at Step
+2.5. `master` only receives changes through PRs whose checks passed (CLAUDE.md, *Git
+and pull requests*), so the release does not run the test suite locally: it checks CI's
+result for the commit it releases, and the version bump goes through a PR like any
+change. Each step includes the exact command to
 run, what to expect, and what to do on failure.
 
 ### Step 0 — show the current release version
@@ -83,41 +86,37 @@ report "Nothing to do" and the release would be a no-op.
   framework unless its author republishes with a widened specifier. Announce it
   before tagging.
 
-### Step 2 — run the gate tests
+### Step 2 — check that CI passed on master
+
+The release is cut from the latest `master`. Bring it up to date and make sure the
+working tree is clean:
 
 ```bash
-uv run pytest -m "not integration" -q
-```
-
-Expected: all tests pass (current baseline: 1156 passed). If anything fails, STOP. Show
-the failures to the user and do not proceed — releases must not ship on a red gate.
-
-Then run the ruff gate — **both** the linter and the formatter check. The release
-commit (`chore: release vX.Y.Z`) is pushed to `master`, where the separate
-`ruff.yml` workflow runs `ruff check .` AND `ruff format --check .`. If either fails,
-the release commit lands red on `master`. Catch it here, before committing:
-
-```bash
-uv run ruff check .
-uv run ruff format --check .
-```
-
-Expected: `All checks passed!` and `N files already formatted`. If `ruff format --check`
-reports `Would reformat: <file>`, STOP. Tell the user formatting has drifted and offer
-to fix it with `uv run ruff format .` followed by a separate commit — do **not** fold
-the reformat into the release commit, which must contain only the version bump.
-(`ruff format` rewrites files silently with no `--check`, which is exactly how this
-drift reaches `master` undetected; this is the most common release-only CI failure.)
-
-Also check the working tree is clean:
-
-```bash
+git switch master
+git pull --ff-only
 git status --short
 ```
 
-Expected: empty output (or only untracked files unrelated to packages/barn). If there
-are modified or staged files, STOP and ask the user to commit or stash them first —
-the release commit should contain only the version bump.
+Expected: no output from `git status --short` (untracked files unrelated to
+packages/barn are fine). If there are modified or staged files, STOP and ask the user
+to commit or stash them first — the release commit must contain only the version bump.
+
+Then check the CI result for the commit about to be released:
+
+```bash
+gh run list --branch master --workflow CI --limit 1 \
+  --json headSha,status,conclusion --jq '.[0]'
+git rev-parse HEAD
+```
+
+Expected: `headSha` equals `HEAD`, `status` is `completed` and `conclusion` is
+`success`. Otherwise STOP:
+
+- **Still running:** wait (`gh run watch <id>`), then check again.
+- **Failed:** show the failing jobs (`gh run view <id> --log-failed`) — releases must
+  not ship on a red `master`. The fix goes through a PR first.
+- **No run for `HEAD`:** the commit reached `master` without CI (an admin bypass).
+  Start one with `gh workflow run CI --ref master`, wait for it, then continue.
 
 ### Step 2.5 — dependency audit (non-blocking report)
 
@@ -148,20 +147,14 @@ positives (e.g. deliberate version pins like `attrs` that are transitive of
 `KNOWN_OK` map in the script already suppresses the documented ones; if a new
 false positive appears, add it there rather than removing a needed dep.
 
-### Step 3 — pre-flight check for a clean ancestor
-
-Make sure we're on `main` (or whichever branch CI publishes from) and there are no
-unpushed commits the user has forgotten about:
+### Step 3 — create the release branch
 
 ```bash
-git branch --show-current
-git log --oneline @{u}..HEAD 2>/dev/null
+git switch -c release/v<NEW_VERSION>
 ```
 
-If the branch isn't `main`, ask the user to confirm — releasing from a feature branch
-is unusual but not forbidden. If `git log @{u}..HEAD` shows unpushed commits, list them
-to the user and ask whether to push them first (`git push <remote> HEAD`) before
-proceeding.
+All of Step 6 happens on this branch. `master` refuses direct pushes, so the bump
+reaches it through the PR in Step 7.
 
 ### Step 4 — bump and preview the diff
 
@@ -202,13 +195,16 @@ Tell the user:
 
 **Otherwise (normal invocation)**: ask via `AskUserQuestion`:
 
-> "Apply the bump, commit as `chore: release v<NEW_VERSION>`, and tag `v<NEW_VERSION>`?
-> (You'll run the final `git push` yourself — I'll give you the exact command.)"
+> "Apply the bump, commit `chore: release v<NEW_VERSION>` on `release/v<NEW_VERSION>`,
+> merge it into `master` through a PR once its checks pass, and tag the merged commit
+> `v<NEW_VERSION>`? (You'll push the tag yourself — I'll give you the exact command.)"
 
 Offer three options:
 
-- **Yes, do it.** Proceeds to steps 6–9 (including the Step 6.5 wheel smoke).
-- **No, abort.** The working tree is still clean; just stop.
+- **Yes, do it.** Proceeds to steps 6–9 (including the Step 6.5 wheel smoke). This
+  answer is the user's word to merge the release PR in Step 7.
+- **No, abort.** Switch back with `git switch master` and delete the empty branch
+  with `git branch -d release/v<NEW_VERSION>`; just stop.
 - **Apply the bump but don't commit/tag/push yet.** Runs
   `scripts/bump_version.py <NEW_VERSION> --yes`, then stops. The user can inspect
   the files, then re-invoke `/haywire-release <NEW_VERSION>` to finish (Step 6 is
@@ -309,7 +305,8 @@ rename. Hence the second line, which passes directories rather than globs so the
 shell never expands them.
 
 Step 2 guaranteed a clean tree, so everything staged is this release's own work: the
-version bumps, `uv.lock`, and the regenerated per-library docs.
+version bumps, `uv.lock`, and the regenerated per-library docs. The commit lands on
+`release/v<NEW_VERSION>`.
 
 Single-line subject, no body. The commit subject is exactly that — `chore: release v`
 prefix followed by the version. The CI workflow doesn't care about the message, but
@@ -348,70 +345,65 @@ rm -f dist/haywire_core-<NEW_VERSION>-py3-none-any.whl dist/haywire_core-<NEW_VE
 
 (These are gitignored under `dist/`, but removing them keeps the tree tidy.)
 
-### Step 7 — create the tag
+### Step 7 — merge the release PR
+
+Push the branch and open the PR:
 
 ```bash
+git push -u origin release/v<NEW_VERSION>
+gh pr create --base master --title "chore: release v<NEW_VERSION>" \
+  --body "Version bump to <NEW_VERSION>, lockfile and regenerated library docs."
+```
+
+Wait for its checks (about 6 minutes), then merge:
+
+```bash
+gh pr checks --watch
+gh pr merge --squash
+```
+
+If a check fails, STOP and show the failure: the bump broke something CI catches and
+the local steps did not. Fix it on the release branch and push again.
+
+### Step 8 — tag the merged commit, and hand the tag push to the user
+
+A squash merge makes a new commit on `master`; that one is the release, not the
+branch's commit. Update `master` and tag it:
+
+```bash
+git switch master
+git pull --ff-only
+git log --oneline -1          # expect: chore: release v<NEW_VERSION> (#N)
 git tag v<NEW_VERSION>
+git branch -d release/v<NEW_VERSION>
 ```
 
-This creates a *lightweight* tag (no message, no signature). For a release that
-deserves a release-notes page, use an annotated tag instead:
+This creates a *lightweight* tag. For a release that deserves a release-notes page,
+use `git tag -a v<NEW_VERSION> -m "Release v<NEW_VERSION>"` instead; ask via
+`AskUserQuestion` only if the user explicitly asked for release notes.
 
-```bash
-git tag -a v<NEW_VERSION> -m "Release v<NEW_VERSION>"
-```
-
-Default to **lightweight**. The annotated form is offered as a second `AskUserQuestion`
-only if the user explicitly asked for a release-notes page:
-
-> "Create an annotated tag with a release-notes message? (Default: no, lightweight tag.)"
-
-### Step 8 — hand the push command to the user (do NOT run it)
-
-**Do NOT run `git push` yourself.** A local `block-dangerous-git.sh` hook intercepts
-`git push` and blocks it; if the skill attempts the push it will fail silently mid-flow
-and the tag never reaches GitHub — which means the CI publish workflow never fires and
-nothing gets published to PyPI (the exact failure this step exists to prevent).
-
-Instead, detect the remote and then **print the exact command for the user to copy-paste
-and run in their own terminal**, where the hook doesn't apply.
-
-Detect the remote first:
-
-```bash
-git remote
-```
-
-Expected: a single remote name. If there's exactly one, use it. If there are multiple,
-ask the user which one to use via `AskUserQuestion`:
-
-> "Push to which remote? (options: each name from `git remote`)"
-
-If there are zero remotes, STOP and tell the user — the release can't reach CI without
-a remote.
-
-Then present the push command to the user as a copy-paste block (substituting the real
-`<REMOTE>` and `<NEW_VERSION>`):
+**Do NOT push the tag yourself.** A tag push publishes the release, and the local
+`block-dangerous-git.sh` hook blocks it. Print the exact command for the user to run
+in their own terminal:
 
 > **Final step — run this in your terminal to ship the release:**
 >
 > ```bash
-> git push <REMOTE> HEAD v<NEW_VERSION>
+> git push origin v<NEW_VERSION>
 > ```
 >
-> This pushes the branch ref AND the new tag in a single round-trip. The tag triggers
-> the CI publish workflow (`.github/workflows/publish.yml`) on GitHub. Once it's
-> pushed, watch progress with `gh run watch`.
+> The tag triggers the publish workflow (`.github/workflows/publish.yml`). Watch it
+> with `gh run watch`.
 
-Do not proceed to Step 9's "tag pushed" wording as if the push already happened — the
-user runs it. Frame Step 9 as "once you've pushed, CI will…".
+Frame Step 9 as what happens *once the user pushes*, not as something that already
+occurred.
 
 ### Step 9 — CI handoff
 
 Tell the user (note: the push is theirs to run from Step 8 — phrase this as what
 happens *once they push*, not as something that already occurred):
 
-> Once you push tag `v<NEW_VERSION>` to `<REMOTE>` (Step 8), CI will:
+> Once you push tag `v<NEW_VERSION>` (Step 8), CI will:
 >
 > 1. Run the fast test suite (Job 1 — gate).
 > 2. Build all 7 wheels (Job 2 — build).
@@ -425,9 +417,9 @@ happens *once they push*, not as something that already occurred):
 > [`docs/reference/publish_releases.md`](../../../docs/reference/publish_releases.md)
 > for recovery procedures. The most common cases:
 >
-> - **Gate failure**: fix tests on main, retag the same version with `git tag -d
->   v<NEW_VERSION> && git push <REMOTE> :refs/tags/v<NEW_VERSION>`, then re-tag and
->   re-push.
+> - **Gate failure**: fix the tests through a PR, then delete and recreate the tag
+>   yourself (`git tag -d v<NEW_VERSION> && git push origin :refs/tags/v<NEW_VERSION>`,
+>   then tag the new `master` commit and push it again).
 > - **Build/publish failure**: re-run the workflow on the same tag with
 >   `gh workflow run publish.yml --ref v<NEW_VERSION>`. The idempotent skip means
 >   already-published packages won't be re-published.
@@ -445,7 +437,8 @@ fire-and-forget.)
 
 If the user invoked `/haywire-release --dry-run <VERSION>`:
 
-- Steps 0–4 run identically (show current, get target, gate, preflight, preview diff).
+- Steps 0–4 run identically (show current, get target, CI check, release branch,
+  preview diff).
 - Step 5 applies the bump (`scripts/bump_version.py <VERSION> --yes`) so the working
   tree contains the actual changes that would ship, then STOPS without asking for
   confirmation. The user sees:
@@ -455,7 +448,8 @@ If the user invoked `/haywire-release --dry-run <VERSION>`:
   > To actually cut the release, re-invoke `/haywire-release <VERSION>` without
   > `--dry-run`.
 
-- Steps 6–9 (commit, tag, push, CI handoff) are skipped entirely.
+- Steps 6–9 (commit, PR, tag, CI handoff) are skipped entirely. To abandon, roll
+  back the files, then `git switch master` and `git branch -d release/v<VERSION>`.
 
 This gives the operator a realistic preview — the same files modified the same way as
 a real release — without any persistent or shared-state action. Rollback is a single
@@ -467,8 +461,11 @@ a real release — without any persistent or shared-state action. Rollback is a 
   the bump script handles it; CI doesn't publish those packages, but they still get
   versioned together).
 - Edit any file other than via the bump script.
-- Run `git push` itself. A local `block-dangerous-git.sh` hook blocks the skill from
-  pushing, so Step 8 hands the user a copy-paste command to run in their own terminal.
+- Push the tag. A tag push publishes the release; the local `block-dangerous-git.sh`
+  hook blocks it, so Step 8 hands the user the command. Pushing the release branch is
+  allowed.
+- Run the test suite. `master` only holds commits whose CI passed, and Step 2 checks
+  that result; the release PR's checks cover the bump.
 - Force-push tags or branches. If a tag exists at the target version, the push fails
   loudly — the user must delete the old tag deliberately (per the recovery procedure
   above).
