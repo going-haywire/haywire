@@ -5,8 +5,8 @@ Settled by design conversation on 2026-11-06. Reverses non-goal 8 of
 
 | Plan | Repo | Status |
 |---|---|---|
-| [A: carrier types and Metadata nodes](2026-11-06-carrier-metadata.md) | haywire-repo | built 2026-11-06, uncommitted; live check owed |
-| [B: visiongraph on image types](2026-11-06-visiongraph-on-image-types.md) | haybale-visiongraph | built 2026-11-06 on feat/image-types, uncommitted; needs A released, live check owed |
+| [A: carrier types and Metadata nodes](2026-11-06-carrier-metadata.md) | haywire-repo | built 2026-11-06; Write Fields and MAT3/MAT4 added 2026-11-07; live-checked 2026-11-07; PR #8 |
+| [B: visiongraph on image types](2026-11-06-visiongraph-on-image-types.md) | haybale-visiongraph | built 2026-11-06, committed on feat/image-types (1fdf507); needs A released |
 
 ## 1. Why
 
