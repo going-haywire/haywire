@@ -1,19 +1,14 @@
 # Branches, pull requests and CI: the non-obvious parts
 
-The rules are in CLAUDE.md, *Git and pull requests*. This file holds what they rest on.
+The rules are in CLAUDE.md, *Git and pull requests*; the procedures in the
+`haywire-workflow` skill. CI's own settings are commented in `.github/workflows/ci.yml`.
 
-## CI (`.github/workflows/ci.yml`)
+## CI
 
-- **Required checks** (ruleset on the default branch): `lint`, `types`,
-  `tests (ubuntu-24.04)`, `browser (ubuntu-24.04)`. The macOS jobs run only once a PR is
-  ready for review, so they cannot be required: a draft would never satisfy them.
+- **Only the Linux jobs can be required checks.** The macOS jobs run once a PR is ready
+  for review, so a draft would never satisfy them.
 - **A cancelled job is not a failure:** a newer push to the same branch cancels the
   older run.
-- **Runners are pinned to `ubuntu-24.04`:** `ubuntu-latest` can move to a release
-  Playwright does not support yet.
-- **The inotify limit is raised on Linux:** the suite leaks file watchers and exceeds the
-  default of 128 instances. The leak is unfixed.
-- **`--maxfail=0`** overrides `pyproject.toml`'s 5, so one run shows every failure.
 - **Linux and macOS differ in registration order** (the filesystem's order), so code that
   depends on the order libraries or modules register in can behave differently per
   platform. CI's Linux run is where that shows.

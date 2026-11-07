@@ -15,7 +15,7 @@ Redirect the test output to a file and read its tail; the exit code is the signa
 ```sh
 uv run ruff check .                                    # lint
 uv run ruff format --check .                           # format check
-uv run mypy <the package list from CLAUDE.md>          # type check, same paths as CI
+uv run mypy <the paths of the types job in .github/workflows/ci.yml>   # type check
 uv run pytest -m "not browser and not perf" -n 4 -q    # ~4 min
 uv run pytest -m browser -n 4 -q                       # ~2 min
 ```

@@ -21,6 +21,8 @@ permissions:
   checks: write
   pull-requests: write
 
+# Runners are pinned (ubuntu-24.04, not ubuntu-latest): a newer Ubuntu can arrive before
+# Playwright supports it.
 env:
   PYTHON_VERSION: '3.12'
 
