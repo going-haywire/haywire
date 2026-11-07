@@ -29,10 +29,11 @@ Both tiers parallelise with `-n 4` (pytest-xdist). Together that is roughly
 386s → 133s.
 
 **The browser tier is safe because each xdist worker gets its own harness
-server.** `tests/ui/harness/conftest.py` derives the port from
-`PYTEST_XDIST_WORKER` (`gw0` → 8090, `gw1` → 8091, …) and passes it to the
-subprocess as `HAYWIRE_HARNESS_PORT`. Every test builds its URL from the
-`harness` fixture; nothing hardcodes `localhost:8090` any more. If you add a
+server.** `tests/ui/harness/ports.py` gives each checkout a block of 20 ports
+derived from its path, so two worktrees can run the browser tier at once, and
+each worker takes the next port in its block (`gw0` → base, `gw1` → base + 1, …).
+The fixture passes the port to the subprocess as `HAYWIRE_HARNESS_PORT`. Every
+test builds its URL from the `harness` fixture; nothing hardcodes a port. If you add a
 harness test, take `harness` as a parameter and build the URL from it — a
 hardcoded port will pass alone and send every worker to worker 0's server
 under `-n`.

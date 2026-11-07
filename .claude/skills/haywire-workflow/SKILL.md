@@ -1,6 +1,6 @@
 ---
 name: haywire-workflow
-description: Step-by-step procedures for working in this repository through branches, pull requests and CI — starting a task, committing, pushing and opening a PR, reading CI, asking the user for a decision, merging, cleaning up, keeping a branch current, and working in a second worktree. Use it whenever starting, shipping or merging a piece of work, when a PR or CI run needs attention, or when the user has to decide something.
+description: Step-by-step procedures for working in this repository through branches, pull requests and CI — starting a task, committing, pushing and opening a PR, reading CI, asking the user for a decision, merging, checking master after a merge, cleaning up, keeping a branch current, running parallel sessions in worktrees, and setting up a second machine. Use it whenever starting, shipping or merging a piece of work, when a PR or CI run needs attention, or when the user has to decide something.
 ---
 
 # Working through branches and pull requests
@@ -36,7 +36,8 @@ git pull --ff-only
 git switch -c <kind>/<short-name>        # kind: feat, fix, chore, docs, test
 ```
 
-If another session already works in this folder, use a worktree instead (below).
+This is for working in the main folder alone. When sessions run side by side, each task
+gets a worktree instead (*Parallel sessions*).
 
 ## Before a substantial change: a baseline
 
@@ -76,7 +77,9 @@ uv run ruff check <changed files>
 uv run ruff format --check <changed files>
 uv run mypy <changed packages>
 uv run pytest <tests of the changed areas> -q
-``` Commit messages follow the repository's style
+```
+
+Commit messages follow the repository's style
 (`feat(area): …`, `fix(area): …`) and end with the attribution line the session gives.
 
 ## Pushing and opening the PR
@@ -113,14 +116,36 @@ push cancelled it.
    gh pr merge <n> --squash
    ```
 
-4. Clean up. GitHub deletes the remote branch; delete the local one in a command of its
-   own (the hook reads the whole command line, so never next to a push):
+4. Check `master` after the merge. Each PR passed CI against the `master` it last saw;
+   two PRs that pass alone can still break `master` together. Watch the merge's run:
+
+   ```sh
+   gh run list --branch master --workflow CI --limit 1    # the merge's run id
+   gh run watch <id> --exit-status
+   ```
+
+   If it fails, fix forward at once: a `fix/` branch and PR for the break, and tell the
+   user with the run's URL and the PR's URL. Then look at the other open PRs:
+
+   ```sh
+   gh pr list --state open --json number,title,mergeable,url
+   ```
+
+   A PR now `CONFLICTING` needs *Keeping a branch current*; tell the session or the user
+   that owns it.
+
+5. Clean up. GitHub deletes the remote branch; delete the local one in a command of its
+   own (the hook reads the whole command line, so never next to a push). In a worktree,
+   remove the worktree first (*Parallel sessions*), then run this in the main folder:
 
    ```sh
    git switch master
    git pull --ff-only
    git branch -d <branch>
    ```
+
+   If `git branch -d` refuses because the squash merge is not an ancestor, the branch is
+   the user's to delete (`-D` is blocked).
 
 ## Keeping a branch current
 
@@ -131,24 +156,62 @@ git fetch origin
 git merge origin/master
 ```
 
-Generated library docs (`barn/*/README.md`, `OVERVIEW.md`, `QUICKREF.md`, `docs/*.md`)
-that conflict are regenerated with `uv run haywire docs --all`, never merged by hand.
+Conflicts are resolved by hand except in generated files:
 
-## A second session in its own worktree
+- Generated library docs (`barn/*/README.md`, `OVERVIEW.md`, `QUICKREF.md`, `docs/*.md`)
+  are regenerated with `uv run haywire docs --all`.
+- `uv.lock` is taken from `master` and relocked:
+  `git checkout origin/master -- uv.lock && uv lock`.
 
-Two sessions in one folder overwrite each other's uncommitted work and branch switches.
-A second session gets a worktree: another folder on its own branch, sharing the history.
+Then run the tests of both sides' areas before committing the merge.
+
+## Parallel sessions
+
+Each task runs in its own worktree (another folder on its own branch, sharing the
+history) with its own session. Two sessions in one folder overwrite each other's
+uncommitted work and branch switches.
+
+**Starting one.** The main folder stays on an up-to-date `master` and holds no task work:
+it is where worktrees branch from. The user creates the worktree in
+[herdr](https://herdr.dev/guide/): *+* menu → *New worktree*, branch name such as
+`fix/edge-drag`. herdr checks it out at `~/.herdr/worktrees/haywire-repo/fix-edge-drag`
+and opens a space there. Without herdr:
 
 ```sh
-git worktree add .worktrees/<name> -b <kind>/<name> origin/master
+git worktree add ~/.herdr/worktrees/haywire-repo/<kind>-<name> -b <kind>/<name> origin/master
 ```
 
-A worktree has no Python environment and none of the gitignored links
-(`barn/haybale-spandrel`, `barn/haybale-visiongraph`). Work that only touches docs,
-skills or workflows needs neither. Work that runs code or tests needs `uv sync` there
-first, and two sessions running browser tests at once collide on the harness ports
-(8090 and up). When the branch is merged:
+**First thing in a new worktree**, with the system Python since there is no environment
+yet:
 
 ```sh
-git worktree remove .worktrees/<name>
+python3 scripts/worktree_setup.py
 ```
+
+It starts the branch from the latest `origin/master` (if the branch has no commits yet;
+otherwise it reports how far behind it is), links the sibling libraries, runs `uv sync`,
+and gives the studio its own port in `.haywire/settings.json`. Safe to run again. A
+session started in the worktree still reads the main folder's memory; CodeGraph indexes
+only the main folder, so search with grep there.
+
+**Rules while streams run side by side:**
+
+- Never `git stash`: the stash is shared by every worktree. Commit work in progress on
+  the branch instead.
+- Run only the tests of the area changed; CI runs the whole suite. Browser tests in two
+  worktrees at once are fine: each checkout has its own harness ports.
+- Only one stream at a time changes `haybale-spandrel` or `haybale-visiongraph`. They are
+  linked, not copied, so every worktree sees the same checkout and its branch.
+- `~/.haywire` (global settings, security document, models, volumes) is shared too: a
+  library installed or a setting changed there is seen by every stream.
+
+**When the branch is merged**, the user picks *Remove worktree* in herdr (it deletes the
+folder and keeps the branch), or without herdr:
+
+```sh
+git worktree remove ~/.herdr/worktrees/haywire-repo/<kind>-<name>
+```
+
+then *Finishing* step 5 deletes the branch from the main folder.
+
+**A second machine** works on its own clone: [second-machine.md](second-machine.md).

@@ -18,27 +18,20 @@ from pathlib import Path
 import pytest
 import requests
 
-_BASE_PORT = 8090
+from tests.ui.harness.ports import harness_port
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-
-
-def _harness_port() -> int:
-    """This session's harness port: 8090 alone, offset per pytest-xdist worker.
-
-    xdist runs each worker as its own pytest session, so this fixture's
-    session scope starts one harness subprocess PER WORKER — all binding 8090
-    at once without an offset. ``PYTEST_XDIST_WORKER`` is xdist's own env var
-    (``gw0``, ``gw1``, ...); its digits give a stable, small per-worker offset.
-    """
-    worker = os.environ.get("PYTEST_XDIST_WORKER", "")
-    digits = "".join(ch for ch in worker if ch.isdigit())
-    return _BASE_PORT + (int(digits) if digits else 0)
 
 
 @pytest.fixture(scope="session")
 def harness():
-    """Start the harness app subprocess and wait until it is ready."""
-    port = _harness_port()
+    """Start the harness app subprocess and wait until it is ready.
+
+    xdist runs each worker as its own pytest session, so this session-scoped
+    fixture starts one harness subprocess PER WORKER. ``harness_port`` gives each
+    worker, in each checkout, a port of its own.
+    """
+    port = harness_port(_REPO_ROOT, os.environ.get("PYTEST_XDIST_WORKER", ""))
     base_url = f"http://localhost:{port}"
     # Strip PYTEST_CURRENT_TEST so NiceGUI's is_pytest() check doesn't fire inside
     # the subprocess — otherwise ui.run() reads NICEGUI_SCREEN_TEST_PORT and crashes.
