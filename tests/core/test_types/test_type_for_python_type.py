@@ -42,6 +42,23 @@ def test_a_python_type_only_signal_types_wrap_resolves_to_nothing():
     assert registry.get_type_for_python_type(dict) is None
 
 
+@haywire_type(wire_type=DataWire, label="Dict Choice", default={"value": {}})
+class _DictChoice(_DictValue):
+    """A value type deriving from another that wraps `dict`, as `CHOICES` derives from `STRING`."""
+
+
+_DictChoice.class_identity = replace(_DictChoice.class_identity, registry_key="some-library:type:DictChoice")
+
+
+@pytest.mark.unit
+def test_the_base_type_answers_whatever_the_registration_order():
+    registry = TypeRegistry()
+    registry._register(_DictChoice.class_identity.registry_key, _DictChoice)
+    registry._register(_DictValue.class_identity.registry_key, _DictValue)
+
+    assert registry.get_type_for_python_type(dict) is _DictValue
+
+
 @pytest.mark.integration
 @pytest.mark.parametrize(
     ("py_type", "expected_key"),
