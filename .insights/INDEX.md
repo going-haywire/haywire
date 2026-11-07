@@ -2,7 +2,7 @@
 
 Non-obvious bugs, framework quirks and "don't do X because Y" rules, one file each in this folder. Each entry says enough to recognise the trap; the file has the detail. Read the matching file before working or debugging in its area.
 
-A new trap gets a file here and an entry below, in its group. CLAUDE.md names each group's topics in a line; add the topic there too.
+A new trap gets a file here and an entry below, in its group.
 
 ### Framework gotchas (NiceGUI / Quasar / Vue 3)
 

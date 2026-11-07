@@ -64,14 +64,9 @@ mypy's paths are the `types` job in `.github/workflows/ci.yml` (`haybale-visiong
 
 ## Traps and gotchas
 
-Non-obvious bugs, framework quirks and "don't do X because Y" rules live in `.insights/`, one file each. [.insights/INDEX.md](.insights/INDEX.md) summarises every one; read the matching entry before working or debugging in its area. The topics, by group:
+This codebase has many silent failure modes (NiceGUI slots and events, test isolation, DI globals, registries, edge and pin rendering, settings). Each known one has a file in `.insights/`, indexed in [.insights/INDEX.md](.insights/INDEX.md). Check the index first whenever a symptom is silent or surprising: assume a known trap before a new bug.
 
-- **NiceGUI / Quasar / Vue:** async slot stack and teardown, dialog theming, compact panels, headless tab panels, nested menu flyouts, `ui.input` events, render-time value stomps, lifespan task scope, menu widths, wheel gestures, browser rendering cost, clipboard over LAN, canvas focus, the level-mode pointer gate, the `cv2` distribution clash.
-- **Tests:** stale barn imports after reload, slow-test outliers, Playwright's event loop, user-simulation `find`, unknown keys yielding an `ErrorNode`, the docs test reverting `barn/haybale-testing`, tests writing workspace settings.
-- **Architecture:** DI context globals, settings-registry side effects, docs-generation re-entrancy, git-URL publishing, stale versions, CSS-var theming, pin wire keys and layout direction, no relative imports in `barn/`, `linked_libraries` names, the node size floor, settings bags and props, app/library dependency direction, stepper flows, `rejig` and edge references, undo merges, popup emptiness, assembly versus pipes, flat-view ordering, value steps, pin offsets, execution-group lock order, the subgraph scheduler deadlock, `OPTIONAL` outlets, multi-canvas DOM globals.
-- **Workflow:** CI and merge mechanics, the git hook's limits.
-
-A new trap gets a file in `.insights/`, an entry in the index and its topic in the line above.
+A new trap gets a file in `.insights/` and an entry in the index.
 
 ## Sandcastle
 
