@@ -8,6 +8,11 @@ Maintenance scripts run by humans or CI.
 | `check_release_versions.py` | Verify every package (and its `haybale.toml`) agrees on one version. |
 | `check_deps.py`             | Audit declared vs. imported deps per package (wraps `deptry`).       |
 | `generate_marketstall.py`   | CI marketstall generator for the published packages.                 |
+| `worktree_setup.py`         | Ready a new git worktree: branch, links, environment, studio port.   |
+
+`worktree_setup.py` runs with the system Python (`python3 scripts/worktree_setup.py`),
+before the worktree has an environment; the `haywire-workflow` skill, *Parallel sessions*,
+says when.
 
 ## bump_version.py
 
