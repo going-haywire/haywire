@@ -128,6 +128,7 @@ What these examples exercise:
 | `CompoundType[T]` for parameterisable collection types | `MapsStringType` |
 | `field_class` assigned post-definition | `MapsStringType.field_class = MapsStringField` |
 | `WrapperType[T]` for a value-or-absence type | `OPTIONAL` |
+| A value that holds fields (derive from `CARRIER`, set `element_type_cls`, override `empty_value`, pass `hidden=False`) | `BUNDLE` |
 | `default={'value': None}` (legal only outside `PrimitiveType`) | `OPTIONAL` |
 | `wire_type=DataWire` explicit | all four |
 

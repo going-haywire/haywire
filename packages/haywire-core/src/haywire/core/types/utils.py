@@ -100,7 +100,8 @@ def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kw
             f"setting: a port's link count is its link ceiling, derived from its wire role and field "
             f"(DataPort.takes_many_links, ADR 0044). Pass single_link=True to narrow it to one."
         )
-    identity = {k: v for k, v in asdict(type_cls.class_identity).items() if k != "wire_type"}
+    # ``hidden`` on a type keeps it out of pickers; on a port it hides the card row.
+    identity = {k: v for k, v in asdict(type_cls.class_identity).items() if k not in ("wire_type", "hidden")}
     merged_kwargs = {
         **identity,  # Identity defaults
         "id": id,

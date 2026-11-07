@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 
 @type(
+    hidden=True,
     wire_type=DataWire,
     label="Fold",
     description="Hides or shows the ports inside it",

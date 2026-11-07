@@ -414,7 +414,12 @@ A haybale library's dependencies live across three manifests with different audi
 | --- | --- | --- |
 | **Image layout** | Which channels an image has: gray, RGB or RGBA. Carried by the image type (`IMAGE_GRAY`, `IMAGE_RGB`, `IMAGE_RGBA`); `IMAGE` accepts any | Color mode, channel count |
 | **Image storage** | How an image's pixels are held: dtype, channel order (RGB/BGR) and residency (array, or tensor on a device). Invisible to wires; nodes reach pixels only through the value's accessors. Changing storage is never an **Adapter** | Pixel format |
-| **Image metadata** | The ICC profile and EXIF block an image carries from Load Image to Save Image | Tags |
+| **Image metadata** | The ICC profile and EXIF block an image carries from Load Image to Save Image. Distinct from a **Carrier**'s fields: it describes the file, survives a manipulating node, and is not touched by the Metadata node | Tags |
+| **Carrier** | A value that can hold fields; its type derives from `CARRIER` (`IMAGE`, `DEPTH`, `BUNDLE`). See [ADR 0075](../adr/0075-fields-travel-on-a-carrier.md) | Metadata bag |
+| **Field (carrier)** | A key and value stamped on a **Carrier**, recorded with its type. Dropped by a node that makes new pixels unless that node passes it on, kept by a layout conversion, never saved. Not a settings field | Tag, metadata entry |
+| **Stamp** | To return a new **Carrier** with a field set; the original and other branches do not see it | Attach |
+| **Bundle** | A **Carrier** with no content of its own, used to carry several values together on one wire | Frame (that is one execution pass), META |
+| **Depth value** | A `uint16` millimetre buffer, the value of `DEPTH`. Not an image | Depth frame |
 
 ## Access & Authentication
 

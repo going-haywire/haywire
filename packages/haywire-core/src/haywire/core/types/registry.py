@@ -111,6 +111,10 @@ class TypeRegistry(BaseRegistry[IType]):
         """
         return super()._unregister(registry_key)
 
+    def list_value_type_keys(self) -> list[str]:
+        """Return the registry keys of the visible types whose values a field can hold."""
+        return [key for key in self.list_visible_names() if _is_value_type(self._classes[key])]
+
     def get_type_class(self, key: str) -> type[IType] | None:
         """
         Get type class by registry key.

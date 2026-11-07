@@ -203,6 +203,8 @@ class NodeWrapper:
         """Node data the next requested rebuild restores exactly; see ``BaseGraph.request_node_rebuild``."""
 
         self._stand_in_data: Optional[Dict[str, Any]] = None
+        self._failed_load_data: Optional[Dict[str, Any]] = None
+        """The saved data this node failed to initialize from, saved back unchanged."""
         """The node data a stand-in keeps for the node it replaces: saved back as is, and
         rebuilt from once the node's class works. See ADR 0058."""
 
@@ -535,6 +537,7 @@ class NodeWrapper:
                 # so promoted ports land after the author-declared ports either way.
                 node_instance._regenerate_promoted_ports()
             node_instance.post_init()
+            self._failed_load_data = None
             self._state.is_initialized = True
             self._state.error_initialize = None
             return True
@@ -552,6 +555,7 @@ class NodeWrapper:
             )
             self._state.error_initialize.log(logger)
             self._state.is_initialized = False
+            self._failed_load_data = copy.deepcopy(node_info) if node_info else None
 
         return False
 
@@ -945,6 +949,12 @@ class NodeWrapper:
                 # A stand-in saves the node it replaces, not itself; with no data there is nothing to save.
                 if self._stand_in_data is not None:
                     result["node_data"] = self._stand_in_save_data(include_data=include_data)
+            elif self._failed_load_data is not None:
+                # The instance holds only what loaded before the failure.
+                result["node_data"] = copy.deepcopy(self._failed_load_data)
+                if not include_data:
+                    for port in result["node_data"].get("ports", {}).values():
+                        port.pop("field_data", None)
             elif self._node_instance:
                 result["node_data"] = self._node_instance._to_dict(include_data=include_data)
 

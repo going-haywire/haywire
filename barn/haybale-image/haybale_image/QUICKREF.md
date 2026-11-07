@@ -7,6 +7,7 @@
 - `haybale-image:node:ViewImageNode` — View Image — Shows an image on the node, as a live stream or as a still picture  _tags: image, view, show, preview, display, viewer, stream_
 
 ## type
+- `haybale-image:type:DEPTH` — Depth — A depth map, one value per pixel in millimetres.
 - `haybale-image:type:IMAGE` — Image — A picture of any channel layout. Pixels are kept as made and converted on demand.
 - `haybale-image:type:IMAGE_GRAY` — Gray image — A one-channel picture.
 - `haybale-image:type:IMAGE_RGB` — RGB image — A three-channel picture.

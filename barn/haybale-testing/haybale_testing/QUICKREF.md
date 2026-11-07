@@ -41,12 +41,7 @@
 - `haybale-testing:node:VisualProbeNode` — Visual Probe — Test-only: a data node with pins on a drawn-only wire.  _tags: test, visual, wire_
 
 ## type
-- `haybale-testing:type:TEST_BOOL` — Boolean — True or False
-- `haybale-testing:type:TEST_FLOAT` — Float — Decimal number
-- `haybale-testing:type:TEST_INT` — Integer — Whole number
 - `haybale-testing:type:TEST_RECORD_CALLBACK` — Test Record Callback — Test callback subscription carried as a dataclass
-- `haybale-testing:type:TEST_STRING` — String — Text data
-- `haybale-testing:type:TEST_TEMPERATURE` — Temperature — Temperature in Celsius
 - `haybale-testing:type:TEST_VISUAL` — Test Visual — Test-only: a text value on a drawn-only wire
 - `haybale-testing:type:TEST_VISUAL_COUNT` — Test Visual Count — Test-only: a number on a drawn-only wire
 

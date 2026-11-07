@@ -59,9 +59,11 @@ class PrimitiveType(IType, ABC, Generic[T]):
         super().__init_subclass__(**kwargs)
 
         # Extract T from PrimitiveType[T]
-        if hasattr(cls, "__orig_bases__"):
+        # The class's own bases only: an inherited __orig_bases__ would overwrite an
+        # element_type_cls this class set in its body.
+        if "__orig_bases__" in cls.__dict__:
             # __orig_bases__ is a typing-runtime tuple the checker types as object.
-            for base in cls.__orig_bases__:  # ty: ignore[not-iterable]
+            for base in cls.__dict__["__orig_bases__"]:
                 if hasattr(base, "__origin__"):
                     origin_name = getattr(base.__origin__, "__name__", None)
                     if origin_name == "PrimitiveType":

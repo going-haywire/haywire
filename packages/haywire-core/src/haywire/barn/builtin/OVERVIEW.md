@@ -8,23 +8,24 @@ Framework-owned primitive types and adapters
 
 ### Core
 - **Core Error Node** — Placeholder for node that could not be loaded
+- **Metadata** — Stamps fields on an image or bundle, and reads them back
+- **Metadata Info** — Lists the fields an image or bundle carries
+- **New Bundle** — Starts an empty bundle, for Metadata nodes to stamp values on
 
 ## Types
 - **Add** — Grows a new port from whatever connects to it
 - **Annotation** — A link between annotation nodes; carries no value
 - **Boolean** — True or False
+- **Bundle** — Several values travelling together as fields.
 - **Callback Signal** — Signal for callback execution between nodes
-- **Choices** — A string constrained to a set of options (options live per-use in widget_config)
 - **Color** — Hex or rgba color string
 - **Execution Signal** — Signal for controlling execution flow between nodes
 - **File path** — A file inside a named volume such as the project folder or `models`.
 - **Float** — Decimal number
-- **Fold** — Hides or shows the ports inside it
 - **Folder path** — A folder inside a named volume such as the project folder or `models`.
 - **Integer** — Whole number
 - **Optional** — A value of the wrapped type, or absence
 - **Path** — A file or folder inside a named volume such as the project folder or `models`. The graph stores the volume and the path within it, so it keeps working on another machine.
-- **Progress** — Whether a node is busy, how far it is, and what it is doing
 - **String** — Text data
 - **Vec2f** — 2D float vector
 - **Vec2i** — 2D integer vector
@@ -46,6 +47,7 @@ Framework-owned primitive types and adapters
 - **ButtonWidget** — button widget
 - **CheckboxWidget** — checkbox widget
 - **ColorWidget** — Color picker widget
+- **FieldListWidget** — List of fields, each a key and a type
 - **FoldWidget** — Fold header
 - **NoteTextWidget** — Note text
 - **NumberWidget** — Fast number input widget

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import copy
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
+from haywire.barn.builtin.carrier import CarrierValue
 
 from haybale_image.value import _numpy_ops
 from haybale_image.value.enums import ChannelOrder, Layout
@@ -37,7 +39,7 @@ def check_source_depth(source_depth: int) -> int:
     return source_depth
 
 
-class ImageValue:
+class ImageValue(CarrierValue):
     """An image whose meaning is fixed and whose storage is free.
 
     The meaning never changes: colours are RGB, float values span [0, 1], the
@@ -79,6 +81,7 @@ class ImageValue:
         metadata: ImageMetadata = NO_METADATA,
     ) -> None:
         """Wrap an already validated buffer; use ``from_array`` or ``from_tensor`` instead."""
+        super().__init__()
         self._primary = primary
         self._order = order
         self._layout = layout
@@ -189,16 +192,19 @@ class ImageValue:
         return self._metadata
 
     def with_metadata(self, metadata: ImageMetadata) -> ImageValue:
-        """Return a value with the same pixels and conversion cache but ``metadata``."""
-        out = ImageValue(
-            self._primary, self._order, self._layout, self._source_depth, self._height, self._width, metadata
-        )
-        out._cache = self._cache
+        """Return a value with the same pixels, fields and conversion cache but ``metadata``."""
+        out = copy.copy(self)
+        out._metadata = metadata
         return out
 
     def derive(self, new: ImageValue) -> ImageValue:
-        """Return ``new`` carrying this image's metadata."""
+        """Return ``new`` carrying this image's metadata; this image's fields are not carried."""
         return new.with_metadata(self._metadata)
+
+    def describe(self) -> dict[str, str]:
+        """Return the size of the ICC and EXIF blocks this image carries, for those present."""
+        blocks = {"icc": self._metadata.icc, "exif": self._metadata.exif}
+        return {name: f"{len(block)} bytes" for name, block in blocks.items() if block is not None}
 
     @property
     def layout(self) -> Layout:
