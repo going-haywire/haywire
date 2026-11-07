@@ -173,9 +173,11 @@ uncommitted work and branch switches.
 
 **Starting one.** The main folder stays on an up-to-date `master` and holds no task work:
 it is where worktrees branch from. The user creates the worktree in
-[herdr](https://herdr.dev/guide/): *+* menu → *New worktree*, branch name such as
-`fix/edge-drag`. herdr checks it out at `~/.herdr/worktrees/haywire-repo/fix-edge-drag`
-and opens a space there. Without herdr:
+[herdr](https://herdr.dev/guide/): right-click a space whose terminal is in the main
+folder → *New worktree*, branch name such as `fix/edge-drag`. herdr checks it out at
+`~/.herdr/worktrees/haywire-repo/fix-edge-drag` and opens a space there, listed under the
+repo. The worktree items appear only on a space herdr sees inside the repo; *Open
+worktree* opens a space on an existing one. Without herdr:
 
 ```sh
 git worktree add ~/.herdr/worktrees/haywire-repo/<kind>-<name> -b <kind>/<name> origin/master
@@ -205,8 +207,8 @@ only the main folder, so search with grep there.
 - `~/.haywire` (global settings, security document, models, volumes) is shared too: a
   library installed or a setting changed there is seen by every stream.
 
-**When the branch is merged**, the user picks *Remove worktree* in herdr (it deletes the
-folder and keeps the branch), or without herdr:
+**When the branch is merged**, the user right-clicks the worktree's space → *Remove
+worktree* in herdr (it deletes the folder and keeps the branch), or without herdr:
 
 ```sh
 git worktree remove ~/.herdr/worktrees/haywire-repo/<kind>-<name>
