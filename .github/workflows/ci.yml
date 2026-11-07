@@ -1,0 +1,140 @@
+# The gate for master: lint, types and both test tiers, side by side.
+# Runs on every pull request and on master. A draft PR runs on Linux only; once it is
+# ready for review, the test tiers run on macOS too. A newer push cancels the run of
+# an older one on the same branch. See docs/superpowers/plans/2026-11-07-development-workflow.md.
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - name: ruff check
+        run: uv run ruff check .
+      - name: ruff format --check
+        run: uv run ruff format --check .
+
+  types:
+    name: types
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - name: mypy
+        run: >
+          uv run mypy
+          packages/haywire-core/src/
+          packages/haywire-studio/src/
+          barn/haybale-core/haybale_core/
+          barn/haybale-studio/haybale_studio/
+          barn/haybale-marketplace/haybale_marketplace/
+          barn/haybale-share/haybale_share/
+          barn/haybale-graph-editor/haybale_graph_editor/
+          barn/haybale-haystack/haybale_haystack/
+          barn/haybale-testing/haybale_testing/
+          barn/haybale-example/haybale_example/
+          barn/haybale-TEST_A/haybale_test_a/
+          barn/haybale-image/haybale_image/
+          barn/haybale-models/haybale_models/
+          tests/
+
+  tests:
+    name: tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS joins once a PR is ready for review.
+        os: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) && fromJSON('["ubuntu-latest", "macos-latest"]') || fromJSON('["ubuntu-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - name: pytest (not browser, not perf)
+        run: >
+          uv run pytest -m "not browser and not perf" -n 4 -q
+          --junitxml=reports/tests-${{ matrix.os }}.xml
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-${{ matrix.os }}
+          path: reports/
+
+  browser:
+    name: browser (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS joins once a PR is ready for review.
+        os: ${{ (github.event_name == 'pull_request' && !github.event.pull_request.draft) && fromJSON('["ubuntu-latest", "macos-latest"]') || fromJSON('["ubuntu-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install ${{ env.PYTHON_VERSION }}
+      - run: uv sync --all-extras --dev
+      - name: Install Chromium
+        run: uv run playwright install --with-deps chromium
+      - name: pytest (browser)
+        run: >
+          uv run pytest -m browser -n 4 -q
+          --junitxml=reports/browser-${{ matrix.os }}.xml
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-${{ matrix.os }}
+          path: reports/
+
+  report:
+    name: report
+    needs: [tests, browser]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: reports
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: reports/**/*.xml
