@@ -138,7 +138,9 @@ class TypeRegistry(BaseRegistry[IType]):
         Exact match only (``element_type_cls is py_type``). Only types on a ``DEPENDENT`` wire
         are candidates: a signal type wrapping a Python type (``EXEC`` wraps
         ``dict``) is not a value a setting holds. A ``haywire-core:`` type is
-        preferred when several libraries register the same Python type.
+        preferred when several libraries register the same Python type, and a base
+        type over one deriving from it (``STRING`` over ``CHOICES``), whatever the
+        order the types were registered in.
         """
         matches = [
             cls
@@ -147,8 +149,13 @@ class TypeRegistry(BaseRegistry[IType]):
         ]
         if not matches:
             return None
-        matches.sort(key=lambda c: 0 if c.class_identity.registry_key.startswith("haywire-core:") else 1)
-        return matches[0]
+
+        def rank(cls: type[IType]) -> tuple[int, int]:
+            foreign = 0 if cls.class_identity.registry_key.startswith("haywire-core:") else 1
+            derived = sum(1 for other in matches if other is not cls and issubclass(cls, other))
+            return foreign, derived
+
+        return min(matches, key=rank)
 
     def get_identity(self, key: str) -> DataTypeIdentity | None:
         """

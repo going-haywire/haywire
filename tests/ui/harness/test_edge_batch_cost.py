@@ -149,7 +149,10 @@ def test_edge_batch_measures_before_it_draws(page: Page, harness) -> None:
     few = _reads_after_writes(page, harness, _FEW)
     many = _reads_after_writes(page, harness, _MANY)
 
-    assert many <= few + 2, (
+    # Measuring and drawing edge by edge adds a read per edge: about 28 between the two
+    # sizes. A slower machine adds a few redraw passes of its own (CI: 3, then 7), so the
+    # bound sits at half the per-edge growth.
+    assert many - few < (_MANY - _FEW) // 2, (
         f"{many} layout reads followed an edge write for {_MANY} edges, against {few} for {_FEW}: "
         f"the batch is measuring and drawing edge by edge (canvas.vue _updateEdges)."
     )
