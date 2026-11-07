@@ -3,15 +3,18 @@
 from pathlib import Path, PurePosixPath
 from typing import Any, Optional
 
+from haywire.barn.builtin.field_text import fields_to_text
 from haywire.barn.builtin.progress import ProgressSettings, progress_field
+from haywire.barn.builtin.types import BOOL
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.settings import NodeSettings, UiState, bag, shadow
+from haywire.core.settings import NodeSettings, UiState, bag, setting, shadow
 from haywire.core.volumes import VolumePath, resolve
 
 from haybale_image.io.codecs import EncodeOptions, encode_image
 from haybale_image.io.formats import FORMAT_BY_EXTENSION, Format, format_for
 from haybale_image.io.placement import IfExists, atomic_write, claim_target
+from haybale_image.io.png_text import FIELDS_KEYWORD, with_text_chunk
 from haybale_image.settings.image_settings import ImageSettings
 from haybale_image.value import ImageValue
 
@@ -31,6 +34,14 @@ class PngSaveSettings(NodeSettings):
     """PNG options of one Save Image node."""
 
     compression = shadow(ImageSettings.png_compression)
+    write_fields = setting[BOOL](
+        False,
+        label="Write Fields",
+        description=(
+            "Store the image's fields in the file, for Load Image to restore. "
+            "A field whose value cannot be stored is an error, and no file is written"
+        ),
+    )
 
 
 class JpegSaveSettings(NodeSettings):
@@ -92,6 +103,12 @@ class SaveImageNode(BaseNode):
     The quality and compression settings default to the library's *Image* settings;
     change them here for this node only. Only the settings of the format `Path` names
     are shown.
+
+    `Write Fields` (PNG only) stores the image's fields in the file, at any depth, and
+    Load Image restores them. Numbers, text, vectors and matrices can be stored; images
+    and models cannot. The check runs before anything is written: if any field cannot
+    be stored the node reports an error naming each of them, and no file appears. The
+    fields travel with the file wherever it is shared, so the setting starts off.
 
     The Saving bar shows while the file is encoded and written.
 
@@ -187,6 +204,7 @@ class SaveImageNode(BaseNode):
             raise ValueError("image is empty")
         target = resolve(path)
         fmt = format_for(target)
+        fields_text = self._fields_text(image, fmt)
         policy = IfExists(if_exists)
         claimed = claim_target(target, policy)
         if claimed is None:
@@ -194,10 +212,22 @@ class SaveImageNode(BaseNode):
             return "next"
         with self.progress.busy("main", "encoding") as span:
             data = encode_image(image, fmt, self._encode_options(depth))
+            if fields_text is not None:
+                data = with_text_chunk(data, FIELDS_KEYWORD, fields_text)
             span.step(None, "writing")
             atomic_write(claimed, data, placeholder=policy is IfExists.UNIQUE_SUFFIX)
         self.out("saved", _sibling(path, claimed))
         return "next"
+
+    def _fields_text(self, image: ImageValue, fmt: Format) -> Optional[str]:
+        """Return the text to store for ``image``'s fields, or ``None`` when none is to be stored.
+
+        Raises:
+            ValueError: A field cannot be stored; names every such field.
+        """
+        if fmt is not Format.PNG or not self.png.write_fields or not image.fields:
+            return None
+        return fields_to_text(image.fields)
 
     def _encode_options(self, depth: str) -> EncodeOptions:
         return EncodeOptions(

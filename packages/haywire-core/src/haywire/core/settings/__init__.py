@@ -23,7 +23,7 @@ from .settings_edge import EdgeSettings
 from .descriptor import setting, shadow, watch, graph, Promotable, UiState
 from .base import SettingDescriptor
 from .value import SettingValue
-from .types import Color, Icon, Vec2i, Vec3i, Vec4i, Vec2f, Vec3f, Vec4f, get_vec_meta
+from .types import Color, Icon, Mat3, Mat4, Vec2i, Vec3i, Vec4i, Vec2f, Vec3f, Vec4f, get_vec_meta
 from .registry import SettingsRegistry
 from .settings_library import LibrarySettings
 from .settings_framework import FrameworkSettings
@@ -51,6 +51,8 @@ __all__ = [
     "Vec4i",
     "Vec2f",
     "Vec3f",
+    "Mat3",
+    "Mat4",
     "Vec4f",
     "get_vec_meta",
     # Framework internals

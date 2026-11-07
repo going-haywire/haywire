@@ -19,6 +19,7 @@ level: framework
 - **A wrapper always holds a node.** When the class constructor raises, the wrapper constructs the registry's error node instead (`NodeFactory.get_error_node`), as the factory does for an unknown key. `state.error_instantiate` still records the failure.
 - **The error node is a stand-in** (`NodeWrapper.is_stand_in`) while the wrapper's `registry_key` is not the error node's own. A stand-in keeps the node's original `node_data`: the file's, or the old instance's, captured before a failed rebuild cleaned it up.
 - **A stand-in saves the node it replaces.** `serialize()` writes the kept data, with only `props` (position, label, colour, stage fields) taken from the live stand-in. `identity`, `library`, ports, the other settings bags and the store are written back unchanged.
+- **A node that fails to load from saved data keeps it the same way.** The real class stays on the card, holding only what loaded before the failure, with its saved props restored. It saves and rebuilds from the kept data, as a stand-in does, and the kept data goes once a build succeeds.
 - **The real node returns from the kept data.** A rebuild of a stand-in (a hot reload that succeeds, an installed library, a reset) builds from the kept data with the live props, so values, position and edges come back.
 
 **Considered.**

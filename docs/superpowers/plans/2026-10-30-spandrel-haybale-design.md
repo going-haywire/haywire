@@ -543,7 +543,7 @@ The state icon is an indicator only (not clickable): a widget cannot reach its s
 | S3 | `--torch-backend` setting | haybale-marketplace | — | done (9d651f6b2 + widget 4dfdbd423 on master, 2026-11-01; live-checked; no slice plan — implemented inline; deviations in §2.6) |
 | S7 | spandrel nodes + settings | haybale-spandrel | S3, S5, S6 | done (haywire-repo `feat/s7-spandrel` 9c2a6096b…, haybale-spandrel `feat/s7-spandrel` b5da8d9…cc6788c, merged ff to master 2026-11-03; live check passed incl. batch + Upscaler macro; Inpaint live check is a priority follow-up; deviations in §2.7) — [plan](2026-11-01-s7-spandrel-nodes.md) |
 | S8 | extra arches → non-commercial architectures setting (reverses Q19B/Q33A, 2026-11-03) | haybale-spandrel | S7 | done (haybale-spandrel 30aa239 + haywire-repo on `feat/s8-noncommercial`, 2026-11-04, unmerged; deviations in §2.7) — [plan](2026-11-03-s8-noncommercial-arches.md) |
-| S9 | visiongraph frame adapters | haybale-visiongraph | S5 | open |
+| S9 | ~~visiongraph frame adapters~~ replaced by the [carrier metadata design](2026-11-06-carrier-metadata-design.md) | haybale-visiongraph | S5 | superseded |
 
 If S0 misses the realtime budget, revisit Q27 before S1.
 
@@ -563,7 +563,7 @@ that final task is incomplete.
 5. Subscribable catalog feeds (OpenModelDB browsing in-studio)
 6. LRU / VRAM-budget eviction of loaded models
 7. GPU scheduling between execution groups
-8. Migrating visiongraph onto IMAGE / haybale-models; renaming `RGB_FRAME`
+8. ~~Migrating visiongraph onto IMAGE / haybale-models; renaming `RGB_FRAME`~~ (reversed, see [carrier metadata design](2026-11-06-carrier-metadata-design.md))
 9. HF tokens for gated repos (waits for the security document)
 10. EXR / DDS / HDR / ICC conversion (passthrough only)
 11. Training / fine-tuning

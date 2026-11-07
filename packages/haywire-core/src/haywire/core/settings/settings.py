@@ -32,7 +32,9 @@ from typing import Any, Callable, ClassVar, NamedTuple, TypeVar, TYPE_CHECKING
 
 from typing_extensions import dataclass_transform
 
+from haywire.core.types.base import BaseType
 from haywire.core.types.enums import PortType, ShowWidgetStrategy, default_show_widget
+from haywire.core.types.fields import BaseField
 from haywire.core.types.interface import IType
 
 from .descriptor import UiState, persistent_setting, setting
@@ -592,7 +594,8 @@ class Settings:
                 continue
             val = self._local_value(descriptor)
             if val != descriptor._default:
-                values[name] = val
+                # A structured value saves as its own dict, so the block stays JSON.
+                values[name] = val.to_dict() if isinstance(val, BaseType) else val
         promoted: dict[str, dict] = {}
         for key, record in self._promoted_keys.items():
             entry: dict[str, str | int] = {"direction": record.direction.value}
@@ -633,6 +636,9 @@ class Settings:
             if attr_name not in fields:
                 continue
             descriptor = fields[attr_name]
+            cell = self._cell_for(descriptor)
+            if isinstance(cell, BaseField) and isinstance(value, dict):
+                value = cell.type_cls.from_dict(value)
             self._write_local(descriptor, value)
         # The saved block is authoritative, so drop promote_default seeds first:
         # a demotion is an absence there, and an absence only beats a seed once

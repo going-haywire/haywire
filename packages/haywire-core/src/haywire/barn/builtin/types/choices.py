@@ -6,6 +6,7 @@ from ..wires import DataWire
 
 
 @type(
+    hidden=True,
     wire_type=DataWire,
     label="Choices",
     description="A string constrained to a set of options (options live per-use in widget_config)",

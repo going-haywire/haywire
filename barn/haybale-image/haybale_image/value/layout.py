@@ -13,7 +13,7 @@ def convert_layout(img: ImageValue, layout: Layout) -> ImageValue:
     """Return ``img`` with the channels of ``layout``, in the same storage.
 
     The result stays where ``img`` lives (numpy stays numpy, a tensor stays on its
-    device) and keeps its dtype, channel order, ``source_depth`` and metadata. Gray
+    device) and keeps its dtype, channel order, ``source_depth``, metadata and fields. Gray
     becomes colour by replication; a missing alpha is fully opaque; alpha is
     dropped by slicing; colour becomes gray by Rec. 601 luma over the stored
     channels, rounded for integer dtypes. Returns ``img`` itself when the layout
@@ -38,4 +38,4 @@ def convert_layout(img: ImageValue, layout: Layout) -> ImageValue:
             source_depth=img.source_depth,
             metadata=img.metadata,
         )
-    return out
+    return out.with_fields(img.fields)

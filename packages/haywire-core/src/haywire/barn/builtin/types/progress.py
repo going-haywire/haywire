@@ -13,6 +13,7 @@ from ..wires import DataWire
 
 
 @type_decorator(
+    hidden=True,
     wire_type=DataWire,
     label="Progress",
     description="Whether a node is busy, how far it is, and what it is doing",

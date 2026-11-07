@@ -202,9 +202,9 @@ class NodeWrapper:
         self._rebuild_data: Optional[Dict[str, Any]] = None
         """Node data the next requested rebuild restores exactly; see ``BaseGraph.request_node_rebuild``."""
 
-        self._stand_in_data: Optional[Dict[str, Any]] = None
-        """The node data a stand-in keeps for the node it replaces: saved back as is, and
-        rebuilt from once the node's class works. See ADR 0058."""
+        self._kept_data: Optional[Dict[str, Any]] = None
+        """The node data of a stand-in, or of a node that failed to load from saved data: saved
+        back as is, with the live props, and rebuilt from once the node works. See ADR 0058."""
 
         self._previous_setup: Optional[Dict[str, Any]] = None
         """The node data from before a hot reload, until the user applies or dismisses it. See ADR 0062."""
@@ -289,14 +289,15 @@ class NodeWrapper:
         identity = type(instance).class_identity
         return bool(getattr(identity, "_is_error", False)) and identity.registry_key != self.registry_key
 
-    def _stand_in_save_data(self, include_data: bool = True) -> Dict[str, Any]:
-        """The kept node data with the props the user can change on the stand-in's card;
+    def _kept_save_data(self, include_data: bool = True) -> Dict[str, Any]:
+        """The kept node data with the props the user can change on the card;
         without ``include_data``, the ports' values are left out as ``Port.to_dict`` does."""
-        assert self._stand_in_data is not None and self._node_instance is not None
-        data = copy.deepcopy(self._stand_in_data)
-        live = self._node_instance._to_dict()
-        data["props"] = live["props"]
-        data.setdefault("settings", {})["props"] = live["settings"]["props"]
+        assert self._kept_data is not None and self._node_instance is not None
+        data = copy.deepcopy(self._kept_data)
+        # Only the props: a node that failed to load may not serialize as a whole.
+        props = self._node_instance.props
+        data["props"] = props._to_dict()
+        data.setdefault("settings", {})["props"] = props._to_dict()
         if not include_data:
             for port in data.get("ports", {}).values():
                 port.pop("field_data", None)
@@ -383,8 +384,8 @@ class NodeWrapper:
 
         Args:
             node_info: Serialized node data to restore from. ``None`` builds a fresh
-                node through its ``init()``; a stand-in instead rebuilds from the data
-                it keeps, with its current props (see ``is_stand_in``).
+                node through its ``init()``; a stand-in, or a node that failed to load,
+                instead rebuilds from the data it keeps, with its current props.
         """
         with self._locked():
             logger.debug(f"Start node building: {self._node_id} ... ")
@@ -399,8 +400,8 @@ class NodeWrapper:
                 node_info = dict(node_info)
                 self._previous_setup = node_info.pop(PREVIOUS_SETUP_KEY, None)
 
-            if not node_info and self.is_stand_in and self._stand_in_data is not None:
-                node_info = self._stand_in_save_data()
+            if not node_info and self._kept_data is not None:
+                node_info = self._kept_save_data()
 
             if (
                 self._instantiate(node_info)
@@ -437,7 +438,7 @@ class NodeWrapper:
         original = node_info or None
         if original is None and self._node_instance is not None:
             if self.is_stand_in:
-                original = self._stand_in_data
+                original = self._kept_data
             else:
                 try:
                     original = self._node_instance._to_dict()
@@ -463,7 +464,7 @@ class NodeWrapper:
             self._pending_position = None
             self._state.is_instantiated = True
             self._state.error_instantiate = None
-            self._stand_in_data = copy.deepcopy(original) if self.is_stand_in else None
+            self._kept_data = copy.deepcopy(original) if self.is_stand_in else None
 
             return True
 
@@ -507,7 +508,7 @@ class NodeWrapper:
         if position is not None:
             self._node_instance.props.set_position(position)
         self._pending_position = None
-        self._stand_in_data = copy.deepcopy(original)
+        self._kept_data = copy.deepcopy(original)
         return True
 
     def _initialize(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
@@ -522,7 +523,7 @@ class NodeWrapper:
         node_cls = self._node_cls
         if not node_info and self.is_stand_in:
             # A rebuild without data that failed to construct: the stand-in takes the old node's data.
-            node_info = self._stand_in_data
+            node_info = self._kept_data
         try:
             if node_info:
                 # _initialize_from_dict regenerates promoted ports itself, from
@@ -552,8 +553,20 @@ class NodeWrapper:
             )
             self._state.error_initialize.log(logger)
             self._state.is_initialized = False
+            if node_info:
+                self._keep_failed_load(node_info)
 
         return False
+
+    def _keep_failed_load(self, node_info: Dict[str, Any]) -> None:
+        """Keep the data a node failed to load from, and give the node its saved props."""
+        assert self._node_instance is not None
+        self._kept_data = copy.deepcopy(node_info)
+        try:
+            # The props load last, so a failure before them leaves the card at the defaults.
+            self._node_instance.props._from_dict(node_info.get("props", {}))
+        except Exception:
+            logger.warning(f"Node {self._node_id}: saved props not restored", exc_info=True)
 
     def _structural_validation(self) -> bool:
         """Check the node against the graph's structural validator — event-node
@@ -941,11 +954,10 @@ class NodeWrapper:
                 "registry_key": self.registry_key,
             }
 
-            if self.is_stand_in:
-                # A stand-in saves the node it replaces, not itself; with no data there is nothing to save.
-                if self._stand_in_data is not None:
-                    result["node_data"] = self._stand_in_save_data(include_data=include_data)
-            elif self._node_instance:
+            if self._kept_data is not None and self._node_instance:
+                # The instance is a stand-in, or holds only what loaded before a failure.
+                result["node_data"] = self._kept_save_data(include_data=include_data)
+            elif self._node_instance and not self.is_stand_in:
                 result["node_data"] = self._node_instance._to_dict(include_data=include_data)
 
             if self._previous_setup is not None and "node_data" in result:

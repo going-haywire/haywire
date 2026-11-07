@@ -54,6 +54,18 @@ _VEC_META[Vec3f] = VecMeta(length=3, element_type=float, labels=("X", "Y", "Z"))
 _VEC_META[Vec4f] = VecMeta(length=4, element_type=float, labels=("W", "X", "Y", "Z"))
 
 
+class Mat3(list):
+    """A 3x3 matrix as three rows, read ``m[row][col]``."""
+
+    size = 3
+
+
+class Mat4(list):
+    """A 4x4 matrix as four rows, read ``m[row][col]``."""
+
+    size = 4
+
+
 def get_vec_meta(type_: type) -> "VecMeta | None":
     """Return VecMeta if type_ is a vector type, else None."""
     return _VEC_META.get(type_)

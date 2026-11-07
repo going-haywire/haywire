@@ -1,9 +1,10 @@
 """IMAGE and its layout-fixed variants IMAGE_GRAY, IMAGE_RGB and IMAGE_RGBA."""
 
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from haywire.barn.builtin.wires import DataWire
-from haywire.core.types import PrimitiveField, PrimitiveType, StoreStrategy
+from haywire.barn.builtin.types import CARRIER
+from haywire.core.types import PrimitiveField, StoreStrategy
 from haywire.core.types import type as type_decorator
 
 from haybale_image.value import ImageValue, Layout
@@ -23,11 +24,18 @@ def _empty_default(layout: Layout) -> dict:
     color=_COLOR,
     store_strategy=StoreStrategy.NEVER,
     default=_empty_default(Layout.GRAY),
+    hidden=False,
 )
-class IMAGE(PrimitiveType[ImageValue]):
+class IMAGE(CARRIER):
     """A picture of any channel layout; the value is never saved with the graph."""
 
+    element_type_cls = ImageValue
     LAYOUT: ClassVar[Layout | None] = None
+
+    @classmethod
+    def empty_value(cls) -> ImageValue:
+        """Return the empty image of this type's layout."""
+        return ImageValue.empty(cls.LAYOUT or Layout.GRAY)
 
     def __init__(self, value: Any = None, **kwargs: Any) -> None:
         super().__init__(value, **kwargs)
@@ -35,7 +43,7 @@ class IMAGE(PrimitiveType[ImageValue]):
 
     def to_dict(self) -> dict:
         """Describe the image (size and layout); the pixels are not serialized."""
-        img = self._value
+        img = cast(ImageValue, self._value)
         return {"value": {"width": img.width, "height": img.height, "layout": img.layout.value}}
 
     @classmethod

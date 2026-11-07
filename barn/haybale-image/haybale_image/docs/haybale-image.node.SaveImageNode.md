@@ -22,6 +22,7 @@ Writes an image to a file in a volume, in the format its extension names
 | name | bag | default | description |
 |---|---|---|---|
 | `compression` | png | `None` | Compression of saved PNG files, from 0 (fastest) to 9 (smallest); never loses detail |
+| `write_fields` | png | `False` | Store the image's fields in the file, for Load Image to restore. A field whose value cannot be stored is an error, and no file is written |
 | `quality` | jpeg | `None` | Quality of saved JPEG files, from 0 (smallest) to 100 (best) |
 | `quality` | webp | `None` | Quality of saved WebP files, from 0 (smallest) to 100 (best) |
 | `lossless` | webp | `None` | Save WebP files without losing detail; WebP quality is then ignored |
@@ -51,6 +52,12 @@ never left behind.
 The quality and compression settings default to the library's *Image* settings;
 change them here for this node only. Only the settings of the format `Path` names
 are shown.
+
+`Write Fields` (PNG only) stores the image's fields in the file, at any depth, and
+Load Image restores them. Numbers, text, vectors and matrices can be stored; images
+and models cannot. The check runs before anything is written: if any field cannot
+be stored the node reports an error naming each of them, and no file appears. The
+fields travel with the file wherever it is shared, so the setting starts off.
 
 The Saving bar shows while the file is encoded and written.
 

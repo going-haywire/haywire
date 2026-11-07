@@ -10,6 +10,7 @@ Image types, IO and viewers shared by vision and ML libraries
 - **View Image** — Shows an image on the node, as a live stream or as a still picture
 
 ## Types
+- **Depth** — A depth map, one value per pixel in millimetres.
 - **Gray image** — A one-channel picture.
 - **Image** — A picture of any channel layout. Pixels are kept as made and converted on demand.
 - **RGB image** — A three-channel picture.

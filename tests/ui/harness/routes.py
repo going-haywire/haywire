@@ -917,6 +917,86 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /field-list-widget
+    #
+    # FIELD_LIST and its editor on a node port, with a polled echo of the keys
+    # the model holds, in a narrow card. Backs test_field_list_widget.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/field-list-widget")
+    async def field_list_widget_page():
+        from unittest.mock import MagicMock
+        from uuid import uuid4
+
+        from haywire.barn.builtin.types import FIELD_LIST, INT
+        from haywire.core.node.data import NodeData
+        from haywire.ui.hover_tip import add_hover_tip_script
+        from haywire.ui.panel.setting_widget_model import SettingWidgetModel
+
+        if theme_css:
+            ui.add_css(theme_css)
+        add_hover_tip_script()
+
+        node = NodeData(f"field-list-{uuid4().hex[:8]}", MagicMock())
+        port = node.add(FIELD_LIST.as_config(id="fields", label="Fields"))
+        port.set_value(FIELD_LIST().with_added("first", INT))
+
+        with ui.card().classes("mt-8 p-4").style("width: 260px"):
+            with ui.column().classes("w-full").props('data-field="fields"'):
+                model = SettingWidgetModel(port.id, port.widget_config, port.data, port.set_value)
+                library_service.get_widget_factory().render_widget(port.widget_key, model, node.node_id)
+
+            echo = ui.label().props('data-testid="echo-fields"')
+
+            def _refresh() -> None:
+                echo.set_text(",".join(e.key for e in port.get_value().entries))
+
+            _refresh()
+            ui.timer(0.2, _refresh)
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /matrix-widget
+    #
+    # MAT3 and MAT4 and their editor on node ports, with a polled echo of the
+    # rows each holds, in a narrow card. Backs test_matrix_widget.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/matrix-widget")
+    async def matrix_widget_page():
+        from unittest.mock import MagicMock
+        from uuid import uuid4
+
+        from haywire.barn.builtin.types import MAT3, MAT4
+        from haywire.core.node.data import NodeData
+        from haywire.ui.panel.setting_widget_model import SettingWidgetModel
+
+        if theme_css:
+            ui.add_css(theme_css)
+
+        node = NodeData(f"matrix-{uuid4().hex[:8]}", MagicMock())
+        ports = [
+            node.add(MAT3.as_config(id="m3", label="M3")),
+            node.add(MAT4.as_config(id="m4", label="M4")),
+        ]
+
+        with ui.card().classes("mt-8 p-4").style("width: 260px"):
+            echoes = []
+            for port in ports:
+                with ui.column().classes("w-full").props(f'data-matrix="{port.id}"'):
+                    model = SettingWidgetModel(port.id, port.widget_config, port.data, port.set_value)
+                    library_service.get_widget_factory().render_widget(port.widget_key, model, node.node_id)
+                echoes.append((port, ui.label().props(f'data-testid="echo-{port.id}"')))
+
+            def _refresh() -> None:
+                for port, echo in echoes:
+                    echo.set_text(repr(port.get_value()))
+
+            _refresh()
+            ui.timer(0.2, _refresh)
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /list-widget
     #
     # TextWidget's commit mode and ArrayWidget, each on a node port, with a

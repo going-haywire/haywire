@@ -16,6 +16,7 @@ from haybale_testing.wires import TestVisualWire
 
 
 @type(
+    hidden=True,
     wire_type=DataWire,
     label="Integer",
     description="Whole number",
@@ -48,6 +49,7 @@ TEST_INT.field_class = TEST_INTField
 
 
 @type(
+    hidden=True,
     wire_type=DataWire,
     label="Float",
     description="Decimal number",
@@ -82,6 +84,7 @@ TEST_FLOAT.field_class = TEST_FLOATField
 
 
 @type(
+    hidden=True,
     wire_type=DataWire,
     label="String",
     description="Text data",
@@ -105,6 +108,7 @@ class TEST_STRING(PrimitiveType[str]):
 
 
 @type(
+    hidden=True,
     wire_type=DataWire,
     label="Boolean",
     description="True or False",
@@ -123,6 +127,7 @@ class TEST_BOOL(PrimitiveType[bool]):
 
 
 @type(
+    hidden=True,
     label="Temperature",
     description="Temperature in Celsius",
     color="#ff5722",

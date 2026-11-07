@@ -44,11 +44,6 @@ Test library for test support
 - **Visual Probe** — Test-only: a data node with pins on a drawn-only wire.
 
 ## Types
-- **Boolean** — True or False
-- **Float** — Decimal number
-- **Integer** — Whole number
-- **String** — Text data
-- **Temperature** — Temperature in Celsius
 - **Test Record Callback** — Test callback subscription carried as a dataclass
 - **Test Visual** — Test-only: a text value on a drawn-only wire
 - **Test Visual Count** — Test-only: a number on a drawn-only wire
