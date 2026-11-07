@@ -1,13 +1,13 @@
 [project]
 name = "haybale-models"
-version = "0.3.2"
+version = "0.3.3"
 description = "Model references, local model store, downloads and graph needs-list"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 
 dependencies = [
-    "haywire-core>=0.3.2",
-    "haybale-graph-editor>=0.3.2",
+    "haywire-core>=0.3.3",
+    "haybale-graph-editor>=0.3.3",
     "huggingface_hub>=2.4",
     "httpx>=0.28",
 ]
