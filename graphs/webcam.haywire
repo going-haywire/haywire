@@ -2,7 +2,7 @@
   "format_version": 4,
   "filestem": "webcam",
   "created_at": "2026-09-06T15:18:06.135084",
-  "modified_at": "2026-11-06T09:04:41.773196",
+  "modified_at": "2026-11-07T11:59:12.137190",
   "meta": {
     "values": {},
     "promoted": {}
@@ -58,7 +58,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 1793952253.1496918
+              "value": 1794048302.1914759
             }
           }
         },
@@ -111,7 +111,7 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.3.0",
+          "version": "0.3.2",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
           "name": "haybale-core",
@@ -499,6 +499,7 @@
           "name": "haybale-visiongraph",
           "linked_libraries": [
             "haybale_core",
+            "haybale_image",
             "haybale_models"
           ],
           "file_watcher": false,
@@ -556,7 +557,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 1793952272.93245
+              "value": 1794048324.661502
             }
           }
         },
@@ -609,7 +610,7 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.3.0",
+          "version": "0.3.2",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
           "name": "haybale-core",
@@ -704,7 +705,7 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "Frame #416 | 640x480x3 | 16.92s | 24.6 FPS"
+              "value": "Frame #534 | 640x480x3 | 20.83s | 25.6 FPS"
             }
           },
           "frame_ready": {
@@ -778,7 +779,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 16.9227352142334
+              "value": 20.831835746765137
             }
           },
           "frame_number": {
@@ -804,7 +805,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 416
+              "value": 534
             }
           },
           "width": {
@@ -863,8 +864,8 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 2000.0,
-              "posY": 1950.0,
+              "posX": 2540.0,
+              "posY": 1760.0,
               "width": 297,
               "height": 510
             },
@@ -873,8 +874,8 @@
         },
         "props": {
           "values": {
-            "posX": 2000.0,
-            "posY": 1950.0,
+            "posX": 2540.0,
+            "posY": 1760.0,
             "width": 297,
             "height": 510
           },
@@ -919,6 +920,7 @@
           "name": "haybale-visiongraph",
           "linked_libraries": [
             "haybale_core",
+            "haybale_image",
             "haybale_models"
           ],
           "file_watcher": false,
@@ -1007,7 +1009,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 16.9227352142334
+              "value": 20.831835746765137
             }
           },
           "frame_number": {
@@ -1033,7 +1035,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 416
+              "value": 534
             }
           },
           "rgb": {
@@ -1143,6 +1145,7 @@
           "name": "haybale-visiongraph",
           "linked_libraries": [
             "haybale_core",
+            "haybale_image",
             "haybale_models"
           ],
           "file_watcher": false,
@@ -1263,7 +1266,7 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "1 results \u00b7 32ms"
+              "value": "1 results · 22ms"
             }
           },
           "result_ready": {
@@ -1418,6 +1421,7 @@
           "name": "haybale-visiongraph",
           "linked_libraries": [
             "haybale_core",
+            "haybale_image",
             "haybale_models"
           ],
           "file_watcher": false,
@@ -1611,7 +1615,7 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 1650.0,
+              "posX": 2120.0,
               "posY": 1900.0,
               "width": 283,
               "height": 328
@@ -1625,7 +1629,7 @@
         },
         "props": {
           "values": {
-            "posX": 1650.0,
+            "posX": 2120.0,
             "posY": 1900.0,
             "width": 283,
             "height": 328
@@ -1669,6 +1673,7 @@
           "name": "haybale-visiongraph",
           "linked_libraries": [
             "haybale_core",
+            "haybale_image",
             "haybale_models"
           ],
           "file_watcher": false,
@@ -1822,7 +1827,7 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "1 results \u00b7 13ms"
+              "value": "1 results · 13ms"
             }
           },
           "result_ready": {
@@ -1975,10 +1980,567 @@
           "name": "haybale-visiongraph",
           "linked_libraries": [
             "haybale_core",
+            "haybale_image",
             "haybale_models"
           ],
           "file_watcher": false,
           "on_reload": "restart"
+        }
+      }
+    },
+    "PoseEstimatorNode_4cc98304": {
+      "node_id": "PoseEstimatorNode_4cc98304",
+      "registry_key": "haybale-visiongraph:node:PoseEstimatorNode",
+      "node_data": {
+        "node_id": "PoseEstimatorNode_4cc98304",
+        "ports": {
+          "execute": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Run",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "execute",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "frame": {
+            "kwargs": {
+              "registry_id": "IMAGE_RGB",
+              "registry_key": "haybale-image:type:IMAGE_RGB",
+              "label": "Frame",
+              "description": "A three-channel picture.",
+              "class_name": "IMAGE_RGB",
+              "module": "haybale_image.types.image",
+              "default": {
+                "value": {
+                  "width": 0,
+                  "height": 0,
+                  "layout": "rgb"
+                }
+              },
+              "store_strategy": 1,
+              "color": "#3f8fd2",
+              "id": "frame",
+              "port_type": "inlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "haybale-image:type:IMAGE_RGB"
+            }
+          },
+          "model": {
+            "kwargs": {
+              "registry_id": "MODEL_REF",
+              "registry_key": "haybale-models:type:MODEL_REF",
+              "label": "Model",
+              "description": "Which backend + weights to run. Changing this reloads the model.",
+              "class_name": "MODEL_REF",
+              "module": "haybale_models.types.model_ref",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 2,
+              "color": "#b07ad9",
+              "widget_key": "haybale-models:widget:ModelRefWidget",
+              "widget_config": {
+                "properties": {
+                  "catalog_only": true,
+                  "filter": {
+                    "purpose": [
+                      "pose-estimation"
+                    ]
+                  },
+                  "prefer": []
+                }
+              },
+              "id": "model",
+              "port_type": "inlet",
+              "order": 2,
+              "on_change": "hb_on_model_change"
+            },
+            "recipe": {
+              "registry_key": "haybale-models:type:MODEL_REF"
+            },
+            "field_data": {
+              "value": {
+                "catalog": "haybale-visiongraph:catalog:pose_landmarker_lite"
+              }
+            }
+          },
+          "status": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Status",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": "Idle"
+              },
+              "store_strategy": 4,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:SimpleLabelWidget",
+              "id": "status",
+              "port_type": "config",
+              "order": 3,
+              "show_widget": "always"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "1 results · 12ms"
+            }
+          },
+          "result_ready": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Result Ready",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "result_ready",
+              "port_type": "outlet",
+              "order": 4,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "result": {
+            "kwargs": {
+              "registry_id": "POSE_RESULT",
+              "registry_key": "haybale-visiongraph:type:POSE_RESULT",
+              "label": "Result",
+              "description": "Human pose: landmarks with named joints and skeleton connections",
+              "class_name": "POSE_RESULT",
+              "module": "haybale_visiongraph.types.result_type",
+              "default": {
+                "results": []
+              },
+              "store_strategy": 1,
+              "color": "#0288d1",
+              "id": "result",
+              "port_type": "outlet",
+              "order": 5,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-visiongraph:type:POSE_RESULT"
+            }
+          },
+          "count": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Count",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "count",
+              "port_type": "outlet",
+              "order": 6,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 1
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 1740.0,
+              "posY": 2300.0,
+              "width": 283,
+              "height": 352,
+              "z": 1
+            },
+            "promoted": {}
+          },
+          "inference": {
+            "values": {},
+            "promoted": {
+              "inference.min_score": {
+                "direction": "config"
+              }
+            }
+          },
+          "overlay": {
+            "values": {},
+            "promoted": {}
+          },
+          "mediapipe": {
+            "values": {},
+            "promoted": {}
+          },
+          "movenet": {
+            "values": {},
+            "promoted": {}
+          },
+          "nms": {
+            "values": {},
+            "promoted": {}
+          },
+          "openvino": {
+            "values": {},
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 1740.0,
+            "posY": 2300.0,
+            "width": 283,
+            "height": 352,
+            "z": 1
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "PoseEstimatorNode",
+          "registry_key": "haybale-visiongraph:node:PoseEstimatorNode",
+          "label": "Pose Estimator",
+          "description": "Estimate human body pose (named joints + skeleton) per person",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "PoseEstimatorNode",
+          "module": "haybale_visiongraph.nodes.pose_estimator_node",
+          "tags": [],
+          "search_tags": [
+            "pose",
+            "human",
+            "body",
+            "skeleton",
+            "joints",
+            "landmark",
+            "mediapipe",
+            "movenet"
+          ],
+          "menu": "vision/estimate",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Visiongraph",
+          "version": "0.0.41",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
+          "module_name": "haybale_visiongraph",
+          "name": "haybale-visiongraph",
+          "linked_libraries": [
+            "haybale_core",
+            "haybale_image",
+            "haybale_models"
+          ],
+          "file_watcher": false,
+          "on_reload": "restart"
+        }
+      }
+    },
+    "MetadataInfoNode_d1a90bf2": {
+      "node_id": "MetadataInfoNode_d1a90bf2",
+      "registry_key": "haywire-core:node:MetadataInfoNode",
+      "node_data": {
+        "node_id": "MetadataInfoNode_d1a90bf2",
+        "ports": {
+          "carrier": {
+            "kwargs": {
+              "registry_id": "CARRIER",
+              "registry_key": "haywire-core:type:CARRIER",
+              "label": "Carrier",
+              "description": "The value to list",
+              "class_name": "CARRIER",
+              "module": "haywire.barn.builtin.types.carrier",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#78909c",
+              "id": "carrier",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:CARRIER"
+            }
+          },
+          "text": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Text",
+              "description": "What the value carries, one line each",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": ""
+              },
+              "store_strategy": 4,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:TextWidget",
+              "id": "text",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "camera_timestamp (FLOAT) = 20.831835746765137\ncamera_frame_number (INT) = 534"
+            }
+          },
+          "count": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Count",
+              "description": "How many fields the value carries",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "count",
+              "port_type": "outlet",
+              "order": 2,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 2
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 2540.0,
+              "posY": 1520.0,
+              "width": 256,
+              "height": 166,
+              "z": 2
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 2540.0,
+            "posY": 1520.0,
+            "width": 256,
+            "height": 166,
+            "z": 2
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "MetadataInfoNode",
+          "registry_key": "haywire-core:node:MetadataInfoNode",
+          "label": "Metadata Info",
+          "description": "Lists the fields an image or bundle carries",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "MetadataInfoNode",
+          "module": "haywire.barn.builtin.nodes.metadata",
+          "tags": [],
+          "search_tags": [
+            "metadata",
+            "info",
+            "field",
+            "carrier",
+            "icc",
+            "exif"
+          ],
+          "menu": "core/metadata",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Builtin",
+          "version": "0.3.2",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/packages/haywire-core/src/haywire/barn/builtin",
+          "module_name": "haywire.barn.builtin",
+          "name": "haywire-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    },
+    "PrintNode_8258605f": {
+      "node_id": "PrintNode_8258605f",
+      "registry_key": "haybale-core:node:PrintNode",
+      "node_data": {
+        "node_id": "PrintNode_8258605f",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execution Signal",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "done": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execution Signal",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "done",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "message": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "String",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": "Hello, World!"
+              },
+              "store_strategy": 2,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:TextWidget",
+              "id": "message",
+              "port_type": "inlet",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "Hello, World!"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 2941.3403003221742,
+              "posY": 1838.6074695270445,
+              "width": 256,
+              "height": 166,
+              "z": 3
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 2941.3403003221742,
+            "posY": 1838.6074695270445,
+            "width": 256,
+            "height": 166,
+            "z": 3
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "PrintNode",
+          "registry_key": "haybale-core:node:PrintNode",
+          "label": "Print",
+          "description": "Print to the haywire UI console",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "PrintNode",
+          "module": "haybale_core.nodes.print",
+          "tags": [],
+          "search_tags": [],
+          "menu": "core/utils",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Core",
+          "version": "0.3.2",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "name": "haybale-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
         }
       }
     }
@@ -2063,14 +2625,6 @@
       "chain_adapter_keys": [],
       "propagation": "eager"
     },
-    "ObjectDetectorNode_16498c61[result_ready]->AnnotateNode_5e8896eb[execute]": {
-      "source_node_id": "ObjectDetectorNode_16498c61",
-      "outlet_port_id": "result_ready",
-      "sink_node_id": "AnnotateNode_5e8896eb",
-      "inlet_port_id": "execute",
-      "chain_adapter_keys": [],
-      "propagation": "eager"
-    },
     "ObjectDetectorNode_16498c61[result]->AnnotateNode_5e8896eb[result]": {
       "source_node_id": "ObjectDetectorNode_16498c61",
       "outlet_port_id": "result",
@@ -2084,6 +2638,62 @@
       "outlet_port_id": "rgb",
       "sink_node_id": "ObjectDetectorNode_16498c61",
       "inlet_port_id": "frame",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "ObjectDetectorNode_16498c61[result_ready]->PoseEstimatorNode_4cc98304[execute]": {
+      "source_node_id": "ObjectDetectorNode_16498c61",
+      "outlet_port_id": "result_ready",
+      "sink_node_id": "PoseEstimatorNode_4cc98304",
+      "inlet_port_id": "execute",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "PoseEstimatorNode_4cc98304[result_ready]->AnnotateNode_5e8896eb[execute]": {
+      "source_node_id": "PoseEstimatorNode_4cc98304",
+      "outlet_port_id": "result_ready",
+      "sink_node_id": "AnnotateNode_5e8896eb",
+      "inlet_port_id": "execute",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "NumpyFrameEventNode_5c871b36[rgb]->PoseEstimatorNode_4cc98304[frame]": {
+      "source_node_id": "NumpyFrameEventNode_5c871b36",
+      "outlet_port_id": "rgb",
+      "sink_node_id": "PoseEstimatorNode_4cc98304",
+      "inlet_port_id": "frame",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "PoseEstimatorNode_4cc98304[result]->AnnotateNode_5e8896eb[result]": {
+      "source_node_id": "PoseEstimatorNode_4cc98304",
+      "outlet_port_id": "result",
+      "sink_node_id": "AnnotateNode_5e8896eb",
+      "inlet_port_id": "result",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "NumpyFrameEventNode_5c871b36[rgb]->MetadataInfoNode_d1a90bf2[carrier]": {
+      "source_node_id": "NumpyFrameEventNode_5c871b36",
+      "outlet_port_id": "rgb",
+      "sink_node_id": "MetadataInfoNode_d1a90bf2",
+      "inlet_port_id": "carrier",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "MetadataInfoNode_d1a90bf2[text]->PrintNode_8258605f[message]": {
+      "source_node_id": "MetadataInfoNode_d1a90bf2",
+      "outlet_port_id": "text",
+      "sink_node_id": "PrintNode_8258605f",
+      "inlet_port_id": "message",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "FrameDisplayNode_e397b53f[frame_ready]->PrintNode_8258605f[exec]": {
+      "source_node_id": "FrameDisplayNode_e397b53f",
+      "outlet_port_id": "frame_ready",
+      "sink_node_id": "PrintNode_8258605f",
+      "inlet_port_id": "exec",
       "chain_adapter_keys": [],
       "propagation": "eager"
     }
