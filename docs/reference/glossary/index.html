@@ -5689,8 +5689,43 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Image metadata</strong></td>
-<td>The ICC profile and EXIF block an image carries from Load Image to Save Image</td>
+<td>The ICC profile and EXIF block an image carries from Load Image to Save Image. Distinct from a <strong>Carrier</strong>'s fields: it describes the file, survives a manipulating node, and is not touched by the Metadata node</td>
 <td>Tags</td>
+</tr>
+<tr>
+<td><strong>Carrier</strong></td>
+<td>A value that can hold fields; its type derives from <code>CARRIER</code> (<code>IMAGE</code>, <code>DEPTH</code>, <code>BUNDLE</code>). See <a href="../../adr/0075-fields-travel-on-a-carrier/">ADR 0075</a></td>
+<td>Metadata bag</td>
+</tr>
+<tr>
+<td><strong>Field (carrier)</strong></td>
+<td>A key and value stamped on a <strong>Carrier</strong>, recorded with its type. Dropped by a node that makes new pixels unless that node passes it on, kept by a layout conversion, never saved with a graph; <strong>Write Fields</strong> on Save Image stores it in a PNG. Not a settings field</td>
+<td>Tag, metadata entry</td>
+</tr>
+<tr>
+<td><strong>Write Fields</strong></td>
+<td>The Save Image setting (PNG only, off by default) that stores an image's fields in the file, for Load Image to restore. All or nothing: a field that cannot be stored fails the save, naming it, and writes no file. See <a href="../../adr/0075-fields-travel-on-a-carrier/">ADR 0075</a></td>
+<td>Embed metadata, tags</td>
+</tr>
+<tr>
+<td><strong>Transform matrix</strong></td>
+<td>The value of <code>MAT3</code> or <code>MAT4</code>: square, of floats, starting as the identity, rows first (<code>m[row][col]</code>). A 2x3 or 3x4 matrix from OpenCV gets its bottom row added by the node that holds it</td>
+<td>Mat, 2x3/3x4 matrix types</td>
+</tr>
+<tr>
+<td><strong>Stamp</strong></td>
+<td>To return a new <strong>Carrier</strong> with a field set; the original and other branches do not see it</td>
+<td>Attach</td>
+</tr>
+<tr>
+<td><strong>Bundle</strong></td>
+<td>A <strong>Carrier</strong> with no content of its own, used to carry several values together on one wire</td>
+<td>Frame (that is one execution pass), META</td>
+</tr>
+<tr>
+<td><strong>Depth value</strong></td>
+<td>A <code>uint16</code> millimetre buffer, the value of <code>DEPTH</code>. Not an image</td>
+<td>Depth frame</td>
 </tr>
 </tbody>
 </table>
