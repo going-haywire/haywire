@@ -536,6 +536,10 @@ A haywire project (`{name}`): one haybale library under `barn/`, released with `
   If `STATE: UNPUSHED`, run `uv run --frozen haywire share --resume` once; if that fails,
   stop and ask.
 - If a dependency pin needs a version that is not released yet, stop and ask.
+- Some steps only the owner can do: creating the GitHub repository, registering a PyPI
+  pending publisher, creating the GitHub `pypi` environment. `share` prints them as a
+  checklist after `STOP: human needed`. Paste that checklist to the owner verbatim and
+  wait; never attempt them yourself.
 - Never force-push, and never delete or move a tag.
 
 ## Where it publishes
@@ -983,7 +987,8 @@ def init_project(
     if not auto_sync:
         print("  uv sync")
     print("  uv run haywire")
-    print("\nTo publish your library:")
+    print("\nTo publish your library (steps only the owner can do are marked [owner]):")
+    print("  [owner] create an empty GitHub repository, then:")
     print("  git remote add origin <your-repo-url>")
     print("  git push -u origin master")
     print("  # from the project root, clean tree (git checkout uv.lock first); share commits,")

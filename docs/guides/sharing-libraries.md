@@ -145,6 +145,16 @@ Every mode exits with a stable code, so a script or an agent can branch on it:
 
 `next.command` is the one command to run; `stop.reason` is what to tell the owner.
 
+### 2.5 Steps only the owner can do
+
+Three steps need the owner's accounts and are never attempted by the tool: creating
+the GitHub repository, registering a PyPI pending publisher, and creating the GitHub
+`pypi` environment. On exit 30, `share` prints the relevant ones as a numbered
+checklist filled in from your remote and library names (also `stop.checklist` in
+`--json`). `haywire init` marks the repository step `[owner]`, and the generated
+`CLAUDE.md` tells an agent to paste the checklist to the owner and wait. The list lives
+in `haywire.core.publishing.human_steps`.
+
 ## 3. What gets published
 
 Each `barn/*` library becomes one `[[haybales]]` entry in the generated

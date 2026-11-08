@@ -60,6 +60,8 @@ class PreconditionFailure:
     #: True when only a person can repair it (account, repository or naming
     #: decisions); callers print a STOP instead of a command.
     human_only: bool = False
+    #: Ids from ``publishing.human_steps.HUMAN_ONLY_STEPS`` the owner must do.
+    human_steps: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -424,6 +424,7 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                     fix_id="add_origin",
                     fix_label="Add origin remote",
                     human_only=True,
+                    human_steps=("create_github_repo",),
                 )
             ],
             remote_url=None,
@@ -836,6 +837,7 @@ def _unregistered_pypi_failure(names: list[str]) -> PreconditionFailure:
             "offline publish."
         ),
         human_only=True,
+        human_steps=("pypi_pending_publisher", "github_pypi_environment"),
     )
 
 
