@@ -15,7 +15,7 @@ see-also:
 
 A **callback** is a cross-flow trigger: a running node calls `context.emit_callback(event_name, payload)`, and every Flow whose entry EVENT node subscribed to that name runs in response. Callbacks let an event-node-rooted Flow be triggered *programmatically* by another running flow, instead of only by an external system event (BEGIN_PLAY, Tick, user input).
 
-Routing is by **event name** alone and never goes through the graph. What a CALLBACK edge adds is the *subscription*: it carries the listener event node's subscription value to the emitting node, so the emitter knows which names to emit. The value is whatever the callback type defines — for core `CALLBACK` (a `STRING`) it is the event name; for a library type such as haybale-visiongraph's `MULTIFRAME_CALLBACK` it is a dataclass holding the name plus the stream requirements the camera node reads.
+Routing is by **event name** alone and never goes through the graph. What a CALLBACK edge adds is the *subscription*: it carries the listener event node's subscription value to the emitting node, so the emitter knows which names to emit. The value is whatever the callback type defines — for core `CALLBACK` (a `STRING`) it is the event name; for a library type such as haybale-visiongraph's `CALLBACK_MULTIFRAME` it is a dataclass holding the name plus the stream requirements the camera node reads.
 
 This is the third leg of haywire's connection types — see [reference/glossary §Wire Types & Port Kinds](../../../reference/glossary.md#wire-types-port-kinds):
 
