@@ -37,7 +37,7 @@ PyPI distribution names are **globally unique and first-come**. Claim yours befo
 
 1. Create an account at [pypi.org/account/register](https://pypi.org/account/register/) and enable 2FA (required for uploads).
 2. Check availability: visit `https://pypi.org/project/haybale-my-lib/`. A 404 means it's free.
-3. Claim it by uploading once, or reserve it as part of your first real release below.
+3. The name is claimed by the first upload, which is §6 (*The first release*). A *pending publisher* (§3) reserves the trust relationship, **not** the name: PyPI's JSON API still answers 404 for the name until something is uploaded.
 
 Your library's `pyproject.toml` `[project].name` **is** the distribution name. By convention haybale libraries are named `haybale-<something>`:
 
@@ -64,7 +64,7 @@ On PyPI, go to your project → *Publishing* → *Add a new publisher* → *GitH
 | Workflow name | `publish.yml` |
 | Environment name | `pypi` |
 
-The environment name must match the `environment:` block in the workflow. If you haven't uploaded yet, use PyPI's *pending publisher* form instead — it reserves the name and the trust relationship together, so your first upload is also your name claim.
+The environment name must match the `environment:` block in the workflow. If the project does not exist on PyPI yet, add the publisher at [pypi.org/manage/account/publishing](https://pypi.org/manage/account/publishing/) (the *pending publisher* form) instead. It lets CI create the project on the first upload without a token. It does **not** make the name exist: until that first upload succeeds, the project page and `https://pypi.org/pypi/<name>/json` both return 404, and `haywire share` preflight (§5) fails on it. Do the first upload as described in §6.
 
 ## 4. The workflow
 
@@ -196,10 +196,26 @@ both — and pasting that into Add Source fails.
 
 Both now point at PyPI coordinates rather than clone specs. Subscribing to the first tracks your releases; the second freezes to the one you published at that tag.
 
-!!! warning "Declare it before your first release"
-    `haywire share` checks the declaration at preflight: `distribute = "pypi"` against a distribution name PyPI does not know fails **before** a tag is pushed, rather than surfacing when a consumer tries to install. Use PyPI's *pending publisher* form (§3) so the name exists before your first run. The check is skipped when PyPI cannot be reached, so it never blocks an offline publish.
+!!! warning "The name must exist on PyPI before `haywire share` runs"
+    `haywire share` checks the declaration at preflight: `distribute = "pypi"` against a distribution name PyPI answers 404 for fails **before** a tag is pushed, rather than surfacing when a consumer tries to install. A *pending publisher* (§3) does not satisfy this check, because the name does not exist until the first upload. Do the first upload by hand first (§6, *The first release*), then run `haywire share`. The check is skipped when PyPI cannot be reached, so it never blocks an offline publish.
 
-## 6. Cutting a release
+## 6. The first release
+
+The very first upload cannot go through `haywire share`, which refuses a name PyPI does not know yet (§5). Upload version one from CI by hand, once:
+
+1. Complete §2 to §5: pending publisher on PyPI, `publish.yml` committed on your default branch, the `pypi` environment created in the repository's *Settings → Environments*, and `distribute = "pypi"` declared.
+2. Make sure `[project].version` in `pyproject.toml` (and `haybale.toml`) is the version you want to publish first, for example `0.0.1`, and that it is pushed.
+3. Run the workflow by hand: *Actions → Publish Release → Run workflow* on the default branch, or
+
+   ```sh
+   gh workflow run publish.yml --ref main
+   ```
+
+   The `workflow_dispatch` trigger in §4 is what makes this possible. It builds from the branch, not from a tag, and uploads the version in `pyproject.toml`. The OIDC identity of the pending publisher creates the project.
+4. Check that `https://pypi.org/project/haybale-my-lib/` now answers 200. The pending publisher is now an ordinary one.
+5. From now on use the normal flow below: `haywire share --bump patch` publishes `0.0.2` and every later version from tags. Do not tag `v0.0.1` and push it afterwards: that run would upload `0.0.1` again and PyPI refuses it (§8).
+
+## 7. Cutting a release
 
 With setup done, releasing is the normal share flow:
 
@@ -215,7 +231,13 @@ Verify by checking `https://pypi.org/project/haybale-my-lib/` shows the new vers
 uv pip install haybale-my-lib==0.0.2
 ```
 
-## 7. Traps
+## 8. Traps
+
+**Sibling libraries symlinked into the workspace pollute `uv.lock`.** If you develop against another library by symlinking its checkout into a workspace folder (`barn/*` in the haywire monorepo), a plain `uv lock`, and any `uv run`, which re-locks first, adds it and its whole dependency tree to `uv.lock`. CI cannot resolve that path. This slipped into a release commit once and sat on `master` unnoticed. Three guards:
+
+- List every such symlink in `[tool.uv.workspace].exclude` of the root `pyproject.toml` (the haywire monorepo excludes `barn/haybale-visiongraph`, `barn/haybale-spandrel` and `barn/haybale-stream`), and gitignore it.
+- Before committing, look at `git diff --stat uv.lock`. A diff you did not intend (new packages, a sibling library) is a side effect: `git checkout uv.lock` discards it.
+- In release and CI-like steps run `uv run --frozen ...` so uv uses the committed lock and does not rewrite it. After a version bump, run `uv lock` once, deliberately, and read the diff: it should contain version lines only.
 
 **A version number is permanent.** PyPI refuses re-uploads of a version even after you delete it. A botched `0.0.2` means `0.0.3`, never a corrected `0.0.2`. This is why the test gate belongs before the upload step, and why TestPyPI exists.
 
@@ -235,7 +257,7 @@ A library whose `__init__.py` carries the `@library(...)` decorator but whose wh
 
 **The feed tracks the package automatically.** `version` and `install_spec` are both written from your `haybale.toml` at publish time, by the same run that pushes the tag CI builds from — so the feed cannot advertise a release you did not publish.
 
-## 8. Related
+## 9. Related
 
 - [sharing-libraries](./sharing-libraries.md) — the git-clone path and the full authoring flow
 - [subscribing-to-marketplaces](./subscribing-to-marketplaces.md) — the consumer's side of the feed you just published
