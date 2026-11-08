@@ -3728,22 +3728,21 @@ both — and pasting that into Add Source fails.</p>
 <p>Both now point at PyPI coordinates rather than clone specs. Subscribing to the first tracks your releases; the second freezes to the one you published at that tag.</p>
 <div class="admonition warning">
 <p class="admonition-title">The name must exist on PyPI before <code>haywire share</code> runs</p>
-<p><code>haywire share</code> checks the declaration at preflight: <code>distribute = "pypi"</code> against a distribution name PyPI answers 404 for fails <strong>before</strong> a tag is pushed, rather than surfacing when a consumer tries to install. A <em>pending publisher</em> (§3) does not satisfy this check, because the name does not exist until the first upload. Do the first upload by hand first (§6, <em>The first release</em>), then run <code>haywire share</code>. The check is skipped when PyPI cannot be reached, so it never blocks an offline publish.</p>
+<p><code>haywire share</code> checks the declaration at preflight: <code>distribute = "pypi"</code> against a distribution name PyPI answers 404 for fails <strong>before</strong> a tag is pushed, rather than surfacing when a consumer tries to install. A <em>pending publisher</em> (§3) does not satisfy this check, because the name does not exist until the first upload. Do the first release with <code>haywire share --first-release</code> (§6) instead. The check is skipped when PyPI cannot be reached, so it never blocks an offline publish.</p>
 </div>
 <h2 id="6-the-first-release">6. The first release<a class="headerlink" href="#6-the-first-release" title="Permanent link">&para;</a></h2>
-<p>The first upload cannot go through <code>haywire share</code>, which refuses a name PyPI does not know yet (§5). The owner does it once, by tagging the committed version:</p>
+<p>The first upload creates the PyPI project, so <code>haywire share</code> cannot do it the ordinary way: it refuses a name PyPI does not know yet (§5). <code>haywire share --first-release</code> is the explicit first-release mode.</p>
 <ol>
-<li>Complete §2 to §5: a pending publisher on PyPI for <strong>each</strong> library name, the <code>pypi</code> environment created in the repository's <em>Settings → Environments</em>, and <code>distribute = "pypi"</code> declared and committed.</li>
-<li>Make sure <code>[project].version</code> in each library's <code>pyproject.toml</code> (and <code>haybale.toml</code>) is the version to publish first, for example <code>0.0.1</code>, and that it is pushed.</li>
-<li>Tag that version and push the tag:</li>
+<li>The owner completes §2 to §5: a pending publisher on PyPI for <strong>each</strong> library name, the <code>pypi</code> environment created in the repository's <em>Settings → Environments</em>, and <code>distribute = "pypi"</code> declared and committed. Running <code>haywire share</code> before this stops with <code>STOP: human needed</code> and prints this checklist filled in from your remote and library names.</li>
+<li>Run:</li>
 </ol>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>git<span class="w"> </span>tag<span class="w"> </span>v0.0.1
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>v0.0.1
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uv<span class="w"> </span>run<span class="w"> </span>--frozen<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--first-release
 </span></code></pre></div>
-<p>The workflow creates each project through the pending publisher's OIDC identity.
-4. Check that <code>https://pypi.org/project/haybale-my-lib/</code> answers 200. The pending publisher is now an ordinary one.
-5. From now on use the normal flow below: <code>haywire share --bump patch</code> publishes <code>0.0.2</code> and every later version.</p>
-<p><strong>A mistyped name fails safe.</strong> PyPI looks the publisher up by the project name in the upload. If the name on the PyPI form and <code>[project].name</code> differ, the upload is rejected before any file is stored, and no version number is used up. Correct the PyPI form (or the library name), then re-run the failed job on the tag. If the library name itself was wrong, the tag cannot move: fix the name in a new commit and tag the next version.</p>
+<p>It publishes the version already declared (so <code>0.0.1</code> really is released; add <code>--bump patch</code> to move on first), commits, tags and pushes. The tag push starts the workflow, which creates each project through the pending publisher's OIDC identity.
+3. Check that <code>https://pypi.org/project/haybale-my-lib/</code> answers 200. The pending publisher is now an ordinary one.
+4. From now on use the normal flow below: <code>haywire share --bump patch</code>.</p>
+<p><code>--first-release</code> is refused when any library name already exists on PyPI (drop the flag if it is yours, rename if it is not), when PyPI cannot be reached to confirm that, when the project does not declare <code>distribute = "pypi"</code>, and when the remote is not on github.com. If the declared version is already tagged it tells you to add <code>--bump patch</code>. PyPI offers no way to ask whether a pending publisher exists, so the flag is your statement that it does; the safety net is below.</p>
+<p><strong>A mistyped name fails safe.</strong> PyPI looks the publisher up by the project name in the upload. If the name on the PyPI form and <code>[project].name</code> differ, the upload is rejected before any file is stored, and no version number is used up. Correct the PyPI form (or the library name), then re-run the failed job on the tag. If the library name itself was wrong, the tag cannot move: fix the name in a new commit and run <code>share --first-release --bump patch</code>.</p>
 <h2 id="7-cutting-a-release">7. Cutting a release<a class="headerlink" href="#7-cutting-a-release" title="Permanent link">&para;</a></h2>
 <p>With setup done, releasing is the normal share flow:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch

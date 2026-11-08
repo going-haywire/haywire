@@ -3971,6 +3971,7 @@ refuses to bump again and points at <code>haywire share --resume</code>, which c
 missing tag if needed and pushes. It never writes a new version. A marker file,
 <code>.git/haywire-share.json</code>, records the one state a tag cannot show (a commit
 whose tag step failed); it is removed when the push succeeds.</p>
+<p><code>--first-release</code> creates the PyPI project(s) when the project declares <code>distribute = "pypi"</code>; see <a href="../publish-to-pypi/#6-the-first-release">publish-to-pypi §6</a>.</p>
 <p><code>--status</code> prints the state and ends with a <code>STATE:</code> line: <code>READY</code>, <code>RELEASED</code>,
 <code>NOTHING_TO_RELEASE</code>, <code>UNPUSHED</code>, <code>STALE_MARKER</code>, <code>NEEDS_HUMAN</code> or <code>BLOCKED</code>. Every
 refusal ends with one <code>NEXT:</code>, <code>DONE:</code> or <code>STOP:</code> line.</p>
