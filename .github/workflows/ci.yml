@@ -43,6 +43,23 @@ jobs:
       - name: ruff format --check
         run: uv run ruff format --check .
 
+  # A package version changes only in a release PR ("chore: release vX.Y.Z").
+  # Standard library only, so it needs no install and costs seconds.
+  version-guard:
+    name: version guard
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: No version change outside a release PR
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: python3 scripts/check_version_changes.py
+
   types:
     name: types
     runs-on: ubuntu-24.04
