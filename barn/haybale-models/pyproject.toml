@@ -10,6 +10,9 @@ dependencies = [
     "haybale-graph-editor>=0.3.4",
     "huggingface_hub>=2.4",
     "httpx>=0.28",
+    "nicegui>=3.18.0",
+    "fastapi",
+    "starlette",
 ]
 keywords = ["models"]
 
