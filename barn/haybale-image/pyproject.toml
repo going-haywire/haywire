@@ -1,12 +1,12 @@
 [project]
 name = "haybale-image"
-version = "0.3.3"
+version = "0.3.4"
 description = "Image types, IO and viewers shared by vision and ML libraries"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 
 dependencies = [
-    "haywire-core>=0.3.3",
+    "haywire-core>=0.3.4",
     "numpy",
     "opencv-contrib-python>=5.0.0.93",
     "pillow>=12.0",
