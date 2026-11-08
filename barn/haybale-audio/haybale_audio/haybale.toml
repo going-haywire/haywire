@@ -10,4 +10,4 @@ tags = ["audio"]
 
 # Sibling haybales this library subscribes to, as MODULE names.
 # Required for hot-reload scope tracking.
-linked_libraries = []
+linked_libraries = ["haybale_core"]
