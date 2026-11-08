@@ -1668,10 +1668,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-cutting-a-release" class="md-nav__link">
+  <a href="#6-the-first-release" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Cutting a release
+        6. The first release
       
     </span>
   </a>
@@ -1679,10 +1679,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#7-traps" class="md-nav__link">
+  <a href="#7-cutting-a-release" class="md-nav__link">
     <span class="md-ellipsis">
       
-        7. Traps
+        7. Cutting a release
       
     </span>
   </a>
@@ -1690,10 +1690,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#8-related" class="md-nav__link">
+  <a href="#8-traps" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8. Related
+        8. Traps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-related" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Related
       
     </span>
   </a>
@@ -3511,10 +3522,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-cutting-a-release" class="md-nav__link">
+  <a href="#6-the-first-release" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Cutting a release
+        6. The first release
       
     </span>
   </a>
@@ -3522,10 +3533,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#7-traps" class="md-nav__link">
+  <a href="#7-cutting-a-release" class="md-nav__link">
     <span class="md-ellipsis">
       
-        7. Traps
+        7. Cutting a release
       
     </span>
   </a>
@@ -3533,10 +3544,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#8-related" class="md-nav__link">
+  <a href="#8-traps" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8. Related
+        8. Traps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-related" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Related
       
     </span>
   </a>
@@ -3579,7 +3601,7 @@
 <ol>
 <li>Create an account at <a href="https://pypi.org/account/register/">pypi.org/account/register</a> and enable 2FA (required for uploads).</li>
 <li>Check availability: visit <code>https://pypi.org/project/haybale-my-lib/</code>. A 404 means it's free.</li>
-<li>Claim it by uploading once, or reserve it as part of your first real release below.</li>
+<li>The name is claimed by the first upload, which is §6 (<em>The first release</em>). A <em>pending publisher</em> (§3) reserves the trust relationship, <strong>not</strong> the name: PyPI's JSON API still answers 404 for the name until something is uploaded.</li>
 </ol>
 <p>Your library's <code>pyproject.toml</code> <code>[project].name</code> <strong>is</strong> the distribution name. By convention haybale libraries are named <code>haybale-&lt;something&gt;</code>:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[project]</span>
@@ -3620,7 +3642,7 @@
 </tr>
 </tbody>
 </table>
-<p>The environment name must match the <code>environment:</code> block in the workflow. If you haven't uploaded yet, use PyPI's <em>pending publisher</em> form instead — it reserves the name and the trust relationship together, so your first upload is also your name claim.</p>
+<p>The environment name must match the <code>environment:</code> block in the workflow. If the project does not exist on PyPI yet, add the publisher at <a href="https://pypi.org/manage/account/publishing/">pypi.org/manage/account/publishing</a> (the <em>pending publisher</em> form) instead. It lets CI create the project on the first upload without a token. It does <strong>not</strong> make the name exist: until that first upload succeeds, the project page and <code>https://pypi.org/pypi/&lt;name&gt;/json</code> both return 404, and <code>haywire share</code> preflight (§5) fails on it. Do the first upload as described in §6.</p>
 <h2 id="4-the-workflow">4. The workflow<a class="headerlink" href="#4-the-workflow" title="Permanent link">&para;</a></h2>
 <p>Copy this to <code>.github/workflows/publish.yml</code>. It builds and publishes a <strong>single-package</strong> repository on every <code>v*.*.*</code> tag.</p>
 <p><strong>Edit the <code>env:</code> block at the top and nothing else.</strong> Every value you need to change is collected there — distribution name, label, description, author, repo URL — and the steps below read them, so there are no placeholders buried further down the file. The version is never hardcoded: it is derived from the tag that triggered the run.</p>
@@ -3731,28 +3753,46 @@ whole block, so two URLs sharing one fence means a reader aiming at either gets
 both — and pasting that into Add Source fails.</p>
 <p>Both now point at PyPI coordinates rather than clone specs. Subscribing to the first tracks your releases; the second freezes to the one you published at that tag.</p>
 <div class="admonition warning">
-<p class="admonition-title">Declare it before your first release</p>
-<p><code>haywire share</code> checks the declaration at preflight: <code>distribute = "pypi"</code> against a distribution name PyPI does not know fails <strong>before</strong> a tag is pushed, rather than surfacing when a consumer tries to install. Use PyPI's <em>pending publisher</em> form (§3) so the name exists before your first run. The check is skipped when PyPI cannot be reached, so it never blocks an offline publish.</p>
+<p class="admonition-title">The name must exist on PyPI before <code>haywire share</code> runs</p>
+<p><code>haywire share</code> checks the declaration at preflight: <code>distribute = "pypi"</code> against a distribution name PyPI answers 404 for fails <strong>before</strong> a tag is pushed, rather than surfacing when a consumer tries to install. A <em>pending publisher</em> (§3) does not satisfy this check, because the name does not exist until the first upload. Do the first upload by hand first (§6, <em>The first release</em>), then run <code>haywire share</code>. The check is skipped when PyPI cannot be reached, so it never blocks an offline publish.</p>
 </div>
-<h2 id="6-cutting-a-release">6. Cutting a release<a class="headerlink" href="#6-cutting-a-release" title="Permanent link">&para;</a></h2>
+<h2 id="6-the-first-release">6. The first release<a class="headerlink" href="#6-the-first-release" title="Permanent link">&para;</a></h2>
+<p>The very first upload cannot go through <code>haywire share</code>, which refuses a name PyPI does not know yet (§5). Upload version one from CI by hand, once:</p>
+<ol>
+<li>Complete §2 to §5: pending publisher on PyPI, <code>publish.yml</code> committed on your default branch, the <code>pypi</code> environment created in the repository's <em>Settings → Environments</em>, and <code>distribute = "pypi"</code> declared.</li>
+<li>Make sure <code>[project].version</code> in <code>pyproject.toml</code> (and <code>haybale.toml</code>) is the version you want to publish first, for example <code>0.0.1</code>, and that it is pushed.</li>
+<li>Run the workflow by hand: <em>Actions → Publish Release → Run workflow</em> on the default branch, or</li>
+</ol>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>gh<span class="w"> </span>workflow<span class="w"> </span>run<span class="w"> </span>publish.yml<span class="w"> </span>--ref<span class="w"> </span>main
+</span></code></pre></div>
+<p>The <code>workflow_dispatch</code> trigger in §4 is what makes this possible. It builds from the branch, not from a tag, and uploads the version in <code>pyproject.toml</code>. The OIDC identity of the pending publisher creates the project.
+4. Check that <code>https://pypi.org/project/haybale-my-lib/</code> now answers 200. The pending publisher is now an ordinary one.
+5. From now on use the normal flow below: <code>haywire share --bump patch</code> publishes <code>0.0.2</code> and every later version from tags. Do not tag <code>v0.0.1</code> and push it afterwards: that run would upload <code>0.0.1</code> again and PyPI refuses it (§8).</p>
+<h2 id="7-cutting-a-release">7. Cutting a release<a class="headerlink" href="#7-cutting-a-release" title="Permanent link">&para;</a></h2>
 <p>With setup done, releasing is the normal share flow:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch
 </span></code></pre></div>
 <p>That bumps the version, regenerates docs, rebuilds <code>marketstall.toml</code>, commits, tags <code>v0.0.2</code>, and pushes. The tag push triggers the workflow: tests → wheel → PyPI → feed. Watch it in the Actions tab; the whole run is typically a couple of minutes.</p>
 <p>Verify by checking <code>https://pypi.org/project/haybale-my-lib/</code> shows the new version, then installing it clean:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>haybale-my-lib<span class="o">==</span><span class="m">0</span>.0.2
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>haybale-my-lib<span class="o">==</span><span class="m">0</span>.0.2
 </span></code></pre></div>
-<h2 id="7-traps">7. Traps<a class="headerlink" href="#7-traps" title="Permanent link">&para;</a></h2>
+<h2 id="8-traps">8. Traps<a class="headerlink" href="#8-traps" title="Permanent link">&para;</a></h2>
+<p><strong>Sibling libraries symlinked into the workspace pollute <code>uv.lock</code>.</strong> If you develop against another library by symlinking its checkout into a workspace folder (<code>barn/*</code> in the haywire monorepo), a plain <code>uv lock</code>, and any <code>uv run</code>, which re-locks first, adds it and its whole dependency tree to <code>uv.lock</code>. CI cannot resolve that path. This slipped into a release commit once and sat on <code>master</code> unnoticed. Three guards:</p>
+<ul>
+<li>List every such symlink in <code>[tool.uv.workspace].exclude</code> of the root <code>pyproject.toml</code> (the haywire monorepo excludes <code>barn/haybale-visiongraph</code>, <code>barn/haybale-spandrel</code> and <code>barn/haybale-stream</code>), and gitignore it.</li>
+<li>Before committing, look at <code>git diff --stat uv.lock</code>. A diff you did not intend (new packages, a sibling library) is a side effect: <code>git checkout uv.lock</code> discards it.</li>
+<li>In release and CI-like steps run <code>uv run --frozen ...</code> so uv uses the committed lock and does not rewrite it. After a version bump, run <code>uv lock</code> once, deliberately, and read the diff: it should contain version lines only.</li>
+</ul>
 <p><strong>A version number is permanent.</strong> PyPI refuses re-uploads of a version even after you delete it. A botched <code>0.0.2</code> means <code>0.0.3</code>, never a corrected <code>0.0.2</code>. This is why the test gate belongs before the upload step, and why TestPyPI exists.</p>
 <p><strong>Yanking is not deleting.</strong> If a release is broken, <a href="https://pypi.org/help/#yanked">yank</a> it — resolvers skip yanked versions unless a consumer pinned that exact version. Deleting it instead breaks anyone who already pinned it.</p>
 <p><strong>Your wheel may not contain what you think.</strong> <code>uv build</code> includes what your build backend is told to include. Verify before your first upload:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>zipfile<span class="w"> </span>-l<span class="w"> </span>dist/*.whl
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>uv<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>zipfile<span class="w"> </span>-l<span class="w"> </span>dist/*.whl
 </span></code></pre></div>
 <p>A library whose <code>__init__.py</code> carries the <code>@library(...)</code> decorator but whose wheel omits a subpackage will install and then fail to register at runtime.</p>
 <p><strong><code>[tool.haywire.marketstall]</code> is read from the project root.</strong> Not from the library's own <code>pyproject.toml</code> when those differ. In a single-package repo they're the same file; in a monorepo with <code>barn/*</code>, the key belongs in the root.</p>
 <p><strong>Don't publish both coordinates for one library.</strong> <code>distribute</code> is project-scoped and applies to every library in the repo, which is deliberate: the unit of publishing is the project. A repo that somehow advertised git rows in one feed and PyPI rows in another would make its own library look like two libraries in conflict to anyone subscribed to both.</p>
 <p><strong>The feed tracks the package automatically.</strong> <code>version</code> and <code>install_spec</code> are both written from your <code>haybale.toml</code> at publish time, by the same run that pushes the tag CI builds from — so the feed cannot advertise a release you did not publish.</p>
-<h2 id="8-related">8. Related<a class="headerlink" href="#8-related" title="Permanent link">&para;</a></h2>
+<h2 id="9-related">9. Related<a class="headerlink" href="#9-related" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../sharing-libraries/">sharing-libraries</a> — the git-clone path and the full authoring flow</li>
 <li><a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a> — the consumer's side of the feed you just published</li>
