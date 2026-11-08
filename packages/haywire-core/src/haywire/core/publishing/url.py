@@ -46,7 +46,7 @@ def _unknown_host_warning(hostname: str) -> str:
         f"    [[hosts]]\n"
         f'    hostname = "{hostname}"\n'
         f'    provider = "gitlab"   # or one of: github, gitlab\n\n'
-        f"  Then re-run `haywire share` (without `--save`) to get the share URL."
+        f"  Then re-run `haywire share` to get the share URL."
     )
 
 
@@ -91,7 +91,7 @@ def _derive_url(
             share_url=None,
             warning=(
                 "No git remote found. Push this repo to a supported host first, "
-                "then re-run `haywire share` (without `--save`) to get the share URL."
+                "then re-run `haywire share` to get the share URL."
             ),
         )
 
@@ -145,7 +145,7 @@ def derive_share_url_only(repo_root: Path, *, tag: str | None = None) -> ShareSa
             out_path=out_path,
             share_url=None,
             warning=(
-                f"No marketstall.toml found at {out_path}. Run `haywire share --save` first to produce it."
+                f"No marketstall.toml found at {out_path}. Run `haywire share --bump <version>` first."
             ),
         )
     return _derive_url(repo_root, out_path, tag=tag)

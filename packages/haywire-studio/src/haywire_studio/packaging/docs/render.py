@@ -33,7 +33,7 @@ _MARKER_RE = re.compile(
 )
 _PLACEHOLDER = (
     "<!-- marketstall:share-url:start -->\n"
-    "*Subscribe URL not yet published — run `haywire share --save`.*\n"
+    "*Subscribe URL not yet published — run `uv run --frozen haywire share --bump patch`.*\n"
     "<!-- marketstall:share-url:end -->"
 )
 
@@ -158,7 +158,7 @@ def render_readme(doc: LibraryDoc, notes: str, existing_readme: str | None) -> s
     """README with NOTES prefix and preserved marker block.
 
     The block between `<!-- marketstall:share-url:start -->` and
-    `<!-- marketstall:share-url:end -->` is owned by `haywire share --save`
+    `<!-- marketstall:share-url:end -->` is owned by `haywire share`
     and must be preserved verbatim. If no existing README or no marker found,
     insert a placeholder marker.
     """
