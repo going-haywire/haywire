@@ -1627,6 +1627,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#25-steps-only-the-owner-can-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Steps only the owner can do
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3675,6 +3686,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#25-steps-only-the-owner-can-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Steps only the owner can do
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4007,6 +4029,14 @@ refusal ends with one <code>NEXT:</code>, <code>DONE:</code> or <code>STOP:</cod
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w"> </span><span class="nt">&quot;failure&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;code&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;already_released&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Already released: v0.0.2 ...&quot;</span><span class="p">}}</span>
 </span></code></pre></div>
 <p><code>next.command</code> is the one command to run; <code>stop.reason</code> is what to tell the owner.</p>
+<h3 id="25-steps-only-the-owner-can-do">2.5 Steps only the owner can do<a class="headerlink" href="#25-steps-only-the-owner-can-do" title="Permanent link">&para;</a></h3>
+<p>Three steps need the owner's accounts and are never attempted by the tool: creating
+the GitHub repository, registering a PyPI pending publisher, and creating the GitHub
+<code>pypi</code> environment. On exit 30, <code>share</code> prints the relevant ones as a numbered
+checklist filled in from your remote and library names (also <code>stop.checklist</code> in
+<code>--json</code>). <code>haywire init</code> marks the repository step <code>[owner]</code>, and the generated
+<code>CLAUDE.md</code> tells an agent to paste the checklist to the owner and wait. The list lives
+in <code>haywire.core.publishing.human_steps</code>.</p>
 <h2 id="3-what-gets-published">3. What gets published<a class="headerlink" href="#3-what-gets-published" title="Permanent link">&para;</a></h2>
 <p>Each <code>barn/*</code> library becomes one <code>[[haybales]]</code> entry in the generated
 <code>marketstall.toml</code> — mostly a verbatim copy of your <code>haybale.toml</code>, plus the
