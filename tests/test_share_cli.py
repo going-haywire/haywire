@@ -235,6 +235,88 @@ def test_findings_say_so_when_there_is_nothing(project: Path, capsys) -> None:
     assert "Nothing to report" in capsys.readouterr().out
 
 
+# ── idempotency, --status, --resume ─────────────────────────────────────────
+
+
+def _release(project: Path) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    with (
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
+        _fake_docs(),
+    ):
+        assert run_share_cli(repo_root=project, bump="patch", message=None) == 0
+
+
+def _tags(project: Path) -> list[str]:
+    return subprocess.run(
+        ["git", "tag", "--list"], cwd=project, capture_output=True, text=True, check=True
+    ).stdout.split()
+
+
+def test_second_share_of_the_same_change_is_refused(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _release(project)
+    with (
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
+        _fake_docs(),
+    ):
+        code = run_share_cli(repo_root=project, bump="patch", message=None)
+
+    assert code != 0
+    assert "Already released" in capsys.readouterr().out
+    assert _tags(project) == ["v0.3.2"]
+
+
+def test_status_reports_ready_then_released(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    assert run_share_cli(repo_root=project, bump=None, message=None, status=True) == 0
+    out = capsys.readouterr().out
+    assert "STATE: READY" in out
+    assert "NEXT: " in out
+
+    _release(project)
+    capsys.readouterr()
+    assert run_share_cli(repo_root=project, bump=None, message=None, status=True) == 0
+    assert "STATE: RELEASED" in capsys.readouterr().out
+
+
+def test_status_writes_nothing(project: Path) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    run_share_cli(repo_root=project, bump=None, message=None, status=True)
+    porcelain = subprocess.run(["git", "status", "--porcelain"], cwd=project, capture_output=True, text=True)
+    assert porcelain.stdout == ""
+    assert _tags(project) == []
+
+
+def test_resume_finishes_a_release_whose_push_failed(project: Path, capsys) -> None:
+    from haywire.core.publishing.pipeline.errors import PushError
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    failing_push = AsyncMock(side_effect=PushError(stderr="boom", manual_command="git push"))
+    with (
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
+        _fake_docs(),
+        patch.object(SharePipeline, "apply_push", new=failing_push),
+    ):
+        assert run_share_cli(repo_root=project, bump="patch", message=None) != 0
+    assert _tags(project) == ["v0.3.2"]
+
+    capsys.readouterr()
+    assert run_share_cli(repo_root=project, bump=None, message=None, status=True) != 0
+    assert "STATE: UNPUSHED" in capsys.readouterr().out
+
+    assert run_share_cli(repo_root=project, bump=None, message=None, resume=True) == 0
+    remote_tags = subprocess.run(
+        ["git", "ls-remote", "--tags", "origin"], cwd=project, capture_output=True, text=True
+    ).stdout
+    assert "refs/tags/v0.3.2" in remote_tags
+    assert _tags(project) == ["v0.3.2"]
+
+
 # ── argparse surface ─────────────────────────────────────────────────────────
 
 

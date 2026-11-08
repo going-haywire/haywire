@@ -8,6 +8,7 @@ from haywire.core.publishing.barn import current_ref
 from haywire.core.publishing.git import git_remote, git_remote_streaming
 from haywire.core.publishing.pipeline.errors import PipelineStateError, PushError
 from haywire.core.publishing.pipeline.results import PushResult
+from haywire.core.publishing.pipeline.steps import release_state
 
 if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
@@ -104,9 +105,33 @@ async def apply(pipeline: "SharePipeline", on_output: Callable[[str], None] | No
             stderr=(result.stderr or result.stdout).strip(),
             manual_command="git " + " ".join(args),
         )
+    release_state.clear_marker(pipeline.repo_root)
     return PushResult(
         remote="origin",
         branch=branch,
         tag=f"v{pipeline.version}",
         output=result.stdout,
     )
+
+
+async def resume(pipeline: "SharePipeline", on_output: Callable[[str], None] | None = None) -> PushResult:
+    """Finish an interrupted release: create the missing tag if needed, then push.
+
+    The only continuation of a half-done release that is safe to automate --
+    it writes nothing but the tag the commit was meant to carry, and repeats
+    the push. It refuses unless git shows exactly that situation, so it can
+    never cut a new version.
+    """
+    from haywire.core.publishing.git import git
+
+    state = release_state.detect(pipeline.repo_root)
+    if state.kind is not release_state.ReleaseKind.UNPUSHED:
+        raise PipelineStateError(
+            f"Nothing to resume (state: {state.kind.value}). Run `haywire share --status`."
+        )
+    if state.needs_tag:
+        made = git(["tag", state.tag], cwd=pipeline.repo_root)
+        if not made.ok:
+            raise PipelineStateError(f"Could not create tag {state.tag}: {made.stderr.strip()}")
+    pipeline.version = state.tag.removeprefix("v")
+    return await apply(pipeline, on_output)

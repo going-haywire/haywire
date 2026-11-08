@@ -18,6 +18,7 @@ from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError, M
 from haywire.core.publishing.manifest.os_field import describe_os_fix, invalid_os_values
 from haywire.core.publishing.manifest.reader import read_manifest
 from haywire.core.publishing.pipeline.results import PreconditionFailure, PreconditionsReport
+from haywire.core.publishing.pipeline.steps import release_state
 
 if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
@@ -524,6 +525,15 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                 default_branch=default_branch,
             )
 
+    released = release_state.detect(pipeline.repo_root)
+    if released.kind is not release_state.ReleaseKind.NONE:
+        return PreconditionsReport(
+            failures=[_already_released_failure(released)],
+            remote_url=remote_url,
+            barn_libraries=barn_libraries,
+            default_branch=default_branch,
+        )
+
     unregistered = _unregistered_pypi_names(pipeline.repo_root, barn_libraries)
     if unregistered:
         return PreconditionsReport(
@@ -539,6 +549,53 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
         remote_url=remote_url,
         barn_libraries=barn_libraries,
         default_branch=default_branch,
+    )
+
+
+def _already_released_failure(state: "release_state.ReleaseState") -> PreconditionFailure:
+    """Refuse a second release of the same change, saying what to do instead.
+
+    Every message ends in one ``NEXT:``, ``DONE:`` or ``STOP:`` line so a
+    caller that cannot judge the situation has exactly one thing to do.
+    """
+    K = release_state.ReleaseKind
+    short = state.sha[:8]
+    if state.kind is K.RELEASED:
+        return PreconditionFailure(
+            message=f"Already released: {state.tag} is tagged at HEAD ({short}) and on origin.",
+            remedy=(
+                "Nothing to do. Do not run `haywire share` again for this change.\nDONE: already released."
+            ),
+            code="already_released",
+        )
+    if state.kind is K.UNPUSHED:
+        return PreconditionFailure(
+            message=f"{state.tag} was committed at HEAD ({short}) but never reached origin.",
+            remedy=(
+                "A release is half done. Do NOT bump again: that would cut a second version.\n"
+                "NEXT: uv run --frozen haywire share --resume"
+            ),
+            code="unpushed_release",
+        )
+    if state.kind is K.NOTHING_NEW:
+        return PreconditionFailure(
+            message=f"Nothing to release since {state.tag}: no change under barn/ or pyproject.toml.",
+            remedy=(
+                "Commit the change you want to publish first, then run share.\nDONE: nothing to release."
+            ),
+            code="nothing_to_release",
+        )
+    return PreconditionFailure(
+        message=(
+            f"An interrupted release left a marker for {state.tag or 'an unknown tag'} "
+            f"({state.sha[:8] or '?'}), but HEAD has moved on."
+        ),
+        remedy=(
+            f"Remove the marker only after checking `git tag --list` and `git log` against origin: "
+            f"`rm .git/{release_state.MARKER_NAME}`.\n"
+            "STOP: human needed — an interrupted release does not match this checkout."
+        ),
+        code="stale_marker",
     )
 
 

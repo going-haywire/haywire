@@ -10,6 +10,7 @@ from haywire.core.publishing.marketstall import MarketstallWriteResult, NoBarnEr
 from haywire.core.publishing.pipeline.errors import CommitError, MarketstallError, PipelineStateError
 from haywire.core.publishing.pipeline.fixes import _MANIFEST_FAILURE_TYPES
 from haywire.core.publishing.pipeline.results import CommitPlan, CommitResult
+from haywire.core.publishing.pipeline.steps import release_state
 
 if TYPE_CHECKING:
     from haywire.core.publishing.pipeline.pipeline import SharePipeline
@@ -153,6 +154,10 @@ def apply(pipeline: "SharePipeline", commit_plan: CommitPlan) -> CommitResult:
         )
 
     sha = git(["rev-parse", "HEAD"], cwd=pipeline.repo_root).stdout.strip()
+    # From here until the push succeeds, a release commit exists that origin
+    # does not know. The marker records it for the one case a tag cannot show:
+    # a commit whose tag step failed.
+    release_state.write_marker(pipeline.repo_root, tag=commit_plan.tag, sha=sha, phase="committed")
 
     tagged = git(["tag", commit_plan.tag], cwd=pipeline.repo_root)
     if not tagged.ok:

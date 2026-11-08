@@ -21,7 +21,7 @@ Each step that can affect the working tree is split into a **check/plan** call (
 
 ## 2. The steps
 
-Eight step modules under `publishing/pipeline/steps/` — `preconditions.py`, `detect.py`, `dependencies.py`, `framework.py`, `version.py`, `docs.py`, `commit.py`, `push.py`. `SharePipeline` delegates to each rather than implementing the logic inline.
+Step modules under `publishing/pipeline/steps/` — `preconditions.py`, `detect.py`, `dependencies.py`, `framework.py`, `version.py`, `docs.py`, `commit.py`, `push.py`, plus `rollback.py` and `release_state.py` (a read-only query, below). `SharePipeline` delegates to each rather than implementing the logic inline.
 
 ```text
 1. Preconditions          check_preconditions() / require_preconditions()
@@ -70,7 +70,8 @@ It checks, in order. A fix in brackets is the `fix_id` the wizard offers as a bu
 10. The remote is reachable, via `git ls-remote --symref origin HEAD`. This exercises the exact credential path `git push` uses, so an auth failure surfaces here rather than after a commit and tag already exist. `--symref` also narrows the round-trip to one ref and additionally names the remote's default branch (`ref: refs/heads/<name>\tHEAD` in the output) — the local `git symbolic-ref refs/remotes/origin/HEAD` is *not* a usable substitute, since nothing populates it without an explicit `git remote set-head`.
 11. HEAD is not detached (`git symbolic-ref -q HEAD`, not `git rev-parse --abbrev-ref HEAD` — see §5 for why) [`switch_branch`, only when a branch already contains the commit].
 12. The current branch matches the remote's default branch (see §5) [`switch_branch`, only when the branch has nothing unmerged].
-13. Under `distribute = "pypi"`, every library's name is registered on PyPI. Skipped when PyPI cannot be reached, so it never blocks an offline publish.
+13. The checkout is not already released (`release_state.detect()`): `HEAD` carries a `v*` tag on `origin` (`already_released`), a release commit exists that `origin` lacks (`unpushed_release`, resumable), nothing under `barn/` or the root `pyproject.toml` changed since the latest tag (`nothing_to_release`), or the marker names a commit that is not `HEAD` (`stale_marker`). Each sets `PreconditionFailure.code` and ends its remedy with `NEXT:`, `DONE:` or `STOP:`.
+14. Under `distribute = "pypi"`, every library's name is registered on PyPI. Skipped when PyPI cannot be reached, so it never blocks an offline publish.
 
 Reporting rather than raising also matters for the Preflight screen. It runs automatically when the flow opens (`show_step_flow(auto_start=True)`) — a first step that only checks, writes nothing, and asks the user to confirm an intent they already expressed by opening it does not deserve a button. On failure the screen renders the message and its remedy **inline**, offering the in-place fix where one exists (`fix_id`) and "Check again" always. So it needs a populated failure to render, not an exception to catch before the UI exists.
 
@@ -130,6 +131,10 @@ Coverage gaps (missing docstrings, etc.) are read-only feedback and never fail t
 `plan_commit()` previews exactly what would be staged, committed, and tagged: the pipeline's accumulated write set (`self.written`, appended-to by every apply step so far) plus a diffstat, requires `self.version` to already be set (raises `PipelineStateError` otherwise — step 3 must run first). There is no separate "uncommitted barn content" opt-in step any more — step 1's clean-working-tree precondition guarantees nothing outside `self.written` can be dirty by the time this runs, so `plan.files` is already everything there is to stage.
 
 `apply_commit()` stages exactly `plan.files` — never `git add -A`/`-a` — commits, then tags. There is no separate checkpoint commit: the pre-flow `HEAD` is already the rollback anchor, and the flow authors exactly one commit. The tag is created only after the commit succeeds, since a tag on the wrong commit is worse than no tag.
+
+### 2.6a Release state and the marker
+
+`steps/release_state.py` classifies the checkout from git facts and one file, `.git/haywire-share.json`. `apply_commit()` writes the marker (`tag`, `sha`, `phase`) right after the commit, before the tag; `apply_push()` clears it on success. The marker covers the one half-done state a tag cannot show, a commit whose tag step failed. A release whose tag exists but whose push failed is visible from git alone (tag at `HEAD`, not on `origin`). `SharePipeline.resume_release()` handles both: it creates the tag if the marker says it is missing, then pushes, and refuses unless the state is `UNPUSHED`, so it cannot cut a version. The marker write is best effort; a read-only `.git` does not fail a release.
 
 ### 2.7 Step 7 — Push
 

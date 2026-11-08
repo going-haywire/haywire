@@ -260,3 +260,7 @@ class SharePipeline:
     async def apply_push(self, on_output: Callable[[str], None] | None = None) -> PushResult:
         """Push the commit and tag to ``origin``, for all callers."""
         return await steps_push.apply(self, on_output)
+
+    async def resume_release(self, on_output: Callable[[str], None] | None = None) -> PushResult:
+        """Finish a release that was committed but not pushed. Never bumps."""
+        return await steps_push.resume(self, on_output)

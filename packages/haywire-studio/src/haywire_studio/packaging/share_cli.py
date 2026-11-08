@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from haywire.core.publishing.pipeline import ShareError, SharePipeline
+from haywire.core.publishing.pipeline import PreconditionFailure, ShareError, SharePipeline
 from haywire.core.publishing.url import derive_share_url_only
 
 EXIT_OK = 0
@@ -35,10 +35,16 @@ def run_share_cli(
     message: str | None,
     requires_haywire: str | None = None,
     dry_run: bool = False,
+    status: bool = False,
+    resume: bool = False,
 ) -> int:
     """Publish *repo_root*, or report what publishing it would do."""
     pipeline = SharePipeline(repo_root)
     try:
+        if status:
+            return _run_status(pipeline)
+        if resume:
+            return _run_resume(pipeline)
         if dry_run:
             return _run_dry(pipeline)
         return _run_publish(pipeline, bump=bump, message=message, requires_haywire=requires_haywire)
@@ -68,6 +74,44 @@ def _print_findings(pipeline: SharePipeline) -> None:
             print(f"  · {name}: {dep} resolved to no distribution")
     if not report.libraries:
         print("  Nothing to report.")
+
+
+def _print_failure(failure: PreconditionFailure) -> None:
+    print(f"✗ {failure.message}")
+    for line in failure.remedy.splitlines():
+        print(f"    {line}")
+    if failure.doc_url:
+        print(f"    {failure.doc_label or 'Docs'}: {failure.doc_url}")
+
+
+#: Failure codes that mean "released, or nothing to release": not an error to fix.
+_SETTLED_CODES = {"already_released", "nothing_to_release"}
+
+
+def _run_status(pipeline: SharePipeline) -> int:
+    """Read-only. The last line is ``STATE: <name>``, stable for callers to match."""
+    report = pipeline.check_preconditions()
+    if report.ok:
+        print("✓ Ready to release.")
+        print("NEXT: uv run --frozen haywire share --bump patch")
+        print("STATE: READY")
+        return EXIT_OK
+    failure = report.failures[0]
+    _print_failure(failure)
+    state = {
+        "already_released": "RELEASED",
+        "nothing_to_release": "NOTHING_TO_RELEASE",
+        "unpushed_release": "UNPUSHED",
+        "stale_marker": "STALE_MARKER",
+    }.get(failure.code, "BLOCKED")
+    print(f"STATE: {state}")
+    return EXIT_OK if failure.code in _SETTLED_CODES else EXIT_FAILED
+
+
+def _run_resume(pipeline: SharePipeline) -> int:
+    push = asyncio.run(pipeline.resume_release(on_output=lambda line: print(f"  {line}")))
+    print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")
+    return EXIT_OK
 
 
 def _run_dry(pipeline: SharePipeline) -> int:

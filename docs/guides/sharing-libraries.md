@@ -80,6 +80,8 @@ Three screens:
 ```sh
 uv run haywire share --bump patch
 uv run haywire share --dry-run      # report only; writes nothing
+uv run haywire share --status       # one state and the next step; writes nothing
+uv run haywire share --resume       # finish a release that was committed but not pushed
 ```
 
 One mode, non-interactive. Every answer comes from a flag or takes its inert
@@ -95,6 +97,28 @@ those.
 `--dry-run` reports preconditions, findings and the version it would cut, and
 writes nothing. Preconditions are *reported* rather than enforced there, so it
 stays useful on a feature branch or a PR checkout.
+
+### 2.3 Running it twice is safe
+
+`haywire share` refuses to release the same change twice. If `HEAD` already
+carries a `v*` tag that is on `origin`, or nothing under `barn/` or the root
+`pyproject.toml` changed since the latest tag, it stops and says so:
+
+```text
+✗ Already released: v0.0.2 is tagged at HEAD (1a2b3c4d) and on origin.
+    Nothing to do. Do not run `haywire share` again for this change.
+    DONE: already released.
+```
+
+If a run stopped after the commit but before the push reached `origin`, share
+refuses to bump again and points at `haywire share --resume`, which creates the
+missing tag if needed and pushes. It never writes a new version. A marker file,
+`.git/haywire-share.json`, records the one state a tag cannot show (a commit
+whose tag step failed); it is removed when the push succeeds.
+
+`--status` prints the state and ends with a `STATE:` line: `READY`, `RELEASED`,
+`NOTHING_TO_RELEASE`, `UNPUSHED`, `STALE_MARKER` or `BLOCKED`. Every refusal ends
+with one `NEXT:`, `DONE:` or `STOP:` line.
 
 ## 3. What gets published
 

@@ -51,6 +51,18 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         "haywire-core floor AND to the marketstall entry. Omitted: the "
         "declared floor is kept unchanged.",
     )
+    parser.add_argument(
+        "--status",
+        action="store_true",
+        help="Read-only: report whether this checkout is ready to release, already "
+        "released, or half released, and the single next step. Writes nothing.",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Finish a release that was committed but not pushed (tag if missing, then "
+        "push). Never bumps a version.",
+    )
     parser.set_defaults(handler=_run)
 
 
@@ -63,4 +75,6 @@ def _run(args: argparse.Namespace) -> int:
         message=args.message,
         requires_haywire=args.requires_haywire,
         dry_run=args.dry_run,
+        status=args.status,
+        resume=args.resume,
     )
