@@ -52,6 +52,9 @@ class PreconditionFailure:
     lib_dir: str | None = None
     doc_url: str = ""
     doc_label: str = ""
+    #: Stable machine name for failures a caller must tell apart from the rest
+    #: ("already_released", ...). Empty for the ordinary "fix it and re-run".
+    code: str = ""
 
 
 @dataclass(frozen=True)

@@ -529,8 +529,12 @@ A haywire project (`{name}`): one haybale library under `barn/`, released with `
   uv run --frozen haywire share --bump patch
   ```
 
-- Every tag push publishes, and a published version is permanent. If a release fails
-  half way, never re-run `share` to retry: stop and ask.
+- Every tag push publishes, and a published version is permanent. Before acting, and after
+  any unclear result from `share` (a denial message, a timeout), run
+  `uv run --frozen haywire share --status`. It ends with a `STATE:` line and one `NEXT:`,
+  `DONE:` or `STOP:` line: do exactly that. Never run `share --bump` twice for one change.
+  If `STATE: UNPUSHED`, run `uv run --frozen haywire share --resume` once; if that fails,
+  stop and ask.
 - If a dependency pin needs a version that is not released yet, stop and ask.
 - Never force-push, and never delete or move a tag.
 
