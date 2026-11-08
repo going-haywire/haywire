@@ -365,7 +365,8 @@ linked_libraries = []
 _README_MARKER_START = "<!-- marketstall:share-url:start -->"
 _README_MARKER_END = "<!-- marketstall:share-url:end -->"
 _README_PLACEHOLDER = (
-    "*Subscribe URL not yet published — run `haywire share --save` after pushing this repo to a git remote.*"
+    "*Subscribe URL not yet published — push this repo to a git remote, "
+    "then run `uv run --frozen haywire share --bump patch`.*"
 )
 
 
@@ -471,7 +472,7 @@ def _generate_root_readme(name: str, label: str) -> str:
     """Generate the root README.md for a haywire-init scaffolded project.
 
     Includes the marketstall:share-url marker pair with placeholder, so the
-    author's first `haywire share --save` replaces it with the real URL.
+    author's first `haywire share` replaces it with the real URL.
     """
     return (
         f"# {label}\n"
@@ -494,13 +495,67 @@ def _generate_root_readme(name: str, label: str) -> str:
         f"```\n"
         f"## Share your library\n"
         f"\n"
-        f"this will bump all the files to the specified version, commit, and sets the git-tag\n"
-        f"then it generates and saves the marketstall.toml file and updates the above\n"
-        f"subscribe link with the url to get this library. The version can be an explicit\n"
-        f"`x.y.z` or an npm-style `major`/`minor`/`patch` keyword.\n"
+        f"`haywire share` releases the project: it bumps every file to the version, writes\n"
+        f"`marketstall.toml`, updates the subscribe link above, then **commits, tags and\n"
+        f"pushes by itself**. Run it from the project root with a clean working tree\n"
+        f"(`git checkout uv.lock` first if `uv` re-locked it). The version is an explicit\n"
+        f"`x.y.z` or `major`/`minor`/`patch`. Look first, then release:\n"
         f"```sh\n"
-        f"uv run haywire share --bump patch --save\n"
+        f"uv run --frozen haywire share --dry-run\n"
+        f"uv run --frozen haywire share --bump patch\n"
         f"```\n"
+        f"\n"
+        f"See [CLAUDE.md](CLAUDE.md) for the release rules.\n"
+    )
+
+
+def _generate_claude_md(name: str, label: str) -> str:
+    """Generate CLAUDE.md for a scaffolded project: how to work in it and how to release it."""
+    return f"""# {label}
+
+A haywire project (`{name}`): one haybale library under `barn/`, released with `haywire share`.
+
+## Releases
+
+- Release only with `haywire share`, from the project root, on a clean working tree. It
+  bumps every version, writes `marketstall.toml` and the README subscribe link, then
+  commits, tags and pushes by itself. Never hand-edit versions, `install_spec` or
+  `marketstall.toml`, and never tag or push a release yourself.
+- Look first, then release, always with `--frozen` so `uv` does not re-lock:
+
+  ```sh
+  git checkout uv.lock          # drop an unintended re-lock
+  uv run --frozen haywire share --dry-run
+  uv run --frozen haywire share --bump patch
+  ```
+
+- Every tag push publishes, and a published version is permanent. If a release fails
+  half way, never re-run `share` to retry: stop and ask.
+- If a dependency pin needs a version that is not released yet, stop and ask.
+- Never force-push, and never delete or move a tag.
+
+## Where it publishes
+
+`haywire init` sets no `distribute`, so the default is `git`: consumers install from your
+repository's tag, and no CI workflow is needed. `init` creates no `publish.yml`.
+
+To publish to PyPI instead, set `distribute = "pypi"` under `[tool.haywire.marketstall]`
+in the root `pyproject.toml` and follow
+[docs/guides/publish-to-pypi.md](https://github.com/going-haywire/haywire/blob/master/docs/guides/publish-to-pypi.md).
+The first PyPI release is manual: a pending publisher does not make the name exist (PyPI
+answers 404), so the `share` preflight fails until the first upload. Run `publish.yml`
+once with `gh workflow run publish.yml --ref main` to upload the current version, then
+use `share` for every later one.
+"""
+
+
+def _generate_agents_md() -> str:
+    """Generate AGENTS.md: points every coding agent at CLAUDE.md."""
+    return (
+        "# Agent instructions\n"
+        "\n"
+        "Project instructions live in [CLAUDE.md](CLAUDE.md) — read it and follow it.\n"
+        "Everything there applies to every coding agent, not just Claude.\n"
     )
 
 
@@ -845,6 +900,10 @@ def init_project(
     # Default .gitignore (Python caches, virtualenvs, editor/OS cruft)
     (project_dir / ".gitignore").write_text(_generate_gitignore())
 
+    # CLAUDE.md and AGENTS.md — the release rules for coding agents
+    (project_dir / "CLAUDE.md").write_text(_generate_claude_md(name, label))
+    (project_dir / "AGENTS.md").write_text(_generate_agents_md())
+
     # .gitattributes — EOL normalization + binary markers. No LFS: see the
     # comment block in _generate_gitattributes().
     (project_dir / ".gitattributes").write_text(_generate_gitattributes())
@@ -923,7 +982,12 @@ def init_project(
     print("\nTo publish your library:")
     print("  git remote add origin <your-repo-url>")
     print("  git push -u origin master")
-    print("  uv run haywire share --save")
+    print("  # from the project root, clean tree (git checkout uv.lock first); share commits,")
+    print("  # tags and pushes by itself:")
+    print("  uv run --frozen haywire share --dry-run")
+    print("  uv run --frozen haywire share --bump patch")
+    print("  # init creates no CI workflow and sets no `distribute` (git is the default); to")
+    print("  # publish to PyPI see docs/guides/publish-to-pypi.md")
     if dev_repo:
         print(
             "\n  This --dev project links to your haywire checkout by path (pyproject.toml,\n"

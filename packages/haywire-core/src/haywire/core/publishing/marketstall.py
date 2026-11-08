@@ -98,7 +98,7 @@ def _build_entry_for_library(
 
     Returns the entry dict (TOML-serializable), or None if `lib_dir` lacks a
     pyproject.toml. Used by both `haywire share` (single library, stdout) and
-    `haywire share --save` (every barn library, aggregated to file).
+    `haywire share` (every barn library, aggregated to file).
 
     ``distribute`` decides the coordinate a consumer installs by, and is the
     project's declaration — see :func:`read_distribute`:
@@ -246,7 +246,7 @@ def _build_entry_for_library(
 
 
 class NoBarnError(RuntimeError):
-    """Raised when `share --save` is invoked on a repo with no `barn/` directory."""
+    """Raised when `haywire share` is invoked on a repo with no `barn/` directory."""
 
 
 @dataclass(frozen=True)

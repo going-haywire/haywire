@@ -47,3 +47,45 @@ def test_init_readme_mentions_project_name(tmp_path: Path, monkeypatch: pytest.M
 
     readme = tmp_path / "my-project" / "README.md"
     assert "my-project" in readme.read_text() or "My Project" in readme.read_text()
+
+
+@pytest.mark.unit
+def test_init_writes_claude_md_with_release_rules(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from haywire_studio.init import init_project
+
+    monkeypatch.chdir(tmp_path)
+    init_project("my-project", auto_sync=False)
+
+    project = tmp_path / "my-project"
+    claude = (project / "CLAUDE.md").read_text()
+    assert "## Releases" in claude
+    assert "uv run --frozen haywire share --dry-run" in claude
+    assert "gh workflow run publish.yml --ref main" in claude
+    assert "publish-to-pypi.md" in claude
+
+    agents = (project / "AGENTS.md").read_text()
+    assert "CLAUDE.md" in agents
+
+
+@pytest.mark.unit
+def test_init_output_has_no_stale_save_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`haywire share --save` no longer exists: no scaffolded file or closing message may name it."""
+    from haywire_studio.init import init_project
+
+    monkeypatch.chdir(tmp_path)
+    init_project("my-project", auto_sync=False)
+
+    project = tmp_path / "my-project"
+    texts = {
+        str(p.relative_to(project)): p.read_text()
+        for p in (
+            project / "README.md",
+            project / "barn" / "hay-my-project" / "README.md",
+            project / "CLAUDE.md",
+        )
+    }
+    texts["<init output>"] = capsys.readouterr().out
+    offenders = [where for where, text in texts.items() if "--save" in text]
+    assert not offenders, f"stale --save in {offenders}"
