@@ -1,0 +1,13 @@
+# Library metadata. Canon for everything descriptive about this haybale;
+# ships in the wheel beside __init__.py and is read from disk at runtime.
+# Edited in the studio's library overview — no reinstall, no reload.
+
+name = "haybale-audio"
+version = "0.3.4"
+label = "Audio"
+description = "Audio blocks, events and routing shared by speech and streaming libraries"
+tags = ["audio"]
+
+# Sibling haybales this library subscribes to, as MODULE names.
+# Required for hot-reload scope tracking.
+linked_libraries = []

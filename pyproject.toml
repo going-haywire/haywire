@@ -33,6 +33,7 @@ haybale-graph-editor = { workspace = true }
 haybale-marketplace = { workspace = true }
 haybale-share = { workspace = true }
 haybale-image = { workspace = true }
+haybale-audio = { workspace = true }
 haybale-models = { workspace = true }
 
 [dependency-groups]
@@ -64,6 +65,7 @@ dev = [
     "haybale-marketplace",
     "haybale-share",
     "haybale-image",
+    "haybale-audio",
     "haybale-models",
     "mkdocs-material>=9.7.6",
     "deptry>=0.25.1",
@@ -84,6 +86,7 @@ mypy_path = [
     "barn/haybale-graph-editor",
     "barn/haybale-marketplace",
     "barn/haybale-image",
+    "barn/haybale-audio",
     "barn/haybale-models",
 ]
 

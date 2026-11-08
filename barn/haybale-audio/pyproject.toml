@@ -1,0 +1,22 @@
+[project]
+name = "haybale-audio"
+version = "0.3.4"
+description = "Audio blocks, events and routing shared by speech and streaming libraries"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+
+dependencies = [
+    "haywire-core>=0.3.4",
+    "numpy",
+]
+keywords = ["audio"]
+
+[project.entry-points."haywire.libraries"]
+audio = "haybale_audio:Library"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["haybale_audio"]
