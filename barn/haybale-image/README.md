@@ -8,12 +8,14 @@ Image types, IO and viewers shared by vision and ML libraries
 
 ## Nodes
 ### Image
+- **Image Event** — Triggered for each image a connected image emitter delivers
 - **Image Info** — Reports the width, height, channel layout and bit depth of an image
 - **Load Image** — Reads an image file from a volume
 - **Save Image** — Writes an image to a file in a volume, in the format its extension names
 - **View Image** — Shows an image on the node, as a live stream or as a still picture
 
 ## Types
+- **Callback Image** — Subscription for emitters that deliver single images
 - **Depth** — A depth map, one value per pixel in millimetres.
 - **Gray image** — A one-channel picture.
 - **Image** — A picture of any channel layout. Pixels are kept as made and converted on demand.
