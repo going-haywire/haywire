@@ -49,3 +49,27 @@ def to_mono(block: AudioBlock) -> AudioBlock:
     return AudioBlock(
         np.ascontiguousarray(block.data.mean(axis=0, keepdims=True, dtype=np.float32)), block.sample_rate
     )
+
+
+def parse_channels(spec: str) -> list[int]:
+    """Parse ``"0, 2-3"`` into ``[0, 2, 3]``: comma-separated channel numbers and inclusive ranges.
+
+    Raises:
+        ValueError: ``spec`` is empty or has a part that is not a number or a range.
+    """
+    channels: list[int] = []
+    for part in spec.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        low, dash, high = part.partition("-")
+        try:
+            first, last = int(low), int(high) if dash else int(low)
+        except ValueError:
+            raise ValueError(f"'{part}' is not a channel number or range like 2-3") from None
+        if last < first:
+            raise ValueError(f"range '{part}' runs backwards")
+        channels.extend(range(first, last + 1))
+    if not channels:
+        raise ValueError("no channels given")
+    return channels

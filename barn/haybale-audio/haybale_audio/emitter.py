@@ -9,16 +9,14 @@ from haywire.core.execution.execution_context import ExecutionContext
 
 from haybale_audio.value import AudioBlock
 
-#: Behind schedule by more than this (seconds), the pump restarts its schedule instead of
-#: sending the backlog in a burst.
+#: Seconds behind schedule after which the pump restarts its schedule and skips the backlog.
 RESYNC_AFTER = 0.5
 
 
 class BlockPump:
     """Calls ``produce`` for each block and ``deliver`` at the block's time, on a daemon thread.
 
-    The first block goes out at once; each next one a block duration after the previous. The
-    thread sleeps to each deadline: a spin loop contends for the GIL and makes the emitter late.
+    The first block goes out at once; each next one a block duration after the previous.
     """
 
     def __init__(
@@ -60,7 +58,7 @@ class BlockPump:
                     break
                 wait = deadline - time.monotonic()
                 if wait > 0:
-                    if self._stop.wait(wait):
+                    if self._stop.wait(wait):  # sleeps to the deadline: busy-waiting would hold the GIL
                         break
                 elif wait < -RESYNC_AFTER:
                     deadline = time.monotonic()

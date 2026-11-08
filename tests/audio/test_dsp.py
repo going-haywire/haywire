@@ -155,3 +155,20 @@ class TestChannels:
     def test_to_mono_averages(self):
         out = channels.to_mono(AudioBlock(np.array([[1.0, 1.0], [3.0, -1.0]], np.float32), 48000))
         np.testing.assert_array_equal(out.data, [[2.0, 0.0]])
+
+
+class TestParseChannels:
+    @pytest.mark.parametrize(
+        ("spec", "expected"),
+        [("0", [0]), ("1, 0", [1, 0]), ("0,0", [0, 0]), ("2-3", [2, 3]), ("0, 2-4, 7", [0, 2, 3, 4, 7])],
+    )
+    def test_parses(self, spec, expected):
+        assert channels.parse_channels(spec) == expected
+
+    @pytest.mark.parametrize(
+        ("spec", "message"),
+        [("", "no channels"), (" , ", "no channels"), ("a", "not a channel"), ("3-1", "backwards")],
+    )
+    def test_rejects(self, spec, message):
+        with pytest.raises(ValueError, match=message):
+            channels.parse_channels(spec)
