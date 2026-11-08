@@ -1,0 +1,4246 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+      
+      
+      
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/architecture/sharing/agent-safe-release-design/">
+      
+      
+        <link rel="prev" href="../share-pipeline-arch/">
+      
+      
+        <link rel="next" href="../../hot-reload/hot-reload-arch/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Sharing — agent-safe release design - Haywire Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#agent-safe-init-and-release-design" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Haywire Documentation" class="md-header__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Haywire Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Sharing — agent-safe release design
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../welcome/user/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Perspectives
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../components/nodes/node-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Components
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../haybale/haybale-canon/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Haybale
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../guides/node-roles/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../overview/overview-arch/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../archive/whitepaper/Haywire_design/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Archive
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Haywire Documentation" class="md-nav__button md-logo" aria-label="Haywire Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Haywire Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../welcome/user/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Perspectives
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Perspectives
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced (workbench extender)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../welcome/core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core (system architect)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Components
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Components
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/nodes/node-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nodes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/datatypes/datatype-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datatypes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/adapters/adapter-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adapters
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/settings/setting-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/widgets/widget-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Widgets
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--stable"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/skins/skin-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Skins
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/themes/theme-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Themes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/editors/editor-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Editors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/panels/panel-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panels
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../components/states/state-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    States
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Haybale
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Haybale
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/haybale-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authoring a haybale
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/metadata-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Metadata flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/marketplace-canon/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Marketplace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/haybale-marketplace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/node-roles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Node roles
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ports
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/signals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/rename-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Renaming a library
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/sharing-libraries/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/publish-to-pypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing to PyPI
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/subscribing-to-marketplaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/model-catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model catalogs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/graph-notices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/overview-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/design-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/stepper-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stepper (multi-step flows)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../graph/graph-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Execution
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Execution
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/execution-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/assembly/assembly-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/edges/edges-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Edges
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/flow/flow-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/virtual-machine/virtual-machine-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Virtual machine
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/lazy-evaluation/lazy-evaluation-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lazy evaluation
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/failures/exceptions-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Worker exceptions
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../execution/callbacks/callbacks-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Callbacks
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../library-system/library-system-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Library system
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../share-pipeline-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — pipeline
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — agent-safe release design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — agent-safe release design
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#0-premise-and-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0. Premise and evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-generated-publishyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Generated publish.yml
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-first-release-to-pypi-share-first-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. First release to PyPI: share --first-release
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-agent-proof-share" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Agent-proof share
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Agent-proof share">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-idempotency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Idempotency
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-lock-and-marker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Lock and marker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-status-the-one-read-only-oracle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 --status: the one read-only oracle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-refusals-carry-the-next-step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Refusals carry the next step
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-json-and-exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 --json and exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-human-only-steps-declared-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6 Human-only steps, declared once
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-release-pr-model-vs-local-committagpush" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Release-PR model vs local commit+tag+push
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-one-agent-playbook-as-a-state-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. One agent playbook, as a state machine
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-hay-libraries-published-via-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. hay-* libraries published via git
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. hay-* libraries published via git">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-what-was-verified-in-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 What was verified in code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-recommended-order-of-work-small-prs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Recommended order of work (small PRs)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-follow-up-review-the-monorepo-release-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Follow-up: review the monorepo release flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hot-reload/hot-reload-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hot-reload
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../settings/settings-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Settings
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../session-and-state/session-and-state-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Session and state
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../errors/errors-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../volumes/volumes-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_14" id="__nav_6_14_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Studio
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Studio
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/studio-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/app-shell/app-shell-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    App shell
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/workspace/workspace-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/canvas/canvas-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Canvas
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../studio/rendering/rendering-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--placeholder"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../reference/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/design-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File formats
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    File formats
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/files/haybale-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    haybale.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/files/pyproject-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pyproject.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/files/marketstall-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    marketstall.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/files/marketplace-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    marketplace.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../archive/whitepaper/Haywire_design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Whitepaper
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#0-premise-and-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0. Premise and evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-generated-publishyml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Generated publish.yml
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-first-release-to-pypi-share-first-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. First release to PyPI: share --first-release
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-agent-proof-share" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Agent-proof share
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Agent-proof share">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-idempotency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Idempotency
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-lock-and-marker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Lock and marker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-status-the-one-read-only-oracle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 --status: the one read-only oracle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-refusals-carry-the-next-step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Refusals carry the next step
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-json-and-exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 --json and exit codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-human-only-steps-declared-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6 Human-only steps, declared once
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-release-pr-model-vs-local-committagpush" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Release-PR model vs local commit+tag+push
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-one-agent-playbook-as-a-state-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. One agent playbook, as a state machine
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-hay-libraries-published-via-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. hay-* libraries published via git
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. hay-* libraries published via git">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-what-was-verified-in-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 What was verified in code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-recommended-order-of-work-small-prs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Recommended order of work (small PRs)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Open questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-follow-up-review-the-monorepo-release-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Follow-up: review the monorepo release flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="agent-safe-init-and-release-design">Agent-safe init and release — design<a class="headerlink" href="#agent-safe-init-and-release-design" title="Permanent link">&para;</a></h1>
+<p><em>Proposal, nothing implemented. Written for the project owner to decide on; effort is S (under a day), M (1–3 days), L (more).</em></p>
+<h2 id="0-premise-and-evidence">0. Premise and evidence<a class="headerlink" href="#0-premise-and-evidence" title="Permanent link">&para;</a></h2>
+<p>From now on an agent, possibly a weak one, runs <code>haywire init</code> and <code>haywire share</code>. Prose rules in a <code>CLAUDE.md</code> did not hold. The rule that holds is <strong>the tool refuses</strong>, and says what to do next in a form a cheap model cannot misread.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Incident</th>
+<th>Root cause (verified in code unless marked)</th>
+<th>Fixed by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a</td>
+<td>Single-package version bump in a feature PR</td>
+<td>Instruction "bump X" was obeyed; nothing in CI or tooling objects to a version change outside a release PR</td>
+<td>§3.6, order step 7</td>
+</tr>
+<tr>
+<td>b</td>
+<td><code>share</code> reported "denied", had run; retry made v0.0.2 then v0.0.3</td>
+<td><code>check_tag_available</code> (<code>packages/haywire-core/src/haywire/core/publishing/pipeline/steps/version.py</code>) checks only the <em>target</em> tag. After a success, the tree is clean, on the default branch, and <code>v0.0.3</code> is free, so a second <code>--bump patch</code> passes every precondition</td>
+<td>§3</td>
+</tr>
+<tr>
+<td>c</td>
+<td><code>init</code> told users <code>share --save</code></td>
+<td>Fixed in #18 (<code>init.py</code> now prints <code>share --bump patch</code>)</td>
+<td>done</td>
+</tr>
+<tr>
+<td>d</td>
+<td>First PyPI release impossible via <code>share</code></td>
+<td><code>_pypi_name_is_registered</code> (<code>packages/haywire-core/src/haywire/core/publishing/pipeline/steps/preconditions.py</code>) treats 404 as "no", and PyPI answers 404 for a pending publisher</td>
+<td>§2</td>
+</tr>
+<tr>
+<td>e</td>
+<td><code>uv.lock</code> pollution</td>
+<td>Symlinks not excluded; plain <code>uv run</code> re-locks. Mitigated: <code>--frozen</code> in all generated commands, excludes in the monorepo</td>
+<td>keep; §5 playbook states <code>--frozen</code></td>
+</tr>
+<tr>
+<td>f</td>
+<td><code>init</code> makes <code>hay-*</code>; <code>share</code> refuses until a whole-project <code>rename</code></td>
+<td><code>_RESERVED_LOCAL_PREFIX = "hay-"</code> (<code>packages/haywire-core/src/haywire/core/publishing/pipeline/steps/preconditions.py</code>); <code>init --distname</code> already exists (<code>packages/haywire-studio/src/haywire_studio/cli/init.py</code>) but nobody is told to use it</td>
+<td>§6</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Design principles</strong> used throughout:</p>
+<ol>
+<li><em>Retry-safe beats retry-proof.</em> We cannot stop an agent re-running a command (b: the harness itself lied about the outcome). Every command must be harmless to run twice.</li>
+<li><em>The tool is the state machine.</em> The playbook in <code>CLAUDE.md</code> is generated from, and checked against, the states the CLI itself reports. An agent never has to infer "what now".</li>
+<li><em>Humans own what only humans can do</em> (create the GitHub repo, register a PyPI pending publisher). The tool prints these as a checklist and stops.</li>
+</ol>
+<h2 id="1-generated-publishyml">1. Generated <code>publish.yml</code><a class="headerlink" href="#1-generated-publishyml" title="Permanent link">&para;</a></h2>
+<p><strong>Problem.</strong> The workflow is hand-copied from the guide (<a href="../../../guides/publish-to-pypi/">publish-to-pypi §4</a>); it is single-package, and the guide's first-release path builds from a branch, so a version can reach PyPI with no tag.</p>
+<p><strong>Options.</strong>
+- (A) Keep a copy-paste guide. Rejected: an agent edits a placeholder wrong or skips it.
+- (B) Generate it only when the author sets <code>distribute = "pypi"</code>. Needs a second command and a way to know when.
+- (C) <strong><code>init</code> always writes it; a guard job makes it a green no-op unless <code>distribute = "pypi"</code>.</strong> One path, no second command, nothing to forget.</p>
+<p><strong>Recommendation: C.</strong> Shape:</p>
+<ul>
+<li>Triggers: <code>push: tags: v*.*.*</code> and <code>workflow_dispatch</code>. The dispatch is for recovery only: the <code>guard</code> job refuses unless <code>github.ref_type == 'tag'</code> (re-run with <code>gh workflow run publish.yml --ref v0.0.2</code>). This closes the "upload from a branch, no tag" hole in the current guide §6.</li>
+<li><code>guard</code> job: stdlib-only inline Python (<code>tomllib</code>, no install step) reads <code>[tool.haywire.marketstall] distribute</code> from the root <code>pyproject.toml</code>. Outputs <code>enabled</code> and a JSON matrix: one entry per <code>barn/*</code> library <code>{dist, dir, version}</code>. If not <code>pypi</code>: prints "distribute=git, nothing to publish" and every later job is skipped, so the run is green.</li>
+<li><code>build</code> job (matrix, <code>needs: guard</code>, <code>if: enabled</code>): <code>uv sync --frozen</code>, assert the tag equals the library's committed version (same idea as the monorepo's <code>scripts/check_release_versions.py</code>, so a tag without a bump fails before any upload), <code>uv build --package &lt;dist&gt;</code>.</li>
+<li><code>publish</code> job (matrix, <code>fail-fast: false</code>): <code>environment: pypi</code>, <code>permissions: id-token: write</code>, <strong>skip if <code>&lt;dist&gt;==&lt;version&gt;</code> is already on PyPI</strong> (the monorepo workflow already does this, <code>.github/workflows/publish.yml</code>), then <code>uv publish --trusted-publishing always</code>. Idempotent, so re-running the job after a partial failure is safe.</li>
+<li>A test gate is optional: run <code>pytest</code> only if a <code>tests/</code> directory exists.</li>
+</ul>
+<p><strong>Multiple libraries, pending publishers.</strong> Verified: the monorepo docs say "repeat for every package" (<a href="../../../reference/publish_releases/">publish_releases.md</a>). Each distribution name gets its <strong>own</strong> pending publisher, all with identical fields (owner, repo, <code>publish.yml</code>, <code>pypi</code>). Inferred from PyPI's documented model, not tested here: the OIDC claims identify repo + workflow + environment, not the matrix leg, so one environment serves all legs. <strong>Unverified:</strong> whether PyPI caps pending publishers per account; check before promising projects with many libraries.</p>
+<p><strong>Change.</strong> New <code>render_publish_workflow()</code> in <code>haywire_studio/init.py</code> (template tested by parsing the YAML and running the guard script against fixture pyprojects); update the <code>CLAUDE.md</code> text that says "init creates no <code>publish.yml</code>" and the <code>init</code> console output; docs: publish-to-pypi §4 becomes "already there, here is how it works". Existing projects: a <code>haywire init --refresh-workflow</code> is out of scope; document a one-time copy. <strong>Effort: M.</strong></p>
+<h2 id="2-first-release-to-pypi-share-first-release">2. First release to PyPI: <code>share --first-release</code><a class="headerlink" href="#2-first-release-to-pypi-share-first-release" title="Permanent link">&para;</a></h2>
+<p><strong>Problem.</strong> <code>distribute = "pypi"</code> + unregistered name fails preflight (d), and the guide's workaround is a manual untagged branch dispatch that a later <code>share</code> then contradicts (no <code>v0.0.1</code> tag, though the README's "frozen" URL expects one).</p>
+<p><strong>Options.</strong>
+- (A) Manual <code>workflow_dispatch</code> (today). Two steps, untagged, an agent must know to do it and when to stop doing it.
+- (B) <strong>Explicit <code>share --first-release</code>.</strong>
+- (C) Infer: treat 404 as "first release". Rejected: a typo'd name, a deleted project and a flaky proxy all look like 404. The tool would tag and push for a name nobody registered.</p>
+<p><strong>Recommendation: B.</strong></p>
+<ul>
+<li>Without the flag, on 404 under <code>distribute = "pypi"</code>: the precondition fails with kind <code>first_release_required</code> and prints exactly the human checklist, <strong>derived from the git remote</strong> (host, <code>owner/repo</code> parsed from <code>origin</code>):</li>
+</ul>
+<p><div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>STOP: human needed. Register a pending publisher on PyPI, for EACH name below:
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  https://pypi.org/manage/account/publishing/
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    PyPI project name : haybale-my-lib        (exactly this, copy it)
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    Owner             : maybites
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    Repository        : my-repo
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    Workflow name     : publish.yml
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    Environment name  : pypi
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>Also: GitHub repo → Settings → Environments → create `pypi`.
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>Then run:  uv run --frozen haywire share --first-release
+</span></code></pre></div>
+- With the flag: preconditions skip the 404 check, <strong>but require 404 for every library</strong> (if any name exists the flag is refused: "name exists on PyPI: drop <code>--first-release</code> if it is yours, rename if not"; this also stops a typo that lands on one of the owner's other projects). Then the normal pipeline runs: docs, marketstall, commit, tag, push. The tag push triggers §1's workflow, which creates the project. Version: default is the <em>current</em> declared version (no bump, so <code>0.0.1</code> is really released); if its tag exists, the tool refuses with <code>NEXT: add --bump patch</code>. <code>--first-release</code> and <code>--bump</code> compose.
+- Scope: GitHub only (PyPI also supports GitLab publishers, with different fields). On another host: <code>STOP: human needed</code>, link to the PyPI docs.</p>
+<p><strong>Safe failure of a typo.</strong> Inferred from PyPI's trusted-publishing model, not exercised here: the OIDC token exchange looks the publisher up by the project name in the upload. A mismatch between the name on the PyPI form and <code>[project].name</code> is a 403 <em>before</em> any file is stored, so no version number is burned (a version is only burned by a successful upload). Recovery, all idempotent: correct the PyPI form → re-run the failed job on the tag. If the typo is in the local name: the tag already points at the wrong commit and tags are never moved, so fix the name, commit, and <code>share --first-release --bump patch</code> (hence the composability above). Nothing is deleted or force-pushed in any recovery path.</p>
+<p><strong>Cannot be checked:</strong> PyPI has no API to ask "is a pending publisher registered". The flag <em>is</em> the assertion; the 403 above is the safety net, and the failure is visible in CI, not silent.</p>
+<p><strong>Change.</strong> New precondition kind and a flag in <code>share.py</code>/<code>share_cli.py</code>; <code>read_distribute</code>-adjacent helper <code>github_owner_repo(remote_url)</code> (reuse the host parsing in <code>publishing/url.py</code>); <code>_unregistered_pypi_names</code> gains a <code>first_release</code> mode; tests in <code>tests/share_pipeline</code> with a stubbed <code>_pypi_name_is_registered</code>. <strong>Effort: M.</strong></p>
+<h2 id="3-agent-proof-share">3. Agent-proof <code>share</code><a class="headerlink" href="#3-agent-proof-share" title="Permanent link">&para;</a></h2>
+<p>Today (verified, <code>packages/haywire-studio/src/haywire_studio/packaging/share_cli.py</code>): exit codes are only 0 and 1, output is prose, no state query, no idempotency, no lock. The Share editor drives the same <code>SharePipeline</code>, so everything below goes into the pipeline, not only the CLI.</p>
+<h3 id="31-idempotency">3.1 Idempotency<a class="headerlink" href="#31-idempotency" title="Permanent link">&para;</a></h3>
+<p>Refuse, with exit code <code>10 ALREADY_RELEASED</code>, when either holds:
+- <code>HEAD</code> is the share commit: message matches <code>chore: share v&lt;ver&gt;</code> and tag <code>v&lt;ver&gt;</code> exists on <code>HEAD</code> (local or <code>origin</code>); or
+- the latest <code>v*</code> tag is an ancestor of <code>HEAD</code> and nothing under <code>barn/</code> or the root <code>pyproject.toml</code> changed since it ("nothing to release since v0.0.2").</p>
+<p>Message: <code>ALREADY RELEASED v0.0.2 at &lt;sha&gt;. Nothing to do. Do not run share again.</code> This alone would have prevented incident (b). Escape hatch: none; a real new release needs a real commit.</p>
+<h3 id="32-lock-and-marker">3.2 Lock and marker<a class="headerlink" href="#32-lock-and-marker" title="Permanent link">&para;</a></h3>
+<p><code>.git/haywire-share.json</code> (inside <code>.git</code>, so it never dirties the tree): <code>{version, tag, phase, started}</code>, with <code>phase</code> advanced through <code>writing → committed → tagged → pushed</code> and deleted on success or on a clean rollback. At start, a present marker means an interrupted run: refuse with <code>STOP: human needed</code> unless the phase is <code>committed|tagged</code>, where the single safe continuation is <code>haywire share --resume</code> (push the existing commit and tag; nothing else). Today the equivalent information exists only as <code>PushError.manual_command</code> printed once and lost.</p>
+<h3 id="33-status-the-one-read-only-oracle">3.3 <code>--status</code>: the one read-only oracle<a class="headerlink" href="#33-status-the-one-read-only-oracle" title="Permanent link">&para;</a></h3>
+<p><code>haywire share --status [--json]</code> computes the state (§5) and prints the single next step. Never writes. An agent's rule becomes "before any release action, and after any ambiguous tool result, run <code>--status</code>". That also answers the classifier problem in (b) without trusting the harness's report.</p>
+<h3 id="34-refusals-carry-the-next-step">3.4 Refusals carry the next step<a class="headerlink" href="#34-refusals-carry-the-next-step" title="Permanent link">&para;</a></h3>
+<p>Extend <code>PreconditionFailure</code> (has <code>message, remedy, fix_id, doc_url</code> today) with <code>next_command: str | None</code> and <code>human_only: bool</code>. Every refusal prints a final line, exactly one of:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>NEXT: git switch main
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>STOP: human needed — &lt;one sentence&gt;
+</span></code></pre></div>
+Messages for steps with no safe single command (e.g. dirty tree: the agent must decide what to commit) say <code>NEXT: commit or discard your changes, then run: haywire share --status</code>.</p>
+<h3 id="35-json-and-exit-codes">3.5 <code>--json</code> and exit codes<a class="headerlink" href="#35-json-and-exit-codes" title="Permanent link">&para;</a></h3>
+<p><code>--json</code> writes one JSON object to stdout (all prose to stderr): <code>{schema:1, state, ok, exit_code, version, tag, next:{command}|null, stop:{reason, checklist[]}|null, failure:{kind, message}|null}</code>. Stable exit codes, documented and pinned by a contract test:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+<th>Agent action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Released</td>
+<td>done</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Already released</td>
+<td>done, do not retry</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Refused, fixable</td>
+<td>run <code>next.command</code></td>
+</tr>
+<tr>
+<td>30</td>
+<td><code>STOP: human needed</code></td>
+<td>hand <code>stop.checklist</code> to the owner, wait</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Failed, tree reverted</td>
+<td>read <code>failure</code>, then <code>--status</code>; never loop</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Failed after commit (partial)</td>
+<td><code>share --resume</code> once, else STOP</td>
+</tr>
+<tr>
+<td>64</td>
+<td>Usage error</td>
+<td>fix the command</td>
+</tr>
+</tbody>
+</table>
+<h3 id="36-human-only-steps-declared-once">3.6 Human-only steps, declared once<a class="headerlink" href="#36-human-only-steps-declared-once" title="Permanent link">&para;</a></h3>
+<p>A code-level registry <code>HUMAN_ONLY_STEPS</code> (id, title, where, fields, <code>check()</code> or <code>None</code>): create the GitHub repository (checkable: <code>git ls-remote origin</code>), register the PyPI pending publisher (not checkable), create the GitHub <code>pypi</code> environment (checkable only if <code>gh</code> is authenticated). <code>init</code> prints the relevant ones as a checklist at the end; <code>share</code> prints them on <code>STOP</code>. The generated <code>CLAUDE.md</code> says: "when output contains <code>STOP</code>, paste it to the owner verbatim and wait; never attempt these steps". Same registry feeds the docs, so text cannot drift.</p>
+<p><strong>Adjacent, outside <code>share</code> (incident a):</strong> a CI job in the monorepo and in generated projects that fails a PR changing any <code>version</code> field unless the PR is a release PR (<code>chore: release</code> / <code>chore: share</code>). Cheap, catches the exact failure. Effort S.</p>
+<p><strong>Effort for §3: M</strong> (idempotency, marker, status: M; json/codes/registry: M; can be two PRs).</p>
+<h2 id="4-release-pr-model-vs-local-committagpush">4. Release-PR model vs local commit+tag+push<a class="headerlink" href="#4-release-pr-model-vs-local-committagpush" title="Permanent link">&para;</a></h2>
+<p><strong>Today</strong> (verified): <code>share</code> commits on the default branch, tags, and pushes both. The monorepo is <em>not</em> the model it is sometimes called: <code>/haywire-release</code> bumps in a release PR, but the <strong>tag is pushed by the user</strong> (a local hook blocks tag pushes), and CI publishes on the tag; CI does not tag. release-please is the only CI-tags-on-merge example.</p>
+<p><strong>Release-PR model.</strong> <code>share --pr</code>: branch <code>release/v&lt;ver&gt;</code>, same commit (bump, docs, marketstall), push, open a PR. On merge, one workflow job tags the merge commit and publishes in the same run. (A tag pushed with the default <code>GITHUB_TOKEN</code> does not trigger other workflows, a documented GitHub behaviour, so tag + publish must live in one workflow, or use a token that can trigger.)</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Local commit+tag+push (today)</th>
+<th>Release PR</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Permission classifier</td>
+<td>The agent runs <code>git push</code> of a tag and of the default branch: the actions the classifier treats as public surface; incident (b) was this</td>
+<td>Agent pushes a branch and opens a PR (still public, but reviewable and reversible). Merge is a separate, gateable act</td>
+</tr>
+<tr>
+<td>Branch protection</td>
+<td><code>share</code> fails on any protected default branch (it pushes to it)</td>
+<td>Works with protection</td>
+</tr>
+<tr>
+<td>Retry</td>
+<td>Guarded by §3 idempotency</td>
+<td>Natural: re-running finds the open PR or the existing tag</td>
+</tr>
+<tr>
+<td>Rollback</td>
+<td>Before push: revert tree. After push: tag is permanent, only a new version fixes it</td>
+<td>Before merge: close the PR, nothing happened. After merge: same as today</td>
+</tr>
+<tr>
+<td>Human gate</td>
+<td>None; the agent can publish unseen</td>
+<td>Built in: the owner merges. Good for weak agents, a speed bump for a solo author</td>
+</tr>
+<tr>
+<td>Squash merge</td>
+<td>n/a</td>
+<td>The tag goes on the merge commit; <code>install_spec</code> pins the tag not a SHA, so this is fine. The marketstall content does not depend on the SHA</td>
+</tr>
+<tr>
+<td>Effort</td>
+<td>done</td>
+<td><strong>L</strong>: PR-opening step (needs <code>gh</code>/API auth), tag-on-merge job, Share editor flow variant, docs, tests; marketstall URLs reference a tag that only exists after merge (short window)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation.</strong> Do §3 first (it makes today's model retry-safe and benefits both). Then add <code>share --pr</code> as an <strong>opt-in</strong> mode, structured by making the pipeline's last step a pluggable "land" step (push vs open-PR). Make <code>--pr</code> the mode the generated agent playbook uses once it exists. Do not remove the direct mode: solo authors with an unprotected repo should keep one command.</p>
+<h2 id="5-one-agent-playbook-as-a-state-machine">5. One agent playbook, as a state machine<a class="headerlink" href="#5-one-agent-playbook-as-a-state-machine" title="Permanent link">&para;</a></h2>
+<p>The tool computes <code>state</code> (<code>share --status --json</code>). <code>init</code> writes the playbook into <code>CLAUDE.md</code> (and <code>AGENTS.md</code> keeps pointing at it) <strong>generated from the same state table</strong>, with a unit test that every state in code has a row in the template and vice versa.</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Detected when</th>
+<th>Exact command</th>
+<th>Expected output</th>
+<th>Next</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NO_PROJECT</td>
+<td>no <code>pyproject.toml</code></td>
+<td><code>haywire init &lt;name&gt; --distname haybale-&lt;final&gt; -y</code> (ask the owner for the final name and for git vs PyPI first; <strong>never accept the <code>hay-</code> default if the project will be shared</strong>)</td>
+<td><code>Project '&lt;name&gt;' created</code> + human checklist</td>
+<td>NO_REMOTE</td>
+</tr>
+<tr>
+<td>NO_REMOTE</td>
+<td>no <code>origin</code></td>
+<td><code>STOP</code>: owner creates the GitHub repo and gives the URL; then <code>git remote add origin &lt;url&gt; &amp;&amp; git push -u origin &lt;default&gt;</code></td>
+<td>push succeeds</td>
+<td>DIRTY or READY</td>
+</tr>
+<tr>
+<td>DIRTY_TREE</td>
+<td><code>git status --porcelain</code> non-empty</td>
+<td><code>git checkout uv.lock</code> if only that changed, else commit the work</td>
+<td>clean</td>
+<td><code>--status</code> again</td>
+</tr>
+<tr>
+<td>WRONG_BRANCH</td>
+<td>not on default</td>
+<td><code>git switch &lt;default&gt;</code></td>
+<td>on default</td>
+<td><code>--status</code></td>
+</tr>
+<tr>
+<td>NEEDS_FIRST_RELEASE</td>
+<td><code>pypi</code> + 404</td>
+<td><code>STOP</code>: hand the PyPI checklist to the owner; after they confirm: <code>share --first-release</code></td>
+<td>tag pushed, CI starts</td>
+<td>RELEASED</td>
+</tr>
+<tr>
+<td>READY</td>
+<td>all preconditions pass</td>
+<td><code>uv run --frozen haywire share --bump patch</code> (minor/major only if the owner said so)</td>
+<td><code>RESULT: released v&lt;ver&gt;</code>, exit 0</td>
+<td>RELEASED</td>
+</tr>
+<tr>
+<td>RELEASED</td>
+<td>HEAD is a tagged share commit</td>
+<td>none</td>
+<td><code>ALREADY RELEASED</code>, exit 10</td>
+<td>DONE</td>
+</tr>
+<tr>
+<td>INTERRUPTED</td>
+<td>marker present</td>
+<td><code>share --resume</code> once; if it fails: <code>STOP</code></td>
+<td><code>RESULT: pushed</code>, exit 0</td>
+<td>RELEASED</td>
+</tr>
+<tr>
+<td>UNKNOWN / exit 40, 50</td>
+<td>anything else</td>
+<td><code>STOP</code>: paste full output to the owner</td>
+<td>-</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>Standing rules, in the first three lines of the playbook: always <code>uv run --frozen</code>; run <code>--status</code> before acting and after any unclear tool result; never run <code>share</code> twice for the same change; never tag, push tags, force-push, or edit versions/<code>marketstall.toml</code>; <code>STOP</code> means stop.</p>
+<p><strong>Cheap-model dry-run test (describe, not build).</strong> A script under <code>scripts/</code> plus a test directory:
+1. Scratch project in a temp dir via <code>haywire init</code>, with a <em>local bare git repo</em> as <code>origin</code> (a filesystem remote skips the host check, per the sharing guide) and a stubbed PyPI lookup (env var).
+2. Run a small model (Haiku class) headless with only the generated <code>CLAUDE.md</code> and a restricted tool set, on prompts like "create project X and release it", "release this", "release again", with the harness playing the owner when the agent reaches a <code>STOP</code>.
+3. Fault injections: dirty tree; wrong branch; name 404 under <code>pypi</code>; a stale marker; and <strong>retry bait</strong> (the harness replaces a successful <code>share</code> result with "permission denied" to reproduce incident (b)).
+4. Assert on repository state, not transcripts: exactly one new tag, versions unchanged on <code>ALREADY_RELEASED</code>, no tag push or force push attempted, no hand edit of version fields, every <code>STOP</code> surfaced to the owner. Five runs each; any failure fails. Run on demand first, nightly later; not a PR gate (cost, flakiness).</p>
+<p><strong>Effort: M</strong> (template + sync test: S; harness: M).</p>
+<h2 id="6-hay-libraries-published-via-git">6. <code>hay-*</code> libraries published via git<a class="headerlink" href="#6-hay-libraries-published-via-git" title="Permanent link">&para;</a></h2>
+<h3 id="61-what-was-verified-in-code">6.1 What was verified in code<a class="headerlink" href="#61-what-was-verified-in-code" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Build:</strong> every key is <code>reg_key(identity.name, kind, id)</code> = <code>&lt;name&gt;:&lt;kind&gt;:&lt;Class&gt;</code> (<code>packages/haywire-core/src/haywire/core/library/utils.py</code>), called from ~15 decorators (node, type, widget, skin, theme, state, setting, panel, editor, adapter, farmhand, wire). <code>identity.name</code> is the <code>name</code> in <code>haybale.toml</code>, i.e. the distribution name.</li>
+<li><strong>Parse:</strong> by <code>split(":")</code> in at least 10 production sites, not one parser: <code>split_reg_key</code> (maxsplit 2), <code>get_kind_from_key</code>, <code>get_registry_id_from_key</code>, macro source/registry, <code>field_list_widget.py:72</code>, <code>node/factory.py:291</code>, docs <code>extract.py</code>, <code>di/config.py:835,879</code>, and two <strong>strict 3-way unpacks</strong> (<code>farmhand/base.py:34</code>, <code>farmhand/host.py:197</code>) that raise on any 4th segment.</li>
+<li><strong>Stored:</strong> in saved graphs (<code>registry_key</code>, <code>widget_key</code>, <code>chain_adapter_keys</code>, <code>node_data.library.{name,module_name,folder_path}</code>, <code>node_data.identity.module</code>, per the <a href="../../../guides/rename-library/">rename guide</a>); the rename tool recognises keys with <code>_KEY_GRAMMAR</code> (<code>packages/haywire-studio/src/haywire_studio/packaging/rename/graphs.py</code>), whose first segment allows only <code>[A-Za-z0-9._-]</code> (no <code>/</code>, no <code>@</code>). The marketplace uninstall check text-searches <code>"&lt;library_id&gt;:&lt;kind&gt;:&lt;Class&gt;"</code>. Roughly 88 non-test files reference a library id (a grep count, not an audit of each).</li>
+<li><strong>Loader does not refuse duplicates.</strong> It dedupes by <code>identity.name</code> with priority core &gt; pip &gt; folder and <strong>silently skips</strong> the later one with an INFO log (<code>packages/haywire-core/src/haywire/core/library/registry.py</code>). The brief assumed a clear error; there is none today.</li>
+<li><strong>Feeds:</strong> <code>identity_matches</code> (<code>barn/haybale-marketplace/haybale_marketplace/identity.py</code>): same name, both git: equal only if same canonical <code>origin</code>; otherwise a conflict. So a collision is detected when subscribing, not when loading. <code>write_barn_origins</code> re-records <code>origin</code> on every publish, so a fork's first publish records the fork.</li>
+<li><strong>The <code>hay-</code> check</strong> is a string-prefix test only (<code>packages/haywire-core/src/haywire/core/publishing/pipeline/steps/preconditions.py</code>).</li>
+<li><strong>Inferred, not tested:</strong> two distributions that ship the same top-level module (<code>hay_mylib</code>) cannot coexist in one environment, whatever the registry keys look like.</li>
+</ul>
+<h3 id="62-options">6.2 Options<a class="headerlink" href="#62-options" title="Permanent link">&para;</a></h3>
+<p><strong>(i) Downgrade the <code>hay-</code> failure to a warning for <code>distribute = "git"</code>.</strong> Removes the friction in (f). But <code>hay-</code> exists because every user's <em>own</em> local library is <code>hay-&lt;project&gt;</code> (<a href="../../../haybale/haybale-canon/">canon §5</a>). A published <code>hay-weather</code> collides, by key and by module, with any consumer's local <code>hay-weather</code>, and the loader then <strong>silently shadows</strong> one of them (verified above): graphs resolve to the wrong library with no error. The reservation is what prevents that. <strong>Not recommended.</strong></p>
+<p><strong>(ii-a) Origin-qualified keys</strong> (<code>maybites/hay_mylib:node:Resize</code>). Breaks: the ≥10 <code>split(":")</code> sites and the two strict unpacks; <code>_KEY_GRAMMAR</code>; every saved graph, settings store and feed (a migration for all of them); and a fork or repo move <strong>changes every key</strong>, orphaning graphs, the opposite of stability. It also does not fix the module-name collision. <strong>Not recommended.</strong></p>
+<p><strong>(ii-b) Stable library id decoupled from the distribution name</strong> (an immutable <code>id</code> in <code>haybale.toml</code>, keys built from it). Fork and repo move are unaffected (the id travels in the manifest; a fork shares the lineage, which is the right default), and <code>rename</code> would stop rewriting graphs. But: same migration scope as (ii-a), a feed schema change (<code>id</code> next to <code>name</code>), and the module-name collision remains, so authors would still have to pick unique module names. <strong>Effort: XL. Defer</strong> until collisions are actually observed.</p>
+<p><strong>(iii) Recommended: remove the cause, keep the rule.</strong> The pain in (f) is renaming a project <em>with graphs</em>. At <code>init</code> time there are none, and <code>init --distname haybale-&lt;final&gt;</code> already scaffolds the right name (verified). So:
+- the agent playbook (§5) makes the final name a required input to <code>init</code> for any project that will be shared;
+- <code>init</code> without <code>--distname</code> prints one extra line: "<code>hay-*</code> is local-only; to share this project use <code>--distname haybale-&lt;name&gt;</code> now (renaming later rewrites every graph)";
+- the <code>hay-</code> precondition message points at the same advice, and <code>NEXT:</code> carries the exact <code>haywire rename</code> command it already prints.
+- Hardening, independent of this decision (S): make the loader's silent skip a <strong>WARNING</strong> that names both sources, so a shadowed library is visible. That is the "clear error" the brief assumed; it is a behaviour change to confirm (an error could break startups that rely on the skip, e.g. the core-over-pip priority).</p>
+<p><strong>Effort: S</strong> for (iii) and the warning; (ii) not scheduled.</p>
+<h2 id="7-recommended-order-of-work-small-prs">7. Recommended order of work (small PRs)<a class="headerlink" href="#7-recommended-order-of-work-small-prs" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Share idempotency + marker + <code>--status</code></strong> (§3.1-3.3). Directly prevents incident (b). M.</li>
+<li><strong>Exit codes, <code>--json</code>, <code>NEXT/STOP</code> fields</strong> (§3.4-3.5). M.</li>
+<li><strong>Human-only registry; checklist in <code>init</code> and <code>share</code></strong> (§3.6). S.</li>
+<li><strong>Generated <code>publish.yml</code></strong> (§1) + CLAUDE.md/<code>init</code> text fixes. M.</li>
+<li><strong><code>share --first-release</code></strong> (§2). M. Needs 1, 2, 4.</li>
+<li><strong>Playbook generated from the state table</strong> + sync test, <code>--distname</code> hint, loader shadowing warning (§5, §6). S-M.</li>
+<li><strong>Version-change guard job</strong> for feature PRs (incident a). S.</li>
+<li><strong>Cheap-model dry-run harness</strong> (§5). M.</li>
+<li><strong><code>share --pr</code></strong> (§4). L, opt-in; decide after 1-6 have been used.</li>
+<li>Not scheduled: stable library id (§6 ii-b).</li>
+</ol>
+<p>Each PR touches code, the relevant guide, and the contract tests; none changes a version number.</p>
+<h2 id="8-open-questions">8. Open questions<a class="headerlink" href="#8-open-questions" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Release PR (§4):</strong> make <code>--pr</code> the default for agent-driven projects once it exists, or keep direct publish as default everywhere?</li>
+<li><strong>Exit code 10:</strong> is "already released" a success (agents treat as done, my proposal) or a refusal?</li>
+<li><strong>First release scope (§2):</strong> GitHub-only with <code>STOP</code> elsewhere acceptable?</li>
+<li><strong><code>publish.yml</code> dispatch:</strong> OK to accept dispatch only on tags (no branch builds)?</li>
+<li><strong><code>hay-</code> (§6):</strong> agree to keep the failure and fix at <code>init</code> time; and may the loader's duplicate skip become a warning?</li>
+<li><strong>Bump authority:</strong> may the agent choose only <code>patch</code>, with minor/major requiring the owner's word?</li>
+<li><strong>Marker location:</strong> <code>.git/haywire-share.json</code> acceptable, or prefer a tracked file?</li>
+<li><strong>PyPI pending-publisher limit per account</strong> (unverified): worth checking before we promise multi-library projects?</li>
+</ol>
+<h2 id="9-follow-up-review-the-monorepo-release-flow">9. Follow-up: review the monorepo release flow<a class="headerlink" href="#9-follow-up-review-the-monorepo-release-flow" title="Permanent link">&para;</a></h2>
+<p>Once this design has landed, the next design doc should review the <strong>haywire monorepo's own release flow</strong>. Out of scope here, but it should not be forgotten, for these reasons:</p>
+<ul>
+<li><strong>Incident (a) happened in the monorepo</strong>, not in a generated project. This doc covers it only with the version-guard job (§7, step 7).</li>
+<li><strong>It is a second implementation of the same job.</strong> <code>scripts/bump_version.py</code> and <code>/haywire-release</code> bump; the release PR is merged by hand; the user pushes the tag (a local hook blocks tag pushes); <code>publish.yml</code> then publishes, skipping versions already on PyPI. This is the flow §4 compares the release-PR model against, and CI does not tag.</li>
+<li><strong>It has the same agent risks as <code>share</code>:</strong> <code>/haywire-release</code> is written as a walkthrough for a human; nothing reports the release state; retrying after a half-finished run relies on the agent's judgement; the <code>uv.lock</code> pollution (incident e) happened here.</li>
+</ul>
+<p>Checks for that review:
+1. Make <code>/haywire-release</code> retry-safe: if <code>vX.Y.Z</code> is already merged or tagged, stop with "already released".
+2. CI guard: fail any PR that changes a <code>version</code> field unless it is a <code>chore: release</code> PR.
+3. A <code>--status</code> equivalent (bumped, merged, tagged, on PyPI) so an agent need not infer the state.
+4. Share code with <code>share</code> or stay separate? Project-scoped lockstep (ADR-0023) and <code>[tool.haywire.release]</code> lockstep are close; <code>publish.yml</code> generation (§1) and the idempotent-skip step may be shareable.
+5. Which steps stay human-only? The tag push is deliberately human today; a release-PR model could move it to CI. That is a policy decision (open question 1).</p>
+<p><strong>Order:</strong> after share PRs 1-3 (idempotency, <code>--status</code>, exit codes), so the review reuses their state definitions. The version-guard job is independent and can land earlier. Same structure as this doc: problem, options, recommendation, effort.</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
