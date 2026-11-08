@@ -223,7 +223,11 @@ def test_cli_without_the_flag_keeps_the_declared_floor(tmp_path, monkeypatch):
     _stub_publish_tail(monkeypatch)
 
     share_cli._run_publish(
-        SharePipeline(_project(tmp_path)), bump="patch", message=None, requires_haywire=None
+        SharePipeline(_project(tmp_path)),
+        share_cli.Outcome(),
+        bump="patch",
+        message=None,
+        requires_haywire=None,
     )
 
     assert applied == []
@@ -239,7 +243,11 @@ def test_cli_with_the_flag_raises_the_floor(tmp_path, monkeypatch):
     _stub_publish_tail(monkeypatch)
 
     share_cli._run_publish(
-        SharePipeline(_project(tmp_path)), bump="patch", message=None, requires_haywire=">=0.0.34"
+        SharePipeline(_project(tmp_path)),
+        share_cli.Outcome(),
+        bump="patch",
+        message=None,
+        requires_haywire=">=0.0.34",
     )
 
     assert applied == [">=0.0.34"]

@@ -102,14 +102,14 @@ def test_preconditions_refuse_a_second_release(repo: Path) -> None:
     _release_commit(repo, push=True)
     report = SharePipeline(repo).check_preconditions()
     assert [f.code for f in report.failures] == ["already_released"]
-    assert "DONE" in report.failures[0].remedy
+    assert not report.failures[0].human_only
 
 
 def test_preconditions_point_unpushed_at_resume(repo: Path) -> None:
     _release_commit(repo, push=False)
     failure = SharePipeline(repo).check_preconditions().failures[0]
     assert failure.code == "unpushed_release"
-    assert "share --resume" in failure.remedy
+    assert failure.next_command == "uv run --frozen haywire share --resume"
 
 
 @pytest.mark.anyio

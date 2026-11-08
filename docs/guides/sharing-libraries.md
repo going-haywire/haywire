@@ -117,8 +117,33 @@ missing tag if needed and pushes. It never writes a new version. A marker file,
 whose tag step failed); it is removed when the push succeeds.
 
 `--status` prints the state and ends with a `STATE:` line: `READY`, `RELEASED`,
-`NOTHING_TO_RELEASE`, `UNPUSHED`, `STALE_MARKER` or `BLOCKED`. Every refusal ends
-with one `NEXT:`, `DONE:` or `STOP:` line.
+`NOTHING_TO_RELEASE`, `UNPUSHED`, `STALE_MARKER`, `NEEDS_HUMAN` or `BLOCKED`. Every
+refusal ends with one `NEXT:`, `DONE:` or `STOP:` line.
+
+### 2.4 Exit codes and `--json`
+
+Every mode exits with a stable code, so a script or an agent can branch on it:
+
+| Code | Meaning | What to do |
+|---|---|---|
+| 0 | Released (or `--status` says `READY`) | done |
+| 10 | Already released, or nothing to release | done; do not retry |
+| 20 | Refused, fixable | run the `NEXT:` command |
+| 30 | `STOP: human needed` (no `origin`, unreachable remote, unknown host, `hay-` name, PyPI name, stale marker) | hand the message to the owner |
+| 40 | Failed mid-run; this run's writes were reverted | read the error, then `--status` |
+| 50 | Failed after the release commit | `share --resume` once |
+| 64 | Usage error (for example `--bump` missing) | fix the command |
+
+`--json` prints one object on stdout and sends all human text to stderr:
+
+```json
+{"schema": 1, "state": "RELEASED", "ok": true, "exit_code": 10,
+ "version": null, "tag": null,
+ "next": null, "stop": null,
+ "failure": {"code": "already_released", "message": "Already released: v0.0.2 ..."}}
+```
+
+`next.command` is the one command to run; `stop.reason` is what to tell the owner.
 
 ## 3. What gets published
 
