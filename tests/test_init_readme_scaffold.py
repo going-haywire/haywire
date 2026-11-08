@@ -59,7 +59,7 @@ def test_init_writes_claude_md_with_release_rules(tmp_path: Path, monkeypatch: p
     project = tmp_path / "my-project"
     claude = (project / "CLAUDE.md").read_text()
     assert "## Releases" in claude
-    assert "uv run --frozen haywire share --dry-run" in claude
+    assert "uv run --frozen haywire share --status" in claude
     assert "share --first-release" in claude
     assert "publish.yml" in claude
     assert "publish-to-pypi.md" in claude

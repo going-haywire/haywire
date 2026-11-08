@@ -25,6 +25,8 @@ The library rename **cannot** be done from within the studio. Stop the studio be
 
 ## 1. The short version
 
+If the project has no graphs yet, skip the rename: create it again with `haywire init <name> --distname haybale-<name>`, which scaffolds the final name from the start.
+
 Run first 
 
 ```sh

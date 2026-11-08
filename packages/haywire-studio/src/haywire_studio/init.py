@@ -17,6 +17,7 @@ from typing import Any
 
 import toml
 
+from .playbook import render_playbook
 from .publish_workflow import (
     PLAN_SCRIPT_PATH,
     WORKFLOW_PATH,
@@ -523,25 +524,17 @@ A haywire project (`{name}`): one haybale library under `barn/`, released with `
 
 ## Releases
 
-- Release only with `haywire share`, from the project root, on a clean working tree. It
-  bumps every version, writes `marketstall.toml` and the README subscribe link, then
-  commits, tags and pushes by itself. Never hand-edit versions, `install_spec` or
-  `marketstall.toml`, and never tag or push a release yourself.
-- Look first, then release, always with `--frozen` so `uv` does not re-lock:
+Release only with `haywire share`, from the project root. It bumps every version, writes
+`marketstall.toml` and the README subscribe link, then commits, tags and pushes by itself.
+A published version is permanent.
 
-  ```sh
-  git checkout uv.lock          # drop an unintended re-lock
-  uv run --frozen haywire share --dry-run
-  uv run --frozen haywire share --bump patch
-  ```
+{render_playbook()}
 
-- Every tag push publishes, and a published version is permanent. Before acting, and after
-  any unclear result from `share` (a denial message, a timeout), run
-  `uv run --frozen haywire share --status`. It ends with a `STATE:` line and one `NEXT:`,
-  `DONE:` or `STOP:` line: do exactly that. Never run `share --bump` twice for one change.
-  If `STATE: UNPUSHED`, run `uv run --frozen haywire share --resume` once; if that fails,
-  stop and ask.
 - If a dependency pin needs a version that is not released yet, stop and ask.
+- Libraries named `hay-*` are local-only and `share` refuses them. Before any graph exists,
+  the cheap fix is to create the project again with `haywire init <name> --distname
+  haybale-<name>`; afterwards `haywire rename` rewrites every graph, and the owner chooses
+  the name. Ask the owner for the name before sharing.
 - Some steps only the owner can do: creating the GitHub repository, registering a PyPI
   pending publisher, creating the GitHub `pypi` environment. `share` prints them as a
   checklist after `STOP: human needed`. Paste that checklist to the owner verbatim and
@@ -1000,6 +993,12 @@ def init_project(
     if not auto_sync:
         print("  uv sync")
     print("  uv run haywire")
+    if distname is None:
+        print(
+            f"\nNote: the library is named '{lib_name}'. `hay-*` names are local-only and cannot be shared."
+            "\n  To share this project, run init again with --distname haybale-<name> before building"
+            "\n  graphs; `haywire rename` later rewrites every graph."
+        )
     print("\nTo publish your library (steps only the owner can do are marked [owner]):")
     print("  [owner] create an empty GitHub repository, then:")
     print("  git remote add origin <your-repo-url>")
