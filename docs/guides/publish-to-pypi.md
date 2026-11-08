@@ -24,7 +24,7 @@ A PyPI release inverts all of that. The wheel is built once, by you, in CI — a
 Publishing to PyPI adds three things to the flow in [sharing-libraries](./sharing-libraries.md):
 
 1. A **PyPI account** and a **claimed distribution name**.
-2. A **CI workflow** that builds a wheel on every version tag and uploads it.
+2. A **CI workflow** that builds a wheel on every version tag and uploads it. `haywire init` writes it for you (§4).
 3. One line of config — `distribute = "pypi"` — which makes `haywire share` write PyPI coordinates into the `marketstall.toml` it already generates.
 
 All three are one-time setup. After that, `haywire share --bump patch` pushes a tag and CI does the rest.
@@ -68,88 +68,25 @@ The environment name must match the `environment:` block in the workflow. If the
 
 ## 4. The workflow
 
-Copy this to `.github/workflows/publish.yml`. It builds and publishes a **single-package** repository on every `v*.*.*` tag.
+`haywire init` writes `.github/workflows/publish.yml` and the small planner it calls, `.github/publish_plan.py`. You do not copy or edit anything. (A project created before this existed: copy both files from a fresh `haywire init`.) The workflow runs on every `v*.*.*` tag and has three jobs:
 
-**Edit the `env:` block at the top and nothing else.** Every value you need to change is collected there — distribution name, label, description, author, repo URL — and the steps below read them, so there are no placeholders buried further down the file. The version is never hardcoded: it is derived from the tag that triggered the run.
+1. **Plan** runs the planner. Unless the root `pyproject.toml` declares `distribute = "pypi"` (§5) it prints "nothing to publish" and the run ends green. With `pypi`, it lists every `barn/*` library and checks that the tag equals each library's committed version; a mismatch fails the run before anything is built or uploaded.
+2. **Build** runs once per library: `uv sync --frozen`, your tests if there is a `tests/` directory, `uv build --package <library>`.
+3. **Publish** runs once per library with `environment: pypi` and the OIDC identity (`id-token: write`). It skips a version PyPI already has, so re-running it is safe.
 
-```yaml
-name: Publish Release
+A project with several libraries has several PyPI projects. Each needs its **own** pending publisher (§3), with identical owner, repository, workflow name and environment. The workflow cannot tell them apart by anything but the project name, which is what makes a mistyped name fail without uploading (§6).
 
-on:
-  push:
-    tags:
-      - 'v*.*.*'
-  workflow_dispatch:
+The workflow publishes from a tag only. If a run fails, fix the cause and re-run it on the same tag:
 
-# ─────────────────────────────────────────────────────────────────────
-# ADAPT THIS BLOCK — everything below it is generic and can stay as-is.
-# ─────────────────────────────────────────────────────────────────────
-env:
-  PYTHON_VERSION: '3.12'
-
-  # Your PyPI distribution name — must match [project].name in pyproject.toml.
-  DIST_NAME: haybale-my-lib
-
-jobs:
-  build:
-    name: Build wheel
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          enable-cache: true
-
-      - name: Set up Python ${{ env.PYTHON_VERSION }}
-        run: uv python install ${{ env.PYTHON_VERSION }}
-
-      - name: Install project
-        run: uv sync --dev
-
-      # Your gate. Keep it cheap and keep it here: a broken release is far
-      # more expensive to withdraw from PyPI than to catch before upload.
-      - name: Run tests
-        run: uv run pytest -q
-
-      - name: Build wheel + sdist
-        run: |
-          rm -rf dist/
-          uv build
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-          if-no-files-found: error
-
-  publish:
-    name: Publish to PyPI
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: pypi                       # must match the Trusted Publisher config
-      url: https://pypi.org/project/${{ env.DIST_NAME }}/
-    permissions:
-      contents: read
-      id-token: write                  # required for Trusted Publishing (OIDC)
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: Publish
-        uses: pypa/gh-action-pypi-publish@release/v1
-        # No `password:` — the OIDC identity above is the credential.
+```sh
+gh workflow run publish.yml --ref v0.0.2
 ```
 
-Everything descriptive — label, description, tags, authors — comes from your library's `haybale.toml` when `haywire share` writes the marketstall, so the workflow never restates it. That is why the `env:` block has one entry.
+A run on a branch is refused, so a version can never reach PyPI without a tag that names it.
 
 ### Other CI providers
 
-The only provider-specific part is the OIDC identity. GitLab CI, Circle, and others can publish to PyPI the same way — consult [the PyPI Trusted Publishers docs](https://docs.pypi.org/trusted-publishers/) for the provider list, and fall back to an API token (`UV_PUBLISH_TOKEN` / `TWINE_PASSWORD`) where OIDC isn't supported. The build step is always `uv build`; the upload is always `uv publish` or `twine upload dist/*`.
+The only provider-specific part is the OIDC identity. GitLab CI, Circle, and others can publish to PyPI the same way; see [the PyPI Trusted Publishers docs](https://docs.pypi.org/trusted-publishers/), and fall back to an API token (`UV_PUBLISH_TOKEN` / `TWINE_PASSWORD`) where OIDC isn't supported. The build step is always `uv build`; the upload is always `uv publish` or `twine upload dist/*`.
 
 ## 5. Declare how you distribute
 
@@ -201,19 +138,22 @@ Both now point at PyPI coordinates rather than clone specs. Subscribing to the f
 
 ## 6. The first release
 
-The very first upload cannot go through `haywire share`, which refuses a name PyPI does not know yet (§5). Upload version one from CI by hand, once:
+The first upload cannot go through `haywire share`, which refuses a name PyPI does not know yet (§5). The owner does it once, by tagging the committed version:
 
-1. Complete §2 to §5: pending publisher on PyPI, `publish.yml` committed on your default branch, the `pypi` environment created in the repository's *Settings → Environments*, and `distribute = "pypi"` declared.
-2. Make sure `[project].version` in `pyproject.toml` (and `haybale.toml`) is the version you want to publish first, for example `0.0.1`, and that it is pushed.
-3. Run the workflow by hand: *Actions → Publish Release → Run workflow* on the default branch, or
+1. Complete §2 to §5: a pending publisher on PyPI for **each** library name, the `pypi` environment created in the repository's *Settings → Environments*, and `distribute = "pypi"` declared and committed.
+2. Make sure `[project].version` in each library's `pyproject.toml` (and `haybale.toml`) is the version to publish first, for example `0.0.1`, and that it is pushed.
+3. Tag that version and push the tag:
 
    ```sh
-   gh workflow run publish.yml --ref main
+   git tag v0.0.1
+   git push origin v0.0.1
    ```
 
-   The `workflow_dispatch` trigger in §4 is what makes this possible. It builds from the branch, not from a tag, and uploads the version in `pyproject.toml`. The OIDC identity of the pending publisher creates the project.
-4. Check that `https://pypi.org/project/haybale-my-lib/` now answers 200. The pending publisher is now an ordinary one.
-5. From now on use the normal flow below: `haywire share --bump patch` publishes `0.0.2` and every later version from tags. Do not tag `v0.0.1` and push it afterwards: that run would upload `0.0.1` again and PyPI refuses it (§8).
+   The workflow creates each project through the pending publisher's OIDC identity.
+4. Check that `https://pypi.org/project/haybale-my-lib/` answers 200. The pending publisher is now an ordinary one.
+5. From now on use the normal flow below: `haywire share --bump patch` publishes `0.0.2` and every later version.
+
+**A mistyped name fails safe.** PyPI looks the publisher up by the project name in the upload. If the name on the PyPI form and `[project].name` differ, the upload is rejected before any file is stored, and no version number is used up. Correct the PyPI form (or the library name), then re-run the failed job on the tag. If the library name itself was wrong, the tag cannot move: fix the name in a new commit and tag the next version.
 
 ## 7. Cutting a release
 

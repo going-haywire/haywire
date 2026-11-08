@@ -60,7 +60,8 @@ def test_init_writes_claude_md_with_release_rules(tmp_path: Path, monkeypatch: p
     claude = (project / "CLAUDE.md").read_text()
     assert "## Releases" in claude
     assert "uv run --frozen haywire share --dry-run" in claude
-    assert "gh workflow run publish.yml --ref main" in claude
+    assert "git tag v<version>" in claude
+    assert "publish.yml" in claude
     assert "publish-to-pypi.md" in claude
 
     agents = (project / "AGENTS.md").read_text()

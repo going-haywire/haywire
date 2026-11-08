@@ -17,6 +17,12 @@ from typing import Any
 
 import toml
 
+from .publish_workflow import (
+    PLAN_SCRIPT_PATH,
+    WORKFLOW_PATH,
+    render_publish_plan,
+    render_publish_workflow,
+)
 from .config import ensure_global_config, ensure_project_config, add_recent_project
 
 
@@ -545,15 +551,17 @@ A haywire project (`{name}`): one haybale library under `barn/`, released with `
 ## Where it publishes
 
 `haywire init` sets no `distribute`, so the default is `git`: consumers install from your
-repository's tag, and no CI workflow is needed. `init` creates no `publish.yml`.
+repository's tag. `.github/workflows/publish.yml` is already in the project and does
+nothing while `distribute` is `git`.
 
 To publish to PyPI instead, set `distribute = "pypi"` under `[tool.haywire.marketstall]`
 in the root `pyproject.toml` and follow
 [docs/guides/publish-to-pypi.md](https://github.com/going-haywire/haywire/blob/master/docs/guides/publish-to-pypi.md).
-The first PyPI release is manual: a pending publisher does not make the name exist (PyPI
-answers 404), so the `share` preflight fails until the first upload. Run `publish.yml`
-once with `gh workflow run publish.yml --ref main` to upload the current version, then
-use `share` for every later one.
+The first PyPI release is the owner's: a pending publisher does not make the name exist
+(PyPI answers 404), so the `share` preflight fails until the first upload. After the owner
+has registered the pending publishers, they tag the committed version and push the tag
+(`git tag v<version> && git push origin v<version>`); `publish.yml` then creates the
+project. Agents never tag or push tags. From then on use `share` for every release.
 """
 
 
@@ -912,6 +920,11 @@ def init_project(
     (project_dir / "CLAUDE.md").write_text(_generate_claude_md(name, label))
     (project_dir / "AGENTS.md").write_text(_generate_agents_md())
 
+    # CI: tag-triggered PyPI publishing, a green no-op unless distribute = "pypi"
+    (project_dir / ".github" / "workflows").mkdir(parents=True)
+    (project_dir / WORKFLOW_PATH).write_text(render_publish_workflow())
+    (project_dir / PLAN_SCRIPT_PATH).write_text(render_publish_plan())
+
     # .gitattributes — EOL normalization + binary markers. No LFS: see the
     # comment block in _generate_gitattributes().
     (project_dir / ".gitattributes").write_text(_generate_gitattributes())
@@ -995,8 +1008,9 @@ def init_project(
     print("  # tags and pushes by itself:")
     print("  uv run --frozen haywire share --dry-run")
     print("  uv run --frozen haywire share --bump patch")
-    print("  # init creates no CI workflow and sets no `distribute` (git is the default); to")
-    print("  # publish to PyPI see docs/guides/publish-to-pypi.md")
+    print("  # .github/workflows/publish.yml is already written; it does nothing until the root")
+    print('  # pyproject.toml declares distribute = "pypi" (git is the default). To publish to')
+    print("  # PyPI see docs/guides/publish-to-pypi.md")
     if dev_repo:
         print(
             "\n  This --dev project links to your haywire checkout by path (pyproject.toml,\n"
