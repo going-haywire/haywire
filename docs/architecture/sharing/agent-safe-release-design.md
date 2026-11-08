@@ -236,3 +236,20 @@ Each PR touches code, the relevant guide, and the contract tests; none changes a
 6. **Bump authority:** may the agent choose only `patch`, with minor/major requiring the owner's word?
 7. **Marker location:** `.git/haywire-share.json` acceptable, or prefer a tracked file?
 8. **PyPI pending-publisher limit per account** (unverified): worth checking before we promise multi-library projects?
+
+## 9. Follow-up: review the monorepo release flow
+
+Once this design has landed, the next design doc should review the **haywire monorepo's own release flow**. Out of scope here, but it should not be forgotten, for these reasons:
+
+- **Incident (a) happened in the monorepo**, not in a generated project. This doc covers it only with the version-guard job (§7, step 7).
+- **It is a second implementation of the same job.** `scripts/bump_version.py` and `/haywire-release` bump; the release PR is merged by hand; the user pushes the tag (a local hook blocks tag pushes); `publish.yml` then publishes, skipping versions already on PyPI. This is the flow §4 compares the release-PR model against, and CI does not tag.
+- **It has the same agent risks as `share`:** `/haywire-release` is written as a walkthrough for a human; nothing reports the release state; retrying after a half-finished run relies on the agent's judgement; the `uv.lock` pollution (incident e) happened here.
+
+Checks for that review:
+1. Make `/haywire-release` retry-safe: if `vX.Y.Z` is already merged or tagged, stop with "already released".
+2. CI guard: fail any PR that changes a `version` field unless it is a `chore: release` PR.
+3. A `--status` equivalent (bumped, merged, tagged, on PyPI) so an agent need not infer the state.
+4. Share code with `share` or stay separate? Project-scoped lockstep (ADR-0023) and `[tool.haywire.release]` lockstep are close; `publish.yml` generation (§1) and the idempotent-skip step may be shareable.
+5. Which steps stay human-only? The tag push is deliberately human today; a release-PR model could move it to CI. That is a policy decision (open question 1).
+
+**Order:** after share PRs 1-3 (idempotency, `--status`, exit codes), so the review reuses their state definitions. The version-guard job is independent and can land earlier. Same structure as this doc: problem, options, recommendation, effort.
