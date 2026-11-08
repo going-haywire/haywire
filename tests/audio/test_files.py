@@ -39,7 +39,9 @@ def test_reader_loops(tmp_path):
     path = tmp_path / "short.wav"
     sf.write(str(path), _tone(1, 300).T, 44100, subtype="FLOAT")
     reader = FileBlockReader(path, 256, loop=True)
-    frames = [reader.read_block().frames for _ in range(5)]
+    blocks = [reader.read_block() for _ in range(5)]
+    assert None not in blocks
+    frames = [b.frames for b in blocks if b is not None]
     reader.close()
     assert frames == [256, 44, 256, 44, 256]
 
