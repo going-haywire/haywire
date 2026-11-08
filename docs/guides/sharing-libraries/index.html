@@ -1605,6 +1605,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#23-running-it-twice-is-safe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Running it twice is safe
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3631,6 +3642,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#23-running-it-twice-is-safe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Running it twice is safe
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3878,6 +3900,8 @@ publishing status — the barn libraries, their lockstep version — and a
 <h3 id="22-the-cli">2.2 The CLI<a class="headerlink" href="#22-the-cli" title="Permanent link">&para;</a></h3>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--dry-run<span class="w">      </span><span class="c1"># report only; writes nothing</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--status<span class="w">       </span><span class="c1"># one state and the next step; writes nothing</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--resume<span class="w">       </span><span class="c1"># finish a release that was committed but not pushed</span>
 </span></code></pre></div>
 <p>One mode, non-interactive. Every answer comes from a flag or takes its inert
 default. Requires <code>--bump</code> (<code>patch|minor|major</code> or an explicit <code>X.Y.Z</code>).</p>
@@ -3890,6 +3914,22 @@ those.</p>
 <p><code>--dry-run</code> reports preconditions, findings and the version it would cut, and
 writes nothing. Preconditions are <em>reported</em> rather than enforced there, so it
 stays useful on a feature branch or a PR checkout.</p>
+<h3 id="23-running-it-twice-is-safe">2.3 Running it twice is safe<a class="headerlink" href="#23-running-it-twice-is-safe" title="Permanent link">&para;</a></h3>
+<p><code>haywire share</code> refuses to release the same change twice. If <code>HEAD</code> already
+carries a <code>v*</code> tag that is on <code>origin</code>, or nothing under <code>barn/</code> or the root
+<code>pyproject.toml</code> changed since the latest tag, it stops and says so:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>✗ Already released: v0.0.2 is tagged at HEAD (1a2b3c4d) and on origin.
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    Nothing to do. Do not run `haywire share` again for this change.
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    DONE: already released.
+</span></code></pre></div>
+<p>If a run stopped after the commit but before the push reached <code>origin</code>, share
+refuses to bump again and points at <code>haywire share --resume</code>, which creates the
+missing tag if needed and pushes. It never writes a new version. A marker file,
+<code>.git/haywire-share.json</code>, records the one state a tag cannot show (a commit
+whose tag step failed); it is removed when the push succeeds.</p>
+<p><code>--status</code> prints the state and ends with a <code>STATE:</code> line: <code>READY</code>, <code>RELEASED</code>,
+<code>NOTHING_TO_RELEASE</code>, <code>UNPUSHED</code>, <code>STALE_MARKER</code> or <code>BLOCKED</code>. Every refusal ends
+with one <code>NEXT:</code>, <code>DONE:</code> or <code>STOP:</code> line.</p>
 <h2 id="3-what-gets-published">3. What gets published<a class="headerlink" href="#3-what-gets-published" title="Permanent link">&para;</a></h2>
 <p>Each <code>barn/*</code> library becomes one <code>[[haybales]]</code> entry in the generated
 <code>marketstall.toml</code> — mostly a verbatim copy of your <code>haybale.toml</code>, plus the
@@ -3947,9 +3987,9 @@ which re-runs every check from the top.</p>
 <p><strong>The remote's host is recognized.</strong> GitHub and GitLab (<code>github.com</code>, <code>gitlab.com</code>) work out of the box. A self-hosted GitLab or GitHub Enterprise instance — anything on a different hostname — needs one entry in <code>~/.haywire/config.toml</code>:</p>
 </li>
 </ol>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[[hosts]]</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">hostname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gitlab.example.com&quot;</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">provider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gitlab&quot;</span><span class="w">   </span><span class="c1"># or &quot;github&quot;</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[[hosts]]</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">hostname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gitlab.example.com&quot;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">provider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gitlab&quot;</span><span class="w">   </span><span class="c1"># or &quot;github&quot;</span>
 </span></code></pre></div>
 <p>This only teaches haywire how to build browser-friendly URLs (blob links, raw-content links) for that host — it has nothing to do with push access, which is check 4. A remote pointing at a local filesystem path (a sibling clone, a shared network drive) skips this check entirely — it isn't an unrecognized host, since there's no hostname to recognize or fail to recognize.</p>
 <ol>
@@ -3970,7 +4010,7 @@ receiving fixes after the run. For the full rationale, and why tag-pinning
 did not relax the rule, see
 <a href="../../architecture/sharing/share-pipeline-arch/#5-the-default-branch-publishing-rule">share-pipeline-arch §5</a>.</p>
 <p>If <code>haywire share</code> reports that you're on the wrong branch, e.g.:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Currently on `feature-x`, but the repository&#39;s default branch is `main`.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Currently on `feature-x`, but the repository&#39;s default branch is `main`.
 </span></code></pre></div>
 <p>switch to the default branch and publish from there: <code>git switch main</code>.</p>
 <p>This check, along with a companion check that HEAD isn't detached, always
@@ -4046,11 +4086,11 @@ went wrong and the message mentions a manifest.</p>
 <p>The tooling in this guide makes all three easy.</p>
 <h3 id="62-the-shape-of-a-haybale-library">6.2 The shape of a haybale library<a class="headerlink" href="#62-the-shape-of-a-haybale-library" title="Permanent link">&para;</a></h3>
 <p>A haybale library is a Python package with a specific layout. <code>haywire init</code> produces this for you; if you're starting from scratch, see <a href="../../haybale/haybale-canon/">haybale-canon</a> for the full canon. The relevant parts for sharing:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>haybale-my-lib/
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>├── pyproject.toml          ← pip manifest (travels to PyPI / pip)
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>└── haybale_my_lib/
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    ├── haybale.toml        ← library metadata (ships INSIDE the wheel)
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    └── __init__.py         ← @library(...) declares the haywire runtime contract
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>haybale-my-lib/
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>├── pyproject.toml          ← pip manifest (travels to PyPI / pip)
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>└── haybale_my_lib/
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    ├── haybale.toml        ← library metadata (ships INSIDE the wheel)
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    └── __init__.py         ← @library(...) declares the haywire runtime contract
 </span></code></pre></div>
 <p>The two manifests answer different questions:</p>
 <table>
@@ -4134,28 +4174,28 @@ the publish has nothing left to report.</p>
 <p>Authors outside the official monorepo can use any versioning scheme they like — the marketstall format doesn't require lockstep. The <code>&gt;=</code> convention is a haywire-team practice.</p>
 <h2 id="7-the-full-author-cycle">7. The full author cycle<a class="headerlink" href="#7-the-full-author-cycle" title="Permanent link">&para;</a></h2>
 <p>End-to-end, the flow is:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>write code, build components
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>        │
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>        ▼
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>document them — descriptions, tags, docstrings
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        │
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        ▼
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>git commit &amp;&amp; git push          (the tree must be clean — §4.1)
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        │
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        ▼
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>uv run haywire share --bump patch
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>  or: Share… in the Share editor
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        │
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        ├─▶ preflight: tree, remote, host, push, branch      §4
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        ├─▶ dependency drift detected and reconciled         §6.3
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        ├─▶ barn/* bumped in lockstep, docs regenerated      §6.4
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>        └─▶ marketstall.toml rebuilt, committed, tagged, pushed
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>        │
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        ▼
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>marketstall hosted at a URL      §5
-</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>        │
-</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>        ▼
-</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>consumer subscribes via Add Source
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>write code, build components
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>        │
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        ▼
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>document them — descriptions, tags, docstrings
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        │
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        ▼
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>git commit &amp;&amp; git push          (the tree must be clean — §4.1)
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        │
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        ▼
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>uv run haywire share --bump patch
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>  or: Share… in the Share editor
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        │
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>        ├─▶ preflight: tree, remote, host, push, branch      §4
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>        ├─▶ dependency drift detected and reconciled         §6.3
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        ├─▶ barn/* bumped in lockstep, docs regenerated      §6.4
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        └─▶ marketstall.toml rebuilt, committed, tagged, pushed
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        │
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>        ▼
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>marketstall hosted at a URL      §5
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        │
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        ▼
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>consumer subscribes via Add Source
 </span></code></pre></div>
 <p>Everything in the indented block happens inside the one command. The only steps
 that are yours are writing the code, documenting it, and committing.</p>

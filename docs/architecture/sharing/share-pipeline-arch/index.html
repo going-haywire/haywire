@@ -2479,6 +2479,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#26a-release-state-and-the-marker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6a Release state and the marker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#27-step-7-push" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3710,6 +3721,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#26a-release-state-and-the-marker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6a Release state and the marker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#27-step-7-push" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3866,7 +3888,7 @@
 <p>It is stateful because later steps consume earlier steps' outputs — dependency resolution precedes docs regeneration, the bumped version feeds both the docs render and the marketstall entry, and the final commit's file list is the union of every step's writes. A stateful object keeps that sequencing in one place instead of re-derived by each caller, and maps onto the flow's linear, resumable stepper UI.</p>
 <p>Each step that can affect the working tree is split into a <strong>check/plan</strong> call (mutates nothing) and an <strong>apply</strong> call (mutates). This plan/apply split is covered in full in §3.</p>
 <h2 id="2-the-steps">2. The steps<a class="headerlink" href="#2-the-steps" title="Permanent link">&para;</a></h2>
-<p>Eight step modules under <code>publishing/pipeline/steps/</code> — <code>preconditions.py</code>, <code>detect.py</code>, <code>dependencies.py</code>, <code>framework.py</code>, <code>version.py</code>, <code>docs.py</code>, <code>commit.py</code>, <code>push.py</code>. <code>SharePipeline</code> delegates to each rather than implementing the logic inline.</p>
+<p>Step modules under <code>publishing/pipeline/steps/</code> — <code>preconditions.py</code>, <code>detect.py</code>, <code>dependencies.py</code>, <code>framework.py</code>, <code>version.py</code>, <code>docs.py</code>, <code>commit.py</code>, <code>push.py</code>, plus <code>rollback.py</code> and <code>release_state.py</code> (a read-only query, below). <code>SharePipeline</code> delegates to each rather than implementing the logic inline.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>1. Preconditions          check_preconditions() / require_preconditions()
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>2. Detect                 check_drift()   [pure — writes nothing]
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>3. Dependencies           apply_framework() | apply_removals() | apply_additions() | apply_floors()
@@ -3921,6 +3943,7 @@
 <li>The remote is reachable, via <code>git ls-remote --symref origin HEAD</code>. This exercises the exact credential path <code>git push</code> uses, so an auth failure surfaces here rather than after a commit and tag already exist. <code>--symref</code> also narrows the round-trip to one ref and additionally names the remote's default branch (<code>ref: refs/heads/&lt;name&gt;\tHEAD</code> in the output) — the local <code>git symbolic-ref refs/remotes/origin/HEAD</code> is <em>not</em> a usable substitute, since nothing populates it without an explicit <code>git remote set-head</code>.</li>
 <li>HEAD is not detached (<code>git symbolic-ref -q HEAD</code>, not <code>git rev-parse --abbrev-ref HEAD</code> — see §5 for why) [<code>switch_branch</code>, only when a branch already contains the commit].</li>
 <li>The current branch matches the remote's default branch (see §5) [<code>switch_branch</code>, only when the branch has nothing unmerged].</li>
+<li>The checkout is not already released (<code>release_state.detect()</code>): <code>HEAD</code> carries a <code>v*</code> tag on <code>origin</code> (<code>already_released</code>), a release commit exists that <code>origin</code> lacks (<code>unpushed_release</code>, resumable), nothing under <code>barn/</code> or the root <code>pyproject.toml</code> changed since the latest tag (<code>nothing_to_release</code>), or the marker names a commit that is not <code>HEAD</code> (<code>stale_marker</code>). Each sets <code>PreconditionFailure.code</code> and ends its remedy with <code>NEXT:</code>, <code>DONE:</code> or <code>STOP:</code>.</li>
 <li>Under <code>distribute = "pypi"</code>, every library's name is registered on PyPI. Skipped when PyPI cannot be reached, so it never blocks an offline publish.</li>
 </ol>
 <p>Reporting rather than raising also matters for the Preflight screen. It runs automatically when the flow opens (<code>show_step_flow(auto_start=True)</code>) — a first step that only checks, writes nothing, and asks the user to confirm an intent they already expressed by opening it does not deserve a button. On failure the screen renders the message and its remedy <strong>inline</strong>, offering the in-place fix where one exists (<code>fix_id</code>) and "Check again" always. So it needs a populated failure to render, not an exception to catch before the UI exists.</p>
@@ -3959,6 +3982,8 @@
 <p><code>apply_marketstall()</code> calls <code>write_marketstall()</code> (from <code>share.marketstall</code>) to fully rebuild <code>marketstall.toml</code> from every barn library, and rewrite the <code>&lt;!-- marketstall:share-url --&gt;</code> marker block (via <code>share.readme</code>) in the root README and every <code>barn/*/README.md</code>. Always a <em>full</em> rebuild — the feed's contract is "every haybale this repo currently offers," so a partial rebuild would silently delete the entries of libraries not touched in this run.</p>
 <p><code>plan_commit()</code> previews exactly what would be staged, committed, and tagged: the pipeline's accumulated write set (<code>self.written</code>, appended-to by every apply step so far) plus a diffstat, requires <code>self.version</code> to already be set (raises <code>PipelineStateError</code> otherwise — step 3 must run first). There is no separate "uncommitted barn content" opt-in step any more — step 1's clean-working-tree precondition guarantees nothing outside <code>self.written</code> can be dirty by the time this runs, so <code>plan.files</code> is already everything there is to stage.</p>
 <p><code>apply_commit()</code> stages exactly <code>plan.files</code> — never <code>git add -A</code>/<code>-a</code> — commits, then tags. There is no separate checkpoint commit: the pre-flow <code>HEAD</code> is already the rollback anchor, and the flow authors exactly one commit. The tag is created only after the commit succeeds, since a tag on the wrong commit is worse than no tag.</p>
+<h3 id="26a-release-state-and-the-marker">2.6a Release state and the marker<a class="headerlink" href="#26a-release-state-and-the-marker" title="Permanent link">&para;</a></h3>
+<p><code>steps/release_state.py</code> classifies the checkout from git facts and one file, <code>.git/haywire-share.json</code>. <code>apply_commit()</code> writes the marker (<code>tag</code>, <code>sha</code>, <code>phase</code>) right after the commit, before the tag; <code>apply_push()</code> clears it on success. The marker covers the one half-done state a tag cannot show, a commit whose tag step failed. A release whose tag exists but whose push failed is visible from git alone (tag at <code>HEAD</code>, not on <code>origin</code>). <code>SharePipeline.resume_release()</code> handles both: it creates the tag if the marker says it is missing, then pushes, and refuses unless the state is <code>UNPUSHED</code>, so it cannot cut a version. The marker write is best effort; a read-only <code>.git</code> does not fail a release.</p>
 <h3 id="27-step-7-push">2.7 Step 7 — Push<a class="headerlink" href="#27-step-7-push" title="Permanent link">&para;</a></h3>
 <p><code>verify_push_allowed()</code> runs <code>git push --dry-run</code> immediately <em>before</em> the commit step actually commits, closing the race window opened at step 1: someone else may have pushed to the same branch in the meantime, and discovering that after a commit and tag already exist would force the user to clean up. It mirrors the marketplace's <code>dry_run()</code> → <code>install()</code> pairing — pre-flight verification beats post-failure recovery when nothing needs undoing if nothing was mutated yet.</p>
 <p><code>apply_push()</code> pushes the commit and tag to <code>origin</code> via <code>git_remote_streaming()</code> (env-hardened — see §4). On failure it raises <code>PushError</code>, which carries the exact command to retry by hand; the step is safely retryable in place since nothing here mutates pipeline state.</p>
