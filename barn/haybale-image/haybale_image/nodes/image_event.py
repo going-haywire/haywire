@@ -67,8 +67,10 @@ class ImageEventNode(BaseNode):
         self.add(INT.as_outlet("frame_number", label="Frame Number"))
 
     def post_init(self) -> None:
+        from haybale_image.types.callback import CALLBACK_IMAGE
+
         # A copy or a loaded graph restores the saved id; the listener publishes the id it listens on.
-        self.ports["listen_callback"].set_value({"name": self.node_id})
+        self.out("listen_callback", CALLBACK_IMAGE(name=self.node_id))
         self.event_subscription = CallbackEvent(
             event_name=self.node_id,
             queue_mode=_QUEUE_MODES.get(str(self.dispatch.queue_mode), QueueMode.DROP),

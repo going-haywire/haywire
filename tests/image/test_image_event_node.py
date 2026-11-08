@@ -22,8 +22,9 @@ def _event(graph: Any) -> Any:
 def test_listen_outlet_publishes_node_id(graph_with_library_system):
     node = _event(graph_with_library_system)
     value = node.ports["listen_callback"].get_value()
-    name = value["name"] if isinstance(value, dict) else value.name
-    assert name == node.node_id
+    cb = importlib.import_module("haybale_image.types.callback").CALLBACK_IMAGE
+    assert isinstance(value, cb), "a dict here breaks the emitter's pooled inlet"
+    assert value.name == node.node_id
 
 
 def test_worker_unpacks_payload(graph_with_library_system):

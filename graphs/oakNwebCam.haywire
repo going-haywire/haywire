@@ -1,19 +1,16 @@
 {
-  "graph_id": "__new_1__",
-  "name": "Untitled 1",
-  "description": "",
-  "version": "1.0.0",
-  "author": "",
-  "created_at": null,
+  "format_version": 4,
+  "filestem": "m",
+  "created_at": "2026-11-08T14:59:40.657340",
   "modified_at": "2026-08-13T15:36:33.617755",
+  "meta": {
+    "values": {},
+    "promoted": {}
+  },
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
       "registry_key": "haybale-core:node:BeginPlayNode",
-      "position": [
-        550,
-        1400
-      ],
       "node_data": {
         "node_id": "BeginPlayNode_87f32274",
         "ports": {
@@ -25,7 +22,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -47,7 +43,6 @@
               "description": "Decimal numberer",
               "class_name": "FLOAT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0.0
               },
@@ -56,7 +51,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 1,
               "show_widget": "never"
             },
@@ -98,6 +92,7 @@
           "hidden": false,
           "class_name": "BeginPlayNode",
           "module": "haybale_core.nodes.events.begin_play",
+          "tags": [],
           "search_tags": [
             "start",
             "init",
@@ -105,16 +100,19 @@
             "event"
           ],
           "menu": "core/event",
-          "help_md": null,
-          "help_url": "https://haywire.io/internals/node-help",
+          "template": false,
           "_is_error": false,
           "_error_priority": 0,
-          "_is_reroute": false
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
         },
         "library": {
           "label": "Core",
-          "version": "0.1.1",
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "version": "0.3.2",
+          "folder_path": "/home/maybites/Work/going-haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
           "name": "haybale-core",
           "linked_libraries": [],
@@ -126,10 +124,6 @@
     "WebCameraNode_15b5bccb": {
       "node_id": "WebCameraNode_15b5bccb",
       "registry_key": "haybale-visiongraph:node:WebCameraNode",
-      "position": [
-        1050,
-        1400
-      ],
       "node_data": {
         "node_id": "WebCameraNode_15b5bccb",
         "ports": {
@@ -141,15 +135,13 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
               "color": "#004cff",
               "id": "start",
-              "port_type": "inlet",
-              "allow_multiple_links": true
+              "port_type": "inlet"
             },
             "recipe": {
               "registry_key": "haywire-core:type:EXEC"
@@ -163,7 +155,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -171,7 +162,6 @@
               "color": "#004cff",
               "id": "stop",
               "port_type": "inlet",
-              "allow_multiple_links": true,
               "order": 1
             },
             "recipe": {
@@ -186,7 +176,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -220,7 +209,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -254,7 +242,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -288,7 +275,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -322,7 +308,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 1
               },
@@ -356,7 +341,6 @@
               "description": "Connect to a Frame Event node. Beware: this camera type can only deliver rgb frames",
               "class_name": "PooledType",
               "module": "haybale_core.types.pooled_type",
-              "flow_type": "callback",
               "default": {
                 "value": {}
               },
@@ -364,7 +348,6 @@
               "color": "#ff3c00",
               "id": "callbacks",
               "port_type": "inlet",
-              "allow_multiple_links": true,
               "order": 7
             },
             "recipe": {
@@ -382,7 +365,6 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": "Idle"
               },
@@ -409,7 +391,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -432,7 +413,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -457,6 +437,21 @@
               "height": 341
             },
             "promoted": {}
+          },
+          "capture": {
+            "values": {},
+            "promoted": {
+              "capture.camera_index": {
+                "direction": "config"
+              },
+              "capture.frame_skip": {
+                "direction": "config"
+              }
+            }
+          },
+          "image": {
+            "values": {},
+            "promoted": {}
           }
         },
         "props": {
@@ -478,6 +473,7 @@
           "hidden": false,
           "class_name": "WebCameraNode",
           "module": "haybale_visiongraph.nodes.web_cam_node",
+          "tags": [],
           "search_tags": [
             "webcam",
             "camera",
@@ -486,20 +482,25 @@
             "stream"
           ],
           "menu": "vision/input",
-          "help_md": null,
-          "help_url": "https://haywire.io/internals/node-help",
+          "template": false,
           "_is_error": false,
           "_error_priority": 0,
-          "_is_reroute": false
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
+          "version": "0.0.42",
+          "folder_path": "/home/maybites/Work/going-haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
           "linked_libraries": [
-            "haybale_core"
+            "haybale_core",
+            "haybale_image",
+            "haybale_models"
           ],
           "file_watcher": false,
           "on_reload": "restart"
@@ -509,10 +510,6 @@
     "ShutdownNode_f1b20b45": {
       "node_id": "ShutdownNode_f1b20b45",
       "registry_key": "haybale-core:node:ShutdownNode",
-      "position": [
-        550,
-        1600
-      ],
       "node_data": {
         "node_id": "ShutdownNode_f1b20b45",
         "ports": {
@@ -524,7 +521,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -546,7 +542,6 @@
               "description": "Decimal numberer",
               "class_name": "FLOAT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0.0
               },
@@ -555,7 +550,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 1,
               "show_widget": "never"
             },
@@ -597,6 +591,7 @@
           "hidden": false,
           "class_name": "ShutdownNode",
           "module": "haybale_core.nodes.events.shutdown",
+          "tags": [],
           "search_tags": [
             "stop",
             "end",
@@ -604,16 +599,19 @@
             "event"
           ],
           "menu": "core/event",
-          "help_md": null,
-          "help_url": "https://haywire.io/internals/node-help",
+          "template": false,
           "_is_error": false,
           "_error_priority": 0,
-          "_is_reroute": false
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
         },
         "library": {
           "label": "Core",
-          "version": "0.1.1",
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "version": "0.3.2",
+          "folder_path": "/home/maybites/Work/going-haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
           "name": "haybale-core",
           "linked_libraries": [],
@@ -625,10 +623,6 @@
     "FrameDisplayNode_e397b53f": {
       "node_id": "FrameDisplayNode_e397b53f",
       "registry_key": "haybale-visiongraph:node:FrameDisplayNode",
-      "position": [
-        1050,
-        1750
-      ],
       "node_data": {
         "node_id": "FrameDisplayNode_e397b53f",
         "ports": {
@@ -640,15 +634,13 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
               "color": "#004cff",
               "id": "execute",
-              "port_type": "inlet",
-              "allow_multiple_links": true
+              "port_type": "inlet"
             },
             "recipe": {
               "registry_key": "haywire-core:type:EXEC"
@@ -662,7 +654,6 @@
               "description": "A three-channel picture.",
               "class_name": "IMAGE_RGB",
               "module": "haybale_image.types.image",
-              "flow_type": "data",
               "default": {
                 "value": {
                   "width": 0,
@@ -699,7 +690,6 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": "No frame yet"
               },
@@ -726,7 +716,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -749,7 +738,6 @@
               "description": "A three-channel picture.",
               "class_name": "IMAGE_RGB",
               "module": "haybale_image.types.image",
-              "flow_type": "data",
               "default": {
                 "value": {
                   "width": 0,
@@ -761,7 +749,6 @@
               "color": "#3f8fd2",
               "id": "frame_pass",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 4,
               "show_widget": "never"
             },
@@ -777,7 +764,6 @@
               "description": "Decimal numberer",
               "class_name": "FLOAT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0.0
               },
@@ -786,7 +772,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 5,
               "show_widget": "never"
             },
@@ -805,7 +790,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -814,7 +798,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "frame_number",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 6,
               "show_widget": "never"
             },
@@ -833,7 +816,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -842,7 +824,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "width",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 7,
               "show_widget": "never"
             },
@@ -861,7 +842,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -870,7 +850,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "height",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 8,
               "show_widget": "never"
             },
@@ -912,6 +891,7 @@
           "hidden": false,
           "class_name": "FrameDisplayNode",
           "module": "haybale_visiongraph.nodes.numpy_frame_display_node",
+          "tags": [],
           "search_tags": [
             "rgb",
             "ir",
@@ -923,20 +903,25 @@
             "stream"
           ],
           "menu": "vision/info",
-          "help_md": null,
-          "help_url": "https://haywire.io/internals/node-help",
+          "template": false,
           "_is_error": false,
           "_error_priority": 0,
-          "_is_reroute": false
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
+          "version": "0.0.42",
+          "folder_path": "/home/maybites/Work/going-haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
           "linked_libraries": [
-            "haybale_core"
+            "haybale_core",
+            "haybale_image",
+            "haybale_models"
           ],
           "file_watcher": false,
           "on_reload": "restart"
@@ -946,10 +931,6 @@
     "NumpyFrameEventNode_bcbab615": {
       "node_id": "NumpyFrameEventNode_bcbab615",
       "registry_key": "haybale-visiongraph:node:NumpyFrameEventNode",
-      "position": [
-        550,
-        2200
-      ],
       "node_data": {
         "node_id": "NumpyFrameEventNode_bcbab615",
         "ports": {
@@ -961,7 +942,6 @@
               "description": "Subscribe for camera frames",
               "class_name": "CALLBACK_MULTIFRAME",
               "module": "haybale_visiongraph.types.callback_multiframe_type",
-              "flow_type": "callback",
               "default": {
                 "name": "NumpyFrameEventNode_bcbab615",
                 "rgb": true,
@@ -981,7 +961,7 @@
               "name": "NumpyFrameEventNode_bcbab615",
               "rgb": true,
               "depth": false,
-              "ir": true
+              "ir": false
             }
           },
           "enable_rgb": {
@@ -992,7 +972,6 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": true
               },
@@ -1020,7 +999,6 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": false
               },
@@ -1048,7 +1026,6 @@
               "description": "True or False",
               "class_name": "BOOL",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": false
               },
@@ -1076,7 +1053,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -1099,7 +1075,6 @@
               "description": "Decimal numberer",
               "class_name": "FLOAT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0.0
               },
@@ -1108,7 +1083,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 5,
               "show_widget": "never"
             },
@@ -1127,7 +1101,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -1136,7 +1109,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "frame_number",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 6,
               "show_widget": "never"
             },
@@ -1155,7 +1127,6 @@
               "description": "A three-channel picture.",
               "class_name": "IMAGE_RGB",
               "module": "haybale_image.types.image",
-              "flow_type": "data",
               "default": {
                 "value": {
                   "width": 0,
@@ -1167,7 +1138,6 @@
               "color": "#3f8fd2",
               "id": "rgb",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 9,
               "show_widget": "never"
             },
@@ -1183,7 +1153,6 @@
               "description": "A one-channel picture.",
               "class_name": "IMAGE_GRAY",
               "module": "haybale_image.types.image",
-              "flow_type": "data",
               "default": {
                 "value": {
                   "width": 0,
@@ -1195,7 +1164,6 @@
               "color": "#3f8fd2",
               "id": "ir",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 10,
               "show_widget": "never"
             },
@@ -1212,6 +1180,24 @@
               "width": 256,
               "height": 304
             },
+            "promoted": {}
+          },
+          "streams": {
+            "values": {},
+            "promoted": {
+              "streams.enable_rgb": {
+                "direction": "config"
+              },
+              "streams.enable_depth": {
+                "direction": "config"
+              },
+              "streams.enable_ir": {
+                "direction": "config"
+              }
+            }
+          },
+          "dispatch": {
+            "values": {},
             "promoted": {}
           }
         },
@@ -1234,6 +1220,7 @@
           "hidden": false,
           "class_name": "NumpyFrameEventNode",
           "module": "haybale_visiongraph.nodes.numpy_frame_event_node",
+          "tags": [],
           "search_tags": [
             "3d",
             "depth",
@@ -1248,20 +1235,25 @@
             "image"
           ],
           "menu": "vision/event",
-          "help_md": null,
-          "help_url": "https://haywire.io/internals/node-help",
+          "template": false,
           "_is_error": false,
           "_error_priority": 0,
-          "_is_reroute": false
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
+          "version": "0.0.42",
+          "folder_path": "/home/maybites/Work/going-haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
           "linked_libraries": [
-            "haybale_core"
+            "haybale_core",
+            "haybale_image",
+            "haybale_models"
           ],
           "file_watcher": false,
           "on_reload": "restart"
@@ -1271,10 +1263,6 @@
     "node_44069909": {
       "node_id": "node_44069909",
       "registry_key": "haybale-visiongraph:node:FrameDisplayNode",
-      "position": [
-        1050,
-        2300
-      ],
       "node_data": {
         "node_id": "node_44069909",
         "ports": {
@@ -1286,15 +1274,13 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
               "color": "#004cff",
               "id": "execute",
-              "port_type": "inlet",
-              "allow_multiple_links": true
+              "port_type": "inlet"
             },
             "recipe": {
               "registry_key": "haywire-core:type:EXEC"
@@ -1308,7 +1294,6 @@
               "description": "A three-channel picture.",
               "class_name": "IMAGE_RGB",
               "module": "haybale_image.types.image",
-              "flow_type": "data",
               "default": {
                 "value": {
                   "width": 0,
@@ -1345,7 +1330,6 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": "No frame yet"
               },
@@ -1372,7 +1356,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -1395,7 +1378,6 @@
               "description": "A three-channel picture.",
               "class_name": "IMAGE_RGB",
               "module": "haybale_image.types.image",
-              "flow_type": "data",
               "default": {
                 "value": {
                   "width": 0,
@@ -1407,7 +1389,6 @@
               "color": "#3f8fd2",
               "id": "frame_pass",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 4,
               "show_widget": "never"
             },
@@ -1423,7 +1404,6 @@
               "description": "Decimal numberer",
               "class_name": "FLOAT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0.0
               },
@@ -1432,7 +1412,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 5,
               "show_widget": "never"
             },
@@ -1451,7 +1430,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -1460,7 +1438,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "frame_number",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 6,
               "show_widget": "never"
             },
@@ -1479,7 +1456,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -1488,7 +1464,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "width",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 7,
               "show_widget": "never"
             },
@@ -1507,7 +1482,6 @@
               "description": "Whole number",
               "class_name": "INT",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": 0
               },
@@ -1516,7 +1490,6 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "height",
               "port_type": "outlet",
-              "allow_multiple_links": true,
               "order": 8,
               "show_widget": "never"
             },
@@ -1558,6 +1531,7 @@
           "hidden": false,
           "class_name": "FrameDisplayNode",
           "module": "haybale_visiongraph.nodes.numpy_frame_display_node",
+          "tags": [],
           "search_tags": [
             "rgb",
             "ir",
@@ -1569,317 +1543,25 @@
             "stream"
           ],
           "menu": "vision/info",
-          "help_md": null,
-          "help_url": "https://haywire.io/internals/node-help",
+          "template": false,
           "_is_error": false,
           "_error_priority": 0,
-          "_is_reroute": false
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
+          "version": "0.0.42",
+          "folder_path": "/home/maybites/Work/going-haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
           "linked_libraries": [
-            "haybale_core"
-          ],
-          "file_watcher": false,
-          "on_reload": "restart"
-        }
-      }
-    },
-    "node_7733ff48": {
-      "node_id": "node_7733ff48",
-      "registry_key": "haybale-visiongraph:node:NumpyFrameEventNode",
-      "position": [
-        550,
-        1800
-      ],
-      "node_data": {
-        "node_id": "node_7733ff48",
-        "ports": {
-          "subscription": {
-            "kwargs": {
-              "registry_id": "CALLBACK_MULTIFRAME",
-              "registry_key": "haybale-visiongraph:type:CALLBACK_MULTIFRAME",
-              "label": "Subscribe",
-              "description": "Subscribe for camera frames",
-              "class_name": "CALLBACK_MULTIFRAME",
-              "module": "haybale_visiongraph.types.callback_multiframe_type",
-              "flow_type": "callback",
-              "default": {
-                "name": "node_7733ff48",
-                "rgb": true,
-                "depth": false,
-                "ir": false
-              },
-              "store_strategy": 14,
-              "color": "#ff3c00",
-              "id": "subscription",
-              "port_type": "outlet",
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haybale-visiongraph:type:CALLBACK_MULTIFRAME"
-            },
-            "field_data": {
-              "name": "node_7733ff48",
-              "rgb": true,
-              "depth": false,
-              "ir": false
-            }
-          },
-          "enable_rgb": {
-            "kwargs": {
-              "registry_id": "BOOL",
-              "registry_key": "haywire-core:type:BOOL",
-              "label": "Color",
-              "description": "True or False",
-              "class_name": "BOOL",
-              "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
-              "default": {
-                "value": true
-              },
-              "store_strategy": 14,
-              "color": "#4caf50",
-              "widget_key": "haywire-core:widget:SwitchWidget",
-              "id": "enable_rgb",
-              "port_type": "config",
-              "order": 1,
-              "on_change": "hb_reconfigure",
-              "show_widget": "always"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:BOOL"
-            },
-            "field_data": {
-              "value": true
-            }
-          },
-          "enable_depth": {
-            "kwargs": {
-              "registry_id": "BOOL",
-              "registry_key": "haywire-core:type:BOOL",
-              "label": "Depth",
-              "description": "True or False",
-              "class_name": "BOOL",
-              "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
-              "default": {
-                "value": false
-              },
-              "store_strategy": 14,
-              "color": "#4caf50",
-              "widget_key": "haywire-core:widget:SwitchWidget",
-              "id": "enable_depth",
-              "port_type": "config",
-              "order": 2,
-              "on_change": "hb_reconfigure",
-              "show_widget": "always"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:BOOL"
-            },
-            "field_data": {
-              "value": false
-            }
-          },
-          "enable_ir": {
-            "kwargs": {
-              "registry_id": "BOOL",
-              "registry_key": "haywire-core:type:BOOL",
-              "label": "Infrared",
-              "description": "True or False",
-              "class_name": "BOOL",
-              "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
-              "default": {
-                "value": false
-              },
-              "store_strategy": 14,
-              "color": "#4caf50",
-              "widget_key": "haywire-core:widget:SwitchWidget",
-              "id": "enable_ir",
-              "port_type": "config",
-              "order": 3,
-              "on_change": "hb_reconfigure",
-              "show_widget": "always"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:BOOL"
-            },
-            "field_data": {
-              "value": false
-            }
-          },
-          "frame_ready": {
-            "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
-              "label": "Frame Ready",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
-              "default": {
-                "value": {}
-              },
-              "store_strategy": 1,
-              "color": "#004cff",
-              "id": "frame_ready",
-              "port_type": "outlet",
-              "order": 4,
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
-            }
-          },
-          "timestamp": {
-            "kwargs": {
-              "registry_id": "FLOAT",
-              "registry_key": "haywire-core:type:FLOAT",
-              "label": "Timestamp (s)",
-              "description": "Decimal numberer",
-              "class_name": "FLOAT",
-              "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
-              "default": {
-                "value": 0.0
-              },
-              "store_strategy": 14,
-              "color": "#50b0ff",
-              "widget_key": "haywire-core:widget:NumberWidget",
-              "id": "timestamp",
-              "port_type": "outlet",
-              "allow_multiple_links": true,
-              "order": 5,
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:FLOAT"
-            },
-            "field_data": {
-              "value": 0.0
-            }
-          },
-          "frame_number": {
-            "kwargs": {
-              "registry_id": "INT",
-              "registry_key": "haywire-core:type:INT",
-              "label": "Frame Number",
-              "description": "Whole number",
-              "class_name": "INT",
-              "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
-              "default": {
-                "value": 0
-              },
-              "store_strategy": 14,
-              "color": "#f7b0ff",
-              "widget_key": "haywire-core:widget:NumberWidget",
-              "id": "frame_number",
-              "port_type": "outlet",
-              "allow_multiple_links": true,
-              "order": 6,
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:INT"
-            },
-            "field_data": {
-              "value": 0
-            }
-          },
-          "rgb": {
-            "kwargs": {
-              "registry_id": "IMAGE_RGB",
-              "registry_key": "haybale-image:type:IMAGE_RGB",
-              "label": "Color",
-              "description": "A three-channel picture.",
-              "class_name": "IMAGE_RGB",
-              "module": "haybale_image.types.image",
-              "flow_type": "data",
-              "default": {
-                "value": {
-                  "width": 0,
-                  "height": 0,
-                  "layout": "rgb"
-                }
-              },
-              "store_strategy": 1,
-              "color": "#3f8fd2",
-              "id": "rgb",
-              "port_type": "outlet",
-              "allow_multiple_links": true,
-              "order": 7,
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haybale-image:type:IMAGE_RGB"
-            }
-          }
-        },
-        "settings": {
-          "props": {
-            "values": {
-              "posX": 550.0,
-              "posY": 1800.0,
-              "width": 256,
-              "height": 276
-            },
-            "promoted": {}
-          }
-        },
-        "props": {
-          "values": {
-            "posX": 550.0,
-            "posY": 1800.0,
-            "width": 256,
-            "height": 276
-          },
-          "promoted": {}
-        },
-        "store": {},
-        "identity": {
-          "registry_id": "NumpyFrameEventNode",
-          "registry_key": "haybale-visiongraph:node:NumpyFrameEventNode",
-          "label": "Frame Event",
-          "description": "Triggered when a camera frame is ready; exposes colour/depth/infrared streams",
-          "deprecation_warning": "",
-          "hidden": false,
-          "class_name": "NumpyFrameEventNode",
-          "module": "haybale_visiongraph.nodes.numpy_frame_event_node",
-          "search_tags": [
-            "3d",
-            "depth",
-            "camera",
-            "oak",
-            "kinect",
-            "realsense",
-            "frame",
-            "event",
-            "rgb",
-            "ir",
-            "image"
-          ],
-          "menu": "vision/event",
-          "help_md": null,
-          "help_url": "https://haywire.io/internals/node-help",
-          "_is_error": false,
-          "_error_priority": 0,
-          "_is_reroute": false
-        },
-        "library": {
-          "label": "Visiongraph",
-          "version": "0.0.36",
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
-          "module_name": "haybale_visiongraph",
-          "name": "haybale-visiongraph",
-          "linked_libraries": [
-            "haybale_core"
+            "haybale_core",
+            "haybale_image",
+            "haybale_models"
           ],
           "file_watcher": false,
           "on_reload": "restart"
@@ -1889,10 +1571,6 @@
     "OakDCameraNode_1f6b2a1b": {
       "node_id": "OakDCameraNode_1f6b2a1b",
       "registry_key": "haybale-visiongraph:node:OakDCameraNode",
-      "position": [
-        1500,
-        1400
-      ],
       "node_data": {
         "node_id": "OakDCameraNode_1f6b2a1b",
         "ports": {
@@ -1904,15 +1582,13 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
               "color": "#004cff",
               "id": "start",
-              "port_type": "inlet",
-              "allow_multiple_links": true
+              "port_type": "inlet"
             },
             "recipe": {
               "registry_key": "haywire-core:type:EXEC"
@@ -1926,7 +1602,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -1934,7 +1609,6 @@
               "color": "#004cff",
               "id": "stop",
               "port_type": "inlet",
-              "allow_multiple_links": true,
               "order": 1
             },
             "recipe": {
@@ -1949,7 +1623,6 @@
               "description": "Connect to a Frame Event node",
               "class_name": "PooledType",
               "module": "haybale_core.types.pooled_type",
-              "flow_type": "callback",
               "default": {
                 "value": {}
               },
@@ -1957,7 +1630,6 @@
               "color": "#ff3c00",
               "id": "callbacks",
               "port_type": "inlet",
-              "allow_multiple_links": true,
               "order": 2,
               "on_change": "hb_on_callbacks_changed"
             },
@@ -1976,7 +1648,6 @@
               "description": "Text data",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
               "default": {
                 "value": "Idle"
               },
@@ -2003,7 +1674,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -2026,7 +1696,6 @@
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
               "module": "haywire.barn.builtin.types.exec",
-              "flow_type": "control",
               "default": {
                 "value": {}
               },
@@ -2054,14 +1723,11 @@
           },
           "device": {
             "values": {},
-            "promoted": {
-              "haybale-visiongraph.node.OakDCameraNode.device.mxid": "config"
-            }
+            "promoted": {}
           },
           "stream_flags": {
             "values": {
-              "want_rgb": true,
-              "want_ir": true
+              "want_rgb": true
             },
             "promoted": {}
           },
@@ -2097,6 +1763,7 @@
           "hidden": false,
           "class_name": "OakDCameraNode",
           "module": "haybale_visiongraph.nodes.oak_d_camera_node",
+          "tags": [],
           "search_tags": [
             "oak",
             "oak-d",
@@ -2108,23 +1775,221 @@
             "stream"
           ],
           "menu": "vision/input",
-          "help_md": null,
-          "help_url": "https://haywire.io/internals/node-help",
+          "template": false,
           "_is_error": false,
           "_error_priority": 0,
-          "_is_reroute": false
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
+          "version": "0.0.42",
+          "folder_path": "/home/maybites/Work/going-haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
           "linked_libraries": [
-            "haybale_core"
+            "haybale_core",
+            "haybale_image",
+            "haybale_models"
           ],
           "file_watcher": false,
           "on_reload": "restart"
+        }
+      }
+    },
+    "ImageEventNode_b17ccbc5": {
+      "node_id": "ImageEventNode_b17ccbc5",
+      "registry_key": "haybale-image:node:ImageEventNode",
+      "node_data": {
+        "node_id": "ImageEventNode_b17ccbc5",
+        "ports": {
+          "listen_callback": {
+            "kwargs": {
+              "registry_id": "CALLBACK_IMAGE",
+              "registry_key": "haybale-image:type:CALLBACK_IMAGE",
+              "label": "Listen",
+              "description": "Subscription for emitters that deliver single images",
+              "class_name": "CALLBACK_IMAGE",
+              "module": "haybale_image.types.callback",
+              "default": {
+                "name": "ImageEventNode_b17ccbc5"
+              },
+              "store_strategy": 4,
+              "color": "#3f8fd2",
+              "id": "listen_callback",
+              "port_type": "outlet",
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-image:type:CALLBACK_IMAGE"
+            },
+            "field_data": {
+              "name": "ImageEventNode_b17ccbc5"
+            }
+          },
+          "frame_ready": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Frame Ready",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "frame_ready",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "image": {
+            "kwargs": {
+              "registry_id": "IMAGE",
+              "registry_key": "haybale-image:type:IMAGE",
+              "label": "Image",
+              "description": "A picture of any channel layout. Pixels are kept as made and converted on demand.",
+              "class_name": "IMAGE",
+              "module": "haybale_image.types.image",
+              "default": {
+                "value": {
+                  "width": 0,
+                  "height": 0,
+                  "layout": "gray"
+                }
+              },
+              "store_strategy": 1,
+              "color": "#3f8fd2",
+              "id": "image",
+              "port_type": "outlet",
+              "order": 2,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-image:type:IMAGE"
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Timestamp (s)",
+              "description": "Decimal number",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 4,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "order": 3,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "frame_number": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Frame Number",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "frame_number",
+              "port_type": "outlet",
+              "order": 4,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 0
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 550.0,
+              "posY": 1800.0
+            },
+            "promoted": {}
+          },
+          "dispatch": {
+            "values": {},
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 550.0,
+            "posY": 1800.0
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "ImageEventNode",
+          "registry_key": "haybale-image:node:ImageEventNode",
+          "label": "Image Event",
+          "description": "Triggered for each image a connected image emitter delivers",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "ImageEventNode",
+          "module": "haybale_image.nodes.image_event",
+          "tags": [],
+          "search_tags": [
+            "image",
+            "frame",
+            "event",
+            "callback",
+            "receive",
+            "stream",
+            "camera"
+          ],
+          "menu": "image/event",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Image",
+          "version": "0.3.2",
+          "folder_path": "/home/maybites/Work/going-haywire/haywire-repo/barn/haybale-image/haybale_image",
+          "module_name": "haybale_image",
+          "name": "haybale-image",
+          "linked_libraries": [],
+          "file_watcher": true,
+          "on_reload": "none"
         }
       }
     }
@@ -2135,97 +2000,88 @@
       "outlet_port_id": "exec",
       "sink_node_id": "WebCameraNode_15b5bccb",
       "inlet_port_id": "start",
-      "edge_type": "control",
       "chain_adapter_keys": [],
-      "is_lazy": false
+      "propagation": "eager"
     },
     "ShutdownNode_f1b20b45[exec]->WebCameraNode_15b5bccb[stop]": {
       "source_node_id": "ShutdownNode_f1b20b45",
       "outlet_port_id": "exec",
       "sink_node_id": "WebCameraNode_15b5bccb",
       "inlet_port_id": "stop",
-      "edge_type": "control",
       "chain_adapter_keys": [],
-      "is_lazy": false
+      "propagation": "eager"
     },
     "NumpyFrameEventNode_bcbab615[frame_ready]->node_44069909[execute]": {
       "source_node_id": "NumpyFrameEventNode_bcbab615",
       "outlet_port_id": "frame_ready",
       "sink_node_id": "node_44069909",
       "inlet_port_id": "execute",
-      "edge_type": "control",
       "chain_adapter_keys": [],
-      "is_lazy": false
+      "propagation": "eager"
     },
     "NumpyFrameEventNode_bcbab615[ir]->node_44069909[frame]": {
       "source_node_id": "NumpyFrameEventNode_bcbab615",
       "outlet_port_id": "ir",
       "sink_node_id": "node_44069909",
       "inlet_port_id": "frame",
-      "edge_type": "data",
       "chain_adapter_keys": [
-        "haybale-visiongraph:adapter:GrayToRgbAdapter"
+        "haybale-image:adapter:ImageToRgbAdapter"
       ],
-      "is_lazy": false
-    },
-    "node_7733ff48[subscription]->WebCameraNode_15b5bccb[callbacks]": {
-      "source_node_id": "node_7733ff48",
-      "outlet_port_id": "subscription",
-      "sink_node_id": "WebCameraNode_15b5bccb",
-      "inlet_port_id": "callbacks",
-      "edge_type": "callback",
-      "chain_adapter_keys": [],
-      "is_lazy": false
-    },
-    "node_7733ff48[frame_ready]->FrameDisplayNode_e397b53f[execute]": {
-      "source_node_id": "node_7733ff48",
-      "outlet_port_id": "frame_ready",
-      "sink_node_id": "FrameDisplayNode_e397b53f",
-      "inlet_port_id": "execute",
-      "edge_type": "control",
-      "chain_adapter_keys": [],
-      "is_lazy": false
-    },
-    "node_7733ff48[rgb]->FrameDisplayNode_e397b53f[frame]": {
-      "source_node_id": "node_7733ff48",
-      "outlet_port_id": "rgb",
-      "sink_node_id": "FrameDisplayNode_e397b53f",
-      "inlet_port_id": "frame",
-      "edge_type": "data",
-      "chain_adapter_keys": [],
-      "is_lazy": false
+      "propagation": "eager"
     },
     "WebCameraNode_15b5bccb[started]->OakDCameraNode_1f6b2a1b[start]": {
       "source_node_id": "WebCameraNode_15b5bccb",
       "outlet_port_id": "started",
       "sink_node_id": "OakDCameraNode_1f6b2a1b",
       "inlet_port_id": "start",
-      "edge_type": "control",
       "chain_adapter_keys": [],
-      "is_lazy": false
+      "propagation": "eager"
     },
     "WebCameraNode_15b5bccb[stopped]->OakDCameraNode_1f6b2a1b[stop]": {
       "source_node_id": "WebCameraNode_15b5bccb",
       "outlet_port_id": "stopped",
       "sink_node_id": "OakDCameraNode_1f6b2a1b",
       "inlet_port_id": "stop",
-      "edge_type": "control",
       "chain_adapter_keys": [],
-      "is_lazy": false
+      "propagation": "eager"
     },
     "NumpyFrameEventNode_bcbab615[subscription]->OakDCameraNode_1f6b2a1b[callbacks]": {
       "source_node_id": "NumpyFrameEventNode_bcbab615",
       "outlet_port_id": "subscription",
       "sink_node_id": "OakDCameraNode_1f6b2a1b",
       "inlet_port_id": "callbacks",
-      "edge_type": "callback",
+      "chain_adapter_keys": []
+    },
+    "ImageEventNode_b17ccbc5[listen_callback]->WebCameraNode_15b5bccb[callbacks]": {
+      "source_node_id": "ImageEventNode_b17ccbc5",
+      "outlet_port_id": "listen_callback",
+      "sink_node_id": "WebCameraNode_15b5bccb",
+      "inlet_port_id": "callbacks",
+      "chain_adapter_keys": []
+    },
+    "ImageEventNode_b17ccbc5[frame_ready]->FrameDisplayNode_e397b53f[execute]": {
+      "source_node_id": "ImageEventNode_b17ccbc5",
+      "outlet_port_id": "frame_ready",
+      "sink_node_id": "FrameDisplayNode_e397b53f",
+      "inlet_port_id": "execute",
       "chain_adapter_keys": [],
-      "is_lazy": false
+      "propagation": "eager"
+    },
+    "ImageEventNode_b17ccbc5[image]->FrameDisplayNode_e397b53f[frame]": {
+      "source_node_id": "ImageEventNode_b17ccbc5",
+      "outlet_port_id": "image",
+      "sink_node_id": "FrameDisplayNode_e397b53f",
+      "inlet_port_id": "frame",
+      "chain_adapter_keys": [
+        "haybale-image:adapter:ImageToRgbAdapter"
+      ],
+      "propagation": "eager"
     }
   },
   "variables": {},
   "props": {
     "values": {},
     "promoted": {}
-  }
+  },
+  "subgraphs": {}
 }
