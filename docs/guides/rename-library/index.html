@@ -3661,6 +3661,7 @@
 <p>The rename tool does not only rename the library - it also scans the complete project for references and converts them. This includes self refereces within the library itself, but also all your graphs in your project; A library's distribution name is stamped into every component's registry key (<code>hay-your-lib:node:Resize</code>) and into every saved graph that uses it.</p>
 <p>The library rename <strong>cannot</strong> be done from within the studio. Stop the studio before you do it. The tool runs only from the command line.</p>
 <h2 id="1-the-short-version">1. The short version<a class="headerlink" href="#1-the-short-version" title="Permanent link">&para;</a></h2>
+<p>If the project has no graphs yet, skip the rename: create it again with <code>haywire init &lt;name&gt; --distname haybale-&lt;name&gt;</code>, which scaffolds the final name from the start.</p>
 <p>Run first </p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>verify<span class="w">        </span><span class="c1"># confirm every graph&#39;s keys resolve</span>
 </span></code></pre></div>
