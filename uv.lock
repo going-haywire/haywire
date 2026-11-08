@@ -12,6 +12,7 @@ resolution-markers = [
 
 [manifest]
 members = [
+    "haybale-audio",
     "haybale-core",
     "haybale-example",
     "haybale-graph-editor",
@@ -1004,6 +1005,21 @@ wheels = [
 ]
 
 [[package]]
+name = "haybale-audio"
+version = "0.3.4"
+source = { editable = "barn/haybale-audio" }
+dependencies = [
+    { name = "haywire-core" },
+    { name = "numpy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "numpy" },
+]
+
+[[package]]
 name = "haybale-core"
 version = "0.3.4"
 source = { editable = "barn/haybale-core" }
@@ -1283,6 +1299,7 @@ source = { virtual = "." }
 [package.dev-dependencies]
 dev = [
     { name = "deptry" },
+    { name = "haybale-audio" },
     { name = "haybale-core" },
     { name = "haybale-example" },
     { name = "haybale-graph-editor" },
@@ -1315,6 +1332,7 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "deptry", specifier = ">=0.25.1" },
+    { name = "haybale-audio", editable = "barn/haybale-audio" },
     { name = "haybale-core", editable = "barn/haybale-core" },
     { name = "haybale-example", editable = "barn/haybale-example" },
     { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
