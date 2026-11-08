@@ -198,7 +198,7 @@ All pipeline-level exceptions subclass `ShareError` (`publishing/pipeline/errors
 | `PushError` | The push failed; carries `manual_command`, the exact command to retry by hand. |
 | `PipelineStateError` | A step was called out of order — its inputs hadn't been produced yet (e.g. `plan_commit()` before `apply_bump()`). |
 
-Each caller translates a caught `ShareError` in its own way: the CLI (`run_share_cli`) prints `str(exc)` and exits non-zero; the flow renders inline error state per step. There is no Farmhand-specific translation yet — the errors docstring notes this as a plausible future consumer, not a current one.
+Each caller translates a caught `ShareError` in its own way: the CLI (`run_share_cli`) prints `str(exc)`, reverts this run's writes when no release commit exists (exit 40) or points at `--resume` when one does (exit 50), and maps precondition failures to exit 10, 20 or 30 through `PreconditionFailure.code`, `.human_only` and `.next_command`; the flow renders inline error state per step. There is no Farmhand-specific translation yet — the errors docstring notes this as a plausible future consumer, not a current one.
 
 ### 4.1 The boundary translation
 

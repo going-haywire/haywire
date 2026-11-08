@@ -19,13 +19,68 @@ Returns exit codes; never calls ``sys.exit`` itself, so it stays testable.
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import json
+import sys
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-from haywire.core.publishing.pipeline import PreconditionFailure, ShareError, SharePipeline
+from haywire.core.publishing.pipeline import (
+    PreconditionFailure,
+    PreconditionsError,
+    ShareError,
+    SharePipeline,
+)
+from haywire.core.publishing.pipeline.steps import release_state
 from haywire.core.publishing.url import derive_share_url_only
 
-EXIT_OK = 0
-EXIT_FAILED = 1
+#: Exit codes. Stable: callers branch on them. See the sharing guide.
+EXIT_OK = 0  # released, or the requested read-only report succeeded
+EXIT_ALREADY_RELEASED = 10  # nothing to do; do not retry
+EXIT_REFUSED = 20  # refused; ``next`` names the repair
+EXIT_HUMAN_NEEDED = 30  # only a person can proceed
+EXIT_FAILED_REVERTED = 40  # failed mid-run; this run's writes were reverted
+EXIT_FAILED_PARTIAL = 50  # failed after the release commit; resume or stop
+EXIT_USAGE = 64  # bad command line
+
+_SETTLED_CODES = {"already_released", "nothing_to_release"}
+
+_STATES = {
+    "already_released": "RELEASED",
+    "nothing_to_release": "NOTHING_TO_RELEASE",
+    "unpushed_release": "UNPUSHED",
+    "stale_marker": "STALE_MARKER",
+}
+
+_STATUS_COMMAND = "uv run --frozen haywire share --status"
+_RESUME_COMMAND = "uv run --frozen haywire share --resume"
+
+
+@dataclass
+class Outcome:
+    """What one invocation concluded; ``--json`` prints it as one object."""
+
+    state: str = "UNKNOWN"
+    exit_code: int = EXIT_OK
+    version: str | None = None
+    tag: str | None = None
+    next_command: str | None = None
+    stop_reason: str | None = None
+    failure: dict[str, str] | None = None
+
+    def as_json(self) -> dict[str, Any]:
+        return {
+            "schema": 1,
+            "state": self.state,
+            "ok": self.exit_code in (EXIT_OK, EXIT_ALREADY_RELEASED),
+            "exit_code": self.exit_code,
+            "version": self.version,
+            "tag": self.tag,
+            "next": {"command": self.next_command} if self.next_command else None,
+            "stop": {"reason": self.stop_reason} if self.stop_reason else None,
+            "failure": self.failure,
+        }
 
 
 def run_share_cli(
@@ -37,20 +92,93 @@ def run_share_cli(
     dry_run: bool = False,
     status: bool = False,
     resume: bool = False,
+    json_output: bool = False,
 ) -> int:
-    """Publish *repo_root*, or report what publishing it would do."""
+    """Publish *repo_root*, or report what publishing it would do; return the exit code.
+
+    With ``json_output`` the human text goes to stderr and stdout carries exactly one
+    JSON object (:meth:`Outcome.as_json`).
+    """
     pipeline = SharePipeline(repo_root)
-    try:
-        if status:
-            return _run_status(pipeline)
-        if resume:
-            return _run_resume(pipeline)
-        if dry_run:
-            return _run_dry(pipeline)
-        return _run_publish(pipeline, bump=bump, message=message, requires_haywire=requires_haywire)
-    except ShareError as exc:
-        print(f"\n✗ {exc}")
-        return EXIT_FAILED
+    out = Outcome()
+
+    def dispatch() -> None:
+        try:
+            if status:
+                _run_status(pipeline, out)
+            elif resume:
+                _run_resume(pipeline, out)
+            elif dry_run:
+                _run_dry(pipeline, out)
+            else:
+                _run_publish(pipeline, out, bump=bump, message=message, requires_haywire=requires_haywire)
+        except PreconditionsError as exc:
+            _refuse(out, exc.failures[0])
+        except ShareError as exc:
+            _fail(pipeline, out, exc, publishing=not (status or resume or dry_run))
+
+    if json_output:
+        with contextlib.redirect_stdout(sys.stderr):
+            dispatch()
+        print(json.dumps(out.as_json()))
+    else:
+        dispatch()
+    return out.exit_code
+
+
+def _classify(failure: PreconditionFailure) -> tuple[int, str]:
+    """The exit code and state name for one precondition failure."""
+    state = _STATES.get(failure.code)
+    if failure.code in _SETTLED_CODES:
+        return EXIT_ALREADY_RELEASED, state or "RELEASED"
+    if failure.human_only:
+        return EXIT_HUMAN_NEEDED, state or "NEEDS_HUMAN"
+    return EXIT_REFUSED, state or "BLOCKED"
+
+
+def _refuse(out: Outcome, failure: PreconditionFailure) -> None:
+    """Print a refusal, ending in one DONE/STOP/NEXT line and a STATE line."""
+    _print_failure(failure)
+    out.exit_code, out.state = _classify(failure)
+    out.failure = {"code": failure.code or "precondition", "message": failure.message}
+    if out.exit_code == EXIT_ALREADY_RELEASED:
+        print(
+            "DONE: nothing to release."
+            if failure.code == "nothing_to_release"
+            else "DONE: already released."
+        )
+    elif out.exit_code == EXIT_HUMAN_NEEDED:
+        out.stop_reason = failure.message.splitlines()[0]
+        print(f"STOP: human needed — {out.stop_reason}")
+    else:
+        out.next_command = failure.next_command or _STATUS_COMMAND
+        if failure.next_command:
+            print(f"NEXT: {failure.next_command}")
+        else:
+            print(f"NEXT: fix the problem above, then run: {_STATUS_COMMAND}")
+    print(f"STATE: {out.state}")
+
+
+def _fail(pipeline: SharePipeline, out: Outcome, exc: ShareError, *, publishing: bool) -> None:
+    """A step failed after preconditions passed: revert this run's writes, or point at resume."""
+    print(f"\n✗ {exc}")
+    out.failure = {"code": type(exc).__name__, "message": str(exc).splitlines()[0]}
+    if release_state.detect(pipeline.repo_root).kind is release_state.ReleaseKind.UNPUSHED:
+        out.exit_code, out.state, out.next_command = EXIT_FAILED_PARTIAL, "UNPUSHED", _RESUME_COMMAND
+        print(f"NEXT: {_RESUME_COMMAND}")
+    elif publishing:
+        try:
+            pipeline.rollback()
+            print("✓ Reverted every change this run made.")
+        except ShareError as rollback_exc:
+            print(f"✗ Could not revert: {rollback_exc}")
+        out.exit_code, out.state = EXIT_FAILED_REVERTED, "FAILED"
+        out.next_command = _STATUS_COMMAND
+        print(f"NEXT: read the error above, then run: {_STATUS_COMMAND}")
+    else:
+        out.exit_code, out.state, out.next_command = EXIT_REFUSED, "BLOCKED", _STATUS_COMMAND
+        print(f"NEXT: {_STATUS_COMMAND}")
+    print(f"STATE: {out.state}")
 
 
 def _print_findings(pipeline: SharePipeline) -> None:
@@ -84,37 +212,31 @@ def _print_failure(failure: PreconditionFailure) -> None:
         print(f"    {failure.doc_label or 'Docs'}: {failure.doc_url}")
 
 
-#: Failure codes that mean "released, or nothing to release": not an error to fix.
-_SETTLED_CODES = {"already_released", "nothing_to_release"}
-
-
-def _run_status(pipeline: SharePipeline) -> int:
+def _run_status(pipeline: SharePipeline, out: Outcome) -> None:
     """Read-only. The last line is ``STATE: <name>``, stable for callers to match."""
     report = pipeline.check_preconditions()
-    if report.ok:
-        print("✓ Ready to release.")
-        print("NEXT: uv run --frozen haywire share --bump patch")
-        print("STATE: READY")
-        return EXIT_OK
-    failure = report.failures[0]
-    _print_failure(failure)
-    state = {
-        "already_released": "RELEASED",
-        "nothing_to_release": "NOTHING_TO_RELEASE",
-        "unpushed_release": "UNPUSHED",
-        "stale_marker": "STALE_MARKER",
-    }.get(failure.code, "BLOCKED")
-    print(f"STATE: {state}")
-    return EXIT_OK if failure.code in _SETTLED_CODES else EXIT_FAILED
+    if not report.ok:
+        _refuse(out, report.failures[0])
+        return
+    print("✓ Ready to release.")
+    out.state, out.exit_code, out.next_command = (
+        "READY",
+        EXIT_OK,
+        "uv run --frozen haywire share --bump patch",
+    )
+    print(f"NEXT: {out.next_command}")
+    print("STATE: READY")
 
 
-def _run_resume(pipeline: SharePipeline) -> int:
+def _run_resume(pipeline: SharePipeline, out: Outcome) -> None:
     push = asyncio.run(pipeline.resume_release(on_output=lambda line: print(f"  {line}")))
+    out.state, out.exit_code, out.tag = "RELEASED", EXIT_OK, push.tag
+    out.version = push.tag.removeprefix("v")
     print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")
-    return EXIT_OK
+    print("STATE: RELEASED")
 
 
-def _run_dry(pipeline: SharePipeline) -> int:
+def _run_dry(pipeline: SharePipeline, out: Outcome) -> None:
     """Report; write nothing. Preconditions are REPORTED, not enforced."""
     report = pipeline.check_preconditions()
     if report.ok:
@@ -142,22 +264,33 @@ def _run_dry(pipeline: SharePipeline) -> int:
         print("  ⚠ Versions disagree — --bump needs an explicit X.Y.Z.")
 
     print("\nNothing was written.")
-    return EXIT_OK if report.ok else EXIT_FAILED
+    if report.ok:
+        out.state, out.exit_code = "READY", EXIT_OK
+    else:
+        out.exit_code, out.state = _classify(report.failures[0])
+        out.failure = {
+            "code": report.failures[0].code or "precondition",
+            "message": report.failures[0].message,
+        }
 
 
 def _run_publish(
     pipeline: SharePipeline,
+    out: Outcome,
     *,
     bump: str | None,
     message: str | None,
     requires_haywire: str | None,
-) -> int:
+) -> None:
     """The full run. Every decision arrives as a flag or takes its inert default."""
     if not bump:
         print("share requires --bump (patch|minor|major|X.Y.Z): a non-interactive run")
         print("cannot guess which version you meant to publish.")
         print("Run `haywire share --dry-run` to see what is available.")
-        return EXIT_FAILED
+        out.state, out.exit_code, out.next_command = "USAGE", EXIT_USAGE, _STATUS_COMMAND
+        out.failure = {"code": "usage", "message": "share requires --bump"}
+        print("STATE: USAGE")
+        return
 
     pipeline.require_preconditions()
     print("✓ Preconditions OK")
@@ -220,6 +353,7 @@ def _run_publish(
     print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")
 
     tag = f"v{pipeline.version}" if pipeline.version else None
+    out.state, out.exit_code, out.version, out.tag = "RELEASED", EXIT_OK, pipeline.version, tag
     url = derive_share_url_only(pipeline.repo_root, tag=tag)
     if url.share_url:
         print(f"\n✓ Share this URL:\n  {url.share_url}")
@@ -227,4 +361,4 @@ def _run_publish(
             print(f"\n  Frozen to this version:\n  {url.tagged_url}")
     elif url.warning:
         print(f"\n⚠ {url.warning}")
-    return EXIT_OK
+    print("STATE: RELEASED")

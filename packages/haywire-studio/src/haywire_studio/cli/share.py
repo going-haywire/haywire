@@ -63,6 +63,14 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         help="Finish a release that was committed but not pushed (tag if missing, then "
         "push). Never bumps a version.",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print one JSON object on stdout (state, exit_code, next, stop, failure); "
+        "human text goes to stderr. Exit codes: 0 released, 10 already released, "
+        "20 refused (see next), 30 human needed, 40 failed and reverted, "
+        "50 failed after the commit, 64 usage.",
+    )
     parser.set_defaults(handler=_run)
 
 
@@ -77,4 +85,5 @@ def _run(args: argparse.Namespace) -> int:
         dry_run=args.dry_run,
         status=args.status,
         resume=args.resume,
+        json_output=args.json,
     )

@@ -96,6 +96,7 @@ def _reserved_prefix_failure(offenders: list[tuple[Path, str]]) -> PreconditionF
         ),
         doc_url=RENAME_GUIDE_URL,
         doc_label="Renaming a library",
+        human_only=True,
     )
 
 
@@ -422,6 +423,7 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                     kind="act",
                     fix_id="add_origin",
                     fix_label="Add origin remote",
+                    human_only=True,
                 )
             ],
             remote_url=None,
@@ -455,6 +457,7 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                         f"this host — it has nothing to do with push access."
                     ),
                     kind="act",
+                    human_only=True,
                     fix_id="add_host_config",
                     # lib_dir carries the fix's SUBJECT: the hostname here, a
                     # barn library directory for strip_os. Reused rather than
@@ -563,19 +566,15 @@ def _already_released_failure(state: "release_state.ReleaseState") -> Preconditi
     if state.kind is K.RELEASED:
         return PreconditionFailure(
             message=f"Already released: {state.tag} is tagged at HEAD ({short}) and on origin.",
-            remedy=(
-                "Nothing to do. Do not run `haywire share` again for this change.\nDONE: already released."
-            ),
+            remedy="Nothing to do. Do not run `haywire share` again for this change.",
             code="already_released",
         )
     if state.kind is K.UNPUSHED:
         return PreconditionFailure(
             message=f"{state.tag} was committed at HEAD ({short}) but never reached origin.",
-            remedy=(
-                "A release is half done. Do NOT bump again: that would cut a second version.\n"
-                "NEXT: uv run --frozen haywire share --resume"
-            ),
+            remedy="A release is half done. Bumping again would cut a second version; finish this one.",
             code="unpushed_release",
+            next_command="uv run --frozen haywire share --resume",
         )
     if state.kind is K.NOTHING_NEW:
         return PreconditionFailure(
@@ -592,10 +591,10 @@ def _already_released_failure(state: "release_state.ReleaseState") -> Preconditi
         ),
         remedy=(
             f"Remove the marker only after checking `git tag --list` and `git log` against origin: "
-            f"`rm .git/{release_state.MARKER_NAME}`.\n"
-            "STOP: human needed — an interrupted release does not match this checkout."
+            f"`rm .git/{release_state.MARKER_NAME}`."
         ),
         code="stale_marker",
+        human_only=True,
     )
 
 
@@ -711,6 +710,7 @@ def _detached_head_failure(pipeline: "SharePipeline") -> PreconditionFailure:
             fix_id="switch_branch",
             fix_label=f"Switch to {target}",
             lib_dir=target,
+            next_command=f"git switch {target}",
         )
 
     return PreconditionFailure(
@@ -757,6 +757,7 @@ def _wrong_branch_failure(pipeline: "SharePipeline", *, current: str, default: s
             fix_id="switch_branch",
             fix_label=f"Switch to {default}",
             lib_dir=default,
+            next_command=f"git switch {default}",
         )
 
     return PreconditionFailure(
@@ -834,6 +835,7 @@ def _unregistered_pypi_failure(names: list[str]) -> PreconditionFailure:
             "This check is skipped when PyPI cannot be reached, so it never blocks an "
             "offline publish."
         ),
+        human_only=True,
     )
 
 
@@ -901,4 +903,5 @@ def _unreachable_failure(remote_url: str, hostname: str, detail: str) -> Precond
         ),
         doc_url=doc_url,
         doc_label=doc_label,
+        human_only=True,
     )

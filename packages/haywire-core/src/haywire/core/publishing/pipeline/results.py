@@ -55,6 +55,11 @@ class PreconditionFailure:
     #: Stable machine name for failures a caller must tell apart from the rest
     #: ("already_released", ...). Empty for the ordinary "fix it and re-run".
     code: str = ""
+    #: The one command that repairs this, when there is exactly one an agent may run.
+    next_command: str = ""
+    #: True when only a person can repair it (account, repository or naming
+    #: decisions); callers print a STOP instead of a command.
+    human_only: bool = False
 
 
 @dataclass(frozen=True)

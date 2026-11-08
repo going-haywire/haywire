@@ -279,7 +279,7 @@ def test_status_reports_ready_then_released(project: Path, capsys) -> None:
 
     _release(project)
     capsys.readouterr()
-    assert run_share_cli(repo_root=project, bump=None, message=None, status=True) == 0
+    assert run_share_cli(repo_root=project, bump=None, message=None, status=True) == 10
     assert "STATE: RELEASED" in capsys.readouterr().out
 
 
@@ -302,12 +302,14 @@ def test_resume_finishes_a_release_whose_push_failed(project: Path, capsys) -> N
         _fake_docs(),
         patch.object(SharePipeline, "apply_push", new=failing_push),
     ):
-        assert run_share_cli(repo_root=project, bump="patch", message=None) != 0
+        assert run_share_cli(repo_root=project, bump="patch", message=None) == 50
     assert _tags(project) == ["v0.3.2"]
 
     capsys.readouterr()
-    assert run_share_cli(repo_root=project, bump=None, message=None, status=True) != 0
-    assert "STATE: UNPUSHED" in capsys.readouterr().out
+    assert run_share_cli(repo_root=project, bump=None, message=None, status=True) == 20
+    out = capsys.readouterr().out
+    assert "STATE: UNPUSHED" in out
+    assert "NEXT: uv run --frozen haywire share --resume" in out
 
     assert run_share_cli(repo_root=project, bump=None, message=None, resume=True) == 0
     remote_tags = subprocess.run(
@@ -315,6 +317,83 @@ def test_resume_finishes_a_release_whose_push_failed(project: Path, capsys) -> N
     ).stdout
     assert "refs/tags/v0.3.2" in remote_tags
     assert _tags(project) == ["v0.3.2"]
+
+
+# ── exit codes and --json ───────────────────────────────────────────────────
+
+
+def test_missing_bump_is_a_usage_error(project: Path) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_USAGE, run_share_cli
+
+    assert run_share_cli(repo_root=project, bump=None, message=None) == EXIT_USAGE
+
+
+def test_a_fixable_refusal_exits_20_and_names_the_next_step(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_REFUSED, run_share_cli
+
+    (project / "stray.txt").write_text("x")
+    assert run_share_cli(repo_root=project, bump="patch", message=None) == EXIT_REFUSED
+    out = capsys.readouterr().out
+    assert "NEXT: " in out
+    assert "STATE: BLOCKED" in out
+
+
+def test_a_human_only_refusal_exits_30_with_a_stop_line(project: Path, capsys) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_HUMAN_NEEDED, run_share_cli
+
+    subprocess.run(["git", "remote", "remove", "origin"], cwd=project, check=True, capture_output=True)
+    assert run_share_cli(repo_root=project, bump="patch", message=None) == EXIT_HUMAN_NEEDED
+    out = capsys.readouterr().out
+    assert "STOP: human needed" in out
+    assert "STATE: NEEDS_HUMAN" in out
+
+
+def test_a_step_failure_before_the_commit_exits_40_and_reverts(project: Path, capsys) -> None:
+    from haywire.core.publishing.pipeline.errors import MarketstallError
+    from haywire_studio.packaging.share_cli import EXIT_FAILED_REVERTED, run_share_cli
+
+    with (
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
+        _fake_docs(),
+        patch.object(SharePipeline, "apply_marketstall", side_effect=MarketstallError("boom")),
+    ):
+        code = run_share_cli(repo_root=project, bump="patch", message=None)
+
+    assert code == EXIT_FAILED_REVERTED
+    path = project / "barn" / "haybale-alpha" / "pyproject.toml"
+    assert toml.loads(path.read_text())["project"]["version"] == "0.3.1"
+    assert _tags(project) == []
+    assert "Reverted" in capsys.readouterr().out
+
+
+def test_json_prints_one_object_on_stdout_and_prose_on_stderr(project: Path, capsys) -> None:
+    import json
+
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    code = run_share_cli(repo_root=project, bump=None, message=None, status=True, json_output=True)
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert code == 0
+    assert payload["schema"] == 1
+    assert (payload["state"], payload["exit_code"], payload["ok"]) == ("READY", 0, True)
+    assert payload["next"]["command"].endswith("share --bump patch")
+    assert "Ready to release" in captured.err
+
+
+def test_json_describes_a_refusal(project: Path, capsys) -> None:
+    import json
+
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _release(project)
+    capsys.readouterr()
+    run_share_cli(repo_root=project, bump="patch", message=None, json_output=True)
+
+    payload = json.loads(capsys.readouterr().out)
+    assert (payload["state"], payload["exit_code"], payload["ok"]) == ("RELEASED", 10, True)
+    assert payload["failure"]["code"] == "already_released"
 
 
 # ── argparse surface ─────────────────────────────────────────────────────────
