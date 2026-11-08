@@ -55,7 +55,7 @@ def test_clock_through_reblock_to_recorder(graph_with_library_system: BaseGraph,
             sizes.setdefault(event_name, set()).add(payload["audio"].frames)
             deliver(event_name, payload)
 
-        vm.emit_callback = record  # every emitter reaches the VM through this
+        monkeypatch.setattr(vm, "emit_callback", record)  # every emitter reaches the VM through this
         assert clock.node.worker(SimpleNamespace(control_pin="start", emit_callback=record)) == "started"
         time.sleep(0.5)
         clock.node.worker(SimpleNamespace(control_pin="stop", emit_callback=record))
