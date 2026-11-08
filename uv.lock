@@ -1024,7 +1024,6 @@ version = "0.3.4"
 source = { editable = "barn/haybale-example" }
 dependencies = [
     { name = "haybale-core" },
-    { name = "haybale-models" },
     { name = "haywire-core" },
     { name = "nicegui" },
     { name = "typing-extensions" },
@@ -1033,7 +1032,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
-    { name = "haybale-models", editable = "barn/haybale-models" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "nicegui", specifier = ">=3.18.0" },
     { name = "typing-extensions" },
@@ -1080,10 +1078,13 @@ name = "haybale-image"
 version = "0.3.4"
 source = { editable = "barn/haybale-image" }
 dependencies = [
+    { name = "fastapi" },
     { name = "haywire-core" },
+    { name = "nicegui" },
     { name = "numpy" },
     { name = "opencv-contrib-python" },
     { name = "pillow" },
+    { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
@@ -1093,11 +1094,14 @@ torch = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi" },
     { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "nicegui", specifier = ">=3.18.0" },
     { name = "numpy" },
     { name = "opencv-contrib-python", specifier = ">=5.0.0.93" },
     { name = "pillow", specifier = ">=12.0" },
     { name = "torch", marker = "extra == 'torch'" },
+    { name = "typing-extensions" },
 ]
 provides-extras = ["torch"]
 
@@ -1125,18 +1129,24 @@ name = "haybale-models"
 version = "0.3.4"
 source = { editable = "barn/haybale-models" }
 dependencies = [
+    { name = "fastapi" },
     { name = "haybale-graph-editor" },
     { name = "haywire-core" },
     { name = "httpx" },
     { name = "huggingface-hub" },
+    { name = "nicegui" },
+    { name = "starlette" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi" },
     { name = "haybale-graph-editor", editable = "barn/haybale-graph-editor" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "huggingface-hub", specifier = ">=2.4" },
+    { name = "nicegui", specifier = ">=3.18.0" },
+    { name = "starlette" },
 ]
 
 [[package]]

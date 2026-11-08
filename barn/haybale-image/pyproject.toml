@@ -10,6 +10,9 @@ dependencies = [
     "numpy",
     "opencv-contrib-python>=5.0.0.93",
     "pillow>=12.0",
+    "nicegui>=3.18.0",
+    "fastapi",
+    "typing_extensions",
 ]
 keywords = ["image"]
 
