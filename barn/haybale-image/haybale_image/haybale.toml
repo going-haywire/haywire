@@ -3,7 +3,7 @@
 # Edited in the studio's library overview — no reinstall, no reload.
 
 name = "haybale-image"
-version = "0.3.3"
+version = "0.3.2"
 label = "Image"
 description = "Image types, IO and viewers shared by vision and ML libraries"
 tags = ["image"]

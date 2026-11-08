@@ -1,6 +1,6 @@
 [project]
 name = "haybale-image"
-version = "0.3.3"
+version = "0.3.2"
 description = "Image types, IO and viewers shared by vision and ML libraries"
 requires-python = ">=3.12"
 license = {text = "MIT"}
