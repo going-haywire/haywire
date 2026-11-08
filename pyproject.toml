@@ -114,6 +114,7 @@ module = [
     "spandrel.*",
     "spandrel_extra_arches",
     "spandrel_extra_arches.*",
+    "soundfile",
 ]
 ignore_missing_imports = true
 
