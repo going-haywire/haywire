@@ -116,6 +116,8 @@ missing tag if needed and pushes. It never writes a new version. A marker file,
 `.git/haywire-share.json`, records the one state a tag cannot show (a commit
 whose tag step failed); it is removed when the push succeeds.
 
+`--first-release` creates the PyPI project(s) when the project declares `distribute = "pypi"`; see [publish-to-pypi §6](./publish-to-pypi.md#6-the-first-release).
+
 `--status` prints the state and ends with a `STATE:` line: `READY`, `RELEASED`,
 `NOTHING_TO_RELEASE`, `UNPUSHED`, `STALE_MARKER`, `NEEDS_HUMAN` or `BLOCKED`. Every
 refusal ends with one `NEXT:`, `DONE:` or `STOP:` line.

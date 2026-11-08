@@ -52,6 +52,14 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         "declared floor is kept unchanged.",
     )
     parser.add_argument(
+        "--first-release",
+        action="store_true",
+        help="Create the PyPI project(s): the owner has registered a pending publisher for "
+        "each library name, and this publish tags and pushes the current version (no bump "
+        "unless --bump is also given) so CI uploads it. Refused if any name already exists "
+        "on PyPI.",
+    )
+    parser.add_argument(
         "--status",
         action="store_true",
         help="Read-only: report whether this checkout is ready to release, already "
@@ -86,4 +94,5 @@ def _run(args: argparse.Namespace) -> int:
         status=args.status,
         resume=args.resume,
         json_output=args.json,
+        first_release=args.first_release,
     )

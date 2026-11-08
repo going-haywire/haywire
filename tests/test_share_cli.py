@@ -415,3 +415,143 @@ def test_removed_flags_are_gone() -> None:
     assert "--save" not in result.stdout
     assert "--strict" not in result.stdout
     assert "--check" not in result.stdout
+
+
+# ── --first-release ─────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def pypi_project(project: Path) -> Path:
+    """The project, declaring distribute = pypi, committed and pushed."""
+    (project / "pyproject.toml").write_text('[tool.haywire.marketstall]\ndistribute = "pypi"\n')
+    subprocess.run(["git", "add", "-A"], cwd=project, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "pypi"], cwd=project, check=True, capture_output=True)
+    subprocess.run(["git", "push"], cwd=project, check=True, capture_output=True)
+    return project
+
+
+def _pypi(monkeypatch: pytest.MonkeyPatch, answer: bool | None, *, github: bool = True) -> None:
+    from haywire.core.publishing import human_steps
+    from haywire.core.publishing.pipeline.steps import preconditions
+
+    monkeypatch.setattr(preconditions, "_pypi_name_is_registered", lambda name, **kw: answer)
+    if github:
+        monkeypatch.setattr(human_steps, "github_owner_repo", lambda url: ("o", "r"))
+
+
+def test_a_missing_pypi_name_stops_for_the_owner_and_names_the_next_command(
+    pypi_project: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_HUMAN_NEEDED, run_share_cli
+
+    _pypi(monkeypatch, False)
+    code = run_share_cli(repo_root=pypi_project, bump="patch", message=None)
+
+    out = capsys.readouterr().out
+    assert code == EXIT_HUMAN_NEEDED
+    assert "Register a PyPI pending publisher" in out
+    assert "THEN, once the owner confirms: uv run --frozen haywire share --first-release" in out
+    assert _tags(pypi_project) == []
+
+
+def test_first_release_tags_the_declared_version_without_bumping(
+    pypi_project: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _pypi(monkeypatch, False)
+    with (
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
+        _fake_docs(),
+    ):
+        code = run_share_cli(repo_root=pypi_project, bump=None, message=None, first_release=True)
+
+    assert code == 0
+    assert _tags(pypi_project) == ["v0.3.1"]
+    path = pypi_project / "barn" / "haybale-alpha" / "pyproject.toml"
+    assert toml.loads(path.read_text())["project"]["version"] == "0.3.1"
+    assert (
+        "refs/tags/v0.3.1"
+        in subprocess.run(
+            ["git", "ls-remote", "--tags", "origin"], cwd=pypi_project, capture_output=True, text=True
+        ).stdout
+    )
+
+
+def test_first_release_with_bump_composes(pypi_project: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from haywire_studio.packaging.share_cli import run_share_cli
+
+    _pypi(monkeypatch, False)
+    with (
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
+        _fake_docs(),
+    ):
+        assert run_share_cli(repo_root=pypi_project, bump="patch", message=None, first_release=True) == 0
+    assert _tags(pypi_project) == ["v0.3.2"]
+
+
+def test_first_release_refuses_a_name_that_exists(
+    pypi_project: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_REFUSED, run_share_cli
+
+    _pypi(monkeypatch, True)
+    code = run_share_cli(repo_root=pypi_project, bump=None, message=None, first_release=True)
+
+    assert code == EXIT_REFUSED
+    assert "already exist on PyPI" in capsys.readouterr().out
+    assert _tags(pypi_project) == []
+
+
+def test_first_release_refuses_when_pypi_cannot_confirm(
+    pypi_project: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_REFUSED, run_share_cli
+
+    _pypi(monkeypatch, None)
+    code = run_share_cli(repo_root=pypi_project, bump=None, message=None, first_release=True)
+
+    assert code == EXIT_REFUSED
+    assert "NEXT: uv run --frozen haywire share --first-release" in capsys.readouterr().out
+
+
+def test_first_release_stops_on_a_non_github_host(
+    pypi_project: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_HUMAN_NEEDED, run_share_cli
+
+    _pypi(monkeypatch, False, github=False)
+    code = run_share_cli(repo_root=pypi_project, bump=None, message=None, first_release=True)
+
+    assert code == EXIT_HUMAN_NEEDED
+    assert "github.com only" in capsys.readouterr().out
+
+
+def test_first_release_needs_a_new_version_when_the_current_one_is_tagged(
+    pypi_project: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_REFUSED, run_share_cli
+
+    subprocess.run(["git", "tag", "v0.3.1"], cwd=pypi_project, check=True, capture_output=True)
+    subprocess.run(["git", "push", "origin", "refs/tags/v0.3.1"], cwd=pypi_project, check=True)
+    (pypi_project / "barn" / "haybale-alpha" / "mod.py").write_text("x = 1\n")
+    subprocess.run(["git", "add", "-A"], cwd=pypi_project, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "more"], cwd=pypi_project, check=True, capture_output=True)
+    subprocess.run(["git", "push"], cwd=pypi_project, check=True, capture_output=True)
+    _pypi(monkeypatch, False)
+    code = run_share_cli(repo_root=pypi_project, bump=None, message=None, first_release=True)
+
+    assert code == EXIT_REFUSED
+    assert "--first-release --bump patch" in capsys.readouterr().out
+
+
+def test_first_release_is_refused_for_a_git_project(
+    project: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    from haywire_studio.packaging.share_cli import EXIT_REFUSED, run_share_cli
+
+    _pypi(monkeypatch, False)
+    code = run_share_cli(repo_root=project, bump=None, message=None, first_release=True)
+
+    assert code == EXIT_REFUSED
+    assert 'distribute = "pypi"' in capsys.readouterr().out
