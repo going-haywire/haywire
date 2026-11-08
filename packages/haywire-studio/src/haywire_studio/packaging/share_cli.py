@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from haywire.core.publishing.human_steps import checklist
 from haywire.core.publishing.pipeline import (
     PreconditionFailure,
     PreconditionsError,
@@ -67,6 +68,7 @@ class Outcome:
     tag: str | None = None
     next_command: str | None = None
     stop_reason: str | None = None
+    checklist: list[str] | None = None
     failure: dict[str, str] | None = None
 
     def as_json(self) -> dict[str, Any]:
@@ -78,7 +80,9 @@ class Outcome:
             "version": self.version,
             "tag": self.tag,
             "next": {"command": self.next_command} if self.next_command else None,
-            "stop": {"reason": self.stop_reason} if self.stop_reason else None,
+            "stop": {"reason": self.stop_reason, "checklist": self.checklist or []}
+            if self.stop_reason
+            else None,
             "failure": self.failure,
         }
 
@@ -113,7 +117,7 @@ def run_share_cli(
             else:
                 _run_publish(pipeline, out, bump=bump, message=message, requires_haywire=requires_haywire)
         except PreconditionsError as exc:
-            _refuse(out, exc.failures[0])
+            _refuse(out, exc.failures[0], repo_root)
         except ShareError as exc:
             _fail(pipeline, out, exc, publishing=not (status or resume or dry_run))
 
@@ -136,7 +140,7 @@ def _classify(failure: PreconditionFailure) -> tuple[int, str]:
     return EXIT_REFUSED, state or "BLOCKED"
 
 
-def _refuse(out: Outcome, failure: PreconditionFailure) -> None:
+def _refuse(out: Outcome, failure: PreconditionFailure, repo_root: Path) -> None:
     """Print a refusal, ending in one DONE/STOP/NEXT line and a STATE line."""
     _print_failure(failure)
     out.exit_code, out.state = _classify(failure)
@@ -150,6 +154,11 @@ def _refuse(out: Outcome, failure: PreconditionFailure) -> None:
     elif out.exit_code == EXIT_HUMAN_NEEDED:
         out.stop_reason = failure.message.splitlines()[0]
         print(f"STOP: human needed — {out.stop_reason}")
+        if failure.human_steps:
+            out.checklist = checklist(failure.human_steps, repo_root)
+            print("Give this to the owner, then wait; do not attempt it yourself:")
+            for line in out.checklist:
+                print(f"  {line}")
     else:
         out.next_command = failure.next_command or _STATUS_COMMAND
         if failure.next_command:
@@ -216,7 +225,7 @@ def _run_status(pipeline: SharePipeline, out: Outcome) -> None:
     """Read-only. The last line is ``STATE: <name>``, stable for callers to match."""
     report = pipeline.check_preconditions()
     if not report.ok:
-        _refuse(out, report.failures[0])
+        _refuse(out, report.failures[0], pipeline.repo_root)
         return
     print("✓ Ready to release.")
     out.state, out.exit_code, out.next_command = (
