@@ -42,6 +42,7 @@ Procedures: the `haywire-workflow` skill; releases: `/haywire-release`. The non-
 - Work on a branch started from an up-to-date `master`; never commit on `master`.
 - Commit and push freely on a branch, without asking; open a draft PR on the first push. CI runs on every push.
 - `master` takes changes only through a PR whose checks passed. Merge only on the user's word ("merge"), once the checks are green.
+- Never change a version number in a feature PR (`pyproject.toml`, `haybale.toml`, `>=` pins). Releases are lockstep across all packages and happen only through `/haywire-release` in its own release PR ([docs/reference/publish_releases.md](docs/reference/publish_releases.md)). If an instruction says "bump X" or a pin needs a version that does not exist yet, stop and ask.
 - Destructive git commands stay with the user: `.claude/hooks/block-dangerous-git.sh` lists and blocks them.
 - Whenever the user has to decide or review something, give them what they need in one look: the URL of every PR, issue or CI run involved, markdown links to the local files and lines that matter, the options lettered with a recommendation, and the evidence. They should never have to go and find it.
 
