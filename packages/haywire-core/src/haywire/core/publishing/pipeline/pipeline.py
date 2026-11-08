@@ -73,6 +73,9 @@ class SharePipeline:
         # `--yes` "refuses" on this; it never did, and there is no --yes now.
         self.undeclared_acknowledged = False
         self.version: str | None = None
+        #: True when the owner asserts this publish creates the PyPI project(s);
+        #: preflight then requires every name to be absent from PyPI instead of present.
+        self.first_release = False
 
     # ── Step 1: preconditions ────────────────────────────────────────────────
 

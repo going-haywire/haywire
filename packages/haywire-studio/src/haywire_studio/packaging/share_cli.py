@@ -32,6 +32,7 @@ from haywire.core.publishing.pipeline import (
     PreconditionsError,
     ShareError,
     SharePipeline,
+    TagCollisionError,
 )
 from haywire.core.publishing.pipeline.steps import release_state
 from haywire.core.publishing.url import derive_share_url_only
@@ -55,6 +56,7 @@ _STATES = {
 }
 
 _STATUS_COMMAND = "uv run --frozen haywire share --status"
+_FIRST_RELEASE_COMMAND = "uv run --frozen haywire share --first-release"
 _RESUME_COMMAND = "uv run --frozen haywire share --resume"
 
 
@@ -67,6 +69,7 @@ class Outcome:
     version: str | None = None
     tag: str | None = None
     next_command: str | None = None
+    then_command: str | None = None
     stop_reason: str | None = None
     checklist: list[str] | None = None
     failure: dict[str, str] | None = None
@@ -80,7 +83,11 @@ class Outcome:
             "version": self.version,
             "tag": self.tag,
             "next": {"command": self.next_command} if self.next_command else None,
-            "stop": {"reason": self.stop_reason, "checklist": self.checklist or []}
+            "stop": {
+                "reason": self.stop_reason,
+                "checklist": self.checklist or [],
+                "then": self.then_command,
+            }
             if self.stop_reason
             else None,
             "failure": self.failure,
@@ -97,6 +104,7 @@ def run_share_cli(
     status: bool = False,
     resume: bool = False,
     json_output: bool = False,
+    first_release: bool = False,
 ) -> int:
     """Publish *repo_root*, or report what publishing it would do; return the exit code.
 
@@ -104,6 +112,7 @@ def run_share_cli(
     JSON object (:meth:`Outcome.as_json`).
     """
     pipeline = SharePipeline(repo_root)
+    pipeline.first_release = first_release
     out = Outcome()
 
     def dispatch() -> None:
@@ -159,6 +168,9 @@ def _refuse(out: Outcome, failure: PreconditionFailure, repo_root: Path) -> None
             print("Give this to the owner, then wait; do not attempt it yourself:")
             for line in out.checklist:
                 print(f"  {line}")
+        if failure.next_command:
+            out.then_command = failure.next_command
+            print(f"THEN, once the owner confirms: {failure.next_command}")
     else:
         out.next_command = failure.next_command or _STATUS_COMMAND
         if failure.next_command:
@@ -292,7 +304,7 @@ def _run_publish(
     requires_haywire: str | None,
 ) -> None:
     """The full run. Every decision arrives as a flag or takes its inert default."""
-    if not bump:
+    if not bump and not pipeline.first_release:
         print("share requires --bump (patch|minor|major|X.Y.Z): a non-interactive run")
         print("cannot guess which version you meant to publish.")
         print("Run `haywire share --dry-run` to see what is available.")
@@ -303,6 +315,31 @@ def _run_publish(
 
     pipeline.require_preconditions()
     print("✓ Preconditions OK")
+
+    if not bump:
+        # --first-release without --bump publishes the version already declared.
+        current = pipeline.plan_version().common_version
+        if current is None:
+            print("The libraries declare different versions: add --bump X.Y.Z.")
+            out.state, out.exit_code, out.next_command = "USAGE", EXIT_USAGE, _STATUS_COMMAND
+            out.failure = {"code": "usage", "message": "versions disagree"}
+            print("STATE: USAGE")
+            return
+        try:
+            pipeline.check_tag_available(current)
+        except TagCollisionError as exc:
+            _refuse(
+                out,
+                PreconditionFailure(
+                    message=str(exc),
+                    remedy="That version is already tagged, so a first release needs a new one.",
+                    code="first_release_tag_exists",
+                    next_command=f"{_FIRST_RELEASE_COMMAND} --bump patch",
+                ),
+                pipeline.repo_root,
+            )
+            return
+        bump = current
 
     report = pipeline.check_drift()
 
@@ -370,4 +407,9 @@ def _run_publish(
             print(f"\n  Frozen to this version:\n  {url.tagged_url}")
     elif url.warning:
         print(f"\n⚠ {url.warning}")
+    if pipeline.first_release:
+        print(
+            "\nFirst release: the tag push started publish.yml, which creates the PyPI project(s). "
+            "Check the Actions tab, then https://pypi.org/project/<name>/."
+        )
     print("STATE: RELEASED")

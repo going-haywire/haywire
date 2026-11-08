@@ -557,11 +557,11 @@ nothing while `distribute` is `git`.
 To publish to PyPI instead, set `distribute = "pypi"` under `[tool.haywire.marketstall]`
 in the root `pyproject.toml` and follow
 [docs/guides/publish-to-pypi.md](https://github.com/going-haywire/haywire/blob/master/docs/guides/publish-to-pypi.md).
-The first PyPI release is the owner's: a pending publisher does not make the name exist
-(PyPI answers 404), so the `share` preflight fails until the first upload. After the owner
-has registered the pending publishers, they tag the committed version and push the tag
-(`git tag v<version> && git push origin v<version>`); `publish.yml` then creates the
-project. Agents never tag or push tags. From then on use `share` for every release.
+The first PyPI release: a pending publisher does not make the name exist (PyPI answers 404),
+so a plain `share` stops with `STOP: human needed` and a checklist for the owner. Once the
+owner confirms they did it, run `uv run --frozen haywire share --first-release`; it tags the
+current version and CI uploads it. Agents never tag or push tags by hand. From then on use
+`share --bump patch` for every release.
 """
 
 

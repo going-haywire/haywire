@@ -134,26 +134,26 @@ both — and pasting that into Add Source fails.
 Both now point at PyPI coordinates rather than clone specs. Subscribing to the first tracks your releases; the second freezes to the one you published at that tag.
 
 !!! warning "The name must exist on PyPI before `haywire share` runs"
-    `haywire share` checks the declaration at preflight: `distribute = "pypi"` against a distribution name PyPI answers 404 for fails **before** a tag is pushed, rather than surfacing when a consumer tries to install. A *pending publisher* (§3) does not satisfy this check, because the name does not exist until the first upload. Do the first upload by hand first (§6, *The first release*), then run `haywire share`. The check is skipped when PyPI cannot be reached, so it never blocks an offline publish.
+    `haywire share` checks the declaration at preflight: `distribute = "pypi"` against a distribution name PyPI answers 404 for fails **before** a tag is pushed, rather than surfacing when a consumer tries to install. A *pending publisher* (§3) does not satisfy this check, because the name does not exist until the first upload. Do the first release with `haywire share --first-release` (§6) instead. The check is skipped when PyPI cannot be reached, so it never blocks an offline publish.
 
 ## 6. The first release
 
-The first upload cannot go through `haywire share`, which refuses a name PyPI does not know yet (§5). The owner does it once, by tagging the committed version:
+The first upload creates the PyPI project, so `haywire share` cannot do it the ordinary way: it refuses a name PyPI does not know yet (§5). `haywire share --first-release` is the explicit first-release mode.
 
-1. Complete §2 to §5: a pending publisher on PyPI for **each** library name, the `pypi` environment created in the repository's *Settings → Environments*, and `distribute = "pypi"` declared and committed.
-2. Make sure `[project].version` in each library's `pyproject.toml` (and `haybale.toml`) is the version to publish first, for example `0.0.1`, and that it is pushed.
-3. Tag that version and push the tag:
+1. The owner completes §2 to §5: a pending publisher on PyPI for **each** library name, the `pypi` environment created in the repository's *Settings → Environments*, and `distribute = "pypi"` declared and committed. Running `haywire share` before this stops with `STOP: human needed` and prints this checklist filled in from your remote and library names.
+2. Run:
 
    ```sh
-   git tag v0.0.1
-   git push origin v0.0.1
+   uv run --frozen haywire share --first-release
    ```
 
-   The workflow creates each project through the pending publisher's OIDC identity.
-4. Check that `https://pypi.org/project/haybale-my-lib/` answers 200. The pending publisher is now an ordinary one.
-5. From now on use the normal flow below: `haywire share --bump patch` publishes `0.0.2` and every later version.
+   It publishes the version already declared (so `0.0.1` really is released; add `--bump patch` to move on first), commits, tags and pushes. The tag push starts the workflow, which creates each project through the pending publisher's OIDC identity.
+3. Check that `https://pypi.org/project/haybale-my-lib/` answers 200. The pending publisher is now an ordinary one.
+4. From now on use the normal flow below: `haywire share --bump patch`.
 
-**A mistyped name fails safe.** PyPI looks the publisher up by the project name in the upload. If the name on the PyPI form and `[project].name` differ, the upload is rejected before any file is stored, and no version number is used up. Correct the PyPI form (or the library name), then re-run the failed job on the tag. If the library name itself was wrong, the tag cannot move: fix the name in a new commit and tag the next version.
+`--first-release` is refused when any library name already exists on PyPI (drop the flag if it is yours, rename if it is not), when PyPI cannot be reached to confirm that, when the project does not declare `distribute = "pypi"`, and when the remote is not on github.com. If the declared version is already tagged it tells you to add `--bump patch`. PyPI offers no way to ask whether a pending publisher exists, so the flag is your statement that it does; the safety net is below.
+
+**A mistyped name fails safe.** PyPI looks the publisher up by the project name in the upload. If the name on the PyPI form and `[project].name` differ, the upload is rejected before any file is stored, and no version number is used up. Correct the PyPI form (or the library name), then re-run the failed job on the tag. If the library name itself was wrong, the tag cannot move: fix the name in a new commit and run `share --first-release --bump patch`.
 
 ## 7. Cutting a release
 
