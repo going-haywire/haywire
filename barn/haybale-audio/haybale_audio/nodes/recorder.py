@@ -10,7 +10,7 @@ from haybale_audio.emitter import set_status
 from haybale_audio.io.files import BlockWriter
 from haybale_audio.value import AudioBlock
 
-_EXTENSIONS = [".wav", ".flac", ".ogg"]
+_EXTENSIONS = [".wav", ".flac", ".ogg", ".mp3"]
 
 
 @node(

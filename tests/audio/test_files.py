@@ -35,6 +35,19 @@ def test_writer_then_reader_round_trips(tmp_path):
     np.testing.assert_array_equal(np.concatenate([b.data for b in blocks], axis=1), data)
 
 
+def test_mp3_round_trips_lossy(tmp_path):
+    path = tmp_path / "tone.mp3"
+    writer = BlockWriter(path)
+    writer.write(AudioBlock(_tone(2, 4800), 48000))
+    writer.close()
+
+    reader = FileBlockReader(path, 512)
+    block = reader.read_block()
+    reader.close()
+    assert block is not None
+    assert (block.channels, block.sample_rate, block.frames) == (2, 48000, 512)
+
+
 def test_reader_loops(tmp_path):
     path = tmp_path / "short.wav"
     sf.write(str(path), _tone(1, 300).T, 44100, subtype="FLOAT")
