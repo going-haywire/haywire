@@ -14,7 +14,8 @@ class PullBuffer:
     Blocks are converted to ``sample_rate`` and fitted to ``channels``. The drift controller adjusts
     the conversion ratio to hold the queue at ``prefill_blocks`` blocks of ``block_frames`` frames, so
     the producer's and the consumer's clocks may differ slightly. ``read`` returns ``None`` until the
-    prefill is queued, and again after the queue runs dry.
+    prefill is queued, and again after the queue runs dry. Playback starts at the prefill depth: audio
+    queued beyond it is dropped.
 
     ``write`` and ``read`` may run on different threads.
     """
@@ -28,7 +29,8 @@ class PullBuffer:
         self.channels = channels
         self.target = block_frames * prefill_blocks
         self.restarts = 0  # times the queue ran dry
-        self._fifo = FrameFifo(channels, self.target * 4)
+        # Room for the device's own buffer to fill while the prefill is queued.
+        self._fifo = FrameFifo(channels, max(self.target * 4, sample_rate))
         self._resampler = StreamResampler(sample_rate)
         self._drift = DriftController(self.target)
         self._playing = False
@@ -47,6 +49,11 @@ class PullBuffer:
     def playing(self) -> bool:
         return self._playing
 
+    def ready(self, frames: int) -> bool:
+        """Return whether ``read(frames)`` would return ``frames`` frames of queued audio."""
+        needed = frames if self._playing else max(frames, self.target)
+        return self._fifo.depth >= needed
+
     def write(self, block: AudioBlock) -> None:
         trim = self._drift.update(self._fifo.depth) if self._playing else 0.0
         converted = self._resampler.process(block, trim)
@@ -62,6 +69,10 @@ class PullBuffer:
         if not self._playing:
             if self._fifo.depth < self.target:
                 return None
+            # Playback starts from the target depth: audio queued beyond it would only be drained
+            # by the drift controller, slowly and with an overshoot.
+            self._fifo.keep_newest(self.target)
+            self._drift.reset()
             self._playing = True
         before = self._fifo.underruns
         out = self._fifo.pop(frames)

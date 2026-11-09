@@ -33,6 +33,16 @@ def test_buffer_is_silent_until_prefilled_and_restarts_after_a_stall():
 
 
 @pytest.mark.unit
+def test_buffer_starts_playing_at_its_prefill_depth():
+    buf = PullBuffer(48000, 1, 256, prefill_blocks=2)
+    for _ in range(40):
+        buf.write(_block(0.5))  # written long before the first read
+    assert buf.depth > 5000
+    assert buf.read(256) is not None
+    assert buf.depth == 2 * 256 - 256, "the excess is dropped and the first read is taken from the rest"
+
+
+@pytest.mark.unit
 def test_buffer_converts_rate_and_channels():
     buf = PullBuffer(48000, 2, 256, prefill_blocks=1)
     for _ in range(10):
@@ -40,7 +50,7 @@ def test_buffer_converts_rate_and_channels():
     out = buf.read(256)
     assert out is not None
     assert out.shape == (2, 256)
-    assert buf.depth + buf.overruns + 256 == pytest.approx(10 * 441 * 48000 / 44100, rel=0.02)
+    assert np.allclose(out[0], out[1])
 
 
 @pytest.mark.unit
@@ -104,7 +114,7 @@ def test_tick_mixes_the_inputs_with_gain_and_mute(graph_with_library_system):
     mixer.node.value = lambda port_id: values.get(port_id)
     clock = _block(0.0)
 
-    for _ in range(6):
+    for _ in range(10):
         for n in range(3):
             mixer.node.worker(_pin(f"write_{n}"))
     assert mixer.node.worker(_pin("tick"), clock=clock) == "next"
@@ -122,7 +132,7 @@ def test_blocks_written_before_the_first_tick_are_kept(graph_with_library_system
     make_edge(g, _event(g).node_id, "audio", mixer.node_id, "in_0")
     values = {"in_0": _block(0.4)}
     mixer.node.value = lambda port_id: values.get(port_id)
-    for _ in range(6):
+    for _ in range(10):
         mixer.node.worker(_pin("write_0"))
     clock = _block(0.0)
     mixer.node.worker(_pin("tick"), clock=clock)

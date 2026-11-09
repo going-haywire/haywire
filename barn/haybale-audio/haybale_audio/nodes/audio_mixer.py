@@ -27,7 +27,7 @@ class MixerSettings(NodeSettings):
     """How each input is buffered. Applies on the next start."""
 
     prefill = setting[INT](
-        4,
+        8,
         min=1,
         max=64,
         label="Prefill",

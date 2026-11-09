@@ -19,8 +19,9 @@ Plays audio blocks on a sound device
 
 | name | bag | default | description |
 |---|---|---|---|
-| `device` | output | `''` | Name (or part of it) or number of the output device. Empty uses the system default. |
-| `prefill` | output | `4` | Blocks queued before playback starts. More blocks survive longer stalls but add delay. |
+| `device` | output | `'System default'` | Output device to play on. The list is read when the node is shown. |
+| `buffer_ms` | output | `300` | Audio the sound device holds ahead. It keeps playing when the program is busy for less than this, for example while a large graph loads; 0 uses the device's default. |
+| `prefill` | output | `8` | Blocks queued before playback starts and kept queued. More blocks ride out longer stalls of the flow, with more delay. |
 
 ## Notes
 
@@ -29,6 +30,10 @@ blocks are converted to it, and a mono block plays on both speakers of a stereo 
 
 Playback starts once the prefill is queued and restarts after a stall. A producer clock that
 differs slightly from the device clock is absorbed by adjusting the conversion ratio.
+
+Crackling means the computer was too busy to feed the device in time. The status shows two
+counters: `stalls` are times the flow did not deliver blocks fast enough (raise Prefill), `late`
+are times the sound device ran dry because the program was busy longer than the Device Buffer (raise it).
 
 Inputs:
     write: Queue the block on `audio` (wire it to an Audio Event's Block Ready)

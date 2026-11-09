@@ -56,6 +56,11 @@ class FrameFifo:
             self.underruns += frames - filled
         return out
 
+    def keep_newest(self, frames: int) -> None:
+        """Drop the oldest frames so that at most ``frames`` remain. Dropped frames are not counted."""
+        with self._lock:
+            self._discard(self._depth - frames)
+
     def clear(self) -> None:
         with self._lock:
             self._chunks.clear()
