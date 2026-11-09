@@ -10,7 +10,7 @@ from haywire.core.volumes import VolumePath, resolve
 from haybale_audio.emitter import BlockPump, deliver_to_subscribers, set_status
 from haybale_audio.io.files import FileBlockReader
 
-_EXTENSIONS = [".wav", ".flac", ".ogg", ".aiff"]
+_EXTENSIONS = [".wav", ".flac", ".ogg", ".aiff", ".mp3"]
 
 
 class PlayerSettings(NodeSettings):
