@@ -1,0 +1,18 @@
+# Marketstall for haybale-audio (auto-generated; spec §2)
+# Source of truth: the package's haybale.toml in the haywire monorepo.
+# Re-generated on every release tag by scripts/generate_marketstall.py.
+
+
+[[haybales]]
+name = "haybale-audio"
+label = "Audio"
+version = "0.4.0"
+require = "haywire-core>=0.4.0"
+description = "Audio blocks, events and routing shared by speech and streaming libraries"
+source = "pypi"
+install_spec = "haybale-audio==0.4.0"
+tags = ["audio"]
+on_reload = "none"
+linked_libraries = ["haybale_core"]
+origin = "https://github.com/going-haywire/haywire"
+origin_provider = "github"

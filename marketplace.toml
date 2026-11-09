@@ -32,3 +32,6 @@ url = "https://going-haywire.github.io/haywire/stalls/haybale-models.toml"
 
 [[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-image.toml"
+
+[[stalls]]
+url = "https://going-haywire.github.io/haywire/stalls/haybale-audio.toml"
