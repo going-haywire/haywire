@@ -15,6 +15,8 @@ from enum import Enum
 import logging
 import time
 
+from haywire.core.execution.flow_metrics import FlowSnapshot
+
 if TYPE_CHECKING:
     from haywire.core.execution.flow import Flow
     from haywire.core.execution.event_source import Trigger
@@ -80,6 +82,9 @@ class FlowQueue:
 
         self._is_executing = Event()
 
+        # Triggers discarded without running; only grows.
+        self._dropped = 0
+
         # Execution time statistics (in nanoseconds)
         self._frame_count = 0
         self._exec_time_sum_ns = 0
@@ -128,18 +133,21 @@ class FlowQueue:
                     except Empty:
                         pass
                     self.trigger_queue.put_nowait(trigger)
+                    self._dropped += 1
                     logger.debug("Replaced pending trigger for %s (drop mode)", self.flow.flow_id)
                     return True
         elif group is not None and group.is_runner_thread():
             try:
                 self.trigger_queue.put_nowait(trigger)
             except Full:
+                self._dropped += 1
                 logger.warning(f"Dropping trigger for {self.flow.flow_id}: queue full (emitted in-group)")
                 return False
         else:
             try:
                 self.trigger_queue.put(trigger, block=True, timeout=5.0)
             except Full:
+                self._dropped += 1
                 logger.warning(f"Failed to enqueue trigger for {self.flow.flow_id}: queue full")
                 return False
 
@@ -265,6 +273,27 @@ class FlowQueue:
     def get_queue_size(self) -> int:
         """Get current number of queued triggers."""
         return self.trigger_queue.qsize()
+
+    def get_dropped_count(self) -> int:
+        """Return how many Triggers this queue has discarded without running them."""
+        return self._dropped
+
+    def snapshot(self) -> FlowSnapshot:
+        """Read this queue's counters for a flow meter; cheap enough to call a few times a second."""
+        group = self.group
+        return FlowSnapshot(
+            flow_id=self.flow.flow_id,
+            entry_node_id=self.flow.get_entry_node_id(),
+            group_id=group.group_id if group is not None else "",
+            drop_mode=self.queue_mode == QueueMode.DROP,
+            queue_depth=self.trigger_queue.qsize(),
+            queue_max=self.max_queue_size,
+            frames=self._frame_count,
+            busy_ns=self._exec_time_sum_ns,
+            dropped=self._dropped,
+            executing=self._is_executing.is_set(),
+            taken_at=time.monotonic(),
+        )
 
     def is_busy(self) -> bool:
         """Check if flow is currently executing."""

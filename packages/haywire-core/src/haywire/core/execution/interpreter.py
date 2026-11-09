@@ -23,6 +23,7 @@ from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager
 from haywire.core.execution.vm import HaywireVM
 from haywire.core.execution.callback_manager import CallbackManager
 from haywire.core.execution.flow_queue import FlowQueue
+from haywire.core.execution.flow_metrics import FlowSnapshot
 from haywire.core.execution.execution_group import ExecutionGroup, group_flows, shared_data_node_ids
 from haywire.core.execution.event_source import (
     SystemEvent,
@@ -444,6 +445,10 @@ class Interpreter:
         self._cleanup_current_graph(print_stats=True)
 
         logger.info("Interpreter shutdown complete")
+
+    def flow_metrics(self) -> List[FlowSnapshot]:
+        """Return a counter snapshot of every assembled Flow, for a ``FlowMeterSampler``."""
+        return [flow.queue.snapshot() for flow in self._all_flows() if flow.queue is not None]
 
     def get_statistics(self) -> Dict[str, Any]:
         """
