@@ -3,6 +3,7 @@
 ## node
 - `haybale-audio:node:AudioClockNode` — Audio Clock — Emits a silent audio block at a steady rate  _tags: audio, clock, tick, timer, master, pace, emit_
 - `haybale-audio:node:AudioEventNode` — Audio Event — Triggered for each audio block a connected audio emitter delivers  _tags: audio, block, event, callback, receive, stream, microphone_
+- `haybale-audio:node:AudioMixerNode` — Audio Mixer — Sums several audio sources into one block per clock tick  _tags: audio, mixer, mix, sum, gain, mute, combine, bus_
 - `haybale-audio:node:ChannelMergeNode` — Channel Merge — Stacks audio blocks into one block with all their channels  _tags: audio, channel, merge, combine, stack, join, multichannel_
 - `haybale-audio:node:ChannelSelectNode` — Channel Select — Picks, reorders or repeats the channels of an audio block  _tags: audio, channel, select, route, map, left, right, stereo, mono_
 - `haybale-audio:node:ChannelSplitNode` — Channel Split — Gives each channel of an audio block its own output  _tags: audio, channel, split, separate, left, right, mono, multichannel_

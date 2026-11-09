@@ -6,6 +6,7 @@ Audio blocks, events and routing shared by speech and streaming libraries
 ### Audio
 - **Audio Clock** — Emits a silent audio block at a steady rate
 - **Audio Event** — Triggered for each audio block a connected audio emitter delivers
+- **Audio Mixer** — Sums several audio sources into one block per clock tick
 - **Channel Merge** — Stacks audio blocks into one block with all their channels
 - **Channel Select** — Picks, reorders or repeats the channels of an audio block
 - **Channel Split** — Gives each channel of an audio block its own output
