@@ -271,12 +271,12 @@ class HaystackEditor(BaseEditor):
                 for entry in macros:
                     self._render_entry(entry, context)
 
+            if context.can_edit():
+                self._render_add_bar(context)
+
         self._samplers = {eid: s for eid, s in self._samplers.items() if eid in self._meters}
         if self._meter_timer is not None:
             self._meter_timer.active = bool(self._meters)
-
-            if context.can_edit():
-                self._render_add_bar(context)
 
     def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
         is_active = entry.graph is context.data[EditState].active_graph

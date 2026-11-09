@@ -6,6 +6,7 @@ Routes:
   GET  /node?class=...&bag=  — render a NodeSettings bag via render_reactive()
   GET  /schema?class=...     — render a LibrarySettings/FrameworkSettings via render_schema()
   GET  /copy-button          — a bare hui.code_snippet() with its copy button
+  GET  /flow-meter           — a haystack row's flow meter with a fixed reading
   GET  /volumes-editor?width= — the Volumes editor in a host of the given width
   GET  /graph-path-demo      — a Path Demo node holding a very long resolved path
   GET  /code-editor-header?width= — the code editor's header in a host of the given width
@@ -2851,6 +2852,70 @@ def register_routes(library_service) -> None:
             ui.add_css(theme_css)
         ui.add_css(STATIC_CSS)
         hui.filter_chip("probe")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /flow-meter
+    #
+    # A haystack row's flow meter (FlowMeterView) fed one fixed reading: two execution groups,
+    # three Flows. Backs test_flow_meter_browser.py (strip, lazy tooltips).
+    # -------------------------------------------------------------------------
+
+    @ui.page("/flow-meter")
+    async def flow_meter_page():
+        from haywire.core.execution.flow_metrics import (
+            FlowReading,
+            GroupReading,
+            MeterReading,
+            Severity,
+        )
+
+        from haybale_haystack.flow_meter import FlowMeterView
+
+        def flow(flow_id: str, group: str, severity: Severity, load: float, **fields) -> FlowReading:
+            values = {
+                "flow_id": flow_id,
+                "entry_node_id": f"node_{flow_id}",
+                "group_id": group,
+                "drop_mode": False,
+                "load": load,
+                "group_load": load,
+                "fill": 0.0,
+                "frame_rate": 187.5,
+                "drop_rate": 0.0,
+                "recently_dropped": False,
+                "dropped_total": 0,
+                "queue_depth": 3,
+                "queue_max": 100,
+                "severity": severity,
+            }
+            values.update(fields)
+            return FlowReading(**values)  # type: ignore[arg-type]
+
+        groups = (
+            GroupReading(
+                "B",
+                0.95,
+                Severity.ALERT,
+                (flow("mixer_tick", "B", Severity.ALERT, 0.95, dropped_total=4, recently_dropped=True),),
+            ),
+            GroupReading(
+                "A",
+                0.3,
+                Severity.OK,
+                (
+                    flow("source_a", "A", Severity.OK, 0.2),
+                    flow("source_b", "A", Severity.OK, 0.1),
+                ),
+            ),
+        )
+        if theme_css:
+            ui.add_css(theme_css)
+        with ui.row().classes("items-center gap-2 p-4").style("width: 260px;"):
+            ui.label("audio").classes("flex-1 truncate")
+            view = FlowMeterView(lambda node_id: {"node_mixer_tick": "Tick"}.get(node_id, node_id))
+            view.build()
+            view.update(MeterReading(groups))
         _stamp_synced()
 
     @ui.page("/copy-button")

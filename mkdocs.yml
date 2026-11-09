@@ -127,6 +127,7 @@ nav:
       - Security: guides/security.md
       - Model catalogs: guides/model-catalogs.md
       - Graph notices: guides/graph-notices.md
+      - Flow meters: guides/flow-meters.md
 
   - Architecture:
       - Overview: architecture/overview/overview-arch.md
