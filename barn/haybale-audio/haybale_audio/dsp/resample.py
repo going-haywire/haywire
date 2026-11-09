@@ -43,10 +43,9 @@ class StreamResampler:
 class DriftController:
     """PI controller: turns a FIFO's depth into the ``trim`` that holds it at ``target_depth``.
 
-    A depth above the target gives a positive trim (fewer frames out). The default gains came out
-    best of the pairs tried in spike S9: no underrun at ±200 and +500 ppm, the trim settling within
-    3% of the true offset, and a depth swing of about ±130 frames (3 ms). A larger ``kp`` settles on
-    a biased trim and ``ki`` of 5e-6 oscillates.
+    A depth above the target gives a positive trim (fewer frames out). Against a constant clock
+    offset the trim settles within 3% of it, after a few minutes, and at 48 kHz the depth swings
+    about ±130 frames (3 ms) around the target with the default gains.
     """
 
     def __init__(self, target_depth: int, kp: float = 5e-4, ki: float = 1e-6) -> None:

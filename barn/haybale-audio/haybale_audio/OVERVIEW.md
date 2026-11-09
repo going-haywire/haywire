@@ -6,8 +6,12 @@ Audio blocks, events and routing shared by speech and streaming libraries
 ### Audio
 - **Audio Clock** — Emits a silent audio block at a steady rate
 - **Audio Event** — Triggered for each audio block a connected audio emitter delivers
+- **Channel Select** — Picks, reorders or repeats the channels of an audio block
 - **File Player** — Plays an audio file as audio blocks, in real time
+- **Mix to Mono** — Averages all channels of an audio block into one
+- **Reblock** — Re-cuts audio blocks to a fixed size and delivers them to Audio Event nodes
 - **Recorder** — Writes audio blocks to a file
+- **Resample** — Converts audio blocks to another sample rate and delivers them to Audio Event nodes
 
 ## Types
 - **Audio** — A block of audio samples. Never saved with the graph.
