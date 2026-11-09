@@ -5,9 +5,7 @@ from typing import Any, Protocol
 
 import numpy as np
 
-from haybale_audio.dsp.channels import fit
-from haybale_audio.dsp.fifo import FrameFifo
-from haybale_audio.dsp.resample import DriftController, StreamResampler
+from haybale_audio.dsp.buffer import PullBuffer
 from haybale_audio.value import AudioBlock
 
 #: Called on the device's thread with ``(outdata, frames, time, status)``; ``outdata`` is (frames, channels).
@@ -70,14 +68,9 @@ class DeviceOutput:
         self._prefill_blocks = prefill_blocks
         self._backend: OutputBackend = backend or SoundDeviceBackend()
         self._stream: OutputStream | None = None
-        self._fifo: FrameFifo | None = None
-        self._resampler: StreamResampler | None = None
-        self._drift: DriftController | None = None
-        self._channels = 0
-        self._target = 0
-        self._playing = False
+        self._buffer: PullBuffer | None = None
         self.sample_rate = 0
-        self.underruns = 0  # restarts after the queue ran dry
+        self.channels = 0
 
     @property
     def running(self) -> bool:
@@ -86,59 +79,46 @@ class DeviceOutput:
     @property
     def depth(self) -> int:
         """Frames queued for the device."""
-        return self._fifo.depth if self._fifo is not None else 0
+        return self._buffer.depth if self._buffer is not None else 0
 
     @property
     def overruns(self) -> int:
         """Frames dropped because the queue was full."""
-        return self._fifo.overruns if self._fifo is not None else 0
+        return self._buffer.overruns if self._buffer is not None else 0
 
     @property
-    def channels(self) -> int:
-        return self._channels
+    def underruns(self) -> int:
+        """Times playback restarted after the queue ran dry."""
+        return self._buffer.restarts if self._buffer is not None else 0
 
     def write(self, block: AudioBlock) -> None:
         """Queue ``block`` for playback, opening the device on the first call."""
-        if self._stream is None:
+        if self._buffer is None:
             self._open(block)
-        assert self._fifo is not None and self._resampler is not None and self._drift is not None
-        trim = self._drift.update(self._fifo.depth) if self._playing else 0.0
-        converted = self._resampler.process(block, trim)
-        if converted is not None:
-            self._fifo.push(fit(converted.data, self._channels))
+        assert self._buffer is not None
+        self._buffer.write(block)
 
     def close(self) -> None:
         stream, self._stream = self._stream, None
+        self._buffer = None
         if stream is not None:
             stream.stop()
             stream.close()
-        self._playing = False
 
     def _open(self, block: AudioBlock) -> None:
         rate, max_channels = self._backend.device_info(self._device)
         self.sample_rate = rate
         # A mono block plays on both speakers of a stereo device.
-        self._channels = max(1, min(max(block.channels, 2), max_channels))
-        self._target = max(1, round(block.frames * rate / block.sample_rate)) * self._prefill_blocks
-        self._fifo = FrameFifo(self._channels, self._target * 4)
-        self._resampler = StreamResampler(rate)
-        self._drift = DriftController(self._target)
-        self._playing = False
-        self._stream = self._backend.open(self._device, rate, self._channels, self._callback)
+        self.channels = max(1, min(max(block.channels, 2), max_channels))
+        frames = max(1, round(block.frames * rate / block.sample_rate))
+        self._buffer = PullBuffer(rate, self.channels, frames, self._prefill_blocks)
+        self._stream = self._backend.open(self._device, rate, self.channels, self._callback)
         self._stream.start()
 
     def _callback(self, outdata: np.ndarray, frames: int, time: Any, status: Any) -> None:
-        fifo = self._fifo
-        if fifo is None:
+        buffer = self._buffer
+        data = buffer.read(frames) if buffer is not None else None
+        if data is None:
             outdata.fill(0)
-            return
-        if not self._playing:
-            if fifo.depth < self._target:
-                outdata.fill(0)
-                return
-            self._playing = True
-        before = fifo.underruns
-        outdata[:] = fifo.pop(frames).T
-        if fifo.underruns != before:
-            self.underruns += 1
-            self._playing = False
+        else:
+            outdata[:] = data.T
