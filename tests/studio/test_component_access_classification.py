@@ -81,6 +81,7 @@ EDIT_PANELS = {
     "ActivitySettingsPanel",
     "ModelsSettingsPanel",
     "ImageSettingsPanel",
+    "FlowMeterSettingsPanel",
     "MarketplaceSettingsPanel",
     "AddToStageMenuPanel",
     "AppearanceToolbarPanel",

@@ -406,10 +406,10 @@ class HaystackEditor(BaseEditor):
 
     def _flow_meters_enabled(self) -> bool:
         """Return whether the library setting shows flow meters; on when the setting cannot be read."""
-        from haybale_haystack.settings.haystack_settings import HaystackSettings
+        from haybale_haystack.settings.flow_meter_settings import FlowMeterSettings
 
         try:
-            return bool(HaystackSettings().show_flow_meters)
+            return bool(FlowMeterSettings().show)
         except Exception:
             return True
 

@@ -3,6 +3,7 @@
 File-centric multi-graph manager
 
 ## Settings
+- **Flow meters** — Meters on the rows of running graphs
 - **Haystack** — Per-workspace settings for haystack scalars.
 
 ## Farmhands
@@ -21,6 +22,7 @@ File-centric multi-graph manager
 
 ## Panels
 - **Edit Macro** — Open the document behind a macro placement, in its own editor tab.
+- **Flow meters** — Meters on the haystack rows of running graphs.
 - **Graph Settings** — Renders the GraphRunSettings for the currently active graph.
 - **Load into Haystack** — Load a .haywire graph file into the Haystack (does not open an editor tab).
 - **Update Macro** — Send a modified instance's changes back to the macro it came from.
