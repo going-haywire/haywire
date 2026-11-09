@@ -29,14 +29,14 @@ class DeviceOutSettings(NodeSettings):
         promotable=Promotable.CONFIG,
     )
     buffer_ms = setting[INT](
-        100,
+        300,
         min=0,
         max=1000,
         label="Device Buffer (ms)",
         category="Output",
         description=(
-            "Buffer of the sound device itself. Raise it when playback crackles while other work "
-            "keeps the computer busy; 0 uses the device's own default."
+            "Audio the sound device holds ahead. It keeps playing when the program is busy for "
+            "less than this, for example while a large graph loads; 0 uses the device's default."
         ),
         promotable=Promotable.CONFIG,
     )
@@ -70,7 +70,7 @@ class DeviceOutNode(BaseNode):
 
     Crackling means the computer was too busy to feed the device in time. The status shows two
     counters: `stalls` are times the flow did not deliver blocks fast enough (raise Prefill), `late`
-    are times the device itself ran dry (raise Device Buffer).
+    are times the sound device ran dry because the program was busy longer than the Device Buffer (raise it).
 
     Inputs:
         write: Queue the block on `audio` (wire it to an Audio Event's Block Ready)
@@ -120,6 +120,10 @@ class DeviceOutNode(BaseNode):
                 latency=int(self.output.buffer_ms) / 1000 or None,
             )
         self.hb_output.write(audio)
+        if self.hb_output.error is not None:
+            error = self.hb_output.error
+            self.hb_close()
+            raise RuntimeError(f"the sound device failed: {error}") from error
         self.out("depth", self.hb_output.depth)
         now = time.monotonic()
         if now - self.hb_status_at >= STATUS_INTERVAL:
@@ -128,7 +132,7 @@ class DeviceOutNode(BaseNode):
             set_status(
                 self,
                 f"Playing {out.channels} ch at {out.sample_rate} Hz, "
-                f"stalls {out.underruns}, late {out.late_callbacks}, dropped {out.overruns}",
+                f"stalls {out.underruns}, late {out.late_writes}, dropped {out.overruns}",
             )
         return "next"
 

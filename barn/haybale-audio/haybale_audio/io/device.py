@@ -1,21 +1,32 @@
 """Playing AudioBlocks on a sound device."""
 
-from collections.abc import Callable
-from typing import Any, Protocol
+import threading
+from typing import Protocol
 
 import numpy as np
 
 from haybale_audio.dsp.buffer import PullBuffer
 from haybale_audio.value import AudioBlock
 
-#: Called on the device's thread with ``(outdata, frames, time, status)``; ``outdata`` is (frames, channels).
-StreamCallback = Callable[[np.ndarray, int, Any, Any], None]
+#: Frames written to the device at a time.
+CHUNK_FRAMES = 256
+#: Seconds the feeding thread sleeps while it waits for audio the device buffer can still bridge.
+WAIT_SECONDS = 0.002
 
 
 class OutputStream(Protocol):
     def start(self) -> None: ...
     def stop(self) -> None: ...
     def close(self) -> None: ...
+
+    @property
+    def write_available(self) -> int:
+        """Frames the device can take without blocking."""
+        ...
+
+    def write(self, data: np.ndarray) -> bool:
+        """Block until the device has room for ``data`` (frames, channels); return ``True`` if it ran dry."""
+        ...
 
 
 class OutputBackend(Protocol):
@@ -24,12 +35,7 @@ class OutputBackend(Protocol):
         ...
 
     def open(
-        self,
-        device: str | int | None,
-        sample_rate: int,
-        channels: int,
-        callback: StreamCallback,
-        latency: float | None = None,
+        self, device: str | int | None, sample_rate: int, channels: int, latency: float | None = None
     ) -> OutputStream:
         """Open a stream; ``latency`` is the device buffer in seconds, ``None`` for the device's default."""
         ...
@@ -45,12 +51,7 @@ class SoundDeviceBackend:
         return int(info["default_samplerate"]), int(info["max_output_channels"])
 
     def open(
-        self,
-        device: str | int | None,
-        sample_rate: int,
-        channels: int,
-        callback: StreamCallback,
-        latency: float | None = None,
+        self, device: str | int | None, sample_rate: int, channels: int, latency: float | None = None
     ) -> OutputStream:
         import sounddevice as sd
 
@@ -60,7 +61,6 @@ class SoundDeviceBackend:
             channels=channels,
             dtype="float32",
             latency=latency if latency is not None else "high",
-            callback=callback,
         )
 
 
@@ -91,9 +91,13 @@ class DeviceOutput:
     """Plays the blocks passed to ``write`` on an output device.
 
     The first block opens the stream at the device's sample rate and fits it to the device's
-    channels. Playback starts once ``prefill_blocks`` blocks are queued and restarts after an
-    underrun. Blocks are resampled to the device rate, with a drift controller holding the queue
-    at the prefill depth so the producer's and the device's clocks may differ slightly.
+    channels. A thread feeds the device by blocking writes, so the device's own buffer keeps playing
+    while the rest of the program holds the interpreter; it covers a stall up to ``latency``.
+    Playback starts once ``prefill_blocks`` blocks are queued and restarts after an underrun. Blocks
+    are resampled to the device rate, with a drift controller holding the queue at the prefill depth
+    so the producer's and the device's clocks may differ slightly.
+
+    With ``threaded=False`` nothing feeds the device: the caller pulls audio with ``render``.
     """
 
     def __init__(
@@ -102,18 +106,23 @@ class DeviceOutput:
         prefill_blocks: int = 4,
         backend: OutputBackend | None = None,
         latency: float | None = None,
+        threaded: bool = True,
     ) -> None:
         if prefill_blocks <= 0:
             raise ValueError(f"prefill_blocks must be positive, got {prefill_blocks}")
         self._device = device
         self._latency = latency
+        self._threaded = threaded
         self._prefill_blocks = prefill_blocks
         self._backend: OutputBackend = backend or SoundDeviceBackend()
         self._stream: OutputStream | None = None
         self._buffer: PullBuffer | None = None
+        self._thread: threading.Thread | None = None
+        self._stop = threading.Event()
         self.sample_rate = 0
         self.channels = 0
-        self.late_callbacks = 0  # callbacks the device reported as late
+        self.late_writes = 0  # writes after which the device had run dry
+        self.error: Exception | None = None  # what ended the feeding thread, if it failed
 
     @property
     def running(self) -> bool:
@@ -141,7 +150,18 @@ class DeviceOutput:
         assert self._buffer is not None
         self._buffer.write(block)
 
+    def render(self, frames: int) -> np.ndarray:
+        """Return the next (``frames``, channels) of audio for the device; silence while not playing."""
+        data = self._buffer.read(frames) if self._buffer is not None else None
+        if data is None:
+            return np.zeros((frames, self.channels), dtype=np.float32)
+        return np.ascontiguousarray(data.T)
+
     def close(self) -> None:
+        self._stop.set()
+        thread, self._thread = self._thread, None
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout=2.0)
         stream, self._stream = self._stream, None
         self._buffer = None
         if stream is not None:
@@ -155,15 +175,27 @@ class DeviceOutput:
         self.channels = max(1, min(max(block.channels, 2), max_channels))
         frames = max(1, round(block.frames * rate / block.sample_rate))
         self._buffer = PullBuffer(rate, self.channels, frames, self._prefill_blocks)
-        self._stream = self._backend.open(self._device, rate, self.channels, self._callback, self._latency)
+        self._stream = self._backend.open(self._device, rate, self.channels, self._latency)
         self._stream.start()
+        self._stop.clear()
+        if self._threaded:
+            self._thread = threading.Thread(
+                target=self._feed, args=(self._stream,), name="audio-out", daemon=True
+            )
+            self._thread.start()
 
-    def _callback(self, outdata: np.ndarray, frames: int, time: Any, status: Any) -> None:
-        if status:
-            self.late_callbacks += 1
-        buffer = self._buffer
-        data = buffer.read(frames) if buffer is not None else None
-        if data is None:
-            outdata.fill(0)
-        else:
-            outdata[:] = data.T
+    def _feed(self, stream: OutputStream) -> None:
+        try:
+            size = stream.write_available
+            stream.write(np.zeros((size, self.channels), dtype=np.float32))  # the delay that bridges stalls
+            while not self._stop.is_set():
+                queued = size - stream.write_available
+                buffer = self._buffer
+                if buffer is not None and not buffer.ready(CHUNK_FRAMES) and queued > 2 * CHUNK_FRAMES:
+                    # The audio is late but the device still has some: wait rather than play silence.
+                    self._stop.wait(WAIT_SECONDS)
+                    continue
+                if stream.write(self.render(CHUNK_FRAMES)):
+                    self.late_writes += 1
+        except Exception as exc:
+            self.error = exc

@@ -2,6 +2,7 @@
 
 import importlib
 import sys
+import time
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -10,7 +11,7 @@ import pytest
 
 from haybale_audio.dsp.channels import fit
 from haybale_audio.dsp.fifo import FrameFifo
-from haybale_audio.io.device import DeviceOutput, StreamCallback, output_device_names
+from haybale_audio.io.device import DeviceOutput, output_device_names
 from haybale_audio.value import AudioBlock
 from tests.conftest import make_node
 
@@ -18,9 +19,13 @@ pytestmark = pytest.mark.unit
 
 
 class FakeStream:
-    def __init__(self, callback: StreamCallback) -> None:
-        self.callback = callback
+    def __init__(self) -> None:
         self.state = "open"
+        self.written: list[np.ndarray] = []
+        self.underflow = False
+        self.size = 4800
+        self.queued = 0  # frames the device holds; a test sets it to model a filled device buffer
+        self.fail: Exception | None = None
 
     def start(self) -> None:
         self.state = "started"
@@ -31,10 +36,16 @@ class FakeStream:
     def close(self) -> None:
         self.state = "closed"
 
-    def pull(self, frames: int, channels: int) -> np.ndarray:
-        outdata = np.full((frames, channels), 9.0, dtype=np.float32)
-        self.callback(outdata, frames, None, None)
-        return outdata
+    @property
+    def write_available(self) -> int:
+        return self.size - self.queued
+
+    def write(self, data: np.ndarray) -> bool:
+        if self.fail is not None:
+            raise self.fail
+        self.written.append(data.copy())
+        time.sleep(0.001)  # a device takes time to consume what it is given
+        return self.underflow
 
 
 class FakeBackend:
@@ -47,18 +58,16 @@ class FakeBackend:
     def device_info(self, device: str | int | None) -> tuple[int, int]:
         return self.rate, self.channels
 
-    def open(
-        self,
-        device: str | int | None,
-        sample_rate: int,
-        channels: int,
-        callback: StreamCallback,
-        latency: float | None = None,
-    ):
+    def open(self, device: str | int | None, sample_rate: int, channels: int, latency: float | None = None):
         self.opened = (device, sample_rate, channels)
         self.latency = latency
-        self.stream = FakeStream(callback)
+        self.stream = FakeStream()
         return self.stream
+
+
+def _output(backend: FakeBackend, **kwargs: Any) -> DeviceOutput:
+    """An output that the test drives with ``render``."""
+    return DeviceOutput(None, backend=backend, threaded=False, **kwargs)
 
 
 def _block(value: float, channels: int = 1, frames: int = 256, rate: int = 48000) -> AudioBlock:
@@ -99,35 +108,33 @@ def test_fit_repeats_mono_trims_extra_and_pads_missing_channels():
 
 def test_output_is_silent_until_the_prefill_is_queued():
     backend = FakeBackend()
-    out = DeviceOutput(None, prefill_blocks=2, backend=backend)
+    out = _output(backend, prefill_blocks=2)
     out.write(_block(0.5))
     assert backend.stream is not None
     assert backend.stream.state == "started"
-    assert not backend.stream.pull(128, 2).any(), "one of two prefill blocks is not enough"
+    assert not out.render(128).any(), "one of two prefill blocks is not enough"
     out.write(_block(0.5))
     out.write(_block(0.5))  # the converter's first block is short, so the prefill needs one more
-    played = backend.stream.pull(128, 2)
+    played = out.render(128)
     assert played.shape == (128, 2)
     assert np.allclose(played, 0.5, atol=0.1), "mono block plays on both channels"
     assert np.allclose(played[:, 0], played[:, 1])
 
 
 def test_output_restarts_after_an_underrun():
-    backend = FakeBackend()
-    out = DeviceOutput(None, prefill_blocks=1, backend=backend)
+    out = _output(FakeBackend(), prefill_blocks=1)
     out.write(_block(0.5))
     out.write(_block(0.5))
-    assert backend.stream is not None
-    backend.stream.pull(256, 2)
-    backend.stream.pull(256, 2)  # the queue holds 236 of these 256 frames
+    out.render(256)
+    out.render(256)  # the queue holds 236 of these 256 frames
     assert out.underruns == 1
     out.write(_block(0.5))
-    assert backend.stream.pull(64, 2).any(), "playback resumes once the prefill is back"
+    assert out.render(64).any(), "playback resumes once the prefill is back"
 
 
 def test_output_resamples_to_the_device_rate():
     backend = FakeBackend(rate=44100, channels=2)
-    out = DeviceOutput(None, prefill_blocks=4, backend=backend)
+    out = _output(backend, prefill_blocks=4)
     for _ in range(40):
         out.write(_block(0.25, frames=480, rate=48000))
     assert backend.opened == (None, 44100, 2)
@@ -137,15 +144,14 @@ def test_output_resamples_to_the_device_rate():
 
 
 def test_output_limits_channels_to_the_device():
-    backend = FakeBackend(channels=2)
-    out = DeviceOutput(None, backend=backend)
+    out = _output(FakeBackend(channels=2))
     out.write(_block(0.1, channels=6))
     assert out.channels == 2
 
 
 def test_close_stops_the_stream_and_the_next_write_reopens():
     backend = FakeBackend()
-    out = DeviceOutput(None, backend=backend)
+    out = _output(backend)
     out.write(_block(0.1))
     first = backend.stream
     out.close()
@@ -155,20 +161,76 @@ def test_close_stops_the_stream_and_the_next_write_reopens():
     assert backend.stream is not first
 
 
-def test_a_late_device_callback_is_counted():
+def test_the_device_buffer_is_passed_on_to_the_device():
+    backend = FakeBackend()
+    _output(backend, latency=0.1).write(_block(0.1))
+    assert backend.latency == 0.1
+
+
+def _wait_for(condition, timeout: float = 3.0) -> bool:
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        if condition():
+            return True
+        time.sleep(0.005)
+    return False
+
+
+def test_a_thread_feeds_the_device_until_closed():
+    backend = FakeBackend()
+    out = DeviceOutput(None, prefill_blocks=1, backend=backend)
+    for _ in range(4):
+        out.write(_block(0.5))
+    stream = backend.stream
+    assert stream is not None
+    assert _wait_for(lambda: len(stream.written) > 5), "the thread keeps writing, silence included"
+    assert stream.written[0].shape == (4800, 2), "the device buffer starts out as silence"
+    assert all(chunk.shape == (256, 2) for chunk in stream.written[1:])
+    assert any(np.allclose(chunk, 0.5, atol=0.1) for chunk in stream.written), "the queued audio reaches it"
+    out.close()
+    count = len(stream.written)
+    time.sleep(0.05)
+    assert len(stream.written) == count, "no write after close"
+
+
+def test_late_audio_is_waited_for_while_the_device_still_holds_some():
+    backend = FakeBackend()
+    out = DeviceOutput(None, prefill_blocks=1, backend=backend)
+    for _ in range(3):
+        out.write(_block(0.5))
+    stream = backend.stream
+    assert stream is not None
+    assert _wait_for(lambda: len(stream.written) > 3)
+    stream.queued = 3000  # the device holds plenty
+    time.sleep(0.05)  # the feeder drains what is queued, then has nothing to give
+    count = len(stream.written)
+    time.sleep(0.1)
+    assert len(stream.written) == count, "no silence is written while the device can bridge the gap"
+    stream.queued = 0
+    assert _wait_for(lambda: len(stream.written) > count), "silence is written once the device runs low"
+    out.close()
+
+
+def test_a_write_after_which_the_device_ran_dry_is_counted():
     backend = FakeBackend()
     out = DeviceOutput(None, backend=backend)
     out.write(_block(0.1))
-    assert backend.stream is not None
-    backend.stream.callback(np.zeros((64, 2), dtype=np.float32), 64, None, "output underflow")
-    backend.stream.callback(np.zeros((64, 2), dtype=np.float32), 64, None, None)
-    assert out.late_callbacks == 1
+    stream = backend.stream
+    assert stream is not None
+    stream.underflow = True
+    assert _wait_for(lambda: out.late_writes > 0)
+    out.close()
 
 
-def test_the_device_buffer_is_passed_on_to_the_device():
+def test_a_failing_device_is_reported():
     backend = FakeBackend()
-    DeviceOutput(None, backend=backend, latency=0.1).write(_block(0.1))
-    assert backend.latency == 0.1
+    out = DeviceOutput(None, backend=backend)
+    out.write(_block(0.1))
+    stream = backend.stream
+    assert stream is not None
+    stream.fail = OSError("device unplugged")
+    assert _wait_for(lambda: out.error is not None)
+    out.close()
 
 
 def test_device_names_are_listed_without_repeats(monkeypatch):
@@ -200,7 +262,9 @@ def test_node_plays_blocks_and_stops(graph_with_library_system, monkeypatch):
     monkeypatch.setattr(
         mod,
         "DeviceOutput",
-        lambda device, prefill, latency=None: DeviceOutput(device, prefill, backend, latency),
+        lambda device, prefill, latency=None: DeviceOutput(
+            device, prefill, backend, latency, threaded=False
+        ),
     )
     cls = mod.DeviceOutNode
     wrapper = make_node(graph_with_library_system, cls.class_identity.registry_key, position=(0, 0))

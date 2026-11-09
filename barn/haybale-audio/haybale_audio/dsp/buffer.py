@@ -28,7 +28,8 @@ class PullBuffer:
         self.channels = channels
         self.target = block_frames * prefill_blocks
         self.restarts = 0  # times the queue ran dry
-        self._fifo = FrameFifo(channels, self.target * 4)
+        # Room for the device's own buffer to fill while the prefill is queued.
+        self._fifo = FrameFifo(channels, max(self.target * 4, sample_rate))
         self._resampler = StreamResampler(sample_rate)
         self._drift = DriftController(self.target)
         self._playing = False
@@ -46,6 +47,11 @@ class PullBuffer:
     @property
     def playing(self) -> bool:
         return self._playing
+
+    def ready(self, frames: int) -> bool:
+        """Return whether ``read(frames)`` would return ``frames`` frames of queued audio."""
+        needed = frames if self._playing else max(frames, self.target)
+        return self._fifo.depth >= needed
 
     def write(self, block: AudioBlock) -> None:
         trim = self._drift.update(self._fifo.depth) if self._playing else 0.0
