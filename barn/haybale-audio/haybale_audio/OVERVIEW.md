@@ -9,6 +9,7 @@ Audio blocks, events and routing shared by speech and streaming libraries
 - **Channel Merge** — Stacks audio blocks into one block with all their channels
 - **Channel Select** — Picks, reorders or repeats the channels of an audio block
 - **Channel Split** — Gives each channel of an audio block its own output
+- **Device Out** — Plays audio blocks on a sound device
 - **File Player** — Plays an audio file as audio blocks, in real time
 - **Mix to Mono** — Averages all channels of an audio block into one
 - **Reblock** — Re-cuts audio blocks to a fixed size and delivers them to Audio Event nodes

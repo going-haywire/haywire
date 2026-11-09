@@ -73,3 +73,18 @@ def parse_channels(spec: str) -> list[int]:
     if not channels:
         raise ValueError("no channels given")
     return channels
+
+
+def fit(data: np.ndarray, channels: int) -> np.ndarray:
+    """Return ``data`` (channels, frames) with exactly ``channels`` rows.
+
+    A single row is repeated, extra rows are dropped and missing rows are silent.
+    """
+    have = data.shape[0]
+    if have == channels:
+        return data
+    if have == 1:
+        return np.repeat(data, channels, axis=0)
+    if have > channels:
+        return np.ascontiguousarray(data[:channels])
+    return np.concatenate([data, np.zeros((channels - have, data.shape[1]), dtype=data.dtype)])

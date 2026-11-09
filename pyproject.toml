@@ -116,6 +116,7 @@ module = [
     "spandrel_extra_arches.*",
     "soundfile",
     "samplerate",
+    "sounddevice",
 ]
 ignore_missing_imports = true
 
