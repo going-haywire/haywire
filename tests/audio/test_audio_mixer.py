@@ -114,7 +114,7 @@ def test_tick_mixes_the_inputs_with_gain_and_mute(graph_with_library_system):
     mixer.node.value = lambda port_id: values.get(port_id)
     clock = _block(0.0)
 
-    for _ in range(6):
+    for _ in range(10):
         for n in range(3):
             mixer.node.worker(_pin(f"write_{n}"))
     assert mixer.node.worker(_pin("tick"), clock=clock) == "next"
@@ -132,7 +132,7 @@ def test_blocks_written_before_the_first_tick_are_kept(graph_with_library_system
     make_edge(g, _event(g).node_id, "audio", mixer.node_id, "in_0")
     values = {"in_0": _block(0.4)}
     mixer.node.value = lambda port_id: values.get(port_id)
-    for _ in range(6):
+    for _ in range(10):
         mixer.node.worker(_pin("write_0"))
     clock = _block(0.0)
     mixer.node.worker(_pin("tick"), clock=clock)
