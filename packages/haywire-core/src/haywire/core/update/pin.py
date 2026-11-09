@@ -37,6 +37,7 @@ LOCKSTEP_DISTS: tuple[str, ...] = (
     "haybale-haystack",
     "haybale-models",
     "haybale-image",
+    "haybale-audio",
 )
 
 
