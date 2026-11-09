@@ -1290,6 +1290,8 @@
       
         
       
+        
+      
     
     
     
@@ -1667,6 +1669,41 @@
     
   
     Graph notices
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/flow-meters/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flow meters
   
 
     
@@ -4739,6 +4776,21 @@ Macro is registered and placed.</p>
 <td>Skip, throttle (imprecise)</td>
 </tr>
 <tr>
+<td><strong>Dropped Trigger</strong></td>
+<td>A Trigger a FlowQueue discards without running it: replaced by a newer one in DROP mode, refused because the queue was full inside the group, or timed out waiting for room in BLOCK mode. Counted per Flow</td>
+<td>Skipped frame, lost frame</td>
+</tr>
+<tr>
+<td><strong>Drop rate</strong></td>
+<td>The share of a Flow's Triggers that were dropped over the sampling window. In DROP mode, where a single drop is by design, it is what colours the <strong>Flow meter</strong></td>
+<td>Skip rate</td>
+</tr>
+<tr>
+<td><strong>Flow load</strong></td>
+<td>The share of wall-clock time a Flow's Frames execute, between two samples. An <strong>execution group</strong>'s load is the sum of its Flows' loads, because they share one runner thread</td>
+<td>CPU usage, utilisation</td>
+</tr>
+<tr>
 <td><strong>BLOCK mode</strong></td>
 <td><code>QueueMode.BLOCK</code>: the default for every EVENT source except <code>Frame Event</code>. <strong>Best-effort, not lossless</strong> — <code>put(block=True, timeout=5.0)</code>, then drops + warns on timeout. NOT a "process every frame" guarantee; see Flagged ambiguities and the demand-driven pattern</td>
 <td>Lossless, every-frame (it is neither)</td>
@@ -6174,6 +6226,11 @@ Macro is registered and placed.</p>
 <td><strong>HaystackEditor</strong></td>
 <td>The left-slot editor that lists all open graphs, provides play/stop per row, and save/load haystack actions in the header</td>
 <td>GraphManagerEditor (renamed)</td>
+</tr>
+<tr>
+<td><strong>Flow meter</strong></td>
+<td>The indicator on a running graph's <strong>HaystackEditor</strong> row that shows how well its Flows keep up: one bar for the worst Flow, expanding to one bar per Flow, grouped by <strong>execution group</strong> and ordered by severity. Combines <strong>Flow load</strong>, queue fill and <strong>dropped Triggers</strong></td>
+<td>Performance monitor, profiler</td>
 </tr>
 <tr>
 <td><strong>GraphRunSettings</strong></td>
