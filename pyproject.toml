@@ -225,6 +225,7 @@ pip_publish_order = [
     "haybale-haystack",
     "haybale-models",
     "haybale-image",
+    "haybale-audio",
 ]
 
 # Packages published via git subdirectory URL (binary deps or deferred from PyPI).
@@ -277,4 +278,5 @@ marketplace = [
     "haybale-haystack",
     "haybale-models",
     "haybale-image",
+    "haybale-audio",
 ]
