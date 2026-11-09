@@ -1,13 +1,13 @@
 [project]
 name = "haybale-audio"
-version = "0.3.4"
+version = "0.4.0"
 description = "Audio blocks, events and routing shared by speech and streaming libraries"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 
 dependencies = [
-    "haywire-core>=0.3.4",
-    "haybale-core>=0.3.4",
+    "haywire-core>=0.4.0",
+    "haybale-core>=0.4.0",
     "numpy",
     "samplerate>=0.2.4",
     "soundfile>=0.12",
