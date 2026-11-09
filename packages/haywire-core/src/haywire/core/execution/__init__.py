@@ -35,6 +35,15 @@ from haywire.core.execution.interpreter import Interpreter
 from haywire.core.execution.vm import HaywireVM
 from haywire.core.execution.flow import Flow, ControlFlowGraph, ControlNodeInfo, LocalizedDataFlow
 from haywire.core.execution.flow_queue import FlowQueue, QueueMode
+from haywire.core.execution.flow_metrics import (
+    FlowMeterSampler,
+    FlowReading,
+    FlowSnapshot,
+    GroupReading,
+    MeterReading,
+    Severity,
+    Thresholds,
+)
 from haywire.core.execution.execution_group import ExecutionGroup
 from haywire.core.execution.event_source import (
     EventSource,
@@ -57,6 +66,14 @@ __all__ = [
     "ExecutionGroup",
     "QueueMode",
     "CallbackManager",
+    # Flow meter
+    "FlowMeterSampler",
+    "FlowReading",
+    "FlowSnapshot",
+    "GroupReading",
+    "MeterReading",
+    "Severity",
+    "Thresholds",
     # Flow structures
     "ControlFlowGraph",
     "ControlNodeInfo",

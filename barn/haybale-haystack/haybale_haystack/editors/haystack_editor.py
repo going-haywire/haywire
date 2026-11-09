@@ -34,11 +34,17 @@ from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_graph_editor.editors.graph_editor import GraphEditor, definition_path
 from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
 
+from haywire.core.execution.flow_metrics import FlowMeterSampler
+
+from haybale_haystack.flow_meter import FlowMeterView
 from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
 from haybale_haystack.state.haystack_state import HaystackState
 from haybale_haystack.graph_entry import EntryKind, GraphEntry
 
 logger = logging.getLogger(__name__)
+
+#: Seconds between samples of the running graphs for the flow meters.
+METER_INTERVAL_S = 0.5
 
 
 def _refused(context: "SessionContext", required: AccessTier, action: str) -> bool:
@@ -79,6 +85,9 @@ class HaystackEditor(BaseEditor):
         self._list_container = None
         self._dismissed_notices: set[tuple[str, str]] = set()
         self._notice_popups: list[Popup] = []
+        self._meters: dict[str, FlowMeterView] = {}
+        self._samplers: dict[str, FlowMeterSampler] = {}
+        self._meter_timer: ui.timer | None = None
 
     # ------------------------------------------------------------------
     # Signal-bus subscriptions / draw
@@ -166,6 +175,9 @@ class HaystackEditor(BaseEditor):
                 self._render_header(context)
                 with ui.scroll_area().classes("flex-1 w-full"):
                     self._list_container = ui.column().classes("w-full gap-0 p-1")
+                    self._meter_timer = ui.timer(
+                        METER_INTERVAL_S, lambda: self._sample_meters(context), active=False
+                    )
                     self._render_list(context)
 
     # ------------------------------------------------------------------
@@ -232,6 +244,7 @@ class HaystackEditor(BaseEditor):
             return
         self._list_container.clear()
         self._delete_notice_popups()
+        self._meters = {}
 
         app = context.app
         if app is None:
@@ -260,6 +273,10 @@ class HaystackEditor(BaseEditor):
 
             if context.can_edit():
                 self._render_add_bar(context)
+
+        self._samplers = {eid: s for eid, s in self._samplers.items() if eid in self._meters}
+        if self._meter_timer is not None:
+            self._meter_timer.active = bool(self._meters)
 
     def _render_entry(self, entry: "GraphEntry", context: "SessionContext") -> None:
         is_active = entry.graph is context.data[EditState].active_graph
@@ -341,6 +358,16 @@ class HaystackEditor(BaseEditor):
                     on_click=lambda eid=eid: self._on_entry_save(eid, context),
                 )
 
+            # Flow meter — where the overflow menu is while the graph runs.
+            if is_executing and self._flow_meters_enabled():
+
+                def name_of(node_id: str, entry_: "GraphEntry" = entry) -> str:
+                    return self._flow_name(entry_, node_id)
+
+                view = FlowMeterView(name_of)
+                view.build()
+                self._meters[eid] = view
+
             # Overflow menu — hidden during execution
             if can_edit and not is_executing:
                 with (
@@ -372,6 +399,41 @@ class HaystackEditor(BaseEditor):
                             "Release from memory" if not entry.kind.is_haystack_member() else "Remove",
                             on_click=lambda eid=eid: self._on_entry_delete(eid, context),
                         )
+
+    # ------------------------------------------------------------------
+    # flow meters
+    # ------------------------------------------------------------------
+
+    def _flow_meters_enabled(self) -> bool:
+        """Return whether the library setting shows flow meters; on when the setting cannot be read."""
+        from haybale_haystack.settings.flow_meter_settings import FlowMeterSettings
+
+        try:
+            return bool(FlowMeterSettings().show)
+        except Exception:
+            return True
+
+    @staticmethod
+    def _flow_name(entry: "GraphEntry", node_id: str) -> str:
+        """Return the name of the EVENT node that roots a Flow, or its id when the node is gone."""
+        try:
+            wrapper = entry.graph.get_node_wrapper(node_id)
+            return wrapper.node.display_label if wrapper is not None else node_id
+        except Exception:
+            return node_id
+
+    def _sample_meters(self, context: "SessionContext") -> None:
+        """Read the running graphs' flow counters and update their meters; runs on the editor's timer."""
+        for eid, view in list(self._meters.items()):
+            entry = self._resolve_entry(eid, context)
+            interpreter = entry.interpreter if entry is not None else None
+            if interpreter is None or not interpreter.is_executing:
+                continue
+            try:
+                sampler = self._samplers.setdefault(eid, FlowMeterSampler())
+                view.update(sampler.update(interpreter.flow_metrics()))
+            except Exception:
+                logger.debug("Flow meter sample failed for %s", eid, exc_info=True)
 
     # ------------------------------------------------------------------
     # graph notices
@@ -992,4 +1054,7 @@ class HaystackEditor(BaseEditor):
 
     def cleanup(self) -> None:
         self._delete_notice_popups()
+        self._meters = {}
+        self._samplers = {}
+        self._meter_timer = None
         self._list_container = None
