@@ -3,7 +3,7 @@
 from haywire.core.settings.settings_library import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
-from haywire.barn.builtin.types import INT, STRING
+from haywire.barn.builtin.types import BOOL, INT, STRING
 
 
 @settings(namespace="haystack", label="Haystack", description="Per-workspace settings for haystack scalars.")
@@ -21,5 +21,15 @@ class HaystackSettings(LibrarySettings):
         1,
         label="New Counter",
         description="Sequence used to name newly created untitled graphs",
+        category="haystack",
+    )
+
+    show_flow_meters = setting[BOOL](
+        True,
+        label="Show flow meters",
+        description=(
+            "Show how well each running graph's flows keep up, as bars on its row. "
+            "Applies the next time a graph is started or stopped."
+        ),
         category="haystack",
     )
