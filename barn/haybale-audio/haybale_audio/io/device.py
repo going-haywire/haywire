@@ -24,8 +24,15 @@ class OutputBackend(Protocol):
         ...
 
     def open(
-        self, device: str | int | None, sample_rate: int, channels: int, callback: StreamCallback
-    ) -> OutputStream: ...
+        self,
+        device: str | int | None,
+        sample_rate: int,
+        channels: int,
+        callback: StreamCallback,
+        latency: float | None = None,
+    ) -> OutputStream:
+        """Open a stream; ``latency`` is the device buffer in seconds, ``None`` for the device's default."""
+        ...
 
 
 class SoundDeviceBackend:
@@ -34,17 +41,50 @@ class SoundDeviceBackend:
     def device_info(self, device: str | int | None) -> tuple[int, int]:
         import sounddevice as sd
 
-        info = sd.query_devices(device, "output")
+        info = sd.query_devices(_index(device), "output")
         return int(info["default_samplerate"]), int(info["max_output_channels"])
 
     def open(
-        self, device: str | int | None, sample_rate: int, channels: int, callback: StreamCallback
+        self,
+        device: str | int | None,
+        sample_rate: int,
+        channels: int,
+        callback: StreamCallback,
+        latency: float | None = None,
     ) -> OutputStream:
         import sounddevice as sd
 
         return sd.OutputStream(
-            device=device, samplerate=sample_rate, channels=channels, dtype="float32", callback=callback
+            device=_index(device),
+            samplerate=sample_rate,
+            channels=channels,
+            dtype="float32",
+            latency=latency if latency is not None else "high",
+            callback=callback,
         )
+
+
+def output_device_names() -> list[str]:
+    """Return the names of the output devices, without repeats; empty if no sound system is available."""
+    try:
+        import sounddevice as sd
+
+        names = [str(d["name"]) for d in sd.query_devices() if d["max_output_channels"] > 0]
+    except Exception:
+        return []
+    return list(dict.fromkeys(names))
+
+
+def _index(device: str | int | None) -> str | int | None:
+    """Turn a device name into the index of the first output device of exactly that name."""
+    if not isinstance(device, str):
+        return device
+    import sounddevice as sd
+
+    for index, info in enumerate(sd.query_devices()):
+        if info["name"] == device and info["max_output_channels"] > 0:
+            return index
+    return device  # PortAudio matches a part of a name
 
 
 class DeviceOutput:
@@ -61,16 +101,19 @@ class DeviceOutput:
         device: str | int | None = None,
         prefill_blocks: int = 4,
         backend: OutputBackend | None = None,
+        latency: float | None = None,
     ) -> None:
         if prefill_blocks <= 0:
             raise ValueError(f"prefill_blocks must be positive, got {prefill_blocks}")
         self._device = device
+        self._latency = latency
         self._prefill_blocks = prefill_blocks
         self._backend: OutputBackend = backend or SoundDeviceBackend()
         self._stream: OutputStream | None = None
         self._buffer: PullBuffer | None = None
         self.sample_rate = 0
         self.channels = 0
+        self.late_callbacks = 0  # callbacks the device reported as late
 
     @property
     def running(self) -> bool:
@@ -112,10 +155,12 @@ class DeviceOutput:
         self.channels = max(1, min(max(block.channels, 2), max_channels))
         frames = max(1, round(block.frames * rate / block.sample_rate))
         self._buffer = PullBuffer(rate, self.channels, frames, self._prefill_blocks)
-        self._stream = self._backend.open(self._device, rate, self.channels, self._callback)
+        self._stream = self._backend.open(self._device, rate, self.channels, self._callback, self._latency)
         self._stream.start()
 
     def _callback(self, outdata: np.ndarray, frames: int, time: Any, status: Any) -> None:
+        if status:
+            self.late_callbacks += 1
         buffer = self._buffer
         data = buffer.read(frames) if buffer is not None else None
         if data is None:

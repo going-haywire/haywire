@@ -1,6 +1,7 @@
 """FrameFifo, channel fitting, DeviceOutput and the Device Out node, against a fake device."""
 
 import importlib
+import sys
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -9,7 +10,7 @@ import pytest
 
 from haybale_audio.dsp.channels import fit
 from haybale_audio.dsp.fifo import FrameFifo
-from haybale_audio.io.device import DeviceOutput, StreamCallback
+from haybale_audio.io.device import DeviceOutput, StreamCallback, output_device_names
 from haybale_audio.value import AudioBlock
 from tests.conftest import make_node
 
@@ -41,12 +42,21 @@ class FakeBackend:
         self.rate, self.channels = rate, channels
         self.stream: FakeStream | None = None
         self.opened: tuple[Any, int, int] | None = None
+        self.latency: float | None = None
 
     def device_info(self, device: str | int | None) -> tuple[int, int]:
         return self.rate, self.channels
 
-    def open(self, device: str | int | None, sample_rate: int, channels: int, callback: StreamCallback):
+    def open(
+        self,
+        device: str | int | None,
+        sample_rate: int,
+        channels: int,
+        callback: StreamCallback,
+        latency: float | None = None,
+    ):
         self.opened = (device, sample_rate, channels)
+        self.latency = latency
         self.stream = FakeStream(callback)
         return self.stream
 
@@ -145,6 +155,39 @@ def test_close_stops_the_stream_and_the_next_write_reopens():
     assert backend.stream is not first
 
 
+def test_a_late_device_callback_is_counted():
+    backend = FakeBackend()
+    out = DeviceOutput(None, backend=backend)
+    out.write(_block(0.1))
+    assert backend.stream is not None
+    backend.stream.callback(np.zeros((64, 2), dtype=np.float32), 64, None, "output underflow")
+    backend.stream.callback(np.zeros((64, 2), dtype=np.float32), 64, None, None)
+    assert out.late_callbacks == 1
+
+
+def test_the_device_buffer_is_passed_on_to_the_device():
+    backend = FakeBackend()
+    DeviceOutput(None, backend=backend, latency=0.1).write(_block(0.1))
+    assert backend.latency == 0.1
+
+
+def test_device_names_are_listed_without_repeats(monkeypatch):
+    sd = MagicMock()
+    sd.query_devices.return_value = [
+        {"name": "Speakers", "max_output_channels": 2},
+        {"name": "Microphone", "max_output_channels": 0},
+        {"name": "Speakers", "max_output_channels": 2},
+        {"name": "Headphones", "max_output_channels": 2},
+    ]
+    monkeypatch.setitem(sys.modules, "sounddevice", sd)
+    assert output_device_names() == ["Speakers", "Headphones"]
+
+
+def test_device_names_are_empty_without_a_sound_system(monkeypatch):
+    monkeypatch.setitem(sys.modules, "sounddevice", None)  # makes the import raise ImportError
+    assert output_device_names() == []
+
+
 def test_invalid_prefill_is_rejected():
     with pytest.raises(ValueError, match="prefill_blocks"):
         DeviceOutput(None, prefill_blocks=0, backend=FakeBackend())
@@ -154,7 +197,11 @@ def test_invalid_prefill_is_rejected():
 def test_node_plays_blocks_and_stops(graph_with_library_system, monkeypatch):
     mod = importlib.import_module("haybale_audio.nodes.device_out")
     backend = FakeBackend()
-    monkeypatch.setattr(mod, "DeviceOutput", lambda device, prefill: DeviceOutput(device, prefill, backend))
+    monkeypatch.setattr(
+        mod,
+        "DeviceOutput",
+        lambda device, prefill, latency=None: DeviceOutput(device, prefill, backend, latency),
+    )
     cls = mod.DeviceOutNode
     wrapper = make_node(graph_with_library_system, cls.class_identity.registry_key, position=(0, 0))
     node = wrapper.node

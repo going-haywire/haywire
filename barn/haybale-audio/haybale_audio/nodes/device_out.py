@@ -2,37 +2,54 @@
 
 import time
 
-from haywire.barn.builtin.types import EXEC, INT, STRING
+from haywire.barn.builtin.types import CHOICES, EXEC, INT, STRING
 from haywire.barn.builtin.widgets import SimpleLabelWidget
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import NodeSettings, Promotable, bag, setting
 
 from haybale_audio.emitter import set_status
-from haybale_audio.io.device import DeviceOutput
+from haybale_audio.io.device import DeviceOutput, output_device_names
 from haybale_audio.value import AudioBlock
 
 #: Seconds between status updates; one per block would flood the UI.
 STATUS_INTERVAL = 0.5
+_DEFAULT_DEVICE = "System default"
 
 
 class DeviceOutSettings(NodeSettings):
     """Where and how the sound is played. Applies on the next start."""
 
-    device = setting[STRING](
-        "",
+    device = setting[CHOICES](
+        _DEFAULT_DEVICE,
         label="Device",
         category="Output",
-        description="Name (or part of it) or number of the output device. Empty uses the system default.",
+        description="Output device to play on. The list is read when the node is shown.",
+        widget_config={"options": lambda: [_DEFAULT_DEVICE, *output_device_names()]},
+        promotable=Promotable.CONFIG,
+    )
+    buffer_ms = setting[INT](
+        100,
+        min=0,
+        max=1000,
+        label="Device Buffer (ms)",
+        category="Output",
+        description=(
+            "Buffer of the sound device itself. Raise it when playback crackles while other work "
+            "keeps the computer busy; 0 uses the device's own default."
+        ),
         promotable=Promotable.CONFIG,
     )
     prefill = setting[INT](
-        4,
+        8,
         min=1,
         max=64,
         label="Prefill",
         category="Output",
-        description="Blocks queued before playback starts. More blocks survive longer stalls but add delay.",
+        description=(
+            "Blocks queued before playback starts and kept queued. More blocks ride out longer "
+            "stalls of the flow, with more delay."
+        ),
         promotable=Promotable.CONFIG,
     )
 
@@ -50,6 +67,10 @@ class DeviceOutNode(BaseNode):
 
     Playback starts once the prefill is queued and restarts after a stall. A producer clock that
     differs slightly from the device clock is absorbed by adjusting the conversion ratio.
+
+    Crackling means the computer was too busy to feed the device in time. The status shows two
+    counters: `stalls` are times the flow did not deliver blocks fast enough (raise Prefill), `late`
+    are times the device itself ran dry (raise Device Buffer).
 
     Inputs:
         write: Queue the block on `audio` (wire it to an Audio Event's Block Ready)
@@ -93,7 +114,11 @@ class DeviceOutNode(BaseNode):
         if audio is None:
             raise ValueError("write needs an audio block")
         if self.hb_output is None:
-            self.hb_output = DeviceOutput(_device(str(self.output.device)), int(self.output.prefill))
+            self.hb_output = DeviceOutput(
+                _device(str(self.output.device)),
+                int(self.output.prefill),
+                latency=int(self.output.buffer_ms) / 1000 or None,
+            )
         self.hb_output.write(audio)
         self.out("depth", self.hb_output.depth)
         now = time.monotonic()
@@ -103,7 +128,7 @@ class DeviceOutNode(BaseNode):
             set_status(
                 self,
                 f"Playing {out.channels} ch at {out.sample_rate} Hz, "
-                f"stalls {out.underruns}, dropped {out.overruns}",
+                f"stalls {out.underruns}, late {out.late_callbacks}, dropped {out.overruns}",
             )
         return "next"
 
@@ -117,6 +142,6 @@ class DeviceOutNode(BaseNode):
 
 def _device(text: str) -> str | int | None:
     text = text.strip()
-    if not text:
+    if not text or text == _DEFAULT_DEVICE:
         return None
     return int(text) if text.isdigit() else text
