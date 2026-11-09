@@ -1,18 +1,131 @@
 {
   "format_version": 4,
   "filestem": "audio",
-  "created_at": "2026-11-09T17:36:11.726723",
-  "modified_at": "2026-11-09T17:44:36.534799",
+  "created_at": "2026-11-09T17:57:32.852059",
+  "modified_at": "2026-11-09T21:43:17.769982",
   "meta": {
     "values": {},
     "promoted": {}
   },
   "nodes": {
-    "FilePlayerNode_28a72bb6": {
-      "node_id": "FilePlayerNode_28a72bb6",
+    "BeginPlayNode_ea80758b": {
+      "node_id": "BeginPlayNode_ea80758b",
+      "registry_key": "haybale-core:node:BeginPlayNode",
+      "node_data": {
+        "node_id": "BeginPlayNode_ea80758b",
+        "ports": {
+          "exec": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Execute",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "exec",
+              "port_type": "outlet",
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Start Time",
+              "description": "Decimal number",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 4,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 1794256184.254465
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3419.222222222222,
+              "posY": 3578.777777777778,
+              "width": 256,
+              "height": 138
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3419.222222222222,
+            "posY": 3578.777777777778,
+            "width": 256,
+            "height": 138
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "BeginPlayNode",
+          "registry_key": "haybale-core:node:BeginPlayNode",
+          "label": "Begin Player",
+          "description": "Triggered once when execution starts",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "BeginPlayNode",
+          "module": "haybale_core.nodes.events.begin_play",
+          "tags": [],
+          "search_tags": [
+            "start",
+            "init",
+            "begin",
+            "event"
+          ],
+          "menu": "core/event",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Core",
+          "version": "0.3.4",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
+          "module_name": "haybale_core",
+          "name": "haybale-core",
+          "linked_libraries": [],
+          "file_watcher": false,
+          "on_reload": "none"
+        }
+      }
+    },
+    "FilePlayerNode_b89da1b7": {
+      "node_id": "FilePlayerNode_b89da1b7",
       "registry_key": "haybale-audio:node:FilePlayerNode",
       "node_data": {
-        "node_id": "FilePlayerNode_28a72bb6",
+        "node_id": "FilePlayerNode_b89da1b7",
         "ports": {
           "start": {
             "kwargs": {
@@ -196,24 +309,28 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 3680.0,
-              "posY": 3420.0,
+              "posX": 3875.222222222222,
+              "posY": 3628.777777777778,
               "width": 263,
-              "height": 322
+              "height": 322,
+              "z": 1
             },
             "promoted": {}
           },
           "playback": {
-            "values": {},
+            "values": {
+              "loop": true
+            },
             "promoted": {}
           }
         },
         "props": {
           "values": {
-            "posX": 3680.0,
-            "posY": 3420.0,
+            "posX": 3875.222222222222,
+            "posY": 3628.777777777778,
             "width": 263,
-            "height": 322
+            "height": 322,
+            "z": 1
           },
           "promoted": {}
         },
@@ -262,126 +379,11 @@
         }
       }
     },
-    "BeginPlayNode_f6168d69": {
-      "node_id": "BeginPlayNode_f6168d69",
-      "registry_key": "haybale-core:node:BeginPlayNode",
-      "node_data": {
-        "node_id": "BeginPlayNode_f6168d69",
-        "ports": {
-          "exec": {
-            "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
-              "label": "Execute",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
-              "default": {
-                "value": {}
-              },
-              "store_strategy": 1,
-              "color": "#004cff",
-              "id": "exec",
-              "port_type": "outlet",
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
-            }
-          },
-          "timestamp": {
-            "kwargs": {
-              "registry_id": "FLOAT",
-              "registry_key": "haywire-core:type:FLOAT",
-              "label": "Start Time",
-              "description": "Decimal number",
-              "class_name": "FLOAT",
-              "module": "haywire.barn.builtin.types.specs",
-              "default": {
-                "value": 0.0
-              },
-              "store_strategy": 4,
-              "color": "#50b0ff",
-              "widget_key": "haywire-core:widget:NumberWidget",
-              "id": "timestamp",
-              "port_type": "outlet",
-              "order": 1,
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:FLOAT"
-            },
-            "field_data": {
-              "value": 1794242321.856551
-            }
-          }
-        },
-        "settings": {
-          "props": {
-            "values": {
-              "posX": 3260.0,
-              "posY": 3520.0,
-              "width": 256,
-              "height": 138,
-              "z": 1
-            },
-            "promoted": {}
-          }
-        },
-        "props": {
-          "values": {
-            "posX": 3260.0,
-            "posY": 3520.0,
-            "width": 256,
-            "height": 138,
-            "z": 1
-          },
-          "promoted": {}
-        },
-        "store": {},
-        "identity": {
-          "registry_id": "BeginPlayNode",
-          "registry_key": "haybale-core:node:BeginPlayNode",
-          "label": "Begin Player",
-          "description": "Triggered once when execution starts",
-          "deprecation_warning": "",
-          "hidden": false,
-          "class_name": "BeginPlayNode",
-          "module": "haybale_core.nodes.events.begin_play",
-          "tags": [],
-          "search_tags": [
-            "start",
-            "init",
-            "begin",
-            "event"
-          ],
-          "menu": "core/event",
-          "template": false,
-          "_is_error": false,
-          "_error_priority": 0,
-          "_is_reroute": false,
-          "_is_subgraph_input": false,
-          "_is_subgraph_output": false,
-          "_is_graph_node": false,
-          "_is_macro_node": false
-        },
-        "library": {
-          "label": "Core",
-          "version": "0.3.4",
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
-          "module_name": "haybale_core",
-          "name": "haybale-core",
-          "linked_libraries": [],
-          "file_watcher": false,
-          "on_reload": "none"
-        }
-      }
-    },
-    "AudioEventNode_17e72db8": {
-      "node_id": "AudioEventNode_17e72db8",
+    "AudioEventNode_f5917691": {
+      "node_id": "AudioEventNode_f5917691",
       "registry_key": "haybale-audio:node:AudioEventNode",
       "node_data": {
-        "node_id": "AudioEventNode_17e72db8",
+        "node_id": "AudioEventNode_f5917691",
         "ports": {
           "listen_callback": {
             "kwargs": {
@@ -392,7 +394,7 @@
               "class_name": "CALLBACK_AUDIO",
               "module": "haybale_audio.types.callback",
               "default": {
-                "name": "AudioEventNode_17e72db8"
+                "name": "AudioEventNode_f5917691"
               },
               "store_strategy": 4,
               "color": "#4ab0d9",
@@ -404,7 +406,7 @@
               "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
             },
             "field_data": {
-              "name": "AudioEventNode_17e72db8"
+              "name": "AudioEventNode_f5917691"
             }
           },
           "block_ready": {
@@ -474,7 +476,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 16.609129667049274
+              "value": 123.21851308387704
             }
           },
           "block_number": {
@@ -500,15 +502,15 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 2861
+              "value": 21226
             }
           }
         },
         "settings": {
           "props": {
             "values": {
-              "posX": 3220.0,
-              "posY": 3840.0,
+              "posX": 3419.222222222222,
+              "posY": 3816.777777777778,
               "width": 256,
               "height": 222,
               "z": 2
@@ -522,8 +524,8 @@
         },
         "props": {
           "values": {
-            "posX": 3220.0,
-            "posY": 3840.0,
+            "posX": 3419.222222222222,
+            "posY": 3816.777777777778,
             "width": 256,
             "height": 222,
             "z": 2
@@ -574,11 +576,11 @@
         }
       }
     },
-    "RecorderNode_f6984bb4": {
-      "node_id": "RecorderNode_f6984bb4",
-      "registry_key": "haybale-audio:node:RecorderNode",
+    "DeviceOutNode_203350fc": {
+      "node_id": "DeviceOutNode_203350fc",
+      "registry_key": "haybale-audio:node:DeviceOutNode",
       "node_data": {
-        "node_id": "RecorderNode_f6984bb4",
+        "node_id": "DeviceOutNode_203350fc",
         "ports": {
           "write": {
             "kwargs": {
@@ -626,7 +628,7 @@
               "registry_id": "AUDIO",
               "registry_key": "haybale-audio:type:AUDIO",
               "label": "Audio",
-              "description": "Block to append",
+              "description": "Block to play",
               "class_name": "AUDIO",
               "module": "haybale_audio.types.audio",
               "default": {
@@ -642,12 +644,203 @@
               "registry_key": "haybale-audio:type:AUDIO"
             }
           },
+          "status": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Status",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": "Idle"
+              },
+              "store_strategy": 4,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:SimpleLabelWidget",
+              "id": "status",
+              "port_type": "config",
+              "order": 3,
+              "show_widget": "always"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "Idle"
+            }
+          },
+          "next": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Next",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "next",
+              "port_type": "outlet",
+              "order": 4,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "depth": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Depth",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "depth",
+              "port_type": "outlet",
+              "order": 5,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 0
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 4480.0,
+              "posY": 4620.0,
+              "width": 256,
+              "height": 258,
+              "z": 3
+            },
+            "promoted": {}
+          },
+          "output": {
+            "values": {},
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 4480.0,
+            "posY": 4620.0,
+            "width": 256,
+            "height": 258,
+            "z": 3
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "DeviceOutNode",
+          "registry_key": "haybale-audio:node:DeviceOutNode",
+          "label": "Device Out",
+          "description": "Plays audio blocks on a sound device",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "DeviceOutNode",
+          "module": "haybale_audio.nodes.device_out",
+          "tags": [],
+          "search_tags": [
+            "audio",
+            "play",
+            "speaker",
+            "output",
+            "device",
+            "sound"
+          ],
+          "menu": "audio/io",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Audio",
+          "version": "0.3.4",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
+          "module_name": "haybale_audio",
+          "name": "haybale-audio",
+          "linked_libraries": [
+            "haybale_core"
+          ],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "FilePlayerNode_f6d47448": {
+      "node_id": "FilePlayerNode_f6d47448",
+      "registry_key": "haybale-audio:node:FilePlayerNode",
+      "node_data": {
+        "node_id": "FilePlayerNode_f6d47448",
+        "ports": {
+          "start": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Start",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "start",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "stop": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Stop",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "stop",
+              "port_type": "inlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
           "path": {
             "kwargs": {
               "registry_id": "FILE_PATH",
               "registry_key": "haywire-core:type:FILE_PATH",
               "label": "Path",
-              "description": "File to write; its extension picks the format",
+              "description": "Audio file to play",
               "class_name": "FILE_PATH",
               "module": "haywire.barn.builtin.types.path",
               "default": {
@@ -661,18 +854,19 @@
               "widget_key": "haywire-core:widget:PathWidget",
               "widget_config": {
                 "properties": {
-                  "mode": "save",
+                  "mode": "open",
                   "extensions": [
                     ".wav",
                     ".flac",
                     ".ogg",
+                    ".aiff",
                     ".mp3"
                   ]
                 }
               },
               "id": "path",
               "port_type": "inlet",
-              "order": 3
+              "order": 2
             },
             "recipe": {
               "registry_key": "haywire-core:type:FILE_PATH"
@@ -680,7 +874,31 @@
             "field_data": {
               "value": {
                 "volume": "haywire-core:volume:project",
-                "relative": "assets/audio/testout.wav"
+                "relative": "assets/audio/fronbondi.mp3"
+              }
+            }
+          },
+          "callbacks": {
+            "kwargs": {
+              "registry_id": "PooledType",
+              "registry_key": "haybale-core:type:PooledType",
+              "label": "Subscribers",
+              "description": "Connect to an Audio Event node.",
+              "class_name": "PooledType",
+              "module": "haybale_core.types.pooled_type",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 2,
+              "color": "#4ab0d9",
+              "id": "callbacks",
+              "port_type": "inlet",
+              "order": 3
+            },
+            "recipe": {
+              "registry_key": "haybale-core:type:PooledType",
+              "element_type": {
+                "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
               }
             }
           },
@@ -707,7 +925,826 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "Recording 16.6 s"
+              "value": "Finished"
+            }
+          },
+          "started": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Started",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "started",
+              "port_type": "outlet",
+              "order": 5,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "stopped": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Stopped",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "stopped",
+              "port_type": "outlet",
+              "order": 6,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3880.0,
+              "posY": 4000.0,
+              "width": 263,
+              "height": 322,
+              "z": 4
+            },
+            "promoted": {}
+          },
+          "playback": {
+            "values": {
+              "loop": true
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3880.0,
+            "posY": 4000.0,
+            "width": 263,
+            "height": 322,
+            "z": 4
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "FilePlayerNode",
+          "registry_key": "haybale-audio:node:FilePlayerNode",
+          "label": "File Player",
+          "description": "Plays an audio file as audio blocks, in real time",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "FilePlayerNode",
+          "module": "haybale_audio.nodes.file_player",
+          "tags": [],
+          "search_tags": [
+            "audio",
+            "file",
+            "play",
+            "wav",
+            "flac",
+            "ogg",
+            "read",
+            "emit"
+          ],
+          "menu": "audio/source",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Audio",
+          "version": "0.3.4",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
+          "module_name": "haybale_audio",
+          "name": "haybale-audio",
+          "linked_libraries": [
+            "haybale_core"
+          ],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "AudioEventNode_1017a6a1": {
+      "node_id": "AudioEventNode_1017a6a1",
+      "registry_key": "haybale-audio:node:AudioEventNode",
+      "node_data": {
+        "node_id": "AudioEventNode_1017a6a1",
+        "ports": {
+          "listen_callback": {
+            "kwargs": {
+              "registry_id": "CALLBACK_AUDIO",
+              "registry_key": "haybale-audio:type:CALLBACK_AUDIO",
+              "label": "Listen",
+              "description": "Subscription for emitters that deliver audio blocks",
+              "class_name": "CALLBACK_AUDIO",
+              "module": "haybale_audio.types.callback",
+              "default": {
+                "name": "AudioEventNode_1017a6a1"
+              },
+              "store_strategy": 4,
+              "color": "#4ab0d9",
+              "id": "listen_callback",
+              "port_type": "outlet",
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+            },
+            "field_data": {
+              "name": "AudioEventNode_1017a6a1"
+            }
+          },
+          "block_ready": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Block Ready",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "block_ready",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "audio": {
+            "kwargs": {
+              "registry_id": "AUDIO",
+              "registry_key": "haybale-audio:type:AUDIO",
+              "label": "Audio",
+              "description": "A block of audio samples. Never saved with the graph.",
+              "class_name": "AUDIO",
+              "module": "haybale_audio.types.audio",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#4ab0d9",
+              "id": "audio",
+              "port_type": "outlet",
+              "order": 2,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-audio:type:AUDIO"
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Timestamp (s)",
+              "description": "Decimal number",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 4,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "order": 3,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 123.21871970803477
+            }
+          },
+          "block_number": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Block Number",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "block_number",
+              "port_type": "outlet",
+              "order": 4,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 23105
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3419.222222222222,
+              "posY": 4138.777777777777,
+              "width": 256,
+              "height": 222,
+              "z": 5
+            },
+            "promoted": {}
+          },
+          "dispatch": {
+            "values": {},
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3419.222222222222,
+            "posY": 4138.777777777777,
+            "width": 256,
+            "height": 222,
+            "z": 5
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "AudioEventNode",
+          "registry_key": "haybale-audio:node:AudioEventNode",
+          "label": "Audio Event",
+          "description": "Triggered for each audio block a connected audio emitter delivers",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "AudioEventNode",
+          "module": "haybale_audio.nodes.audio_event",
+          "tags": [],
+          "search_tags": [
+            "audio",
+            "block",
+            "event",
+            "callback",
+            "receive",
+            "stream",
+            "microphone"
+          ],
+          "menu": "audio/event",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Audio",
+          "version": "0.3.4",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
+          "module_name": "haybale_audio",
+          "name": "haybale-audio",
+          "linked_libraries": [
+            "haybale_core"
+          ],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "AudioClockNode_1a91326d": {
+      "node_id": "AudioClockNode_1a91326d",
+      "registry_key": "haybale-audio:node:AudioClockNode",
+      "node_data": {
+        "node_id": "AudioClockNode_1a91326d",
+        "ports": {
+          "start": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Start",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "start",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "stop": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Stop",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "stop",
+              "port_type": "inlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "callbacks": {
+            "kwargs": {
+              "registry_id": "PooledType",
+              "registry_key": "haybale-core:type:PooledType",
+              "label": "Subscribers",
+              "description": "Connect to an Audio Event node.",
+              "class_name": "PooledType",
+              "module": "haybale_core.types.pooled_type",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 2,
+              "color": "#4ab0d9",
+              "id": "callbacks",
+              "port_type": "inlet",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "haybale-core:type:PooledType",
+              "element_type": {
+                "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+              }
+            }
+          },
+          "status": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Status",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": "Idle"
+              },
+              "store_strategy": 4,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:SimpleLabelWidget",
+              "id": "status",
+              "port_type": "config",
+              "order": 3,
+              "show_widget": "always"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "Stopped"
+            }
+          },
+          "started": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Started",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "started",
+              "port_type": "outlet",
+              "order": 4,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "stopped": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Stopped",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "stopped",
+              "port_type": "outlet",
+              "order": 5,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3880.0,
+              "posY": 4400.0,
+              "width": 256,
+              "height": 258,
+              "z": 6
+            },
+            "promoted": {}
+          },
+          "clock": {
+            "values": {},
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3880.0,
+            "posY": 4400.0,
+            "width": 256,
+            "height": 258,
+            "z": 6
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "AudioClockNode",
+          "registry_key": "haybale-audio:node:AudioClockNode",
+          "label": "Audio Clock",
+          "description": "Emits a silent audio block at a steady rate",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "AudioClockNode",
+          "module": "haybale_audio.nodes.audio_clock",
+          "tags": [],
+          "search_tags": [
+            "audio",
+            "clock",
+            "tick",
+            "timer",
+            "master",
+            "pace",
+            "emit"
+          ],
+          "menu": "audio/source",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Audio",
+          "version": "0.3.4",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
+          "module_name": "haybale_audio",
+          "name": "haybale-audio",
+          "linked_libraries": [
+            "haybale_core"
+          ],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "AudioEventNode_f2d97224": {
+      "node_id": "AudioEventNode_f2d97224",
+      "registry_key": "haybale-audio:node:AudioEventNode",
+      "node_data": {
+        "node_id": "AudioEventNode_f2d97224",
+        "ports": {
+          "listen_callback": {
+            "kwargs": {
+              "registry_id": "CALLBACK_AUDIO",
+              "registry_key": "haybale-audio:type:CALLBACK_AUDIO",
+              "label": "Listen",
+              "description": "Subscription for emitters that deliver audio blocks",
+              "class_name": "CALLBACK_AUDIO",
+              "module": "haybale_audio.types.callback",
+              "default": {
+                "name": "AudioEventNode_f2d97224"
+              },
+              "store_strategy": 4,
+              "color": "#4ab0d9",
+              "id": "listen_callback",
+              "port_type": "outlet",
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-audio:type:CALLBACK_AUDIO"
+            },
+            "field_data": {
+              "name": "AudioEventNode_f2d97224"
+            }
+          },
+          "block_ready": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Block Ready",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "block_ready",
+              "port_type": "outlet",
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "audio": {
+            "kwargs": {
+              "registry_id": "AUDIO",
+              "registry_key": "haybale-audio:type:AUDIO",
+              "label": "Audio",
+              "description": "A block of audio samples. Never saved with the graph.",
+              "class_name": "AUDIO",
+              "module": "haybale_audio.types.audio",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#4ab0d9",
+              "id": "audio",
+              "port_type": "outlet",
+              "order": 2,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-audio:type:AUDIO"
+            }
+          },
+          "timestamp": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Timestamp (s)",
+              "description": "Decimal number",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 4,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "timestamp",
+              "port_type": "outlet",
+              "order": 3,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 123.21662025013939
+            }
+          },
+          "block_number": {
+            "kwargs": {
+              "registry_id": "INT",
+              "registry_key": "haywire-core:type:INT",
+              "label": "Block Number",
+              "description": "Whole number",
+              "class_name": "INT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 0
+              },
+              "store_strategy": 4,
+              "color": "#f7b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "block_number",
+              "port_type": "outlet",
+              "order": 4,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:INT"
+            },
+            "field_data": {
+              "value": 23103
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3400.0,
+              "posY": 4700.0,
+              "width": 256,
+              "height": 222,
+              "z": 7
+            },
+            "promoted": {}
+          },
+          "dispatch": {
+            "values": {},
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3400.0,
+            "posY": 4700.0,
+            "width": 256,
+            "height": 222,
+            "z": 7
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "AudioEventNode",
+          "registry_key": "haybale-audio:node:AudioEventNode",
+          "label": "Audio Event",
+          "description": "Triggered for each audio block a connected audio emitter delivers",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "AudioEventNode",
+          "module": "haybale_audio.nodes.audio_event",
+          "tags": [],
+          "search_tags": [
+            "audio",
+            "block",
+            "event",
+            "callback",
+            "receive",
+            "stream",
+            "microphone"
+          ],
+          "menu": "audio/event",
+          "template": false,
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false,
+          "_is_subgraph_input": false,
+          "_is_subgraph_output": false,
+          "_is_graph_node": false,
+          "_is_macro_node": false
+        },
+        "library": {
+          "label": "Audio",
+          "version": "0.3.4",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
+          "module_name": "haybale_audio",
+          "name": "haybale-audio",
+          "linked_libraries": [
+            "haybale_core"
+          ],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "AudioMixerNode_3f850d51": {
+      "node_id": "AudioMixerNode_3f850d51",
+      "registry_key": "haybale-audio:node:AudioMixerNode",
+      "node_data": {
+        "node_id": "AudioMixerNode_3f850d51",
+        "ports": {
+          "tick": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Tick",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "tick",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "clock": {
+            "kwargs": {
+              "registry_id": "AUDIO",
+              "registry_key": "haybale-audio:type:AUDIO",
+              "label": "Clock",
+              "description": "Block of the Audio Clock",
+              "class_name": "AUDIO",
+              "module": "haybale_audio.types.audio",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#4ab0d9",
+              "id": "clock",
+              "port_type": "inlet",
+              "order": 1
+            },
+            "recipe": {
+              "registry_key": "haybale-audio:type:AUDIO"
+            }
+          },
+          "in_0": {
+            "kwargs": {
+              "registry_id": "AUDIO",
+              "registry_key": "haybale-audio:type:AUDIO",
+              "label": "In 0",
+              "description": "A block of audio samples. Never saved with the graph.",
+              "class_name": "AUDIO",
+              "module": "haybale_audio.types.audio",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#4ab0d9",
+              "id": "in_0",
+              "port_type": "inlet",
+              "order": 2,
+              "origin": "resolved"
+            },
+            "recipe": {
+              "registry_key": "haybale-audio:type:AUDIO"
+            }
+          },
+          "status": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Status",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": "Idle"
+              },
+              "store_strategy": 4,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:SimpleLabelWidget",
+              "id": "status",
+              "port_type": "config",
+              "order": 3,
+              "show_widget": "always"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "Idle"
             }
           },
           "next": {
@@ -725,84 +1762,280 @@
               "color": "#004cff",
               "id": "next",
               "port_type": "outlet",
-              "order": 5,
+              "order": 4,
               "show_widget": "never"
             },
             "recipe": {
               "registry_key": "haywire-core:type:EXEC"
             }
           },
-          "frames": {
+          "mixed": {
             "kwargs": {
-              "registry_id": "INT",
-              "registry_key": "haywire-core:type:INT",
-              "label": "Frames",
-              "description": "Whole number",
-              "class_name": "INT",
-              "module": "haywire.barn.builtin.types.specs",
+              "registry_id": "AUDIO",
+              "registry_key": "haybale-audio:type:AUDIO",
+              "label": "Mixed",
+              "description": "A block of audio samples. Never saved with the graph.",
+              "class_name": "AUDIO",
+              "module": "haybale_audio.types.audio",
               "default": {
-                "value": 0
+                "value": {}
               },
-              "store_strategy": 4,
-              "color": "#f7b0ff",
-              "widget_key": "haywire-core:widget:NumberWidget",
-              "id": "frames",
+              "store_strategy": 1,
+              "color": "#4ab0d9",
+              "id": "mixed",
               "port_type": "outlet",
-              "order": 6,
+              "order": 5,
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:INT"
+              "registry_key": "haybale-audio:type:AUDIO"
+            }
+          },
+          "write_0": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Write 0",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "write_0",
+              "port_type": "inlet",
+              "order": 7
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "gain_0": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Gain 0",
+              "description": "Decimal number",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 1.0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "gain_0",
+              "port_type": "inlet",
+              "order": 8
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 732672
+              "value": 1.0
+            }
+          },
+          "mute_0": {
+            "kwargs": {
+              "registry_id": "BOOL",
+              "registry_key": "haywire-core:type:BOOL",
+              "label": "Mute 0",
+              "description": "True or False",
+              "class_name": "BOOL",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": false
+              },
+              "store_strategy": 2,
+              "color": "#4caf50",
+              "widget_key": "haywire-core:widget:SwitchWidget",
+              "id": "mute_0",
+              "port_type": "inlet",
+              "order": 9
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:BOOL"
+            },
+            "field_data": {
+              "value": false
+            }
+          },
+          "in_1": {
+            "kwargs": {
+              "registry_id": "AUDIO",
+              "registry_key": "haybale-audio:type:AUDIO",
+              "label": "In 1",
+              "description": "A block of audio samples. Never saved with the graph.",
+              "class_name": "AUDIO",
+              "module": "haybale_audio.types.audio",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#4ab0d9",
+              "id": "in_1",
+              "port_type": "inlet",
+              "order": 10,
+              "origin": "resolved"
+            },
+            "recipe": {
+              "registry_key": "haybale-audio:type:AUDIO"
+            }
+          },
+          "write_1": {
+            "kwargs": {
+              "registry_id": "EXEC",
+              "registry_key": "haywire-core:type:EXEC",
+              "label": "Write 1",
+              "description": "Signal for controlling execution flow between nodes",
+              "class_name": "EXEC",
+              "module": "haywire.barn.builtin.types.exec",
+              "default": {
+                "value": {}
+              },
+              "store_strategy": 1,
+              "color": "#004cff",
+              "id": "write_1",
+              "port_type": "inlet",
+              "order": 12
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:EXEC"
+            }
+          },
+          "gain_1": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Gain 1",
+              "description": "Decimal number",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": 1.0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "gain_1",
+              "port_type": "inlet",
+              "order": 13
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 1.0
+            }
+          },
+          "mute_1": {
+            "kwargs": {
+              "registry_id": "BOOL",
+              "registry_key": "haywire-core:type:BOOL",
+              "label": "Mute 1",
+              "description": "True or False",
+              "class_name": "BOOL",
+              "module": "haywire.barn.builtin.types.specs",
+              "default": {
+                "value": false
+              },
+              "store_strategy": 2,
+              "color": "#4caf50",
+              "widget_key": "haywire-core:widget:SwitchWidget",
+              "id": "mute_1",
+              "port_type": "inlet",
+              "order": 14
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:BOOL"
+            },
+            "field_data": {
+              "value": false
+            }
+          },
+          "in_2": {
+            "kwargs": {
+              "registry_id": "ADD",
+              "registry_key": "haywire-core:type:ADD",
+              "label": "In 2",
+              "description": "Grows a new port from whatever connects to it",
+              "class_name": "ADD",
+              "module": "haywire.barn.builtin.types.add",
+              "default": {
+                "value": null
+              },
+              "store_strategy": 1,
+              "color": "#4ab0d9",
+              "icon_in": "add_circle_outline",
+              "icon_in_multi": "add_circle_outline",
+              "icon_out": "add_circle",
+              "icon_out_multi": "add_circle",
+              "widget_config": {
+                "properties": {}
+              },
+              "id": "in_2",
+              "port_type": "inlet",
+              "order": 15,
+              "on_connect": "hb_resolve"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:ADD",
+              "element_type": {
+                "registry_key": "haybale-audio:type:AUDIO"
+              }
             }
           }
         },
         "settings": {
           "props": {
             "values": {
-              "posX": 3920.0,
-              "posY": 3820.0,
-              "width": 263,
-              "height": 322,
-              "z": 3
+              "posX": 3880.0,
+              "posY": 4700.0,
+              "width": 256,
+              "height": 582,
+              "z": 8
             },
+            "promoted": {}
+          },
+          "mixer": {
+            "values": {},
             "promoted": {}
           }
         },
         "props": {
           "values": {
-            "posX": 3920.0,
-            "posY": 3820.0,
-            "width": 263,
-            "height": 322,
-            "z": 3
+            "posX": 3880.0,
+            "posY": 4700.0,
+            "width": 256,
+            "height": 582,
+            "z": 8
           },
           "promoted": {}
         },
         "store": {},
         "identity": {
-          "registry_id": "RecorderNode",
-          "registry_key": "haybale-audio:node:RecorderNode",
-          "label": "Recorder",
-          "description": "Writes audio blocks to a file",
+          "registry_id": "AudioMixerNode",
+          "registry_key": "haybale-audio:node:AudioMixerNode",
+          "label": "Audio Mixer",
+          "description": "Sums several audio sources into one block per clock tick",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "RecorderNode",
-          "module": "haybale_audio.nodes.recorder",
+          "class_name": "AudioMixerNode",
+          "module": "haybale_audio.nodes.audio_mixer",
           "tags": [],
           "search_tags": [
             "audio",
-            "record",
-            "write",
-            "save",
-            "file",
-            "wav",
-            "flac",
-            "ogg"
+            "mixer",
+            "mix",
+            "sum",
+            "gain",
+            "mute",
+            "combine",
+            "bus"
           ],
-          "menu": "audio/io",
+          "menu": "audio/mix",
           "template": false,
           "_is_error": false,
           "_error_priority": 0,
@@ -828,34 +2061,112 @@
     }
   },
   "edges": {
-    "BeginPlayNode_f6168d69[exec]->FilePlayerNode_28a72bb6[start]": {
-      "source_node_id": "BeginPlayNode_f6168d69",
+    "BeginPlayNode_ea80758b[exec]->FilePlayerNode_b89da1b7[start]": {
+      "source_node_id": "BeginPlayNode_ea80758b",
       "outlet_port_id": "exec",
-      "sink_node_id": "FilePlayerNode_28a72bb6",
+      "sink_node_id": "FilePlayerNode_b89da1b7",
       "inlet_port_id": "start",
       "chain_adapter_keys": [],
       "propagation": "eager"
     },
-    "AudioEventNode_17e72db8[listen_callback]->FilePlayerNode_28a72bb6[callbacks]": {
-      "source_node_id": "AudioEventNode_17e72db8",
+    "AudioEventNode_f5917691[listen_callback]->FilePlayerNode_b89da1b7[callbacks]": {
+      "source_node_id": "AudioEventNode_f5917691",
       "outlet_port_id": "listen_callback",
-      "sink_node_id": "FilePlayerNode_28a72bb6",
+      "sink_node_id": "FilePlayerNode_b89da1b7",
       "inlet_port_id": "callbacks",
       "chain_adapter_keys": []
     },
-    "AudioEventNode_17e72db8[block_ready]->RecorderNode_f6984bb4[write]": {
-      "source_node_id": "AudioEventNode_17e72db8",
+    "AudioEventNode_1017a6a1[listen_callback]->FilePlayerNode_f6d47448[callbacks]": {
+      "source_node_id": "AudioEventNode_1017a6a1",
+      "outlet_port_id": "listen_callback",
+      "sink_node_id": "FilePlayerNode_f6d47448",
+      "inlet_port_id": "callbacks",
+      "chain_adapter_keys": []
+    },
+    "AudioEventNode_f2d97224[listen_callback]->AudioClockNode_1a91326d[callbacks]": {
+      "source_node_id": "AudioEventNode_f2d97224",
+      "outlet_port_id": "listen_callback",
+      "sink_node_id": "AudioClockNode_1a91326d",
+      "inlet_port_id": "callbacks",
+      "chain_adapter_keys": []
+    },
+    "FilePlayerNode_b89da1b7[started]->FilePlayerNode_f6d47448[start]": {
+      "source_node_id": "FilePlayerNode_b89da1b7",
+      "outlet_port_id": "started",
+      "sink_node_id": "FilePlayerNode_f6d47448",
+      "inlet_port_id": "start",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "FilePlayerNode_f6d47448[started]->AudioClockNode_1a91326d[start]": {
+      "source_node_id": "FilePlayerNode_f6d47448",
+      "outlet_port_id": "started",
+      "sink_node_id": "AudioClockNode_1a91326d",
+      "inlet_port_id": "start",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "AudioEventNode_f5917691[audio]->AudioMixerNode_3f850d51[in_0]": {
+      "source_node_id": "AudioEventNode_f5917691",
+      "outlet_port_id": "audio",
+      "sink_node_id": "AudioMixerNode_3f850d51",
+      "inlet_port_id": "in_0",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "AudioEventNode_f5917691[block_ready]->AudioMixerNode_3f850d51[write_0]": {
+      "source_node_id": "AudioEventNode_f5917691",
       "outlet_port_id": "block_ready",
-      "sink_node_id": "RecorderNode_f6984bb4",
+      "sink_node_id": "AudioMixerNode_3f850d51",
+      "inlet_port_id": "write_0",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "AudioEventNode_1017a6a1[audio]->AudioMixerNode_3f850d51[in_1]": {
+      "source_node_id": "AudioEventNode_1017a6a1",
+      "outlet_port_id": "audio",
+      "sink_node_id": "AudioMixerNode_3f850d51",
+      "inlet_port_id": "in_1",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "AudioEventNode_f2d97224[block_ready]->AudioMixerNode_3f850d51[tick]": {
+      "source_node_id": "AudioEventNode_f2d97224",
+      "outlet_port_id": "block_ready",
+      "sink_node_id": "AudioMixerNode_3f850d51",
+      "inlet_port_id": "tick",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "AudioEventNode_f2d97224[audio]->AudioMixerNode_3f850d51[clock]": {
+      "source_node_id": "AudioEventNode_f2d97224",
+      "outlet_port_id": "audio",
+      "sink_node_id": "AudioMixerNode_3f850d51",
+      "inlet_port_id": "clock",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "AudioMixerNode_3f850d51[next]->DeviceOutNode_203350fc[write]": {
+      "source_node_id": "AudioMixerNode_3f850d51",
+      "outlet_port_id": "next",
+      "sink_node_id": "DeviceOutNode_203350fc",
       "inlet_port_id": "write",
       "chain_adapter_keys": [],
       "propagation": "eager"
     },
-    "AudioEventNode_17e72db8[audio]->RecorderNode_f6984bb4[audio]": {
-      "source_node_id": "AudioEventNode_17e72db8",
-      "outlet_port_id": "audio",
-      "sink_node_id": "RecorderNode_f6984bb4",
+    "AudioMixerNode_3f850d51[mixed]->DeviceOutNode_203350fc[audio]": {
+      "source_node_id": "AudioMixerNode_3f850d51",
+      "outlet_port_id": "mixed",
+      "sink_node_id": "DeviceOutNode_203350fc",
       "inlet_port_id": "audio",
+      "chain_adapter_keys": [],
+      "propagation": "eager"
+    },
+    "AudioEventNode_1017a6a1[block_ready]->AudioMixerNode_3f850d51[write_1]": {
+      "source_node_id": "AudioEventNode_1017a6a1",
+      "outlet_port_id": "block_ready",
+      "sink_node_id": "AudioMixerNode_3f850d51",
+      "inlet_port_id": "write_1",
       "chain_adapter_keys": [],
       "propagation": "eager"
     }

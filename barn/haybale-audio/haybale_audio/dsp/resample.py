@@ -46,21 +46,29 @@ class DriftController:
     A depth above the target gives a positive trim (fewer frames out). Against a constant clock
     offset the trim settles within 3% of it, after a few minutes, and at 48 kHz the depth swings
     about ±130 frames (3 ms) around the target with the default gains.
+
+    The depth error counts at most as one ``target_depth`` and the trim never exceeds ``max_trim``,
+    so a queue far off target is steered back gently and the controller does not overshoot when it
+    gets there.
     """
 
-    def __init__(self, target_depth: int, kp: float = 5e-4, ki: float = 1e-6) -> None:
+    def __init__(
+        self, target_depth: int, kp: float = 5e-4, ki: float = 1e-6, max_trim: float = 1e-3
+    ) -> None:
         if target_depth <= 0:
             raise ValueError(f"target_depth must be positive, got {target_depth}")
         self.target_depth = target_depth
         self.kp = kp
         self.ki = ki
+        self.max_trim = max_trim
         self._integral = 0.0
 
     def update(self, depth: int) -> float:
         """Return the trim for the next block, given the FIFO's current depth in frames."""
-        error = (depth - self.target_depth) / self.target_depth
-        self._integral += error
-        return self.kp * error + self.ki * self._integral
+        error = max(-1.0, min(1.0, (depth - self.target_depth) / self.target_depth))
+        limit = self.max_trim / self.ki
+        self._integral = max(-limit, min(limit, self._integral + error))
+        return max(-self.max_trim, min(self.max_trim, self.kp * error + self.ki * self._integral))
 
     def reset(self) -> None:
         self._integral = 0.0

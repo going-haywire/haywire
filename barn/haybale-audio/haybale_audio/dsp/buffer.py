@@ -14,7 +14,8 @@ class PullBuffer:
     Blocks are converted to ``sample_rate`` and fitted to ``channels``. The drift controller adjusts
     the conversion ratio to hold the queue at ``prefill_blocks`` blocks of ``block_frames`` frames, so
     the producer's and the consumer's clocks may differ slightly. ``read`` returns ``None`` until the
-    prefill is queued, and again after the queue runs dry.
+    prefill is queued, and again after the queue runs dry. Playback starts at the prefill depth: audio
+    queued beyond it is dropped.
 
     ``write`` and ``read`` may run on different threads.
     """
@@ -68,6 +69,10 @@ class PullBuffer:
         if not self._playing:
             if self._fifo.depth < self.target:
                 return None
+            # Playback starts from the target depth: audio queued beyond it would only be drained
+            # by the drift controller, slowly and with an overshoot.
+            self._fifo.keep_newest(self.target)
+            self._drift.reset()
             self._playing = True
         before = self._fifo.underruns
         out = self._fifo.pop(frames)

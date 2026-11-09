@@ -95,6 +95,28 @@ class TestStreamResampler:
             StreamResampler(0)
 
 
+class TestDriftControllerLimits:
+    def test_trim_is_limited_however_far_the_queue_is_off(self):
+        ctl = DriftController(1024, max_trim=1e-3)
+        for _ in range(5000):
+            trim = ctl.update(100_000)
+        assert trim == pytest.approx(1e-3)
+
+    def test_the_integral_unwinds_within_seconds_after_a_long_excess(self):
+        ctl = DriftController(1024)
+        for _ in range(5000):
+            ctl.update(100_000)  # a queue far above target for 27 s of blocks
+        trims = [ctl.update(0) for _ in range(600)]  # then empty for three seconds of blocks
+        assert trims[-1] < 0, "the controller has turned around within three seconds"
+
+    def test_reset_forgets_the_history(self):
+        ctl = DriftController(1024)
+        for _ in range(1000):
+            ctl.update(5000)
+        ctl.reset()
+        assert ctl.update(1024) == 0.0
+
+
 class TestDriftController:
     def test_trim_sign_follows_depth(self):
         ctl = DriftController(1024)

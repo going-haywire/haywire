@@ -19,7 +19,7 @@ Sums several audio sources into one block per clock tick
 
 | name | bag | default | description |
 |---|---|---|---|
-| `prefill` | mixer | `4` | Blocks an input queues before it is mixed. More blocks ride out longer stalls. |
+| `prefill` | mixer | `8` | Blocks an input queues before it is mixed. More blocks ride out longer stalls. |
 
 ## Notes
 

@@ -1,7 +1,7 @@
 """Playing AudioBlocks on a sound device."""
 
 import threading
-from typing import Protocol
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -18,6 +18,11 @@ class OutputStream(Protocol):
     def start(self) -> None: ...
     def stop(self) -> None: ...
     def close(self) -> None: ...
+
+    @property
+    def buffer_frames(self) -> int:
+        """Frames the device holds ahead of playback when its buffer is full."""
+        ...
 
     @property
     def write_available(self) -> int:
@@ -55,13 +60,42 @@ class SoundDeviceBackend:
     ) -> OutputStream:
         import sounddevice as sd
 
-        return sd.OutputStream(
+        stream = sd.OutputStream(
             device=_index(device),
             samplerate=sample_rate,
             channels=channels,
             dtype="float32",
             latency=latency if latency is not None else "high",
         )
+        return _PortAudioOutput(stream, sample_rate)
+
+
+class _PortAudioOutput:
+    """An ``sounddevice`` output stream with the buffer size in frames."""
+
+    def __init__(self, stream: Any, sample_rate: int) -> None:
+        self._stream = stream
+        self._sample_rate = sample_rate
+
+    def start(self) -> None:
+        self._stream.start()
+
+    def stop(self) -> None:
+        self._stream.stop()
+
+    def close(self) -> None:
+        self._stream.close()
+
+    @property
+    def buffer_frames(self) -> int:
+        return round(self._stream.latency * self._sample_rate)
+
+    @property
+    def write_available(self) -> int:
+        return int(self._stream.write_available)
+
+    def write(self, data: np.ndarray) -> bool:
+        return bool(self._stream.write(data))
 
 
 def output_device_names() -> list[str]:
@@ -186,8 +220,7 @@ class DeviceOutput:
 
     def _feed(self, stream: OutputStream) -> None:
         try:
-            size = stream.write_available
-            stream.write(np.zeros((size, self.channels), dtype=np.float32))  # the delay that bridges stalls
+            size = stream.buffer_frames
             while not self._stop.is_set():
                 queued = size - stream.write_available
                 buffer = self._buffer

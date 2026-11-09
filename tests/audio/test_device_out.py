@@ -37,6 +37,10 @@ class FakeStream:
         self.state = "closed"
 
     @property
+    def buffer_frames(self) -> int:
+        return self.size
+
+    @property
     def write_available(self) -> int:
         return self.size - self.queued
 
@@ -184,8 +188,7 @@ def test_a_thread_feeds_the_device_until_closed():
     stream = backend.stream
     assert stream is not None
     assert _wait_for(lambda: len(stream.written) > 5), "the thread keeps writing, silence included"
-    assert stream.written[0].shape == (4800, 2), "the device buffer starts out as silence"
-    assert all(chunk.shape == (256, 2) for chunk in stream.written[1:])
+    assert all(chunk.shape == (256, 2) for chunk in stream.written)
     assert any(np.allclose(chunk, 0.5, atol=0.1) for chunk in stream.written), "the queued audio reaches it"
     out.close()
     count = len(stream.written)
