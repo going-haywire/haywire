@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.barn.builtin.surfaces import Barns
+from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
     surface=Barns,
     label="Haystack",
     description="Settings of the haystack library.",
-    icon="speed",
+    icon=hui.icon.haystack,
     order=20,
     default_open=False,
 )

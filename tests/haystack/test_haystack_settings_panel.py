@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
+from haywire.ui import elements as hui
 
 pytestmark = pytest.mark.unit
 
@@ -41,6 +42,7 @@ def test_panel_is_registered_under_barns():
     identity = HaystackSettingsPanel.class_identity
     assert identity.surface is Barns
     assert identity.label == "Haystack", "a library's panel on Barns is named after the library"
+    assert identity.icon == hui.icon.haystack, "and carries the library's icon"
 
 
 def test_draw_renders_the_flow_meter_schema(monkeypatch):
