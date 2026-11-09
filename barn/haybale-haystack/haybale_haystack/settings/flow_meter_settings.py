@@ -15,4 +15,5 @@ class FlowMeterSettings(LibrarySettings):
             "Show how well each running graph's flows keep up, as bars on its row. "
             "Applies the next time a graph is started or stopped."
         ),
+        category="Flow meters",
     )

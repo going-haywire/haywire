@@ -20,8 +20,8 @@
 
 ## panel
 - `haybale-haystack:panel:EditMacroMenuPanel` — Edit Macro — Open the document behind a macro placement, in its own editor tab.
-- `haybale-haystack:panel:FlowMeterSettingsPanel` — Flow meters — Meters on the haystack rows of running graphs.
 - `haybale-haystack:panel:GraphRunSettingsPanel` — Graph Settings — Renders the GraphRunSettings for the currently active graph.
+- `haybale-haystack:panel:HaystackSettingsPanel` — Haystack — Settings of the haystack library.
 - `haybale-haystack:panel:OpenInHaystackMenuPanel` — Load into Haystack — Load a .haywire graph file into the Haystack (does not open an editor tab).
 - `haybale-haystack:panel:UpdateMacroMenuPanel` — Update Macro — Send a modified instance's changes back to the macro it came from.
 

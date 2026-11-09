@@ -1,4 +1,4 @@
-"""Library settings panel for the flow meters, on the ``Barns`` surface."""
+"""Library settings panel for the haystack library, on the ``Barns`` surface."""
 
 from __future__ import annotations
 
@@ -17,14 +17,14 @@ if TYPE_CHECKING:
 
 @panel(
     surface=Barns,
-    label="Flow meters",
-    description="Meters on the haystack rows of running graphs.",
+    label="Haystack",
+    description="Settings of the haystack library.",
     icon="speed",
     order=20,
     default_open=False,
 )
-class FlowMeterSettingsPanel(BasePanel):
-    """Turns the flow meters on the haystack rows on or off."""
+class HaystackSettingsPanel(BasePanel):
+    """Settings of the haystack library; today whether running graphs show flow meters."""
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         registry = ctx.app.library_service.get_settings_registry()

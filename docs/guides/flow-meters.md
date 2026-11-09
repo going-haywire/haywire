@@ -17,7 +17,7 @@ A running graph's row in the **HaystackEditor** shows a **flow meter** where the
 
 Clicking the bar opens a strip of one bar per Flow on the same line, left of the bar. The strip is ordered worst first, nearest the end of the row, with a gap between **execution groups** (Flows in a group share one runner thread and can stall each other). The name keeps all its text: bars that do not fit are cut off, least severe first, and widening the action slot shows them. Hover a bar for the Flow's name, load, frames per second, queue and drops. A stopped graph shows nothing.
 
-The **Show flow meters** setting turns the meters off. It is in the library settings of the properties editor (the **Barns** surface), under **Flow meters**, and applies the next time a graph is started or stopped.
+The **Show flow meters** setting turns the meters off. It is in the library settings of the properties editor (the **Barns** surface), in the **Haystack** panel under **Flow meters**, and applies the next time a graph is started or stopped.
 
 ## 2. What is measured
 
