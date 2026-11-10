@@ -4,7 +4,7 @@ import threading
 import time
 from collections import deque
 
-from haywire.barn.builtin.types import BOOL, EXEC, FLOAT, INT, STRING
+from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
 from haywire.barn.builtin.widgets import SimpleLabelWidget
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
@@ -77,14 +77,15 @@ class AudioMixerNode(BaseNode):
         from haywire.barn.builtin.types import ADD
 
         from haybale_audio.types.audio import AUDIO
+        from haybale_audio.types.exec_audio import EXEC_AUDIO
 
-        self.add(EXEC.as_inlet("tick", label="Tick"))
+        self.add(EXEC_AUDIO.as_inlet("tick", label="Tick"))
         self.add(AUDIO.as_inlet("clock", label="Clock", description="Block of the Audio Clock"))
         self.add(ADD[AUDIO].as_inlet(id=f"{_PREFIX}0", label="In 0", on_connect="hb_resolve"))
         self.add(
             STRING.as_config("status", default="Idle", label="Status", widget=SimpleLabelWidget.config())
         )
-        self.add(EXEC.as_outlet("next", label="Next"))
+        self.add(EXEC_AUDIO.as_outlet("next", label="Next"))
         self.add(AUDIO.as_outlet("mixed", label="Mixed"))
 
     def post_init(self) -> None:
@@ -99,6 +100,7 @@ class AudioMixerNode(BaseNode):
         from haywire.barn.builtin.types import ADD
 
         from haybale_audio.types.audio import AUDIO
+        from haybale_audio.types.exec_audio import EXEC_AUDIO
 
         if port.type_cls is None or not issubclass(port.type_cls, ADD):
             return  # already resolved; the callback fires again whenever the edge is re-linked
@@ -106,7 +108,7 @@ class AudioMixerNode(BaseNode):
         index = int(port.id[len(_PREFIX) :])
         with self.rejig(include=[port.id]):
             self.add(AUDIO.as_inlet(id=port.id, label=f"In {index}", origin=PortOrigin.RESOLVED))
-        self.add(EXEC.as_inlet(f"write_{index}", label=f"Write {index}"))
+        self.add(EXEC_AUDIO.as_inlet(f"write_{index}", label=f"Write {index}"))
         self.add(FLOAT.as_inlet(f"gain_{index}", label=f"Gain {index}", default=1.0))
         self.add(BOOL.as_inlet(f"mute_{index}", label=f"Mute {index}", default=False))
         # Indices are never reused: a port id is part of the id of every edge attached to it.

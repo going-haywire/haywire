@@ -86,14 +86,15 @@ class DeviceOutNode(BaseNode):
 
     def init(self) -> None:
         from haybale_audio.types.audio import AUDIO
+        from haybale_audio.types.exec_audio import EXEC_AUDIO
 
-        self.add(EXEC.as_inlet("write", label="Write"))
+        self.add(EXEC_AUDIO.as_inlet("write", label="Write"))
         self.add(EXEC.as_inlet("stop", label="Stop"))
         self.add(AUDIO.as_inlet("audio", label="Audio", description="Block to play"))
         self.add(
             STRING.as_config("status", default="Idle", label="Status", widget=SimpleLabelWidget.config())
         )
-        self.add(EXEC.as_outlet("next", label="Next"))
+        self.add(EXEC_AUDIO.as_outlet("next", label="Next"))
         self.add(INT.as_outlet("depth", label="Depth"))
 
     def post_init(self) -> None:
