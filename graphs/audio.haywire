@@ -2,7 +2,7 @@
   "format_version": 4,
   "filestem": "audio",
   "created_at": "2026-11-09T17:57:32.852059",
-  "modified_at": "2026-11-09T21:43:17.769982",
+  "modified_at": "2026-11-10T09:13:52.656747",
   "meta": {
     "values": {},
     "promoted": {}
@@ -58,7 +58,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 1794256184.254465
+              "value": 1794298429.126695
             }
           }
         },
@@ -111,7 +111,7 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.3.4",
+          "version": "0.4.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
           "name": "haybale-core",
@@ -258,7 +258,7 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "Finished"
+              "value": "Playing 2 ch at 44100 Hz"
             }
           },
           "started": {
@@ -367,7 +367,7 @@
         },
         "library": {
           "label": "Audio",
-          "version": "0.3.4",
+          "version": "0.4.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
           "module_name": "haybale_audio",
           "name": "haybale-audio",
@@ -411,24 +411,24 @@
           },
           "block_ready": {
             "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
+              "registry_id": "EXEC_AUDIO",
+              "registry_key": "haybale-audio:type:EXEC_AUDIO",
               "label": "Block Ready",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
+              "description": "Signal for sequencing the nodes of an audio flow",
+              "class_name": "EXEC_AUDIO",
+              "module": "haybale_audio.types.exec_audio",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
-              "color": "#004cff",
+              "color": "#3f96b8",
               "id": "block_ready",
               "port_type": "outlet",
               "order": 1,
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
+              "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
           "audio": {
@@ -476,7 +476,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 123.21851308387704
+              "value": 3.5140286670066416
             }
           },
           "block_number": {
@@ -502,7 +502,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 21226
+              "value": 605
             }
           }
         },
@@ -511,8 +511,6 @@
             "values": {
               "posX": 3419.222222222222,
               "posY": 3816.777777777778,
-              "width": 256,
-              "height": 222,
               "z": 2
             },
             "promoted": {}
@@ -526,8 +524,6 @@
           "values": {
             "posX": 3419.222222222222,
             "posY": 3816.777777777778,
-            "width": 256,
-            "height": 222,
             "z": 2
           },
           "promoted": {}
@@ -564,7 +560,7 @@
         },
         "library": {
           "label": "Audio",
-          "version": "0.3.4",
+          "version": "0.4.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
           "module_name": "haybale_audio",
           "name": "haybale-audio",
@@ -584,22 +580,22 @@
         "ports": {
           "write": {
             "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
+              "registry_id": "EXEC_AUDIO",
+              "registry_key": "haybale-audio:type:EXEC_AUDIO",
               "label": "Write",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
+              "description": "Signal for sequencing the nodes of an audio flow",
+              "class_name": "EXEC_AUDIO",
+              "module": "haybale_audio.types.exec_audio",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
-              "color": "#004cff",
+              "color": "#3f96b8",
               "id": "write",
               "port_type": "inlet"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
+              "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
           "stop": {
@@ -667,29 +663,29 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "Idle"
+              "value": "Playing 2 ch at 48000 Hz, stalls 0, late 0, dropped 0"
             }
           },
           "next": {
             "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
+              "registry_id": "EXEC_AUDIO",
+              "registry_key": "haybale-audio:type:EXEC_AUDIO",
               "label": "Next",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
+              "description": "Signal for sequencing the nodes of an audio flow",
+              "class_name": "EXEC_AUDIO",
+              "module": "haybale_audio.types.exec_audio",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
-              "color": "#004cff",
+              "color": "#3f96b8",
               "id": "next",
               "port_type": "outlet",
               "order": 4,
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
+              "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
           "depth": {
@@ -715,7 +711,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 0
+              "value": 19325
             }
           }
         },
@@ -724,7 +720,7 @@
             "values": {
               "posX": 4480.0,
               "posY": 4620.0,
-              "width": 256,
+              "width": 318,
               "height": 258,
               "z": 3
             },
@@ -739,7 +735,7 @@
           "values": {
             "posX": 4480.0,
             "posY": 4620.0,
-            "width": 256,
+            "width": 318,
             "height": 258,
             "z": 3
           },
@@ -776,7 +772,7 @@
         },
         "library": {
           "label": "Audio",
-          "version": "0.3.4",
+          "version": "0.4.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
           "module_name": "haybale_audio",
           "name": "haybale-audio",
@@ -925,7 +921,7 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "Finished"
+              "value": "Playing 2 ch at 48000 Hz"
             }
           },
           "started": {
@@ -1034,7 +1030,7 @@
         },
         "library": {
           "label": "Audio",
-          "version": "0.3.4",
+          "version": "0.4.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
           "module_name": "haybale_audio",
           "name": "haybale-audio",
@@ -1078,24 +1074,24 @@
           },
           "block_ready": {
             "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
+              "registry_id": "EXEC_AUDIO",
+              "registry_key": "haybale-audio:type:EXEC_AUDIO",
               "label": "Block Ready",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
+              "description": "Signal for sequencing the nodes of an audio flow",
+              "class_name": "EXEC_AUDIO",
+              "module": "haybale_audio.types.exec_audio",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
-              "color": "#004cff",
+              "color": "#3f96b8",
               "id": "block_ready",
               "port_type": "outlet",
               "order": 1,
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
+              "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
           "audio": {
@@ -1143,7 +1139,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 123.21871970803477
+              "value": 3.50479020900093
             }
           },
           "block_number": {
@@ -1169,7 +1165,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 23105
+              "value": 657
             }
           }
         },
@@ -1178,8 +1174,6 @@
             "values": {
               "posX": 3419.222222222222,
               "posY": 4138.777777777777,
-              "width": 256,
-              "height": 222,
               "z": 5
             },
             "promoted": {}
@@ -1193,8 +1187,6 @@
           "values": {
             "posX": 3419.222222222222,
             "posY": 4138.777777777777,
-            "width": 256,
-            "height": 222,
             "z": 5
           },
           "promoted": {}
@@ -1231,7 +1223,7 @@
         },
         "library": {
           "label": "Audio",
-          "version": "0.3.4",
+          "version": "0.4.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
           "module_name": "haybale_audio",
           "name": "haybale-audio",
@@ -1337,7 +1329,7 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "Stopped"
+              "value": "Running 5.3 ms blocks"
             }
           },
           "started": {
@@ -1390,8 +1382,6 @@
             "values": {
               "posX": 3880.0,
               "posY": 4400.0,
-              "width": 256,
-              "height": 258,
               "z": 6
             },
             "promoted": {}
@@ -1405,8 +1395,6 @@
           "values": {
             "posX": 3880.0,
             "posY": 4400.0,
-            "width": 256,
-            "height": 258,
             "z": 6
           },
           "promoted": {}
@@ -1443,7 +1431,7 @@
         },
         "library": {
           "label": "Audio",
-          "version": "0.3.4",
+          "version": "0.4.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
           "module_name": "haybale_audio",
           "name": "haybale-audio",
@@ -1487,24 +1475,24 @@
           },
           "block_ready": {
             "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
+              "registry_id": "EXEC_AUDIO",
+              "registry_key": "haybale-audio:type:EXEC_AUDIO",
               "label": "Block Ready",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
+              "description": "Signal for sequencing the nodes of an audio flow",
+              "class_name": "EXEC_AUDIO",
+              "module": "haybale_audio.types.exec_audio",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
-              "color": "#004cff",
+              "color": "#3f96b8",
               "id": "block_ready",
               "port_type": "outlet",
               "order": 1,
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
+              "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
           "audio": {
@@ -1552,7 +1540,7 @@
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
-              "value": 123.21662025013939
+              "value": 3.504640000173822
             }
           },
           "block_number": {
@@ -1578,7 +1566,7 @@
               "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
-              "value": 23103
+              "value": 657
             }
           }
         },
@@ -1587,8 +1575,6 @@
             "values": {
               "posX": 3400.0,
               "posY": 4700.0,
-              "width": 256,
-              "height": 222,
               "z": 7
             },
             "promoted": {}
@@ -1602,8 +1588,6 @@
           "values": {
             "posX": 3400.0,
             "posY": 4700.0,
-            "width": 256,
-            "height": 222,
             "z": 7
           },
           "promoted": {}
@@ -1640,7 +1624,7 @@
         },
         "library": {
           "label": "Audio",
-          "version": "0.3.4",
+          "version": "0.4.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
           "module_name": "haybale_audio",
           "name": "haybale-audio",
@@ -1660,22 +1644,22 @@
         "ports": {
           "tick": {
             "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
+              "registry_id": "EXEC_AUDIO",
+              "registry_key": "haybale-audio:type:EXEC_AUDIO",
               "label": "Tick",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
+              "description": "Signal for sequencing the nodes of an audio flow",
+              "class_name": "EXEC_AUDIO",
+              "module": "haybale_audio.types.exec_audio",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
-              "color": "#004cff",
+              "color": "#3f96b8",
               "id": "tick",
               "port_type": "inlet"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
+              "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
           "clock": {
@@ -1744,29 +1728,29 @@
               "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
-              "value": "Idle"
+              "value": "2 of 2 inputs playing, stalls 0"
             }
           },
           "next": {
             "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
+              "registry_id": "EXEC_AUDIO",
+              "registry_key": "haybale-audio:type:EXEC_AUDIO",
               "label": "Next",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
+              "description": "Signal for sequencing the nodes of an audio flow",
+              "class_name": "EXEC_AUDIO",
+              "module": "haybale_audio.types.exec_audio",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
-              "color": "#004cff",
+              "color": "#3f96b8",
               "id": "next",
               "port_type": "outlet",
               "order": 4,
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
+              "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
           "mixed": {
@@ -1793,23 +1777,23 @@
           },
           "write_0": {
             "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
+              "registry_id": "EXEC_AUDIO",
+              "registry_key": "haybale-audio:type:EXEC_AUDIO",
               "label": "Write 0",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
+              "description": "Signal for sequencing the nodes of an audio flow",
+              "class_name": "EXEC_AUDIO",
+              "module": "haybale_audio.types.exec_audio",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
-              "color": "#004cff",
+              "color": "#3f96b8",
               "id": "write_0",
               "port_type": "inlet",
               "order": 7
             },
             "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
+              "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
           "gain_0": {
@@ -1886,23 +1870,23 @@
           },
           "write_1": {
             "kwargs": {
-              "registry_id": "EXEC",
-              "registry_key": "haywire-core:type:EXEC",
+              "registry_id": "EXEC_AUDIO",
+              "registry_key": "haybale-audio:type:EXEC_AUDIO",
               "label": "Write 1",
-              "description": "Signal for controlling execution flow between nodes",
-              "class_name": "EXEC",
-              "module": "haywire.barn.builtin.types.exec",
+              "description": "Signal for sequencing the nodes of an audio flow",
+              "class_name": "EXEC_AUDIO",
+              "module": "haybale_audio.types.exec_audio",
               "default": {
                 "value": {}
               },
               "store_strategy": 1,
-              "color": "#004cff",
+              "color": "#3f96b8",
               "id": "write_1",
               "port_type": "inlet",
               "order": 12
             },
             "recipe": {
-              "registry_key": "haywire-core:type:EXEC"
+              "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
           "gain_1": {
@@ -1993,8 +1977,6 @@
             "values": {
               "posX": 3880.0,
               "posY": 4700.0,
-              "width": 256,
-              "height": 582,
               "z": 8
             },
             "promoted": {}
@@ -2008,8 +1990,6 @@
           "values": {
             "posX": 3880.0,
             "posY": 4700.0,
-            "width": 256,
-            "height": 582,
             "z": 8
           },
           "promoted": {}
@@ -2047,7 +2027,7 @@
         },
         "library": {
           "label": "Audio",
-          "version": "0.3.4",
+          "version": "0.4.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-audio/haybale_audio",
           "module_name": "haybale_audio",
           "name": "haybale-audio",

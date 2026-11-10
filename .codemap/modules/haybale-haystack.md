@@ -1,66 +1,76 @@
 # Module: haybale-haystack
 
-> File-centric multi-graph manager for Haywire — lets a single workspace own a "haystack" of related graph files with shared persistence and signals.
+> File-centric multi-graph manager plugin. A haystack is a set of related graph files owned by one workspace, with shared persistence, run settings and flow metering. It registers `GraphEntry` containers into `GraphAppState` for the graph editor to show.
 
 **Path:** `barn/haybale-haystack/haybale_haystack/`
 **Language:** Python 3.10+
-**Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** `287501d31bbab15842e74c0a8abce2394052d9d4`
-**Mapped at:** 19bda1e (2026-07-05)
+**Owner:** Haywire core team (bundled plugin)
+**Tree hash:** `9822bf3beebf6f86833e457b46afac6d293b8989`
+**Mapped at:** 9b104fd36 (2026-11-10, branch feat/exec-audio)
 
 ---
 
 ## 1. Scope & Purpose
 
-`haybale-haystack` is the bundled plugin that handles multi-graph file management. It replaces the old in-studio `haystack.py` and isolates persistence, the graph-file registry, and haystack-specific editors/panels from the studio shell. Use it when working on opening/saving multiple graphs, the haystack editor, or persistence semantics.
-
-It is a **source library** for `GraphEditor`: `GraphEntry` is the haystack-flavoured implementation of the `GraphContainer` protocol, and the library `register`s / `unregister`s / `rekey`s its open entries into [`GraphAppState`](haybale-graph-editor.md) so `GraphEditor` (which lives in `haybale-graph-editor`) can resolve a `binding_id` to a live container. Haystack does not own the editor — it owns the containers.
+`haybale-haystack` decides which graph files belong to a workspace and keeps them loaded, persisted and running in an orderly way. `GraphEntry` wraps one graph file as a `GraphContainer` (protocol in [haybale-graph-editor](haybale-graph-editor.md)) so the editor can open it. The library also owns the haystack editor, the haystack and graph-run settings, the flow meter (per-graph execution metering), the signals a haystack emits, and the `graph` and `macro` menu contributions in the graph panels. If this library were removed, the studio would have no multi-graph workspace, but single graphs could still be edited if the editor were opened directly.
 
 ## 2. Folder Architecture
 
 ```
 haybale_haystack/
-├── __init__.py       ← Library entry (BaseLibrary subclass)
-├── graph_entry.py    ← per-file graph entry model
-├── persistence.py    ← read/write haystack files
-├── signals.py        ← haystack-scoped signal vocabulary
-├── editors/          ← haystack editor
-├── panels/           ← haystack-related panels
-├── settings/         ← haystack settings
-└── state/            ← haystack state container
+├── __init__.py          ← `Library` subclass
+├── graph_entry.py       ← GraphEntry: GraphContainer implementation for one graph file
+├── persistence.py       ← haystack file I/O (single owner of haystack file writes)
+├── flow_meter.py        ← per-graph flow metering
+├── signals.py           ← haystack signal definitions
+├── editors/
+│   └── haystack_editor.py ← haystack editor surface
+├── panels/
+│   ├── haystack_settings_panel.py
+│   ├── file_browser/menu/file.py       ← file-browser menu contribution
+│   ├── graph/menu/macro.py             ← graph-menu macro entries
+│   └── properties/introspect/graph_run_settings_panel.py
+├── settings/
+│   ├── haystack_settings.py, graph_run_settings.py, flow_meter_settings.py
+├── state/
+│   └── haystack_state.py  ← haystack runtime state
+├── farmhands/
+│   └── graph_tools.py     ← Farmhand tools for graphs
+└── haybale.toml           ← library manifest
 ```
 
 ## 3. Always-load vs On-demand
 
 ### Always-load
 
-- `__init__.py` — `Library.register_components()`.
-- `persistence.py` — canonical read/write surface; almost every haystack task touches it.
-- `graph_entry.py` — the per-file model used by editors and panels.
+- `__init__.py` — `Library` and `register_components()`.
+- `graph_entry.py` — the container every haystack graph is shown through.
+- `persistence.py` — the only write path for haystack files.
 
 ### On-demand
 
-- `state/haystack_state.py` — haystack state container for editors/panels.
-- `persistence.py` — read/write logic for .haywire graph files.
-- `editors/haystack_editor.py` — haystack editor (file list + focus) UI.
-- `signals.py` — when emitting/listening to haystack-scoped events.
-- `panels/file_browser/` — file browser panels and file actions.
-- `settings/graph_run_settings.py`, `settings/haystack_settings.py` (updated) — use typed-setting markers (`setting[BOOL]`, `setting[INT]`, `setting[STRING]` from `haywire.barn.builtin.types`), not raw Python types.
+- `editors/haystack_editor.py` — haystack editor UI.
+- `settings/graph_run_settings.py` and `panels/properties/introspect/graph_run_settings_panel.py` — per-graph run settings.
+- `flow_meter.py` and `settings/flow_meter_settings.py` — execution metering.
+- `signals.py` — haystack events other libraries subscribe to.
+- `panels/graph/menu/macro.py` — macro entries in the graph menu (see haywire-core `macro/`).
+- `farmhands/graph_tools.py` — Farmhand tools for listing and operating on graphs.
 
 ## 4. Rules & Boundaries
 
-- Persistence path is the single owner of haystack file I/O — do not write haystack files from editors directly.
-- Must register through `Library.register_components()`; entry point declared in `barn/haybale-haystack/pyproject.toml`.
-- Test reference: `tests/studio/test_haystack_editor_remove.py`, `tests/integration/test_haystack_carve_out.py`.
+- `persistence.py` is the single owner of haystack file I/O. Editors do not write haystack files directly.
+- This library registers its containers through `GraphAppState` (see [haybale-graph-editor](haybale-graph-editor.md)). It does not own the editor.
+- Register through `Library.register_components()`; entry point in `barn/haybale-haystack/pyproject.toml`.
+- Tests: `tests/studio/test_haystack_editor_remove.py`, `tests/integration/test_haystack_carve_out.py`.
 
 ## 5. Source of Truth
 
 | Concept | Canonical file | Notes |
 |---------|---------------|-------|
-| Haystack file format | `persistence.py` | Read/write entry point |
-| Per-file model | `graph_entry.py` | `GraphContainer` implementation; registered into `GraphAppState` |
-| Haystack signals | `signals.py` | Scoped vocabulary |
-| Library entry | `__init__.py` | `haystack = "haybale_haystack:Library"` |
+| Container for a graph file | `graph_entry.py` | `GraphEntry` (GraphContainer) |
+| Haystack file I/O | `persistence.py` | Single owner |
+| Haystack runtime state | `state/haystack_state.py` | Open files and their status |
+| Haystack settings | `settings/haystack_settings.py` | Typed settings |
 
 ---
 
@@ -68,14 +78,14 @@ haybale_haystack/
 
 ### Depends on
 
-- [haywire-core-engine](haywire-core-engine.md), [haywire-core-ui](haywire-core-ui.md).
-- [haybale-core](haybale-core.md), [haybale-studio](haybale-studio.md).
-- [haybale-graph-editor](haybale-graph-editor.md) — `GraphAppState` registry, `GraphContainer` protocol, `GraphEditor` surface; `GraphEntry` implements the protocol and the library registers entries on open/close.
+- [haybale-graph-editor](haybale-graph-editor.md) — `GraphContainer`, `GraphAppState`, `GraphEditor`.
+- [haybale-studio](haybale-studio.md) — file surface, file-browser state.
+- [haybale-core](haybale-core.md) — shared types and widgets.
+- [haywire-core-engine](haywire-core-engine.md) — macro, graph and session model.
 
 ### Depended on by
 
-- [haywire-studio](haywire-studio.md) — uses haystack as default multi-graph manager.
-- [tests](tests.md) — `tests/integration/test_haystack_carve_out.py`, `tests/studio/test_haystack_*`.
+- [tests](tests.md) — `tests/studio/`, `tests/integration/`.
 
 ---
 
@@ -83,5 +93,6 @@ haybale_haystack/
 
 | Entry point | File | Description |
 |-------------|------|-------------|
-| Library plugin | `__init__.py:Library` | `haywire.libraries` entry point named `haystack` |
-| File I/O | `persistence.py` | Read/write a haystack file |
+| Library plugin | `__init__.py:Library` | `haywire.libraries` entry point |
+| Graph container | `graph_entry.py:GraphEntry` | Wraps one haystack graph file |
+| Haystack editor | `editors/haystack_editor.py` | Multi-graph manager surface |

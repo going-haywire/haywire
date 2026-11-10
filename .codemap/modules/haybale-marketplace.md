@@ -1,79 +1,82 @@
 # Module: haybale-marketplace
 
-> Optional plugin that provides the library installer + browser UI: marketplace dialog, library overview/component/source editors, and the `LibraryManager` service. Wraps the engine's `marketstall` backend and pip install/uninstall with hot-reload-safe eviction. When absent, the library-browser slot is simply empty and haybale-studio works unmodified.
+> Optional plugin: the library browser and installer UI. A `LibraryManager` service wraps the engine's `core/marketstall` backend, and editors drive the install, uninstall, refresh and add-source flows.
 
 **Path:** `barn/haybale-marketplace/haybale_marketplace/`
 **Language:** Python 3.10+
-**Owner:** Haywire team (optional bundled plugin)
-**Tree hash:** `9db800b83769786bd3c3b2ea2c8f3cfd7fe1bbc5`
-**Mapped at:** 19bda1e (2026-07-05) — no content change since 45140b27; only the package's `pyproject.toml` version bumped (outside this manifest's path)
+**Owner:** Haywire core team (bundled plugin)
+**Tree hash:** `e4c453c9170503694a7161719b25c7cac519d304`
+**Mapped at:** 9b104fd36 (2026-11-10, branch feat/exec-audio)
 
 ---
 
 ## 1. Scope & Purpose
 
-`haybale-marketplace` is the runtime UI for discovering, installing, enabling, and uninstalling haybale libraries. It registers two state containers (`LibraryManagerState`, `MarketplaceState`) and a set of editors (library browser, overview, component, component-source, marketplace dialog). `library_manager.py` owns the pip wrap plus the **dry-run pre-eviction + `sys.modules` ejection** logic that keeps hot-reload from corrupting on installs (see memory `project_install_hotreload_fix`). Library enable/disable persistence is **not** owned here — it lives in the core `LibraryRegistry`/`HostStore`; editors call `manager.registry.enable_library/disable_library` directly.
+`haybale-marketplace` is what a user sees when they browse, install, update or remove haybale libraries. It is a UI and service layer. The backend (manifests, sources, installer, provenance, share) lives in the engine's `core/marketstall` ([haywire-core-engine](haywire-core-engine.md)). Enable and disable persistence belongs to the engine's `LibraryRegistry` and `HostStore`. This library is optional: the studio runs without it, but users then have no in-app way to install libraries.
 
 ## 2. Folder Architecture
 
 ```
 haybale_marketplace/
-├── __init__.py                ← Library subclass; scans state/ BEFORE editors/
-├── config.py                  (new) ← marketplace config (PyPI + custom registry defaults)
-├── library_manager.py         ← LibraryManager service: pip + reload + eviction
+├── __init__.py            ← `Library` subclass
+├── library_manager.py     ← LibraryManager service over core/marketstall
+├── library_origin.py      ← where a library came from
+├── uninstall_impact.py    ← uninstall impact analysis
+├── config.py, identity.py
+├── editors/
+│   ├── library_browser_editor.py   ← browse catalog
+│   ├── library_overview_editor.py  ← per-library overview
+│   ├── _overview_actions.py, _overview_edit_dialog.py, _overview_install_flow.py
+│   ├── _add_source_flow/   ← add a source (_state, chrome, copy, panels)
+│   ├── _install_flow/      ← install (_state, chrome, copy, panels)
+│   ├── _refresh_flow/      ← refresh (_state, chrome, copy, panels)
+│   └── _uninstall_flow/    ← uninstall (_state, chrome, copy, panels)
+├── panels/
+│   └── marketplace_settings_panel.py
+├── settings/
+│   └── marketplace_settings.py
 ├── state/
-│   ├── library_manager_state.py  ← publishes LibraryManager for editors
-│   └── marketplace_state.py      ← wraps core Marketstall (parse/refresh/impact)
-└── editors/
-    ├── _overview_actions.py                (new) ← overview action handlers (refactored from library_overview_editor)
-    ├── _overview_edit_dialog.py            (new) ← library edit dialog (refactored)
-    ├── _overview_install_flow.py           (new) ← 3-step install flow (dry-run → impact → progress)
-    ├── _registry_utils.py                  (new) ← registry parsing + display helpers
-    ├── library_browser_editor.py           ← browse/install/enable surface (simplified, delegates to submodules)
-    ├── library_overview_editor.py          ← per-library overview (refactored, uses _overview_* modules)
-    ├── library_component_editor.py         ← per-component view
-    ├── component_source_editor.py          ← source inspector
-    └── library_marketplace_dialog.py       ← install/upgrade impact + progress dialog
+│   ├── library_manager_state.py
+│   └── marketplace_state.py
+├── farmhands/
+│   ├── catalog_tools.py   ← Farmhand catalog tools
+│   └── install_tools.py   ← Farmhand install tools
+└── haybale.toml           ← library manifest
 ```
 
 ## 3. Always-load vs On-demand
 
 ### Always-load
 
-- `__init__.py` — Library subclass + `register_components()` (state-before-editors ordering matters).
-- `library_manager.py` — the install/uninstall/reload service; central to most tasks here.
+- `__init__.py` — `Library` and `register_components()`.
+- `library_manager.py` — the service every flow calls.
+- `state/` — scan before `editors/` (see Rules).
 
 ### On-demand
 
-- **`config.py`** (new) — marketplace configuration (PyPI endpoint, custom registries).
-- `state/marketplace_state.py` — when changing manifest parsing, refresh, or install/upgrade impact (delegates to core `marketstall`).
-- `state/library_manager_state.py` — when changing how editors obtain the manager.
-- **`editors/library_browser_editor.py`** — main browser surface; simplified after refactoring, delegates to overview modules.
-- **`editors/library_overview_editor.py`** (refactored) — per-library overview; now uses `_overview_*` submodules.
-- **`editors/_overview_actions.py`** (new) — action handlers extracted from overview editor.
-- **`editors/_overview_edit_dialog.py`** (new) — library edit dialog extracted.
-- **`editors/_overview_install_flow.py`** (new) — 3-step install flow (dry-run → impact → progress) implementation.
-- **`editors/_registry_utils.py`** (new) — registry parsing helpers.
-- `editors/library_marketplace_dialog.py` — install/upgrade impact + progress dialogs.
-- `editors/library_component_editor.py` — per-component view.
-- `editors/component_source_editor.py` — source inspector.
+- `editors/_install_flow/`, `_uninstall_flow/` — the install and uninstall flows. They must use the dry-run pre-eviction path.
+- `uninstall_impact.py` — impact analysis shown before uninstall.
+- `editors/_add_source_flow/`, `_refresh_flow/` — remote sources and refresh.
+- `library_origin.py` — provenance display.
+- `farmhands/` — Farmhand tools for catalog and install.
 
 ## 4. Rules & Boundaries
 
-- Same plugin contract as [haybale-core](haybale-core.md): register via `register_components()`; entry point `marketplace = "haybale_marketplace:Library"`.
-- **Scan `state/` before `editors/`** — editors transitively import state classes; reversing the order leaves stale class objects after `force_reload` (same reasoning as haybale-studio).
-- **Do not** add enable/disable persistence here — that is owned by core `LibraryRegistry` → `HostStore` (`core/host/store.py`), which writes through to host.toml.
-- Install/uninstall must go through the dry-run pre-eviction + `sys.modules` ejection path; bypassing it reintroduces the hot-reload corruption bug.
-- Backend logic (manifest/sources/installer/share) belongs in engine [core/marketstall](haywire-core-engine.md), not here — this module is UI + a thin service wrapper.
+- Register through `Library.register_components()`. Entry point: `marketplace = "haybale_marketplace:Library"`.
+- Scan `state/` before `editors/`. Editors import state classes, so reversing the order leaves stale class objects after `force_reload`.
+- Do not add enable/disable persistence here. That is owned by core `LibraryRegistry` and `HostStore` (`core/host/store.py`), which writes through to host.toml.
+- Install and uninstall go through the dry-run pre-eviction and `sys.modules` ejection path. Bypassing it reintroduces the hot-reload corruption bug.
+- Backend logic (manifest, sources, installer, share) belongs in engine `core/marketstall`, not here.
+- Same plugin contract as [haybale-core](haybale-core.md).
 
 ## 5. Source of Truth
 
 | Concept | Canonical file | Notes |
 |---------|---------------|-------|
-| Library entry | `haybale_marketplace/__init__.py` | `marketplace` entry point |
-| Install/uninstall service | `library_manager.py` | pip + reload + eviction |
-| Marketplace orchestration | `state/marketplace_state.py` | wraps core `Marketstall` |
-| Install/upgrade UX | `editors/library_marketplace_dialog.py` | impact + progress popups |
+| Install/library service | `library_manager.py` | Thin wrapper over `core/marketstall` |
+| Marketplace state | `state/marketplace_state.py` | Catalog and selection state |
+| Library manager state | `state/library_manager_state.py` | Installed-library view |
+| Uninstall impact | `uninstall_impact.py` | Dependents and effects |
 
 ---
 
@@ -81,14 +84,14 @@ haybale_marketplace/
 
 ### Depends on
 
-- [haywire-core-engine](haywire-core-engine.md) — `BaseLibrary`, `LibraryRegistry`, `core/marketstall`, `core/host`, `LibraryStateRegistry`.
-- [haywire-core-ui](haywire-core-ui.md) — `EditorTypeRegistry`, editor/dialog bases.
-- [haybale-studio](haybale-studio.md) — provides the slot the browser fills (declared dependency).
+- [haywire-core-engine](haywire-core-engine.md) — `core/marketstall`, `LibraryRegistry`, `HostStore`.
+- [haywire-core-ui](haywire-core-ui.md) — modals (install progress, install safety, upgrade impact).
+- [haybale-core](haybale-core.md) — shared types and widgets.
 
 ### Depended on by
 
-- [haywire-studio](haywire-studio.md) — discovers it as an optional installed plugin.
-- [tests](tests.md) — `tests/test_library_manager_*`, `tests/test_marketplace_state.py`, `tests/test_library_browser_*`.
+- [haywire-studio](haywire-studio.md) — optional runtime plugin.
+- [tests](tests.md) — `tests/marketplace/`, `tests/marketstall/`.
 
 ---
 
@@ -96,6 +99,7 @@ haybale_marketplace/
 
 | Entry point | File | Description |
 |-------------|------|-------------|
-| Library plugin | `__init__.py:Library` | `haywire.libraries` entry point `marketplace` |
-| Manager service | `library_manager.py:LibraryManager` | install/uninstall/reload |
-| Browser UI | `editors/library_browser_editor.py` | main user-facing surface |
+| Library plugin | `__init__.py:Library` | `marketplace` entry point |
+| Install service | `library_manager.py` | `LibraryManager` |
+| Browser editor | `editors/library_browser_editor.py` | Catalog UI |
+| Install flow | `editors/_install_flow/` | Install UX |

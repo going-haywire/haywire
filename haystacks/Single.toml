@@ -44,6 +44,14 @@ execute = false
 path = "graphs/test_metadata_save.haywire"
 execute = false
 
+[[graphs]]
+path = "graphs/audio.haywire"
+execute = false
+
+[[graphs]]
+path = "graphs/comfyui.haywire"
+execute = false
+
 [haystack]
 name = "Single"
-active_graph = "graphs/test_metadata_save.haywire"
+active_graph = "graphs/comfyui.haywire"

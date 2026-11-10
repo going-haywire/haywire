@@ -1,66 +1,81 @@
 # Module: Haywire Studio
 
-> CLI application package that composes `haywire-core` into the `haywire` executable. Owns app bootstrap, global/project TOML config, init scaffolding, the share CLI, and the studio workspace. Runtime library install/manage UI has moved out to the optional `haybale-marketplace` plugin.
+> CLI application package that composes `haywire-core` into the `haywire` executable. Owns app bootstrap, global/project TOML config, init scaffolding, the auth/login gate, network and TLS setup, Farmhand/MCP host wiring, security posture, the docs and rename/share/verify/deps CLIs, and the studio workspace.
 
 **Path:** `packages/haywire-studio/src/haywire_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team
-**Tree hash:** `004394fb080d75b68d3071f3b2ea89ef017ef9dc`
-**Mapped at:** 19bda1e (2026-07-05) — no content change since 45140b27; only the package's `pyproject.toml` version bumped (outside this manifest's path)
+**Tree hash:** `81feaf694f950d4b3dfd276b19deb1bec3303f26` (part of packages/haywire-studio)
+**Mapped at:** 9b104fd36 (2026-11-10, branch feat/exec-audio)
 
 ---
 
 ## 1. Scope & Purpose
 
-`haywire-studio` is the end-user application: it provides the `haywire` CLI entry point, boots a NiceGUI server, and loads installed haybale libraries. It glues `haywire-core` (engine + UI) to user-facing concerns: config files, init scaffolding, the share CLI, and the workspace that hosts haystack file groups. Note: runtime library install/browse UI is **no longer here** — it moved to the [haybale-marketplace](haybale-marketplace.md) plugin, and the install/share backend lives in engine `core/marketstall`.
+`haywire-studio` is the end-user application. It provides the `haywire` CLI entry point, boots the NiceGUI server through `HaywireApp`, and loads installed haybale libraries. It glues `haywire-core` (engine and UI) to user-facing concerns: config files, project scaffolding, authentication (roster, login gate, cookies, eviction), network and TLS, the Farmhand MCP endpoint, security posture, docs generation, rename, share, verify and deps checks, and volumes. Runtime library install/browse UI is **not** here: it lives in the optional [haybale-marketplace](haybale-marketplace.md) plugin, and the install/share backend lives in engine `core/marketstall` ([haywire-core-engine](haywire-core-engine.md)).
 
 ## 2. Folder Architecture
 
 ```
-haywire_studio/
-├── __init__.py         ← exposes `main` (CLI entry point)
-├── __main__.py         ← `python -m haywire_studio`
-├── app.py              ← `HaywireApp` – top-level orchestrator
-├── config.py           ← global + project TOML config readers/writers
-├── init.py             ← CLI: `haywire init` scaffolding
-├── rename.py           (new) ← CLI: `haywire rename` (relocates library renames from marketplace editor)
-├── share.py            ← CLI: `haywire share` (thin wrapper over core/marketstall/share)
-└── workspace/          ← studio-specific workspace pieces
+src/haywire_studio/
+├── __init__.py / __main__.py ← CLI entry (`main`) and `python -m haywire_studio`
+├── app.py                    ← HaywireApp: top-level orchestrator (boot, libraries, sessions)
+├── config.py                 ← global + project TOML readers/writers
+├── init.py                   ← `haywire init` scaffolding
+├── playbook.py               ← playbook text/steps
+├── publish_workflow.py       ← publish workflow (library directory builds, --dev roots)
+├── code_intelligence.py      ← jedi-backed code intelligence for editors
+├── error_hooks.py            ← error hooks wired into the ledger
+├── auth/                     ← login gate: gate, login, live, operations, passwords, cookies, eviction
+├── security/                 ← security document, roster, posture, operations, errors
+├── network/                  ← TLS/certs, IP filter, names, tls_operations
+├── farmhand/                 ← Farmhand (MCP) host, auth, identity
+├── workspace/                ← studio workspace pieces
+├── cli/                      ← subcommands: init, docs, rename, share, verify, user, auth,
+│                               network, ssl, security, volumes, farmhand, deps, _guards
+└── packaging/                ← build/publish-time helpers
+    ├── docs/                 ← docs model, extract, generate, render
+    ├── rename/               ← rename planner, checks, discovery, execute, graphs, pysource, report
+    ├── deps.py, verify.py    ← dependency and verification checks
+    └── share_cli.py          ← `haywire share` surface
 ```
-
-> Notes: the file-centric multi-graph registry now lives in [haybale-haystack](haybale-haystack.md); `library_manager.py` moved to [haybale-marketplace](haybale-marketplace.md); the share *backend* lives in [core/marketstall/share.py](haywire-core-engine.md) (this `share.py` is the CLI surface).
 
 ## 3. Always-load vs On-demand
 
 ### Always-load
 
-- `app.py` — `HaywireApp` is the orchestrator; almost every studio task touches it.
-- `__init__.py` — `main()` entry point; CLI argument routing.
+- `app.py` — `HaywireApp`; nearly every studio task touches it.
+- `__init__.py` — `main()` CLI routing.
 - `config.py` — global vs project TOML resolution.
 
 ### On-demand
 
-- **`init.py`** — `haywire init` scaffolding CLI subcommand; updated with new storage path helpers.
-- **`rename.py`** (new) — `haywire rename` CLI; JSON-aware library rename with dry-run graph patching (moved from marketplace editor).
-- **`share.py`** — `haywire share` CLI; thin wrapper over `core/marketstall/share.py`.
-- **`app.py`** — HaywireApp orchestrator; wires up all plugins.
-- **`config.py`** — TOML config resolution logic.
-- `workspace/` — when changing workspace-specific pieces.
+- `auth/` and `security/` — login, roster, sessions, posture. Read with the auth ADR (0027) in `docs/adr`.
+- `network/` — TLS and bind/IP filtering.
+- `farmhand/` — MCP endpoint host (see `.insights/INDEX.md` for traps).
+- `cli/` — one file per subcommand. Read the subcommand's file and `cli/_guards.py`.
+- `packaging/rename/` — `haywire rename`: JSON-aware library rename with dry-run graph patching.
+- `packaging/docs/` — `haywire docs` generator.
+- `publish_workflow.py` — library publish flow.
+- `init.py` — `haywire init` scaffolding.
 
 ## 4. Rules & Boundaries
 
-- This package depends on `haywire-core`, `haybale-core`, `haybale-studio`. Pulling in other haybale libs must go through the library discovery path, not direct imports.
-- Library install/uninstall/browse UI belongs in [haybale-marketplace](haybale-marketplace.md), not here.
-- Config: global TOML lives under the user config dir; project TOML lives in the project root. Both pass through `config.py` — do not parse TOMLs ad hoc. App-level state (enabled libs) is host.toml, owned by engine `core/host`.
-- The `haywire` script is the only sanctioned launcher; tests don't spawn it as a subprocess except via `tests/test_init_scaffolding.py`.
+- Depends on `haywire-core`, `haybale-core`, `haybale-studio`. Other haybale libs load through library discovery, never by direct import.
+- Library install, uninstall and browse UI belongs in [haybale-marketplace](haybale-marketplace.md).
+- Config: global TOML lives in the user config dir, project TOML in the project root. Both go through `config.py`; do not parse TOML ad hoc. App-level state (enabled libs) is `host.toml`, owned by engine `core/host`.
+- The `haywire` script is the sanctioned launcher. Tests spawn it as a subprocess only in `tests/test_init_scaffolding.py`.
+- Rename CLI logic belongs under `packaging/rename/`, not the marketplace editor.
 
 ## 5. Source of Truth
 
 | Concept | Canonical file | Notes |
 |---------|---------------|-------|
-| CLI `haywire` entry | `__init__.py:main` | Defined in `pyproject.toml [project.scripts]` |
-| App orchestrator | `app.py` (`HaywireApp`) | Boots NiceGUI + libraries |
-| TOML config | `config.py` | Both global and project schemas |
+| CLI `haywire` entry | `__init__.py:main` | Declared in `pyproject.toml [project.scripts]` |
+| App orchestrator | `app.py` (`HaywireApp`) | Boots NiceGUI and libraries |
+| TOML config | `config.py` | Global and project schemas |
+| Login roster | `security/roster.py`, `auth/operations.py` | Who may log in |
+| Security posture | `security/posture.py`, `security/document.py` | Startup-read controls |
 
 ---
 
@@ -70,12 +85,12 @@ haywire_studio/
 
 - [haywire-core-engine](haywire-core-engine.md), [haywire-core-ui](haywire-core-ui.md).
 - [haybale-core](haybale-core.md), [haybale-studio](haybale-studio.md) — required at runtime.
-- [haybale-marketplace](haybale-marketplace.md) — optional plugin discovered at runtime for library UI.
+- [haybale-marketplace](haybale-marketplace.md) — optional plugin discovered at runtime.
 
 ### Depended on by
 
-- [tests](tests.md) — `tests/studio/` and `tests/test_init_scaffolding.py`.
-- End users via the `haywire` CLI command.
+- [tests](tests.md) — `tests/studio/`, `tests/farmhand/`, `tests/test_init_scaffolding.py`.
+- End users via the `haywire` CLI.
 
 ---
 
@@ -83,9 +98,11 @@ haywire_studio/
 
 | Entry point | File | Description |
 |-------------|------|-------------|
-| `haywire` CLI | `__init__.py:main` | `pyproject.toml` `[project.scripts]` |
-| `python -m haywire_studio` | `__main__.py` | Same as above without script alias |
-| App boot | `app.py:HaywireApp` | NiceGUI server + library loading |
-| `haywire init` | `init.py` | Scaffolds a new project tree |
-| `haywire rename` | `rename.py` | Relocates library with JSON-aware graph patching |
-| `haywire share` | `share.py` | Export/share flows |
+| `haywire` CLI | `__init__.py:main` | `[project.scripts]` |
+| `python -m haywire_studio` | `__main__.py` | Same as above without the script alias |
+| App boot | `app.py:HaywireApp` | NiceGUI server and library loading |
+| `haywire init` | `init.py` | Scaffolds a project tree |
+| `haywire rename` | `cli/rename.py` → `packaging/rename/` | Library rename with graph patching |
+| `haywire share` | `cli/share.py` → `packaging/share_cli.py` | Export and share flows |
+| `haywire docs` | `cli/docs.py` → `packaging/docs/` | Library docs generator |
+| Farmhand MCP host | `farmhand/host.py` | Serves `/mcp` |
