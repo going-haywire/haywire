@@ -93,6 +93,7 @@ class NodeData:
             object.__setattr__(self, _bag_name, _bag_instance)
 
         self._declaration: Dict[str, Dict[str, Any]] = {}
+        self._declaration_saved: Dict[str, Dict[str, Any]] = {}
 
         self._cache: NodeCache = NodeCache()
 
@@ -137,6 +138,14 @@ class NodeData:
     def _snapshot_declaration(self) -> None:
         """Take the ports the node holds now as its declaration; called once, right after ``init()``."""
         self._declaration = {port_id: port.declaration() for port_id, port in self.ports.items()}
+        self._declaration_saved = {
+            port_id: port.to_dict(include_data=False) for port_id, port in self.ports.items()
+        }
+
+    @property
+    def saved_declaration(self) -> Dict[str, Dict[str, Any]]:
+        """The declaration as a graph file records it: each port without what its type says."""
+        return self._declaration_saved
 
     @property
     def identity(self) -> NodeIdentity:

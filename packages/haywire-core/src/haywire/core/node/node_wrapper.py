@@ -297,7 +297,6 @@ class NodeWrapper:
         # Only the props: a node that failed to load may not serialize as a whole.
         props = self._node_instance.props
         data["props"] = props._to_dict()
-        data.setdefault("settings", {})["props"] = props._to_dict()
         if not include_data:
             for port in data.get("ports", {}).values():
                 port.pop("field_data", None)

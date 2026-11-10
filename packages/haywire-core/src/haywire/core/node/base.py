@@ -1,7 +1,6 @@
 from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Optional
-from dataclasses import asdict
 from abc import abstractmethod
 
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
@@ -340,19 +339,18 @@ class BaseNode(NodeData):
     # =========================================================================
 
     def _to_dict(self, include_data: bool = True) -> dict:
-        """Serialize the node, including its identity and library info.
+        """Return the node's ports, settings, props and store as a JSON-serializable dict.
 
         Args:
             include_data: When True, port field values are included.
         """
         return {
-            "node_id": self.node_id,
             "ports": self._serialize_ports(include_data=include_data),
-            "settings": {name: getattr(self, name)._to_dict() for name in type(self)._settings_bags},
+            "settings": {
+                name: getattr(self, name)._to_dict() for name in type(self)._settings_bags if name != "props"
+            },
             "props": self.props._to_dict(),
             "store": self._store.to_dict(),
-            "identity": asdict(self.identity),
-            "library": asdict(self.library),
         }
 
     def _initialize_from_dict(self, data: dict) -> None:
@@ -383,7 +381,11 @@ class BaseNode(NodeData):
         # mid-load through a half-built graph.
         from haywire.core.settings.settings import PromotedFormatError
 
-        for bag_name, bag_data in data.get("settings", {}).items():
+        # The props are a bag like the others, saved beside them under their own key.
+        bags = dict(data.get("settings", {}))
+        if "props" in data:
+            bags["props"] = data["props"]
+        for bag_name, bag_data in bags.items():
             bag = getattr(self, bag_name, None)
             if not isinstance(bag, Settings):
                 continue
@@ -411,9 +413,6 @@ class BaseNode(NodeData):
             self._deserialize_ports(data["ports"])
 
         self._regenerate_promoted_ports()
-
-        if "props" in data:
-            self.props._from_dict(data["props"])
 
         if "store" in data:
             self._store.from_dict(data["store"])
