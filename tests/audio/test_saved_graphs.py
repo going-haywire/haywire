@@ -16,7 +16,7 @@ def test_a_saved_audio_flow_loads_with_every_edge_valid(graph_with_library_syste
     graph.force_validation()
 
     edges = graph.list_edge_wrappers()
-    assert len(edges) == 14
+    assert len(edges) == 13
     assert [e.edge_id for e in edges if not e.state.is_valid()] == []
 
 

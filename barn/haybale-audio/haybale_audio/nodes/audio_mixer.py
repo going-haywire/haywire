@@ -50,19 +50,18 @@ class AudioMixerNode(BaseNode):
     input appears below.
 
     Wire each source's Audio Event Block Ready to its `Write` pin: the block is queued for that input.
-    Wire an Audio Clock's Audio Event to `Tick` and `Clock`: `Block Ready` to `Tick`, `Audio` to
-    `Clock`. `Tick` is the moment to mix one block, so every tick mixes one block per input. `Clock`
-    only tells the mixer the sample rate and block size of its output: the silent block on it is not
-    mixed in. The sources are the numbered inputs. Inputs at another sample rate or block size are
-    converted, and a source clock that differs slightly from the tick clock is absorbed.
+    Wire an Audio Clock's Audio Event `Block Ready` to `Tick`. `Tick` is the moment to mix one block, so
+    every tick mixes one block per input. The block that triggered the tick sets the sample rate and
+    block size of the output; it is not mixed in. The sources are the numbered inputs. Inputs at another
+    sample rate or block size are converted, and a source clock that differs slightly from the tick
+    clock is absorbed.
 
     An input is mixed once its prefill is queued, and again after a stall; until then it is silent. The
     sum is not limited, so loud sources can exceed ±1; the output has the most channels of any input, and
     a mono input plays on all of them.
 
     Inputs:
-        tick: Mix one block (wire it to the clock's Block Ready)
-        clock: The clock's block; its sample rate and size set the output
+        tick: Mix one block (wire it to the clock's Block Ready); the triggering block sets the output
         in_N / write_N: An input's audio and the pin that queues it
         gain_N / mute_N: An input's level and mute
 
@@ -80,7 +79,6 @@ class AudioMixerNode(BaseNode):
         from haybale_audio.types.exec_audio import EXEC_AUDIO
 
         self.add(EXEC_AUDIO.as_inlet("tick", label="Tick"))
-        self.add(AUDIO.as_inlet("clock", label="Clock", description="Block of the Audio Clock"))
         self.add(ADD[AUDIO].as_inlet(id=f"{_PREFIX}0", label="In 0", on_connect="hb_resolve"))
         self.add(
             STRING.as_config("status", default="Idle", label="Status", widget=SimpleLabelWidget.config())
@@ -125,10 +123,10 @@ class AudioMixerNode(BaseNode):
     def on_teardown(self) -> None:
         self.hb_reset()
 
-    def worker(self, context: ExecutionContext, clock: AudioBlock | None = None) -> str | None:
+    def worker(self, context: ExecutionContext) -> str | None:
         pin = context.control_pin or ""
         if pin == "tick":
-            return self.hb_tick(clock)
+            return self.hb_tick(self._trigger_block(context))
         if pin.startswith("write_"):
             self.hb_write(int(pin[len("write_") :]))
         return None
@@ -144,9 +142,7 @@ class AudioMixerNode(BaseNode):
                 return
             self._buffer(index, block).write(block)
 
-    def hb_tick(self, clock: AudioBlock | None) -> str:
-        if clock is None:
-            raise ValueError("tick needs the clock's block")
+    def hb_tick(self, clock: AudioBlock) -> str:
         rate, frames = clock.sample_rate, clock.frames
         with self.hb_lock:
             self.hb_format = (rate, frames)
@@ -195,6 +191,15 @@ class AudioMixerNode(BaseNode):
             )
             self.hb_buffers[index] = buffer
         return buffer
+
+    @staticmethod
+    def _trigger_block(context: ExecutionContext) -> AudioBlock:
+        """Return the block of the audio event that started this flow."""
+        payload = context.trigger.payload if context.trigger else None
+        block = payload.get("audio") if isinstance(payload, dict) else None
+        if not isinstance(block, AudioBlock):
+            raise ValueError("tick needs a flow started by an audio event")
+        return block
 
     def _gain(self, index: int) -> float:
         gain = self.value(f"gain_{index}")

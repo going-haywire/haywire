@@ -33,7 +33,7 @@ smaller blocks lower the delay and raise the number of events per second.
 Use cases:
 
 - Pace a mixer. Wire the clock to an Audio Event and that event to an Audio Mixer, with
-  `Block Ready` going to `Tick` and `Audio` to `Clock`. The mixer then makes one block per beat,
+  `Block Ready` going to `Tick`. The mixer then makes one block per beat,
   in the clock's sample rate and block size, whatever the rates and block sizes of its inputs.
 - Keep an output fed. The mixer makes a block on every beat, silent while no input plays, so a
   Device Out behind it gets a steady stream and never waits for a source to start.

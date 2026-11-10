@@ -80,9 +80,10 @@ def _event(graph: Any):
     return make_node(graph, mod.AudioEventNode.class_identity.registry_key, position=(0, 0))
 
 
-def _pin(name: str) -> MagicMock:
+def _pin(name: str, block: AudioBlock | None = None) -> MagicMock:
     ctx = MagicMock()
     ctx.control_pin = name
+    ctx.trigger.payload = {"audio": block} if block is not None else {}
     return ctx
 
 
@@ -117,8 +118,8 @@ def test_tick_mixes_the_inputs_with_gain_and_mute(graph_with_library_system):
     for _ in range(10):
         for n in range(3):
             mixer.node.worker(_pin(f"write_{n}"))
-    assert mixer.node.worker(_pin("tick"), clock=clock) == "next"
-    assert mixer.node.worker(_pin("tick"), clock=clock) == "next"
+    assert mixer.node.worker(_pin("tick", clock)) == "next"
+    assert mixer.node.worker(_pin("tick", clock)) == "next"
 
     mixed = mixer.node.ports["mixed"].get_value()
     assert (mixed.channels, mixed.frames, mixed.sample_rate) == (1, 256, 48000)
@@ -135,8 +136,8 @@ def test_blocks_written_before_the_first_tick_are_kept(graph_with_library_system
     for _ in range(10):
         mixer.node.worker(_pin("write_0"))
     clock = _block(0.0)
-    mixer.node.worker(_pin("tick"), clock=clock)
-    mixer.node.worker(_pin("tick"), clock=clock)
+    mixer.node.worker(_pin("tick", clock))
+    mixer.node.worker(_pin("tick", clock))
     np.testing.assert_allclose(mixer.node.ports["mixed"].get_value().data, 0.4, atol=1e-3)
 
 
@@ -148,14 +149,14 @@ def test_input_that_has_not_filled_its_prefill_is_silent(graph_with_library_syst
     values = {"in_0": _block(0.4)}
     mixer.node.value = lambda port_id: values.get(port_id)
     mixer.node.worker(_pin("write_0"))
-    mixer.node.worker(_pin("tick"), clock=_block(0.0))
+    mixer.node.worker(_pin("tick", _block(0.0)))
     assert not mixer.node.ports["mixed"].get_value().data.any()
 
 
 @pytest.mark.integration
-def test_tick_without_a_clock_block_is_an_error(graph_with_library_system):
+def test_tick_without_a_triggering_audio_block_is_an_error(graph_with_library_system):
     mixer = _mixer(graph_with_library_system)
-    with pytest.raises(ValueError, match="clock"):
+    with pytest.raises(ValueError, match="audio event"):
         mixer.node.worker(_pin("tick"))
 
 
