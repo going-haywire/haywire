@@ -8,6 +8,8 @@ level: framework
 
 # A broken node keeps its data
 
+> **Amended by [ADR 0076](0076-a-graph-file-stores-what-differs-from-the-code.md).** A node's data no longer holds `identity` and `library`; a stand-in keeps the file's `requires` and `declarations` entries for its class instead.
+
 **Context.**
 
 - A node cannot be built for two reasons: its class is unknown (its library is missing, or the key failed to import), or its class's constructor raises (a broken settings declaration or `__init__`, often after a hot reload).

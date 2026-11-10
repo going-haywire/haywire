@@ -6,6 +6,8 @@ settings bags ``props`` and ``meta``.
 """
 
 from __future__ import annotations
+
+import copy
 from typing import Any, Dict, List, Mapping, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
 from datetime import datetime
@@ -146,6 +148,9 @@ class BaseGraph:
         # Library-wide compatibility findings from the most recent load_from_dict call.
         # Node-specific findings are written directly onto node state as NodeWarnings.
         self.library_compatibility_findings: list[str] = []
+        # As the loaded file had them: what a save writes for a node whose class is not loaded.
+        self._loaded_requires: Dict[str, str] = {}
+        self._loaded_declarations: Dict[str, Any] = {}
 
         # The graph tier. The registry comes from the DI context, like node
         # bags, and must already be configured.
@@ -1064,11 +1069,14 @@ class BaseGraph:
         """
         from haywire.core.graph.prehydration import CURRENT_FORMAT_VERSION
 
+        requires, declarations = self._requires_and_declarations()
         return {
             "format_version": CURRENT_FORMAT_VERSION,
             "filestem": self.filestem,
             "created_at": self.created_at,
             "modified_at": self.modified_at,
+            "requires": requires,
+            "declarations": declarations,
             "meta": self.meta._to_dict(),
             "nodes": {
                 node_id: wrapper.serialize(include_data=include_data)
@@ -1086,6 +1094,32 @@ class BaseGraph:
                 if getattr(definition, "template_key", None) is None
             },
         }
+
+    def _requires_and_declarations(self) -> tuple[Dict[str, str], Dict[str, Any]]:
+        """Return the file's ``requires`` and ``declarations`` tables for the nodes held now.
+
+        ``requires`` maps each library a node comes from to its version, and
+        ``declarations`` each node class's registry key to the ports its ``init()``
+        declares (``NodeData.saved_declaration``). A node whose class is not loaded keeps
+        the entries of the file it came from.
+        """
+        requires: Dict[str, str] = {}
+        declarations: Dict[str, Any] = {}
+        for wrapper in self.node_wrappers.values():
+            key = wrapper.registry_key
+            library_name = key.split(":", 1)[0]
+            node = wrapper._node_instance
+            if node is None or wrapper.is_stand_in:
+                if library_name in self._loaded_requires:
+                    requires.setdefault(library_name, self._loaded_requires[library_name])
+                if key in self._loaded_declarations:
+                    declarations.setdefault(key, self._loaded_declarations[key])
+                continue
+            library = node.library
+            if library.name and library.version:
+                requires[library.name] = library.version
+            declarations.setdefault(key, node.saved_declaration)
+        return dict(sorted(requires.items())), dict(sorted(declarations.items()))
 
     def load_from_dict(self, data: Dict[str, Any]) -> bool:
         """Replace this graph's contents with ``data``, upgraded to the current file format first.
@@ -1113,6 +1147,9 @@ class BaseGraph:
             self.modified_at = data.get("modified_at")
 
             self.clear()
+
+            self._loaded_requires = dict(data.get("requires") or {})
+            self._loaded_declarations = copy.deepcopy(data.get("declarations") or {})
 
             # Restored before the nodes: a node bag's graph mirrors seed from
             # these cells at construction. _reset_all first, because this graph
@@ -1276,17 +1313,18 @@ class BaseGraph:
                 logger.warning(f"compatibility_warnings() failed for '{lib_id}': {exc}")
                 return []
 
+        requires = data.get("requires") or {}
         saved_nodes: list[SavedNode] = []
         for node_id, wrapper_data in data.get("nodes", {}).items():
-            node_data = wrapper_data.get("node_data", {})
-            library_block = node_data.get("library", {})
             registry_key = wrapper_data.get("registry_key", "")
+            # A registry key starts with the name of the library it comes from.
+            library_name = registry_key.split(":", 1)[0]
             saved_nodes.append(
                 SavedNode(
                     node_id=node_id,
                     registry_key=registry_key,
-                    library_id=library_block.get("name", ""),
-                    saved_version=library_block.get("version"),
+                    library_id=library_name,
+                    saved_version=requires.get(library_name),
                 )
             )
 

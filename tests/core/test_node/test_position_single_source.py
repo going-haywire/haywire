@@ -120,8 +120,6 @@ def test_a_file_node_without_props_position_loads_at_the_origin(graph_with_libra
     wrapper = graph.create_node_wrapper(_key(), position=(700.0, 80.0))
     data = graph.to_dict()
     node = data["nodes"][wrapper.node_id]
-    # The props bag is serialized twice: under "settings" and at the top of node_data.
-    node["node_data"]["settings"].pop("props")
     del node["node_data"]["props"]["values"]["posX"], node["node_data"]["props"]["values"]["posY"]
     node["position"] = [5, 5]
     data["nodes"][wrapper.node_id] = node

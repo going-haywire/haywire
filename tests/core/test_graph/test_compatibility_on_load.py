@@ -35,12 +35,12 @@ def test_load_applies_node_compatibility_warning(library_system, monkeypatch):
     )
     monkeypatch.setattr(type(testing_lib), "compatibility_warnings", lambda self: [warning], raising=False)
 
-    # Build a one-node graph, serialize, then force the saved library.version low.
+    # Build a one-node graph, serialize, then force the saved library version low.
     g1 = BaseGraph(filestem="g1", validation_scheduler=SyncScheduler())
     a = make_node(g1, disp_key, position=(100, 100))
     data = g1.to_dict(include_data=False)
-    # Stamp an OLD saved version on the node's library block.
-    data["nodes"][a.node_id]["node_data"]["library"]["version"] = "0.0.1"
+    # Stamp an old saved version in the requires table.
+    data["requires"]["haybale-testing"] = "0.0.1"
 
     g2 = BaseGraph(filestem="g2", validation_scheduler=SyncScheduler())
     assert g2.load_from_dict(data) is True
@@ -64,7 +64,7 @@ def test_load_does_not_warn_when_saved_version_current(library_system, monkeypat
     g1 = BaseGraph(filestem="g1", validation_scheduler=SyncScheduler())
     a = make_node(g1, disp_key, position=(100, 100))
     data = g1.to_dict(include_data=False)
-    data["nodes"][a.node_id]["node_data"]["library"]["version"] = "9.9.9"  # newer than warning
+    data["requires"]["haybale-testing"] = "9.9.9"  # newer than warning
 
     g2 = BaseGraph(filestem="g2", validation_scheduler=SyncScheduler())
     g2.load_from_dict(data)
@@ -86,7 +86,7 @@ def test_library_wide_finding_lands_on_graph(library_system, monkeypatch):
     g1 = BaseGraph(filestem="g1", validation_scheduler=SyncScheduler())
     a = make_node(g1, disp_key, position=(100, 100))
     data = g1.to_dict(include_data=False)
-    data["nodes"][a.node_id]["node_data"]["library"]["version"] = "0.0.1"
+    data["requires"]["haybale-testing"] = "0.0.1"
 
     g2 = BaseGraph(filestem="g2", validation_scheduler=SyncScheduler())
     g2.load_from_dict(data)
@@ -113,7 +113,7 @@ def test_reset_clears_compatibility_warning(library_system, monkeypatch):
     g1 = BaseGraph(filestem="g1", validation_scheduler=SyncScheduler())
     a = make_node(g1, disp_key, position=(100, 100))
     data = g1.to_dict(include_data=False)
-    data["nodes"][a.node_id]["node_data"]["library"]["version"] = "0.0.1"
+    data["requires"]["haybale-testing"] = "0.0.1"
 
     g2 = BaseGraph(filestem="g2", validation_scheduler=SyncScheduler())
     g2.load_from_dict(data)

@@ -142,24 +142,34 @@ Returning `None` ends that path.
 [guides/node-roles](../../guides/node-roles.md). Full taxonomy:
 [reference/glossary](../../reference/glossary.md) (**NodeType**).
 
-## 5. Why `init()` is skipped when a graph is loaded
+## 5. What `init()` means when a graph is loaded
 
-When a user saves a graph and opens it again, **your node's `init()` is not
-called.** The ports are there anyway.
+`init()` is your node's **declaration**: the ports a node of this class comes
+with. It runs every time a node is built: dropped fresh, loaded from a file,
+pasted, or rebuilt.
 
-Think of `init()` as the **factory settings**: the ports and starting values a
-new node comes with. By the time a graph is saved, the user has changed those
-values — and the node may even have changed its ports (Section 7). Running the
-factory setup again on load would wipe all of that.
+On a load it runs first, and the saved node is then laid over it:
 
-So a saved graph stores **the ports themselves**, values included, and loading
-restores them directly. That gives one rule with two parts:
+- **Which ports exist comes from the file.** A node may have changed its ports
+  since it was dropped (Section 7), and the user may have grown some. The file
+  has the last word, so a port your node removed stays removed.
+- **What a declared port looks like comes from your code**, except where the
+  user or the node changed it. A saved graph stores, for each port `init()`
+  declares, only the value and what differs from the declaration. Correct a
+  label, a description, a default or a widget in `init()`, and every saved graph
+  shows it the next time it opens.
+- **A port added later is stored whole.** A port a callback adds, or one grown
+  from an `ADD` pin, is not in the declaration, so the file keeps all of it.
 
-- **`init()`** declares the ports a *new* (or reset) node starts with — and
-  only that. Anything else done here is lost on load, because it does not run.
-- **`post_init()`** runs in both cases: right after `init()` for a new node,
-  right after loading for a saved one. Put here what saving cannot carry —
+That gives one rule with two parts:
+
+- **`init()`** declares ports — and only that. It must give the same ports each
+  time it runs, and must not read values the user sets: they are not loaded yet.
+- **`post_init()`** runs after `init()` for a new node and after the saved node
+  is laid over it for a loaded one. Put here what saving cannot carry —
   helper objects, a parser, a lookup table built in code.
+
+See [ADR 0076](../../adr/0076-a-graph-file-stores-what-differs-from-the-code.md).
 
 Neither hook is the place to open a camera or a file. That waits until the
 graph runs — the next section.
