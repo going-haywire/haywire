@@ -13,9 +13,11 @@ from haywire_studio.publish_workflow import render_publish_plan, render_publish_
 pytestmark = pytest.mark.unit
 
 
-def _project(root: Path, *, distribute: str | None, libs: dict[str, str]) -> Path:
+def _project(root: Path, *, distribute: str | None, libs: dict[str, str], root_extra: str = "") -> Path:
     block = f'\n[tool.haywire.marketstall]\ndistribute = "{distribute}"\n' if distribute else ""
-    (root / "pyproject.toml").write_text('[project]\nname = "proj"\nversion = "0.1.0"\n' + block)
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "proj"\nversion = "0.1.0"\n' + root_extra + block
+    )
     for name, version in libs.items():
         lib = root / "barn" / name
         lib.mkdir(parents=True)
@@ -73,8 +75,8 @@ def test_pypi_distribution_lists_every_library(tmp_path: Path) -> None:
     assert code == 0
     assert out["enabled"] == "true"
     assert json.loads(out["matrix"]) == [
-        {"dist": "haybale-a", "version": "0.1.0"},
-        {"dist": "haybale-b", "version": "0.1.0"},
+        {"dist": "haybale-a", "version": "0.1.0", "path": "barn/haybale-a"},
+        {"dist": "haybale-b", "version": "0.1.0", "path": "barn/haybale-b"},
     ]
 
 
@@ -101,6 +103,73 @@ def test_symlinked_libraries_are_not_published(tmp_path: Path) -> None:
     (root / "barn" / "haybale-linked").symlink_to(elsewhere)
     _, out, _ = _plan(root)
     assert [item["dist"] for item in json.loads(out["matrix"])] == ["haybale-a"]
+
+
+def _standalone(root: Path) -> bool:
+    _, out, _ = _plan(root)
+    return out["standalone"] == "true"
+
+
+def test_a_root_without_sources_is_standalone(tmp_path: Path) -> None:
+    assert _standalone(_project(tmp_path, distribute="pypi", libs={"haybale-a": "0.1.0"}))
+
+
+def test_a_root_whose_sources_stay_inside_the_checkout_is_standalone(tmp_path: Path) -> None:
+    extra = (
+        "\n[tool.uv.sources.haybale-a]\nworkspace = true\n"
+        '\n[tool.uv.sources.vendored]\npath = "vendor/vendored"\n'
+    )
+    root = _project(tmp_path, distribute="pypi", libs={"haybale-a": "0.1.0"}, root_extra=extra)
+    assert _standalone(root)
+
+
+def test_a_relative_link_out_of_the_checkout_is_not_standalone(tmp_path: Path) -> None:
+    extra = (
+        '\n[tool.uv.sources.haywire-core]\npath = "../haywire-repo/packages/haywire-core"\neditable = true\n'
+    )
+    (tmp_path / "proj").mkdir()
+    root = _project(tmp_path / "proj", distribute="pypi", libs={"haybale-a": "0.1.0"}, root_extra=extra)
+    assert not _standalone(root)
+
+
+def test_an_absolute_link_out_of_the_checkout_is_not_standalone(tmp_path: Path) -> None:
+    extra = '\n[tool.uv.sources.haywire-core]\npath = "/home/dev/haywire/packages/haywire-core"\n'
+    root = _project(tmp_path, distribute="pypi", libs={"haybale-a": "0.1.0"}, root_extra=extra)
+    assert not _standalone(root)
+
+
+def test_the_pyproject_of_a_dev_project_is_not_standalone(tmp_path: Path) -> None:
+    from haywire_studio.init import _generate_project_pyproject
+
+    generated = _generate_project_pyproject("proj", "haybale-proj", dev_repo="/home/dev/haywire")
+    root = _project(tmp_path, distribute="pypi", libs={"haybale-proj": "0.1.0"})
+    (root / "pyproject.toml").write_text(generated + '\n[tool.haywire.marketstall]\ndistribute = "pypi"\n')
+    assert not _standalone(root)
+
+
+def test_the_flag_is_reported_even_when_nothing_is_published(tmp_path: Path) -> None:
+    root = _project(tmp_path, distribute=None, libs={"haybale-a": "0.1.0"})
+    _, out, _ = _plan(root, ref_type="branch", ref_name="main")
+    assert out["standalone"] == "true"
+
+
+def test_each_library_is_built_from_its_own_directory() -> None:
+    build = render_publish_workflow().split("\n  build:\n", 1)[1].split("\n  publish:\n", 1)[0]
+    assert "working-directory: ${{ matrix.lib.path }}" in build
+    assert 'uv build --out-dir "${GITHUB_WORKSPACE}/dist"' in build
+    assert "--package" not in build
+
+
+def test_the_root_is_only_synced_for_the_tests_of_a_standalone_project() -> None:
+    build = render_publish_workflow().split("\n  build:\n", 1)[1].split("\n  publish:\n", 1)[0]
+    assert build.count("uv sync") == 1
+    tests = build.split("- name: Run tests\n", 1)[1].split("- name: Build", 1)[0]
+    assert "needs.guard.outputs.standalone == 'true'" in tests
+    assert "uv sync --frozen" in tests
+
+
+def test_the_guard_passes_the_flag_on() -> None:
+    assert "standalone: ${{ steps.plan.outputs.standalone }}" in render_publish_workflow()
 
 
 def test_init_writes_both_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
