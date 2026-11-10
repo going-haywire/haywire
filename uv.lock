@@ -1033,12 +1033,14 @@ version = "0.4.0"
 source = { editable = "barn/haybale-core" }
 dependencies = [
     { name = "haywire-core" },
+    { name = "nicegui" },
     { name = "typing-extensions" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "nicegui", specifier = ">=3.18.0" },
     { name = "typing-extensions" },
 ]
 
