@@ -50,6 +50,24 @@ class ResampleNode(BaseNode):
     Block sizes change with the rate (a 441-sample block at 44.1 kHz gives about 480 at 48 kHz); put a
     Reblock after it where a fixed size is needed.
 
+    Use cases:
+
+    - Feed a model that wants one rate. Speech-to-text models usually take 16 kHz mono: resample
+      to 16000, then a Mix to Mono, then a Reblock to the model's block size.
+    - Record or send at a set rate. A Recorder writes, and an OMT send transmits, the rate of the
+      blocks it gets. Resample in front when the file or the receiver expects another one, for
+      example a 44.1 kHz MP3 played into a 48 kHz show.
+    - Match sources before a node that does not convert. A Channel Merge needs blocks of one
+      sample rate; resample the odd one out first.
+
+    ```text
+    File Player → Audio Event → Resample (16000) → Audio Event → Mix to Mono → …
+    ```
+
+    An Audio Mixer and a Device Out convert to their own rate themselves, and they also follow a source
+    whose clock runs slightly fast or slow, so neither needs a Resample in front. Resample uses a
+    fixed ratio and does not do that.
+
     Inputs:
         write: Convert the block on `audio`
         audio: The block to convert
