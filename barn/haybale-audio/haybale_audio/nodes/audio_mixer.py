@@ -1,5 +1,6 @@
 """Audio Mixer — sums several audio sources into one block per tick of a clock."""
 
+import logging
 import threading
 import time
 from collections import deque
@@ -16,9 +17,13 @@ from haybale_audio.dsp.mix import mix
 from haybale_audio.emitter import set_status
 from haybale_audio.value import AudioBlock
 
+logger = logging.getLogger(__name__)
+
 _PREFIX = "in_"
 #: Blocks kept for an input that writes before the first tick fixes the output format.
 _PENDING_BLOCKS = 32
+#: A wait between two writes or ticks longer than this is logged.
+LONG_WAIT = 0.05
 #: Seconds between status updates; one per tick would flood the UI.
 STATUS_INTERVAL = 0.5
 
@@ -144,6 +149,10 @@ class AudioMixerNode(BaseNode):
             last = self.hb_write_at.get(index)
             if last is not None:
                 self.hb_write_gap = max(self.hb_write_gap, now - last)
+                if now - last > LONG_WAIT:
+                    logger.warning(
+                        "Audio Mixer: input %d waited %.0f ms for a write", index, (now - last) * 1000
+                    )
             self.hb_write_at[index] = now
             if self.hb_format is None:
                 # The tick has not fixed the output format yet.
@@ -157,6 +166,8 @@ class AudioMixerNode(BaseNode):
         with self.hb_lock:
             if self.hb_tick_at:
                 self.hb_tick_gap = max(self.hb_tick_gap, now - self.hb_tick_at)
+                if now - self.hb_tick_at > LONG_WAIT:
+                    logger.warning("Audio Mixer: waited %.0f ms for a tick", (now - self.hb_tick_at) * 1000)
             self.hb_tick_at = now
             self.hb_format = (rate, frames)
             for index, blocks in self.hb_pending.items():
