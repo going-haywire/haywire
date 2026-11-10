@@ -5,22 +5,22 @@
 **Path:** `barn/haybale-example/`, `barn/haybale-testing/`, `barn/haybale-TEST_A/`
 **Language:** Python 3.10+
 **Owner:** Various (bundled plugins)
-**Tree hashes:** `ad4b7776cb469462c779abb6fe1e7c89b91c7348` / `41a98cec3ae7197fd5b9af5468533b22aaad211b` / `728840422d66a22446f0321ff9e012baac74a2ea`
-**Mapped at:** 19bda1e (2026-07-05)
+**Tree hashes:** `aac17609a94449af6ac9befb55a8fa33cc41ced0` / `e9c4c353edbb3ebfed55aa128a0155a99207469e` / `07a979e8ef318a2da1210d2f1693d26b0a5a4f57`
+**Mapped at:** 9b104fd36 (2026-11-10, branch feat/exec-audio)
 
-> ⚠️ `barn/haybale-visiongraph/` is now **gitignored** (`.gitignore:211`) and untracked in HEAD — it exists on disk as a local-only library and is no longer part of the committed repo. It is therefore dropped from this map's hash tracking.
+> ⚠️ `barn/haybale-visiongraph/`, `barn/haybale-comfyui/`, `barn/haybale-spandrel/` and `barn/haybale-stream/` are **gitignored** (`.gitignore:224-227`). They exist on disk as local-only libraries, are untracked in HEAD, and are not mapped here.
 
 ---
 
 ## 1. Scope & Purpose
 
-These libraries collectively demonstrate and exercise the library plugin system:
+These libraries exercise and demonstrate the plugin system:
 
-- **`haybale-example`** — minimal reference implementation; the "follow this template" library.
-- **`haybale-testing`** — nodes/types used exclusively in the test suite (e.g., side-effect probes, deterministic timing).
-- **`haybale-TEST_A`** — fixture/regression library for the library-system tests (e.g., naming collisions, hot-reload). The unusual name is intentional.
+- **`haybale-example`** — minimal reference implementation; the "follow this template" library. Contains adapters, catalog entries, macros, nodes, types and widgets.
+- **`haybale-testing`** — nodes, types, panels, settings, state, surfaces, themes and widgets used only by the test suite. Includes `wires.py`.
+- **`haybale-TEST_A`** — fixture and regression library for library-system tests (naming collisions, hot-reload). The unusual name is intentional.
 
-If you are documenting how to author a haybale library, point readers to `haybale-example` first.
+To document how to author a haybale library, point readers to `haybale-example` first.
 
 ## 2. Folder Architecture
 
@@ -28,64 +28,59 @@ If you are documenting how to author a haybale library, point readers to `haybal
 barn/
 ├── haybale-example/
 │   └── haybale_example/
-│       ├── __init__.py       ← Library subclass
-│       ├── adapters/         ← example adapters
-│       ├── nodes/
-│       │   ├── emits/        ← callback emitter nodes (custom_callback, emit_callback, merge_callback)
-│       │   └── math_op.py
-│       ├── skins/example_skin.py ← example skin
-│       ├── types/            ← specs.py (Temperature), math.py, maps_string_type.py
-│       └── widgets/          ← example_widget.py, knob_widget.py
+│       ├── __init__.py   ← Library subclass
+│       ├── adapters/     ← example adapters
+│       ├── catalog/      ← catalog entries
+│       ├── macros/       ← example macros
+│       ├── nodes/        ← example nodes (e.g. math_op)
+│       ├── types/        ← example types (Temperature, maps-string)
+│       ├── widgets/      ← example widgets
+│       └── haybale.toml
 │
 ├── haybale-testing/
 │   └── haybale_testing/
-│       ├── __init__.py       ← Library subclass
-│       ├── nodes/
-│       │   ├── testbed/      ← test-fixture nodes: settings, event queue-mode, group/section UI
-│       │   ├── benchmark/    ← perf benchmark node fixtures
-│       │   └── …
-│       ├── settings/testing.py ← library-level TestingSettings (mirrored by settings_node.py)
-│       └── panels/           ← test node panels
+│       ├── __init__.py   ← Library subclass
+│       ├── adapters/, farmhands/, nodes/, panels/, settings/, state/,
+│       │   surfaces/, themes/, types/, widgets/
+│       ├── wires.py      ← test wire helpers
+│       └── haybale.toml
 │
 └── haybale-TEST_A/
-    └── haybale_test_a/       ← library-system test fixture (version-bump only this refresh)
+    └── haybale_test_a/
+        ├── __init__.py, nodes/, types/, widgets/
+        └── haybale.toml
 ```
 
-Each follows the standard layout: `__init__.py` exposes a `Library` subclass and registers components via `register_components()`.
+Each library follows the standard layout: `__init__.py` exposes a `Library` subclass that registers components via `register_components()`.
 
 ## 3. Always-load vs On-demand
 
 ### Always-load
 
-- The relevant library's `__init__.py` (just one when you know which lib you're working in).
-- `haybale-example/README.md` when authoring a new library.
+- The relevant library's `__init__.py`, and only the one you are working in.
 
 ### On-demand
 
-- **`haybale-testing/haybale_testing/nodes/testbed/settings_node.py`** + **`settings/testing.py`** — canonical example of the current `setting[IType]` generic form, `shadow()`/`watch()` mirrors, and the widget_config re-supply gotcha (see Rules).
-- **`haybale-testing/haybale_testing/nodes/testbed/custom_callback_node.py`** — reference for wiring per-event-node `queue_mode` (`QueueMode.DROP`/`BLOCK`) into `CallbackEvent` for realtime frame-dropping (ADR 0010).
-- **`haybale-example/haybale_example/widgets/`** — reference widgets (no longer declare `compatible_types=[...]` on `@widget()`; see Rules).
-- **`haybale-testing/haybale_testing/panels/`** — test node panels with widget patterns.
-- Other libraries' internals — only if you're changing a specific node, type, or test fixture.
+- `haybale-example/nodes/`, `types/`, `widgets/` — when writing a new node, type or widget from a template.
+- `haybale-example/macros/`, `catalog/` — when working on macro or catalog examples.
+- `haybale-testing/nodes/` — test-fixture nodes (side-effect probes, deterministic timing, benchmark fixtures). Read the test that uses them first.
+- `haybale-testing/settings/`, `state/`, `panels/` — test settings and state fixtures.
+- `haybale-TEST_A/` — library-system regression fixtures. Change only with the matching library-system test.
 
 ## 4. Rules & Boundaries
 
-- All three follow the same plugin contract as [haybale-core](haybale-core.md): register via `Library.register_components()`; entry point in `pyproject.toml`.
-- `haybale-testing` and `haybale-TEST_A` are **not** for general use — keep production logic out of them.
-- `haybale-TEST_A`'s name intentionally exercises identifier normalization; don't "fix" it.
-- mypy roots: see root `pyproject.toml` `[tool.mypy]` and the CLAUDE.md mypy command — example/testing/TEST_A are included (visiongraph is no longer tracked/linted by default).
-- **Primitive types/widgets import path moved**: `STRING`, `FLOAT`, `BOOL`, `INT`, `COLOR`, `VEC2I`/`VEC3F`/`VEC4F`, `CHOICES` and stock widgets (`TextWidget`, `SelectWidget`, `SwitchWidget`, `NumberWidget`) now live in `haywire.barn.builtin.types` / `haywire.barn.builtin.widgets`, not `haybale_core.types` / `haybale_core.widgets.basic_widgets`. `haybale_core.types` still owns structural types (`EXEC`, `CALLBACK`, `GROUP`, `PooledType`). All three libs updated their imports accordingly; keep new nodes consistent with this split.
-- **`widget_key` prefix**: builtin widget keys changed from `core:widget:*` to `builtin:widget:*` (see `display_node.py`).
-- **Settings generics**: `setting[str]`/`setting[int]`/etc. (bare Python types) are superseded by `setting[STRING]`/`setting[INT]`/etc. (IType generics); `choices=[...]` is now `widget_config={"options": [...]}`; `widget="color"` and `type_=` overrides are no longer needed/accepted. `shadow()`/`watch()` mirrors inherit the source's `IType` but **not** its `widget_config` — options-style config must be re-supplied at the mirror site (see `settings_node.py::mode`/`mode_ro`).
-- `@widget(...)` no longer takes `compatible_types=[...]` — compatibility is resolved elsewhere now; don't add it back to new widgets.
+- Test-only nodes and fixtures stay in `haybale-testing` and `haybale-TEST_A`. Production libraries must not import them.
+- `haybale-example` is documentation by code. Keep it correct and minimal.
+- `haybale-TEST_A` names are load-bearing for collision tests. Do not rename them casually; run `check-rename` after any rename.
+- Register components through `Library.register_components()`.
 
 ## 5. Source of Truth
 
 | Concept | Canonical file | Notes |
 |---------|---------------|-------|
-| Authoring template | `barn/haybale-example/haybale_example/__init__.py` | The "follow this" library |
-| Test-only nodes | `barn/haybale-testing/haybale_testing/__init__.py` | Used by `tests/` |
-| Library-system fixture | `barn/haybale-TEST_A/haybale_test_a/__init__.py` | Used by `tests/core/test_libraries` |
+| Authoring template | `haybale-example/haybale_example/__init__.py` | Start point for new libraries |
+| Test fixtures | `haybale-testing/haybale_testing/` | Used by `tests/` |
+| Collision fixtures | `haybale-TEST_A/haybale_test_a/` | Used by library-system tests |
 
 ---
 
@@ -94,12 +89,11 @@ Each follows the standard layout: `__init__.py` exposes a `Library` subclass and
 ### Depends on
 
 - [haywire-core-engine](haywire-core-engine.md), [haywire-core-ui](haywire-core-ui.md).
-- Most depend on [haybale-core](haybale-core.md) for shared types.
+- [haybale-core](haybale-core.md) — shared types (haybale-example, haybale-testing).
 
 ### Depended on by
 
-- [tests](tests.md) — library-system and integration tests.
-- [haywire-studio](haywire-studio.md) — discovers them as installed plugins when present.
+- [tests](tests.md) — `tests/barn/`, `tests/libraries/`, `tests/execution/`, and others that load these fixtures.
 
 ---
 
@@ -107,4 +101,6 @@ Each follows the standard layout: `__init__.py` exposes a `Library` subclass and
 
 | Entry point | File | Description |
 |-------------|------|-------------|
-| Library plugins | each lib's `__init__.py:Library` | Discovered via `haywire.libraries` entry point |
+| Example library | `haybale-example/haybale_example/__init__.py:Library` | Authoring template |
+| Testing library | `haybale-testing/haybale_testing/__init__.py:Library` | Test fixtures |
+| Fixture library | `haybale-TEST_A/haybale_test_a/__init__.py:Library` | Collision fixtures |

@@ -1,24 +1,25 @@
 # Cross-cut: Signals & Reactive Properties
 
-> Haywire's UI/engine event plumbing: a typed signal bus in `core/signals/` plus reactive property descriptors (`shadow()` / `watch()`) used throughout settings and node properties.
+> Haywire's UI and engine event plumbing: a typed signal bus in `core/signals/` plus reactive property descriptors (`shadow()` / `watch()`) used throughout settings and node properties.
 
 ## Overview
 
-Two related-but-distinct mechanisms keep Haywire reactive:
+Two related mechanisms keep Haywire reactive:
 
-1. **Signals** — a typed pub/sub bus with a vocabulary file. Components emit and listen on a `SignalBus` scoped to a session. Used for "something happened" notifications across engine, UI, and libraries.
-2. **Reactive properties** — `shadow()` and `watch()` descriptors on nodes/settings that materialise observable values which the UI binds to. The settings descriptor system (`core/settings/descriptor.py`) is the canonical pattern; do not introduce competing reactive patterns.
+1. **Signals**: a typed pub/sub bus with a vocabulary file. Components publish and subscribe through a `SignalPeer` that owns a `SignalBus` scoped to a session. Used for "something happened" notifications across engine, UI and libraries.
+2. **Reactive properties**: `shadow()` and `watch()` descriptors on nodes and settings. The settings descriptor (`core/settings/descriptor.py`) is the canonical pattern. Do not introduce a competing reactive pattern.
 
-The two combine: a property change typically fires a signal on the bus, panels subscribe, and the UI redraws via NiceGUI bindings.
+They combine: a property change fires through the field's cell, and panels bound to that cell redraw via NiceGUI.
 
 ## Modules Involved
 
 | Module | Role | Manifest |
 |--------|------|----------|
-| haywire-core-engine | Signal bus, signal vocabulary, settings descriptors | [→ modules/haywire-core-engine.md](../modules/haywire-core-engine.md) |
-| haywire-core-ui | Panels/editors subscribe; reactive UI helpers | [→ modules/haywire-core-ui.md](../modules/haywire-core-ui.md) |
-| haybale-studio | State container is a major signal producer/consumer | [→ modules/haybale-studio.md](../modules/haybale-studio.md) |
+| haywire-core-engine | Signal bus, peer, dispatcher, vocabulary, settings descriptors | [→ modules/haywire-core-engine.md](../modules/haywire-core-engine.md) |
+| haywire-core-ui | Panels and editors subscribe; reactive UI helpers | [→ modules/haywire-core-ui.md](../modules/haywire-core-ui.md) |
+| haybale-studio | State containers are major signal producers and consumers | [→ modules/haybale-studio.md](../modules/haybale-studio.md) |
 | haybale-haystack | Defines haystack-scoped signals (`haybale_haystack/signals.py`) | [→ modules/haybale-haystack.md](../modules/haybale-haystack.md) |
+| haybale-models | Defines model signals (`haybale_models/signals.py`) | [→ modules/haybale-models.md](../modules/haybale-models.md) |
 
 ## Flow
 
@@ -32,25 +33,19 @@ SignalPeer (core/signals/peer.py)
     ├─ cross_session=False ──▶ own SignalBus only
     │
     └─ cross_session=True  ──▶ SignalDispatcher (core/signals/dispatcher.py)
-                                   │  — fans out to EVERY registered peer
+                                   │  — fans out to every registered peer
                                    ▼
-                               each peer._dispatch → its SignalBus
+                               each peer → its SignalBus
     ▼
 SignalBus (core/signals/bus.py)
-    │   — exact-class dispatch, vocabulary in vocabulary.py
+    │   — exact-class dispatch; vocabulary in vocabulary.py
     ▼
-Subscribers (panels, editors, @redraw_on / @react_on)
-    │   — invoke ui callbacks; rebind reactive props
+Subscribers (panels, editors, redraw and react decorators)
     ▼
 NiceGUI re-render
 ```
 
-A `Session` is one *kind* of `SignalPeer` (the browser-tab kind). The transport
-imports nothing but `Signal` — no NiceGUI, no browser assumptions — so a
-non-browser peer (agent-facing MCP host, CLI, headless embedding) joins the same
-fan-out. Emitters that own no peer reach the dispatcher directly: `AppState`
-via a container-stamped `_dispatcher` weakref, `FarmhandContext` via ambient
-`get_signal_dispatcher()`.
+A `Session` is one kind of `SignalPeer` (the browser-tab kind). The transport imports only `Signal`, with no NiceGUI or browser assumptions. A non-browser peer (MCP host, CLI, headless embedding) can join the same fan-out. Emitters that own no peer reach the dispatcher directly.
 
 Reactive descriptor path (cell-authoritative model, see [ADR 0013](../../docs/adr/0013-settings-single-cell.md)):
 
@@ -58,28 +53,27 @@ Reactive descriptor path (cell-authoritative model, see [ADR 0013](../../docs/ad
 Settings class defines shadow("foo") / watch("bar")
     ↓ each field's value lives in a per-field DataField cell
     ↓ persistent fields borrow the registry-owned cell (one cell, N views)
-    ↓ panel/widget binds the shared cell directly (no throwaway copy)
-    ↓ any writer (descriptor set, registry write-through, edge drive into a
-      promoted port) fires the cell's own on_changed — the one notification channel
+    ↓ panel/widget binds the shared cell directly
+    ↓ any writer fires the cell's on_changed, the one notification channel
 ```
 
 ## Key Files
 
-- `packages/haywire-core/src/haywire/core/signals/bus.py` — the SignalBus.
-- `packages/haywire-core/src/haywire/core/signals/peer.py` — SignalPeer: bus owner + fan-out member.
-- `packages/haywire-core/src/haywire/core/signals/dispatcher.py` — SignalDispatcher: cross-peer fan-out.
-- `packages/haywire-core/src/haywire/core/signals/vocabulary.py` — canonical signal names.
-- `packages/haywire-core/src/haywire/core/signals/descriptor.py` — host/descriptor protocol.
-- `tests/core/test_signals/test_dispatcher_and_peer.py` — the transport in isolation (no Session, no DI).
-- `packages/haywire-core/src/haywire/core/settings/descriptor.py` — `shadow()` / `watch()`.
-- `packages/haywire-core/src/haywire/core/settings/registry.py` — SettingsRegistry.
-- `tests/ui/test_signal_bus.py`, `tests/ui/test_signal_handler_decorators.py`, `tests/ui/test_signals_vocabulary.py` — test patterns to follow.
-- `tests/core/test_reactive.py`, `tests/libraries/test_clipboard_reactive.py` — reactive descriptor patterns.
+- `packages/haywire-core/src/haywire/core/signals/bus.py`: `SignalBus`.
+- `packages/haywire-core/src/haywire/core/signals/peer.py`: `SignalPeer`, bus owner and fan-out member.
+- `packages/haywire-core/src/haywire/core/signals/dispatcher.py`: `SignalDispatcher`, cross-peer fan-out.
+- `packages/haywire-core/src/haywire/core/signals/vocabulary.py`: canonical signal names.
+- `packages/haywire-core/src/haywire/core/signals/descriptor.py`: host and descriptor protocol.
+- `packages/haywire-core/src/haywire/core/settings/descriptor.py`: `shadow()` and `watch()`.
+- `packages/haywire-core/src/haywire/core/settings/registry.py`: settings registry.
+- `tests/core/test_signals/test_dispatcher_and_peer.py`: transport in isolation.
+- `tests/ui/test_signal_bus.py`, `tests/ui/test_signal_handler_decorators.py`, `tests/ui/test_signals_vocabulary.py`: UI signal test patterns.
+- `tests/core/test_reactive.py`, `tests/libraries/test_clipboard_reactive.py`: reactive descriptor patterns.
 
 ## Gotchas
 
-- Don't introduce a parallel reactive system. The `shadow()`/`watch()` descriptor pattern is canonical.
-- NiceGUI slot stack is per-asyncio-task: signal handlers that schedule UI work via `asyncio.ensure_future` will crash `ui.notify`. Use the three safe patterns in `.insights/feedback_nicegui_async.md`.
-- Signal vocabulary is checked by `tests/ui/test_signals_vocabulary.py` — adding a new signal requires updating `vocabulary.py`.
-- For settings UI panels, refer to `docs/architecture/settings/settings-arch.md` and `docs/components/settings/setting-canon.md`.
-- After mutating reactive state in a test, run `force_immediate_validation()` before asserting.
+- Do not introduce a parallel reactive system. The `shadow()` and `watch()` pattern is canonical.
+- NiceGUI slot stack is per asyncio task. Signal handlers that schedule UI work must not wrap `ui.notify()` in `asyncio.ensure_future`. Use the safe patterns in `.insights/feedback_nicegui_async.md`.
+- The signal vocabulary is checked by `tests/ui/test_signals_vocabulary.py`. Adding a signal requires updating `vocabulary.py`.
+- For settings UI, read `docs/architecture/settings/settings-arch.md` and `docs/components/settings/setting-canon.md`.
+- After mutating reactive state in a test, call `force_immediate_validation()` before asserting when the result is needed synchronously.

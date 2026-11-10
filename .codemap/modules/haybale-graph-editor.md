@@ -1,101 +1,96 @@
 # Module: haybale-graph-editor
 
-> Provides the visual graph editor surface (`GraphEditor`) decoupled from any specific graph source. Defines the `GraphContainer` protocol that source libraries implement, and the `GraphAppState` registry that maps `binding_id` → `GraphContainer` so the editor can resolve its tab to a live container.
+> Visual graph editor plugin: the `GraphContainer` protocol, the `GraphAppState` registry, the `GraphEditor` surface and canvas (nodes, edges, selection, promote/demote, arrange, history), plus the graph-level panels and skins.
 
 **Path:** `barn/haybale-graph-editor/haybale_graph_editor/`
 **Language:** Python 3.10+
-**Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** `4e89edbaafbda81088f411c9e9768a6f5d788393`
-**Mapped at:** 19bda1e (2026-07-05)
+**Owner:** Haywire core team (bundled plugin)
+**Tree hash:** `dae828f6da44fd3c28b493432e5ce193fafc70f6`
+**Mapped at:** 9b104fd36 (2026-11-10, branch feat/exec-audio)
 
 ---
 
 ## 1. Scope & Purpose
 
-`haybale-graph-editor` is the visual graph editor as a standalone plugin. It owns the `GraphEditor` surface (canvas + chrome + save-as dialog) and exposes a *source-agnostic* contract: any library can host a graph in `GraphEditor` by (a) implementing the `GraphContainer` protocol structurally and (b) registering its open containers into `GraphAppState`. `haybale-haystack`'s `GraphEntry` is the reference implementation, but cloud-graph or alternative storage libraries can register their own containers without touching this library.
-
-Use it when working on the graph editor UI itself, the container/registry contract, right-click context-menu panels (including setting promotion), or when adding a new source library that needs to drive `GraphEditor`.
+`haybale-graph-editor` renders and edits a graph. It takes a container from any source library via the `GraphContainer` protocol and holds no knowledge of which library produced it. It owns the canvas (`editors/graph_canvas/`), the graph editor and its save-as, load and history editors, the add-node and promote-setting flows, the selection and graph toolbars, and the surfaces and skins that draw nodes, edges, pins, ports and insets. It depends on [haywire-core-ui](haywire-core-ui.md) for flyouts and editor bases. [haybale-haystack](haybale-haystack.md) registers the containers it displays. If this library were removed, graphs could still run but could not be edited in the studio.
 
 ## 2. Folder Architecture
 
 ```
 haybale_graph_editor/
-├── __init__.py              ← Library entry, public re-exports
-├── protocols.py             ← GraphContainer Protocol
-├── focuses.py               ← PortFocus / PinFocus / SelectionFocus focus management
+├── __init__.py          ← `Library`; re-exports GraphContainer, GraphAppState, GraphEditor
+├── protocols.py         ← GraphContainer protocol (binding_id, editor, path, unsaved, display_name, save)
+├── access.py            ← access rules for the editor
+├── notices.py           ← user-facing notices
+├── state/
+│   ├── graph_app_state.py ← GraphAppState registry (binding_id → container)
+│   └── edit_state.py      ← EditState: selection + active node/port/graph
 ├── editors/
-│   ├── graph_editor.py      ← GraphEditor surface (canvas + tab chrome)
-│   ├── graph_save_as.py     ← save-as dialog logic
+│   ├── graph_editor.py    ← GraphEditor surface (opens='on_payload')
+│   ├── graph_save_as.py, history_editor.py
 │   └── graph_canvas/
-│       ├── graph_canvas_manager.py
-│       ├── event_handlers.py, ui_node.py, ui_edge.py
-│       ├── node_menu_builder.py   ← (rewritten) add-node menu; now built on shared
-│       │                            `hui.elements.flyout` (FlyoutSiblings/flyout_category)
-│       │                            instead of its own hover/z-index/close logic
-│       └── handlers/
-│           ├── context_menu.py         ← (extended) + promote_setting/demote_setting actions
-│           ├── context_menu_actions.py ← (extended) SelectionContextActions/PortContextActions Protocols
-│           ├── selection.py, selection_toolbar.py, visual_layer.py, interaction.py
+│       ├── graph_canvas_manager.py, graph_load_modal.py, event_handlers.py
+│       ├── inset_view.py, ui_node.py, ui_edge.py
+│       └── handlers/      ← context_menu, interaction, selection, selection_toolbar, visual_layer
 ├── panels/
+│   ├── node_menu_builder.py ← add-node menu (consumes haywire.ui.elements.flyout)
+│   ├── _gating.py, _previous_setup.py, _selection_forms.py
 │   ├── graph/
-│   │   ├── menu/                    ← right-click context-menu panels, one dir per focus target
-│   │   │   ├── node/promote.py      ← (new) "Promote Setting" hierarchical flyout panel
-│   │   │   ├── port/port.py         ← (extended) + "Detach from setting" panel (demotes a promoted inlet)
-│   │   │   ├── canvas/canvas.py, edge/edge.py, selection/selection.py
-│   │   └── toolbar/selection.py
+│   │   ├── menu/          ← component_rows; edge/, graph/ (context), port/, selection/ (arrange, layout, rebuild, stage, selection)
+│   │   └── toolbar/       ← appearance, selection, style
 │   └── properties/
-│       ├── introspect/{node,edge,graph,node_ports}.py  ← read-only inspector panels
-│       └── setting/node.py, skin.py ← node settings panel; Skin geometry panel (CanvasSettings)
-├── settings/
-│   └── node_skin_settings.py ← NodeSkinSettings (namespace ui.node.skin)
-├── skins/                   ← the default node skins (ADR 0057)
-│   ├── node_skin.py         ← NodeSkin base: card layout, pin columns/strips, collapse, detail
-│   └── stacked_skin.py (default), split_skin.py, error_skin.py (error fallback)
-└── state/
-    ├── graph_app_state.py   ← GraphAppState registry (binding_id → container)
-    └── edit_state.py        ← EditState (selection, active node/port/graph)
+│       ├── introspect/    ← edge, graph, node, node_ports, port_edit_dialog
+│       └── setting/       ← graph, metadata, node, skin
+├── _new_node_flow/      ← New Node wizard stepper (_state, chrome, copy, panels)
+├── _promote_flow/       ← Promote Setting flyout flow (_state, chrome, copy, panels)
+├── surfaces/            ← edge, graph, graph_context, node, pin, ports, selection, toolbar
+├── skins/               ← node_skin, error_skin, inset_skin, split_skin, stacked_skin
+├── settings/            ← node_skin_settings.py
+├── farmhands/           ← editor_tools.py (Farmhand tools)
+└── haybale.toml         ← library manifest
 ```
 
 ## 3. Always-load vs On-demand
 
 ### Always-load
 
-- `__init__.py` — `Library` and `register_components()`; public re-exports of `GraphContainer`, `GraphAppState`, `GraphEditor`.
-- `protocols.py` — `GraphContainer` Protocol; the contract every source library must satisfy.
-- `state/graph_app_state.py` — `GraphAppState` registry; `register` / `unregister` / `rekey`.
-- `state/edit_state.py` — `EditState`; selection + active node/port/graph, read by nearly every panel and handler.
+- `protocols.py` — `GraphContainer`, the contract every source library satisfies.
+- `state/graph_app_state.py` — `GraphAppState`: `register` / `unregister` / `rekey`.
+- `state/edit_state.py` — `EditState`: selection and active node/port/graph, read by most panels and handlers.
+- `__init__.py` — `Library` and `register_components()`.
 
 ### On-demand
 
-- `editors/graph_editor.py` — when changing the editor UI, save flow, or canvas wiring.
-- `editors/graph_canvas/handlers/selection.py` / `visual_layer.py` — node/edge selection and rendering (selected/highlighted/error states).
-- `editors/graph_canvas/handlers/context_menu.py` + `context_menu_actions.py` — right-click action wiring; `promote_setting`/`demote_setting` live here and delegate to `haywire.core.node.promotion`.
-- `editors/graph_canvas/node_menu_builder.py` — add-node right-click menu; now a thin consumer of `haywire.ui.elements.flyout` (`FlyoutSiblings`, `flyout_category`) rather than owning hover/close mechanics itself.
-- `panels/graph/menu/node/promote.py` — "Promote Setting" panel; renders one flyout per settings-bag, grouping promotable `setting()` fields by eligible `PortType` direction (`watch()` → outlet-only, else inlet+outlet).
-- `panels/graph/menu/port/port.py` — port-context panels; `DetachSettingMenuPanel` demotes a promoted inlet back to a plain setting.
-- `panels/properties/introspect/node_ports.py` — ports panel rendering live editable widgets (ADR 0008, `PortFocus` scope).
-- `focuses.py` — focus management (`PortFocus` for ports panel, `PinFocus` for pin detail, `SelectionFocus` for node/edge selection panels).
+- `editors/graph_editor.py` — editor UI, save flow, canvas wiring.
+- `editors/graph_canvas/handlers/` — selection (`selection.py`), rendering states (`visual_layer.py`), right-click actions (`context_menu.py`), toolbar (`selection_toolbar.py`).
+- `editors/graph_canvas/graph_canvas_manager.py` — canvas lifecycle.
+- `_promote_flow/` and `panels/graph/menu/` — the Promote Setting and port/edge/selection context panels. `DetachSettingMenuPanel` lives in `panels/graph/menu/port/port.py` and is shown only on `port.promoted`.
+- `_new_node_flow/` — New Node wizard.
+- `panels/properties/introspect/node_ports.py` — ports panel with live editable widgets (ADR 0008, `PortFocus` scope).
+- `panels/graph/menu/selection/arrange.py`, `layout.py` — arrange verbs (ADR for node arrange).
+- `surfaces/` and `skins/` — node, edge, pin and inset drawing.
 
 ## 4. Rules & Boundaries
 
-- `GraphAppState` holds *references* only — owning libraries control container lifecycle (create / discard).
-- `binding_id` is the persistent identifier (workspace-serializable); the container is the runtime cache and must not be persisted on its behalf.
-- This library does not know which source produced any given container — never special-case `GraphEntry` here.
-- Must register through `Library.register_components()`; entry point declared in `barn/haybale-graph-editor/pyproject.toml`.
-- Nested hover-flyout menus (add-node menu, promote-setting menu) must go through `haywire.ui.elements.flyout` (`FlyoutSiblings`/`flyout_category`/`hui.FLYOUT_PROPS`/`hui.FLYOUT_Z`) rather than reimplementing hover-open/sibling-close/z-index logic locally — see `.insights/feedback_nicegui_nested_menu_flyouts.md`.
-- Promotion eligibility is a two-flag rule owned by `haywire.core.node.promotion`, not re-derived here: read-only (`watch()`) fields are outlet-only; writable fields (plain/`shadow()`) are inlet-or-outlet. `promote.py:promotable_fields()` just reads `desc._read_only` to branch.
+- `GraphAppState` holds references only. Owning libraries control container lifecycle.
+- `binding_id` is the persistent identifier and is workspace-serialisable. The container is a runtime cache and must not be persisted on its behalf.
+- This library must not know which source produced a container. Never special-case `GraphEntry` here.
+- Register through `Library.register_components()`. Entry point: `graph_editor = "haybale_graph_editor:Library"` in `barn/haybale-graph-editor/pyproject.toml`.
+- Nested hover-flyout menus go through `haywire.ui.elements.flyout` (`FlyoutSiblings`, `flyout_category`, `hui.FLYOUT_PROPS`, `hui.FLYOUT_Z`). Do not re-implement hover-open or sibling-close logic. See `.insights/feedback_nicegui_nested_menu_flyouts.md`.
+- Promotion eligibility is decided in `haywire.core.node.promotion`, not here. Read-only (`watch()`) fields are outlet-only; writable fields are inlet or outlet. `promote` flow reads `desc._read_only` only to branch.
+- Promote and demote delegate to `haywire.core.node.promotion.{promote_setting,demote_setting}`.
 
 ## 5. Source of Truth
 
 | Concept | Canonical file | Notes |
 |---------|---------------|-------|
 | Container protocol | `protocols.py` | `binding_id`, `editor`, `path`, `unsaved`, `display_name`, `save()` |
-| App-wide registry | `state/graph_app_state.py` | `app_data[GraphAppState]`; keyed by `binding_id` |
-| Editor surface | `editors/graph_editor.py` | `GraphEditor` (`opens='on_payload'`) |
-| Library entry | `__init__.py` | `graph_editor = "haybale_graph_editor:Library"` |
-| Promote/demote actions | `editors/graph_canvas/handlers/context_menu.py` | Delegates to `haywire.core.node.promotion.{promote_setting,demote_setting}` |
-| Promote-setting menu | `panels/graph/menu/node/promote.py` | Hierarchical flyout: bag ▸ field ▸ direction |
-| Detach-setting panel | `panels/graph/menu/port/port.py` | `DetachSettingMenuPanel`, shown only on `port.promoted` |
+| App-wide registry | `state/graph_app_state.py` | Keyed by `binding_id` |
+| Editor surface | `editors/graph_editor.py` | `GraphEditor` |
+| Library entry | `__init__.py` | `graph_editor` entry point |
+| Promote/demote actions | `editors/graph_canvas/handlers/context_menu.py` | Delegates to core promotion |
+| Promote flyout | `_promote_flow/` | Bag ▸ field ▸ direction |
+| Detach-setting panel | `panels/graph/menu/port/port.py` | `DetachSettingMenuPanel` |
 
 ---
 
@@ -103,14 +98,14 @@ haybale_graph_editor/
 
 ### Depends on
 
-- [haywire-core-engine](haywire-core-engine.md), [haywire-core-ui](haywire-core-ui.md) — `BaseEditor`, `AppState`, `Reveal`/`Close` signals, session context, `haywire.ui.elements.flyout` (shared flyout mechanics), `haywire.core.node.promotion` (promote/demote logic).
-- [haywire-studio](haywire-studio.md) — workspace metadata for save paths.
-- [haybale-studio](haybale-studio.md) — `GraphCanvasManager`, `EditState`.
+- [haywire-core-engine](haywire-core-engine.md) — graph model, promotion, session context, `AppState`, signals.
+- [haywire-core-ui](haywire-core-ui.md) — `BaseEditor`, flyout mechanics (`haywire.ui.elements.flyout`).
+- [haybale-studio](haybale-studio.md) — `EditState` consumers, `GraphCanvasManager` shared pieces, file surface.
 
 ### Depended on by
 
-- [haybale-haystack](haybale-haystack.md) — registers `GraphEntry` containers; reveals `GraphEditor` for haystack graphs.
-- Future graph-management libraries by the same pattern.
+- [haybale-haystack](haybale-haystack.md) — registers `GraphEntry` containers and reveals `GraphEditor`.
+- [haybale-models](haybale-models.md) — imports `haybale_graph_editor` in 5 files (editors, farmhands, state, needs).
 
 ---
 
@@ -118,9 +113,9 @@ haybale_graph_editor/
 
 | Entry point | File | Description |
 |-------------|------|-------------|
-| Library plugin | `__init__.py:Library` | `haywire.libraries` entry point named `graph_editor` |
+| Library plugin | `__init__.py:Library` | `graph_editor` entry point |
 | Container protocol | `protocols.py:GraphContainer` | Structural contract for graph hosts |
-| App registry | `state/graph_app_state.py:GraphAppState` | `binding_id` → `GraphContainer` map |
-| Editor | `editors/graph_editor.py:GraphEditor` | The graph editor surface |
-| Promote-setting panel | `panels/graph/menu/node/promote.py:PromoteSettingMenuPanel` | Node right-click "Promote Setting" flyout |
-| Detach-setting panel | `panels/graph/menu/port/port.py:DetachSettingMenuPanel` | Pin right-click "Detach from setting" |
+| App registry | `state/graph_app_state.py:GraphAppState` | `binding_id` → container |
+| Editor | `editors/graph_editor.py:GraphEditor` | Graph editor surface |
+| Canvas manager | `editors/graph_canvas/graph_canvas_manager.py` | Canvas lifecycle |
+| Promote-setting flow | `_promote_flow/` | Hierarchical flyout |

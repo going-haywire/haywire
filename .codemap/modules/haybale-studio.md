@@ -1,41 +1,49 @@
 # Module: haybale-studio
 
-> Studio companion library: registers editors, panels, file-focus model, and state container that the Haywire Studio workspace uses by default.
+> The built-in studio plugin: the editors, panels, surfaces, file browser, state container, themes and settings that make up the Haywire workbench (activity, code, errors, logs, properties, roster, shortcuts, volumes, network and theme settings, account).
 
 **Path:** `barn/haybale-studio/haybale_studio/`
 **Language:** Python 3.10+
 **Owner:** Haywire studio team (bundled plugin)
-**Tree hash:** `6fd3252213b0846f34a3e2fb02773c1cd3c5d449`
-**Mapped at:** 19bda1e (2026-07-05)
+**Tree hash:** `643acc424dff795f8d4b21a132f1d869c8a54a30`
+**Mapped at:** 9b104fd36 (2026-11-10, branch feat/exec-audio)
 
 ---
 
 ## 1. Scope & Purpose
 
-Where [haybale-core](haybale-core.md) provides nodes/types for graphs, `haybale-studio` provides the **studio's UI furniture**: concrete editors (graph editor wrapper, file viewer, etc.), the file-focus model, panels (library overview, properties editor, file browser), the workbench/state container, and the studio's default themes. The default node skins live in [haybale-graph-editor](haybale-graph-editor.md) (ADR 0057). Removing it would leave the studio with no editors or panels registered.
+`haybale-studio` supplies the workbench surfaces that sit around the graph: the file browser and file viewer, code and component-source editors, the errors, log and activity editors, the properties panel with its app/canvas/debug/execution setting groups, the roster editor for login users, the shortcuts editor, the volumes editor, component docs, and the `account` panel. It builds on the abstractions in [haywire-core-ui](haywire-core-ui.md). It holds the `file` surface and the file-browser state that other libraries react to. If this library were removed the studio would boot without its workbench panels.
 
 ## 2. Folder Architecture
 
 ```
 haybale_studio/
-├── __init__.py              ← Library entry (BaseLibrary subclass)
-├── adapters/                ← studio-specific adapters
-├── editors/                 ← Editor classes (graph editor, file viewer, …)
-│   └── …/ with major rewrites to file_browser.py, properties_editor.py
-├── nodes/                   ← studio-only node types
+├── __init__.py             ← exposes `Library` (BaseLibrary subclass)
+├── editors/
+│   ├── activity_editor.py  ← activity tracker view
+│   ├── code_editor.py      ← CodeMirror-based editing
+│   ├── component_docs_editor.py, component_source_editor.py
+│   ├── error_navigation.py, errors_editor.py
+│   ├── file_browser.py     ← file browser editor
+│   │   └── file_browser_menu/ ← provider.py (menu provider)
+│   ├── file_viewer.py, log_editor.py
+│   ├── properties_editor.py
+│   ├── roster_editor.py    ← login roster (users, roles)
+│   ├── shortcuts_editor.py
+│   └── volumes_editor.py
 ├── panels/
-│   ├── __init__.py (new)   ← exports
-│   ├── canvas_settings.py (new) ← canvas zoom/pan preference panel
-│   ├── context_menu/        ← file/node actions
-│   └── …
-├── settings/                ← studio settings descriptors
-├── state/                   ← state container (edit/runtime, focuses)
-├── themes/                  ← studio themes
-├── types/                   ← studio value/port types
-├── widgets/                 ← studio widgets
-├── focuses.py               ← focus model
-├── file_focus.py            ← file-typed focus
-└── loop_scheduler.py        ← LoopScheduler (NiceGUI event-loop scheduler, ADR 0002)
+│   ├── account/account.py
+│   ├── file_browser/menu/file.py
+│   └── properties/setting/ ← app.py, canvas.py, debug.py, execution.py (setting groups)
+├── settings/               ← network_settings.py, theme_settings.py (typed `setting[...]` markers)
+├── state/
+│   └── file_browser_state.py ← file-browser state container
+├── surfaces/
+│   └── file.py             ← file surface
+├── themes/                 ← node.py (NodeTheme), workbench.py (WorkbenchTheme)
+├── farmhands/              ← Farmhand tool definitions: authoring, catalog, errors, status, _helpers
+├── adapters/, nodes/, skins/, types/, widgets/ ← `__init__.py` only (no content)
+└── haybale.toml            ← library manifest
 ```
 
 ## 3. Always-load vs On-demand
@@ -43,33 +51,34 @@ haybale_studio/
 ### Always-load
 
 - `__init__.py` — `Library` and `register_components()`.
-- `focuses.py` + `file_focus.py` — focus model is central to the workspace; many panels react to it.
-- `state/` — edit/state container that other components subscribe to.
+- `surfaces/file.py` and `state/file_browser_state.py` — the file surface and state that the file browser, viewer and graph editors read.
 
 ### On-demand
 
-- `editors/` — when adding/changing an editor; pair with `haywire/ui/editor/wrapper.py`.
-- `panels/canvas_settings.py` (new) — canvas zoom/pan preferences.
-- `panels/` — when modifying built-in panels (file browser, properties, etc.).
-- `themes/` — when touching visual presentation.
-- `settings/` — when surfacing studio settings; `theme_settings.py` uses typed-setting markers (`setting[BOOL]`, `setting[INT]`, `setting[CHOICES]`, `setting[STRING]` from `haywire.barn.builtin.types`), not raw Python types.
-- `loop_scheduler.py` — when changing validation debouncing; implements `ValidationScheduler` (ADR 0002).
+- `editors/` — adding or changing an editor. Pair with `haywire/ui/editor/wrapper.py`.
+- `editors/roster_editor.py` — login roster UI; the roster itself is owned by haywire-studio `security/roster.py`.
+- `panels/properties/setting/` — the properties groups. Add a settings group here; the settings model is in [haywire-core-engine](haywire-core-engine.md).
+- `settings/` — studio settings. `theme_settings.py` uses typed markers (`setting[BOOL]`, `setting[INT]`, `setting[CHOICES]`, `setting[STRING]` from `haywire.barn.builtin.types`), not raw Python types.
+- `themes/` — `NodeTheme` and `WorkbenchTheme`. Follow `docs/reference/design-guide.md`.
+- `farmhands/` — Farmhand (MCP) tool surfaces for studio features.
 
 ## 4. Rules & Boundaries
 
-- Must register components in `Library.register_components()`; no side-effect imports.
-- Editor classes should subclass `haywire.ui.editor.base.Editor`; wrappers handle lifecycle.
-- Focus IDs are stable identifiers — see `tests/libraries/test_focuses_have_ids.py` for the contract.
-- Reactive panel updates: see `tests/libraries/test_clipboard_reactive.py` for the expected pattern.
-- Inherits all haybale renaming/test reload gotchas from [haybale-core](haybale-core.md).
+- Register all components in `Library.register_components()`; no side-effect imports.
+- Editor classes subclass `haywire.ui.editor.base.Editor`; wrappers handle lifecycle.
+- Focus IDs are stable identifiers; see `tests/libraries/test_focuses_have_ids.py`.
+- Reactive panel updates: follow the pattern in `tests/libraries/test_clipboard_reactive.py`.
+- Inherits the rename and barn-reload traps from [haybale-core](haybale-core.md).
 
 ## 5. Source of Truth
 
 | Concept | Canonical file | Notes |
 |---------|---------------|-------|
 | Library entry | `haybale_studio/__init__.py` | `Library` subclass |
-| Focus model | `focuses.py` + `file_focus.py` | Identifies the "thing under the workspace" |
-| State container | `state/` | Workbench edit/runtime state |
+| File surface | `surfaces/file.py` | Surface for file-focused panels |
+| Workbench state | `state/file_browser_state.py` | File-browser state container |
+| Workbench theme | `themes/workbench.py` | `WorkbenchTheme` |
+| Node theme | `themes/node.py` | `NodeTheme` |
 
 ---
 
@@ -78,12 +87,12 @@ haybale_studio/
 ### Depends on
 
 - [haywire-core-engine](haywire-core-engine.md), [haywire-core-ui](haywire-core-ui.md).
-- [haybale-core](haybale-core.md) — shared types/widgets.
+- [haybale-core](haybale-core.md) — shared types and widgets.
 
 ### Depended on by
 
 - [haywire-studio](haywire-studio.md) — runtime dependency.
-- [haybale-haystack](haybale-haystack.md), [haybale-libs-other](haybale-libs-other.md).
+- [haybale-graph-editor](haybale-graph-editor.md), [haybale-haystack](haybale-haystack.md), [haybale-marketplace](haybale-marketplace.md), [haybale-models](haybale-models.md), [haybale-share](haybale-share.md) — reuse its panels, state and surfaces.
 - [tests](tests.md) — `tests/studio/`, `tests/libraries/`.
 
 ---
@@ -93,3 +102,6 @@ haybale_studio/
 | Entry point | File | Description |
 |-------------|------|-------------|
 | Library plugin | `__init__.py:Library` | Discovered via `haywire.libraries` entry point |
+| File browser | `editors/file_browser.py` | Main file editor |
+| Properties editor | `editors/properties_editor.py` | Settings and properties surface |
+| Roster editor | `editors/roster_editor.py` | Login roster UI |
