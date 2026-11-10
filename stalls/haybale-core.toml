@@ -6,11 +6,11 @@
 [[haybales]]
 name = "haybale-core"
 label = "Core"
-version = "0.4.0"
-require = "haywire-core>=0.4.0"
+version = "0.4.1"
+require = "haywire-core>=0.4.1"
 description = "Fundamental components for haywire graphs"
 source = "pypi"
-install_spec = "haybale-core==0.4.0"
+install_spec = "haybale-core==0.4.1"
 tags = ["core", "types", "widgets", "skins", "adapters"]
 on_reload = "none"
 origin = "https://github.com/going-haywire/haywire"

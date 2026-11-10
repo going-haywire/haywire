@@ -6,11 +6,11 @@
 [[haybales]]
 name = "haybale-image"
 label = "Image"
-version = "0.4.0"
-require = "haywire-core>=0.4.0"
+version = "0.4.1"
+require = "haywire-core>=0.4.1"
 description = "Image types, IO and viewers shared by vision and ML libraries"
 source = "pypi"
-install_spec = "haybale-image==0.4.0"
+install_spec = "haybale-image==0.4.1"
 tags = ["image"]
 on_reload = "none"
 origin = "https://github.com/going-haywire/haywire"
