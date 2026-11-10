@@ -10,6 +10,12 @@ and switches to PyPI by changing one line.
 The build and publish jobs run once per ``barn/*`` library. Each library is its
 own PyPI project and needs its own pending publisher; all of them share the same
 owner, repository, workflow name and environment.
+
+A library is built from its own ``barn/<name>`` directory, which works whatever the
+root looks like. The root's tests run first only when the root can resolve its own
+dependencies on a runner. A ``--dev`` project cannot: its ``[tool.uv.sources]`` link
+to a haywire checkout by path, and that checkout does not exist in CI. The planner
+detects such a root and the workflow skips the tests for it.
 """
 
 from __future__ import annotations
@@ -31,8 +37,12 @@ import sys
 import tomllib
 
 
-def emit(enabled, matrix):
-    line = f"enabled={'true' if enabled else 'false'}\\nmatrix={json.dumps(matrix)}\\n"
+def emit(enabled, matrix, standalone):
+    line = (
+        f"enabled={'true' if enabled else 'false'}\\n"
+        f"matrix={json.dumps(matrix)}\\n"
+        f"standalone={'true' if standalone else 'false'}\\n"
+    )
     target = os.environ.get("GITHUB_OUTPUT")
     if target:
         with open(target, "a") as handle:
@@ -47,11 +57,30 @@ def fail(message):
 
 root = pathlib.Path(".")
 config = tomllib.loads((root / "pyproject.toml").read_text())
+
+
+def leaves_the_checkout(path):
+    target = pathlib.Path(path)
+    target = target if target.is_absolute() else root / target
+    try:
+        target.resolve().relative_to(root.resolve())
+    except ValueError:
+        return True
+    return False
+
+
+# A root that links to something outside this checkout (a --dev project's haywire
+# checkout) cannot be installed on a runner, so its tests cannot run there.
+sources = config.get("tool", {}).get("uv", {}).get("sources", {})
+standalone = not any(
+    isinstance(source, dict) and "path" in source and leaves_the_checkout(source["path"])
+    for source in sources.values()
+)
 distribute = config.get("tool", {}).get("haywire", {}).get("marketstall", {}).get("distribute", "git")
 
 if distribute != "pypi":
     print(f"distribute = {distribute!r}: nothing to publish to PyPI.")
-    emit(False, [])
+    emit(False, [], standalone)
     sys.exit(0)
 
 if os.environ.get("GITHUB_REF_TYPE") != "tag":
@@ -63,7 +92,7 @@ for directory in sorted((root / "barn").glob("*")):
     if directory.is_symlink() or not manifest.is_file():
         continue
     project = tomllib.loads(manifest.read_text())["project"]
-    libraries.append({"dist": project["name"], "version": project["version"]})
+    libraries.append({"dist": project["name"], "version": project["version"], "path": directory.as_posix()})
 
 if not libraries:
     fail("No library under barn/ to publish.")
@@ -74,7 +103,7 @@ if wrong:
     names = ", ".join(f"{item['dist']} {item['version']}" for item in wrong)
     fail(f"Tag {tag} does not match the committed version of: {names}. Nothing was uploaded.")
 
-emit(True, libraries)
+emit(True, libraries, standalone)
 '''
 
 WORKFLOW = """\
@@ -101,6 +130,7 @@ jobs:
     outputs:
       enabled: ${{ steps.plan.outputs.enabled }}
       matrix: ${{ steps.plan.outputs.matrix }}
+      standalone: ${{ steps.plan.outputs.standalone }}
     steps:
       - uses: actions/checkout@v4
       - name: Decide what to publish
@@ -122,14 +152,16 @@ jobs:
         with:
           enable-cache: true
       - run: uv python install ${{ env.PYTHON_VERSION }}
-      - run: uv sync --frozen
+      # The tests need a root that resolves its own dependencies. A --dev project's root
+      # links to a haywire checkout by path, which a runner does not have: run them locally.
       - name: Run tests
-        if: hashFiles('tests/**') != ''
-        run: uv run --frozen pytest -q
-      - name: Build wheel and sdist
+        if: needs.guard.outputs.standalone == 'true' && hashFiles('tests/**') != ''
         run: |
-          rm -rf dist/
-          uv build --package ${{ matrix.lib.dist }}
+          uv sync --frozen
+          uv run --frozen pytest -q
+      - name: Build wheel and sdist
+        working-directory: ${{ matrix.lib.path }}
+        run: uv build --out-dir "${GITHUB_WORKSPACE}/dist"
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.lib.dist }}
