@@ -25,6 +25,7 @@ from nicegui import Client, ui
 
 from haywire.core.access import LevelMode
 from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.execution import gc_freeze
 from haywire.core.graph.stacking import Restack
 from haywire.core.graph.stage import stage_takes_edge
 from haywire.core.graph.types import ChangeReason, ValidationResult
@@ -478,13 +479,14 @@ class VisualLayerHandlers:
             wrappers = [w for w in self.graph.node_wrappers.values() if self.channel.includes(w.node.props)]
             self.mounting = True
             try:
-                for index, wrapper in enumerate(wrappers, start=1):
-                    node = wrapper.node
-                    if node.node_id not in self.node_panels:
-                        self.add_node_visual(node, self._canvas_position(node))
-                    if on_progress is not None:
-                        on_progress(index, node_count)
-                    await asyncio.sleep(0)
+                with gc_freeze.collection_paused():
+                    for index, wrapper in enumerate(wrappers, start=1):
+                        node = wrapper.node
+                        if node.node_id not in self.node_panels:
+                            self.add_node_visual(node, self._canvas_position(node))
+                        if on_progress is not None:
+                            on_progress(index, node_count)
+                        await asyncio.sleep(0)
             finally:
                 self.mounting = False
 

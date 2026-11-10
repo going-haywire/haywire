@@ -79,3 +79,52 @@ def test_shutdown_releases_a_freeze_that_was_not_stopped(
     interpreter.start_execution()
     interpreter.shutdown()
     assert gc_freeze.running_graphs() == 0
+
+
+@pytest.mark.unit
+def test_the_collector_is_off_only_while_a_pause_is_open():
+    assert gc.isenabled()
+    with gc_freeze.collection_paused():
+        assert not gc.isenabled()
+        with gc_freeze.collection_paused():
+            assert not gc.isenabled()
+        assert not gc.isenabled(), "an outer pause is still open"
+    assert gc.isenabled()
+
+
+@pytest.mark.unit
+def test_a_pause_ends_when_its_block_raises():
+    with pytest.raises(RuntimeError):
+        with gc_freeze.collection_paused():
+            raise RuntimeError("load failed")
+    assert gc.isenabled()
+
+
+@pytest.mark.unit
+def test_a_collector_that_was_off_stays_off():
+    gc.disable()
+    try:
+        with gc_freeze.collection_paused():
+            pass
+        assert not gc.isenabled()
+    finally:
+        gc.enable()
+
+
+@pytest.mark.unit
+def test_objects_built_in_a_pause_join_the_frozen_heap_while_a_graph_runs():
+    gc_freeze.freeze_for_run()
+    before = gc.get_freeze_count()
+    with gc_freeze.collection_paused():
+        kept = [[i] for i in range(5000)]
+    assert gc.get_freeze_count() >= before + 5000
+    del kept
+
+
+@pytest.mark.unit
+def test_a_pause_without_a_running_graph_freezes_nothing():
+    before = gc.get_freeze_count()
+    with gc_freeze.collection_paused():
+        kept = [[i] for i in range(5000)]
+    assert gc.get_freeze_count() == before
+    del kept
