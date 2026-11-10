@@ -92,6 +92,10 @@ class AudioMixerNode(BaseNode):
         self.hb_pending: dict[int, deque[AudioBlock]] = {}
         self.hb_format: tuple[int, int] | None = None  # sample rate and frames of the clock block
         self.hb_status_at = 0.0
+        self.hb_write_at: dict[int, float] = {}  # when each input last wrote
+        self.hb_tick_at = 0.0
+        self.hb_write_gap = 0.0  # longest wait between two writes of one input, in seconds
+        self.hb_tick_gap = 0.0  # longest wait between two ticks, in seconds
 
     def hb_resolve(self, port, edge_wrapper) -> None:
         """Turn the open input into an audio input with its pins and add a new open one below it."""
@@ -135,7 +139,12 @@ class AudioMixerNode(BaseNode):
         block = self.value(f"{_PREFIX}{index}")
         if not isinstance(block, AudioBlock):
             raise ValueError(f"write {index} needs an audio block on in {index}")
+        now = time.monotonic()
         with self.hb_lock:
+            last = self.hb_write_at.get(index)
+            if last is not None:
+                self.hb_write_gap = max(self.hb_write_gap, now - last)
+            self.hb_write_at[index] = now
             if self.hb_format is None:
                 # The tick has not fixed the output format yet.
                 self.hb_pending.setdefault(index, deque(maxlen=_PENDING_BLOCKS)).append(block)
@@ -144,7 +153,11 @@ class AudioMixerNode(BaseNode):
 
     def hb_tick(self, clock: AudioBlock) -> str:
         rate, frames = clock.sample_rate, clock.frames
+        now = time.monotonic()
         with self.hb_lock:
+            if self.hb_tick_at:
+                self.hb_tick_gap = max(self.hb_tick_gap, now - self.hb_tick_at)
+            self.hb_tick_at = now
             self.hb_format = (rate, frames)
             for index, blocks in self.hb_pending.items():
                 for block in blocks:
@@ -164,7 +177,12 @@ class AudioMixerNode(BaseNode):
             self.hb_status_at = now
             playing = sum(1 for b in buffers.values() if b.playing)
             stalls = sum(b.restarts for b in buffers.values())
-            set_status(self, f"{playing} of {len(buffers)} inputs playing, stalls {stalls}")
+            set_status(
+                self,
+                f"{playing} of {len(buffers)} inputs playing, stalls {stalls}, "
+                f"longest wait: tick {self.hb_tick_gap * 1000:.0f} ms, "
+                f"write {self.hb_write_gap * 1000:.0f} ms",
+            )
         return "next"
 
     def hb_reset(self) -> None:
@@ -176,6 +194,9 @@ class AudioMixerNode(BaseNode):
             self.hb_buffers.clear()
             self.hb_pending.clear()
             self.hb_format = None
+            self.hb_write_at.clear()
+            self.hb_tick_at = 0.0
+            self.hb_write_gap = self.hb_tick_gap = 0.0
 
     def _buffer(self, index: int, first: AudioBlock) -> PullBuffer:
         """Return the input's buffer, created from its first block. Call with ``hb_lock`` held."""
