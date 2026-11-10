@@ -17,7 +17,7 @@ from haywire.core.errors.haywire_exception import HaywireException
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
 from haywire.core.types.wire import WILDCARD, WireRole, WireType, wire_type_of
-from haywire.core.types.utils import serialize_element_type
+from haywire.core.types.utils import is_type_owned, serialize_element_type, type_owned_kwargs
 
 # Import the new DataField classes
 from haywire.core.types.fields import DataField
@@ -896,9 +896,10 @@ class DataPort(DataTypeIdentity):
         Returns:
             Instantiated DataPort
         """
-        kwargs = spec["kwargs"].copy()
-
         type_cls = type_registry.resolve_type_from_spec(spec["recipe"])
+
+        # A saved port leaves out what its type says; a spec from as_inlet() carries it all.
+        kwargs = {**type_owned_kwargs(type_cls), **spec["kwargs"]}
 
         # Build port kwargs - spec already contains merged identity + user values
         # Keys saved before wire types and link ceilings; a port derives both.
@@ -972,10 +973,13 @@ class DataPort(DataTypeIdentity):
 
             value = getattr(self, f.name)
 
-            # Skip if default value
-            if f.default is not MISSING and value == f.default:
+            if is_type_owned(self.type_cls, f.name):
+                # The type's own value comes back from the recipe on load.
+                if value == getattr(self.type_cls.class_identity, f.name):
+                    continue
+            elif f.default is not MISSING and value == f.default:
                 continue
-            if f.default_factory is not MISSING and value == f.default_factory():
+            elif f.default_factory is not MISSING and value == f.default_factory():
                 continue
 
             # Transform enums
