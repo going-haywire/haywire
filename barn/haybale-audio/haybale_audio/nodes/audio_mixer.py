@@ -99,6 +99,7 @@ class AudioMixerNode(BaseNode):
         self.hb_status_at = 0.0
         self.hb_write_at: dict[int, float] = {}  # when each input last wrote
         self.hb_tick_at = 0.0
+        self.hb_started = 0.0  # when the first tick came; log lines show the time since
         self.hb_write_gap = 0.0  # longest wait between two writes of one input, in seconds
         self.hb_tick_gap = 0.0  # longest wait between two ticks, in seconds
 
@@ -167,7 +168,13 @@ class AudioMixerNode(BaseNode):
             if self.hb_tick_at:
                 self.hb_tick_gap = max(self.hb_tick_gap, now - self.hb_tick_at)
                 if now - self.hb_tick_at > LONG_WAIT:
-                    logger.warning("Audio Mixer: waited %.0f ms for a tick", (now - self.hb_tick_at) * 1000)
+                    logger.warning(
+                        "Audio Mixer: waited %.0f ms for a tick at %.1f s",
+                        (now - self.hb_tick_at) * 1000,
+                        now - self.hb_started,
+                    )
+            if not self.hb_tick_at:
+                self.hb_started = now
             self.hb_tick_at = now
             self.hb_format = (rate, frames)
             for index, blocks in self.hb_pending.items():
@@ -206,7 +213,7 @@ class AudioMixerNode(BaseNode):
             self.hb_pending.clear()
             self.hb_format = None
             self.hb_write_at.clear()
-            self.hb_tick_at = 0.0
+            self.hb_tick_at = self.hb_started = 0.0
             self.hb_write_gap = self.hb_tick_gap = 0.0
 
     def _buffer(self, index: int, first: AudioBlock) -> PullBuffer:
