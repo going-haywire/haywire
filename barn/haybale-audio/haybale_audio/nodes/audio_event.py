@@ -2,7 +2,7 @@
 
 import logging
 
-from haywire.barn.builtin.types import CHOICES, EXEC, FLOAT, INT
+from haywire.barn.builtin.types import CHOICES, FLOAT, INT
 from haywire.core.execution import QueueMode
 from haywire.core.execution.event_source import CallbackEvent
 from haywire.core.execution.execution_context import ExecutionContext
@@ -53,6 +53,13 @@ class AudioEventNode(BaseNode):
     receiver, a file player, a clock). The emitter sends
     `{"audio": AudioBlock, "timestamp": float, "block_number": int}`.
 
+    Everything wired from `Block Ready` is an audio flow, paced by the emitter's sample rate and block
+    size. Its execution pins are `EXEC_AUDIO`: `Block Ready`, and the `Write`, `Tick` and `Next` pins of
+    the audio nodes. A plain `EXEC` outlet does not connect to them, so a control node cannot drive an
+    audio flow, while an `EXEC_AUDIO` outlet does connect to an `EXEC` inlet, so an audio flow can drive
+    a control node. That node then runs inside the flow's pass, and its time counts against the block
+    period. `Start` and `Stop` pins stay plain `EXEC`: the control world starts and stops audio nodes.
+
     Outputs:
         block_ready: Control flow when a block arrives
         audio: The block
@@ -64,9 +71,10 @@ class AudioEventNode(BaseNode):
     def init(self) -> None:
         from haybale_audio.types.audio import AUDIO
         from haybale_audio.types.callback import CALLBACK_AUDIO
+        from haybale_audio.types.exec_audio import EXEC_AUDIO
 
         self.add(CALLBACK_AUDIO.as_outlet("listen_callback", label="Listen", default={"name": self.node_id}))
-        self.add(EXEC.as_outlet("block_ready", label="Block Ready"))
+        self.add(EXEC_AUDIO.as_outlet("block_ready", label="Block Ready"))
         self.add(AUDIO.as_outlet("audio", label="Audio"))
         self.add(FLOAT.as_outlet("timestamp", label="Timestamp (s)"))
         self.add(INT.as_outlet("block_number", label="Block Number"))

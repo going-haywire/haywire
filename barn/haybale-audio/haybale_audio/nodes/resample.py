@@ -1,6 +1,6 @@
 """Resample — converts audio blocks to another sample rate."""
 
-from haywire.barn.builtin.types import CHOICES, EXEC, INT, STRING
+from haywire.barn.builtin.types import CHOICES, INT, STRING
 from haywire.barn.builtin.widgets import SimpleLabelWidget
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
@@ -83,8 +83,9 @@ class ResampleNode(BaseNode):
         from haybale_core.types import PooledType
         from haybale_audio.types.audio import AUDIO
         from haybale_audio.types.callback import CALLBACK_AUDIO
+        from haybale_audio.types.exec_audio import EXEC_AUDIO
 
-        self.add(EXEC.as_inlet("write", label="Write"))
+        self.add(EXEC_AUDIO.as_inlet("write", label="Write"))
         self.add(AUDIO.as_inlet("audio", label="Audio", description="Block to convert"))
         self.add(
             PooledType[CALLBACK_AUDIO].as_inlet(
@@ -94,7 +95,7 @@ class ResampleNode(BaseNode):
         self.add(
             STRING.as_config("status", default="Idle", label="Status", widget=SimpleLabelWidget.config())
         )
-        self.add(EXEC.as_outlet("next", label="Next"))
+        self.add(EXEC_AUDIO.as_outlet("next", label="Next"))
 
     def post_init(self) -> None:
         self.hb_resampler: StreamResampler | None = None

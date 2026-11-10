@@ -23,4 +23,5 @@ Audio blocks, events and routing shared by speech and streaming libraries
 
 ## Types
 - **Audio** — A block of audio samples. Never saved with the graph.
+- **Audio Execution Signal** — Signal for sequencing the nodes of an audio flow
 - **Callback Audio** — Subscription for emitters that deliver audio blocks

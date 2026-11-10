@@ -17,3 +17,4 @@
 ## type
 - `haybale-audio:type:AUDIO` — Audio — A block of audio samples. Never saved with the graph.
 - `haybale-audio:type:CALLBACK_AUDIO` — Callback Audio — Subscription for emitters that deliver audio blocks
+- `haybale-audio:type:EXEC_AUDIO` — Audio Execution Signal — Signal for sequencing the nodes of an audio flow

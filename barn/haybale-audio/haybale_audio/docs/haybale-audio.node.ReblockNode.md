@@ -8,11 +8,11 @@ Re-cuts audio blocks to a fixed size and delivers them to Audio Event nodes
 
 | id | direction | type | description |
 |---|---|---|---|
-| `write` | inlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `write` | inlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
 | `audio` | inlet | `haybale-audio:type:AUDIO` | Block to add |
 | `callbacks` | inlet | `haybale-core:type:PooledType` | Connect to an Audio Event node. |
 | `status` | config | `haywire-core:type:STRING` | Text data |
-| `next` | outlet | `haywire-core:type:EXEC` | Signal for controlling execution flow between nodes |
+| `next` | outlet | `haybale-audio:type:EXEC_AUDIO` | Signal for sequencing the nodes of an audio flow |
 
 ## Settings
 
