@@ -3354,6 +3354,9 @@
 
 
 <h1 id="compatibility-warnings-are-advisory-only-append-only-and-node-keyed">Compatibility Warnings are advisory-only, append-only, and node-keyed<a class="headerlink" href="#compatibility-warnings-are-advisory-only-append-only-and-node-keyed" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Narrowed by <a href="../0076-a-graph-file-stores-what-differs-from-the-code/">ADR 0076</a>.</strong> A load now runs <code>init()</code> and builds each declared port on its declaration, so a changed port declaration reaches saved nodes without a warning. Compatibility warnings remain for changes of behaviour.</p>
+</blockquote>
 <p><strong>Context.</strong> Graphs are deserialized purely from the saved spec; node <code>init()</code>
 is not re-run on load (<code>NodeWrapper._initialize</code> calls <code>_initialize_from_dict</code>,
 not <code>init()</code>). So any code-defined port attribute absent from an older file

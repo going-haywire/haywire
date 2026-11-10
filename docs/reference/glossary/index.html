@@ -6145,6 +6145,16 @@ Macro is registered and placed.</p>
 <td>reload snapshot, restore point</td>
 </tr>
 <tr>
+<td><strong>Declaration</strong></td>
+<td>The ports a node's <code>init()</code> adds, taken right after it runs (<code>NodeData.declaration</code>). What the node's code declares, whatever the node looks like now. A graph file saves each node class's declaration once, under <code>declarations</code>. See <a href="../../adr/0076-a-graph-file-stores-what-differs-from-the-code/">ADR 0076</a></td>
+<td>port schema, interface (that is a <strong>Subgraph</strong>'s), base</td>
+</tr>
+<tr>
+<td><strong>Floor</strong></td>
+<td>The fields a saved port always carries: <code>id</code>, <code>port_type</code>, <code>origin</code>, <code>parent_fold</code>, <code>is_fold</code>. Enough for a <strong>Stand-in</strong> to rebuild the port without its class. Every other field of a declared port is saved only where it differs from the <strong>Declaration</strong></td>
+<td>port skeleton</td>
+</tr>
+<tr>
 <td><strong>Previous setup</strong></td>
 <td>The data a node had before a hot reload rebuilt it from new code, kept on the node until the user applies or dismisses it from the card's warning badge (<code>NodeWrapper.previous_setup</code>). Saved with the graph; not copied with the node. See <a href="../../adr/0062-a-reload-keeps-the-previous-setup/">ADR 0062</a></td>
 <td>reload snapshot, kept data (that is a <strong>Stand-in</strong>'s)</td>

@@ -784,15 +784,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-why-init-is-skipped-when-a-graph-is-loaded" class="md-nav__link">
+  <a href="#5-what-init-means-when-a-graph-is-loaded" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Why init() is skipped when a graph is loaded
+        5. What init() means when a graph is loaded
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="5. Why init() is skipped when a graph is loaded">
+    <nav class="md-nav" aria-label="5. What init() means when a graph is loaded">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3640,15 +3640,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-why-init-is-skipped-when-a-graph-is-loaded" class="md-nav__link">
+  <a href="#5-what-init-means-when-a-graph-is-loaded" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Why init() is skipped when a graph is loaded
+        5. What init() means when a graph is loaded
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="5. Why init() is skipped when a graph is loaded">
+    <nav class="md-nav" aria-label="5. What init() means when a graph is loaded">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3991,22 +3991,32 @@ of the <code>EXEC</code> outlet to continue through.</strong></p>
 <code>init()</code> decide the actual one. Worked examples of every role:
 <a href="../../../guides/node-roles/">guides/node-roles</a>. Full taxonomy:
 <a href="../../../reference/glossary/">reference/glossary</a> (<strong>NodeType</strong>).</p>
-<h2 id="5-why-init-is-skipped-when-a-graph-is-loaded">5. Why <code>init()</code> is skipped when a graph is loaded<a class="headerlink" href="#5-why-init-is-skipped-when-a-graph-is-loaded" title="Permanent link">&para;</a></h2>
-<p>When a user saves a graph and opens it again, <strong>your node's <code>init()</code> is not
-called.</strong> The ports are there anyway.</p>
-<p>Think of <code>init()</code> as the <strong>factory settings</strong>: the ports and starting values a
-new node comes with. By the time a graph is saved, the user has changed those
-values — and the node may even have changed its ports (Section 7). Running the
-factory setup again on load would wipe all of that.</p>
-<p>So a saved graph stores <strong>the ports themselves</strong>, values included, and loading
-restores them directly. That gives one rule with two parts:</p>
+<h2 id="5-what-init-means-when-a-graph-is-loaded">5. What <code>init()</code> means when a graph is loaded<a class="headerlink" href="#5-what-init-means-when-a-graph-is-loaded" title="Permanent link">&para;</a></h2>
+<p><code>init()</code> is your node's <strong>declaration</strong>: the ports a node of this class comes
+with. It runs every time a node is built: dropped fresh, loaded from a file,
+pasted, or rebuilt.</p>
+<p>On a load it runs first, and the saved node is then laid over it:</p>
 <ul>
-<li><strong><code>init()</code></strong> declares the ports a <em>new</em> (or reset) node starts with — and
-  only that. Anything else done here is lost on load, because it does not run.</li>
-<li><strong><code>post_init()</code></strong> runs in both cases: right after <code>init()</code> for a new node,
-  right after loading for a saved one. Put here what saving cannot carry —
+<li><strong>Which ports exist comes from the file.</strong> A node may have changed its ports
+  since it was dropped (Section 7), and the user may have grown some. The file
+  has the last word, so a port your node removed stays removed.</li>
+<li><strong>What a declared port looks like comes from your code</strong>, except where the
+  user or the node changed it. A saved graph stores, for each port <code>init()</code>
+  declares, only the value and what differs from the declaration. Correct a
+  label, a description, a default or a widget in <code>init()</code>, and every saved graph
+  shows it the next time it opens.</li>
+<li><strong>A port added later is stored whole.</strong> A port a callback adds, or one grown
+  from an <code>ADD</code> pin, is not in the declaration, so the file keeps all of it.</li>
+</ul>
+<p>That gives one rule with two parts:</p>
+<ul>
+<li><strong><code>init()</code></strong> declares ports — and only that. It must give the same ports each
+  time it runs, and must not read values the user sets: they are not loaded yet.</li>
+<li><strong><code>post_init()</code></strong> runs after <code>init()</code> for a new node and after the saved node
+  is laid over it for a loaded one. Put here what saving cannot carry —
   helper objects, a parser, a lookup table built in code.</li>
 </ul>
+<p>See <a href="../../../adr/0076-a-graph-file-stores-what-differs-from-the-code/">ADR 0076</a>.</p>
 <p>Neither hook is the place to open a camera or a file. That waits until the
 graph runs — the next section.</p>
 <h3 id="where-a-node-keeps-its-state">Where a node keeps its state<a class="headerlink" href="#where-a-node-keeps-its-state" title="Permanent link">&para;</a></h3>

@@ -3354,6 +3354,9 @@
 
 
 <h1 id="a-broken-node-keeps-its-data">A broken node keeps its data<a class="headerlink" href="#a-broken-node-keeps-its-data" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Amended by <a href="../0076-a-graph-file-stores-what-differs-from-the-code/">ADR 0076</a>.</strong> A node's data no longer holds <code>identity</code> and <code>library</code>; a stand-in keeps the file's <code>requires</code> and <code>declarations</code> entries for its class instead.</p>
+</blockquote>
 <p><strong>Context.</strong></p>
 <ul>
 <li>A node cannot be built for two reasons: its class is unknown (its library is missing, or the key failed to import), or its class's constructor raises (a broken settings declaration or <code>__init__</code>, often after a hot reload).</li>
