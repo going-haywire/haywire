@@ -3,7 +3,7 @@
 # Edited in the studio's library overview — no reinstall, no reload.
 
 name = "haybale-audio"
-version = "0.4.0"
+version = "0.4.1"
 label = "Audio"
 description = "Audio blocks, events and routing shared by speech and streaming libraries"
 tags = ["audio"]
