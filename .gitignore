@@ -224,5 +224,6 @@ packages/haywire-core/src/haywire/_baked_docs/*
 barn/haybale-visiongraph
 barn/haybale-spandrel
 barn/haybale-stream
+barn/haybale-comfyui
 
 assets/*
