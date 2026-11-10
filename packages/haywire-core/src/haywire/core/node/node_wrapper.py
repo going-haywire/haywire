@@ -525,12 +525,14 @@ class NodeWrapper:
             # A rebuild without data that failed to construct: the stand-in takes the old node's data.
             node_info = self._kept_data
         try:
+            node_instance.init()
+            node_instance._snapshot_declaration()
             if node_info:
+                # The saved ports replace the declared ones, each built on its declaration.
                 # _initialize_from_dict regenerates promoted ports itself, from
                 # the restored _promoted_keys.
                 node_instance._initialize_from_dict(node_info)
             else:
-                node_instance.init()
                 # Fresh drop: realise the setting(promote_default=...) seeds the bags
                 # recorded at construction, through the same call the load path makes,
                 # so promoted ports land after the author-declared ports either way.

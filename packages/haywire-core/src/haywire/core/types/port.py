@@ -6,6 +6,7 @@ Direction is determined by the is_inlet field (True for inlet, False for outlet)
 """
 
 from __future__ import annotations
+import copy
 import logging
 import threading
 from dataclasses import MISSING, dataclass, field, fields
@@ -52,6 +53,21 @@ def _firing_inlets() -> set[int]:
     if firing is None:
         firing = _immediate_fires.inlets = set()
     return firing
+
+
+#: The fields a saved port always carries when set, so that it can be rebuilt without its
+#: node's declaration, as a stand-in for a missing class rebuilds it.
+_FLOOR = frozenset({"id", "port_type", "origin", "parent_fold", "is_fold"})
+
+#: Saved fields that are live state, and so no part of a declaration.
+_NOT_DECLARED = frozenset({"_is_dirty_structural"})
+
+
+def _wire_form(value: Any) -> Any:
+    """Return *value* as a saved port holds it: an enum as its value, anything else unchanged."""
+    if isinstance(value, (PortType, ShowWidgetStrategy, StoreStrategy, PortOrigin)):
+        return value.value
+    return value
 
 
 @dataclass
@@ -949,48 +965,58 @@ class DataPort(DataTypeIdentity):
 
         return port
 
-    def to_dict(self, include_data: bool = True) -> dict:
+    def declaration(self) -> dict:
+        """Return this port as a node declares it: its type recipe and every saved field, without the value.
+
+        ``to_dict(declared=...)`` saves a port as its differences from this.
         """
-        Serialize port using field metadata for control.
+        assert self.type_cls is not None  # __post_init__ enforces this
+        return {
+            "recipe": serialize_element_type(self.type_cls),
+            "kwargs": {
+                f.name: copy.deepcopy(_wire_form(getattr(self, f.name)))
+                for f in fields(self)
+                if f.metadata.get("serialize", True) and f.name not in _NOT_DECLARED
+            },
+        }
+
+    def to_dict(self, include_data: bool = True, declared: dict | None = None) -> dict:
+        """Return the port as a JSON-serializable spec that ``from_spec`` rebuilds it from.
 
         Args:
-            include_data: If True, includes field values (when store_data is also True)
-
-        Returns:
-            dict: Serialized port representation
+            include_data: Whether the value is included, where the port's store strategy saves it.
+            declared: The port's ``declaration()`` as its node's ``init()`` made it. The spec then
+                holds the floor (see ``_FLOOR``) and the fields that differ from it, and rebuilds
+                the port only together with that declaration. Ignored when the port's type is no
+                longer the declared one. ``None`` leaves out only what the port's type says.
         """
         assert self.type_cls is not None  # __post_init__ enforces this
         result: dict[str, Any] = {"kwargs": {}}
         # Every port serializes its type recipe. A promoted port omits only its VALUE
         # (field_data below) — the value round-trips via the shared setting cell.
         result["recipe"] = serialize_element_type(self.type_cls)
+        if declared is not None and declared["recipe"] != result["recipe"]:
+            declared = None
 
-        # Iterate over dataclass fields
         for f in fields(self):
             # Skip fields marked as non-serializable
             if not f.metadata.get("serialize", True):
                 continue
 
-            value = getattr(self, f.name)
+            value = _wire_form(getattr(self, f.name))
+            is_default = (f.default is not MISSING and value == _wire_form(f.default)) or (
+                f.default_factory is not MISSING and value == f.default_factory()
+            )
 
-            if is_type_owned(self.type_cls, f.name):
-                # The type's own value comes back from the recipe on load.
-                if value == getattr(self.type_cls.class_identity, f.name):
+            if declared is not None and f.name in declared["kwargs"]:
+                if value == declared["kwargs"][f.name] and (f.name not in _FLOOR or is_default):
                     continue
-            elif f.default is not MISSING and value == f.default:
+            elif is_type_owned(self.type_cls, f.name):
+                # The type's own value comes back from the recipe on load.
+                if value == _wire_form(getattr(self.type_cls.class_identity, f.name)):
+                    continue
+            elif is_default:
                 continue
-            elif f.default_factory is not MISSING and value == f.default_factory():
-                continue
-
-            # Transform enums
-            if isinstance(value, PortType):
-                value = value.value
-            if isinstance(value, ShowWidgetStrategy):
-                value = value.value
-            if isinstance(value, StoreStrategy):
-                value = value.value
-            if isinstance(value, PortOrigin):
-                value = value.value
 
             result["kwargs"][f.name] = value
 
