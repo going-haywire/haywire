@@ -66,7 +66,8 @@ class BaseNode(NodeData):
         instantiating helper objects.
 
         Called right after ``init()`` for a new node, and after the saved ports,
-        values and settings are loaded for a node built from saved data. Work that prepares a worker run belongs in ``on_startup()``.
+        values and settings are loaded for a node built from saved data. Work that
+        prepares a worker run belongs in ``on_startup()``.
         """
         pass
 
