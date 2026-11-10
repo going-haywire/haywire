@@ -50,9 +50,11 @@ class AudioMixerNode(BaseNode):
     input appears below.
 
     Wire each source's Audio Event Block Ready to its `Write` pin: the block is queued for that input.
-    Wire an Audio Clock's Audio Event to `Tick` and `Clock`: every tick mixes one block per input, in the
-    clock's sample rate and block size. Inputs at another sample rate or block size are converted, and
-    a source clock that differs slightly from the tick clock is absorbed.
+    Wire an Audio Clock's Audio Event to `Tick` and `Clock`: `Block Ready` to `Tick`, `Audio` to
+    `Clock`. `Tick` is the moment to mix one block, so every tick mixes one block per input. `Clock`
+    only tells the mixer the sample rate and block size of its output: the silent block on it is not
+    mixed in. The sources are the numbered inputs. Inputs at another sample rate or block size are
+    converted, and a source clock that differs slightly from the tick clock is absorbed.
 
     An input is mixed once its prefill is queued, and again after a stall; until then it is silent. The
     sum is not limited, so loud sources can exceed ±1; the output has the most channels of any input, and
