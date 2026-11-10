@@ -144,3 +144,68 @@ def test_a_code_change_to_a_declared_label_reaches_a_saved_node(held_graph: Base
     loaded.build(saved["node_data"])
 
     assert loaded.node.ports["value_a"].label == "Renamed"
+
+
+# ---------------------------------------------------------------------------
+# Ports saved by a file older than format v5
+# ---------------------------------------------------------------------------
+
+
+def _as_v4(wrapper: NodeWrapper) -> dict:
+    """Return *wrapper*'s node data with every port saved whole, as format v4 saved it."""
+    data = wrapper.serialize()["node_data"]
+    data["ports"] = {port_id: port.to_dict() for port_id, port in wrapper.node.ports.items()}
+    data["legacy_ports"] = True
+    return data
+
+
+def _built(graph: BaseGraph, wrapper: NodeWrapper, data: dict) -> NodeWrapper:
+    copy = NodeWrapper(registry_key=wrapper.registry_key, node_id="copy", graph=graph)
+    copy.build(data)
+    return copy
+
+
+def test_a_legacy_declared_port_takes_its_fields_from_the_code(held_graph: BaseGraph):
+    wrapper = make_node(held_graph, _ADD)
+    declared = wrapper.node.ports["value_a"].description
+    data = _as_v4(wrapper)
+    data["ports"]["value_a"]["kwargs"]["description"] = "What the code said long ago"
+    data["ports"]["value_a"]["kwargs"]["store_strategy"] = 14
+
+    loaded = _built(held_graph, wrapper, data).node.ports["value_a"]
+
+    assert loaded.description == declared
+    assert loaded.store_strategy == wrapper.node.ports["value_a"].store_strategy
+
+
+def test_a_legacy_declared_port_keeps_order_hidden_and_value(held_graph: BaseGraph):
+    wrapper = make_node(held_graph, _ADD)
+    port = wrapper.node.ports["value_b"]
+    port.hidden = True
+    port.set_value(7.25)
+    data = _as_v4(wrapper)
+    data["ports"]["value_b"]["kwargs"].pop("order", None)
+
+    loaded = _built(held_graph, wrapper, data).node.ports["value_b"]
+
+    assert loaded.hidden is True
+    assert loaded.get_value() == 7.25
+    assert loaded.order == 0
+
+
+def test_a_legacy_grown_port_keeps_what_the_file_says(held_graph: BaseGraph):
+    wrapper = make_node(held_graph, _ADD)
+    wrapper.node.add(FLOAT.as_inlet("grown", label="Grown", description="Kept"))
+
+    loaded = _built(held_graph, wrapper, _as_v4(wrapper)).node.ports["grown"]
+
+    assert (loaded.label, loaded.description) == ("Grown", "Kept")
+
+
+def test_a_saved_node_drops_the_legacy_mark(held_graph: BaseGraph):
+    wrapper = make_node(held_graph, _ADD)
+
+    saved = _built(held_graph, wrapper, _as_v4(wrapper)).serialize()["node_data"]
+
+    assert "legacy_ports" not in saved
+    assert saved["ports"]["value_a"]["kwargs"] == {"id": "value_a", "port_type": "inlet"}

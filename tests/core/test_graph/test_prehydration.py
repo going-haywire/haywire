@@ -364,3 +364,12 @@ def test_v5_tolerates_a_node_without_node_data():
     out = prehydrate(_base(format_version=4, nodes={"n1": {"registry_key": "x:node:Y"}}))
 
     assert out["requires"] == {}
+
+
+def test_v5_marks_a_node_whose_ports_it_cannot_tell_from_code():
+    node = _v4_node()
+    node["node_data"]["ports"] = {"a": {"kwargs": {"id": "a"}, "recipe": {"registry_key": "x"}}}
+    out = prehydrate(_base(format_version=4, nodes={"n1": node, "n2": _v4_node()}))
+
+    assert out["nodes"]["n1"]["node_data"]["legacy_ports"] is True
+    assert "legacy_ports" not in out["nodes"]["n2"]["node_data"]

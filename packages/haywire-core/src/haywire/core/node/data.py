@@ -862,12 +862,18 @@ class NodeData:
             if not port.promoted
         }
 
-    def _deserialize_ports(self, ports_data: Dict[str, Any]) -> bool:
+    def _deserialize_ports(self, ports_data: Dict[str, Any], legacy: bool = False) -> bool:
         """Replace every port with the ones *ports_data* describes, and return True.
+
+        A port the node declares, saved with its declared type, is built on its
+        declaration; any other port is built from its spec alone.
 
         Args:
             ports_data: Port specs keyed by port ID, as ``_serialize_ports``
                 produces them.
+            legacy: Whether the specs come from a file older than format v5, which saved
+                every field of a port. A declared port then takes only its display order,
+                its hidden state and its value from the spec.
 
         Raises:
             ValueError: If a spec names a type the registry cannot resolve.
@@ -878,8 +884,11 @@ class NodeData:
         for port_id, spec in ports_data.items():
             declared = self._declaration.get(port_id)
             if declared is not None and declared["recipe"] == spec.get("recipe"):
-                # A declared port is saved as its differences from the declaration.
-                spec = {**spec, "kwargs": {**copy.deepcopy(declared["kwargs"]), **spec["kwargs"]}}
+                saved = spec["kwargs"]
+                if legacy:
+                    # An absent field of an older file is at its default.
+                    saved = {"order": saved.get("order", 0), "hidden": saved.get("hidden", False)}
+                spec = {**spec, "kwargs": {**copy.deepcopy(declared["kwargs"]), **saved}}
             port = DataPort.from_spec(cast(dict, spec), self._type_registry, self.wrapper, self)
 
             # Bypass add() so the display order stored in the spec survives.

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from haywire.core.node.legacy import LEGACY_PORTS_KEY
+
 from .upgrader import GraphDict, Upgrader
 from .v4 import UpgradeVersionFour
 
@@ -37,6 +39,11 @@ class UpgradeVersionFive(Upgrader):
     A v5 file can also carry ``declarations``, the port declaration of each node class it
     was saved against. A v4 file has none and gains it on its next save.
 
+    A v4 port saved every field, so a value its code has since changed cannot be told from
+    one the user set. Each node with ports is marked with ``LEGACY_PORTS_KEY``, which makes
+    the load take a declared port's fields from the code (``NodeData._deserialize_ports``).
+    The mark stays on a node whose class is not loaded and goes when the node is saved.
+
     Every Subgraph definition in ``subgraphs`` is a document of the same shape and is
     upgraded the same way.
     """
@@ -63,6 +70,8 @@ class UpgradeVersionFive(Upgrader):
                 if isinstance(name, str) and name and isinstance(version, str) and version:
                     requires[name] = _older(requires[name], version) if name in requires else version
             node_data.pop("identity", None)
+            if node_data.get("ports"):
+                node_data[LEGACY_PORTS_KEY] = True
             node_data.pop("node_id", None)
             settings = node_data.get("settings")
             if isinstance(settings, dict):

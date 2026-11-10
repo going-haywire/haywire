@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from abc import abstractmethod
 
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
+from haywire.core.node.legacy import LEGACY_PORTS_KEY
 from haywire.core.node.properties import NodeProperties  # re-exported for type hints
 from ..execution.execution_context import ExecutionContext
 from .data import NodeData
@@ -52,11 +53,11 @@ class BaseNode(NodeData):
 
     @abstractmethod
     def init(self):
-        """Bring the node to its default setup: add ports and set default values.
+        """Declare the node's ports: add each one with its default value.
 
-        Called when the node is created or rebuilt. Restrict it to work that
-        loading a saved graph can reproduce; anything else belongs in
-        ``post_init()``.
+        Called every time the node is built, before a saved node's ports, values
+        and settings are loaded. It only adds ports and adds the same ones each
+        time; anything else belongs in ``post_init()``.
         """
         pass
 
@@ -64,8 +65,8 @@ class BaseNode(NodeData):
         """Complete the setup that loading a saved graph cannot reproduce, such as
         instantiating helper objects.
 
-        Called right after ``init()``, or right after the node is loaded from
-        file. Work that prepares a worker run belongs in ``on_startup()``.
+        Called right after ``init()`` for a new node, and after the saved ports,
+        values and settings are loaded for a node built from saved data. Work that prepares a worker run belongs in ``on_startup()``.
         """
         pass
 
@@ -410,7 +411,7 @@ class BaseNode(NodeData):
         # from the restored bags below. Both run before edges wire (two-phase
         # graph load), so a promoted inlet exists before any edge resolves to it.
         if "ports" in data:
-            self._deserialize_ports(data["ports"])
+            self._deserialize_ports(data["ports"], legacy=bool(data.get(LEGACY_PORTS_KEY)))
 
         self._regenerate_promoted_ports()
 
