@@ -13,7 +13,9 @@ sources interleaved in the order they actually happened.
 """
 
 import logging
+import sys
 import threading
+import traceback
 from collections import deque
 from datetime import datetime
 from typing import TYPE_CHECKING, Callable, Optional
@@ -187,7 +189,7 @@ class LogEditor(BaseEditor):
             for msg in batch:
                 self._log_element.push(msg)
         except Exception:
-            pass
+            traceback.print_exc(file=sys.__stderr__)  # not logging: the handler would feed itself
 
     def _copy(self) -> None:
         with self._lock:
