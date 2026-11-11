@@ -547,6 +547,7 @@ class ValidationManager:
         Otherwise it is built fresh and keeps *before* as its previous setup, reported
         to the ledger. See ADR 0062 and ADR 0077.
         """
+        from haywire.core.node.declaration_merge import report_merge
         from haywire.core.node.previous_setup import report_previous_setup
 
         try:
@@ -557,6 +558,8 @@ class ValidationManager:
         node_wrapper.build(before, declared=declared)
         if node_wrapper.reset_differs and node_wrapper.previous_setup is not None:
             report_previous_setup(node_wrapper, operation="Hot reload", differs=node_wrapper.reset_differs)
+        elif node_wrapper.merged_changes:
+            report_merge(node_wrapper, operation="Hot reload", changes=node_wrapper.merged_changes)
 
     def _notify_subscribers(self, result: ValidationResult) -> None:
         """Call every subscriber with ``result``; an exception in one is logged and the rest still run."""

@@ -19,6 +19,7 @@ from .user_data import NodeCache, NodeStore
 from haywire.core.settings import NodeSettings, Settings
 
 if TYPE_CHECKING:
+    from .declaration_merge import MergedPorts
     from haywire.core.node import NodeWrapper
     from haywire.core.types.registry import TypeRegistry
 
@@ -141,6 +142,27 @@ class NodeData:
         self._declaration_saved = {
             port_id: port.to_dict(include_data=False) for port_id, port in self.ports.items()
         }
+
+    def _ports_merged_onto_declaration(
+        self, saved_against: Dict[str, Any], ports_data: Optional[Dict[str, Any]]
+    ) -> "MergedPorts | None":
+        """Return *ports_data* brought from the declaration *saved_against* to this node's own.
+
+        ``None`` when the two declarations conflict over what the ports hold, or when there
+        are no ports to merge. See ``merge_ports``.
+        """
+        from .declaration_merge import merge_ports
+
+        if not isinstance(ports_data, dict):
+            return None
+
+        def default_value(entry: Dict[str, Any]) -> Any:
+            port = DataPort.from_spec(entry, self._type_registry, self.wrapper, self)
+            return port._serialize_value()
+
+        return merge_ports(
+            saved_against, ports_data, self._declaration_saved, self._declaration, default_value
+        )
 
     @property
     def saved_declaration(self) -> Dict[str, Dict[str, Any]]:

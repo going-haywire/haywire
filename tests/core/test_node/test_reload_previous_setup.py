@@ -493,3 +493,22 @@ def test_a_reload_that_declares_the_same_ports_keeps_a_held_previous_setup(
     _reload(graph, first, changed=False)
 
     assert first.previous_setup == held
+
+
+def test_a_reload_that_only_removed_a_port_keeps_the_nodes_setup(library_system, ledger):
+    graph, _editor = _graph_with_editor(library_system)
+    wrapper = _printer(graph, "kept")
+    # The class the node was built from also declared a port the reloaded one no longer does.
+    wrapper.node.add(wrapper.node.ports["message"].type_cls.as_inlet("dropped"))
+    before = dict(wrapper.node.saved_declaration)
+    before["dropped"] = {"recipe": before["message"]["recipe"], "kwargs": {"id": "dropped"}}
+    wrapper.node._declaration_saved = before
+
+    _reload(graph, wrapper, changed=False)
+
+    assert _message(wrapper) == "kept"
+    assert "dropped" not in wrapper.node.ports
+    assert wrapper.previous_setup is None
+    (entry,) = ledger.query().entries
+    assert (entry.operation, entry.severity.value) == ("Hot reload", "info")
+    assert entry.details["changed"] == "ports/dropped (removed)"
