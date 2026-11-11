@@ -211,6 +211,9 @@ class NodeWrapper:
         self.reset_differs: list[str] = []
         """Where the last build's fresh node differs from the data it set aside for a changed
         declaration, as ``differing_paths`` returns it; empty when the build reset nothing."""
+        self.merged_changes: list[str] = []
+        """What the last build took over from a changed declaration while keeping the node's
+        data, as ``MergedPorts.changes`` lists it; empty when the declaration was the same."""
         """The node data from before a hot reload, until the user applies or dismisses it. See ADR 0062."""
 
         self._import_node_cls()
@@ -414,6 +417,7 @@ class NodeWrapper:
 
             self._reset_from = None
             self.reset_differs = []
+            self.merged_changes = []
             if (
                 self._instantiate(node_info)
                 and self._initialize(node_info, declared)
@@ -580,11 +584,17 @@ class NodeWrapper:
                 and not self.is_stand_in
                 and not same_declaration(declared, node_instance.saved_declaration)
             ):
-                # The class declares other ports than the data was saved against: the node
-                # starts fresh where it stood, and build() settles what becomes of the data.
-                self._reset_from = node_info
-                self._place_as(node_info)
-                node_info = None
+                # The class declares other ports than the data was saved against. The data
+                # follows the code where the two do not conflict; otherwise the node starts
+                # fresh where it stood, and build() settles what becomes of the data.
+                merged = node_instance._ports_merged_onto_declaration(declared, node_info.get("ports"))
+                if merged is None:
+                    self._reset_from = node_info
+                    self._place_as(node_info)
+                    node_info = None
+                else:
+                    node_info = {**node_info, "ports": merged.ports}
+                    self.merged_changes = merged.changes
             if node_info:
                 # The saved ports replace the declared ones, each built on its declaration.
                 # _initialize_from_dict regenerates promoted ports itself, from

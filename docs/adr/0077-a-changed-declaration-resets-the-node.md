@@ -2,11 +2,13 @@
 name: a-changed-declaration-resets-the-node
 description: A node is built fresh, keeping its previous setup, exactly when its class declares other ports than its data was saved against; one rule for loading a file and for a hot reload
 status: accepted
-see-also: ADR-0005, ADR-0059, ADR-0062, ADR-0076
+see-also: ADR-0005, ADR-0059, ADR-0062, ADR-0076, ADR-0078
 level: framework
 ---
 
 # A changed declaration resets the node
+
+> **Amended by [ADR 0078](0078-a-node-follows-its-changed-code-where-nothing-conflicts.md).** A changed declaration resets the node only where its data conflicts with the change; otherwise the saved ports follow the code and the node keeps its setup.
 
 **Context.**
 

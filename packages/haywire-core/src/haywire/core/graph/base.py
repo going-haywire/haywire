@@ -1284,11 +1284,14 @@ class BaseGraph:
             for wrapper in self.node_wrappers.values():
                 wrapper._housekeeping()
 
+            from ..node.declaration_merge import report_merge
             from ..node.previous_setup import report_previous_setup
 
             for wrapper in self.node_wrappers.values():
                 if wrapper.previous_setup is not None:
                     report_previous_setup(wrapper, operation="Load graph")
+                elif wrapper.merged_changes:
+                    report_merge(wrapper, operation="Load graph", changes=wrapper.merged_changes)
 
             self._apply_compatibility_warnings(data)
 

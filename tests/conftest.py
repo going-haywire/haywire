@@ -636,10 +636,10 @@ def register_edit_state() -> Callable[[LibraryStateContainer, str], type]:
 
 
 def declare_differently(wrapper) -> None:
-    """Make *wrapper*'s node count as built from other code, so its next hot reload finds a changed
-    declaration: the node's record of what its class declared gains a port the class never had."""
-    saved = dict(wrapper.node.saved_declaration)
-    saved["declared_before_the_reload"] = {"recipe": {"registry_key": "none"}, "kwargs": {}}
+    """Make *wrapper*'s node count as built from code its data conflicts with, so its next hot
+    reload resets it: the node's record of what its class declared loses its ports, as if the
+    node had grown them itself, and the class now declares the same ids."""
+    saved: dict = {"declared_before_the_reload": {"recipe": {"registry_key": "none"}, "kwargs": {}}}
     wrapper.node._declaration_saved = saved
 
 

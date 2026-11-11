@@ -51,6 +51,14 @@ def _as_saved_against_other_code(saved: dict[str, Any]) -> dict[str, Any]:
     return older
 
 
+def _as_saved_against_conflicting_code(saved: dict[str, Any]) -> dict[str, Any]:
+    """Return *saved* as a file written when the class did not declare ``value_b`` yet, while its
+    nodes hold a port of that id: what the file says and what the code says cannot both stand."""
+    older = _as_saved_against_other_code(saved)
+    del older["declarations"][_ADD]["value_b"]
+    return older
+
+
 def _loaded(saved: dict[str, Any], node_id: str) -> tuple[BaseGraph, Any]:
     graph = _graph("loaded")
     assert graph.load_from_dict(saved) is True
@@ -69,7 +77,7 @@ def test_an_unchanged_declaration_loads_the_node_from_its_file(library_system, l
 
 def test_a_changed_declaration_resets_the_node_and_keeps_its_setup(library_system, ledger):
     saved, node_id = _saved_with_a_set_value()
-    older = _as_saved_against_other_code(saved)
+    older = _as_saved_against_conflicting_code(saved)
 
     _graph_, wrapper = _loaded(older, node_id)
 
@@ -87,7 +95,7 @@ def test_a_changed_declaration_resets_the_node_and_keeps_its_setup(library_syste
 def test_a_reset_node_stays_where_the_file_put_it(library_system):
     saved, node_id = _saved_with_a_set_value()
 
-    _graph_, wrapper = _loaded(_as_saved_against_other_code(saved), node_id)
+    _graph_, wrapper = _loaded(_as_saved_against_conflicting_code(saved), node_id)
 
     assert wrapper.node.props.get_position() == (120.0, 80.0)
 
@@ -95,7 +103,7 @@ def test_a_reset_node_stays_where_the_file_put_it(library_system):
 def test_an_untouched_node_of_a_changed_class_keeps_nothing(library_system, ledger):
     graph = _graph()
     wrapper = make_node(graph, _ADD, position=(120, 80))
-    older = _as_saved_against_other_code(graph.to_dict())
+    older = _as_saved_against_conflicting_code(graph.to_dict())
 
     _graph_, loaded = _loaded(older, wrapper.node_id)
 
@@ -115,7 +123,7 @@ def test_a_file_without_a_declaration_for_the_class_loads_unchecked(library_syst
 
 def test_a_reset_node_saves_against_the_current_declaration(library_system):
     saved, node_id = _saved_with_a_set_value()
-    graph, wrapper = _loaded(_as_saved_against_other_code(saved), node_id)
+    graph, wrapper = _loaded(_as_saved_against_conflicting_code(saved), node_id)
 
     again = graph.to_dict()
 
@@ -127,7 +135,7 @@ def test_a_reset_node_saves_against_the_current_declaration(library_system):
 
 def test_restore_puts_the_setup_on_the_ports_the_code_declares_now(library_system):
     saved, node_id = _saved_with_a_set_value()
-    older = _as_saved_against_other_code(saved)
+    older = _as_saved_against_conflicting_code(saved)
     # The older file also holds the port the class has since dropped.
     node_ports = older["nodes"][node_id]["node_data"]["ports"]
     node_ports["gone"] = {
@@ -154,7 +162,7 @@ def test_restore_keeps_a_port_the_user_grew(library_system):
     graph = _graph()
     source = make_node(graph, _ADD)
     source.node.add(FLOAT.as_inlet("grown", label="Grown"))
-    older = _as_saved_against_other_code(graph.to_dict())
+    older = _as_saved_against_conflicting_code(graph.to_dict())
     loaded_graph, wrapper = _loaded(older, source.node_id)
     assert "grown" not in wrapper.node.ports
     editor = Editor(
@@ -165,6 +173,91 @@ def test_restore_keeps_a_port_the_user_grew(library_system):
     loaded_graph._validation.force_immediate_validation()
 
     assert wrapper.node.ports["grown"].label == "Grown"
+
+
+# ---------------------------------------------------------------------------
+# A changed declaration the node's data does not conflict with
+# ---------------------------------------------------------------------------
+
+
+def test_a_node_keeps_its_setup_when_the_code_removed_a_port(library_system, ledger):
+    saved, node_id = _saved_with_a_set_value()
+    older = _as_saved_against_other_code(saved)
+    node_ports = older["nodes"][node_id]["node_data"]["ports"]
+    node_ports["gone"] = {"recipe": node_ports["value_a"]["recipe"], "kwargs": {"id": "gone"}}
+
+    _graph_, wrapper = _loaded(older, node_id)
+
+    assert wrapper.node.ports["value_a"].get_value() == 4.5
+    assert wrapper.node.props.label == "Mine"
+    assert "gone" not in wrapper.node.ports
+    assert wrapper.previous_setup is None
+    assert wrapper.state.warnings == []
+    (entry,) = ledger.query().entries
+    assert (entry.operation, entry.node_id, entry.severity.value) == ("Load graph", node_id, "info")
+    assert entry.details["changed"] == "ports/gone (removed)"
+
+
+def test_a_node_takes_a_changed_label_and_keeps_its_value(library_system, ledger):
+    saved, node_id = _saved_with_a_set_value()
+    saved["declarations"][_ADD]["value_a"]["kwargs"]["label"] = "Earlier label"
+
+    _graph_, wrapper = _loaded(saved, node_id)
+
+    assert wrapper.node.ports["value_a"].label == "Value A"
+    assert wrapper.node.ports["value_a"].get_value() == 4.5
+    assert wrapper.previous_setup is None
+    (entry,) = ledger.query().entries
+    assert entry.details["changed"] == "ports/value_a/label"
+
+
+def test_a_label_the_user_changed_conflicts_with_a_label_the_code_changed(library_system):
+    saved, node_id = _saved_with_a_set_value()
+    saved["declarations"][_ADD]["value_a"]["kwargs"]["label"] = "Earlier label"
+    saved["nodes"][node_id]["node_data"]["ports"]["value_a"]["kwargs"]["label"] = "My label"
+
+    _graph_, wrapper = _loaded(saved, node_id)
+
+    assert wrapper.node.ports["value_a"].label == "Value A"
+    held = wrapper.previous_setup
+    assert held is not None
+    assert held["ports"]["value_a"]["kwargs"]["label"] == "My label"
+
+
+def test_a_node_gains_a_port_the_code_added(library_system):
+    saved, node_id = _saved_with_a_set_value()
+    del saved["declarations"][_ADD]["value_b"]
+    del saved["nodes"][node_id]["node_data"]["ports"]["value_b"]
+
+    _graph_, wrapper = _loaded(saved, node_id)
+
+    assert list(wrapper.node.ports) == ["value_a", "value_b", "result"]
+    assert wrapper.node.ports["value_b"].label == "Value B"
+    assert wrapper.node.ports["value_a"].get_value() == 4.5
+    assert wrapper.previous_setup is None
+
+
+def test_only_a_value_nobody_set_follows_a_changed_default(library_system):
+    saved, node_id = _saved_with_a_set_value()
+    for port_id in ("value_a", "value_b"):
+        saved["declarations"][_ADD][port_id]["kwargs"]["default"] = {"value": 7.0}
+    saved["nodes"][node_id]["node_data"]["ports"]["value_b"]["field_data"] = {"value": 7.0}
+
+    _graph_, wrapper = _loaded(saved, node_id)
+
+    assert wrapper.node.ports["value_a"].get_value() == 4.5
+    assert wrapper.node.ports["value_b"].get_value() == 0.0
+    assert wrapper.previous_setup is None
+
+
+def test_a_merged_node_saves_against_the_current_declaration(library_system, ledger):
+    saved, node_id = _saved_with_a_set_value()
+    graph, _wrapper = _loaded(_as_saved_against_other_code(saved), node_id)
+
+    again = graph.to_dict()
+
+    assert again["declarations"] == saved["declarations"]
+    assert again["nodes"][node_id]["node_data"]["ports"] == saved["nodes"][node_id]["node_data"]["ports"]
 
 
 # ---------------------------------------------------------------------------
@@ -213,7 +306,8 @@ def test_a_nodes_own_declaration_is_checked_like_the_class_entry(library_system)
         wrapper.node.props.label = "Mine"
     saved = graph.to_dict()
     (carrier,) = [n for n in saved["nodes"].values() if "declared" in n["node_data"]]
-    carrier["node_data"]["declared"]["gone"] = {"recipe": {"registry_key": "none"}, "kwargs": {}}
+    # The node's own declaration lacks a port the node holds and the class declares: a conflict.
+    del carrier["node_data"]["declared"]["triggered"]
 
     loaded = _graph("loaded")
     assert loaded.load_from_dict(saved) is True

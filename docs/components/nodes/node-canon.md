@@ -152,7 +152,9 @@ On a load it runs first, and the saved node is then laid over it:
 
 - **Which ports exist comes from the file.** A node may have changed its ports
   since it was dropped (Section 7), and the user may have grown some. The file
-  has the last word, so a port your node removed stays removed.
+  has the last word, so a port your node removed stays removed. Only a change to
+  `init()` itself moves that: a port you add there appears on saved nodes, and
+  one you remove there goes.
 - **What a declared port looks like comes from your code**, except where the
   user or the node changed it. A saved graph stores, for each port `init()`
   declares, only the value and what differs from the declaration. Correct a
@@ -212,10 +214,17 @@ Three details a copy exposes that a save and reload hide:
 **When you edit the class (hot-reload),** what happens to its placed nodes
 depends on whether `init()` now declares other ports. If it declares the same,
 each node keeps its values, settings and grown ports and simply runs your new
-code. If it declares something else, each node is rebuilt
-through `init()`: fresh, with only its arrangement kept (position, stacking order,
-place on stage), so your port changes show
-at once. The same happens when a graph is opened after the class changed
+code. If it declares something else, each node takes over what you changed and
+keeps the rest: a new label, default or widget shows, a port you added appears,
+a port you removed goes, and the user's values and own changes stay
+([ADR 0078](../../adr/0078-a-node-follows-its-changed-code-where-nothing-conflicts.md)).
+The error ledger notes each node that changed this way.
+
+A node is rebuilt through `init()` only where your change and the node's data
+conflict: you and the user changed the same field of a port, you retyped a port
+that holds a set value, or you changed a port the node had reshaped itself. It
+is then fresh, with only its arrangement kept (position, stacking order, place
+on stage). The same happens when a graph is opened after the class changed
 ([ADR 0077](../../adr/0077-a-changed-declaration-resets-the-node.md)).
 The user's setup is not lost: a node the rebuild changed keeps its
 **previous setup** and shows an amber badge ("Settings reset by a code change").
