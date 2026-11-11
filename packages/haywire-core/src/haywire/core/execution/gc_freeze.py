@@ -10,9 +10,13 @@ The collector belongs to the process, so the count of running graphs is shared b
 
 import gc
 import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 _lock = threading.Lock()
 _running = 0
+_pausers = 0
+_was_enabled = True
 
 
 def freeze_for_run() -> None:
@@ -38,6 +42,32 @@ def unfreeze_after_run() -> None:
         if _running == 0:
             gc.unfreeze()
             gc.collect()
+
+
+@contextmanager
+def collection_paused() -> Iterator[None]:
+    """Keep the collector off while a burst of long-lived objects is built, such as a graph's UI.
+
+    A collection during the burst rescans everything built so far and survives none of it. When the last
+    overlapping pause ends, the collector runs again, and the new objects join the frozen heap if a
+    graph is running. A collector that was already off stays off.
+    """
+    global _pausers, _was_enabled
+    with _lock:
+        if _pausers == 0:
+            _was_enabled = gc.isenabled()
+            gc.disable()
+        _pausers += 1
+    try:
+        yield
+    finally:
+        with _lock:
+            _pausers -= 1
+            if _pausers == 0:
+                if _running:
+                    gc.freeze()
+                if _was_enabled:
+                    gc.enable()
 
 
 def running_graphs() -> int:
