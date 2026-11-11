@@ -635,6 +635,14 @@ def register_edit_state() -> Callable[[LibraryStateContainer, str], type]:
 # ==============================================================================
 
 
+def declare_differently(wrapper) -> None:
+    """Make *wrapper*'s node count as built from other code, so its next hot reload finds a changed
+    declaration: the node's record of what its class declared gains a port the class never had."""
+    saved = dict(wrapper.node.saved_declaration)
+    saved["declared_before_the_reload"] = {"recipe": {"registry_key": "none"}, "kwargs": {}}
+    wrapper.node._declaration_saved = saved
+
+
 def make_node(graph: "BaseGraph", registry_key: str, **kwargs: Any) -> "NodeWrapper":
     """``graph.create_node_wrapper`` narrowed to a non-Optional NodeWrapper.
 

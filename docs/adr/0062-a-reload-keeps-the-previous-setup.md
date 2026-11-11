@@ -8,6 +8,8 @@ level: framework
 
 # A reload keeps the previous setup
 
+> **Amended by [ADR 0077](0077-a-changed-declaration-resets-the-node.md).** A hot reload rebuilds a node through `init()` only when its class declares other ports than before; otherwise the node keeps its data and nothing is flagged. The same rule applies when a file is loaded.
+
 > **Amended by [ADR 0076](0076-a-graph-file-stores-what-differs-from-the-code.md).** A declared port is saved as its differences from the declaration, so Restore applies the previous setup's values and changes onto the ports the code declares now, and a node the user never changed is no longer flagged by a code change to a default.
 
 **Context.**

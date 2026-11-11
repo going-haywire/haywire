@@ -18,6 +18,8 @@ from haywire.core.graph.editor import Editor
 from haywire.core.graph.types import ChangeReason
 from haywire.core.undo.config import UndoConfig
 
+from tests.conftest import declare_differently
+
 pytestmark = pytest.mark.integration
 
 
@@ -68,14 +70,23 @@ def _fresh_printer(graph: BaseGraph) -> Any:
     return wrapper
 
 
-def _reload(graph: BaseGraph, *wrappers: Any) -> None:
+def _reload(graph: BaseGraph, *wrappers: Any, changed: bool = True) -> None:
+    """Reload the class of *wrappers*; ``changed`` says whether it declares other ports than before."""
     for wrapper in wrappers:
+        if changed and not wrapper.is_stand_in:
+            declare_differently(wrapper)
         graph._validation.mark_node_dirty(wrapper.node_id, ChangeReason.NODE_HOT_RELOADED)
     graph._validation.force_immediate_validation()
 
 
 def _message(wrapper: Any) -> str:
     return wrapper.node.ports["message"].get_value()
+
+
+def _held(wrapper: Any) -> dict | None:
+    """The previous setup *wrapper* holds, without the declaration it was saved against."""
+    held = wrapper.previous_setup
+    return None if held is None else {key: value for key, value in held.items() if key != "declared"}
 
 
 def _setup(wrapper: Any) -> dict:
@@ -94,7 +105,7 @@ def test_a_reload_keeps_the_previous_setup_and_records_no_step(
     _reload(graph, first)
 
     assert _message(first) == "Hello, World!"
-    assert first.previous_setup == before
+    assert _held(first) == before
     assert [w.kind for w in first.state.warnings] == ["previous_setup"]
     assert not editor.history_manager.can_undo()
     (entry,) = ledger.query().entries
@@ -129,7 +140,7 @@ def test_a_graph_without_an_editor_keeps_the_previous_setup(graph_with_library_s
 
     _reload(graph, wrapper)
 
-    assert wrapper.previous_setup == before
+    assert _held(wrapper) == before
 
 
 def test_a_reload_validated_off_the_main_thread_keeps_the_previous_setup(
@@ -137,6 +148,7 @@ def test_a_reload_validated_off_the_main_thread_keeps_the_previous_setup(
 ):
     graph, editor = _graph_with_editor(library_system)
     wrapper = _printer(graph, "kept")
+    declare_differently(wrapper)
     graph._validation.mark_node_dirty(wrapper.node_id, ChangeReason.NODE_HOT_RELOADED)
 
     worker = threading.Thread(target=graph._validation.force_immediate_validation)
@@ -188,7 +200,7 @@ def test_a_second_reload_keeps_the_first_previous_setup(graph_with_library_syste
     _reload(graph, wrapper)
     _reload(graph, wrapper)
 
-    assert wrapper.previous_setup == before
+    assert _held(wrapper) == before
 
 
 def test_a_reload_back_to_the_previous_setup_clears_it(graph_with_library_system, library_system):
@@ -214,11 +226,11 @@ def test_a_failed_reload_keeps_the_held_previous_setup(
     construction_fails(1)
     _reload(graph, wrapper)
     assert wrapper.is_stand_in
-    assert wrapper.previous_setup == before
+    assert _held(wrapper) == before
 
     _reload(graph, wrapper)
     assert isinstance(wrapper.node, _print_cls())
-    assert wrapper.previous_setup == before
+    assert _held(wrapper) == before
 
 
 def test_a_reload_that_fails_keeps_nothing_new(
@@ -261,7 +273,7 @@ def test_a_held_previous_setup_saves_and_reopens(graph_with_library_system, libr
     try:
         assert reopened.load_from_dict(graph.to_dict())
         reopened._validation.force_immediate_validation()
-        assert reopened.node_wrappers[wrapper.node_id].previous_setup == before
+        assert _held(reopened.node_wrappers[wrapper.node_id]) == before
     finally:
         reopened._validation.clear()
         reopened.cleanup()
@@ -390,24 +402,6 @@ def test_apply_and_dismiss_refuse_a_node_without_a_previous_setup(graph_with_lib
     assert not editor.history_manager.can_undo()
 
 
-def test_a_class_label_or_version_change_alone_keeps_nothing(
-    graph_with_library_system, library_system, ledger
-):
-    """identity and library describe the class, not the user's setup; a load never restores them."""
-    from haywire.core.graph.validation import ValidationManager
-
-    graph, _editor = _graph_with_editor(library_system)
-    wrapper = _fresh_printer(graph)
-    before = _setup(wrapper)
-    before["identity"] = {**before.get("identity", {}), "label": "Old label"}
-    before["library"] = {**before.get("library", {}), "version": "0.0.1"}
-
-    ValidationManager._keep_previous_setup(wrapper, before)
-
-    assert wrapper.previous_setup is None
-    assert ledger.query().total == 0
-
-
 def test_apply_refuses_when_the_previous_setup_vanished_meanwhile(graph_with_library_system, library_system):
     """A pass that clears the setup between the check and the capture must not turn Apply into a Reset."""
     graph, editor = _graph_with_editor(library_system)
@@ -468,3 +462,34 @@ def test_a_moved_node_still_clears_once_the_rebuild_matches(graph_with_library_s
     _reload(graph, wrapper)
 
     assert wrapper.previous_setup is None
+
+
+def test_a_reload_that_declares_the_same_ports_keeps_the_node_as_it_is(
+    graph_with_library_system, library_system, ledger
+):
+    graph, editor = _graph_with_editor(library_system)
+    first = _printer(graph, "one")
+    old = first.node
+
+    _reload(graph, first, changed=False)
+
+    assert first.node is not old, "the node was rebuilt from the new class"
+    assert _message(first) == "one"
+    assert first.previous_setup is None
+    assert first.state.warnings == []
+    assert ledger.query().total == 0
+    assert not editor.history_manager.can_undo()
+
+
+def test_a_reload_that_declares_the_same_ports_keeps_a_held_previous_setup(
+    graph_with_library_system, library_system
+):
+    graph, _editor = _graph_with_editor(library_system)
+    first = _printer(graph, "one")
+    _reload(graph, first)
+    held = first.previous_setup
+    assert held is not None
+
+    _reload(graph, first, changed=False)
+
+    assert first.previous_setup == held

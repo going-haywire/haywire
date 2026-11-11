@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 PREVIOUS_SETUP_KEY: Final = "previous_setup"
+DECLARED_KEY: Final = "declared"
+"""Key in a previous setup: the declaration it was saved against (``NodeData.saved_declaration``)."""
 _SHOWN_PATHS: Final = 8
 PREVIOUS_SETUP_WARNING: Final = (
     "Rebuilt from its changed code with default settings. The earlier settings were kept."
@@ -74,13 +76,13 @@ _SIZES = (("width", "height", "size_adapt"), ("stage_width", "stage_height", "st
 def restorable(node_data: dict[str, Any]) -> dict[str, Any]:
     """Return *node_data* reduced to what Apply restores, for telling a changed setup from an unchanged one.
 
-    Left out: ``identity`` and ``library`` (they describe the class), the node's
+    Left out: the declaration it was saved against (it describes the class), the node's
     arrangement (Apply keeps it), and a size on an axis whose ``size_adapt`` is
     auto (the canvas measures it). The input is not changed.
     """
     from .node_wrapper import _CARRIED_ARRANGEMENT
 
-    data = {key: value for key, value in node_data.items() if key not in ("identity", "library")}
+    data = {key: value for key, value in node_data.items() if key != DECLARED_KEY}
     data = copy.deepcopy(data)
     for holder in (data, data.get("settings", {})):
         values = holder.get("props", {}).get("values")
@@ -95,6 +97,21 @@ def restorable(node_data: dict[str, Any]) -> dict[str, Any]:
             if mode not in ("manual", "manual_height"):
                 values.pop(height, None)
     return data
+
+
+def same_declaration(saved: Any, current: Any) -> bool:
+    """Whether two declarations are equal once both are in the form a graph file holds them.
+
+    Args:
+        saved: A declaration as read from a file or kept from an earlier build.
+        current: A declaration as ``NodeData.saved_declaration`` returns it.
+    """
+    import json
+
+    def as_saved(declaration: Any) -> Any:
+        return json.loads(json.dumps(declaration, sort_keys=True, default=str))
+
+    return bool(as_saved(saved) == as_saved(current))
 
 
 def differing_paths(before: Any, after: Any, path: str = "") -> list[str]:

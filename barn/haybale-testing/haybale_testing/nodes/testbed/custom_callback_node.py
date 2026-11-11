@@ -50,7 +50,7 @@ class TestCustomCallbackNode(BaseNode):
             )
         )
 
-        self.add(CALLBACK.as_outlet("listen_callback", label="Listen", default=self.node_id))
+        self.add(CALLBACK.as_outlet("listen_callback", label="Listen"))
 
         self.add(EXEC.as_outlet("triggered", label="Triggered"))
         self.add(FLOAT.as_outlet("payload", label="Payload"))

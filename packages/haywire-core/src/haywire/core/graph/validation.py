@@ -398,15 +398,17 @@ class ValidationManager:
                     if reason.requires_rebuild():
                         node_wrapper = self._graph.get_node_wrapper(node_id)
                         if node_wrapper:
+                            # A requested rebuild may carry the exact data to restore (an undo).
+                            requested = node_wrapper.take_rebuild_data()
                             before = (
                                 self._data_before_reload(node_wrapper)
-                                if reason is ChangeReason.NODE_HOT_RELOADED
+                                if reason is ChangeReason.NODE_HOT_RELOADED and requested is None
                                 else None
                             )
-                            # A requested rebuild may carry the exact data to restore (an undo).
-                            node_wrapper.build(node_wrapper.take_rebuild_data())
-                            if before is not None:
-                                self._keep_previous_setup(node_wrapper, before)
+                            if before is None:
+                                node_wrapper.build(requested)
+                            else:
+                                self._rebuild_reloaded(node_wrapper, before)
                             edge_wrappers = self._graph._get_edge_wrappers_for_node(node_id)
                             for edge_wrapper in edge_wrappers:
                                 # Attached edges revalidate too, at this reason's priority.
@@ -538,38 +540,23 @@ class ValidationManager:
             return None
 
     @staticmethod
-    def _keep_previous_setup(node_wrapper: Any, before: Dict[str, Any]) -> None:
-        """Hold the node's setup from before its reload when the rebuild changed it. See ADR 0062.
+    def _rebuild_reloaded(node_wrapper: Any, before: Dict[str, Any]) -> None:
+        """Rebuild a node whose class was reloaded, from *before*, its data under the old class.
 
-        A previous setup already held is kept over *before*, which is a rebuilt node's
-        pristine data; it clears once the rebuild reproduces it. A reload that ends as
-        a stand-in keeps what was held.
+        The node keeps its data when the new class declares the ports the old one did.
+        Otherwise it is built fresh and keeps *before* as its previous setup, reported
+        to the ledger. See ADR 0062 and ADR 0077.
         """
-        from haywire.core.node.previous_setup import (
-            PREVIOUS_SETUP_KEY,
-            differing_paths,
-            report_previous_setup,
-            restorable,
-        )
+        from haywire.core.node.previous_setup import report_previous_setup
 
-        held = before.pop(PREVIOUS_SETUP_KEY, None)
-        if node_wrapper.is_stand_in:
-            node_wrapper.set_previous_setup(held)
-            return
         try:
-            after = node_wrapper.serialize()["node_data"]
+            declared = node_wrapper.node.saved_declaration
         except Exception:
-            logger.debug(f"Reload of {node_wrapper.node_id}: data after rebuild not compared", exc_info=True)
-            node_wrapper.set_previous_setup(held)
-            return
-        after.pop(PREVIOUS_SETUP_KEY, None)
-        candidate = held if held is not None else before
-        differs = differing_paths(restorable(candidate), restorable(after))
-        if not differs:
-            node_wrapper.set_previous_setup(None)
-            return
-        node_wrapper.set_previous_setup(candidate)
-        report_previous_setup(node_wrapper, operation="Hot reload", differs=differs)
+            logger.debug(f"Reload of {node_wrapper.node_id}: old declaration not read", exc_info=True)
+            declared = None
+        node_wrapper.build(before, declared=declared)
+        if node_wrapper.reset_differs and node_wrapper.previous_setup is not None:
+            report_previous_setup(node_wrapper, operation="Hot reload", differs=node_wrapper.reset_differs)
 
     def _notify_subscribers(self, result: ValidationResult) -> None:
         """Call every subscriber with ``result``; an exception in one is logged and the rest still run."""

@@ -1070,6 +1070,11 @@ class BaseGraph:
         from haywire.core.graph.prehydration import CURRENT_FORMAT_VERSION
 
         requires, declarations = self._requires_and_declarations()
+        nodes = {
+            node_id: wrapper.serialize(include_data=include_data)
+            for node_id, wrapper in self.node_wrappers.items()
+        }
+        self._add_own_declarations(nodes, declarations)
         return {
             "format_version": CURRENT_FORMAT_VERSION,
             "filestem": self.filestem,
@@ -1078,10 +1083,7 @@ class BaseGraph:
             "requires": requires,
             "declarations": declarations,
             "meta": self.meta._to_dict(),
-            "nodes": {
-                node_id: wrapper.serialize(include_data=include_data)
-                for node_id, wrapper in self.node_wrappers.items()
-            },
+            "nodes": nodes,
             "edges": {edge_id: wrapper.serialize() for edge_id, wrapper in self.edge_wrappers.items()},
             "variables": {name: var.to_dict() for name, var in self.variables.items()},
             "props": self.props._to_dict(),
@@ -1120,6 +1122,24 @@ class BaseGraph:
                 requires[library.name] = library.version
             declarations.setdefault(key, node.saved_declaration)
         return dict(sorted(requires.items())), dict(sorted(declarations.items()))
+
+    def _add_own_declarations(self, nodes: Dict[str, Any], declarations: Dict[str, Any]) -> None:
+        """Give each serialized node whose declaration is not its class's entry its own, in place.
+
+        A node whose ``init()`` declares something of its own, such as its id as a default,
+        differs from the one entry ``declarations`` holds for its class. It carries its
+        declaration in its data under ``DECLARED_KEY``, which a load reads before the entry.
+        """
+        from ..node.previous_setup import DECLARED_KEY, same_declaration
+
+        for node_id, wrapper in self.node_wrappers.items():
+            node = wrapper._node_instance
+            node_data = nodes[node_id].get("node_data")
+            if node is None or wrapper.is_stand_in or node_data is None:
+                continue
+            own = node.saved_declaration
+            if not same_declaration(declarations.get(wrapper.registry_key), own):
+                node_data[DECLARED_KEY] = copy.deepcopy(own)
 
     def load_from_dict(self, data: Dict[str, Any]) -> bool:
         """Replace this graph's contents with ``data``, upgraded to the current file format first.
@@ -1202,6 +1222,7 @@ class BaseGraph:
 
             if "nodes" in data:
                 from ..node.node_wrapper import NodeWrapper
+                from ..node.previous_setup import DECLARED_KEY
 
                 for node_id, wrapper_data in data["nodes"].items():
                     try:
@@ -1211,7 +1232,12 @@ class BaseGraph:
                             graph=self,
                         )
 
-                        wrapper.build(wrapper_data.get("node_data", {}))
+                        node_data = wrapper_data.get("node_data", {})
+                        # A node's own declaration comes before its class's entry.
+                        declared = node_data.get(DECLARED_KEY) or self._loaded_declarations.get(
+                            wrapper_data["registry_key"]
+                        )
+                        wrapper.build(node_data, declared=declared)
 
                         self.add_node_wrapper(wrapper)
                     except Exception as e:

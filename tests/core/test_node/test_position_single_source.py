@@ -9,6 +9,8 @@ from haywire.core.graph.editor import Editor
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.graph.types import ChangeReason
 
+from tests.conftest import declare_differently
+
 pytestmark = pytest.mark.integration
 
 
@@ -80,6 +82,8 @@ def test_a_rebuild_keeps_the_arrangement_only(graph_with_library_system, reason)
     wrapper.node.props.width = default_width + 111
     wrapper.node.props.stage_width = default_stage_width + 111
 
+    if reason is ChangeReason.NODE_HOT_RELOADED:
+        declare_differently(wrapper)
     graph._validation.mark_node_dirty(wrapper.node_id, reason)
     graph._validation.force_immediate_validation()
 

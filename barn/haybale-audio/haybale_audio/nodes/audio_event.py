@@ -73,7 +73,7 @@ class AudioEventNode(BaseNode):
         from haybale_audio.types.callback import CALLBACK_AUDIO
         from haybale_audio.types.exec_audio import EXEC_AUDIO
 
-        self.add(CALLBACK_AUDIO.as_outlet("listen_callback", label="Listen", default={"name": self.node_id}))
+        self.add(CALLBACK_AUDIO.as_outlet("listen_callback", label="Listen"))
         self.add(EXEC_AUDIO.as_outlet("block_ready", label="Block Ready"))
         self.add(AUDIO.as_outlet("audio", label="Audio"))
         self.add(FLOAT.as_outlet("timestamp", label="Timestamp (s)"))
