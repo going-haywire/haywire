@@ -16,6 +16,9 @@ GLOBAL_BASELINE_LOG_LEVEL_KEY = "log_level"
 #: on every draw — both by this name, so the string is written once.
 LOG_SCROLLBACK_LINES_KEY = "log_scrollback_lines"
 
+#: Field name of :attr:`DebugSettings.stall_watchdog_ms`, which the studio wires to a ``StallWatchdog``.
+STALL_WATCHDOG_KEY = "stall_watchdog_ms"
+
 # --8<-- [start:debug-settings-choices-example]
 
 
@@ -33,6 +36,18 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         category=CATEGORY_LOG_OUTPUT,
         min=50,
         max=10000,
+    )
+
+    stall_watchdog_ms = setting[INT](
+        0,
+        label="Stall Watchdog (ms)",
+        description=(
+            "When above 0, a pause of the whole process longer than this prints every thread's stack "
+            "to the terminal and logs a warning. Applies at once. Costs a little CPU; 0 switches it off"
+        ),
+        category=CATEGORY_LOG_OUTPUT,
+        min=0,
+        max=1000,
     )
 
     # Logging — global baseline -> if key changes, apply it to GLOBAL_BASELINE_LOG_LEVEL_KEY
