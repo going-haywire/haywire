@@ -304,6 +304,30 @@ Follow the chain:
    are matched by id. `bool_inlet` / `bool_outlet` never match the pattern, so
    they are never touched.
 
+### When you change this code later
+
+Ports added outside `init()` do not follow your code on their own. A saved graph
+stores such a port whole (Section 5), and loading it does not run your callback
+again. So after you change `hb_reconfigure` — a new label, another type, one more
+port per item — a node placed earlier keeps the ports it was saved with until its
+callback runs again, which is when the user changes `port_count`. Ports your
+`init()` declares are different: they follow the code when the graph opens.
+
+Announcing such a change is your job, not the framework's:
+
+- **In a released library,** add a compatibility warning for the node in the
+  version that carries the change
+  ([haybale canon, Section 7](../../haybale/haybale-canon.md#7-compatibility-warnings)).
+  Nodes saved with an older version then show a badge that tells the user what to
+  do: usually **Reset**, after which **Restore** puts their values back on the new
+  ports.
+- **While developing,** change the value that drives the callback, or reset the
+  node.
+
+Two changes need the same care because nothing can detect them: a port you
+rename (to the file it is one port gone and another new, so its value and edges
+do not move), and a value whose meaning changes while the port stays the same.
+
 ### Choosing which ports are up for replacement
 
 `rejig()` takes `include=` and `exclude=`. Each is a regex string, or a list
