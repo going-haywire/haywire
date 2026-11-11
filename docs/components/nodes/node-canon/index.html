@@ -796,6 +796,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#what-a-saved-graph-picks-up-when-you-change-a-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a saved graph picks up when you change a node
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#where-a-node-keeps-its-state" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -833,6 +844,17 @@
   
     <nav class="md-nav" aria-label="7. Changing ports at runtime">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-you-change-this-code-later" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When you change this code later
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#choosing-which-ports-are-up-for-replacement" class="md-nav__link">
@@ -3689,6 +3711,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#what-a-saved-graph-picks-up-when-you-change-a-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a saved graph picks up when you change a node
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#where-a-node-keeps-its-state" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3726,6 +3759,17 @@
   
     <nav class="md-nav" aria-label="7. Changing ports at runtime">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-you-change-this-code-later" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When you change this code later
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#choosing-which-ports-are-up-for-replacement" class="md-nav__link">
@@ -4058,6 +4102,111 @@ pasted, or rebuilt.</p>
 <p>See <a href="../../../adr/0076-a-graph-file-stores-what-differs-from-the-code/">ADR 0076</a>.</p>
 <p>Neither hook is the place to open a camera or a file. That waits until the
 graph runs — the next section.</p>
+<h3 id="what-a-saved-graph-picks-up-when-you-change-a-node">What a saved graph picks up when you change a node<a class="headerlink" href="#what-a-saved-graph-picks-up-when-you-change-a-node" title="Permanent link">&para;</a></h3>
+<p>A checklist for a change to a node that users already have in saved graphs.</p>
+<p><strong>Nothing to do: saved nodes follow the change.</strong></p>
+<table>
+<thead>
+<tr>
+<th>You change</th>
+<th>What a saved node does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>worker</code>, <code>post_init</code>, or a callback that adds no ports</td>
+<td>runs the new code</td>
+</tr>
+<tr>
+<td><code>init()</code>: a port's label, description, widget or default</td>
+<td>shows it; a value the user set stays</td>
+</tr>
+<tr>
+<td><code>init()</code>: a port added</td>
+<td>gets the port</td>
+</tr>
+<tr>
+<td><code>init()</code>: a port removed</td>
+<td>loses the port, with its value and its edges</td>
+</tr>
+<tr>
+<td>A settings field added, or its label, widget or default changed</td>
+<td>shows it; a value the user set stays</td>
+</tr>
+<tr>
+<td>A settings field removed</td>
+<td>drops the saved value</td>
+</tr>
+<tr>
+<td>A type's color, widget or default</td>
+<td>shows it</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Nothing to do, but the user may be asked.</strong> The node is rebuilt fresh, shows
+an amber badge and keeps its previous setup for <strong>Restore</strong>
+(<a href="../../../adr/0078-a-node-follows-its-changed-code-where-nothing-conflicts/">ADR 0078</a>).</p>
+<table>
+<thead>
+<tr>
+<th>You change</th>
+<th>When the user is asked</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>init()</code>: a port's type</td>
+<td>the port holds a value the user set</td>
+</tr>
+<tr>
+<td><code>init()</code>: a field of a port</td>
+<td>the user or the node changed the same field</td>
+</tr>
+<tr>
+<td><code>init()</code>: a port the node reshapes itself</td>
+<td>always</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Declare it: nothing detects these.</strong> Add a compatibility warning in the
+version that carries the change
+(<a href="../../../haybale/haybale-canon/#7-compatibility-warnings">haybale canon, Section 7</a>).</p>
+<table>
+<thead>
+<tr>
+<th>You change</th>
+<th>What a saved node does without a warning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ports added outside <code>init()</code>, from a callback or a setting (Section 7)</td>
+<td>keeps the ports it was saved with until the callback runs again</td>
+</tr>
+<tr>
+<td>A port id renamed</td>
+<td>has a new empty port; the old one's value and edges are gone</td>
+</tr>
+<tr>
+<td>A settings field or a settings bag renamed</td>
+<td>is at the default; the saved value is dropped without notice</td>
+</tr>
+<tr>
+<td>A settings field's type</td>
+<td>holds the old value unchecked</td>
+</tr>
+<tr>
+<td>What a value means (degrees to radians)</td>
+<td>computes with the old value</td>
+</tr>
+<tr>
+<td>How a type saves its value</td>
+<td>may fail to read the old value</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Avoid: renaming the node class or moving it to another library.</strong> Its saved
+nodes no longer find their class and load as stand-ins.</p>
 <h3 id="where-a-node-keeps-its-state">Where a node keeps its state<a class="headerlink" href="#where-a-node-keeps-its-state" title="Permanent link">&para;</a></h3>
 <p>Saving, loading, copy and paste, undo of a delete, and a rebuild all recreate a
 node from the same three things. A node whose state lives only there comes back
@@ -4304,6 +4453,28 @@ from: <code>DynamicPortTestNode</code> — registry_key: <code>haybale-testing:n
    are matched by id. <code>bool_inlet</code> / <code>bool_outlet</code> never match the pattern, so
    they are never touched.</li>
 </ol>
+<h3 id="when-you-change-this-code-later">When you change this code later<a class="headerlink" href="#when-you-change-this-code-later" title="Permanent link">&para;</a></h3>
+<p>Ports added outside <code>init()</code> do not follow your code on their own (the full
+checklist is in <a href="#what-a-saved-graph-picks-up-when-you-change-a-node">Section 5</a>). A saved graph
+stores such a port whole (Section 5), and loading it does not run your callback
+again. So after you change <code>hb_reconfigure</code> — a new label, another type, one more
+port per item — a node placed earlier keeps the ports it was saved with until its
+callback runs again, which is when the user changes <code>port_count</code>. Ports your
+<code>init()</code> declares are different: they follow the code when the graph opens.</p>
+<p>Announcing such a change is your job, not the framework's:</p>
+<ul>
+<li><strong>In a released library,</strong> add a compatibility warning for the node in the
+  version that carries the change
+  (<a href="../../../haybale/haybale-canon/#7-compatibility-warnings">haybale canon, Section 7</a>).
+  Nodes saved with an older version then show a badge that tells the user what to
+  do: usually <strong>Reset</strong>, after which <strong>Restore</strong> puts their values back on the new
+  ports.</li>
+<li><strong>While developing,</strong> change the value that drives the callback, or reset the
+  node.</li>
+</ul>
+<p>Two changes need the same care because nothing can detect them: a port you
+rename (to the file it is one port gone and another new, so its value and edges
+do not move), and a value whose meaning changes while the port stays the same.</p>
 <h3 id="choosing-which-ports-are-up-for-replacement">Choosing which ports are up for replacement<a class="headerlink" href="#choosing-which-ports-are-up-for-replacement" title="Permanent link">&para;</a></h3>
 <p><code>rejig()</code> takes <code>include=</code> and <code>exclude=</code>. Each is a regex string, or a list
 mixing exact port ids, <code>PortOrigin</code> values and compiled patterns (a list's

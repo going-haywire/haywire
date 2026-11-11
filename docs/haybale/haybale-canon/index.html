@@ -4466,6 +4466,25 @@ nothing, and is rejected at read time.</p>
 library. When a node's saved library version predates a behavioural change,
 Haywire shows an amber badge on the affected nodes and a summary when the graph
 opens. It never modifies the user's saved graph.</p>
+<p>Declare one when you change something a saved graph cannot pick up by itself:</p>
+<ul>
+<li><strong>Ports a node adds outside <code>init()</code></strong> (from a callback or a setting): a placed
+  node keeps the ports it was saved with
+  (<a href="../../components/nodes/node-canon/#when-you-change-this-code-later">node canon, Section 7</a>).</li>
+<li><strong>A renamed port id.</strong> The value and the edges of the old id do not move to the
+  new one.</li>
+<li>
+<p><strong>A changed meaning</strong> with the same ports: other units, another default
+  behaviour.</p>
+</li>
+<li>
+<p><strong>A settings field renamed or retyped.</strong> The saved value is dropped, or kept
+  unchecked.</p>
+</li>
+</ul>
+<p>A change to the ports <code>init()</code> declares needs none: saved nodes follow it when
+the graph opens. The full checklist is in the
+<a href="../../components/nodes/node-canon/#what-a-saved-graph-picks-up-when-you-change-a-node">node canon, Section 5</a>.</p>
 <p>Override <code>compatibility_warnings()</code> to return an <strong>append-only</strong> history:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.library.compatibility</span><span class="w"> </span><span class="kn">import</span> <span class="n">CompatibilityWarning</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haybale_image.nodes</span><span class="w"> </span><span class="kn">import</span> <span class="n">FrameDisplayNode</span>
@@ -4477,11 +4496,10 @@ opens. It never modifies the user's saved graph.</p>
 </span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>            <span class="n">CompatibilityWarning</span><span class="p">(</span>
 </span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>                <span class="n">version</span><span class="o">=</span><span class="s2">&quot;0.0.14&quot;</span><span class="p">,</span>            <span class="c1"># the version the change landed in</span>
 </span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>                <span class="n">component</span><span class="o">=</span><span class="n">FrameDisplayNode</span><span class="p">,</span>  <span class="c1"># a node class, or None for library-wide</span>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;The &#39;frame&#39; inlet widget strategy became author-declared; &quot;</span>
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>                        <span class="s2">&quot;graphs saved before 0.0.14 may hide the preview widget. &quot;</span>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>                        <span class="s2">&quot;Reset the node to re-derive it from current code.&quot;</span><span class="p">,</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>            <span class="p">),</span>
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        <span class="p">]</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;The &#39;rotation&#39; inlet now takes radians instead of degrees. &quot;</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>                        <span class="s2">&quot;Check the value on nodes saved before 0.0.14.&quot;</span><span class="p">,</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>            <span class="p">),</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="p">]</span>
 </span></code></pre></div>
 <ul>
 <li><strong><code>version</code></strong> is strict <code>MAJOR.MINOR.PATCH</code> — the version the change <em>landed
