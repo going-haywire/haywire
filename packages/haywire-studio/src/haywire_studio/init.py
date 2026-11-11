@@ -208,6 +208,20 @@ def _project_root_name(name: str, lib_name: str) -> str:
     return name
 
 
+# Interpreter a scaffolded project runs on. Newer Pythons are allowed by requires-python, but
+# not every library (haybale-visiongraph) supports them yet.
+_PROJECT_PYTHON = "3.12"
+
+# Libraries every scaffolded project installs, so a new project can start patching right away.
+_BASELINE_LIBRARIES = (
+    "haybale-studio",
+    "haybale-marketplace",
+    "haybale-core",
+    "haybale-graph-editor",
+    "haybale-haystack",
+)
+
+
 def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None = None) -> str:
     """Generate the project's pyproject.toml content.
 
@@ -226,9 +240,7 @@ def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None =
             "requires-python": ">=3.12",
             "dependencies": [
                 f"haywire-studio{pin}",
-                # this makes sure the studio comes with a baseline set of haybale libraries
-                f"haybale-studio{pin}",
-                f"haybale-marketplace{pin}",
+                *(f"{library}{pin}" for library in _BASELINE_LIBRARIES),
                 lib_name,
             ],
         },
@@ -243,14 +255,14 @@ def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None =
     }
 
     if dev_repo:
-        data["project"]["dependencies"] += ["haybale-core"]
         sources.update(
             {
                 "haywire-studio": {"path": f"{dev_repo}/packages/haywire-studio", "editable": True},
                 "haywire-core": {"path": f"{dev_repo}/packages/haywire-core", "editable": True},
-                "haybale-core": {"path": f"{dev_repo}/barn/haybale-core", "editable": True},
-                "haybale-studio": {"path": f"{dev_repo}/barn/haybale-studio", "editable": True},
-                "haybale-marketplace": {"path": f"{dev_repo}/barn/haybale-marketplace", "editable": True},
+                **{
+                    library: {"path": f"{dev_repo}/barn/{library}", "editable": True}
+                    for library in _BASELINE_LIBRARIES
+                },
             }
         )
 
@@ -921,6 +933,9 @@ def init_project(
     # .gitattributes — EOL normalization + binary markers. No LFS: see the
     # comment block in _generate_gitattributes().
     (project_dir / ".gitattributes").write_text(_generate_gitattributes())
+
+    # uv reads this for sync/run, keeping the project on a Python every library supports.
+    (project_dir / ".python-version").write_text(f"{_PROJECT_PYTHON}\n")
 
     # README.md inside the scaffolded barn library (with marker pair)
     (lib_dir / "README.md").write_text(_generate_library_readme(name, label))

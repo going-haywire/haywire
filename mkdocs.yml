@@ -128,6 +128,7 @@ nav:
       - Model catalogs: guides/model-catalogs.md
       - Graph notices: guides/graph-notices.md
       - Flow meters: guides/flow-meters.md
+      - Developing Haywire: guides/development.md
 
   - Architecture:
       - Overview: architecture/overview/overview-arch.md
