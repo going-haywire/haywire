@@ -1,6 +1,5 @@
 """Audio Mixer — sums several audio sources into one block per tick of a clock."""
 
-import gc
 import logging
 import threading
 import time
@@ -25,26 +24,8 @@ _PREFIX = "in_"
 _PENDING_BLOCKS = 32
 #: A wait between two writes or ticks longer than this is logged.
 LONG_WAIT = 0.05
-#: A garbage collection longer than this is logged.
-LONG_GC = 0.02
 #: Seconds between status updates; one per tick would flood the UI.
 STATUS_INTERVAL = 0.5
-
-
-_gc_started = 0.0
-
-
-def _log_slow_gc(phase: str, info: dict) -> None:
-    """Log a garbage collection that holds the process longer than ``LONG_GC`` seconds."""
-    global _gc_started
-    if phase == "start":
-        _gc_started = time.perf_counter()
-    elif _gc_started and time.perf_counter() - _gc_started > LONG_GC:
-        logger.warning(
-            "Audio Mixer: garbage collection of generation %d took %.0f ms",
-            info.get("generation", -1),
-            (time.perf_counter() - _gc_started) * 1000,
-        )
 
 
 class MixerSettings(NodeSettings):
@@ -194,8 +175,6 @@ class AudioMixerNode(BaseNode):
                     )
             if not self.hb_tick_at:
                 self.hb_started = now
-                if _log_slow_gc not in gc.callbacks:
-                    gc.callbacks.append(_log_slow_gc)
             self.hb_tick_at = now
             self.hb_format = (rate, frames)
             for index, blocks in self.hb_pending.items():
@@ -226,8 +205,6 @@ class AudioMixerNode(BaseNode):
 
     def hb_reset(self) -> None:
         # post_init() may never have run (init() failed during a reset or reload).
-        if _log_slow_gc in gc.callbacks:
-            gc.callbacks.remove(_log_slow_gc)
         lock = getattr(self, "hb_lock", None)
         if lock is None:
             return
