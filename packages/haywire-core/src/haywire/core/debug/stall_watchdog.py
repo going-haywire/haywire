@@ -3,34 +3,68 @@
 A pause of tens of milliseconds that hits every thread at once means one thread holds the interpreter lock:
 a long C call, a large serialisation, a garbage collection. A thread cannot report on itself while it holds
 the lock, so the watchdog arms ``faulthandler`` before each short sleep. ``faulthandler`` runs on its own
-C thread without the lock, and when the watchdog thread is not back in time it prints the stack of every
-thread as it is at that moment.
+C thread without the lock, and when the watchdog thread is not back in time it writes the stack of every
+thread as it is at that moment. The report keeps the threads that were running code and leaves out the
+ones parked in a wait.
 """
 
 import faulthandler
 import logging
+import re
+import tempfile
 import threading
 import time
 from typing import IO
 
 logger = logging.getLogger(__name__)
 
+#: A thread whose newest frame is in one of these files is parked in a wait, not holding the process.
+_IDLE_FRAME_FILES = (
+    "/threading.py",
+    "/queue.py",
+    "/selectors.py",
+    "/concurrent/futures/thread.py",
+    "/site-packages/watchdog/",
+    "/site-packages/websockets/",
+)
+_THREAD_HEADER = re.compile(r"^(Current thread|Thread) 0x[0-9a-f]+ \(most recent call first\):$")
+
+
+def condense_dump(dump: str) -> tuple[str, int]:
+    """Return the stacks of a ``faulthandler`` dump's busy threads and the count of parked ones left out.
+
+    The dump's own ``Timeout (...)!`` line is dropped. Each kept thread keeps its full stack.
+    """
+    kept: list[str] = []
+    omitted = 0
+    for block in dump.strip().split("\n\n"):
+        lines = [line for line in block.splitlines() if not line.startswith("Timeout (")]
+        if not lines or not _THREAD_HEADER.match(lines[0]):
+            continue
+        top = lines[1] if len(lines) > 1 else ""
+        if any(path in top for path in _IDLE_FRAME_FILES):
+            omitted += 1
+        else:
+            kept.append("\n".join(lines))
+    return "\n\n".join(kept), omitted
+
 
 class StallWatchdog:
-    """Prints every thread's stack when the process is held up longer than ``threshold_ms``.
+    """Reports the running threads' stacks when the process is held up longer than ``threshold_ms``.
 
-    Each beat re-arms ``faulthandler``, which starts a short-lived C thread, so the cost is small but not
-    zero (about 80 beats per second at 50 ms). Meant to be switched on while chasing a pause.
+    The report is logged as a warning, which reaches the terminal and the Log panel. Each beat re-arms
+    ``faulthandler``, which starts a short-lived C thread, so the cost is small but not zero (about 80
+    beats per second at 50 ms). Meant to be switched on while chasing a pause.
 
     Example::
 
         watchdog = StallWatchdog(50)
-        watchdog.start()   # a pause over 50 ms now prints the stacks to stderr and logs a warning
+        watchdog.start()   # a pause over 50 ms now logs a warning with the stacks of the busy threads
         watchdog.stop()
     """
 
     def __init__(self, threshold_ms: int, file: IO[str] | None = None) -> None:
-        """Create a watchdog; ``file`` receives the stacks (default: the process's real stderr)."""
+        """Create a watchdog; ``file``, when given, also receives each report."""
         self._threshold = max(0.02, threshold_ms / 1000)
         self._beat = self._threshold / 4
         self._file = file
@@ -58,21 +92,26 @@ class StallWatchdog:
         faulthandler.cancel_dump_traceback_later()
 
     def _run(self) -> None:
-        stream = self._file if self._file is not None else _stderr()
-        if stream is None:
-            logger.warning("Stall watchdog: no stderr to write to")
-            return
-        while not self._stop.is_set():
-            armed = time.monotonic()
-            faulthandler.dump_traceback_later(self._threshold, file=stream)
-            self._stop.wait(self._beat)
-            faulthandler.cancel_dump_traceback_later()
-            elapsed = time.monotonic() - armed
-            if elapsed > self._threshold:
-                logger.warning("Stall watchdog: the process was held up for about %.0f ms", elapsed * 1000)
+        with tempfile.TemporaryFile("w+") as dump:
+            while not self._stop.is_set():
+                armed = time.monotonic()
+                faulthandler.dump_traceback_later(self._threshold, file=dump)
+                self._stop.wait(self._beat)
+                faulthandler.cancel_dump_traceback_later()
+                elapsed = time.monotonic() - armed
+                if elapsed > self._threshold:
+                    self._report(dump, elapsed)
 
-
-def _stderr() -> IO[str] | None:
-    import sys
-
-    return sys.__stderr__
+    def _report(self, dump: IO[str], elapsed: float) -> None:
+        dump.seek(0)
+        stacks, omitted = condense_dump(dump.read())
+        dump.seek(0)
+        dump.truncate()
+        report = (
+            f"Stall watchdog: the process was held up for about {elapsed * 1000:.0f} ms "
+            f"({omitted} parked threads left out)\n{stacks}"
+        )
+        logger.warning(report)
+        if self._file is not None:
+            self._file.write(report + "\n")
+            self._file.flush()
