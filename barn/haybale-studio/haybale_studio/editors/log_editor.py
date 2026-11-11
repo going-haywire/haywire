@@ -126,7 +126,8 @@ class LogEditor(BaseEditor):
 
         self._detach_stdout = get_stdout_tee().add_sink(lambda line: self._append(self._prefix_stdout(line)))
 
-        self._timer = ui.timer(self._FLUSH_INTERVAL, self._flush)
+        with container:
+            self._timer = ui.timer(self._FLUSH_INTERVAL, self._flush)
         logging.getLogger().info("Log editor connected.")
 
     def _render_header(self) -> None:
