@@ -284,8 +284,12 @@ Declare one when you change something a saved graph cannot pick up by itself:
 - **A changed meaning** with the same ports: other units, another default
   behaviour.
 
+- **A settings field renamed or retyped.** The saved value is dropped, or kept
+  unchecked.
+
 A change to the ports `init()` declares needs none: saved nodes follow it when
-the graph opens.
+the graph opens. The full checklist is in the
+[node canon, Section 5](../components/nodes/node-canon.md#what-a-saved-graph-picks-up-when-you-change-a-node).
 
 Override `compatibility_warnings()` to return an **append-only** history:
 
