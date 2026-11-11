@@ -182,6 +182,18 @@ class TestProjectPyproject:
         data = toml.loads((scaffold_project / "pyproject.toml").read_text())
         assert f"haybale-studio{_release_pin()}" in data["project"]["dependencies"]
 
+    def test_essential_libraries_are_installed_by_default(self, scaffold_project):
+        """Core nodes, the graph editor and haystack ship with a new project, so patching works at once."""
+        from haywire_studio.init import _release_pin
+
+        deps = toml.loads((scaffold_project / "pyproject.toml").read_text())["project"]["dependencies"]
+        for library in ("haybale-core", "haybale-graph-editor", "haybale-haystack"):
+            assert f"{library}{_release_pin()}" in deps
+
+    def test_project_is_pinned_to_python_3_12(self, scaffold_project):
+        """uv sync/run stay on 3.12 even when the machine default is newer."""
+        assert (scaffold_project / ".python-version").read_text().strip() == "3.12"
+
     def test_workspace_members(self, scaffold_project):
         data = toml.loads((scaffold_project / "pyproject.toml").read_text())
         assert data["tool"]["uv"]["workspace"]["members"] == ["barn/*"]
@@ -305,6 +317,8 @@ class TestDevMode:
         assert "haywire-core" in sources
         assert "haybale-core" in sources
         assert "haybale-studio" in sources
+        assert "haybale-graph-editor" in sources
+        assert "haybale-haystack" in sources
 
     def test_sources_are_editable(self, scaffold_project_dev):
         data = toml.loads((scaffold_project_dev / "pyproject.toml").read_text())
