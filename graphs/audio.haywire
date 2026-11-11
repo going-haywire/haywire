@@ -1662,27 +1662,6 @@
               "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
-          "clock": {
-            "kwargs": {
-              "registry_id": "AUDIO",
-              "registry_key": "haybale-audio:type:AUDIO",
-              "label": "Clock",
-              "description": "Block of the Audio Clock",
-              "class_name": "AUDIO",
-              "module": "haybale_audio.types.audio",
-              "default": {
-                "value": {}
-              },
-              "store_strategy": 1,
-              "color": "#4ab0d9",
-              "id": "clock",
-              "port_type": "inlet",
-              "order": 1
-            },
-            "recipe": {
-              "registry_key": "haybale-audio:type:AUDIO"
-            }
-          },
           "in_0": {
             "kwargs": {
               "registry_id": "AUDIO",
@@ -2115,14 +2094,6 @@
       "outlet_port_id": "block_ready",
       "sink_node_id": "AudioMixerNode_3f850d51",
       "inlet_port_id": "tick",
-      "chain_adapter_keys": [],
-      "propagation": "eager"
-    },
-    "AudioEventNode_f2d97224[audio]->AudioMixerNode_3f850d51[clock]": {
-      "source_node_id": "AudioEventNode_f2d97224",
-      "outlet_port_id": "audio",
-      "sink_node_id": "AudioMixerNode_3f850d51",
-      "inlet_port_id": "clock",
       "chain_adapter_keys": [],
       "propagation": "eager"
     },

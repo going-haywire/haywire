@@ -1,5 +1,6 @@
 """Audio Mixer — sums several audio sources into one block per tick of a clock."""
 
+import logging
 import threading
 import time
 from collections import deque
@@ -16,9 +17,13 @@ from haybale_audio.dsp.mix import mix
 from haybale_audio.emitter import set_status
 from haybale_audio.value import AudioBlock
 
+logger = logging.getLogger(__name__)
+
 _PREFIX = "in_"
 #: Blocks kept for an input that writes before the first tick fixes the output format.
 _PENDING_BLOCKS = 32
+#: A wait between two writes or ticks longer than this is logged.
+LONG_WAIT = 0.05
 #: Seconds between status updates; one per tick would flood the UI.
 STATUS_INTERVAL = 0.5
 
@@ -50,19 +55,18 @@ class AudioMixerNode(BaseNode):
     input appears below.
 
     Wire each source's Audio Event Block Ready to its `Write` pin: the block is queued for that input.
-    Wire an Audio Clock's Audio Event to `Tick` and `Clock`: `Block Ready` to `Tick`, `Audio` to
-    `Clock`. `Tick` is the moment to mix one block, so every tick mixes one block per input. `Clock`
-    only tells the mixer the sample rate and block size of its output: the silent block on it is not
-    mixed in. The sources are the numbered inputs. Inputs at another sample rate or block size are
-    converted, and a source clock that differs slightly from the tick clock is absorbed.
+    Wire an Audio Clock's Audio Event `Block Ready` to `Tick`. `Tick` is the moment to mix one block, so
+    every tick mixes one block per input. The block that triggered the tick sets the sample rate and
+    block size of the output; it is not mixed in. The sources are the numbered inputs. Inputs at another
+    sample rate or block size are converted, and a source clock that differs slightly from the tick
+    clock is absorbed.
 
     An input is mixed once its prefill is queued, and again after a stall; until then it is silent. The
     sum is not limited, so loud sources can exceed ±1; the output has the most channels of any input, and
     a mono input plays on all of them.
 
     Inputs:
-        tick: Mix one block (wire it to the clock's Block Ready)
-        clock: The clock's block; its sample rate and size set the output
+        tick: Mix one block (wire it to the clock's Block Ready); the triggering block sets the output
         in_N / write_N: An input's audio and the pin that queues it
         gain_N / mute_N: An input's level and mute
 
@@ -80,7 +84,6 @@ class AudioMixerNode(BaseNode):
         from haybale_audio.types.exec_audio import EXEC_AUDIO
 
         self.add(EXEC_AUDIO.as_inlet("tick", label="Tick"))
-        self.add(AUDIO.as_inlet("clock", label="Clock", description="Block of the Audio Clock"))
         self.add(ADD[AUDIO].as_inlet(id=f"{_PREFIX}0", label="In 0", on_connect="hb_resolve"))
         self.add(
             STRING.as_config("status", default="Idle", label="Status", widget=SimpleLabelWidget.config())
@@ -94,6 +97,11 @@ class AudioMixerNode(BaseNode):
         self.hb_pending: dict[int, deque[AudioBlock]] = {}
         self.hb_format: tuple[int, int] | None = None  # sample rate and frames of the clock block
         self.hb_status_at = 0.0
+        self.hb_write_at: dict[int, float] = {}  # when each input last wrote
+        self.hb_tick_at = 0.0
+        self.hb_started = 0.0  # when the first tick came; log lines show the time since
+        self.hb_write_gap = 0.0  # longest wait between two writes of one input, in seconds
+        self.hb_tick_gap = 0.0  # longest wait between two ticks, in seconds
 
     def hb_resolve(self, port, edge_wrapper) -> None:
         """Turn the open input into an audio input with its pins and add a new open one below it."""
@@ -125,10 +133,10 @@ class AudioMixerNode(BaseNode):
     def on_teardown(self) -> None:
         self.hb_reset()
 
-    def worker(self, context: ExecutionContext, clock: AudioBlock | None = None) -> str | None:
+    def worker(self, context: ExecutionContext) -> str | None:
         pin = context.control_pin or ""
         if pin == "tick":
-            return self.hb_tick(clock)
+            return self.hb_tick(self._trigger_block(context))
         if pin.startswith("write_"):
             self.hb_write(int(pin[len("write_") :]))
         return None
@@ -137,18 +145,37 @@ class AudioMixerNode(BaseNode):
         block = self.value(f"{_PREFIX}{index}")
         if not isinstance(block, AudioBlock):
             raise ValueError(f"write {index} needs an audio block on in {index}")
+        now = time.monotonic()
         with self.hb_lock:
+            last = self.hb_write_at.get(index)
+            if last is not None:
+                self.hb_write_gap = max(self.hb_write_gap, now - last)
+                if now - last > LONG_WAIT:
+                    logger.warning(
+                        "Audio Mixer: input %d waited %.0f ms for a write", index, (now - last) * 1000
+                    )
+            self.hb_write_at[index] = now
             if self.hb_format is None:
                 # The tick has not fixed the output format yet.
                 self.hb_pending.setdefault(index, deque(maxlen=_PENDING_BLOCKS)).append(block)
                 return
             self._buffer(index, block).write(block)
 
-    def hb_tick(self, clock: AudioBlock | None) -> str:
-        if clock is None:
-            raise ValueError("tick needs the clock's block")
+    def hb_tick(self, clock: AudioBlock) -> str:
         rate, frames = clock.sample_rate, clock.frames
+        now = time.monotonic()
         with self.hb_lock:
+            if self.hb_tick_at:
+                self.hb_tick_gap = max(self.hb_tick_gap, now - self.hb_tick_at)
+                if now - self.hb_tick_at > LONG_WAIT:
+                    logger.warning(
+                        "Audio Mixer: waited %.0f ms for a tick at %.1f s",
+                        (now - self.hb_tick_at) * 1000,
+                        now - self.hb_started,
+                    )
+            if not self.hb_tick_at:
+                self.hb_started = now
+            self.hb_tick_at = now
             self.hb_format = (rate, frames)
             for index, blocks in self.hb_pending.items():
                 for block in blocks:
@@ -168,7 +195,12 @@ class AudioMixerNode(BaseNode):
             self.hb_status_at = now
             playing = sum(1 for b in buffers.values() if b.playing)
             stalls = sum(b.restarts for b in buffers.values())
-            set_status(self, f"{playing} of {len(buffers)} inputs playing, stalls {stalls}")
+            set_status(
+                self,
+                f"{playing} of {len(buffers)} inputs playing, stalls {stalls}, "
+                f"longest wait: tick {self.hb_tick_gap * 1000:.0f} ms, "
+                f"write {self.hb_write_gap * 1000:.0f} ms",
+            )
         return "next"
 
     def hb_reset(self) -> None:
@@ -180,6 +212,9 @@ class AudioMixerNode(BaseNode):
             self.hb_buffers.clear()
             self.hb_pending.clear()
             self.hb_format = None
+            self.hb_write_at.clear()
+            self.hb_tick_at = self.hb_started = 0.0
+            self.hb_write_gap = self.hb_tick_gap = 0.0
 
     def _buffer(self, index: int, first: AudioBlock) -> PullBuffer:
         """Return the input's buffer, created from its first block. Call with ``hb_lock`` held."""
@@ -195,6 +230,15 @@ class AudioMixerNode(BaseNode):
             )
             self.hb_buffers[index] = buffer
         return buffer
+
+    @staticmethod
+    def _trigger_block(context: ExecutionContext) -> AudioBlock:
+        """Return the block of the audio event that started this flow."""
+        payload = context.trigger.payload if context.trigger else None
+        block = payload.get("audio") if isinstance(payload, dict) else None
+        if not isinstance(block, AudioBlock):
+            raise ValueError("tick needs a flow started by an audio event")
+        return block
 
     def _gain(self, index: int) -> float:
         gain = self.value(f"gain_{index}")

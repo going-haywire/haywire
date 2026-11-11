@@ -1,11 +1,15 @@
 """Reading and writing audio files as AudioBlocks."""
 
+import logging
+import time
 from pathlib import Path
 
 import numpy as np
 import soundfile as sf
 
 from haybale_audio.value import AudioBlock
+
+logger = logging.getLogger(__name__)
 
 
 class FileBlockReader:
@@ -25,8 +29,10 @@ class FileBlockReader:
         """
         data = self._file.read(self._block_size, dtype="float32", always_2d=True)
         if data.shape[0] == 0 and self._loop:
+            started = time.perf_counter()
             self._file.seek(0)
             data = self._file.read(self._block_size, dtype="float32", always_2d=True)
+            logger.debug("Audio file looped in %.1f ms", (time.perf_counter() - started) * 1000)
         if data.shape[0] == 0:
             return None
         return AudioBlock(np.ascontiguousarray(data.T), self.sample_rate)
