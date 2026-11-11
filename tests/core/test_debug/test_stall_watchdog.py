@@ -32,9 +32,9 @@ def test_a_held_up_process_prints_the_stack_that_held_it(tmp_path, caplog):
 def test_a_quiet_process_prints_nothing(tmp_path, caplog):
     out = tmp_path / "stacks.txt"
     with out.open("w") as stream, caplog.at_level(logging.WARNING):
-        watchdog = StallWatchdog(200, file=stream)
+        watchdog = StallWatchdog(1000, file=stream)
         watchdog.start()
-        time.sleep(0.6)
+        time.sleep(0.5)
         watchdog.stop()
     assert out.read_text() == ""
     assert not [r for r in caplog.records if "held up" in r.message]

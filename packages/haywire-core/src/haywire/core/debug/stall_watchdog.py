@@ -10,6 +10,7 @@ ones parked in a wait.
 
 import faulthandler
 import logging
+import os
 import re
 import tempfile
 import threading
@@ -99,10 +100,13 @@ class StallWatchdog:
                 self._stop.wait(self._beat)
                 faulthandler.cancel_dump_traceback_later()
                 elapsed = time.monotonic() - armed
-                if elapsed > self._threshold:
+                if os.fstat(
+                    dump.fileno()
+                ).st_size:  # faulthandler fired: the beat was not back within the threshold
                     self._report(dump, elapsed)
 
     def _report(self, dump: IO[str], elapsed: float) -> None:
+        dump.flush()
         dump.seek(0)
         stacks, omitted = condense_dump(dump.read())
         dump.seek(0)
