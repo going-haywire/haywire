@@ -5,6 +5,7 @@ from abc import abstractmethod
 
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.node.legacy import LEGACY_PORTS_KEY
+from haywire.core.node.previous_setup import DECLARED_KEY
 from haywire.core.node.properties import NodeProperties  # re-exported for type hints
 from ..execution.execution_context import ExecutionContext
 from .data import NodeData
@@ -412,7 +413,11 @@ class BaseNode(NodeData):
         # from the restored bags below. Both run before edges wire (two-phase
         # graph load), so a promoted inlet exists before any edge resolves to it.
         if "ports" in data:
-            self._deserialize_ports(data["ports"], legacy=bool(data.get(LEGACY_PORTS_KEY)))
+            self._deserialize_ports(
+                data["ports"],
+                legacy=bool(data.get(LEGACY_PORTS_KEY)),
+                saved_against=data.get(DECLARED_KEY),
+            )
 
         self._regenerate_promoted_ports()
 

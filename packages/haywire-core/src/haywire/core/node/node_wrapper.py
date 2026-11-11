@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from ..graph.types import ChangeReason
 from .layout import PATCH, STAGE, LayoutChannel, position_of
 from haywire.core.node.node_warning import NodeWarning
-from .previous_setup import PREVIOUS_SETUP_KEY, PREVIOUS_SETUP_WARNING
+from .previous_setup import PREVIOUS_SETUP_KEY, PREVIOUS_SETUP_WARNING, same_declaration
 from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
 from ..validation.interface import IStructuralValidator
@@ -207,6 +207,10 @@ class NodeWrapper:
         back as is, with the live props, and rebuilt from once the node works. See ADR 0058."""
 
         self._previous_setup: Optional[Dict[str, Any]] = None
+        self._reset_from: Optional[Dict[str, Any]] = None
+        self.reset_differs: list[str] = []
+        """Where the last build's fresh node differs from the data it set aside for a changed
+        declaration, as ``differing_paths`` returns it; empty when the build reset nothing."""
         """The node data from before a hot reload, until the user applies or dismisses it. See ADR 0062."""
 
         self._import_node_cls()
@@ -374,7 +378,7 @@ class NodeWrapper:
         else:
             self._state.is_imported = True
 
-    def build(self, node_info: Optional[Dict[str, Any]] = None):
+    def build(self, node_info: Optional[Dict[str, Any]] = None, declared: Optional[Dict[str, Any]] = None):
         """Build the node: instantiate, initialize, validate structurally, then test it.
 
         Clears any recorded errors and advisory warnings first, and subscribes to
@@ -385,6 +389,12 @@ class NodeWrapper:
             node_info: Serialized node data to restore from. ``None`` builds a fresh
                 node through its ``init()``; a stand-in, or a node that failed to load,
                 instead rebuilds from the data it keeps, with its current props.
+            declared: The declaration *node_info* was saved against, as
+                ``NodeData.saved_declaration`` returned it then. When the class declares
+                something else now, the node is built fresh through ``init()`` at the
+                place *node_info* gives it, and *node_info* becomes its previous setup
+                if the fresh node differs from it; ``reset_differs`` then says where.
+                ``None`` builds from *node_info* unchecked. See ADR 0077.
         """
         with self._locked():
             logger.debug(f"Start node building: {self._node_id} ... ")
@@ -402,9 +412,11 @@ class NodeWrapper:
             if not node_info and self._kept_data is not None:
                 node_info = self._kept_save_data()
 
+            self._reset_from = None
+            self.reset_differs = []
             if (
                 self._instantiate(node_info)
-                and self._initialize(node_info)
+                and self._initialize(node_info, declared)
                 and self._structural_validation()
                 and self._test()
             ):
@@ -412,9 +424,43 @@ class NodeWrapper:
             else:
                 logger.debug(".. building failed with errors.")
 
+            self._settle_reset(declared)
             self._subscribe_props_redraw()
             self._subscribe_stage_membership()
             self.set_previous_setup(self._previous_setup)
+
+    def _settle_reset(self, declared: Optional[Dict[str, Any]]) -> None:
+        """After a build that reset the node for a changed declaration, decide its previous setup.
+
+        A previous setup already held is kept over the data the build set aside; either goes
+        once the fresh node reproduces it. A build that ends as a stand-in keeps what was held.
+        """
+        from .previous_setup import DECLARED_KEY, differing_paths, restorable
+
+        set_aside, self._reset_from = self._reset_from, None
+        if set_aside is None or self._node_instance is None or self.is_stand_in:
+            return
+        candidate = self._previous_setup
+        if candidate is None:
+            candidate = {**set_aside, DECLARED_KEY: copy.deepcopy(declared)}
+        try:
+            after = self._node_instance._to_dict()
+        except Exception:
+            logger.debug(f"Reset of {self._node_id}: data after rebuild not compared", exc_info=True)
+            return
+        self.reset_differs = differing_paths(restorable(candidate), restorable(after))
+        self._previous_setup = candidate if self.reset_differs else None
+
+    def _place_as(self, node_info: Dict[str, Any]) -> None:
+        """Give the node the arrangement *node_info* holds: position, stacking order, place on stage."""
+        assert self._node_instance is not None
+        props = self._node_instance.props
+        values = (node_info.get("props") or {}).get("values") or {}
+        if "posX" in values or "posY" in values:
+            props.set_position(position_of({"node_data": node_info}))
+        for name in _CARRIED_ARRANGEMENT:
+            if name in values:
+                setattr(props, name, values[name])
 
     def _instantiate(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
         """Create the node instance, cleaning up any existing one first; the node keeps its arrangement.
@@ -510,7 +556,9 @@ class NodeWrapper:
         self._kept_data = copy.deepcopy(original)
         return True
 
-    def _initialize(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
+    def _initialize(
+        self, node_info: Optional[Dict[str, Any]] = None, declared: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """Bring the node to its initial state — from *node_info* if given, else
         through its ``init()`` — and run ``post_init()`` last.
 
@@ -526,6 +574,17 @@ class NodeWrapper:
         try:
             node_instance.init()
             node_instance._snapshot_declaration()
+            if (
+                node_info
+                and declared is not None
+                and not self.is_stand_in
+                and not same_declaration(declared, node_instance.saved_declaration)
+            ):
+                # The class declares other ports than the data was saved against: the node
+                # starts fresh where it stood, and build() settles what becomes of the data.
+                self._reset_from = node_info
+                self._place_as(node_info)
+                node_info = None
             if node_info:
                 # The saved ports replace the declared ones, each built on its declaration.
                 # _initialize_from_dict regenerates promoted ports itself, from

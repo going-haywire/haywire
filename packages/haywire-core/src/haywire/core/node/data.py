@@ -862,7 +862,12 @@ class NodeData:
             if not port.promoted
         }
 
-    def _deserialize_ports(self, ports_data: Dict[str, Any], legacy: bool = False) -> bool:
+    def _deserialize_ports(
+        self,
+        ports_data: Dict[str, Any],
+        legacy: bool = False,
+        saved_against: Optional[Dict[str, Any]] = None,
+    ) -> bool:
         """Replace every port with the ones *ports_data* describes, and return True.
 
         A port the node declares, saved with its declared type, is built on its
@@ -871,6 +876,9 @@ class NodeData:
         Args:
             ports_data: Port specs keyed by port ID, as ``_serialize_ports``
                 produces them.
+            saved_against: The declaration the specs were saved against, when it is not the
+                node's own. A port it declared, with the type it declared, that the node
+                no longer declares is left out: the code removed it.
             legacy: Whether the specs come from a file older than format v5, which saved
                 every field of a port. A declared port then takes only its display order,
                 its hidden state and its value from the spec.
@@ -883,6 +891,10 @@ class NodeData:
 
         for port_id, spec in ports_data.items():
             declared = self._declaration.get(port_id)
+            if declared is None and saved_against is not None:
+                once_declared = saved_against.get(port_id)
+                if once_declared is not None and once_declared.get("recipe") == spec.get("recipe"):
+                    continue
             if declared is not None and declared["recipe"] == spec.get("recipe"):
                 saved = spec["kwargs"]
                 if legacy:

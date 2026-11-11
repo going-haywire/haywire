@@ -44,6 +44,6 @@ level: architectural
 - A stand-in's ports carry only what the file has: a declared port shows its type's label until its class returns.
 - Ports a callback adds keep their saved label and callback names, as before.
 - A v4 file loses, on declared ports, a `show_widget` choice made from the pin menu and a widget setting changed on the card.
-- The saved declaration lets a load tell that a class's declaration changed since the file was saved. Nothing acts on that yet.
+- The saved declaration lets a load tell that a class's declaration changed since the file was saved; [ADR 0077](0077-a-changed-declaration-resets-the-node.md) acts on it.
 - ADR 0005's warnings remain for changes of behaviour; a changed port declaration no longer needs one.
 - A file grows by one declaration per node class and shrinks by the class facts of every node: `10x64n_56x5e` went from 1578 KB to 855 KB.

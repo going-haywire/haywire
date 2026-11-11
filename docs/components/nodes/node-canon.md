@@ -209,10 +209,15 @@ Three details a copy exposes that a save and reload hide:
   it in `on_shutdown()` after releasing the model its outlet handed out, so the
   next run loads it again instead of passing on the released one.
 
-**When you edit the class (hot-reload),** every placed node of it is rebuilt
+**When you edit the class (hot-reload),** what happens to its placed nodes
+depends on whether `init()` now declares other ports. If it declares the same,
+each node keeps its values, settings and grown ports and simply runs your new
+code. If it declares something else, each node is rebuilt
 through `init()`: fresh, with only its arrangement kept (position, stacking order,
 place on stage), so your port changes show
-at once. The user's setup is not lost: a node the rebuild changed keeps its
+at once. The same happens when a graph is opened after the class changed
+([ADR 0077](../../adr/0077-a-changed-declaration-resets-the-node.md)).
+The user's setup is not lost: a node the rebuild changed keeps its
 **previous setup** and shows an amber badge ("Settings reset by a code change").
 In the node's right-click menu, or the Node tab of the Properties editor,
 **Restore** brings the earlier settings back on the new code and **Discard**
