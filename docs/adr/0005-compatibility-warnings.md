@@ -7,6 +7,8 @@ level: architectural
 
 # Compatibility Warnings are advisory-only, append-only, and node-keyed
 
+> **Narrowed by [ADR 0076](0076-a-graph-file-stores-what-differs-from-the-code.md).** A load now runs `init()` and builds each declared port on its declaration, so a changed port declaration reaches saved nodes without a warning. Compatibility warnings remain for changes of behaviour.
+
 **Context.** Graphs are deserialized purely from the saved spec; node `init()`
 is not re-run on load (`NodeWrapper._initialize` calls `_initialize_from_dict`,
 not `init()`). So any code-defined port attribute absent from an older file

@@ -103,7 +103,7 @@ def test_a_moved_stand_in_saves_its_new_position(graph_with_library_system, cons
     saved = _saved(graph, broken.node_id)
 
     assert position_of(saved) == (640.0, 320.0)
-    for key in ("ports", "identity", "library", "store"):
+    for key in ("ports", "store"):
         assert saved["node_data"][key] == original[key]
 
 
@@ -272,7 +272,7 @@ def test_a_pasted_stand_in_carries_the_original_data(
     new_id = pasted[0][0]
     saved = _saved(graph, new_id)["node_data"]
     assert graph.node_wrappers[new_id].is_stand_in
-    for key in ("ports", "identity", "library", "store"):
+    for key in ("ports", "store"):
         assert saved[key] == original[key]
 
 

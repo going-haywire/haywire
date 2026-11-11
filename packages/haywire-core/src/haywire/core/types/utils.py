@@ -100,16 +100,38 @@ def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kw
             f"setting: a port's link count is its link ceiling, derived from its wire role and field "
             f"(DataPort.takes_many_links, ADR 0044). Pass single_link=True to narrow it to one."
         )
-    # ``hidden`` on a type keeps it out of pickers; on a port it hides the card row.
-    identity = {k: v for k, v in asdict(type_cls.class_identity).items() if k not in ("wire_type", "hidden")}
     merged_kwargs = {
-        **identity,  # Identity defaults
+        **type_owned_kwargs(type_cls),  # Identity defaults
         "id": id,
         "port_type": port_type,
         **kwargs,  # User overrides
     }
 
     return PortSpec(kwargs=merged_kwargs, recipe=serialize_element_type(type_cls))
+
+
+#: Identity fields a port does not take from its type: it derives its wire type, and
+#: ``hidden`` on a type keeps it out of pickers while on a port it hides the card row.
+_NOT_TYPE_OWNED = frozenset({"wire_type", "hidden"})
+
+
+def type_owned_kwargs(type_cls: type["IType"]) -> Dict[str, Any]:
+    """Return the port constructor kwargs *type_cls* supplies from its identity.
+
+    A port spec starts from these and a saved port leaves out each one it still
+    equals, so a change to the type reaches every port of that type. Empty for a
+    type without an identity.
+    """
+    identity = getattr(type_cls, "class_identity", None)
+    if identity is None:
+        return {}
+    return {k: v for k, v in asdict(identity).items() if k not in _NOT_TYPE_OWNED}
+
+
+def is_type_owned(type_cls: type["IType"], name: str) -> bool:
+    """Whether a port of *type_cls* takes the field *name* from the type's identity."""
+    identity = getattr(type_cls, "class_identity", None)
+    return identity is not None and name not in _NOT_TYPE_OWNED and hasattr(identity, name)
 
 
 def serialize_element_type(type_cls: type["IType"]) -> ElementTypeSpec:

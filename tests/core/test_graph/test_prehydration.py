@@ -295,3 +295,81 @@ def test_the_fixture_that_carries_fold_keys_migrates_them():
 
     assert folds == 3
     assert parented == 4
+
+
+# ---------------------------------------------------------------------------
+# v5: requires table; identity, library, the second props and node id dropped
+# ---------------------------------------------------------------------------
+
+
+def _v4_node(version: str = "0.4.0", library: str = "haybale-core") -> dict:
+    props = {"values": {"posX": 10.0}, "promoted": {}}
+    return {
+        "node_id": "n1",
+        "registry_key": f"{library}:node:Some",
+        "node_data": {
+            "node_id": "n1",
+            "ports": {},
+            "settings": {"props": dict(props), "other": {"values": {"a": 1}, "promoted": {}}},
+            "props": dict(props),
+            "store": {},
+            "identity": {"label": "Some"},
+            "library": {"name": library, "version": version, "folder_path": "/abs/path"},
+        },
+    }
+
+
+def test_v5_moves_library_versions_into_requires():
+    out = prehydrate(_base(format_version=4, nodes={"n1": _v4_node()}))
+
+    assert out["format_version"] == CURRENT_FORMAT_VERSION
+    assert out["requires"] == {"haybale-core": "0.4.0"}
+
+
+def test_v5_drops_what_the_class_says():
+    out = prehydrate(_base(format_version=4, nodes={"n1": _v4_node()}))
+
+    node_data = out["nodes"]["n1"]["node_data"]
+    assert set(node_data) == {"ports", "settings", "props", "store"}
+    assert set(node_data["settings"]) == {"other"}
+    assert node_data["props"]["values"] == {"posX": 10.0}
+    assert out["nodes"]["n1"]["node_id"] == "n1"
+
+
+def test_v5_keeps_the_lower_version_of_a_library():
+    nodes = {"a": _v4_node("0.4.0"), "b": _v4_node("0.3.9"), "c": _v4_node("0.10.0")}
+    out = prehydrate(_base(format_version=4, nodes=nodes))
+
+    assert out["requires"] == {"haybale-core": "0.3.9"}
+
+
+def test_v5_keeps_props_saved_only_under_settings():
+    node = _v4_node()
+    del node["node_data"]["props"]
+    out = prehydrate(_base(format_version=4, nodes={"n1": node}))
+
+    assert out["nodes"]["n1"]["node_data"]["props"]["values"] == {"posX": 10.0}
+
+
+def test_v5_upgrades_subgraph_definitions():
+    inner = {"nodes": {"n1": _v4_node(library="haybale-audio")}, "edges": {}}
+    out = prehydrate(_base(format_version=4, subgraphs={"k": inner}))
+
+    assert out["requires"] == {}
+    assert out["subgraphs"]["k"]["requires"] == {"haybale-audio": "0.4.0"}
+    assert "library" not in out["subgraphs"]["k"]["nodes"]["n1"]["node_data"]
+
+
+def test_v5_tolerates_a_node_without_node_data():
+    out = prehydrate(_base(format_version=4, nodes={"n1": {"registry_key": "x:node:Y"}}))
+
+    assert out["requires"] == {}
+
+
+def test_v5_marks_a_node_whose_ports_it_cannot_tell_from_code():
+    node = _v4_node()
+    node["node_data"]["ports"] = {"a": {"kwargs": {"id": "a"}, "recipe": {"registry_key": "x"}}}
+    out = prehydrate(_base(format_version=4, nodes={"n1": node, "n2": _v4_node()}))
+
+    assert out["nodes"]["n1"]["node_data"]["legacy_ports"] is True
+    assert "legacy_ports" not in out["nodes"]["n2"]["node_data"]

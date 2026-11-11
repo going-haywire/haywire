@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import copy
 import inspect
 import re
 from typing import TYPE_CHECKING, Iterator, Any, Callable, ClassVar, Dict, List, Optional, cast
@@ -90,6 +92,9 @@ class NodeData:
             _bag_instance._subscribe_settings()
             object.__setattr__(self, _bag_name, _bag_instance)
 
+        self._declaration: Dict[str, Dict[str, Any]] = {}
+        self._declaration_saved: Dict[str, Dict[str, Any]] = {}
+
         self._cache: NodeCache = NodeCache()
 
         self._store: NodeStore = NodeStore()
@@ -120,6 +125,27 @@ class NodeData:
 
         self._executor: Optional[Callable] = None
         """Optimized execution callable."""
+
+    @property
+    def declaration(self) -> Dict[str, Dict[str, Any]]:
+        """The ports ``init()`` added, each as its ``DataPort.declaration()``, by port id.
+
+        What the node's code declares, whatever the node looks like now: a port
+        reshaped, removed or grown later does not change it.
+        """
+        return self._declaration
+
+    def _snapshot_declaration(self) -> None:
+        """Take the ports the node holds now as its declaration; called once, right after ``init()``."""
+        self._declaration = {port_id: port.declaration() for port_id, port in self.ports.items()}
+        self._declaration_saved = {
+            port_id: port.to_dict(include_data=False) for port_id, port in self.ports.items()
+        }
+
+    @property
+    def saved_declaration(self) -> Dict[str, Dict[str, Any]]:
+        """The declaration as a graph file records it: each port without what its type says."""
+        return self._declaration_saved
 
     @property
     def identity(self) -> NodeIdentity:
@@ -831,17 +857,23 @@ class NodeData:
             include_data: When True, port field values are included.
         """
         return {
-            port_id: port.to_dict(include_data=include_data)
+            port_id: port.to_dict(include_data=include_data, declared=self._declaration.get(port_id))
             for port_id, port in self.ports.items()
             if not port.promoted
         }
 
-    def _deserialize_ports(self, ports_data: Dict[str, Any]) -> bool:
+    def _deserialize_ports(self, ports_data: Dict[str, Any], legacy: bool = False) -> bool:
         """Replace every port with the ones *ports_data* describes, and return True.
+
+        A port the node declares, saved with its declared type, is built on its
+        declaration; any other port is built from its spec alone.
 
         Args:
             ports_data: Port specs keyed by port ID, as ``_serialize_ports``
                 produces them.
+            legacy: Whether the specs come from a file older than format v5, which saved
+                every field of a port. A declared port then takes only its display order,
+                its hidden state and its value from the spec.
 
         Raises:
             ValueError: If a spec names a type the registry cannot resolve.
@@ -849,7 +881,14 @@ class NodeData:
         self.ports.clear()
         self._port_order_counter = 0
 
-        for _port_id, spec in ports_data.items():
+        for port_id, spec in ports_data.items():
+            declared = self._declaration.get(port_id)
+            if declared is not None and declared["recipe"] == spec.get("recipe"):
+                saved = spec["kwargs"]
+                if legacy:
+                    # An absent field of an older file is at its default.
+                    saved = {"order": saved.get("order", 0), "hidden": saved.get("hidden", False)}
+                spec = {**spec, "kwargs": {**copy.deepcopy(declared["kwargs"]), **saved}}
             port = DataPort.from_spec(cast(dict, spec), self._type_registry, self.wrapper, self)
 
             # Bypass add() so the display order stored in the spec survives.
