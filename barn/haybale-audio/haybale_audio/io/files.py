@@ -32,7 +32,7 @@ class FileBlockReader:
             started = time.perf_counter()
             self._file.seek(0)
             data = self._file.read(self._block_size, dtype="float32", always_2d=True)
-            logger.warning("Audio file looped in %.1f ms", (time.perf_counter() - started) * 1000)
+            logger.debug("Audio file looped in %.1f ms", (time.perf_counter() - started) * 1000)
         if data.shape[0] == 0:
             return None
         return AudioBlock(np.ascontiguousarray(data.T), self.sample_rate)
