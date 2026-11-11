@@ -176,6 +176,48 @@ See [ADR 0076](../../adr/0076-a-graph-file-stores-what-differs-from-the-code.md)
 Neither hook is the place to open a camera or a file. That waits until the
 graph runs — the next section.
 
+### What a saved graph picks up when you change a node
+
+A checklist for a change to a node that users already have in saved graphs.
+
+**Nothing to do: saved nodes follow the change.**
+
+| You change | What a saved node does |
+|---|---|
+| `worker`, `post_init`, or a callback that adds no ports | runs the new code |
+| `init()`: a port's label, description, widget or default | shows it; a value the user set stays |
+| `init()`: a port added | gets the port |
+| `init()`: a port removed | loses the port, with its value and its edges |
+| A settings field added, or its label, widget or default changed | shows it; a value the user set stays |
+| A settings field removed | drops the saved value |
+| A type's color, widget or default | shows it |
+
+**Nothing to do, but the user may be asked.** The node is rebuilt fresh, shows
+an amber badge and keeps its previous setup for **Restore**
+([ADR 0078](../../adr/0078-a-node-follows-its-changed-code-where-nothing-conflicts.md)).
+
+| You change | When the user is asked |
+|---|---|
+| `init()`: a port's type | the port holds a value the user set |
+| `init()`: a field of a port | the user or the node changed the same field |
+| `init()`: a port the node reshapes itself | always |
+
+**Declare it: nothing detects these.** Add a compatibility warning in the
+version that carries the change
+([haybale canon, Section 7](../../haybale/haybale-canon.md#7-compatibility-warnings)).
+
+| You change | What a saved node does without a warning |
+|---|---|
+| Ports added outside `init()`, from a callback or a setting (Section 7) | keeps the ports it was saved with until the callback runs again |
+| A port id renamed | has a new empty port; the old one's value and edges are gone |
+| A settings field or a settings bag renamed | is at the default; the saved value is dropped without notice |
+| A settings field's type | holds the old value unchecked |
+| What a value means (degrees to radians) | computes with the old value |
+| How a type saves its value | may fail to read the old value |
+
+**Avoid: renaming the node class or moving it to another library.** Its saved
+nodes no longer find their class and load as stand-ins.
+
 ### Where a node keeps its state
 
 Saving, loading, copy and paste, undo of a delete, and a rebuild all recreate a
@@ -303,6 +345,31 @@ Follow the chain:
    are destroyed; a port re-added under the same id keeps its edges** — ports
    are matched by id. `bool_inlet` / `bool_outlet` never match the pattern, so
    they are never touched.
+
+### When you change this code later
+
+Ports added outside `init()` do not follow your code on their own (the full
+checklist is in [Section 5](#what-a-saved-graph-picks-up-when-you-change-a-node)). A saved graph
+stores such a port whole (Section 5), and loading it does not run your callback
+again. So after you change `hb_reconfigure` — a new label, another type, one more
+port per item — a node placed earlier keeps the ports it was saved with until its
+callback runs again, which is when the user changes `port_count`. Ports your
+`init()` declares are different: they follow the code when the graph opens.
+
+Announcing such a change is your job, not the framework's:
+
+- **In a released library,** add a compatibility warning for the node in the
+  version that carries the change
+  ([haybale canon, Section 7](../../haybale/haybale-canon.md#7-compatibility-warnings)).
+  Nodes saved with an older version then show a badge that tells the user what to
+  do: usually **Reset**, after which **Restore** puts their values back on the new
+  ports.
+- **While developing,** change the value that drives the callback, or reset the
+  node.
+
+Two changes need the same care because nothing can detect them: a port you
+rename (to the file it is one port gone and another new, so its value and edges
+do not move), and a value whose meaning changes while the port stays the same.
 
 ### Choosing which ports are up for replacement
 

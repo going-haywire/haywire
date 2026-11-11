@@ -274,6 +274,23 @@ library. When a node's saved library version predates a behavioural change,
 Haywire shows an amber badge on the affected nodes and a summary when the graph
 opens. It never modifies the user's saved graph.
 
+Declare one when you change something a saved graph cannot pick up by itself:
+
+- **Ports a node adds outside `init()`** (from a callback or a setting): a placed
+  node keeps the ports it was saved with
+  ([node canon, Section 7](../components/nodes/node-canon.md#when-you-change-this-code-later)).
+- **A renamed port id.** The value and the edges of the old id do not move to the
+  new one.
+- **A changed meaning** with the same ports: other units, another default
+  behaviour.
+
+- **A settings field renamed or retyped.** The saved value is dropped, or kept
+  unchecked.
+
+A change to the ports `init()` declares needs none: saved nodes follow it when
+the graph opens. The full checklist is in the
+[node canon, Section 5](../components/nodes/node-canon.md#what-a-saved-graph-picks-up-when-you-change-a-node).
+
 Override `compatibility_warnings()` to return an **append-only** history:
 
 ```python
@@ -287,9 +304,8 @@ class Library(BaseLibrary):
             CompatibilityWarning(
                 version="0.0.14",            # the version the change landed in
                 component=FrameDisplayNode,  # a node class, or None for library-wide
-                message="The 'frame' inlet widget strategy became author-declared; "
-                        "graphs saved before 0.0.14 may hide the preview widget. "
-                        "Reset the node to re-derive it from current code.",
+                message="The 'rotation' inlet now takes radians instead of degrees. "
+                        "Check the value on nodes saved before 0.0.14.",
             ),
         ]
 ```
