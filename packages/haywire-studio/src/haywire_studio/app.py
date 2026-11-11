@@ -246,6 +246,7 @@ class HaywireApp:
         # library system during create_library_system_service.
 
         self._wire_stdout_scrollback()
+        self._wire_stall_watchdog()
 
         print("Shared services configured successfully.")
 
@@ -272,6 +273,25 @@ class HaywireApp:
 
         self._scrollback_listener = _on_change
         self._debug_settings._subscribe_field(LOG_SCROLLBACK_LINES_KEY, _on_change)
+
+    def _wire_stall_watchdog(self) -> None:
+        """Run a ``StallWatchdog`` while ``DebugSettings.stall_watchdog_ms`` is above 0."""
+        from haywire.core.debug.debug_settings import STALL_WATCHDOG_KEY
+        from haywire.core.debug.stall_watchdog import StallWatchdog
+
+        self._stall_watchdog: StallWatchdog | None = None
+
+        def _apply(value, _old=None) -> None:
+            if self._stall_watchdog is not None:
+                self._stall_watchdog.stop()
+                self._stall_watchdog = None
+            if value:
+                self._stall_watchdog = StallWatchdog(int(value))
+                self._stall_watchdog.start()
+
+        _apply(getattr(self._debug_settings, STALL_WATCHDOG_KEY))
+        self._stall_listener = _apply
+        self._debug_settings._subscribe_field(STALL_WATCHDOG_KEY, _apply)
 
     def setup_farmhand(self, port: int, document: SecurityDocument, *, tls: bool = False) -> None:
         """Mount the Farmhand MCP server if enabled (read once; restart to apply)."""
