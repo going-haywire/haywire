@@ -172,12 +172,12 @@ def test_restore_keeps_a_port_the_user_grew(library_system):
 # ---------------------------------------------------------------------------
 
 #: Its ``init()`` uses the node's id as the default of an outlet.
-_TICK = "haybale-core:node:TickEventNode"
+_OWN = "haybale-testing:node:TestRecordEventNode"
 
 
 def test_two_nodes_that_declare_their_own_default_load_unchanged(library_system, ledger):
     graph = _graph()
-    first, second = make_node(graph, _TICK), make_node(graph, _TICK)
+    first, second = make_node(graph, _OWN), make_node(graph, _OWN)
     assert first.node.saved_declaration != second.node.saved_declaration
     first.node.props.label = "First"
     second.node.props.label = "Second"
@@ -195,7 +195,7 @@ def test_two_nodes_that_declare_their_own_default_load_unchanged(library_system,
 
 def test_only_a_node_that_differs_from_its_class_entry_carries_its_declaration(library_system):
     graph = _graph()
-    first, second = make_node(graph, _TICK), make_node(graph, _TICK)
+    first, second = make_node(graph, _OWN), make_node(graph, _OWN)
     plain = make_node(graph, _ADD)
 
     nodes = graph.to_dict()["nodes"]
@@ -208,7 +208,7 @@ def test_only_a_node_that_differs_from_its_class_entry_carries_its_declaration(l
 
 def test_a_nodes_own_declaration_is_checked_like_the_class_entry(library_system):
     graph = _graph()
-    first, second = make_node(graph, _TICK), make_node(graph, _TICK)
+    first, second = make_node(graph, _OWN), make_node(graph, _OWN)
     for wrapper in (first, second):
         wrapper.node.props.label = "Mine"
     saved = graph.to_dict()
@@ -219,3 +219,23 @@ def test_a_nodes_own_declaration_is_checked_like_the_class_entry(library_system)
     assert loaded.load_from_dict(saved) is True
 
     assert loaded.node_wrappers[carrier["node_id"]].previous_setup is not None
+
+
+def test_an_event_node_that_publishes_its_id_declares_the_same_as_its_class(library_system):
+    graph = _graph()
+    first, second = (
+        make_node(graph, "haybale-core:node:TickEventNode"),
+        make_node(graph, "haybale-core:node:TickEventNode"),
+    )
+
+    saved = graph.to_dict()
+
+    assert first.node.saved_declaration == second.node.saved_declaration
+    assert all("declared" not in node["node_data"] for node in saved["nodes"].values())
+    loaded = _graph("loaded")
+    assert loaded.load_from_dict(saved) is True
+    for wrapper in (first, second):
+        assert (
+            loaded.node_wrappers[wrapper.node_id].node.ports["listen_callback"].get_value()
+            == wrapper.node_id
+        )

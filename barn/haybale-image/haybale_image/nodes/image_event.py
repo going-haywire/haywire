@@ -60,7 +60,7 @@ class ImageEventNode(BaseNode):
         from haybale_image.types.callback import CALLBACK_IMAGE
         from haybale_image.types.image import IMAGE
 
-        self.add(CALLBACK_IMAGE.as_outlet("listen_callback", label="Listen", default={"name": self.node_id}))
+        self.add(CALLBACK_IMAGE.as_outlet("listen_callback", label="Listen"))
         self.add(EXEC.as_outlet("frame_ready", label="Frame Ready"))
         self.add(IMAGE.as_outlet("image", label="Image"))
         self.add(FLOAT.as_outlet("timestamp", label="Timestamp (s)"))
