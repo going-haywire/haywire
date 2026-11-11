@@ -18,6 +18,7 @@ re-resolve snaps it back.
 
 import pytest
 from playwright.sync_api import Page
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
@@ -104,6 +105,29 @@ def _click_menu_item(page: Page, label: str) -> None:
     page.mouse.click(pos["x"], pos["y"])
 
 
+_DRAGGING = ".graph-canvas.edge-dragging"
+
+
+def _preview_start_once_at(page: Page, preview_js: str, point: dict) -> dict | None:
+    """Return where the drag preview starts, waiting for it to start within 5px of *point*.
+
+    The preview is redrawn after a pointer move, so its start is read once it has
+    reached *point* or the wait ran out; the caller asserts on what comes back.
+    """
+    try:
+        page.wait_for_function(
+            f"""(point) => {{
+                const start = ({preview_js})();
+                return start && Math.abs(start.x - point.x) < 5 && Math.abs(start.y - point.y) < 5;
+            }}""",
+            arg=point,
+            timeout=5000,
+        )
+    except PlaywrightTimeoutError:
+        pass
+    return page.evaluate(preview_js)
+
+
 def test_reconnect_anchor_stays_on_outlet_pin(page: Page, harness):
     """Reconnecting from the inlet side keeps the preview anchored to the outlet.
 
@@ -123,7 +147,7 @@ def test_reconnect_anchor_stays_on_outlet_pin(page: Page, harness):
     page.mouse.click(click["x"], click["y"], button="right")
     page.wait_for_selector(_MENU)
     _click_menu_item(page, "Reconnect")
-    page.wait_for_timeout(200)
+    page.wait_for_selector(_DRAGGING)
 
     # Simulate the node redraw that detaches the held pin element mid-drag.
     detach = _replace_anchor_pin(page, "BeginPlay")
@@ -135,9 +159,8 @@ def test_reconnect_anchor_stays_on_outlet_pin(page: Page, harness):
     # the now-detached held element.
     page.mouse.move(click["x"] + 150, click["y"] - 120)
     page.mouse.move(click["x"] + 160, click["y"] - 130)
-    page.wait_for_timeout(200)
 
-    preview = page.evaluate(_PREVIEW_START_JS)
+    preview = _preview_start_once_at(page, _PREVIEW_START_JS, outlet)
     assert preview is not None, "no preview path after reconnect"
 
     # Anchor end must stay on the outlet pin. Without _resolveAnchorPin the held
@@ -178,10 +201,11 @@ def test_reconnect_an_edge_drawn_to_a_ghost_pin_starts_from_its_outlet(page: Pag
     page.mouse.click(click["x"], click["y"], button="right")
     page.wait_for_selector(_MENU)
     _click_menu_item(page, "Reconnect")
+    # The drag starts after a round trip to the server; a move before that draws no preview.
+    page.wait_for_selector(_DRAGGING)
     page.mouse.move(click["x"] + 40, click["y"] + 40)
-    page.wait_for_timeout(200)
 
-    preview = page.evaluate(_DRAG_PREVIEW_START_JS)
+    preview = _preview_start_once_at(page, _DRAG_PREVIEW_START_JS, outlet)
     assert preview is not None, "no reconnect drag started"
     assert abs(preview["x"] - outlet["x"]) < 5 and abs(preview["y"] - outlet["y"]) < 5, (  # noqa: PT018
         f"drag did not start from the outlet: preview={preview} outlet={outlet}"
@@ -232,10 +256,12 @@ def test_a_reconnect_dropped_back_on_its_inlet_leaves_one_edge(page: Page, harne
     page.mouse.click(click["x"], click["y"], button="right")
     page.wait_for_selector(_MENU)
     _click_menu_item(page, "Reconnect")
-    page.wait_for_selector(".graph-canvas.edge-dragging")
+    page.wait_for_selector(_DRAGGING)
     page.mouse.move(inlet["x"] - 20, inlet["y"], steps=3)
     page.mouse.click(inlet["x"], inlet["y"])
     page.wait_for_selector(".graph-canvas:not(.edge-dragging)")
+    # The re-linked edge comes back from the server; a duplicate would follow it at once.
+    page.wait_for_selector("#connection-svg path[data-edge-id]")
     page.wait_for_timeout(500)
 
     ids = page.evaluate(
