@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager
 from haywire.core.execution.vm import HaywireVM
 from haywire.core.execution.callback_manager import CallbackManager
-from haywire.core.execution import gc_freeze
+from haywire.core.execution import gc_freeze, gil_switch
 from haywire.core.execution.flow_queue import FlowQueue
 from haywire.core.execution.flow_metrics import FlowSnapshot
 from haywire.core.execution.execution_group import ExecutionGroup, group_flows, shared_data_node_ids
@@ -112,7 +112,7 @@ class Interpreter:
 
         # Execution state
         self._executing: bool = False
-        self._holds_gc_freeze: bool = False
+        self._holds_run_tuning: bool = False
 
         logger.info("Haywire Interpreter initialized")
 
@@ -185,7 +185,8 @@ class Interpreter:
 
         self._executing = True
         gc_freeze.freeze_for_run()
-        self._holds_gc_freeze = True
+        gil_switch.shorten_for_run()
+        self._holds_run_tuning = True
         self.dispatch_system_event(SystemEventType.BEGIN_PLAY)
         logger.info("Execution started")
 
@@ -241,7 +242,7 @@ class Interpreter:
         self._cleanup_current_graph(print_stats=True)
 
         self._executing = False
-        self._release_gc_freeze()
+        self._release_run_tuning()
         logger.info("Execution stopped")
 
     def hold_for_batch(self, timeout_s: float = 2.0) -> bool:
@@ -442,9 +443,10 @@ class Interpreter:
 
         logger.debug("All flows completed")
 
-    def _release_gc_freeze(self) -> None:
-        if self._holds_gc_freeze:
-            self._holds_gc_freeze = False
+    def _release_run_tuning(self) -> None:
+        if self._holds_run_tuning:
+            self._holds_run_tuning = False
+            gil_switch.restore_after_run()
             gc_freeze.unfreeze_after_run()
 
     def shutdown(self) -> None:
@@ -453,7 +455,7 @@ class Interpreter:
 
         # Cleanup current graph - print stats on explicit shutdown
         self._cleanup_current_graph(print_stats=True)
-        self._release_gc_freeze()
+        self._release_run_tuning()
 
         logger.info("Interpreter shutdown complete")
 
