@@ -79,6 +79,18 @@ def _watcher(registry, identity, path: Path, event_type, until) -> threading.Thr
     return thread
 
 
+def _written(path: Path):
+    """Return a check that ``path`` holds text: a file exists, empty, before its first write lands."""
+
+    def check() -> bool:
+        try:
+            return bool(path.read_text())
+        except OSError:
+            return False
+
+    return check
+
+
 def _run(tool_cls, ctx, **kwargs):
     return asyncio.run(tool_cls().run(ctx, **kwargs))
 
@@ -88,7 +100,7 @@ def test_scaffold_reports_the_key_that_actually_registered(setup):
 
     ctx, registry, identity = setup
     path = Path(identity.folder_path) / "nodes" / "blur_filter.py"
-    thread = _watcher(registry, identity, path, FileEventType.CREATED, path.exists)
+    thread = _watcher(registry, identity, path, FileEventType.CREATED, _written(path))
 
     result = _run(StudioScaffoldComponentTool, ctx, kind="node", name="blur_filter")
     thread.join()
@@ -105,7 +117,7 @@ def test_scaffold_keeps_a_pascal_case_name_and_takes_a_label(setup):
 
     ctx, registry, identity = setup
     path = Path(identity.folder_path) / "nodes" / "my_node.py"
-    thread = _watcher(registry, identity, path, FileEventType.CREATED, path.exists)
+    thread = _watcher(registry, identity, path, FileEventType.CREATED, _written(path))
 
     result = _run(StudioScaffoldComponentTool, ctx, kind="node", name="MyNode", label="My node")
     thread.join()
@@ -147,7 +159,7 @@ def test_write_links_imported_libraries_and_reports_undeclared_imports(setup):
 
     ctx, registry, identity = setup
     path = Path(identity.folder_path) / "nodes" / "scaled.py"
-    thread = _watcher(registry, identity, path, FileEventType.CREATED, path.exists)
+    thread = _watcher(registry, identity, path, FileEventType.CREATED, _written(path))
 
     result = _run(
         StudioWriteComponentSourceTool, ctx, source=_SOURCE, library="dst", kind="node", filename="scaled.py"
@@ -193,7 +205,7 @@ def test_a_write_that_fails_to_import_reports_the_ledger_errors(setup, monkeypat
     monkeypatch.setattr(di_context, "_error_ledger", ErrorLedger())
     ctx, registry, identity = setup
     path = Path(identity.folder_path) / "nodes" / "broken.py"
-    thread = _watcher(registry, identity, path, FileEventType.CREATED, path.exists)
+    thread = _watcher(registry, identity, path, FileEventType.CREATED, _written(path))
 
     result = _run(
         StudioWriteComponentSourceTool,
