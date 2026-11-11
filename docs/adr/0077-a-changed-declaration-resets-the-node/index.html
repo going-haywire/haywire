@@ -3391,6 +3391,9 @@
 
 
 <h1 id="a-changed-declaration-resets-the-node">A changed declaration resets the node<a class="headerlink" href="#a-changed-declaration-resets-the-node" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Amended by <a href="../0078-a-node-follows-its-changed-code-where-nothing-conflicts/">ADR 0078</a>.</strong> A changed declaration resets the node only where its data conflicts with the change; otherwise the saved ports follow the code and the node keeps its setup.</p>
+</blockquote>
 <p><strong>Context.</strong></p>
 <ul>
 <li>A graph file holds the declaration each node class had when it was saved (<a href="../0076-a-graph-file-stores-what-differs-from-the-code/">ADR 0076</a>), but nothing read it. A node loaded after its library changed kept the ports its file listed: a port the code had added was missing and one the code had removed was still there, with no notice.</li>

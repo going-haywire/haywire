@@ -4036,7 +4036,9 @@ pasted, or rebuilt.</p>
 <ul>
 <li><strong>Which ports exist comes from the file.</strong> A node may have changed its ports
   since it was dropped (Section 7), and the user may have grown some. The file
-  has the last word, so a port your node removed stays removed.</li>
+  has the last word, so a port your node removed stays removed. Only a change to
+  <code>init()</code> itself moves that: a port you add there appears on saved nodes, and
+  one you remove there goes.</li>
 <li><strong>What a declared port looks like comes from your code</strong>, except where the
   user or the node changed it. A saved graph stores, for each port <code>init()</code>
   declares, only the value and what differs from the declaration. Correct a
@@ -4127,10 +4129,16 @@ nor a copy — the copy starts without it and behaves differently.</p>
 <p><strong>When you edit the class (hot-reload),</strong> what happens to its placed nodes
 depends on whether <code>init()</code> now declares other ports. If it declares the same,
 each node keeps its values, settings and grown ports and simply runs your new
-code. If it declares something else, each node is rebuilt
-through <code>init()</code>: fresh, with only its arrangement kept (position, stacking order,
-place on stage), so your port changes show
-at once. The same happens when a graph is opened after the class changed
+code. If it declares something else, each node takes over what you changed and
+keeps the rest: a new label, default or widget shows, a port you added appears,
+a port you removed goes, and the user's values and own changes stay
+(<a href="../../../adr/0078-a-node-follows-its-changed-code-where-nothing-conflicts/">ADR 0078</a>).
+The error ledger notes each node that changed this way.</p>
+<p>A node is rebuilt through <code>init()</code> only where your change and the node's data
+conflict: you and the user changed the same field of a port, you retyped a port
+that holds a set value, or you changed a port the node had reshaped itself. It
+is then fresh, with only its arrangement kept (position, stacking order, place
+on stage). The same happens when a graph is opened after the class changed
 (<a href="../../../adr/0077-a-changed-declaration-resets-the-node/">ADR 0077</a>).
 The user's setup is not lost: a node the rebuild changed keeps its
 <strong>previous setup</strong> and shows an amber badge ("Settings reset by a code change").
