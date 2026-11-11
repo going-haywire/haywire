@@ -4087,10 +4087,15 @@ nor a copy — the copy starts without it and behaves differently.</p>
   it in <code>on_shutdown()</code> after releasing the model its outlet handed out, so the
   next run loads it again instead of passing on the released one.</li>
 </ul>
-<p><strong>When you edit the class (hot-reload),</strong> every placed node of it is rebuilt
+<p><strong>When you edit the class (hot-reload),</strong> what happens to its placed nodes
+depends on whether <code>init()</code> now declares other ports. If it declares the same,
+each node keeps its values, settings and grown ports and simply runs your new
+code. If it declares something else, each node is rebuilt
 through <code>init()</code>: fresh, with only its arrangement kept (position, stacking order,
 place on stage), so your port changes show
-at once. The user's setup is not lost: a node the rebuild changed keeps its
+at once. The same happens when a graph is opened after the class changed
+(<a href="../../../adr/0077-a-changed-declaration-resets-the-node/">ADR 0077</a>).
+The user's setup is not lost: a node the rebuild changed keeps its
 <strong>previous setup</strong> and shows an amber badge ("Settings reset by a code change").
 In the node's right-click menu, or the Node tab of the Properties editor,
 <strong>Restore</strong> brings the earlier settings back on the new code and <strong>Discard</strong>

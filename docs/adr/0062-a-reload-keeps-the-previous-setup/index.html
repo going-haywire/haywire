@@ -3355,6 +3355,7 @@
 
 <h1 id="a-reload-keeps-the-previous-setup">A reload keeps the previous setup<a class="headerlink" href="#a-reload-keeps-the-previous-setup" title="Permanent link">&para;</a></h1>
 <blockquote>
+<p><strong>Amended by <a href="../0077-a-changed-declaration-resets-the-node/">ADR 0077</a>.</strong> A hot reload rebuilds a node through <code>init()</code> only when its class declares other ports than before; otherwise the node keeps its data and nothing is flagged. The same rule applies when a file is loaded.</p>
 <p><strong>Amended by <a href="../0076-a-graph-file-stores-what-differs-from-the-code/">ADR 0076</a>.</strong> A declared port is saved as its differences from the declaration, so Restore applies the previous setup's values and changes onto the ports the code declares now, and a node the user never changed is no longer flagged by a code change to a default.</p>
 </blockquote>
 <p><strong>Context.</strong></p>
