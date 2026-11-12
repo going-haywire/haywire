@@ -21,7 +21,7 @@ edges before growing the card anyway, so that case stays covered.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled, wait_until
 from tests.ui.harness.probe import attr
 
 _PATH = "/graph-reroute"
@@ -107,7 +107,17 @@ def test_pins_follow_the_borders_when_resized(page: Page, harness):
     _assert_pins_on_edges(before, "default size")
 
     page.click('[data-testid="reroute-grow"]')
-    page.wait_for_timeout(600)
+
+    def grown_with_its_pins() -> bool:
+        now = _geometry(page, nid)
+        if now["card"]["width"] <= before["card"]["width"] + 40:
+            return False
+        if now["card"]["height"] <= before["card"]["height"] + 30:
+            return False
+        _assert_pins_on_edges(now, "after resize")
+        return True
+
+    wait_until(page, grown_with_its_pins)
     after = _geometry(page, nid)
 
     assert after["card"]["width"] > before["card"]["width"] + 40, (
