@@ -9,7 +9,7 @@ model, so the zoom anchor drifts from the pointer until the scroll is reset.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled, wait_until
 
 pytestmark = pytest.mark.ui
 
@@ -69,6 +69,16 @@ def _park_first_node_mid_view(page: Page) -> None:
     raise AssertionError("viewport did not settle at the parked position")
 
 
+def _wait_for_focus(page: Page, index: int) -> None:
+    """Wait until the NumberDrag at *index* holds focus and the pan that reveals it has ended."""
+
+    def focused_in_view() -> bool:
+        state = _focus_state(page)
+        return bool(state["idx"] == index and state["inView"])
+
+    wait_until(page, focused_in_view)
+
+
 def _open(page: Page, harness) -> None:
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("[data-number_drag]")
@@ -83,7 +93,7 @@ def test_tab_moves_to_the_next_number_widget(page: Page, harness) -> None:
     _open(page, harness)
     for expected in (1, 2):
         page.keyboard.press("Tab")
-        page.wait_for_timeout(150)
+        _wait_for_focus(page, expected)
         state = _focus_state(page)
         assert (state["tag"], state["idx"]) == ("INPUT", expected), state
 
@@ -91,18 +101,18 @@ def test_tab_moves_to_the_next_number_widget(page: Page, harness) -> None:
 def test_shift_tab_moves_to_the_previous_number_widget(page: Page, harness) -> None:
     _open(page, harness)
     page.keyboard.press("Tab")
-    page.wait_for_timeout(150)
+    _wait_for_focus(page, 1)
     page.keyboard.press("Shift+Tab")
-    page.wait_for_timeout(150)
+    _wait_for_focus(page, 0)
     state = _focus_state(page)
     assert (state["tag"], state["idx"]) == ("INPUT", 0), state
 
 
 def test_tab_to_off_screen_field_pans_instead_of_scrolling(page: Page, harness) -> None:
     _open(page, harness)
-    for _ in range(2):
+    for expected in (1, 2):
         page.keyboard.press("Tab")
-        page.wait_for_timeout(150)
+        _wait_for_focus(page, expected)
         state = _focus_state(page)
         assert state["scroll"] == [0, 0], state
         assert state["inView"], state
@@ -112,10 +122,10 @@ def test_tab_to_off_screen_field_pans_instead_of_scrolling(page: Page, harness) 
 
 def test_shift_tab_reveals_field_left_of_view(page: Page, harness) -> None:
     _open(page, harness)
-    for _ in range(2):
+    for expected in (1, 2):
         page.keyboard.press("Tab")
-        page.wait_for_timeout(150)
+        _wait_for_focus(page, expected)
     page.keyboard.press("Shift+Tab")
-    page.wait_for_timeout(200)
+    _wait_for_focus(page, 1)
     state = _focus_state(page)
     assert (state["idx"], state["inView"], state["scroll"]) == (1, True, [0, 0]), state

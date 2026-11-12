@@ -1,5 +1,9 @@
 """Navigation helper for harness Playwright tests."""
 
+import time
+from typing import Callable
+
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page
 
 
@@ -42,3 +46,25 @@ def wait_for_canvas_settled(page: Page, timeout: int = 5000) -> None:
         }""",
         timeout=timeout,
     )
+
+
+def wait_until(page: Page, check: Callable[[], object], timeout: int = 5000, interval: int = 50) -> bool:
+    """Poll *check* until it returns something true, or *timeout* ms have passed; return whether it did.
+
+    For a result that arrives after a round trip to the server or a repaint: how long
+    that takes varies with the machine, so a fixed wait is either too short or wasted.
+    Running out of time does not raise: the test's own assertion then reports what is
+    there. A *check* that fails on a page mid-redraw counts as not yet true.
+
+    Not for asserting that nothing happens: there a fixed wait is the only choice.
+    """
+    deadline = time.monotonic() + timeout / 1000
+    while True:
+        try:
+            if check():
+                return True
+        except (PlaywrightError, AssertionError):
+            pass
+        if time.monotonic() >= deadline:
+            return False
+        page.wait_for_timeout(interval)

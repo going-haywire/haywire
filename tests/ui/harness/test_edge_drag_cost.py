@@ -22,7 +22,7 @@ unmistakable — it goes from a handful to a multiple of the pin count.
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_until
 
 _PATH = "/graph-dynamic"
 
@@ -82,7 +82,13 @@ def test_an_open_edge_drag_does_not_measure_every_pin_per_move(page: Page, harne
     page.mouse.move(spot["x"], spot["y"])
     page.mouse.down()
     page.mouse.up()
-    page.wait_for_timeout(300)
+    wait_until(
+        page,
+        lambda: page.evaluate(
+            "() => !![...document.querySelectorAll('#connection-svg path')]"
+            ".find(p => p.getAttribute('stroke-dasharray'))"
+        ),
+    )
     assert page.evaluate(
         "() => !![...document.querySelectorAll('#connection-svg path')]"
         ".find(p => p.getAttribute('stroke-dasharray'))"
