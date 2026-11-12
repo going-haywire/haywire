@@ -227,3 +227,6 @@ barn/haybale-stream
 barn/haybale-comfyui
 
 assets/*
+
+# Claude Code personal settings (permissions, local paths); .claude/settings.json is shared
+.claude/settings.local.json
