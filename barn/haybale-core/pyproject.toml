@@ -1,6 +1,6 @@
 [project]
 name = "haybale-core"
-version = "0.4.1"
+version = "0.4.2"
 description = "Fundamental components for haywire graphs"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -8,7 +8,7 @@ license = {text = "MIT"}
 keywords = ["core", "types", "widgets", "skins", "adapters"]
 
 dependencies = [
-    "haywire-core>=0.4.1",
+    "haywire-core>=0.4.2",
     "nicegui>=3.18.0",
     "typing_extensions"]
 
