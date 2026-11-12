@@ -4607,6 +4607,11 @@ Macro is registered and placed.</p>
 <td>Multi-inlet</td>
 </tr>
 <tr>
+<td><strong>Drain inlet</strong></td>
+<td>An inlet (<code>DRAIN[T]</code>, haybale-core) that keeps every value its one edge delivers, in order, until its node takes them with <code>self.drain(id)</code>, which empties it; for a node collecting values another flow writes at its own pace. Its field answers <code>queues_values()</code>; its edge is locked eager, and one from a promoted outlet fails validation. Holds <code>max_len</code> values, dropping and counting the oldest beyond that; never saved. See <a href="../../architecture/execution/edges/edges-arch/">edges-arch §5.3</a></td>
+<td>Queue inlet, drain edge (it is the inlet, not the edge), drain propagation (not a mode)</td>
+</tr>
+<tr>
 <td><strong>Link ceiling</strong></td>
 <td>How many edges a port may hold at one end, derived by the framework from the port's wire role and its field's storage: outlets take many except a control outlet; inlets take one except a control or visual inlet and a <strong>Pooled inlet</strong>. A port can only narrow it, with <code>single_link</code>. Read per end as <code>port.incoming.takes_many</code> and <code>port.outgoing.takes_many</code>, and as <code>DataPort.takes_many_links</code> (outgoing for an outlet, incoming otherwise). See <a href="../../adr/0044-link-ceiling/">ADR 0044</a></td>
 <td>allow_multiple_links (removed), connection limit</td>
@@ -4834,7 +4839,7 @@ Macro is registered and placed.</p>
 </tr>
 <tr>
 <td><strong>Propagation</strong></td>
-<td>When a value written to an outlet takes effect at the inlet across an edge: <strong>lazy</strong> (the inlet pulls the current value when its node executes; the write only marks it dirty, which is what lets a DATA node skip its worker) or <strong>eager</strong> (pushed on write, takes effect when the inlet's node executes). An edge's wire type lists the modes it may take: one entry locks it, and a wire type that allows none gives the edge no propagation — a callback edge takes effect on write by its role. An edge out of a promoted outlet is locked lazy. See <a href="../../adr/0039-propagation-mode-replaces-is-lazy/">ADR 0039</a> and <a href="../../adr/0042-wire-types-replace-flowtype/">ADR 0042</a></td>
+<td>When a value written to an outlet takes effect at the inlet across an edge: <strong>lazy</strong> (the inlet pulls the current value when its node executes; the write only marks it dirty, which is what lets a DATA node skip its worker) or <strong>eager</strong> (pushed on write, takes effect when the inlet's node executes). An edge's wire type lists the modes it may take: one entry locks it, and a wire type that allows none gives the edge no propagation — a callback edge takes effect on write by its role. An edge out of a promoted outlet is locked lazy, and an edge into a <strong>Drain inlet</strong> eager. See <a href="../../adr/0039-propagation-mode-replaces-is-lazy/">ADR 0039</a> and <a href="../../adr/0042-wire-types-replace-flowtype/">ADR 0042</a></td>
 <td>Eager push / Lazy pull (two of its values), immediate (a role, not a mode)</td>
 </tr>
 <tr>

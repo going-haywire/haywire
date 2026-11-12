@@ -2421,6 +2421,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#53-drain-inlet-collecting-another-flows-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Drain inlet collecting another flow's values
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3938,6 +3949,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#53-drain-inlet-collecting-another-flows-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Drain inlet collecting another flow's values
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4089,9 +4111,14 @@
 <td>n/a (a pool has no outlet)</td>
 <td>many</td>
 </tr>
+<tr>
+<td>drain inlet (field <code>queues_values()</code>)</td>
+<td>n/a (a drain has no outlet)</td>
+<td>one</td>
+</tr>
 </tbody>
 </table>
-<p>A container's role is its element's. <code>PooledType</code> refuses a control element and an outlet; <code>ArrayType</code> of control and callback elements is allowed.</p>
+<p>A container's role is its element's. <code>PooledType</code> refuses a control element and an outlet; <code>DRAIN</code> refuses an outlet and any element that is not on a <code>DEPENDENT</code> wire; <code>ArrayType</code> of control and callback elements is allowed.</p>
 <p>Two pins connect when their wire keys match: equal wire-type ids, or a bare <code>ADD</code> slot's wildcard <code>*</code> (<code>wires_match</code>, mirrored on the canvas). Connections across wire types (e.g. EXEC→DATA) are rejected in <code>_formal_validation()</code>. A failing edge is never rewritten; while it fails, its wire type comes from whichever end resolves, for drawing only. See <a href="../../../../adr/0042-wire-types-replace-flowtype/">ADR 0042</a>. Same-direction connections (outlet→outlet, inlet→inlet) are also rejected there.</p>
 <h3 id="24-edgewrapper-lifecycle-methods">2.4 EdgeWrapper lifecycle methods<a class="headerlink" href="#24-edgewrapper-lifecycle-methods" title="Permanent link">&para;</a></h3>
 <p>Three methods own the lifecycle (all on <code>EdgeWrapper</code>, not on the graph):</p>
@@ -4147,7 +4174,7 @@
 <li><strong>Asymmetric notification</strong>: inlet displacement informs the source outlet (it needs a pipe update); outlet displacement does NOT inform the sink inlet.</li>
 </ul>
 <p>When an active edge is removed (<code>detach</code>) or loses functionality (<code>unlink</code>), the port's set scans <code>all</code> FIFO for a functional candidate to re-enable. If found, <code>candidate.link() + candidate.redraw()</code> is called.</p>
-<p><strong>Unlinking reveals the own value.</strong> When an inlet loses its last linked edge and no displaced edge takes over, its field drops the linked value (<code>DataField.clear_linked</code>) and the own value shows again (ADR 0040). The node learns of it through the port's propagation: an immediate inlet fires <code>on_change</code> at once, so a reroute passes it on (see <a href="../../callbacks/callbacks-arch/">callbacks-arch §2.4</a>); a deferred inlet is marked dirty for its node's next execution. A lazy pull still queued for the removed edge is dropped. A pooled inlet needs nothing extra: <code>LinkSet.clear_link</code> already removed that source's entry.</p>
+<p><strong>Unlinking reveals the own value.</strong> When an inlet loses its last linked edge and no displaced edge takes over, its field drops the linked value (<code>DataField.clear_linked</code>) and the own value shows again (ADR 0040). The node learns of it through the port's propagation: an immediate inlet fires <code>on_change</code> at once, so a reroute passes it on (see <a href="../../callbacks/callbacks-arch/">callbacks-arch §2.4</a>); a deferred inlet is marked dirty for its node's next execution. A lazy pull still queued for the removed edge is dropped. A pooled inlet needs nothing extra: <code>LinkSet.clear_link</code> already removed that source's entry. A drain inlet empties its queue the same way, in its field's <code>remove_source</code>.</p>
 <h3 id="33-propagation-and-the-unified-dirty-model">3.3 Propagation and the unified dirty model<a class="headerlink" href="#33-propagation-and-the-unified-dirty-model" title="Permanent link">&para;</a></h3>
 <p>Each edge has a <strong>propagation</strong> mode (<code>Propagation</code>, per edge, not per port):</p>
 <ul>
@@ -4155,7 +4182,7 @@
 <li><strong>Lazy</strong>: no transform or push at propagation time. The inlet is marked dirty with a reference to the pipe. At execution time, <code>resolve_dirty_data()</code> pulls the outlet's <em>current</em> value (always-latest semantics) through the adapter chain.</li>
 <li><strong>No propagation</strong> (callback edges): a wire type whose <code>propagation</code> is empty gives its edges none. The value takes effect on write by the <code>IMMEDIATE</code> role (see the exception below).</li>
 </ul>
-<p>Users choose lazy or eager per edge, and different edges to the same inlet can differ. <code>create_edge_wrapper(propagation=...)</code> stores the choice on the <code>Edge</code>, and <code>to_dict()</code> saves it under <code>propagation</code>. A wire type lists the modes its edges may take (<code>WireType.propagation</code>); a single entry locks the edge to it, and an empty list gives the edge no propagation (<code>EdgeWrapper.propagation</code> is <code>None</code>). A mode is also locked to <code>lazy</code> on an edge out of an <code>is_linked_lazy</code> outlet (every promoted outlet). Neither lock is read from a saved graph. <code>EdgeWrapper.locked_propagation</code> names the lock; <code>EdgeWrapper.propagation</code> is the mode in effect. See <a href="../../../../adr/0039-propagation-mode-replaces-is-lazy/">ADR 0039</a>.</p>
+<p>Users choose lazy or eager per edge, and different edges to the same inlet can differ. <code>create_edge_wrapper(propagation=...)</code> stores the choice on the <code>Edge</code>, and <code>to_dict()</code> saves it under <code>propagation</code>. A wire type lists the modes its edges may take (<code>WireType.propagation</code>); a single entry locks the edge to it, and an empty list gives the edge no propagation (<code>EdgeWrapper.propagation</code> is <code>None</code>). A mode is also locked to <code>lazy</code> on an edge out of an <code>is_linked_lazy</code> outlet (every promoted outlet), and to <code>eager</code> on an edge into a drain inlet (<code>DataPort.queues_values</code>), since a lazy pull delivers only the latest value. An edge with both locks fails <code>_formal_validation()</code> and is kept, drawn invalid. No lock is read from a saved graph. <code>EdgeWrapper.locked_propagation</code> names the lock; <code>EdgeWrapper.propagation</code> is the mode in effect. See <a href="../../../../adr/0039-propagation-mode-replaces-is-lazy/">ADR 0039</a>.</p>
 <p><strong>Unified dirty model.</strong> Both eager and lazy edges use the same deferred callback model. <code>on_change</code> callbacks for edge-driven inlet changes are <em>never</em> fired at push time — they are always deferred to <code>resolve_dirty_data()</code> at execution time. This debounces mixed pooled+lazy scenarios.</p>
 <p><strong>Exception: immediate inlets fire at once.</strong> An inlet on a wire with the <code>IMMEDIATE</code> role (<code>DataPort.is_immediate</code>, i.e. <code>CallbackWire</code>) is exempt from the deferral above — <code>set_value()</code> fires its <code>on_change</code> synchronously at push time even when <code>edge_id</code> is set, same as the widget/programmatic path.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>EAGER EDGE:
@@ -4262,10 +4289,14 @@
 <td><code>_sink_holds_absence</code></td>
 <td>Whether the sink accepts absence, read once from <code>sink.data.accepts_absence()</code></td>
 </tr>
+<tr>
+<td><code>_sink_queues</code></td>
+<td>Whether the sink is a drain inlet, read once from <code>sink.data.queues_values()</code></td>
+</tr>
 </tbody>
 </table>
 <p><code>Pipe.pull()</code> reads the outlet's current value, transforms it through the chain and stores it with <code>sink.set_value(converted, edge_id=...)</code>. When the outlet holds <code>None</code>, the pull forwards absence only to a sink that accepts it; any other sink keeps its last value.</p>
-<p>Pipes are rebuilt whenever the outlet is structurally dirty (<code>_refresh_pipes()</code> during housekeeping). After a rebuild the outlet pushes its current value through every pipe at once (<code>DataPort._housekeeping</code>), so a newly linked edge, or one rebuilt on load or hot reload, delivers the source's value without any node running. A widget's write to an outlet runs its pipes at once too, on the UI thread: an eager edge stores the value in the sink's inlet then, and the sink's node acts on it (its <code>on_change</code> and worker) in its next frame; a lazy edge only marks the inlet dirty. That is why setting <code>EdgeWrapper.propagation</code> on a live edge marks its outlet dirty: the existing <code>Pipe</code> keeps the mode it was built with.</p>
+<p>Pipes are rebuilt whenever the outlet is structurally dirty (<code>_refresh_pipes()</code> during housekeeping). After a rebuild the outlet pushes its current value through every pipe at once (<code>DataPort._housekeeping</code> calls <code>Pipes.sync()</code>), so a newly linked edge, or one rebuilt on load or hot reload, delivers the source's value without any node running. A pipe into a drain inlet is skipped: the inlet takes only values the outlet is written with, so linking or rewiring queues nothing. A widget's write to an outlet runs its pipes at once too, on the UI thread: an eager edge stores the value in the sink's inlet then, and the sink's node acts on it (its <code>on_change</code> and worker) in its next frame; a lazy edge only marks the inlet dirty. That is why setting <code>EdgeWrapper.propagation</code> on a live edge marks its outlet dirty: the existing <code>Pipe</code> keeps the mode it was built with.</p>
 <h3 id="36-validationmanager-debounced-batch-processing">3.6 ValidationManager — debounced batch processing<a class="headerlink" href="#36-validationmanager-debounced-batch-processing" title="Permanent link">&para;</a></h3>
 <p><code>ValidationManager</code> processes dirty nodes and edges in debounced batches (50ms default). Tests use <code>force_immediate_validation()</code> for synchronous execution.</p>
 <p><strong>Priority system (<code>ChangeReason</code>).</strong> Reasons are prioritised — higher priority overrides lower in the dirty queue:</p>
@@ -4399,6 +4430,13 @@
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>node_c outlet[BOOL]   ──┘
 </span></code></pre></div>
 <p>Each edge gets its own entry in the pooled <code>dict[source_id, value]</code>.</p>
+<h3 id="53-drain-inlet-collecting-another-flows-values">5.3 Drain inlet collecting another flow's values<a class="headerlink" href="#53-drain-inlet-collecting-another-flows-values" title="Permanent link">&para;</a></h3>
+<p>A drain inlet (<code>DRAIN[T]</code> in haybale-core) keeps every value its single edge delivers, in order, until its node takes them with <code>NodeData.drain(id)</code>. Use it where a node collects values written by another flow at its own pace: an ordinary inlet holds only the latest value, so it loses values written between two runs and repeats one nobody replaced.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>flow P:  event ─→ producer ── outlet[FLOAT] ──(eager, locked)──┐
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>                                                                ▼
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>flow C:  event ─→ consumer ── drain inlet[FLOAT] ─→ self.drain(&quot;queue&quot;) → [1.0, 2.0, 2.0]
+</span></code></pre></div>
+<p>Each outlet write pushes through the eager edge on the producer's thread, and <code>DrainField.set_value</code> appends it under the field's lock; equal values are each kept. <code>take()</code> swaps the queue out on the consumer's thread and returns it as <code>Drained</code>, a list whose <code>dropped</code> counts the values lost to the queue's <code>max_len</code> (oldest first) since the previous take. The queue is never saved and empties when its edge is removed. The Audio Mixer's inputs are drain inlets.</p>
 <h2 id="6-open-questions">6. Open questions<a class="headerlink" href="#6-open-questions" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Re-enablement priority.</strong> Currently FIFO. If multiple displaced edges are functional at re-enablement time, the first registered wins. A user-controllable priority mechanism may be useful.</li>
