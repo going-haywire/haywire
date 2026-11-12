@@ -6,11 +6,11 @@
 [[haybales]]
 name = "haybale-models"
 label = "Models"
-version = "0.4.1"
-require = "haywire-core>=0.4.1"
+version = "0.4.2"
+require = "haywire-core>=0.4.2"
 description = "Model references, local model store, downloads and graph needs-list"
 source = "pypi"
-install_spec = "haybale-models==0.4.1"
+install_spec = "haybale-models==0.4.2"
 tags = ["models", "download", "catalog"]
 on_reload = "none"
 linked_libraries = ["haybale_graph_editor"]

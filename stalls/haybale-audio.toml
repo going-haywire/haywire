@@ -6,11 +6,11 @@
 [[haybales]]
 name = "haybale-audio"
 label = "Audio"
-version = "0.4.1"
-require = "haywire-core>=0.4.1"
+version = "0.4.2"
+require = "haywire-core>=0.4.2"
 description = "Audio blocks, events and routing shared by speech and streaming libraries"
 source = "pypi"
-install_spec = "haybale-audio==0.4.1"
+install_spec = "haybale-audio==0.4.2"
 tags = ["audio"]
 on_reload = "none"
 linked_libraries = ["haybale_core"]
