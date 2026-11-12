@@ -252,11 +252,15 @@ class EdgeWrapper:
         """The mode this edge is fixed to, or ``None`` when the user may choose one.
 
         An edge out of an ``is_linked_lazy`` outlet (every promoted outlet) is locked
-        ``LAZY``, and a wire type that allows a single mode locks that mode. An edge
-        whose wire type allows no mode has no lock and no propagation.
+        ``LAZY``, an edge into a drain inlet (``DataPort.queues_values``) is locked
+        ``EAGER``, and a wire type that allows a single mode locks that mode. An edge
+        whose wire type allows no mode has no lock and no propagation. An edge with
+        both ends locked fails validation.
         """
         if self._outlet_port is not None and self._outlet_port.is_linked_lazy:
             return Propagation.LAZY
+        if self._inlet_port is not None and self._inlet_port.queues_values:
+            return Propagation.EAGER
         wire = self.wire_type
         if wire is not None and len(wire.propagation) == 1:
             return wire.propagation[0]
@@ -848,6 +852,12 @@ class EdgeWrapper:
                 raise Exception(
                     f"Wire type mismatch between outlet ({self._outlet_port.wire_key}) and inlet "
                     f"({self._inlet_port.wire_key}) on edge {self._edge_id}"
+                )
+
+            if self._outlet_port.is_linked_lazy and self._inlet_port.queues_values:
+                raise Exception(
+                    f"Drain inlet {self._inlet_port.id} needs every value, and promoted outlet "
+                    f"{self._outlet_port.id} delivers only its latest (edge {self._edge_id})"
                 )
 
             self._state.is_formally_validated = True

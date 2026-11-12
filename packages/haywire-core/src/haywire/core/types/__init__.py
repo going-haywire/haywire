@@ -12,7 +12,7 @@ from .decorator import type
 from .identity import DataTypeIdentity
 from .enums import LayoutDirection, NodeDetail, PortOrigin, PortType, Propagation, StoreStrategy
 from .event import Event
-from .fields import DataField, PrimitiveField, BaseField
+from .fields import DataField, Drained, PrimitiveField, BaseField
 from .port import DataPort
 from .widget_model import WidgetModel
 from .pipe import Pipes
@@ -59,6 +59,7 @@ __all__ = [
     "Event",
     # Fields
     "DataField",
+    "Drained",
     "PrimitiveField",
     "BaseField",
     # Ports and Pipes

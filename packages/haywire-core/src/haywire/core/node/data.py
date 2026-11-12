@@ -13,7 +13,7 @@ from ..types.enums import PortOrigin, PortType
 from ..types.wire import WireRole
 from ..execution.execution_context import ExecutionContext
 from ..library.identity import LibraryIdentity
-from ..types import DataPort, PortSpec
+from ..types import DataPort, Drained, PortSpec
 from .behavior import NodeBehaviorFlags, NodeType
 from .user_data import NodeCache, NodeStore
 from haywire.core.settings import NodeSettings, Settings
@@ -623,6 +623,31 @@ class NodeData:
             raise KeyError(f"Port '{id}' not found")
 
         return port.get_value()
+
+    def drain(self, id: str) -> Drained:
+        """Take every value queued on a drain inlet since the last take, oldest first.
+
+        The inlet's queue is empty afterwards; an inlet that received nothing returns
+        an empty list. ``dropped`` on the result counts the values the inlet discarded
+        to its size limit since the last take. ``value()`` reads the same queue without
+        emptying it.
+
+        Raises:
+            KeyError: If no port has this ID.
+            TypeError: If the port is not a drain inlet.
+
+        Example::
+
+            batch = self.drain("in_0")
+            for block in batch:
+                buffer.write(block)
+            lost += batch.dropped
+        """
+        port = self.ports.get(id)
+        if not port:
+            raise KeyError(f"Port '{id}' not found")
+
+        return port.data.take()
 
     def out(self, id: str, value: Any) -> None:
         """Set an outlet's value from the worker, taking the value unwrapped.

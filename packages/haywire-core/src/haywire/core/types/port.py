@@ -879,6 +879,14 @@ class DataPort(DataTypeIdentity):
         return self.incoming.takes_many
 
     @property
+    def queues_values(self) -> bool:
+        """True for a drain inlet, whose field keeps every value its edge delivers.
+
+        See ``DataField.queues_values``.
+        """
+        return self._data is not None and self._data.queues_values()
+
+    @property
     def is_immediate(self) -> bool:
         """True when a write to this port takes effect on write: its wire type's role is ``IMMEDIATE``."""
         return self._is_immediate
