@@ -87,6 +87,17 @@ def _pin(name: str, block: AudioBlock | None = None) -> MagicMock:
     return ctx
 
 
+def _sources(graph: Any, mixer: Any, count: int) -> list[Any]:
+    """Connect *count* Audio Events to the mixer's inputs; return their nodes."""
+    events = []
+    for n in range(count):
+        event = _event(graph)
+        make_edge(graph, event.node_id, "audio", mixer.node_id, f"in_{n}")
+        events.append(event.node)
+    graph.force_validation()
+    return events
+
+
 @pytest.mark.integration
 def test_each_connected_source_gets_its_own_pins(graph_with_library_system):
     g = graph_with_library_system
@@ -94,8 +105,10 @@ def test_each_connected_source_gets_its_own_pins(graph_with_library_system):
     assert "in_1" not in mixer.node.ports
     for n in range(2):
         make_edge(g, _event(g).node_id, "audio", mixer.node_id, f"in_{n}")
-        for pin in (f"in_{n}", f"write_{n}", f"gain_{n}", f"mute_{n}"):
+        for pin in (f"in_{n}", f"gain_{n}", f"mute_{n}"):
             assert pin in mixer.node.ports, pin
+        assert f"write_{n}" not in mixer.node.ports, "an input collects its blocks without a Write pin"
+        assert mixer.node.ports[f"in_{n}"].queues_values
         assert f"in_{n + 1}" in mixer.node.ports, "a fresh open input appears below"
 
 
@@ -103,21 +116,14 @@ def test_each_connected_source_gets_its_own_pins(graph_with_library_system):
 def test_tick_mixes_the_inputs_with_gain_and_mute(graph_with_library_system):
     g = graph_with_library_system
     mixer = _mixer(g)
-    for n in range(3):
-        make_edge(g, _event(g).node_id, "audio", mixer.node_id, f"in_{n}")
-    values: dict[str, Any] = {
-        "in_0": _block(0.25),
-        "in_1": _block(0.5),
-        "gain_1": 0.5,
-        "in_2": _block(0.9),
-        "mute_2": True,
-    }
-    mixer.node.value = lambda port_id: values.get(port_id)
+    events = _sources(g, mixer, 3)
+    mixer.node.ports["gain_1"].set_value(0.5)
+    mixer.node.ports["mute_2"].set_value(True)
     clock = _block(0.0)
 
     for _ in range(10):
-        for n in range(3):
-            mixer.node.worker(_pin(f"write_{n}"))
+        for event, value in zip(events, (0.25, 0.5, 0.9), strict=True):
+            event.out("audio", _block(value))
     assert mixer.node.worker(_pin("tick", clock)) == "next"
     assert mixer.node.worker(_pin("tick", clock)) == "next"
 
@@ -127,14 +133,26 @@ def test_tick_mixes_the_inputs_with_gain_and_mute(graph_with_library_system):
 
 
 @pytest.mark.integration
+def test_a_tick_takes_every_block_collected_since_the_last(graph_with_library_system):
+    g = graph_with_library_system
+    mixer = _mixer(g)
+    (event,) = _sources(g, mixer, 1)
+    for _ in range(10):
+        event.out("audio", _block(0.4))
+
+    mixer.node.worker(_pin("tick", _block(0.0)))
+
+    assert mixer.node.drain("in_0") == []
+    assert mixer.node.hb_buffers[0].depth > 0
+
+
+@pytest.mark.integration
 def test_blocks_written_before_the_first_tick_are_kept(graph_with_library_system):
     g = graph_with_library_system
     mixer = _mixer(g)
-    make_edge(g, _event(g).node_id, "audio", mixer.node_id, "in_0")
-    values = {"in_0": _block(0.4)}
-    mixer.node.value = lambda port_id: values.get(port_id)
+    (event,) = _sources(g, mixer, 1)
     for _ in range(10):
-        mixer.node.worker(_pin("write_0"))
+        event.out("audio", _block(0.4))
     clock = _block(0.0)
     mixer.node.worker(_pin("tick", clock))
     mixer.node.worker(_pin("tick", clock))
@@ -145,12 +163,37 @@ def test_blocks_written_before_the_first_tick_are_kept(graph_with_library_system
 def test_input_that_has_not_filled_its_prefill_is_silent(graph_with_library_system):
     g = graph_with_library_system
     mixer = _mixer(g)
-    make_edge(g, _event(g).node_id, "audio", mixer.node_id, "in_0")
-    values = {"in_0": _block(0.4)}
-    mixer.node.value = lambda port_id: values.get(port_id)
-    mixer.node.worker(_pin("write_0"))
+    (event,) = _sources(g, mixer, 1)
+    event.out("audio", _block(0.4))
     mixer.node.worker(_pin("tick", _block(0.0)))
     assert not mixer.node.ports["mixed"].get_value().data.any()
+
+
+@pytest.mark.integration
+def test_blocks_beyond_an_inputs_limit_are_dropped_and_counted(graph_with_library_system):
+    g = graph_with_library_system
+    mixer = _mixer(g)
+    (event,) = _sources(g, mixer, 1)
+    for _ in range(70):
+        event.out("audio", _block(0.4))
+
+    mixer.node.worker(_pin("tick", _block(0.0)))
+
+    assert mixer.node.hb_dropped == 6
+    assert "dropped 6" in mixer.node.value("status")
+
+
+@pytest.mark.integration
+def test_a_reset_discards_the_collected_blocks(graph_with_library_system):
+    g = graph_with_library_system
+    mixer = _mixer(g)
+    (event,) = _sources(g, mixer, 1)
+    for _ in range(10):
+        event.out("audio", _block(0.4))
+
+    mixer.node.hb_reset()
+
+    assert mixer.node.drain("in_0") == []
 
 
 @pytest.mark.integration
@@ -158,13 +201,3 @@ def test_tick_without_a_triggering_audio_block_is_an_error(graph_with_library_sy
     mixer = _mixer(graph_with_library_system)
     with pytest.raises(ValueError, match="audio event"):
         mixer.node.worker(_pin("tick"))
-
-
-@pytest.mark.integration
-def test_write_without_a_block_is_an_error(graph_with_library_system):
-    g = graph_with_library_system
-    mixer = _mixer(g)
-    make_edge(g, _event(g).node_id, "audio", mixer.node_id, "in_0")
-    mixer.node.value = lambda port_id: None
-    with pytest.raises(ValueError, match="audio block"):
-        mixer.node.worker(_pin("write_0"))

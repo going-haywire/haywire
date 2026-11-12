@@ -1754,27 +1754,6 @@
               "registry_key": "haybale-audio:type:AUDIO"
             }
           },
-          "write_0": {
-            "kwargs": {
-              "registry_id": "EXEC_AUDIO",
-              "registry_key": "haybale-audio:type:EXEC_AUDIO",
-              "label": "Write 0",
-              "description": "Signal for sequencing the nodes of an audio flow",
-              "class_name": "EXEC_AUDIO",
-              "module": "haybale_audio.types.exec_audio",
-              "default": {
-                "value": {}
-              },
-              "store_strategy": 1,
-              "color": "#3f96b8",
-              "id": "write_0",
-              "port_type": "inlet",
-              "order": 7
-            },
-            "recipe": {
-              "registry_key": "haybale-audio:type:EXEC_AUDIO"
-            }
-          },
           "gain_0": {
             "kwargs": {
               "registry_id": "FLOAT",
@@ -1845,27 +1824,6 @@
             },
             "recipe": {
               "registry_key": "haybale-audio:type:AUDIO"
-            }
-          },
-          "write_1": {
-            "kwargs": {
-              "registry_id": "EXEC_AUDIO",
-              "registry_key": "haybale-audio:type:EXEC_AUDIO",
-              "label": "Write 1",
-              "description": "Signal for sequencing the nodes of an audio flow",
-              "class_name": "EXEC_AUDIO",
-              "module": "haybale_audio.types.exec_audio",
-              "default": {
-                "value": {}
-              },
-              "store_strategy": 1,
-              "color": "#3f96b8",
-              "id": "write_1",
-              "port_type": "inlet",
-              "order": 12
-            },
-            "recipe": {
-              "registry_key": "haybale-audio:type:EXEC_AUDIO"
             }
           },
           "gain_1": {
@@ -2073,14 +2031,6 @@
       "chain_adapter_keys": [],
       "propagation": "eager"
     },
-    "AudioEventNode_f5917691[block_ready]->AudioMixerNode_3f850d51[write_0]": {
-      "source_node_id": "AudioEventNode_f5917691",
-      "outlet_port_id": "block_ready",
-      "sink_node_id": "AudioMixerNode_3f850d51",
-      "inlet_port_id": "write_0",
-      "chain_adapter_keys": [],
-      "propagation": "eager"
-    },
     "AudioEventNode_1017a6a1[audio]->AudioMixerNode_3f850d51[in_1]": {
       "source_node_id": "AudioEventNode_1017a6a1",
       "outlet_port_id": "audio",
@@ -2110,14 +2060,6 @@
       "outlet_port_id": "mixed",
       "sink_node_id": "DeviceOutNode_203350fc",
       "inlet_port_id": "audio",
-      "chain_adapter_keys": [],
-      "propagation": "eager"
-    },
-    "AudioEventNode_1017a6a1[block_ready]->AudioMixerNode_3f850d51[write_1]": {
-      "source_node_id": "AudioEventNode_1017a6a1",
-      "outlet_port_id": "block_ready",
-      "sink_node_id": "AudioMixerNode_3f850d51",
-      "inlet_port_id": "write_1",
       "chain_adapter_keys": [],
       "propagation": "eager"
     }

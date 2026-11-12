@@ -3,7 +3,6 @@
 import logging
 import threading
 import time
-from collections import deque
 
 from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
 from haywire.barn.builtin.widgets import SimpleLabelWidget
@@ -20,9 +19,7 @@ from haybale_audio.value import AudioBlock
 logger = logging.getLogger(__name__)
 
 _PREFIX = "in_"
-#: Blocks kept for an input that writes before the first tick fixes the output format.
-_PENDING_BLOCKS = 32
-#: A wait between two writes or ticks longer than this is logged.
+#: A wait between two ticks longer than this is logged.
 LONG_WAIT = 0.05
 #: Seconds between status updates; one per tick would flood the UI.
 STATUS_INTERVAL = 0.5
@@ -51,23 +48,24 @@ class MixerSettings(NodeSettings):
 )
 class AudioMixerNode(BaseNode):
     """Mixes live sources that run on their own flows. Each source has its own input: connect its audio
-    output to the open input at the bottom and it gets a `Write` pin, a `Gain` and a `Mute`; a new open
-    input appears below.
+    output to the open input at the bottom and it gets a `Gain` and a `Mute`; a new open input appears
+    below.
 
-    Wire each source's Audio Event Block Ready to its `Write` pin: the block is queued for that input.
-    Wire an Audio Clock's Audio Event `Block Ready` to `Tick`. `Tick` is the moment to mix one block, so
-    every tick mixes one block per input. The block that triggered the tick sets the sample rate and
-    block size of the output; it is not mixed in. The sources are the numbered inputs. Inputs at another
-    sample rate or block size are converted, and a source clock that differs slightly from the tick
-    clock is absorbed.
+    An input collects every block its source delivers, at the source's own pace, until the next tick.
+    Wire an Audio Clock's Audio Event `Block Ready` to `Tick`. `Tick` is the moment to mix one block:
+    each tick takes what every input collected and mixes one block per input. The block that triggered
+    the tick sets the sample rate and block size of the output; it is not mixed in. The sources are the
+    numbered inputs. Inputs at another sample rate or block size are converted, and a source clock that
+    differs slightly from the tick clock is absorbed.
 
     An input is mixed once its prefill is queued, and again after a stall; until then it is silent. The
     sum is not limited, so loud sources can exceed ±1; the output has the most channels of any input, and
-    a mono input plays on all of them.
+    a mono input plays on all of them. An input holds 64 blocks between two ticks; when the ticks stop
+    for longer, the oldest blocks are dropped and the status counts them.
 
     Inputs:
         tick: Mix one block (wire it to the clock's Block Ready); the triggering block sets the output
-        in_N / write_N: An input's audio and the pin that queues it
+        in_N: An input's audio, collected until the next tick
         gain_N / mute_N: An input's level and mute
 
     Outputs:
@@ -94,29 +92,24 @@ class AudioMixerNode(BaseNode):
     def post_init(self) -> None:
         self.hb_lock = threading.Lock()
         self.hb_buffers: dict[int, PullBuffer] = {}
-        self.hb_pending: dict[int, deque[AudioBlock]] = {}
-        self.hb_format: tuple[int, int] | None = None  # sample rate and frames of the clock block
         self.hb_status_at = 0.0
-        self.hb_write_at: dict[int, float] = {}  # when each input last wrote
         self.hb_tick_at = 0.0
         self.hb_started = 0.0  # when the first tick came; log lines show the time since
-        self.hb_write_gap = 0.0  # longest wait between two writes of one input, in seconds
         self.hb_tick_gap = 0.0  # longest wait between two ticks, in seconds
+        self.hb_dropped = 0  # blocks the inputs dropped since the start
+        self._upgrade_saved_inputs()
 
     def hb_resolve(self, port, edge_wrapper) -> None:
         """Turn the open input into an audio input with its pins and add a new open one below it."""
         from haywire.barn.builtin.types import ADD
 
         from haybale_audio.types.audio import AUDIO
-        from haybale_audio.types.exec_audio import EXEC_AUDIO
 
         if port.type_cls is None or not issubclass(port.type_cls, ADD):
             return  # already resolved; the callback fires again whenever the edge is re-linked
 
         index = int(port.id[len(_PREFIX) :])
-        with self.rejig(include=[port.id]):
-            self.add(AUDIO.as_inlet(id=port.id, label=f"In {index}", origin=PortOrigin.RESOLVED))
-        self.add(EXEC_AUDIO.as_inlet(f"write_{index}", label=f"Write {index}"))
+        self._collecting_input(index)
         self.add(FLOAT.as_inlet(f"gain_{index}", label=f"Gain {index}", default=1.0))
         self.add(BOOL.as_inlet(f"mute_{index}", label=f"Mute {index}", default=False))
         # Indices are never reused: a port id is part of the id of every edge attached to it.
@@ -134,32 +127,9 @@ class AudioMixerNode(BaseNode):
         self.hb_reset()
 
     def worker(self, context: ExecutionContext) -> str | None:
-        pin = context.control_pin or ""
-        if pin == "tick":
+        if context.control_pin == "tick":
             return self.hb_tick(self._trigger_block(context))
-        if pin.startswith("write_"):
-            self.hb_write(int(pin[len("write_") :]))
         return None
-
-    def hb_write(self, index: int) -> None:
-        block = self.value(f"{_PREFIX}{index}")
-        if not isinstance(block, AudioBlock):
-            raise ValueError(f"write {index} needs an audio block on in {index}")
-        now = time.monotonic()
-        with self.hb_lock:
-            last = self.hb_write_at.get(index)
-            if last is not None:
-                self.hb_write_gap = max(self.hb_write_gap, now - last)
-                if now - last > LONG_WAIT:
-                    logger.warning(
-                        "Audio Mixer: input %d waited %.0f ms for a write", index, (now - last) * 1000
-                    )
-            self.hb_write_at[index] = now
-            if self.hb_format is None:
-                # The tick has not fixed the output format yet.
-                self.hb_pending.setdefault(index, deque(maxlen=_PENDING_BLOCKS)).append(block)
-                return
-            self._buffer(index, block).write(block)
 
     def hb_tick(self, clock: AudioBlock) -> str:
         rate, frames = clock.sample_rate, clock.frames
@@ -176,11 +146,11 @@ class AudioMixerNode(BaseNode):
             if not self.hb_tick_at:
                 self.hb_started = now
             self.hb_tick_at = now
-            self.hb_format = (rate, frames)
-            for index, blocks in self.hb_pending.items():
-                for block in blocks:
-                    self._buffer(index, block).write(block)
-            self.hb_pending.clear()
+            for index in self._inputs():
+                batch = self.drain(f"{_PREFIX}{index}")
+                self.hb_dropped += batch.dropped
+                for block in batch:
+                    self._buffer(index, block, rate).write(block)
             buffers = dict(self.hb_buffers)
         pulled = {index: buf.read(frames) for index, buf in buffers.items()}
         channels = max((b.channels for b in buffers.values()), default=clock.channels)
@@ -198,8 +168,7 @@ class AudioMixerNode(BaseNode):
             set_status(
                 self,
                 f"{playing} of {len(buffers)} inputs playing, stalls {stalls}, "
-                f"longest wait: tick {self.hb_tick_gap * 1000:.0f} ms, "
-                f"write {self.hb_write_gap * 1000:.0f} ms",
+                f"dropped {self.hb_dropped}, longest wait for a tick {self.hb_tick_gap * 1000:.0f} ms",
             )
         return "next"
 
@@ -209,19 +178,20 @@ class AudioMixerNode(BaseNode):
         if lock is None:
             return
         with lock:
+            for index in self._inputs():
+                self.drain(f"{_PREFIX}{index}")  # blocks from before the stop must not play after a start
             self.hb_buffers.clear()
-            self.hb_pending.clear()
-            self.hb_format = None
-            self.hb_write_at.clear()
             self.hb_tick_at = self.hb_started = 0.0
-            self.hb_write_gap = self.hb_tick_gap = 0.0
+            self.hb_tick_gap = 0.0
+            self.hb_dropped = 0
 
-    def _buffer(self, index: int, first: AudioBlock) -> PullBuffer:
-        """Return the input's buffer, created from its first block. Call with ``hb_lock`` held."""
+    def _buffer(self, index: int, first: AudioBlock, rate: int) -> PullBuffer:
+        """Return the input's buffer at the output *rate*, created from its first block.
+
+        Call with ``hb_lock`` held.
+        """
         buffer = self.hb_buffers.get(index)
         if buffer is None:
-            assert self.hb_format is not None
-            rate = self.hb_format[0]
             buffer = PullBuffer(
                 rate,
                 first.channels,
@@ -240,9 +210,32 @@ class AudioMixerNode(BaseNode):
             raise ValueError("tick needs a flow started by an audio event")
         return block
 
+    def _collecting_input(self, index: int) -> None:
+        """Make input *index* one that collects blocks until the next tick, removing its `Write` pin."""
+        from haybale_core.types import DRAIN
+        from haybale_audio.types.audio import AUDIO
+
+        port_id = f"{_PREFIX}{index}"
+        with self.rejig(include=[port_id, f"write_{index}"]):
+            self.add(DRAIN[AUDIO].as_inlet(id=port_id, label=f"In {index}", origin=PortOrigin.RESOLVED))
+
+    def _upgrade_saved_inputs(self) -> None:
+        """Rebuild the inputs of a mixer saved with plain audio inputs and `Write` pins."""
+        for port in list(self.get_all_ports()):
+            if port.id.startswith(_PREFIX) and port.origin is PortOrigin.RESOLVED and not port.queues_values:
+                self._collecting_input(int(port.id[len(_PREFIX) :]))
+
     def _gain(self, index: int) -> float:
         gain = self.value(f"gain_{index}")
         return 1.0 if gain is None else float(gain)
 
     def _indices(self) -> list[int]:
         return [int(p.id[len(_PREFIX) :]) for p in self.get_all_ports() if p.id.startswith(_PREFIX)]
+
+    def _inputs(self) -> list[int]:
+        """Return the indices of the connected inputs: those that collect blocks."""
+        return [
+            int(p.id[len(_PREFIX) :])
+            for p in self.get_all_ports()
+            if p.id.startswith(_PREFIX) and p.queues_values
+        ]

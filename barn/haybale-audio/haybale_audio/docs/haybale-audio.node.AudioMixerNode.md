@@ -23,23 +23,24 @@ Sums several audio sources into one block per clock tick
 ## Notes
 
 Mixes live sources that run on their own flows. Each source has its own input: connect its audio
-output to the open input at the bottom and it gets a `Write` pin, a `Gain` and a `Mute`; a new open
-input appears below.
+output to the open input at the bottom and it gets a `Gain` and a `Mute`; a new open input appears
+below.
 
-Wire each source's Audio Event Block Ready to its `Write` pin: the block is queued for that input.
-Wire an Audio Clock's Audio Event `Block Ready` to `Tick`. `Tick` is the moment to mix one block, so
-every tick mixes one block per input. The block that triggered the tick sets the sample rate and
-block size of the output; it is not mixed in. The sources are the numbered inputs. Inputs at another
-sample rate or block size are converted, and a source clock that differs slightly from the tick
-clock is absorbed.
+An input collects every block its source delivers, at the source's own pace, until the next tick.
+Wire an Audio Clock's Audio Event `Block Ready` to `Tick`. `Tick` is the moment to mix one block:
+each tick takes what every input collected and mixes one block per input. The block that triggered
+the tick sets the sample rate and block size of the output; it is not mixed in. The sources are the
+numbered inputs. Inputs at another sample rate or block size are converted, and a source clock that
+differs slightly from the tick clock is absorbed.
 
 An input is mixed once its prefill is queued, and again after a stall; until then it is silent. The
 sum is not limited, so loud sources can exceed ±1; the output has the most channels of any input, and
-a mono input plays on all of them.
+a mono input plays on all of them. An input holds 64 blocks between two ticks; when the ticks stop
+for longer, the oldest blocks are dropped and the status counts them.
 
 Inputs:
     tick: Mix one block (wire it to the clock's Block Ready); the triggering block sets the output
-    in_N / write_N: An input's audio and the pin that queues it
+    in_N: An input's audio, collected until the next tick
     gain_N / mute_N: An input's level and mute
 
 Outputs:
