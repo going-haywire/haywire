@@ -189,7 +189,7 @@ class TestThePort:
     @pytest.mark.parametrize("element", [EXEC, CALLBACK])
     def test_refuses_an_element_that_carries_no_values(self, element):
         with pytest.raises(ValueError, match="carries values"):
-            DRAIN._configure_port(_port(DRAIN[element]))
+            DRAIN._configure_port(_port(DRAIN[element]))  # type: ignore[valid-type]
 
 
 @pytest.mark.integration
