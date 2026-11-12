@@ -21,6 +21,8 @@ Test library for test support
 - **Callback Relay Probe** — Test-only: copies a callback inlet's value to its outlet on write, with a suffix.
 - **Control Payload TestNode** — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).
 - **Display** — Displays input values for debugging
+- **Drain Consumer Probe** — Test-only control node taking everything queued on its drain inlet, once per run
+- **Drain Producer Probe** — Test-only control node writing 0, 1, 2, ... to its outlet, one value per run
 - **Dynamic Port TestNode** — 
 - **Edge Link TestNode** — 
 - **Empty Fold** — Tests that a fold holding no ports raises

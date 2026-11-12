@@ -34,6 +34,7 @@ Fundamental components for haywire graphs
 - **Array** — Homogeneous typed array
 - **Bytes** — Binary data
 - **Dictionary** — Key-value pairs
+- **Drain** — Every value its edge delivers, queued until the node takes them
 - **List** — Ordered collection
 - **Pooled** — Multi-source aggregation
 
