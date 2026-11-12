@@ -174,7 +174,7 @@ def test_blocks_beyond_an_inputs_limit_are_dropped_and_counted(graph_with_librar
     g = graph_with_library_system
     mixer = _mixer(g)
     (event,) = _sources(g, mixer, 1)
-    for _ in range(70):
+    for _ in range(198):
         event.out("audio", _block(0.4))
 
     mixer.node.worker(_pin("tick", _block(0.0)))

@@ -19,6 +19,8 @@ from haybale_audio.value import AudioBlock
 logger = logging.getLogger(__name__)
 
 _PREFIX = "in_"
+#: Blocks an input holds between two ticks; about 1 s of 256-frame blocks at 48 kHz.
+_INPUT_BLOCKS = 192
 #: A wait between two ticks longer than this is logged.
 LONG_WAIT = 0.05
 #: Seconds between status updates; one per tick would flood the UI.
@@ -60,8 +62,9 @@ class AudioMixerNode(BaseNode):
 
     An input is mixed once its prefill is queued, and again after a stall; until then it is silent. The
     sum is not limited, so loud sources can exceed ±1; the output has the most channels of any input, and
-    a mono input plays on all of them. An input holds 64 blocks between two ticks; when the ticks stop
-    for longer, the oldest blocks are dropped and the status counts them.
+    a mono input plays on all of them. An input holds 192 blocks between two ticks (about a second of
+    256-sample blocks at 48 kHz); when the ticks stop for longer, the oldest blocks are dropped and the
+    status counts them.
 
     Inputs:
         tick: Mix one block (wire it to the clock's Block Ready); the triggering block sets the output
@@ -217,12 +220,21 @@ class AudioMixerNode(BaseNode):
 
         port_id = f"{_PREFIX}{index}"
         with self.rejig(include=[port_id, f"write_{index}"]):
-            self.add(DRAIN[AUDIO].as_inlet(id=port_id, label=f"In {index}", origin=PortOrigin.RESOLVED))
+            self.add(
+                DRAIN[AUDIO].as_inlet(
+                    id=port_id,
+                    label=f"In {index}",
+                    origin=PortOrigin.RESOLVED,
+                    default={"max_len": _INPUT_BLOCKS},
+                )
+            )
 
     def _upgrade_saved_inputs(self) -> None:
-        """Rebuild the inputs of a mixer saved with plain audio inputs and `Write` pins."""
+        """Rebuild saved inputs that are plain audio inputs with `Write` pins, or hold another size."""
         for port in list(self.get_all_ports()):
-            if port.id.startswith(_PREFIX) and port.origin is PortOrigin.RESOLVED and not port.queues_values:
+            if not (port.id.startswith(_PREFIX) and port.origin is PortOrigin.RESOLVED):
+                continue
+            if not port.queues_values or getattr(port.data, "max_len", None) != _INPUT_BLOCKS:
                 self._collecting_input(int(port.id[len(_PREFIX) :]))
 
     def _gain(self, index: int) -> float:

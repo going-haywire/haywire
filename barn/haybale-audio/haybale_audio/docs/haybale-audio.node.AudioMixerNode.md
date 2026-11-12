@@ -35,8 +35,9 @@ differs slightly from the tick clock is absorbed.
 
 An input is mixed once its prefill is queued, and again after a stall; until then it is silent. The
 sum is not limited, so loud sources can exceed ±1; the output has the most channels of any input, and
-a mono input plays on all of them. An input holds 64 blocks between two ticks; when the ticks stop
-for longer, the oldest blocks are dropped and the status counts them.
+a mono input plays on all of them. An input holds 192 blocks between two ticks (about a second of
+256-sample blocks at 48 kHz); when the ticks stop for longer, the oldest blocks are dropped and the
+status counts them.
 
 Inputs:
     tick: Mix one block (wire it to the clock's Block Ready); the triggering block sets the output
