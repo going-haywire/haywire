@@ -1,4 +1,4 @@
-# haybale-studio — component index (v0.4.1)
+# haybale-studio — component index (v0.4.2)
 
 ## setting
 - `haybale-studio:setting:NetworkSettings` — Network — Where the studio's web server listens.
