@@ -796,7 +796,7 @@ class DataPort(DataTypeIdentity):
             self._refresh_pipes()
             # as soon as we refresh pipes, propagate current value
             if self._pipes:
-                self._pipes.propagate()
+                self._pipes.sync()
         self._is_dirty_structural = False
 
     def _refresh_pipes(self) -> None:

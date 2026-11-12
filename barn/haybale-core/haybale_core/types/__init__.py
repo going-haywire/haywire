@@ -1,5 +1,7 @@
 from haybale_core.types.array_type import ArrayType
 from haybale_core.types.array_type import ArrayField
+from haybale_core.types.drain_type import DRAIN
+from haybale_core.types.drain_type import DrainField
 from haybale_core.types.pooled_type import PooledType
 from haybale_core.types.pooled_type import PooledField
 from haybale_core.types.specs import BYTES
@@ -12,6 +14,8 @@ __all__ = [
     "ArrayType",
     "BYTES",
     "DICT",
+    "DRAIN",
+    "DrainField",
     "LIST",
     "PooledField",
     "PooledType",
