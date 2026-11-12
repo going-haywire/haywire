@@ -46,7 +46,7 @@ def test_pins_carry_the_expected_execution_type(graph_with_library_system, modul
     assert actual == pins
 
 
-def test_the_mixer_makes_its_write_pins_audio_flow_pins(graph_with_library_system):
+def test_a_mixer_input_needs_no_write_pin(graph_with_library_system):
     graph = graph_with_library_system
     mixer = make_node(
         graph,
@@ -63,4 +63,4 @@ def test_the_mixer_makes_its_write_pins_audio_flow_pins(graph_with_library_syste
         position=(0, 0),
     )
     make_edge(graph, event.node_id, "audio", mixer.node_id, "in_0")
-    assert mixer.node.ports["write_0"].type_cls is EXEC_AUDIO
+    assert "write_0" not in mixer.node.ports

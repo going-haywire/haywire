@@ -32,6 +32,19 @@ class FieldChange:
     field_id: str = ""
 
 
+class Drained(list):
+    """The values taken from a queueing field by ``DataField.take()``, oldest first.
+
+    A plain list of the values, so a worker iterates it directly. ``dropped`` counts
+    the values the field discarded to its size limit since the previous take; it is
+    read in the same step as the values, so it belongs to exactly this batch.
+    """
+
+    def __init__(self, values: Any = (), dropped: int = 0) -> None:
+        super().__init__(values)
+        self.dropped = dropped
+
+
 # ============================================================================
 # BASE DATAFIELD
 # ============================================================================
@@ -215,6 +228,24 @@ class DataField(ABC, Generic[T]):
         and for one that holds nothing (an ``ADD`` slot).
         """
         return True
+
+    def queues_values(self) -> bool:
+        """Whether this field keeps every value its edge delivers, until the node takes them.
+
+        True for a drain field: each edge write joins a queue, and ``take()`` empties
+        it. Its edge is locked eager, since a lazy pull delivers only the latest
+        value; see ``EdgeWrapper.locked_propagation``. Read when an edge is built,
+        never per frame.
+        """
+        return False
+
+    def take(self) -> Drained:
+        """Return the queued values, oldest first, and empty the queue.
+
+        Raises:
+            TypeError: Always, for a field that does not ``queues_values()``.
+        """
+        raise TypeError(f"{type(self).__name__} does not queue values; only a drain inlet can be drained")
 
     @abstractmethod
     def reset(self) -> None:

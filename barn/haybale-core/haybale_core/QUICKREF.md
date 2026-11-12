@@ -31,6 +31,7 @@
 - `haybale-core:type:ArrayType` — Array — Homogeneous typed array
 - `haybale-core:type:BYTES` — Bytes — Binary data
 - `haybale-core:type:DICT` — Dictionary — Key-value pairs
+- `haybale-core:type:DRAIN` — Drain — Every value its edge delivers, queued until the node takes them
 - `haybale-core:type:LIST` — List — Ordered collection
 - `haybale-core:type:PooledType` — Pooled — Multi-source aggregation
 

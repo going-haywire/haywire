@@ -796,7 +796,7 @@ class DataPort(DataTypeIdentity):
             self._refresh_pipes()
             # as soon as we refresh pipes, propagate current value
             if self._pipes:
-                self._pipes.propagate()
+                self._pipes.sync()
         self._is_dirty_structural = False
 
     def _refresh_pipes(self) -> None:
@@ -877,6 +877,14 @@ class DataPort(DataTypeIdentity):
         if self.port_type is PortType.OUTLET:
             return self.outgoing.takes_many
         return self.incoming.takes_many
+
+    @property
+    def queues_values(self) -> bool:
+        """True for a drain inlet, whose field keeps every value its edge delivers.
+
+        See ``DataField.queues_values``.
+        """
+        return self._data is not None and self._data.queues_values()
 
     @property
     def is_immediate(self) -> bool:

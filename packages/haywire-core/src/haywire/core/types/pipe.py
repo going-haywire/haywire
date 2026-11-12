@@ -15,7 +15,15 @@ class Pipe:
     Owns the pull operation (read outlet → transform → store in inlet).
     """
 
-    __slots__ = ("sink", "chain", "is_lazy", "_outlet_port", "_edge_id", "_sink_holds_absence")
+    __slots__ = (
+        "sink",
+        "chain",
+        "is_lazy",
+        "_outlet_port",
+        "_edge_id",
+        "_sink_holds_absence",
+        "_sink_queues",
+    )
 
     def __init__(
         self, outlet_port: "DataPort", sink: "DataPort", chain: IAdapter, is_lazy: bool, edge_id: str
@@ -32,6 +40,7 @@ class Pipe:
         # (promote/demote), and demote removes the port outright — so a live
         # sink's capability cannot change under an existing pipe.
         self._sink_holds_absence: bool = sink.data.accepts_absence()
+        self._sink_queues: bool = sink.data.queues_values()
 
     @property
     def edge_id(self) -> str:
@@ -110,6 +119,15 @@ class Pipes:
         """Propagate outlet value through all pipe connections."""
         for pipe in self._pipes.values():
             pipe.propagate()
+
+    def sync(self):
+        """Hand the outlet's current value to every sink except a drain inlet, which takes only writes.
+
+        See ``DataField.queues_values``.
+        """
+        for pipe in self._pipes.values():
+            if not pipe._sink_queues:
+                pipe.propagate()
 
     def clear(self):
         self._pipes.clear()

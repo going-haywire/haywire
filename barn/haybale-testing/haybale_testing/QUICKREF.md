@@ -14,6 +14,8 @@
 - `haybale-testing:node:CallbackRelayProbeNode` — Callback Relay Probe — Test-only: copies a callback inlet's value to its outlet on write, with a suffix.  _tags: test, callback, relay, loop_
 - `haybale-testing:node:ControlPayloadTestNode` — Control Payload TestNode — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).  _tags: test, control, exec, payload, conduit_
 - `haybale-testing:node:DisplayNode` — Display — Displays input values for debugging  _tags: display, debug, output, basic_
+- `haybale-testing:node:DrainConsumerProbeNode` — Drain Consumer Probe — Test-only control node taking everything queued on its drain inlet, once per run  _tags: test, drain, consumer_
+- `haybale-testing:node:DrainProducerProbeNode` — Drain Producer Probe — Test-only control node writing 0, 1, 2, ... to its outlet, one value per run  _tags: test, drain, producer_
 - `haybale-testing:node:DynamicPortTestNode` — Dynamic Port TestNode —   _tags: testing, dynamic, push, pop, reconfigure_
 - `haybale-testing:node:EdgeLinkTestNode` — Edge Link TestNode —   _tags: testing, edge, link, inlet, outlet, connection, adapter_
 - `haybale-testing:node:EmptyFoldNode` — Empty Fold — Tests that a fold holding no ports raises  _tags: testing, fold_
