@@ -856,8 +856,8 @@ class EdgeWrapper:
 
             if self._outlet_port.is_linked_lazy and self._inlet_port.queues_values:
                 raise Exception(
-                    f"Drain inlet {self._inlet_port.id} needs every value, and promoted outlet "
-                    f"{self._outlet_port.id} delivers only its latest (edge {self._edge_id})"
+                    f"Drain inlet {self._inlet_port.id} needs every value, but outlet "
+                    f"{self._outlet_port.id} can deliver only lazily (edge {self._edge_id})"
                 )
 
             self._state.is_formally_validated = True
