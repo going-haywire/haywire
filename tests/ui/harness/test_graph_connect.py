@@ -21,7 +21,7 @@ import re
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled, wait_until
 from tests.ui.harness.pin_edge import PIN_EDGE_JS
 
 _PATH = "/graph-connect"
@@ -133,7 +133,7 @@ def test_proximity_snap_commits_to_nearest_compatible_pin(page: Page, harness):
     inlet = _pin_center(page, "exec@TestPrint")
     near_x, near_y = inlet["x"] - 25, inlet["y"] + 25  # empty canvas, within suggestion range
     page.mouse.move(near_x, near_y)
-    page.wait_for_timeout(200)
+    wait_until(page, lambda: page.evaluate(_WIRE_ENDS_OFF_PIN_EDGES) is not None)
     # The wire and its suggestion run between the pins' edges, where the edge will be drawn.
     off = page.evaluate(_WIRE_ENDS_OFF_PIN_EDGES)
     assert off is not None, "no preview or suggestion path near the inlet"

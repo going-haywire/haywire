@@ -12,6 +12,7 @@ exposes ``.connection-pin`` elements — see ``test_graph_connect.py``.
 
 import pytest
 from playwright.sync_api import Page
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 
@@ -56,6 +57,17 @@ def _open(page: Page, harness) -> None:
     wait_for_canvas_settled(page)
 
 
+def _wait_for_text(page: Page, text: str, *, exact: bool) -> None:
+    """Wait until *text* is on the page, or five seconds; the caller asserts on what is there.
+
+    A menu opens after a round trip to the server, so how long it takes varies.
+    """
+    try:
+        page.get_by_text(text, exact=exact).first.wait_for(state="attached", timeout=5000)
+    except PlaywrightTimeoutError:
+        pass
+
+
 def test_right_click_on_a_pin_opens_the_pin_menu(page: Page, harness):
     """A right-click on an element carrying data-pin-id (and no
     data-hw-menu-surface-id) opens PinMenu — proven by ``PinEditMenuPanel``'s
@@ -64,7 +76,7 @@ def test_right_click_on_a_pin_opens_the_pin_menu(page: Page, harness):
     pos = _pin_center(page, "exec@TestBeginPlay")
 
     page.mouse.click(pos["x"], pos["y"], button="right")
-    page.wait_for_timeout(400)
+    _wait_for_text(page, "Edit Source", exact=True)
 
     # The "Edit Source" submenu anchor is drawn directly into the popup, so it is
     # present as soon as PinMenu opens — no hover navigation needed. Its body
@@ -87,7 +99,7 @@ def test_right_click_on_a_node_body_still_opens_the_selection_menu(page: Page, h
     pos = _node_body_center(page, "TestBeginPlay")
 
     page.mouse.click(pos["x"], pos["y"], button="right")
-    page.wait_for_timeout(400)
+    _wait_for_text(page, "Copy", exact=False)
 
     assert page.get_by_text("Copy", exact=False).count() > 0, (
         "right-clicking a node body should open the selection menu (Copy Selection panel)"

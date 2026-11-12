@@ -28,7 +28,7 @@ from haybale_testing.widgets.oversized_content_widget import (
     BOX_WIDTH,
     CONTENT_WIDTH,
 )
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_until
 from tests.ui.harness.probe import attr
 
 _PATH = "/graph-widget-box"
@@ -244,7 +244,11 @@ def test_aspect_widget_grows_proportionally_with_the_card(page: Page, harness):
 
     before = _widget_box(page, nid)
     page.click('[data-testid="aspect-grow"]')  # size_adapt=manual, 520x420
-    page.wait_for_timeout(600)
+    wait_until(
+        page,
+        lambda: _slot_box(page, nid)["width"] >= 518.0
+        and (not _is_selected(page, nid) or _widget_box(page, nid)["height"] > before["height"] + 20),
+    )
 
     slot = _slot_box(page, nid)
     assert slot["width"] >= 518.0, f"node did not take the manual width: {slot}"
@@ -275,7 +279,10 @@ def test_fixed_box_widget_widens_but_keeps_its_declared_height(page: Page, harne
 
     before = _widget_box(page, nid)
     page.click('[data-testid="fixed-grow"]')
-    page.wait_for_timeout(600)
+    wait_until(
+        page,
+        lambda: not _is_selected(page, nid) or _widget_box(page, nid)["width"] > before["width"] + 50,
+    )
     if not _is_selected(page, nid):
         _select(page, nid)
 

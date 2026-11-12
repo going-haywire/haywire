@@ -13,7 +13,7 @@ assertions are about what the model holds, not what a control displays.
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_until
 
 _PATH = "/fill-widget"
 
@@ -174,7 +174,7 @@ def test_the_swatch_shrinks_with_a_narrow_panel(page: Page, harness):
 
     wide = _swatch(page).bounding_box()
     page.evaluate("() => { document.querySelector('[data-field]').style.width = '160px'; }")
-    page.wait_for_timeout(250)
+    wait_until(page, lambda: (_swatch(page).bounding_box() or wide)["width"] < wide["width"])
     narrow = _swatch(page).bounding_box()
 
     assert wide is not None

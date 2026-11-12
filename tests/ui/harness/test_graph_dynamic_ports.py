@@ -15,7 +15,7 @@ EdgeLinkTestNode and exposes drop-port / restore-port buttons that change
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_until
 from tests.ui.harness.pin_edge import PIN_EDGE_JS
 
 _PATH = "/graph-dynamic"
@@ -81,12 +81,18 @@ def _close(a: dict | None, b: dict | None, tol: float = 4.0) -> bool:
     return abs(a["x"] - b["x"]) < tol and abs(a["y"] - b["y"]) < tol
 
 
+def _edge_starts_at(page: Page, pin_prefix: str) -> bool:
+    """Whether the one edge is drawn and starts at the edge of the pin *pin_prefix* names."""
+    start, pin = _edge_start_screen(page), _pin_edge_screen(page, pin_prefix)
+    return _edge_count(page) == 1 and start is not None and pin is not None and _close(start, pin)
+
+
 def test_edge_falls_back_to_ghost_pin_then_reattaches(page: Page, harness):
     """Dropping the linked dynamic outlet moves the edge to the ghost outlet;
     restoring the port moves it back onto the real pin."""
     goto_ready(page, f"{harness}{_PATH}")
     page.wait_for_selector("#connection-svg path[data-edge-id]")
-    page.wait_for_timeout(1500)
+    wait_until(page, lambda: _edge_starts_at(page, "dynamic_outlet_0"))
 
     # Initially the edge renders at the real dynamic outlet.
     assert _edge_count(page) == 1
@@ -97,7 +103,10 @@ def test_edge_falls_back_to_ghost_pin_then_reattaches(page: Page, harness):
 
     # Drop the port (port_count → 0): the real outlet disappears...
     page.click('[data-testid="drop-port"]')
-    page.wait_for_timeout(1200)
+    wait_until(
+        page,
+        lambda: not _has_pin(page, "dynamic_outlet_0") and _edge_starts_at(page, "root_out@DynamicPort"),
+    )
     assert not _has_pin(page, "dynamic_outlet_0"), "dynamic outlet should be removed"
     # ...but the edge survives and now renders at the node's ghost outlet.
     assert _edge_count(page) == 1, "edge must survive port removal (ghost fallback)"
@@ -111,7 +120,7 @@ def test_edge_falls_back_to_ghost_pin_then_reattaches(page: Page, harness):
     # Restore the port (port_count → 2): the real outlet returns and the edge
     # snaps back onto it.
     page.click('[data-testid="restore-port"]')
-    page.wait_for_timeout(1200)
+    wait_until(page, lambda: _edge_starts_at(page, "dynamic_outlet_0"))
     assert _has_pin(page, "dynamic_outlet_0"), "dynamic outlet should be restored"
     assert _edge_count(page) == 1
     start_restored = _edge_start_screen(page)

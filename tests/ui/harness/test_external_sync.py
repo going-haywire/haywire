@@ -7,7 +7,7 @@ without a panel rebuild.
 import pytest
 from playwright.sync_api import Page, expect
 
-from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.nav import goto_ready, wait_until
 
 _LIVE_PATH = "/node-live?class=haybale_testing.nodes.testbed.settings_node.SettingsNode&bag=example"
 
@@ -25,9 +25,9 @@ def test_external_mirror_change_shows_dot_and_reset(page: Page, harness):
     assert not label.inner_text().startswith("•")
 
     page.locator('[data-testid="ext-mirror"]').click()
-    page.wait_for_timeout(300)
 
     updated = page.locator('[data-field="intensity"]')
+    wait_until(page, lambda: updated.locator(".text-xs").first.inner_text().startswith("•"))
     assert updated.locator(".text-xs").first.inner_text().startswith("•")
     updated.locator(".sf-label").click(button="right")
     reset_item = page.locator('[data-row-menu] >> text="Reset to global default"')
