@@ -91,6 +91,35 @@ the backlog, or a devcontainer now (handoffs H1–H3).
 - S4. Whether a session started in the main folder loads `CLAUDE.md` files from additional
   directories (decides 25A's "agent session started in the main folder").
 - S5. Whether the `report` job fails or only warns on a fork PR (decides how urgent 18A is).
+- S6. Which folder the VS Code extension starts a session in for a multi-root workspace.
+- S7. Running the full studio against a worktree's code.
+
+### Spike results (2026-11-13)
+
+A trial umbrella (18 packages as editable path sources, Python pinned to 3.12.12) synced in
+1:36 min from the uv cache.
+
+| | Result |
+|---|---|
+| S1 | **Holds.** After the umbrella sync, the environments of haywire-repo, spandrel, stream, visiongraph and protokol were unchanged (package lists compared before and after). |
+| S2 | **No change needed.** `generate_all_docs` keeps libraries whose resolved module folder lies under the repo root, so sibling libraries were never included, symlinks or not; each sibling generates its docs in its own repo. |
+| S3 | **Holds.** The studio started from the umbrella watched the real sibling folders; rewriting `haybale_spandrel/nodes/inpaint.py` unchanged reloaded and re-registered `InpaintNode`. A bare `touch` (metadata only) triggers nothing on macOS; an editor save does. |
+| S4 | **Holds by default.** Claude Code loads `CLAUDE.md` and rules from additional directories only when `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD` is set; settings and hooks come only from the session's starting folder. 25A therefore requires that variable unset. |
+| S5 | **Open.** Needs a real fork PR; verified in slice 4 with a test fork. |
+| S6 | **Dropped.** The maintainer moves to herdr, whose sessions start in a terminal folder. |
+| S7 | **Holds.** `uv run --with-editable <worktree>/packages/haywire-core --with-editable <worktree>/barn/haybale-core …` from the umbrella imports the overlaid packages from the worktree and the rest from the main checkouts, leaves the umbrella unchanged, and `entry_points()` yields 16 libraries with no duplicate (the overlay's copy wins). Code listing all distributions sees an overlaid package twice. |
+
+Found on the way:
+
+- uv applies a sibling repo's workspace `[tool.uv.sources]` to that repo's library, so a
+  sibling's dev `pyproject.toml` leaks into the umbrella. `haywire init --dev` writes those
+  sources as absolute paths (`packages/haywire-studio/src/haywire_studio/init.py`, the
+  `dev_repo` sources), so they work on one machine only; `haybale-comfyui`'s still point to
+  the Linux machine and break the umbrella there.
+- The umbrella needs the repos' Python pin (`.python-version` 3.12.12): visiongraph's
+  `mediapipe-numpy2` has no wheel for 3.13.
+- A studio started from the umbrella listens on the usual port, where the farmhand plugin
+  then connects with a token the umbrella project does not know.
 
 ## Facts to write down, each in its one home
 
@@ -131,7 +160,7 @@ introduction, agent files, review worktree, umbrella environment, workbench.
 
 | # | Slice | State | Commit | Date | Deviations |
 |---|---|---|---|---|---|
-| 0 | Spike | open | | | |
+| 0 | Spike | done | | 2026-11-13 | S5 moved to slice 4; S6 dropped; S7 added |
 | 1 | Repo hygiene | open | | | |
 | 2 | Single-home docs | open | | | |
 | 3 | Agent side | open | | | |
