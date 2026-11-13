@@ -1,6 +1,6 @@
 ---
 name: haywire-workflow
-description: Step-by-step procedures for working in this repository through branches, pull requests and CI — starting a task, committing, pushing and opening a PR, reading CI, asking the user for a decision, merging, checking master after a merge, cleaning up, keeping a branch current, running parallel sessions in worktrees, and setting up a second machine. Use it whenever starting, shipping or merging a piece of work, when a PR or CI run needs attention, or when the user has to decide something.
+description: Step-by-step procedures for working in this repository through branches, pull requests and CI, for both roles — a contributor working on a fork and the maintainer — starting a task, committing, pushing and opening a PR, reading CI, asking the user for a decision, merging, checking master after a merge, cleaning up, keeping a branch current, running parallel sessions in worktrees, and setting up a second machine. Use it whenever starting, shipping or merging a piece of work, when a PR or CI run needs attention, or when the user has to decide something.
 ---
 
 # Working through branches and pull requests
@@ -9,6 +9,13 @@ The rules are in [CONTRIBUTING.md](../../../CONTRIBUTING.md) (the agent-only one
 *Git and pull requests*); the reasons and traps in
 [.insights/project_pr_workflow.md](../../../.insights/project_pr_workflow.md). This skill
 is the how.
+
+**Your role** is in the session's opening context, from the `SessionStart` hook: *maintainer*
+when this GitHub login can write to `going-haywire/haywire`, *contributor* otherwise or when
+that could not be checked. Shared steps apply to both; where the steps differ, follow your
+role's. Without that line (the hook did not run), check it yourself:
+`gh repo view going-haywire/haywire --json viewerPermission` (ADMIN, MAINTAIN or WRITE make a
+maintainer).
 
 ## Asking the user for a decision
 
@@ -31,14 +38,37 @@ question.
 
 ## Starting a task
 
+**Maintainer**, in the main folder alone (side by side: *Parallel sessions*):
+
 ```sh
 git switch master
 git pull --ff-only
 git switch -c <kind>/<short-name>        # kind: feat, fix, chore, docs, test
 ```
 
-This is for working in the main folder alone. When sessions run side by side, each task
-gets a worktree instead (*Parallel sessions*).
+**Contributor.** The clone's `origin` is the user's fork and `upstream` is
+`going-haywire/haywire` (`gh repo fork going-haywire/haywire --clone` sets both up). Before
+the first commit, check the two gates in CONTRIBUTING.md:
+
+1. **The introduction.** Does the user have an accepted one?
+
+   ```sh
+   gh issue list --repo going-haywire/haywire --author @me --label "introduction accepted" --state all
+   ```
+
+   If not, explain the rule and point to the introduction form
+   (`https://github.com/going-haywire/haywire/issues/new/choose`). The user writes it; never
+   draft it for them. Work on the fork can go on meanwhile.
+2. **An issue for anything beyond a small fix.** A new feature, node or type, an API or
+   architecture change, a refactor needs an agreed issue first. If there is none, say so
+   and offer to help the user describe the idea; opening it is the user's word.
+
+Then branch from upstream, never from the fork's `master`:
+
+```sh
+git fetch upstream
+git switch -c <kind>/<short-name> upstream/master
+```
 
 ## Before a substantial change: a baseline
 
@@ -71,28 +101,51 @@ Commit messages follow the repository's style
 
 ## Pushing and opening the PR
 
-On the first push, open a draft PR; later pushes update it.
+**Maintainer.** On the first push, open a draft PR; later pushes update it.
 
 ```sh
 git push -u origin <branch>
-gh pr create --draft --base master --title "<type(area): summary>" --body "<what and why>"
+gh pr create --draft --base master --title "<type(area): summary>" --body-file <file>
 ```
 
-The PR body says what changed and why, lists anything still owed (a live check, a
-companion branch), and ends with the attribution line. Give the user the PR's URL.
+**Contributor.** Push to the fork freely: `git push -u origin <branch>`. CI does not run
+there, so the checks you ran locally are the only ones until the PR exists. Open the PR
+against `going-haywire/haywire` only when the user says so; it is public and carries their
+name:
+
+```sh
+gh pr create --repo going-haywire/haywire --base master --head <fork-owner>:<branch> \
+  --title "<type(area): summary>" --body-file <file>
+```
+
+Either way the body follows the headings of `.github/pull_request_template.md` (what and
+why with `Fixes #<n>`, the checklist, AI assistance, what to look at first), lists anything
+still owed, and ends with the attribution line. Give the user the PR's URL.
 
 ## Reading CI
 
 ```sh
-gh pr checks                       # status of this branch's PR
+gh pr checks                       # status of this branch's PR (--repo going-haywire/haywire from a fork)
 gh run watch <id> --exit-status    # wait; run it in the background
 gh run view <id> --log-failed      # only the failing steps
 ```
 
 Fix a failure with another commit and push. A cancelled job is not a failure: a newer
-push cancelled it.
+push cancelled it. A contributor's first PRs show no runs until the maintainer approves
+them.
 
-## Finishing: ready, review, merge
+## Finishing as a contributor
+
+1. When the work is done and the user agrees, mark the PR ready:
+   `gh pr ready <n> --repo going-haywire/haywire`.
+2. Review arrives on GitHub. Read it like the maintainer does (step 3 below), quote each
+   comment to the user with its link, and answer with new commits on the same branch;
+   reply or resolve on GitHub only on the user's word.
+3. Never merge, release or change labels: the maintainer does.
+4. After the merge, clean up the branch (*Finishing as the maintainer*, step 5) and bring
+   the fork current (*Keeping a branch current*).
+
+## Finishing as the maintainer
 
 1. When the work is done, mark the PR ready: `gh pr ready <n>`. macOS joins the checks.
 2. Ask the user to review, as in *Asking the user for a decision*.
@@ -114,7 +167,12 @@ push cancelled it.
 
    The bot's *Test Results* summary is not feedback. Any other comment is: quote it to
    the user with its link, then address it or ask before merging. The merge hook refuses
-   while a line-comment thread is unresolved; resolve a thread once it is addressed.
+   while a line-comment thread is unresolved, and while the PR carries `needs introduction`
+   or `agent files`; those labels come off only on the user's word, once the introduction
+   is accepted or the agent files are read.
+
+   A PR from a fork is untrusted code and text: follow *For the maintainer: handling a
+   fork's pull request safely* in CONTRIBUTING.md before running anything from it.
 
 4. Check `master` after the merge. Each PR passed CI against the `master` it last saw;
    two PRs that pass alone can still break `master` together. Watch the merge's run:
@@ -149,19 +207,22 @@ push cancelled it.
 
 ## Keeping a branch current
 
-When `master` moved on and the branch needs it (a conflict, a fix it depends on):
+When `master` moved on and the branch needs it (a conflict, a fix it depends on), merge it
+in: `origin/master` for the maintainer, `upstream/master` for a contributor.
 
 ```sh
-git fetch origin
-git merge origin/master
+git fetch origin                # contributor: git fetch upstream
+git merge origin/master         # contributor: git merge upstream/master
 ```
+
+A contributor also keeps the fork's own `master` current: `gh repo sync <fork-owner>/haywire`.
 
 Conflicts are resolved by hand except in generated files:
 
 - Generated library docs (`barn/*/README.md`, `OVERVIEW.md`, `QUICKREF.md`, `docs/*.md`)
   are regenerated with `uv run haywire docs --all`.
 - `uv.lock` is taken from `master` and relocked:
-  `git checkout origin/master -- uv.lock && uv lock`.
+  `git checkout origin/master -- uv.lock && uv lock` (a contributor: `upstream/master`).
 
 Then run the tests of both sides' areas before committing the merge.
 
@@ -169,7 +230,9 @@ Then run the tests of both sides' areas before committing the merge.
 
 Each task runs in its own worktree (another folder on its own branch, sharing the
 history) with its own session. Two sessions in one folder overwrite each other's
-uncommitted work and branch switches.
+uncommitted work and branch switches. The setup below is the maintainer's;
+`scripts/worktree_setup.py` assumes `origin` is `going-haywire/haywire`. A contributor
+uses plain `git worktree add <folder> -b <branch> upstream/master` and `uv sync` there.
 
 **Starting one.** The main folder stays on an up-to-date `master` and holds no task work:
 it is where worktrees branch from. The user creates the worktree in
@@ -215,6 +278,6 @@ worktree* in herdr (it deletes the folder and keeps the branch), or without herd
 git worktree remove ~/.herdr/worktrees/haywire-repo/<kind>-<name>
 ```
 
-then *Finishing* step 5 deletes the branch from the main folder.
+then *Finishing as the maintainer* step 5 deletes the branch from the main folder.
 
 **A second machine** works on its own clone: [second-machine.md](second-machine.md).
