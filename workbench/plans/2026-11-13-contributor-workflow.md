@@ -163,5 +163,5 @@ introduction, agent files, review worktree, umbrella environment, workbench.
 | 0 | Spike | done | | 2026-11-13 | S5 moved to slice 4; S6 dropped; S7 added |
 | 1 | Repo hygiene | done | | 2026-11-13 | `.scratch` measuring tools kept in `workbench/playground/perf/`; `internals/issues/` became issues #77–#79; ~45 dangling plan/handoff pointers removed; release skill, codemap and the PyPI guide's symlink advice updated |
 | 2 | Single-home docs | done | | 2026-11-13 | mypy paths moved to `[tool.mypy] files` (CI runs plain `uv run mypy`); personal reporting preference moved to the gitignored `CLAUDE.local.md`; skill's duplicated command blocks replaced by links; conduct contact still a placeholder |
-| 3 | Agent side | open | | | |
+| 3 | Agent side | done | | 2026-11-13 | the `jq`/`gh` warning sits in the role hook (one place) instead of in each hook; hook tests added in `tests/scripts/test_claude_hooks.py` |
 | 4 | CI | open | | | |

@@ -1,7 +1,7 @@
 #!/bin/bash
-# Refuses `gh pr merge` unless the PR is out of draft, has no unresolved review thread,
-# and the newest run of every check passed, with at least one macOS check among them
-# (macOS runs only once a PR is ready).
+# Refuses `gh pr merge` unless the PR is out of draft, carries neither `needs introduction`
+# nor `agent files`, has no unresolved review thread, and the newest run of every check
+# passed, with at least one macOS check among them (macOS runs only once a PR is ready).
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
@@ -18,9 +18,12 @@ PR=$(echo "$COMMAND" | sed -nE 's/.*gh[[:space:]]+pr[[:space:]]+merge[[:space:]]
 
 cd "${CLAUDE_PROJECT_DIR:-.}" || block "cannot enter the project folder"
 # shellcheck disable=SC2086
-VIEW=$(gh pr view $PR --json isDraft,statusCheckRollup,url 2>&1) || block "cannot read the PR ($VIEW)"
+VIEW=$(gh pr view $PR --json isDraft,statusCheckRollup,url,labels 2>&1) || block "cannot read the PR ($VIEW)"
 
 [ "$(echo "$VIEW" | jq -r '.isDraft')" = "false" ] || block "the PR is still a draft"
+
+HELD=$(echo "$VIEW" | jq -r '[.labels[].name | select(. == "needs introduction" or . == "agent files")] | join(", ")')
+[ -z "$HELD" ] || block "the PR is labelled $HELD; the maintainer removes it after the introduction is accepted or the agent files are read"
 
 # The PR url is https://github.com/<owner>/<repo>/pull/<number>.
 IFS=/ read -r _ _ _ OWNER REPO _ NUMBER <<< "$(echo "$VIEW" | jq -r '.url')"

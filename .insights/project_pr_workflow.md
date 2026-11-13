@@ -28,13 +28,18 @@ requests*); the procedures in the
   ruleset's admin bypass applies to both. The local hook
   (`.claude/hooks/block-dangerous-git.sh`) is what keeps destructive commands with the
   user.
-- **Two more hooks enforce the workflow.** `require-workflow-skill.sh` refuses `git commit`,
-  `git push` and the `gh pr` commands that change a PR until the session has loaded the
-  `haywire-workflow` skill; `mark-workflow-skill.sh` records the load per session id under
+- **More hooks enforce the workflow.** `session-role.sh` (`SessionStart`) tells the agent
+  its role from the login's permission on `going-haywire/haywire`: write access makes a
+  maintainer, anything else, including a failed check (no `gh`, no network, 8 s limit), a
+  contributor; it also warns when `jq` or `gh` is missing, since the other hooks then check
+  nothing. `require-workflow-skill.sh` refuses `git commit`, `git push` and the `gh pr`
+  commands that change a PR until the session has loaded the `haywire-workflow` skill;
+  `mark-workflow-skill.sh` records the load per session id under
   `$TMPDIR/claude-haywire-workflow/`. `guard-pr-merge.sh` refuses `gh pr merge` while the
-  PR is a draft, while a review thread is unresolved, or while the newest run of any check
-  has not passed, and until a macOS check has passed. The user merges by hand when they
-  want to override it.
+  PR is a draft, carries `needs introduction` or `agent files`, has an unresolved review
+  thread, or the newest run of any check has not passed, and until a macOS check has
+  passed. The user merges by hand when they want to override it. `tests/scripts/test_claude_hooks.py`
+  runs them all against a stand-in `gh`.
 - **Only line-comment threads can block a merge.** A conversation comment has no resolved
   state, and Claude comments with the user's account, so no hook can tell whether one was
   answered; the skill has Claude read them all before merging. Feedback that must block a
