@@ -161,7 +161,7 @@ introduction, agent files, review worktree, umbrella environment, workbench.
 | # | Slice | State | Commit | Date | Deviations |
 |---|---|---|---|---|---|
 | 0 | Spike | done | | 2026-11-13 | S5 moved to slice 4; S6 dropped; S7 added |
-| 1 | Repo hygiene | open | | | |
+| 1 | Repo hygiene | done | | 2026-11-13 | `.scratch` measuring tools kept in `workbench/playground/perf/`; `internals/issues/` became issues #77–#79; ~45 dangling plan/handoff pointers removed; release skill, codemap and the PyPI guide's symlink advice updated |
 | 2 | Single-home docs | open | | | |
 | 3 | Agent side | open | | | |
 | 4 | CI | open | | | |

@@ -13,7 +13,6 @@ and all of which were previously asserted from reading code:
 
 The implementations these support (``render_surface``, the leaf counter,
 ``SubmenuRow``) do not exist yet; these pin the mechanics they will be built on.
-See ``docs/superpowers/plans/2026-08-23-surface-model.md``, Stage 0.
 """
 
 from __future__ import annotations

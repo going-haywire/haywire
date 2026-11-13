@@ -1,6 +1,5 @@
 """
-Declaration-order regression for render_settings (settings panel field ordering
-spec, internals/superpowers/2026-07-18-settings-panel-ordering-spec.md).
+Declaration-order regression for render_settings (settings panel field ordering).
 
 render_settings must lay out fields in class-body declaration order (base-first
 MRO walk, same order Settings._settings_descriptors() yields) — NOT sorted by

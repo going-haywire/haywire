@@ -1,6 +1,5 @@
 """
-Declaration-order regression for render_schema (settings panel field ordering
-spec, internals/superpowers/2026-07-18-settings-panel-ordering-spec.md).
+Declaration-order regression for render_schema (settings panel field ordering).
 
 render_schema must walk schema_cls._settings_descriptors() directly (declaration
 order), filtering to only registry-known keys, WITHOUT re-sorting by

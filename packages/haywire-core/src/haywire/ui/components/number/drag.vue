@@ -290,8 +290,8 @@ export default {
    * Swapping this one token for the 2D form took that to 82 fps. The
    * animation is identical: it only ever scales on X.
    *
-   * Measured with .scratch/pan-perf/ — see the "Chrome cliff" section of
-   * .scratch/pan-perf/RESULTS.md before reintroducing any 3D transform on a
+   * Measured with workbench/playground/perf/pan-perf/ — see the "Chrome cliff" section of
+   * workbench/playground/perf/pan-perf/RESULTS.md before reintroducing any 3D transform on a
    * per-widget or per-node element. */
   transform: scaleX(0);
   transition: transform 0.36s cubic-bezier(0.4, 0, 0.2, 1);

@@ -2,9 +2,8 @@
 
 Mirrors ``tests/share_pipeline/test_layering.py``: no module inside the
 package imports the package root, so the root's re-exports cannot loop back.
-Added alongside the move of ``Haybale``/``Deprecation`` out of this package
-(see ``internals/handoff/haybale-record-move-out-of-marketstall.md``), which
-touched every internal file's imports anyway — the cheapest moment to close
+Added alongside the move of ``Haybale``/``Deprecation`` out of this package,
+which touched every internal file's imports anyway — the cheapest moment to close
 a gap marketstall never had a guard for.
 
 This asserts ONLY that ``core/marketstall/`` is free of self-imports. It does

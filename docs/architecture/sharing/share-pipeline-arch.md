@@ -258,8 +258,7 @@ they no longer disagree regardless of which branch the tag was cut from.
 bypass — even though the specific disagreement that originally motivated it
 is gone. Whether to allow publishing from a non-default branch now that the
 URLs agree is a separate decision, deliberately not made by the tag-pinning
-fix. See `docs/superpowers/plans/2026-08-01-marketstall-tag-pinning.md` for
-the fix's scope.
+fix.
 
 **Why there's no escape hatch.** An earlier design did carry a `--ref` flag as exactly that escape hatch, with a documented remedy ("pass `--ref <default>` so the generated URLs point at the branch that will still exist after this one merges"). A whole-branch review of the codebase found that remedy was simply false: `--ref` never actually reached `_build_entry_for_library()` — the URL-generating code path ignored it entirely, so the flag did nothing but suppress the branch check while still emitting URLs pinned to the wrong branch. Once that was discovered, the CLI Surface Simplification plan removed `--ref` (and its sibling `--tag`) outright rather than fix it, on the basis that neither had a real user depending on it. The rule that replaced the flag is therefore not "the flag was removed and the check just happens to remain" — the check was already correct and unconditional; only the broken bypass was deleted.
 

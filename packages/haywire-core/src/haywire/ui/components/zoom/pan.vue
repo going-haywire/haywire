@@ -992,7 +992,7 @@ export default {
    *
    * Promoted, Chrome will not paint the entire layer once the content in view
    * gets large. Measured on graphs/10x300nodes.haywire, counting cards that
-   * actually carry pixels (.scratch/pan-perf/paintcheck.py):
+   * actually carry pixels (workbench/playground/perf/pan-perf/paintcheck.py):
    *
    *     zoom 0.069 (fit, 300 cards in view)   152 of 300 never painted
    *     zoom 0.09  (208 in view)               53 of 208 never painted
@@ -1009,7 +1009,7 @@ export default {
    * where the painted area is small) and re-run paintcheck.py at 0.069 —
    * an fps run cannot see this regression. */
 
-  /* Re-measured post-flatten-3d (2026-09-02, see .scratch/pan-perf/RESULTS.md):
+  /* Re-measured post-flatten-3d (2026-09-02, see workbench/playground/perf/pan-perf/RESULTS.md):
    * removing this showed no regression and a directional gain at FULL detail
    * (+19.5% fps, -33% p99 on the less-confounded pair) — the rank where a
    * card actually carries enough raster content for a downscale filter choice
@@ -1031,9 +1031,8 @@ export default {
 
 <style>
 /* LOD-driven display:none rules removed (design session, 2026-09): measured
- * at 2.15x pan cost for a 0.2%/0.04% framerate gain (see
- * internals/handoff/node-detail-and-lod-classes.md, decision B, and
- * .scratch/pan-perf/RESULTS.md for the full matrix). The crossing itself —
+ * at 2.15x pan cost for a 0.2%/0.04% framerate gain (see ADR 0006 and
+ * workbench/playground/perf/pan-perf/RESULTS.md for the full matrix). The crossing itself —
  * not what it hides — was the cost; the collapsed-sweep control measured
  * flat (68.60 vs 68.57 fps) with nothing to hide, ruling out "not enough was
  * hidden" as the explanation.

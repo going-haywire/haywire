@@ -289,14 +289,11 @@ git commit -m "chore: release v<NEW_VERSION>"
 ```
 
 Use `git add -u` (stage **all tracked modifications**), NOT a `barn/*/pyproject.toml`
-glob. A glob expands to every `barn/*` entry on disk — and if `barn/haybale-visiongraph`
-is present as a local symlink (it's a gitignored, out-of-tree package; see
-[`docs/guides/sharing-libraries.md`](../../../docs/guides/sharing-libraries.md) and the
-workspace `exclude`), git aborts the whole `git add` with
+glob. A glob expands to every `barn/*` entry on disk — and if anything untracked sits
+there (a local symlink to another checkout, say), git aborts the whole `git add` with
 `pathspec '…' is beyond a symbolic link` and **nothing gets staged** — the commit then
 silently fails with "no changes added." `git add -u` sidesteps this entirely: it only
-touches files git already tracks, and the visiongraph symlink is untracked, so it's
-never considered.
+touches files git already tracks.
 
 `-u` alone is not sufficient, though: it ignores untracked files, and the doc step
 writes a NEW file whenever a component is added or renamed — a rename being a delete

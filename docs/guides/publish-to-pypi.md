@@ -175,7 +175,7 @@ uv pip install haybale-my-lib==0.0.2
 
 **Sibling libraries symlinked into the workspace pollute `uv.lock`.** If you develop against another library by symlinking its checkout into a workspace folder (`barn/*` in the haywire monorepo), a plain `uv lock`, and any `uv run`, which re-locks first, adds it and its whole dependency tree to `uv.lock`. CI cannot resolve that path. This slipped into a release commit once and sat on `master` unnoticed. Three guards:
 
-- List every such symlink in `[tool.uv.workspace].exclude` of the root `pyproject.toml` (the haywire monorepo excludes `barn/haybale-visiongraph`, `barn/haybale-spandrel` and `barn/haybale-stream`), and gitignore it.
+- List every such symlink in `[tool.uv.workspace].exclude` of the root `pyproject.toml`, and gitignore it. Better still, do not link it into the workspace at all: install the other library editable in a separate environment that depends on both.
 - Before committing, look at `git diff --stat uv.lock`. A diff you did not intend (new packages, a sibling library) is a side effect: `git checkout uv.lock` discards it.
 - In release and CI-like steps run `uv run --frozen ...` so uv uses the committed lock and does not rewrite it. After a version bump, run `uv lock` once, deliberately, and read the diff: it should contain version lines only.
 

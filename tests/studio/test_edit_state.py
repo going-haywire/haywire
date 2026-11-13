@@ -93,8 +93,7 @@ class TestEditStateContainerLifecycle:
     """Verify EditState plugs into the v1.1 LibraryStateContainer correctly.
 
     Uses the `register_edit_state` fixture from conftest.py, which calls
-    `container._add_session_class(EditState, key)` directly per
-    internals/prd/v1.2-edit-state-migration.md §3.5 option (a) and returns the
+    `container._add_session_class(EditState, key)` directly and returns the
     same EditState class reference the container saw.
     """
 

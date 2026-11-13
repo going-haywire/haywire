@@ -9,18 +9,6 @@ members = [
     "packages/*",
     "barn/*",
 ]
-# haybale-visiongraph, haybale-spandrel, haybale-stream, haybale-comfyui and haybale-protokol live in their own
-# repos and are symlinked into barn/ for local editing. They are installed into the venv
-# manually via `uv pip install -e .../barn/<name>`, NOT as workspace members —
-# excluding them here stops the `barn/*` glob from pulling the gitignored
-# symlinks into uv.lock (which CI can't resolve).
-exclude = [
-    "barn/haybale-visiongraph",
-    "barn/haybale-spandrel",
-    "barn/haybale-stream",
-    "barn/haybale-comfyui",
-    "barn/haybale-protokol",
-]
 
 [tool.uv.sources]
 haywire-core = { workspace = true }
@@ -92,10 +80,9 @@ mypy_path = [
     "barn/haybale-models",
 ]
 
-# haybale_visiongraph.* and cv2 are absent in CI: the library is a separate
-# repo symlinked into barn/ and gitignored, so the tests that import it resolve
-# only on a developer machine that has it checked out. They skip at runtime;
-# mypy reads the imports either way.
+# haybale_visiongraph.* and cv2 are absent in CI: the library lives in its own
+# repository, so the tests that import it resolve only in an environment that
+# has it installed. They skip at runtime; mypy reads the imports either way.
 [[tool.mypy.overrides]]
 module = [
     "toml",
@@ -132,7 +119,7 @@ check_untyped_defs = true
 
 [tool.ruff]
 line-length = 109
-exclude = ["playground/", ".scratch/"]
+exclude = ["workbench/playground/", ".scratch/"]
 
 [tool.ruff.lint]
 # PT (flake8-pytest-style) and B (bugbear) catch problems neither mypy nor the

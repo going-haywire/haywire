@@ -50,5 +50,5 @@ Python 3.10+, NiceGUI / Quasar / Vue 3, `injector` DI, `attrs`/`cattrs`, `duit[n
 
 - Total modules: 15 mapped (11 prior + 4 new bundled libs: audio, image, models, share)
 - Gitignored local-only libs, not mapped: `haybale-visiongraph`, `haybale-comfyui`, `haybale-spandrel`, `haybale-stream`
-- Map coverage: top-level dirs in the tracked tree are covered except `playground/`, `site/`, `internals/`, `graphs/`, `haystacks/`, `scripts/`, `benchmarks/`, `assets/`, `.insights/` (CLAUDE.md-referenced, not code)
+- Map coverage: top-level dirs in the tracked tree are covered except `workbench/`, `site/`, `graphs/`, `haystacks/`, `scripts/`, `benchmarks/`, `assets/`, `.insights/` (CLAUDE.md-referenced, not code)
 - Cross-cuts: 3, refreshed 2026-11-10

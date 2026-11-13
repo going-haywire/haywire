@@ -52,8 +52,7 @@ def project_writable_libraries(ctx: FarmhandContext) -> list[str]:
     editable install anywhere satisfies Farmhand's actual need
     ("can I write this source"), including a symlinked-in editable install of
     someone else's library. Renamed from project_local_libraries, which implied
-    the narrower origin-axis meaning it never actually had — see
-    internals/handoff/library-origin-and-required-classification.md.
+    the narrower origin-axis meaning it never actually had.
     """
     registry = ctx.registry(LibraryRegistry)
     result = []

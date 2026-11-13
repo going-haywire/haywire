@@ -63,8 +63,7 @@ class MarketplaceAddSourceTarget:
         collisions across all subscribed sources and surfaces them on its
         resolved step, so anything missed here shows up on the next refresh
         instead of staying hidden. Closing the gap at *this* point would mean
-        probing every subscribed source on add — see
-        internals/handoff/marketplace-blocked-category-and-source-conflicts.md.
+        probing every subscribed source on add.
         """
         return self._state.get_project_haybales()
 

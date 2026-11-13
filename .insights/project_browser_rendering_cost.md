@@ -49,23 +49,23 @@ corpus is `10x256n_5x224e` and `10x512n_5x448e`.
 
 ### Instruments
 
-`.scratch/pan-perf/` drives a live studio headlessly or headed (see its
+`workbench/playground/perf/pan-perf/` drives a live studio headlessly or headed (see its
 README); `session.py` is the shared plumbing (signed session cookie,
-readiness). `.scratch/draw-perf/` times a load until fully drawn.
+readiness). `workbench/playground/perf/draw-perf/` times a load until fully drawn.
 
 ```sh
-uv run python .scratch/pan-perf/panperf.py --runs 3                  # pan frame gaps
-uv run python .scratch/pan-perf/panperf.py --runs 1 --trace /tmp/t.json
-uv run python .scratch/pan-perf/analyze_trace.py /tmp/t.json --last 5
-uv run python .scratch/pan-perf/paintcheck.py --zoom 0.069 [--pan]   # unpainted cards
-uv run python .scratch/pan-perf/earlyfreeze.py --settle 60           # early vs settled pan
-uv run python .scratch/pan-perf/startupgap.py --engine firefox       # main-thread wait during a load
-uv run python .scratch/pan-perf/loadtrace.py --out /tmp/load.json --seconds 35
-uv run python .scratch/pan-perf/loadtrace_analyze.py /tmp/load.json --app-only
+uv run python workbench/playground/perf/pan-perf/panperf.py --runs 3                  # pan frame gaps
+uv run python workbench/playground/perf/pan-perf/panperf.py --runs 1 --trace /tmp/t.json
+uv run python workbench/playground/perf/pan-perf/analyze_trace.py /tmp/t.json --last 5
+uv run python workbench/playground/perf/pan-perf/paintcheck.py --zoom 0.069 [--pan]   # unpainted cards
+uv run python workbench/playground/perf/pan-perf/earlyfreeze.py --settle 60           # early vs settled pan
+uv run python workbench/playground/perf/pan-perf/startupgap.py --engine firefox       # main-thread wait during a load
+uv run python workbench/playground/perf/pan-perf/loadtrace.py --out /tmp/load.json --seconds 35
+uv run python workbench/playground/perf/pan-perf/loadtrace_analyze.py /tmp/load.json --app-only
 ```
 
 `panperf.py --css '<hypothesis> !important'` bisects CSS without a source edit
-or a studio restart. `.scratch/draw-perf/measure_engine.py` times a load until
+or a studio restart. `workbench/playground/perf/draw-perf/measure_engine.py` times a load until
 every card and edge is drawn, in either engine.
 
 To time a whole-page update directly: the root instance is `mounted_app` (a

@@ -51,7 +51,6 @@ async def _shutdown():
 
 ## Where this was found
 
-Wayfinder ticket `.scratch/mcp-server/issues/09-mount-prototype.md` (Farmhand
-MCP mount prototype, 2026-07-19): mounting the official `mcp` SDK's Streamable
+The Farmhand MCP mount prototype (2026-07-19): mounting the official `mcp` SDK's Streamable
 HTTP app on the studio's FastAPI instance. Applies to ANY anyio/task-group
 context wired across NiceGUI lifecycle handlers, not just MCP.

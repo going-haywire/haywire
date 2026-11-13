@@ -108,8 +108,7 @@ def _render_block(flow: InstallFlow, on_block: Callable[[], None]) -> None:
     A side exit rather than a step, mirroring the share wizard's precondition
     fixes — blocking means the user is not installing, so it leaves the flow
     instead of advancing it. Whether per-source blocking is the right model at
-    all is a separate question, tracked in
-    internals/handoff/marketplace-blocked-category-and-source-conflicts.md.
+    all is a separate question.
     """
 
     def _do_block() -> None:

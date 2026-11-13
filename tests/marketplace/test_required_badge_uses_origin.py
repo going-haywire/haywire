@@ -1,7 +1,6 @@
 """is_required() must produce the IDENTICAL protected set before and after
 routing through LibraryOrigin.is_protected — this is a centralization
-refactor, not a policy change. See Global Constraints in
-docs/superpowers/plans/2026-08-06-library-origin-axis.md.
+refactor, not a policy change.
 """
 
 from haybale_marketplace.library_origin import LibraryOrigin, compute_library_origin

@@ -220,12 +220,8 @@ packages/haywire-core/src/haywire/_baked_docs/*
 # Haywire project config (user-local, not repo state)
 .haywire/
 
-# Local symlinks to external dev projects (machine-specific paths)
-barn/haybale-visiongraph
-barn/haybale-spandrel
-barn/haybale-stream
-barn/haybale-comfyui
-barn/haybale-protokol
+# Personal scratch notes; working material others need goes in workbench/
+.scratch/
 
 assets/*
 

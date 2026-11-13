@@ -36,8 +36,6 @@ This table enables incremental refresh. Each hash is the output of `git rev-pars
 | tests | `tests` | db337c6bfd89c189b239a5975f3ce71fd48a55ed | 2026-11-10 |
 | docs | `docs` | 622d2aeda8c1c2465c997d564918eef2edbc7d83 | 2026-11-10 |
 
-> `barn/haybale-visiongraph`, `barn/haybale-comfyui`, `barn/haybale-spandrel` and `barn/haybale-stream` are **gitignored** (`.gitignore:224-227`) and untracked in HEAD. They exist on disk as local-only libraries and are not hash-tracked or mapped.
-
 > `haybale-audio`, `haybale-image`, `haybale-models` and `haybale-share` have no manifests before this refresh. Their tree hashes were computed here, not from an earlier map.
 
 ## Refresh Instructions

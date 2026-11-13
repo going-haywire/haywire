@@ -19,8 +19,7 @@ Reads the process-wide tracker on every draw rather than caching a snapshot,
 and redraws on ``FarmhandActivity`` — so a call that starts while the tab is
 open appears without the human doing anything.
 
-Each row carries a detail button (settled 2026-08-18, see
-``docs/superpowers/plans/2026-08-18-farmhand-activity-expansion.md``) opening
+Each row carries a detail button opening
 a ``Popup`` with the call's arguments/result. The popup is NiceGUI/Vue-owned
 state once opened (its own close affordance, backdrop, Escape) — it survives
 a ``FarmhandActivity``-triggered redraw of the row list underneath it because

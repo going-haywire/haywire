@@ -110,8 +110,7 @@ class EditingSettingsPanel(BasePanel):
 class ActivitySettingsPanel(BasePanel):
     """Farmhand activity tracker: in-memory history size, audit log path.
 
-    See ``haywire.core.farmhand.settings.ActivitySettings`` and
-    ``docs/superpowers/plans/2026-08-18-farmhand-activity-expansion.md``.
+    See ``haywire.core.farmhand.settings.ActivitySettings``.
     """
 
     def draw(
