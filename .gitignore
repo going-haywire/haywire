@@ -225,6 +225,7 @@ barn/haybale-visiongraph
 barn/haybale-spandrel
 barn/haybale-stream
 barn/haybale-comfyui
+barn/haybale-osc
 
 assets/*
 
