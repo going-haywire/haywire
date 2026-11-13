@@ -31,8 +31,13 @@ The rules are in CLAUDE.md, *Git and pull requests*; the procedures in the
   `git push` and the `gh pr` commands that change a PR until the session has loaded the
   `haywire-workflow` skill; `mark-workflow-skill.sh` records the load per session id under
   `$TMPDIR/claude-haywire-workflow/`. `guard-pr-merge.sh` refuses `gh pr merge` while the
-  PR is a draft or the newest run of any check has not passed, and until a macOS check has
-  passed. The user merges by hand when they want to override it.
+  PR is a draft, while a review thread is unresolved, or while the newest run of any check
+  has not passed, and until a macOS check has passed. The user merges by hand when they
+  want to override it.
+- **Only line-comment threads can block a merge.** A conversation comment has no resolved
+  state, and Claude comments with the user's account, so no hook can tell whether one was
+  answered; the skill has Claude read them all before merging. Feedback that must block a
+  merge goes in a line comment.
 - **The hook reads the whole command line, text included:** a `git branch -d` next to a
   push, or a heredoc whose text names a blocked command, is refused. Put such text in a
   file and run the file.

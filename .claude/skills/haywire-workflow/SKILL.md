@@ -116,6 +116,19 @@ push cancelled it.
    gh pr merge <n> --squash
    ```
 
+   Before merging, read every comment on the PR. The user may review on GitHub and say
+   only "merge" here, and nothing tells this session that a comment arrived:
+
+   ```sh
+   gh pr view <n> --comments                                     # conversation and reviews
+   gh api repos/going-haywire/haywire/pulls/<n>/comments \
+     --jq '.[] | "\(.path):\(.line) \(.body)"'                   # line comments
+   ```
+
+   The bot's *Test Results* summary is not feedback. Any other comment is: quote it to
+   the user with its link, then address it or ask before merging. The merge hook refuses
+   while a line-comment thread is unresolved; resolve a thread once it is addressed.
+
 4. Check `master` after the merge. Each PR passed CI against the `master` it last saw;
    two PRs that pass alone can still break `master` together. Watch the merge's run:
 

@@ -1,6 +1,7 @@
 #!/bin/bash
-# Refuses `gh pr merge` unless the PR is out of draft and the newest run of every check
-# passed, with at least one macOS check among them (macOS runs only once a PR is ready).
+# Refuses `gh pr merge` unless the PR is out of draft, has no unresolved review thread,
+# and the newest run of every check passed, with at least one macOS check among them
+# (macOS runs only once a PR is ready).
 
 INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
@@ -17,9 +18,20 @@ PR=$(echo "$COMMAND" | sed -nE 's/.*gh[[:space:]]+pr[[:space:]]+merge[[:space:]]
 
 cd "${CLAUDE_PROJECT_DIR:-.}" || block "cannot enter the project folder"
 # shellcheck disable=SC2086
-VIEW=$(gh pr view $PR --json isDraft,statusCheckRollup 2>&1) || block "cannot read the PR ($VIEW)"
+VIEW=$(gh pr view $PR --json isDraft,statusCheckRollup,url 2>&1) || block "cannot read the PR ($VIEW)"
 
 [ "$(echo "$VIEW" | jq -r '.isDraft')" = "false" ] || block "the PR is still a draft"
+
+# The PR url is https://github.com/<owner>/<repo>/pull/<number>.
+IFS=/ read -r _ _ _ OWNER REPO _ NUMBER <<< "$(echo "$VIEW" | jq -r '.url')"
+OPEN_THREADS=$(gh api graphql -F owner="$OWNER" -F repo="$REPO" -F number="$NUMBER" -f query='
+  query($owner: String!, $repo: String!, $number: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) { reviewThreads(first: 100) { nodes { isResolved } } }
+    }
+  }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length' 2>&1) \
+  || block "cannot read the PR's review threads ($OPEN_THREADS)"
+[ "$OPEN_THREADS" = "0" ] || block "$OPEN_THREADS review thread(s) unresolved; read them, address them, resolve them"
 
 # One entry per check and run: keep the newest run of each check.
 VERDICT=$(echo "$VIEW" | jq -r '
