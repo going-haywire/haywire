@@ -4201,7 +4201,7 @@ the cost driver for that axis is element <em>count</em>, and hiding with CSS wou
 folded element built and re-walked by NiceGUI regardless. This is still a hard rule for
 <strong>collapse</strong>.</p>
 <p>The mirror-image rule holds for <strong>NodeDetail</strong>: do NOT gate its construction. The
-measurement that flipped this (<code>.scratch/pan-perf/RESULTS.md</code>, decision A) found the
+measurement that flipped this (<code>workbench/playground/perf/pan-perf/RESULTS.md</code>, decision A) found the
 per-rank cost was pan-time paint/layout, which <code>display: none</code> removes identically to
 never building the element — so a construction gate there buys nothing but a slower,
 NiceGUI-whole-tree-render card rebuild on every rank change.</p>

@@ -3696,8 +3696,7 @@ measured directly: NodeDetail's construction-gate cost was never the
 mounted-element re-walk this decision worried about. It was the pan-time
 paint/layout cost of what those elements render, and <code>display: none</code> removes
 that cost identically to never building them — measured at 0.98x/1.02x of
-constructed WIDGETS-equivalent (see <code>.scratch/pan-perf/RESULTS.md</code> and
-<code>internals/handoff/node-detail-and-lod-classes.md</code>, decision A).</p>
+constructed WIDGETS-equivalent (see <code>workbench/playground/perf/pan-perf/RESULTS.md</code>).</p>
 <p><strong>What changed:</strong></p>
 <ul>
 <li><code>NodeDetail</code> grew from 3 ranks (<code>COMPACT</code>/<code>STANDARD</code>/<code>FULL</code>) to 5
@@ -3755,7 +3754,7 @@ is nothing left to peek at: every rank's elements are painted at every zoom,
 and <code>NodeDetail</code> decides what exists rather than what is revealed.</p>
 <p>Found while attributing a pan-performance defect: hovering a card during a pan
 costs ~7x the framerate on a 300-node graph, and the hover path was being
-audited consumer by consumer (<code>.scratch/pan-perf/eventcensus.py</code>; the class
+audited consumer by consumer (<code>workbench/playground/perf/pan-perf/eventcensus.py</code>; the class
 mutation itself measured free — it is removed as dead code, not as a fix).</p>
 <p><strong>Still standing from decision 8:</strong> LOD and <code>NodeDetail</code> remain different
 concerns that nothing composes, and <code>data-lod-level</code> is still computed by

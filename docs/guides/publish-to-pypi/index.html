@@ -3828,7 +3828,7 @@ both — and pasting that into Add Source fails.</p>
 <h2 id="8-traps">8. Traps<a class="headerlink" href="#8-traps" title="Permanent link">&para;</a></h2>
 <p><strong>Sibling libraries symlinked into the workspace pollute <code>uv.lock</code>.</strong> If you develop against another library by symlinking its checkout into a workspace folder (<code>barn/*</code> in the haywire monorepo), a plain <code>uv lock</code>, and any <code>uv run</code>, which re-locks first, adds it and its whole dependency tree to <code>uv.lock</code>. CI cannot resolve that path. This slipped into a release commit once and sat on <code>master</code> unnoticed. Three guards:</p>
 <ul>
-<li>List every such symlink in <code>[tool.uv.workspace].exclude</code> of the root <code>pyproject.toml</code> (the haywire monorepo excludes <code>barn/haybale-visiongraph</code>, <code>barn/haybale-spandrel</code> and <code>barn/haybale-stream</code>), and gitignore it.</li>
+<li>List every such symlink in <code>[tool.uv.workspace].exclude</code> of the root <code>pyproject.toml</code>, and gitignore it. Better still, do not link it into the workspace at all: install the other library editable in a separate environment that depends on both.</li>
 <li>Before committing, look at <code>git diff --stat uv.lock</code>. A diff you did not intend (new packages, a sibling library) is a side effect: <code>git checkout uv.lock</code> discards it.</li>
 <li>In release and CI-like steps run <code>uv run --frozen ...</code> so uv uses the committed lock and does not rewrite it. After a version bump, run <code>uv lock</code> once, deliberately, and read the diff: it should contain version lines only.</li>
 </ul>
