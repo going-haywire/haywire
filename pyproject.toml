@@ -9,7 +9,7 @@ members = [
     "packages/*",
     "barn/*",
 ]
-# haybale-visiongraph, haybale-spandrel, haybale-stream, haybale-comfyui and haybale-osc live in their own
+# haybale-visiongraph, haybale-spandrel, haybale-stream, haybale-comfyui and haybale-protokol live in their own
 # repos and are symlinked into barn/ for local editing. They are installed into the venv
 # manually via `uv pip install -e .../barn/<name>`, NOT as workspace members —
 # excluding them here stops the `barn/*` glob from pulling the gitignored
@@ -19,7 +19,7 @@ exclude = [
     "barn/haybale-spandrel",
     "barn/haybale-stream",
     "barn/haybale-comfyui",
-    "barn/haybale-osc",
+    "barn/haybale-protokol",
 ]
 
 [tool.uv.sources]
