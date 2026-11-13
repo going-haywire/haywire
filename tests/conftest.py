@@ -522,7 +522,7 @@ def integration_node_factory(library_system) -> NodeFactory:
 
 
 # ==============================================================================
-# EditState Fixture (v1.2 — see internals/prd/v1.2-edit-state-migration.md)
+# EditState Fixture
 # ==============================================================================
 
 

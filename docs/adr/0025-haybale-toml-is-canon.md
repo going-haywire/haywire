@@ -129,7 +129,3 @@ wheel, so the fields would be publish-time only.
 **A file outside the package directory.** Rejected: only what is inside the
 package ships in the wheel, which is the entire mechanism.
 
-## References
-
-- Design: `internals/plans/2026-08-09-haybale-toml-field-canon.md`
-- Implementation plan: `internals/plans/2026-08-09-haybale-toml-implementation.md`

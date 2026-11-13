@@ -10,12 +10,13 @@ It does what a new checkout lacks:
 
 1. Starts a branch without commits of its own from the latest ``origin/master``
    (a branch with commits is only reported as behind).
-2. Recreates the gitignored links ``barn/haybale-spandrel`` and
-   ``barn/haybale-visiongraph`` where the main checkout has them.
-3. Builds the environment: ``uv sync`` as CI runs it, plus the linked libraries
-   installed editable, as in the main checkout.
-4. Gives the worktree's studio a port of its own in ``.haywire/settings.json``,
+2. Builds the environment: ``uv sync`` as CI runs it.
+3. Gives the worktree's studio a port of its own in ``.haywire/settings.json``,
    starting from a copy of the main checkout's settings.
+
+To run the full studio with the libraries of the other repositories against this
+worktree's code, use the umbrella environment beside the repositories (see its
+README).
 
 Standard library only: it runs before ``uv sync``.
 """
@@ -32,7 +33,6 @@ from pathlib import Path
 
 MAIN_STUDIO_PORT = 8124
 FIRST_WORKTREE_PORT = MAIN_STUDIO_PORT + 1
-SIBLING_LIBRARIES = ("haybale-spandrel", "haybale-visiongraph")
 SETTINGS = Path(".haywire") / "settings.json"
 
 
@@ -95,24 +95,9 @@ def update_branch(checkout: Path) -> str:
     return f"branch: fast-forwarded {behind} commits to origin/master"
 
 
-def link_siblings(checkout: Path, main: Path) -> list[str]:
-    linked = []
-    for name in SIBLING_LIBRARIES:
-        source, link = main / "barn" / name, checkout / "barn" / name
-        if not source.is_symlink() or not source.resolve().is_dir():
-            continue
-        if not link.is_symlink():
-            link.symlink_to(source.resolve())
-        linked.append(name)
-    return linked
-
-
-def build_environment(checkout: Path, linked: list[str]) -> None:
+def build_environment(checkout: Path) -> None:
     sync = ["uv", "sync", "--all-extras", "--dev", "--compile-bytecode", "--quiet"]
     subprocess.run(sync, cwd=checkout, check=True)
-    for name in linked:
-        install = ["uv", "pip", "install", "--quiet", "-e", f"barn/{name}"]
-        subprocess.run(install, cwd=checkout, check=True)
 
 
 def assign_studio_port(checkout: Path, main: Path) -> str:
@@ -142,9 +127,7 @@ def main() -> int:
         print("uv is not installed: https://docs.astral.sh/uv/")
         return 1
     print(update_branch(checkout))
-    linked = link_siblings(checkout, main_checkout)
-    print(f"linked: {', '.join(linked) or 'none (no sibling checkouts linked in the main checkout)'}")
-    build_environment(checkout, linked)
+    build_environment(checkout)
     print("environment: synced")
     print(assign_studio_port(checkout, main_checkout))
     return 0

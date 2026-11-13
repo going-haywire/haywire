@@ -7,8 +7,7 @@ shared ``siblings`` list themselves — Surface-model panels, eventually, but
 this module has no real panels yet, so tests simulate a panel's ``draw()``/
 ``draw_disabled()`` with a plain counter (``_leaves_drawn``), per the plan.
 
-See ``docs/superpowers/plans/2026-08-23-surface-model.md``, Stage 0, and
-``tests/ui/test_nested_render_mechanics.py`` for the sibling framework-proof
+See ``tests/ui/test_nested_render_mechanics.py`` for the sibling framework-proof
 tests this module follows the same verification style as (introspect real
 NiceGUI state — ``_render_markdown()``, ``_classes``, ``_style``,
 ``_is_canceled`` — never just assert a docstring's claim).

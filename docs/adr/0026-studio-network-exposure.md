@@ -284,7 +284,6 @@ mechanism than the SDK it's layered onto provides.
 
 ## References
 
-- Plan: `docs/superpowers/plans/2026-08-14-studio-network-exposure.md`
 - `packages/haywire-studio/src/haywire_studio/network/settings.py` — `NetworkSettings`
 - `packages/haywire-studio/src/haywire_studio/network/ip_filter.py` — `IPAllowlistMiddleware`
 - `packages/haywire-studio/src/haywire_studio/farmhand/settings.py` — `FarmhandSettings`

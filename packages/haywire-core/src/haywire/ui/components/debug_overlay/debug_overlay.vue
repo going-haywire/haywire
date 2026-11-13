@@ -30,7 +30,7 @@
 <script>
 // Canvas debug/performance HUD.
 //
-// Self-contained port of internals/perf_probe.js: a requestAnimationFrame loop
+// Self-contained: a requestAnimationFrame loop
 // measures FPS / frame time / worst-1% (p99) jank, a PerformanceObserver counts
 // main-thread long tasks (>50ms), and a periodic DOM census reports element /
 // node / pin / path counts plus the current zoom + LOD level. Zoom and pan are

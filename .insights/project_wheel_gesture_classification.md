@@ -47,12 +47,12 @@ be used on its own.
 
 ## Regression check
 
-`.scratch/pan-perf/wheelcheck.py` replays realistic gesture traces and asserts
+`workbench/playground/perf/pan-perf/wheelcheck.py` replays realistic gesture traces and asserts
 both halves — that a swipe pans **and** does not zoom, and that a wheel notch
 and a pinch still do zoom:
 
 ```sh
-uv run python .scratch/pan-perf/wheelcheck.py     # 6/6 cases
+uv run python workbench/playground/perf/pan-perf/wheelcheck.py     # 6/6 cases
 ```
 
 The "and pans" half is not optional. An assertion that only checks "zoom did

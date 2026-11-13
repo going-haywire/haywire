@@ -1,6 +1,5 @@
 """LibraryOrigin — the second, orthogonal ("where did this come from") axis
-alongside InstallType ("how did this reach the environment"). See
-internals/handoff/library-origin-and-required-classification.md.
+alongside InstallType ("how did this reach the environment").
 """
 
 from haybale_marketplace.library_origin import (

@@ -137,7 +137,7 @@ corrected when this canvas's own `ZoomPanContainer` reports in. Anything
 measured in that window came out scaled by the ratio between the two, drawing
 the whole edge set away from its pins at a constant factor.
 
-Measured in the field with `.scratch/edgecheck.js`: `scaleRatio 2.303`, worst
+Measured in the field with `workbench/playground/perf/edgecheck.js`: `scaleRatio 2.303`, worst
 endpoint 850px out — and **mixed**, 144 edges drawn wrong against 180 drawn
 right, because the second group was parked and flushed later, once the zoom had
 arrived. That mix is why sampling one edge to decide whether the set is healthy
@@ -210,7 +210,7 @@ the edge batch one 21 s task that painted nothing until it ended. The symptom wa
 "Firefox shows no edges until the last two seconds", and Chrome looked fine.
 `_lookupById` uses `document.getElementById` and checks `this.$el.contains()`;
 it scans only when the first match belongs to the other view of the level.
-Never time a DOM-lookup change in Chrome alone. `.scratch/draw-perf/browser_probe.py firefox`
+Never time a DOM-lookup change in Chrome alone. `workbench/playground/perf/draw-perf/browser_probe.py firefox`
 counts and times the calls per engine, and `test_edge_batch_cost.py` pins the
 scan count.
 

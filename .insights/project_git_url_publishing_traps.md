@@ -34,7 +34,7 @@ Scaffolded at init (`_generate_gitattributes`): text=auto plus `binary` markers 
 
 ## 3. `install_spec`/`docs_url`/`examples_url`/`tests_url` are pinned to the release tag — but only through the full pipeline
 
-**Fixed** (`docs/superpowers/plans/2026-08-01-marketstall-tag-pinning.md`). `_build_entry_for_library` (`packages/haywire-studio/src/haywire_studio/packaging/share/marketstall.py:28`) accepts an optional `tag` parameter. `apply_marketstall()` (`share/pipeline/steps/commit.py:18`) always supplies `f"v{pipeline.version}"` — the version step 3 resolves and tag-collision-checks before step 5 runs, so the tag name is known even though `apply()` (later in that same step) hasn't created the actual git tag yet. All four ref-bearing URLs pin to that tag, so a marketstall entry advertising `min_version = "0.3.1"` installs exactly that state, not whatever `master`/`main` currently holds.
+**Fixed.** `_build_entry_for_library` (`packages/haywire-studio/src/haywire_studio/packaging/share/marketstall.py:28`) accepts an optional `tag` parameter. `apply_marketstall()` (`share/pipeline/steps/commit.py:18`) always supplies `f"v{pipeline.version}"` — the version step 3 resolves and tag-collision-checks before step 5 runs, so the tag name is known even though `apply()` (later in that same step) hasn't created the actual git tag yet. All four ref-bearing URLs pin to that tag, so a marketstall entry advertising `min_version = "0.3.1"` installs exactly that state, not whatever `master`/`main` currently holds.
 
 **This only applies through the full `SharePipeline` flow.** `write_marketstall()`/`build_marketstall_entries()`/`_build_entry_for_library()` called directly with no `tag` argument (any standalone script, or a test that doesn't pass one) still fall back to the pre-fix behavior: `install_spec` ref-less (floats to default-branch HEAD), the other three URLs pinned to whatever branch is currently checked out. This is intentional backward compatibility, not a remaining bug — if you add a new caller of these functions, decide explicitly whether it has a tag to pass.
 
@@ -54,4 +54,3 @@ Files:
 - `packages/haywire-studio/src/haywire_studio/packaging/share/marketstall.py`
 - `packages/haywire-studio/src/haywire_studio/packaging/share/pipeline/steps/commit.py`
 - `packages/haywire-studio/src/haywire_studio/init.py`
-- `internals/superpowers/2026-07-30-share-wizard.md`

@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: guide
-scope: Working on the Haywire repository itself — clone and setup, a project wired to the local clone, running, testing, linting, building docs, and the optional agent loop
+scope: Working on the Haywire repository itself — clone and setup, a project wired to the local clone, running, testing, linting, and building docs
 see-also:
   - doc-authoring.md
   - publish-to-pypi.md
@@ -76,7 +76,3 @@ The published site is built from `docs/` with Material for MkDocs and redeployed
 ## Editor tip
 
 For source-link navigation in VS Code, add `code` to your PATH (Command Palette → "Shell Command: Install 'code' command in PATH").
-
-## Autonomous agent loop (optional)
-
-The repo ships a [sandcastle](https://github.com/mattpocock/sandcastle)-based agent loop that works ticket queues inside a Docker sandbox and commits to a review branch. It needs Node.js 20 or newer and Docker on the host. Setup, usage, and model variants (Anthropic API or local Ollama) are in `.sandcastle/README.md` in the repository.

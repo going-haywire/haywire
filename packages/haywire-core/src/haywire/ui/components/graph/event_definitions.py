@@ -545,7 +545,7 @@ class UserPasteClipboardEvent(BaseGraphEvent):
     canvasY: float
     # OS-clipboard text read in the Vue layer (avoids a NiceGUI async trap on
     # the synchronous Python dispatcher). Empty when the in-process mirror
-    # should be used instead. See docs/superpowers/plans/2026-06-01-node-copy-paste.md.
+    # should be used instead.
     clipboardText: str = ""
 
 

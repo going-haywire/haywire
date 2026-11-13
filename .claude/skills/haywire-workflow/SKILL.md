@@ -204,8 +204,8 @@ python3 scripts/worktree_setup.py
 ```
 
 It starts the branch from the latest `origin/master` (if the branch has no commits yet;
-otherwise it reports how far behind it is), links the sibling libraries, runs `uv sync`,
-and gives the studio its own port in `.haywire/settings.json`. Safe to run again. A
+otherwise it reports how far behind it is), runs `uv sync`, and gives the studio its own
+port in `.haywire/settings.json`. Safe to run again. A
 session started in the worktree still reads the main folder's memory; CodeGraph indexes
 only the main folder, so search with grep there.
 
@@ -215,8 +215,9 @@ only the main folder, so search with grep there.
   the branch instead.
 - Run only the tests of the area changed; CI runs the whole suite. Browser tests in two
   worktrees at once are fine: each checkout has its own harness ports.
-- Only one stream at a time changes `haybale-spandrel` or `haybale-visiongraph`. They are
-  linked, not copied, so every worktree sees the same checkout and its branch.
+- Only one stream at a time changes a library in another repository (spandrel,
+  visiongraph, …): every worktree and the umbrella environment use the same checkout of
+  it and its branch.
 - `~/.haywire` (global settings, security document, models, volumes) is shared too: a
   library installed or a setting changed there is seen by every stream.
 

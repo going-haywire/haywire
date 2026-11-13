@@ -1,5 +1,5 @@
 """Deprecation notice surfaces in the Library Browser badge and Library
-Overview banner — see internals/handoff/deprecated-libraries-have-no-ui-surface.md.
+Overview banner.
 
 Covers the two pure/near-pure decision points:
   - deprecation_message(): banner text, including the version-aware phrasing

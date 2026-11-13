@@ -13,7 +13,7 @@ the marketplace layer, not in core.
 ``LibraryOrigin.is_protected`` is the single predicate every "can this be
 disabled/uninstalled" check should read, replacing the OR-of-scattered-
 checks pattern the original narrow is_required() fix used but didn't
-generalize. See internals/handoff/library-origin-and-required-classification.md.
+generalize.
 """
 
 from __future__ import annotations

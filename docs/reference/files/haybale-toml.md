@@ -295,8 +295,7 @@ nor `successor`.
 
     Nothing in the studio displays the notice today — no browser badge, no
     overview banner, no `successor` action. The data reaches the consumer; the
-    UI is unbuilt. Tracked in
-    `internals/handoff/deprecated-libraries-have-no-ui-surface.md`.
+    UI is unbuilt.
 
 Treat a published block as immutable: an author who changes their mind bumps a
 version and removes the block rather than rewriting what consumers already

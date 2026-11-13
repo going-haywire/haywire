@@ -1,8 +1,7 @@
 """LibraryRegistry.disable_library() refuses FOLDER-mechanism libraries.
 
-The one guard core can compute without workspace context — see
-internals/handoff/library-origin-and-required-classification.md,
-"Known, accepted asymmetry" section. project_local protection stays
+The one guard core can compute without workspace context, a known and
+accepted asymmetry. project_local protection stays
 UI-layer-only; this guard covers FOLDER only (today: builtin).
 """
 

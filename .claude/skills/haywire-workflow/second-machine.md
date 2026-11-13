@@ -33,20 +33,21 @@ sudo sysctl --system
 `~/.haywire` (global settings, security document, model caches, volumes) starts empty on
 this machine; nothing is copied from the first.
 
-## The sibling libraries (optional)
+## The other libraries (optional)
 
-Only when this machine works on or runs `haybale-spandrel` or `haybale-visiongraph`.
-Clone each next to `haywire-repo`, link it into `barn/` and install it editable:
+Only when this machine works on or runs libraries from other repositories (spandrel,
+visiongraph, stream, …). Clone each next to `haywire-repo`, inside the folder that holds
+the umbrella environment's files, then build the umbrella there; its `README.md` lists the
+steps:
 
 ```sh
 gh repo clone going-haywire/haybale-spandrel ../haybale-spandrel
-ln -s "$(realpath ../haybale-spandrel/barn/haybale-spandrel)" barn/haybale-spandrel
-uv pip install -e barn/haybale-spandrel
+cd .. && uv sync                     # the umbrella: every library, editable
 ```
 
-`scripts/worktree_setup.py` copies these links into every worktree. Their models and
-devices (GPU, webcam, OAK-D) are this machine's own: a model downloads again here, and a
-node that needs a device works only if the device is attached here.
+`haywire-repo` keeps its own environment for its tests. Models and devices (GPU, webcam,
+OAK-D) are this machine's own: a model downloads again here, and a node that needs a
+device works only if the device is attached here.
 
 ## Reaching the studio from the first machine
 

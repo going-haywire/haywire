@@ -67,7 +67,7 @@ Sort comments the same way. Rewrite what you keep in the present tense and cut i
 4. Rerun `scan` on the package and deal with what remains, or note why a finding stays.
 5. Commit.
 
-Design reasoning worth an ADR goes in `docs/docstring-cleanup-notes.md`: one entry per topic with the file and symbol and a two- or three-sentence summary. Skip anything an existing ADR in `docs/adr/` already covers. The original wording stays in git history, so don't copy it in.
+Design reasoning worth an ADR goes in `workbench/plans/docstring-cleanup-notes.md`: one entry per topic with the file and symbol and a two- or three-sentence summary. Skip anything an existing ADR in `docs/adr/` already covers. The original wording stays in git history, so don't copy it in.
 
 ## 7. Report after each batch
 

@@ -3,8 +3,6 @@
 
 Pure: no NiceGUI, no I/O. Transport (the OS clipboard) and mutation
 (``PasteClipboardAction``) live elsewhere.
-
-Payload shape — see docs/superpowers/plans/2026-06-01-node-copy-paste.md.
 """
 
 from __future__ import annotations

@@ -31,6 +31,8 @@ When looking up how a system works (API, parameters, behaviour), check `docs/` f
 
 Run `uv run mkdocs serve` to preview the published site at `http://127.0.0.1:8000`.
 
+`docs/` holds only published documentation. Plans, designs and handoffs go in `workbench/plans/` (dated file names), experiments in `workbench/playground/`, whatever a skill's default says.
+
 ### Design rules
 
 UI/UX visual rules, tokens, and anti-patterns are canonical in `docs/reference/design-guide.md` — see the Documentation section above. Do not create a second design-rules doc under `.insights/`.
@@ -61,14 +63,10 @@ uv run ruff check .                      # lint (line-length = 109)
 uv run ruff format --check .             # formatting; "ruff check" as an instruction means both
 ```
 
-mypy's paths are the `types` job in `.github/workflows/ci.yml` (`haybale-visiongraph` and `haybale-spandrel` are local-only links and stay out). Choosing and running tests, and the pre-edit baseline: the `haywire-workflow` skill; test tiers, parallelism and traps: `tests/README.md`.
+mypy's paths are the `types` job in `.github/workflows/ci.yml`. Choosing and running tests, and the pre-edit baseline: the `haywire-workflow` skill; test tiers, parallelism and traps: `tests/README.md`.
 
 ## Traps and gotchas
 
 This codebase has many silent failure modes (NiceGUI slots and events, test isolation, DI globals, registries, edge and pin rendering, settings). Each known one has a file in `.insights/`, indexed in [.insights/INDEX.md](.insights/INDEX.md). Check the index first whenever a symptom is silent or surprising: assume a known trap before a new bug.
 
 A new trap gets a file in `.insights/` and an entry in the index.
-
-## Sandcastle
-
-The repo has an autonomous agent loop (Docker sandbox, ticket queue, review branches) — setup, usage, and model variants are documented in [.sandcastle/README.md](.sandcastle/README.md).

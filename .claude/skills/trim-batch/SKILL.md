@@ -1,6 +1,6 @@
 ---
 name: trim-batch
-description: Run one wave of the docstring-trimming campaign — claim the next pending modules from docs/trim-docs-manifest.md, fan out one subagent per module in its own git worktree, then verify and commit each result serially. Use when the user says "run a trim batch", "next trim wave", "continue trimming docstrings", or invokes /trim-batch.
+description: Run one wave of the docstring-trimming campaign — claim the next pending modules from workbench/plans/trim-docs-manifest.md, fan out one subagent per module in its own git worktree, then verify and commit each result serially. Use when the user says "run a trim batch", "next trim wave", "continue trimming docstrings", or invokes /trim-batch.
 argument-hint: "[wave size, default 4]"
 disable-model-invocation: true
 ---
@@ -26,7 +26,7 @@ nested fan-out; it does not work.
 
 ## 1. Claim the wave
 
-1. Read `docs/trim-docs-manifest.md`.
+1. Read `workbench/plans/trim-docs-manifest.md`.
 2. Confirm the working tree is clean (`git status --porcelain`). If it is
    not, stop and tell the user — a dirty tree makes the per-module
    verification meaningless.
@@ -100,7 +100,7 @@ Each agent's prompt must carry:
 > BEFORE you run the verification commands, do this explicitly: list every
 > chunk of architectural reasoning you deleted, and for each one decide
 > whether an ADR in `docs/adr/` already covers it. Whatever is left goes in
-> `docs/docstring-cleanup-notes.md` — one entry per topic, naming the file
+> `workbench/plans/docstring-cleanup-notes.md` — one entry per topic, naming the file
 > and symbol, two or three sentences, no copied wording (git has it).
 > Then state in your report either the entries you added, or "no notes
 > entry needed" WITH the reason. Four of four models skipped this step in
@@ -143,7 +143,7 @@ share one git index:
 
 1. Export the patch:
    `git -C <worktree> diff -- <module> > <scratchpad>/<slug>.patch`
-   Include `docs/docstring-cleanup-notes.md` in the diff path if the agent
+   Include `workbench/plans/docstring-cleanup-notes.md` in the diff path if the agent
    wrote one.
 2. `git apply --check` it against the main repo. On rejection, mark the
    row `failed`, note why, and move on — do not force it.

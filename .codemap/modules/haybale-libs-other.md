@@ -8,8 +8,6 @@
 **Tree hashes:** `aac17609a94449af6ac9befb55a8fa33cc41ced0` / `e9c4c353edbb3ebfed55aa128a0155a99207469e` / `07a979e8ef318a2da1210d2f1693d26b0a5a4f57`
 **Mapped at:** 9b104fd36 (2026-11-10, branch feat/exec-audio)
 
-> ⚠️ `barn/haybale-visiongraph/`, `barn/haybale-comfyui/`, `barn/haybale-spandrel/` and `barn/haybale-stream/` are **gitignored** (`.gitignore:224-227`). They exist on disk as local-only libraries, are untracked in HEAD, and are not mapped here.
-
 ---
 
 ## 1. Scope & Purpose

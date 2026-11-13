@@ -24,7 +24,6 @@ _PRIMITIVES: dict[Any, dict] = {
 # tool argument whose schema is empty ({}) — a bare {} silently corrupts
 # untyped values (e.g. int -> "8"). anyOf with every JSON type round-trips
 # correctly and is otherwise equivalent to "no constraint" (spec §5).
-# See internals/handoff/farmhand-validator-set-property-fix.md.
 _ANY_TYPE: dict = {
     "anyOf": [
         {"type": "string"},

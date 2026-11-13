@@ -9,7 +9,7 @@ see-also:
 
 # Writing a doc page
 
-This page describes how to write a page *in this mkdocs site* (`docs/`, built by `mkdocs.yml` at the repo root). It is not about `uv run haywire docs` — that command generates per-library README/OVERVIEW/QUICKREF files from code and is a separate, deterministic pipeline (see `docs/superpowers/plans/2026-07-29-*`).
+This page describes how to write a page *in this mkdocs site* (`docs/`, built by `mkdocs.yml` at the repo root). It is not about `uv run haywire docs` — that command generates per-library README/OVERVIEW/QUICKREF files from code and is a separate, deterministic pipeline.
 
 ## 1. Where a page lives
 

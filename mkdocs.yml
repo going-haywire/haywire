@@ -2,19 +2,9 @@ site_name: Haywire Documentation
 site_description: A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.
 site_url: https://going-haywire.github.io/haywire/docs/
 
-# All published content lives in docs/. internals/ holds working/historical
-# artefacts that are NOT part of the published site.
+# All published content lives in docs/. Plans and other working material live in
+# workbench/, outside the site.
 docs_dir: docs
-
-# Exclude migration audit tables from the rendered site (they reference deleted
-# archive paths and are interesting only as historical record). Also exclude
-# superpowers/plans/: working implementation plans, never wired into nav:, that
-# link into packages/ and .insights/ with paths relative to their own location
-# rather than docs_dir — those links break mkdocs --strict without meaning
-# anything was actually broken in the published site.
-exclude_docs: |
-  superpowers/plans/
-
 
 # Material for MkDocs theme.
 # Zensical migration is the planned upgrade path; structure stays compatible.

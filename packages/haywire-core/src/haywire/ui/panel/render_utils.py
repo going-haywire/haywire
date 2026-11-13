@@ -119,8 +119,7 @@ def render_settings(
     # MRO walk over class __dict__, which Python preserves in insertion order) —
     # render in that order directly, no re-sort. Categories are NOT pre-grouped:
     # _render_grouped's groupby only merges CONSECUTIVE same-category entries, so
-    # a category interrupted by a different one re-opens as a second section
-    # (see internals/superpowers/2026-07-18-settings-panel-ordering-spec.md).
+    # a category interrupted by a different one re-opens as a second section.
     sorted_fields = list(visible_fields.items())
 
     # attr_name -> zero-arg updater that re-reads the model and applies it to the

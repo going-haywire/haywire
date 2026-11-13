@@ -30,7 +30,6 @@ docs/
 ├── haybale/             ← library authoring and packaging: haybale-canon.md, metadata-flow.md, marketplace/
 ├── guides/              ← how-tos (e.g. sharing-libraries)
 ├── reference/           ← glossary.md, design-guide.md, doc-authoring.md, files/ (one page per TOML format)
-├── superpowers/plans/   ← dated implementation-plan writeups; pruned once landed
 └── archive/             ← retired pages
 ```
 

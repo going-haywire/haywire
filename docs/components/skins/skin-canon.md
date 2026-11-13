@@ -146,7 +146,7 @@ folded element built and re-walked by NiceGUI regardless. This is still a hard r
 **collapse**.
 
 The mirror-image rule holds for **NodeDetail**: do NOT gate its construction. The
-measurement that flipped this (`.scratch/pan-perf/RESULTS.md`, decision A) found the
+measurement that flipped this (`workbench/playground/perf/pan-perf/RESULTS.md`, decision A) found the
 per-rank cost was pan-time paint/layout, which `display: none` removes identically to
 never building the element — so a construction gate there buys nothing but a slower,
 NiceGUI-whole-tree-render card rebuild on every rank change.

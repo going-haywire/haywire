@@ -1498,7 +1498,7 @@ depends on. This is not a micro-optimisation: 3300 of these pseudo-elements
 Chrome — 6 fps, 86% of the main thread, and a compositor too starved to raster
 tiles, so cards drew half-finished and the app shell went unpainted. The 2D
 form animates identically and measured 87 fps. Evidence and the harness that
-produced it: `.scratch/pan-perf/`.
+produced it: `workbench/playground/perf/pan-perf/`.
 
 **Rule:** Do not add `outlined` or `filled` props to standard panel input
 fields — the unified focus style is applied to the default (`standard`) Quasar
