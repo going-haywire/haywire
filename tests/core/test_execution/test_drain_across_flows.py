@@ -6,6 +6,9 @@ through ``HaywireVM.emit_callback``, so the two run on separate threads and
 interleave freely.
 """
 
+import time
+from typing import Callable
+
 import pytest
 
 from haywire.core.execution.interpreter import Interpreter
@@ -14,6 +17,15 @@ from haywire.core.graph.base import BaseGraph
 from tests.conftest import make_edge, make_node
 
 WRITES = 300
+
+
+def _wait_until(cond: Callable[[], bool], timeout: float = 10.0) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if cond():
+            return
+        time.sleep(0.01)
+    raise AssertionError("condition not reached")
 
 
 def _setup(graph: BaseGraph):
@@ -44,11 +56,25 @@ class TestADrainInletAcrossFlows:
 
         interpreter = Interpreter()
         interpreter.load_graph(graph_with_library_system)
+        takes = 0
+        taken_midway = 0
         try:
             for i in range(WRITES):
+                if i == WRITES // 2:
+                    # Midway, once the first half is written and every take so far has run,
+                    # one more take empties the queue: values are taken before the second
+                    # half is written, whatever order the two threads ran in.
+                    _wait_until(
+                        lambda done=takes: producer.written == WRITES // 2 and len(consumer.batches) == done
+                    )
+                    interpreter.vm.emit_callback(c_event.node_id)
+                    takes += 1
+                    _wait_until(lambda done=takes: len(consumer.batches) == done)
+                    taken_midway = len(consumer.taken)
                 interpreter.vm.emit_callback(p_event.node_id)
                 if i % 7 == 0:
                     interpreter.vm.emit_callback(c_event.node_id)
+                    takes += 1
             interpreter.wait_all(timeout=10.0, stop_after=False)
             # One more take after the producer is done collects what is still queued.
             interpreter.vm.emit_callback(c_event.node_id)
@@ -59,7 +85,8 @@ class TestADrainInletAcrossFlows:
         assert producer.written == WRITES
         assert consumer.taken == [float(i) for i in range(WRITES)]
         assert consumer.dropped == 0
-        # More than one non-empty take: values were taken while the producer was still writing.
+        # The first half was taken before the second half was written.
+        assert taken_midway == WRITES // 2
         assert sum(1 for n in consumer.batches if n) > 1
 
     def test_the_flows_run_on_separate_threads(self, graph_with_library_system: BaseGraph, library_system):
