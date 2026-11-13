@@ -8,6 +8,13 @@ requests*); the procedures in the
 
 - **Only the Linux jobs can be required checks.** The macOS jobs run once a PR is ready
   for review, so a draft would never satisfy them.
+- **Two workflows run from `master`, never from the pull request.** `test-results.yml`
+  (`workflow_run`, after CI) publishes the test report, and `pr-intake.yml`
+  (`pull_request_target`) sets `needs introduction` and `agent files`. Both hold write
+  rights and only read data from the pull request, so a change to either takes effect
+  after its merge, never in the pull request that makes it.
+- **Actions are pinned to commits**, with the version as a comment; Dependabot proposes a
+  grouped update weekly. A new Action goes in pinned the same way.
 - **A cancelled job is not a failure:** a newer push to the same branch cancels the
   older run.
 - **Linux and macOS differ in registration order** (the filesystem's order), so code that

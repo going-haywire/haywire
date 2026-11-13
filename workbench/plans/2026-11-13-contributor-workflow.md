@@ -164,4 +164,4 @@ introduction, agent files, review worktree, umbrella environment, workbench.
 | 1 | Repo hygiene | done | | 2026-11-13 | `.scratch` measuring tools kept in `workbench/playground/perf/`; `internals/issues/` became issues #77–#79; ~45 dangling plan/handoff pointers removed; release skill, codemap and the PyPI guide's symlink advice updated |
 | 2 | Single-home docs | done | | 2026-11-13 | mypy paths moved to `[tool.mypy] files` (CI runs plain `uv run mypy`); personal reporting preference moved to the gitignored `CLAUDE.local.md`; skill's duplicated command blocks replaced by links; conduct contact still a placeholder |
 | 3 | Agent side | done | | 2026-11-13 | the `jq`/`gh` warning sits in the role hook (one place) instead of in each hook; hook tests added in `tests/scripts/test_claude_hooks.py` |
-| 4 | CI | open | | | |
+| 4 | CI | done | | 2026-11-13 | `pr-intake.yml` skips bot authors (Dependabot); `agent files` is re-added when a later push touches those files again; ci.yml is now read-only. S5 and the end-to-end check of both new workflows need a real fork PR after the merge (they run from master) |

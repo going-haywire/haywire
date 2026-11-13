@@ -165,7 +165,8 @@ them.
      --jq '.[] | "\(.path):\(.line) \(.body)"'                   # line comments
    ```
 
-   The bot's *Test Results* summary is not feedback. Any other comment is: quote it to
+   Comments by `github-actions` (the *Test Results* summary, the intake notes) are not
+   feedback. Any other comment is: quote it to
    the user with its link, then address it or ask before merging. The merge hook refuses
    while a line-comment thread is unresolved, and while the PR carries `needs introduction`
    or `agent files`; those labels come off only on the user's word, once the introduction

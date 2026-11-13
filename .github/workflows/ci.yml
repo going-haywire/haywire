@@ -16,10 +16,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
+# Read-only: a fork's pull request runs this file as the fork wrote it. Anything that
+# writes back (the test report) is in test-results.yml.
 permissions:
   contents: read
-  checks: write
-  pull-requests: write
 
 # Runners are pinned (ubuntu-24.04, not ubuntu-latest): a newer Ubuntu can arrive before
 # Playwright supports it.
@@ -32,8 +32,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
         with:
           enable-cache: true
       - run: uv python install ${{ env.PYTHON_VERSION }}
@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
       - name: No version change outside a release PR
@@ -65,8 +65,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
         with:
           enable-cache: true
       - run: uv python install ${{ env.PYTHON_VERSION }}
@@ -85,8 +85,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
         with:
           enable-cache: true
       - run: uv python install ${{ env.PYTHON_VERSION }}
@@ -101,7 +101,7 @@ jobs:
           --junitxml=reports/tests-${{ matrix.os }}.xml
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: tests-${{ matrix.os }}
           path: reports/
@@ -116,8 +116,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3.2.4
         with:
           enable-cache: true
       - run: uv python install ${{ env.PYTHON_VERSION }}
@@ -130,21 +130,19 @@ jobs:
           --junitxml=reports/browser-${{ matrix.os }}.xml
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: browser-${{ matrix.os }}
           path: reports/
 
-  report:
-    name: report
-    needs: [tests, browser]
-    if: always()
+  # The test reports are published by test-results.yml, which runs with write rights after
+  # this workflow ends and never runs this run's code; it needs the event that started it.
+  event-file:
+    name: event file
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Upload the event
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          path: reports
-      - name: Publish test results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: reports/**/*.xml
+          name: event-file
+          path: ${{ github.event_path }}

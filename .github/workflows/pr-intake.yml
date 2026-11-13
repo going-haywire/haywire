@@ -1,0 +1,78 @@
+# Labels and welcomes pull requests (CONTRIBUTING.md):
+# - `needs introduction`: the author is not the maintainer or a collaborator and has no
+#   issue labelled `introduction accepted`. Removed again when the introduction is accepted.
+# - `agent files`: the pull request changes files that steer agents or CI; the maintainer
+#   reads them line by line and removes the label.
+#
+# Runs on pull_request_target, from master's copy of this file, with write rights. It never
+# checks out or runs the pull request's code: it reads metadata and the list of changed
+# paths through the API. Values from the event reach the shell only through environment
+# variables, never written into the script.
+name: PR intake
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+  issues:
+    types: [labeled]
+
+permissions: {}
+
+jobs:
+  pull-request:
+    name: label the pull request
+    # Bots (Dependabot) need no introduction; the maintainer reviews their PRs anyway.
+    if: github.event_name == 'pull_request_target' && !endsWith(github.event.pull_request.user.login, '[bot]')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      NUMBER: ${{ github.event.pull_request.number }}
+      AUTHOR: ${{ github.event.pull_request.user.login }}
+      ASSOCIATION: ${{ github.event.pull_request.author_association }}
+    steps:
+      - name: Introduction
+        run: |
+          case "$ASSOCIATION" in OWNER | MEMBER | COLLABORATOR) exit 0 ;; esac
+          accepted=$(gh issue list --author "$AUTHOR" --label "introduction accepted" --state all \
+            --limit 1 --json number --jq length)
+          [ "$accepted" != "0" ] && exit 0
+          gh pr edit "$NUMBER" --add-label "needs introduction"
+          marker="<!-- pr-intake:introduction -->"
+          if ! gh pr view "$NUMBER" --json comments --jq '.comments[].body' | grep -qF "$marker"; then
+            gh pr comment "$NUMBER" --body "$marker
+          Thanks for the pull request, and welcome! Before a first contribution we'd like to get to know you: please open a short [introduction](https://github.com/$GH_REPO/issues/new/choose) — who you are, what you'd like to work on, and why. Your pull request stays open meanwhile; the \`needs introduction\` label comes off by itself once your introduction is accepted. See [CONTRIBUTING.md](https://github.com/$GH_REPO/blob/master/CONTRIBUTING.md)."
+          fi
+
+      - name: Agent files
+        run: |
+          changed=$(gh pr diff "$NUMBER" --name-only)
+          echo "$changed" | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.mcp\.json|\.claude/|\.github/)' || exit 0
+          gh pr edit "$NUMBER" --add-label "agent files"
+          marker="<!-- pr-intake:agent-files -->"
+          if ! gh pr view "$NUMBER" --json comments --jq '.comments[].body' | grep -qF "$marker"; then
+            gh pr comment "$NUMBER" --body "$marker
+          Thanks! This pull request changes files that steer AI agents or CI (\`CLAUDE.md\`, \`AGENTS.md\`, \`.claude/\`, \`.github/\`), so the maintainer reads those lines one by one before merging; the \`agent files\` label stays until then."
+          fi
+
+  introduction-accepted:
+    name: release pull requests waiting for this introduction
+    if: github.event_name == 'issues' && github.event.label.name == 'introduction accepted'
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      AUTHOR: ${{ github.event.issue.user.login }}
+    steps:
+      - name: Remove `needs introduction`
+        run: |
+          for pr in $(gh pr list --author "$AUTHOR" --label "needs introduction" --state open --json number --jq '.[].number'); do
+            gh pr edit "$pr" --remove-label "needs introduction"
+          done
