@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/reference/doc-authoring/">
       
       
-        <link rel="prev" href="../design-guide/">
+        <link rel="prev" href="../design-principles/">
       
       
         <link rel="next" href="../files/haybale-toml/">
@@ -2890,6 +2890,8 @@
       
         
       
+        
+      
     
     
     
@@ -2997,6 +2999,41 @@
     
   
     Design guide
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../design-principles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design principles
   
 
     
@@ -3252,10 +3289,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_6" >
         
           
-          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="">
             
   
   
@@ -3273,8 +3310,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_5">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3886,6 +3923,7 @@
 <li>Lead each page with what it solves before how it works — a reader deciding whether to keep reading needs the "why" first.</li>
 <li>ASCII-art diagrams (<code>```text</code> fenced) are used freely for lifecycle/flow shapes where a picture beats a paragraph — see <code>node-canon.md</code> §2 for the shape.</li>
 <li>Keep <code>docs/</code> self-consistent with the <code>.insights/</code> traps list and ADRs it documents — if behavior changes, update the doc in the same change, not as a follow-up.</li>
+<li>Glossary entries and ADRs describe what landed, so they are written in the same change as the code. A design session collects candidate terms and ADRs into its plan in <code>workbench/plans/</code>; it does not edit <code>glossary.md</code> or <code>docs/adr/</code> itself.</li>
 </ul>
 
 
