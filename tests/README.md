@@ -1,6 +1,6 @@
 # Running the test suite
 
-Commands live in `CLAUDE.md`. This file is the why behind them — read it when a
+Commands live in [docs/guides/development.md](../docs/guides/development.md). This file is the why behind them — read it when a
 run behaves oddly, when you are changing test infrastructure, or when you are
 about to write off a failure as flakiness.
 
@@ -61,6 +61,19 @@ Keep the lesson: a run that **hangs** to the 120s timeout, rather than
 failing, is a lock cycle until proven otherwise. Do not write one off as xdist
 flakiness — the suite is the only place this class of bug is currently
 observable, and the same cycle can hang a real studio session.
+
+## Validation in tests
+
+Use `force_immediate_validation()` only when the test needs the `ValidationResult`
+synchronously, or for a graph left on the default (timer) scheduler. See ADR 0002.
+
+## Test data
+
+A test reads only files inside `tests/` or the `barn/haybale-testing` library, never the
+working graphs in `graphs/` or `haystacks/`: those are edited and resaved during normal
+work, and a resave silently changes what the test checks. A test that needs a saved graph
+gets a frozen copy under `tests/` (for example `tests/core/test_graph/fixtures/`) or
+builds it in code.
 
 ## Shared mutable state
 

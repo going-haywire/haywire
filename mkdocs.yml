@@ -153,6 +153,7 @@ nav:
       - Index: reference/index.md
       - Glossary: reference/glossary.md
       - Design guide: reference/design-guide.md
+      - Design principles: reference/design-principles.md
       - Writing a doc page: reference/doc-authoring.md
       - File formats:
           - haybale.toml: reference/files/haybale-toml.md

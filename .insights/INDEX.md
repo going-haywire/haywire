@@ -2,7 +2,10 @@
 
 Non-obvious bugs, framework quirks and "don't do X because Y" rules, one file each in this folder. Each entry says enough to recognise the trap; the file has the detail. Read the matching file before working or debugging in its area.
 
-A new trap gets a file here and an entry below, in its group.
+A new trap gets a file here and an entry below, in its group. An insight holds only what
+still applies: the fact or trap and the reason it matters now. No history, no account of
+how it was found, no rejected alternatives, unless a legacy constraint forces a deviation
+and needs its reason.
 
 ### Framework gotchas (NiceGUI / Quasar / Vue 3)
 

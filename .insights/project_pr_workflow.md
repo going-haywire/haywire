@@ -1,6 +1,7 @@
 # Branches, pull requests and CI: the non-obvious parts
 
-The rules are in CLAUDE.md, *Git and pull requests*; the procedures in the
+The rules are in `CONTRIBUTING.md` (the agent-only ones in CLAUDE.md, *Git and pull
+requests*); the procedures in the
 `haywire-workflow` skill. CI's own settings are commented in `.github/workflows/ci.yml`.
 
 ## CI

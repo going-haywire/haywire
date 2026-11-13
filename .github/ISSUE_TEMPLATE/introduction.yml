@@ -1,0 +1,31 @@
+name: Introduce yourself
+description: Before your first pull request, tell us who you are and what you'd like to work on.
+title: "Introduction: "
+labels: ["introduction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Welcome, and thanks for wanting to help! Please write this yourself rather than with an
+        AI: it is the one place we want to hear from you directly. Short is fine.
+  - type: textarea
+    id: who
+    attributes:
+      label: Who you are
+      description: A little about you and what brings you to Haywire.
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What you'd like to work on
+      description: A change, an issue you want to pick up, or an area you'd like to explore.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: What you hope it achieves, for you or for others.
+    validations:
+      required: false
