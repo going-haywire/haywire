@@ -1,0 +1,11 @@
+# Keeps the commit-pinned GitHub Actions current: one grouped pull request a week moves
+# every pin (and its version comment) to the latest release.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

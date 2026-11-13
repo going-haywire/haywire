@@ -1,0 +1,41 @@
+# Publishes CI's test reports as the "Test Results" check and pull request comment.
+#
+# Runs after CI ends, from master's copy of this file, with write rights. It never checks
+# out or runs the code of the run it reports on: it downloads that run's JUnit XML files
+# and event file and parses them as data. That is what lets a fork's pull request, whose
+# CI token is read-only, get the same report.
+name: Test Results
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  publish:
+    name: publish
+    if: github.event.workflow_run.conclusion != 'skipped'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      checks: write
+      contents: read
+      issues: read
+      pull-requests: write
+    steps:
+      - name: Download the run's reports and event file
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: artifacts
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@da5b7be67623cd59bbbd1a0ce4f022050a55605f # v2.26.0
+        with:
+          commit: ${{ github.event.workflow_run.head_sha }}
+          event_file: artifacts/event-file/event.json
+          event_name: ${{ github.event.workflow_run.event }}
+          files: artifacts/**/*.xml
