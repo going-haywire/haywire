@@ -27,6 +27,12 @@ The rules are in CLAUDE.md, *Git and pull requests*; the procedures in the
   ruleset's admin bypass applies to both. The local hook
   (`.claude/hooks/block-dangerous-git.sh`) is what keeps destructive commands with the
   user.
+- **Two more hooks enforce the workflow.** `require-workflow-skill.sh` refuses `git commit`,
+  `git push` and the `gh pr` commands that change a PR until the session has loaded the
+  `haywire-workflow` skill; `mark-workflow-skill.sh` records the load per session id under
+  `$TMPDIR/claude-haywire-workflow/`. `guard-pr-merge.sh` refuses `gh pr merge` while the
+  PR is a draft or the newest run of any check has not passed, and until a macOS check has
+  passed. The user merges by hand when they want to override it.
 - **The hook reads the whole command line, text included:** a `git branch -d` next to a
   push, or a heredoc whose text names a blocked command, is refused. Put such text in a
   file and run the file.

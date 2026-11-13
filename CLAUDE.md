@@ -37,7 +37,7 @@ UI/UX visual rules, tokens, and anti-patterns are canonical in `docs/reference/d
 
 ## Git and pull requests
 
-Procedures: the `haywire-workflow` skill; releases: `/haywire-release`. The non-obvious parts: [.insights/project_pr_workflow.md](.insights/project_pr_workflow.md).
+Before the first branch, commit, push or `gh pr` command of any task, however small, load the `haywire-workflow` skill and follow it; releases: `/haywire-release`. The non-obvious parts: [.insights/project_pr_workflow.md](.insights/project_pr_workflow.md).
 
 - Work on a branch started from an up-to-date `master`; never commit on `master`.
 - Commit and push freely on a branch, without asking; open a draft PR on the first push. CI runs on every push.
