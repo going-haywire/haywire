@@ -1,15 +1,18 @@
 """Resolve node classes by registry key, and fan lifecycle events out to their subscribers."""
 
 import logging
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from haywire.core.errors.haywire_exception import HaywireException
 from . import BaseNode, NodeRegistry
 from .info import NodeInfo, matches_query
 
 from ..library.utils import get_kind_from_key
-from ..macro.registry import MacroRegistry
 from ..registry.lifecycle_event import LifeCycleEvent, LifeCycleBatchCallback, LifeCycleEventCallback
+
+if TYPE_CHECKING:
+    # Type-only: macro.registry imports haywire.core.node, so a runtime import here is a cycle.
+    from ..macro.registry import MacroRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +28,7 @@ class NodeFactory:
     and the macro registry, so a macro is offered like any other component.
     """
 
-    def __init__(self, node_registry: NodeRegistry, macro_registry: MacroRegistry):
+    def __init__(self, node_registry: NodeRegistry, macro_registry: "MacroRegistry"):
         """Initialize the factory and subscribe it to its registries' lifecycle events."""
         self.node_registry = node_registry
         self.macro_registry = macro_registry
