@@ -325,10 +325,12 @@ class TestDevMode:
         for pkg in ["haywire-studio", "haywire-core"]:
             assert data["tool"]["uv"]["sources"][pkg]["editable"] is True
 
-    def test_source_paths_exist(self, scaffold_project_dev):
+    def test_source_paths_are_relative_to_the_project_and_exist(self, scaffold_project_dev):
         data = toml.loads((scaffold_project_dev / "pyproject.toml").read_text())
         for pkg in ["haywire-studio", "haywire-core"]:
-            assert Path(data["tool"]["uv"]["sources"][pkg]["path"]).is_dir()
+            path = data["tool"]["uv"]["sources"][pkg]["path"]
+            assert not Path(path).is_absolute()
+            assert (scaffold_project_dev / path).is_dir()
 
     @pytest.mark.parametrize("dev", [True, False])
     def test_only_a_dev_project_is_told_about_the_share_limit(

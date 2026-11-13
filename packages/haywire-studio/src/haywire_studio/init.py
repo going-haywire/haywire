@@ -8,6 +8,7 @@ Creates a new haywire project with:
 - barn/ directory with auto-scaffolded local haybale library
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -222,14 +223,24 @@ _BASELINE_LIBRARIES = (
 )
 
 
+def _path_from(start: Path, target: str) -> str:
+    """Return ``target`` as a POSIX path relative to ``start``, or absolute when none exists."""
+    # A path relative to the project survives cloning both repos side by side on another machine.
+    try:
+        return Path(os.path.relpath(Path(target).resolve(), start.resolve())).as_posix()
+    except ValueError:  # Windows: target on another drive.
+        return Path(target).resolve().as_posix()
+
+
 def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None = None) -> str:
     """Generate the project's pyproject.toml content.
 
     Args:
         name: Project name.
         lib_name: The scaffolded local library's resolved dist name.
-        dev_repo: If set, absolute path to the haywire dev repo.
-            Adds [tool.uv.sources] pointing to local editable packages.
+        dev_repo: If set, path to the haywire dev repo, relative to the project folder
+            (absolute when no relative path exists). Adds [tool.uv.sources] pointing to
+            local editable packages; uv resolves them from the project folder.
     """
     pin = _release_pin()
     sources: dict[str, dict[str, object]] = {lib_name: {"workspace": True}}
@@ -907,7 +918,9 @@ def init_project(
 
     # Generate files
     (project_dir / "pyproject.toml").write_text(
-        _generate_project_pyproject(name, lib_name, dev_repo=dev_repo)
+        _generate_project_pyproject(
+            name, lib_name, dev_repo=_path_from(project_dir, dev_repo) if dev_repo else None
+        )
     )
 
     (lib_dir / "pyproject.toml").write_text(_generate_library_pyproject(name, lib_name, module_name))
