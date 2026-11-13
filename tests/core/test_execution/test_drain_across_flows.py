@@ -7,7 +7,8 @@ interleave freely.
 """
 
 import time
-from typing import Callable
+from functools import partial
+from typing import Any, Callable
 
 import pytest
 
@@ -26,6 +27,11 @@ def _wait_until(cond: Callable[[], bool], timeout: float = 10.0) -> None:
             return
         time.sleep(0.01)
     raise AssertionError("condition not reached")
+
+
+def _settled(producer: Any, consumer: Any, written: int, takes: int) -> bool:
+    """Return whether the producer wrote ``written`` values and the consumer ran ``takes`` takes."""
+    return producer.written == written and len(consumer.batches) == takes
 
 
 def _setup(graph: BaseGraph):
@@ -64,12 +70,10 @@ class TestADrainInletAcrossFlows:
                     # Midway, once the first half is written and every take so far has run,
                     # one more take empties the queue: values are taken before the second
                     # half is written, whatever order the two threads ran in.
-                    _wait_until(
-                        lambda done=takes: producer.written == WRITES // 2 and len(consumer.batches) == done
-                    )
+                    _wait_until(partial(_settled, producer, consumer, WRITES // 2, takes))
                     interpreter.vm.emit_callback(c_event.node_id)
                     takes += 1
-                    _wait_until(lambda done=takes: len(consumer.batches) == done)
+                    _wait_until(partial(_settled, producer, consumer, WRITES // 2, takes))
                     taken_midway = len(consumer.taken)
                 interpreter.vm.emit_callback(p_event.node_id)
                 if i % 7 == 0:
