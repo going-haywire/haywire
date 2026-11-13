@@ -225,5 +225,6 @@ packages/haywire-core/src/haywire/_baked_docs/*
 
 assets/*
 
-# Claude Code personal settings (permissions, local paths); .claude/settings.json is shared
+# Claude Code personal settings and instructions; .claude/settings.json and CLAUDE.md are shared
 .claude/settings.local.json
+CLAUDE.local.md

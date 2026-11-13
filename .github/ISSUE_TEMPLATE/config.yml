@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security issue privately
+    url: https://github.com/going-haywire/haywire/security/advisories/new
+    about: Vulnerabilities go here, never into a public issue.
+  - name: Documentation
+    url: https://going-haywire.github.io/haywire/docs/
+    about: How Haywire works, and how to build libraries for it.

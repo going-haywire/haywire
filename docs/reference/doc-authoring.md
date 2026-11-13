@@ -172,3 +172,4 @@ uv run mkdocs build --strict
 - Lead each page with what it solves before how it works — a reader deciding whether to keep reading needs the "why" first.
 - ASCII-art diagrams (` ```text ` fenced) are used freely for lifecycle/flow shapes where a picture beats a paragraph — see `node-canon.md` §2 for the shape.
 - Keep `docs/` self-consistent with the `.insights/` traps list and ADRs it documents — if behavior changes, update the doc in the same change, not as a follow-up.
+- Glossary entries and ADRs describe what landed, so they are written in the same change as the code. A design session collects candidate terms and ADRs into its plan in `workbench/plans/`; it does not edit `glossary.md` or `docs/adr/` itself.

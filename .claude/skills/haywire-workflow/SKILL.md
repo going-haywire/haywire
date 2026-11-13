@@ -5,7 +5,8 @@ description: Step-by-step procedures for working in this repository through bran
 
 # Working through branches and pull requests
 
-The rules are in CLAUDE.md, *Git and pull requests*; the reasons and traps in
+The rules are in [CONTRIBUTING.md](../../../CONTRIBUTING.md) (the agent-only ones in CLAUDE.md,
+*Git and pull requests*); the reasons and traps in
 [.insights/project_pr_workflow.md](../../../.insights/project_pr_workflow.md). This skill
 is the how.
 
@@ -54,30 +55,16 @@ before the change. After the edit, run the same commands: anything new is yours.
 
 ## Choosing and running tests
 
-Run the smallest set that covers the change. The full suite is CI's job on every push.
-
-```sh
-uv run pytest tests/path/to/file.py -q          # one file: the default while iterating
-uv run pytest tests/some_dir/ -q                # one area
-uv run pytest tests/ -k "edge" -q               # by name
-uv run pytest -m "not browser and not perf" -n 4 -q   # whole non-browser tier, ~4 min
-uv run pytest -m browser -n 4 -q                # browser tier, ~2 min
-```
-
-`-n 4`, never more; a run that hangs to the 120 s timeout is a lock cycle, not
+Run the smallest set that covers the change, with the commands in
+[docs/guides/development.md](../../../docs/guides/development.md#tests). The full suite is
+CI's job on every push. A run that hangs to the 120 s timeout is a lock cycle, not
 flakiness. Redirect long runs to a file and read the tail; the exit code is the signal.
 Tiers, parallelism and test traps: `tests/README.md`.
 
 ## Committing
 
-Commit on the branch whenever a step is done; no need to ask. Before each commit:
-
-```sh
-uv run ruff check <changed files>
-uv run ruff format --check <changed files>
-uv run mypy <changed packages>
-uv run pytest <tests of the changed areas> -q
-```
+Commit on the branch whenever a step is done; no need to ask. Before each commit, run the
+[checks](../../../docs/guides/development.md#checks) on what changed.
 
 Commit messages follow the repository's style
 (`feat(area): …`, `fix(area): …`) and end with the attribution line the session gives.

@@ -34,6 +34,16 @@ If you find yourself wanting to put a panel in `packages/haywire-studio/`, that
 is the signal you've hit this rule — put it in a barn library and import the
 app-owned thing.
 
+Two more edges never exist:
+
+- **Builtin references nothing outside core.** `haywire.barn.builtin` (GraphNode,
+  MacroNode, …) imports only haywire-core. Other code reaches builtin things by duck typing
+  (`getattr(node, "resolve_definition", None)`, identity flags), and builtin never learns
+  about skins or editors. The other direction is fine: any library may import builtin types.
+- **haybale-graph-editor does not depend on haybale-studio.** When the editor needs
+  something from the studio library, the code moves into the editor (the default skins
+  did) rather than adding the dependency, so both libraries stay separately installable.
+
 ## Declaring the dependency
 
 `pyproject.toml` **only**.
