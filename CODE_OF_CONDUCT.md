@@ -7,6 +7,6 @@ any other project space, and to the agents acting on someone's behalf.
 
 ## Reporting
 
-Report unacceptable behaviour privately to **CONDUCT-CONTACT-TBD**. Every report is
+Report unacceptable behaviour privately to [info@going-haywire.com](mailto:info@going-haywire.com). Every report is
 reviewed and kept confidential; the maintainer acts on it following the Covenant's
 enforcement guidelines.
