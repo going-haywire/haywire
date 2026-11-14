@@ -6,6 +6,7 @@ from typing import Any
 from nicegui import ui
 
 from haywire.barn.builtin.types import INT
+from haywire.core.types.utils import resolve_options
 from haywire.ui import elements as hui
 from haywire.ui.modals import text_modal
 from haywire.ui.widget.decorator import widget
@@ -268,10 +269,13 @@ class SelectWidget(BaseWidget):
 
     Config options (via ``SelectWidget.config(properties={...})``):
 
-    - ``options`` (list, ``{value: label}`` dict, or zero-arg callable returning
-      either): List of selectable values (required). A callable is invoked fresh
-      at every ``build()`` — options can reflect state that changed since the
-      setting/port was declared (e.g. available theme skins).
+    - ``options`` (list, ``{value: label}`` dict, or callable returning either):
+      List of selectable values (required). A callable is invoked at ``build()``
+      and again each time the dropdown opens, so the list follows state that
+      changes while the widget is shown (e.g. senders found on the network). A
+      callable with one required parameter receives the ``Settings`` bag that
+      owns the field (``None`` when there is none), so the list can depend on a
+      sibling setting. The current value stays listed across a refresh.
     - ``clearable`` (bool): If ``True``, shows a clear button to reset the selection.
     - ``multiple`` (bool): If ``True``, allows selecting multiple values.
     - ``new_value_mode`` (``"add-unique"``, ``"add"`` or ``"toggle"``): Lets the
@@ -285,27 +289,49 @@ class SelectWidget(BaseWidget):
         SelectWidget.config(properties={'options': ['Low', 'Medium', 'High']})
         SelectWidget.config(properties={'options': {0: 'Off', 1: 'On'}, 'clearable': True})
         SelectWidget.config(properties={'options': lambda: list_available_skins()})
+        # Depends on a sibling setting of the same bag:
+        SelectWidget.config(properties={'options': lambda bag: list_sources(bag.backend)})
         # Suggestions, plus any typed value:
         SelectWidget.config(properties={'options': ['auto', 'cpu'], 'new_value_mode': 'add-unique'})
     """
 
     def build(self) -> Any:
         props = self._config.get("properties", {})
-        options = props.get("options", [])
-        # Resolve callable options at build time for dynamic option lists
-        if callable(options):
-            options = options()
-        # A copy: NiceGUI appends typed values to the list it is given, and the declared
-        # options are shared by every widget of the port (and saved with a plain port).
-        options = dict(options) if isinstance(options, dict) else list(options)
-
-        kwargs: dict[str, Any] = {"options": options, "value": None}
+        kwargs: dict[str, Any] = {"options": self._resolve_options(), "value": None}
 
         for prop in ["clearable", "multiple", "new_value_mode"]:
             if prop in props:
                 kwargs[prop] = props[prop]
 
-        return self.bind(ui.select(**kwargs).classes("w-full text-xs"))
+        element = self.bind(ui.select(**kwargs).classes("w-full text-xs"))
+        if callable(props.get("options")):
+            element.on("popup-show", self._refresh_options)
+        return element
+
+    def _resolve_options(self) -> list | dict:
+        options = resolve_options(
+            self._config.get("properties", {}).get("options", []), getattr(self.port, "settings", None)
+        )
+        # A copy: NiceGUI appends typed values to the list it is given, and the declared
+        # options are shared by every widget of the port (and saved with a plain port).
+        return dict(options) if isinstance(options, dict) else list(options)
+
+    def _refresh_options(self) -> None:
+        """Re-read callable options as the dropdown opens, keeping the current value listed."""
+        element = self.ui_element
+        if element is None:
+            return
+        options = self._resolve_options()
+        # NiceGUI shows a value its new options lack as empty, though the model still holds it.
+        current = element.value if isinstance(element.value, list) else [element.value]
+        for value in current:
+            if value is None or value == "" or value in options:
+                continue
+            if isinstance(options, dict):
+                options[value] = value
+            else:
+                options.append(value)
+        element.set_options(options)
 
     def on_model_changed(self, value: Any) -> None:
         self._show_custom_value(PrimitiveUnwrappingConverter().to_view(value))

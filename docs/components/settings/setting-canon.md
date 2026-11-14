@@ -182,10 +182,19 @@ algorithm = setting[CHOICES](
     widget_config={'options': {'fast': 'Fast Mode', 'accurate': 'High Accuracy'}},
 )
 
-# Callable — resolved fresh by SelectWidget.build() on every widget build
+# Callable — resolved by SelectWidget at build and again each time the dropdown opens
 # (use for dynamic lists from a registry; plugin-added entries appear automatically)
 theme = setting[CHOICES]('', widget_config={'options': lambda: get_theme_registry().list_workbench_keys()})
+
+# One-argument callable — receives the Settings bag that owns the field (None when
+# there is none), so the list can follow a sibling setting
+source = setting[STRING]('', widget=SelectWidget.config(
+    properties={'options': lambda bag: list_sources(bag.backend if bag else None)}))
 ```
+
+Every reader of `options` (the widget, Farmhand's `inspect_node`) resolves it through
+`haywire.core.types.utils.resolve_options`, so they all see the same list. On a refresh the
+current value stays listed even when the callable no longer returns it.
 > **`CHOICES` stores a string.** It is a `STRING` subtype, so whatever a field
 > holds is serialized as text — which is what makes it the right home for an
 > enum-backed setting, and the reason those enums are declared as `StrEnum`

@@ -59,6 +59,20 @@ class TestPromotedPortWritesThroughTheSetting:
         _node, port = _promoted(graph_with_library_system, "example_float", PortType.OUTLET)
         assert isinstance(_widget_model_for(port), SettingWidgetModel)
 
+    def test_the_model_carries_the_setting_s_bag(self, graph_with_library_system: BaseGraph):
+        # A SelectWidget hands it to a one-argument options callable, on the card as in the panel.
+        node, port = _promoted(graph_with_library_system, "example_float", PortType.OUTLET)
+        model = _widget_model_for(port)
+        assert isinstance(model, SettingWidgetModel)
+        assert model.settings is node.example
+
+    def test_an_unpromoted_port_s_model_has_no_bag(self, graph_with_library_system: BaseGraph):
+        wrapper = graph_with_library_system.create_node_wrapper(SETTINGS_NODE, position=(0, 0))
+        assert wrapper is not None
+        model = _widget_model_for(wrapper.node.ports["settings"])
+        assert isinstance(model, SettingWidgetModel)
+        assert model.settings is None
+
     def test_an_unpromoted_port_writes_the_port_itself(self, graph_with_library_system: BaseGraph):
         wrapper = graph_with_library_system.create_node_wrapper(SETTINGS_NODE, position=(0, 0))
         assert wrapper is not None
