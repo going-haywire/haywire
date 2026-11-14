@@ -879,6 +879,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#ports-that-come-with-a-grown-port" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ports that come with a grown port
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-the-user-removes-a-grown-port" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When the user removes a grown port
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#folds" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3831,6 +3853,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#ports-that-come-with-a-grown-port" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ports that come with a grown port
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-the-user-removes-a-grown-port" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When the user removes a grown port
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#folds" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4545,6 +4589,84 @@ filter is for:</p>
 Subgraph boundary nodes use it to make an interface growable. See
 <a href="../../../adr/0034-add-is-a-type/">ADR 0034</a> and <strong>Growing slot</strong> in the
 <a href="../../../reference/glossary/">glossary</a>.</p>
+<h3 id="ports-that-come-with-a-grown-port">Ports that come with a grown port<a class="headerlink" href="#ports-that-come-with-a-grown-port" title="Permanent link">&para;</a></h3>
+<p>A node may add more than the grown port: the audio mixer gives each input a
+<code>Gain</code> and a <code>Mute</code>. Add such a port with <code>owner=</code> set to the grown port's id,
+and <code>origin=PortOrigin.RESOLVED</code>. It is then a <strong>companion</strong>:</p>
+<ul>
+<li>it goes with its owner, whichever way the owner is destroyed: the user's
+  <strong>Remove pin</strong>, or a <code>rejig()</code> of yours that does not re-add the owner (one
+  that does re-add it keeps the companions);</li>
+<li>the user cannot remove it on its own;</li>
+<li>a <code>RESOLVED</code> fold left with no ports when companions go is removed too, so
+  the companions may sit in a fold of their own;</li>
+<li>undo of the user's removal brings the owner, its companions and their edges
+  back at their places.</li>
+</ul>
+<p><div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">if</span> <span class="n">side</span> <span class="o">==</span> <span class="s2">&quot;str&quot;</span><span class="p">:</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_index_of</span><span class="p">(</span><span class="n">side</span><span class="p">,</span> <span class="n">port</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">rejig</span><span class="p">(</span><span class="n">include</span><span class="o">=</span><span class="p">[</span><span class="n">port</span><span class="o">.</span><span class="n">id</span><span class="p">]):</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_add_slot</span><span class="p">(</span><span class="n">side</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">TEST_STRING</span><span class="p">,</span> <span class="n">PortOrigin</span><span class="o">.</span><span class="n">RESOLVED</span><span class="p">)</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">fold</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Str </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2"> notes&quot;</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="n">PortOrigin</span><span class="o">.</span><span class="n">RESOLVED</span><span class="p">):</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>            <span class="n">TEST_STRING</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>                <span class="sa">f</span><span class="s2">&quot;str_note_</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Note </span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="n">PortOrigin</span><span class="o">.</span><span class="n">RESOLVED</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="n">port</span><span class="o">.</span><span class="n">id</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>            <span class="p">)</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="p">)</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">str_grown</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_str_grown</span><span class="p">(),</span> <span class="n">port</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_add_slot</span><span class="p">(</span><span class="n">side</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_index</span><span class="p">(</span><span class="n">side</span><span class="p">),</span> <span class="n">ADD</span><span class="p">[</span><span class="n">TEST_STRING</span><span class="p">])</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="k">return</span>
+</span></code></pre></div>
+from: <code>AddPortTestNode</code> — registry_key: <code>haybale-testing:node:AddPortTestNode</code></p>
+<p><code>owner</code> is saved with the port. A graph saved before your node set it loads the
+ports as free-standing ones; set <code>origin</code> and <code>owner</code> on them in <code>post_init()</code>
+if they should follow their owner (the mixer's <code>_upgrade_saved_inputs()</code> does).</p>
+<h3 id="when-the-user-removes-a-grown-port">When the user removes a grown port<a class="headerlink" href="#when-the-user-removes-a-grown-port" title="Permanent link">&para;</a></h3>
+<p>Override <code>on_pin_removed()</code> if your node keeps a record of its grown ports that
+the port list does not hold, such as a text setting that names them. It is
+called once when the user removes a grown port (from the pin menu, the canvas,
+the settings panel or Farmhand), after the port, its companions and their edges
+are gone. Return whatever <code>on_pin_restored()</code> needs to reverse what you did;
+the undo step keeps it and hands it back when the removal is undone, and a redo
+calls <code>on_pin_removed()</code> again.</p>
+<p><div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">on_pin_removed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">port_id</span><span class="p">,</span> <span class="n">spec</span><span class="p">):</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Drop *port_id* from the resolved `Str` pins; return its place in that list.&quot;&quot;&quot;</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">grown</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str_grown</span><span class="p">()</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="k">if</span> <span class="n">port_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">grown</span><span class="p">:</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>        <span class="k">return</span> <span class="kc">None</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">index</span> <span class="o">=</span> <span class="n">grown</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">port_id</span><span class="p">)</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">str_grown</span> <span class="o">=</span> <span class="n">grown</span><span class="p">[:</span><span class="n">index</span><span class="p">]</span> <span class="o">+</span> <span class="n">grown</span><span class="p">[</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="k">return</span> <span class="n">index</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">on_pin_restored</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">port_id</span><span class="p">,</span> <span class="n">memento</span><span class="p">):</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Put *port_id* back at the place ``on_pin_removed`` returned.&quot;&quot;&quot;</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="k">if</span> <span class="n">memento</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="k">return</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="n">grown</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str_grown</span><span class="p">()</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">str_grown</span> <span class="o">=</span> <span class="n">grown</span><span class="p">[:</span><span class="n">memento</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">port_id</span><span class="p">]</span> <span class="o">+</span> <span class="n">grown</span><span class="p">[</span><span class="n">memento</span><span class="p">:]</span>
+</span></code></pre></div>
+from: <code>AddPortTestNode</code> — registry_key: <code>haybale-testing:node:AddPortTestNode</code></p>
+<p>The rules:</p>
+<ul>
+<li>Change the node's state and port values only. Adding, removing, retyping or
+  reordering ports, or touching edges, is reported in the error ledger and is
+  not undone; that is what companions are for.</li>
+<li>Writing a setting whose <code>on_change</code> rebuilds ports rebuilds them; suppress
+  your own callback if the ports already match.</li>
+<li>A hook that raises is reported in the error ledger. The removal and its undo
+  still go through, and <code>on_pin_restored()</code> then receives <code>None</code>.</li>
+<li>They run on the edit thread, possibly while the graph's workers still run;
+  the graph stops for reassembly afterwards.</li>
+<li>Your own code removing a port (<code>remove_port()</code>, a <code>rejig()</code>) does not call
+  them: you know of that removal already.</li>
+</ul>
+<p>If you need nothing more than the list of grown ports, read it from the ports
+(<code>[p for p in self.ports.values() if p.origin is PortOrigin.RESOLVED]</code>) and
+override nothing. Why the hooks work this way:
+<a href="../../../adr/0082-a-removed-pin-reaches-its-node-through-the-undo-step/">ADR 0082</a>.</p>
+<p>A related pair covers the user deleting an edge: <code>release_pins()</code> lets a node
+that grows a port per edge drop the ports the delete leaves bare, and
+<code>restore_pins()</code> brings them back on undo. Annotation uses it.</p>
 <h3 id="folds">Folds<a class="headerlink" href="#folds" title="Permanent link">&para;</a></h3>
 <p><code>with self.fold('Advanced'):</code> puts the ports declared inside it under a
 collapsible header. It changes only the card, not the worker. Collapsed ports
@@ -4576,37 +4698,37 @@ names besides imports</strong>. The copy's <code>@node(...)</code> states <code>
 <code>registry_id</code> and <code>deprecation_warning</code>; every other keyword (<code>node_type</code>, …)
 is kept as written. Any library may ship templates in its <code>nodes/</code> folder.
 Builtin ships the Data template:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@node</span><span class="p">(</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Data Node&quot;</span><span class="p">,</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Computes a value from its inputs each time the graph runs.&quot;</span><span class="p">,</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;custom&quot;</span><span class="p">,</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">template</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">DataNodeTemplate</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A data node: one number in, one number out.</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="sd">    Start here for a node that turns inputs into outputs. To make it yours:</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="sd">    - Declare your ports in `init()`. Each `self.add(...)` adds one inlet or</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="sd">      outlet; the id you give it (`&quot;x&quot;`, `&quot;result&quot;`) is how the worker names it.</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="sd">    - Compute in `worker()`. Every inlet arrives as a keyword argument of the</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="sd">      same name. Send each result with `self.out(&quot;&lt;outlet id&gt;&quot;, value)`.</span>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="sd">    - Keep `node_type=NodeType.DATA` for a node that only computes. A data node</span>
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="sd">      needs at least one data outlet.</span>
-</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="sd">    ```python</span>
-</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="sd">    def worker(self, context, x: float = 0.0) -&gt; None:</span>
-</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="sd">        self.out(&quot;result&quot;, x * 2)</span>
-</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="sd">    ```</span>
-</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>
-</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="n">widget</span><span class="o">=</span><span class="n">NumberWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
-</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_outlet</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Result&quot;</span><span class="p">))</span>
-</span><span id="__span-6-29"><a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>
-</span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">worker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">ExecutionContext</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-6-31"><a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@node</span><span class="p">(</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Data Node&quot;</span><span class="p">,</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Computes a value from its inputs each time the graph runs.&quot;</span><span class="p">,</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;custom&quot;</span><span class="p">,</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">template</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">)</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">DataNodeTemplate</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A data node: one number in, one number out.</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="sd">    Start here for a node that turns inputs into outputs. To make it yours:</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="sd">    - Declare your ports in `init()`. Each `self.add(...)` adds one inlet or</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="sd">      outlet; the id you give it (`&quot;x&quot;`, `&quot;result&quot;`) is how the worker names it.</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="sd">    - Compute in `worker()`. Every inlet arrives as a keyword argument of the</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="sd">      same name. Send each result with `self.out(&quot;&lt;outlet id&gt;&quot;, value)`.</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="sd">    - Keep `node_type=NodeType.DATA` for a node that only computes. A data node</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="sd">      needs at least one data outlet.</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="sd">    ```python</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="sd">    def worker(self, context, x: float = 0.0) -&gt; None:</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="sd">        self.out(&quot;result&quot;, x * 2)</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="sd">    ```</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">,</span> <span class="n">widget</span><span class="o">=</span><span class="n">NumberWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">))</span>
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_outlet</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Result&quot;</span><span class="p">))</span>
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a>
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">worker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">ExecutionContext</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 </span></code></pre></div>
 <h2 id="9-finer-points-read-when-you-need-them">9. Finer points — read when you need them<a class="headerlink" href="#9-finer-points-read-when-you-need-them" title="Permanent link">&para;</a></h2>
 <p><strong>Name your own additions with a prefix.</strong> Methods and attributes you add start
@@ -4801,6 +4923,26 @@ parameter with no matching port raises <code>ValueError</code>.</p>
 <td><code>on_teardown</code></td>
 <td><code>(self)</code></td>
 <td>When node is destroyed</td>
+</tr>
+<tr>
+<td><code>on_pin_removed</code></td>
+<td><code>(self, port_id, spec)</code></td>
+<td>The user removed a grown port; return what undo needs</td>
+</tr>
+<tr>
+<td><code>on_pin_restored</code></td>
+<td><code>(self, port_id, memento)</code></td>
+<td>Undo brought the port back; <code>memento</code> is what <code>on_pin_removed</code> returned</td>
+</tr>
+<tr>
+<td><code>release_pins</code></td>
+<td><code>(self, port_ids)</code></td>
+<td>The user deleted edges into these ports; remove the bare ones, return their ids</td>
+</tr>
+<tr>
+<td><code>restore_pins</code></td>
+<td><code>(self, port_ids)</code></td>
+<td>Undo of that delete; bring the ports back</td>
 </tr>
 </tbody>
 </table>

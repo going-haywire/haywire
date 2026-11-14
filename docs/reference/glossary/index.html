@@ -4446,6 +4446,16 @@
 <td>Collapsed port (that is a port in a closed <strong>Fold</strong>)</td>
 </tr>
 <tr>
+<td><strong>Grown port</strong></td>
+<td>A port a node adds in place of an <code>ADD</code> pin when the user wires to it: <code>PortOrigin.RESOLVED</code>, so the user may remove it. An <strong>Interface port</strong> grown from the <strong>growing slot</strong> is one</td>
+<td>Resolved port (name the origin only when the origin is meant), dynamic port</td>
+</tr>
+<tr>
+<td><strong>Companion port</strong></td>
+<td>A port that exists only because a <strong>grown port</strong> does, naming it as its <code>owner</code> (the mixer's <code>gain_3</code> and <code>mute_3</code> for <code>in_3</code>). <code>RESOLVED</code>, but the user cannot remove it on its own: removing its owner removes it, and no companion outlives its owner, whichever path drops the owner. Independent of <strong>Fold</strong>: a companion may sit in any fold, and a <code>RESOLVED</code> fold left empty goes with it. See <a href="../../adr/0082-a-removed-pin-reaches-its-node-through-the-undo-step/">ADR 0082</a></td>
+<td>Child port (that is a fold's child), sibling, sub-port</td>
+</tr>
+<tr>
 <td><strong>Port order</strong></td>
 <td>A port's position among its siblings within one direction lane and one <strong>Fold</strong>, held in <code>DataPort.order</code> and the sort key for every card and panel rendering. Author-declared by <code>init()</code> call order; the graph user may override it by dragging in the <strong>Ports panel</strong>, and the user's order wins over a later author reordering</td>
 <td>Display index, sort order (ambiguous with a settings row's <code>order=</code>)</td>
