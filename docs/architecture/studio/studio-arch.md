@@ -98,7 +98,7 @@ manager.remove_session(session.session_id)
 | `active_workbench_theme_key` | signal field | The active workbench theme |
 | `active_node_theme_key` | signal field | The active node theme |
 
-Editor-specific reactive state — selection, clipboard, the active graph — does **not** live on `SessionContext`. It lives on a library-owned `SessionState` class. For the graph canvas, that state is `EditState` (`barn/haybale-studio/haybale_studio/state/edit_state.py`), accessed via `ctx.data[EditState]`:
+Editor-specific reactive state — selection, clipboard, the active graph — does **not** live on `SessionContext`. It lives on a library-owned `SessionState` class. For the graph canvas, that state is `EditState` (`barn/haybale-studio/haybale_studio/states/edit_state.py`), accessed via `ctx.data[EditState]`:
 
 ```python
 edit = ctx.data[EditState]

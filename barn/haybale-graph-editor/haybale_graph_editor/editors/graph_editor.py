@@ -65,8 +65,8 @@ from haywire.core.undo.origin import StepOrigin
 from haybale_graph_editor.access import level_mode
 from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
-from haybale_graph_editor.state.edit_state import EditState
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
 
 if TYPE_CHECKING:

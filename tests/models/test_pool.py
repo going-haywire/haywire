@@ -8,7 +8,7 @@ import time
 import pytest
 
 from haybale_models.pool import LoadedModels
-from haybale_models.state.models_state import ModelsState
+from haybale_models.states.models_state import ModelsState
 
 
 def test_two_holders_share_one_load() -> None:

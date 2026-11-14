@@ -306,7 +306,7 @@ def test_both_entry_panels_require_admin():
 
 
 def _ctx(*, node_cls=None, selected: set[str] | None = None):
-    from haybale_graph_editor.state.edit_state import EditState
+    from haybale_graph_editor.states.edit_state import EditState
 
     edit = MagicMock()
     edit.active_node = None

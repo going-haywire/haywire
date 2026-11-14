@@ -39,7 +39,7 @@ from haywire.ui.components.graph.event_definitions import (
 from haywire.core.session.session import Session
 from haywire.core.signals import SelectionMoved
 
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.editors.graph_canvas.event_handlers import (
     build_event_handler_map,
     handler_requires,

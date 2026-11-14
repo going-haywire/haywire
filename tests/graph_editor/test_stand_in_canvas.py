@@ -15,7 +15,7 @@ import pytest
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haybale_graph_editor.panels._gating import is_reroute_node
 from haybale_graph_editor.panels._selection_forms import node_appearance_subject
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haywire.core.graph.types import ChangeReason, ValidationResult
 
 from tests.conftest import edit_route

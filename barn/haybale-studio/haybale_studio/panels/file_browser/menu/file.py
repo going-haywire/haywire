@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from haybale_studio.surfaces import FileActions, FileMenu
-from haybale_studio.state.file_browser_state import FileBrowserState
+from haybale_studio.states.file_browser_state import FileBrowserState
 from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel

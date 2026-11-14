@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from haybale_graph_editor.panels.graph.menu.edge.edge import EdgePropagationMenuPanel
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.types import Propagation

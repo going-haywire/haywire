@@ -221,7 +221,7 @@ class LibraryBrowserEditor(BaseEditor):
         calls :meth:`_do_refresh` directly — there the user didn't ask for a
         refresh, so there is no decision to present.
         """
-        from haybale_marketplace.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.states.marketplace_state import MarketplaceState
 
         from haybale_marketplace.editors._refresh_flow import show_refresh_flow
 
@@ -273,7 +273,7 @@ class LibraryBrowserEditor(BaseEditor):
         """
         from haywire.core.marketstall import MalformedMarketplaceError
 
-        from haybale_marketplace.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.states.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             if missing_state_severity == "warning":
@@ -338,7 +338,7 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _get_unavailable_urls(self, context: "SessionContext") -> list[str]:
         """Return unavailable_urls from the last RefreshReport, or [] if no refresh has run."""
-        from haybale_marketplace.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.states.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             return []
@@ -407,7 +407,7 @@ class LibraryBrowserEditor(BaseEditor):
                         lambda urls=list(unavailable): self._show_unavailable_dialog(urls),
                     )
 
-        from haybale_marketplace.state.library_manager_state import LibraryManagerState
+        from haybale_marketplace.states.library_manager_state import LibraryManagerState
 
         manager_state = context.app_data.get(LibraryManagerState)
         manager = manager_state.manager if manager_state is not None else None
@@ -687,7 +687,7 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _provenance_label_for(self, lib: LibraryInfo, context: "SessionContext") -> str | None:
         """Look up the user's [[stalls]] list to derive 'from {host}' vs 'via {host}'."""
-        from haybale_marketplace.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.states.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             return None
@@ -699,7 +699,7 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _on_remove_stale_click(self, name: str, context: "SessionContext") -> None:
         """Drop a stale [[caches]] entry from the project marketplace, then re-render."""
-        from haybale_marketplace.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.states.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             ui.notify("Marketplace state not available", type="warning")

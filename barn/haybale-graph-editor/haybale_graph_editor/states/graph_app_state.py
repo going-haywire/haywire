@@ -207,6 +207,6 @@ def route_for(context: "SessionContext") -> "EditRoute | None":
         if editor is not None:
             editor.remove_port(node_id, port_id)
     """
-    from haybale_graph_editor.state.edit_state import EditState
+    from haybale_graph_editor.states.edit_state import EditState
 
     return context.data[EditState].active_route

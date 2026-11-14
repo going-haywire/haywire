@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.core.session.context import SessionContext
 
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
 logger = logging.getLogger(__name__)
 

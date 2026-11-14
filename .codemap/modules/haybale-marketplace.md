@@ -35,7 +35,7 @@ haybale_marketplace/
 │   └── marketplace_settings_panel.py
 ├── settings/
 │   └── marketplace_settings.py
-├── state/
+├── states/
 │   ├── library_manager_state.py
 │   └── marketplace_state.py
 ├── farmhands/
@@ -50,7 +50,7 @@ haybale_marketplace/
 
 - `__init__.py` — `Library` and `register_components()`.
 - `library_manager.py` — the service every flow calls.
-- `state/` — scan before `editors/` (see Rules).
+- `states/` — scan before `editors/` (see Rules).
 
 ### On-demand
 
@@ -63,7 +63,7 @@ haybale_marketplace/
 ## 4. Rules & Boundaries
 
 - Register through `Library.register_components()`. Entry point: `marketplace = "haybale_marketplace:Library"`.
-- Scan `state/` before `editors/`. Editors import state classes, so reversing the order leaves stale class objects after `force_reload`.
+- Scan `states/` before `editors/`. Editors import state classes, so reversing the order leaves stale class objects after `force_reload`.
 - Do not add enable/disable persistence here. That is owned by core `LibraryRegistry` and `HostStore` (`core/host/store.py`), which writes through to host.toml.
 - Install and uninstall go through the dry-run pre-eviction and `sys.modules` ejection path. Bypassing it reintroduces the hot-reload corruption bug.
 - Backend logic (manifest, sources, installer, share) belongs in engine `core/marketstall`, not here.
@@ -74,8 +74,8 @@ haybale_marketplace/
 | Concept | Canonical file | Notes |
 |---------|---------------|-------|
 | Install/library service | `library_manager.py` | Thin wrapper over `core/marketstall` |
-| Marketplace state | `state/marketplace_state.py` | Catalog and selection state |
-| Library manager state | `state/library_manager_state.py` | Installed-library view |
+| Marketplace state | `states/marketplace_state.py` | Catalog and selection state |
+| Library manager state | `states/library_manager_state.py` | Installed-library view |
 | Uninstall impact | `uninstall_impact.py` | Dependents and effects |
 
 ---

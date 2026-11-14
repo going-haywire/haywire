@@ -35,7 +35,7 @@ class Library(BaseLibrary):
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / "state"),
+            folder_path=str(base_path / "states"),
             registry_cls=LibraryStateRegistry,
         )
 
@@ -71,4 +71,4 @@ class Library(BaseLibrary):
 
 # Public API re-exports. Below Library: GraphAppState's registry key is derived from it.
 from haybale_graph_editor.protocols import GraphContainer  # noqa: E402
-from haybale_graph_editor.state.graph_app_state import GraphAppState  # noqa: E402
+from haybale_graph_editor.states.graph_app_state import GraphAppState  # noqa: E402

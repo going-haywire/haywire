@@ -9,7 +9,7 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `docs/haybale/haybale-canon.md` — authoring and packaging in one: `@library` decorator, `BaseLibrary`, `register_components()`, the eleven registries, hot-reload via `file_watcher=True`, `pyproject.toml` entry points, folder layout, `haybale-` naming, the compliance contract
+1. `docs/haybale/haybale-canon.md` — authoring and packaging in one: `@library` decorator, `BaseLibrary`, `register_components()`, the thirteen registries, hot-reload via `file_watcher=True`, `pyproject.toml` entry points, folder layout, `haybale-` naming, the compliance contract
 2. `docs/reference/files/haybale-toml.md` — the authoring surface: every field, who writes it, and which files it reaches. Descriptive metadata is NOT decorator kwargs
 3. `docs/architecture/library-system/library-system-arch.md` — runtime infrastructure: `LibraryRegistry`, `LibraryDiscovery`, `LibraryIdentity`, `FileWatcher`, install-type detection, registry-of-registries pattern, hot-reload pipeline
 4. `docs/haybale/marketplace/haybale-marketplace-arch.md` — studio's package-manager UI internals: catalog lifecycle, install pipeline, marketplace feed mechanism, recovery

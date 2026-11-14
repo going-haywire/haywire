@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_testing.surfaces import TestEdgeActions, TestEdgeMenu
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel

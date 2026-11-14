@@ -268,7 +268,7 @@ The UI calls **`MarketplaceState`**, not `marketplace_runtime` directly. The sta
 | `last_report` | property | UI banners read this to render after a refresh |
 | `global_marketplace_error` | property | Set when `get_global()` saw a malformed file; surfaces the red banner |
 
-`MarketplaceState` lives in `barn/haybale-marketplace/haybale_marketplace/state/marketplace_state.py`. It self-registers via `LibraryStateRegistry` when the plugin loads; consumers reach it the usual way (`ctx.app_data[MarketplaceState]`).
+`MarketplaceState` lives in `barn/haybale-marketplace/haybale_marketplace/states/marketplace_state.py`. It self-registers via `LibraryStateRegistry` when the plugin loads; consumers reach it the usual way (`ctx.app_data[MarketplaceState]`).
 
 ### 4.2 The editors and the manager state
 

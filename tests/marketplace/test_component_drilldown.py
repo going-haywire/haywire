@@ -56,7 +56,7 @@ def test_installed_component_doc_read_from_wheel():
 async def test_available_component_doc_fetched_over_docs_path(tmp_path, monkeypatch):
     """A component doc for an available (not-installed) library is fetched via docs_path."""
     from haybale_marketplace.farmhands.catalog_tools import MarketplaceGetLibraryDocsTool
-    from haybale_marketplace.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.states.marketplace_state import MarketplaceState
     from haywire.core.marketstall import cache as cache_mod
 
     class _Resp:

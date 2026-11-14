@@ -596,7 +596,7 @@ def _harness_session(library_service, graph):
     from haywire.core.session.session_manager import SessionManager
     from haywire.core.signals import SignalDispatcher
     from haywire.core.session.workspace.manager import WorkspaceManager
-    from haybale_graph_editor.state.edit_state import EditState
+    from haybale_graph_editor.states.edit_state import EditState
 
     app_state = _HarnessProjectState(library_service)
     session_manager = SessionManager(
@@ -657,7 +657,7 @@ def _mount_graph_canvas(
             ``EDIT``.
     """
     from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
-    from haybale_graph_editor.state.edit_state import EditState
+    from haybale_graph_editor.states.edit_state import EditState
     from haywire.core.graph.edit_route import EditRoute
 
     _access_gate()
@@ -1923,7 +1923,7 @@ def register_routes(library_service) -> None:
     async def graph_slot_page(edges: int = 4):
         from haybale_graph_editor.editors.graph_editor import GraphEditor
         from haybale_graph_editor.protocols import GraphContainer
-        from haybale_graph_editor.state.graph_app_state import GraphAppState
+        from haybale_graph_editor.states.graph_app_state import GraphAppState
         from haywire.ui.app.tab_slot import TabSlot
         from haywire.ui.editor.identity import SlotName
         from haywire.ui.editor.registry import EditorTypeRegistry
@@ -2583,7 +2583,7 @@ def register_routes(library_service) -> None:
         from haywire.ui.components.keymap import KeymapListener
         from haywire.ui.keymap import build_keymap
         from haybale_graph_editor.editors.graph_editor import GraphEditor
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         graph, editor, _ = _build_size_graph(library_service.get_node_factory(), validation_delay_ms)
         clipboard_json = ui.label("").props('id="clipboard-json"').style("display: none")
@@ -2662,7 +2662,7 @@ def register_routes(library_service) -> None:
 
     @ui.page("/inspector-gate")
     async def inspector_gate_page(mode: str = "view"):
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
         from haybale_graph_editor.surfaces import NodeInspector, PortInspector, SettingsInspector
 
         from haywire.barn.builtin.types import FLOAT
@@ -2781,12 +2781,12 @@ def register_routes(library_service) -> None:
         from haywire.core.library.identity import LibraryIdentity
         from haywire.core.volumes import VolumeStore, set_volume_store
 
-        from haybale_graph_editor.state.graph_app_state import GraphAppState
+        from haybale_graph_editor.states.graph_app_state import GraphAppState
         from haybale_models.download import DownloadQueue
         from haybale_models.editors.models_editor import ModelsEditor
         from haybale_models.keys import MODELS_VOLUME
         from haybale_models.sources import builtin_sources
-        from haybale_models.state.models_state import ModelsState
+        from haybale_models.states.models_state import ModelsState
         from haybale_models.store.index import ModelIndex
         from haybale_models.store.records import FetchRecords
 

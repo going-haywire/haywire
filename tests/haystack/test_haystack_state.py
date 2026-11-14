@@ -24,7 +24,7 @@ def settings_registry_wired():
 @pytest.fixture
 def state_with_mocked_deps(settings_registry_wired):
     """Build a HaystackState with all on_enable deps wired manually."""
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_haystack.states.haystack_state import HaystackState
 
     state = HaystackState()
     # AppState's _dispatcher is a weakref dereffed via self._dispatcher().
@@ -39,7 +39,7 @@ def state_with_mocked_deps(settings_registry_wired):
 
 
 def test_haystack_state_starts_empty(settings_registry_wired):
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_haystack.states.haystack_state import HaystackState
 
     state = HaystackState()
     assert state.all_entries() == []
@@ -226,7 +226,7 @@ def test_save_graph_calls_graph_save_to_file(state_with_mocked_deps, tmp_path):
 
 def test_save_as_rekeys_graph_app_state(state_with_mocked_deps, tmp_path):
     """save_graph(save_as=new_path) rekeys the entry in GraphAppState."""
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
     state = state_with_mocked_deps
 
@@ -256,7 +256,7 @@ def test_save_as_rekeys_graph_app_state(state_with_mocked_deps, tmp_path):
 
 def test_create_new_registers_in_graph_app_state(state_with_mocked_deps):
     """create_new() registers the new entry in GraphAppState."""
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
     state = state_with_mocked_deps
     gas = GraphAppState()
@@ -271,7 +271,7 @@ def test_create_new_registers_in_graph_app_state(state_with_mocked_deps):
 
 def test_open_graph_registers_in_graph_app_state(state_with_mocked_deps, tmp_path):
     """open_graph() registers the loaded entry in GraphAppState."""
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
     state = state_with_mocked_deps
     gas = GraphAppState()
@@ -294,7 +294,7 @@ def test_open_graph_registers_in_graph_app_state(state_with_mocked_deps, tmp_pat
 
 def test_remove_entry_unregisters_from_graph_app_state(state_with_mocked_deps):
     """remove_entry() unregisters the entry from GraphAppState."""
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
     state = state_with_mocked_deps
     gas = GraphAppState()

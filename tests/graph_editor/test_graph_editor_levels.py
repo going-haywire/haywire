@@ -314,7 +314,7 @@ def _select(editor: GraphEditor, context: Any, node: Any) -> Any:
     The session's graph state is the one ``editor`` claimed for that level, and
     ``editor`` claims for real from here on. Returns the session's EditState.
     """
-    from haybale_graph_editor.state.edit_state import EditState
+    from haybale_graph_editor.states.edit_state import EditState
 
     level = editor._levels[editor._active_level]
     edit_state = SimpleNamespace(
@@ -537,7 +537,7 @@ def _two_tabs() -> tuple[GraphEditor, GraphEditor, Any, _FakeDocument]:
 
     Returns both editors, the session, and the second editor's document.
     """
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
     editor, context, document = _editor()
     other_document = _FakeDocument("/tmp/graphs/other.haywire", graph_id="other_graph")
@@ -699,7 +699,7 @@ class TestFirstActivation:
     """A slot calls ``on_focus`` before it draws a wrapper, so that is first in."""
 
     def _editor_and_context(self):
-        from haybale_graph_editor.state.graph_app_state import GraphAppState
+        from haybale_graph_editor.states.graph_app_state import GraphAppState
         from haywire.ui.editor.wrapper import EditorWrapper
 
         document = _FakeDocument()
@@ -842,7 +842,7 @@ class TestEdgesSurviveAHiddenCanvas:
 
 def _clearing_context(**edit_fields: Any) -> Any:
     """A context whose session holds an empty selection, overridden by ``edit_fields``."""
-    from haybale_graph_editor.state.edit_state import EditState
+    from haybale_graph_editor.states.edit_state import EditState
 
     fields: dict[str, Any] = {
         "active_node": None,
@@ -871,7 +871,7 @@ class TestClearSelection:
         context.session.publish.assert_not_called()
 
     def test_clearing_a_selection_publishes_once(self):
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
         from haywire.core.signals import SelectionMoved
 
         context = _clearing_context(selected_nodes={"n1"})

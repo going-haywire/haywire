@@ -18,7 +18,7 @@ _MUTATING = ToolAnnotations()
 
 
 def _state(ctx: FarmhandContext):
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_haystack.states.haystack_state import HaystackState
 
     return ctx.state(HaystackState)
 

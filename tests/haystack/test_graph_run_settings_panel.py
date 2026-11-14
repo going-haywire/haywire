@@ -12,8 +12,8 @@ def _ctx_with_active_graph(graph, container):
     edit_state.active_graph = graph
     graph_app_state = MagicMock()
     graph_app_state.get_by_graph.return_value = container
-    from haybale_graph_editor.state.edit_state import EditState
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.edit_state import EditState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
     ctx.data.__getitem__.side_effect = lambda k: edit_state if k is EditState else MagicMock()
     ctx.app_data.__getitem__.side_effect = lambda k: graph_app_state if k is GraphAppState else MagicMock()

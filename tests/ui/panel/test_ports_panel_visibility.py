@@ -24,7 +24,7 @@ def _noop_page() -> None:
 
 def _render(port: _FakePort, mode: LevelMode = LevelMode.EDIT):
     from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
-    from haybale_graph_editor.state.edit_state import EditState
+    from haybale_graph_editor.states.edit_state import EditState
 
     calls: list[tuple[str, str, bool]] = []
 

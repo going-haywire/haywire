@@ -6,7 +6,7 @@ from typing import Any, cast
 import pytest
 
 from haybale_graph_editor.panels import _previous_setup as previous_setup
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 
 pytestmark = pytest.mark.unit
 

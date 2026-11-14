@@ -31,7 +31,7 @@ class Library(BaseLibrary):
         """Register the component folders with their registries."""
         base_path = Path(__file__).parent
 
-        self.add_folder_to_registry(folder_path=str(base_path / "state"), registry_cls=LibraryStateRegistry)
+        self.add_folder_to_registry(folder_path=str(base_path / "states"), registry_cls=LibraryStateRegistry)
         self.add_folder_to_registry(folder_path=str(base_path / "settings"), registry_cls=SettingsRegistry)
         self.add_folder_to_registry(folder_path=str(base_path / "types"), registry_cls=TypeRegistry)
         self.add_folder_to_registry(folder_path=str(base_path / "widgets"), registry_cls=WidgetRegistry)

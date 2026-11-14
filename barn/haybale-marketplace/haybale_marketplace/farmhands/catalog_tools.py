@@ -21,13 +21,13 @@ _DOC_FILES = ("OVERVIEW.md", "QUICKREF.md", "README.md")
 
 
 def _marketplace_state(ctx: FarmhandContext):
-    from haybale_marketplace.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.states.marketplace_state import MarketplaceState
 
     return ctx.state(MarketplaceState)
 
 
 def _library_manager(ctx: FarmhandContext):
-    from haybale_marketplace.state.library_manager_state import LibraryManagerState
+    from haybale_marketplace.states.library_manager_state import LibraryManagerState
 
     state = ctx.state(LibraryManagerState)
     manager = state.manager

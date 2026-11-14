@@ -28,7 +28,7 @@ def fake_home(tmp_path, monkeypatch):
 @pytest.fixture
 def state_with_workspace(tmp_path, fake_home, monkeypatch):
     """Construct a MarketplaceState and run on_enable with a sandboxed workspace_root."""
-    from haybale_marketplace.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.states.marketplace_state import MarketplaceState
     from haywire.core.di import context as di_context
 
     workspace = tmp_path / "project"
@@ -44,7 +44,7 @@ def state_with_workspace(tmp_path, fake_home, monkeypatch):
 @pytest.mark.unit
 def test_marketplace_state_is_constructible() -> None:
     """MarketplaceState carries the @state(label=...) decorator and builds bare."""
-    from haybale_marketplace.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.states.marketplace_state import MarketplaceState
 
     # @state(...) attaches class_identity (set by LibraryStateRegistry at scan time;
     # we don't depend on that here — just verify the class is constructible).

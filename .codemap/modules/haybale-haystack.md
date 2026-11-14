@@ -32,7 +32,7 @@ haybale_haystack/
 │   └── properties/introspect/graph_run_settings_panel.py
 ├── settings/
 │   ├── haystack_settings.py, graph_run_settings.py, flow_meter_settings.py
-├── state/
+├── states/
 │   └── haystack_state.py  ← haystack runtime state
 ├── farmhands/
 │   └── graph_tools.py     ← Farmhand tools for graphs
@@ -69,7 +69,7 @@ haybale_haystack/
 |---------|---------------|-------|
 | Container for a graph file | `graph_entry.py` | `GraphEntry` (GraphContainer) |
 | Haystack file I/O | `persistence.py` | Single owner |
-| Haystack runtime state | `state/haystack_state.py` | Open files and their status |
+| Haystack runtime state | `states/haystack_state.py` | Open files and their status |
 | Haystack settings | `settings/haystack_settings.py` | Typed settings |
 
 ---

@@ -143,7 +143,7 @@ class MyPanel(BasePanel):
         self.pool = ctx.app_data[MidiPool]   # don't
 ```
 
-**Folder convention and registration order.** State classes go in the library's `state/` folder; register that folder with `LibraryStateRegistry` in `register_components()`. The folder scan picks up both `AppState` and `SessionState` subclasses in one pass.
+**Folder convention and registration order.** State classes go in the library's `states/` folder; register that folder with `LibraryStateRegistry` in `register_components()`. The folder scan picks up both `AppState` and `SessionState` subclasses in one pass.
 
 **Recommended scan order in `register_components()`:** `settings → state → nodes / panels / editors / themes`. This mirrors the framework's hot-reload propagation chain (`SettingsRegistry → LibraryStateRegistry → NodeRegistry`, `PanelRegistry`, `EditorTypeRegistry`). Following the same order at first-load keeps initial-load aligned with hot-reload, so an `AppState` whose `on_enable` reads a `LibrarySettings()` value finds the schema already wired.
 
@@ -196,7 +196,7 @@ class MyState(AppState):
         self._cache_file = self._db_dir / "cache.json"
 ```
 
-Pass `__name__` — the same idiom as `logging.getLogger(__name__)`. The top-level package is derived automatically (`haybale_mylib.state` → `haybale_mylib`). The directory is created on first call and the call is idempotent. Do **not** call it in `__init__` — `on_enable` is the right lifecycle point, consistent with all other resolved dependencies.
+Pass `__name__` — the same idiom as `logging.getLogger(__name__)`. The top-level package is derived automatically (`haybale_mylib.states` → `haybale_mylib`). The directory is created on first call and the call is idempotent. Do **not** call it in `__init__` — `on_enable` is the right lifecycle point, consistent with all other resolved dependencies.
 
 **A library that needs a volume.** If your library reads or writes files that users should be able to place (model weights, a scan folder), give it a volume: call `ensure_volume` from `on_enable`. It adds the volume to `~/.haywire/volumes.toml` only when the key is absent, so it never overrides where the user moved it, and it never creates the folder. Graphs then refer to files as `(volume key, relative)`; see [volumes](../../architecture/volumes/volumes-arch.md).
 
@@ -222,7 +222,7 @@ class ModelsState(AppState):
 A library `haybale_midi` that exercises both scopes: an `AppState` (`MidiPool`) holding live device handles plus a composed `LibrarySettings` for poll rate, and a `SessionState` (`MidiSelection`) tracking which device the active session has picked. Plus a panel and a worker reading both.
 
 ```python
-# haybale_midi/state/midi_pool.py — AppState
+# haybale_midi/states/midi_pool.py — AppState
 
 from haywire.core.state import AppState, state
 from haywire.core.signals import signal_field
@@ -260,7 +260,7 @@ class MidiPool(AppState):
 ```
 
 ```python
-# haybale_midi/state/midi_selection.py — SessionState
+# haybale_midi/states/midi_selection.py — SessionState
 
 from haywire.core.state import SessionState, state
 from haywire.core.signals import signal_field
@@ -404,7 +404,7 @@ For the framework mechanics — `LibraryStateRegistry`, `LibraryStateContainer`,
 - [ ] Inherit from chosen base; never inherit from `LibraryState` directly
 - [ ] Use `signal_field()` for fields that should drive UI re-renders; plain attributes otherwise
 - [ ] Implement `on_enable` / `on_disable` for resource lifecycle (both optional)
-- [ ] Place file in `state/` folder; register the folder via `LibraryStateRegistry` in `register_components`
+- [ ] Place file in `states/` folder; register the folder via `LibraryStateRegistry` in `register_components`
 - [ ] For SessionState: read `self.session_id` in `on_enable` (not `__init__`)
 - [ ] For AppState composing settings: instantiate `LibrarySettings()` in `on_enable` (not class body or `__init__`)
 

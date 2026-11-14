@@ -8,7 +8,7 @@ from typing import Any, Optional, cast
 
 from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
 
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 
 
 @dataclass

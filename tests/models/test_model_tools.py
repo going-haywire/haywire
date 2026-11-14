@@ -21,12 +21,12 @@ from haywire.core.catalog import CatalogRegistry
 from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
 from haywire.core.volumes import VolumeStore, location_of
 
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_models.download import DownloadJob
 from haybale_models.farmhands.model_tools import ModelsFetchTool, ModelsListTool, ModelsNeedsTool
 from haybale_models.keys import MODELS_VOLUME
 from haybale_models.sources import builtin_sources
-from haybale_models.state.models_state import ModelsState
+from haybale_models.states.models_state import ModelsState
 from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
 

@@ -16,7 +16,7 @@ from haybale_graph_editor.editors.graph_editor import (
     level_key_for,
 )
 from haybale_graph_editor.protocols import GraphContainer, SubgraphContainer
-from haybale_graph_editor.state.graph_app_state import route_for
+from haybale_graph_editor.states.graph_app_state import route_for
 from haywire.core.access import AccessTier, LevelMode
 from haywire.ui.components.zoom.pan import Viewport
 
@@ -216,7 +216,7 @@ class TestAReloadedPlacement:
     """A ``.hwm`` reload swaps the placement's interior for a new definition under the same key."""
 
     def test_an_open_placement_level_follows_a_reload(self):
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         editor, context, document = _editor()
         _open_placement(editor, context)
@@ -284,7 +284,7 @@ class TestAReloadedPlacement:
 
     def test_an_interior_node_selected_on_the_placement_is_not_editable_from_another_tab(self):
         """Focusing another, unlocked tab must not make the placement's node editable either."""
-        from haybale_graph_editor.state.graph_app_state import GraphAppState
+        from haybale_graph_editor.states.graph_app_state import GraphAppState
 
         editor, context, document = _locked_editor(AccessTier.EDIT, open_locked=False)
         _open_placement(editor, context)
@@ -394,7 +394,7 @@ class TestADetachedPlacement:
     """Detaching moves the interior's definition to a new key; the open level follows it there."""
 
     def test_a_detached_placement_level_follows_the_new_key(self):
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         editor, context, document = _editor()
         _open_placement(editor, context)

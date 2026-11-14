@@ -32,7 +32,7 @@ from huggingface_hub.utils import filter_repo_objects
 from nicegui import core, ui
 
 from haybale_graph_editor.notices import GraphNoticesChanged
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_models.consumer import preference_for
 from haybale_models.describe import (
     entry_description,
@@ -59,7 +59,7 @@ from haybale_models.resolver import (
 from haybale_models.signals import ModelsChanged
 from haybale_models.sources import ModelSource, SourceSet
 from haybale_models.sources.https import HttpsSource
-from haybale_models.state.models_state import ModelsState
+from haybale_models.states.models_state import ModelsState
 from haybale_models.status import resource_status
 from haybale_models.store.index import IndexRecord
 

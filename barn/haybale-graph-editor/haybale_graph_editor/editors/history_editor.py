@@ -19,8 +19,8 @@ from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.wrapper import EditorWrapper
 
 from haybale_graph_editor.protocols import GraphContainer
-from haybale_graph_editor.state.edit_state import EditState
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 
 if TYPE_CHECKING:
     from nicegui.element import Element

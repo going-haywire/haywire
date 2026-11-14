@@ -1222,7 +1222,7 @@ def test_operate_reports_a_write_the_route_refused(farmhand_call):
 
 def _live_editor(bid):
     """The studio-side Editor for an open graph (the server runs in this process)."""
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
     from haywire.core.di.context import get_library_state_container
 

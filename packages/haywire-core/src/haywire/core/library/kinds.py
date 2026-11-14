@@ -50,7 +50,7 @@ KIND_FOLDERS = {
     "theme": "themes",
     "panel": "panels",
     "editor": "editors",
-    "state": "state",
+    "state": "states",
     "farmhand": "farmhands",
 }
 

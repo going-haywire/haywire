@@ -10,7 +10,7 @@ import pytest
 from haywire.core.volumes import get_volume_store
 
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
-from haybale_models.state.models_state import ModelsState, hf_default_cache
+from haybale_models.states.models_state import ModelsState, hf_default_cache
 
 
 @pytest.fixture(autouse=True)
@@ -26,7 +26,7 @@ def fresh(monkeypatch, tmp_path):
 
     storage = tmp_path / "db" / "haybale_models"
     storage.mkdir(parents=True)  # what ``library_storage_dir`` creates
-    monkeypatch.setattr("haybale_models.state.models_state.library_storage_dir", lambda _name: storage)
+    monkeypatch.setattr("haybale_models.states.models_state.library_storage_dir", lambda _name: storage)
     monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path / "hf"))
     previous = get_volume_store()
     set_volume_store(VolumeStore(tmp_path / "volumes.toml"))

@@ -154,7 +154,7 @@ When a `draw_tab` override reads state that changes *outside* a normal redraw cy
 - `context.data[Cls]` — `SessionState` lookups, scoped to this session. Selection state lives here. For the graph canvas, that's `EditState` (in `haybale-studio`):
 
 ```python
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 
 node = context.data[EditState].active_node           # NodeWrapper or None
 ```

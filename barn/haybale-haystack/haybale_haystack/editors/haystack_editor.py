@@ -29,8 +29,8 @@ from haywire.core.signals import (
 from haywire.ui.modals import confirm_modal, pick_modal, rename_modal
 
 from haybale_graph_editor.notices import GraphNotice, GraphNoticesChanged
-from haybale_graph_editor.state.edit_state import EditState
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_graph_editor.editors.graph_editor import GraphEditor, definition_path
 from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
 
@@ -38,7 +38,7 @@ from haywire.core.execution.flow_metrics import FlowMeterSampler
 
 from haybale_haystack.flow_meter import FlowMeterView
 from haybale_haystack.signals import HaystackReloaded, HaystackTeardown
-from haybale_haystack.state.haystack_state import HaystackState
+from haybale_haystack.states.haystack_state import HaystackState
 from haybale_haystack.graph_entry import EntryKind, GraphEntry
 
 logger = logging.getLogger(__name__)

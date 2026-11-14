@@ -22,8 +22,8 @@ from haywire.core.undo.origin import StepOrigin
 from haywire.ui.editor.identity import SlotName
 
 from haybale_graph_editor.editors.history_editor import HistoryEditor, graph_path
-from haybale_graph_editor.state.edit_state import EditState
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 
 pytestmark = pytest.mark.unit
 

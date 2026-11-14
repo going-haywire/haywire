@@ -88,7 +88,7 @@ packages/haywire-core/src/haywire/core/node/node_wrapper.py    modify: NodeWrapp
 packages/haywire-core/src/haywire/ui/elements/icons.py         modify: icon.models, icon.notice
 
 barn/haybale-graph-editor/haybale_graph_editor/notices.py      create: GraphNotice, GraphNoticesChanged
-barn/haybale-graph-editor/haybale_graph_editor/state/graph_app_state.py  modify: graphs listener, notice store, compat producer
+barn/haybale-graph-editor/haybale_graph_editor/states/graph_app_state.py  modify: graphs listener, notice store, compat producer
 barn/haybale-haystack/haybale_haystack/editors/haystack_editor.py        modify: notice icon + popup on the row
 
 barn/haybale-models/pyproject.toml                             create
@@ -108,8 +108,8 @@ barn/haybale-models/haybale_models/pool.py                     create: LoadedMod
 barn/haybale-models/haybale_models/consumer.py                 create: preference_for(), resolve_port(), acquire_port()
 barn/haybale-models/haybale_models/download.py                 create: DownloadQueue, DownloadJob
 barn/haybale-models/haybale_models/needs.py                    create: collect_needs(), NeedsReport
-barn/haybale-models/haybale_models/state/models_state.py       create: ModelsState
-barn/haybale-models/haybale_models/state/models_view_state.py  create: ModelsViewState (SessionState)
+barn/haybale-models/haybale_models/states/models_state.py       create: ModelsState
+barn/haybale-models/haybale_models/states/models_view_state.py  create: ModelsViewState (SessionState)
 barn/haybale-models/haybale_models/signals.py                  create: ModelsChanged
 barn/haybale-models/haybale_models/widgets/model_ref_widget.py create: ModelRefWidget
 barn/haybale-models/haybale_models/editors/models_editor.py    create: ModelsEditor
@@ -183,7 +183,7 @@ def test_library_gets_the_registry(test_injector):  # a library's get_registry(C
 
 **Files:**
 - Create: `barn/haybale-graph-editor/haybale_graph_editor/notices.py`
-- Modify: `barn/haybale-graph-editor/haybale_graph_editor/state/graph_app_state.py`
+- Modify: `barn/haybale-graph-editor/haybale_graph_editor/states/graph_app_state.py`
 - Test: `tests/graph_editor/test_graph_notices.py`
 
 **Interfaces:**
@@ -225,7 +225,7 @@ def test_identical_repost_emits_nothing(app_state, emitted):  # emitted = patche
 
 **Files:**
 - Modify: `barn/haybale-haystack/haybale_haystack/editors/haystack_editor.py` (`_render_entry` :257, `@redraw_on` at :83 adds `GraphNoticesChanged`)
-- Modify: `barn/haybale-graph-editor/haybale_graph_editor/state/graph_app_state.py` (`register` posts compatibility notices)
+- Modify: `barn/haybale-graph-editor/haybale_graph_editor/states/graph_app_state.py` (`register` posts compatibility notices)
 - Modify: `packages/haywire-core/src/haywire/ui/elements/icons.py` (`notice: Final[str] = "error_outline"`, `models: Final[str] = "model_training"`)
 - Test: `tests/haystack/test_notice_row.py`, extend `tests/graph_editor/test_graph_notices.py`
 
@@ -460,7 +460,7 @@ def test_unknown_catalog_key(...)
 **Files:**
 - Create: `haybale_models/pool.py`, `haybale_models/consumer.py`
 - Modify: `packages/haywire-core/src/haywire/core/node/node_wrapper.py` — `NodeWrapperState.replace_warnings(kind: str, warnings: Iterable[NodeWarning]) -> bool` (returns whether the list changed); `set_previous_setup` uses it
-- Modify: `haybale_models/state/models_state.py` — `pool`, `index`, `catalog` attributes; `on_disable` → `pool.release_all()`
+- Modify: `haybale_models/states/models_state.py` — `pool`, `index`, `catalog` attributes; `on_disable` → `pool.release_all()`
 - Test: `tests/models/test_pool.py`, `tests/models/test_consumer.py`, `tests/core/test_node/test_replace_warnings.py`
 
 **Interfaces:**

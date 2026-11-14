@@ -9,7 +9,7 @@ from haybale_graph_editor.panels._selection_forms import (
     fan_out_to,
     node_appearance_subject,
 )
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haywire.core.access import LevelMode
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.edit_route import EditRoute

@@ -47,7 +47,7 @@ class FileMenu(Surface):
     @classmethod
     def poll(cls, ctx: Any) -> bool:
         # Lazy import to avoid module-load ordering with state classes
-        from haybale_studio.state.file_browser_state import FileBrowserState
+        from haybale_studio.states.file_browser_state import FileBrowserState
 
         try:
             return ctx.data[FileBrowserState].right_clicked_file is not None

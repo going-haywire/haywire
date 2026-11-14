@@ -13,7 +13,7 @@ from haywire.core.undo.config import UndoConfig
 from haywire.core.undo.history_manager import HistoryManager
 from haywire.core.undo.origin import StepOrigin
 
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 
 pytestmark = pytest.mark.unit
 

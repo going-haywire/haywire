@@ -144,7 +144,7 @@ What this example exercises, beyond the ordinary:
 | `Library` (entry point) | `barn/haybale-marketplace/haybale_marketplace/__init__.py` |
 | Descriptive metadata (`label`, `description`, `tags`) | `…/haybale.toml` |
 | `LibraryManager` service | `…/library_manager.py` |
-| `MarketplaceState`, `LibraryManagerState` | `…/state/` |
+| `MarketplaceState`, `LibraryManagerState` | `…/states/` |
 | Browser / Overview / Component editors | `…/editors/` |
 | Multi-step flows (add-source, install, refresh, uninstall) | `…/editors/_*_flow/` |
 | MCP tools (catalog + install) | `…/farmhands/` |
@@ -168,6 +168,6 @@ plain calls.
 | Adding a `haybale-marketplace` dependency from `haybale-studio` | Breaks optionality — the dependency must stay one-directional |
 | Making `LibraryManager` inherit `AppState` | Constructor-shape mismatch; the plugin publishes it via `LibraryManagerState` instead |
 | Persisting disabled-state in the plugin | Persistence belongs to the core `LibraryRegistry` / `HostStore`, not the marketplace |
-| Scanning `editors/` before `state/` | Editor modules import state classes; wrong order leaves stale class objects |
+| Scanning `editors/` before `states/` | Editor modules import state classes; wrong order leaves stale class objects |
 
 For *how* the surface is built (refresh pipeline, two-tier files, conflict resolution, install gating), see [haybale-marketplace-arch](haybale-marketplace-arch.md). For the architectural rationale of the carve-out, see [ADR-0001](../../adr/0001-haybale-marketplace-carveout.md).

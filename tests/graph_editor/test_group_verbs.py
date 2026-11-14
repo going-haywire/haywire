@@ -131,7 +131,7 @@ class TestDiscovery:
 
 
 def _menu_ctx(*, active_node=None, selected: set[str] | None = None):
-    from haybale_graph_editor.state.edit_state import EditState
+    from haybale_graph_editor.states.edit_state import EditState
 
     edit = MagicMock()
     edit.active_node = active_node

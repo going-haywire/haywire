@@ -129,7 +129,7 @@ raise FarmhandError(
 )
 ```
 
-**Folder convention and registration.** Farmhand tools go in the library's `farmhands/` folder; register it with `FarmhandRegistry` in `register_components()`, alongside the same-shaped calls for `nodes/`, `panels/`, `state/`, etc:
+**Folder convention and registration.** Farmhand tools go in the library's `farmhands/` folder; register it with `FarmhandRegistry` in `register_components()`, alongside the same-shaped calls for `nodes/`, `panels/`, `states/`, etc:
 
 ```python
 from haywire.core.farmhand import FarmhandRegistry

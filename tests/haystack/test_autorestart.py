@@ -39,7 +39,7 @@ def _inline_graph():
 
 
 def _make_state():
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_haystack.states.haystack_state import HaystackState
 
     # __init__ may require deps; construct via object.__new__ and only
     # exercise _on_entry_validation, which is self-contained.

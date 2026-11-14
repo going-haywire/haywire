@@ -22,7 +22,7 @@ haybale_graph_editor/
 ├── protocols.py         ← GraphContainer protocol (binding_id, editor, path, unsaved, display_name, save)
 ├── access.py            ← access rules for the editor
 ├── notices.py           ← user-facing notices
-├── state/
+├── states/
 │   ├── graph_app_state.py ← GraphAppState registry (binding_id → container)
 │   └── edit_state.py      ← EditState: selection + active node/port/graph
 ├── editors/
@@ -55,8 +55,8 @@ haybale_graph_editor/
 ### Always-load
 
 - `protocols.py` — `GraphContainer`, the contract every source library satisfies.
-- `state/graph_app_state.py` — `GraphAppState`: `register` / `unregister` / `rekey`.
-- `state/edit_state.py` — `EditState`: selection and active node/port/graph, read by most panels and handlers.
+- `states/graph_app_state.py` — `GraphAppState`: `register` / `unregister` / `rekey`.
+- `states/edit_state.py` — `EditState`: selection and active node/port/graph, read by most panels and handlers.
 - `__init__.py` — `Library` and `register_components()`.
 
 ### On-demand
@@ -85,7 +85,7 @@ haybale_graph_editor/
 | Concept | Canonical file | Notes |
 |---------|---------------|-------|
 | Container protocol | `protocols.py` | `binding_id`, `editor`, `path`, `unsaved`, `display_name`, `save()` |
-| App-wide registry | `state/graph_app_state.py` | Keyed by `binding_id` |
+| App-wide registry | `states/graph_app_state.py` | Keyed by `binding_id` |
 | Editor surface | `editors/graph_editor.py` | `GraphEditor` |
 | Library entry | `__init__.py` | `graph_editor` entry point |
 | Promote/demote actions | `editors/graph_canvas/handlers/context_menu.py` | Delegates to core promotion |
@@ -115,7 +115,7 @@ haybale_graph_editor/
 |-------------|------|-------------|
 | Library plugin | `__init__.py:Library` | `graph_editor` entry point |
 | Container protocol | `protocols.py:GraphContainer` | Structural contract for graph hosts |
-| App registry | `state/graph_app_state.py:GraphAppState` | `binding_id` → container |
+| App registry | `states/graph_app_state.py:GraphAppState` | `binding_id` → container |
 | Editor | `editors/graph_editor.py:GraphEditor` | Graph editor surface |
 | Canvas manager | `editors/graph_canvas/graph_canvas_manager.py` | Canvas lifecycle |
 | Promote-setting flow | `_promote_flow/` | Hierarchical flyout |

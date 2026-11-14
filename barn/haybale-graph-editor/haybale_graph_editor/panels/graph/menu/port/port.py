@@ -27,7 +27,7 @@ from haywire.core.types.enums import PortOrigin, ShowWidgetStrategy
 
 from haybale_graph_editor.panels.graph.menu.component_rows import component_row, identity_of, key_and_label
 from haybale_graph_editor.surfaces import PinEditMenu, PinMenu, PinWidgetMenu, PortActions
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 
 
 if TYPE_CHECKING:

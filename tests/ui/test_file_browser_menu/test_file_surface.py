@@ -12,7 +12,7 @@ def test_file_menu_id():
 
 def test_file_menu_does_not_apply_when_no_right_click():
     from haybale_studio.surfaces import FileMenu
-    from haybale_studio.state.file_browser_state import FileBrowserState
+    from haybale_studio.states.file_browser_state import FileBrowserState
 
     ctx = MagicMock()
     state_inst = FileBrowserState()
@@ -23,7 +23,7 @@ def test_file_menu_does_not_apply_when_no_right_click():
 
 def test_file_menu_applies_when_right_clicked():
     from haybale_studio.surfaces import FileMenu
-    from haybale_studio.state.file_browser_state import FileBrowserState
+    from haybale_studio.states.file_browser_state import FileBrowserState
 
     from tests.conftest import attach_stub_session
 

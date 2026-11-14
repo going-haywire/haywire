@@ -80,7 +80,7 @@ def _ctx(props: _Props | None, *, n_selected: int = 1, locked_ids: set[str] = fr
     ``locked_ids`` names selected nodes the *graph* reports as locked — what
     ``selection_has_locked`` walks, independent of the active node.
     """
-    from haybale_graph_editor.state.edit_state import EditState
+    from haybale_graph_editor.states.edit_state import EditState
 
     edit = MagicMock()
     node_ids = {f"n{i}" for i in range(n_selected)}
@@ -256,7 +256,7 @@ class TestTheButtonIsAnUndoableEdit:
         graph.cleanup()
 
     def _ctx_with_route(self, props, route):
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         ctx = _ctx(cast(Any, props))
         ctx.data[EditState].active_route = route
@@ -290,7 +290,7 @@ class TestTheButtonIsAnUndoableEdit:
         assert tooltips[0].text == "unlocked"
 
     def test_the_lock_button_without_a_route_changes_nothing(self, nicegui_slot_context):
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         props = _Props(locked=False)
         ctx = _ctx(props)

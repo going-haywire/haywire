@@ -57,8 +57,8 @@ def macro_file(tmp_path, library_system, graph_with_library_system):
 @pytest.fixture
 def haystack(library_system, tmp_path):
     """A HaystackState over the real node factory, with a graph registry."""
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
+    from haybale_haystack.states.haystack_state import HaystackState
 
     state = HaystackState()
     state._dispatcher = MagicMock()
@@ -111,9 +111,9 @@ def _modified_instance(entry, *, grow_pin: bool = False):
 
 def _ctx(haystack, entry, card_id):
     """A session with the instance's card active on ``entry``'s canvas."""
-    from haybale_graph_editor.state.edit_state import EditState
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_graph_editor.states.edit_state import EditState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
+    from haybale_haystack.states.haystack_state import HaystackState
     from haybale_graph_editor.access import level_mode
     from haywire.core.graph.edit_route import EditRoute
 
@@ -366,7 +366,7 @@ def test_update_swaps_the_card_and_opens_the_document(haystack, macro_file, tmp_
 
 def test_an_error_opening_the_macro_after_the_swap_is_reported(haystack, macro_file, tmp_path):
     """The swap stands as one undoable step, and the user is told how to get the instance back."""
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_haystack.states.haystack_state import HaystackState
 
     host = _open_graph(haystack, tmp_path, "host")
     card_id, _ = _modified_instance(host)
@@ -396,7 +396,7 @@ def ledger():
 
 def test_a_failure_opening_the_macro_reaches_the_ledger(haystack, macro_file, tmp_path, ledger):
     """An OSError opening the macro is recorded once, with its path, and the toast is unchanged."""
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_haystack.states.haystack_state import HaystackState
 
     path, _, _ = macro_file
     host = _open_graph(haystack, tmp_path, "host")

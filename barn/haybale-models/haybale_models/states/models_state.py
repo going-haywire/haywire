@@ -162,7 +162,7 @@ class ModelsState(AppState):
     def _start_needs(self) -> None:
         """Watch the open graphs for missing models; skipped when no graph registry exists."""
         from haywire.core.di.context import get_library_state_container
-        from haybale_graph_editor.state.graph_app_state import GraphAppState
+        from haybale_graph_editor.states.graph_app_state import GraphAppState
 
         from haybale_models.needs import NeedsWatcher
 

@@ -23,13 +23,13 @@ class Library(BaseLibrary):
     def register_components(self):
         base_path = Path(__file__).parent
 
-        # state/ MUST be scanned before editors/. Editor modules transitively
-        # import classes from state/ (e.g. LibraryManagerState, MarketplaceState);
+        # states/ MUST be scanned before editors/. Editor modules transitively
+        # import classes from states/ (e.g. LibraryManagerState, MarketplaceState);
         # if a state module isn't in sys.modules yet, the editor's scan would
         # force_reload-replace the class object and leave already-imported
         # references stale. Same reasoning as haybale-studio's __init__.py.
         self.add_folder_to_registry(
-            folder_path=str(base_path / "state"),
+            folder_path=str(base_path / "states"),
             registry_cls=LibraryStateRegistry,
         )
 

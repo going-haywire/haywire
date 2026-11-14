@@ -75,7 +75,7 @@ from haybale_graph_editor.editors.graph_canvas.ui_edge import (
     edge_sync_payload,
     edge_visual_state,
 )
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute

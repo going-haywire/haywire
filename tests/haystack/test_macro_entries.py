@@ -30,7 +30,7 @@ def settings_registry_wired():
 
 @pytest.fixture
 def state(settings_registry_wired):
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_haystack.states.haystack_state import HaystackState
 
     state = HaystackState()
     state._dispatcher = MagicMock()

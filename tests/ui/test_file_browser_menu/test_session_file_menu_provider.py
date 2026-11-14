@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 def _make_provider_under_test(panels=None):
     """Build a provider with mocked dependencies."""
     from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
-    from haybale_studio.state.file_browser_state import FileBrowserState
+    from haybale_studio.states.file_browser_state import FileBrowserState
     from tests.conftest import attach_stub_session
 
     ctx = MagicMock()

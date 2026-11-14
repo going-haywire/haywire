@@ -46,7 +46,7 @@ class Library(BaseLibrary):
         )
 
         self.add_folder_to_registry(
-            folder_path=str(base_path / "state"),
+            folder_path=str(base_path / "states"),
             registry_cls=LibraryStateRegistry,
         )
 

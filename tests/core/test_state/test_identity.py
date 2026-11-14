@@ -10,13 +10,13 @@ class TestLibraryStateClassIdentity:
             registry_key="midi:state:MidiPool",
             label="MidiPool",
             class_name="MidiPool",
-            module="haybale_midi.state.midi_pool",
+            module="haybale_midi.states.midi_pool",
         )
         assert ident.registry_id == "MidiPool"
         assert ident.registry_key == "midi:state:MidiPool"
         assert ident.label == "MidiPool"
         assert ident.class_name == "MidiPool"
-        assert ident.module == "haybale_midi.state.midi_pool"
+        assert ident.module == "haybale_midi.states.midi_pool"
         # Inherited defaults from BaseIdentity:
         assert ident.description == ""
         assert ident.deprecation_warning == ""

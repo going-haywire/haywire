@@ -11,7 +11,7 @@ from haywire.core.marketstall.cache import docs_cache_dir
 
 @pytest.mark.anyio
 async def test_fetch_overview_writes_to_docs_cache(tmp_path, monkeypatch):
-    from haybale_marketplace.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.states.marketplace_state import MarketplaceState
 
     class _Resp:
         def read(self):
