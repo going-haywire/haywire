@@ -3953,13 +3953,13 @@ live, so it cannot drift from the code:</p>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="n">base_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
 </span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="c1"># state/ MUST be scanned before editors/. Editor modules transitively</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="c1"># import classes from state/ (e.g. LibraryManagerState, MarketplaceState);</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        <span class="c1"># states/ MUST be scanned before editors/. Editor modules transitively</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>        <span class="c1"># import classes from states/ (e.g. LibraryManagerState, MarketplaceState);</span>
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="c1"># if a state module isn&#39;t in sys.modules yet, the editor&#39;s scan would</span>
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        <span class="c1"># force_reload-replace the class object and leave already-imported</span>
 </span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>        <span class="c1"># references stale. Same reasoning as haybale-studio&#39;s __init__.py.</span>
 </span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>            <span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;state&quot;</span><span class="p">),</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>            <span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;states&quot;</span><span class="p">),</span>
 </span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>            <span class="n">registry_cls</span><span class="o">=</span><span class="n">LibraryStateRegistry</span><span class="p">,</span>
 </span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>        <span class="p">)</span>
 </span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>
@@ -4035,7 +4035,7 @@ authoring surface both share.</p>
 </tr>
 <tr>
 <td><code>MarketplaceState</code>, <code>LibraryManagerState</code></td>
-<td><code>…/state/</code></td>
+<td><code>…/states/</code></td>
 </tr>
 <tr>
 <td>Browser / Overview / Component editors</td>
@@ -4081,7 +4081,7 @@ plain calls.</p>
 <td>Persistence belongs to the core <code>LibraryRegistry</code> / <code>HostStore</code>, not the marketplace</td>
 </tr>
 <tr>
-<td>Scanning <code>editors/</code> before <code>state/</code></td>
+<td>Scanning <code>editors/</code> before <code>states/</code></td>
 <td>Editor modules import state classes; wrong order leaves stale class objects</td>
 </tr>
 </tbody>

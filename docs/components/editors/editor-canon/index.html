@@ -3837,7 +3837,7 @@
 <li><code>context.app_data[Cls]</code> — <code>AppState</code> lookups, shared across all sessions.</li>
 <li><code>context.data[Cls]</code> — <code>SessionState</code> lookups, scoped to this session. Selection state lives here. For the graph canvas, that's <code>EditState</code> (in <code>haybale-studio</code>):</li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haybale_graph_editor.state.edit_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EditState</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haybale_graph_editor.states.edit_state</span><span class="w"> </span><span class="kn">import</span> <span class="n">EditState</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">node</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span>           <span class="c1"># NodeWrapper or None</span>
 </span></code></pre></div>

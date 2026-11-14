@@ -4102,7 +4102,7 @@
 </tr>
 </tbody>
 </table>
-<p>Editor-specific reactive state — selection, clipboard, the active graph — does <strong>not</strong> live on <code>SessionContext</code>. It lives on a library-owned <code>SessionState</code> class. For the graph canvas, that state is <code>EditState</code> (<code>barn/haybale-studio/haybale_studio/state/edit_state.py</code>), accessed via <code>ctx.data[EditState]</code>:</p>
+<p>Editor-specific reactive state — selection, clipboard, the active graph — does <strong>not</strong> live on <code>SessionContext</code>. It lives on a library-owned <code>SessionState</code> class. For the graph canvas, that state is <code>EditState</code> (<code>barn/haybale-studio/haybale_studio/states/edit_state.py</code>), accessed via <code>ctx.data[EditState]</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">edit</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">node</span> <span class="o">=</span> <span class="n">edit</span><span class="o">.</span><span class="n">active_node</span>          <span class="c1"># NodeWrapper or None</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">selected</span> <span class="o">=</span> <span class="n">edit</span><span class="o">.</span><span class="n">selected_nodes</span>   <span class="c1"># set[str] of node IDs</span>
