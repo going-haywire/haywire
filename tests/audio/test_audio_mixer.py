@@ -113,6 +113,30 @@ def test_each_connected_source_gets_its_own_pins(graph_with_library_system):
 
 
 @pytest.mark.integration
+def test_removing_an_input_removes_its_gain_and_mute_and_undo_restores_them(graph_with_library_system):
+    from haywire.core.graph.editor import Editor
+
+    g = graph_with_library_system
+    mixer = _mixer(g)
+    _sources(g, mixer, 2)
+    node = mixer.node
+    assert node.ports["gain_0"].owner == "in_0"
+    assert not node.ports["gain_0"].is_user_removable()
+    node.ports["gain_0"].set_value(0.25)
+    editor = Editor(g, mixer._node_factory)
+
+    assert editor.remove_port(mixer.node_id, "in_0")
+    assert not {"in_0", "gain_0", "mute_0"} & set(node.ports)
+    assert {"in_1", "gain_1", "mute_1"} <= set(node.ports)
+
+    assert editor.undo()
+    g.force_validation()
+    assert {"in_0", "gain_0", "mute_0"} <= set(node.ports)
+    assert node.value("gain_0") == 0.25
+    assert node.ports["in_0"].is_linked()
+
+
+@pytest.mark.integration
 def test_tick_mixes_the_inputs_with_gain_and_mute(graph_with_library_system):
     g = graph_with_library_system
     mixer = _mixer(g)

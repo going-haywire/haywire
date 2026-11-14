@@ -51,7 +51,7 @@ class MixerSettings(NodeSettings):
 class AudioMixerNode(BaseNode):
     """Mixes live sources that run on their own flows. Each source has its own input: connect its audio
     output to the open input at the bottom and it gets a `Gain` and a `Mute`; a new open input appears
-    below.
+    below. Removing an input from its pin menu removes its `Gain` and `Mute` with it.
 
     An input collects every block its source delivers, at the source's own pace, until the next tick.
     Wire an Audio Clock's Audio Event `Block Ready` to `Tick`. `Tick` is the moment to mix one block:
@@ -113,8 +113,9 @@ class AudioMixerNode(BaseNode):
 
         index = int(port.id[len(_PREFIX) :])
         self._collecting_input(index)
-        self.add(FLOAT.as_inlet(f"gain_{index}", label=f"Gain {index}", default=1.0))
-        self.add(BOOL.as_inlet(f"mute_{index}", label=f"Mute {index}", default=False))
+        owned = {"origin": PortOrigin.RESOLVED, "owner": port.id}
+        self.add(FLOAT.as_inlet(f"gain_{index}", label=f"Gain {index}", default=1.0, **owned))
+        self.add(BOOL.as_inlet(f"mute_{index}", label=f"Mute {index}", default=False, **owned))
         # Indices are never reused: a port id is part of the id of every edge attached to it.
         next_index = max(self._indices()) + 1
         self.add(
@@ -230,12 +231,23 @@ class AudioMixerNode(BaseNode):
             )
 
     def _upgrade_saved_inputs(self) -> None:
-        """Rebuild saved inputs that are plain audio inputs with `Write` pins, or hold another size."""
+        """Bring saved inputs up to date.
+
+        Rebuilds an input that is a plain audio input with a `Write` pin, or holds another size, and
+        makes each input own its `Gain` and `Mute`.
+        """
         for port in list(self.get_all_ports()):
             if not (port.id.startswith(_PREFIX) and port.origin is PortOrigin.RESOLVED):
                 continue
+            index = int(port.id[len(_PREFIX) :])
             if not port.queues_values or getattr(port.data, "max_len", None) != _INPUT_BLOCKS:
-                self._collecting_input(int(port.id[len(_PREFIX) :]))
+                self._collecting_input(index)
+            for control in (f"gain_{index}", f"mute_{index}"):
+                saved = self.ports.get(control)
+                if saved is not None and saved.owner is None:
+                    # In place: the value, the order and the edges stay as saved.
+                    saved.origin = PortOrigin.RESOLVED
+                    saved.owner = port.id
 
     def _gain(self, index: int) -> float:
         gain = self.value(f"gain_{index}")

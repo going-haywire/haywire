@@ -24,7 +24,7 @@ Sums several audio sources into one block per clock tick
 
 Mixes live sources that run on their own flows. Each source has its own input: connect its audio
 output to the open input at the bottom and it gets a `Gain` and a `Mute`; a new open input appears
-below.
+below. Removing an input from its pin menu removes its `Gain` and `Mute` with it.
 
 An input collects every block its source delivers, at the source's own pace, until the next tick.
 Wire an Audio Clock's Audio Event `Block Ready` to `Tick`. `Tick` is the moment to mix one block:

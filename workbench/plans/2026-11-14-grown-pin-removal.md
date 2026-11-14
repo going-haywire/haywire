@@ -138,5 +138,5 @@ class BaseNode:
 |---|---|
 | Design | Settled 2026-11-14 |
 | Framework + tests | Done 2026-11-14 on `feature/removePort`. Deviations: the undo snapshot covers only the port, ports with an owner and resolved folds, so an unrelated port's bad value cannot break a removal; `AddPortTestNode`'s `Str` side is the testbed (a `Note` companion in a resolved fold). |
-| Mixer adoption | Not started |
+| Mixer adoption | Done 2026-11-14 on `feature/removePort`. Deviation: `_upgrade_saved_inputs()` sets `origin` and `owner` on the saved `Gain`/`Mute` in place instead of re-adding them, so value, order and edges stay untouched. |
 | Docs + ADR | Not started |

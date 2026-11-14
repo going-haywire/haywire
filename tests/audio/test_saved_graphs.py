@@ -32,6 +32,29 @@ def test_a_saved_audio_flow_loads_with_its_mixer_inputs_collecting(graph_with_li
     assert invalid == ["write_0", "write_1"]
 
 
+def test_a_saved_mixer_input_comes_to_own_its_gain_and_mute(graph_with_library_system, tmp_path):
+    """Saved before inputs owned their `Gain` and `Mute`: after loading, removing an input takes them
+    along, and a save keeps the link."""
+    from haywire.core.node.promotion import remove_port
+
+    graph = graph_with_library_system
+    assert graph.load_from_file(str(FIXTURES / "audio_flow.haywire"))
+    graph.force_validation()
+    mixer = _mixer(graph)
+    for n in (0, 1):
+        assert mixer.ports[f"gain_{n}"].owner == f"in_{n}"
+        assert mixer.ports[f"mute_{n}"].owner == f"in_{n}"
+
+    path = tmp_path / "resaved.haywire"
+    assert graph.save_to_file(str(path))
+    assert graph.load_from_file(str(path))
+    mixer = _mixer(graph)
+    assert mixer.ports["gain_1"].owner == "in_1"
+
+    assert remove_port(mixer, "in_1")
+    assert not {"in_1", "gain_1", "mute_1"} & set(mixer.ports)
+
+
 def test_mixer_inputs_still_collect_after_a_save_and_load(graph_with_library_system, tmp_path):
     graph = graph_with_library_system
     assert graph.load_from_file(str(FIXTURES / "audio_flow.haywire"))
