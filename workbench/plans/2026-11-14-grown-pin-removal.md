@@ -137,6 +137,6 @@ class BaseNode:
 | Slice | State |
 |---|---|
 | Design | Settled 2026-11-14 |
-| Framework + tests | Not started |
+| Framework + tests | Done 2026-11-14 on `feature/removePort`. Deviations: the undo snapshot covers only the port, ports with an owner and resolved folds, so an unrelated port's bad value cannot break a removal; `AddPortTestNode`'s `Str` side is the testbed (a `Note` companion in a resolved fold). |
 | Mixer adoption | Not started |
 | Docs + ADR | Not started |

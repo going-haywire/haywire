@@ -178,9 +178,9 @@ class DataPort(DataTypeIdentity):
 
         True for a port the user brought into being — promoted from a setting,
         or resolved from an ``ADD`` pin — and False for one the node's
-        author declared.
+        author declared, and for a companion, which goes with its ``owner``.
         """
-        return self.origin is not PortOrigin.DECLARED
+        return self.origin is not PortOrigin.DECLARED and self.owner is None
 
     # ========================================================================
     # HIERARCHY & ORGANIZATION
@@ -191,6 +191,14 @@ class DataPort(DataTypeIdentity):
 
     order: int = 0
     """Display order within parent"""
+
+    owner: Optional[str] = None
+    """ID of the grown port this companion exists for, None if it stands on its own.
+
+    A companion goes with its owner: removing the owner removes it, whichever path
+    drops the owner, and the user cannot remove it alone. Lifetime only; where the
+    port shows is ``parent_fold``'s business.
+    """
 
     is_fold: bool = False
     """True if this port is a fold container.

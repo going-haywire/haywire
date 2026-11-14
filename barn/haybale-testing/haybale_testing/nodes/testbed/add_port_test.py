@@ -30,6 +30,12 @@ class AddPortTestNode(BaseNode):
     typed slot the user can reconnect, and removing it for good is a separate
     gesture on the pin menu. Slot indices are never reused, so the pins a saved
     graph refers to keep their ids.
+
+    A resolved `Str` pin brings a `Note` inlet along, in a fold of its own. The
+    note goes with its pin: removing `Str 0` from the pin menu removes `Note 0`
+    and its fold too, and undo brings all three back. The node keeps the resolved
+    `Str` pins in order in its store and updates that list when one is removed or
+    restored.
     """
 
     #: Port-id prefix per side, and the label each side shows.
@@ -65,8 +71,16 @@ class AddPortTestNode(BaseNode):
         # A decided slot keeps its own type; the edge already carries the
         # conversion, so there is nothing to adopt from the other end.
         if side == "str":
+            index = self._index_of(side, port.id)
             with self.rejig(include=[port.id]):
-                self._add_slot(side, self._index_of(side, port.id), TEST_STRING, PortOrigin.RESOLVED)
+                self._add_slot(side, index, TEST_STRING, PortOrigin.RESOLVED)
+            with self.fold(f"Str {index} notes", origin=PortOrigin.RESOLVED):
+                self.add(
+                    TEST_STRING.as_inlet(
+                        f"str_note_{index}", label=f"Note {index}", origin=PortOrigin.RESOLVED, owner=port.id
+                    )
+                )
+            self.store.str_grown = [*self._str_grown(), port.id]
             self._add_slot(side, self._next_index(side), ADD[TEST_STRING])
             return
 
@@ -80,6 +94,26 @@ class AddPortTestNode(BaseNode):
         with self.rejig(include=[port.id]):
             self._add_slot(side, self._index_of(side, port.id), incoming, PortOrigin.RESOLVED)
         self._add_slot(side, self._next_index(side), ADD)
+
+    def on_pin_removed(self, port_id, spec):
+        """Drop *port_id* from the resolved `Str` pins; return its place in that list."""
+        grown = self._str_grown()
+        if port_id not in grown:
+            return None
+        index = grown.index(port_id)
+        self.store.str_grown = grown[:index] + grown[index + 1 :]
+        return index
+
+    def on_pin_restored(self, port_id, memento):
+        """Put *port_id* back at the place ``on_pin_removed`` returned."""
+        if memento is None:
+            return
+        grown = self._str_grown()
+        self.store.str_grown = grown[:memento] + [port_id] + grown[memento:]
+
+    def _str_grown(self) -> list[str]:
+        """The resolved `Str` pin ids, in the order they grew."""
+        return list(getattr(self.store, "str_grown", None) or [])
 
     # ------------------------------------------------------------------
     # Slot management

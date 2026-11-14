@@ -89,6 +89,53 @@ class BaseNode(NodeData):
         """Bring back the ports ``release_pins()`` removed, when the delete is undone."""
         pass
 
+    def on_pin_removed(self, port_id: str, spec: dict) -> Any:
+        """React to the user removing a pin this node grew from an ``ADD`` pin.
+
+        Called once per removal from the pin menu, the canvas, the settings panel
+        or Farmhand, after the port, its companions and their edges are gone. Not
+        called when the node's own code removes a port. Change the node's state
+        and port values only: adding, removing, retyping or reordering ports, or
+        touching edges, is reported as an error and is not undone.
+
+        Runs on the edit thread, possibly while the graph's workers still run;
+        the graph stops for reassembly afterwards.
+
+        Args:
+            port_id: The removed port's id.
+            spec: The removed port's saved spec, as ``DataPort.to_dict()`` returns it.
+
+        Returns:
+            What ``on_pin_restored()`` needs to reverse this, kept by the undo
+            step; plain values only. The default returns ``None``.
+
+        Example::
+
+            def on_pin_removed(self, port_id, spec):
+                index = self.store.names.index(port_id)
+                name = self.store.names.pop(index)
+                return index, name
+
+            def on_pin_restored(self, port_id, memento):
+                if memento is not None:
+                    index, name = memento
+                    self.store.names.insert(index, name)
+        """
+        return None
+
+    def on_pin_restored(self, port_id: str, memento: Any) -> None:
+        """Reverse ``on_pin_removed()`` when the removal is undone.
+
+        Called after the port, its companions and their edges are back. The same
+        rules as ``on_pin_removed()`` apply.
+
+        Args:
+            port_id: The restored port's id.
+            memento: What ``on_pin_removed()`` returned for this removal; ``None``
+                if it returned nothing or raised.
+        """
+        pass
+
     def on_testrun(self) -> tuple[bool, str | None]:
         """Verify that the node is set up correctly. Run when the node is added to the graph.
 
