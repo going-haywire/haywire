@@ -51,3 +51,5 @@ Before the first branch, commit, push or `gh pr` command of any task, however sm
 This codebase has many silent failure modes (NiceGUI slots and events, test isolation, DI globals, registries, edge and pin rendering, settings). Each known one has a file in `.insights/`, indexed in [.insights/INDEX.md](.insights/INDEX.md). Check the index first whenever a symptom is silent or surprising: assume a known trap before a new bug.
 
 A new trap gets a file in `.insights/` and an entry in the index.
+
+<!-- Fork pull request end-to-end test. Not for merge. -->
