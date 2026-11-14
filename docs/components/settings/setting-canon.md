@@ -187,9 +187,12 @@ algorithm = setting[CHOICES](
 theme = setting[CHOICES]('', widget_config={'options': lambda: get_theme_registry().list_workbench_keys()})
 
 # One-argument callable — receives the Settings bag that owns the field (None when
-# there is none), so the list can follow a sibling setting
-source = setting[STRING]('', widget=SelectWidget.config(
-    properties={'options': lambda bag: list_sources(bag.backend if bag else None)}))
+# there is none), so the list can follow a sibling setting. The default (bag=None)
+# keeps it working where options are still called without arguments.
+def list_source_options(bag=None):
+    return list_sources(bag.backend if bag is not None else None)
+
+source = setting[STRING]('', widget=SelectWidget.config(properties={'options': list_source_options}))
 ```
 
 Every reader of `options` (the widget, Farmhand's `inspect_node`) resolves it through

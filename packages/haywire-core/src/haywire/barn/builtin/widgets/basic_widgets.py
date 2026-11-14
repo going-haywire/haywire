@@ -273,7 +273,7 @@ class SelectWidget(BaseWidget):
       List of selectable values (required). A callable is invoked at ``build()``
       and again each time the dropdown opens, so the list follows state that
       changes while the widget is shown (e.g. senders found on the network). A
-      callable with one required parameter receives the ``Settings`` bag that
+      callable with a positional parameter receives the ``Settings`` bag that
       owns the field (``None`` when there is none), so the list can depend on a
       sibling setting. The current value stays listed across a refresh.
     - ``clearable`` (bool): If ``True``, shows a clear button to reset the selection.

@@ -104,12 +104,19 @@ def test_a_one_argument_callable_gets_none_without_a_bag():
     assert seen == [None]
 
 
-def test_a_callable_with_only_optional_parameters_is_called_without_arguments():
-    def options(prefix: str = "x") -> list[str]:
-        return [prefix + "1", "a"]
+def test_a_bag_parameter_with_a_default_also_receives_the_bag():
+    # The spelling a library uses to work with a framework that calls options() bare.
+    def options(bag: Any = None) -> list[str]:
+        return ["all"] if bag is None else [bag.backend]
 
-    widget, _, _ = _rendered({"options": options})
-    assert widget.ui_element.options == ["x1", "a"]
+    bag = type("Bag", (), {"backend": "omt"})()
+    widget, _, _ = _rendered({"options": options}, value="omt", settings=bag)
+    assert widget.ui_element.options == ["omt"]
+
+
+def test_a_callable_without_parameters_is_called_bare():
+    widget, _, _ = _rendered({"options": lambda: ["a"]}, settings=object())
+    assert widget.ui_element.options == ["a"]
 
 
 def test_static_options_are_not_refreshed():

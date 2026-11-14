@@ -186,9 +186,11 @@ def resolve_options(options: Any, settings: Any = None) -> Any:
     """Resolve a ``widget_config`` ``options`` entry to its list or dict.
 
     A callable is called: with *settings* (the ``Settings`` bag that owns the field,
-    or ``None``) when it has a required positional parameter, else with no
-    arguments. Anything else is returned as given. ``SelectWidget`` and every other
-    reader of ``options`` resolve through here, so they all see the same list.
+    or ``None``) when it takes a positional parameter, else with no arguments.
+    Giving that parameter a default (``def options(bag=None)``) keeps the callable
+    working with a framework that calls it without arguments. Anything else is
+    returned as given. ``SelectWidget`` and every other reader of ``options``
+    resolve through here, so they all see the same list.
     """
     if not callable(options):
         return options
@@ -196,13 +198,13 @@ def resolve_options(options: Any, settings: Any = None) -> Any:
 
 
 def _takes_argument(fn: Callable[..., Any]) -> bool:
-    """Whether *fn* has a required positional parameter."""
+    """Whether *fn* takes a positional parameter."""
     try:
         parameters = inspect.signature(fn).parameters.values()
     except (TypeError, ValueError):
         return False
     positional = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
-    return any(p.kind in positional and p.default is inspect.Parameter.empty for p in parameters)
+    return any(p.kind in positional for p in parameters)
 
 
 def is_cattrs_serializable(value: Any) -> tuple[bool, str | None]:
