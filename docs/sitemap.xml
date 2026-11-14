@@ -297,6 +297,18 @@
          <lastmod>2026-11-14</lastmod>
     </url>
     <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0079-a-first-contribution-starts-with-an-introduction/</loc>
+         <lastmod>2026-11-14</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0080-untrusted-pull-requests-meet-nothing-with-power/</loc>
+         <lastmod>2026-11-14</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0081-libraries-from-other-repositories-run-from-an-umbrella-environment/</loc>
+         <lastmod>2026-11-14</lastmod>
+    </url>
+    <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/design/design-arch/</loc>
          <lastmod>2026-11-14</lastmod>
     </url>
