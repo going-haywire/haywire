@@ -60,16 +60,16 @@ class Library(BaseLibrary):
         # Register panels
         self.add_folder_to_registry(folder_path=str(base_path / "panels"), registry_cls=PanelRegistry)
 
-        # Register state LAST — deliberately adversarial ordering. Panels
+        # Register states LAST — deliberately adversarial ordering. Panels
         # registered above eagerly import TestSessionState, so by the time
-        # state/ is scanned the module is already in sys.modules. This is
+        # states/ is scanned the module is already in sys.modules. This is
         # the placement that broke pre-fix: BaseRegistry._on_creation used
         # to force-reload the module, producing a second class object and
         # leaving the panel's reference stale. The fix makes class
         # identity stable regardless of scan order. See
         # tests/core/test_libraries/test_registries.py.
         self.add_folder_to_registry(
-            folder_path=str(base_path / "state"),
+            folder_path=str(base_path / "states"),
             registry_cls=LibraryStateRegistry,
         )
 
