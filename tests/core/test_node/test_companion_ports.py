@@ -124,6 +124,7 @@ def _find_port(tree, port_id: str) -> dict:
 def test_the_owner_survives_save_and_load(grown):
     graph, _, target = grown
     loaded = _reload(graph).get_node_wrapper(target.node_id)
+    assert loaded is not None
     note = loaded.node.ports["str_note_0"]
     assert note.owner == "str_in_0"
     assert not note.is_user_removable()
@@ -139,6 +140,8 @@ def test_a_saved_port_without_an_owner_loads_as_its_own(grown):
 
     loaded = BaseGraph(filestem="reloaded")
     assert loaded.load_from_dict(data) is True
-    note = loaded.get_node_wrapper(target.node_id).node.ports["str_note_0"]
+    wrapper = loaded.get_node_wrapper(target.node_id)
+    assert wrapper is not None
+    note = wrapper.node.ports["str_note_0"]
     assert note.owner is None
     assert note.is_user_removable()
