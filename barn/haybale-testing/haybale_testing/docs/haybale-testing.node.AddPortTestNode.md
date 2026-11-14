@@ -26,3 +26,9 @@ A resolved pin stays once its edge is gone — unplugging leaves an empty
 typed slot the user can reconnect, and removing it for good is a separate
 gesture on the pin menu. Slot indices are never reused, so the pins a saved
 graph refers to keep their ids.
+
+A resolved `Str` pin brings a `Note` inlet along, in a fold of its own. The
+note goes with its pin: removing `Str 0` from the pin menu removes `Note 0`
+and its fold too, and undo brings all three back. The node keeps the resolved
+`Str` pins in order in its store and updates that list when one is removed or
+restored.

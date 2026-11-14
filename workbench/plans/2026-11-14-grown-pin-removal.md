@@ -129,8 +129,8 @@ class BaseNode:
 - `PROMOTED` ports firing the hook (demotion has its own record and restore path).
 - A framework quiet write that skips `on_change`.
 - Moving `release_pins`/`restore_pins` to mementos.
-- The mixer's `hb_buffers` entries for removed inputs (a prune in its own code, separate
-  from this design).
+- The mixer's `hb_buffers` entries for removed inputs: nothing to do. A removal requires
+  reassembly, which stops a running graph, and the stop's `hb_reset()` clears them.
 
 ## Status
 
@@ -139,4 +139,4 @@ class BaseNode:
 | Design | Settled 2026-11-14 |
 | Framework + tests | Done 2026-11-14 on `feature/removePort`. Deviations: the undo snapshot covers only the port, ports with an owner and resolved folds, so an unrelated port's bad value cannot break a removal; `AddPortTestNode`'s `Str` side is the testbed (a `Note` companion in a resolved fold). |
 | Mixer adoption | Done 2026-11-14 on `feature/removePort`. Deviation: `_upgrade_saved_inputs()` sets `origin` and `owner` on the saved `Gain`/`Mute` in place instead of re-adding them, so value, order and edges stay untouched. |
-| Docs + ADR | Not started |
+| Docs + ADR | Done 2026-11-14 on `feature/removePort`: ADR 0082, node canon §7 (two subsections, live embeds from `AddPortTestNode`) and its hook reference, ports guide *Companions*, glossary marks dropped. |

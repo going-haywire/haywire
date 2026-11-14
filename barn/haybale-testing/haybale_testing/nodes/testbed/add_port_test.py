@@ -70,6 +70,7 @@ class AddPortTestNode(BaseNode):
 
         # A decided slot keeps its own type; the edge already carries the
         # conversion, so there is nothing to adopt from the other end.
+        # --8<-- [start:companion]
         if side == "str":
             index = self._index_of(side, port.id)
             with self.rejig(include=[port.id]):
@@ -83,6 +84,7 @@ class AddPortTestNode(BaseNode):
             self.store.str_grown = [*self._str_grown(), port.id]
             self._add_slot(side, self._next_index(side), ADD[TEST_STRING])
             return
+        # --8<-- [end:companion]
 
         # An inlet reads the type from the outlet feeding it, and vice versa.
         other = edge_wrapper._outlet_port if port.is_inlet() else edge_wrapper._inlet_port
@@ -95,6 +97,7 @@ class AddPortTestNode(BaseNode):
             self._add_slot(side, self._index_of(side, port.id), incoming, PortOrigin.RESOLVED)
         self._add_slot(side, self._next_index(side), ADD)
 
+    # --8<-- [start:pin-hooks]
     def on_pin_removed(self, port_id, spec):
         """Drop *port_id* from the resolved `Str` pins; return its place in that list."""
         grown = self._str_grown()
@@ -110,6 +113,8 @@ class AddPortTestNode(BaseNode):
             return
         grown = self._str_grown()
         self.store.str_grown = grown[:memento] + [port_id] + grown[memento:]
+
+    # --8<-- [end:pin-hooks]
 
     def _str_grown(self) -> list[str]:
         """The resolved `Str` pin ids, in the order they grew."""
