@@ -417,37 +417,60 @@ class NodeData:
         self._push_stack.append(flagged)
 
     def _pop(self) -> List[str]:
-        """Internal: remove flagged ports not refreshed. Use rejig() instead."""
+        """Internal: remove flagged ports not refreshed. Use rejig() instead.
+
+        Companions go with their owner: any port whose ``owner`` is gone is removed
+        too, and so is a ``RESOLVED`` fold this leaves with no children.
+        """
         if not self._push_stack:
             raise RuntimeError("_pop() called without matching _push()")
 
         flagged = self._push_stack.pop()
-        removed = []
+        removed = [port_id for port_id in flagged if port_id in self.ports]
+        folds = {self._destroy_port(port_id) for port_id in removed}
 
-        for port_id in flagged:
-            if port_id in self.ports:
-                port = self.ports[port_id]
+        orphans = removed
+        while orphans:
+            orphans = [
+                pid for pid, port in self.ports.items() if port.owner and port.owner not in self.ports
+            ]
+            folds |= {self._destroy_port(port_id) for port_id in orphans}
+            removed = removed + orphans
 
-                # Detach all edges from the destroyed port
-                for link_set in (port.incoming, port.outgoing):
-                    for edge in link_set.detach_all():
-                        if link_set.is_incoming:
-                            # The source end drops its pipe; the sink end of an outgoing edge is not told.
-                            source = edge._outlet_port
-                            if source is not None and source is not port:
-                                source.outgoing.remove_edge(edge.edge_id)
-                                edge._update_link_state()
-                                source._housekeeping()
-                        else:
-                            edge._update_link_state()
-                        edge.redraw()
-
-                del self.ports[port_id]
-                removed.append(port_id)
+        emptied = {fold_id for fold_id in folds if fold_id} - {
+            port.parent_fold for port in self.ports.values()
+        }
+        for fold_id in emptied:
+            fold = self.ports.get(fold_id)
+            if fold is not None and fold.is_fold and fold.origin is PortOrigin.RESOLVED:
+                self._destroy_port(fold_id)
+                removed.append(fold_id)
 
         self.wrapper.mark_as_structuraly_dirty()
         self._executor = None
         return removed
+
+    def _destroy_port(self, port_id: str) -> Optional[str]:
+        """Internal: delete the port ``port_id`` and return its fold's id.
+
+        Its edges are detached and stay in the graph, so a port re-added under the same id links them again.
+        """
+        port = self.ports[port_id]
+        for link_set in (port.incoming, port.outgoing):
+            for edge in link_set.detach_all():
+                if link_set.is_incoming:
+                    # The source end drops its pipe; the sink end of an outgoing edge is not told.
+                    source = edge._outlet_port
+                    if source is not None and source is not port:
+                        source.outgoing.remove_edge(edge.edge_id)
+                        edge._update_link_state()
+                        source._housekeeping()
+                else:
+                    edge._update_link_state()
+                edge.redraw()
+
+        del self.ports[port_id]
+        return port.parent_fold
 
     @contextmanager
     def rejig(self, include: Optional[PortFilter] = None, exclude: Optional[PortFilter] = None):
@@ -474,6 +497,10 @@ class NodeData:
         distinction is ownership: ``exclude=r"^slot_"`` holds only as long as
         the naming convention does, while the origin is the property that
         actually separates an authored port from a stamped one.
+
+        A port whose ``owner`` is destroyed goes with it, flagged or not, and so
+        does a ``RESOLVED`` fold left with no children. Re-adding the owner in
+        the block keeps its companions.
 
         A port is flagged when it matches ``include`` and does not match
         ``exclude``, so a port named by both is spared. Each filter is

@@ -413,6 +413,68 @@ Subgraph boundary nodes use it to make an interface growable. See
 [ADR 0034](../../adr/0034-add-is-a-type.md) and **Growing slot** in the
 [glossary](../../reference/glossary.md).
 
+### Ports that come with a grown port
+
+A node may add more than the grown port: the audio mixer gives each input a
+`Gain` and a `Mute`. Add such a port with `owner=` set to the grown port's id,
+and `origin=PortOrigin.RESOLVED`. It is then a **companion**:
+
+- it goes with its owner, whichever way the owner is destroyed: the user's
+  **Remove pin**, or a `rejig()` of yours that does not re-add the owner (one
+  that does re-add it keeps the companions);
+- the user cannot remove it on its own;
+- a `RESOLVED` fold left with no ports when companions go is removed too, so
+  the companions may sit in a fold of their own;
+- undo of the user's removal brings the owner, its companions and their edges
+  back at their places.
+
+```python
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/add_port_test.py:companion"
+```
+from: `AddPortTestNode` — registry_key: `haybale-testing:node:AddPortTestNode`
+
+`owner` is saved with the port. A graph saved before your node set it loads the
+ports as free-standing ones; set `origin` and `owner` on them in `post_init()`
+if they should follow their owner (the mixer's `_upgrade_saved_inputs()` does).
+
+### When the user removes a grown port
+
+Override `on_pin_removed()` if your node keeps a record of its grown ports that
+the port list does not hold, such as a text setting that names them. It is
+called once when the user removes a grown port (from the pin menu, the canvas,
+the settings panel or Farmhand), after the port, its companions and their edges
+are gone. Return whatever `on_pin_restored()` needs to reverse what you did;
+the undo step keeps it and hands it back when the removal is undone, and a redo
+calls `on_pin_removed()` again.
+
+```python
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/add_port_test.py:pin-hooks"
+```
+from: `AddPortTestNode` — registry_key: `haybale-testing:node:AddPortTestNode`
+
+The rules:
+
+- Change the node's state and port values only. Adding, removing, retyping or
+  reordering ports, or touching edges, is reported in the error ledger and is
+  not undone; that is what companions are for.
+- Writing a setting whose `on_change` rebuilds ports rebuilds them; suppress
+  your own callback if the ports already match.
+- A hook that raises is reported in the error ledger. The removal and its undo
+  still go through, and `on_pin_restored()` then receives `None`.
+- They run on the edit thread, possibly while the graph's workers still run;
+  the graph stops for reassembly afterwards.
+- Your own code removing a port (`remove_port()`, a `rejig()`) does not call
+  them: you know of that removal already.
+
+If you need nothing more than the list of grown ports, read it from the ports
+(`[p for p in self.ports.values() if p.origin is PortOrigin.RESOLVED]`) and
+override nothing. Why the hooks work this way:
+[ADR 0082](../../adr/0082-a-removed-pin-reaches-its-node-through-the-undo-step.md).
+
+A related pair covers the user deleting an edge: `release_pins()` lets a node
+that grows a port per edge drop the ports the delete leaves bare, and
+`restore_pins()` brings them back on undo. Annotation uses it.
+
 ### Folds
 
 `with self.fold('Advanced'):` puts the ports declared inside it under a
@@ -570,3 +632,7 @@ parameter with no matching port raises `ValueError`.
 | `on_shutdown` | `(self, context)` | After the node's last use in a run |
 | `on_saved` | `(self)` | Just before graph is saved |
 | `on_teardown` | `(self)` | When node is destroyed |
+| `on_pin_removed` | `(self, port_id, spec)` | The user removed a grown port; return what undo needs |
+| `on_pin_restored` | `(self, port_id, memento)` | Undo brought the port back; `memento` is what `on_pin_removed` returned |
+| `release_pins` | `(self, port_ids)` | The user deleted edges into these ports; remove the bare ones, return their ids |
+| `restore_pins` | `(self, port_ids)` | Undo of that delete; bring the ports back |

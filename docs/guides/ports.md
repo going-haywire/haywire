@@ -197,6 +197,22 @@ deciding something.
 choosing a widget) and `section()` (which had no adopters in this repo).
 See [ADR 0035](../adr/0035-fold-replaces-group-and-section.md).
 
+### Companions
+
+`owner=` names the grown port a port exists for, such as the `Gain` an
+audio mixer adds beside each input it grows. The port then goes with its
+owner wherever the owner is removed, and the user cannot remove it alone:
+
+```python
+self.add(FLOAT.as_inlet(f"gain_{index}", origin=PortOrigin.RESOLVED, owner=f"in_{index}"))
+```
+
+`owner` is about lifetime and `parent_fold` about layout, so the two combine
+freely: a companion may sit in any fold, and a fold made with
+`origin=PortOrigin.RESOLVED` is removed once its last companion goes. See
+**Companion port** in the [glossary](../reference/glossary.md) and
+[node canon, §7](../components/nodes/node-canon.md#ports-that-come-with-a-grown-port).
+
 ### Ordering
 
 `DataPort.order` is the sort key every card and panel renders by. It defaults

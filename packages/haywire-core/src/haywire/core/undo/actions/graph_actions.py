@@ -1787,12 +1787,18 @@ class RemovePortAction(ActionBase):
     """Undoable removal of a port the user brought into being.
 
     Covers what ``remove_port()`` covers: a setting promoted to a pin, or a slot
-    resolved from an ``ADD`` placeholder. Edges on the port are detached with it
-    and stay in the graph; undo restores the port and the edges link to it again.
+    resolved from an ``ADD`` placeholder, with its companions. Edges on the ports
+    are detached with them and stay in the graph; undo restores the ports at their
+    places and the edges link to them again.
+
+    For a resolved port, the node hears of it through ``BaseNode.on_pin_removed()``
+    and, on undo, ``on_pin_restored()``. A hook that raises, or that changes the
+    node's ports, is recorded in the error ledger; the removal and its undo go
+    through regardless.
 
     Raises:
         Refusal: If the node or port is not found, or the port is one the node's
-            author declared.
+            author declared or a companion of another port.
     """
 
     def __init__(self, graph: BaseGraph, node_id: str, port_id: str):
@@ -1800,10 +1806,11 @@ class RemovePortAction(ActionBase):
         self.graph = graph
         self.node_id = node_id
         self.port_id = port_id
-        # A promoted port is regenerated from its setting; any other from its saved spec.
+        # A promoted port is regenerated from its setting; a resolved one, its companions
+        # and any fold they empty, from their saved specs and orders.
         self._promotion: Optional[Tuple[str, str, Any]] = None
-        self._spec: Optional[Dict[str, Any]] = None
-        self._order = 0
+        self._removed: List[Tuple[Dict[str, Any], int]] = []
+        self._memento: Any = None
 
     def _node(self) -> Any:
         wrapper = self.graph.get_node_wrapper(self.node_id)
@@ -1820,19 +1827,31 @@ class RemovePortAction(ActionBase):
         if port is None:
             raise Refusal(f"Node '{self.node_id}' has no port '{self.port_id}'")
         if not port.is_user_removable():
+            if port.owner:
+                raise Refusal(f"Port '{self.port_id}' goes with '{port.owner}' and cannot be removed alone")
             raise Refusal(f"Port '{self.port_id}' is declared by the node and cannot be removed")
 
-        self._promotion = self._spec = None
+        self._promotion = None
+        self._removed = []
+        self._memento = None
         if port.origin is PortOrigin.PROMOTED:
             bag, desc = _resolve_promoted(node, self.port_id)
             accessor = bag_accessor(node, bag)
             record = bag._promoted_keys.get(desc.storage_key)
             if accessor is not None and record is not None:
                 self._promotion = (accessor, desc._attr_name, record)
+            remove_port(node, self.port_id)
         else:
-            self._spec = port.to_dict()
-            self._order = port.order
-        remove_port(node, self.port_id)
+            # What the removal can take: the port, companions, and resolved folds.
+            before = {
+                pid: (p.to_dict(), p.order)
+                for pid, p in node.ports.items()
+                if pid == self.port_id or p.owner or (p.is_fold and p.origin is PortOrigin.RESOLVED)
+            }
+            spec = before[self.port_id][0]
+            remove_port(node, self.port_id)
+            self._removed = [saved for pid, saved in before.items() if pid not in node.ports]
+            self._memento = self._call_hook(node, "on_pin_removed", self.port_id, spec)
         self._publish()
 
     def _undo_impl(self) -> None:
@@ -1842,10 +1861,41 @@ class RemovePortAction(ActionBase):
         if self._promotion is not None:
             accessor, field, record = self._promotion
             promote_setting(node, accessor, field, record.direction, record.show_widget, record.order)
-        elif self._spec is not None:
-            with node.rejig(include=[self.port_id]):
-                node.add(self._spec).order = self._order
+        elif self._removed:
+            # Folds come before their children: the specs keep the node's port order.
+            with node.rejig(include=[]):
+                for spec, order in self._removed:
+                    node.add(spec).order = order
+            self._call_hook(node, "on_pin_restored", self.port_id, self._memento)
         self._publish()
+
+    def _call_hook(self, node: Any, hook: str, *args: Any) -> Any:
+        """Call the node's ``hook``; record a raise or a port change in the ledger, never raise."""
+        from ...errors import HaywireException, report_failure
+
+        context: Dict[str, Any] = {
+            "graph_id": self.graph.graph_id,
+            "node_id": self.node_id,
+            "registry_key": node.wrapper.registry_key if node.wrapper else None,
+        }
+        shape = {pid: p.type_cls for pid, p in node.ports.items()}
+        result = None
+        try:
+            result = getattr(node, hook)(*args)
+        except Exception as exc:
+            report_failure(exc, operation="Remove pin", refusals_fail=True, hook=hook, **context)
+        now = {pid: p.type_cls for pid, p in node.ports.items()}
+        if now != shape:
+            changed = sorted(pid for pid in shape.keys() | now.keys() if shape.get(pid) is not now.get(pid))
+            breach = HaywireException.create(
+                f"{type(node).__name__}.{hook}() changed the node's ports ({', '.join(changed)}); "
+                "undo does not reverse that",
+                operation="Remove pin",
+            )
+            breach.enrich(**context)
+            breach.details.update(hook=hook, ports=changed)
+            breach.log()
+        return result
 
     def _publish(self) -> None:
         """Mark the node so its card repaints and its edges rebuild onto the port's new state."""

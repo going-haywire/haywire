@@ -234,6 +234,9 @@ class IType(ABC):
                     graph keeps the user's choice (default: False)
                 use_mode (str): 'optional' or 'required' (default: 'optional').
                     Reported to tools; the framework does not enforce it
+                owner (str): Id of the grown port this port is a companion of. It
+                    is removed with its owner and the user cannot remove it alone
+                    (default: None)
 
             Callbacks:
                 on_change (str): Node method name to call when value changes
@@ -401,6 +404,9 @@ class IType(ABC):
                     (default: False)
                 use_mode (str): 'optional' or 'required' (default: 'optional').
                     Reported to tools; the framework does not enforce it
+                owner (str): Id of the grown port this port is a companion of. It
+                    is removed with its owner and the user cannot remove it alone
+                    (default: None)
 
             Callbacks:
                 on_change (str): Node method name to call when a value arrives
@@ -464,6 +470,9 @@ class IType(ABC):
                     graph keeps the user's choice (default: False)
                 use_mode (str): 'optional' or 'required' (default: 'optional').
                     Reported to tools; the framework does not enforce it
+                owner (str): Id of the grown port this port is a companion of. It
+                    is removed with its owner and the user cannot remove it alone
+                    (default: None)
 
             Callbacks:
                 on_change (str): Node method name to call when value changes
