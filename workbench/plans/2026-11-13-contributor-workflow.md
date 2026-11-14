@@ -135,12 +135,13 @@ Defined in `CONTRIBUTING.md` (process vocabulary, not Haywire domain terms), add
 slice 2: maintainer, contributor, collaborator (future), introduction issue, accepted
 introduction, agent files, review worktree, umbrella environment, workbench.
 
-## ADR candidates
+## ADRs
 
-1. The introduction gate for first contributions (8A, 9D, 10B).
-2. Handling untrusted PRs: the read-only reviewer, publishing through `workflow_run`, and
-   the rule for workflows with rights (11A, 18A, the table above).
-3. The umbrella environment instead of symlinks or a monorepo (17A).
+Written 2026-11-14:
+
+1. [ADR 0079](../../docs/adr/0079-a-first-contribution-starts-with-an-introduction.md): the introduction gate for first contributions (8A, 9D, 10B).
+2. [ADR 0080](../../docs/adr/0080-untrusted-pull-requests-meet-nothing-with-power.md): handling untrusted pull requests (11A, 12B, 18A, 25A, 26A).
+3. [ADR 0081](../../docs/adr/0081-libraries-from-other-repositories-run-from-an-umbrella-environment.md): the umbrella environment (17A).
 
 ## Inputs owed by the maintainer
 
