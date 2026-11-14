@@ -26,7 +26,7 @@ the one place we want to hear from you directly. The maintainer answers and mark
 
 A pull request that arrives before that is welcome too: it gets a friendly comment and the
 label `needs introduction`, stays open, and can be merged once the introduction is
-accepted.
+accepted. Why it works this way: [ADR 0079](docs/adr/0079-a-first-contribution-starts-with-an-introduction.md).
 
 ## Before you start a change
 
@@ -111,7 +111,8 @@ holds the step-by-step for contributors and the maintainer.
 
 ## For the maintainer: handling a fork's pull request safely
 
-A pull request from a fork is untrusted code and untrusted text.
+A pull request from a fork is untrusted code and untrusted text. The reasons behind these rules:
+[ADR 0080](docs/adr/0080-untrusted-pull-requests-meet-nothing-with-power.md).
 
 - **Workflows with rights never run pull request code.** A workflow that has write rights
   or secrets (`pull_request_target`, `workflow_run`) never checks out, installs or runs code
