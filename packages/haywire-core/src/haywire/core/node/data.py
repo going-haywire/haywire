@@ -451,7 +451,10 @@ class NodeData:
         return removed
 
     def _destroy_port(self, port_id: str) -> Optional[str]:
-        """Internal: detach every edge from ``port_id`` and delete it; return its fold's id."""
+        """Internal: delete the port ``port_id`` and return its fold's id.
+
+        Its edges are detached and stay in the graph, so a port re-added under the same id links them again.
+        """
         port = self.ports[port_id]
         for link_set in (port.incoming, port.outgoing):
             for edge in link_set.detach_all():
