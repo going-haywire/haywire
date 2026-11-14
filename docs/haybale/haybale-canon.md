@@ -199,7 +199,7 @@ exists".
 The entry point names the **class**, not an instance — the framework
 instantiates it.
 
-### The eleven registries
+### The thirteen registries
 
 | Registry class | Import path | Folder | Registers |
 | --- | --- | --- | --- |
@@ -210,12 +210,14 @@ instantiates it.
 | `SkinRegistry` | `haywire.ui.skin.registry` | `skins/` | skin classes |
 | `ThemeRegistry` | `haywire.ui.themes.registry` | `themes/` | `@theme(theme_type=...)` classes |
 | `SettingsRegistry` | `haywire.core.settings.registry` | `settings/` | `@settings` classes |
-| `LibraryStateRegistry` | `haywire.core.state` | `state/` | `AppState` / `SessionState` |
+| `LibraryStateRegistry` | `haywire.core.state` | `states/` | `AppState` / `SessionState` |
 | `EditorTypeRegistry` | `haywire.ui.editor.registry` | `editors/` | `@editor` classes |
 | `PanelRegistry` | `haywire.ui.panel.registry` | `panels/` | `@panel` classes |
 | `FarmhandRegistry` | `haywire.core.farmhand` | `farmhands/` | MCP tool classes |
+| `MacroRegistry` | `haywire.core.macro.registry` | `macros/` | `.hwm` macro documents |
+| `CatalogRegistry` | `haywire.core.catalog.registry` | `catalog/` | model catalog JSON entries |
 
-Most libraries need only the first six. **Scan `state/` first** when you
+Most libraries need only the first six. **Scan `states/` first** when you
 register it — farmhand and editor modules transitively import state classes, and
 scanning state first keeps a single class object live.
 
@@ -485,7 +487,7 @@ from haywire.ui.themes.registry import ThemeRegistry
 | `file_watcher=True` on a non-editable install | No effect — no watchable source |
 | Hand-editing generated `[project]` fields | Preflight reports the drift; publishing overwrites them |
 | Importing from `haywire.core.library.library` | Out of date — use `haywire.core.library.base` |
-| Scanning `editors/` before `state/` | Editor modules import state classes; wrong order leaves stale objects |
+| Scanning `editors/` before `states/` | Editor modules import state classes; wrong order leaves stale objects |
 
 ---
 

@@ -13,7 +13,7 @@ from haywire.core.farmhand import (
     farmhand,
 )
 
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_models.matcher import candidates
 from haybale_models.needs import NeedsReport, collect_needs, job_matches
 from haybale_models.resolver import (
@@ -25,7 +25,7 @@ from haybale_models.resolver import (
     unserved_cache,
 )
 from haybale_models.download import DownloadJob
-from haybale_models.state.models_state import ModelsState
+from haybale_models.states.models_state import ModelsState
 from haybale_models.status import resource_status
 from haybale_models.value.model_ref import ModelRef
 

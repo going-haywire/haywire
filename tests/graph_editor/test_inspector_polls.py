@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces.edge import EdgeInspector
 from haybale_graph_editor.surfaces.graph import GraphInspector
 from haybale_graph_editor.surfaces.node import NodeInspector, SettingsInspector

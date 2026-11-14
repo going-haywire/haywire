@@ -36,7 +36,7 @@ def test_panel_appears_and_reveal_fires():
     from haywire.ui.panel.decorator import panel
     from haywire.ui.panel.registry import PanelRegistry
     from haybale_studio.surfaces import FileActions, FileMenu
-    from haybale_studio.state.file_browser_state import FileBrowserState
+    from haybale_studio.states.file_browser_state import FileBrowserState
     from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
 
     @panel(
@@ -82,7 +82,7 @@ def test_panel_skipped_when_extension_doesnt_match():
     from haywire.ui.panel.decorator import panel
     from haywire.ui.panel.registry import PanelRegistry
     from haybale_studio.surfaces import FileActions, FileMenu
-    from haybale_studio.state.file_browser_state import FileBrowserState
+    from haybale_studio.states.file_browser_state import FileBrowserState
     from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
 
     @panel(

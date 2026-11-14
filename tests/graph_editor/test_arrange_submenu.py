@@ -26,7 +26,7 @@ from haybale_graph_editor.panels.graph.menu.selection.arrange import (
     SendBackwardMenuPanel,
     SendToBackMenuPanel,
 )
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import SelectionActions, SelectionArrangeMenu, SelectionMenu
 from haywire.core.access import AccessTier
 from haywire.core.graph.stacking import Restack

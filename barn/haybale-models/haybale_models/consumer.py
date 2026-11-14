@@ -10,7 +10,7 @@ from haywire.core.node.node_warning import NodeWarning
 
 from haybale_models.matcher import Preference
 from haybale_models.resolver import ModelMissing, ResolvedModel, resolve
-from haybale_models.state.models_state import ModelsState
+from haybale_models.states.models_state import ModelsState
 from haybale_models.value.model_ref import ModelRef
 
 if TYPE_CHECKING:

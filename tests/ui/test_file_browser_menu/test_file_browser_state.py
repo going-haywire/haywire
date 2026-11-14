@@ -7,14 +7,14 @@ from tests.conftest import attach_stub_session
 
 
 def test_file_browser_state_starts_empty():
-    from haybale_studio.state.file_browser_state import FileBrowserState
+    from haybale_studio.states.file_browser_state import FileBrowserState
 
     state = FileBrowserState()
     assert state.right_clicked_file is None
 
 
 def test_right_clicked_file_can_be_set_and_cleared():
-    from haybale_studio.state.file_browser_state import FileBrowserState
+    from haybale_studio.states.file_browser_state import FileBrowserState
 
     state = attach_stub_session(FileBrowserState())
     p = Path("/tmp/foo.haywire")

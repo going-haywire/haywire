@@ -9,8 +9,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
-from haybale_graph_editor.state.graph_app_state import GraphAppState
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
+from haybale_graph_editor.states.edit_state import EditState
 from haywire.core.access import AccessTier, LevelMode, access_resolver, set_access_resolver
 from haywire.core.session.context import SessionContext
 from haywire.core.signals import ActiveGraphMoved

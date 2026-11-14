@@ -125,7 +125,7 @@ def _error_detail(flow: AddSourceFlow, _rerender: Callable[[], None]) -> bool:
 
 def build_target(context) -> Optional[MarketplaceAddSourceTarget]:
     """Adapter for *context*, or None when marketplace state is unavailable."""
-    from haybale_marketplace.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.states.marketplace_state import MarketplaceState
 
     if context.app_data is None or MarketplaceState not in context.app_data:
         return None

@@ -100,7 +100,7 @@ def test_deprecation_message_not_version_aware_when_installed_at_or_above_since(
 @pytest.mark.unit
 def test_row_by_dist_name_finds_successor_in_catalog():
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
-    from haybale_marketplace.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.states.marketplace_state import MarketplaceState
 
     editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
     successor_row = Haybale(name="haybale-y", version="2.0.0")
@@ -116,7 +116,7 @@ def test_row_by_dist_name_finds_successor_in_catalog():
 @pytest.mark.unit
 def test_row_by_dist_name_none_when_not_in_catalog():
     from haybale_marketplace.editors.library_overview_editor import LibraryOverviewEditor
-    from haybale_marketplace.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.states.marketplace_state import MarketplaceState
 
     editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
     state = Mock(spec=MarketplaceState)

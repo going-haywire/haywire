@@ -11,7 +11,7 @@ Add your custom components in the corresponding folders:
 - themes/     — workbench and node themes
 - panels/     — custom UI panels
 - editors/    — custom UI editors
-- state/      — per-session library state (SessionState subclasses)
+- states/     — per-session library state (SessionState subclasses)
 """
 
 from pathlib import Path
@@ -42,17 +42,17 @@ class Library(BaseLibrary):
         """Register all components with the global registries."""
         base_path = Path(__file__).parent
 
-        # state/ MUST be scanned first. Panel and editor modules in later
-        # scans transitively import classes from state/ (e.g. EditState).
-        # Once a state module is in sys.modules, the state/ scan's
+        # states/ MUST be scanned first. Panel and editor modules in later
+        # scans transitively import classes from states/ (e.g. EditState).
+        # Once a state module is in sys.modules, the states/ scan's
         # force_reload would replace the class object — leaving any
         # already-imported references stale. The container would then key
         # on the new class while writers held the old one, causing
-        # KeyError on ctx.data[StateClass] lookups. Registering state/
+        # KeyError on ctx.data[StateClass] lookups. Registering states/
         # first means every later import resolves to the same class
         # the container holds.
         self.add_folder_to_registry(
-            folder_path=str(base_path / "state"),
+            folder_path=str(base_path / "states"),
             registry_cls=LibraryStateRegistry,
         )
 

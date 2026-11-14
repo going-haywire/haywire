@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haybale_graph_editor.panels._gating import is_macro_placement, is_modified_instance
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import SelectionActions, SelectionMacroMenu
 from haywire.core.errors import report_failure
 from haywire.core.signals import Reveal
@@ -25,7 +25,7 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.layout import PanelLayout
 
-from haybale_haystack.state.haystack_state import HaystackState
+from haybale_haystack.states.haystack_state import HaystackState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -193,7 +193,7 @@ def _update_macro(ctx: "SessionContext", node_id: str) -> None:
     """
     from nicegui import ui
 
-    from haybale_graph_editor.state.graph_app_state import route_for
+    from haybale_graph_editor.states.graph_app_state import route_for
     from haywire.core.macro.promote import macro_document
     from haywire.core.macro.source import (
         count_placements,

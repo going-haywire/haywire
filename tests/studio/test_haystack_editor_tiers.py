@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from haybale_haystack.editors import haystack_editor as haystack_editor_module
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_haystack.editors.haystack_editor import HaystackEditor
 from haywire.core.access import AccessTier, access_resolver, set_access_resolver
 from haywire.core.session.context import SessionContext

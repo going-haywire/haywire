@@ -89,7 +89,7 @@ From the 2026-09-11 four-way benchmark on `core/marketstall` (see
 | `packages/haywire-core/src/haywire/ui/widget` | 17 | sonnet | pending | — |
 | `barn/haybale-marketplace/haybale_marketplace/editors/_refresh_flow` | 16 | sonnet | pending | — |
 | `packages/haywire-core/src/haywire/ui/editor` | 15 | sonnet | pending | — |
-| `barn/haybale-haystack/haybale_haystack/state` | 15 | sonnet | pending | — |
+| `barn/haybale-haystack/haybale_haystack/states` | 15 | sonnet | pending | — |
 | `packages/haywire-core/src/haywire/core/session` | 14 | sonnet | pending | — |
 | `barn/haybale-marketplace/haybale_marketplace/editors/_add_source_flow` | 13 | sonnet | pending | — |
 | `barn/haybale-haystack/haybale_haystack` | 13 | sonnet | pending | — |
@@ -117,7 +117,7 @@ From the 2026-09-11 four-way benchmark on `core/marketstall` (see
 | `packages/haywire-core/src/haywire/ui/components/stepper` | 6 | sonnet | pending | — |
 | `barn/haybale-testing/haybale_testing/nodes/testbed` | 6 | sonnet | pending | — |
 | `barn/haybale-studio/haybale_studio/farmhands` | 6 | sonnet | pending | — |
-| `barn/haybale-marketplace/haybale_marketplace/state` | 6 | sonnet | pending | — |
+| `barn/haybale-marketplace/haybale_marketplace/states` | 6 | sonnet | pending | — |
 | `barn/haybale-graph-editor/haybale_graph_editor/editors` | 6 | sonnet | pending | — |
 | `packages/haywire-core/src/haywire/ui/extends/codemirror` | 5 | sonnet | pending | — |
 | `packages/haywire-core/src/haywire/core/docs` | 5 | sonnet | pending | — |
@@ -154,13 +154,13 @@ From the 2026-09-11 four-way benchmark on `core/marketstall` (see
 | `packages/haywire-core/src/haywire/core/session/workspace` | 1 | sonnet | pending | — |
 | `barn/haybale-testing/haybale_testing/widgets` | 1 | sonnet | pending | — |
 | `barn/haybale-testing/haybale_testing/themes` | 1 | sonnet | pending | — |
-| `barn/haybale-studio/haybale_studio/state` | 1 | sonnet | pending | — |
+| `barn/haybale-studio/haybale_studio/states` | 1 | sonnet | pending | — |
 | `barn/haybale-studio/haybale_studio/editors/file_browser_menu` | 1 | sonnet | pending | — |
 | `barn/haybale-share/haybale_share` | 1 | sonnet | pending | — |
 | `barn/haybale-haystack/haybale_haystack/settings` | 1 | sonnet | pending | — |
 | `barn/haybale-haystack/haybale_haystack/panels/file_browser/menu` | 1 | sonnet | pending | — |
 | `barn/haybale-haystack/haybale_haystack/farmhands` | 1 | sonnet | pending | — |
-| `barn/haybale-graph-editor/haybale_graph_editor/state` | 1 | sonnet | pending | — |
+| `barn/haybale-graph-editor/haybale_graph_editor/states` | 1 | sonnet | pending | — |
 | `barn/haybale-graph-editor/haybale_graph_editor/panels/properties/setting` | 1 | sonnet | pending | — |
 
 ## Failure notes

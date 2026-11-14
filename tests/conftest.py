@@ -526,7 +526,7 @@ def integration_node_factory(library_system) -> NodeFactory:
 # ==============================================================================
 
 
-_EDIT_STATE_MODULE = "haybale_graph_editor.state.edit_state"
+_EDIT_STATE_MODULE = "haybale_graph_editor.states.edit_state"
 
 
 def attach_stub_session(instance):

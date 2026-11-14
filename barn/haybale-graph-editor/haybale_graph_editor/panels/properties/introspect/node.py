@@ -15,9 +15,9 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
 from haybale_graph_editor.surfaces import NodeInspector
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.panels import _previous_setup as previous_setup
-from haybale_graph_editor.state.graph_app_state import route_for
+from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

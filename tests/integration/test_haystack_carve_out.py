@@ -26,7 +26,7 @@ def test_haystack_state_loads_via_library_system(library_system):
     container, so this is the only coverage of the discovery path.
     """
     from haywire.core.state import LibraryStateContainer
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_haystack.states.haystack_state import HaystackState
 
     container = library_system.injector.get(LibraryStateContainer)
     instance = container.get(HaystackState)

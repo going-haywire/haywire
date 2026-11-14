@@ -55,7 +55,7 @@ def install_with_safety_check(
         resolve_block_target,
     )
 
-    from haybale_marketplace.state.marketplace_state import MarketplaceState
+    from haybale_marketplace.states.marketplace_state import MarketplaceState
 
     from haybale_marketplace.editors._install_flow import ManagerInstallSource, show_install_flow
 

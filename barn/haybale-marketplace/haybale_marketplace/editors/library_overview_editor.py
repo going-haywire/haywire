@@ -276,7 +276,7 @@ class LibraryOverviewEditor(BaseEditor):
         Matching by distribution name mirrors the LibraryBrowser update-arrow logic
         so the same packages flagged in the list also expose an Update button here.
         """
-        from haybale_marketplace.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.states.marketplace_state import MarketplaceState
 
         if context.app_data is None or MarketplaceState not in context.app_data:
             return None
@@ -302,7 +302,7 @@ class LibraryOverviewEditor(BaseEditor):
         caller falls back to showing the name as plain text rather than a
         dead button.
         """
-        from haybale_marketplace.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.states.marketplace_state import MarketplaceState
 
         if not dist_name or context.app_data is None or MarketplaceState not in context.app_data:
             return None
@@ -430,7 +430,7 @@ class LibraryOverviewEditor(BaseEditor):
         )
 
         # Resolve registries from context
-        from haybale_marketplace.state.library_manager_state import LibraryManagerState
+        from haybale_marketplace.states.library_manager_state import LibraryManagerState
 
         app = context.app
         svc = app.library_service
@@ -1042,7 +1042,7 @@ class LibraryOverviewEditor(BaseEditor):
         context: "SessionContext",
     ):
         """Fetch overview content async and populate the content_area."""
-        from haybale_marketplace.state.marketplace_state import MarketplaceState
+        from haybale_marketplace.states.marketplace_state import MarketplaceState
 
         marketplace_state = context.app_data.get(MarketplaceState) if context.app_data else None
         content = await marketplace_state.fetch_overview(pkg) if marketplace_state else None

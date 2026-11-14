@@ -17,7 +17,7 @@ from haybale_models.status import resource_status
 from haybale_models.upload_route import NAME_HEADER, UploadRoute, mount_upload_route
 
 if TYPE_CHECKING:
-    from haybale_models.state.models_state import ModelsState
+    from haybale_models.states.models_state import ModelsState
 
 NO_DIGEST_NOTICE = "No digest in the catalog: this file can't be verified."
 _ACTIVE = ("queued", "running")

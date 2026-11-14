@@ -15,7 +15,7 @@ import pytest
 from nicegui import Client, ui
 
 from haybale_graph_editor.access import level_mode
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haywire.core.access import AccessTier, LevelMode
 from haywire.core.graph.edit_route import EditRoute
 

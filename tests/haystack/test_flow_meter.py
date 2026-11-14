@@ -23,12 +23,12 @@ from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
 from haywire.ui.editor.wrapper import EditorWrapper
 from nicegui import Client, ui
 
-from haybale_graph_editor.state.edit_state import EditState
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_haystack.editors.haystack_editor import HaystackEditor
 from haybale_haystack.flow_meter import FlowMeterView, bar_signature, describe, fill_step
 from haybale_haystack.graph_entry import EntryKind
-from haybale_haystack.state.haystack_state import HaystackState
+from haybale_haystack.states.haystack_state import HaystackState
 
 pytestmark = pytest.mark.unit
 

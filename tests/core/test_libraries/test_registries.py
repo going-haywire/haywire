@@ -11,10 +11,10 @@ from haywire.core.state import LibraryStateContainer
 class TestBaseRegistryClassIdentity:
     """Regression: BaseRegistry._on_creation must not force-reload modules.
 
-    The haybale-testing library deliberately registers ``state/`` LAST in
+    The haybale-testing library deliberately registers ``states/`` LAST in
     its ``register_components()``. The panels registered before it
     eagerly import ``TestSessionState`` at module-load time, so by the
-    time state/ is scanned the module is already in ``sys.modules``.
+    time states/ is scanned the module is already in ``sys.modules``.
 
     Pre-fix, ``_on_creation`` called ``module_scan_for_classes`` with
     ``force_reload=True``, which deleted the module from ``sys.modules``
@@ -34,7 +34,7 @@ class TestBaseRegistryClassIdentity:
         panel_class_ref = panel_module.TestSessionState
 
         # Resolve via the canonical state module path.
-        state_module = importlib.import_module("haybale_testing.state.test_session_state")
+        state_module = importlib.import_module("haybale_testing.states.test_session_state")
         state_class_ref = state_module.TestSessionState
 
         # If _on_creation ever force-reloads again, these would be

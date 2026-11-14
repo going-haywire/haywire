@@ -73,7 +73,7 @@ def test_handler_recovers_stale_binding_id_after_external_rekey():
     refresh instead of resolving to "No graph".
     """
     from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, _Level
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
     graph = object()
 

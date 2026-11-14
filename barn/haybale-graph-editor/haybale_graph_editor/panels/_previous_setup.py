@@ -16,8 +16,8 @@ from haywire.ui import elements as hui
 from haywire.ui.access_stamp import stamp_requires
 from haywire.ui.panel.layout import PanelLayout
 
-from haybale_graph_editor.state.edit_state import EditState
-from haybale_graph_editor.state.graph_app_state import route_for
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute

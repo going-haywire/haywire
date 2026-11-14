@@ -24,7 +24,7 @@ from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import (
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 from haybale_graph_editor.editors.graph_editor import DOCUMENT_LEVEL, GraphEditor
 from haybale_graph_editor.protocols import SubgraphContainer
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haywire.core.access import AccessTier, LevelMode
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import _REACT_ON_ATTR

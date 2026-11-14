@@ -18,7 +18,7 @@ from haywire.core.execution.compile_result import CompileResult
 from haybale_haystack.graph_entry import EntryKind, GraphEntry
 from haybale_haystack.settings.haystack_settings import HaystackSettings
 
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class HaystackState(AppState):
 
         # Dependencies resolved in on_enable. _dispatcher is NOT among
         # them: AppState's base class provides it as a container-stamped
-        # weakref (see state/base.py), dereffed via self._dispatcher().
+        # weakref (see haywire/core/state/base.py), dereffed via self._dispatcher().
         self._workspace_root: Optional[Path] = None
         self._node_factory: Optional[NodeFactory] = None
         self._library_state_container: Optional[LibraryStateContainer] = None

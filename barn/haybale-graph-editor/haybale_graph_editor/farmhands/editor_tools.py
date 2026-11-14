@@ -38,7 +38,7 @@ _MUTATING = ToolAnnotations()
 
 
 def _editor(ctx: FarmhandContext, binding_id: str):
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
     container = ctx.state(GraphAppState).get(binding_id)
     if container is None:

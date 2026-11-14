@@ -122,7 +122,7 @@ class TrimCanvasPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         graph = ctx.data[EditState].active_graph
         return graph is not None and len(graph.node_wrappers) >= 1
@@ -155,7 +155,7 @@ class NewNodeToolbarPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_graph is not None
 
@@ -272,7 +272,7 @@ class ResetNodeCardsMenuPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_graph is not None
 
@@ -317,7 +317,7 @@ class ArrangeAllMenuPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         graph = ctx.data[EditState].active_graph
         return graph is not None and len(graph.node_wrappers) >= 2

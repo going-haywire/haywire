@@ -25,7 +25,7 @@ from haywire.core.catalog import CatalogRegistry
 from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
 from haywire.core.volumes import VolumeStore, location_of
 
-from haybale_graph_editor.state.graph_app_state import GraphAppState
+from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_models.download import DownloadJob
 from haybale_models.editors import assisted_dialog
 from haybale_models.editors import models_editor as editor_module
@@ -38,7 +38,7 @@ from haybale_models.needs import collect_needs
 from haybale_models.resolver import resolve
 from haybale_models.sources import builtin_sources
 from haybale_models.signals import ModelsChanged
-from haybale_models.state.models_state import ModelsState
+from haybale_models.states.models_state import ModelsState
 from haybale_models.store.index import ModelIndex
 from haybale_models.store.records import FetchRecord, FetchRecords
 from haybale_models.value.model_ref import ModelRef

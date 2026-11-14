@@ -18,8 +18,8 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
 from haybale_graph_editor.surfaces import EdgeInspector
-from haybale_graph_editor.state.edit_state import EditState
-from haybale_graph_editor.state.graph_app_state import route_for
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapperState

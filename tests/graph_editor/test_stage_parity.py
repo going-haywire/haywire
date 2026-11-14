@@ -27,7 +27,7 @@ from haybale_graph_editor.panels.graph.menu.selection.stage import (
     AddToStageMenuPanel,
     RemoveFromStageMenuPanel,
 )
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import SelectionMenu
 from haywire.core.access import AccessTier
 from haywire.core.graph.edit_route import EditRoute

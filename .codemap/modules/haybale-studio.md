@@ -36,7 +36,7 @@ haybale_studio/
 │   ├── file_browser/menu/file.py
 │   └── properties/setting/ ← app.py, canvas.py, debug.py, execution.py (setting groups)
 ├── settings/               ← network_settings.py, theme_settings.py (typed `setting[...]` markers)
-├── state/
+├── states/
 │   └── file_browser_state.py ← file-browser state container
 ├── surfaces/
 │   └── file.py             ← file surface
@@ -51,7 +51,7 @@ haybale_studio/
 ### Always-load
 
 - `__init__.py` — `Library` and `register_components()`.
-- `surfaces/file.py` and `state/file_browser_state.py` — the file surface and state that the file browser, viewer and graph editors read.
+- `surfaces/file.py` and `states/file_browser_state.py` — the file surface and state that the file browser, viewer and graph editors read.
 
 ### On-demand
 
@@ -76,7 +76,7 @@ haybale_studio/
 |---------|---------------|-------|
 | Library entry | `haybale_studio/__init__.py` | `Library` subclass |
 | File surface | `surfaces/file.py` | Surface for file-focused panels |
-| Workbench state | `state/file_browser_state.py` | File-browser state container |
+| Workbench state | `states/file_browser_state.py` | File-browser state container |
 | Workbench theme | `themes/workbench.py` | `WorkbenchTheme` |
 | Node theme | `themes/node.py` | `NodeTheme` |
 

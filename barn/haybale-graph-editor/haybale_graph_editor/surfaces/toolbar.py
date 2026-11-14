@@ -53,7 +53,7 @@ class SelectionToolbar(Surface):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         edit = ctx.data[EditState]
         return bool(edit.selected_nodes) or bool(edit.selected_edges)

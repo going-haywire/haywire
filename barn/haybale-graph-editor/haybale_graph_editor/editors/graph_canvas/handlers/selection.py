@@ -37,7 +37,7 @@ from haywire.ui.components.graph.event_definitions import (
 )
 from haywire.ui.elements import clipboard_script
 from haybale_graph_editor.editors.graph_canvas.event_handlers import handles_event
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.edit_route import EditRoute

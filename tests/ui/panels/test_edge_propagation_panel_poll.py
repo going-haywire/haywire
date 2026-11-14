@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from haybale_graph_editor.panels.properties.introspect.edge import EdgePropagationPanel
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haywire.core.types import Propagation
 
 pytestmark = pytest.mark.unit

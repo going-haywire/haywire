@@ -10,7 +10,7 @@ from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import Sess
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 from haybale_graph_editor.editors.graph_canvas.handlers.visual_layer import VisualLayerHandlers
 from haybale_graph_editor.panels.graph.menu.graph.context import FocusGraphPanel, TrimCanvasPanel
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.surfaces import GraphToolBar
 from haywire.core.node.layout import PATCH, STAGE
 from haywire.ui.components.graph.event_definitions import TrimCanvasEvent

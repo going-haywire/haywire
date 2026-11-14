@@ -60,7 +60,7 @@ def _ctx(
 
     ``tier`` is for the port pen, which reads it; the route's editor writes through ``node``.
     """
-    from haybale_graph_editor.state.edit_state import EditState
+    from haybale_graph_editor.states.edit_state import EditState
 
     editor = SimpleNamespace(reorder_ports=lambda node_id, ids: node.reorder_ports(ids))
     route = EditRoute(lambda: cast(Any, editor), lambda: mode)

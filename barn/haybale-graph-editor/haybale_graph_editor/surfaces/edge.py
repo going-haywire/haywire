@@ -42,7 +42,7 @@ class EdgeInspector(Surface):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_edge is not None
 
@@ -59,7 +59,7 @@ class EdgeMenu(Surface):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        from haybale_graph_editor.state.edit_state import EditState
+        from haybale_graph_editor.states.edit_state import EditState
 
         return ctx.data[EditState].active_edge is not None
 

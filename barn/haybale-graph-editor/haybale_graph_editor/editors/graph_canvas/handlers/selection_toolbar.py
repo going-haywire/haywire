@@ -44,7 +44,7 @@ from haybale_graph_editor.editors.graph_canvas.handlers.selection import (
     copy_selection_event,
     remove_selection_event,
 )
-from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.states.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.arrange import ArrangeScope

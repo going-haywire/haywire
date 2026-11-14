@@ -38,7 +38,7 @@ haybale_models/
 ├── nodes/             ← nodes, incl. Resolve Model
 ├── editors/           ← models editor
 ├── panels/            ← model panels
-├── state/             ← models state container
+├── states/             ← models state container
 ├── settings/          ← models settings
 ├── farmhands/         ← Farmhand tools for models
 └── haybale.toml       ← library manifest
@@ -57,7 +57,7 @@ haybale_models/
 - `store/` — the local store layout.
 - `matcher.py`, `status.py` — when changing how needs are matched or reported.
 - `upload_route.py`, `receive.py` — inbound model uploads.
-- `editors/`, `panels/`, `state/` — models UI. Follow [haybale-studio](haybale-studio.md) and [haywire-core-ui](haywire-core-ui.md) panel rules.
+- `editors/`, `panels/`, `states/` — models UI. Follow [haybale-studio](haybale-studio.md) and [haywire-core-ui](haywire-core-ui.md) panel rules.
 - `farmhands/` — Farmhand tools.
 
 ## 4. Rules & Boundaries

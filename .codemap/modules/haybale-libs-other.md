@@ -38,7 +38,7 @@ barn/
 ├── haybale-testing/
 │   └── haybale_testing/
 │       ├── __init__.py   ← Library subclass
-│       ├── adapters/, farmhands/, nodes/, panels/, settings/, state/,
+│       ├── adapters/, farmhands/, nodes/, panels/, settings/, states/,
 │       │   surfaces/, themes/, types/, widgets/
 │       ├── wires.py      ← test wire helpers
 │       └── haybale.toml
@@ -62,7 +62,7 @@ Each library follows the standard layout: `__init__.py` exposes a `Library` subc
 - `haybale-example/nodes/`, `types/`, `widgets/` — when writing a new node, type or widget from a template.
 - `haybale-example/macros/`, `catalog/` — when working on macro or catalog examples.
 - `haybale-testing/nodes/` — test-fixture nodes (side-effect probes, deterministic timing, benchmark fixtures). Read the test that uses them first.
-- `haybale-testing/settings/`, `state/`, `panels/` — test settings and state fixtures.
+- `haybale-testing/settings/`, `states/`, `panels/` — test settings and state fixtures.
 - `haybale-TEST_A/` — library-system regression fixtures. Change only with the matching library-system test.
 
 ## 4. Rules & Boundaries

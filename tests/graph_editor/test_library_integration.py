@@ -22,7 +22,7 @@ def test_graph_app_state_loads_via_library_system(library_system):
     regression would leave those unit tests green.
     """
     from haywire.core.state import LibraryStateContainer
-    from haybale_graph_editor.state.graph_app_state import GraphAppState
+    from haybale_graph_editor.states.graph_app_state import GraphAppState
 
     container = library_system.injector.get(LibraryStateContainer)
     instance = container.get(GraphAppState)

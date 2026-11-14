@@ -9,7 +9,7 @@ from tests.conftest import attach_stub_session
 
 def test_panel_polls_true_for_haywire_file():
     from haybale_haystack.panels.file_browser.menu.file import OpenInHaystackMenuPanel as OpenInHaystackPanel
-    from haybale_studio.state.file_browser_state import FileBrowserState
+    from haybale_studio.states.file_browser_state import FileBrowserState
 
     ctx = MagicMock()
     state = attach_stub_session(FileBrowserState())
@@ -21,7 +21,7 @@ def test_panel_polls_true_for_haywire_file():
 
 def test_panel_polls_false_for_non_haywire_file():
     from haybale_haystack.panels.file_browser.menu.file import OpenInHaystackMenuPanel as OpenInHaystackPanel
-    from haybale_studio.state.file_browser_state import FileBrowserState
+    from haybale_studio.states.file_browser_state import FileBrowserState
 
     ctx = MagicMock()
     state = attach_stub_session(FileBrowserState())
@@ -33,7 +33,7 @@ def test_panel_polls_false_for_non_haywire_file():
 
 def test_panel_polls_false_when_no_right_click():
     from haybale_haystack.panels.file_browser.menu.file import OpenInHaystackMenuPanel as OpenInHaystackPanel
-    from haybale_studio.state.file_browser_state import FileBrowserState
+    from haybale_studio.states.file_browser_state import FileBrowserState
 
     ctx = MagicMock()
     state = attach_stub_session(FileBrowserState())

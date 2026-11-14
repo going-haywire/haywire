@@ -201,7 +201,7 @@ class MarketplaceState(AppState):
         the row has the same shape as a feed row and the two compare
         field-for-field. Returns None when the library is not installed here.
         """
-        from haybale_marketplace.state.library_manager_state import LibraryManagerState
+        from haybale_marketplace.states.library_manager_state import LibraryManagerState
 
         app_data = getattr(self, "app_data", None)
         if app_data is None or LibraryManagerState not in app_data:

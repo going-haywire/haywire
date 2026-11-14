@@ -15,7 +15,7 @@ def test_library_is_discoverable():
 
 def test_import_without_torch():
     code = (
-        "import sys, haybale_models, haybale_models.state.models_state;"
+        "import sys, haybale_models, haybale_models.states.models_state;"
         "sys.exit(1 if 'torch' in sys.modules else 0)"
     )
     assert subprocess.run([sys.executable, "-c", code], check=False).returncode == 0

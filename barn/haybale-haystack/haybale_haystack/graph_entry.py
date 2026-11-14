@@ -24,7 +24,7 @@ from haybale_haystack.settings.graph_run_settings import GraphRunSettings
 if TYPE_CHECKING:
     from haywire.core.graph.base import BaseGraph as HaywireGraph
     from haywire.core.graph.editor import Editor
-    from haybale_haystack.state.haystack_state import HaystackState
+    from haybale_haystack.states.haystack_state import HaystackState
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class GraphEntry(GraphContainer):
         automatically when :attr:`path` is assigned on save-as or rename.
 
         Also serves as this entry's key in
-        :class:`haybale_graph_editor.state.GraphAppState`.
+        :class:`haybale_graph_editor.states.GraphAppState`.
         """
         return str(self.path) if self.path is not None else self.graph.graph_id
 

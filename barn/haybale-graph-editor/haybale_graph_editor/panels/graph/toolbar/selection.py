@@ -28,8 +28,8 @@ from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, Selec
 
 from haybale_graph_editor.panels._gating import locked_bag, selection_has_locked
 from haybale_graph_editor.panels.graph.menu.selection.selection import selection_label
-from haybale_graph_editor.state.edit_state import EditState
-from haybale_graph_editor.state.graph_app_state import route_for
+from haybale_graph_editor.states.edit_state import EditState
+from haybale_graph_editor.states.graph_app_state import route_for
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
