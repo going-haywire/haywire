@@ -147,14 +147,13 @@ introduction, agent files, review worktree, umbrella environment, workbench.
 - The conduct contact address (21A).
 - Sign-off of the clutter table (14A), produced at the start of slice 1.
 
-## Handoffs (not built now)
+## Handoffs
 
-- H1. The reviewer agent (11A): its tool list, the fetch script, the report format.
-- H2. Moving the existing backlog to GitHub issues (5A): `open_issues.md`,
-  `internals/issues/`, `.scratch` notes, open items in the maintainer's memory.
-- H3. `devcontainer.json` for Codespaces and contributor setup (25A).
-- H4. Today's macOS flake (`test_root_ghost_pins_leave_the_card_body[chromium-set-t2b]`,
-  run 43417492321) as a comment on issue #47.
+- H1. The reviewer agent (11A) → issue #99.
+- H2. Moving the existing backlog to GitHub issues (5A): done 2026-11-14, issues #87–#97
+  (plus #77–#79 from `internals/issues/`).
+- H3. `devcontainer.json` for Codespaces and contributor setup (25A) → issue #100.
+- H4. The macOS flake as a comment on issue #47: done 2026-11-14.
 
 ## Status
 
