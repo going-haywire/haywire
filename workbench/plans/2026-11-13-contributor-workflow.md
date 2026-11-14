@@ -105,7 +105,7 @@ A trial umbrella (18 packages as editable path sources, Python pinned to 3.12.12
 | S2 | **No change needed.** `generate_all_docs` keeps libraries whose resolved module folder lies under the repo root, so sibling libraries were never included, symlinks or not; each sibling generates its docs in its own repo. |
 | S3 | **Holds.** The studio started from the umbrella watched the real sibling folders; rewriting `haybale_spandrel/nodes/inpaint.py` unchanged reloaded and re-registered `InpaintNode`. A bare `touch` (metadata only) triggers nothing on macOS; an editor save does. |
 | S4 | **Holds by default.** Claude Code loads `CLAUDE.md` and rules from additional directories only when `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD` is set; settings and hooks come only from the session's starting folder. 25A therefore requires that variable unset. |
-| S5 | **Open.** Needs a real fork PR; verified in slice 4 with a test fork. |
+| S5 | **Answered (2026-11-14, test PR #86 from the fork `maybites/haywire-fork`).** The fork run's token had `Contents: read`, `Metadata: read`, no secrets, so the old `report` job could not have written. With slice 4: `test-results.yml` posted the report on the fork PR and `pr-intake.yml` set `agent files` with its note. The introduction path was not exercised (the author is the owner). |
 | S6 | **Dropped.** The maintainer moves to herdr, whose sessions start in a terminal folder. |
 | S7 | **Holds.** `uv run --with-editable <worktree>/packages/haywire-core --with-editable <worktree>/barn/haybale-core …` from the umbrella imports the overlaid packages from the worktree and the rest from the main checkouts, leaves the umbrella unchanged, and `entry_points()` yields 16 libraries with no duplicate (the overlay's copy wins). Code listing all distributions sees an overlaid package twice. |
 
@@ -147,14 +147,13 @@ introduction, agent files, review worktree, umbrella environment, workbench.
 - The conduct contact address (21A).
 - Sign-off of the clutter table (14A), produced at the start of slice 1.
 
-## Handoffs (not built now)
+## Handoffs
 
-- H1. The reviewer agent (11A): its tool list, the fetch script, the report format.
-- H2. Moving the existing backlog to GitHub issues (5A): `open_issues.md`,
-  `internals/issues/`, `.scratch` notes, open items in the maintainer's memory.
-- H3. `devcontainer.json` for Codespaces and contributor setup (25A).
-- H4. Today's macOS flake (`test_root_ghost_pins_leave_the_card_body[chromium-set-t2b]`,
-  run 43417492321) as a comment on issue #47.
+- H1. The reviewer agent (11A) → issue #99.
+- H2. Moving the existing backlog to GitHub issues (5A): done 2026-11-14, issues #87–#97
+  (plus #77–#79 from `internals/issues/`).
+- H3. `devcontainer.json` for Codespaces and contributor setup (25A) → issue #100.
+- H4. The macOS flake as a comment on issue #47: done 2026-11-14.
 
 ## Status
 

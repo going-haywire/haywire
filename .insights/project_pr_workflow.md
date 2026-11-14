@@ -17,6 +17,11 @@ requests*); the procedures in the
   grouped update weekly. A new Action goes in pinned the same way.
 - **A cancelled job is not a failure:** a newer push to the same branch cancels the
   older run.
+- **Marking a PR ready right after opening it can lose the macOS run.** Opening and
+  readying start two CI runs in the same second; the concurrency rule cancels one of
+  them, and when it cancels the ready run, the macOS jobs show as cancelled (and the PR
+  as failing). Mark a draft ready only after its first run has started, or re-run the
+  cancelled run (`gh run rerun <id>`).
 - **Linux and macOS differ in registration order** (the filesystem's order), so code that
   depends on the order libraries or modules register in can behave differently per
   platform. CI's Linux run is where that shows.
