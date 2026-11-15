@@ -1,5 +1,16 @@
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import (
+    BOOL,
+    CALLBACK,
+    EXEC,
+    FLOAT,
+    STRING,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    SwitchWidget,
+    TextWidget,
+    node,
+)
 
 
 @node(
@@ -23,10 +34,7 @@ class EmitCallbackNode(BaseNode):
     """
 
     def init(self):
-        from haywire.barn.builtin.types import STRING, FLOAT, BOOL
-        from haywire.barn.builtin.types import CALLBACK, EXEC
         from haybale_core.types import PooledType
-        from haywire.barn.builtin.widgets import SwitchWidget, TextWidget
 
         # Control input
         self.add(EXEC.as_inlet("execute", label="Execute"))

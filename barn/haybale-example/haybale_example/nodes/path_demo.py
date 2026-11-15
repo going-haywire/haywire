@@ -4,9 +4,20 @@ Exists to show the path picker on a real card: a plain `PATH`, a `FILE_PATH`, a
 `FILE_PATH` limited to images, a `FOLDER_PATH`, and a `FILE_PATH` in save mode.
 """
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.volumes import VolumeError, VolumePath, resolve
+from haywire.api import (
+    FILE_PATH,
+    FOLDER_PATH,
+    PATH,
+    STRING,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    PathWidget,
+    VolumeError,
+    VolumePath,
+    node,
+    resolve,
+)
 
 
 @node(
@@ -36,9 +47,6 @@ class PathDemoNode(BaseNode):
     PATH_PORTS = ("path", "file", "image", "folder", "save_to")
 
     def init(self):
-        from haywire.barn.builtin.types import FILE_PATH, FOLDER_PATH, PATH, STRING
-        from haywire.barn.builtin.widgets import PathWidget
-
         self.add(PATH.as_inlet(id="path", label="Path", description="A file or a folder"))
         self.add(FILE_PATH.as_inlet(id="file", label="File", description="An existing file"))
         self.add(

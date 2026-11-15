@@ -1,7 +1,16 @@
-from haywire.barn.builtin.widgets import SelectWidget
-from haywire.core.execution.event_source import CallbackEvent
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import (
+    CALLBACK,
+    EXEC,
+    FLOAT,
+    STRING,
+    BaseNode,
+    CallbackEvent,
+    ExecutionContext,
+    NodeType,
+    SelectWidget,
+    TextWidget,
+    node,
+)
 
 
 @node(
@@ -24,10 +33,6 @@ class CustomCallbackNode(BaseNode):
     """
 
     def init(self):
-        from haywire.barn.builtin.types import STRING, FLOAT
-        from haywire.barn.builtin.types import CALLBACK, EXEC
-        from haywire.barn.builtin.widgets import TextWidget
-
         # Config for callback name
         with self.fold("Custom Name", default=False, on_change="redraw"):
             # Config for callback name

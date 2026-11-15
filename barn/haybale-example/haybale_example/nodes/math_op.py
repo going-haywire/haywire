@@ -3,8 +3,7 @@ Basic core node implementations
 """
 
 # Import the node system base class
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
 
 from haybale_example.types.math import MathOPs
 
@@ -22,10 +21,6 @@ class MathOP(BaseNode):
 
     def init(self):
         from haybale_example.types.math import MathOPSelector
-        from haywire.barn.builtin.types import FLOAT
-        from haywire.barn.builtin.widgets import (
-            NumberWidget,
-        )
 
         # Add inlets with different widget types
         self.add(
