@@ -2,13 +2,20 @@
 
 from pathlib import Path
 
-from haywire.barn.builtin.field_text import fields_from_text
-from haywire.barn.builtin.progress import ProgressSettings, progress_field
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.node.node_warning import NodeWarning
-from haywire.core.settings import bag
-from haywire.core.volumes import VolumePath, resolve
+from haywire.api import (
+    FILE_PATH,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    NodeWarning,
+    ProgressSettings,
+    VolumePath,
+    bag,
+    fields_from_text,
+    node,
+    progress_field,
+    resolve,
+)
 
 from haybale_image.io.codecs import read_image
 from haybale_image.io.png_text import FIELDS_KEYWORD, read_text_chunk
@@ -54,8 +61,6 @@ class LoadImageNode(BaseNode):
     progress = bag(LoadProgress)
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import FILE_PATH
-
         from haybale_image.types.image import IMAGE
 
         self.add(FILE_PATH.as_inlet("path", label="Path", description="Image file to read"))

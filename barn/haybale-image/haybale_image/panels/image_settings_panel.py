@@ -4,15 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.barn.builtin.surfaces import Barns
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_schema
+from haywire.api.workbench import Barns, BasePanel, PanelLayout, panel, render_schema
 
 from haybale_image.settings.image_settings import ImageSettings
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @panel(

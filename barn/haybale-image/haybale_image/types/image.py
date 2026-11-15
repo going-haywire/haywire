@@ -2,10 +2,7 @@
 
 from typing import Any, ClassVar, cast
 
-from haywire.barn.builtin.wires import DataWire
-from haywire.barn.builtin.types import CARRIER
-from haywire.core.types import PrimitiveField, StoreStrategy
-from haywire.core.types import type as type_decorator
+from haywire.api import CARRIER, DataWire, PrimitiveField, StoreStrategy, type as type_decorator
 
 from haybale_image.value import ImageValue, Layout
 

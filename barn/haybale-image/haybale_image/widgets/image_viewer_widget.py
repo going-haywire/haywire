@@ -2,8 +2,7 @@
 
 from typing import Any
 
-from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.decorator import widget
+from haywire.api import BaseWidget, widget
 
 from haybale_image.value import ImageValue
 from haybale_image.viewer.backend import ImageViewer, StillBackend, StreamingBackend
