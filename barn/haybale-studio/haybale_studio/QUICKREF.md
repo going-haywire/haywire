@@ -9,8 +9,10 @@
 - `haybale-studio:farmhand:describe_component` — Describe component — One component's identity, docstring, and authoring-guide link.
 - `haybale-studio:farmhand:dismiss_errors` — Dismiss errors — Dismiss one or all ledger entries.
 - `haybale-studio:farmhand:get_errors` — Get errors — Query the studio's error ledger.
+- `haybale-studio:farmhand:get_findings` — Get findings — Read the user's answers to the current Questionnaire.
 - `haybale-studio:farmhand:list_components` — List components — Component catalog, filterable and searchable.
 - `haybale-studio:farmhand:list_libraries` — List libraries — List installed libraries.
+- `haybale-studio:farmhand:post_questionnaire` — Post questionnaire — Post a Questionnaire for the user to answer in the studio's ASIDE slot.
 - `haybale-studio:farmhand:read_component_source` — Read component source — Line-numbered source of any installed component.
 - `haybale-studio:farmhand:scaffold_component` — Scaffold component — Write a canon-conformant skeleton for a new component into a project-local library.
 - `haybale-studio:farmhand:status` — Studio status — Versions, workspace root, enabled-library counts, docs manifest URI.
@@ -19,6 +21,7 @@
 
 ## state
 - `haybale-studio:state:FileBrowserState` — File Browser State — Per-session state for the FileBrowser editor.
+- `haybale-studio:state:QuestionnaireState` — Questionnaire — The Questionnaire an agent posted for a live check, its answers and its status
 
 ## panel
 - `haybale-studio:panel:ActivitySettingsPanel` — Activity — Farmhand activity tracker: in-memory history size, audit log path.
@@ -51,6 +54,7 @@
 - `haybale-studio:editor:FileViewerEditor` — File Viewer — Displays the contents of a file selected in the Files browser.
 - `haybale-studio:editor:LazyFileBrowserEditor` — Files — Project file tree, eager-then-lazy: three levels are loaded up front, then 'Click to load children' sentinels appear at deeper folders so the user can pull in three more levels on demand.
 - `haybale-studio:editor:PropertiesEditor` — Properties — Context-sensitive property panels for the active selection.
+- `haybale-studio:editor:QuestionnaireEditor` — Questionnaire — The Questionnaire an agent posted for a live check. Answer it, then submit.
 - `haybale-studio:editor:RosterEditor` — Accounts — Manage who may reach this studio
 - `haybale-studio:editor:ShortcutsEditor` — Shortcuts — Keyboard shortcuts of every editor, grouped by editor.
 - `haybale-studio:editor:TerminalEditor` — Log — Application output. Captures Python logging and print() output.

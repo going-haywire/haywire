@@ -46,7 +46,7 @@ Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they 
 | Parameter | Required | Default | Purpose |
 |---|---|---|---|
 | `label` | no | class name | Display name in tabs and tooltips |
-| `default_slot` | no | `SlotName.EDIT` | `SlotName.ACTION` / `CONTEXT` / `EDIT` / `INFO` (or their string values `'action'` / `'context'` / `'edit'` / `'info'`) |
+| `default_slot` | no | `SlotName.EDIT` | `SlotName.ACTION` / `CONTEXT` / `EDIT` / `INFO` / `ASIDE` (or their string values `'action'` / `'context'` / `'edit'` / `'info'` / `'aside'`) |
 | `icon` | no | `'extension'` | Material Design icon name |
 | `opens` | no | `'required'` | `'required'` / `'on_context'` / `'on_payload'` — see below |
 | `description` | no | `''` | Tooltip / accessibility text |
@@ -312,3 +312,4 @@ The decorator does not constrain `opens` by slot; every combination below is acc
 | `SlotName.CONTEXT` (right edge) | icon bar | `required` |
 | `SlotName.EDIT` (centre) | tab bar | `required`, `on_context`, `on_payload` |
 | `SlotName.INFO` (bottom) | tab bar | `required`, `on_context`, `on_payload` |
+| `SlotName.ASIDE` (between EDIT and CONTEXT; opened from the top bar) | tab bar | `required`, `on_context`, `on_payload` |
