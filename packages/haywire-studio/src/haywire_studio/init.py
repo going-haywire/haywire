@@ -18,7 +18,7 @@ from typing import Any
 
 import toml
 
-from .playbook import render_playbook
+from .playbook import render_playbook, render_release_gates
 from .publish_workflow import (
     PLAN_SCRIPT_PATH,
     WORKFLOW_PATH,
@@ -579,6 +579,21 @@ A published version is permanent.
   checklist after `STOP: human needed`. Paste that checklist to the owner verbatim and
   wait; never attempt them yourself.
 - Never force-push, and never delete or move a tag.
+
+## Release-gated issues
+
+GitHub labels tie an issue to a release
+([sharing-libraries](https://github.com/going-haywire/haywire/blob/master/docs/guides/sharing-libraries.md#44-work-that-waits-for-a-release)):
+
+{render_release_gates()}
+
+## Live checks
+
+A change a user sees or works with is tried in the running studio (`uv run haywire`)
+before it is released. With Farmhand connected, post the steps as a Questionnaire
+(`haybale-studio_post_questionnaire`, format:
+[questionnaire](https://github.com/going-haywire/haywire/blob/master/docs/reference/questionnaire.md)),
+then read the user's answers with `haybale-studio_get_findings` once they say they are done.
 
 ## Where it publishes
 

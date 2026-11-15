@@ -4,6 +4,10 @@
 ``--json``). ``PLAYBOOK`` has exactly one row per state; a test fails when the two
 differ, so the instructions written into a project's ``CLAUDE.md`` cannot omit a
 state the tool can print.
+
+``RELEASE_GATE_LABELS`` are the GitHub labels that tie an issue to a release, and
+``render_release_gates`` the ``CLAUDE.md`` section that tells an agent when to check
+them (``docs/guides/sharing-libraries.md`` §4.4).
 """
 
 from __future__ import annotations
@@ -94,4 +98,75 @@ def render_playbook() -> str:
     lines += ["", "`uv run --frozen haywire share --status` ends with a `STATE:` line. Act on it:", ""]
     lines += ["| `STATE:` | Meaning | You do |", "|---|---|---|"]
     lines += [f"| `{row.state.value}` | {row.meaning} | {row.action} |" for row in PLAYBOOK]
+    return "\n".join(lines)
+
+
+@dataclass(frozen=True)
+class GateLabel:
+    """A GitHub label that ties an issue to a release, and when an agent checks it."""
+
+    name: str
+    color: str
+    """Hex colour without ``#``, as ``gh label create --color`` takes it."""
+    description: str
+    meaning: str
+    checked: str
+
+
+RELEASE_GATE_LABELS: tuple[GateLabel, ...] = (
+    GateLabel(
+        "todo-pre-release",
+        "D93F0B",
+        "Must be closed before this library is released",
+        "Must be done before this project is released.",
+        "Before `haywire share`, `--dry-run` included: "
+        "`gh issue list --label todo-pre-release --state open`. "
+        "If any are open, list them, stop and ask; do not release until they are closed.",
+    ),
+    GateLabel(
+        "after-core-release",
+        "FBCA04",
+        "Can be done only once a haywire-core release contains the needed change",
+        "Can be done only once a released haywire-core contains the change on the issue's "
+        "`Waits for:` line.",
+        "At the start of a session: `gh issue list --label after-core-release --state open`; "
+        "check each one as below and tell the owner which can now proceed.",
+    ),
+)
+
+WAITS_FOR_PREFIX = "Waits for: going-haywire/haywire@"
+
+
+def render_release_gates() -> str:
+    """Return the Markdown for the release-gated issues section of a project's ``CLAUDE.md``."""
+    lines = ["| Label | Meaning | Checked |", "|---|---|---|"]
+    lines += [f"| `{label.name}` | {label.meaning} | {label.checked} |" for label in RELEASE_GATE_LABELS]
+    lines += [
+        "",
+        "Work that needs an unreleased haywire-core change gets an `after-core-release` issue "
+        f"whose first line is `{WAITS_FOR_PREFIX}<sha> (#<pr>)`; link the prepared branch's "
+        "draft PR to it. The change is released when the latest haywire-core on PyPI contains "
+        "the commit:",
+        "",
+        "```sh",
+        "v=$(curl -s https://pypi.org/pypi/haywire-core/json | jq -r .info.version)",
+        'gh api "repos/going-haywire/haywire/compare/v$v...<sha>" --jq .status  '
+        "# behind or identical: released",
+        "```",
+        "",
+        "Create the labels the first time one is needed (safe to repeat):",
+        "",
+        "```sh",
+    ]
+    lines += [
+        f'gh label create {label.name} --color {label.color} --description "{label.description}" --force'
+        for label in RELEASE_GATE_LABELS
+    ]
+    lines += [
+        "```",
+        "",
+        "If `gh` is missing or not logged in, or the repository is not on GitHub, say that the "
+        "check could not run and ask before releasing. Never read a check that could not run "
+        "as nothing open.",
+    ]
     return "\n".join(lines)

@@ -6,7 +6,14 @@ from pathlib import Path
 import pytest
 
 from haywire_studio import packaging
-from haywire_studio.playbook import PLAYBOOK, State, render_playbook
+from haywire_studio.playbook import (
+    PLAYBOOK,
+    RELEASE_GATE_LABELS,
+    WAITS_FOR_PREFIX,
+    State,
+    render_playbook,
+    render_release_gates,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -61,3 +68,22 @@ def test_init_hints_at_distname_only_for_the_local_default(
 
     init_project("named", auto_sync=False, distname="haybale-named")
     assert "--distname haybale-<name>" not in capsys.readouterr().out
+
+
+def test_the_release_gates_section_creates_and_checks_every_label() -> None:
+    text = render_release_gates()
+    for label in RELEASE_GATE_LABELS:
+        assert f"| `{label.name}` |" in text
+        assert f"gh label create {label.name} --color {label.color}" in text
+    assert WAITS_FOR_PREFIX in text
+
+
+def test_generated_claude_md_has_release_gates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from haywire_studio.init import init_project
+
+    monkeypatch.chdir(tmp_path)
+    init_project("gated", auto_sync=False)
+
+    claude = (tmp_path / "gated" / "CLAUDE.md").read_text()
+    assert render_release_gates() in claude
+    assert "haybale-studio_post_questionnaire" in claude

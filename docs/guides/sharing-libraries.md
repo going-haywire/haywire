@@ -276,6 +276,31 @@ the framework packages to your haywire checkout by path in the root
   yourself — see [publish-to-pypi](./publish-to-pypi.md). A PyPI package
   carries no `[tool.uv.sources]`, so a `--dev` project can keep its links.
 
+### 4.4 Work that waits for a release
+
+`haywire share` does not check this one: it is a convention on GitHub issues, and
+the `CLAUDE.md` that `haywire init` writes has agents follow it. Work is often
+ready before the release it depends on, and two labels keep it from being
+forgotten:
+
+| Label | Meaning | Checked |
+|---|---|---|
+| `todo-pre-release` | Must be done before this project is released. | Before every `haywire share`: an open one stops the release. |
+| `after-core-release` | Can be done only once a released haywire-core contains a named change. | At the start of a work session, and by the haywire team after each core release. |
+
+An `after-core-release` issue starts with one line naming the change it waits for,
+so whether a release contains it can be checked rather than remembered:
+
+```text
+Waits for: going-haywire/haywire@840d29a21 (#107)
+```
+
+Prepare the work on a branch, open a draft pull request, and link it to the issue.
+Once the latest haywire-core on PyPI contains the commit, raise your library's
+`haywire-core` floor to that version (§3), finish the pull request and close the
+issue. The exact commands, and the `gh label create` lines for a new repository,
+are in your project's `CLAUDE.md`.
+
 ## 5. Hosting your marketstall
 
 A marketstall is just a TOML file. Wherever consumers can reach by URL, you can host one. Common patterns:
@@ -385,10 +410,16 @@ End-to-end, the flow is:
 write code, build components
         │
         ▼
+try it in the running studio    (a live check: uv run haywire)
+        │
+        ▼
 document them — descriptions, tags, docstrings
         │
         ▼
 git commit && git push          (the tree must be clean — §4.1)
+        │
+        ▼
+no open todo-pre-release issue  (§4.4)
         │
         ▼
 uv run haywire share --bump patch
@@ -407,7 +438,8 @@ consumer subscribes via Add Source
 ```
 
 Everything in the indented block happens inside the one command. The only steps
-that are yours are writing the code, documenting it, and committing.
+that are yours are writing the code, trying it, documenting it, committing, and
+closing the issues that must land first.
 
 Two separate commands cover the CI side — there's no single `--check` gate.
 Run `haywire deps check` as a PR gate to catch manifest drift before merging,

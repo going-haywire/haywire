@@ -122,6 +122,6 @@ marks its row in *Status*.
 
 | Slice | State | Commit | Date | Deviations |
 |---|---|---|---|---|
-| 1 Live checks | proposed | | | |
-| 2 Release gates | proposed | | | |
+| 1 Live checks | done | 6dc3f5558 | 2026-11-15 | B7's line went into the generated `CLAUDE.md` (slice 2) and the author cycle of `sharing-libraries.md` §7. |
+| 2 Release gates | steps 1–4 done; 5–6 wait for the user's word | this branch | 2026-11-15 | The convention is `sharing-libraries.md` §4.4 (under *What has to be true before you publish*, marked as not checked by `share`). The generated `CLAUDE.md` checks "released" with `gh api …/compare/v<pypi-version>...<sha>` (`behind`/`identical` = released), so a library needs no monorepo checkout; tried on stream#8's 840d29a21 (`ahead` of v0.4.2) and v0.4.1 (`behind`). The release skill's Step 10 uses `git merge-base --is-ancestor` until slice 3's script. `publish_releases.md` *Local phase* still says the skill runs the gate tests (it checks CI instead): stale before this change, left for a docs pass. |
 | 3 Sweep script | proposed | | | |
