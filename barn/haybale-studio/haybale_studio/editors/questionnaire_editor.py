@@ -12,14 +12,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
+from haywire.api.workbench import AccessTier, BaseEditor, OpenBehavior, SlotName, editor, hui, react_on
 from nicegui import ui
-
-from haywire.core.access import AccessTier
-from haywire.core.session.handlers import react_on
-from haywire.ui import elements as hui
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior, SlotName
 
 from haybale_studio.questionnaire.definition import unanswered
 from haybale_studio.questionnaire.form import QuestionnaireForm
@@ -33,8 +27,7 @@ from haybale_studio.states.questionnaire_state import (
 )
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
-    from haywire.ui.editor.wrapper import EditorWrapper
+    from haywire.api.workbench import EditorWrapper, SessionContext
     from nicegui.element import Element
 
 

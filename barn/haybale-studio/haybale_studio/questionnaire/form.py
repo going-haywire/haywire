@@ -11,12 +11,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping, Optional
 
+from haywire.api.workbench import hui
 from nicegui import ui
 
 # make_sortable imports Sortable lazily, after the page's importmap was written.
 from nicegui.elements.sortable.sortable import Sortable as _Sortable  # noqa: F401
-
-from haywire.ui import elements as hui
 
 from haybale_studio.questionnaire.definition import (
     NOTE_VERDICTS,

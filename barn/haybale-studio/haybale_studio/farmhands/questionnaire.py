@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from haywire.core.access import AccessTier
-from haywire.core.farmhand import (
+from haywire.api.workbench import (
+    AccessTier,
     Farmhand,
     FarmhandContext,
     FarmhandError,
