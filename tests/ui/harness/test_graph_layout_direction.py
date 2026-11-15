@@ -15,6 +15,7 @@ they live entirely in canvas.vue's edge cache:
 
 import pytest
 from playwright.sync_api import Page
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
 from tests.ui.harness.pin_edge import PIN_EDGE_JS
@@ -85,11 +86,49 @@ def _open(page: Page, harness) -> None:
     wait_for_canvas_settled(page)
 
 
+_SWITCH_SETTLED_JS = (
+    """([layout, stillMs]) => {%s
+    const pins = [...document.querySelectorAll('.connection-pin')];
+    const path = document.querySelector('path[data-edge-id]');
+    if (!path || !pins.length || pins.some(p => p.dataset.hwLayout !== layout)) {
+        window.__hwSwitch = null;
+        return false;
+    }
+    const ctm = path.getScreenCTM();
+    const end = (len) => {
+        const p = path.getPointAtLength(len);
+        return new DOMPoint(p.x, p.y).matrixTransform(ctm);
+    };
+    const exec = (frag) => pins.find(p => p.id.includes(frag) && p.dataset.pinId === 'exec');
+    const near = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < 2;
+    const onPins = near(end(0), pinEdge(exec('TestBeginPlayNode'), ctm))
+        && near(end(path.getTotalLength()), pinEdge(exec('TestPrintNode'), ctm));
+    const boxes = [...document.querySelectorAll('.node-card, .connection-pin')].map(e => {
+        const r = e.getBoundingClientRect();
+        return [r.left, r.top, r.width, r.height];
+    });
+    const snap = JSON.stringify([path.getAttribute('d'), boxes]);
+    const now = performance.now(), last = window.__hwSwitch;
+    if (!onPins || !last || last.snap !== snap) {
+        window.__hwSwitch = { snap, since: now };
+        return false;
+    }
+    return now - last.since >= stillMs;
+}"""
+    % PIN_EDGE_JS
+)
+
+
 def _switch(page: Page, testid: str) -> None:
+    """Switch the graph's direction and wait until every pin, card and the edge has settled in it."""
     page.click(f'[data-testid="{testid}"]')
-    # Redraw + the scheduled edge updates settle within ~300ms; no hover, no
-    # drag, no other incidental trigger — that is the point of the test.
-    page.wait_for_timeout(900)
+    # The new pins land before the redraw sync that refreshes the edge, which then
+    # follows the card for 300 ms; so wait for all three. Only reads the DOM: no
+    # hover, no drag, no other incidental trigger may refresh the edge for the redraw.
+    try:
+        page.wait_for_function(_SWITCH_SETTLED_JS, arg=[testid.removeprefix("set-"), 150], timeout=5000)
+    except PlaywrightTimeoutError:
+        pass  # the test's own assertion reports what is there
 
 
 def test_outlet_vector_flips_with_the_graph_direction(page: Page, harness) -> None:
