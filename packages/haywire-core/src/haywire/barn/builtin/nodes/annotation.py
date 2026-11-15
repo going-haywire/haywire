@@ -13,17 +13,12 @@ from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, STRING
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import NodeSettings, Promotable, setting, settings_fields
-from haywire.core.skin.fonts import FONTS
+from haywire.core.skin.fonts import FONTS, H_ALIGNS, V_ALIGNS
 from haywire.core.types import PortOrigin
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
     from haywire.core.types.port import DataPort
-
-
-#: Choices of the horizontal and vertical alignment settings.
-H_ALIGNS = ("left", "center", "right")
-V_ALIGNS = ("top", "middle", "bottom")
 
 
 @node(

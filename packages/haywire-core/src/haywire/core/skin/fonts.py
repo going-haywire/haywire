@@ -1,7 +1,7 @@
-"""The font choices a skin offers for its text, and the CSS font stack of each.
+"""The text style choices a skin offers: fonts, the CSS font stack of each, and alignment.
 
 Leaf module: no imports, so a node's settings can offer the choices on the
-headless path. The annotation and widget-node skins share it.
+headless path. The annotation and widget-node nodes and skins share it.
 """
 
 #: Font choices, each a family a skin maps to a CSS font stack.
@@ -14,3 +14,7 @@ FONT_STACKS = {
     "mono": "ui-monospace, Menlo, Consolas, monospace",
     "handwriting": "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive",
 }
+
+#: Choices of the horizontal and vertical alignment settings.
+H_ALIGNS = ("left", "center", "right")
+V_ALIGNS = ("top", "middle", "bottom")

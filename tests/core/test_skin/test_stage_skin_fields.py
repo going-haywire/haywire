@@ -175,7 +175,7 @@ def test_widget_node_skins_are_only_in_the_widget_node_list(registry) -> None:
     from haywire.core.skin.settings import (
         _patch_skin_choices,
         _stage_skin_choices,
-        _widget_node_stage_skin_choices,
+        widget_node_stage_skin_choices,
     )
 
     widget_node = _skin_cls("WidgetNodeFace", tags=["special", "stage-only", "widget-node"])
@@ -184,10 +184,10 @@ def test_widget_node_skins_are_only_in_the_widget_node_list(registry) -> None:
         registry._register_class(cls)
 
     key = widget_node.class_identity.registry_key
-    assert key in _widget_node_stage_skin_choices()
+    assert key in widget_node_stage_skin_choices()
     assert key not in _patch_skin_choices()
     assert key not in _stage_skin_choices()
-    assert general.class_identity.registry_key not in _widget_node_stage_skin_choices()
+    assert general.class_identity.registry_key not in widget_node_stage_skin_choices()
 
 
 def test_graph_node_lists_add_graph_node_skins_to_the_general_ones(registry) -> None:

@@ -3,13 +3,12 @@
 from typing import Any, ClassVar
 
 from haybale_core.keys import WIDGET_NODE_SKIN
-from haywire.barn.builtin.nodes.annotation import H_ALIGNS
 from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, OPTIONAL
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode
 from haywire.core.settings import NodeSettings, Promotable, Settings, setting, settings_fields
-from haywire.core.skin.fonts import FONTS
-from haywire.core.skin.settings import _widget_node_stage_skin_choices
+from haywire.core.skin.fonts import FONTS, H_ALIGNS
+from haywire.core.skin.settings import widget_node_stage_skin_choices
 from haywire.core.types.enums import ShowWidgetStrategy
 from haywire.core.types.interface import IType
 
@@ -72,7 +71,7 @@ class WidgetNode(BaseNode):
             description="Widget nodes draw as their control on the stage",
             category="appearance",
             order=11,
-            widget_config={"options": _widget_node_stage_skin_choices},
+            widget_config={"options": widget_node_stage_skin_choices},
         )
 
     class style(NodeSettings):
