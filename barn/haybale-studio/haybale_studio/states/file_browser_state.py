@@ -19,8 +19,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from haywire.core.signals import signal_field
-from haywire.core.state import SessionState, state
+from haywire.api.workbench import SessionState, signal_field, state
 
 
 @state(label="File Browser State", description="Per-session state for the FileBrowser editor.")

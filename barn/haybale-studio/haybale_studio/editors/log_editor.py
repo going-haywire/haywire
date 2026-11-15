@@ -21,16 +21,12 @@ from typing import TYPE_CHECKING, Callable, Optional
 from nicegui import ui
 from nicegui.timer import Timer
 
-from haywire.core.access import AccessTier
+from haywire.api.workbench import AccessTier, BaseEditor, SlotName, editor, hui
 from haywire.core.debug.debug_settings import DebugSettings, LOG_SCROLLBACK_LINES_KEY
-from haywire.ui import elements as hui
 from haywire.ui.console_bridge import get_stdout_tee
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import SlotName
-from haywire.ui.editor.base import BaseEditor
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
     from nicegui.element import Element
 
 

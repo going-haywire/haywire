@@ -14,18 +14,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_schema, render_keys
+from haywire.api.workbench import BasePanel, DebugSurface, PanelLayout, hui, panel, render_schema
+from haywire.ui.panel.render_utils import render_keys
 from haywire.core.namespaces import NAMESPACE_LIBRARY_LOG
 from haywire.core.debug.debug_settings import DebugSettings
 from haywire.ui.components.debug_overlay.settings import DebugOverlaySettings
 
-from haywire.barn.builtin.surfaces import DebugSurface
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @panel(

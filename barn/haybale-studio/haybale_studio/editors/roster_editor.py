@@ -10,12 +10,8 @@ from __future__ import annotations
 
 import logging
 
-from haywire.core.access import AccessTier
+from haywire.api.workbench import AccessTier, BaseEditor, confirm_modal, editor, hui
 from haywire.core.signals import RosterChanged
-from haywire.ui import elements as hui
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.modals import confirm_modal
 from haywire_studio.auth.operations import (
     add_agent,
     add_user,

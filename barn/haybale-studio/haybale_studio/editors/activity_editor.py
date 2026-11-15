@@ -35,14 +35,9 @@ from __future__ import annotations
 import json
 import time
 
-from haywire.core.access import AccessTier
-from haywire.core.farmhand.activity import get_activity_tracker
-from haywire.core.session.handlers import redraw_on
+from haywire.api.workbench import AccessTier, BaseEditor, editor, get_activity_tracker, hui, redraw_on
 from haywire.core.signals import FarmhandActivity
-from haywire.ui import elements as hui
 from haywire.ui.components.popup import Popup
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
 from nicegui import ui
 
 #: Rows to render. The tracker keeps more; this is what fits without turning a

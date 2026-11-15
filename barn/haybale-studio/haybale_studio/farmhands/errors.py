@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from haywire.core.access import AccessTier
-from haywire.core.errors.ledger import get_error_ledger
-from haywire.core.farmhand import (
+from haywire.api.workbench import (
+    AccessTier,
+    ErrorLedgerChanged,
     Farmhand,
     FarmhandContext,
     FarmhandError,
@@ -12,7 +12,7 @@ from haywire.core.farmhand import (
     farmhand,
     truncation_note,
 )
-from haywire.core.signals import ErrorLedgerChanged
+from haywire.core.errors.ledger import get_error_ledger
 
 
 @farmhand(

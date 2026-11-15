@@ -12,8 +12,8 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
-from haywire.core.access import AccessTier
-from haywire.core.session.context import SessionContext
+from haywire.api.workbench import AccessTier, BaseEditor, SessionContext, SlotName, editor, hui
+from haywire.api import volume_name
 from haywire.core.volumes import (
     VolumeStatus,
     VolumeStore,
@@ -21,12 +21,7 @@ from haywire.core.volumes import (
     is_user_volume_key,
     list_volumes,
     user_volume_key,
-    volume_name,
 )
-from haywire.ui import elements as hui
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import SlotName
 from nicegui import ui
 
 logger = logging.getLogger(__name__)

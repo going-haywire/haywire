@@ -1,9 +1,6 @@
 """Studio socket configuration (read once at startup; restart to apply)."""
 
-from haywire.barn.builtin.types import INT
-from haywire.core.settings import setting
-from haywire.core.settings.decorator import settings
-from haywire.core.settings.settings_library import LibrarySettings
+from haywire.api import INT, LibrarySettings, setting, settings
 from haywire_studio.network import DEFAULT_STUDIO_PORT
 
 

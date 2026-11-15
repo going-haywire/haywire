@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Protocol, TYPE_CHECKING, runtime_checkable
 
-from haywire.ui.surface import Surface
+from haywire.api.workbench import Surface
 
 if TYPE_CHECKING:
-    from haywire.ui.editor.base import BaseEditor
+    from haywire.api.workbench import BaseEditor
 
 
 @runtime_checkable

@@ -14,9 +14,11 @@ import pytest
 
 import haywire.api as component
 import haywire.api.workbench as workbench
+from haywire.barn.builtin import surfaces as builtin_surfaces
 from haywire.barn.builtin import types as builtin_types
 from haywire.barn.builtin import widget_keys as builtin_widget_keys
 from haywire.barn.builtin import widgets as builtin_widgets
+from haywire.ui.surface import Surface
 from tests.api import names
 
 
@@ -70,6 +72,15 @@ def test_no_name_means_two_things() -> None:
 def test_a_builtin_block_is_exported_whole(names_of_block) -> None:
     """A builtin type or widget is never half public: its whole module is exported."""
     assert set(names_of_block) - set(component.__all__) == set()
+
+
+def test_the_builtin_surfaces_are_exported_whole() -> None:
+    surfaces = {
+        name
+        for name, obj in vars(builtin_surfaces).items()
+        if isinstance(obj, type) and issubclass(obj, Surface) and obj.__name__ == name
+    }
+    assert surfaces - set(workbench.__all__) == set()
 
 
 @pytest.mark.parametrize("module", ["haywire.api", "haywire.api.workbench"])

@@ -13,7 +13,7 @@ from typing import Any, Tuple, TYPE_CHECKING
 from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
 
 if TYPE_CHECKING:
-    from haywire.ui.editor.base import BaseEditor
+    from haywire.api.workbench import BaseEditor
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,6 @@ class SessionFileMenuProvider(BaseContextMenuProvider):
         label: str,
     ) -> None:
         """Issue a Reveal lifecycle command."""
-        from haywire.core.signals import Reveal
+        from haywire.api.workbench import Reveal
 
         self._session.publish(Reveal(editor=editor_cls, binding_id=binding_id, label=label))

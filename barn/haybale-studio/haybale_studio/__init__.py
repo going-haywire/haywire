@@ -16,20 +16,18 @@ Add your custom components in the corresponding folders:
 
 from pathlib import Path
 
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.adapter.registry import AdapterRegistry
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.farmhand import FarmhandRegistry
-from haywire.core.state import StateRegistry
-from haywire.core.types.registry import TypeRegistry
-
-from haywire.ui.editor.registry import EditorRegistry
-from haywire.ui.panel.registry import PanelRegistry
-from haywire.ui.skin.registry import SkinRegistry
-from haywire.ui.themes.registry import ThemeRegistry
-from haywire.ui.widget.registry import WidgetRegistry
+from haywire.api import (
+    AdapterRegistry,
+    BaseLibrary,
+    NodeRegistry,
+    SettingsRegistry,
+    SkinRegistry,
+    ThemeRegistry,
+    TypeRegistry,
+    WidgetRegistry,
+    library,
+)
+from haywire.api.workbench import EditorRegistry, FarmhandRegistry, PanelRegistry, StateRegistry
 
 
 @library(

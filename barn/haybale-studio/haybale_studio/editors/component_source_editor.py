@@ -27,14 +27,21 @@ from typing import TYPE_CHECKING, Literal, Optional
 
 from nicegui import ui
 
-from haywire.ui import elements as hui
+from haywire.api.workbench import (
+    BaseEditor,
+    RevealComponentSource,
+    RevealSource,
+    Save,
+    SessionContext,
+    Signal,
+    SlotName,
+    editor,
+    hui,
+    react_on,
+    redraw_on,
+    reveal_on,
+)
 from haywire.core.library.utils import get_registry_id_from_key
-from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import react_on, redraw_on, reveal_on
-from haywire.core.signals import RevealComponentSource, Save, Signal
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import SlotName
 
 if TYPE_CHECKING:
     from haywire.core.registry.base import BaseRegistry
@@ -390,7 +397,6 @@ class ComponentSourceEditor(BaseEditor):
         session = getattr(wrapper, "_session", None) if wrapper is not None else None
         if session is None:
             return
-        from haywire.core.signals import RevealSource
 
         session.publish(RevealSource(binding_id=str(self._path), label=self._path.name))
 

@@ -10,13 +10,20 @@ from typing import TYPE_CHECKING, Literal, Optional
 
 from nicegui import ui
 
-from haywire.ui import elements as hui
-from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import react_on, redraw_on, reveal_on
-from haywire.core.signals import RevealSource, Save, Signal
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior, SlotName
+from haywire.api.workbench import (
+    BaseEditor,
+    OpenBehavior,
+    RevealSource,
+    Save,
+    SessionContext,
+    Signal,
+    SlotName,
+    editor,
+    hui,
+    react_on,
+    redraw_on,
+    reveal_on,
+)
 
 if TYPE_CHECKING:
     from nicegui.element import Element
