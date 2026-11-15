@@ -2,8 +2,7 @@
 
 import time
 
-from haywire.core.access import AccessTier
-from haywire.core.farmhand import Farmhand, FarmhandContext, farmhand
+from haywire.api.workbench import AccessTier, Farmhand, FarmhandContext, farmhand
 
 
 @farmhand(

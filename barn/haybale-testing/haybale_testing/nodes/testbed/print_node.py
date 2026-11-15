@@ -1,7 +1,6 @@
 import logging
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import EXEC, STRING, BaseNode, ExecutionContext, NodeType, TextWidget, node
 
 logger = logging.getLogger("haybale.testing.print")
 
@@ -23,10 +22,6 @@ class TestPrintNode(BaseNode):
     """
 
     def init(self):
-        from haywire.barn.builtin.types import STRING
-        from haywire.barn.builtin.types import EXEC
-        from haywire.barn.builtin.widgets import TextWidget
-
         # Control flow
         self.add(EXEC.as_inlet("exec"))
         self.add(EXEC.as_outlet("done"))

@@ -19,12 +19,6 @@ from tests.api.allowlist import INTERNAL_IMPORTS
 _BARN = Path(__file__).resolve().parents[2] / "barn"
 _INTERNAL = ("haywire.core", "haywire.ui", "haywire.barn")
 
-#: Libraries whose imports have not been moved yet. This set only shrinks.
-NOT_YET_MIGRATED = {
-    "haybale-testing",
-    "haybale-TEST_A",
-}
-
 
 def _is_internal(module: str) -> bool:
     return any(module == root or module.startswith(root + ".") for root in _INTERNAL)
@@ -50,7 +44,6 @@ def test_a_library_imports_only_its_listed_internals(library) -> None:
     assert listed - actual == set(), "no longer imported: remove them from tests/api/allowlist.py"
 
 
-def test_every_migrated_library_is_listed() -> None:
-    """A library is either listed here or named as not yet migrated."""
+def test_every_library_is_listed() -> None:
     libraries = {p.name for p in _BARN.iterdir() if p.is_dir() and (p / "pyproject.toml").exists()}
-    assert libraries == set(INTERNAL_IMPORTS) | NOT_YET_MIGRATED
+    assert libraries == set(INTERNAL_IMPORTS)

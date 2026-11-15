@@ -4,8 +4,7 @@ Three sibling folds: a config fold, an inlet fold (so the lane a fold renders
 in is exercised, not just the config band), and one that starts closed.
 """
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import FLOAT, STRING, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -19,8 +18,6 @@ class FoldProbeNode(BaseNode):
     """Test-only."""
 
     def init(self):
-        from haywire.barn.builtin.types import FLOAT, STRING
-
         self.add(STRING.as_outlet("out"))
 
         with self.fold("Solver", description="How the solver steps through time."):

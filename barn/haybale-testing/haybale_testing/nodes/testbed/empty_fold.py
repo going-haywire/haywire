@@ -1,7 +1,6 @@
 """Empty fold probe — a fold with nothing inside has no direction to take."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import STRING, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -15,8 +14,6 @@ class EmptyFoldNode(BaseNode):
     """Test-only."""
 
     def init(self):
-        from haywire.barn.builtin.types import STRING
-
         self.add(STRING.as_outlet("out"))
         with self.fold("Nothing"):
             pass

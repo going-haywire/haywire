@@ -1,7 +1,17 @@
-from haywire.core.execution.event_source import CallbackEvent
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.execution.flow_queue import QueueMode
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import (
+    CALLBACK,
+    EXEC,
+    FLOAT,
+    STRING,
+    BaseNode,
+    CallbackEvent,
+    ExecutionContext,
+    NodeType,
+    QueueMode,
+    SelectWidget,
+    TextWidget,
+    node,
+)
 
 
 @node(
@@ -15,10 +25,6 @@ class TestCustomCallbackNode(BaseNode):
     """Test-only event node that listens for custom callbacks."""
 
     def init(self):
-        from haywire.barn.builtin.types import STRING, FLOAT
-        from haywire.barn.builtin.types import CALLBACK, EXEC
-        from haywire.barn.builtin.widgets import TextWidget, SelectWidget
-
         with self.fold("Custom Name", default=False, on_change="redraw"):
             self.add(
                 STRING.as_config(

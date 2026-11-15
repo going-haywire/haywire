@@ -1,11 +1,19 @@
 """Test-only wire types."""
 
-from haywire.barn.builtin.types import CHOICES, COLOR, FLOAT, STRING
-from haywire.barn.builtin.widget_keys import ARROW_HEAD_WIDGET
-from haywire.core.edge.arrow_heads import DEFAULT_HEAD_SIZE, NO_ARROW_HEAD, head_size_choices
-from haywire.core.edge.style import dash_choices
-from haywire.core.settings import EdgeSettings, setting
-from haywire.core.types import WireRole, WireType
+from haywire.api import (
+    ARROW_HEAD_WIDGET,
+    CHOICES,
+    COLOR,
+    FLOAT,
+    NO_ARROW_HEAD,
+    STRING,
+    EdgeSettings,
+    WireRole,
+    WireType,
+    dash_choices,
+    setting,
+)
+from haywire.core.edge.arrow_heads import DEFAULT_HEAD_SIZE, head_size_choices
 
 
 class TestVisualStyle(EdgeSettings):

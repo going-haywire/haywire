@@ -4,8 +4,7 @@ These themes exist solely to provide stable, known values in tests — they are
 not meant to look good in the UI.
 """
 
-from haywire.ui.themes.workbench import BaseTheme
-from haywire.ui.themes.decorator import theme
+from haywire.api import BaseTheme, theme
 
 
 @theme(theme_type="workbench", label="Test Dark", hidden=True)

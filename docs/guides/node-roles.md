@@ -22,7 +22,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.p
 `TestEmitCallbackNode` is a CONTROL node with one EXEC inlet (`execute`) and one EXEC outlet (`exec`). It also demonstrates `PooledType[CALLBACK]` as an inlet, `post_init()` for non-serializable state, and dispatching via `context.emit_callback`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:5:84"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:16:88"
 ```
 
 from: `TestEmitCallbackNode` — registry_key: `haybale-testing:node:TestEmitCallbackNode`
@@ -38,7 +38,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py`
 `TestAddFloatNode` is the minimal DATA node: two FLOAT inlets, one FLOAT outlet, worker adds them and returns `None`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py:5:27"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py:4:22"
 ```
 
 from: `TestAddFloatNode` — registry_key: `haybale-testing:node:TestAddFloatNode`
@@ -56,7 +56,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`
 `TestBeginPlayNode` fires once when execution starts, emitting the current timestamp:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py:6:33"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py:4:26"
 ```
 
 from: `TestBeginPlayNode` — registry_key: `haybale-testing:node:TestBeginPlayNode`

@@ -257,7 +257,7 @@ If you are extending a *different* agent-facing surface — a CLI, for instance 
 **Minimal read-only tool** — no arguments beyond a single required string, `read_only_hint` annotation:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/farmhands/echo_tool.py:6:19"
+--8<-- "barn/haybale-testing/haybale_testing/farmhands/echo_tool.py:5:18"
 ```
 
 from: `EchoTool` — registry_key: `haybale-testing:farmhand:echo`
@@ -265,7 +265,7 @@ from: `EchoTool` — registry_key: `haybale-testing:farmhand:echo`
 **The `FarmhandError` contract** — a tool that always fails, to exercise the structured-error path in tests:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/farmhands/fail_tool.py:6:19"
+--8<-- "barn/haybale-testing/haybale_testing/farmhands/fail_tool.py:5:18"
 ```
 
 from: `FailTool` — registry_key: `haybale-testing:farmhand:fail`

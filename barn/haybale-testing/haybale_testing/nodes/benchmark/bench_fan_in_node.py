@@ -4,8 +4,7 @@ Used by the ``graph_data_chain_*`` benchmarks (see ``benchmarks/cases.py``): joi
 branches of the chain. Editing it shifts the baseline; add a new frozen node instead.
 """
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -19,8 +18,6 @@ class BenchFanInNode(BaseNode):
     """FLOAT inlets `a` and `b`, FLOAT outlet `y = a + b`."""
 
     def init(self):
-        from haywire.barn.builtin.types import FLOAT
-
         self.add(FLOAT.as_inlet("a", default=0.0))
         self.add(FLOAT.as_inlet("b", default=0.0))
         self.add(FLOAT.as_outlet("y"))

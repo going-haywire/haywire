@@ -2,8 +2,7 @@
 
 from typing import Any
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import CALLBACK, BaseNode, ExecutionContext, NodeType, node
 
 
 @node(
@@ -23,8 +22,6 @@ class CallbackRelayProbeNode(BaseNode):
     suffix = ""
 
     def init(self):
-        from haywire.barn.builtin.types import CALLBACK
-
         self.add(CALLBACK.as_inlet("in", on_change="_relay"))
         self.add(CALLBACK.as_outlet("out"))
 

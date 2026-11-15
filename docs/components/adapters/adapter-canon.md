@@ -114,7 +114,7 @@ Three single-step adapters that form a chain: `TEST_BOOL → TEST_INT → TEST_F
 **Bool → Int:**
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:14:26"
+--8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:13:25"
 ```
 
 from: `BoolToIntAdapter` — registry_key: `haybale-testing:adapter:BoolToIntAdapter`
@@ -122,7 +122,7 @@ from: `BoolToIntAdapter` — registry_key: `haybale-testing:adapter:BoolToIntAda
 **Int → Float:**
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:28:40"
+--8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:27:39"
 ```
 
 from: `IntToFloatAdapter` — registry_key: `haybale-testing:adapter:IntToFloatAdapter`
@@ -130,7 +130,7 @@ from: `IntToFloatAdapter` — registry_key: `haybale-testing:adapter:IntToFloatA
 **Float → String:**
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:40:56"
+--8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:39:51"
 ```
 
 from: `FloatToStringAdapter` — registry_key: `haybale-testing:adapter:FloatToStringAdapter`

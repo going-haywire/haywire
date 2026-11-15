@@ -4,9 +4,7 @@ Covers both forms: bare ``ADD`` slots, which adopt the connected type, and an
 ``ADD[TEST_STRING]`` slot, which stays TEST_STRING and lets the adapters convert.
 """
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
-from haywire.core.types import PortOrigin
+from haywire.api import ADD, BaseNode, ExecutionContext, NodeType, PortOrigin, node
 
 
 @node(
@@ -42,8 +40,6 @@ class AddPortTestNode(BaseNode):
     _SIDES = {"in": ("add_in_", "In"), "out": ("add_out_", "Out"), "str": ("str_in_", "Str")}
 
     def init(self):
-        from haywire.barn.builtin.types import ADD
-
         from haybale_testing.types.test_types import TEST_STRING
 
         self._add_slot("in", 0, ADD)
@@ -56,7 +52,6 @@ class AddPortTestNode(BaseNode):
 
     def hb_resolve(self, port, edge_wrapper):
         """Retype *port* and append a new slot of the same kind."""
-        from haywire.barn.builtin.types import ADD
 
         from haybale_testing.types.test_types import TEST_STRING
 

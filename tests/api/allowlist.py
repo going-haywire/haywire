@@ -410,4 +410,17 @@ INTERNAL_IMPORTS: dict[str, list[str]] = {
         "haywire.ui.panel.redraw_coordinator:PanelRedrawCoordinator",
         "haywire.ui.panel.render_utils:render_keys",
     ],
+    "haybale-TEST_A": [],
+    "haybale-testing": [
+        "haywire.core.edge.arrow_heads:DEFAULT_HEAD_SIZE",
+        "haywire.core.edge.arrow_heads:head_size_choices",
+        "haywire.core.edge.edge_wrapper:EdgeWrapperState",
+        "haywire.core.errors.haywire_exception:HaywireException",
+        "haywire.core.library.utils:camel_to_dot_case",
+        "haywire.core.node.info:NodeInfo",
+        "haywire.core.settings:Vec2i",
+        "haywire.core.settings:Vec3f",
+        "haywire.core.settings:Vec4f",
+        "haywire.ui.errors.error_info:error_render_detail",
+    ],
 }

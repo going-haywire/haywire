@@ -19,4 +19,3 @@ extend = "../pyproject.toml"
 "haybale-share/**" = ["TID251"]
 "haybale-studio/**" = ["TID251"]
 "haybale-testing/**" = ["TID251"]
-"haybale-TEST_A/**" = ["TID251"]

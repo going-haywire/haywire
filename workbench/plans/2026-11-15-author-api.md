@@ -2,7 +2,7 @@
 
 Status: design settled 2026-11-15 (design session, Q1–Q9). Slices 1, 3 and 4
 are built and slice 2 is built in part (see [Slices](#slices)); the names are
-decided ([Names decided](#names-decided)). Next: haybale-studio (slice 5, after PR #105), the rest of slice 2, slice 6.
+decided ([Names decided](#names-decided)). Next: the rest of slice 2; slice 7 after a core release.
 
 ## Picking this up
 
@@ -24,7 +24,8 @@ Branch `refactor-API-surface`, draft PR
   (export and document, or rewrite the user); adding a name needs an edit to
   `tests/api/names.py`. Afterwards run `ruff format`, and re-check every
   line-range snippet (`--8<-- "path:a:b"`) in `docs/` that points into a
-  changed file: the import lines shrink, so the ranges move.
+  changed file: the import lines shrink, so the ranges move
+  (`workbench/playground/shift_doc_snippets.py` does it).
 - **Next steps:** the rest of slice 2 (see its status row), then slice 5 one
   library at a time: run the codemod, decide the leftovers under D2, remove
   the library's line from `barn/ruff.toml` or write its allowlist.
@@ -302,8 +303,9 @@ The last task of each slice marks it done here (commit, date, deviations).
 | 2 | in part, 2026-11-15, PR #108. Done: every import line in `docs/components`, `docs/guides` and `docs/haybale`; the Author API section and registry table in the haybale canon; the Data node template; the `haywire init` scaffold and its ruff lines. The six names the docs taught and no node library used are decided: `IAdapter` left the adapter canon; `GraphProperties` and `graph` stay internal and the setting canon shows them as framework internals; `promote_setting` and `demote_setting` are in the workbench API; `HaywireDarkTheme` is haybale-studio's class, so the theme canon imports it from `haybale_studio` (a library-to-library import, Q3). The node canon states where imports go (framework names at the top, another library's inside `init()`). Open: (b) the canons do not yet document the exported names the tables above mark "document"; (c) prose that names an internal module path was left as it is; (d) `.claude/skills/haywire-themes/SKILL.md` has one internal import line |
 | 3 | done 2026-11-15, PR #108 (merged into slice 1, as allowed). Deviations: notices are collected in a `ContextVar` (`core/library/deprecated_names.py`), not with `warnings.catch_warnings`; the warning is `HaywireDeprecationWarning`, a `DeprecationWarning` subclass, so third-party deprecations stay out of the ledger; the entry is written with `report_loss` |
 | 4 | done 2026-11-15, PR #108, one commit per library instead of one PR (the PR for slice 1 was still open, and stacked PRs do not survive squash merges). example, audio, image, core and models import only the Author API; `barn/ruff.toml` enforces it. 748 names moved by the codemod; four users rewritten by hand (Print node, `array_widget`, models editor menu, one docstring) |
-| 5 | in part, 2026-11-15. haystack, share, marketplace and graph-editor import the Author API where it has the name and keep an allowlist for the rest (28, 36, 72 and 186 imports): `tests/api/allowlist.py`, checked by `tests/api/test_internal_imports.py`, which fails on a new internal import and on a listed one that is gone. D2 applied: the signals the signals guide and editor canon teach (`Save`, `GraphUnsavedChanged`, `RevealGraphInstance`, `LibraryCatalogChanged`, `ErrorLogged`, `ErrorLedgerChanged`, `CommandSignal`) and `render_settings` entered the workbench API; nothing else these four use is taught to authors. Deviations: one PR with a commit per library; ruff cannot hold a list of names, so a library with an allowlist keeps `TID251` off in `barn/ruff.toml` and the test is its check. Open: haybale-studio, after PR #105 merges (it adds files to studio, already on the Author API except `get_error_ledger`, which goes on studio's allowlist unless a canon comes to teach it); whether graph-editor's surfaces take the `Surface` suffix |
-| 6–7 | not started |
+| 5 | done 2026-11-15, PRs #112 and the studio PR. haystack, share, marketplace, graph-editor and studio import the Author API where it has the name and keep an allowlist for the rest: `tests/api/allowlist.py`, checked by `tests/api/test_internal_imports.py`, which fails on a new internal import and on a listed one that is gone. D2 applied: the signals the signals guide and editor canon teach, `render_settings`, and the two remaining builtin surfaces entered the workbench API; nothing else these libraries use is taught to authors. Deviations: one PR with a commit per library; ruff cannot hold a list of names, so a library with an allowlist keeps `TID251` off in `barn/ruff.toml` and the test is its check. Open: whether graph-editor's surfaces take the `Surface` suffix; working the allowlists down (export what outside authors need, move code only one library uses into that library) |
+| 6 | done 2026-11-15, with the studio PR. haybale-testing keeps 10 internal imports, haybale-TEST_A none; every library in `barn/` is now listed in the allowlist file |
+| 7 | not started. One `after-core-release` issue per external library carries the steps (protokol#3, comfyui#1, visiongraph#2, spandrel#1, stream#11) |
 
 ## Lands with the code
 
