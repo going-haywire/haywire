@@ -15,8 +15,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from haywire.core.state.base import AppState
-from haywire.core.state.decorator import state
+from haywire.api.workbench import AppState, state
 
 from haybale_marketplace.library_manager import LibraryManager
 

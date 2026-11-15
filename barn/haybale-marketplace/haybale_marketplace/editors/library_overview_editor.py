@@ -23,15 +23,31 @@ from typing import TYPE_CHECKING, Callable
 from nicegui import ui
 from nicegui import background_tasks
 
-from haywire.ui import elements as hui
-from haywire.core.adapter.registry import AdapterRegistry
-from haywire.core.farmhand.registry import FarmhandRegistry
-from haywire.core.macro.registry import MacroRegistry
-from haywire.core.catalog import CatalogRegistry
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.settings import SettingsRegistry
-from haywire.core.state import StateRegistry
-from haywire.core.types.registry import TypeRegistry
+from haywire.api.workbench import (
+    BaseEditor,
+    EditorRegistry,
+    FarmhandRegistry,
+    LibraryCatalogChanged,
+    OpenBehavior,
+    PanelRegistry,
+    SessionContext,
+    SlotName,
+    StateRegistry,
+    editor,
+    hui,
+    redraw_on,
+)
+from haywire.api import (
+    AdapterRegistry,
+    CatalogRegistry,
+    MacroRegistry,
+    NodeRegistry,
+    SettingsRegistry,
+    SkinRegistry,
+    ThemeRegistry,
+    TypeRegistry,
+    WidgetRegistry,
+)
 from haywire.core.library.utils import (
     ADAPTER,
     EDITOR,
@@ -47,23 +63,12 @@ from haywire.core.library.utils import (
     TYPE,
     WIDGET,
 )
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior, SlotName
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.registry import EditorRegistry
-from haywire.ui.panel.registry import PanelRegistry
-from haywire.ui.skin.registry import SkinRegistry
-from haywire.ui.themes import ThemeRegistry
-from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import redraw_on
-from haywire.core.signals import LibraryCatalogChanged
 
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.locate import link_form, module_dir_path, resolve_row_path
 from haywire.ui.modals import info_modal
 
-from haywire.ui.widget.registry import WidgetRegistry
 
 from haybale_marketplace.editors._overview_actions import (
     confirm_uninstall,

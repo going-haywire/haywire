@@ -8,7 +8,7 @@ from typing import Callable, Optional
 
 from nicegui import ui
 
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 
 from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall import RefreshReport, ResolvedSource

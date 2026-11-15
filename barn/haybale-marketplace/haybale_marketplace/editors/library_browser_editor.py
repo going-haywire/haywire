@@ -16,15 +16,16 @@ from nicegui import ui
 
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.haybale import Haybale
-from haywire.ui import elements as hui
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import SlotName
-from haywire.ui.editor.base import BaseEditor
-from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import redraw_on
-from haywire.core.signals import (
+from haywire.api.workbench import (
+    BaseEditor,
     LibraryCatalogChanged,
     Reveal,
+    RevealSource,
+    SessionContext,
+    SlotName,
+    editor,
+    hui,
+    redraw_on,
 )
 
 from haybale_marketplace.library_origin import compute_library_origin
@@ -323,7 +324,6 @@ class LibraryBrowserEditor(BaseEditor):
         here is to let the user repair such files. Click Refresh after saving to
         re-apply.
         """
-        from haywire.core.signals import RevealSource
         from haybale_marketplace.config import GLOBAL_MARKETPLACE_DIR
 
         mp = GLOBAL_MARKETPLACE_DIR / "marketplace.toml"

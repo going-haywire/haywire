@@ -4,16 +4,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.barn.builtin.surfaces import BarnsSurface
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_schema
+from haywire.api.workbench import BarnsSurface, BasePanel, PanelLayout, hui, panel, render_schema
 
 from haybale_marketplace.settings.marketplace_settings import MarketplaceSettings
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @panel(

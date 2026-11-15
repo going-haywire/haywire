@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import background_tasks, ui
 
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 from nicegui.elements.button import Button
 
 from haywire.core.library.haybale import Haybale
@@ -27,7 +27,7 @@ from haybale_marketplace.editors._overview_actions import (
 
 if TYPE_CHECKING:
     from haybale_marketplace.library_manager import LibraryManager
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 logger = logging.getLogger(__name__)
 

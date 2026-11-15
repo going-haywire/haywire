@@ -40,7 +40,7 @@ from haywire.core.library.haybale_toml import read_haybale, read_haybale_toml_le
 from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.library.info import LibraryInfo
 from haywire.core.publishing.drift.detect import detect_share_drift
-from haywire.ui import elements as hui
+from haywire.api.workbench import hui
 from haywire.ui.components.popup import Popup
 from haywire.ui.modals import info_modal
 
@@ -48,7 +48,7 @@ from haybale_marketplace.library_origin import is_project_library
 
 if TYPE_CHECKING:
     from haybale_marketplace.library_manager import LibraryManager
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 logger = logging.getLogger(__name__)
 
