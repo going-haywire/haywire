@@ -81,7 +81,7 @@ def _stage_skin_choices() -> dict[str, str]:
     return skin_choices(include=[SKIN_TAG_GENERAL], exclude=[SKIN_TAG_SPECIAL])
 
 
-def _widget_node_stage_skin_choices() -> dict[str, str]:
+def widget_node_stage_skin_choices() -> dict[str, str]:
     """The skins offered for a widget node's stage skin: those tagged for widget nodes only."""
     return skin_choices(include=[SKIN_TAG_SPECIAL, SKIN_TAG_WIDGET_NODE], exclude=[SKIN_TAG_GENERAL])
 

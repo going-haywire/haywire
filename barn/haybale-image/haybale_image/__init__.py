@@ -12,14 +12,16 @@ Component folders (registered in ``register_components``):
 
 from pathlib import Path
 
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.adapter.registry import AdapterRegistry
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.types.registry import TypeRegistry
-from haywire.ui.panel.registry import PanelRegistry
-from haywire.ui.widget.registry import WidgetRegistry
+from haywire.api import (
+    AdapterRegistry,
+    BaseLibrary,
+    NodeRegistry,
+    SettingsRegistry,
+    TypeRegistry,
+    WidgetRegistry,
+    library,
+)
+from haywire.api.workbench import PanelRegistry
 
 
 @library(

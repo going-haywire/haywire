@@ -8,7 +8,7 @@ from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.state import AppState
 from haywire.core.state.container import LibraryStateContainer
-from haywire.core.state.registry import LibraryStateRegistry
+from haywire.core.state.registry import StateRegistry
 
 
 def make_lib_identity(lib_id: str = "midi") -> LibraryIdentity:
@@ -49,7 +49,7 @@ class TestLibraryStateContainer:
             def on_enable(self) -> None:
                 calls.append("enable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity()
 
@@ -71,7 +71,7 @@ class TestLibraryStateContainer:
             def on_enable(self) -> None:
                 calls.append("enable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity()
         reg._register_class(MyState, lib_id)
@@ -98,7 +98,7 @@ class TestLibraryStateContainer:
             def on_disable(self) -> None:
                 calls.append("disable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
@@ -125,9 +125,9 @@ class TestLibraryStateContainer:
         class NoHooks(AppState):
             pass
 
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         reg._register_class(NoHooks, lib_id)
 
         # Should not raise.
@@ -153,7 +153,7 @@ class TestLibraryStateContainer:
             label="Missing",
         )
 
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         with pytest.raises(KeyError):
             _ = container[Missing]
 
@@ -171,7 +171,7 @@ class TestLibraryStateContainer:
             label="Missing",
         )
 
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         assert container.get(Missing) is None
 
     def test_class_reloaded_event_swaps_instance_with_disable_then_enable(self):
@@ -210,7 +210,7 @@ class TestLibraryStateContainer:
         V1.class_identity = ident
         V2.class_identity = ident
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity()
 
@@ -260,7 +260,7 @@ class TestEnabledLibraryIdsFilter:
             def on_enable(self) -> None:
                 calls.append("enable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("unmarked")
         reg._register_class(MyState, lib_id)
@@ -281,7 +281,7 @@ class TestEnabledLibraryIdsFilter:
             def on_enable(self) -> None:
                 calls.append("enable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("marked")
         reg._register_class(MyState, lib_id)
@@ -306,7 +306,7 @@ class TestEnabledLibraryIdsFilter:
             def on_disable(self) -> None:
                 calls.append("disable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("unmarked")
         reg._register_class(MyState, lib_id)
@@ -334,7 +334,7 @@ class TestEnabledLibraryIdsFilter:
             def on_enable(self) -> None:
                 calls.append("unmarked")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         marked = make_lib_identity("marked")
         unmarked = make_lib_identity("unmarked")
@@ -376,7 +376,7 @@ class TestOnLibraryEnabledCatchUp:
             def on_enable(self) -> None:
                 calls.append("enable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("midi")
         reg._register_class(MyState, lib_id)
@@ -405,7 +405,7 @@ class TestOnLibraryEnabledCatchUp:
             def on_disable(self) -> None:
                 calls.append("disable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("midi")
         reg._register_class(MyState, lib_id)
@@ -425,7 +425,7 @@ class TestOnLibraryEnabledCatchUp:
     def test_on_library_enabled_with_no_classes_still_marks_library(self):
         """A library with no state classes still gets its id added to
         _enabled_library_ids so future CLASS_RELOADED events pass the filter."""
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("stateless")
 
@@ -445,7 +445,7 @@ class TestOnLibraryEnabledCatchUp:
             def on_enable(self) -> None:
                 calls.append("enable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("midi")
         reg._register_class(MyState, lib_id)
@@ -472,7 +472,7 @@ class TestOnLibraryEnabledCatchUp:
             def on_enable(self) -> None:
                 calls.append("audio")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         midi = make_lib_identity("midi")
         audio = make_lib_identity("audio")
@@ -501,7 +501,7 @@ class TestOnLibraryDisabled:
     filtered out."""
 
     def test_disabled_library_id_is_dropped_from_filter_set(self):
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("midi")
 
@@ -528,7 +528,7 @@ class TestOnLibraryDisabled:
             def on_disable(self) -> None:
                 calls.append("disable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("midi")
         reg._register_class(MyState, lib_id)
@@ -571,7 +571,7 @@ class TestOnLibraryDisabled:
             def on_disable(self) -> None:
                 calls.append("disable")
 
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("midi")
         reg._register_class(MyState, lib_id)
@@ -603,7 +603,7 @@ class TestOnLibraryDisabled:
     def test_disable_of_unknown_library_is_a_noop(self):
         """on_library_disabled is idempotent — calling with an id not in
         the set is a no-op rather than an error."""
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity("never-enabled")
 
@@ -624,7 +624,7 @@ class TestSubscribeToLifecycleEvents:
     (on_enable via the library-enabled callback) after it."""
 
     def test_subscribes_to_state_registry_batch_events(self):
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
 
         container.subscribe_to_lifecycle_events()
@@ -633,7 +633,7 @@ class TestSubscribeToLifecycleEvents:
 
     def test_does_not_register_library_callbacks(self):
         """Phase-1 subscription must not touch the per-library callback channel."""
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         from unittest.mock import MagicMock
 
@@ -650,7 +650,7 @@ class TestSubscribeToLibraryCallbacks:
     LibraryRegistry needs a full DI environment."""
 
     def test_registers_library_enabled_callback(self):
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         from unittest.mock import MagicMock
 
@@ -660,7 +660,7 @@ class TestSubscribeToLibraryCallbacks:
         library_registry.add_library_enabled_callback.assert_called_once_with(container.on_library_enabled)
 
     def test_registers_library_disabled_callback(self):
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         from unittest.mock import MagicMock
 
@@ -671,7 +671,7 @@ class TestSubscribeToLibraryCallbacks:
 
     def test_does_not_subscribe_to_state_registry_events(self):
         """Phase-2 subscription must not touch the lifecycle-event channel."""
-        reg = LibraryStateRegistry()
+        reg = StateRegistry()
         container = LibraryStateContainer(reg)
         from unittest.mock import MagicMock
 

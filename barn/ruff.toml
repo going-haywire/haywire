@@ -1,0 +1,20 @@
+# Lint for the libraries in barn/: the root configuration, plus the rule that
+# a library imports the framework through the Author API (ADR 0084).
+extend = "../pyproject.toml"
+
+[lint.flake8-tidy-imports.banned-api]
+"haywire.core".msg = "Import from haywire.api or haywire.api.workbench (ADR 0084); haywire.core is internal."
+"haywire.ui".msg = "Import from haywire.api or haywire.api.workbench (ADR 0084); haywire.ui is internal."
+"haywire.barn".msg = "Import from haywire.api or haywire.api.workbench (ADR 0084); haywire.barn is internal."
+
+[lint.per-file-ignores]
+# PT is a pytest-only style; libraries hold no tests.
+"**" = ["PT"]
+# Libraries not yet moved onto the Author API. This list only shrinks.
+"haybale-graph-editor/**" = ["TID251"]
+"haybale-haystack/**" = ["TID251"]
+"haybale-marketplace/**" = ["TID251"]
+"haybale-share/**" = ["TID251"]
+"haybale-studio/**" = ["TID251"]
+"haybale-testing/**" = ["TID251"]
+"haybale-TEST_A/**" = ["TID251"]

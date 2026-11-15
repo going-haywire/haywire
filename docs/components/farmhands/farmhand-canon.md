@@ -132,7 +132,7 @@ raise FarmhandError(
 **Folder convention and registration.** Farmhand tools go in the library's `farmhands/` folder; register it with `FarmhandRegistry` in `register_components()`, alongside the same-shaped calls for `nodes/`, `panels/`, `states/`, etc:
 
 ```python
-from haywire.core.farmhand import FarmhandRegistry
+from haywire.api.workbench import FarmhandRegistry
 
 def register_components(self):
     base = Path(__file__).parent
@@ -190,7 +190,7 @@ A truncated response that does not announce itself is the worst output a tool ca
 **Pagination convention.** Any tool returning a list should accept `limit`/`offset` and call the shared helpers so every list tool paginates identically:
 
 ```python
-from haywire.core.farmhand import truncation_note
+from haywire.api.workbench import truncation_note
 from haybale_studio.farmhands._helpers import page  # haybale-studio's local pagination slice helper
 
 rows, total = page(rows, limit, offset)
@@ -334,9 +334,14 @@ Agent-facing output (§4) — a tool passes its tests without any of these:
 ### Imports
 
 ```python
-from haywire.core.farmhand import (
-    Farmhand, FarmhandContext, FarmhandError, ToolAnnotations,
-    farmhand, truncation_note, FarmhandRegistry,
+from haywire.api.workbench import (
+    Farmhand,
+    FarmhandContext,
+    FarmhandError,
+    FarmhandRegistry,
+    ToolAnnotations,
+    farmhand,
+    truncation_note,
 )
 ```
 

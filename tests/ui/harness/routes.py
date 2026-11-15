@@ -1926,7 +1926,7 @@ def register_routes(library_service) -> None:
         from haybale_graph_editor.states.graph_app_state import GraphAppState
         from haywire.ui.app.tab_slot import TabSlot
         from haywire.ui.editor.identity import SlotName
-        from haywire.ui.editor.registry import EditorTypeRegistry
+        from haywire.ui.editor.registry import EditorRegistry
 
         _access_gate()
         graph, editor = _build_edge_batch_graph(library_service.get_node_factory(), edges)
@@ -1955,7 +1955,7 @@ def register_routes(library_service) -> None:
         slot = TabSlot(
             session=session,  # type: ignore[arg-type]
             name=SlotName.EDIT,
-            registry=library_service.injector.get(EditorTypeRegistry),
+            registry=library_service.injector.get(EditorRegistry),
         )
         wrapper = slot.add_binding(
             GraphEditor.class_identity.registry_key, GraphEditor, binding_id=container.id, activate=True

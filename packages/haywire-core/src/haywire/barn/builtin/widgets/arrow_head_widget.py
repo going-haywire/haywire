@@ -6,7 +6,7 @@ from typing import Any
 
 from nicegui import ui
 
-from haywire.core.edge.arrow_heads import ARROW_HEADS, NO_HEAD, ArrowHead, get_arrow_head
+from haywire.core.edge.arrow_heads import ARROW_HEADS, NO_ARROW_HEAD, ArrowHead, get_arrow_head
 from haywire.ui.widget.base import BaseWidget
 from haywire.ui.widget.decorator import widget
 
@@ -61,7 +61,7 @@ class ArrowHeadWidget(BaseWidget):
         return button
 
     def _item(self, head: ArrowHead | None) -> None:
-        name = head.name if head is not None else NO_HEAD
+        name = head.name if head is not None else NO_ARROW_HEAD
         label = head.label if head is not None else "None"
         with (
             ui.button(on_click=lambda _, n=name: self._pick(n))

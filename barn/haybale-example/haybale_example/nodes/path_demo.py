@@ -4,9 +4,20 @@ Exists to show the path picker on a real card: a plain `PATH`, a `FILE_PATH`, a
 `FILE_PATH` limited to images, a `FOLDER_PATH`, and a `FILE_PATH` in save mode.
 """
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.volumes import VolumeError, VolumePath, resolve
+from haywire.api import (
+    FILE_PATH,
+    FOLDER_PATH,
+    PATH,
+    STRING,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    PathWidget,
+    VolumeError,
+    VolumePath,
+    node,
+    resolve_volume_path,
+)
 
 
 @node(
@@ -36,9 +47,6 @@ class PathDemoNode(BaseNode):
     PATH_PORTS = ("path", "file", "image", "folder", "save_to")
 
     def init(self):
-        from haywire.barn.builtin.types import FILE_PATH, FOLDER_PATH, PATH, STRING
-        from haywire.barn.builtin.widgets import PathWidget
-
         self.add(PATH.as_inlet(id="path", label="Path", description="A file or a folder"))
         self.add(FILE_PATH.as_inlet(id="file", label="File", description="An existing file"))
         self.add(
@@ -88,7 +96,7 @@ class PathDemoNode(BaseNode):
         problems: list[str] = []
         for port_id, value in zip(self.PATH_PORTS, (path, file, image, folder, save_to), strict=True):
             try:
-                resolved = str(resolve(value))
+                resolved = str(resolve_volume_path(value))
             except VolumeError as exc:
                 resolved = ""
                 problems.append(f"{port_id}: {exc}")

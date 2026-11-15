@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
-from haywire.barn.builtin.carrier import CarrierValue
+from haywire.api import CarrierValue
 
 
 class DepthValue(CarrierValue):

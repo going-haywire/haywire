@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
-from haywire.barn.builtin.carrier import CarrierValue
+from haywire.api import CarrierValue
 
 from haybale_image.value import _numpy_ops
 from haybale_image.value.enums import ChannelOrder, Layout

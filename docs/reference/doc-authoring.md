@@ -77,7 +77,7 @@ Two different mechanisms exist for pulling code into a doc page. Use the right o
 **Line-range form**, `path:start:end` (1-indexed !!!, inclusive):
 
 ```text
---8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:12:20"
+--8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:11:19"
 ```
 
 No markup needed in the source file — just point at the lines. Because a barn example can still be edited later, re-check the range after any edit to the source file (see §3d) — nothing fails the build if the numbers drift, it will just silently embed the wrong lines.
@@ -108,7 +108,7 @@ A library component isn't just its source location — at runtime it's addressed
 > **Worked example — linking to a node's source**
 > 
 > ```python
-> --8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:11:20"
+> --8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:11:19"
 > ```
 >
 > from: `MathOP` — registry_key: `haybale-example:node:MathOP`

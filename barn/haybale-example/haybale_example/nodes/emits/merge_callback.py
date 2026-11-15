@@ -1,6 +1,15 @@
-from haywire.core.execution.event_source import CallbackEvent
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import (
+    CALLBACK,
+    EXEC,
+    FLOAT,
+    INT,
+    BaseNode,
+    CallbackEvent,
+    ExecutionContext,
+    NodeType,
+    NumberWidget,
+    node,
+)
 
 
 @node(
@@ -24,8 +33,6 @@ class MergeCallbackNode(BaseNode):
 
     def init(self):
         # Config for callback name
-        from haywire.barn.builtin.types import INT
-        from haywire.barn.builtin.widgets import NumberWidget
 
         self.add(
             INT.as_config(
@@ -53,8 +60,6 @@ class MergeCallbackNode(BaseNode):
 
     def hb_reconfigure(self, number_of_callbacks: int = 1):
         """Reconfigure the node based on current settings."""
-        from haywire.barn.builtin.types import FLOAT
-        from haywire.barn.builtin.types import CALLBACK, EXEC
 
         self.cache.store = {}
 

@@ -11,8 +11,8 @@ from haywire.core.volumes import (
     VolumeStore,
     VolumeUndefinedError,
     list_volumes,
-    location_of,
-    resolve,
+    volume_location,
+    resolve_volume_path,
 )
 
 pytestmark = pytest.mark.unit
@@ -32,23 +32,23 @@ def at(volume_store):
 
 def test_stored_volume_resolves(tmp_path, volume_store):
     volume_store.add("user:volume:scans", label="Scans", description="", location=tmp_path / "s")
-    assert location_of("user:volume:scans") == tmp_path / "s"
+    assert volume_location("user:volume:scans") == tmp_path / "s"
 
 
 def test_project_is_the_workspace_root(tmp_path, workspace_root_restore):
     context.set_workspace_root(tmp_path / "ws")
-    assert location_of(PROJECT_KEY) == tmp_path / "ws"
+    assert volume_location(PROJECT_KEY) == tmp_path / "ws"
 
 
 def test_project_undefined_without_workspace_root(workspace_root_restore):
     context._workspace_root = None
     with pytest.raises(VolumeUndefinedError):
-        location_of(PROJECT_KEY)
+        volume_location(PROJECT_KEY)
 
 
 def test_unknown_volume_raises():
     with pytest.raises(VolumeUndefinedError) as ei:
-        location_of("user:volume:scans")
+        volume_location("user:volume:scans")
     assert ei.value.volume == "user:volume:scans"
     assert str(ei.value) == "volume 'user:volume:scans' is not defined on this machine"
 
@@ -56,14 +56,14 @@ def test_unknown_volume_raises():
 def test_explicit_store_argument(tmp_path):
     other = VolumeStore(tmp_path / "other.toml")
     other.add("user:volume:scans", label="S", description="", location=tmp_path / "o")
-    assert location_of("user:volume:scans", other) == tmp_path / "o"
+    assert volume_location("user:volume:scans", other) == tmp_path / "o"
 
 
 def test_relative_joins_posix_parts(tmp_path, at):
     root = tmp_path / "root"
     at(root)
-    assert resolve(VolumePath(V, "a/b/c.png")) == (root / "a" / "b" / "c.png").resolve()
-    assert resolve(VolumePath(V, "")) == root.resolve()
+    assert resolve_volume_path(VolumePath(V, "a/b/c.png")) == (root / "a" / "b" / "c.png").resolve()
+    assert resolve_volume_path(VolumePath(V, "")) == root.resolve()
 
 
 def test_any_dotdot_segment_is_refused(tmp_path, at):
@@ -72,17 +72,17 @@ def test_any_dotdot_segment_is_refused(tmp_path, at):
     at(root)
     for rel in ("../x", "a/../../x", "a/../b", "a/.."):
         with pytest.raises(VolumeEscapeError) as ei:
-            resolve(VolumePath(V, rel))
+            resolve_volume_path(VolumePath(V, rel))
         assert "'..'" in ei.value.reason
-    assert resolve(VolumePath(V, "a/./b")) == (root / "a" / "b").resolve()
-    assert resolve(VolumePath(V, "a..b/c..")) == (root / "a..b" / "c..").resolve()
+    assert resolve_volume_path(VolumePath(V, "a/./b")) == (root / "a" / "b").resolve()
+    assert resolve_volume_path(VolumePath(V, "a..b/c..")) == (root / "a..b" / "c..").resolve()
 
 
 @pytest.mark.parametrize("rel", ["/etc/passwd", "C:\\x", "C:/x"])
 def test_absolute_relative_raises(tmp_path, at, rel):
     at(tmp_path / "root")
     with pytest.raises(VolumeEscapeError) as ei:
-        resolve(VolumePath(V, rel))
+        resolve_volume_path(VolumePath(V, rel))
     assert ei.value.path == VolumePath(V, rel)
 
 
@@ -90,7 +90,7 @@ def test_absolute_relative_raises(tmp_path, at, rel):
 def test_backslash_is_literal_on_posix(tmp_path, at):
     root = tmp_path / "root"
     at(root)
-    assert resolve(VolumePath(V, "sub\\file.png")) == (root / "sub\\file.png").resolve()
+    assert resolve_volume_path(VolumePath(V, "sub\\file.png")) == (root / "sub\\file.png").resolve()
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
@@ -101,7 +101,7 @@ def test_outward_symlink_raises(tmp_path, at):
     (root / "link").symlink_to(tmp_path / "outside")
     at(root)
     with pytest.raises(VolumeEscapeError) as ei:
-        resolve(VolumePath(V, "link/f.txt"))
+        resolve_volume_path(VolumePath(V, "link/f.txt"))
     assert "link" in ei.value.reason
 
 
@@ -110,7 +110,7 @@ def test_a_symlinked_location_is_kept_as_configured(tmp_path, at):
     (tmp_path / "real").mkdir()
     (tmp_path / "link").symlink_to(tmp_path / "real")
     at(tmp_path / "link")
-    assert resolve(VolumePath(V, "a/x.png")) == tmp_path / "link" / "a" / "x.png"
+    assert resolve_volume_path(VolumePath(V, "a/x.png")) == tmp_path / "link" / "a" / "x.png"
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
@@ -119,7 +119,7 @@ def test_an_inward_symlink_is_kept_not_followed(tmp_path, at):
     (root / "2026").mkdir(parents=True)
     (root / "latest").symlink_to(root / "2026")
     at(root)
-    assert resolve(VolumePath(V, "latest/x.png")) == root / "latest" / "x.png"
+    assert resolve_volume_path(VolumePath(V, "latest/x.png")) == root / "latest" / "x.png"
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
@@ -130,7 +130,7 @@ def test_an_outward_symlink_below_a_symlinked_location_raises(tmp_path, at):
     (tmp_path / "link").symlink_to(tmp_path / "real")
     at(tmp_path / "link")
     with pytest.raises(VolumeEscapeError):
-        resolve(VolumePath(V, "out/x.png"))
+        resolve_volume_path(VolumePath(V, "out/x.png"))
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="symlinks need privileges on Windows")
@@ -140,20 +140,20 @@ def test_a_dangling_outward_symlink_raises(tmp_path, at):
     (root / "f.png").symlink_to(tmp_path / "not-there.png")
     at(root)
     with pytest.raises(VolumeEscapeError):
-        resolve(VolumePath(V, "f.png"))
+        resolve_volume_path(VolumePath(V, "f.png"))
 
 
 def test_a_path_below_a_missing_folder_resolves(tmp_path, at):
     root = tmp_path / "root"
     root.mkdir()
     at(root)
-    assert resolve(VolumePath(V, "new/sub/x.png")) == root / "new" / "sub" / "x.png"
+    assert resolve_volume_path(VolumePath(V, "new/sub/x.png")) == root / "new" / "sub" / "x.png"
 
 
 def test_missing_location_still_resolves(tmp_path, at):
     root = tmp_path / "nope"
     at(root)
-    assert resolve(VolumePath(V, "a")) == (root / "a").resolve()
+    assert resolve_volume_path(VolumePath(V, "a")) == (root / "a").resolve()
     assert not root.exists()
 
 
@@ -163,14 +163,14 @@ def test_missing_location_still_resolves(tmp_path, at):
 def test_nul_byte_in_relative_is_an_escape(tmp_path, at):
     at(tmp_path)
     with pytest.raises(VolumeEscapeError) as ei:
-        resolve(VolumePath(V, "a\0b"))
+        resolve_volume_path(VolumePath(V, "a\0b"))
     assert "NUL" in ei.value.reason
 
 
 def test_non_string_relative_is_an_escape(tmp_path, at):
     at(tmp_path)
     with pytest.raises(VolumeEscapeError) as ei:
-        resolve(VolumePath(V, 5))  # type: ignore[arg-type]  # a hand-edited graph
+        resolve_volume_path(VolumePath(V, 5))  # type: ignore[arg-type]  # a hand-edited graph
     assert "not a string" in ei.value.reason
 
 
@@ -181,7 +181,7 @@ def test_symlink_loop_is_a_volume_error(tmp_path, at):
     (root / "loop").symlink_to(root / "loop")
     at(root)
     with pytest.raises(VolumeError) as ei:
-        resolve(VolumePath(V, "loop/x"))
+        resolve_volume_path(VolumePath(V, "loop/x"))
     assert "cannot be resolved" in str(ei.value)
 
 

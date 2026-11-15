@@ -11,10 +11,10 @@ import pytest
 from nicegui import Client, ui
 from nicegui.page import page as page_deco
 
-from haywire.barn.builtin.surfaces import AccountMenu
+from haywire.barn.builtin.surfaces import AccountMenuSurface
 from haywire.core.access import AccessTier
 from haywire.core.session.context import SessionContext
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.ui import elements as hui
 
 pytestmark = pytest.mark.unit
@@ -27,7 +27,7 @@ def _noop_page() -> None:  # registration target for a headless Client
 
 def _make_ctx() -> SessionContext:
     app = MagicMock()
-    app.library_state_container = LibraryStateContainer(LibraryStateRegistry())
+    app.library_state_container = LibraryStateContainer(StateRegistry())
     ctx = SessionContext(session_id="dev-mode-test", app=cast(Any, app))
     ctx.session = MagicMock()  # signal_field writes deref self.session
     return ctx
@@ -80,7 +80,7 @@ def _click_the_row(anchor) -> None:
 def test_panel_sits_on_the_account_menu():
     from haybale_studio.panels.account.account import DeveloperModePanel
 
-    assert DeveloperModePanel.class_identity.surface is AccountMenu
+    assert DeveloperModePanel.class_identity.surface is AccountMenuSurface
 
 
 def test_panel_is_view_access():

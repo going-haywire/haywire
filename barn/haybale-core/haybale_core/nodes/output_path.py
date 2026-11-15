@@ -2,9 +2,16 @@
 
 from pathlib import PurePosixPath, PureWindowsPath
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.volumes import VolumePath
+from haywire.api import (
+    FILE_PATH,
+    FOLDER_PATH,
+    STRING,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    VolumePath,
+    node,
+)
 
 _FORBIDDEN = ("/", "\\", "\0")
 
@@ -46,8 +53,6 @@ class OutputPathNode(BaseNode):
     """
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import FILE_PATH, FOLDER_PATH, STRING
-
         self.add(FOLDER_PATH.as_inlet("folder", label="Folder", description="Folder the file goes in"))
         self.add(
             STRING.as_inlet(

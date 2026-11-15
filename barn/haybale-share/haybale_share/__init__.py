@@ -11,7 +11,7 @@ from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 
 
 @library(
@@ -25,7 +25,7 @@ class Library(BaseLibrary):
 
         self.add_folder_to_registry(
             folder_path=str(base_path / "editors"),
-            registry_cls=EditorTypeRegistry,
+            registry_cls=EditorRegistry,
         )
 
     def validate(self) -> bool:

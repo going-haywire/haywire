@@ -16,7 +16,7 @@ from haywire.core.access import AccessTier
 from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.graph.subgraph import SubgraphDefinition
 from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
-from haywire.core.volumes import VolumeStore, location_of
+from haywire.core.volumes import VolumeStore, volume_location
 
 from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_models.consumer import MISSING_WARNING
@@ -100,7 +100,7 @@ def env(models_env: VolumeStore, tmp_path: Any, monkeypatch: pytest.MonkeyPatch,
     from nicegui import core
 
     monkeypatch.setattr(core, "loop", _Loop())
-    root = location_of(MODELS_VOLUME, models_env)
+    root = volume_location(MODELS_VOLUME, models_env)
     root.mkdir(parents=True, exist_ok=True)
     graphs = GraphAppState()
     monkeypatch.setattr(graphs, "_signal_emit", lambda signal: None)

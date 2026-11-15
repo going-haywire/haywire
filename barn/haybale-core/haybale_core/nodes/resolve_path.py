@@ -1,8 +1,15 @@
 """Resolve Path — the location of a path on this machine."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.volumes import VolumePath, resolve
+from haywire.api import (
+    PATH,
+    STRING,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    VolumePath,
+    node,
+    resolve_volume_path,
+)
 
 
 @node(
@@ -25,8 +32,6 @@ class ResolvePathNode(BaseNode):
     """
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import PATH, STRING
-
         self.add(PATH.as_inlet("path", label="Path", description="Path to resolve"))
         self.add(
             STRING.as_outlet(
@@ -35,5 +40,5 @@ class ResolvePathNode(BaseNode):
         )
 
     def worker(self, context: ExecutionContext, path: VolumePath) -> None:
-        self.out("resolved", str(resolve(path)))
+        self.out("resolved", str(resolve_volume_path(path)))
         return None

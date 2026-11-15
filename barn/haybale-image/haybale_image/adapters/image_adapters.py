@@ -2,7 +2,7 @@
 
 from typing_extensions import override
 
-from haywire.core.adapter.base import BaseAdapter, adapter
+from haywire.api import BaseAdapter, adapter
 
 from haybale_image.types.image import IMAGE, IMAGE_GRAY, IMAGE_RGB, IMAGE_RGBA
 from haybale_image.value import ImageValue, Layout, convert_layout

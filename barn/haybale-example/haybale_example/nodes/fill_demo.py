@@ -8,8 +8,7 @@ Read this alongside ``types/fill.py`` (the type) and ``widgets/fill_widget.py``
 (its editor) when building a structured type of your own.
 """
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import STRING, BaseNode, ExecutionContext, NodeType, node
 
 from haybale_example.types.fill import FILL
 
@@ -25,8 +24,6 @@ class FillDemoNode(BaseNode):
     """Edits a solid/linear/radial fill and outputs it as a CSS value."""
 
     def init(self):
-        from haywire.barn.builtin.types import STRING
-
         # A CONFIG port: the fill is authored on the card, not fed by an edge.
         # FILL carries its own widget_key, so no `widget=` is needed here — the
         # FillWidget is chosen by the type.

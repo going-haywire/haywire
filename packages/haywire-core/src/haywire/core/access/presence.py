@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 from haywire.core.access.resolver import resolve_tier
 from haywire.core.access.tier import AccessTier
-from haywire.core.farmhand.activity import activity_tracker
+from haywire.core.farmhand.activity import get_activity_tracker
 from haywire.core.signals import AgentDisconnected
 
 #: An agent quieter than this drops out of the presence row.
@@ -111,7 +111,7 @@ def collect_presence(session_manager) -> list[PresenceEntry]:
             _note_departure(name)
             continue
         _present_agents.add(name)
-        tracker = activity_tracker()
+        tracker = get_activity_tracker()
         running = tracker.current(name)
         finished = tracker.last(name)
         agents.append(

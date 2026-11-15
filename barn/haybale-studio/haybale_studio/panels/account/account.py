@@ -1,6 +1,6 @@
 """Account-menu panels — behind the account_circle icon in the ACTION bar footer.
 
-These are ordinary panels on ``AccountMenu``, so the shared panel gate filters
+These are ordinary panels on ``AccountMenuSurface``, so the shared panel gate filters
 them by ``requires=`` with no special case, and the menu does not open at all
 when a principal has nothing in it.
 """
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from nicegui import ui
 
-from haywire.barn.builtin.surfaces import AccountActions, AccountMenu
+from haywire.barn.builtin.surfaces import AccountActions, AccountMenuSurface
 from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.panel.base import BasePanel
@@ -17,7 +17,7 @@ from haywire.ui.panel.decorator import panel
 
 
 @panel(
-    surface=AccountMenu,
+    surface=AccountMenuSurface,
     label="Sign out",
     description="Ends this browser session. Hidden entirely when authentication is off.",
     order=90,
@@ -38,7 +38,7 @@ class LogoutPanel(BasePanel):
 
 
 @panel(
-    surface=AccountMenu,
+    surface=AccountMenuSurface,
     label="Manage principals",
     description="Opens the RosterEditor. Admin-only, so a view principal never sees it.",
     order=10,
@@ -65,7 +65,7 @@ class OpenRosterPanel(BasePanel):
 
 
 @panel(
-    surface=AccountMenu,
+    surface=AccountMenuSurface,
     label="Sign everyone out",
     description="Rotates the cookie signing secret and evicts every live session.",
     order=80,
@@ -104,7 +104,7 @@ class RotateSecretPanel(BasePanel):
 
 
 @panel(
-    surface=AccountMenu,
+    surface=AccountMenuSurface,
     label="Agent activity",
     description="Opens the ActivityEditor.",
     order=20,
@@ -117,7 +117,7 @@ class OpenActivityPanel(BasePanel):
     is core's (``haywire.ui.app.shell``) and the editor is this library's, so a
     chip click could only reach it by resolving a registry key hardcoded in
     core — a dependency pointing the wrong way. A panel against
-    ``AccountMenu`` inverts it: the library that owns the editor is also the
+    ``AccountMenuSurface`` inverts it: the library that owns the editor is also the
     one that names it, and core stays unaware the editor exists.
 
     VIEW access matches the editor's own: what the agents in this studio are
@@ -144,7 +144,7 @@ class OpenActivityPanel(BasePanel):
 
 
 @panel(
-    surface=AccountMenu,
+    surface=AccountMenuSurface,
     label="Developer mode",
     description="Toggles developer mode for this session.",
     order=50,

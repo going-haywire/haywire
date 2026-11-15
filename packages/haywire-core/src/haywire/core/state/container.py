@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, TypeVar, cast
 from haywire.core.errors import HaywireException
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.state.base import AppState, LibraryState, SessionState
-from haywire.core.state.registry import LibraryStateRegistry
+from haywire.core.state.registry import StateRegistry
 
 if TYPE_CHECKING:
     from haywire.core.library.base import BaseLibrary
@@ -24,7 +24,7 @@ S = TypeVar("S", bound=SessionState)
 class LibraryStateContainer:
     """Holds live LibraryState instances across two scopes (app, session).
 
-    Wired to a LibraryStateRegistry via add_batch_event_subscriber:
+    Wired to a StateRegistry via add_batch_event_subscriber:
 
         registry.add_batch_event_subscriber(container.on_lifecycle_events)
 
@@ -48,7 +48,7 @@ class LibraryStateContainer:
         on every AppState (existing + future); called once by the DI provider
     """
 
-    def __init__(self, state_registry: LibraryStateRegistry) -> None:
+    def __init__(self, state_registry: StateRegistry) -> None:
         # Held-by-construction so on_library_enabled doesn't need to be called
         # with the registry every time. Container queries it during catch-up.
         self._state_registry = state_registry
@@ -193,7 +193,7 @@ class LibraryStateContainer:
                 self._call_on_disable(inst)
 
     # ------------------------------------------------------------------
-    # Lifecycle event handler — registered with LibraryStateRegistry
+    # Lifecycle event handler — registered with StateRegistry
     # ------------------------------------------------------------------
 
     def on_lifecycle_events(self, events: list[LifeCycleEvent]) -> None:

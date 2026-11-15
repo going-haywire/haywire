@@ -19,7 +19,7 @@ from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.catalog import CatalogRegistry
 from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
-from haywire.core.volumes import VolumeStore, location_of
+from haywire.core.volumes import VolumeStore, volume_location
 
 from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_models.download import DownloadJob
@@ -130,12 +130,12 @@ class _Env:
 
 @pytest.fixture
 def env(models_env: VolumeStore, tmp_path: Path) -> _Env:
-    location_of(MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
+    volume_location(MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
     return _Env(tmp_path)
 
 
 def test_list_shape_and_detail_flag(env: _Env) -> None:
-    (location_of(MODELS_VOLUME) / "loose.bin").write_bytes(b"abc")
+    (volume_location(MODELS_VOLUME) / "loose.bin").write_bytes(b"abc")
     env.models.index.scan()
     env.models.index.hash_pending()
     env.models.queue.job_list.append(
@@ -161,7 +161,7 @@ def test_list_shape_and_detail_flag(env: _Env) -> None:
 
 
 def test_list_reports_local_status(env: _Env) -> None:
-    (location_of(MODELS_VOLUME) / "sharp.pth").write_bytes(DATA)
+    (volume_location(MODELS_VOLUME) / "sharp.pth").write_bytes(DATA)
     env.models.index.scan()
     env.models.index.hash_pending()
     assert env.run(ModelsListTool)["catalog"][0]["variants"][0]["status"] == "local"

@@ -9,7 +9,7 @@ from typing import Any
 from nicegui import ui
 
 from haywire.barn.builtin.field_text import can_be_saved
-from haywire.barn.builtin.types import FIELD_LIST, FLOAT, is_valid_key
+from haywire.barn.builtin.types import FIELD_LIST, FLOAT, is_valid_field_key
 from haywire.core.di.context import get_type_registry
 from haywire.ui import elements as hui
 from haywire.ui.hover_tip import TIP_ATTR, TIP_DESC_ATTR, TIP_TYPE_ATTR
@@ -147,13 +147,13 @@ class FieldListWidget(BaseWidget):
         """Return why ``key`` cannot be added, or ``None``; an empty field is not a problem yet."""
         if not key:
             return None
-        if not is_valid_key(key):
+        if not is_valid_field_key(key):
             return "Letters, digits and _ only"
         return "Already listed" if any(e.key == key for e in self._list().entries) else None
 
     def _can_add(self) -> bool:
         key = self._key.value or ""
-        return is_valid_key(key) and all(e.key != key for e in self._list().entries)
+        return is_valid_field_key(key) and all(e.key != key for e in self._list().entries)
 
     def _sync_add(self) -> None:
         self._add.set_enabled(self._can_add())

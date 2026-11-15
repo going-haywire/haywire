@@ -4,9 +4,9 @@ from haywire.core.farmhand import FarmhandRegistry
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
 from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.state import LibraryStateRegistry
+from haywire.core.state import StateRegistry
 
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.panel.registry import PanelRegistry
 
 
@@ -30,7 +30,7 @@ class Library(BaseLibrary):
         # references stale. Same reasoning as haybale-studio's __init__.py.
         self.add_folder_to_registry(
             folder_path=str(base_path / "states"),
-            registry_cls=LibraryStateRegistry,
+            registry_cls=StateRegistry,
         )
 
         self.add_folder_to_registry(
@@ -46,7 +46,7 @@ class Library(BaseLibrary):
 
         self.add_folder_to_registry(
             folder_path=str(base_path / "editors"),
-            registry_cls=EditorTypeRegistry,
+            registry_cls=EditorRegistry,
         )
 
         self.add_folder_to_registry(

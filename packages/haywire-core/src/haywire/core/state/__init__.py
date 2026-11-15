@@ -8,7 +8,7 @@ from haywire.core.state.data_namespace import (
 )
 from haywire.core.state.decorator import state
 from haywire.core.state.identity import LibraryStateClassIdentity
-from haywire.core.state.registry import LibraryStateRegistry
+from haywire.core.state.registry import StateRegistry
 
 __all__ = [
     "AppDataNamespace",
@@ -16,8 +16,11 @@ __all__ = [
     "LibraryState",
     "LibraryStateClassIdentity",
     "LibraryStateContainer",
-    "LibraryStateRegistry",
+    "StateRegistry",
     "SessionDataNamespace",
     "SessionState",
     "state",
 ]
+
+# The name libraries outside this repository import until they move onto haywire.api.
+LibraryStateRegistry = StateRegistry

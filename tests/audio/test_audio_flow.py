@@ -23,7 +23,7 @@ def _add(graph: BaseGraph, module: str, name: str, x: int):
 def test_clock_through_reblock_to_recorder(graph_with_library_system: BaseGraph, tmp_path, monkeypatch):
     target = tmp_path / "flow.wav"
     monkeypatch.setattr(
-        importlib.import_module("haybale_audio.nodes.recorder"), "resolve", lambda path: target
+        importlib.import_module("haybale_audio.nodes.recorder"), "resolve_volume_path", lambda path: target
     )
     g = graph_with_library_system
     clock = _add(g, "audio_clock", "AudioClockNode", 0)

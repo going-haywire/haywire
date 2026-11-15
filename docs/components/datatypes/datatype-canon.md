@@ -87,7 +87,7 @@ Source: [`barn/haybale-example/haybale_example/types/`](../../../barn/haybale-ex
 **Derived primitive type** — `Temperature` extends `FLOAT` with a custom widget binding. Inherits all FLOAT adapters automatically; a `Temperature` outlet connects to any `FLOAT` inlet with no extra adapter:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/types/specs.py:6:33"
+--8<-- "barn/haybale-example/haybale_example/types/specs.py:5:32"
 ```
 
 from: `Temperature` — registry_key: `haybale-example:type:Temperature`
@@ -95,7 +95,7 @@ from: `Temperature` — registry_key: `haybale-example:type:Temperature`
 **Derived type with widget and enum choices** — `MathOPSelector` extends `STRING` and pins a `SelectWidget` with a fixed option list at the type level:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/types/math.py:22:37"
+--8<-- "barn/haybale-example/haybale_example/types/math.py:21:33"
 ```
 
 from: `MathOPSelector` — registry_key: `haybale-example:type:MathOPSelector`
@@ -103,7 +103,7 @@ from: `MathOPSelector` — registry_key: `haybale-example:type:MathOPSelector`
 **Compound type** — `MapsStringType` is a `CompoundType[T]` for string-keyed maps. Demonstrates the compound category: parameterisable (`MapsStringType[FLOAT]`), custom `field_class` assigned post-definition, no `value` property (compound types are descriptors, not instances):
 
 ```python
---8<-- "barn/haybale-example/haybale_example/types/maps_string_type.py:14:55"
+--8<-- "barn/haybale-example/haybale_example/types/maps_string_type.py:14:52"
 ```
 
 from: `MapsStringType` — registry_key: `haybale-example:type:MapsStringType`

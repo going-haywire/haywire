@@ -119,7 +119,7 @@ def _live_resolver(workspace_root: Path) -> Resolver:
     from haywire.core.node.registry import NodeRegistry
     from haywire.core.registry.base import BaseRegistry
     from haywire.core.settings.registry import SettingsRegistry
-    from haywire.core.state.registry import LibraryStateRegistry
+    from haywire.core.state.registry import StateRegistry
     from haywire.core.types.registry import TypeRegistry
     from haywire.ui.skin.registry import SkinRegistry
     from haywire.ui.themes.registry import ThemeRegistry
@@ -133,7 +133,7 @@ def _live_resolver(workspace_root: Path) -> Resolver:
         SkinRegistry,
         ThemeRegistry,
         SettingsRegistry,
-        LibraryStateRegistry,
+        StateRegistry,
     )
 
     service = create_library_system_service(

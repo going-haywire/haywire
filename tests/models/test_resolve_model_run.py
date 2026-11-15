@@ -15,7 +15,7 @@ from haywire.core.assembly.flow_assembly_manager import FlowAssemblyManager
 from haywire.core.execution.event_source import Trigger
 from haywire.core.execution.vm import HaywireVM
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.volumes import VolumeStore, location_of
+from haywire.core.volumes import VolumeStore, volume_location
 
 from tests.conftest import make_node
 
@@ -59,7 +59,7 @@ def test_resolve_model_size_reaches_a_downstream_print(
     ModelRef = importlib.import_module("haybale_models.value.model_ref").ModelRef
     state = consumer.models_state()
     data = b"weights-bytes"
-    path = location_of(keys.MODELS_VOLUME) / "mine" / "x.pth"
+    path = volume_location(keys.MODELS_VOLUME) / "mine" / "x.pth"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     state.index.scan()

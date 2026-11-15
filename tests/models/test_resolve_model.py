@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from haywire.core.volumes import VolumePath, VolumeStore, location_of
+from haywire.core.volumes import VolumePath, VolumeStore, volume_location
 
 from tests.conftest import make_node
 
@@ -30,8 +30,8 @@ def state(models_env: VolumeStore, monkeypatch: pytest.MonkeyPatch, library_syst
     consumer = importlib.import_module("haybale_models.consumer")
     index_mod = importlib.import_module("haybale_models.store.index")
     keys = importlib.import_module("haybale_models.keys")
-    location_of(keys.MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
-    hf_root = location_of(keys.HF_VOLUME)
+    volume_location(keys.MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
+    hf_root = volume_location(keys.HF_VOLUME)
     hf_root.mkdir(parents=True, exist_ok=True)
     real = consumer.models_state()
     index = index_mod.ModelIndex()
@@ -47,7 +47,7 @@ def state(models_env: VolumeStore, monkeypatch: pytest.MonkeyPatch, library_syst
 
 def _put(state: Any, relative: str, data: bytes) -> str:
     keys = importlib.import_module("haybale_models.keys")
-    path = location_of(keys.MODELS_VOLUME) / relative
+    path = volume_location(keys.MODELS_VOLUME) / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     state.index.scan()

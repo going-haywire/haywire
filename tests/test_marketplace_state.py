@@ -46,7 +46,7 @@ def test_marketplace_state_is_constructible() -> None:
     """MarketplaceState carries the @state(label=...) decorator and builds bare."""
     from haybale_marketplace.states.marketplace_state import MarketplaceState
 
-    # @state(...) attaches class_identity (set by LibraryStateRegistry at scan time;
+    # @state(...) attaches class_identity (set by StateRegistry at scan time;
     # we don't depend on that here — just verify the class is constructible).
     assert MarketplaceState() is not None
 

@@ -57,7 +57,7 @@ def test_state_clear_errors_resets_runtime_and_instantiate():
 # ---------------------------------------------------------------------------
 
 from haywire.ui.editor.wrapper import EditorWrapper  # noqa: E402
-from haywire.ui.editor.registry import EditorTypeRegistry  # noqa: E402
+from haywire.ui.editor.registry import EditorRegistry  # noqa: E402
 
 
 def _wrapper(*, editor_cls: Any, **kwargs: Any) -> EditorWrapper:
@@ -97,7 +97,7 @@ def _make_session():
 
 
 def test_wrapper_construction_with_class_sets_imported():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     session = _make_session()
     w = _wrapper(
         editor_key="fake:editor:1",
@@ -114,7 +114,7 @@ def test_wrapper_construction_with_class_sets_imported():
 
 
 def test_wrapper_subscribes_to_registry_on_construction():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     session = _make_session()
     w = _wrapper(
         editor_key="fake:editor:1",
@@ -128,7 +128,7 @@ def test_wrapper_subscribes_to_registry_on_construction():
 
 
 def test_wrapper_cleanup_unsubscribes_from_registry():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     session = _make_session()
     w = _wrapper(
         editor_key="fake:editor:1",
@@ -141,7 +141,7 @@ def test_wrapper_cleanup_unsubscribes_from_registry():
 
 
 def test_wrapper_binding_id_without_payload():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -152,7 +152,7 @@ def test_wrapper_binding_id_without_payload():
 
 
 def test_wrapper_binding_id_with_payload():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -186,7 +186,7 @@ class _RaisingEditorCls:
 
 
 def test_instantiate_creates_instance_and_assigns_wrapper():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -201,7 +201,7 @@ def test_instantiate_creates_instance_and_assigns_wrapper():
 
 
 def test_instantiate_captures_exception_into_error_instantiate():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="raising:editor:1",
         editor_cls=_RaisingEditorCls,
@@ -242,7 +242,7 @@ class _NewFakeEditorCls:
 
 
 def test_lifecycle_class_reloaded_updates_class_clears_instance_fires_redraw():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -271,7 +271,7 @@ def test_lifecycle_class_reloaded_updates_class_clears_instance_fires_redraw():
 
 
 def test_lifecycle_class_removed_keeps_instance_sets_error_import():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -302,7 +302,7 @@ def test_lifecycle_class_removed_keeps_instance_sets_error_import():
 
 
 def test_lifecycle_recovery_after_removal_clears_error_and_updates_class():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -339,7 +339,7 @@ def test_lifecycle_recovery_after_removal_clears_error_and_updates_class():
 
 
 def test_lifecycle_redraw_callback_safe_when_unset():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -405,7 +405,7 @@ class _FakePanel:
 
 
 def test_draw_lazy_instantiates_and_delegates_to_instance():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     session = _make_session()
     w = _wrapper(
         editor_key="rec:editor:1",
@@ -423,7 +423,7 @@ def test_draw_lazy_instantiates_and_delegates_to_instance():
 
 
 def test_draw_renders_placeholder_when_instantiate_fails(monkeypatch):
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="raising:editor:1",
         editor_cls=_RaisingEditorCls,
@@ -468,7 +468,7 @@ def test_draw_captures_runtime_exception_into_error_runtime():
         def draw(self, context, container):
             raise RuntimeError("draw boom")
 
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="dr:editor:1",
         editor_cls=_DrawRaisingCls,
@@ -481,7 +481,7 @@ def test_draw_captures_runtime_exception_into_error_runtime():
 
 
 def test_on_focus_delegates_to_instance():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     session = _make_session()
     w = _wrapper(
         editor_key="rec:editor:1",
@@ -496,7 +496,7 @@ def test_on_focus_delegates_to_instance():
 
 def test_on_focus_no_op_without_instance():
     """on_focus before any instantiation must not raise."""
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="raising:editor:1",
         editor_cls=_RaisingEditorCls,
@@ -512,7 +512,7 @@ def test_on_focus_lazy_instantiates_when_instance_missing():
     """on_focus must lazy-instantiate so editors can update session context
     on first activation (e.g. GraphEditor.on_focus sets
     ``ctx.data[EditState].active_graph``)."""
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     session = _make_session()
     w = _wrapper(
         editor_key="rec:editor:1",
@@ -541,7 +541,7 @@ def test_on_focus_captures_runtime_exception():
         def on_focus(self, context):
             raise RuntimeError("focus boom")
 
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fr:editor:1",
         editor_cls=_FocusRaisingCls,
@@ -554,7 +554,7 @@ def test_on_focus_captures_runtime_exception():
 
 
 def test_repayload_updates_payload_and_binding_id():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -569,7 +569,7 @@ def test_repayload_updates_payload_and_binding_id():
 
 
 def test_repayload_to_none_removes_suffix():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -592,7 +592,7 @@ def test_state_default_is_not_dirty():
 
 
 def test_set_dirty_updates_state_flag():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -612,7 +612,7 @@ def test_set_unsaved_is_independent_of_dirty():
     Only is_unsaved answers "can this binding be restored next launch?",
     which is what the workspace snapshot filters on.
     """
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -634,7 +634,7 @@ def test_set_unsaved_is_independent_of_dirty():
 
 
 def test_set_dirty_coerces_truthy_values_to_bool():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -654,7 +654,7 @@ def test_set_dirty_coerces_truthy_values_to_bool():
 
 def test_wrapper_slot_starts_as_none():
     """Until a slot adopts the wrapper via add_binding, _slot is None."""
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -665,7 +665,7 @@ def test_wrapper_slot_starts_as_none():
 
 
 def test_wrapper_cleanup_clears_slot_reference():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -747,7 +747,7 @@ def test_base_editor_handle_close_request_defaults_to_true():
 
 def test_request_close_returns_true_when_no_instance():
     """A wrapper with no instance allows close (nothing to ask)."""
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -782,7 +782,7 @@ class _ConsentingEditorCls:
 
 
 def test_request_close_delegates_to_instance_handle_close_request():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="consent:editor:1",
         editor_cls=_ConsentingEditorCls,
@@ -796,7 +796,7 @@ def test_request_close_delegates_to_instance_handle_close_request():
 
 
 def test_request_close_returns_false_when_editor_vetoes():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="consent:editor:1",
         editor_cls=_ConsentingEditorCls,
@@ -827,7 +827,7 @@ def test_request_close_allows_when_handle_close_request_raises():
         async def handle_close_request(self):
             raise RuntimeError("buggy editor")
 
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="rc:editor:1",
         editor_cls=_RaisingConsentCls,
@@ -853,7 +853,7 @@ class _FakeSlot:
 
 
 def test_force_close_calls_slot_close_binding():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -868,7 +868,7 @@ def test_force_close_calls_slot_close_binding():
 
 
 def test_force_close_no_op_when_no_slot():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -880,7 +880,7 @@ def test_force_close_no_op_when_no_slot():
 
 
 def test_close_calls_slot_close_binding_on_consent():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="consent:editor:1",
         editor_cls=_ConsentingEditorCls,
@@ -896,7 +896,7 @@ def test_close_calls_slot_close_binding_on_consent():
 
 
 def test_close_does_not_call_slot_when_editor_vetoes():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="consent:editor:1",
         editor_cls=_ConsentingEditorCls,
@@ -932,7 +932,7 @@ class _RepayloadTrackingSlot:
 
 
 def test_repayload_with_slot_delegates_to_slot_repayload():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -951,7 +951,7 @@ def test_repayload_with_slot_delegates_to_slot_repayload():
 def test_repayload_without_slot_just_updates_field():
     """Detached wrapper (no slot) — repayload still updates binding_id field
     so unit tests can verify identity changes without a slot."""
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -966,7 +966,7 @@ def test_repayload_without_slot_just_updates_field():
 
 
 def test_repayload_label_is_optional():
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -986,7 +986,7 @@ def test_repayload_label_is_optional():
 def test_lifecycle_class_reloaded_clears_is_dirty():
     """Hot-reload replaces the instance; in-memory unsaved state is gone
     along with it, so the dirty flag must clear."""
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="fake:editor:1",
         editor_cls=_FakeEditorCls,
@@ -1067,7 +1067,7 @@ class _RenderTabRecordingEditorCls:
 
 def test_render_tab_into_delegates_to_instance(monkeypatch):
     _install_wrapper_ui_fakes(monkeypatch)
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="rtab:editor:1",
         editor_cls=_RenderTabRecordingEditorCls,
@@ -1100,7 +1100,7 @@ class _RenderRaisingEditorCls:
 
 def test_render_tab_into_captures_render_error_and_falls_back(monkeypatch):
     created = _install_wrapper_ui_fakes(monkeypatch)
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="rec:editor:1",
         editor_cls=_RenderRaisingEditorCls,
@@ -1118,7 +1118,7 @@ def test_render_tab_into_captures_render_error_and_falls_back(monkeypatch):
 
 def test_render_tab_into_fallback_when_instantiation_fails(monkeypatch):
     created = _install_wrapper_ui_fakes(monkeypatch)
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="raising:editor:1",
         editor_cls=_RaisingEditorCls,
@@ -1137,7 +1137,7 @@ def test_render_tab_into_fallback_when_instantiation_fails(monkeypatch):
 
 def test_render_tab_into_vertical_fallback_draws_icon(monkeypatch):
     created = _install_wrapper_ui_fakes(monkeypatch)
-    reg = EditorTypeRegistry()
+    reg = EditorRegistry()
     w = _wrapper(
         editor_key="raising:editor:1",
         editor_cls=_RaisingEditorCls,

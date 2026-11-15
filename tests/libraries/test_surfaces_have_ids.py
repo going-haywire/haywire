@@ -105,45 +105,45 @@ def test_port_inspector_has_id():
 
 
 def test_app_settings_has_id():
-    from haywire.barn.builtin.surfaces import AppSettings
+    from haywire.barn.builtin.surfaces import AppSettingsSurface
 
-    assert AppSettings.id == "app"
-    assert surface_by_id("app") is AppSettings
+    assert AppSettingsSurface.id == "app"
+    assert surface_by_id("app") is AppSettingsSurface
 
 
 def test_barns_surface_sits_directly_after_app_settings():
-    from haywire.barn.builtin.surfaces import AppSettings, Barns, ExecutionInspector
+    from haywire.barn.builtin.surfaces import AppSettingsSurface, BarnsSurface, ExecutionInspectorSurface
     from haywire.ui import elements as hui
 
-    assert Barns.id == "barns"
-    assert surface_by_id("barns") is Barns
-    assert Barns.presentation.label == "Barns"
-    assert Barns.presentation.icon == hui.icon.barns == "house_siding"
-    assert AppSettings.order < Barns.order < ExecutionInspector.order
+    assert BarnsSurface.id == "barns"
+    assert surface_by_id("barns") is BarnsSurface
+    assert BarnsSurface.presentation.label == "Barns"
+    assert BarnsSurface.presentation.icon == hui.icon.barns == "house_siding"
+    assert AppSettingsSurface.order < BarnsSurface.order < ExecutionInspectorSurface.order
 
 
 def test_execution_inspector_has_id():
-    from haywire.barn.builtin.surfaces import ExecutionInspector
+    from haywire.barn.builtin.surfaces import ExecutionInspectorSurface
 
-    assert ExecutionInspector.id == "execution"
-    assert surface_by_id("execution") is ExecutionInspector
+    assert ExecutionInspectorSurface.id == "execution"
+    assert surface_by_id("execution") is ExecutionInspectorSurface
 
 
 def test_canvas_settings_keeps_canvas_id():
     """The inspector half of CanvasFocus; the menu half moved to GraphContext."""
-    from haywire.barn.builtin.surfaces import CanvasSettings
+    from haywire.barn.builtin.surfaces import CanvasSettingsSurface
 
-    assert CanvasSettings.id == "canvas"
-    assert surface_by_id("canvas") is CanvasSettings
+    assert CanvasSettingsSurface.id == "canvas"
+    assert surface_by_id("canvas") is CanvasSettingsSurface
 
 
 def test_debug_surface_has_id():
     """Log levels and the debug overlay live on their own tab, last in order."""
-    from haywire.barn.builtin.surfaces import CanvasSettings, DebugSurface
+    from haywire.barn.builtin.surfaces import CanvasSettingsSurface, DebugSurface
 
     assert DebugSurface.id == "debug"
     assert surface_by_id("debug") is DebugSurface
-    assert DebugSurface.order > CanvasSettings.order
+    assert DebugSurface.order > CanvasSettingsSurface.order
 
 
 def test_graph_context_surfaces_have_ids():

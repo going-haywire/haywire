@@ -20,9 +20,8 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
-from haywire.core.access import AccessTier
-from haywire.core.catalog import CatalogRegistry
-from haywire.ui import elements as hui
+from haywire.api.workbench import AccessTier, Reveal, hui
+from haywire.api import CatalogRegistry
 
 from haybale_graph_editor.notices import GraphNotice
 from haybale_models.consumer import KIND, MISSING_WARNING, preference_for
@@ -36,9 +35,8 @@ from haybale_models.store.records import FetchRecords
 from haybale_models.value.model_ref import ModelRef
 
 if TYPE_CHECKING:
-    from haywire.core.graph.base import BaseGraph
-    from haywire.core.node.node_wrapper import NodeWrapper
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import BaseGraph, SessionContext
+    from haywire.api import NodeWrapper
 
     from haybale_graph_editor.states.graph_app_state import GraphAppState
 
@@ -558,7 +556,6 @@ class NeedsWatcher:
             except ImportError:
                 logger.debug("ModelsEditor is not available yet")
                 return
-            from haywire.core.signals import Reveal
 
             context.session.publish(Reveal(editor=ModelsEditor))
 

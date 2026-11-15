@@ -1,7 +1,6 @@
 # Custom data type for testing
 from enum import Enum
-from haywire.core.types.decorator import type
-from haywire.barn.builtin.types import STRING
+from haywire.api import STRING, type
 
 
 class MathOPs(Enum):

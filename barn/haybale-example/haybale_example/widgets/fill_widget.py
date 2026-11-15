@@ -13,8 +13,7 @@ from typing import Any
 from nicegui import ui
 
 from haybale_example.types.fill import KINDS, LINEAR, RADIAL, SOLID, FILL
-from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.decorator import widget
+from haywire.api import BaseWidget, widget
 
 _KIND_LABELS = {SOLID: "Solid", LINEAR: "Linear", RADIAL: "Radial"}
 

@@ -23,7 +23,7 @@ from haywire.core.graph.scheduler import SyncScheduler
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.catalog import CatalogRegistry
 from haywire.core.undo.no_op_history_manager import NoOpHistoryManager
-from haywire.core.volumes import VolumeStore, location_of
+from haywire.core.volumes import VolumeStore, volume_location
 
 from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_models.download import DownloadJob
@@ -157,7 +157,7 @@ class _Harness:
         return []
 
     def put(self, relative: str, data: bytes) -> Path:
-        path = location_of(MODELS_VOLUME) / relative
+        path = volume_location(MODELS_VOLUME) / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(data)
         self.models.index.scan()
@@ -188,7 +188,7 @@ class _Harness:
 
 @pytest.fixture
 def env(models_env: VolumeStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
-    location_of(MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
+    volume_location(MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(editor_module, "list_cache", lambda root: [])
 
     def make(tier: AccessTier = AccessTier.ADMIN) -> _Harness:
@@ -459,7 +459,7 @@ async def test_remove_never_unlinks_a_symlink_escaping_the_volume(
     h = env()
     outside = tmp_path / "outside.bin"
     outside.write_bytes(OTHER)
-    link = location_of(MODELS_VOLUME) / "loose" / "link.bin"
+    link = volume_location(MODELS_VOLUME) / "loose" / "link.bin"
     link.parent.mkdir(parents=True)
     link.symlink_to(outside)
     h.models.index.scan()

@@ -36,7 +36,7 @@ import json
 import time
 
 from haywire.core.access import AccessTier
-from haywire.core.farmhand.activity import activity_tracker
+from haywire.core.farmhand.activity import get_activity_tracker
 from haywire.core.session.handlers import redraw_on
 from haywire.core.signals import FarmhandActivity
 from haywire.ui import elements as hui
@@ -163,13 +163,13 @@ class ActivityEditor(BaseEditor):
         button that could erase durable audit history would defeat the
         reason that log exists. See ``activity.py``'s ``clear_history``.
         """
-        activity_tracker().clear_history()
+        get_activity_tracker().clear_history()
         self.wrapper.redraw()
 
     # -- body -----------------------------------------------------------
 
     def _draw_body(self) -> None:
-        tracker = activity_tracker()
+        tracker = get_activity_tracker()
         running = tracker.running_calls()
         finished = tracker.recent(VISIBLE_ROWS)
 

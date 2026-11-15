@@ -1,5 +1,4 @@
-from haywire.core.node import node, BaseNode, NodeType
-from haywire.ui.console_bridge import console_print
+from haywire.api import EXEC, STRING, BaseNode, NodeType, node
 
 
 @node(
@@ -12,9 +11,6 @@ class PrintNode(BaseNode):
     """Prints a message to the haywire ui console."""
 
     def init(self):
-        from haywire.barn.builtin.types import STRING
-        from haywire.barn.builtin.types import EXEC
-
         # Control flow
         self.add(EXEC.as_inlet("exec"))
         self.add(EXEC.as_outlet("done"))
@@ -24,5 +20,5 @@ class PrintNode(BaseNode):
 
     def worker(self, context):
         message = self.value("message")
-        console_print(message)  # Thread-safe, appears in UI
+        print(message)  # the studio log shows stdout
         return "done"

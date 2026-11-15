@@ -2,8 +2,7 @@
 
 from dataclasses import dataclass
 
-from haywire.barn.builtin.wires import CallbackWire
-from haywire.core.types import BaseType, type
+from haywire.api import BaseType, CallbackWire, type
 
 
 @type(

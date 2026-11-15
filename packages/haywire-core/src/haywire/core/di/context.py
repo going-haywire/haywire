@@ -219,7 +219,7 @@ def get_error_ledger() -> "ErrorLedger":
     return _error_ledger
 
 
-def activity_tracker() -> "ActivityTracker":
+def get_activity_tracker() -> "ActivityTracker":
     """Return the ambient Farmhand activity tracker, lazily creating the default.
 
     Lazy on purpose: constructing at import time would build the tracker before

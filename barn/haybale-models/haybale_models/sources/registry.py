@@ -6,7 +6,7 @@ from collections.abc import Iterable, Sequence
 
 from pathlib import Path
 
-from haywire.core.volumes import VolumeError, location_of
+from haywire.api import VolumeError, volume_location
 
 from haybale_models.sources.base import ModelSource
 from haybale_models.sources.folder import FolderSource
@@ -56,7 +56,7 @@ class SourceSet:
         best_depth = -1
         for source in self._sources:
             try:
-                root = location_of(source.volume)
+                root = volume_location(source.volume)
             except VolumeError:
                 continue
             for candidate, base in ((path, root), (resolved, root.resolve())):

@@ -20,14 +20,8 @@ from haybale_models.resolver import ModelMissing, ResolvedModel, resolve
 from haybale_models.sources import prefix_of
 from haybale_models.value.model_ref import ModelRef
 
-from haywire.core.access import LevelMode
-from haywire.core.catalog import CatalogEntry
-from haywire.core.volumes import VolumeError, location_of
-from haywire.ui import elements as hui
-from haywire.ui.access_stamp import stamp_requires
-from haywire.ui.hover_tip import set_hover_tip
-from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.decorator import widget
+from haywire.api.workbench import LevelMode, hui, set_hover_tip, stamp_requires
+from haywire.api import BaseWidget, CatalogEntry, VolumeError, volume_location, widget
 
 _CHUNK = 1024 * 1024
 _MODEL_SUFFIXES = frozenset({".safetensors", ".pth", ".pt", ".ckpt", ".onnx", ".bin", ".gguf"})
@@ -615,7 +609,7 @@ def _tab_for(ref: ModelRef) -> str:
 
 def _location(volume: str) -> Path | None:
     try:
-        root = location_of(volume)
+        root = volume_location(volume)
     except VolumeError:
         return None
     return root if root.is_dir() else None

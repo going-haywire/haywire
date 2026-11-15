@@ -22,10 +22,10 @@ from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings.registry import SettingsRegistry
 from haywire.core.farmhand import FarmhandRegistry
-from haywire.core.state import LibraryStateRegistry
+from haywire.core.state import StateRegistry
 from haywire.core.types.registry import TypeRegistry
 
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes.registry import ThemeRegistry
@@ -53,7 +53,7 @@ class Library(BaseLibrary):
         # the container holds.
         self.add_folder_to_registry(
             folder_path=str(base_path / "states"),
-            registry_cls=LibraryStateRegistry,
+            registry_cls=StateRegistry,
         )
 
         # Register MCP tools — the studio_* baseline (canonical order: after state)
@@ -104,7 +104,7 @@ class Library(BaseLibrary):
 
         self.add_folder_to_registry(
             folder_path=str(base_path / "editors"),
-            registry_cls=EditorTypeRegistry,
+            registry_cls=EditorRegistry,
         )
 
     def validate(self) -> bool:

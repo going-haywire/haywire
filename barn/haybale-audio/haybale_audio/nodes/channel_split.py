@@ -1,8 +1,6 @@
 """Channel Split — one output per channel of a block."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.types import PortOrigin
+from haywire.api import ADD, BaseNode, ExecutionContext, NodeType, PortOrigin, node
 
 from haybale_audio.dsp import channels as ops
 from haybale_audio.value import AudioBlock
@@ -27,8 +25,6 @@ class ChannelSplitNode(BaseNode):
     """
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import ADD
-
         from haybale_audio.types.audio import AUDIO
 
         self.add(AUDIO.as_inlet("audio", label="Audio"))
@@ -36,7 +32,6 @@ class ChannelSplitNode(BaseNode):
 
     def hb_resolve(self, port, edge_wrapper) -> None:
         """Turn the open output into an audio output and add a new open one below it."""
-        from haywire.barn.builtin.types import ADD
 
         from haybale_audio.types.audio import AUDIO
 

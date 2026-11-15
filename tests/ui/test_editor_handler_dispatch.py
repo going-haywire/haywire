@@ -37,7 +37,7 @@ from haywire.core.session.session import Session
 from haywire.core.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.identity import SlotName
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 
@@ -93,7 +93,7 @@ def _make_wrapper(editor_cls: Any, session: Session) -> EditorWrapper:
     return EditorWrapper(
         editor_key=getattr(editor_cls.class_identity, "registry_key", "test:editor"),
         editor_cls=editor_cls,
-        registry=EditorTypeRegistry(),
+        registry=EditorRegistry(),
         session=session,
     )
 

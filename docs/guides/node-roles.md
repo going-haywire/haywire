@@ -72,7 +72,7 @@ from: `TestBeginPlayNode` — registry_key: `haybale-testing:node:TestBeginPlayN
 `CustomCallbackNode` listens for named callbacks from other flows. It broadcasts its own ID via a `CALLBACK` outlet so emitters can wire to it, and updates its `event_subscription` dynamically when the config changes:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/emits/custom_callback.py:8:97"
+--8<-- "barn/haybale-example/haybale_example/nodes/emits/custom_callback.py:16:95"
 ```
 
 from: `CustomCallbackNode` — registry_key: `haybale-example:node:CustomCallbackNode`
@@ -82,7 +82,7 @@ from: `CustomCallbackNode` — registry_key: `haybale-example:node:CustomCallbac
 `EmitCallbackNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `PooledType[CALLBACK]`, and emits to them via `context.emit_callback`:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/emits/emit_callback.py:6:102"
+--8<-- "barn/haybale-example/haybale_example/nodes/emits/emit_callback.py:16:105"
 ```
 
 from: `EmitCallbackNode` — registry_key: `haybale-example:node:EmitCallbackNode`
@@ -106,7 +106,7 @@ Source: `barn/haybale-core/haybale_core/nodes/for_loop.py`
 `ForLoopNode` iterates from `start` to `end` with a configurable `step`. A second EXEC inlet (`break_loop`) provides early exit:
 
 ```python
---8<-- "barn/haybale-core/haybale_core/nodes/for_loop.py:12:144"
+--8<-- "barn/haybale-core/haybale_core/nodes/for_loop.py:10:147"
 ```
 
 from: `ForLoopNode` — registry_key: `haybale-core:node:ForLoopNode`

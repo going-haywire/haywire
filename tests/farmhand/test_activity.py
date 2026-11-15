@@ -146,11 +146,11 @@ def seen_builder():
 @pytest.fixture
 def clean_tracker():
     """The presence row reads the process-wide tracker; isolate it per test."""
-    from haywire.core.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import get_activity_tracker
 
-    activity_tracker().clear()
-    yield activity_tracker()
-    activity_tracker().clear()
+    get_activity_tracker().clear()
+    yield get_activity_tracker()
+    get_activity_tracker().clear()
 
 
 def _empty_manager():

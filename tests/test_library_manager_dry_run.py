@@ -181,9 +181,9 @@ def test_the_default_torch_backend_is_auto():
 @pytest.mark.unit
 def test_the_settings_panel_renders_marketplace_settings_under_barns(monkeypatch):
     from haybale_marketplace.panels import marketplace_settings_panel as mod
-    from haywire.barn.builtin.surfaces import Barns
+    from haywire.barn.builtin.surfaces import BarnsSurface
 
-    assert mod.MarketplaceSettingsPanel.class_identity.surface is Barns
+    assert mod.MarketplaceSettingsPanel.class_identity.surface is BarnsSurface
     calls = []
     monkeypatch.setattr(mod, "render_schema", lambda ctx, schema_cls, registry: calls.append(schema_cls))
     panel = mod.MarketplaceSettingsPanel.__new__(mod.MarketplaceSettingsPanel)

@@ -1,11 +1,24 @@
 """File Player — plays an audio file as audio blocks, in real time."""
 
-from haywire.barn.builtin.types import BOOL, EXEC, FILE_PATH, INT, STRING
-from haywire.barn.builtin.widgets import PathWidget, SimpleLabelWidget
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.settings import NodeSettings, Promotable, bag, setting
-from haywire.core.volumes import VolumePath, resolve
+from haywire.api import (
+    BOOL,
+    EXEC,
+    FILE_PATH,
+    INT,
+    STRING,
+    BaseNode,
+    ExecutionContext,
+    NodeSettings,
+    NodeType,
+    PathWidget,
+    Promotable,
+    SimpleLabelWidget,
+    VolumePath,
+    bag,
+    node,
+    resolve_volume_path,
+    setting,
+)
 
 from haybale_audio.emitter import BlockPump, deliver_to_subscribers, set_status
 from haybale_audio.io.files import FileBlockReader
@@ -109,7 +122,9 @@ class FilePlayerNode(BaseNode):
         if not (self.value("callbacks") or {}):
             set_status(self, "No subscriber")
             return None
-        reader = FileBlockReader(resolve(path), int(self.playback.block_size), bool(self.playback.loop))
+        reader = FileBlockReader(
+            resolve_volume_path(path), int(self.playback.block_size), bool(self.playback.loop)
+        )
         self.hb_reader = reader
         self.hb_pump = BlockPump(
             produce=reader.read_block,

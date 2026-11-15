@@ -2,8 +2,7 @@ import threading
 import time
 from typing import List, Optional
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
+from haywire.api import CALLBACK, EXEC, FLOAT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
 
 
 @node(
@@ -32,10 +31,7 @@ class TickEmitNode(BaseNode):
     """
 
     def init(self):
-        from haywire.barn.builtin.types import FLOAT
         from haybale_core.types import PooledType
-        from haywire.barn.builtin.types import CALLBACK, EXEC
-        from haywire.barn.builtin.widgets import NumberWidget
 
         # Control inputs
         self.add(EXEC.as_inlet("start", label="Start"))

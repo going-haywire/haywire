@@ -1,9 +1,6 @@
 """EXEC_AUDIO — the execution signal that sequences the nodes of an audio flow."""
 
-from haywire.barn.builtin.types import EXEC
-from haywire.barn.builtin.wires import ControlWire
-from haywire.core.types import StoreStrategy
-from haywire.core.types import type as type_decorator
+from haywire.api import EXEC, ControlWire, StoreStrategy, type as type_decorator
 
 
 @type_decorator(

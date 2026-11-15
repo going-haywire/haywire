@@ -1,7 +1,7 @@
 from typing import Any, List
 from typing_extensions import override
 
-from haywire.core.adapter.base import adapter, BaseAdapter
+from haywire.api import BaseAdapter, adapter
 
 from haybale_core.types.array_type import ArrayType
 

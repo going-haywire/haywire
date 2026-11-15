@@ -28,11 +28,11 @@ def test_rotate_secret_panel_requires_admin():
 
 
 def test_account_panels_target_the_account_focus():
-    from haywire.barn.builtin.surfaces import AccountMenu
+    from haywire.barn.builtin.surfaces import AccountMenuSurface
     from haybale_studio.panels.account.account import LogoutPanel, OpenRosterPanel
 
-    assert LogoutPanel.class_identity.surface is AccountMenu
-    assert OpenRosterPanel.class_identity.surface is AccountMenu
+    assert LogoutPanel.class_identity.surface is AccountMenuSurface
+    assert OpenRosterPanel.class_identity.surface is AccountMenuSurface
 
 
 def test_logout_panel_hidden_when_authentication_is_off():

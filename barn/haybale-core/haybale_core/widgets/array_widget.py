@@ -15,12 +15,8 @@ from nicegui import ui
 # class only at render time, too late for a page already in the browser.
 from nicegui.elements.sortable.sortable import Sortable as _Sortable  # noqa: F401
 
-from haywire.core.types.event import Event
-from haywire.core.types.interface import IType
-from haywire.ui import elements as hui
-from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.decorator import widget
-from haywire.ui.widget.globals import WIDGET_REGISTRY
+from haywire.api import BaseWidget, Event, IType, get_widget_class, widget
+from haywire.api.workbench import hui
 
 _GRIP_CLASS = "hw-array-grip"
 """Marks the grip SortableJS accepts a drag from (its ``handle`` selector)."""
@@ -257,4 +253,4 @@ class ArrayWidget(BaseWidget):
     def _inner_widget_class(item_cls: "type[IType] | None") -> Any:
         """Return the item type's declared widget class, or ``None``."""
         key = getattr(getattr(item_cls, "class_identity", None), "widget_key", None)
-        return WIDGET_REGISTRY.get(key) if key else None
+        return get_widget_class(key) if key else None

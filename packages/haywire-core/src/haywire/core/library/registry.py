@@ -8,6 +8,7 @@ from pathlib import Path
 import logging
 
 from .base import BaseLibrary
+from .deprecated_names import recorded_deprecations
 from .utils import format_external_exception
 from .discovery import LibraryDiscovery, DiscoveredLibrary
 from .install_type import InstallType
@@ -522,7 +523,8 @@ class LibraryRegistry:
             else:
                 raise ImportError(f"Could not find __init__.py for library '{library_id}'")
 
-        module = importlib.import_module(module_path)
+        with recorded_deprecations(module_path):
+            module = importlib.import_module(module_path)
 
         if parent_dir_added and "src/haywire/libraries" not in library_path:
             parent_dir = os.path.dirname(library_path)

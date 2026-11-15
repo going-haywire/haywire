@@ -30,7 +30,7 @@ from haywire.core.macro.registry import MacroRegistry
 from haywire.core.catalog import CatalogRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings import SettingsRegistry
-from haywire.core.state import LibraryStateRegistry
+from haywire.core.state import StateRegistry
 from haywire.core.types.registry import TypeRegistry
 from haywire.core.library.utils import (
     ADAPTER,
@@ -50,7 +50,7 @@ from haywire.core.library.utils import (
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes import ThemeRegistry
@@ -449,8 +449,8 @@ class LibraryOverviewEditor(BaseEditor):
         settings_registry: SettingsRegistry = svc.get_settings_registry()
         theme_registry: ThemeRegistry = svc.get_theme_registry()
         panel_registry: PanelRegistry = svc.get_panel_registry()
-        editor_registry: EditorTypeRegistry = svc.get_editor_registry()
-        state_registry: LibraryStateRegistry = svc.get_state_registry()
+        editor_registry: EditorRegistry = svc.get_editor_registry()
+        state_registry: StateRegistry = svc.get_state_registry()
         farmhand_registry: FarmhandRegistry = svc.get_farmhand_registry()
 
         marketplace_path = str(Path(app.workspace_root) / ".haywire" / "marketplace.toml")

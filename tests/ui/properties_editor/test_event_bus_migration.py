@@ -28,7 +28,7 @@ from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.session.session import Session
 from haywire.core.signals import SelectionMoved
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.panel import PanelRegistry
 
@@ -79,7 +79,7 @@ def _make_properties_editor_wrapper(session: Session) -> EditorWrapper:
     wrapper = EditorWrapper(
         editor_key=PropertiesEditor.class_identity.registry_key,
         editor_cls=PropertiesEditor,
-        registry=EditorTypeRegistry(),
+        registry=EditorRegistry(),
         session=session,
     )
     assert wrapper._instantiate() is True

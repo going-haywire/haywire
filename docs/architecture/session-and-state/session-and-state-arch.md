@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: impl-spec
-scope: LibraryStateRegistry, LibraryStateContainer, lifecycle pipeline, session attach/detach, hot-reload coordination
+scope: StateRegistry, LibraryStateContainer, lifecycle pipeline, session attach/detach, hot-reload coordination
 see-also:
   - ../../components/states/state-canon.md
   - ../../guides/signals.md
@@ -16,10 +16,10 @@ see-also:
 
 The state subsystem holds **library-owned runtime data** at two scopes — app-global (`AppState`) and per-session (`SessionState`) — and routes every read through a class-keyed namespace on `SessionContext` (UI side) or `ExecutionContext` (workers). Two cooperating components, one shape each:
 
-- **`LibraryStateRegistry`** — a `BaseRegistry` subclass holding *classes*. Discovers concrete `LibraryState` subclasses (both `AppState` and `SessionState`) via folder-scan, exactly like `NodeRegistry` finds node classes. It does not instantiate anything.
+- **`StateRegistry`** — a `BaseRegistry` subclass holding *classes*. Discovers concrete `LibraryState` subclasses (both `AppState` and `SessionState`) via folder-scan, exactly like `NodeRegistry` finds node classes. It does not instantiate anything.
 - **`LibraryStateContainer`** — holds the *instances*, in two side-by-side stores: a flat `dict[type[AppState], AppState]` for the app-global pool and a per-session `dict[type[SessionState], dict[str, SessionState]]` for per-session pools. Subscribes to the registry's lifecycle events and routes by class kind.
 
-This is the same separation `NodeRegistry`/`NodeFactory` uses: registries hold classes, factories or containers hold instances. No new singleton pattern, no new service class — `LibraryStateRegistry` is added to the DI graph the same way `PanelRegistry` was.
+This is the same separation `NodeRegistry`/`NodeFactory` uses: registries hold classes, factories or containers hold instances. No new singleton pattern, no new service class — `StateRegistry` is added to the DI graph the same way `PanelRegistry` was.
 
 The authoring side (`@state` decorator, `on_enable`/`on_disable` hooks, the access patterns) lives in [components/states](../../components/states/state-canon.md). This file documents what happens *under* that surface.
 
@@ -40,7 +40,7 @@ class SessionState(LibraryState): # 1 instance per session
     ...
 ```
 
-`LibraryState` is the type root for `LibraryStateRegistry`'s class filter. The filter accepts *concrete* subclasses of `LibraryState` and excludes the three marker bases (`LibraryState`, `AppState`, `SessionState`).
+`LibraryState` is the type root for `StateRegistry`'s class filter. The filter accepts *concrete* subclasses of `LibraryState` and excludes the three marker bases (`LibraryState`, `AppState`, `SessionState`).
 
 ### 2.2 Two access namespaces
 
@@ -91,7 +91,7 @@ Routing is scope-determined: a `SessionState` / `SessionContext` field publishes
 ### 2.4 Registry filter
 
 ```python
-class LibraryStateRegistry(BaseRegistry):
+class StateRegistry(BaseRegistry):
     def _class_filter(self, cls: type) -> bool:
         return (
             issubclass(cls, LibraryState)
@@ -101,7 +101,7 @@ class LibraryStateRegistry(BaseRegistry):
         )
 ```
 
-This is what makes `add_folder_to_registry(folder=base/'state', registry_cls=LibraryStateRegistry)` work: every concrete `LibraryState` subclass in the folder is registered, regardless of whether it inherits from `AppState` or `SessionState`. The container disambiguates downstream.
+This is what makes `add_folder_to_registry(folder=base/'state', registry_cls=StateRegistry)` work: every concrete `LibraryState` subclass in the folder is registered, regardless of whether it inherits from `AppState` or `SessionState`. The container disambiguates downstream.
 
 ### 2.5 Container storage
 
@@ -127,7 +127,7 @@ Phase 1 (per library, mid-loop):
     ├─ register_components()         ← author-written
     │   └─ folder-scan finds class
     │
-    ├─ LibraryStateRegistry registers each class
+    ├─ StateRegistry registers each class
     │
     └─ Container observes the CLASS_ADDED event:
         ├─ instantiate (cls())
@@ -142,7 +142,7 @@ Phase 2 (catch-up, after the whole loop returns):
           └─ call on_enable() on the (already-instantiated) instance
 
 library.disable()
-  ├─ LibraryStateRegistry unregisters each class
+  ├─ StateRegistry unregisters each class
   │
   └─ Container observes the CLASS_REMOVED event:
       ├─ call on_disable() if defined
@@ -211,7 +211,7 @@ These are not author-callable surfaces — the framework owns session lifecycle.
 This mirrors the framework's hot-reload propagation chain:
 
 ```text
-SettingsRegistry → LibraryStateRegistry → NodeRegistry, PanelRegistry, EditorTypeRegistry
+SettingsRegistry → StateRegistry → NodeRegistry, PanelRegistry, EditorRegistry
 ```
 
 Following the same order at first-load means an `AppState` whose `on_enable` reads a `LibrarySettings()` value finds the schema already wired, and node/panel/editor classes that import an `AppState` for use as a `ctx.app_data[Cls]` key resolve it during their own scan.
@@ -245,7 +245,7 @@ The full hot-reload pipeline (file watcher → import → rebuild downstream) li
 ```text
 1. register_components() runs → folder-scans register classes
 2. SettingsRegistry wires every LibrarySettings subclass's _registry attribute
-3. LibraryStateRegistry registers concrete LibraryState subclasses
+3. StateRegistry registers concrete LibraryState subclasses
 4. Container instantiates each state class and calls on_enable
 ```
 
@@ -282,7 +282,7 @@ The state subsystem is **not**:
 
 ```python
 class LibraryStateContainer:
-    def __init__(self, registry: LibraryStateRegistry):
+    def __init__(self, registry: StateRegistry):
         self._registry = registry
         self._app: dict[type[AppState], AppState] = {}
         self._session: dict[type[SessionState], dict[str, SessionState]] = {}
@@ -325,7 +325,7 @@ The container subscribes to **two distinct channels** at different points around
 
 | Channel | Method | When wired | Drives |
 | --- | --- | --- | --- |
-| `LibraryStateRegistry` batch lifecycle events (CLASS_ADDED / REMOVED / RELOADED) | `subscribe_to_lifecycle_events()` | **Before** `enable_all_libraries()` | Phase 1 — instantiate on CLASS_ADDED |
+| `StateRegistry` batch lifecycle events (CLASS_ADDED / REMOVED / RELOADED) | `subscribe_to_lifecycle_events()` | **Before** `enable_all_libraries()` | Phase 1 — instantiate on CLASS_ADDED |
 | `LibraryRegistry` per-library enabled/disabled callbacks | `subscribe_to_library_callbacks(library_registry)` | **After** `enable_all_libraries()` | Phase 2 — run `on_enable` via `on_library_enabled` |
 
 The block below is included verbatim from `LibrarySystemService.initialize` via `pymdownx.snippets` — the docs render the live source, so the comments and call sequence cannot drift. Read top-to-bottom: each section's comment explains why it lands where it does relative to `enable_all_libraries()`.

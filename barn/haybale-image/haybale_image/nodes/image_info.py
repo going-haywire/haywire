@@ -1,7 +1,6 @@
 """Image Info — size, channel layout and bit depth of an image."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import INT, STRING, BaseNode, ExecutionContext, NodeType, node
 
 from haybale_image.value.image_value import ImageValue
 
@@ -22,8 +21,6 @@ class ImageInfoNode(BaseNode):
     """
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import INT, STRING
-
         from haybale_image.types.image import IMAGE
 
         self.add(IMAGE.as_inlet("image", label="Image", description="Image to describe"))

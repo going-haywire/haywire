@@ -101,8 +101,8 @@ The pipeline is documented in [architecture/hot-reload](../../architecture/hot-r
 **Imports** (verified against codebase 2026-05):
 
 ```python
-from haywire.core.adapter.base import BaseAdapter, IAdapter, adapter
-from haywire.core.adapter.registry import AdapterRegistry
+from haywire.api import BaseAdapter, adapter
+from haywire.api import AdapterRegistry
 ```
 
 ## 4. Live examples from the codebase
@@ -138,7 +138,7 @@ from: `FloatToStringAdapter` — registry_key: `haybale-testing:adapter:FloatToS
 **Compound type adapter** — `MapsStringType → ArrayType` from `barn/haybale-example/haybale_example/adapters/compound_adapters.py:MapsStringArrayAdapter`. Demonstrates a cross-category conversion with `get_test_value()` delegating to the chain and `get_test_repetitions()` set above 1:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/adapters/compound_adapters.py:10:51"
+--8<-- "barn/haybale-example/haybale_example/adapters/compound_adapters.py:10:48"
 ```
 
 from: `MapsStringArrayAdapter` — registry_key: `haybale-example:adapter:MapsStringArrayAdapter`
@@ -183,7 +183,7 @@ For datatype declaration (the `Color` and `Temperature` classes themselves), see
 ### Imports
 
 ```python
-from haywire.core.adapter.base import BaseAdapter, adapter
+from haywire.api import BaseAdapter, adapter
 ```
 
 ### Default vs. override surface

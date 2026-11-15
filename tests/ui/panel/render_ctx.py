@@ -21,13 +21,13 @@ from unittest.mock import MagicMock
 from haywire.core.access import LevelMode
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.session.context import SessionContext
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 
 
 def make_render_ctx() -> SessionContext:
     """A minimal SessionContext accepted by the render_* entry points."""
     app = MagicMock()
-    app.library_state_container = LibraryStateContainer(LibraryStateRegistry())
+    app.library_state_container = LibraryStateContainer(StateRegistry())
     ctx = SessionContext(session_id="render-test", app=cast(Any, app))
     # signal_field writes deref self.session; see tests/conftest.attach_stub_session.
     ctx.session = MagicMock()

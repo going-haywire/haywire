@@ -4,10 +4,19 @@ from typing import Any, Optional
 
 from haybale_core.array_ports import array_element_type, array_of
 from haybale_core.loop_settings import LoopErrors
-from haywire.barn.builtin.progress import ProgressSettings, ProgressSpan, progress_field
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.settings import bag
+from haywire.api import (
+    ADD,
+    EXEC,
+    INT,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    ProgressSettings,
+    ProgressSpan,
+    bag,
+    node,
+    progress_field,
+)
 
 
 class LoopArrayProgress(ProgressSettings):
@@ -49,8 +58,6 @@ class LoopArrayNode(BaseNode):
     progress = bag(LoopArrayProgress)
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import EXEC, INT
-
         self.add(EXEC.as_inlet("execute", label="Execute", description="Starts the loop over the array"))
         self.add(
             EXEC.as_inlet("break_loop", label="Break", description="Ends the loop early, through Stopped")
@@ -98,7 +105,6 @@ class LoopArrayNode(BaseNode):
 
     def _add_array_ports(self, element: Optional[Any]) -> None:
         """Add `Array`, `Item` and `Failed`: open slots until an array is wired in."""
-        from haywire.barn.builtin.types import ADD
 
         self._element = element
         if element is None:

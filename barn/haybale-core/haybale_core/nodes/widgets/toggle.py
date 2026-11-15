@@ -1,9 +1,7 @@
 """Toggle."""
 
 from haybale_core.nodes.widgets.base import WidgetNode
-from haywire.barn.builtin.types import BOOL
-from haywire.barn.builtin.widget_keys import SWITCH_WIDGET
-from haywire.core.node import NodeType, node
+from haywire.api import BOOL, SWITCH_WIDGET, NodeType, node
 
 
 @node(

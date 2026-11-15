@@ -34,13 +34,13 @@ def test_node_skin_settings_keep_their_namespace() -> None:
 
 
 def test_skin_settings_panel_lives_in_graph_editor(library_system) -> None:
-    from haywire.barn.builtin.surfaces import CanvasSettings
+    from haywire.barn.builtin.surfaces import CanvasSettingsSurface
 
     panels = library_system.injector.get(PanelRegistry)
     assert panels.has(f"{GE}:panel:NodeSkinSettingsPanel")
     assert not panels.has("haybale-studio:panel:NodeSkinSettingsPanel")
     identity = panels.get(f"{GE}:panel:NodeSkinSettingsPanel").class_identity
-    assert identity.surface.id == CanvasSettings.id
+    assert identity.surface.id == CanvasSettingsSurface.id
     assert identity.label == "Skin"
     assert identity.order == 20
 

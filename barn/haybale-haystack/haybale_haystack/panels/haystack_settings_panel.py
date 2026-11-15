@@ -1,10 +1,10 @@
-"""Library settings panel for the haystack library, on the ``Barns`` surface."""
+"""Library settings panel for the haystack library, on the ``BarnsSurface`` surface."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.barn.builtin.surfaces import Barns
+from haywire.barn.builtin.surfaces import BarnsSurface
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    surface=Barns,
+    surface=BarnsSurface,
     label="Haystack",
     description="Settings of the haystack library.",
     icon=hui.icon.haystack,

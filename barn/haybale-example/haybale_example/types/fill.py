@@ -20,9 +20,7 @@ valid ``background`` value, so a hand-edited graph cannot break a render.
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from haywire.core.types import type as type_decorator
-from haywire.core.types.base import BaseType
-from haywire.barn.builtin.wires import DataWire
+from haywire.api import BaseType, DataWire, type as type_decorator
 
 FILL_WIDGET = "haybale-example:widget:FillWidget"
 """The widget's registry key. Spelled out rather than imported from a shared
