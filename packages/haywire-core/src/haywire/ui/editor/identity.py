@@ -10,7 +10,7 @@ from haywire.core.registry.identity import BaseIdentity
 
 
 class SlotName(StrEnum):
-    """The four named positions in the AppShell where an editor is mounted.
+    """The five named positions in the AppShell where an editor is mounted.
 
     Each member's *value* is the canonical wire string used in persistence
     (``workspace_state.json``), the ``@editor(default_slot=...)`` decorator,
@@ -24,12 +24,15 @@ class SlotName(StrEnum):
     - CONTEXT: right edge, icon slot — context for the current selection.
     - EDIT:    centre, tab slot — the primary editing surface.
     - INFO:    bottom, tab slot — supplementary / status output.
+    - ASIDE:   between EDIT and CONTEXT, tab slot — work alongside the
+      editing surface; opened and closed from the top bar, closed by default.
     """
 
     ACTION = "action"
     CONTEXT = "context"
     EDIT = "edit"
     INFO = "info"
+    ASIDE = "aside"
 
     @property
     def label(self) -> str:

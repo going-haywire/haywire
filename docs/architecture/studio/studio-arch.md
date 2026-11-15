@@ -30,18 +30,20 @@ Three design goals shape every decision in this layer:
 
 ### 2.1 The layout model — slots and bars
 
-A studio session is a single-page workspace with four named **slots** arranged around a fixed-chrome `TopBar` and `StatusBar`:
+A studio session is a single-page workspace with five named **slots** (`SlotName`) arranged around a fixed-chrome `TopBar` and `StatusBar`:
 
 | Slot | Class | Layout | Hosts |
 |---|---|---|---|
-| **Left** | `IconSlot` | Vertical icon bar + content area (drag-resizable width) | One `opens='required'` editor visible at a time, switched by clicking icons |
-| **Right** | `IconSlot` | Vertical icon bar + content area (drag-resizable width) | One `opens='required'` editor visible at a time, switched by clicking icons |
-| **Main** | `TabSlot` | Horizontal tab bar + content area (fills remaining space) | Multiple tabbed editors, supports `required` / `on_context` / `on_payload` |
-| **Bottom** | `TabSlot` | Horizontal tab bar + content area (drag-resizable height; foldable) | Multiple tabbed editors, supports all `OpenBehavior` modes |
+| **ACTION** (left edge) | `IconSlot` | Vertical icon bar + content area (drag-resizable width) | One editor visible at a time, switched by clicking icons |
+| **CONTEXT** (right edge) | `IconSlot` | Vertical icon bar + content area (drag-resizable width) | One editor visible at a time, switched by clicking icons |
+| **EDIT** (centre) | `TabSlot` | Horizontal tab bar + content area (fills remaining space) | Multiple tabbed editors |
+| **INFO** (under EDIT) | `TabSlot` | Horizontal tab bar + content area (drag-resizable height; foldable) | Multiple tabbed editors |
+| **ASIDE** (between EDIT/INFO and CONTEXT) | `AsideSlot` | Full-height column: horizontal tab bar + content area (drag-resizable width); opened and closed only from its `TopBar` toggle, closed by default | Multiple tabbed editors |
 
 Each slot is a concrete subclass of `Slot` (`packages/haywire-core/src/haywire/ui/app/slot.py`):
-- `IconSlot` — uses an `IconSlotBar` with vertical icon buttons; only one binding is visible at a time and the bar acts as the selector. Only `opens='required'` editors are valid here (enforced by the `@editor` decorator at class-definition time).
-- `TabSlot` — uses a `TabSlotBar` with horizontal tab headers; multiple bindings can coexist; the user picks which is in front.
+- `IconSlot` — a vertical bar of icon tabs; only one binding is visible at a time and the bar acts as the selector. Clicking the active icon collapses the area, clicking any icon re-expands it. Any `opens` value is accepted, though `required` is the usual choice here.
+- `TabSlot` — a horizontal tab bar; multiple bindings can coexist; the user picks which is in front. Every `OpenBehavior` is supported.
+- `AsideSlot` — a `TabSlot` whose whole column, tab bar included, leaves the layout while closed; it has no rail. The shell mounts its toggle in the `TopBar` (lit while open). While closed, the toggle region also shows each ASIDE editor's vertical `draw_tab` interior, so a badge an editor draws stays in view; clicking one opens ASIDE on that editor. A `Reveal` into a closed ASIDE opens it, as it does a collapsed ACTION or CONTEXT and a folded INFO. Its first editor is the *Questionnaire* (haybale-studio), which shows what an agent posted for a live check ([reference/questionnaire](../../reference/questionnaire.md)).
 
 Slots own:
 
@@ -50,7 +52,7 @@ Slots own:
 - the NiceGUI area container that hosts the active wrapper's UI subtree,
 - visibility state and the divider that resizes them.
 
-The `AppShell` (`packages/haywire-core/src/haywire/ui/app/shell.py`) is the layout container that hosts the four slots, builds the resizable dividers between areas, and subscribes to `Reveal` / `Close` / `BroadcastClose` lifecycle commands on the session signal bus — `Reveal` is dispatched point-to-point to the editor's `default_slot`; `Close` (and `BroadcastClose`) fan out across every slot. `AppShell` is constructed once per browser session.
+The `AppShell` (`packages/haywire-core/src/haywire/ui/app/shell.py`) is the layout container that hosts the five slots, builds the resizable dividers between areas, and subscribes to `Reveal` / `Close` / `BroadcastClose` lifecycle commands on the session signal bus — `Reveal` is dispatched point-to-point to the editor's `default_slot`; `Close` (and `BroadcastClose`) fan out across every slot. `AppShell` is constructed once per browser session.
 
 ### 2.2 Workspaces
 
@@ -159,7 +161,7 @@ Browser opens NiceGUI page
   └─ shell.render()
       ├─ subscribe Reveal / Close / BroadcastClose on session.subscribe(...)
       ├─ build TopBar / StatusBar
-      ├─ instantiate four slots (ACTION/CONTEXT IconSlot, EDIT/INFO TabSlot)
+      ├─ instantiate five slots (ACTION/CONTEXT IconSlot, EDIT/INFO TabSlot, ASIDE AsideSlot)
       ├─ each slot.populate_from_snapshot(workspace_manager.snapshot[slot_name])
       │   └─ each EditorWrapper wires its editor's @redraw_on / @react_on
       │      handlers as session.subscribe(...) closures

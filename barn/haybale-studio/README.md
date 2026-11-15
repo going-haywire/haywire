@@ -15,8 +15,10 @@ Library for haywire studio
 - **Describe component** — One component's identity, docstring, and authoring-guide link.
 - **Dismiss errors** — Dismiss one or all ledger entries.
 - **Get errors** — Query the studio's error ledger.
+- **Get findings** — Read the user's answers to the current Questionnaire.
 - **List components** — Component catalog, filterable and searchable.
 - **List libraries** — List installed libraries.
+- **Post questionnaire** — Post a Questionnaire for the user to answer in the studio's ASIDE slot.
 - **Read component source** — Line-numbered source of any installed component.
 - **Scaffold component** — Write a canon-conformant skeleton for a new component into a project-local library.
 - **Studio status** — Versions, workspace root, enabled-library counts, docs manifest URI.
@@ -25,6 +27,7 @@ Library for haywire studio
 
 ## States
 - **File Browser State** — Per-session state for the FileBrowser editor.
+- **Questionnaire** — The Questionnaire an agent posted for a live check, its answers and its status
 
 ## Panels
 - **Activity** — Farmhand activity tracker: in-memory history size, audit log path.
@@ -59,6 +62,7 @@ Library for haywire studio
 - **Files** — Project file tree, eager-then-lazy: three levels are loaded up front, then 'Click to load children' sentinels appear at deeper folders so the user can pull in three more levels on demand.
 - **Log** — Application output. Captures Python logging and print() output.
 - **Properties** — Context-sensitive property panels for the active selection.
+- **Questionnaire** — The Questionnaire an agent posted for a live check. Answer it, then submit.
 - **Shortcuts** — Keyboard shortcuts of every editor, grouped by editor.
 - **Volumes** — Where each volume lives on this machine
 

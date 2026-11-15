@@ -69,6 +69,7 @@ def _pygments_doc_css() -> str:
 
 
 if TYPE_CHECKING:
+    from haywire.ui.app.aside_slot import AsideSlot
     from haywire.ui.editor.registry import EditorRegistry
     from haywire.ui.editor.base import BaseEditor
     from haywire.core.session.session import Session
@@ -655,6 +656,7 @@ class AppShell:
         Action Area     → IconSlot (left side, vertical icon buttons + active editor)
         Edit Area       → TabSlot (center, tabbed editors)
         Info Area       → TabSlot (split from edit, optional, with fold toggle)
+        Aside Area      → AsideSlot (between edit and context, opened from the TopBar toggle)
         Context Area    → IconSlot (right side, vertical icon buttons + active editor)
         StatusBar       → fixed bottom row
 
@@ -864,6 +866,7 @@ class AppShell:
             f'var HW_SLOT_ACTION = "{SlotName.ACTION.value}";'
             f'var HW_SLOT_CONTEXT = "{SlotName.CONTEXT.value}";'
             f'var HW_SLOT_INFO = "{SlotName.INFO.value}";'
+            f'var HW_SLOT_ASIDE = "{SlotName.ASIDE.value}";'
         )
         ui.add_head_html(
             """<script>
@@ -872,11 +875,12 @@ class AppShell:
             + _slot_js_consts
             + """
   var drag = null;
-  // Horizontal (.hw-area-divider) resizes the action or context slot; the edit
-  // slot fills remaining space. Vertical (.hw-area-vdivider) resizes the info slot.
+  // Horizontal (.hw-area-divider) resizes the action, aside or context slot; the
+  // edit slot fills remaining space. Vertical (.hw-area-vdivider) resizes the info slot.
   // Dividers are only present in the DOM when their slot is visible, so
   // retracted slots are unreachable by drag — re-open an icon slot by
-  // clicking any of its icons, or the info slot via its chevron toggle.
+  // clicking any of its icons, the info slot via its tabs, or the aside
+  // slot via its top-bar toggle.
   document.addEventListener("mousedown", function (e) {
     var hdiv = e.target.closest ? e.target.closest(".hw-area-divider") : null;
     var vdiv = e.target.closest ? e.target.closest(".hw-area-vdivider") : null;
@@ -885,7 +889,8 @@ class AppShell:
     e.stopPropagation();
     if (hdiv) {
       var isLeft = hdiv.classList.contains("hw-area-divider-left");
-      var slotName = isLeft ? HW_SLOT_ACTION : HW_SLOT_CONTEXT;
+      var slotName = isLeft ? HW_SLOT_ACTION
+        : hdiv.classList.contains("hw-area-divider-aside") ? HW_SLOT_ASIDE : HW_SLOT_CONTEXT;
       var panel = document.getElementById("hw-slot-" + slotName);
       if (!panel) return;
       var startW = panel.getBoundingClientRect().width;
@@ -1018,6 +1023,20 @@ window.addEventListener("wheel", function (e) {
                         bottom_slot.render(main_col)
                         bottom_slot._on_visibility_change = self._bottom_divider.set_visibility
 
+                # ---------------- Aside slot (between edit and context) ----------------
+                # Always built (closed by default): its toggle is always in the top bar.
+                self._aside_divider = (
+                    ui.element("div")
+                    .classes("hw-area-divider hw-area-divider-aside flex-shrink-0")
+                    .style("width: 5px; height: 100%; cursor: col-resize;")
+                )
+                aside_slot = cast("AsideSlot", self._build_managed_slot(SlotName.ASIDE, bar_place="top"))
+                self._aside_divider.set_visibility(aside_slot.visible)
+                aside_wrapper = ui.element("div").style("height: 100%;")
+                aside_slot.render(aside_wrapper)
+                aside_slot._on_visibility_change = self._aside_divider.set_visibility
+                aside_slot.render_toggle(self._aside_toggle_box)
+
                 # ---------------- Context slot (right edge) ----------------
                 right_data = snapshot.get(SlotName.CONTEXT, {})
                 if right_data.get("active_key") or self._editor_registry.get_by_default_slot(
@@ -1081,6 +1100,9 @@ window.addEventListener("wheel", function (e) {
             ).props("flat round dense").tooltip("Check for Haywire updates")
 
             ui.space()
+
+            # Filled by the ASIDE slot once it is built (see render()).
+            self._aside_toggle_box = ui.row().classes("items-center gap-1")
 
             self._presence_row = ui.row().classes("items-center gap-1")
             self._render_presence()
@@ -1187,15 +1209,23 @@ window.addEventListener("wheel", function (e) {
     ) -> Slot:
         """Construct and cache a Slot for ``slot_name`` from the workspace snapshot.
 
-        ACTION / CONTEXT → IconSlot. EDIT / INFO → TabSlot.
+        ACTION / CONTEXT → IconSlot. EDIT / INFO → TabSlot. ASIDE → AsideSlot,
+        closed and 360px wide unless the snapshot says otherwise.
         """
+        from haywire.ui.app.aside_slot import AsideSlot
         from haywire.ui.app.icon_slot import IconSlot
         from haywire.ui.app.tab_slot import TabSlot
 
         snapshot = self.session.workspace_manager.snapshot
         data = snapshot.get(slot_name, {})
 
-        cls = IconSlot if slot_name in (SlotName.ACTION, SlotName.CONTEXT) else TabSlot
+        cls: type[Slot]
+        if slot_name in (SlotName.ACTION, SlotName.CONTEXT):
+            cls = IconSlot
+        elif slot_name is SlotName.ASIDE:
+            cls = AsideSlot
+        else:
+            cls = TabSlot
         # The ACTION slot is always built (its bar carries the account
         # footer icon even with zero editor bindings) but its area starts
         # collapsed unless the snapshot or registry actually has something
@@ -1205,6 +1235,10 @@ window.addEventListener("wheel", function (e) {
             initial_visible = bool(
                 data.get("active_key") or self._editor_registry.get_by_default_slot(slot_name)
             )
+        size = 300
+        if slot_name is SlotName.ASIDE:
+            initial_visible = False
+            size = 360
         slot = cls(
             session=self.session,
             name=slot_name,
@@ -1213,6 +1247,7 @@ window.addEventListener("wheel", function (e) {
             foldable=foldable,
             on_visibility_change=on_visibility_change,
             visible=initial_visible,
+            size=size,
         )
         slot.populate_from_snapshot(data)
         self._managed_slots[slot_name] = slot
@@ -1480,7 +1515,7 @@ window.addEventListener("wheel", function (e) {
     def _on_slot_resize(self, event) -> None:
         """Dispatch ``hw-slot-resize`` events from the drag JS to the target slot.
 
-        The JS emits ``{slot: SlotName.value, size: int}`` (action/context/info).
+        The JS emits ``{slot: SlotName.value, size: int}`` (action/context/info/aside).
         NiceGUI delivers the payload in ``event.args`` as a dict. The raw slot
         string is the JS bridge's only untyped boundary, so it is coerced back
         to :class:`SlotName` here — an unknown value raises ``ValueError`` and is
