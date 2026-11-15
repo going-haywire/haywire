@@ -97,7 +97,7 @@ class QuestionnaireForm:
         definition = self._definition
         with ui.column().classes("w-full gap-3"):
             if definition.get("title"):
-                ui.label(str(definition["title"])).classes("text-base font-medium")
+                hui.heading(str(definition["title"]))
             if definition.get("description"):
                 hui.hint(str(definition["description"]))
             if len(self._pages) > 1 and definition.get("showProgressBar", "off") not in ("off", False):

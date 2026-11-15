@@ -28,6 +28,7 @@ VIEW_EDITORS = {
     "LogEditor",
     "ModelsEditor",
     "PropertiesEditor",
+    "QuestionnaireEditor",
     "ShortcutsEditor",
 }
 ADMIN_EDITORS = {"RosterEditor", "VolumesEditor"}
