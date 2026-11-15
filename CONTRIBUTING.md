@@ -66,7 +66,9 @@ Optional:
 2. Commit in the repository's style, `type(area): summary` (for example
    `fix(editor): keep the selection after undo`).
 3. Run the [checks](docs/guides/development.md#checks) on what you changed. CI does not run
-   on your fork's branches, only on the pull request.
+   on your fork's branches, only on the pull request. A change you can see or interact
+   with also gets a [live check](docs/guides/development.md#run) in the running studio;
+   its results go in the pull request.
 4. Keep these rules:
    - **One home per piece of information.** Every rule, command and fact lives in exactly
      one file; other files link to it instead of repeating it.
