@@ -232,6 +232,14 @@ def _path_from(start: Path, target: str) -> str:
         return Path(target).resolve().as_posix()
 
 
+# The framework packages a library does not import from: only haywire.api and
+# haywire.api.workbench carry a compatibility promise (ADR 0084).
+_INTERNAL_MODULES = ("haywire.core", "haywire.ui", "haywire.barn")
+_INTERNAL_IMPORT_MSG = (
+    "Import from haywire.api or haywire.api.workbench; this module is internal and may change."
+)
+
+
 def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None = None) -> str:
     """Generate the project's pyproject.toml content.
 
@@ -261,6 +269,14 @@ def _generate_project_pyproject(name: str, lib_name: str, dev_repo: str | None =
                     "members": ["barn/*"],
                 },
                 "sources": sources,
+            },
+            "ruff": {
+                "lint": {
+                    "extend-select": ["TID251"],
+                    "flake8-tidy-imports": {
+                        "banned-api": {module: {"msg": _INTERNAL_IMPORT_MSG} for module in _INTERNAL_MODULES}
+                    },
+                },
             },
         },
     }
@@ -627,20 +643,19 @@ Add your custom components in the corresponding folders:
 
 from pathlib import Path
 
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.adapter.registry import AdapterRegistry
-from haywire.core.macro.registry import MacroRegistry
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.types.registry import TypeRegistry
-from haywire.core.state import LibraryStateRegistry
-
-from haywire.ui.editor.registry import EditorTypeRegistry
-from haywire.ui.panel.registry import PanelRegistry
-from haywire.ui.skin.registry import SkinRegistry
-from haywire.ui.themes.registry import ThemeRegistry
-from haywire.ui.widget.registry import WidgetRegistry
+from haywire.api import (
+    AdapterRegistry,
+    BaseLibrary,
+    MacroRegistry,
+    NodeRegistry,
+    SettingsRegistry,
+    SkinRegistry,
+    ThemeRegistry,
+    TypeRegistry,
+    WidgetRegistry,
+    library,
+)
+from haywire.api.workbench import EditorTypeRegistry, LibraryStateRegistry, PanelRegistry
 
 
 @library(

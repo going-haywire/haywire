@@ -196,9 +196,7 @@ def draw(
 **Panel on a Surface with a host contract** (mounted by a context-menu host):
 
 ```python
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel
-from haywire.ui.panel.decorator import panel
+from haywire.api.workbench import BasePanel, hui, panel
 from my_lib.surfaces import SelectionActions, SelectionMenu
 
 @panel(surface=SelectionMenu, label="Delete Selection", icon="delete")
@@ -318,12 +316,11 @@ On the next redraw (when `SelectionMoved` fires), the editor clears the panel DO
 **Imports:**
 
 ```python
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
+from haywire.api.workbench import BasePanel, PanelLayout, panel
 
 # Built-in surfaces live in haywire.barn.builtin.surfaces (framework-wide)
 # or a library's own surfaces/ package (e.g. haybale_graph_editor.surfaces).
-from haywire.barn.builtin.surfaces import AppSettings, ExecutionInspector
+from haywire.api.workbench import AppSettings, ExecutionInspector
 # For a panel that calls back into its host: import the Surface's own Protocol
 # from my_lib.surfaces import MySurface, MyActions
 ```
@@ -388,9 +385,14 @@ For the host Properties editor (a panel-aware editor in `haybale-studio`), see [
 ### Imports
 
 ```python
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-from haywire.barn.builtin.surfaces import AppSettings, ExecutionInspector, CanvasSettings
+from haywire.api.workbench import (
+    AppSettings,
+    BasePanel,
+    CanvasSettings,
+    ExecutionInspector,
+    PanelLayout,
+    panel,
+)
 ```
 
 ### Built-in Surfaces

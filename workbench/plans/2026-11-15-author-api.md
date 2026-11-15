@@ -1,13 +1,14 @@
 # Author API: a declared public import path for library authors
 
-Status: design settled 2026-11-15 (design session, Q1–Q9). Slices 1 and 3 are
-built (see [Slices](#slices)); the names are decided
-([Names decided](#names-decided)). Next: slice 2.
+Status: design settled 2026-11-15 (design session, Q1–Q9). Slices 1, 3 and 4
+are built and slice 2 is built in part (see [Slices](#slices)); the names are
+decided ([Names decided](#names-decided)). Next: the rest of slice 2, then
+slice 5.
 
 ## Picking this up
 
 Branch `refactor-API-surface`, draft PR
-[#108](https://github.com/going-haywire/haywire/pull/108) (plan, slices 1 and 3).
+[#108](https://github.com/going-haywire/haywire/pull/108) (plan and slices 1–4).
 
 - **The name lists** are in the appendix
   [2026-11-15-author-api-names.md](2026-11-15-author-api-names.md): the first
@@ -17,10 +18,17 @@ Branch `refactor-API-surface`, draft PR
   (the two external checkouts are optional arguments; without them their names
   drop out). Its "documented" test is a word match over `docs/`, so read each
   first-cut name once before exporting it.
-- **Next step is slice 2** (what authors read), then slice 4 one library at a
-  time. A name a library needs that the two modules lack is decided when its
-  library migrates: export and document, or rewrite the user. Adding a name
-  needs an edit to `tests/api/names.py`.
+- **The codemod** is `workbench/playground/author_api_codemod.py`:
+  `.venv/bin/python workbench/playground/author_api_codemod.py [--write] <dir> ...`
+  rewrites the imports of every `.py` and `.md` file under a directory and
+  lists the names the Author API lacks. Each listed name needs a decision
+  (export and document, or rewrite the user); adding a name needs an edit to
+  `tests/api/names.py`. Afterwards run `ruff format`, and re-check every
+  line-range snippet (`--8<-- "path:a:b"`) in `docs/` that points into a
+  changed file: the import lines shrink, so the ranges move.
+- **Next steps:** the rest of slice 2 (see its status row), then slice 5 one
+  library at a time: run the codemod, decide the leftovers under D2, remove
+  the library's line from `barn/ruff.toml` or write its allowlist.
 - **Each slice gets its own detailed plan** in `workbench/plans/` before code;
   this file is the design, not a task list.
 - **Patterns to copy,** all named again where they apply below:
@@ -137,9 +145,12 @@ Both mechanisms exist already; nothing new is introduced.
 
 1. **Lint.** ruff `TID251` banned-api entries for `haywire.core`, `haywire.ui`
    and `haywire.barn`, switched on per library under `barn/**` as each one
-   migrates. Same mechanism as the dependency-direction rule in
-   `pyproject.toml`. A second entry bans `haywire.api` inside `packages/**`
-   except the templates folder.
+   migrates. ruff holds one banned list per configuration file, and the root
+   one is taken by the dependency-direction rule for `packages/**`, so the
+   library rule lives in `barn/ruff.toml`, which extends the root file. Its
+   per-file-ignores name the libraries not yet migrated; the list only
+   shrinks. A second entry, in the root file, bans `haywire.api` inside
+   `packages/**` except the module itself and the templates folder.
 2. **Allowlist test.** One AST test (pattern: `tests/marketstall/test_layering.py`)
    holds, per workbench library, the internal `(module, name)` pairs it still
    imports. It fails when a pair is added and when a listed pair is no longer
@@ -210,7 +221,8 @@ slice 2; rewriting the users is slice 4.
 | `H_ALIGNS` | `barn.builtin.nodes.annotation` | core | moved with `V_ALIGNS` to `core.skin.fonts` beside `FONTS`, and exported with them as the text style choices |
 | `console_print` | `ui.console_bridge` | core | internal: its body is `print(*args, **kwargs)`, and the studio log already shows `print()`. The Print node calls `print()` (slice 4) |
 | `WIDGET_REGISTRY` | `ui.widget.globals` | core | internal (it was in the first cut by a loose word match): export `get_widget_class()`, which the widget canon teaches; `array_widget` calls it (slice 4) |
-| `Event` | `core.types.event` | core | not exported yet: one user (`array_widget`), and the docs match was another meaning of the word. Decided when haybale-core migrates |
+| `Event` | `core.types.event` | core | export: it is the type of `DataField.on_changed`, and a widget that hands its rows a field of their own (`array_widget`) builds one |
+| `WireType`, `EdgeSettings`, `NO_HEAD`, `dash_choices` | `core.types`, `core.settings`, `core.edge` | testing | export: the setting canon teaches a custom wire with them |
 | `theme`, `BaseTheme`, `watch` | `ui.themes`, `core.settings` | studio, testing | exported now: the theme and settings canons teach them to authors |
 
 ### Workbench tier
@@ -219,7 +231,10 @@ slice 2; rewriting the users is slice 4.
 |---|---|---|---|
 | `set_hover_tip` | `ui.hover_tip` | graph-editor, models | export |
 | `resolve_tier` | `core.access.resolver` | models | export |
-| `MENU_CARD_CLASS` | `ui.elements.flyout` | models | internal; `hui` gets a menu element carrying the class when haybale-models migrates (slice 4) |
+| `MENU_CARD_CLASS` | `ui.elements.flyout` | models | internal; `hui.menu()` is a `ui.menu` carrying the class |
+| `Surface`, `AppSettings`, `CanvasSettings`, `ExecutionInspector` | `ui.surface`, `barn.builtin.surfaces` | graph-editor, studio, haystack | export (D2): the panel canon teaches them. `CanvasSettings` is the surface; the settings class of the same name stays internal |
+| `redraw_on`, `reveal_on`, `signal_field`, `EditorCommand`, `RevealSignal`, the observation, reveal and close signals, the eight keyboard commands | `core.session`, `core.signals` | workbench libraries | export (D2): the editor canon and the signals guide teach them |
+| `LibraryState`, `SessionState`, `OpenBehavior`, `truncation_note` | `core.state`, `ui.editor`, `core.farmhand` | workbench libraries | export (D2): the state, editor and farmhand canons teach them |
 | `get_library_state_container`, `activity_tracker`, `get_catalog_registry` | `core.di.context` | models, haystack, studio | export (D1) |
 
 The design system is exported as `hui`
@@ -257,10 +272,11 @@ The last task of each slice marks it done here (commit, date, deviations).
 
 | Slice | Status |
 |---|---|
-| 1 | done 2026-11-15, PR #108. 165 component names, 35 workbench names; ADRs 0084 and 0085; glossary terms. The checked-in list is `tests/api/names.py` |
-| 2 | not started |
+| 1 | done 2026-11-15, PR #108. 170 component names, 64 workbench names after slices 2 and 4 added theirs; ADRs 0084 and 0085; glossary terms. The checked-in list is `tests/api/names.py` |
+| 2 | in part, 2026-11-15, PR #108. Done: every import line in `docs/components`, `docs/guides` and `docs/haybale`; the Author API section and registry table in the haybale canon; the Data node template; the `haywire init` scaffold and its ruff lines. Open: (a) six names the docs teach and no library uses stay on internal imports in the docs and need a decision each: `IAdapter`, `GraphProperties`, `graph` (the graph-settings descriptor), `promote_setting`, `demote_setting`, `HaywireDarkTheme`; (b) the canons do not yet document the exported names the tables above mark "document"; (c) prose that names an internal module path was left as it is; (d) `.claude/skills/haywire-themes/SKILL.md` has one internal import line |
 | 3 | done 2026-11-15, PR #108 (merged into slice 1, as allowed). Deviations: notices are collected in a `ContextVar` (`core/library/deprecated_names.py`), not with `warnings.catch_warnings`; the warning is `HaywireDeprecationWarning`, a `DeprecationWarning` subclass, so third-party deprecations stay out of the ledger; the entry is written with `report_loss` |
-| 4–7 | not started |
+| 4 | done 2026-11-15, PR #108, one commit per library instead of one PR (the PR for slice 1 was still open, and stacked PRs do not survive squash merges). example, audio, image, core and models import only the Author API; `barn/ruff.toml` enforces it. 748 names moved by the codemod; four users rewritten by hand (Print node, `array_widget`, models editor menu, one docstring) |
+| 5–7 | not started. For slice 5, ruff cannot hold an allowlist of names: either the library keeps TID251 off and the AST test is its only check, or each allowlisted import carries `# noqa: TID251` |
 
 ## Lands with the code
 

@@ -156,9 +156,7 @@ The studio's `AppShell.apply_workbench_theme()` reads the workbench theme key, c
 **Imports.**
 
 ```python
-from haywire.ui.themes.workbench import BaseTheme
-from haywire.ui.themes.decorator import theme
-from haywire.ui.themes.registry import ThemeRegistry
+from haywire.api import BaseTheme, ThemeRegistry, theme
 ```
 
 **Registration in a library.** Themes are discovered via `register_components()` like any other component:
@@ -233,7 +231,7 @@ theme = "haybale_blueprint:theme:blueprint-nodes"
 **Reading tokens at runtime** (e.g. in tests):
 
 ```python
-from haywire.ui.themes.registry import ThemeRegistry
+from haywire.api import ThemeRegistry
 
 r = ThemeRegistry()
 r.register_workbench(BlueprintWorkbenchTheme)
@@ -269,9 +267,7 @@ For the design tokens themselves (the `--hw-*` palette) and rules about when to 
 ### Imports
 
 ```python
-from haywire.ui.themes.workbench import BaseTheme
-from haywire.ui.themes.decorator import theme
-from haywire.ui.themes.registry import ThemeRegistry
+from haywire.api import BaseTheme, ThemeRegistry, theme
 ```
 
 ### Registry methods

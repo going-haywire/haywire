@@ -164,7 +164,7 @@ See [components/states](../states/state-canon.md) for the full state model.
 **Driving other slots — lifecycle commands on the signal bus.** To open or focus a tab in another slot, publish a `Reveal` command on `context.session`:
 
 ```python
-from haywire.core.signals import Reveal
+from haywire.api.workbench import Reveal
 
 context.session.publish(Reveal(
     editor=LibraryDetailEditor,
@@ -177,7 +177,7 @@ context.session.publish(Reveal(
 **Revealing without naming an editor.** `Reveal` requires importing the editor class — fine when you own it, impossible from `haywire-core`, which may never import a barn library (see [the dependency direction rule](../../architecture/studio/studio-arch.md)). `Reveal` is therefore one of a family: `RevealSignal` is the base, carrying `binding_id` and `label` and *nothing* about which editor. `Reveal` adds `editor`; the other subclasses name none, and are claimed by whichever editor class declares `@reveal_on` for them:
 
 ```python
-from haywire.core.signals import RevealComponentSource, RevealSource
+from haywire.api.workbench import RevealComponentSource, RevealSource
 
 # "show me this component's code" — a registry key, no editor named.
 context.session.publish(RevealComponentSource(registry_key="lib:node:MyNode"))
@@ -194,7 +194,7 @@ Prefer a **second signal type** over a discriminator field on one signal. `Revea
 Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-peer fan-out by setting `cross_session: ClassVar[bool] = True` (same class-level flag used by `Signal`); `Session.publish(...)` then delegates to `SignalDispatcher.broadcast(...)` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(binding_id=...)` is the built-in: close matching tabs in **every** session.
 
 ```python
-from haywire.core.signals import BroadcastClose
+from haywire.api.workbench import BroadcastClose
 
 # Underlying entry removed everywhere — close any GraphEditor tab bound
 # to it, in this session AND every peer session.
@@ -216,11 +216,10 @@ All three actions are optional, disabled when the target is gone (library uninst
 **Imports.**
 
 ```python
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior, SlotName   # for code that inspects the enum
-from haywire.core.session.handlers import redraw_on, react_on, reveal_on
-from haywire.core.signals import (
+from haywire.api.workbench import BaseEditor, editor
+from haywire.api.workbench import OpenBehavior, SlotName   # for code that inspects the enum
+from haywire.api.workbench import react_on, redraw_on, reveal_on
+from haywire.api.workbench import (
     Signal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,   # observations
     Reveal, Close, BroadcastClose,                        # lifecycle commands
@@ -293,11 +292,9 @@ For the `Surface` and `Panel` extension points the editor hosts, see [components
 ### Imports
 
 ```python
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior, SlotName
-from haywire.core.session.handlers import redraw_on, react_on, reveal_on
-from haywire.core.signals import (
+from haywire.api.workbench import BaseEditor, OpenBehavior, SlotName, editor
+from haywire.api.workbench import react_on, redraw_on, reveal_on
+from haywire.api.workbench import (
     Signal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,
     Reveal, Close, BroadcastClose,

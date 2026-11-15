@@ -68,8 +68,7 @@ Three architectural slots state fills, distinct from anything else:
 **The `@state` decorator.** Optional but recommended — sets `class_identity` and label metadata. Undecorated `AppState`/`SessionState` subclasses still work (the registry derives `class_identity` at registration time as a fallback), but use `@state` when you want explicit `label=`, `description=`, or `registry_id=`.
 
 ```python
-from haywire.core.state import AppState, SessionState, state
-from haywire.core.signals import signal_field
+from haywire.api.workbench import AppState, SessionState, signal_field, state
 
 @state(label='MIDI Pool')
 class MidiPool(AppState): ...
@@ -175,20 +174,20 @@ In-flight state is lost. If `on_enable` is expensive (warming a cache, scanning 
 **Imports** (verified against codebase 2026-05):
 
 ```python
-from haywire.core.state import (
+from haywire.api.workbench import (
     LibraryState,           # abstract marker — never subclassed by users
     AppState,               # concrete app-scoped base
     SessionState,           # concrete per-session base
     state,                  # decorator
     LibraryStateRegistry,   # for register_components()
 )
-from haywire.core.signals import signal_field
+from haywire.api.workbench import signal_field
 ```
 
 **Per-library persistent storage.** If your `AppState` needs to read or write files that should survive across sessions (a cache, a database, saved state), use `library_storage_dir(__name__)` from `haywire.core.storage`. It returns (and lazily creates) `~/.haywire/db/<your_top_package>/` — a directory that belongs to your library and is never touched by the framework on uninstall. The folder is named after the top-level **module** (`haybale_marketplace`), never the distribution (`haybale-marketplace`).
 
 ```python
-from haywire.core.storage import library_storage_dir
+from haywire.api import library_storage_dir
 
 class MyState(AppState):
     def on_enable(self) -> None:
@@ -201,9 +200,8 @@ Pass `__name__` — the same idiom as `logging.getLogger(__name__)`. The top-lev
 **A library that needs a volume.** If your library reads or writes files that users should be able to place (model weights, a scan folder), give it a volume: call `ensure_volume` from `on_enable`. It adds the volume to `~/.haywire/volumes.toml` only when the key is absent, so it never overrides where the user moved it, and it never creates the folder. Graphs then refer to files as `(volume key, relative)`; see [volumes](../../architecture/volumes/volumes-arch.md).
 
 ```python
-from haywire.core.state import AppState, state
-from haywire.core.storage import library_storage_dir
-from haywire.core.volumes import ensure_volume
+from haywire.api.workbench import AppState, state
+from haywire.api import ensure_volume, library_storage_dir
 
 
 @state
@@ -224,8 +222,7 @@ A library `haybale_midi` that exercises both scopes: an `AppState` (`MidiPool`) 
 ```python
 # haybale_midi/states/midi_pool.py — AppState
 
-from haywire.core.state import AppState, state
-from haywire.core.signals import signal_field
+from haywire.api.workbench import AppState, signal_field, state
 
 # Companion settings (covered in components/settings/setting-canon.md).
 # Lives in the same library so on_enable can find the wired registry.
@@ -262,8 +259,7 @@ class MidiPool(AppState):
 ```python
 # haybale_midi/states/midi_selection.py — SessionState
 
-from haywire.core.state import SessionState, state
-from haywire.core.signals import signal_field
+from haywire.api.workbench import SessionState, signal_field, state
 
 @state(label='MIDI Selection (session)')
 class MidiSelection(SessionState):
@@ -288,11 +284,9 @@ class MidiSelection(SessionState):
 
 from pathlib import Path
 
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.state import LibraryStateRegistry
-from haywire.core.node.registry import NodeRegistry
+from haywire.api import BaseLibrary, SettingsRegistry, library
+from haywire.api.workbench import LibraryStateRegistry
+from haywire.api import NodeRegistry
 
 @library(
     id='midi',
@@ -327,7 +321,7 @@ class Library(BaseLibrary):
 ```python
 # haybale_midi/panels/device_list.py — UI side reading both scopes
 
-from haywire.ui.panel import BasePanel, panel
+from haywire.api.workbench import BasePanel, panel
 
 @panel(surface=GraphInspector, label='MIDI Devices')
 class MidiDeviceListPanel(BasePanel):
@@ -351,7 +345,7 @@ class MidiDeviceListPanel(BasePanel):
 ```python
 # haybale_midi/nodes/midi_send.py — Execution side
 
-from haywire.core.execution.execution_context import ExecutionContext
+from haywire.api import ExecutionContext
 
 @node(label='MIDI Send')
 class MidiSendNode(BaseNode):
@@ -411,10 +405,13 @@ For the framework mechanics — `LibraryStateRegistry`, `LibraryStateContainer`,
 ### Imports
 
 ```python
-from haywire.core.state import (
-    AppState, SessionState, state, LibraryStateRegistry,
+from haywire.api.workbench import (
+    AppState,
+    LibraryStateRegistry,
+    SessionState,
+    signal_field,
+    state,
 )
-from haywire.core.signals import signal_field
 ```
 
 ### Access patterns

@@ -69,7 +69,7 @@ a node is placed, loaded or hot-reloaded; you never create one yourself.
 ## 3. A complete node
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:12:61"
+--8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:11:55"
 ```
 from: `MathOP` — registry_key: `haybale-example:node:MathOP`
 
@@ -511,7 +511,7 @@ is kept as written. Any library may ship templates in its `nodes/` folder.
 Builtin ships the Data template:
 
 ```python
---8<-- "packages/haywire-core/src/haywire/barn/builtin/nodes/templates/data_node.py:9:39"
+--8<-- "packages/haywire-core/src/haywire/barn/builtin/nodes/templates/data_node.py:6:36"
 ```
 
 ## 9. Finer points — read when you need them

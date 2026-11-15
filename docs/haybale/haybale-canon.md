@@ -154,9 +154,7 @@ Every field, its type, and which files it reaches:
 # haybale_image/__init__.py
 from pathlib import Path
 
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.node.registry import NodeRegistry
+from haywire.api import BaseLibrary, NodeRegistry, library
 
 
 @library()
@@ -203,23 +201,47 @@ instantiates it.
 
 | Registry class | Import path | Folder | Registers |
 | --- | --- | --- | --- |
-| `NodeRegistry` | `haywire.core.node.registry` | `nodes/` | `@node` classes |
-| `TypeRegistry` | `haywire.core.types.registry` | `types/` | `@type` classes |
-| `AdapterRegistry` | `haywire.core.adapter.registry` | `adapters/` | `@adapter` classes |
-| `WidgetRegistry` | `haywire.ui.widget.registry` | `widgets/` | `@widget` classes |
-| `SkinRegistry` | `haywire.ui.skin.registry` | `skins/` | skin classes |
-| `ThemeRegistry` | `haywire.ui.themes.registry` | `themes/` | `@theme(theme_type=...)` classes |
-| `SettingsRegistry` | `haywire.core.settings.registry` | `settings/` | `@settings` classes |
-| `LibraryStateRegistry` | `haywire.core.state` | `states/` | `AppState` / `SessionState` |
-| `EditorTypeRegistry` | `haywire.ui.editor.registry` | `editors/` | `@editor` classes |
-| `PanelRegistry` | `haywire.ui.panel.registry` | `panels/` | `@panel` classes |
-| `FarmhandRegistry` | `haywire.core.farmhand` | `farmhands/` | MCP tool classes |
-| `MacroRegistry` | `haywire.core.macro.registry` | `macros/` | `.hwm` macro documents |
-| `CatalogRegistry` | `haywire.core.catalog.registry` | `catalog/` | model catalog JSON entries |
+| `NodeRegistry` | `haywire.api` | `nodes/` | `@node` classes |
+| `TypeRegistry` | `haywire.api` | `types/` | `@type` classes |
+| `AdapterRegistry` | `haywire.api` | `adapters/` | `@adapter` classes |
+| `WidgetRegistry` | `haywire.api` | `widgets/` | `@widget` classes |
+| `SkinRegistry` | `haywire.api` | `skins/` | skin classes |
+| `ThemeRegistry` | `haywire.api` | `themes/` | `@theme(theme_type=...)` classes |
+| `SettingsRegistry` | `haywire.api` | `settings/` | `@settings` classes |
+| `LibraryStateRegistry` | `haywire.api.workbench` | `states/` | `AppState` / `SessionState` |
+| `EditorTypeRegistry` | `haywire.api.workbench` | `editors/` | `@editor` classes |
+| `PanelRegistry` | `haywire.api.workbench` | `panels/` | `@panel` classes |
+| `FarmhandRegistry` | `haywire.api.workbench` | `farmhands/` | MCP tool classes |
+| `MacroRegistry` | `haywire.api` | `macros/` | `.hwm` macro documents |
+| `CatalogRegistry` | `haywire.api` | `catalog/` | model catalog JSON entries |
 
 Most libraries need only the first six. **Scan `states/` first** when you
 register it — farmhand and editor modules transitively import state classes, and
 scanning state first keeps a single class object live.
+
+### Importing the framework
+
+A library imports the framework from two modules, the **Author API**:
+
+| Module | Holds | Promise |
+| --- | --- | --- |
+| `haywire.api` | nodes, types, adapters, widgets, skins, themes, settings, catalog, volumes, the library class, the builtin types and widgets | A name is removed or changed incompatibly only after a minor release in which it was deprecated |
+| `haywire.api.workbench` | panels, editors, states, signals, access, Farmhand tools, and the design system as `hui` | Provisional: may change in any minor release, listed in the release notes |
+
+```python
+from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
+from haywire.api.workbench import BasePanel, PanelLayout, SessionContext, hui, panel
+```
+
+Every other path under `haywire` (`haywire.core`, `haywire.ui`, `haywire.barn`) is
+internal. Importing from it works, and it may move or be renamed in any release.
+A project made with `haywire init` carries the ruff rule that flags such an import.
+
+A name that is being removed stays importable for its deprecation window. A
+library that still imports it gets a warning in the error ledger each time it
+loads, naming the replacement and the release that removes the name. See
+[ADR 0084](../adr/0084-a-library-imports-the-framework-through-the-author-api.md)
+and [ADR 0085](../adr/0085-a-name-leaves-the-author-api-through-a-deprecation-window.md).
 
 ## 5. Naming and versioning
 
@@ -296,7 +318,7 @@ the graph opens. The full checklist is in the
 Override `compatibility_warnings()` to return an **append-only** history:
 
 ```python
-from haywire.core.library.compatibility import CompatibilityWarning
+from haywire.api import CompatibilityWarning
 from haybale_image.nodes import FrameDisplayNode
 
 
@@ -452,14 +474,16 @@ from: `Library` — registry_key: `haybale-testing:library:Library`
 ### Imports
 
 ```python
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.types.registry import TypeRegistry
-from haywire.core.adapter.registry import AdapterRegistry
-from haywire.ui.widget.registry import WidgetRegistry
-from haywire.ui.skin.registry import SkinRegistry
-from haywire.ui.themes.registry import ThemeRegistry
+from haywire.api import (
+    AdapterRegistry,
+    BaseLibrary,
+    NodeRegistry,
+    SkinRegistry,
+    ThemeRegistry,
+    TypeRegistry,
+    WidgetRegistry,
+    library,
+)
 ```
 
 ### Commands
