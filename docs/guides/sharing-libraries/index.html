@@ -1789,6 +1789,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="7. The full author cycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-release-reminders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Release reminders
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3992,6 +4009,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="7. The full author cycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-release-reminders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Release reminders
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -4433,34 +4467,78 @@ the publish has nothing left to report.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>write code, build components
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>        │
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>        ▼
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>document them — descriptions, tags, docstrings
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>try it in the running studio    (uv run haywire)
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        │
 </span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        ▼
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>git commit &amp;&amp; git push          (the tree must be clean — §4.1)
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>document them — descriptions, tags, docstrings
 </span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        │
 </span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        ▼
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>uv run haywire share --bump patch
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>  or: Share… in the Share editor
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        │
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>        ├─▶ preflight: tree, remote, host, push, branch      §4
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>        ├─▶ dependency drift detected and reconciled         §6.3
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>        ├─▶ barn/* bumped in lockstep, docs regenerated      §6.4
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>        └─▶ marketstall.toml rebuilt, committed, tagged, pushed
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        │
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>        ▼
-</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>marketstall hosted at a URL      §5
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        │
-</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>        ▼
-</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>consumer subscribes via Add Source
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>git commit &amp;&amp; git push          (the tree must be clean — §4.1)
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        │
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        ▼
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>any release reminders?          (§7.1)
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>        │
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>        ▼
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>uv run haywire share --bump patch
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>  or: Share… in the Share editor
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>        │
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>        ├─▶ preflight: tree, remote, host, push, branch      §4
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        ├─▶ dependency drift detected and reconciled         §6.3
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>        ├─▶ barn/* bumped in lockstep, docs regenerated      §6.4
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>        └─▶ marketstall.toml rebuilt, committed, tagged, pushed
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>        │
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>        ▼
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>marketstall hosted at a URL      §5
+</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>        │
+</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>        ▼
+</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>consumer subscribes via Add Source
 </span></code></pre></div>
 <p>Everything in the indented block happens inside the one command. The only steps
-that are yours are writing the code, documenting it, and committing.</p>
+that are yours are writing the code, trying it, documenting it, and committing.</p>
 <p>Two separate commands cover the CI side — there's no single <code>--check</code> gate.
 Run <code>haywire deps check</code> as a PR gate to catch manifest drift before merging,
 and <code>haywire docs --all --json &lt;path&gt;</code> on merge to keep generated docs current,
 committing whatever it produces. What each one exits with, and why neither is a
 staleness gate, is in
 <a href="../../architecture/sharing/share-pipeline-arch/#6-the-current-ci-story">share-pipeline-arch §6</a>.</p>
+<h3 id="71-release-reminders">7.1 Release reminders<a class="headerlink" href="#71-release-reminders" title="Permanent link">&para;</a></h3>
+<p>Sometimes a change you make has a consequence for the next release: most often a
+dependency that has to be raised once a release contains a change you need. A
+<strong>release reminder</strong> is a GitHub issue that records that decision, so it is not
+forgotten by the time you release. It is a help, not a rule: <code>haywire share</code>
+never reads it, and you open one only when you want to be reminded. An agent
+working from the <code>CLAUDE.md</code> that <code>haywire init</code> writes proposes one and opens it
+only when you agree.</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Meaning</th>
+<th>Read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>todo-pre-release</code></td>
+<td>Something you decided to do before the next release of this project.</td>
+<td>Before <code>haywire share</code>: an agent lists the open ones and asks whether to release anyway.</td>
+</tr>
+<tr>
+<td><code>after-core-release</code></td>
+<td>A dependency to raise once a released haywire-core contains a named change.</td>
+<td>At the start of a work session, and by the haywire team after each core release.</td>
+</tr>
+</tbody>
+</table>
+<p>An <code>after-core-release</code> issue starts with one line naming the change it waits for,
+so whether a release contains it can be checked rather than remembered:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Waits for: going-haywire/haywire@840d29a21 (#107)
+</span></code></pre></div>
+<p>Prepare the work on a branch, open a draft pull request, and link it to the issue.
+Once the latest haywire-core on PyPI contains the commit, raise your library's
+<code>haywire-core</code> floor to that version (§3), finish the pull request and close the
+issue. The exact commands, and the <code>gh label create</code> lines for a new repository,
+are in your project's <code>CLAUDE.md</code>.</p>
 <h2 id="8-common-pitfalls">8. Common pitfalls<a class="headerlink" href="#8-common-pitfalls" title="Permanent link">&para;</a></h2>
 <p><strong>You want to review dependency findings before publishing.</strong>
 The CLI does not stop for them — it declares undeclared imports and leaves the

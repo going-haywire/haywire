@@ -3770,6 +3770,11 @@
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w">                  </span><span class="c1"># launch the studio</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>haywire_studio<span class="w"> </span><span class="c1"># same, with module syntax</span>
 </span></code></pre></div>
+<p>A change only a person can judge (UI, interaction, a device) ends with a <strong>live check</strong>:
+you confirm in the running studio that it works, once, before its pull request is ready.
+An agent asks for one only when its own tests and checks leave it confident, and hands
+you the steps as a <a href="../../reference/questionnaire/">Questionnaire</a> in the studio's aside;
+you answer each Check there and submit, and the agent reads the Findings back.</p>
 <h2 id="checks">Checks<a class="headerlink" href="#checks" title="Permanent link">&para;</a></h2>
 <p>These are the checks CI runs. Before you open a pull request, run them on what you changed:</p>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>&lt;changed<span class="w"> </span>files&gt;<span class="w">          </span><span class="c1"># lint (line length 109); &quot;.&quot; for everything</span>

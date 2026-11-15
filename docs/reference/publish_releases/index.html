@@ -3639,6 +3639,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#release-reminders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release reminders
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3988,6 +3999,15 @@ entries with bare <code>haybale-*</code> sibling dependency names, writes the tw
 and the workflow deploys the entire directory to GitHub Pages at:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>https://going-haywire.github.io/haywire/marketplace.toml
 </span></code></pre></div>
+<h3 id="release-reminders">Release reminders<a class="headerlink" href="#release-reminders" title="Permanent link">&para;</a></h3>
+<p>A library outside the monorepo may record, with the owner's agreement, a dependency to
+raise once a core release contains a change: an <code>after-core-release</code> issue with a
+<code>Waits for: going-haywire/haywire@&lt;sha&gt;</code> line
+(<a href="../../guides/sharing-libraries/#71-release-reminders">sharing-libraries §7.1</a>).
+After a publish, <code>/haywire-release</code> (Step 10) lists those reminders across the
+organisation and which of them the new tag contains. Open <code>todo-pre-release</code> reminders
+in this repository are listed before the bump (Step 2), and the user decides whether to
+release anyway.</p>
 <h2 id="recovery-procedures">Recovery procedures<a class="headerlink" href="#recovery-procedures" title="Permanent link">&para;</a></h2>
 <h3 id="build-failure-job-2">Build failure (Job 2)<a class="headerlink" href="#build-failure-job-2" title="Permanent link">&para;</a></h3>
 <p>A package failed to build. Nothing has been published — Job 3 only runs after Job 2 succeeds
