@@ -20,7 +20,7 @@ from typing import Any
 
 import toml
 
-from haywire.core.tomlio import edit_toml, plain, read_toml
+from haywire.core.tomlio import edit_toml, to_builtin, read_toml
 
 from .haybale import Deprecation, Haybale
 
@@ -155,7 +155,7 @@ def read_haybale_toml(package_dir: Path) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise HaybaleTomlError(f"{source}: expected a table at the top level")
 
-    fields = _fields_from(plain(data), source)
+    fields = _fields_from(to_builtin(data), source)
     if not fields.get("name"):
         raise HaybaleTomlError(f"{source}: `name` is required — it prefixes every component's registry key.")
     if not fields.get("version"):
@@ -218,7 +218,7 @@ def read_haybale(package_dir: Path) -> "Haybale":
     except (toml.TomlDecodeError, OSError):
         row = Haybale(name="", source="local")
     else:
-        row = _row_from(plain(data) if isinstance(data, dict) else {})
+        row = _row_from(to_builtin(data) if isinstance(data, dict) else {})
 
     _row_cache[package_dir] = (mtime, row)
     return row
@@ -381,7 +381,7 @@ def read_raw(package_dir: Path) -> dict[str, Any]:
     For a caller that needs keys the typed readers leave out — ``notes``,
     ``examples_path``, ``tests_path``, ``[deprecated]``.
 
-    Plain builtins throughout, via :func:`~haywire.core.tomlio.plain`, so the
+    Plain builtins throughout, via :func:`~haywire.core.tomlio.to_builtin`, so the
     values can be re-serialized with ``toml.dumps``, which cannot handle
     tomlkit's ``str`` subclass.
     """
@@ -390,4 +390,4 @@ def read_raw(package_dir: Path) -> dict[str, Any]:
         data = read_toml(source)
     except (toml.TomlDecodeError, OSError):
         return {}
-    return plain(data) if isinstance(data, dict) else {}
+    return to_builtin(data) if isinstance(data, dict) else {}

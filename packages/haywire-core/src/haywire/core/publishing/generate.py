@@ -19,7 +19,7 @@ from typing import Any
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.haybale_toml import HAYBALE_TOML, read_raw
 from haywire.core.publishing.manifest.errors import ManifestReadError
-from haywire.core.tomlio import edit_toml, plain, read_toml
+from haywire.core.tomlio import edit_toml, to_builtin, read_toml
 
 __all__ = ["PROJECT_FIELDS", "pyproject_drift", "sync_pyproject_from_haybale"]
 
@@ -128,16 +128,16 @@ def pyproject_drift(lib_dir: Path) -> dict[str, tuple[Any, Any]]:
             # something sync can never resolve.
             continue
         # `have` comes from tomlkit, `want_value` is freshly built. Older
-        # tomlkit compared its containers unequal to plain ones of the same
+        # tomlkit compared its containers unequal to to_builtin ones of the same
         # content, which reported drift that was not there; 0.15.1 compares
         # equal, so this is now belt-and-braces. Kept deliberately: it makes the
         # comparison independent of equality semantics that changed once already,
-        # and `drift` values are stored, so they should be plain either way.
-        if plain(have) != plain(want_value):
-            drift[key] = (plain(have), plain(want_value))
+        # and `drift` values are stored, so they should be to_builtin either way.
+        if to_builtin(have) != to_builtin(want_value):
+            drift[key] = (to_builtin(have), to_builtin(want_value))
 
-    if plain(current_urls) != plain(want.get("urls", {})):
-        drift["urls"] = (plain(current_urls), plain(want.get("urls", {})))
+    if to_builtin(current_urls) != to_builtin(want.get("urls", {})):
+        drift["urls"] = (to_builtin(current_urls), to_builtin(want.get("urls", {})))
     return drift
 
 

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from haywire.core.tomlio import edit_toml, plain, read_toml, write_toml
+from haywire.core.tomlio import edit_toml, to_builtin, read_toml, write_toml
 
 pytestmark = pytest.mark.unit
 
@@ -148,7 +148,7 @@ def test_malformed_file_raises_before_any_write(tmp_path: Path) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# plain(): the price of comment-preserving parsing.
+# to_builtin(): the price of comment-preserving parsing.
 #
 # tomlkit's types subclass the builtins, so they satisfy isinstance, compare
 # equal, and repr identically — and then misbehave in two places that look
@@ -159,7 +159,7 @@ def test_malformed_file_raises_before_any_write(tmp_path: Path) -> None:
 
 
 def test_tomlkit_values_are_builtin_subclasses() -> None:
-    """The premise. If this ever stops holding, plain() is dead weight."""
+    """The premise. If this ever stops holding, to_builtin() is dead weight."""
     doc = read_toml_string('version = "0.0.36"\n')
     assert isinstance(doc["version"], str)
     assert doc["version"] == "0.0.36"
@@ -170,7 +170,7 @@ def test_plain_returns_exact_builtins() -> None:
     doc = read_toml_string(
         'version = "0.0.36"\ntags = ["a", "b"]\ncount = 2\nflag = true\nratio = 1.5\n\n[table]\nkey = "v"\n'
     )
-    out = plain(doc)
+    out = to_builtin(doc)
 
     assert type(out["version"]) is str
     assert type(out["tags"]) is list
@@ -185,7 +185,7 @@ def test_plain_returns_exact_builtins() -> None:
 def test_plain_output_serializes_as_scalars_not_character_sequences(tmp_path: Path) -> None:
     """The defect this exists to prevent, end to end.
 
-    Without plain(), toml.dumps writes `version = ["0", ".", "0", ...]` — valid
+    Without to_builtin(), toml.dumps writes `version = ["0", ".", "0", ...]` — valid
     TOML, so nothing upstream complains, and the consumer rejects the file.
     """
     import toml
@@ -195,7 +195,7 @@ def test_plain_output_serializes_as_scalars_not_character_sequences(tmp_path: Pa
     corrupt = toml.dumps(dict(doc))
     assert '"0", "."' in corrupt, "premise changed: toml.dumps no longer splits tomlkit strings"
 
-    clean = toml.dumps(plain(doc))
+    clean = toml.dumps(to_builtin(doc))
     assert clean.strip() == 'version = "0.0.36"\ntags = [ "a", "b",]'
     assert toml.loads(clean)["version"] == "0.0.36"
 
@@ -206,14 +206,14 @@ def test_plain_preserves_equality() -> None:
     Older tomlkit compared containers unequal to plain ones, which is why
     `publishing.generate` normalises both sides of its drift comparison. On
     0.15.1 they already compare equal — so what this pins is the safety
-    property that still matters: plain() is not allowed to alter a value.
+    property that still matters: to_builtin() is not allowed to alter a value.
     """
     doc = read_toml_string('tags = ["a", "b"]\n\n[project]\nname = "demo"\n')
-    assert plain(doc["tags"]) == doc["tags"] == ["a", "b"]
-    assert plain(doc["project"]) == {"name": "demo"}
+    assert to_builtin(doc["tags"]) == doc["tags"] == ["a", "b"]
+    assert to_builtin(doc["project"]) == {"name": "demo"}
 
 
 def test_plain_passes_through_what_it_does_not_know(tmp_path: Path) -> None:
     """Dates serialize and compare correctly already; do not stringify them."""
     doc = read_toml_string("when = 1979-05-27T07:32:00Z\n")
-    assert plain(doc)["when"] == doc["when"]
+    assert to_builtin(doc)["when"] == doc["when"]
