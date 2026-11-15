@@ -33,6 +33,7 @@ from haywire.ui.elements.flyout import (
     _leaves_drawn,
     open_flyout_group,
 )
+from tests.ui.user_wait import eventually
 
 
 @pytest.fixture
@@ -231,17 +232,17 @@ async def test_two_levels_two_siblings_opening_sibling_closes_the_other_subtree(
 
     # Open Image (root level) -> hover-delay elapses -> Image's flyout opens.
     _hover(user, image_row._row)
-    await asyncio.sleep(FLYOUT_OPEN_DELAY_S + 0.08)
+    await eventually(lambda: image_row._menu.value is True)
     assert image_row._menu.value is True
 
     # Inside Image's flyout, open Filters (child level).
     _hover(user, filters_row._row)
-    await asyncio.sleep(FLYOUT_OPEN_DELAY_S + 0.08)
+    await eventually(lambda: filters_row._menu.value is True)
     assert filters_row._menu.value is True
 
     # Now open Export at the ROOT level — a sibling of Image, not of Filters.
     _hover(user, export_row._row)
-    await asyncio.sleep(FLYOUT_OPEN_DELAY_S + 0.08)
+    await eventually(lambda: export_row._menu.value is True)
     assert export_row._menu.value is True
 
     # Image's whole subtree — Image itself AND its child Filters — must have
@@ -592,7 +593,7 @@ async def test_hover_does_not_open_synchronously_then_opens_after_the_delay(user
     # Immediately after hover: must NOT be open yet.
     assert row._menu.value is False, "hover must not open the flyout synchronously"
 
-    await asyncio.sleep(FLYOUT_OPEN_DELAY_S + 0.08)
+    await eventually(lambda: row._menu.value is True)
     assert row._menu.value is True, "flyout should have opened once the delay elapsed"
 
 
