@@ -1,4 +1,4 @@
-# haybale-haystack — component index (v0.5.1)
+# haybale-haystack — component index (v0.5.2)
 
 ## setting
 - `haybale-haystack:setting:FlowMeterSettings` — Flow meters — Meters on the rows of running graphs
