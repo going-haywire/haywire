@@ -4,10 +4,15 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from haywire.core.state.base import AppState
-from haywire.core.state.decorator import state
+from haywire.api.workbench import (
+    AppState,
+    BaseGraph,
+    GraphDataMutated,
+    GraphUnsavedChanged,
+    get_library_state_container,
+    state,
+)
 
-from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.editor import Editor
 from haywire.core.graph.types import ChangeReason
 from haywire.core.graph.validation import ValidationResult
@@ -55,11 +60,7 @@ class HaystackState(AppState):
 
     def on_enable(self) -> None:
         """Resolve ambient dependencies; rehydrate from settings."""
-        from haywire.core.di.context import (
-            get_library_state_container,
-            get_node_factory,
-            get_workspace_root,
-        )
+        from haywire.core.di.context import get_node_factory, get_workspace_root
 
         self._workspace_root = get_workspace_root()
         self._node_factory = get_node_factory()
@@ -148,7 +149,6 @@ class HaystackState(AppState):
         dispatcher = self._dispatcher()
         if dispatcher is None:
             return
-        from haywire.core.signals import GraphDataMutated
 
         try:
             dispatcher.broadcast(GraphDataMutated())
@@ -160,7 +160,6 @@ class HaystackState(AppState):
         dispatcher = self._dispatcher()
         if dispatcher is None:
             return
-        from haywire.core.signals import GraphUnsavedChanged
 
         try:
             dispatcher.broadcast(GraphUnsavedChanged())
@@ -273,7 +272,6 @@ class HaystackState(AppState):
         ``DEVELOPMENT_CONFIG`` — every user graph therefore ran with debug
         logging on and a hardcoded 50-step limit that ignored the setting.
         """
-        from haywire.core.graph.base import BaseGraph
         from haywire.core.graph.editor import Editor
         from haywire.core.graph.scheduler import LoopScheduler
 

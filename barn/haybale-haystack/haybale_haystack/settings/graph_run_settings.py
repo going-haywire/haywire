@@ -1,6 +1,4 @@
-from haywire.core.settings import setting
-from haywire.core.settings.settings import Settings
-from haywire.barn.builtin.types import BOOL, CHOICES
+from haywire.api import BOOL, CHOICES, Settings, setting
 
 
 class GraphRunSettings(Settings):

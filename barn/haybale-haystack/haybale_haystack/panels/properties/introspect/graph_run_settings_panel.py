@@ -9,12 +9,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.barn.builtin.surfaces import ExecutionInspectorSurface
-from haywire.core.signals import ActiveGraphMoved, GraphDataMutated
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel, PanelLayout
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.render_utils import render_settings
+from haywire.api.workbench import (
+    ActiveGraphMoved,
+    BasePanel,
+    ExecutionInspectorSurface,
+    GraphDataMutated,
+    PanelLayout,
+    hui,
+    panel,
+    render_settings,
+)
 
 from haybale_graph_editor.states.edit_state import EditState
 from haybale_graph_editor.states.graph_app_state import GraphAppState
@@ -22,7 +26,7 @@ from haybale_graph_editor.states.graph_app_state import GraphAppState
 from haybale_haystack.graph_entry import GraphEntry
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 @panel(

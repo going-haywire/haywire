@@ -15,14 +15,14 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
-from haywire.core.di.context import get_library_state_container
+from haywire.api.workbench import get_library_state_container
 from haywire.core.execution.compile_result import CompileResult
 from haywire.core.execution.interpreter import Interpreter
 from haybale_graph_editor.protocols import GraphContainer
 from haybale_haystack.settings.graph_run_settings import GraphRunSettings
 
 if TYPE_CHECKING:
-    from haywire.core.graph.base import BaseGraph as HaywireGraph
+    from haywire.api.workbench import BaseGraph as HaywireGraph
     from haywire.core.graph.editor import Editor
     from haybale_haystack.states.haystack_state import HaystackState
 

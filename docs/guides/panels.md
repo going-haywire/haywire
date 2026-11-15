@@ -194,7 +194,7 @@ Source: `barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py
 `OpenInHaystackMenuPanel` opens a `.haywire` graph file in the GraphEditor:
 
 ```python
---8<-- "barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py:34:71"
+--8<-- "barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py:31:68"
 ```
 
 from: `OpenInHaystackMenuPanel` — registry_key: `haybale-haystack:panel:OpenInHaystackMenuPanel`

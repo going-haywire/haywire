@@ -1,7 +1,6 @@
 """FlowMeterSettings — whether the haystack rows of running graphs show flow meters."""
 
-from haywire.barn.builtin.types import BOOL
-from haywire.core.settings import LibrarySettings, setting, settings
+from haywire.api import BOOL, LibrarySettings, setting, settings
 
 
 @settings(namespace="flow_meters", label="Flow meters", description="Meters on the rows of running graphs")

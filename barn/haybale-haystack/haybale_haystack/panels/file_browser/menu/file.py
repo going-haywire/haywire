@@ -19,13 +19,10 @@ from typing import TYPE_CHECKING
 from haybale_haystack.states.haystack_state import HaystackState
 from haybale_studio.surfaces import FileActions, FileMenu
 from haybale_studio.states.file_browser_state import FileBrowserState
-from haywire.ui import elements as hui
-from haywire.ui.panel import BasePanel
-from haywire.ui.panel.decorator import panel
-from haywire.ui.panel.layout import PanelLayout
+from haywire.api.workbench import BasePanel, PanelLayout, hui, panel
 
 if TYPE_CHECKING:
-    from haywire.core.session.context import SessionContext
+    from haywire.api.workbench import SessionContext
 
 
 _GRAPH_EXTS = frozenset({".haywire"})

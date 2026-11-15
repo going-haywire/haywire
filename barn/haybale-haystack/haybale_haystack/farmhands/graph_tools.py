@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from haywire.core.access import AccessTier
-from haywire.core.farmhand import (
+from haywire.api.workbench import (
+    AccessTier,
     Farmhand,
     FarmhandContext,
     FarmhandError,
+    GraphDataMutated,
     ToolAnnotations,
     farmhand,
     truncation_note,
 )
-from haywire.core.signals import GraphDataMutated
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True)
 _MUTATING = ToolAnnotations()
