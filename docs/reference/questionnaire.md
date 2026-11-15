@@ -24,9 +24,11 @@ is rejected when it is posted, with an error that names the element and the prop
 
 1. The agent calls `haybale-studio_post_questionnaire` with the Questionnaire. It replaces the one
    on show; earlier ones stay on disk under `~/.haywire/db/haybale_studio/questionnaires/`.
-2. The agent tells the user that a Questionnaire waits in the studio's aside. The
-   *Questionnaire* tab counts the unanswered questions, and while ASIDE is closed that
-   count shows next to the aside toggle at the right of the top bar.
+2. The post opens the *Questionnaire* tab in the aside of every open studio session,
+   opening the aside if it is closed, and the agent tells the user it is there. The tab
+   counts the unanswered questions; while ASIDE is closed, the tab and its count show next
+   to the aside toggle at the right of the top bar. The user can close the tab at any time:
+   the Questionnaire and its answers stay, and the next post opens the tab again.
 3. The user answers. Each answer is stored as it is given and appears in every open
    studio session. *Submit* requires the required questions; *Submit anyway* does not.
    After submitting, the form is read-only, and the answers of questions hidden by a

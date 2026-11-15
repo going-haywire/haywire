@@ -1,8 +1,9 @@
 """
 QuestionnaireEditor — the Questionnaire an agent posted, answered in the ASIDE slot.
 
-One tab, always present. It shows the current Questionnaire of
-``QuestionnaireState`` until it is closed; a new post replaces it. Answers are
+One closeable tab, opened in every session by ``RevealQuestionnaire`` when an
+agent posts. It shows the current Questionnaire of ``QuestionnaireState`` until
+it is closed; a new post replaces it and opens the tab again. Answers are
 stored as they are given and reach every session in place, without a redraw;
 only a new post, a submit or a close redraws. The tab's badge counts the unanswered questions, and stays
 in view next to the top-bar toggle while ASIDE is closed.
@@ -12,12 +13,21 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from haywire.api.workbench import AccessTier, BaseEditor, OpenBehavior, SlotName, editor, hui, react_on
+from haywire.api.workbench import (
+    AccessTier,
+    BaseEditor,
+    OpenBehavior,
+    SlotName,
+    editor,
+    hui,
+    react_on,
+    reveal_on,
+)
 from nicegui import ui
 
 from haybale_studio.questionnaire.definition import unanswered
 from haybale_studio.questionnaire.form import QuestionnaireForm
-from haybale_studio.questionnaire.signals import QuestionnaireChanged
+from haybale_studio.questionnaire.signals import QuestionnaireChanged, RevealQuestionnaire
 from haybale_studio.states.questionnaire_state import (
     DISCARDED,
     Questionnaire,
@@ -35,7 +45,7 @@ if TYPE_CHECKING:
     label="Questionnaire",
     icon=hui.icon.questionnaire,
     default_slot=SlotName.ASIDE,
-    opens=OpenBehavior.REQUIRED,
+    opens=OpenBehavior.ON_CONTEXT,
     description="The Questionnaire an agent posted for a live check. Answer it, then submit.",
     requires=AccessTier.VIEW,
 )
@@ -46,8 +56,10 @@ class QuestionnaireEditor(BaseEditor):
     back with `get_findings`. Answering needs the edit tier; a viewer sees the
     form read-only. After *Submit* the form is read-only for everyone.
 
-    It leaves the studio once the agent has read the submitted answers, or when
-    you press *Discard*.
+    The tab opens by itself when an agent posts, in every studio window. Close
+    it whenever you like: the questionnaire and its answers stay, and the next
+    post opens the tab again. The questionnaire leaves the studio once the
+    agent has read the submitted answers, or when you press *Discard*.
     """
 
     def __init__(self, wrapper: "EditorWrapper") -> None:
@@ -56,6 +68,12 @@ class QuestionnaireEditor(BaseEditor):
         self._form: Optional[QuestionnaireForm] = None
         self._shown: Optional[tuple[str, str, Optional[str]]] = None
         self._status: Optional[ui.label] = None
+
+    @reveal_on(RevealQuestionnaire)
+    @classmethod
+    def _on_reveal_questionnaire(cls, context: "SessionContext", event: RevealQuestionnaire) -> bool:
+        """Answer a post: always reveal the tab."""
+        return True
 
     def _state(self, context: "SessionContext") -> QuestionnaireState:
         return context.app_data[QuestionnaireState]

@@ -1,4 +1,4 @@
-"""QuestionnaireEditor: empty state, answering through the store, submit, live sync and the badge."""
+"""QuestionnaireEditor: opening on a post, empty state, answering, submit, live sync and the badge."""
 
 from __future__ import annotations
 
@@ -13,10 +13,14 @@ from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
 from haywire.core.access import AccessTier
+from haywire.core.session.handlers import discover_reveal_handlers
+from haywire.core.signals import SignalDispatcher, SignalPeer
+from haywire.ui.app.aside_slot import AsideSlot
+from haywire.ui.app.shell import AppShell
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 
 from haybale_studio.editors.questionnaire_editor import QuestionnaireEditor
-from haybale_studio.questionnaire.signals import QuestionnaireChanged
+from haybale_studio.questionnaire.signals import QuestionnaireChanged, RevealQuestionnaire
 from haybale_studio.states.questionnaire_state import QuestionnaireState
 
 pytestmark = pytest.mark.unit
@@ -69,11 +73,107 @@ async def _open(user: User, state: QuestionnaireState, *, can_edit: bool = True)
     return holder["editor"]
 
 
-def test_identity_puts_it_in_aside_as_one_required_tab() -> None:
+def test_identity_puts_it_in_aside_as_one_closeable_tab_a_post_opens() -> None:
     identity = QuestionnaireEditor.class_identity
     assert identity.default_slot is SlotName.ASIDE
-    assert identity.opens is OpenBehavior.REQUIRED
+    assert identity.opens is OpenBehavior.ON_CONTEXT
     assert identity.requires is AccessTier.VIEW
+    assert discover_reveal_handlers(QuestionnaireEditor) == {RevealQuestionnaire: "_on_reveal_questionnaire"}
+
+
+class _Registry:
+    """The slice of EditorRegistry the shell's reveal and a slot's wrappers touch."""
+
+    def list_names(self) -> list[str]:
+        return [QuestionnaireEditor.class_identity.registry_key]
+
+    def get(self, key: str) -> Any:
+        return QuestionnaireEditor if key == QuestionnaireEditor.class_identity.registry_key else None
+
+    get_by_key = get
+
+    def get_by_default_slot(self, _slot) -> dict:
+        return {}
+
+    def add_batch_event_subscriber(self, _cb) -> None:
+        pass
+
+    def remove_batch_event_subscriber(self, _cb) -> None:
+        pass
+
+    def add_event_subscriber(self, _key, _cb) -> None:
+        pass
+
+    def remove_event_subscriber(self, _key, _cb) -> None:
+        pass
+
+
+def _window(dispatcher: SignalDispatcher, state: QuestionnaireState) -> tuple[AsideSlot, ui.row]:
+    """Build one studio window (peer, shell, closed ASIDE); return the slot and its toggle box."""
+    peer = SignalPeer(dispatcher)
+    context = _context(state)
+    context.can_access.return_value = True
+    session: Any = MagicMock()
+    session.context = context
+    session.subscribe = peer.subscribe
+    registry: Any = _Registry()
+    slot = AsideSlot(session=session, name=SlotName.ASIDE, registry=registry, bar_place="top", visible=False)
+    with ui.row() as row:
+        slot.render(row)
+    with ui.row() as toggle_box:
+        slot.render_toggle(toggle_box)
+    shell = AppShell(session=session, editor_registry=registry)
+    shell._managed_slots = {SlotName.ASIDE: slot}
+    shell._subscribe_reveal_on_editors()
+    return slot, toggle_box
+
+
+def _buttons(box: ui.element) -> list[ui.button]:
+    return [e for e in box.descendants() if isinstance(e, ui.button)]
+
+
+@pytest.mark.anyio
+async def test_a_post_opens_the_tab_in_every_window_and_closing_it_takes_its_top_bar_button(
+    user: User, state: QuestionnaireState
+) -> None:
+    dispatcher = SignalDispatcher()
+    windows: list[tuple[AsideSlot, ui.row]] = []
+
+    @ui.page("/")
+    def page() -> None:
+        windows.append(_window(dispatcher, state))
+        windows.append(_window(dispatcher, state))
+
+    await user.open("/")
+    (first, first_box), (second, _second_box) = windows
+    assert first.bindings == []
+    assert second.bindings == []
+    assert len(_buttons(first_box)) == 1  # the toggle alone: no tab, no button for it
+
+    state.post(copy.deepcopy(DEFINITION), principal="agent")
+    dispatcher.broadcast(RevealQuestionnaire())
+
+    key = QuestionnaireEditor.class_identity.registry_key
+    for slot, _box in windows:
+        assert slot.visible is True
+        assert slot.active_binding_id == key
+        assert slot.bindings[0].can_close is True
+    await user.should_see("Editor test")
+
+    first.set_visible(False)
+    assert len(_buttons(first_box)) == 2  # closed ASIDE: the tab's button next to the toggle
+
+    await first.bindings[0].close()
+    assert first.bindings == []
+    assert len(_buttons(first_box)) == 1
+    assert second.active_binding_id == key  # closing is per window
+    assert state.findings() is not None  # the questionnaire stays
+
+    state.post({"title": "Next", "elements": [{"type": "boolean", "name": "ok"}]}, principal="agent")
+    dispatcher.broadcast(RevealQuestionnaire())
+    assert first.visible is True
+    assert first.active_binding_id == key
+    assert len(second.bindings) == 1  # a second post reveals the one tab, never a second
 
 
 @pytest.mark.anyio
