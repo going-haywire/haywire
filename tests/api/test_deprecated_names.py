@@ -16,6 +16,7 @@ from haywire.core.library.deprecated_names import (
     HaywireDeprecationWarning,
     recorded_deprecations,
 )
+from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.folder_scan import FolderScanMixin
 
 pytestmark = pytest.mark.unit
@@ -87,8 +88,9 @@ def test_the_import_of_a_library_module_records_one_warning(old_name, library_mo
 def test_a_reload_records_it_again(old_name, library_module, ledger) -> None:
     """The folder scan re-executes the module on hot reload, so the notice returns."""
     scan = FolderScanMixin()
+    identity = LibraryIdentity(label="testlib")
     for _ in range(2):
-        scan.module_scan_for_classes(library_module, None, lambda cls: False, force_reload=True)
+        scan.module_scan_for_classes(library_module, identity, lambda cls: False, force_reload=True)
     # The ledger folds a repeat of an unread entry into it and counts it.
     assert [entry.count for entry in ledger.query().entries] == [2]
 
