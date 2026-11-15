@@ -4005,7 +4005,9 @@ raise once a core release contains a change: an <code>after-core-release</code> 
 <code>Waits for: going-haywire/haywire@&lt;sha&gt;</code> line
 (<a href="../../guides/sharing-libraries/#71-release-reminders">sharing-libraries §7.1</a>).
 After a publish, <code>/haywire-release</code> (Step 10) lists those reminders across the
-organisation and which of them the new tag contains. Open <code>todo-pre-release</code> reminders
+organisation and which of them the new tag contains; before the bump (Step 2.2) it
+reports the Author API names the release removes and the libraries that import them.
+Both come from <a href="../../scripts/release_sweep.py"><code>scripts/release_sweep.py</code></a>. Open <code>todo-pre-release</code> reminders
 in this repository are listed before the bump (Step 2), and the user decides whether to
 release anyway.</p>
 <h2 id="recovery-procedures">Recovery procedures<a class="headerlink" href="#recovery-procedures" title="Permanent link">&para;</a></h2>
