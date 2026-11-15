@@ -54,6 +54,10 @@ def _hover(user: User, element: ui.element) -> None:
     UserInteraction(user, {element}, None).trigger("mouseenter")
 
 
+def _is_open(row: SubmenuRow) -> bool:
+    return row._menu is not None and row._menu.value is True
+
+
 def _unhover(user: User, element: ui.element) -> None:
     """Fire ``mouseleave`` on exactly ``element``."""
     UserInteraction(user, {element}, None).trigger("mouseleave")
@@ -232,17 +236,17 @@ async def test_two_levels_two_siblings_opening_sibling_closes_the_other_subtree(
 
     # Open Image (root level) -> hover-delay elapses -> Image's flyout opens.
     _hover(user, image_row._row)
-    await eventually(lambda: image_row._menu.value is True)
+    await eventually(lambda: _is_open(image_row))
     assert image_row._menu.value is True
 
     # Inside Image's flyout, open Filters (child level).
     _hover(user, filters_row._row)
-    await eventually(lambda: filters_row._menu.value is True)
+    await eventually(lambda: _is_open(filters_row))
     assert filters_row._menu.value is True
 
     # Now open Export at the ROOT level — a sibling of Image, not of Filters.
     _hover(user, export_row._row)
-    await eventually(lambda: export_row._menu.value is True)
+    await eventually(lambda: _is_open(export_row))
     assert export_row._menu.value is True
 
     # Image's whole subtree — Image itself AND its child Filters — must have
@@ -593,7 +597,7 @@ async def test_hover_does_not_open_synchronously_then_opens_after_the_delay(user
     # Immediately after hover: must NOT be open yet.
     assert row._menu.value is False, "hover must not open the flyout synchronously"
 
-    await eventually(lambda: row._menu.value is True)
+    await eventually(lambda: _is_open(row))
     assert row._menu.value is True, "flyout should have opened once the delay elapsed"
 
 

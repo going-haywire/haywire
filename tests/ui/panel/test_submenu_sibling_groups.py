@@ -56,6 +56,10 @@ def _hover(user: User, element: ui.element) -> None:
     UserInteraction(user, {element}, None).trigger("mouseenter")
 
 
+def _is_open(row: SubmenuRow) -> bool:
+    return row._menu is not None and row._menu.value is True
+
+
 def _make_ctx():
     from types import SimpleNamespace
     from unittest.mock import MagicMock
@@ -121,11 +125,11 @@ async def test_two_sibling_rows_on_one_surface_opening_one_closes_the_other(user
     assert row_b._menu is not None
 
     _hover(user, row_a._row)
-    await eventually(lambda: row_a._menu.value is True)
+    await eventually(lambda: _is_open(row_a))
     assert row_a._menu.value is True
 
     _hover(user, row_b._row)
-    await eventually(lambda: row_b._menu.value is True)
+    await eventually(lambda: _is_open(row_b))
     assert row_b._menu.value is True
     assert row_a._menu.value is False, (
         "opening Row B must close Row A — both panels share one sibling group "
@@ -209,11 +213,11 @@ async def test_two_rows_on_different_surfaces_in_the_same_popup_are_siblings(use
     assert region_two_row._menu is not None
 
     _hover(user, region_one_row._row)
-    await eventually(lambda: region_one_row._menu.value is True)
+    await eventually(lambda: _is_open(region_one_row))
     assert region_one_row._menu.value is True
 
     _hover(user, region_two_row._row)
-    await eventually(lambda: region_two_row._menu.value is True)
+    await eventually(lambda: _is_open(region_two_row))
     assert region_two_row._menu.value is True
     assert region_one_row._menu.value is False, (
         "opening Region Two's row must close Region One's — the sibling "
