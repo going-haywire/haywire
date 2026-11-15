@@ -104,12 +104,20 @@ def _flow(env, **kwargs):
     )
 
 
-def _watch_for(registry, identity, path: Path) -> threading.Thread:
-    """Hand the registry a CREATED event once ``path`` exists, from another thread."""
+def _watch_for(registry, identity, plan) -> threading.Thread:
+    """Hand the registry a CREATED event once ``plan.path`` holds ``plan.source``, from another thread."""
+    path, source = plan.path, plan.source
+
+    def _written() -> bool:
+        # The file exists, empty, before its text lands: importing it then registers nothing.
+        try:
+            return path.read_text(encoding="utf-8") == source
+        except OSError:
+            return False
 
     def _run():
         deadline = time.monotonic() + 5
-        while not path.exists() and time.monotonic() < deadline:
+        while not _written() and time.monotonic() < deadline:
             time.sleep(0.01)
         registry.event_dispatcher(FileChangeEvent(str(path), FileEventType.CREATED, identity, time.time()))
 
@@ -227,7 +235,7 @@ async def test_planning_writes_nothing(env, anyio_backend):
 async def test_create_writes_and_reports_the_registered_key(env, anyio_backend):
     flow = _flow(env, source_cls=env["single"])
     await flow.advance_from_details()
-    thread = _watch_for(env["registry"], env["library"].identity, flow.plan.path)
+    thread = _watch_for(env["registry"], env["library"].identity, flow.plan)
 
     await flow.advance_from_planned()
     thread.join()
@@ -243,7 +251,7 @@ async def test_create_writes_and_reports_the_registered_key(env, anyio_backend):
 async def test_place_and_edit_call_the_host(env, anyio_backend):
     flow = _flow(env, source_cls=env["single"])
     await flow.advance_from_details()
-    thread = _watch_for(env["registry"], env["library"].identity, flow.plan.path)
+    thread = _watch_for(env["registry"], env["library"].identity, flow.plan)
     await flow.advance_from_planned()
     thread.join()
 
@@ -263,7 +271,7 @@ async def test_a_failed_import_reports_the_error_and_opens_the_file(env, anyio_b
     flow = _flow(env, source_cls=env["single"], ledger=ledger)
     await flow.advance_from_details()
     flow.plan.source = BROKEN
-    thread = _watch_for(env["registry"], env["library"].identity, flow.plan.path)
+    thread = _watch_for(env["registry"], env["library"].identity, flow.plan)
 
     await flow.advance_from_planned()
     thread.join()
