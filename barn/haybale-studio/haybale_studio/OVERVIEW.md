@@ -14,7 +14,7 @@ Library for haywire studio
 - **Get findings** — Read the user's answers to the current Questionnaire.
 - **List components** — Component catalog, filterable and searchable.
 - **List libraries** — List installed libraries.
-- **Post questionnaire** — Post a Questionnaire for the user to answer in the studio's ASIDE slot.
+- **Post questionnaire** — Post a Questionnaire for the user to answer; it opens in the studio's aside.
 - **Read component source** — Line-numbered source of any installed component.
 - **Scaffold component** — Write a canon-conformant skeleton for a new component into a project-local library.
 - **Studio status** — Versions, workspace root, enabled-library counts, docs manifest URI.

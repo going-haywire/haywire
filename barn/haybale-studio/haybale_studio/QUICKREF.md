@@ -12,7 +12,7 @@
 - `haybale-studio:farmhand:get_findings` — Get findings — Read the user's answers to the current Questionnaire.
 - `haybale-studio:farmhand:list_components` — List components — Component catalog, filterable and searchable.
 - `haybale-studio:farmhand:list_libraries` — List libraries — List installed libraries.
-- `haybale-studio:farmhand:post_questionnaire` — Post questionnaire — Post a Questionnaire for the user to answer in the studio's ASIDE slot.
+- `haybale-studio:farmhand:post_questionnaire` — Post questionnaire — Post a Questionnaire for the user to answer; it opens in the studio's aside.
 - `haybale-studio:farmhand:read_component_source` — Read component source — Line-numbered source of any installed component.
 - `haybale-studio:farmhand:scaffold_component` — Scaffold component — Write a canon-conformant skeleton for a new component into a project-local library.
 - `haybale-studio:farmhand:status` — Studio status — Versions, workspace root, enabled-library counts, docs manifest URI.

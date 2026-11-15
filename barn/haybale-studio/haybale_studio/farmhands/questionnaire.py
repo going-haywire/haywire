@@ -15,6 +15,7 @@ from haywire.api.workbench import (
 )
 
 from haybale_studio.questionnaire.definition import FORMAT_URI, validate
+from haybale_studio.questionnaire.signals import RevealQuestionnaire
 from haybale_studio.states.questionnaire_state import READ, SUBMITTED, QuestionnaireState
 
 _MAX_ISSUES = 20
@@ -22,7 +23,7 @@ _MAX_ISSUES = 20
 
 @farmhand(
     label="Post questionnaire",
-    description="Post a Questionnaire for the user to answer in the studio's ASIDE slot.",
+    description="Post a Questionnaire for the user to answer; it opens in the studio's aside.",
     instructions="Post a Questionnaire (SurveyJS JSON, a subset) for the user to work through in the "
     "studio during a live check; it replaces the current one. Types: boolean, radiogroup, checkbox, "
     "dropdown, text (inputType text/number/date/color/range/email/url), comment, rating, ranking, html, "
@@ -31,7 +32,7 @@ _MAX_ISSUES = 20
     "'elements'. Conditions visibleIf/enableIf/requiredIf: {name}, = != < > <= >=, and/or/not, "
     "empty/notempty, contains/anyof; a check's value is its verdict. No functions, calculated values, "
     f"piping, triggers or matrices. Anything else is rejected. Full format: {FORMAT_URI}. After "
-    "posting, tell the user a questionnaire waits in the studio's aside, then call "
+    "posting, it opens in every studio window's aside; tell the user it is there, then call "
     "haybale-studio_get_findings when they say they are done.",
     registry_id="post_questionnaire",
     annotations=ToolAnnotations(destructive_hint=False, idempotent_hint=False),
@@ -59,10 +60,11 @@ class StudioPostQuestionnaireTool(Farmhand):
                 help=f"Fix each place and post again; the supported format is at {FORMAT_URI}.",
             )
         q = ctx.state(QuestionnaireState).post(definition, ctx.principal)
+        ctx.broadcast(RevealQuestionnaire())
         return {
-            "summary": f"Posted questionnaire {q.id!r}. Tell the user it waits in the studio's aside "
-            "(the toggle at the right of the top bar), then call haybale-studio_get_findings when they say "
-            "they are done; its status says whether they submitted.",
+            "summary": f"Posted questionnaire {q.id!r}; it is open in the studio's aside. Tell the user it "
+            "is there, then call haybale-studio_get_findings when they say they are done; its status says "
+            "whether they submitted.",
             "id": q.id,
             "ledger_seq": q.ledger_seq_posted,
         }

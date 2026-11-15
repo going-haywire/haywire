@@ -18,6 +18,7 @@ from haybale_studio.questionnaire.definition import (
     validate,
 )
 from haybale_studio.questionnaire.expressions import ExpressionError, parse_expression
+from haybale_studio.questionnaire.signals import RevealQuestionnaire
 from haybale_studio.states.questionnaire_state import (
     QuestionnaireClosed,
     QuestionnaireState,
@@ -419,10 +420,29 @@ def test_close_before_a_post_does_nothing(tmp_path) -> None:
 
 
 @pytest.fixture
-def tool_state(tmp_path, monkeypatch) -> QuestionnaireState:
+def broadcasts(monkeypatch) -> list:
+    sent: list = []
+    monkeypatch.setattr(FarmhandContext, "broadcast", lambda self, signal: sent.append(signal))
+    return sent
+
+
+@pytest.fixture
+def tool_state(tmp_path, monkeypatch, broadcasts) -> QuestionnaireState:
     state = _state(tmp_path)
     monkeypatch.setattr(FarmhandContext, "state", lambda self, cls: state)
     return state
+
+
+def test_post_questionnaire_opens_the_tab_in_every_session(tool_state, broadcasts) -> None:
+    _run(StudioPostQuestionnaireTool, questionnaire=_live_check())
+    assert broadcasts == [RevealQuestionnaire()]
+    assert RevealQuestionnaire.cross_session is True
+
+
+def test_a_rejected_post_opens_nothing(tool_state, broadcasts) -> None:
+    with pytest.raises(FarmhandError):
+        _run(StudioPostQuestionnaireTool, questionnaire={"elements": [{"type": "matrix", "name": "m"}]})
+    assert broadcasts == []
 
 
 def _run(tool_cls, **kwargs) -> dict:

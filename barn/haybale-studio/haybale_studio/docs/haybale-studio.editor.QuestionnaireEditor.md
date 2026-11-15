@@ -18,5 +18,6 @@ An agent posts it with the `post_questionnaire` tool and reads the answers
 back with `get_findings`. Answering needs the edit tier; a viewer sees the
 form read-only. After *Submit* the form is read-only for everyone.
 
-It leaves the studio once the agent has read the submitted answers, or when
-you press *Discard*.
+When an agent posts, the aside opens on this tab in every studio window.
+The questionnaire leaves the studio once the agent has read the submitted
+answers, or when you press *Discard*.

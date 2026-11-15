@@ -1,7 +1,8 @@
 """
 QuestionnaireEditor — the Questionnaire an agent posted, answered in the ASIDE slot.
 
-One tab, always present. It shows the current Questionnaire of
+One tab, always present; ``RevealQuestionnaire`` brings it to the front in every
+session when an agent posts. It shows the current Questionnaire of
 ``QuestionnaireState`` until it is closed; a new post replaces it. Answers are
 stored as they are given and reach every session in place, without a redraw;
 only a new post, a submit or a close redraws. The tab's badge counts the unanswered questions, and stays
@@ -12,12 +13,21 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from haywire.api.workbench import AccessTier, BaseEditor, OpenBehavior, SlotName, editor, hui, react_on
+from haywire.api.workbench import (
+    AccessTier,
+    BaseEditor,
+    OpenBehavior,
+    SlotName,
+    editor,
+    hui,
+    react_on,
+    reveal_on,
+)
 from nicegui import ui
 
 from haybale_studio.questionnaire.definition import unanswered
 from haybale_studio.questionnaire.form import QuestionnaireForm
-from haybale_studio.questionnaire.signals import QuestionnaireChanged
+from haybale_studio.questionnaire.signals import QuestionnaireChanged, RevealQuestionnaire
 from haybale_studio.states.questionnaire_state import (
     DISCARDED,
     Questionnaire,
@@ -46,8 +56,9 @@ class QuestionnaireEditor(BaseEditor):
     back with `get_findings`. Answering needs the edit tier; a viewer sees the
     form read-only. After *Submit* the form is read-only for everyone.
 
-    It leaves the studio once the agent has read the submitted answers, or when
-    you press *Discard*.
+    When an agent posts, the aside opens on this tab in every studio window.
+    The questionnaire leaves the studio once the agent has read the submitted
+    answers, or when you press *Discard*.
     """
 
     def __init__(self, wrapper: "EditorWrapper") -> None:
@@ -56,6 +67,12 @@ class QuestionnaireEditor(BaseEditor):
         self._form: Optional[QuestionnaireForm] = None
         self._shown: Optional[tuple[str, str, Optional[str]]] = None
         self._status: Optional[ui.label] = None
+
+    @reveal_on(RevealQuestionnaire)
+    @classmethod
+    def _on_reveal_questionnaire(cls, context: "SessionContext", event: RevealQuestionnaire) -> bool:
+        """Answer a post: always reveal the tab."""
+        return True
 
     def _state(self, context: "SessionContext") -> QuestionnaireState:
         return context.app_data[QuestionnaireState]

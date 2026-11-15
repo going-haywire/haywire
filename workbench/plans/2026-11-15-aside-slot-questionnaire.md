@@ -46,7 +46,7 @@ being its first user.
 | — | Renderer | A dispatch table from `type` to builder, using `hui` wrappers wherever they exist (mapping below). `html` through `ui.html(..., sanitize=True)`. `ranking` drag-sorts with `make_sortable` (see `.insights/feedback_nicegui_sortable_import.md`). |
 | 14/16A | Tabs | One editor tab (`opens='required'`). A new post replaces the current questionnaire; earlier ones stay on disk for the agent only. Questionnaire management is a non-goal. |
 | — | Badge | The editor's `draw_tab` shows the count of unanswered items (`hui.count_badge`), like the errors editor. |
-| 15A | Noticing a new one | The badge, visible next to the toggle while ASIDE is closed (Part 1, 15A). The post does not publish a `Reveal`. |
+| 15A | Noticing a new one | The badge, visible next to the toggle while ASIDE is closed (Part 1, 15A). The post does not publish a `Reveal`. *Superseded by #116: the post broadcasts `RevealQuestionnaire`, which brings the tab to the front and opens a closed ASIDE in every open session.* |
 | 17C | Completion | Answers are stored as they are given. *Submit* (required fields enforced) and *Submit anyway* (`incomplete: true`) set the status to `submitted`; the form then becomes read-only. |
 | 18C | Protocol | The post's tool result tells the agent: tell the user a questionnaire waits in ASIDE, then call `get_findings` when they say they are done; `status` says whether it is submitted. No push, no long-poll. |
 | 19A | Tiers | `post_questionnaire`: `EDIT`. Answering in the studio: `EDIT`. `get_findings`: `VIEW`. |
