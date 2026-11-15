@@ -216,6 +216,17 @@ and the workflow deploys the entire directory to GitHub Pages at:
 https://going-haywire.github.io/haywire/marketplace.toml
 ```
 
+### Release reminders
+
+A library outside the monorepo may record, with the owner's agreement, a dependency to
+raise once a core release contains a change: an `after-core-release` issue with a
+`Waits for: going-haywire/haywire@<sha>` line
+([sharing-libraries §7.1](../guides/sharing-libraries.md#71-release-reminders)).
+After a publish, `/haywire-release` (Step 10) lists those reminders across the
+organisation and which of them the new tag contains. Open `todo-pre-release` reminders
+in this repository are listed before the bump (Step 2), and the user decides whether to
+release anyway.
+
 ## Recovery procedures
 
 ### Build failure (Job 2)

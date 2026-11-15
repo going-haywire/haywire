@@ -385,10 +385,16 @@ End-to-end, the flow is:
 write code, build components
         │
         ▼
+try it in the running studio    (uv run haywire)
+        │
+        ▼
 document them — descriptions, tags, docstrings
         │
         ▼
 git commit && git push          (the tree must be clean — §4.1)
+        │
+        ▼
+any release reminders?          (§7.1)
         │
         ▼
 uv run haywire share --bump patch
@@ -407,7 +413,7 @@ consumer subscribes via Add Source
 ```
 
 Everything in the indented block happens inside the one command. The only steps
-that are yours are writing the code, documenting it, and committing.
+that are yours are writing the code, trying it, documenting it, and committing.
 
 Two separate commands cover the CI side — there's no single `--check` gate.
 Run `haywire deps check` as a PR gate to catch manifest drift before merging,
@@ -415,6 +421,34 @@ and `haywire docs --all --json <path>` on merge to keep generated docs current,
 committing whatever it produces. What each one exits with, and why neither is a
 staleness gate, is in
 [share-pipeline-arch §6](../architecture/sharing/share-pipeline-arch.md#6-the-current-ci-story).
+
+### 7.1 Release reminders
+
+Sometimes a change you make has a consequence for the next release: most often a
+dependency that has to be raised once a release contains a change you need. A
+**release reminder** is a GitHub issue that records that decision, so it is not
+forgotten by the time you release. It is a help, not a rule: `haywire share`
+never reads it, and you open one only when you want to be reminded. An agent
+working from the `CLAUDE.md` that `haywire init` writes proposes one and opens it
+only when you agree.
+
+| Label | Meaning | Read |
+|---|---|---|
+| `todo-pre-release` | Something you decided to do before the next release of this project. | Before `haywire share`: an agent lists the open ones and asks whether to release anyway. |
+| `after-core-release` | A dependency to raise once a released haywire-core contains a named change. | At the start of a work session, and by the haywire team after each core release. |
+
+An `after-core-release` issue starts with one line naming the change it waits for,
+so whether a release contains it can be checked rather than remembered:
+
+```text
+Waits for: going-haywire/haywire@840d29a21 (#107)
+```
+
+Prepare the work on a branch, open a draft pull request, and link it to the issue.
+Once the latest haywire-core on PyPI contains the commit, raise your library's
+`haywire-core` floor to that version (§3), finish the pull request and close the
+issue. The exact commands, and the `gh label create` lines for a new repository,
+are in your project's `CLAUDE.md`.
 
 ## 8. Common pitfalls
 

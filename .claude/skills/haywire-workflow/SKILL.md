@@ -1,6 +1,6 @@
 ---
 name: haywire-workflow
-description: Step-by-step procedures for working in this repository through branches, pull requests and CI, for both roles — a contributor working on a fork and the maintainer — starting a task, committing, pushing and opening a PR, reading CI, asking the user for a decision, merging, checking master after a merge, cleaning up, keeping a branch current, running parallel sessions in worktrees, and setting up a second machine. Use it whenever starting, shipping or merging a piece of work, when a PR or CI run needs attention, or when the user has to decide something.
+description: Step-by-step procedures for working in this repository through branches, pull requests and CI, for both roles — a contributor working on a fork and the maintainer — starting a task, live-checking a change in the studio with a Questionnaire, committing, pushing and opening a PR, reading CI, asking the user for a decision, merging, checking master after a merge, cleaning up, keeping a branch current, running parallel sessions in worktrees, and setting up a second machine. Use it whenever starting, shipping or merging a piece of work, when a PR or CI run needs attention, or when the user has to decide something.
 ---
 
 # Working through branches and pull requests
@@ -91,6 +91,48 @@ CI's job on every push. A run that hangs to the 120 s timeout is a lock cycle, n
 flakiness. Redirect long runs to a file and read the tail; the exit code is the signal.
 Tiers, parallelism and test traps: `tests/README.md`.
 
+## Live check
+
+A **live check** asks the user to confirm in the running studio that a change works. It
+costs the user's time, so it is rare and it is the last step: a confirmation, never a
+way to find bugs. Ask for one only when you are confident everything works.
+
+**When.** A change whose effect only a person can judge (UI, layout, interaction, a theme,
+a real device or stream), once, before the PR is marked ready. Not for a change the tests
+cover, and not when the user waives it. Say in the PR which case applies.
+
+**Before asking**, check everything you can yourself: the tests, then the worktree's
+studio through Farmhand (`haybale-studio_verify_component`, the graph tools,
+`haybale-studio_get_errors` empty). Anything you could have found this way and the user
+finds instead is a wasted round.
+
+1. **Write few Checks**: only what needs a person's eyes or hands, from the issue's or
+   plan's acceptance points. One `check` per behaviour, `do` what the user does,
+   `expect` what they should see.
+2. **Run it** as a Questionnaire in this worktree's studio: the loop is in the
+   `haywire-live-studio` skill (*Live check with a Questionnaire*), the format in
+   [docs/reference/questionnaire.md](../../../docs/reference/questionnaire.md).
+3. **A failed Check** means your confidence was wrong: fix it and verify the fix yourself
+   as above. Ask the user before posting another round, with only the Checks that
+   failed.
+4. **Record** each round's Findings in the PR body, section *Live check*, before the next
+   post replaces them:
+
+   ```markdown
+   ## Live check
+
+   Round 1, 2026-11-15, studio at a1b2c3d:
+
+   | Check | Verdict | Note | Fixed in |
+   |---|---|---|---|
+   | drag | fail | stops at 200px | e4f5a6b |
+   | feel | pass | | |
+   ```
+
+   Add errors the ledger logged during the round (`get_errors` from `ledger_seq.posted`)
+   below the table. A plan's *Status* row says `live-checked` and links to the PR's
+   section.
+
 ## Committing
 
 Commit on the branch whenever a step is done; no need to ask. Before each commit, run the
@@ -119,8 +161,9 @@ gh pr create --repo going-haywire/haywire --base master --head <fork-owner>:<bra
 ```
 
 Either way the body follows the headings of `.github/pull_request_template.md` (what and
-why with `Fixes #<n>`, the checklist, AI assistance, what to look at first), lists anything
-still owed, and ends with the attribution line. Give the user the PR's URL.
+why with `Fixes #<n>`, the checklist, the live check, AI assistance, what to look at
+first), lists anything still owed, and ends with the attribution line. Give the user the
+PR's URL.
 
 ## Reading CI
 
@@ -147,8 +190,10 @@ them.
 
 ## Finishing as the maintainer
 
-1. When the work is done, mark the PR ready: `gh pr ready <n>`. macOS joins the checks.
-2. Ask the user to review, as in *Asking the user for a decision*.
+1. When the work is done and its live check, if one was due, has no failed Check
+   (*Live check*), mark the PR ready: `gh pr ready <n>`. macOS joins the checks.
+2. Ask the user to review, as in *Asking the user for a decision*, with the last live
+   check round's table, or why there was none.
 3. Merge only on the user's word ("merge"), and only once the checks are green:
 
    ```sh

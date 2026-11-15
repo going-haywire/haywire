@@ -6,7 +6,9 @@ description: >
   scripts/bump_version.py), shows a unified diff of every change, then on
   confirmation commits `chore: release vX.Y.Z` on a release branch, merges it
   through a PR once its checks pass, tags the merged commit, and hands the user the
-  tag push (a local hook blocks tag pushes) so the publish CI workflow takes over. Supports `--dry-run` to
+  tag push (a local hook blocks tag pushes) so the publish CI workflow takes over.
+  Lists open `todo-pre-release` reminders first, and after the publish reports which
+  libraries' `after-core-release` reminders the release unblocks. Supports `--dry-run` to
   preview the flow without committing. Use this skill whenever the user wants
   to cut, ship, publish, release, or version-bump the monorepo. Trigger
   phrases: "/haywire-release", "cut a release", "ship a release", "release
@@ -118,6 +120,19 @@ Expected: `headSha` equals `HEAD`, `status` is `completed` and `conclusion` is
 - **No run for `HEAD`:** the commit reached `master` without CI (an admin bypass).
   Start one with `gh workflow run CI --ref master`, wait for it, then continue.
 
+Then read the release reminders, decisions recorded for this release:
+
+```bash
+gh issue list --repo going-haywire/haywire --label todo-pre-release --state open \
+  --json number,title,url
+```
+
+Usually `[]`. Otherwise list each issue with its URL and ask the user whether to deal
+with it first or release anyway; a reminder is a help, not a gate. If `gh` cannot answer
+(not logged in, no network), say the reminders could not be read; never report that none
+are open. The convention:
+[sharing-libraries §7.1](../../../docs/guides/sharing-libraries.md#71-release-reminders).
+
 ### Step 2.5 — dependency audit (non-blocking report)
 
 Run the dependency checker to surface any package whose declared dependencies have
@@ -201,7 +216,7 @@ Tell the user:
 
 Offer three options:
 
-- **Yes, do it.** Proceeds to steps 6–9 (including the Step 6.5 wheel smoke). This
+- **Yes, do it.** Proceeds to steps 6–10 (including the Step 6.5 wheel smoke). This
   answer is the user's word to merge the release PR in Step 7.
 - **No, abort.** Switch back with `git switch master` and delete the empty branch
   with `git branch -d release/v<NEW_VERSION>`; just stop.
@@ -430,6 +445,30 @@ gh run watch
 (This blocks until the workflow finishes. Useful for quick releases; skip for
 fire-and-forget.)
 
+### Step 10 — report the reminders this release unblocks
+
+Once the publish run has succeeded and PyPI serves `haywire-core <NEW_VERSION>`, read the
+`after-core-release` reminders across the organisation:
+
+```bash
+gh search issues --owner going-haywire --label after-core-release --state open \
+  --json repository,number,title,url,body --limit 100
+```
+
+For each, take the commit from its `Waits for: going-haywire/haywire@<sha>` line and
+ask whether the new tag contains it:
+
+```bash
+git merge-base --is-ancestor <sha> v<NEW_VERSION> && echo released || echo waiting
+```
+
+Report one table to the user: issue (with URL), waits for, `released` or `waiting`.
+An issue with no `Waits for:` line is listed as `no Waits for line`; read its body and
+say what it waits for. Then offer, per released issue, one comment: "Unblocked:
+haywire-core <NEW_VERSION> contains <sha>." Post them only on the user's word: they
+appear under the user's name. The work itself happens in each library's own session.
+Never open a reminder issue without the user's word either.
+
 ## Dry-run mode
 
 If the user invoked `/haywire-release --dry-run <VERSION>`:
@@ -445,7 +484,7 @@ If the user invoked `/haywire-release --dry-run <VERSION>`:
   > To actually cut the release, re-invoke `/haywire-release <VERSION>` without
   > `--dry-run`.
 
-- Steps 6–9 (commit, PR, tag, CI handoff) are skipped entirely. To abandon, roll
+- Steps 6–10 (commit, PR, tag, CI handoff, sweep) are skipped entirely. To abandon, roll
   back the files, then `git switch master` and `git branch -d release/v<VERSION>`.
 
 This gives the operator a realistic preview — the same files modified the same way as
@@ -458,6 +497,8 @@ a real release — without any persistent or shared-state action. Rollback is a 
   the bump script handles it; CI doesn't publish those packages, but they still get
   versioned together).
 - Edit any file other than via the bump script.
+- Post on other repositories' issues without the user's word (Step 10 drafts, the
+  user decides).
 - Push the tag. A tag push publishes the release; the local `block-dangerous-git.sh`
   hook blocks it, so Step 8 hands the user the command. Pushing the release branch is
   allowed.

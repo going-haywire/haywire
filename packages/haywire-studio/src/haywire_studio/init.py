@@ -18,7 +18,7 @@ from typing import Any
 
 import toml
 
-from .playbook import render_playbook
+from .playbook import render_playbook, render_release_gates
 from .publish_workflow import (
     PLAN_SCRIPT_PATH,
     WORKFLOW_PATH,
@@ -579,6 +579,22 @@ A published version is permanent.
   checklist after `STOP: human needed`. Paste that checklist to the owner verbatim and
   wait; never attempt them yourself.
 - Never force-push, and never delete or move a tag.
+
+## Release reminders
+
+([sharing-libraries §7.1](https://github.com/going-haywire/haywire/blob/master/docs/guides/sharing-libraries.md#71-release-reminders))
+
+{render_release_gates()}
+
+## Live checks
+
+A live check asks the owner to confirm in the running studio (`uv run haywire`) that a
+change works. It costs their time: ask only for a change only a person can judge (UI,
+interaction, a device), only once your own tests and checks leave you confident it works,
+and only with the steps that need a person. With Farmhand connected, post those steps as a
+Questionnaire (`haybale-studio_post_questionnaire`, format:
+[questionnaire](https://github.com/going-haywire/haywire/blob/master/docs/reference/questionnaire.md)),
+then read the answers with `haybale-studio_get_findings` once the owner says they are done.
 
 ## Where it publishes
 
