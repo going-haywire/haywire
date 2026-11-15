@@ -101,6 +101,8 @@ from haywire.barn.builtin.widgets import (
 from haywire.barn.builtin.wires import CallbackWire, ControlWire, DataWire
 from haywire.core.adapter.base import BaseAdapter, adapter
 from haywire.core.adapter.registry import AdapterRegistry
+from haywire.core.edge.arrow_heads import NO_HEAD
+from haywire.core.edge.style import dash_choices
 from haywire.core.catalog import CatalogEntry, CatalogRegistry, ModelFile, Resource
 from haywire.core.errors import Refusal, report_failure
 from haywire.core.execution import (
@@ -116,6 +118,7 @@ from haywire.core.library.decorator import library
 from haywire.core.library.deprecated_names import DeprecatedName, serve_deprecated
 from haywire.core.macro import MacroRegistry
 from haywire.core.settings import (
+    EdgeSettings,
     LibrarySettings,
     NodeSettings,
     Promotable,
@@ -154,10 +157,12 @@ from haywire.core.types import (
     StoreStrategy,
     TypeRegistry,
     WireRole,
+    WireType,
     declaring_type_of,
     type,
 )
 from haywire.core.types.enums import ShowWidgetStrategy
+from haywire.core.types.event import Event
 from haywire.core.types.fields import element_from_dict, element_to_dict
 from haywire.core.volumes import (
     VolumeError,
@@ -231,6 +236,7 @@ __all__ = [
     "DataField",
     "DataPort",
     "Drained",
+    "Event",
     "IType",
     "LayoutDirection",
     "PortOrigin",
@@ -248,6 +254,10 @@ __all__ = [
     "CallbackWire",
     "ControlWire",
     "DataWire",
+    "EdgeSettings",
+    "NO_HEAD",
+    "WireType",
+    "dash_choices",
     # Builtin types (all of haywire.barn.builtin.types)
     "ADD",
     "ADDField",

@@ -13,7 +13,7 @@ Imports and ``__all__`` only; the one function serves deprecated names. ``hui`` 
 # haywire.api comes first: it fixes the import order of the core packages.
 import haywire.api  # noqa: F401
 
-from haywire.barn.builtin.surfaces import Barns
+from haywire.barn.builtin.surfaces import AppSettings, Barns, CanvasSettings, ExecutionInspector
 from haywire.core.access import AccessTier, LevelMode, resolve_tier
 from haywire.core.di.context import (
     activity_tracker,
@@ -27,20 +27,45 @@ from haywire.core.farmhand import (
     FarmhandRegistry,
     ToolAnnotations,
     farmhand,
+    truncation_note,
 )
 from haywire.core.graph.base import BaseGraph
 from haywire.core.library.deprecated_names import DeprecatedName, serve_deprecated
-from haywire.core.session import SessionContext, react_on
-from haywire.core.signals import Reveal, Signal
-from haywire.core.state import AppState, LibraryStateRegistry, state
+from haywire.core.session import SessionContext, react_on, redraw_on
+from haywire.core.session.handlers import reveal_on
+from haywire.core.signals import (
+    ActiveGraphMoved,
+    BroadcastClose,
+    Close,
+    Copy,
+    Cut,
+    Delete,
+    Duplicate,
+    EditorCommand,
+    GraphDataMutated,
+    Paste,
+    Redo,
+    Reveal,
+    RevealComponentDocs,
+    RevealComponentSource,
+    RevealSignal,
+    RevealSource,
+    SelectAll,
+    SelectionMoved,
+    Signal,
+    Undo,
+    signal_field,
+)
+from haywire.core.state import AppState, LibraryState, LibraryStateRegistry, SessionState, state
 from haywire.ui import elements as hui
 from haywire.ui.access_stamp import stamp_requires
-from haywire.ui.editor import BaseEditor, EditorTypeRegistry, SlotName, editor
+from haywire.ui.editor import BaseEditor, EditorTypeRegistry, OpenBehavior, SlotName, editor
 from haywire.ui.editor.wrapper import EditorWrapper
 from haywire.ui.hover_tip import set_hover_tip
 from haywire.ui.modals import confirm_modal
 from haywire.ui.panel import BasePanel, PanelLayout, PanelRegistry, panel
 from haywire.ui.panel.render_utils import render_schema
+from haywire.ui.surface import Surface
 
 #: Names that left ``__all__`` and are still served, with a notice, until the
 #: release each entry names. ``tests/api/names.py`` lists them too.
@@ -61,24 +86,55 @@ __all__ = [
     "LibraryStateRegistry",
     "PanelRegistry",
     # Panel
-    "Barns",
     "BasePanel",
     "PanelLayout",
     "panel",
     "render_schema",
+    # Surfaces a panel appears on
+    "AppSettings",
+    "Barns",
+    "CanvasSettings",
+    "ExecutionInspector",
+    "Surface",
     # Editor
     "BaseEditor",
     "EditorWrapper",
+    "OpenBehavior",
     "SlotName",
     "editor",
-    # Session and signals
+    # Session
     "BaseGraph",
-    "Reveal",
     "SessionContext",
+    # Signals
+    "ActiveGraphMoved",
+    "BroadcastClose",
+    "Close",
+    "EditorCommand",
+    "GraphDataMutated",
+    "Reveal",
+    "RevealComponentDocs",
+    "RevealComponentSource",
+    "RevealSignal",
+    "RevealSource",
+    "SelectionMoved",
     "Signal",
     "react_on",
+    "redraw_on",
+    "reveal_on",
+    "signal_field",
+    # Keyboard commands an editor answers
+    "Copy",
+    "Cut",
+    "Delete",
+    "Duplicate",
+    "Paste",
+    "Redo",
+    "SelectAll",
+    "Undo",
     # State
     "AppState",
+    "LibraryState",
+    "SessionState",
     "state",
     # Access
     "AccessTier",
@@ -91,6 +147,7 @@ __all__ = [
     "FarmhandError",
     "ToolAnnotations",
     "farmhand",
+    "truncation_note",
     # Design system and modals
     "confirm_modal",
     "hui",

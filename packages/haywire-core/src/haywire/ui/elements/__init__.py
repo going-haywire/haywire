@@ -25,6 +25,7 @@ from haywire.ui.elements.flyout import (  # noqa: F401
     DropdownDirection,
     DropdownIcon,
     FlyoutIcon,
+    FlyoutMenu,
     FlyoutSiblings,
     SubmenuRow,
     close_flyout,
@@ -48,5 +49,7 @@ icon = AppIcon
 # flyout opens beside its anchor and holds commands; dropdown opens below it
 # and holds fields (click-open, no auto-close; closes=True for commands).
 flyout = FlyoutIcon
+# hui.menu() — a ui.menu drawn with the menu frame of flyouts and context menus.
+menu = FlyoutMenu
 dropdown = DropdownIcon
 submenu_row = SubmenuRow
