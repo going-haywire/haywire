@@ -58,8 +58,16 @@ Once the studio is up, call its tools directly by name in this session —
 
 `studioctl` tracks only the studio **it** started, via `.haywire/studioctl.pid`.
 
+- The port is resolved in order: `.haywire/studio.json` (written by a studio
+  the first time it runs in this folder), then `network.port.value` in
+  `.haywire/settings.json` (a worktree's own port, written by
+  `scripts/worktree_setup.py`), then 8124 — the main folder's studio.
 - `start` is idempotent — reuses a studio already on the resolved port, never
-  spawns a second.
+  spawns a second, but only if that studio's process runs in this workspace
+  (its `/proc/<pid>/cwd`). A studio of another folder on the port is refused
+  with exit 1: `port N is held by the studio of <folder>; this workspace's port
+  is N (<source>)`. Run `studioctl` from inside the worktree whose code you
+  want to check, never point it at another folder's studio.
 - `stop` kills only the tracked pid. A studio you started yourself (terminal
   `uv run haywire`, or the desktop app) has no pid file here, so `stop` refuses
   and tells you to pass `--force` (which kills whatever holds the port).

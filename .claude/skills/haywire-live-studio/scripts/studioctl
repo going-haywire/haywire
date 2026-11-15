@@ -8,15 +8,21 @@ The studio serves the NiceGUI app AND the Farmhand MCP endpoint on one port
 MCP client — Farmhand is then driven over HTTP by the sibling ``farmhand``
 script.
 
-The port is discovered from the sidecar identity file ``.haywire/studio.json``
-(written by the studio on every Farmhand mount) so this script never needs
-updating when the setting changes. Before a studio has ever started in this
-workspace there is no sidecar yet — ``start`` falls back to ``DEFAULT_PORT``
-for that one bootstrap connection attempt only.
+The port is resolved in this order, so this script never needs updating when
+the setting changes:
+1. the sidecar identity file ``.haywire/studio.json`` (written by the studio on
+   every Farmhand mount);
+2. ``network.port.value`` in the workspace settings ``.haywire/settings.json``
+   (a fresh worktree has no sidecar yet, but ``scripts/worktree_setup.py`` has
+   written its own port there);
+3. ``DEFAULT_PORT`` (8124, the main folder's studio).
 
 Lifecycle discipline (why this won't stomp your GUI studio):
-- ``start`` is idempotent: if the port is already listening it reports the
-  running server and exits 0 without spawning a second one.
+- ``start`` is idempotent: if the port is already listening and the process
+  holding it runs in THIS workspace (its ``/proc/<pid>/cwd``), it reports the
+  running server and exits 0 without spawning a second one. A studio of another
+  folder on that port is refused (exit 1), so a worktree never drives the main
+  folder's studio and live-checks the wrong code.
 - ``stop`` only kills a studio THIS tool started, tracked by a PID file under
   ``.haywire/studioctl.pid``. A studio you launched yourself (``uv run haywire``
   in a terminal, or the VS Code app) has no PID file here and is left alone,
@@ -38,7 +44,7 @@ import sys
 import time
 from pathlib import Path
 
-DEFAULT_PORT = 8124  # NetworkSettings.port default — used only before a sidecar exists
+DEFAULT_PORT = 8124  # NetworkSettings.port default — the main folder's studio
 HOST = "127.0.0.1"
 
 
@@ -69,18 +75,34 @@ def sidecar_file() -> Path:
     return haywire_dir() / "studio.json"
 
 
+def settings_file() -> Path:
+    return haywire_dir() / "settings.json"
+
+
+def _read_json(f: Path) -> dict:
+    try:
+        data = json.loads(f.read_text())
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def resolve_port_and_source() -> tuple[int, str]:
+    """Port from the sidecar identity file, else the workspace settings'
+    ``network.port.value``, else DEFAULT_PORT; with where it came from."""
+    port = _read_json(sidecar_file()).get("port")
+    if isinstance(port, int):
+        return port, ".haywire/studio.json"
+    network = _read_json(settings_file()).get("network")
+    if isinstance(network, dict) and isinstance(network.get("port"), dict):
+        port = network["port"].get("value")
+        if isinstance(port, int):
+            return port, ".haywire/settings.json"
+    return DEFAULT_PORT, "default; a worktree gets its own from scripts/worktree_setup.py"
+
+
 def resolve_port() -> int:
-    """Port from the sidecar identity file, or DEFAULT_PORT if none written yet
-    (no studio has ever mounted Farmhand in this workspace)."""
-    f = sidecar_file()
-    if f.exists():
-        try:
-            port = json.loads(f.read_text()).get("port")
-            if isinstance(port, int):
-                return port
-        except (json.JSONDecodeError, OSError):
-            pass
-    return DEFAULT_PORT
+    return resolve_port_and_source()[0]
 
 
 def port_open(port: int) -> bool:
@@ -127,9 +149,26 @@ def owner_of_port(port: int) -> int | None:
     return None
 
 
+def process_cwd(pid: int) -> Path | None:
+    """The working directory of ``pid`` (Linux ``/proc``), or None if unreadable."""
+    try:
+        return Path(os.readlink(f"/proc/{pid}/cwd")).resolve()
+    except OSError:
+        return None
+
+
 def cmd_start(args: argparse.Namespace) -> int:
-    port = resolve_port()
+    port, source = resolve_port_and_source()
     if port_open(port):
+        owner = owner_of_port(port)
+        folder = process_cwd(owner) if owner is not None else None
+        if folder != workspace_root():
+            if folder:
+                holder = f"the studio of {folder}"
+            else:
+                holder = f"pid {owner}" if owner else "a process studioctl cannot identify"
+            print(f"port {port} is held by {holder}; this workspace's port is {port} ({source}).")
+            return 1
         tracked = read_tracked_pid()
         who = f"tracked pid {tracked}" if tracked else "not tracked by studioctl (your own instance)"
         print(f"studio already up on {HOST}:{port} ({who}) — reusing it.")
