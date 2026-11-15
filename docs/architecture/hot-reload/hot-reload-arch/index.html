@@ -3961,7 +3961,7 @@
 <h1 id="hot-reload-architecture">Hot-Reload — Architecture<a class="headerlink" href="#hot-reload-architecture" title="Permanent link">&para;</a></h1>
 <h2 id="1-mental-model">1. Mental model<a class="headerlink" href="#1-mental-model" title="Permanent link">&para;</a></h2>
 <p>Hot-reload is the framework's response to a <code>.py</code> file change in a library that has <code>file_watcher=True</code>. It re-imports the changed module, re-registers any decorated classes from that module under their existing <code>registry_key</code>s, and allows thus every wrapper to rebuild the referenced class on the spot.</p>
-<p>It is a <strong>cross-cutting</strong> subsystem: every registry (NodeRegistry, AdapterRegistry, WidgetRegistry, SkinRegistry, ThemeRegistry, SettingsRegistry, LibraryStateRegistry, EditorTypeRegistry, PanelRegistry) subscribes to the same <code>BaseRegistry</code> event pipeline. Hot-reload doesn't know what kind of class is reloading — it just fires events; consumers (factories, wrappers, the graph) handle the rebuild for their own concerns.</p>
+<p>It is a <strong>cross-cutting</strong> subsystem: every registry (NodeRegistry, AdapterRegistry, WidgetRegistry, SkinRegistry, ThemeRegistry, SettingsRegistry, StateRegistry, EditorRegistry, PanelRegistry) subscribes to the same <code>BaseRegistry</code> event pipeline. Hot-reload doesn't know what kind of class is reloading — it just fires events; consumers (factories, wrappers, the graph) handle the rebuild for their own concerns.</p>
 <p>The discipline is: <strong>every wrapper rebuilds references of a reloaded class</strong> so user code sees only the new class. Managed modules are evicted from <code>sys.modules</code> before re-import (<code>del sys.modules[name]</code> in <code>folder_scan.py</code>), so the module object is replaced — not accumulated. Closures and direct attribute references to old classes can still pin memory, but the module slot itself is reused.</p>
 <h2 id="2-contract">2. Contract<a class="headerlink" href="#2-contract" title="Permanent link">&para;</a></h2>
 <h3 id="21-the-cascade">2.1 The cascade<a class="headerlink" href="#21-the-cascade" title="Permanent link">&para;</a></h3>
@@ -4074,11 +4074,11 @@
 <td>Schema descriptors re-bind; <code>cls._registry</code> is re-wired on the new class</td>
 </tr>
 <tr>
-<td><code>LibraryStateRegistry</code></td>
+<td><code>StateRegistry</code></td>
 <td>Container disable/re-enable cycle — <code>on_disable</code> on old instance, swap class, <code>on_enable</code> on new instance (<a href="../../session-and-state/session-and-state-arch/#34-hot-reload-semantics">session-and-state §3.4</a>)</td>
 </tr>
 <tr>
-<td><code>PanelRegistry</code> / <code>EditorTypeRegistry</code></td>
+<td><code>PanelRegistry</code> / <code>EditorRegistry</code></td>
 <td>New classes picked up at next render boundary; existing instances continue until natural slot/binding change</td>
 </tr>
 </tbody>
@@ -4117,7 +4117,7 @@
 <h3 id="35-librarystate-reload-disable-enable">3.5 LibraryState reload — disable + enable<a class="headerlink" href="#35-librarystate-reload-disable-enable" title="Permanent link">&para;</a></h3>
 <p>State classes (<a href="../../../components/states/state-canon/">components/states</a>) follow a strict exit-before-enter discipline:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>1. on_disable() runs on the OLD instance, against the OLD class
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>2. Class is swapped in LibraryStateRegistry
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>2. Class is swapped in StateRegistry
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>3. on_enable() runs on a NEW instance, against the NEW class
 </span></code></pre></div>
 <p>In-flight state is lost. If <code>on_enable</code> is expensive (warming a cache, scanning hardware), reload pays that cost again — by design.</p>
@@ -4174,7 +4174,7 @@ reloaded theme is the graph's active one) and the browser re-resolves every
 <p>Adapters are cheap to reload — typically under 50ms.</p>
 <h3 id="53-what-gets-rebuilt-when-you-edit-a-state-class">5.3 What gets rebuilt when you edit a state class<a class="headerlink" href="#53-what-gets-rebuilt-when-you-edit-a-state-class" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>1. FileWatcher fires
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>2. LibraryStateRegistry updates the class
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>2. StateRegistry updates the class
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>3. LibraryStateContainer:
 </span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>   - For AppState: disable old instance → store new instance → enable
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>   - For SessionState: per-session disable → per-session new instance → per-session enable

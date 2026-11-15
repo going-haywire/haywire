@@ -3845,8 +3845,8 @@
 </ol>
 <p>The pipeline is documented in <a href="../../../architecture/hot-reload/hot-reload-arch/">architecture/hot-reload</a> and the rebuild logic in <a href="../../../architecture/execution/edges/edges-arch/">architecture/execution/edges</a>.</p>
 <p><strong>Imports</strong> (verified against codebase 2026-05):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.adapter.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAdapter</span><span class="p">,</span> <span class="n">IAdapter</span><span class="p">,</span> <span class="n">adapter</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.adapter.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">AdapterRegistry</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAdapter</span><span class="p">,</span> <span class="n">adapter</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">AdapterRegistry</span>
 </span></code></pre></div>
 <h2 id="4-live-examples-from-the-codebase">4. Live examples from the codebase<a class="headerlink" href="#4-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
 <p>Source: <code>barn/haybale-testing/haybale_testing/adapters/test_adapters.py</code></p>
@@ -4029,7 +4029,7 @@
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Set <code>priority=</code> if multiple adapters could match the same pair</li>
 </ul>
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.adapter.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAdapter</span><span class="p">,</span> <span class="n">adapter</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.api</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAdapter</span><span class="p">,</span> <span class="n">adapter</span>
 </span></code></pre></div>
 <h3 id="default-vs-override-surface">Default vs. override surface<a class="headerlink" href="#default-vs-override-surface" title="Permanent link">&para;</a></h3>
 <table>

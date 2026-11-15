@@ -3984,10 +3984,10 @@
 <h2 id="1-mental-model">1. Mental model<a class="headerlink" href="#1-mental-model" title="Permanent link">&para;</a></h2>
 <p>The state subsystem holds <strong>library-owned runtime data</strong> at two scopes — app-global (<code>AppState</code>) and per-session (<code>SessionState</code>) — and routes every read through a class-keyed namespace on <code>SessionContext</code> (UI side) or <code>ExecutionContext</code> (workers). Two cooperating components, one shape each:</p>
 <ul>
-<li><strong><code>LibraryStateRegistry</code></strong> — a <code>BaseRegistry</code> subclass holding <em>classes</em>. Discovers concrete <code>LibraryState</code> subclasses (both <code>AppState</code> and <code>SessionState</code>) via folder-scan, exactly like <code>NodeRegistry</code> finds node classes. It does not instantiate anything.</li>
+<li><strong><code>StateRegistry</code></strong> — a <code>BaseRegistry</code> subclass holding <em>classes</em>. Discovers concrete <code>LibraryState</code> subclasses (both <code>AppState</code> and <code>SessionState</code>) via folder-scan, exactly like <code>NodeRegistry</code> finds node classes. It does not instantiate anything.</li>
 <li><strong><code>LibraryStateContainer</code></strong> — holds the <em>instances</em>, in two side-by-side stores: a flat <code>dict[type[AppState], AppState]</code> for the app-global pool and a per-session <code>dict[type[SessionState], dict[str, SessionState]]</code> for per-session pools. Subscribes to the registry's lifecycle events and routes by class kind.</li>
 </ul>
-<p>This is the same separation <code>NodeRegistry</code>/<code>NodeFactory</code> uses: registries hold classes, factories or containers hold instances. No new singleton pattern, no new service class — <code>LibraryStateRegistry</code> is added to the DI graph the same way <code>PanelRegistry</code> was.</p>
+<p>This is the same separation <code>NodeRegistry</code>/<code>NodeFactory</code> uses: registries hold classes, factories or containers hold instances. No new singleton pattern, no new service class — <code>StateRegistry</code> is added to the DI graph the same way <code>PanelRegistry</code> was.</p>
 <p>The authoring side (<code>@state</code> decorator, <code>on_enable</code>/<code>on_disable</code> hooks, the access patterns) lives in <a href="../../../components/states/state-canon/">components/states</a>. This file documents what happens <em>under</em> that surface.</p>
 <h2 id="2-contract">2. Contract<a class="headerlink" href="#2-contract" title="Permanent link">&para;</a></h2>
 <h3 id="21-type-hierarchy">2.1 Type hierarchy<a class="headerlink" href="#21-type-hierarchy" title="Permanent link">&para;</a></h3>
@@ -4002,7 +4002,7 @@
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span>   <span class="c1"># set by container before on_enable</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">...</span>
 </span></code></pre></div>
-<p><code>LibraryState</code> is the type root for <code>LibraryStateRegistry</code>'s class filter. The filter accepts <em>concrete</em> subclasses of <code>LibraryState</code> and excludes the three marker bases (<code>LibraryState</code>, <code>AppState</code>, <code>SessionState</code>).</p>
+<p><code>LibraryState</code> is the type root for <code>StateRegistry</code>'s class filter. The filter accepts <em>concrete</em> subclasses of <code>LibraryState</code> and excludes the three marker bases (<code>LibraryState</code>, <code>AppState</code>, <code>SessionState</code>).</p>
 <h3 id="22-two-access-namespaces">2.2 Two access namespaces<a class="headerlink" href="#22-two-access-namespaces" title="Permanent link">&para;</a></h3>
 <p><code>SessionContext</code> and <code>ExecutionContext</code> expose state through generic-typed namespaces:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">A</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">AppState</span><span class="p">)</span>
@@ -4051,7 +4051,7 @@
 <p>The framework synthesizes one <code>Signal</code> subclass per field at class-definition time; the field reference IS the subscription key. No separate event class to import.</p>
 <p>Routing is scope-determined: a <code>SessionState</code> / <code>SessionContext</code> field publishes on the owning <code>Session</code>'s <code>SignalBus</code>; an <code>AppState</code> field broadcasts cross-session via <code>SessionManager</code>. Subscribers attach to the same bus they would for any hand-authored <code>Signal</code>.</p>
 <h3 id="24-registry-filter">2.4 Registry filter<a class="headerlink" href="#24-registry-filter" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">LibraryStateRegistry</span><span class="p">(</span><span class="n">BaseRegistry</span><span class="p">):</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">StateRegistry</span><span class="p">(</span><span class="n">BaseRegistry</span><span class="p">):</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_class_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>        <span class="k">return</span> <span class="p">(</span>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>            <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">LibraryState</span><span class="p">)</span>
@@ -4060,7 +4060,7 @@
 </span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>            <span class="ow">and</span> <span class="bp">cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">SessionState</span>
 </span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="p">)</span>
 </span></code></pre></div>
-<p>This is what makes <code>add_folder_to_registry(folder=base/'state', registry_cls=LibraryStateRegistry)</code> work: every concrete <code>LibraryState</code> subclass in the folder is registered, regardless of whether it inherits from <code>AppState</code> or <code>SessionState</code>. The container disambiguates downstream.</p>
+<p>This is what makes <code>add_folder_to_registry(folder=base/'state', registry_cls=StateRegistry)</code> work: every concrete <code>LibraryState</code> subclass in the folder is registered, regardless of whether it inherits from <code>AppState</code> or <code>SessionState</code>. The container disambiguates downstream.</p>
 <h3 id="25-container-storage">2.5 Container storage<a class="headerlink" href="#25-container-storage" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">LibraryStateContainer</span><span class="p">:</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">_app</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">AppState</span><span class="p">],</span> <span class="n">AppState</span><span class="p">]</span>
@@ -4077,7 +4077,7 @@
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    ├─ register_components()         ← author-written
 </span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    │   └─ folder-scan finds class
 </span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    │
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    ├─ LibraryStateRegistry registers each class
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    ├─ StateRegistry registers each class
 </span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    │
 </span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    └─ Container observes the CLASS_ADDED event:
 </span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        ├─ instantiate (cls())
@@ -4092,7 +4092,7 @@
 </span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>          └─ call on_enable() on the (already-instantiated) instance
 </span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>
 </span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>library.disable()
-</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>  ├─ LibraryStateRegistry unregisters each class
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>  ├─ StateRegistry unregisters each class
 </span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>  │
 </span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>  └─ Container observes the CLASS_REMOVED event:
 </span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>      ├─ call on_disable() if defined
@@ -4144,7 +4144,7 @@
 <h3 id="33-ordering-first-load-and-hot-reload">3.3 Ordering — first-load and hot-reload<a class="headerlink" href="#33-ordering-first-load-and-hot-reload" title="Permanent link">&para;</a></h3>
 <p><strong>Recommended scan order in <code>register_components()</code>:</strong> <code>settings → state → nodes / panels / editors / themes</code>.</p>
 <p>This mirrors the framework's hot-reload propagation chain:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>SettingsRegistry → LibraryStateRegistry → NodeRegistry, PanelRegistry, EditorTypeRegistry
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>SettingsRegistry → StateRegistry → NodeRegistry, PanelRegistry, EditorRegistry
 </span></code></pre></div>
 <p>Following the same order at first-load means an <code>AppState</code> whose <code>on_enable</code> reads a <code>LibrarySettings()</code> value finds the schema already wired, and node/panel/editor classes that import an <code>AppState</code> for use as a <code>ctx.app_data[Cls]</code> key resolve it during their own scan.</p>
 <p>Within a single library, folder-scan order is alphabetical. Cross-library ordering respects <code>dependencies=</code> declared on <code>@library</code> (the existing inter-library dependency mechanism — no new ordering machinery is added). Cross-<code>AppState</code> dependency ordering inside one library is <strong>not</strong> supported; if A's <code>on_enable</code> requires B already initialised, split them into sibling libraries.</p>
@@ -4165,7 +4165,7 @@
 <p><code>AppState</code> may hold a <code>LibrarySettings</code> instance to give it a serialised configuration slice — the recommended pattern for state with persisted, user-tweakable knobs. The lifecycle order during library enable is critical:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>1. register_components() runs → folder-scans register classes
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>2. SettingsRegistry wires every LibrarySettings subclass&#39;s _registry attribute
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>3. LibraryStateRegistry registers concrete LibraryState subclasses
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>3. StateRegistry registers concrete LibraryState subclasses
 </span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>4. Container instantiates each state class and calls on_enable
 </span></code></pre></div>
 <p><code>on_enable</code> is the first lifecycle moment where every <code>LibrarySettings</code> class in the library is guaranteed to be fully wired. Instantiating in <code>__init__</code> or the class body risks running before step 2 and crashing with a <code>None</code> registry.</p>
@@ -4188,7 +4188,7 @@
 <h2 id="5-examples">5. Examples<a class="headerlink" href="#5-examples" title="Permanent link">&para;</a></h2>
 <h3 id="51-container-subscription-internal-pattern">5.1 Container subscription (internal pattern)<a class="headerlink" href="#51-container-subscription-internal-pattern" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">LibraryStateContainer</span><span class="p">:</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">registry</span><span class="p">:</span> <span class="n">LibraryStateRegistry</span><span class="p">):</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">registry</span><span class="p">:</span> <span class="n">StateRegistry</span><span class="p">):</span>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_registry</span> <span class="o">=</span> <span class="n">registry</span>
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_app</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">AppState</span><span class="p">],</span> <span class="n">AppState</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 </span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_session</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">SessionState</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">SessionState</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -4237,7 +4237,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>LibraryStateRegistry</code> batch lifecycle events (CLASS_ADDED / REMOVED / RELOADED)</td>
+<td><code>StateRegistry</code> batch lifecycle events (CLASS_ADDED / REMOVED / RELOADED)</td>
 <td><code>subscribe_to_lifecycle_events()</code></td>
 <td><strong>Before</strong> <code>enable_all_libraries()</code></td>
 <td>Phase 1 — instantiate on CLASS_ADDED</td>

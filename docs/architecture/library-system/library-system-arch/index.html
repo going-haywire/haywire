@@ -4277,7 +4277,7 @@
 </span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>  │
 </span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>  └── all class registries now populated; app proceeds
 </span></code></pre></div>
-<p>State classes registered via <code>LibraryStateRegistry</code> have a two-phase lifecycle that intersects this loop: instantiation happens per library as it enables, but <code>AppState.on_enable</code> is held back until the whole <code>enable_all_libraries()</code> loop returns and a catch-up pass runs. See <a href="../../session-and-state/session-and-state-arch/#31-appstate-lifecycle">session-and-state-arch §3.1</a> and <a href="../../session-and-state/session-and-state-arch/#52-librarysystemservice-wiring">§5.2</a> for the wiring and rationale.</p>
+<p>State classes registered via <code>StateRegistry</code> have a two-phase lifecycle that intersects this loop: instantiation happens per library as it enables, but <code>AppState.on_enable</code> is held back until the whole <code>enable_all_libraries()</code> loop returns and a catch-up pass runs. See <a href="../../session-and-state/session-and-state-arch/#31-appstate-lifecycle">session-and-state-arch §3.1</a> and <a href="../../session-and-state/session-and-state-arch/#52-librarysystemservice-wiring">§5.2</a> for the wiring and rationale.</p>
 <h3 id="32-priority-order-when-multiple-sources-provide-the-same-library-id">3.2 Priority order when multiple sources provide the same library ID<a class="headerlink" href="#32-priority-order-when-multiple-sources-provide-the-same-library-id" title="Permanent link">&para;</a></h3>
 <table>
 <thead>

@@ -313,6 +313,14 @@
          <lastmod>2026-11-15</lastmod>
     </url>
     <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0084-a-library-imports-the-framework-through-the-author-api/</loc>
+         <lastmod>2026-11-15</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0085-a-name-leaves-the-author-api-through-a-deprecation-window/</loc>
+         <lastmod>2026-11-15</lastmod>
+    </url>
+    <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/design/design-arch/</loc>
          <lastmod>2026-11-15</lastmod>
     </url>

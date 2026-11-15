@@ -4052,25 +4052,25 @@
 </thead>
 <tbody>
 <tr>
-<td><code>AppSettings</code></td>
+<td><code>AppSettingsSurface</code></td>
 <td><code>app</code></td>
 <td>inspector</td>
 <td>always true</td>
 </tr>
 <tr>
-<td><code>Barns</code></td>
+<td><code>BarnsSurface</code></td>
 <td><code>barns</code></td>
 <td>inspector</td>
 <td>always true</td>
 </tr>
 <tr>
-<td><code>ExecutionInspector</code></td>
+<td><code>ExecutionInspectorSurface</code></td>
 <td><code>execution</code></td>
 <td>inspector</td>
 <td>always true</td>
 </tr>
 <tr>
-<td><code>CanvasSettings</code></td>
+<td><code>CanvasSettingsSurface</code></td>
 <td><code>canvas</code></td>
 <td>inspector</td>
 <td>always true</td>
@@ -4148,7 +4148,7 @@
 <td>right-clicked file has a matching extension</td>
 </tr>
 <tr>
-<td><code>AccountMenu</code></td>
+<td><code>AccountMenuSurface</code></td>
 <td><code>account</code></td>
 <td>menu</td>
 <td>always true</td>
@@ -4173,18 +4173,16 @@
 </span></code></pre></div>
 <p><code>poll</code> is a classmethod (no instance state needed for visibility decisions). <code>draw</code> is an instance method — the host editor instantiates the panel before calling it. A panel on a Surface with <code>provides</code> set accesses the injected host via <code>self.actions</code>; a panel on a Surface with <code>provides = None</code> leaves <code>self.actions</code> at its default <code>None</code>.</p>
 <p><strong>Panel on a Surface with a host contract</strong> (mounted by a context-menu host):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui</span><span class="w"> </span><span class="kn">import</span> <span class="n">elements</span> <span class="k">as</span> <span class="n">hui</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">my_lib.surfaces</span><span class="w"> </span><span class="kn">import</span> <span class="n">SelectionActions</span><span class="p">,</span> <span class="n">SelectionMenu</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nd">@panel</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">SelectionMenu</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete Selection&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">)</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">DeleteSelectionPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">SelectionActions</span>   <span class="c1"># type-checker visibility only; the framework never reads this</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">layout</span><span class="p">):</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">menu_row</span><span class="p">(</span><span class="s2">&quot;Delete Selection&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">delete_selection</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.api.workbench</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">hui</span><span class="p">,</span> <span class="n">panel</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">my_lib.surfaces</span><span class="w"> </span><span class="kn">import</span> <span class="n">SelectionActions</span><span class="p">,</span> <span class="n">SelectionMenu</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nd">@panel</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">SelectionMenu</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete Selection&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">DeleteSelectionPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">SelectionActions</span>   <span class="c1"># type-checker visibility only; the framework never reads this</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">layout</span><span class="p">):</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">menu_row</span><span class="p">(</span><span class="s2">&quot;Delete Selection&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">delete_selection</span><span class="p">)</span>
 </span></code></pre></div>
 <p><strong>Panel on a Surface with no host contract</strong> (mounted by PropertiesEditor):</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@panel</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">SettingsInspector</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Workbench&quot;</span><span class="p">)</span>
@@ -4299,14 +4297,13 @@
 <p><strong>Ordering.</strong> <code>order=</code> controls vertical position within a surface. Convention: 0–99 for built-in panels, 100+ for library panels, 1000+ for "always-last" panels (debug, advanced).</p>
 <p><strong><code>hb_*</code> methods are safe.</strong> Custom helper methods on a panel class should start with <code>hb_</code>, <code>my_</code>, <code>custom_</code>, or <code>ext_</code> — same convention as nodes. Avoids future-framework name clashes.</p>
 <p><strong>Imports:</strong></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">PanelLayout</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Built-in surfaces live in haywire.barn.builtin.surfaces (framework-wide)</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># or a library&#39;s own surfaces/ package (e.g. haybale_graph_editor.surfaces).</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.barn.builtin.surfaces</span><span class="w"> </span><span class="kn">import</span> <span class="n">AppSettings</span><span class="p">,</span> <span class="n">ExecutionInspector</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># For a panel that calls back into its host: import the Surface&#39;s own Protocol</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1"># from my_lib.surfaces import MySurface, MyActions</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.api.workbench</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">PanelLayout</span><span class="p">,</span> <span class="n">panel</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="c1"># Built-in surfaces live in haywire.barn.builtin.surfaces (framework-wide)</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># or a library&#39;s own surfaces/ package (e.g. haybale_graph_editor.surfaces).</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.api.workbench</span><span class="w"> </span><span class="kn">import</span> <span class="n">AppSettingsSurface</span><span class="p">,</span> <span class="n">ExecutionInspectorSurface</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="c1"># For a panel that calls back into its host: import the Surface&#39;s own Protocol</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># from my_lib.surfaces import MySurface, MyActions</span>
 </span></code></pre></div>
 <p><strong>Hot-reload.</strong> <code>PanelRegistry</code> extends <code>BaseRegistry</code>. New panel classes are picked up at the host editor's next render boundary. Existing panel instances are re-instantiated on the next <code>poll → draw</code> cycle. Surface ids are the stable lookup key, so reloads don't break surface tabs.</p>
 <h2 id="4-live-examples-from-the-codebase">4. Live examples from the codebase<a class="headerlink" href="#4-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
@@ -4440,9 +4437,14 @@
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Place in <code>panels/</code> folder; register via <code>add_folder_to_registry(folder_path=..., registry_cls=PanelRegistry)</code> in <code>register_components</code></li>
 </ul>
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">PanelLayout</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.barn.builtin.surfaces</span><span class="w"> </span><span class="kn">import</span> <span class="n">AppSettings</span><span class="p">,</span> <span class="n">ExecutionInspector</span><span class="p">,</span> <span class="n">CanvasSettings</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.api.workbench</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">AppSettingsSurface</span><span class="p">,</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="n">BasePanel</span><span class="p">,</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="n">CanvasSettingsSurface</span><span class="p">,</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="n">ExecutionInspectorSurface</span><span class="p">,</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="n">PanelLayout</span><span class="p">,</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">panel</span><span class="p">,</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="built-in-surfaces">Built-in Surfaces<a class="headerlink" href="#built-in-surfaces" title="Permanent link">&para;</a></h3>
 <p>See §3, "Built-in Surfaces" above for the full table (id, inspector/menu kind, <code>poll(ctx)</code>).</p>
