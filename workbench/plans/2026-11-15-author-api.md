@@ -4,6 +4,37 @@ Status: design settled 2026-11-15 (design session, Q1–Q9), nothing built.
 Open: the three names marked "decide" in [Names to decide](#names-to-decide),
 presented at the start of slice 1.
 
+## Picking this up
+
+Branch `refactor-API-surface`, draft PR
+[#108](https://github.com/going-haywire/haywire/pull/108) (plan only).
+
+- **The name lists** are in the appendix
+  [2026-11-15-author-api-names.md](2026-11-15-author-api-names.md): the first
+  cut of each tier, the names to decide, and what only test or workbench
+  libraries use. Regenerate it after any change to a library's imports:
+  `python3 workbench/playground/author_api_names.py <path to haybale-visiongraph> <path to haybale-spandrel>`
+  (the two external checkouts are optional arguments; without them their names
+  drop out). Its "documented" test is a word match over `docs/`, so read each
+  first-cut name once before exporting it.
+- **Next step is slice 1.** Its tasks in order:
+  1. Present the three "decide" names to the maintainer (`declaring_type_of`,
+     `FONTS` / `FONT_STACKS`, `console_print`): what each does, who calls it,
+     the cost of either answer.
+  2. Write `haywire/api/__init__.py` and `haywire/api/workbench.py` from the
+     appendix's first cut plus the decided names, with the whole-block rule for
+     builtin types and widgets.
+  3. Snapshot test, the `packages/**` lint entry, the two ADRs, the glossary
+     terms.
+- **Each slice gets its own detailed plan** in `workbench/plans/` before code;
+  this file is the design, not a task list.
+- **Patterns to copy,** all named again where they apply below:
+  `pyproject.toml` `[tool.ruff.lint.flake8-tidy-imports.banned-api]` (lint),
+  `tests/marketstall/test_layering.py` (AST test),
+  `packages/haywire-studio/src/haywire_studio/__init__.py` (module
+  `__getattr__`), `core/errors/boundary.py` `report_failure` (ledger entry).
+- **Do not reopen** Q1–Q9 and D1–D3.
+
 ## Why
 
 Libraries import from wherever a symbol lives. Once third parties write
