@@ -133,6 +133,23 @@ with it first or release anyway; a reminder is a help, not a gate. If `gh` canno
 are open. The convention:
 [sharing-libraries §7.1](../../../docs/guides/sharing-libraries.md#71-release-reminders).
 
+### Step 2.2 — what this release breaks in the libraries (non-blocking report)
+
+```bash
+uv run python scripts/release_sweep.py names
+```
+
+It compares the Author API name lists (`tests/api/names.py`) at `HEAD` with the last
+release tag, and scans every `haybale-*` repository of the organisation (shallow clones,
+deleted afterwards) for imports of each removed or newly deprecated name. It also counts
+each library's imports of internal modules (`haywire.core`, `haywire.ui`,
+`haywire.barn`), which may change in any release.
+
+Show the report. For a removed name a library imports, ask the user whether to keep it a
+while longer as deprecated (ADR 0085) or release and draft an `after-core-release`
+reminder for that library (opened only on their word). Exit code 2 means a command
+failed: say the report could not be made, never that nothing breaks.
+
 ### Step 2.5 — dependency audit (non-blocking report)
 
 Run the dependency checker to surface any package whose declared dependencies have
@@ -451,20 +468,13 @@ Once the publish run has succeeded and PyPI serves `haywire-core <NEW_VERSION>`,
 `after-core-release` reminders across the organisation:
 
 ```bash
-gh search issues --owner going-haywire --label after-core-release --state open \
-  --json repository,number,title,url,body --limit 100
+uv run python scripts/release_sweep.py reminders --ref v<NEW_VERSION>
 ```
 
-For each, take the commit from its `Waits for: going-haywire/haywire@<sha>` line and
-ask whether the new tag contains it:
-
-```bash
-git merge-base --is-ancestor <sha> v<NEW_VERSION> && echo released || echo waiting
-```
-
-Report one table to the user: issue (with URL), waits for, `released` or `waiting`.
-An issue with no `Waits for:` line is listed as `no Waits for line`; read its body and
-say what it waits for. Then offer, per released issue, one comment: "Unblocked:
+It lists each open reminder with the commit on its `Waits for:` line and `released`
+(the tag contains it), `waiting`, `unknown commit` (not in this clone: `git fetch`) or
+`no Waits for line` (read the issue's body and say what it waits for). Report it to the
+user as a table with the URLs. Then offer, per released issue, one comment: "Unblocked:
 haywire-core <NEW_VERSION> contains <sha>." Post them only on the user's word: they
 appear under the user's name. The work itself happens in each library's own session.
 Never open a reminder issue without the user's word either.
