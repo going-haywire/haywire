@@ -9,6 +9,7 @@ Maintenance scripts run by humans or CI.
 | `check_deps.py`             | Audit declared vs. imported deps per package (wraps `deptry`).       |
 | `generate_marketstall.py`   | CI marketstall generator for the published packages.                 |
 | `worktree_setup.py`         | Ready a new git worktree: branch, links, environment, studio port.   |
+| `release_sweep.py`          | Report what a release means for the organisation's libraries.        |
 
 `worktree_setup.py` runs with the system Python (`python3 scripts/worktree_setup.py`),
 before the worktree has an environment; the `haywire-workflow` skill, *Parallel sessions*,
@@ -91,3 +92,21 @@ defaults when the decorator omits a field.
 The output is deployed to GitHub Pages on every release tag by
 `.github/workflows/publish.yml`. Subscribers fetch it from
 `https://going-haywire.github.io/haywire/marketplace.toml`.
+
+## release_sweep.py
+
+```bash
+# Before the bump: Author API names HEAD removes or deprecates against the last tag,
+# the haybale-* repositories that import them, and their imports of internal modules.
+uv run python scripts/release_sweep.py names
+
+# After the publish: open after-core-release reminders, and whether the tag contains
+# the commit on each one's "Waits for:" line.
+uv run python scripts/release_sweep.py reminders --ref v0.5.0
+```
+
+Both take `--json`. Read-only: it shallow-clones the libraries into a temporary folder
+and writes nothing on GitHub. Needs `git` and a logged-in `gh`; exit code 2 means a
+command failed and the report could not be made. `/haywire-release` runs it in Steps 2.2
+and 10; the convention it reads is in
+[sharing-libraries §7.1](../docs/guides/sharing-libraries.md#71-release-reminders).
