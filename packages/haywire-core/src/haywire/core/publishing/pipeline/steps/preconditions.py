@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import urlsplit
 
 import toml
@@ -539,7 +539,11 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
         )
 
     if pipeline.first_release:
-        first_release_failure = _first_release_failure(pipeline.repo_root, barn_libraries, remote_url)
+        first_release_failure, census = _first_release_failure(
+            pipeline.repo_root, barn_libraries, remote_url
+        )
+        if census:
+            pipeline.pypi_existing, pipeline.pypi_new = census.existing, census.missing
         if first_release_failure:
             return PreconditionsReport(
                 failures=[first_release_failure],
@@ -548,10 +552,10 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                 default_branch=default_branch,
             )
     else:
-        unregistered = _unregistered_pypi_names(pipeline.repo_root, barn_libraries)
-        if unregistered:
+        census = _pypi_census(pipeline.repo_root, barn_libraries)
+        if census and census.missing:
             return PreconditionsReport(
-                failures=[_unregistered_pypi_failure(unregistered)],
+                failures=[_unregistered_pypi_failure(census.missing, census.existing)],
                 remote_url=remote_url,
                 barn_libraries=barn_libraries,
                 default_branch=default_branch,
@@ -803,24 +807,42 @@ def _pypi_name_is_registered(name: str, *, timeout: float = 5.0) -> bool | None:
         return None
 
 
-def _unregistered_pypi_names(repo_root: Path, barn_libraries: list[Path]) -> list[str]:
-    """Declared-`pypi` libraries whose distribution name is not on PyPI.
+class _PypiCensus(NamedTuple):
+    """Which of a project's distribution names PyPI knows."""
 
-    Only runs when the project declares ``distribute = "pypi"``, so a git
-    project never pays for a network round trip. The failure it prevents is a
-    marketstall advertising ``install_spec = "haybale-foo==1.2.3"`` for a name
-    nobody can resolve — which is invisible until a *consumer* tries to install.
+    existing: list[str]
+    missing: list[str]
+    unknown: list[str]
+
+
+def _pypi_census(repo_root: Path, barn_libraries: list[Path]) -> _PypiCensus | None:
+    """Ask PyPI about every library name, or ``None`` when the project does not declare ``pypi``.
+
+    A git project never pays for a network round trip. The failure the answer
+    prevents is a marketstall advertising ``install_spec = "haybale-foo==1.2.3"``
+    for a name nobody can resolve, which is invisible until a consumer installs.
     """
     from haywire.core.publishing.marketstall import DISTRIBUTE_PYPI, read_distribute
 
     if read_distribute(repo_root) != DISTRIBUTE_PYPI:
-        return []
+        return None
 
-    missing: list[str] = []
+    census = _PypiCensus([], [], [])
     for name in _library_names(repo_root, barn_libraries):
-        if _pypi_name_is_registered(name) is False:
-            missing.append(name)
-    return missing
+        registered = _pypi_name_is_registered(name)
+        if registered is True:
+            census.existing.append(name)
+        elif registered is False:
+            census.missing.append(name)
+        else:
+            census.unknown.append(name)
+    return census
+
+
+def _unregistered_pypi_names(repo_root: Path, barn_libraries: list[Path]) -> list[str]:
+    """Declared-`pypi` libraries whose distribution name is not on PyPI."""
+    census = _pypi_census(repo_root, barn_libraries)
+    return census.missing if census else []
 
 
 _FIRST_RELEASE_COMMAND = "uv run --frozen haywire share --first-release"
@@ -846,60 +868,72 @@ def _library_names(repo_root: Path, barn_libraries: list[Path]) -> list[str]:
 
 def _first_release_failure(
     repo_root: Path, barn_libraries: list[Path], remote_url: str
-) -> PreconditionFailure | None:
-    """Why ``--first-release`` cannot proceed, or ``None`` when every name is free on PyPI.
+) -> tuple[PreconditionFailure | None, _PypiCensus | None]:
+    """Why ``--first-release`` cannot proceed, or ``None``, with the PyPI census when one was taken.
 
-    The flag asserts that the owner registered a pending publisher for each name,
-    which PyPI offers no way to check. What can be checked is that every name
-    answers 404: a name that exists is either the owner's already (no flag needed)
-    or someone else's, and an unreachable PyPI proves nothing.
+    The flag asserts that the owner registered a pending publisher for each new
+    name, which PyPI offers no way to check. What can be checked is that at least
+    one name answers 404 (there is something to create) and that PyPI could be
+    reached for every name. A name that exists is assumed to be the owner's, as in
+    an ordinary release.
     """
     from haywire.core.publishing.human_steps import github_owner_repo
     from haywire.core.publishing.marketstall import DISTRIBUTE_PYPI, read_distribute
 
     if read_distribute(repo_root) != DISTRIBUTE_PYPI:
-        return PreconditionFailure(
-            message='--first-release only applies to a project that declares `distribute = "pypi"`.',
-            remedy='Set `distribute = "pypi"` under `[tool.haywire.marketstall]` in the root pyproject.',
-            code="first_release_not_pypi",
+        return (
+            PreconditionFailure(
+                message='--first-release only applies to a project that declares `distribute = "pypi"`.',
+                remedy='Set `distribute = "pypi"` under `[tool.haywire.marketstall]` in the root pyproject.',
+                code="first_release_not_pypi",
+            ),
+            None,
         )
     if github_owner_repo(remote_url) is None:
-        return PreconditionFailure(
-            message=f"The first PyPI release is automated for github.com only (origin: {remote_url}).",
-            remedy="Register the trusted publisher for your host by hand: https://docs.pypi.org/trusted-publishers/",
-            code="first_release_host",
-            human_only=True,
-        )
-    existing: list[str] = []
-    unknown: list[str] = []
-    for name in _library_names(repo_root, barn_libraries):
-        registered = _pypi_name_is_registered(name)
-        if registered is True:
-            existing.append(name)
-        elif registered is None:
-            unknown.append(name)
-    if existing:
-        return PreconditionFailure(
-            message="These names already exist on PyPI: " + ", ".join(sorted(existing)),
-            remedy=(
-                "If they are yours, this is not a first release: drop --first-release.\n"
-                "If they belong to someone else, rename the library before releasing."
+        return (
+            PreconditionFailure(
+                message=f"The first PyPI release is automated for github.com only (origin: {remote_url}).",
+                remedy="Register the trusted publisher for your host by hand: https://docs.pypi.org/trusted-publishers/",
+                code="first_release_host",
+                human_only=True,
             ),
-            code="first_release_name_exists",
+            None,
         )
-    if unknown:
-        return PreconditionFailure(
-            message="Could not reach PyPI to confirm these names are free: " + ", ".join(sorted(unknown)),
-            remedy="Check the network connection and run the same command again.",
-            code="first_release_unverified",
-            next_command=_FIRST_RELEASE_COMMAND,
+    census = _pypi_census(repo_root, barn_libraries)
+    assert census is not None  # distribute = "pypi" was checked above
+    if census.unknown:
+        return (
+            PreconditionFailure(
+                message="Could not reach PyPI to confirm these names: " + ", ".join(sorted(census.unknown)),
+                remedy="Check the network connection and run the same command again.",
+                code="first_release_unverified",
+                next_command=_FIRST_RELEASE_COMMAND,
+            ),
+            census,
         )
-    return None
+    if not census.missing:
+        return (
+            PreconditionFailure(
+                message="Every name already exists on PyPI: " + ", ".join(sorted(census.existing)),
+                remedy=(
+                    "There is no project to create: drop --first-release.\n"
+                    "If a name belongs to someone else, rename the library before releasing."
+                ),
+                code="first_release_name_exists",
+            ),
+            census,
+        )
+    return None, census
 
 
-def _unregistered_pypi_failure(names: list[str]) -> PreconditionFailure:
-    """No ``fix_id``: registering a PyPI project needs a human on pypi.org."""
+def _unregistered_pypi_failure(names: list[str], existing: list[str] | None = None) -> PreconditionFailure:
+    """No ``fix_id``: registering a PyPI project needs a human on pypi.org.
+
+    *existing* are the names already on PyPI. When there are some, the release that
+    follows adds a version to them and creates the rest, so it needs ``--bump``.
+    """
     listed = "\n".join(f"  - {name}" for name in sorted(names))
+    command = _FIRST_RELEASE_COMMAND + (" --bump patch" if existing else "")
     return PreconditionFailure(
         message=(
             'This project declares `distribute = "pypi"`, but '
@@ -910,8 +944,15 @@ def _unregistered_pypi_failure(names: list[str]) -> PreconditionFailure:
             'Every row this publish writes would carry `install_spec = "<name>==<version>"`, '
             "which nobody can install until the distribution exists.\n\n"
             "The first upload creates the project. The owner registers a pending publisher for "
-            "each name (below), then the first release runs with --first-release: it tags the "
-            "current version and CI uploads it.\n\n"
+            "each missing name (below), then the first release runs with --first-release: it tags "
+            "the current version and CI uploads it."
+            + (
+                "\nThe other names are already on PyPI, so the release needs a new version: add "
+                "--bump (patch|minor|major|X.Y.Z)."
+                if existing
+                else ""
+            )
+            + "\n\n"
             'Or set `distribute = "git"` in `[tool.haywire.marketstall]` to publish git '
             "coordinates instead.\n\n"
             "This check is skipped when PyPI cannot be reached, so it never blocks an "
@@ -920,7 +961,8 @@ def _unregistered_pypi_failure(names: list[str]) -> PreconditionFailure:
         code="first_release_required",
         human_only=True,
         human_steps=("pypi_pending_publisher", "github_pypi_environment"),
-        next_command=_FIRST_RELEASE_COMMAND,
+        human_names=tuple(sorted(names)),
+        next_command=command,
     )
 
 

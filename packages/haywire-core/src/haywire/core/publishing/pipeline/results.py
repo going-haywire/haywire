@@ -62,6 +62,8 @@ class PreconditionFailure:
     human_only: bool = False
     #: Ids from ``publishing.human_steps.HUMAN_ONLY_STEPS`` the owner must do.
     human_steps: tuple[str, ...] = ()
+    #: The distribution names the human steps apply to; empty means every library's.
+    human_names: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

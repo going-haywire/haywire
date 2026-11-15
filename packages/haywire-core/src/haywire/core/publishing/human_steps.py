@@ -143,10 +143,21 @@ HUMAN_ONLY_STEPS: dict[str, HumanStep] = {
 
 
 def checklist(
-    step_ids: list[str] | tuple[str, ...], repo_root: Path, *, project_name: str = ""
+    step_ids: list[str] | tuple[str, ...],
+    repo_root: Path,
+    *,
+    project_name: str = "",
+    dist_names: tuple[str, ...] = (),
 ) -> list[str]:
-    """Return numbered instruction lines for the steps in *step_ids*, skipping verifiably done ones."""
-    ctx = StepContext(repo_root=repo_root, project_name=project_name, dist_names=library_names(repo_root))
+    """Return numbered instruction lines for the steps in *step_ids*, skipping verifiably done ones.
+
+    *dist_names* limits the steps that list distribution names to those; empty means every library.
+    """
+    ctx = StepContext(
+        repo_root=repo_root,
+        project_name=project_name,
+        dist_names=dist_names or library_names(repo_root),
+    )
     lines: list[str] = []
     number = 0
     for step_id in step_ids:

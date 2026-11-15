@@ -76,6 +76,10 @@ class SharePipeline:
         #: True when the owner asserts this publish creates the PyPI project(s);
         #: preflight then requires every name to be absent from PyPI instead of present.
         self.first_release = False
+        #: Library names already on PyPI, set by preflight when it checked PyPI.
+        self.pypi_existing: list[str] = []
+        #: Library names PyPI answered 404 for, set by preflight when it checked PyPI.
+        self.pypi_new: list[str] = []
 
     # ── Step 1: preconditions ────────────────────────────────────────────────
 

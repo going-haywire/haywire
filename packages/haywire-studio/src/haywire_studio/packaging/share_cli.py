@@ -166,7 +166,7 @@ def _refuse(out: Outcome, failure: PreconditionFailure, repo_root: Path) -> None
         out.stop_reason = failure.message.splitlines()[0]
         print(f"STOP: human needed — {out.stop_reason}")
         if failure.human_steps:
-            out.checklist = checklist(failure.human_steps, repo_root)
+            out.checklist = checklist(failure.human_steps, repo_root, dist_names=failure.human_names)
             print("Give this to the owner, then wait; do not attempt it yourself:")
             for line in out.checklist:
                 print(f"  {line}")
@@ -321,6 +321,23 @@ def _run_publish(
 
     pipeline.require_preconditions()
     print("✓ Preconditions OK")
+
+    if pipeline.first_release and pipeline.pypi_existing:
+        print(f"  creates on PyPI: {', '.join(sorted(pipeline.pypi_new))}")
+        print(f"  adds a version to: {', '.join(sorted(pipeline.pypi_existing))}")
+        if not bump:
+            # The declared version of the existing names is already on PyPI, so it cannot be uploaded again.
+            _refuse(
+                out,
+                PreconditionFailure(
+                    message="Some names already exist on PyPI, so this release needs a new version.",
+                    remedy="Add --bump (patch|minor|major|X.Y.Z); the new library takes the same version.",
+                    code="first_release_needs_bump",
+                    next_command=f"{_FIRST_RELEASE_COMMAND} --bump patch",
+                ),
+                pipeline.repo_root,
+            )
+            return
 
     if not bump:
         # --first-release without --bump publishes the version already declared.
