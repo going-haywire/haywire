@@ -21,13 +21,13 @@ Notices never disable play. Two producers exist today: the models **needs-list**
 A notice is a `GraphNotice` in `haybale_graph_editor.notices`:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/notices.py:22:38"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/notices.py:21:37"
 ```
 
 Post and retract through `GraphAppState`; both are safe to call from any thread:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/states/graph_app_state.py:76:101"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/states/graph_app_state.py:74:99"
 ```
 
 Key the notice with your library id (`haybale-models:needs`); posting under an existing key replaces it, so a producer re-posts on every change without checking first. Retract when the reason is gone. To know when to re-walk graphs, register a zero-argument listener with `GraphAppState.add_graphs_listener`; it fires when a graph opens or closes.
