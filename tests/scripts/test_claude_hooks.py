@@ -83,19 +83,30 @@ _GREEN = [
         "startedAt": "1",
     }
 ]
-_GH_FOR_GUARD = 'if [ "$1" = "api" ]; then echo "$FAKE_THREADS"; else echo "$FAKE_VIEW"; fi'
+_GH_FOR_GUARD = (
+    'if [ "$1" = "api" ]; then echo "$FAKE_THREADS"; '
+    'else echo "$*" > "$TMPDIR/gh-view-args"; echo "$FAKE_VIEW"; fi'
+)
+_CORE_URL = "https://github.com/going-haywire/haywire/pull/5"
 
 
 def _merge(
-    tmp_path: Path, *, draft=False, labels=(), threads=0, checks=_GREEN
+    tmp_path: Path,
+    *,
+    draft=False,
+    labels=(),
+    threads=0,
+    checks=_GREEN,
+    url=_CORE_URL,
+    command="gh pr merge 5 --squash",
 ) -> subprocess.CompletedProcess:
     view = {
         "isDraft": draft,
-        "url": "https://github.com/o/r/pull/5",
+        "url": url,
         "labels": [{"name": name} for name in labels],
         "statusCheckRollup": list(checks),
     }
-    payload = {"tool_input": {"command": "gh pr merge 5 --squash"}}
+    payload = {"tool_input": {"command": command}}
     bin_dir = _fake_bin(tmp_path, _GH_FOR_GUARD)
     return _run(
         "guard-pr-merge.sh",
@@ -133,6 +144,49 @@ def test_an_unresolved_thread_blocks_the_merge(tmp_path):
 def test_a_missing_macos_check_blocks_the_merge(tmp_path):
     linux = [dict(_GREEN[0], name="tests (ubuntu-24.04)")]
     assert "macOS" in _merge(tmp_path, checks=linux).stderr
+
+
+def test_haywire_without_checks_blocks_the_merge(tmp_path):
+    assert "no checks reported" in _merge(tmp_path, checks=[]).stderr
+
+
+_LIBRARY_URL = "https://github.com/going-haywire/haybale-protokol/pull/4"
+
+
+def test_the_guard_reads_the_pr_in_the_repo_named_by_repo(tmp_path):
+    command = "gh pr merge 4 --repo going-haywire/haybale-protokol --squash --delete-branch"
+    assert _merge(tmp_path, url=_LIBRARY_URL, command=command).returncode == 0
+    args = (tmp_path / "gh-view-args").read_text().split()
+    assert args[:3] == ["pr", "view", "4"]
+    assert args[3:5] == ["--repo", "going-haywire/haybale-protokol"]
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "gh pr merge -R going-haywire/haybale-protokol 4 --squash",
+        "gh pr merge --repo=going-haywire/haybale-protokol --squash 4",
+        "gh pr merge --subject release 4 -R going-haywire/haybale-protokol",
+    ],
+)
+def test_flag_values_are_never_read_as_the_pr(tmp_path, command):
+    _merge(tmp_path, url=_LIBRARY_URL, command=command)
+    args = (tmp_path / "gh-view-args").read_text().split()
+    assert args[:3] == ["pr", "view", "4"]
+    assert "going-haywire/haybale-protokol" in args
+
+
+def test_a_library_without_ci_merges_without_checks(tmp_path):
+    assert _merge(tmp_path, url=_LIBRARY_URL, checks=[]).returncode == 0
+
+
+def test_a_library_still_needs_its_reported_checks_to_pass(tmp_path):
+    failed = [dict(_GREEN[0], name="tests (ubuntu-24.04)", conclusion="FAILURE")]
+    assert "checks not passed" in _merge(tmp_path, url=_LIBRARY_URL, checks=failed).stderr
+
+
+def test_a_library_still_honours_the_holding_labels(tmp_path):
+    assert _merge(tmp_path, url=_LIBRARY_URL, checks=[], labels=["agent files"]).returncode == 2
 
 
 def test_other_commands_pass_the_guard(tmp_path):
