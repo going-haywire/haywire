@@ -331,7 +331,7 @@ def test_dismiss_requires_exactly_one_target():
     assert exc_info.value.code == "invalid_args"
 
 
-def test_registry_holds_exactly_ten_studio_tools(library_system):
+def test_registry_holds_exactly_the_studio_tools(library_system):
     from haywire.core.farmhand import FarmhandRegistry
 
     registry = library_system.injector.get(FarmhandRegistry)
@@ -347,4 +347,6 @@ def test_registry_holds_exactly_ten_studio_tools(library_system):
         "haybale-studio:farmhand:verify_component",
         "haybale-studio:farmhand:get_errors",
         "haybale-studio:farmhand:dismiss_errors",
+        "haybale-studio:farmhand:post_questionnaire",
+        "haybale-studio:farmhand:get_findings",
     }

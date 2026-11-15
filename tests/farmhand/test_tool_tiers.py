@@ -32,6 +32,7 @@ EDIT_TOOLS = {
     "rename_graph",
     "close_graph",
     "dry_run_install",
+    "post_questionnaire",
 }
 
 OPERATE_TOOLS = {"operate", "start_graph", "stop_graph"}
@@ -57,6 +58,7 @@ VIEW_TOOLS = {
     "fail",
     "list",
     "needs",
+    "get_findings",
 }
 
 
@@ -75,6 +77,7 @@ def _tool_classes():
     import haybale_studio.farmhands.authoring as authoring
     import haybale_studio.farmhands.catalog as catalog
     import haybale_studio.farmhands.errors as errors
+    import haybale_studio.farmhands.questionnaire as questionnaire
     import haybale_studio.farmhands.status as status
     import haybale_testing.farmhands.affinity_tool as affinity_tool
     import haybale_testing.farmhands.blocking_tool as blocking_tool
@@ -90,6 +93,7 @@ def _tool_classes():
         authoring,
         catalog,
         errors,
+        questionnaire,
         status,
         affinity_tool,
         blocking_tool,

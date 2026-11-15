@@ -155,5 +155,5 @@ radiogroup + comment) cost about 1.2 KB per check, 31 KB in all — the reason f
 
 | Slice | State | Commit | Date | Deviations |
 |---|---|---|---|---|
-| 1 ASIDE slot | built, live check pending | (this commit) | 2026-11-15 | `AsideSlot(TabSlot)` in `ui/app/aside_slot.py` owns the column, the toggle and the closed-state tab group (`render_toggle`, like `IconSlot.set_footer`); the toggle icon is `hui.icon.aside` (`view_sidebar`). Glossary gains **Aside toggle**. |
-| 2 Questionnaire | not started | | | |
+| 1 ASIDE slot | done, live-checked | 311394673 | 2026-11-15 | `AsideSlot(TabSlot)` in `ui/app/aside_slot.py` owns the column, the toggle and the closed-state tab group (`render_toggle`, like `IconSlot.set_footer`); the toggle icon is `hui.icon.aside` (`view_sidebar`). Glossary gains **Aside toggle**. |
+| 2 Questionnaire | built, live check pending | (this commit) | 2026-11-15 | Findings omit the active graph's path: haybale-studio does not depend on haybale-graph-editor and core has no accessor for it; the ledger range and timestamps cover the window. Findings add `title`, `unanswered`, `failed_checks` and `ledger_seq.now`. A Check's note opens on fail and on blocked. `completedHtml` is supported (shown after submit). A choice question's "Other" text is stored under `<name>-Comment`, as SurveyJS does. Agents see the tools as `haybale-studio_post_questionnaire` / `haybale-studio_get_findings`. The format page is `docs/reference/questionnaire.md` (a format spec, so `reference/`). Two posts in one second get distinct ids. |

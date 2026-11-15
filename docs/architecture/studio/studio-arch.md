@@ -43,7 +43,7 @@ A studio session is a single-page workspace with five named **slots** (`SlotName
 Each slot is a concrete subclass of `Slot` (`packages/haywire-core/src/haywire/ui/app/slot.py`):
 - `IconSlot` — a vertical bar of icon tabs; only one binding is visible at a time and the bar acts as the selector. Clicking the active icon collapses the area, clicking any icon re-expands it. Any `opens` value is accepted, though `required` is the usual choice here.
 - `TabSlot` — a horizontal tab bar; multiple bindings can coexist; the user picks which is in front. Every `OpenBehavior` is supported.
-- `AsideSlot` — a `TabSlot` whose whole column, tab bar included, leaves the layout while closed; it has no rail. The shell mounts its toggle in the `TopBar` (lit while open). While closed, the toggle region also shows each ASIDE editor's vertical `draw_tab` interior, so a badge an editor draws stays in view; clicking one opens ASIDE on that editor. A `Reveal` into a closed ASIDE opens it, as it does a collapsed ACTION or CONTEXT and a folded INFO.
+- `AsideSlot` — a `TabSlot` whose whole column, tab bar included, leaves the layout while closed; it has no rail. The shell mounts its toggle in the `TopBar` (lit while open). While closed, the toggle region also shows each ASIDE editor's vertical `draw_tab` interior, so a badge an editor draws stays in view; clicking one opens ASIDE on that editor. A `Reveal` into a closed ASIDE opens it, as it does a collapsed ACTION or CONTEXT and a folded INFO. Its first editor is the *Questionnaire* (haybale-studio), which shows what an agent posted for a live check ([reference/questionnaire](../../reference/questionnaire.md)).
 
 Slots own:
 
