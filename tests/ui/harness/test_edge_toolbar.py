@@ -3,7 +3,7 @@
 import pytest
 from playwright.sync_api import Page
 
-from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled
+from tests.ui.harness.nav import goto_ready, wait_for_canvas_settled, wait_until
 
 _PATH = "/graph-edge-appearance"
 _STYLED = 'path.hw-edge[data-edge-id*="[note_out]->"]'
@@ -42,9 +42,7 @@ def _click(page: Page, selector: str, *, shift: bool = False) -> None:
 
 def _style_state(page: Page) -> str:
     """'live', 'greyed' or 'absent': the Style icon is a button whose glyph reads "style",
-    greyed inside a ``hw-disabled`` wrapper. Read once the toolbar has re-rendered."""
-    page.wait_for_selector(_TOOLBAR, state="visible", timeout=5000)
-    page.wait_for_timeout(300)
+    greyed inside a ``hw-disabled`` wrapper."""
     toolbar = page.locator(_TOOLBAR)
     if toolbar.locator(".hw-disabled").filter(has_text="style").count():
         return "greyed"
@@ -53,20 +51,28 @@ def _style_state(page: Page) -> str:
     return "absent"
 
 
+def _assert_style(page: Page, expected: str) -> None:
+    """Assert the toolbar shows and its Style icon reaches *expected*."""
+    page.wait_for_selector(_TOOLBAR, state="visible", timeout=5000)
+    # A toolbar still up from the previous selection already passes the visibility wait.
+    wait_until(page, lambda: _style_state(page) == expected)
+    assert _style_state(page) == expected
+
+
 def test_selecting_one_styled_edge_shows_the_toolbar_with_style(page: Page, harness) -> None:
     _open(page, harness)
     _click(page, _STYLED)
-    assert _style_state(page) == "live"
+    _assert_style(page, "live")
 
 
 def test_a_styled_and_an_unstyled_edge_grey_style_with_a_reason(page: Page, harness) -> None:
     _open(page, harness)
     _click(page, _STYLED)
     _click(page, _COMPUTED, shift=True)
-    assert _style_state(page) == "greyed"
+    _assert_style(page, "greyed")
 
 
 def test_an_unstyled_edge_alone_shows_the_toolbar_without_style(page: Page, harness) -> None:
     _open(page, harness)
     _click(page, _COMPUTED)
-    assert _style_state(page) == "absent"
+    _assert_style(page, "absent")
