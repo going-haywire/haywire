@@ -978,6 +978,7 @@ def _resolve_widget_instance(
         cell=shared_cell,
         on_edit=on_edit,
         requires=requires,
+        settings=bag,
     )
 
     # Render the widget inside an sf-widget cell so it sits in the value column

@@ -1,3 +1,5 @@
+import time
+
 from haywire.core.node import node, BaseNode, NodeType
 from haywire.core.execution.execution_context import ExecutionContext
 
@@ -18,6 +20,22 @@ from haywire.barn.builtin.types import (
 from haybale_core.types import ArrayType
 from haybale_core.widgets.array_widget import ArrayWidget
 from haybale_testing.types.test_types import TEST_STRING
+from haywire.barn.builtin.widgets import SelectWidget
+
+_found_sources: dict[str | None, list[str]] = {}  # Example Choices value -> what the last refresh found
+
+
+def _known_sources(bag=None) -> list[str]:
+    """Return what the last refresh found for the bag's ``example_choices``, without looking again."""
+    return list(_found_sources.get(bag.example_choices if bag is not None else None, []))
+
+
+def _find_sources(bag=None) -> list[str]:
+    """Stand in for a slow network query: block for a second, then find one more source than last time."""
+    time.sleep(1.0)
+    key = bag.example_choices if bag is not None else None
+    _found_sources[key] = [f"{key}-{i}" for i in range(len(_found_sources.get(key, [])) + 2)]
+    return list(_found_sources[key])
 
 
 @node(
@@ -66,6 +84,19 @@ class SettingsNode(BaseNode):
             widget_config={"options": ["fast", "balanced", "quality"]},
             label="Example Choices",
             description="An example choices setting",
+            category="type",
+        )
+        example_source = setting[STRING](
+            "",
+            widget=SelectWidget.config(
+                properties={
+                    "options": _known_sources,
+                    "refresh": _find_sources,
+                    "new_value_mode": "add-unique",
+                }
+            ),
+            label="Example Source",
+            description="A slow list behind a refresh button; it follows Example Choices",
             category="type",
         )
         example_color = setting[COLOR](

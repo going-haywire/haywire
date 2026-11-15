@@ -37,6 +37,7 @@ class SettingWidgetModel:
         on_edit: Callable[[Any], bool | None],
         requires: LevelMode | None = None,
         wrapper: Any = None,
+        settings: Any = None,
     ) -> None:
         """
         Args:
@@ -47,9 +48,13 @@ class SettingWidgetModel:
             wrapper: The ``NodeWrapper`` of the port this model stands for, so a widget
                 can ask its node (``_wrapper`` on a ``DataPort``); ``None`` for a
                 settings field.
+            settings: The ``Settings`` bag that owns the field, so a widget can read the
+                field's siblings (``SelectWidget`` hands it to a one-argument ``options``
+                callable); ``None`` when the model stands for no bag field.
         """
         self.id = field_id
         self._wrapper = wrapper
+        self.settings = settings
         self.requires = requires
         self.widget_config = widget_config or {}
         # ALWAYS the shared cell — the bag's instance cell or the registry-owned

@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Dict, TypeVar
+import inspect
+from typing import TYPE_CHECKING, Any, Callable, Dict, TypeVar
 from typing_extensions import NotRequired, TypedDict
 from dataclasses import asdict
 from cattrs.preconf.json import make_converter
@@ -179,6 +180,31 @@ def serialize_element_type(type_cls: type["IType"]) -> ElementTypeSpec:
 
 # Create a reusable JSON-compatible converter
 _json_converter = make_converter()
+
+
+def resolve_options(options: Any, settings: Any = None) -> Any:
+    """Resolve a ``widget_config`` ``options`` entry to its list or dict.
+
+    A callable is called: with *settings* (the ``Settings`` bag that owns the field,
+    or ``None``) when it takes a positional parameter, else with no arguments.
+    Giving that parameter a default (``def options(bag=None)``) keeps the callable
+    working with a framework that calls it without arguments. Anything else is
+    returned as given. ``SelectWidget`` and every other reader of ``options``
+    resolve through here, so they all see the same list.
+    """
+    if not callable(options):
+        return options
+    return options(settings) if _takes_argument(options) else options()
+
+
+def _takes_argument(fn: Callable[..., Any]) -> bool:
+    """Whether *fn* takes a positional parameter."""
+    try:
+        parameters = inspect.signature(fn).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    positional = (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+    return any(p.kind in positional for p in parameters)
 
 
 def is_cattrs_serializable(value: Any) -> tuple[bool, str | None]:
