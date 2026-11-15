@@ -9,8 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from haywire.core.catalog import CatalogEntry, ModelFile, Resource
-from haywire.core.volumes import VolumeError, location_of
+from haywire.api import CatalogEntry, ModelFile, Resource, VolumeError, location_of
 
 
 class SourceFailed(Exception):
@@ -85,7 +84,7 @@ class ModelSource(ABC):
     - ``prefixes``: the address prefixes it serves, without ``://``. Prefixes are
       matched case-insensitively.
     - ``label``: the human-readable name shown to users.
-    - ``volume``: a volume key that :func:`haywire.core.volumes.location_of` resolves.
+    - ``volume``: a volume key that ``haywire.api.location_of`` resolves.
     - ``volume_noun``: how errors name that volume (``"models volume"``).
     - ``place``: the status word for a file in this source's volume (``"local"``).
     """

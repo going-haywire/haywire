@@ -10,7 +10,7 @@ import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from haywire.core.catalog import CatalogEntry
+    from haywire.api import CatalogEntry
 
 from haybale_models.filters import COMMERCIAL, NON_COMMERCIAL
 

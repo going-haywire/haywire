@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from haywire.core.access import AccessTier
-from haywire.core.farmhand import (
+from haywire.api.workbench import (
+    AccessTier,
     Farmhand,
     FarmhandContext,
     FarmhandError,

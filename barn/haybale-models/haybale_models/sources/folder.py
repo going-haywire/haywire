@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
-from haywire.core.volumes import VolumeError, ensure_volume, location_of
+from haywire.api import VolumeError, ensure_volume, location_of
 
 from haybale_models.sources.base import FetchRequest, ModelSource, SourceFailed
 

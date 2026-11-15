@@ -10,8 +10,7 @@ from typing import TYPE_CHECKING
 
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
 
-from haywire.core.catalog import CatalogEntry, ModelFile, Resource
-from haywire.core.volumes import VolumeError, VolumePath, location_of
+from haywire.api import CatalogEntry, ModelFile, Resource, VolumeError, VolumePath, location_of
 
 if TYPE_CHECKING:
     from haybale_models.sources.registry import SourceSet

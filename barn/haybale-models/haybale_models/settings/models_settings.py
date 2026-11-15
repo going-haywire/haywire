@@ -1,7 +1,6 @@
 """ModelsSettings — library-wide settings for model downloads."""
 
-from haywire.barn.builtin.types import INT
-from haywire.core.settings import LibrarySettings, setting, settings
+from haywire.api import INT, LibrarySettings, setting, settings
 
 
 @settings(namespace="models", label="Models", description="Model download behaviour")

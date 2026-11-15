@@ -13,7 +13,7 @@ from pathlib import Path
 
 from haybale_models.keys import MODELS_VOLUME
 
-from haywire.core.volumes import VolumeError, location_of
+from haywire.api import VolumeError, location_of
 
 logger = logging.getLogger(__name__)
 

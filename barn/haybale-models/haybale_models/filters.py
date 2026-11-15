@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
-from haywire.core.catalog import CatalogEntry
+from haywire.api import CatalogEntry
 
 FILTER_FIELDS: tuple[tuple[str, str], ...] = (
     ("library", "Library"),

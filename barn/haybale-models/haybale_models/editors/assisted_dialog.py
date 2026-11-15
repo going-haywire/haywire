@@ -7,8 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
-from haywire.ui import elements as hui
-from haywire.ui.modals import confirm_modal
+from haywire.api.workbench import confirm_modal, hui
 from nicegui import ui
 
 from haybale_models.download import DownloadJob, DownloadQueue

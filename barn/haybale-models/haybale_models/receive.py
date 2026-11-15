@@ -8,7 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import BinaryIO, Literal
 
-from haywire.core.errors import Refusal
+from haywire.api import Refusal
 
 from haybale_models.sources import DownloadCancelled, SourceFailed
 from haybale_models.sources.base import finish_part

@@ -8,12 +8,8 @@ import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haywire.core.di.context import get_catalog_registry
-from haywire.core.catalog import CatalogRegistry
-from haywire.core.state.base import AppState
-from haywire.core.state.decorator import state
-from haywire.core.storage import library_storage_dir
-from haywire.core.volumes import VolumeError, ensure_volume, location_of
+from haywire.api.workbench import AppState, get_catalog_registry, get_library_state_container, state
+from haywire.api import CatalogRegistry, VolumeError, ensure_volume, library_storage_dir, location_of
 
 from haybale_models.download import DownloadQueue
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
@@ -161,7 +157,6 @@ class ModelsState(AppState):
 
     def _start_needs(self) -> None:
         """Watch the open graphs for missing models; skipped when no graph registry exists."""
-        from haywire.core.di.context import get_library_state_container
         from haybale_graph_editor.states.graph_app_state import GraphAppState
 
         from haybale_models.needs import NeedsWatcher

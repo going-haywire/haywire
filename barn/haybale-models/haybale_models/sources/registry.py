@@ -6,7 +6,7 @@ from collections.abc import Iterable, Sequence
 
 from pathlib import Path
 
-from haywire.core.volumes import VolumeError, location_of
+from haywire.api import VolumeError, location_of
 
 from haybale_models.sources.base import ModelSource
 from haybale_models.sources.folder import FolderSource

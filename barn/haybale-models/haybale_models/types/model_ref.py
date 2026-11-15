@@ -2,10 +2,7 @@
 
 from typing import Any
 
-from haywire.barn.builtin.wires import DataWire
-from haywire.core.types import PrimitiveField, PrimitiveType
-from haywire.core.types import type as type_decorator
-from haywire.core.types.port import DataPort
+from haywire.api import DataPort, DataWire, PrimitiveField, PrimitiveType, type as type_decorator
 
 from haybale_models.value import ModelRef
 

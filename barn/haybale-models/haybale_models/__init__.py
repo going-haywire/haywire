@@ -9,16 +9,8 @@ Never imports ``torch``: variant choice comes from the consuming node's settings
 
 from pathlib import Path
 
-from haywire.core.farmhand import FarmhandRegistry
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.state import LibraryStateRegistry
-from haywire.core.types.registry import TypeRegistry
-from haywire.ui.editor.registry import EditorTypeRegistry
-from haywire.ui.panel.registry import PanelRegistry
-from haywire.ui.widget.registry import WidgetRegistry
+from haywire.api.workbench import EditorTypeRegistry, FarmhandRegistry, LibraryStateRegistry, PanelRegistry
+from haywire.api import BaseLibrary, NodeRegistry, SettingsRegistry, TypeRegistry, WidgetRegistry, library
 
 
 @library(
