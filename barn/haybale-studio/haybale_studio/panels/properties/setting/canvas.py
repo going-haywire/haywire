@@ -1,12 +1,9 @@
 # haybale_studio/panels/properties/setting/canvas.py
 """
-Canvas & node appearance panels, on the ``CanvasSettings`` surface.
+Canvas & node appearance panels, on the ``CanvasSettingsSurface`` surface.
 
-Note the name collides twice over: the *surface* ``CanvasSettings``
-(``haywire.barn.builtin.surfaces``) is imported here as ``CanvasSurface``,
-because ``haywire.ui.components.graph.settings.CanvasSettings`` — the
-settings *bag* one of these panels renders — already holds the plain name in
-this module.
+``CanvasSettings`` here is the settings bag one of these panels renders
+(``haywire.ui.components.graph.settings``).
 
 CanvasSettingsPanel          — grid, zoom, pan behaviour
 EditorZoomPanSettingsPanel   — zoom/pan behaviour settings
@@ -30,14 +27,14 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.components.graph.settings import CanvasSettings
-from haywire.barn.builtin.surfaces import CanvasSettings as CanvasSurface
+from haywire.barn.builtin.surfaces import CanvasSettingsSurface
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
 @panel(
-    surface=CanvasSurface,
+    surface=CanvasSettingsSurface,
     label="Grid",
     description="Grid, zoom, pan and background pattern.",
     icon=hui.icon.canvas_grid,
@@ -57,7 +54,7 @@ class CanvasSettingsPanel(BasePanel):
 
 
 @panel(
-    surface=CanvasSurface,
+    surface=CanvasSettingsSurface,
     label="Zoom & Pan",
     description="Canvas pan/zoom behaviour settings.",
     icon=hui.icon.canvas_zoom_pan,
@@ -77,7 +74,7 @@ class EditorZoomPanSettingsPanel(BasePanel):
 
 
 @panel(
-    surface=CanvasSurface,
+    surface=CanvasSettingsSurface,
     label="Minimap",
     description="Minimap visibility, position and size.",
     icon=hui.icon.canvas_minimap,
@@ -97,7 +94,7 @@ class MinimapSettingsPanel(BasePanel):
 
 
 @panel(
-    surface=CanvasSurface,
+    surface=CanvasSettingsSurface,
     label="Edges",
     description="Computed edges' arrow head, head size, width and hit padding.",
     icon=hui.icon.edge,
@@ -117,7 +114,7 @@ class EdgeDefaultSettingsPanel(BasePanel):
 
 
 @panel(
-    surface=CanvasSurface,
+    surface=CanvasSettingsSurface,
     label="Arrange",
     description="The gaps Arrange leaves between node cards.",
     icon=hui.icon.layout,

@@ -1,10 +1,19 @@
 """Recorder — writes the audio blocks of a flow to a file."""
 
-from haywire.barn.builtin.types import EXEC, FILE_PATH, INT, STRING
-from haywire.barn.builtin.widgets import PathWidget, SimpleLabelWidget
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.volumes import VolumePath, resolve
+from haywire.api import (
+    EXEC,
+    FILE_PATH,
+    INT,
+    STRING,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    PathWidget,
+    SimpleLabelWidget,
+    VolumePath,
+    node,
+    resolve_volume_path,
+)
 
 from haybale_audio.emitter import set_status
 from haybale_audio.io.files import BlockWriter
@@ -75,7 +84,7 @@ class RecorderNode(BaseNode):
         if audio is None or path is None:
             raise ValueError("write needs both an audio block and a path")
         if self.hb_writer is None:
-            self.hb_writer = BlockWriter(resolve(path))
+            self.hb_writer = BlockWriter(resolve_volume_path(path))
         self.hb_writer.write(audio)
         self.out("frames", self.hb_writer.frames_written)
         set_status(self, f"Recording {self.hb_writer.frames_written / audio.sample_rate:.1f} s")

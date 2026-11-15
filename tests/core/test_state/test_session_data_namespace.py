@@ -6,7 +6,7 @@ from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.state import (
     LibraryStateContainer,
-    LibraryStateRegistry,
+    StateRegistry,
     SessionState,
 )
 from haywire.core.state.data_namespace import SessionDataNamespace
@@ -28,8 +28,8 @@ class TestSessionDataNamespace:
         class TimelineCursor(SessionState):
             position = 0.0
 
-        reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        reg = StateRegistry()
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
         reg._register_class(TimelineCursor, lib_id)
@@ -69,7 +69,7 @@ class TestSessionDataNamespace:
             label="NotRegistered",
         )
 
-        ns = SessionDataNamespace(LibraryStateContainer(LibraryStateRegistry()), "anysid")
+        ns = SessionDataNamespace(LibraryStateContainer(StateRegistry()), "anysid")
         with pytest.raises(KeyError):
             _ = ns[NotRegistered]
 
@@ -87,15 +87,15 @@ class TestSessionDataNamespace:
             label="NotRegistered",
         )
 
-        ns = SessionDataNamespace(LibraryStateContainer(LibraryStateRegistry()), "anysid")
+        ns = SessionDataNamespace(LibraryStateContainer(StateRegistry()), "anysid")
         assert ns.get(NotRegistered) is None
 
     def test_contains_reflects_per_session_membership(self):
         class Cursor(SessionState):
             pass
 
-        reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        reg = StateRegistry()
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
         reg._register_class(Cursor, lib_id)

@@ -60,7 +60,7 @@ A reader sees `class HaystackState(AppState):` and knows signal fields on it rea
 ### Declaring
 
 ```python
-from haywire.core.signals import signal_field
+from haywire.api.workbench import signal_field
 
 class EditState(SessionState):
     active_node: Optional[NodeWrapper] = signal_field(None)
@@ -296,8 +296,7 @@ Without this, hot-reload of the signal-declaring library can leave the subscribe
 The decorators don't care which authoring path produced the signal:
 
 ```python
-from haywire.core.session.handlers import redraw_on, react_on
-from haywire.core.session.context import SessionContext
+from haywire.api.workbench import SessionContext, react_on, redraw_on
 
 
 class FileViewerEditor(BaseEditor):
@@ -363,8 +362,7 @@ Trivial loops (writing back the same value) self-terminate via the identity shor
 Use `signal_field` on a `SessionState` or `AppState` subclass:
 
 ```python
-from haywire.core.state import SessionState
-from haywire.core.signals import signal_field
+from haywire.api.workbench import SessionState, signal_field
 
 
 @state
@@ -420,10 +418,7 @@ A keyboard shortcut is an `EditorCommand`. To give your editor a key, subscribe 
 from dataclasses import dataclass
 from typing import ClassVar
 
-from haywire.core.session.handlers import react_on
-from haywire.core.signals import EditorCommand
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
+from haywire.api.workbench import BaseEditor, EditorCommand, editor, react_on
 
 
 @dataclass(frozen=True, kw_only=True)

@@ -24,7 +24,7 @@ _ALLOW_ALL_SESSION = SimpleNamespace(context=SimpleNamespace(can_access=lambda r
 
 
 class _FakeRegistry:
-    """The slice of EditorTypeRegistry a slot and its wrappers touch."""
+    """The slice of EditorRegistry a slot and its wrappers touch."""
 
     def __init__(self, by_slot: dict | None = None) -> None:
         self._by_slot = by_slot or {}

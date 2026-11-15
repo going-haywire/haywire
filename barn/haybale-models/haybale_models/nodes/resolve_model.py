@@ -9,9 +9,7 @@ from haybale_models.consumer import resolve_port
 from haybale_models.store.layout import volume_path_of
 from haybale_models.value.model_ref import ModelRef
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.volumes import VolumePath
+from haywire.api import FILE_PATH, INT, STRING, BaseNode, ExecutionContext, NodeType, VolumePath, node
 
 
 @node(
@@ -41,8 +39,6 @@ class ResolveModelNode(BaseNode):
     """
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import FILE_PATH, INT, STRING
-
         from haybale_models.types.model_ref import MODEL_REF
 
         self.add(MODEL_REF.as_inlet("model", label="Model", description="Model to look up"))

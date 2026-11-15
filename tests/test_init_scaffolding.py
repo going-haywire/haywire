@@ -173,7 +173,7 @@ class TestProjectPyproject:
 
         haywire-studio deliberately does not depend on haybale-studio (that
         edge closed a cycle — see .insights/project_app_library_dependency_direction.md),
-        so the studio_* farmhand baseline and the AppSettings panels
+        so the studio_* farmhand baseline and the AppSettingsSurface panels
         reach an install through this line alone. Drop it and a scaffolded
         project starts with no settings panels and no MCP tools.
         """
@@ -261,11 +261,23 @@ class TestLibraryInit:
         init_content = (
             scaffold_project / "barn" / "hay-test-project" / "hay_test_project" / "__init__.py"
         ).read_text()
-        assert "from haywire.core.node.registry import NodeRegistry" in init_content
-        assert "from haywire.core.types.registry import TypeRegistry" in init_content
-        assert "from haywire.core.adapter.registry import AdapterRegistry" in init_content
-        assert "from haywire.ui.widget.registry import WidgetRegistry" in init_content
-        assert "from haywire.ui.skin.registry import SkinRegistry" in init_content
+        assert "from haywire.api import (" in init_content
+        assert "    NodeRegistry," in init_content
+        for registry in ("TypeRegistry", "AdapterRegistry", "WidgetRegistry", "SkinRegistry"):
+            assert f"    {registry}," in init_content
+        assert "from haywire.api.workbench import" in init_content
+        assert "haywire.core" not in init_content
+        assert "haywire.ui" not in init_content
+
+    def test_project_lint_bans_internal_imports(self, scaffold_project):
+        """The project's ruff config points a library's imports at the Author API (ADR 0084)."""
+        ruff = toml.loads((scaffold_project / "pyproject.toml").read_text())["tool"]["ruff"]["lint"]
+        assert "TID251" in ruff["extend-select"]
+        assert set(ruff["flake8-tidy-imports"]["banned-api"]) == {
+            "haywire.core",
+            "haywire.ui",
+            "haywire.barn",
+        }
 
     def test_registers_all_folders(self, scaffold_project):
         """Every folder the scaffold creates is registered, and vice versa."""

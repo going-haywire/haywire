@@ -18,7 +18,7 @@ from haybale_models.store.index import ModelIndex
 from haybale_models.value.model_ref import ModelRef
 
 from haywire.core.catalog import CatalogRegistry, ModelFile, Resource
-from haywire.core.volumes import VolumeStore, location_of
+from haywire.core.volumes import VolumeStore, volume_location
 
 from tests.models.conftest import make_hf_snapshot
 
@@ -50,12 +50,12 @@ def make_catalog(*resources: Resource) -> CatalogRegistry:
 
 @pytest.fixture
 def index(models_env: VolumeStore) -> ModelIndex:
-    location_of(MODELS_VOLUME, models_env).mkdir(parents=True, exist_ok=True)
+    volume_location(MODELS_VOLUME, models_env).mkdir(parents=True, exist_ok=True)
     return ModelIndex()
 
 
 def put_local(index: ModelIndex, models_env: VolumeStore, name: str, data: bytes) -> Path:
-    path = location_of(MODELS_VOLUME, models_env) / name
+    path = volume_location(MODELS_VOLUME, models_env) / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     index.scan()
@@ -199,7 +199,7 @@ def test_bundle_needs_every_file(index: ModelIndex, models_env: VolumeStore) -> 
         sources=builtin_sources(index, hf_cache=lambda: None),
     )
     assert set(r.files) == {"a.bin", "b.bin"}
-    assert r.path == location_of(MODELS_VOLUME, models_env) / "v"
+    assert r.path == volume_location(MODELS_VOLUME, models_env) / "v"
     assert r.size == len(a) + len(b)
     pool = f"a.bin:{sha(a)}\nb.bin:{sha(b)}"
     assert r.sha256 == hashlib.sha256(pool.encode()).hexdigest()
@@ -549,7 +549,7 @@ def test_whole_repo_entry_resolves_to_the_snapshot_folder(
 ) -> None:
     from haybale_models.keys import HF_VOLUME
 
-    hf_root = location_of(HF_VOLUME, models_env)
+    hf_root = volume_location(HF_VOLUME, models_env)
     hf_root.mkdir(parents=True, exist_ok=True)
     snapshot = make_hf_snapshot(
         hf_root, "org/repo", COMMIT, {"w.safetensors": b"weights"}, ["w.safetensors"]

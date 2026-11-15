@@ -7,7 +7,7 @@ Cross-peer fan-out lives on SignalDispatcher, not here — see
 from unittest.mock import MagicMock
 
 
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.session.session_manager import SessionManager
 from haywire.core.signals import SignalDispatcher
 
@@ -15,7 +15,7 @@ from haywire.core.signals import SignalDispatcher
 def _make_manager() -> SessionManager:
     return SessionManager(
         dispatcher=SignalDispatcher(),
-        container=LibraryStateContainer(LibraryStateRegistry()),
+        container=LibraryStateContainer(StateRegistry()),
     )
 
 

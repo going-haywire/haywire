@@ -1,6 +1,6 @@
 # haybale_studio/panels/properties/setting/execution.py
 """
-Execution settings panels, on the ``ExecutionInspector`` surface.
+Execution settings panels, on the ``ExecutionInspectorSurface`` surface.
 
 ExecutionSettingsPanel — auto-execute, timeouts, parallelism, caching, error handling
 
@@ -16,14 +16,14 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 
-from haywire.barn.builtin.surfaces import ExecutionInspector
+from haywire.barn.builtin.surfaces import ExecutionInspectorSurface
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
 @panel(
-    surface=ExecutionInspector,
+    surface=ExecutionInspectorSurface,
     label="Execution",
     description="Auto-execute, timeouts, parallelism, caching and error handling.",
     icon=hui.icon.execution,

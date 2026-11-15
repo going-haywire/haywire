@@ -28,7 +28,7 @@ from haywire.core.state import (
     AppState,
     LibraryState,
     LibraryStateContainer,
-    LibraryStateRegistry,
+    StateRegistry,
     SessionState,
 )
 from haywire.core.state.identity import LibraryStateClassIdentity
@@ -68,8 +68,8 @@ class TestAppScopeRegression:
         class Pool(AppState):
             pass
 
-        reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        reg = StateRegistry()
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
         reg._register_class(Pool, lib_id)
@@ -87,8 +87,8 @@ class TestSessionAttachDetach:
             def on_enable(self) -> None:
                 calls.append(("enable", self.session_id))
 
-        reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        reg = StateRegistry()
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
 
@@ -118,8 +118,8 @@ class TestSessionAttachDetach:
             def on_enable(self) -> None:
                 calls.append(self.session_id)
 
-        reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        reg = StateRegistry()
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
 
@@ -143,8 +143,8 @@ class TestSessionAttachDetach:
             def on_disable(self) -> None:
                 calls.append(("disable", self.session_id))
 
-        reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        reg = StateRegistry()
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
         reg._register_class(Cursor, lib_id)
@@ -169,7 +169,7 @@ class TestSessionAttachDetach:
             label="Cursor",
         )
 
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         assert container.get_session_optional(Cursor, "nope") is None
 
 
@@ -184,8 +184,8 @@ class TestSessionScopeHotReload:
             def on_disable(self) -> None:
                 calls.append(("disable", self.session_id))
 
-        reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        reg = StateRegistry()
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
         reg._register_class(Cursor, lib_id)
@@ -228,7 +228,7 @@ class TestSessionScopeHotReload:
         V1.class_identity = ident
         V2.class_identity = ident
 
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
         container.on_lifecycle_events([make_added_event(V1, lib_id)])
@@ -266,7 +266,7 @@ class TestDirectLibraryStateSubclass:
             label="Bad",
         )
 
-        container = LibraryStateContainer(LibraryStateRegistry())
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
 

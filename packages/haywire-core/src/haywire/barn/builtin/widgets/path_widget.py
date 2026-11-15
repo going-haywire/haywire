@@ -13,8 +13,8 @@ from haywire.core.volumes import (
     VolumePath,
     VolumeUndefinedError,
     list_volumes,
-    location_of,
-    resolve,
+    volume_location,
+    resolve_volume_path,
     volume_name,
 )
 from haywire.ui import elements as hui
@@ -124,7 +124,7 @@ class PathWidget(BaseWidget):
     def _location(volume: str) -> Path | None:
         """Return the volume's existing root folder, or ``None`` when undefined or missing."""
         try:
-            location = location_of(volume)
+            location = volume_location(volume)
         except VolumeError:
             return None
         return location if location.is_dir() else None
@@ -133,10 +133,10 @@ class PathWidget(BaseWidget):
     def _status_of(path: VolumePath) -> tuple[str, bool]:
         """Return the status text for *path* and whether it describes a usable location."""
         try:
-            location = location_of(path.volume)
+            location = volume_location(path.volume)
             if not location.exists():
                 return f"location missing: {location}", False
-            return str(resolve(path)), True
+            return str(resolve_volume_path(path)), True
         except VolumeUndefinedError as exc:
             return f"volume '{volume_name(exc.volume)}' is not defined on this machine", False
         except VolumeError as exc:

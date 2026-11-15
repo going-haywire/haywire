@@ -132,7 +132,7 @@ raise FarmhandError(
 **Folder convention and registration.** Farmhand tools go in the library's `farmhands/` folder; register it with `FarmhandRegistry` in `register_components()`, alongside the same-shaped calls for `nodes/`, `panels/`, `states/`, etc:
 
 ```python
-from haywire.core.farmhand import FarmhandRegistry
+from haywire.api.workbench import FarmhandRegistry
 
 def register_components(self):
     base = Path(__file__).parent
@@ -190,7 +190,7 @@ A truncated response that does not announce itself is the worst output a tool ca
 **Pagination convention.** Any tool returning a list should accept `limit`/`offset` and call the shared helpers so every list tool paginates identically:
 
 ```python
-from haywire.core.farmhand import truncation_note
+from haywire.api.workbench import truncation_note
 from haybale_studio.farmhands._helpers import page  # haybale-studio's local pagination slice helper
 
 rows, total = page(rows, limit, offset)
@@ -228,7 +228,7 @@ The general form: an agent cannot tell a confident guess from a fact. When the f
 - Check serializability instead of trusting the fallback. `haywire.core.types.utils.is_cattrs_serializable(value)` is the codebase's existing predicate for exactly this.
 - Emit an explicit marker for what you dropped (`inspect_node` uses `value_omitted: "<type>"`) so the agent learns the value exists but is not retrievable, rather than reading a repr as if it were data.
 - Most Haywire value types are already JSON-native: `Vec2i`/`Vec3f`/… are `list` subclasses and `Color`/`Icon` are `str`, so settings values round-trip losslessly with no conversion layer. Arbitrary port `BaseType`s (mesh, frame) do not.
-- A `widget_config` may hold a **live zero-arg callable** at `properties["options"]` (the documented dynamic-dropdown mechanism — see [setting-canon](../settings/setting-canon.md)). Resolve it the way the widget does (`options()`), inside a `try/except` so one failing probe can't fail the whole call, and never pass it through unresolved.
+- A `widget_config` may hold a **live callable** at `properties["options"]` (the documented dynamic-dropdown mechanism — see [setting-canon](../settings/setting-canon.md)). Resolve it the way the widget does (`resolve_options(options, bag)`, which hands the bag to a one-argument callable), inside a `try/except` so one failing probe can't fail the whole call, and never pass it through unresolved.
 
 ### 4.5 Where these rules come from
 
@@ -334,9 +334,14 @@ Agent-facing output (§4) — a tool passes its tests without any of these:
 ### Imports
 
 ```python
-from haywire.core.farmhand import (
-    Farmhand, FarmhandContext, FarmhandError, ToolAnnotations,
-    farmhand, truncation_note, FarmhandRegistry,
+from haywire.api.workbench import (
+    Farmhand,
+    FarmhandContext,
+    FarmhandError,
+    FarmhandRegistry,
+    ToolAnnotations,
+    farmhand,
+    truncation_note,
 )
 ```
 

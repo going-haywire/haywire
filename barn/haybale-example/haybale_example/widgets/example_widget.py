@@ -2,9 +2,7 @@ from typing import Any
 from nicegui import ui
 
 
-from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.converters import BindingConverter, Converters
-from haywire.ui.widget.decorator import widget
+from haywire.api import BaseWidget, BindingConverter, Converters, widget
 
 
 @widget(description="Number widget with range clamping")

@@ -12,7 +12,7 @@ from typing import Any
 import pytest
 
 from haywire.core.catalog import ModelFile, Resource
-from haywire.core.farmhand.activity import activity_tracker
+from haywire.core.farmhand.activity import get_activity_tracker
 from haywire.core.volumes import VolumeStore
 
 from tests.models.test_download import DATA, SHA, Env, spec, wait_until
@@ -28,10 +28,10 @@ from haybale_models.store.records import FetchRecords
 def env(models_env: VolumeStore, tmp_path: Path) -> Iterator[Env]:
     (tmp_path / "models").mkdir(exist_ok=True)
     e = Env(tmp_path)
-    activity_tracker().clear()
+    get_activity_tracker().clear()
     yield e
     e.queue.stop()
-    activity_tracker().clear()
+    get_activity_tracker().clear()
 
 
 def failed(env: Env, server: Any, the_spec: FetchSpec | None = None, *, sha: str | None = SHA) -> str:
@@ -71,7 +71,7 @@ def test_upload_with_digest_lands_like_a_download(env, http_server):
     assert path.read_bytes() == DATA
     assert env.index.by_sha256(SHA) == path
     assert job.done_bytes == len(DATA)
-    records = [r for r in activity_tracker().recent() if r.tool == "models.download"]
+    records = [r for r in get_activity_tracker().recent() if r.tool == "models.download"]
     assert "browser" in str(records[0].arguments)
     assert records[0].ok is True
 
@@ -268,7 +268,7 @@ def test_unavailable_models_volume_refuses(env, http_server, monkeypatch):
     def unavailable(_key: str) -> Path:
         raise VolumeError("models volume is offline")
 
-    monkeypatch.setattr("haybale_models.download.location_of", unavailable)
+    monkeypatch.setattr("haybale_models.download.volume_location", unavailable)
     with pytest.raises(ReceiveRefused, match="offline"):
         env.queue.begin_receive(old, "w.pth", "tester")
 
@@ -386,7 +386,7 @@ def test_a_failure_after_the_claim_releases_it(env, http_server, monkeypatch):
         def start(self, *args: Any, **kwargs: Any) -> int:
             raise ValueError("tracker is broken")
 
-    monkeypatch.setattr("haybale_models.download.activity_tracker", lambda: Broken())
+    monkeypatch.setattr("haybale_models.download.get_activity_tracker", lambda: Broken())
     with pytest.raises(ReceiveRefused, match="tracker is broken"):
         env.queue.begin_receive(old, "w.pth", "tester")
     assert env.queue._writing == set()
@@ -409,7 +409,7 @@ def test_a_bug_starting_an_upload_reaches_the_ledger(env, http_server, error_led
         def start(self, *args: Any, **kwargs: Any) -> int:
             raise ValueError("tracker is broken")
 
-    monkeypatch.setattr("haybale_models.download.activity_tracker", lambda: Broken())
+    monkeypatch.setattr("haybale_models.download.get_activity_tracker", lambda: Broken())
     with pytest.raises(ReceiveRefused, match="tracker is broken"):
         env.queue.begin_receive(old, "w.pth", "tester")
     assert error_ledger.current_seq == 1

@@ -1,6 +1,4 @@
-from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.converters import PrimitiveUnwrappingConverter
-from haywire.ui.widget.decorator import widget
+from haywire.api import BaseWidget, PrimitiveUnwrappingConverter, widget
 from nicegui import ui
 
 

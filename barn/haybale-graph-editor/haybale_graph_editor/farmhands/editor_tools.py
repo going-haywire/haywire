@@ -118,7 +118,7 @@ def _node_row(wrapper, detail: bool = False) -> dict:
 # Both ports and settings keep their UI constraints in the SAME place —
 # widget_config["properties"] (min/max folded in at setting.__set_name__ time,
 # options for CHOICES, vec_meta for vectors) — so one extraction helper serves
-# both kinds. widget_config may legitimately hold a live zero-arg callable at
+# both kinds. widget_config may legitimately hold a live callable at
 # properties["options"] (resolved by SelectWidget at every build(), and only
 # reachable here on a PROMOTED port — DataPort.__post_init__ rejects a
 # non-serializable widget_config on a plain port). We resolve it the same way
@@ -168,14 +168,15 @@ _RESERVED_ROW_KEYS = frozenset(
 )
 
 
-def _constraints(widget_config) -> dict:
+def _constraints(widget_config, settings=None) -> dict:
     """JSON-safe constraint hints an agent needs before writing a value.
 
     Resolves a callable ``options`` (the documented dynamic-dropdown
-    mechanism) and drops any entry that cannot be serialized, so an exotic
-    widget config degrades to fewer hints instead of an object repr.
+    mechanism; a one-argument callable gets *settings*, the field's bag) and
+    drops any entry that cannot be serialized, so an exotic widget config
+    degrades to fewer hints instead of an object repr.
     """
-    from haywire.core.types.utils import is_cattrs_serializable
+    from haywire.core.types.utils import is_cattrs_serializable, resolve_options
 
     out: dict = {}
     for key, value in _properties_bag(widget_config).items():
@@ -186,7 +187,7 @@ def _constraints(widget_config) -> dict:
             # the agent sees the live valid set. A probe against absent
             # hardware must not fail the whole inspection.
             try:
-                value = value()
+                value = resolve_options(value, settings)
             except Exception as exc:
                 out["options_unavailable"] = str(exc)
                 continue
@@ -326,7 +327,7 @@ def _inspect_setting_row(
         ui_state = bag._effective_ui_state(name)
         if ui_state.name != "NORMAL":
             row["ui_state"] = ui_state.name.lower()
-        row.update(_constraints(descriptor.widget_config))
+        row.update(_constraints(descriptor.widget_config, bag))
         # The only constraint that actually REJECTS a write. min/max above are
         # UI hints and are not enforced, so without this the agent sees the
         # decorative constraint and not the real one. The predicate is an opaque

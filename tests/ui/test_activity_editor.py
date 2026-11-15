@@ -30,10 +30,10 @@ def test_account_panel_is_a_view_tier_entry_in_the_account_menu():
     from unittest.mock import MagicMock
 
     from haybale_studio.panels.account.account import OpenActivityPanel
-    from haywire.barn.builtin.surfaces import AccountMenu
+    from haywire.barn.builtin.surfaces import AccountMenuSurface
     from haywire.core.access import AccessTier
 
-    assert OpenActivityPanel.class_identity.surface is AccountMenu
+    assert OpenActivityPanel.class_identity.surface is AccountMenuSurface
     assert OpenActivityPanel.class_identity.requires is AccessTier.VIEW
     assert OpenActivityPanel.poll(MagicMock()) is True
 
@@ -122,9 +122,9 @@ def test_clear_button_wipes_history_and_redraws_without_touching_running_calls()
     from unittest.mock import MagicMock
 
     from haybale_studio.editors.activity_editor import ActivityEditor
-    from haywire.core.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import get_activity_tracker
 
-    tracker = activity_tracker()
+    tracker = get_activity_tracker()
     tracker.clear()
     try:
         tracker.start("builder", "still_going")

@@ -37,7 +37,7 @@ from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.core.signals import AgentConnected, RosterChanged, SignalPeer
 
-from haywire.core.farmhand.activity import activity_tracker
+from haywire.core.farmhand.activity import get_activity_tracker
 from .auth import connection_command
 
 if TYPE_CHECKING:
@@ -314,7 +314,7 @@ class FarmhandHost(SignalPeer):
             # per-tool: see the module docstring in activity.py. The tracker
             # broadcasts its own state changes through the app-side bridge, so
             # there is nothing to publish here.
-            tracker = activity_tracker()
+            tracker = get_activity_tracker()
             token = tracker.start(principal, name, arguments)
             try:
                 try:

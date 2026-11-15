@@ -1,6 +1,6 @@
 # haybale_studio/panels/properties/setting/app.py
 """
-Application settings panels, on the ``AppSettings`` surface.
+Application settings panels, on the ``AppSettingsSurface`` surface.
 
 ThemeSettingsPanel    — active workbench theme
 NodeSkinDefaultPanel  — default node skin settings
@@ -26,7 +26,7 @@ from haywire.core.tooling.settings import ExternalToolsSettings
 from haywire.core.undo.settings import UndoSettings
 from haywire.core.farmhand.settings import ActivitySettings
 
-from haywire.barn.builtin.surfaces import AppSettings
+from haywire.barn.builtin.surfaces import AppSettingsSurface
 
 from haywire.core.access import AccessTier
 from haywire_studio.network.tls_operations import status as tls_status
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    surface=AppSettings,
+    surface=AppSettingsSurface,
     label="Workbench",
     description="Active workbench and node themes.",
     icon=hui.icon.theme,
@@ -59,7 +59,7 @@ class ThemeSettingsPanel(BasePanel):
 
 
 @panel(
-    surface=AppSettings,
+    surface=AppSettingsSurface,
     label="Default Skins",
     description="Node Default Skins.",
     icon=hui.icon.skin,
@@ -79,7 +79,7 @@ class NodeSkinDefaultPanel(BasePanel):
 
 
 @panel(
-    surface=AppSettings,
+    surface=AppSettingsSurface,
     label="Editing",
     description="Undo history, and the external editor Haywire opens files in.",
     icon=hui.icon.edit,
@@ -100,7 +100,7 @@ class EditingSettingsPanel(BasePanel):
 
 
 @panel(
-    surface=AppSettings,
+    surface=AppSettingsSurface,
     label="Activity",
     description="Farmhand activity tracker: in-memory history size, audit log path.",
     icon="smart_toy",  # matches ActivityEditor/OpenActivityPanel's icon
@@ -130,7 +130,7 @@ _MARKERS = {
 
 
 @panel(
-    surface=AppSettings,
+    surface=AppSettingsSurface,
     label="Security",
     description="What this studio's defences currently are — read-only.",
     icon=hui.icon.severity,

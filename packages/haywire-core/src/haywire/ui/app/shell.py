@@ -70,7 +70,7 @@ def _pygments_doc_css() -> str:
 
 if TYPE_CHECKING:
     from haywire.ui.app.aside_slot import AsideSlot
-    from haywire.ui.editor.registry import EditorTypeRegistry
+    from haywire.ui.editor.registry import EditorRegistry
     from haywire.ui.editor.base import BaseEditor
     from haywire.core.session.session import Session
     from haywire.core.access import AccessTier
@@ -663,17 +663,17 @@ class AppShell:
     The AppShell does NOT contain business logic. It delegates to:
         - Session for context and state management
         - WorkspaceManager for layout state
-        - EditorTypeRegistry for editor instantiation
+        - EditorRegistry for editor instantiation
         - Individual Slot subclasses for their own editor lifecycle
     """
 
-    def __init__(self, session: "Session", editor_registry: "EditorTypeRegistry"):
+    def __init__(self, session: "Session", editor_registry: "EditorRegistry"):
         """
         Create the AppShell.
 
         Args:
             session: The per-session Session object.
-            editor_registry: EditorTypeRegistry for looking up and
+            editor_registry: EditorRegistry for looking up and
                 instantiating editor types.
         """
         self.session = session

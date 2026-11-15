@@ -55,7 +55,7 @@ def test_clock_emits_silent_blocks_to_its_subscribers(graph_with_library_system)
 def test_recorder_writes_blocks_and_closes_on_stop(graph_with_library_system, tmp_path, monkeypatch):
     mod = importlib.import_module("haybale_audio.nodes.recorder")
     target = tmp_path / "rec.wav"
-    monkeypatch.setattr(mod, "resolve", lambda path: target)
+    monkeypatch.setattr(mod, "resolve_volume_path", lambda path: target)
     node = _node(graph_with_library_system, "recorder", "RecorderNode")
     block = importlib.import_module("haybale_audio.value").AudioBlock.silence(2, 256, 48000)
 
@@ -82,7 +82,7 @@ def test_file_player_plays_a_file(graph_with_library_system, tmp_path, monkeypat
     mod = importlib.import_module("haybale_audio.nodes.file_player")
     target = tmp_path / "in.wav"
     sf.write(str(target), np.full((960, 2), 0.25, np.float32), 48000, subtype="FLOAT")  # 20 ms
-    monkeypatch.setattr(mod, "resolve", lambda path: target)
+    monkeypatch.setattr(mod, "resolve_volume_path", lambda path: target)
     node = _node(graph_with_library_system, "file_player", "FilePlayerNode")
     node.value = lambda port_id: _subscribers() if port_id == "callbacks" else None
     ctx = _context("start")

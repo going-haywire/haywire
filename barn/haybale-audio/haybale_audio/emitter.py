@@ -5,7 +5,7 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from haywire.core.execution.execution_context import ExecutionContext
+from haywire.api import ExecutionContext
 
 from haybale_audio.value import AudioBlock
 

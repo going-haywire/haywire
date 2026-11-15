@@ -46,7 +46,7 @@ The plugin owns **no registry state and no runtime parsing**. It calls `Marketpl
 
 ## 3. What the plugin ships
 
-`barn/haybale-marketplace/haybale_marketplace/` registers three component categories from its `Library.register_components()`: states (via `LibraryStateRegistry`), farmhands (via `FarmhandRegistry`), and editors (via `EditorTypeRegistry`). **State is scanned first** — both the farmhand tools and the editor modules transitively import the state classes, and scanning them first keeps a single class object live (the same ordering rule `haybale-studio` follows).
+`barn/haybale-marketplace/haybale_marketplace/` registers three component categories from its `Library.register_components()`: states (via `StateRegistry`), farmhands (via `FarmhandRegistry`), and editors (via `EditorRegistry`). **State is scanned first** — both the farmhand tools and the editor modules transitively import the state classes, and scanning them first keeps a single class object live (the same ordering rule `haybale-studio` follows).
 
 ### Editors
 
@@ -101,7 +101,7 @@ URL would lock subscribers to whatever version they first subscribed to.
 
 ## 4. Important concepts
 
-**Optionality is the whole point.** Editors self-register into slots via `EditorTypeRegistry`. If `haybale-marketplace` is not installed, the left-slot library browser simply doesn't appear; `haybale-studio` carries no `if marketplace_present:` branches. This is what makes the carve-out worth its one extra `.manager.` indirection — a build can omit or replace the installer cleanly.
+**Optionality is the whole point.** Editors self-register into slots via `EditorRegistry`. If `haybale-marketplace` is not installed, the left-slot library browser simply doesn't appear; `haybale-studio` carries no `if marketplace_present:` branches. This is what makes the carve-out worth its one extra `.manager.` indirection — a build can omit or replace the installer cleanly.
 
 **Persistence lives in the core registry, not here.** "Which libraries are disabled" is a property of the `LibraryRegistry`, not the installer. The editors call `manager.registry.enable_library(id)` / `disable_library(id)`; the registry writes through to `HostStore` (`<workspace>/.haywire/host.toml`, `[libraries] disabled`). There is no marketplace-owned persistence and no `AppState` in the enable/disable path. See [ADR-0001 §Why persistence moves out](../../adr/0001-haybale-marketplace-carveout.md).
 

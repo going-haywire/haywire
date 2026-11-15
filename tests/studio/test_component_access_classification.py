@@ -216,9 +216,9 @@ def _classes(library_system, registry_cls) -> dict[str, type]:
 
 @pytest.fixture
 def editors(library_system) -> dict[str, type]:
-    from haywire.ui.editor.registry import EditorTypeRegistry
+    from haywire.ui.editor.registry import EditorRegistry
 
-    return _classes(library_system, EditorTypeRegistry)
+    return _classes(library_system, EditorRegistry)
 
 
 @pytest.fixture

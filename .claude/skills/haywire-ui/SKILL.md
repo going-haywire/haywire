@@ -15,7 +15,7 @@ Read the following documentation files in order and use them as the authoritativ
 
 Optional context (load if the task touches them):
 
-- `docs/architecture/session-and-state/session-and-state-arch.md` — `AppState` / `SessionState` taxonomy, `LibraryStateRegistry`, container subscription, lifecycle
+- `docs/architecture/session-and-state/session-and-state-arch.md` — `AppState` / `SessionState` taxonomy, `StateRegistry`, container subscription, lifecycle
 - `docs/reference/design-guide.md` — visual / UX rules, design tokens, `hui` API patterns
 
 ## After reading
@@ -27,7 +27,7 @@ Summarise in 6–10 bullet points:
 - The 4-slot layout (Left / Main / Right / Bottom) and which `default_slot` each editor targets
 - `SessionContext` fields (`active_node`, `active_edge`, etc.) and the two state namespaces — `ctx.app_data[Cls]` (AppState) and `ctx.data[Cls]` (SessionState)
 - `ContextChangedEvent` flow + `reveal_editor` field (NOT the old `metadata['main_tabs']` / `metadata['bottom_tabs']` shims — those were removed)
-- `EditorTypeRegistry` / `PanelRegistry` are `BaseRegistry` subclasses → hot-reload aware; new classes picked up at next render boundary
+- `EditorRegistry` / `PanelRegistry` are `BaseRegistry` subclasses → hot-reload aware; new classes picked up at next render boundary
 - NiceGUI slot context rules: only call `ui.*` inside `render()` / `draw()`; don't cache `ctx.app_data[Cls]` in long-lived `__init__` (stale on hot-reload)
 
 Then proceed with the user's task using these patterns as the guide.

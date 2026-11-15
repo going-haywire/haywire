@@ -5,8 +5,8 @@ Debug settings panels, on the ``DebugSurface`` surface.
 DebugSettingsPanel        — log levels (global baseline, per-group, per-library)
 DebugOverlaySettingsPanel — debug HUD visibility and position
 
-Both were previously split across ``ExecutionInspector`` and
-``CanvasSettings`` respectively; they share one surface now since neither is
+Both were previously split across ``ExecutionInspectorSurface`` and
+``CanvasSettingsSurface`` respectively; they share one surface now since neither is
 really an execution or canvas concern.
 """
 

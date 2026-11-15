@@ -150,16 +150,16 @@ def test_mount_writes_no_token_file(farmhand_server):
 
 def test_successful_tool_call_is_recorded_as_finished_activity(farmhand_call):
     """The host records every call, not just mutating ones — echo is read-only."""
-    from haywire.core.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import get_activity_tracker
 
-    activity_tracker().clear()
+    get_activity_tracker().clear()
 
     async def scenario(session, init):
         return await session.call_tool("haybale-testing_echo", {"text": "hi"})
 
     farmhand_call(scenario)
 
-    recent = activity_tracker().recent()
+    recent = get_activity_tracker().recent()
     assert [r.tool for r in recent] == ["haybale-testing_echo"]
     assert recent[0].ok is True
     assert recent[0].running is False
@@ -169,16 +169,16 @@ def test_successful_tool_call_is_recorded_as_finished_activity(farmhand_call):
 
 
 def test_failing_tool_call_is_recorded_with_its_error(farmhand_call):
-    from haywire.core.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import get_activity_tracker
 
-    activity_tracker().clear()
+    get_activity_tracker().clear()
 
     async def scenario(session, init):
         return await session.call_tool("haybale-testing_fail", {})
 
     farmhand_call(scenario)
 
-    recent = activity_tracker().recent()
+    recent = get_activity_tracker().recent()
     assert [r.tool for r in recent] == ["haybale-testing_fail"]
     assert recent[0].ok is False
     assert "[testing_failure]" in (recent[0].error or "")
@@ -186,9 +186,9 @@ def test_failing_tool_call_is_recorded_with_its_error(farmhand_call):
 
 def test_no_call_is_left_pinned_as_running(farmhand_call):
     """Both outcomes must clear the in-flight set, or the chip lies forever."""
-    from haywire.core.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import get_activity_tracker
 
-    activity_tracker().clear()
+    get_activity_tracker().clear()
 
     async def scenario(session, init):
         await session.call_tool("haybale-testing_echo", {"text": "hi"})
@@ -196,24 +196,24 @@ def test_no_call_is_left_pinned_as_running(farmhand_call):
 
     farmhand_call(scenario)
 
-    assert activity_tracker().current(None) is None
-    assert len(activity_tracker().recent()) == 2
+    assert get_activity_tracker().current(None) is None
+    assert len(get_activity_tracker().recent()) == 2
 
 
 def test_a_real_call_records_its_arguments_and_result(farmhand_call):
     """End-to-end through host.py's real call_tool wrapper, not a direct tracker call."""
     import json
 
-    from haywire.core.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import get_activity_tracker
 
-    activity_tracker().clear()
+    get_activity_tracker().clear()
 
     async def scenario(session, init):
         return await session.call_tool("haybale-testing_echo", {"text": "roundtrip"})
 
     farmhand_call(scenario)
 
-    record = activity_tracker().recent()[0]
+    record = get_activity_tracker().recent()[0]
     assert json.loads(record.arguments) == {"text": "roundtrip"}
     assert record.result is not None
     assert json.loads(record.result)["echo"] == "roundtrip"

@@ -1,9 +1,6 @@
 """The Data node template: the starting point for a node that computes a value."""
 
-from haywire.barn.builtin.types import FLOAT
-from haywire.barn.builtin.widgets import NumberWidget
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import FLOAT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
 
 
 @node(

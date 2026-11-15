@@ -24,7 +24,7 @@ from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.edit_route import EditRoute
 from haywire.core.graph.editor import Editor
 from haywire.core.node.promotion import promote_setting
-from haywire.core.skin.settings import _widget_node_stage_skin_choices
+from haywire.core.skin.settings import widget_node_stage_skin_choices
 from haywire.core.types.enums import PortType, ShowWidgetStrategy
 from haywire.core.undo.config import UndoConfig
 from tests.conftest import make_node
@@ -71,7 +71,7 @@ def test_a_widget_node_binds_the_widget_node_stage_skin(graph_with_library_syste
     node = _add(graph_with_library_system, cls).node
     assert node.props.stage_skin == WIDGET_NODE_SKIN
     descriptor = type(node.props)._settings_descriptors()["stage_skin"]
-    assert descriptor.widget_config["properties"]["options"] is _widget_node_stage_skin_choices
+    assert descriptor.widget_config["properties"]["options"] is widget_node_stage_skin_choices
 
 
 def _fed_slider(graph: BaseGraph):

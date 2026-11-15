@@ -35,12 +35,12 @@ def test_the_bookkeeping_settings_stay_out_of_the_schema():
 
 
 def test_panel_is_registered_under_barns():
-    from haywire.barn.builtin.surfaces import Barns
+    from haywire.barn.builtin.surfaces import BarnsSurface
 
     from haybale_haystack.panels.haystack_settings_panel import HaystackSettingsPanel
 
     identity = HaystackSettingsPanel.class_identity
-    assert identity.surface is Barns
+    assert identity.surface is BarnsSurface
     assert identity.label == "Haystack", "a library's panel on Barns is named after the library"
     assert identity.icon == hui.icon.haystack, "and carries the library's icon"
 

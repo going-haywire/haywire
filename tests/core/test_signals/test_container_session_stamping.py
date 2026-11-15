@@ -15,7 +15,7 @@ def test_container_stamps_session_weakref_on_session_state():
     from haywire.core.library.identity import LibraryIdentity
     from haywire.core.state.container import LibraryStateContainer
     from haywire.core.state.identity import LibraryStateClassIdentity
-    from haywire.core.state.registry import LibraryStateRegistry
+    from haywire.core.state.registry import StateRegistry
 
     seen_session = []
 
@@ -40,7 +40,7 @@ def test_container_stamps_session_weakref_on_session_state():
             # The weakref must be set by now.
             seen_session.append(self.session())
 
-    container = LibraryStateContainer(LibraryStateRegistry())
+    container = LibraryStateContainer(StateRegistry())
     container._mark_library_enabled("test:lib")
     container._class_by_registry_key["test:lib:MyState"] = MyState
     container._sessions["test:lib:MyState"] = {}

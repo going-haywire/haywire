@@ -13,17 +13,12 @@ from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, STRING
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.core.settings import NodeSettings, Promotable, setting, settings_fields
-from haywire.core.skin.fonts import FONTS
+from haywire.core.skin.fonts import FONTS, TEXT_H_ALIGNS, TEXT_V_ALIGNS
 from haywire.core.types import PortOrigin
 
 if TYPE_CHECKING:
     from haywire.core.edge.edge_wrapper import EdgeWrapper
     from haywire.core.types.port import DataPort
-
-
-#: Choices of the horizontal and vertical alignment settings.
-H_ALIGNS = ("left", "center", "right")
-V_ALIGNS = ("top", "middle", "bottom")
 
 
 @node(
@@ -97,7 +92,7 @@ class AnnotationNode(BaseNode):
             label="Horizontal Alignment",
             category="arrangement",
             order=10,
-            widget_config={"options": list(H_ALIGNS)},
+            widget_config={"options": list(TEXT_H_ALIGNS)},
             promotable=Promotable.NONE,
         )
         v_align = setting[CHOICES](
@@ -105,7 +100,7 @@ class AnnotationNode(BaseNode):
             label="Vertical Alignment",
             category="arrangement",
             order=11,
-            widget_config={"options": list(V_ALIGNS)},
+            widget_config={"options": list(TEXT_V_ALIGNS)},
             promotable=Promotable.NONE,
         )
         font = setting[CHOICES](

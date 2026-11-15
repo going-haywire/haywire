@@ -13,9 +13,9 @@ def kind_registry_map() -> dict[str, type]:
     from haywire.core.catalog.registry import CatalogRegistry
     from haywire.core.node.registry import NodeRegistry
     from haywire.core.settings import SettingsRegistry
-    from haywire.core.state import LibraryStateRegistry
+    from haywire.core.state import StateRegistry
     from haywire.core.types.registry import TypeRegistry
-    from haywire.ui.editor.registry import EditorTypeRegistry
+    from haywire.ui.editor.registry import EditorRegistry
     from haywire.ui.panel.registry import PanelRegistry
     from haywire.ui.skin.registry import SkinRegistry
     from haywire.ui.themes.registry import ThemeRegistry
@@ -32,8 +32,8 @@ def kind_registry_map() -> dict[str, type]:
         "setting": SettingsRegistry,
         "theme": ThemeRegistry,
         "panel": PanelRegistry,
-        "editor": EditorTypeRegistry,
-        "state": LibraryStateRegistry,
+        "editor": EditorRegistry,
+        "state": StateRegistry,
         "farmhand": FarmhandRegistry,
     }
 

@@ -5,10 +5,7 @@ from typing import Any, cast
 from haybale_core.keys import ARRAY_WIDGET
 from haybale_core.nodes.widgets.base import WidgetNode
 from haybale_core.types import ArrayType
-from haywire.barn.builtin.types import CHOICES, STRING
-from haywire.barn.builtin.widget_keys import SELECT_WIDGET
-from haywire.core.node import NodeType, node
-from haywire.core.settings import NodeSettings, setting
+from haywire.api import CHOICES, SELECT_WIDGET, STRING, NodeSettings, NodeType, node, setting
 
 
 @node(

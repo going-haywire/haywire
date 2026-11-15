@@ -1,9 +1,9 @@
 """Surfaces declared by the built-in library.
 
-``CanvasSettings`` is the *inspector* half of the old ``CanvasFocus``. Its
+``CanvasSettingsSurface`` is the *inspector* half of the old ``CanvasFocus``. Its
 menu half moved into the graph editor's ``GraphContext`` and its regions, so
 the canvas right-click menu no longer shares an id with the canvas properties
-tab. Note that ``CanvasSettings`` sits one import away from the *panel*
+tab. Note that ``CanvasSettingsSurface`` sits one import away from the *panel*
 ``CanvasSettingsPanel`` that lives on it — they are deliberately kept in
 different modules so the two names never appear in the same file.
 """
@@ -16,7 +16,7 @@ from haywire.ui import elements as hui
 from haywire.ui.surface import Presentation, Surface
 
 
-class AppSettings(Surface):
+class AppSettingsSurface(Surface):
     """Application-wide settings tab."""
 
     id = "app"
@@ -24,7 +24,7 @@ class AppSettings(Surface):
     presentation = Presentation(label="Application", icon=hui.icon.app)
 
 
-class Barns(Surface):
+class BarnsSurface(Surface):
     """Library-wide settings tab: where libraries put their library-wide settings panels."""
 
     id = "barns"
@@ -32,7 +32,7 @@ class Barns(Surface):
     presentation = Presentation(label="Barns", icon=hui.icon.barns)
 
 
-class ExecutionInspector(Surface):
+class ExecutionInspectorSurface(Surface):
     """Execution settings tab."""
 
     id = "execution"
@@ -40,7 +40,7 @@ class ExecutionInspector(Surface):
     presentation = Presentation(label="Execution", icon="rocket_launch")
 
 
-class CanvasSettings(Surface):
+class CanvasSettingsSurface(Surface):
     """Canvas & node appearance settings tab."""
 
     id = "canvas"
@@ -52,8 +52,8 @@ class DebugSurface(Surface):
     """Debug settings tab — log levels and the debug HUD overlay.
 
     Sits last in the properties toolbar (highest ``order`` among the
-    built-in tabs), separate from ``ExecutionInspector`` and
-    ``CanvasSettings`` since neither log verbosity nor the debug overlay is
+    built-in tabs), separate from ``ExecutionInspectorSurface`` and
+    ``CanvasSettingsSurface`` since neither log verbosity nor the debug overlay is
     really an execution or canvas concern.
     """
 
@@ -71,7 +71,7 @@ class AccountActions(Protocol):
     def reveal(self, editor_cls: type, binding_id: Any, label: str) -> None: ...
 
 
-class AccountMenu(Surface):
+class AccountMenuSurface(Surface):
     """The menu behind the ``account_circle`` icon in the ACTION bar footer.
 
     Always applies — its entries are access-filtered by the shared panel
@@ -84,3 +84,7 @@ class AccountMenu(Surface):
     id = "account"
     order = 10
     provides = AccountActions
+
+
+# The name libraries outside this repository import until they move onto haywire.api.
+Barns = BarnsSurface

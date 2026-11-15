@@ -18,16 +18,17 @@ from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-from haywire.core.access import AccessTier
-from haywire.core.session.handlers import react_on
-from haywire.core.volumes import VolumeError, location_of
-from haywire.ui import elements as hui
-from haywire.ui.elements.flyout import MENU_CARD_CLASS
-from haywire.ui.hover_tip import set_hover_tip
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import SlotName
-from haywire.ui.modals import confirm_modal
+from haywire.api.workbench import (
+    AccessTier,
+    BaseEditor,
+    SlotName,
+    confirm_modal,
+    editor,
+    hui,
+    react_on,
+    set_hover_tip,
+)
+from haywire.api import VolumeError, volume_location
 from huggingface_hub.utils import filter_repo_objects
 from nicegui import core, ui
 
@@ -64,9 +65,8 @@ from haybale_models.status import resource_status
 from haybale_models.store.index import IndexRecord
 
 if TYPE_CHECKING:
-    from haywire.core.catalog import CatalogEntry, Resource
-    from haywire.core.session.context import SessionContext
-    from haywire.ui.editor.wrapper import EditorWrapper
+    from haywire.api import CatalogEntry, Resource
+    from haywire.api.workbench import EditorWrapper, SessionContext
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -484,7 +484,7 @@ class ModelsEditor(BaseEditor):
             unused = [(key, label) for key, label in FILTER_FIELDS if key not in self._added]
             if unused:
                 with hui.icon_action(hui.icon.add, tooltip="Add a filter").mark("models-filter-add"):
-                    menu = ui.menu().classes(MENU_CARD_CLASS)
+                    menu = hui.menu()
 
                     def close_menu() -> None:
                         # Adding a field redraws this row's slot, which deletes the menu first.
@@ -982,7 +982,7 @@ class ModelsEditor(BaseEditor):
             key=lambda r: (r.relative.lower(), r.relative),
         )
         try:
-            root: Path | None = location_of(MODELS_VOLUME)
+            root: Path | None = volume_location(MODELS_VOLUME)
         except VolumeError:
             root = None
         pending = models.index.pending() if root is not None else {}
@@ -1185,7 +1185,7 @@ class ModelsEditor(BaseEditor):
     def _files_of(self, models: ModelsState, shas: set[str]) -> list[tuple[IndexRecord, Path]]:
         """The indexed files of *shas* that lie inside the models volume."""
         try:
-            root = location_of(MODELS_VOLUME).resolve()
+            root = volume_location(MODELS_VOLUME).resolve()
         except VolumeError:
             return []
         found: list[tuple[IndexRecord, Path]] = []
@@ -1373,7 +1373,7 @@ class ModelsEditor(BaseEditor):
         if not removal.shas:
             return
         try:
-            root = location_of(MODELS_VOLUME).resolve()
+            root = volume_location(MODELS_VOLUME).resolve()
         except VolumeError:
             return
         failed: list[str] = []

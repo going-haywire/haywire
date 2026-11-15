@@ -13,8 +13,8 @@ from haywire.core.volumes.resolve import (
     VolumeStatus,
     VolumeUndefinedError,
     list_volumes,
-    location_of,
-    resolve,
+    volume_location,
+    resolve_volume_path,
 )
 from haywire.core.volumes.store import (
     VolumeEntry,
@@ -39,8 +39,8 @@ __all__ = [
     "get_volume_store",
     "is_user_volume_key",
     "list_volumes",
-    "location_of",
-    "resolve",
+    "volume_location",
+    "resolve_volume_path",
     "set_volume_store",
     "user_volume_key",
     "volume_name",

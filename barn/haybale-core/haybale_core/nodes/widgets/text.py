@@ -1,9 +1,7 @@
 """Text."""
 
 from haybale_core.nodes.widgets.base import WidgetNode
-from haywire.barn.builtin.types import STRING
-from haywire.barn.builtin.widget_keys import TEXT_WIDGET
-from haywire.core.node import NodeType, node
+from haywire.api import STRING, TEXT_WIDGET, NodeType, node
 
 
 @node(

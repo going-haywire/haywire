@@ -14,7 +14,7 @@ from typing import Any, cast
 
 from unittest.mock import MagicMock, patch
 
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
@@ -37,7 +37,7 @@ def _make_app(container: LibraryStateContainer) -> object:
 def make_context(register_edit_state) -> tuple[SessionContext, type]:
     from tests.conftest import attach_stub_session
 
-    container = LibraryStateContainer(LibraryStateRegistry())
+    container = LibraryStateContainer(StateRegistry())
     sid = "test"
     EditStateCls = register_edit_state(container, sid)
     ctx = attach_stub_session(SessionContext(session_id=sid, app=cast(Any, _make_app(container))))

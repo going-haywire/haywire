@@ -14,7 +14,7 @@ from haybale_graph_editor.surfaces.edge import EdgeInspector
 from haybale_graph_editor.surfaces.graph import GraphInspector
 from haybale_graph_editor.surfaces.node import NodeInspector, SettingsInspector
 from haybale_graph_editor.surfaces.ports import PortInspector
-from haywire.barn.builtin.surfaces import ExecutionInspector
+from haywire.barn.builtin.surfaces import ExecutionInspectorSurface
 from haywire.core.access import LevelMode
 from haywire.core.graph.edit_route import EditRoute
 
@@ -51,4 +51,4 @@ def test_graph_inspectors_hide_without_their_subject(mode: LevelMode):
 
 
 def test_the_execution_tab_stays_in_view():
-    assert ExecutionInspector.poll(_ctx(_route_in(LevelMode.VIEW))) is True
+    assert ExecutionInspectorSurface.poll(_ctx(_route_in(LevelMode.VIEW))) is True

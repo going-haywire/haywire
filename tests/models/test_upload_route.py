@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from starlette.testclient import TestClient
 
 from haywire.core.access import AccessTier, access_resolver, set_access_resolver
-from haywire.core.farmhand.activity import activity_tracker
+from haywire.core.farmhand.activity import get_activity_tracker
 from haywire.core.volumes import VolumeStore
 
 from tests.models.test_download import DATA, SHA, Env, spec, wait_until
@@ -26,10 +26,10 @@ from haybale_models.upload_route import NAME_HEADER, mount_upload_route
 def env(models_env: VolumeStore, tmp_path: Path) -> Iterator[Env]:
     (tmp_path / "models").mkdir(exist_ok=True)
     e = Env(tmp_path)
-    activity_tracker().clear()
+    get_activity_tracker().clear()
     yield e
     e.queue.stop()
-    activity_tracker().clear()
+    get_activity_tracker().clear()
 
 
 @pytest.fixture(autouse=True)

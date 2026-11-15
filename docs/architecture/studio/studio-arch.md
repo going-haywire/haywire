@@ -24,7 +24,7 @@ Three design goals shape every decision in this layer:
 
 - **Session isolation** — each browser tab is a fully independent session with its own selection state, interaction mode, editor instances, and library-owned reactive state. Multiple users can connect to the same running haywire server simultaneously without interfering.
 - **Pub/sub decoupling** — editors, panels, and the shell do not talk to each other directly. Every interaction flows as a `Signal` published on a per-session typed bus: observations (concrete `Signal` subclasses like `SelectionMoved`, `GraphDataMutated`) describe state moves; imperatives (`CommandSignal` subclasses like `Reveal`, `Close`) request workspace-tree mutations. Authors emit with `Session.publish(...)` and subscribe with `Session.subscribe(SignalType, handler)` (or via the `@redraw_on` / `@react_on` decorators on editor methods). Cross-session synchronisation is opt-in per signal class.
-- **Open extensibility** — both editors and panels are registered via DI-managed registries (`EditorTypeRegistry`, `PanelRegistry`). A library can ship its own editors, panels, and `Surface` classes that are auto-discovered and inserted into the UI, following the same two-stage decorator + folder-scan pattern used by nodes, widgets, and themes.
+- **Open extensibility** — both editors and panels are registered via DI-managed registries (`EditorRegistry`, `PanelRegistry`). A library can ship its own editors, panels, and `Surface` classes that are auto-discovered and inserted into the UI, following the same two-stage decorator + folder-scan pattern used by nodes, widgets, and themes.
 
 ## 2. Components
 
@@ -142,7 +142,7 @@ Library authors who declare their own `Signal` subclasses that other libraries s
 
 Editors fill slots; panels fill the inside of panel-aware editors. Both register via DI registries:
 
-- `EditorTypeRegistry` — `BaseEditor` subclasses, decorated with `@editor(...)`. Registered by libraries via `add_folder_to_registry(folder_path=..., registry_cls=EditorTypeRegistry)` in `register_components()`. Built-in framework editors (currently none — all editors live in `haybale-studio` or other libraries) would bootstrap via `register_builtin_editors()`.
+- `EditorRegistry` — `BaseEditor` subclasses, decorated with `@editor(...)`. Registered by libraries via `add_folder_to_registry(folder_path=..., registry_cls=EditorRegistry)` in `register_components()`. Built-in framework editors (currently none — all editors live in `haybale-studio` or other libraries) would bootstrap via `register_builtin_editors()`.
 - `PanelRegistry` — `BasePanel` subclasses, decorated with `@panel(surface=..., hosts=...)`. Registered the same way. Panel-aware hosts call `panel_registry.get_panels(surface)`, filtered by `Surface.id` match alone — there is no display/action fork; whether a panel needs a host in `self.actions` is decided by the Surface's own `provides` Protocol, checked at the point of nesting.
 
 For the editor authoring surface — `BaseEditor`, `draw`, the `@redraw_on` / `@react_on` handler decorators, `OpenBehavior` modes, slot constraints — see [components/editors](../../components/editors/editor-canon.md). For the panel surface — `@panel`, `Surface` classes, `PanelLayout` — see [components/panels](../../components/panels/panel-canon.md).
@@ -218,7 +218,7 @@ The contract is: *handlers are cheap; the heavy work goes in `draw()`, gated by 
 
 ### 4.3 Hot-reload
 
-`EditorTypeRegistry` and `PanelRegistry` extend `BaseRegistry` and participate in the framework hot-reload loop. When an editor class is replaced, the framework drops its bus subscriptions, evicts cached wrappers, calls `cleanup()` on the old instance, and re-instantiates + `draw()` (which re-wires fresh subscriptions for the new class's decorated handlers) for any visible bindings. Slots subscribe to the registry's batch-event channel to learn when new `opens='required'` editors should auto-bind on next render.
+`EditorRegistry` and `PanelRegistry` extend `BaseRegistry` and participate in the framework hot-reload loop. When an editor class is replaced, the framework drops its bus subscriptions, evicts cached wrappers, calls `cleanup()` on the old instance, and re-instantiates + `draw()` (which re-wires fresh subscriptions for the new class's decorated handlers) for any visible bindings. Slots subscribe to the registry's batch-event channel to learn when new `opens='required'` editors should auto-bind on next render.
 
 The signal-class-reload caveat applies here too: handlers that hold a reference to an old `Signal` class object will see `isinstance()` / type lookup miss after a reload of that class. Library authors who declare their own `Signal` subclasses that other libraries subscribe to must list the declaring library in their dependencies.
 
@@ -255,7 +255,7 @@ Two things follow from serving TLS that are easy to miss: `FarmhandHost.mount()`
 
 A library extends the studio by adding any of:
 
-- **Editors** — `@editor(...)` + `BaseEditor` subclass + `add_folder_to_registry(..., EditorTypeRegistry)` in `register_components()`. Decorate handler methods with `@redraw_on(...)` / `@react_on(...)` to subscribe to signals.
+- **Editors** — `@editor(...)` + `BaseEditor` subclass + `add_folder_to_registry(..., EditorRegistry)` in `register_components()`. Decorate handler methods with `@redraw_on(...)` / `@react_on(...)` to subscribe to signals.
 - **Panels** — `@panel(surface=..., hosts=..., redraw_on=(...,))` + `BasePanel` subclass + `add_folder_to_registry(..., PanelRegistry)`. `PropertiesEditor` unions `redraw_on=` across its current root surfaces' `hosts=` trees (via a `PanelRedrawCoordinator`) and subscribes the wrapper to the effective set.
 - **`Surface` classes** — `Surface` subclass + register via a panel's `surface=`/`hosts=`; `PropertiesEditor` picks up every root surface (named by some panel's `surface=`, hosted by none) automatically through `PanelRegistry.get_root_surfaces()`.
 - **Custom `Signal` subclasses** — declare in the library (concrete `Signal` for observations, `CommandSignal` for imperatives), emit via `session.publish(...)`, list the declaring library in `LibraryIdentity.dependencies` of any library that subscribes.

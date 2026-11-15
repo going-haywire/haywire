@@ -132,11 +132,11 @@ def test_coerce_requirement_rejects_a_level_mode():
 
 
 def _decorate_panel(requires: object) -> type:
-    from haywire.barn.builtin.surfaces import AppSettings
+    from haywire.barn.builtin.surfaces import AppSettingsSurface
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
 
-    return panel(label="X", surface=AppSettings, requires=requires)(type("P", (BasePanel,), {}))
+    return panel(label="X", surface=AppSettingsSurface, requires=requires)(type("P", (BasePanel,), {}))
 
 
 def _decorate_editor(requires: object) -> type:

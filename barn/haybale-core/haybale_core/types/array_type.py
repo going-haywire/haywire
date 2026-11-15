@@ -10,9 +10,15 @@ Key changes:
 from dataclasses import dataclass, field
 from typing import Any, cast, List, Optional, Type, TypeVar
 
-from haywire.core.types import type, DataField, CompoundType, IType
-from haywire.core.types.fields import element_from_dict, element_to_dict
-from haywire.core.types.wire import declaring_type_of
+from haywire.api import (
+    CompoundType,
+    DataField,
+    IType,
+    declaring_type_of,
+    element_from_dict,
+    element_to_dict,
+    type,
+)
 
 T = TypeVar("T")
 

@@ -8,10 +8,18 @@ bar sweep. The work is simulated with ``time.sleep``.
 
 import time
 
-from haywire.barn.builtin.progress import ProgressSettings, progress_field
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import node, BaseNode, NodeType
-from haywire.core.settings import bag
+from haywire.api import (
+    EXEC,
+    FLOAT,
+    INT,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    ProgressSettings,
+    bag,
+    node,
+    progress_field,
+)
 
 
 class DemoProgress(ProgressSettings):
@@ -40,8 +48,6 @@ class ProgressDemoNode(BaseNode):
     progress = bag(DemoProgress)
 
     def init(self):
-        from haywire.barn.builtin.types import EXEC, FLOAT, INT
-
         self.add(EXEC.as_inlet("exec"))
         self.add(EXEC.as_outlet("done"))
 

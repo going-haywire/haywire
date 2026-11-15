@@ -19,6 +19,7 @@ Test the Settings for debugging
 | `example_float` | example | `5` | A float setting with explicit type_ override |
 | `example_bool` | example | `False` | An example boolean setting |
 | `example_choices` | example | `'fast'` | An example choices setting |
+| `example_source` | example | `''` | A slow list behind a refresh button; it follows Example Choices |
 | `example_color` | example | `'#00ff00'` | An example color setting |
 | `example_vec2i` | example | `[4, 8]` | A 2-component integer vector |
 | `example_vec3f` | example | `[1.0, 2.0, 3.0]` | A 3-component float vector |

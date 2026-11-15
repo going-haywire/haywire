@@ -1,7 +1,6 @@
 """Mix to Mono — averages all channels of a block."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
+from haywire.api import BaseNode, ExecutionContext, NodeType, node
 
 from haybale_audio.dsp import channels as ops
 from haybale_audio.value import AudioBlock

@@ -21,7 +21,7 @@ Arguments and results are stored as JSON text, truncated to
 ``PAYLOAD_CHAR_CAP``, and are not redacted — a VIEW principal can already
 inspect graph contents and library state by other means.
 
-Reach the process-wide tracker through ``activity_tracker()`` in
+Reach the process-wide tracker through ``get_activity_tracker()`` in
 ``core/di/context.py``, never as a module-level instance here, so tests can
 swap it and construction waits for a settings registry. Mutations run on the
 NiceGUI event loop from the MCP request task; work a tool sends to a thread
@@ -39,7 +39,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Deque, Iterator, Optional
 
-from haywire.core.di.context import activity_tracker, set_activity_tracker
+from haywire.core.di.context import get_activity_tracker, set_activity_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -351,6 +351,6 @@ __all__ = [
     "ActivityTracker",
     "HISTORY_LIMIT",
     "PAYLOAD_CHAR_CAP",
-    "activity_tracker",
+    "get_activity_tracker",
     "set_activity_tracker",
 ]

@@ -11,9 +11,7 @@ Key changes:
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Type, TypeVar, cast
 
-from haywire.core.types import type, CompoundType, DataField, IType
-from haywire.core.types.enums import PortType
-from haywire.core.types.wire import WireRole, declaring_type_of
+from haywire.api import CompoundType, DataField, IType, PortType, WireRole, declaring_type_of, type
 
 T = TypeVar("T")
 

@@ -23,7 +23,7 @@ from haywire.ui.editor.identity import OpenBehavior
 
 if TYPE_CHECKING:
     from haywire.ui.editor.base import BaseEditor
-    from haywire.ui.editor.registry import EditorTypeRegistry
+    from haywire.ui.editor.registry import EditorRegistry
     from haywire.core.session.session import Session
     from haywire.ui.app.slot import Slot
 
@@ -102,7 +102,7 @@ class EditorWrapper:
     """Manages the complete lifecycle of an editor instance.
 
     Responsibilities:
-    - Self-subscribe to EditorTypeRegistry for per-key hot-reload events
+    - Self-subscribe to EditorRegistry for per-key hot-reload events
     - Lazy-instantiate the editor class on first runtime call (Task 4)
     - Capture errors per phase (import/instantiate/runtime) into state
     - Notify the slot via redraw_callback when state changes require a redraw
@@ -116,7 +116,7 @@ class EditorWrapper:
         self,
         editor_key: str,
         editor_cls: "type[BaseEditor]",
-        registry: "EditorTypeRegistry",
+        registry: "EditorRegistry",
         session: "Session",
         binding_id: Optional[str] = None,
         label: str = "",

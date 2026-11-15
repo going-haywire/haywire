@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable, Hashable
 from typing import TYPE_CHECKING, TypeVar
 
-from haywire.core.di.context import get_library_state_container
-from haywire.core.node.node_warning import NodeWarning
+from haywire.api.workbench import get_library_state_container
+from haywire.api import NodeWarning
 
 from haybale_models.matcher import Preference
 from haybale_models.resolver import ModelMissing, ResolvedModel, resolve
@@ -14,7 +14,7 @@ from haybale_models.states.models_state import ModelsState
 from haybale_models.value.model_ref import ModelRef
 
 if TYPE_CHECKING:
-    from haywire.core.node.base import BaseNode
+    from haywire.api import BaseNode
 
 __all__ = [
     "KIND",

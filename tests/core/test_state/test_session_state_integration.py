@@ -16,7 +16,7 @@ from haywire.core.registry.lifecycle_event import (
 )
 from haywire.core.state import (
     LibraryStateContainer,
-    LibraryStateRegistry,
+    StateRegistry,
     SessionState,
 )
 from haywire.core.state.data_namespace import SessionDataNamespace
@@ -32,7 +32,7 @@ class TestSessionStateIntegration:
         service = LibrarySystemService(injector)
         service.initialize()
 
-        registry = injector.get(LibraryStateRegistry)
+        registry = injector.get(StateRegistry)
         container = injector.get(LibraryStateContainer)
 
         calls: list[tuple[str, str]] = []

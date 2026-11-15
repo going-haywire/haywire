@@ -16,7 +16,7 @@ see-also:
 
 An **editor** is a self-contained UI module that fills one slot of the studio's workspace layout. As an author, you write a class that inherits from `BaseEditor`, decorate it with `@editor(...)`, implement `draw(context, container)` to build its NiceGUI subtree into a provided container, and optionally decorate handler methods with `@redraw_on(...)` (framework redraws the editor after the handler returns) or `@react_on(...)` (pure side-effect, no auto-redraw) to react to signals on the session bus. A third decorator, `@reveal_on(...)`, is class-level rather than per-instance: it claims a reveal aimed at no particular editor, and works even when the editor has no instance yet.
 
-Editors are the primary extension point for adding workspace UI. Once your library's `register_components()` calls `add_folder_to_registry(..., EditorTypeRegistry)`, the editor is auto-discovered and available in any workspace where its `default_slot` is hostable. The studio binds editor instances to slots lazily, one per session.
+Editors are the primary extension point for adding workspace UI. Once your library's `register_components()` calls `add_folder_to_registry(..., EditorRegistry)`, the editor is auto-discovered and available in any workspace where its `default_slot` is hostable. The studio binds editor instances to slots lazily, one per session.
 
 The lifecycle is: instance is constructed when its wrapper first occupies a slot → the framework auto-subscribes the editor's decorated handler methods to the session's typed signal bus → the framework calls `draw(context, container)` to build the subtree → every published `Signal` whose type matches a decorated handler invokes that handler; for `@redraw_on` handlers the wrapper redraws once after the dispatch pass → `cleanup()` runs when the editor is permanently removed.
 
@@ -25,7 +25,7 @@ The redraw model is *clear-and-redraw*, not incremental. The framework clears th
 ## 2. How it fits
 
 ```text
-@editor(label=..., default_slot=...)    EditorTypeRegistry             AppShell + slot
+@editor(label=..., default_slot=...)    EditorRegistry             AppShell + slot
 class MyEditor(BaseEditor):              registers class                instantiates per slot;
     def draw(self, context,              on register_components()       wires bus subscriptions
              container): ...                                             for decorated handlers,
@@ -164,7 +164,7 @@ See [components/states](../states/state-canon.md) for the full state model.
 **Driving other slots — lifecycle commands on the signal bus.** To open or focus a tab in another slot, publish a `Reveal` command on `context.session`:
 
 ```python
-from haywire.core.signals import Reveal
+from haywire.api.workbench import Reveal
 
 context.session.publish(Reveal(
     editor=LibraryDetailEditor,
@@ -177,7 +177,7 @@ context.session.publish(Reveal(
 **Revealing without naming an editor.** `Reveal` requires importing the editor class — fine when you own it, impossible from `haywire-core`, which may never import a barn library (see [the dependency direction rule](../../architecture/studio/studio-arch.md)). `Reveal` is therefore one of a family: `RevealSignal` is the base, carrying `binding_id` and `label` and *nothing* about which editor. `Reveal` adds `editor`; the other subclasses name none, and are claimed by whichever editor class declares `@reveal_on` for them:
 
 ```python
-from haywire.core.signals import RevealComponentSource, RevealSource
+from haywire.api.workbench import RevealComponentSource, RevealSource
 
 # "show me this component's code" — a registry key, no editor named.
 context.session.publish(RevealComponentSource(registry_key="lib:node:MyNode"))
@@ -194,7 +194,7 @@ Prefer a **second signal type** over a discriminator field on one signal. `Revea
 Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-peer fan-out by setting `cross_session: ClassVar[bool] = True` (same class-level flag used by `Signal`); `Session.publish(...)` then delegates to `SignalDispatcher.broadcast(...)` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(binding_id=...)` is the built-in: close matching tabs in **every** session.
 
 ```python
-from haywire.core.signals import BroadcastClose
+from haywire.api.workbench import BroadcastClose
 
 # Underlying entry removed everywhere — close any GraphEditor tab bound
 # to it, in this session AND every peer session.
@@ -216,11 +216,10 @@ All three actions are optional, disabled when the target is gone (library uninst
 **Imports.**
 
 ```python
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior, SlotName   # for code that inspects the enum
-from haywire.core.session.handlers import redraw_on, react_on, reveal_on
-from haywire.core.signals import (
+from haywire.api.workbench import BaseEditor, editor
+from haywire.api.workbench import OpenBehavior, SlotName   # for code that inspects the enum
+from haywire.api.workbench import react_on, redraw_on, reveal_on
+from haywire.api.workbench import (
     Signal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,   # observations
     Reveal, Close, BroadcastClose,                        # lifecycle commands
@@ -230,7 +229,7 @@ from haywire.core.signals import (
 )
 ```
 
-**Hot-reload.** `EditorTypeRegistry` extends `BaseRegistry`. When an editor class is reloaded, the framework evicts cached instances, calls `cleanup()`, drops the bus subscriptions wired for the decorated handlers, and re-instantiates + `draw()` for any visible bindings. Subscribers that hold a reference to the old class object would see `isinstance()` checks fail spuriously after a reload — this is why library authors who declare their own `Signal` subclasses that other libraries subscribe to must list the declaring library in their own `LibraryIdentity.dependencies`.
+**Hot-reload.** `EditorRegistry` extends `BaseRegistry`. When an editor class is reloaded, the framework evicts cached instances, calls `cleanup()`, drops the bus subscriptions wired for the decorated handlers, and re-instantiates + `draw()` for any visible bindings. Subscribers that hold a reference to the old class object would see `isinstance()` checks fail spuriously after a reload — this is why library authors who declare their own `Signal` subclasses that other libraries subscribe to must list the declaring library in their own `LibraryIdentity.dependencies`.
 
 ## 4. One comprehensive example
 
@@ -293,11 +292,9 @@ For the `Surface` and `Panel` extension points the editor hosts, see [components
 ### Imports
 
 ```python
-from haywire.ui.editor.base import BaseEditor
-from haywire.ui.editor.decorator import editor
-from haywire.ui.editor.identity import OpenBehavior, SlotName
-from haywire.core.session.handlers import redraw_on, react_on, reveal_on
-from haywire.core.signals import (
+from haywire.api.workbench import BaseEditor, OpenBehavior, SlotName, editor
+from haywire.api.workbench import react_on, redraw_on, reveal_on
+from haywire.api.workbench import (
     Signal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,
     Reveal, Close, BroadcastClose,

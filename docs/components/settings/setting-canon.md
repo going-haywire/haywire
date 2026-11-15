@@ -54,7 +54,7 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 
 ## 3. Important concepts
 
-**Library-wide settings get a panel.** A `LibrarySettings` class that users should edit gets a panel on the `Barns` surface (`haywire.barn.builtin.surfaces.Barns`, the "Barns" tab right below "Application" in the Properties editor) that calls `render_schema()` on it; see `ImageSettingsPanel` in `haybale-image`.
+**Library-wide settings get a panel.** A `LibrarySettings` class that users should edit gets a panel on the `BarnsSurface` surface (`haywire.barn.builtin.surfaces.Barns`, the "Barns" tab right below "Application" in the Properties editor) that calls `render_schema()` on it; see `ImageSettingsPanel` in `haybale-image`.
 
 **The four Settings classes.** All four inherit from `Settings`. Pick by scope:
 
@@ -87,7 +87,7 @@ Only `setting` descriptors are policed; helper methods and constants on a bag ma
 **Iterating a bag's fields — `settings_fields(bag_or_cls)`.** A module-level function (like `promote_setting` / `demote_setting`), returning `{field_name: descriptor}` in MRO order. It is the supported spelling; `_settings_descriptors()` is the internal one.
 
 ```python
-from haywire.core.settings import settings_fields
+from haywire.api import settings_fields
 
 for name in settings_fields(bag):          # mirror a bag onto a wrapped object
     setattr(target, name, getattr(bag, name))
@@ -171,7 +171,7 @@ carries **zero options** — every declaration site supplies its own via
 `widget_config={"options": ...}`. Three option shapes:
 
 ```python
-from haywire.barn.builtin.types import CHOICES
+from haywire.api import CHOICES
 
 # Static list — value shown and stored as-is
 algorithm = setting[CHOICES]('fast', widget_config={'options': ['fast', 'accurate']})
@@ -182,10 +182,30 @@ algorithm = setting[CHOICES](
     widget_config={'options': {'fast': 'Fast Mode', 'accurate': 'High Accuracy'}},
 )
 
-# Callable — resolved fresh by SelectWidget.build() on every widget build
+# Callable — resolved by SelectWidget at build and again each time the dropdown opens
 # (use for dynamic lists from a registry; plugin-added entries appear automatically)
 theme = setting[CHOICES]('', widget_config={'options': lambda: get_theme_registry().list_workbench_keys()})
+
+# One-argument callable — receives the Settings bag that owns the field (None when
+# there is none), so the list can follow a sibling setting. The default (bag=None)
+# keeps it working where options are still called without arguments.
+def list_source_options(bag=None):
+    return list_sources(bag.backend if bag is not None else None)
+
+source = setting[STRING]('', widget=SelectWidget.config(properties={'options': list_source_options}))
+
+# A slow list (network discovery): keep `options` fast and put the query behind a
+# refresh button. `refresh` is called like `options`, off the UI thread, on click only;
+# `refresh: True` calls `options` again. With `refresh`, opening the dropdown re-reads
+# nothing: `options` fills it once at build, the button is the only update.
+source = setting[STRING]('', widget=SelectWidget.config(
+    properties={'options': known_sources, 'refresh': find_sources}))
 ```
+
+Every reader of `options` (the widget, Farmhand's `inspect_node`) resolves it through
+`haywire.core.types.utils.resolve_options`, so they all see the same list. On a refresh the
+current value stays listed even when the callable no longer returns it.
+
 > **`CHOICES` stores a string.** It is a `STRING` subtype, so whatever a field
 > holds is serialized as text — which is what makes it the right home for an
 > enum-backed setting, and the reason those enums are declared as `StrEnum`
@@ -268,8 +288,8 @@ The outer key is the accessor name; the inner dict maps field name → locally-s
 **Promoting a setting to a port (field + direction).** A setting can be *promoted* to a DATA port so the graph can drive it or read it. Promotion is a **field + a direction**; the port and the setting become one cell, two views (the port borrows the setting's cell by reference — see [architecture §6.5](../../architecture/settings/settings-arch.md#65-promotion-field-direction) and [ADR 0014](../../adr/0014-promotion-as-direction.md)).
 
 ```python
-from haywire.core.node.promotion import promote_setting, demote_setting
-from haywire.core.types.enums import PortType
+from haywire.api.workbench import demote_setting, promote_setting
+from haywire.api import PortType
 
 promote_setting(node, "filter", "threshold", direction=PortType.INLET)   # edge drives the setting
 promote_setting(node, "filter", "threshold", direction=PortType.OUTLET)  # setting drives downstream
@@ -283,8 +303,7 @@ Eligibility is `eligible_promotion_directions(descriptor)` — purely the field'
 **Restricting promotion (`promotable=`).** By default every writable setting can be promoted to an inlet or an outlet, and a `watch()` field to an outlet only. A field can narrow or remove that with the `promotable=` kwarg:
 
 ```python
-from haywire.core.settings import NodeSettings, Promotable, setting
-from haywire.barn.builtin.types import BOOL, CHOICES
+from haywire.api import BOOL, CHOICES, NodeSettings, Promotable, setting
 
 class depth(NodeSettings):
     # Restart-required pipeline parameter: an EDGE would imply live control
@@ -352,8 +371,7 @@ def _on_promotion(self, name: str, direction: PortType | None) -> None:
 Three composable sources, combined by **severity max** (`NORMAL < DISABLED < HIDE_WIDGET < HIDDEN` — `UiState` is an `IntEnum` in that order):
 
 ```python
-from haywire.core.settings import NodeSettings, UiState, setting
-from haywire.barn.builtin.types import BOOL, CHOICES, FLOAT
+from haywire.api import BOOL, CHOICES, FLOAT, NodeSettings, UiState, setting
 
 class color(NodeSettings):
     enable_color = setting[BOOL](True, label="Enable Color")
@@ -412,7 +430,7 @@ depends on the route the user took, not on what they chose).
 Say it in the type instead:
 
 ```python
-from haywire.barn.builtin.types import OPTIONAL, BOOL, FLOAT, INT
+from haywire.api import BOOL, FLOAT, INT, OPTIONAL
 
 class nms(NodeSettings):
     # Rests absent. None means "leave the wrapped library's own default alone".
@@ -494,7 +512,7 @@ it differs from **unset**.
 A graph owns one framework-provided settings bag, `graph.props` (a `GraphProperties` instance), accessed the same way `node.props` is. Its `default_skin` field shadows the framework's studio-skin default via an ordinary `shadow()` — nothing new there. What's new is the **other** direction: a node field mirroring a field on the graph bag, so the resolution order becomes **framework default < graph opinion < node opinion**. `GraphProperties` also shadows `EdgeDefaultSettings.arrow` and `EdgeDefaultSettings.width` as `edge_arrow` and `edge_width` (ADR 0045).
 
 ```python
-from haywire.core.settings import NodeSettings
+from haywire.api import NodeSettings
 from haywire.core.settings.descriptor import graph
 from haywire.core.graph.properties import GraphProperties
 
@@ -524,19 +542,26 @@ This is the actual declaration `NodeProperties.skin` uses (ADR 0022).
 A wire type can let the user style each of its edges. Declare an `EdgeSettings` subclass with the fields the user may set, and name it in the wire type's `style`. The field defaults are the wire type's look; each edge saves only the values the user set, under its `"style"` key (ADR 0047).
 
 ```python
-from haywire.barn.builtin.types import CHOICES, COLOR, FLOAT, STRING
-from haywire.barn.builtin.widget_keys import ARROW_HEAD_WIDGET
-from haywire.core.edge.arrow_heads import NO_HEAD
-from haywire.core.edge.style import dash_choices
-from haywire.core.settings import EdgeSettings, setting
-from haywire.core.types import WireRole, WireType
+from haywire.api import (
+    ARROW_HEAD_WIDGET,
+    CHOICES,
+    COLOR,
+    FLOAT,
+    NO_ARROW_HEAD,
+    STRING,
+    EdgeSettings,
+    WireRole,
+    WireType,
+    dash_choices,
+    setting,
+)
 
 
 class NoteStyle(EdgeSettings):
     color = setting[COLOR]("#8e8e8e", label="Colour")
     width = setting[FLOAT](2.0, label="Width", min=0.5, max=12.0)
     dash = setting[CHOICES]("solid", label="Dash", widget_config={"options": dash_choices})
-    arrow_start = setting[STRING](NO_HEAD, label="Start Head", widget={"key": ARROW_HEAD_WIDGET})
+    arrow_start = setting[STRING](NO_ARROW_HEAD, label="Start Head", widget={"key": ARROW_HEAD_WIDGET})
     arrow_end = setting[STRING]("arrow", label="End Head", widget={"key": ARROW_HEAD_WIDGET})
 
 
@@ -561,8 +586,7 @@ A field the bag does not declare falls back to the graph's edge defaults: for he
 A node whose work is slow — a blocking API call, a local model inference, a long loop — can show a progress bar on its card. It is opt-in: the framework shows nothing on its own, because only the node's code knows which part of its work is slow.
 
 ```python
-from haywire.barn.builtin.progress import ProgressSettings, progress_field
-from haywire.core.settings import bag
+from haywire.api import ProgressSettings, bag, progress_field
 
 class DetectorProgress(ProgressSettings):
     main = progress_field("Progress")
@@ -731,8 +755,7 @@ For the resolution chain, registry mechanics, and TOML format, see [architecture
 ### Three descriptors
 
 ```python
-from haywire.core.settings import NodeSettings, setting, shadow, watch
-from haywire.barn.builtin.types import FLOAT
+from haywire.api import FLOAT, NodeSettings, setting, shadow, watch
 
 class MyNode(BaseNode):
     class filter(NodeSettings):
@@ -766,8 +789,7 @@ self.<accessor>.field   # serialized (only when overridden), visible in panel
 ### Library settings shorthand
 
 ```python
-from haywire.core.settings import LibrarySettings, setting
-from haywire.core.settings.decorator import settings
+from haywire.api import LibrarySettings, setting, settings
 
 @settings(namespace='my_lib')
 class MyLibSettings(LibrarySettings):

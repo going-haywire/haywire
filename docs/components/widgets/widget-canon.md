@@ -234,9 +234,13 @@ A compound port's `default` is constructor kwargs (`{"value": [...]}`); a settin
 ### The imports you need
 
 ```python
-from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.decorator import widget
-from haywire.ui.widget.converters import Converters, BindingConverter, PrimitiveUnwrappingConverter
+from haywire.api import (
+    BaseWidget,
+    BindingConverter,
+    Converters,
+    PrimitiveUnwrappingConverter,
+    widget,
+)
 ```
 
 ## 4. Live example from the codebase
@@ -246,7 +250,7 @@ Source: `barn/haybale-example/haybale_example/widgets/knob_widget.py`
 `KnobWidget` is a `BaseWidget` that binds a `ui.knob` to `FLOAT` or `INT` ports. It shows the common single-value path: `build()` reads `self._config`, constructs the element, and returns it through `self.bind()` with a default-bearing converter.
 
 ```python
---8<-- "barn/haybale-example/haybale_example/widgets/knob_widget.py:10:45"
+--8<-- "barn/haybale-example/haybale_example/widgets/knob_widget.py:8:41"
 ```
 
 from: `KnobWidget` — registry_key: `haybale-example:widget:KnobWidget`
@@ -294,9 +298,13 @@ For datatype authoring (including the derived primitive types used here), see [c
 ### Imports
 
 ```python
-from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.decorator import widget
-from haywire.ui.widget.converters import Converters, BindingConverter, PrimitiveUnwrappingConverter
+from haywire.api import (
+    BaseWidget,
+    BindingConverter,
+    Converters,
+    PrimitiveUnwrappingConverter,
+    widget,
+)
 ```
 
 ### Common `prop` / `event` pairs

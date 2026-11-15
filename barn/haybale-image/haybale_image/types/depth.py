@@ -1,7 +1,6 @@
 """DEPTH: a metric depth map."""
 
-from haywire.barn.builtin.types import CARRIER
-from haywire.core.types import type as type_decorator
+from haywire.api import CARRIER, type as type_decorator
 
 from haybale_image.value import DepthValue
 

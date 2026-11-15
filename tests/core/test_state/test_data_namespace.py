@@ -7,7 +7,7 @@ from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEvent
 from haywire.core.state import (
     AppState,
     LibraryStateContainer,
-    LibraryStateRegistry,
+    StateRegistry,
 )
 from haywire.core.state.data_namespace import AppDataNamespace
 
@@ -30,8 +30,8 @@ class TestAppDataNamespace:
                 super().__init__()
                 self.devices: list[str] = ["dev0"]
 
-        reg = LibraryStateRegistry()
-        container = LibraryStateContainer(LibraryStateRegistry())
+        reg = StateRegistry()
+        container = LibraryStateContainer(StateRegistry())
         lib_id = make_lib_identity()
         container._mark_library_enabled(lib_id.name)
         reg._register_class(MidiPool, lib_id)
@@ -66,7 +66,7 @@ class TestAppDataNamespace:
             label="NotRegistered",
         )
 
-        ns = AppDataNamespace(LibraryStateContainer(LibraryStateRegistry()))
+        ns = AppDataNamespace(LibraryStateContainer(StateRegistry()))
         with pytest.raises(KeyError):
             _ = ns[NotRegistered]
 
@@ -84,5 +84,5 @@ class TestAppDataNamespace:
             label="NotRegistered",
         )
 
-        ns = AppDataNamespace(LibraryStateContainer(LibraryStateRegistry()))
+        ns = AppDataNamespace(LibraryStateContainer(StateRegistry()))
         assert ns.get(NotRegistered) is None

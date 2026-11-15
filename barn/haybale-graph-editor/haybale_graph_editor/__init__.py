@@ -12,8 +12,8 @@ from haywire.core.library.decorator import library
 from haywire.core.farmhand import FarmhandRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings.registry import SettingsRegistry
-from haywire.core.state import LibraryStateRegistry
-from haywire.ui.editor.registry import EditorTypeRegistry
+from haywire.core.state import StateRegistry
+from haywire.ui.editor.registry import EditorRegistry
 from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.panel.registry import PanelRegistry
 
@@ -36,7 +36,7 @@ class Library(BaseLibrary):
 
         self.add_folder_to_registry(
             folder_path=str(base_path / "states"),
-            registry_cls=LibraryStateRegistry,
+            registry_cls=StateRegistry,
         )
 
         # Register MCP tools (canonical order: after state — tools reference GraphAppState)
@@ -62,7 +62,7 @@ class Library(BaseLibrary):
 
         self.add_folder_to_registry(
             folder_path=str(base_path / "editors"),
-            registry_cls=EditorTypeRegistry,
+            registry_cls=EditorRegistry,
         )
 
     def validate(self) -> bool:

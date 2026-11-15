@@ -3,9 +3,18 @@
 from pathlib import PurePosixPath
 from typing import Any
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.volumes import VolumePath, VolumeError, resolve
+from haywire.api import (
+    FOLDER_PATH,
+    PATH,
+    STRING,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    VolumeError,
+    VolumePath,
+    node,
+    resolve_volume_path,
+)
 
 #: The outlets a new node shows; the rest start hidden.
 SHOWN = ("folder", "stem", "extension")
@@ -64,8 +73,6 @@ class SplitPathNode(BaseNode):
     """
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import FOLDER_PATH, PATH, STRING
-
         self.add(PATH.as_inlet("path", label="Path", description="Path to split"))
         outlets = (
             (FOLDER_PATH, "volume", "Volume", "The volume's root folder: <volume>"),
@@ -128,6 +135,6 @@ def _folder_of(relative: PurePosixPath) -> str:
 
 def _on_disk(path: VolumePath) -> str:
     try:
-        return str(resolve(path))
+        return str(resolve_volume_path(path))
     except VolumeError:
         return ""

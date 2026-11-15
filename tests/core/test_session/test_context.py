@@ -2,7 +2,7 @@
 
 from typing import Any, cast
 
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.session.context import SessionContext
 
 
@@ -11,7 +11,7 @@ class FakeApp:
 
     workspace_root = "/tmp"
     library_service = None
-    library_state_container = LibraryStateContainer(LibraryStateRegistry())
+    library_state_container = LibraryStateContainer(StateRegistry())
 
 
 def test_theme_keys_default_to_none():

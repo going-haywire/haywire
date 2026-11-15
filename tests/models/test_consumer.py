@@ -10,7 +10,7 @@ import pytest
 
 from haywire.core.catalog import ModelFile, Resource
 from haywire.core.node.node_wrapper import NodeWrapperState
-from haywire.core.volumes import VolumeStore, location_of
+from haywire.core.volumes import VolumeStore, volume_location
 
 from haybale_models import consumer
 from haybale_models.keys import MODELS_VOLUME
@@ -55,7 +55,7 @@ def make_node(value: Any, prefer: Any = None, hook: Any = None) -> Any:
 
 @pytest.fixture
 def env(models_env: VolumeStore, monkeypatch: pytest.MonkeyPatch) -> Any:
-    root = location_of(MODELS_VOLUME, models_env)
+    root = volume_location(MODELS_VOLUME, models_env)
     root.mkdir(parents=True, exist_ok=True)
     index = ModelIndex()
     entry = SimpleNamespace(
@@ -105,7 +105,7 @@ def test_resolve_port_sets_and_clears_model_warnings(env: Any) -> None:
 
 def test_unpinned_file_ref_warns_and_missing_clears(env: Any) -> None:
     env.put("w.pth", b"w")
-    path = location_of(MODELS_VOLUME) / "w.pth"
+    path = volume_location(MODELS_VOLUME) / "w.pth"
     env.index.add(path, sha(b"w"), "https://x/w.pth")
     node = make_node(ModelRef(urls=("https://x/w.pth",)))
     consumer.resolve_port(node, "m")

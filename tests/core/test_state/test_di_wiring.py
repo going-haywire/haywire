@@ -1,4 +1,4 @@
-"""Tests verifying DI wiring of LibraryStateRegistry + LibraryStateContainer."""
+"""Tests verifying DI wiring of StateRegistry + LibraryStateContainer."""
 
 from collections.abc import Iterator
 
@@ -7,7 +7,7 @@ import pytest
 from tests.conftest import _restore_ambient_di, _snapshot_ambient_di
 
 from haywire.core.di.config import create_haywire_injector
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 
 
 @pytest.fixture(autouse=True)
@@ -21,9 +21,9 @@ def _contain_initialize() -> Iterator[None]:
 class TestDIWiring:
     def test_state_registry_is_provided_as_singleton(self):
         injector = create_haywire_injector(watch_settings=False)
-        reg1 = injector.get(LibraryStateRegistry)
-        reg2 = injector.get(LibraryStateRegistry)
-        assert isinstance(reg1, LibraryStateRegistry)
+        reg1 = injector.get(StateRegistry)
+        reg2 = injector.get(StateRegistry)
+        assert isinstance(reg1, StateRegistry)
         assert reg1 is reg2
 
     def test_state_container_is_provided_as_singleton(self):
@@ -42,7 +42,7 @@ class TestDIWiring:
         service = LibrarySystemService(injector)
         service.initialize()
 
-        registry = injector.get(LibraryStateRegistry)
+        registry = injector.get(StateRegistry)
         container = injector.get(LibraryStateContainer)
         assert container.on_lifecycle_events in registry._batch_event_subscribers
 
@@ -56,7 +56,7 @@ class TestDIWiring:
         service.initialize()
 
         settings_registry = injector.get(SettingsRegistry)
-        state_registry = injector.get(LibraryStateRegistry)
+        state_registry = injector.get(StateRegistry)
         assert state_registry in settings_registry._registry_subscribers
 
     def test_state_propagates_reload_to_node_panel_editor(self):
@@ -64,17 +64,17 @@ class TestDIWiring:
         consumer classes that may hold a stale class reference."""
         from haywire.core.di.config import LibrarySystemService
         from haywire.core.node.registry import NodeRegistry
-        from haywire.ui.editor.registry import EditorTypeRegistry
+        from haywire.ui.editor.registry import EditorRegistry
         from haywire.ui.panel.registry import PanelRegistry
 
         injector = create_haywire_injector(watch_settings=False)
         service = LibrarySystemService(injector)
         service.initialize()
 
-        state_registry = injector.get(LibraryStateRegistry)
+        state_registry = injector.get(StateRegistry)
         node_registry = injector.get(NodeRegistry)
         panel_registry = injector.get(PanelRegistry)
-        editor_registry = injector.get(EditorTypeRegistry)
+        editor_registry = injector.get(EditorRegistry)
 
         assert node_registry in state_registry._registry_subscribers
         assert panel_registry in state_registry._registry_subscribers

@@ -13,7 +13,7 @@ from pathlib import Path
 
 from haybale_models.keys import MODELS_VOLUME
 
-from haywire.core.volumes import VolumeError, location_of
+from haywire.api import VolumeError, volume_location
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ class ModelIndex:
 
     def _scan(self) -> list[Path]:
         try:
-            root = location_of(self._root_key)
+            root = volume_location(self._root_key)
         except VolumeError as exc:
             return self._fail(str(exc))
         if not root.is_dir():
@@ -277,7 +277,7 @@ class ModelIndex:
         with self._lock:
             if self._root is None:
                 try:
-                    self._root = location_of(self._root_key)
+                    self._root = volume_location(self._root_key)
                 except VolumeError:
                     return
             if not self._loaded:

@@ -1,10 +1,19 @@
 """Audio Clock — emits a silent block at a steady rate, to pace a mixer or any audio flow."""
 
-from haywire.barn.builtin.types import EXEC, INT, STRING
-from haywire.barn.builtin.widgets import SimpleLabelWidget
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.settings import NodeSettings, Promotable, bag, setting
+from haywire.api import (
+    EXEC,
+    INT,
+    STRING,
+    BaseNode,
+    ExecutionContext,
+    NodeSettings,
+    NodeType,
+    Promotable,
+    SimpleLabelWidget,
+    bag,
+    node,
+    setting,
+)
 
 from haybale_audio.emitter import BlockPump, deliver_to_subscribers, set_status
 from haybale_audio.value import AudioBlock

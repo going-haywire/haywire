@@ -7,15 +7,16 @@ Contains one node, one widget, one adapter, and one data struct.
 
 from pathlib import Path
 
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.adapter.registry import AdapterRegistry
-from haywire.core.macro.registry import MacroRegistry
-from haywire.core.catalog import CatalogRegistry
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.types.registry import TypeRegistry
-
-from haywire.ui.widget.registry import WidgetRegistry
+from haywire.api import (
+    AdapterRegistry,
+    BaseLibrary,
+    CatalogRegistry,
+    MacroRegistry,
+    NodeRegistry,
+    TypeRegistry,
+    WidgetRegistry,
+    library,
+)
 
 
 @library(

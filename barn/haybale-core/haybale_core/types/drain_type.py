@@ -9,9 +9,17 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Type, TypeVar, cast
 
-from haywire.core.types import type, CompoundType, DataField, Drained, IType
-from haywire.core.types.enums import PortType, StoreStrategy
-from haywire.core.types.wire import WireRole, declaring_type_of
+from haywire.api import (
+    CompoundType,
+    DataField,
+    Drained,
+    IType,
+    PortType,
+    StoreStrategy,
+    WireRole,
+    declaring_type_of,
+    type,
+)
 
 T = TypeVar("T")
 

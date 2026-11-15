@@ -8,7 +8,7 @@ the writer/reader contract over EditState.
 
 from unittest.mock import MagicMock
 
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.core.session.context import SessionContext
 
@@ -23,7 +23,7 @@ def _make_ctx_with_edit_state(register_edit_state):
     ``active_component``) emits through it, so a context with no session
     raises AttributeError on the first such write.
     """
-    container = LibraryStateContainer(LibraryStateRegistry())
+    container = LibraryStateContainer(StateRegistry())
     sid = "t"
     EditStateCls = register_edit_state(container, sid)
     app = MagicMock()

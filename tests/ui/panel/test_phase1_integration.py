@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from haybale_graph_editor.states.edit_state import EditState
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
+from haywire.core.state import LibraryStateContainer, StateRegistry
 from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel, PanelRegistry, panel
 from haywire.ui.surface import Surface
@@ -88,7 +88,7 @@ def test_a_menu_surface_is_a_root_too():
 
 
 def test_panel_poll_is_classmethod_and_reads_session_context(register_edit_state):
-    container = LibraryStateContainer(LibraryStateRegistry())
+    container = LibraryStateContainer(StateRegistry())
     sid = "t"
     EditStateCls = register_edit_state(container, sid)
 

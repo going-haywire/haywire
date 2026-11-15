@@ -8,6 +8,7 @@ from types import ModuleType
 from typing import List, Type, Optional, Callable
 
 from haywire.core.errors import report_failure
+from haywire.core.library.deprecated_names import recorded_deprecations
 from haywire.core.library.identity import LibraryIdentity
 
 logger = logging.getLogger(__name__)
@@ -125,7 +126,8 @@ class FolderScanMixin:
             # to ensure it is the latest version that is reloaded
             del sys.modules[module_name]
 
-        module = importlib.import_module(module_name)
+        with recorded_deprecations(module_name, library_identity=library_identity):
+            module = importlib.import_module(module_name)
 
         # Inspect all classes in the module
         for name, obj in inspect.getmembers(module, inspect.isclass):

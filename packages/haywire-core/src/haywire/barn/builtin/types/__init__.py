@@ -5,7 +5,7 @@ from .carrier import BUNDLE, CARRIER, CarrierField
 from .choices import CHOICES
 from .color import COLOR, ColorStr
 from .exec import EXEC
-from .field_list import FIELD_LIST, FieldEntry, is_valid_key
+from .field_list import FIELD_LIST, FieldEntry, is_valid_field_key
 from .fold import FOLD
 from .optional import OPTIONAL
 from .path import FILE_PATH, FOLDER_PATH, PATH
@@ -48,5 +48,5 @@ __all__ = [
     "CarrierField",
     "FIELD_LIST",
     "FieldEntry",
-    "is_valid_key",
+    "is_valid_field_key",
 ]

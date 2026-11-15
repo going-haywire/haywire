@@ -4,8 +4,7 @@ ForLoop Node - Standard loop construct for iteration.
 Executes loop body a specified number of times with index tracking.
 """
 
-from haywire.core.node import node, BaseNode, NodeType
-from haywire.core.execution.execution_context import ExecutionContext
+from haywire.api import EXEC, INT, BaseNode, ExecutionContext, NodeType, NumberWidget, node
 
 
 @node(
@@ -36,10 +35,6 @@ class ForLoopNode(BaseNode):
     """
 
     def init(self):
-        from haywire.barn.builtin.types import INT
-        from haywire.barn.builtin.types import EXEC
-        from haywire.barn.builtin.widgets import NumberWidget
-
         # Control input - starts the loop
         self.add(EXEC.as_inlet("execute", label="Execute"))
 

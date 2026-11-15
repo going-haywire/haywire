@@ -47,11 +47,11 @@ def test_editor_decorator_without_requires_gives_edit():
 
 
 def test_panel_decorator_without_requires_gives_edit():
-    from haywire.barn.builtin.surfaces import AppSettings
+    from haywire.barn.builtin.surfaces import AppSettingsSurface
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
 
-    @panel(label="P", surface=AppSettings)
+    @panel(label="P", surface=AppSettingsSurface)
     class _P(BasePanel):
         def draw(self, ctx, container): ...
 

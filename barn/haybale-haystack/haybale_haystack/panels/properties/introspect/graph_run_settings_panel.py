@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire.barn.builtin.surfaces import ExecutionInspector
+from haywire.barn.builtin.surfaces import ExecutionInspectorSurface
 from haywire.core.signals import ActiveGraphMoved, GraphDataMutated
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    surface=ExecutionInspector,
+    surface=ExecutionInspectorSurface,
     label="Graph Settings",
     description="Renders the GraphRunSettings for the currently active graph.",
     icon=hui.icon.graph,

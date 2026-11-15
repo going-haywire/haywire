@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from haywire.barn.builtin.carrier import Stamp
-from haywire.barn.builtin.types import is_valid_key
+from haywire.barn.builtin.types import is_valid_field_key
 from haywire.core.di.context import get_type_registry
 from haywire.core.types.enums import StoreStrategy
 
@@ -88,7 +88,7 @@ def fields_to_text(fields: Mapping[str, Stamp]) -> str:
 
 def _decode(key: Any, entry: Any) -> Stamp | str:
     """Return the ``Stamp`` an entry holds, or why it was left out."""
-    if not is_valid_key(key):
+    if not is_valid_field_key(key):
         return f"Field {key!r} was left out: not a valid key"
     if not isinstance(entry, dict) or not isinstance(entry.get("type"), str) or "data" not in entry:
         return f"Field {key!r} was left out: it is malformed"

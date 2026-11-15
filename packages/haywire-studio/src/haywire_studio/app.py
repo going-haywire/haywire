@@ -12,7 +12,7 @@ from nicegui import ui, app
 from haywire.core.di.config import create_library_system_service
 from haywire.core.di.context import set_workspace_root
 from haywire.core.errors.ledger import get_error_ledger
-from haywire.core.farmhand.activity import activity_tracker
+from haywire.core.farmhand.activity import get_activity_tracker
 from haywire.core.host import HostStore
 from haywire.core.signals import ErrorLogged, FarmhandActivity, PresenceChanged
 
@@ -122,7 +122,7 @@ class HaywireApp:
         self._error_ledger_listener = _on_error_logged
         get_error_ledger().add_listener(_on_error_logged)
         self._activity_tracker_listener = _on_activity
-        activity_tracker().add_listener(_on_activity)
+        get_activity_tracker().add_listener(_on_activity)
 
     def on_app_shutdown(self):
         """Clean up all resources on application shutdown."""
@@ -153,7 +153,7 @@ class HaywireApp:
 
         if self._activity_tracker_listener is not None:
             try:
-                activity_tracker().remove_listener(self._activity_tracker_listener)
+                get_activity_tracker().remove_listener(self._activity_tracker_listener)
             except Exception as e:
                 print(f"  Error removing activity-tracker listener: {e}")
             self._activity_tracker_listener = None
@@ -341,12 +341,12 @@ class HaywireApp:
         @ui.page("/", title="Haywire")
         def main_page(request: Request):
             from haywire.ui.app.shell import AppShell
-            from haywire.ui.editor.registry import EditorTypeRegistry
+            from haywire.ui.editor.registry import EditorRegistry
             from nicegui import context
 
             print(f"Creating UI for session: {context.client.id[:8]}")
 
-            editor_registry = self.library_service.injector.get(EditorTypeRegistry)
+            editor_registry = self.library_service.injector.get(EditorRegistry)
 
             haywire_session = self.session_manager.create_session(
                 app_state=self,

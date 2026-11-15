@@ -247,7 +247,7 @@ class FarmhandActivity(Signal):
     Cross-session like :class:`PresenceChanged`, and payload-free for the same
     reason: the tracker is the single source of truth and this signal is only a
     wake-up, so subscribers re-read the live tracker
-    (``haywire.core.farmhand.activity.activity_tracker()``) instead. Carrying
+    (``haywire.core.farmhand.activity.get_activity_tracker()``) instead. Carrying
     the tracker itself would be exactly as fresh and buy nothing; carrying its
     history *list* would be worse than useless, because ``resize_history()``
     rebinds that deque and a held reference silently detaches.

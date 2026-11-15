@@ -13,9 +13,8 @@ from fastapi.responses import JSONResponse
 from nicegui import app as nicegui_app
 from starlette.requests import ClientDisconnect
 
-from haywire.core.access.resolver import resolve_tier
-from haywire.core.access.tier import AccessTier
-from haywire.core.errors import report_failure
+from haywire.api.workbench import AccessTier, resolve_tier
+from haywire.api import report_failure
 
 from haybale_models.download import DownloadQueue
 from haybale_models.receive import ReceiveRefused, UploadReceiver

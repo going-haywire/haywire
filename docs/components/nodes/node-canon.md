@@ -69,7 +69,7 @@ a node is placed, loaded or hot-reloaded; you never create one yourself.
 ## 3. A complete node
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:12:61"
+--8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:11:55"
 ```
 from: `MathOP` — registry_key: `haybale-example:node:MathOP`
 
@@ -84,6 +84,22 @@ widget and starting value. Here you *use* the built-in `FLOAT` and
 [datatype](../datatypes/datatype-canon.md) and
 [widget](../widgets/widget-canon.md) chapters. Everything a port accepts:
 [guides/ports](../../guides/ports.md).
+
+**Where the imports go.** Framework names (`FLOAT`, `NumberWidget`, `BaseNode`)
+are imported at the top of the file from `haywire.api`: they ship with the
+framework and cannot be missing. A type or widget from **another library** is
+imported inside `init()`:
+
+```python
+def init(self):
+    from haybale_image.types.image import IMAGE   # another library's type
+
+    self.add(IMAGE.as_inlet("image"))
+```
+
+If that library is not installed, the node's file still imports and the node
+still registers. The failure happens when the node is placed, where the graph
+can show it on that node, instead of in a stream of import errors at startup.
 
 **The worker — `worker()`.** One rule: **a worker parameter named like an inlet
 receives that inlet's value.** `value_a: float` gets the value of the port with
@@ -511,7 +527,7 @@ is kept as written. Any library may ship templates in its `nodes/` folder.
 Builtin ships the Data template:
 
 ```python
---8<-- "packages/haywire-core/src/haywire/barn/builtin/nodes/templates/data_node.py:9:39"
+--8<-- "packages/haywire-core/src/haywire/barn/builtin/nodes/templates/data_node.py:6:36"
 ```
 
 ## 9. Finer points — read when you need them
