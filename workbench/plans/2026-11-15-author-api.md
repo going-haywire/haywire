@@ -241,9 +241,9 @@ The design system is exported as `hui`
 (`from haywire.api.workbench import hui`), the name every library already
 gives `haywire.ui.elements`.
 
-`resolve` and `location_of` (`core.volumes`) are exported under their own
-names. Clearer names were weighed (ADR 0084, *Considered*) and left: about a
-hundred call sites and the docs use the bare names.
+`resolve` and `location_of` (`core.volumes`) were renamed `resolve_volume_path`
+and `volume_location` on the maintainer's word (2026-11-15), in core and every
+caller, so the flat module reads on its own.
 
 ## Further decisions (2026-11-15)
 

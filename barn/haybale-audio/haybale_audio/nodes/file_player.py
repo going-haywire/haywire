@@ -16,7 +16,7 @@ from haywire.api import (
     VolumePath,
     bag,
     node,
-    resolve,
+    resolve_volume_path,
     setting,
 )
 
@@ -122,7 +122,9 @@ class FilePlayerNode(BaseNode):
         if not (self.value("callbacks") or {}):
             set_status(self, "No subscriber")
             return None
-        reader = FileBlockReader(resolve(path), int(self.playback.block_size), bool(self.playback.loop))
+        reader = FileBlockReader(
+            resolve_volume_path(path), int(self.playback.block_size), bool(self.playback.loop)
+        )
         self.hb_reader = reader
         self.hb_pump = BlockPump(
             produce=reader.read_block,

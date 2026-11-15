@@ -12,7 +12,7 @@ from haywire.api import (
     SimpleLabelWidget,
     VolumePath,
     node,
-    resolve,
+    resolve_volume_path,
 )
 
 from haybale_audio.emitter import set_status
@@ -84,7 +84,7 @@ class RecorderNode(BaseNode):
         if audio is None or path is None:
             raise ValueError("write needs both an audio block and a path")
         if self.hb_writer is None:
-            self.hb_writer = BlockWriter(resolve(path))
+            self.hb_writer = BlockWriter(resolve_volume_path(path))
         self.hb_writer.write(audio)
         self.out("frames", self.hb_writer.frames_written)
         set_status(self, f"Recording {self.hb_writer.frames_written / audio.sample_rate:.1f} s")

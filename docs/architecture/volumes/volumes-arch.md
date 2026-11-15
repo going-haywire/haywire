@@ -80,9 +80,9 @@ The `PATH`, `FILE_PATH` and `FOLDER_PATH` types (`haywire/barn/builtin/types/pat
 
 ## Resolution
 
-`location_of(key)` returns the volume's root: the open project's folder for the project volume, otherwise the entry's location. A key with no entry, or the project volume with no project open, raises `VolumeUndefinedError`.
+`volume_location(key)` returns the volume's root: the open project's folder for the project volume, otherwise the entry's location. A key with no entry, or the project volume with no project open, raises `VolumeUndefinedError`.
 
-`resolve(path)` joins `relative` onto that root and returns the result as configured: a root that is itself a symlink stays as written, and so does a symlink inside the volume that stays inside it. Resolving never creates a folder, and a root that does not exist yet (an unplugged drive, a folder not downloaded yet) still resolves. Code that compares a resolved path with symlink-followed paths (such as `list_files` checking where a linked file leads) follows the root's link itself.
+`resolve_volume_path(path)` joins `relative` onto that root and returns the result as configured: a root that is itself a symlink stays as written, and so does a symlink inside the volume that stays inside it. Resolving never creates a folder, and a root that does not exist yet (an unplugged drive, a folder not downloaded yet) still resolves. Code that compares a resolved path with symlink-followed paths (such as `list_files` checking where a linked file leads) follows the root's link itself.
 
 ### Escape refusal
 

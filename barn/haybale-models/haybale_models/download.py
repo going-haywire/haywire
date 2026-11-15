@@ -41,7 +41,7 @@ from haybale_models.store.layout import safe_name, target_path
 from haybale_models.store.records import FetchRecord, FetchRecords
 
 from haywire.api.workbench import activity_tracker
-from haywire.api import ModelFile, Refusal, VolumeError, location_of, report_failure
+from haywire.api import ModelFile, Refusal, VolumeError, volume_location, report_failure
 
 logger = logging.getLogger(__name__)
 
@@ -312,7 +312,7 @@ class DownloadQueue:
                 raise ReceiveRefused("this file is already on this machine")
             return place, place.target
         try:
-            root = location_of(MODELS_VOLUME)
+            root = volume_location(MODELS_VOLUME)
             if not root.is_dir():
                 raise ReceiveRefused(f"models volume folder does not exist: {root}")
             target = target_path(
@@ -331,7 +331,7 @@ class DownloadQueue:
 
     def _claim_upload(self, task: _Task, place: _CachePlace | None, target: Path) -> None:
         """Claim *target* under the same key a fetch into that place uses."""
-        root = place.root if place is not None else location_of(MODELS_VOLUME)
+        root = place.root if place is not None else volume_location(MODELS_VOLUME)
         relative = target.resolve().relative_to(root.resolve())
         self._claim(task, Path(f"<{place.volume}>") / relative if place is not None else relative)
 

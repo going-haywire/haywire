@@ -1,6 +1,15 @@
 """Path Exists? — branch on whether a path is there."""
 
-from haywire.api import EXEC, PATH, BaseNode, ExecutionContext, NodeType, VolumePath, node, resolve
+from haywire.api import (
+    EXEC,
+    PATH,
+    BaseNode,
+    ExecutionContext,
+    NodeType,
+    VolumePath,
+    node,
+    resolve_volume_path,
+)
 
 
 @node(
@@ -31,4 +40,4 @@ class PathExistsNode(BaseNode):
         self.add(EXEC.as_outlet("missing", label="Missing", description="Runs when it is not there"))
 
     def worker(self, context: ExecutionContext, path: VolumePath) -> str:
-        return "exists" if resolve(path).exists() else "missing"
+        return "exists" if resolve_volume_path(path).exists() else "missing"

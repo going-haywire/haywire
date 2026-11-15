@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
 
-from haywire.api import CatalogEntry, ModelFile, Resource, VolumeError, VolumePath, location_of
+from haywire.api import CatalogEntry, ModelFile, Resource, VolumeError, VolumePath, volume_location
 
 if TYPE_CHECKING:
     from haybale_models.sources.registry import SourceSet
@@ -88,7 +88,7 @@ def target_path(
 
 def _relative_in(volume: str, path: Path) -> VolumePath | None:
     try:
-        root = location_of(volume)
+        root = volume_location(volume)
     except VolumeError:
         return None
     for candidate, base in ((path, root), (path.resolve(), root.resolve())):

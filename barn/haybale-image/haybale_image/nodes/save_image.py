@@ -21,7 +21,7 @@ from haywire.api import (
     fields_to_text,
     node,
     progress_field,
-    resolve,
+    resolve_volume_path,
     setting,
     shadow,
 )
@@ -214,7 +214,7 @@ class SaveImageNode(BaseNode):
         self.hb_refresh_format_bags(path)
         if image.is_empty:
             raise ValueError("image is empty")
-        target = resolve(path)
+        target = resolve_volume_path(path)
         fmt = format_for(target)
         fields_text = self._fields_text(image, fmt)
         policy = IfExists(if_exists)

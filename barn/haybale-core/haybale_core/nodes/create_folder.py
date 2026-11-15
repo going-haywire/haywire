@@ -8,7 +8,7 @@ from haywire.api import (
     NodeType,
     VolumePath,
     node,
-    resolve,
+    resolve_volume_path,
     volume_name,
 )
 
@@ -44,8 +44,8 @@ class CreateFolderNode(BaseNode):
         self.add(FOLDER_PATH.as_outlet("folder", label="Folder", description="The folder, now created"))
 
     def worker(self, context: ExecutionContext, path: VolumePath) -> str:
-        target = resolve(path)
-        root = resolve(VolumePath(path.volume, ""))
+        target = resolve_volume_path(path)
+        root = resolve_volume_path(VolumePath(path.volume, ""))
         if not root.exists():
             raise FileNotFoundError(f"volume '{volume_name(path.volume)}' location {root} does not exist")
         target.mkdir(parents=True, exist_ok=True)

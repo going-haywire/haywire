@@ -12,7 +12,7 @@ import pytest
 from haybale_models.keys import MODELS_VOLUME
 from haybale_models.store.index import ModelIndex
 
-from haywire.core.volumes import VolumeStore, location_of
+from haywire.core.volumes import VolumeStore, volume_location
 
 
 def sha(data: bytes) -> str:
@@ -26,7 +26,7 @@ def drop(path: Path, data: bytes) -> Path:
 
 
 def _root(store: VolumeStore) -> Path:
-    return location_of(MODELS_VOLUME, store)
+    return volume_location(MODELS_VOLUME, store)
 
 
 @pytest.fixture

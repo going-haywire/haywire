@@ -16,7 +16,7 @@ from haywire.api import (
     Promotable,
     SimpleLabelWidget,
     StoreStrategy,
-    resolve,
+    resolve_volume_path,
     setting,
 )
 
@@ -86,7 +86,7 @@ def folder_root(folder: "VolumePath") -> Path:
         VolumeEscapeError: *folder* leads outside its volume.
     """
 
-    root = resolve(folder)
+    root = resolve_volume_path(folder)
     if not root.is_dir():
         reason = "is not a folder" if root.exists() else "does not exist"
         raise NotADirectoryError(f"folder '{folder}' {reason}")

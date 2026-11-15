@@ -83,9 +83,9 @@ def state(monkeypatch: pytest.MonkeyPatch, models_env: Any) -> Any:
     from haybale_models.keys import MODELS_VOLUME
     from haybale_models.store.index import ModelIndex
 
-    from haywire.core.volumes import location_of
+    from haywire.core.volumes import volume_location
 
-    location_of(MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
+    volume_location(MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
     index = ModelIndex()
     fake = SimpleNamespace(index=index, sources=builtin_sources(index, hf_cache=lambda: None))
     monkeypatch.setattr(consumer, "models_state", lambda: fake)

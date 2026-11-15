@@ -248,7 +248,7 @@ def test_download_refuses_undefined_volume(env, http_server, monkeypatch):
     def boom(key: str, store: Any = None) -> Path:
         raise VolumeUndefinedError(key)
 
-    monkeypatch.setattr("haybale_models.sources.base.location_of", boom)
+    monkeypatch.setattr("haybale_models.sources.base.volume_location", boom)
     job = env.run(spec(http_server.file("/v2", DATA)))
     assert job.state == "failed"
     assert job.error is not None

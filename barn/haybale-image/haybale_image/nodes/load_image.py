@@ -14,7 +14,7 @@ from haywire.api import (
     fields_from_text,
     node,
     progress_field,
-    resolve,
+    resolve_volume_path,
 )
 
 from haybale_image.io.codecs import read_image
@@ -67,7 +67,7 @@ class LoadImageNode(BaseNode):
         self.add(IMAGE.as_outlet("image", label="Image", description="The decoded image"))
 
     def worker(self, context: ExecutionContext, path: VolumePath) -> None:
-        target = resolve(path)
+        target = resolve_volume_path(path)
         with self.progress.busy("main", "decoding"):
             image = self._with_saved_fields(read_image(target), target)
         self.out("image", image)

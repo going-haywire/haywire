@@ -20,7 +20,7 @@ from haybale_models.store.records import FetchRecord, FetchRecords
 from haybale_models.resolver import FetchSpec
 
 from haywire.core.catalog import CatalogEntry, ModelFile, Resource
-from haywire.core.volumes import VolumeStore, location_of
+from haywire.core.volumes import VolumeStore, volume_location
 
 VOLUME = "haybale-models:volume:torchhub"
 
@@ -98,7 +98,7 @@ def test_records_follow_a_relocated_volume(models_env: VolumeStore, tmp_path: Pa
     while time.monotonic() < deadline and any(j.state in ("queued", "running") for j in queue.jobs()):
         time.sleep(0.01)
     assert [j.state for j in queue.jobs() if j.id == job_id] == ["done"]
-    old_root = location_of(VOLUME, models_env)
+    old_root = volume_location(VOLUME, models_env)
     assert source.find("torchhub://w.pth") == old_root / "w.pth"
 
     new_root = tmp_path / "moved"

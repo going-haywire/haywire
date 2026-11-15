@@ -25,7 +25,7 @@ from haywire.core.catalog import CatalogRegistry
 from haywire.core.types.enums import PortType
 from haywire.core.types.port import DataPort
 from haywire.core.undo.config import UndoConfig
-from haywire.core.volumes import VolumeStore, location_of
+from haywire.core.volumes import VolumeStore, volume_location
 from haywire.ui.widget.factory import WidgetFactory
 
 from tests.conftest import edit_route, make_node
@@ -80,8 +80,8 @@ def state(models_env: VolumeStore, tmp_path: Path, monkeypatch: pytest.MonkeyPat
     """A ModelsState stand-in: temp volumes, a fresh index and a two-library catalog."""
     keys = _mod("haybale_models.keys")
     consumer = _mod("haybale_models.consumer")
-    location_of(keys.MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
-    location_of(keys.HF_VOLUME).mkdir(parents=True, exist_ok=True)
+    volume_location(keys.MODELS_VOLUME).mkdir(parents=True, exist_ok=True)
+    volume_location(keys.HF_VOLUME).mkdir(parents=True, exist_ok=True)
     catalog = CatalogRegistry()
     for label, name, entries in (
         ("Beta", "haybale-beta", {"4x-Sharp": _entry("Sharp", "esrgan", SHA)}),
@@ -99,7 +99,7 @@ def state(models_env: VolumeStore, tmp_path: Path, monkeypatch: pytest.MonkeyPat
             str(folder), LibraryIdentity(label=label, name=name, folder_path=str(folder), module_name=name)
         )
     index = _mod("haybale_models.store.index").ModelIndex()
-    hf_root = location_of(keys.HF_VOLUME)
+    hf_root = volume_location(keys.HF_VOLUME)
     fake = SimpleNamespace(
         index=index,
         catalog=catalog,
@@ -111,7 +111,7 @@ def state(models_env: VolumeStore, tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
 
 def _put(state: Any, relative: str, data: bytes = DATA, source: str | None = None) -> Path:
-    path = location_of(_mod("haybale_models.keys").MODELS_VOLUME) / relative
+    path = volume_location(_mod("haybale_models.keys").MODELS_VOLUME) / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     state.index.add(path, hashlib.sha256(data).hexdigest(), source)
@@ -301,7 +301,7 @@ async def test_card_uses_the_nodes_model_preference(user: User, state: Any, tmp_
             label="Gamma", name="haybale-gamma", folder_path=str(folder), module_name="haybale-gamma"
         ),
     )
-    root = location_of(_mod("haybale_models.keys").MODELS_VOLUME)
+    root = volume_location(_mod("haybale_models.keys").MODELS_VOLUME)
     _put(state, "a/fp32.pth", b"one")
     _put(state, "a/fp16.pth", b"two")
     state.index.add(root / "a/fp32.pth", "d" * 64, None)
@@ -430,7 +430,7 @@ async def test_clear_then_use_stores_no_model(user: User, state: Any) -> None:
 @pytest.mark.anyio
 async def test_a_models_folder_file_is_hashed_then_chosen(user: User, state: Any) -> None:
     keys = _mod("haybale_models.keys")
-    path = location_of(keys.MODELS_VOLUME) / "mine" / "x.pth"
+    path = volume_location(keys.MODELS_VOLUME) / "mine" / "x.pth"
     path.parent.mkdir(parents=True)
     path.write_bytes(DATA)
     port = _port(ModelRef())
@@ -451,7 +451,7 @@ async def test_a_models_folder_file_is_hashed_then_chosen(user: User, state: Any
 @pytest.mark.anyio
 async def test_models_folder_tab_leaves_out_catalog_variants(user: User, state: Any) -> None:
     keys = _mod("haybale_models.keys")
-    root = location_of(keys.MODELS_VOLUME)
+    root = volume_location(keys.MODELS_VOLUME)
     for name, data in (("catalog/sharp.pth", DATA), ("mine/own.pth", b"own weights")):
         (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_bytes(data)

@@ -28,7 +28,7 @@ from haywire.api.workbench import (
     react_on,
     set_hover_tip,
 )
-from haywire.api import VolumeError, location_of
+from haywire.api import VolumeError, volume_location
 from huggingface_hub.utils import filter_repo_objects
 from nicegui import core, ui
 
@@ -982,7 +982,7 @@ class ModelsEditor(BaseEditor):
             key=lambda r: (r.relative.lower(), r.relative),
         )
         try:
-            root: Path | None = location_of(MODELS_VOLUME)
+            root: Path | None = volume_location(MODELS_VOLUME)
         except VolumeError:
             root = None
         pending = models.index.pending() if root is not None else {}
@@ -1185,7 +1185,7 @@ class ModelsEditor(BaseEditor):
     def _files_of(self, models: ModelsState, shas: set[str]) -> list[tuple[IndexRecord, Path]]:
         """The indexed files of *shas* that lie inside the models volume."""
         try:
-            root = location_of(MODELS_VOLUME).resolve()
+            root = volume_location(MODELS_VOLUME).resolve()
         except VolumeError:
             return []
         found: list[tuple[IndexRecord, Path]] = []
@@ -1373,7 +1373,7 @@ class ModelsEditor(BaseEditor):
         if not removal.shas:
             return
         try:
-            root = location_of(MODELS_VOLUME).resolve()
+            root = volume_location(MODELS_VOLUME).resolve()
         except VolumeError:
             return
         failed: list[str] = []

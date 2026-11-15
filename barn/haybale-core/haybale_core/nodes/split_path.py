@@ -13,7 +13,7 @@ from haywire.api import (
     VolumeError,
     VolumePath,
     node,
-    resolve,
+    resolve_volume_path,
 )
 
 #: The outlets a new node shows; the rest start hidden.
@@ -135,6 +135,6 @@ def _folder_of(relative: PurePosixPath) -> str:
 
 def _on_disk(path: VolumePath) -> str:
     try:
-        return str(resolve(path))
+        return str(resolve_volume_path(path))
     except VolumeError:
         return ""

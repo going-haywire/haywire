@@ -17,8 +17,8 @@ __all__ = [
     "VolumeStatus",
     "VolumeUndefinedError",
     "list_volumes",
-    "location_of",
-    "resolve",
+    "volume_location",
+    "resolve_volume_path",
 ]
 
 
@@ -43,7 +43,7 @@ class VolumeEscapeError(VolumeError):
         self.reason = reason
 
 
-def location_of(key: str, store: VolumeStore | None = None) -> Path:
+def volume_location(key: str, store: VolumeStore | None = None) -> Path:
     """Return the root of volume *key*; never creates it.
 
     The project volume is the open project's folder; every other volume's root is
@@ -59,7 +59,7 @@ def location_of(key: str, store: VolumeStore | None = None) -> Path:
     return entry.location
 
 
-def resolve(path: VolumePath, store: VolumeStore | None = None) -> Path:
+def resolve_volume_path(path: VolumePath, store: VolumeStore | None = None) -> Path:
     """Return where *path* is on this machine: its volume's location joined with ``relative``.
 
     The location is used as configured, even when it is a symlink. A symlink inside
@@ -72,7 +72,7 @@ def resolve(path: VolumePath, store: VolumeStore | None = None) -> Path:
             ``..`` segment, is absolute, or resolves outside the volume (a symlink).
         VolumeError: If the path cannot be resolved (a symlink loop, an OS error).
     """
-    root = location_of(path.volume, store)
+    root = volume_location(path.volume, store)
     relative = path.relative
     if not isinstance(relative, str):
         raise VolumeEscapeError(path, f"relative path {relative!r} is not a string")

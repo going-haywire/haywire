@@ -168,8 +168,8 @@ from haywire.core.volumes import (
     VolumeError,
     VolumePath,
     ensure_volume,
-    location_of,
-    resolve,
+    volume_location,
+    resolve_volume_path,
     volume_name,
 )
 from haywire.ui.skin.base import BaseSkin
@@ -386,7 +386,7 @@ __all__ = [
     "VolumeError",
     "VolumePath",
     "ensure_volume",
-    "location_of",
-    "resolve",
+    "resolve_volume_path",
+    "volume_location",
     "volume_name",
 ]

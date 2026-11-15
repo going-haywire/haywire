@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from haywire.api.workbench import AppState, get_catalog_registry, get_library_state_container, state
-from haywire.api import CatalogRegistry, VolumeError, ensure_volume, library_storage_dir, location_of
+from haywire.api import CatalogRegistry, VolumeError, ensure_volume, library_storage_dir, volume_location
 
 from haybale_models.download import DownloadQueue
 from haybale_models.keys import HF_VOLUME, MODELS_VOLUME
@@ -122,7 +122,7 @@ class ModelsState(AppState):
     def hf_cache(self) -> Path | None:
         """Root of the Hugging Face cache volume, or ``None`` when the volume has a problem."""
         try:
-            return location_of(HF_VOLUME)
+            return volume_location(HF_VOLUME)
         except VolumeError:
             return None
 

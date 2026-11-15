@@ -268,7 +268,7 @@ def test_unavailable_models_volume_refuses(env, http_server, monkeypatch):
     def unavailable(_key: str) -> Path:
         raise VolumeError("models volume is offline")
 
-    monkeypatch.setattr("haybale_models.download.location_of", unavailable)
+    monkeypatch.setattr("haybale_models.download.volume_location", unavailable)
     with pytest.raises(ReceiveRefused, match="offline"):
         env.queue.begin_receive(old, "w.pth", "tester")
 

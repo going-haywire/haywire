@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
-from haywire.api import VolumeError, ensure_volume, location_of
+from haywire.api import VolumeError, ensure_volume, volume_location
 
 from haybale_models.sources.base import FetchRequest, ModelSource, SourceFailed
 
@@ -51,7 +51,7 @@ class FolderSource(ModelSource):
 
     def root(self) -> Path | None:
         try:
-            return location_of(self.volume)
+            return volume_location(self.volume)
         except VolumeError:
             pass
         suggested = self.suggested()
@@ -79,7 +79,7 @@ class FolderSource(ModelSource):
             OSError: The folder cannot be created.
         """
         self.ensure()
-        root = location_of(self.volume)
+        root = volume_location(self.volume)
         if root.is_dir():
             return root
         if root.expanduser().resolve() != self.suggested().resolve():

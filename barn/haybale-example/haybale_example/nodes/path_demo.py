@@ -16,7 +16,7 @@ from haywire.api import (
     VolumeError,
     VolumePath,
     node,
-    resolve,
+    resolve_volume_path,
 )
 
 
@@ -96,7 +96,7 @@ class PathDemoNode(BaseNode):
         problems: list[str] = []
         for port_id, value in zip(self.PATH_PORTS, (path, file, image, folder, save_to), strict=True):
             try:
-                resolved = str(resolve(value))
+                resolved = str(resolve_volume_path(value))
             except VolumeError as exc:
                 resolved = ""
                 problems.append(f"{port_id}: {exc}")
