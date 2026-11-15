@@ -171,6 +171,14 @@ def test_constraints_resolve_callable_options():
     assert resolved["options"] == ["a", "b"]
 
 
+def test_constraints_hand_the_bag_to_a_one_argument_options_callable():
+    """Same contract as SelectWidget: a one-argument callable reads the field's bag."""
+    t = _tools()
+    bag = type("Bag", (), {"backend": "syphon"})()
+    resolved = t._constraints({"properties": {"options": lambda b: [b.backend]}}, bag)
+    assert resolved["options"] == ["syphon"]
+
+
 def test_constraints_reports_a_failing_options_probe():
     t = _tools()
 

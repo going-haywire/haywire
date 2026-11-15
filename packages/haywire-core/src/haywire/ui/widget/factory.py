@@ -41,7 +41,8 @@ def _widget_model_for(
 
     from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
-    write = _write_for(port, route, minimum)
+    resolved = _promoted_setting(port)
+    write = _write_for(port, route, minimum, resolved)
     return SettingWidgetModel(
         field_id=port.id,
         widget_config=port.widget_config,
@@ -49,24 +50,33 @@ def _widget_model_for(
         on_edit=write if write is not None else _refuse,
         requires=required_mode(minimum, port.operable) if write is not None else None,
         wrapper=port._wrapper,
+        settings=resolved[0] if resolved is not None else None,
     )
 
 
+def _promoted_setting(port: DataPort) -> tuple[Settings, Any] | None:
+    """Return ``(bag, descriptor)`` of the setting *port* is promoted from, or ``None``."""
+    node = port._node
+    if node is None or not port.promoted:
+        return None
+    from haywire.core.node.promotion import _resolve_promoted
+
+    try:
+        return _resolve_promoted(node, port.id)
+    except KeyError:
+        return None
+
+
 def _write_for(
-    port: DataPort, route: EditRoute | None, minimum: LevelMode
+    port: DataPort,
+    route: EditRoute | None,
+    minimum: LevelMode,
+    resolved: tuple[Settings, Any] | None,
 ) -> Callable[[Any], bool | None] | None:
-    """Return where a widget write for *port* goes (its setting or the port, via *route*), or ``None``."""
+    """Return where a widget write for *port* goes (*resolved* setting or port, via *route*), or ``None``."""
     node = port._node
     if route is None or node is None:
         return None
-    resolved = None
-    if port.promoted:
-        from haywire.core.node.promotion import _resolve_promoted
-
-        try:
-            resolved = _resolve_promoted(node, port.id)
-        except KeyError:
-            pass
     if resolved is not None:
         bag, descriptor = resolved
         attr_name = descriptor._attr_name
@@ -99,6 +109,7 @@ def setting_widget_model(
         cell=bag._cell_for(descriptor),
         on_edit=write,
         requires=required_mode(minimum, descriptor.operable) if route is not None else None,
+        settings=bag,
     )
 
 
