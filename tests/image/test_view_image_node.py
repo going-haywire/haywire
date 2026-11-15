@@ -7,6 +7,8 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
+from haywire.api import PortType
+
 from tests.conftest import make_node
 
 pytestmark = pytest.mark.integration
@@ -36,6 +38,11 @@ def test_view_image_widget_is_image_viewer(graph_with_library_system):
     node = _view(graph_with_library_system)
     assert node.ports["image"].widget_key == widget_cls.class_identity.registry_key
     assert _mode(node) == node.viewer.mode
+
+
+def test_mode_is_promoted_to_a_config_port_by_default(graph_with_library_system):
+    node = _view(graph_with_library_system)
+    assert node.ports[type(node.viewer).mode.storage_key].port_type is PortType.CONFIG
 
 
 def test_mode_change_sets_viewer_mode(graph_with_library_system):
