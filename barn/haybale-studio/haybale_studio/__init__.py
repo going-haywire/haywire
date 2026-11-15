@@ -56,7 +56,7 @@ class Library(BaseLibrary):
             registry_cls=StateRegistry,
         )
 
-        # Register MCP tools — the studio_* baseline (canonical order: after state)
+        # Register MCP tools — the haybale-studio_* baseline (canonical order: after state)
         self.add_folder_to_registry(
             folder_path=str(base_path / "farmhands"),
             registry_cls=FarmhandRegistry,

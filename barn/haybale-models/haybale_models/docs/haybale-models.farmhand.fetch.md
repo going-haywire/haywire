@@ -6,7 +6,7 @@ Queue downloads: everything an open graph needs, or catalog entries by key (admi
 
 ## Agent Instructions
 
-Queues the downloads and returns their job ids; progress is in models_list jobs. Pass binding_id to fetch everything that graph needs, or keys=[<catalog key>, ...] to fetch the preferred variant of each entry. Needs admin access.
+Queues the downloads and returns their job ids; progress is in haybale-models_list jobs. Pass binding_id to fetch everything that graph needs, or keys=[<catalog key>, ...] to fetch the preferred variant of each entry. Needs admin access.
 
 ## Details
 
@@ -19,5 +19,5 @@ Queues downloads of missing models. Needs ADMIN access.
 
 Pass `binding_id` to fetch everything that open graph needs, or `keys` to fetch the
 preferred variant of each catalog entry. Returns the job ids at once; the files
-arrive in the background, so call `models_list` to follow the jobs. Downloads use
+arrive in the background, so call `haybale-models_list` to follow the jobs. Downloads use
 network and disk: call it only when the user wants the models.

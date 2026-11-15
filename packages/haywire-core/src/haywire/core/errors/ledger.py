@@ -2,8 +2,8 @@
 
 Every HaywireException registers here at .log() time. Registry-scan import
 errors flow through the same path because the scan failure handlers .log()
-their exceptions. First consumers: Farmhand's studio_get_errors and
-studio_verify_component tools.
+their exceptions. First consumers: Farmhand's haybale-studio_get_errors and
+haybale-studio_verify_component tools.
 
 The ledger stores the live ``HaywireException`` objects — not serialized
 snapshots. This is the exception's afterlife: once logged, it is otherwise

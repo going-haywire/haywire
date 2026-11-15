@@ -10,7 +10,7 @@ see-also:
 
 # Errors — Architecture
 
-Every failure on the studio's editing, running, load/save, hot-reload and Farmhand pathways, and every detected loss of user work, lands in the **error ledger** with the context to act on it: the Errors editor shows it with its unseen badge, and agents read it through `studio_get_errors`. Expected rejections do not. Inner code keeps raising plain Python exceptions; a short, named list of **error boundaries** records them. The why is in [ADR 0061](../../adr/0061-errors-reach-the-ledger-at-named-boundaries.md).
+Every failure on the studio's editing, running, load/save, hot-reload and Farmhand pathways, and every detected loss of user work, lands in the **error ledger** with the context to act on it: the Errors editor shows it with its unseen badge, and agents read it through `haybale-studio_get_errors`. Expected rejections do not. Inner code keeps raising plain Python exceptions; a short, named list of **error boundaries** records them. The why is in [ADR 0061](../../adr/0061-errors-reach-the-ledger-at-named-boundaries.md).
 
 ## 1. Three outcomes
 

@@ -6,7 +6,7 @@ Re-fetch all subscribed markets/stalls (network; rewrites the project cache).
 
 ## Agent Instructions
 
-Re-fetch all subscribed markets/stalls over the network and rewrite the project's marketplace cache. Call this when marketplace_list_available looks stale — otherwise the cache is used as-is. Returns how many haybales were resolved.
+Re-fetch all subscribed markets/stalls over the network and rewrite the project's marketplace cache. Call this when haybale-marketplace_list_available looks stale — otherwise the cache is used as-is. Returns how many haybales were resolved.
 
 ## Details
 

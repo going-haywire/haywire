@@ -1305,7 +1305,7 @@ class HaywireException(Exception):
         """
         Serialize to a JSON-friendly dict.
 
-        This is the wire format for the Errors editor and the studio_get_errors
+        This is the wire format for the Errors editor and the haybale-studio_get_errors
         Farmhand (MCP): the ledger holds live HaywireException objects, and each
         is serialized through here when it must cross a JSON boundary. Includes
         the ledger-afterlife fields (ledger_seq, seen), the derived library id,

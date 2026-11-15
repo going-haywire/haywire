@@ -2,11 +2,11 @@
 
 `haybale-graph-editor:farmhand:add_node` · kind: farmhand
 
-Add a node by registry key. Call studio_describe_component first to learn its ports.
+Add a node by registry key. Call haybale-studio_describe_component first to learn its ports.
 
 ## Agent Instructions
 
-Add a node instance to an open graph by registry_key, at an optional (x, y) canvas position (defaults near the origin). Call studio_describe_component or studio_list_components first to find a valid registry_key. Opens one undo fence and broadcasts to open studio UIs. Follow up with graph_editor_inspect_node to see the new node's ports/settings before wiring or setting them.
+Add a node instance to an open graph by registry_key, at an optional (x, y) canvas position (defaults near the origin). Call haybale-studio_describe_component or haybale-studio_list_components first to find a valid registry_key. Opens one undo fence and broadcasts to open studio UIs. Follow up with haybale-graph-editor_inspect_node to see the new node's ports/settings before wiring or setting them.
 
 ## Details
 

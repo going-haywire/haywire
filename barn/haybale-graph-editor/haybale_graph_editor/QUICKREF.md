@@ -4,7 +4,7 @@
 - `haybale-graph-editor:setting:NodeSkinSettings` — Node Skin — Settings controlling node layout and pin geometry.
 
 ## farmhand
-- `haybale-graph-editor:farmhand:add_node` — Add node — Add a node by registry key. Call studio_describe_component first to learn its ports.
+- `haybale-graph-editor:farmhand:add_node` — Add node — Add a node by registry key. Call haybale-studio_describe_component first to learn its ports.
 - `haybale-graph-editor:farmhand:arrange` — Arrange — Auto-layout the flow of nodes, a node's downstream or upstream nodes, or the whole graph.
 - `haybale-graph-editor:farmhand:connect` — Connect — Connect an outlet to an inlet.
 - `haybale-graph-editor:farmhand:demote_setting` — Demote setting — Remove a promoted port, returning the field to a plain setting. One undo step.

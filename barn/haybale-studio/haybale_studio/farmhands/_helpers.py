@@ -22,7 +22,10 @@ def resolve_component_class(ctx: FarmhandContext, registry_key: str) -> Any:
             f"Registry keys look like '{{lib_id}}:{{kind}}:{{name}}' with kind one of "
             f"{sorted(kind_registry_map())}; got '{registry_key}'.",
             ids={"registry_key": registry_key},
-            help="Run studio_list_components with kind=/library=/search= to find a valid registry_key.",
+            help=(
+                "Run haybale-studio_list_components with kind=/library=/search= to find a valid "
+                "registry_key."
+            ),
         )
     registry: Any = ctx.registry(kind_registry_map()[parts[1]])
     cls = registry.get(registry_key)
@@ -31,7 +34,7 @@ def resolve_component_class(ctx: FarmhandContext, registry_key: str) -> Any:
             "component_not_found",
             f"No component registered under '{registry_key}'.",
             ids={"registry_key": registry_key},
-            help=f"Run studio_list_components with kind={parts[1]} to see registered components.",
+            help=f"Run haybale-studio_list_components with kind={parts[1]} to see registered components.",
         )
     return cls
 

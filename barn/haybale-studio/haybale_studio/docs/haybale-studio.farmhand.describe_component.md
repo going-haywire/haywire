@@ -6,7 +6,7 @@ One component's identity, docstring, and authoring-guide link.
 
 ## Agent Instructions
 
-One component's identity and docstring, plus the canon_doc_uri for its kind's authoring guide. For nodes: read before graph_editor_add_node.
+One component's identity and docstring, plus the canon_doc_uri for its kind's authoring guide. For nodes: read before haybale-graph-editor_add_node.
 
 ## Details
 

@@ -16,7 +16,7 @@ description: >
 
 The studio serves both the NiceGUI app and the **Farmhand MCP server** on
 `http://127.0.0.1:<port>/mcp/` (port defaults to 8124, `NetworkSettings.port`).
-The **farmhand proxy** as an MCP server for Claude Code — it bridges stdio to that HTTP endpoint, so studio tools (`studio_*`, `haystack_*`, `graph_editor_*`, `marketplace_*`, `testing_*`) appear directly in this session once the studio is up, with no reconnect needed.
+The **farmhand proxy** as an MCP server for Claude Code — it bridges stdio to that HTTP endpoint, so studio tools (`haybale-studio_*`, `haybale-haystack_*`, `haybale-graph-editor_*`, `haybale-marketplace_*`, `haybale-testing_*`) appear directly in this session once the studio is up, with no reconnect needed.
 
 The proxy bridges to a studio, it doesn't launch one — bring the studio itself
 up/down with `scripts/studioctl`.
@@ -26,7 +26,7 @@ up/down with `scripts/studioctl`.
 - You need to see or change a **live** graph (open graphs, nodes, edges, run state).
 - You want to call any Farmhand tool and read the result.
 - You're verifying a component change end-to-end: scaffold → write → hot-reload →
-  `studio_verify_component` → `studio_get_errors`.
+  `haybale-studio_verify_component` → `haybale-studio_get_errors`.
 
 Do **not** use for offline work the test suite covers — prefer `pytest` when you
 don't need a live app.
@@ -43,14 +43,14 @@ $S/studioctl restart
 ```
 
 Once the studio is up, call its tools directly by name in this session —
-`studio_status`, `haystack_list_graphs`, `studio_get_errors`, etc.
+`haybale-studio_status`, `haybale-haystack_list_graphs`, `haybale-studio_get_errors`, etc.
 
 ## Typical workflow
 
 1. `studioctl start` — if it prints "already up … (your own instance)", a studio
    you launched is running; `stop` will refuse to kill it (see below).
-2. Call tools directly (e.g. `haystack_list_graphs`, `graph_editor_add_node`).
-3. Read `studio_get_errors` after any mutation/hot-reload to catch failures the
+2. Call tools directly (e.g. `haybale-haystack_list_graphs`, `haybale-graph-editor_add_node`).
+3. Read `haybale-studio_get_errors` after any mutation/hot-reload to catch failures the
    result didn't surface.
 4. `studioctl stop` when done (only if studioctl started it).
 

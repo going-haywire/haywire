@@ -198,4 +198,4 @@ The offer needs something that would find the stored file: a digest, a `cache` a
 
 **Give every file a `sha256`.** With one, a wrong file is refused with what was expected. Without one, the dialog warns `No digest in the catalog: this file can't be verified.` and accepts what it gets. List a direct address first and a file host after it: the automatic download then succeeds without the user.
 
-Agents see a failed job's `assisted` and `page_urls` in `models_list`, and send the user to the dialog; they have no upload path.
+Agents see a failed job's `assisted` and `page_urls` in `haybale-models_list`, and send the user to the dialog; they have no upload path.

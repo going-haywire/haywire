@@ -6,7 +6,7 @@ Resolve what an install would remove/upgrade, without installing (informational 
 
 ## Agent Instructions
 
-Resolve what installing install_spec would remove or upgrade, WITHOUT actually installing — a preview only, no changes to the venv. Run this before marketplace_install_library to see the blast radius. Returns the list of affected distributions; raises resolver_failed if resolution itself fails.
+Resolve what installing install_spec would remove or upgrade, WITHOUT actually installing — a preview only, no changes to the venv. Run this before haybale-marketplace_install_library to see the blast radius. Returns the list of affected distributions; raises resolver_failed if resolution itself fails.
 
 ## Details
 

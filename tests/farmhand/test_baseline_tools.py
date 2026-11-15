@@ -1,4 +1,4 @@
-"""Baseline studio_* tools, driven directly (no MCP transport)."""
+"""Baseline haybale-studio_* tools, driven directly (no MCP transport)."""
 
 import asyncio
 

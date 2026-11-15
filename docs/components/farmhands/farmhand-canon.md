@@ -13,27 +13,27 @@ see-also:
 
 A **Farmhand** is one MCP tool exposed by a running Haywire studio to an attached AI agent (Claude Desktop, Claude Code, or any MCP client). Where a node runs inside a graph and a panel renders inside the studio UI, a Farmhand tool runs on behalf of an external agent that wants to *drive* the studio — list what's installed, inspect a component, mutate an open graph, query the error ledger.
 
-You author a Farmhand tool when a library wants to expose one of its capabilities to an agent as a callable action. Examples already shipping: `studio_list_components` (catalog search), `studio_describe_component` (identity + docstring lookup), `graph_editor_add_node` / `graph_editor_connect` (graph mutation), `graph_editor_inspect_node` (one node's live values + health), `haystack_open_graph` (session management), `marketplace_get_library_docs` (doc retrieval).
+You author a Farmhand tool when a library wants to expose one of its capabilities to an agent as a callable action. Examples already shipping: `haybale-studio_list_components` (catalog search), `haybale-studio_describe_component` (identity + docstring lookup), `haybale-graph-editor_add_node` / `haybale-graph-editor_connect` (graph mutation), `haybale-graph-editor_inspect_node` (one node's live values + health), `haybale-haystack_open_graph` (session management), `haybale-marketplace_get_library_docs` (doc retrieval).
 
 **Pair every mutation with a way to read what it changed.** An agent that can write but not read has to guess names and cannot verify outcomes. The graph-editor tools are deliberately layered by breadth, and share one addressing vocabulary so a read result feeds straight back into a write:
 
 | Tool | Scope | Answers |
 |---|---|---|
-| `studio_describe_component` | a component **class** | "what is this kind of node for?" (identity, docstring) |
-| `graph_editor_query_graph` | a whole **graph** | "what nodes and edges exist, and how are they wired?" (topology, no values) |
-| `graph_editor_inspect_node` | one **node instance** | "what is on this node, what is it set to, and is it healthy?" — at three depths (see `data=` below) |
-| `graph_editor_set_property` | one **field** | writes a port value or settings field by the same flat `name` `inspect_node` reports |
+| `haybale-studio_describe_component` | a component **class** | "what is this kind of node for?" (identity, docstring) |
+| `haybale-graph-editor_query_graph` | a whole **graph** | "what nodes and edges exist, and how are they wired?" (topology, no values) |
+| `haybale-graph-editor_inspect_node` | one **node instance** | "what is on this node, what is it set to, and is it healthy?" — at three depths (see `data=` below) |
+| `haybale-graph-editor_set_property` | one **field** | writes a port value or settings field by the same flat `name` `inspect_node` reports |
 
 The intended path narrows at every step, so an agent never pays for detail it did not ask for:
 
 ```text
-studio_describe_component      what kind of node is this?        (class docstring)
-  └─ graph_editor_query_graph  which node instances exist?       (topology)
+haybale-studio_describe_component      what kind of node is this?        (class docstring)
+  └─ haybale-graph-editor_query_graph  which node instances exist?       (topology)
       └─ inspect_node get=['summary']                is it ok, and which bags are big?
           └─ inspect_node get=['settings'] by_bag=['depth']      what fields does it have?
               └─ ... data='value'                               what are they set to?
                   └─ ... data='all' by_name=['threshold']        what can I write?
-                      └─ graph_editor_set_property               write it
+                      └─ haybale-graph-editor_set_property               write it
 ```
 
 A row from `inspect_node` carries both handles the write tools need: flat `name` for `set_property`, and `accessor` for `promote_setting` (which addresses fields as `accessor` + `field`, not a flat name). `name` is stable across all three `data` levels, so it is also the key that joins a shallow row to its detailed counterpart.
@@ -70,7 +70,7 @@ The MCP host (`haywire_studio.farmhand.host`) is the one place that talks the wi
 | Parameter | Required | Purpose |
 |---|---|---|
 | `label` | no | Human-readable display name. Defaults to `registry_id`. |
-| `description` | no | Short human-facing blurb — shown in generated docs and the `studio_list_components` catalog. Not sent to MCP clients. |
+| `description` | no | Short human-facing blurb — shown in generated docs and the `haybale-studio_list_components` catalog. Not sent to MCP clients. |
 | `instructions` | **yes** | Sent to the MCP client as the tool's description — this is the *only* text the agent sees before deciding whether/how to call the tool, since derived input schemas carry no per-parameter descriptions (see below). Write it for an LLM: what the tool does, when to use it, valid argument values, gotchas — not just a restated label. Omitting it raises `TypeError` at class-definition time. |
 | `registry_id` | no | Unique id within the library. Defaults to the class name. The MCP-visible tool name is `{lib_id}_{registry_id}` — pass a snake_case id (e.g. `registry_id="save_graph"` → `mylib_save_graph`). |
 | `requires` | no | Access requirement: the minimum `AccessTier` an agent principal's access right must reach to list and call the tool. Defaults to `AccessTier.EDIT`; a tool that only reads declares `requires=AccessTier.VIEW`. Declared, never derived from `read_only_hint` — see [ADR 0027](../../adr/0027-studio-authentication.md). |
@@ -125,7 +125,7 @@ raise FarmhandError(
     "graph_not_found",
     f"No open graph '{binding_id}'.",
     ids={"binding_id": binding_id},
-    help="Run haystack_list_graphs to see open graphs, or haystack_open_graph to open one.",
+    help="Run haybale-haystack_list_graphs to see open graphs, or haybale-haystack_open_graph to open one.",
 )
 ```
 
@@ -142,7 +142,7 @@ def register_components(self):
     )
 ```
 
-**The `'haybale-studio'` registry-key prefix is reserved.** `barn/haybale-studio`'s baseline tools (`studio_status`, `studio_list_components`, ...) own it; the reservation is enforced by distribution-name uniqueness at discovery, not by `FarmhandRegistry` itself. Don't register a second library under that distribution name.
+**The `'haybale-studio'` registry-key prefix is reserved.** `barn/haybale-studio`'s baseline tools (`haybale-studio_status`, `haybale-studio_list_components`, ...) own it; the reservation is enforced by distribution-name uniqueness at discovery, not by `FarmhandRegistry` itself. Don't register a second library under that distribution name.
 
 ## 4. Agent-facing output
 
@@ -157,9 +157,9 @@ An agent has no peripheral vision. It cannot skim, scroll back, or notice that a
 
 ### 4.1 Return the least that lets the agent act
 
-**Default to the smallest useful row; put the rest behind `detail=true`.** Return the 3-4 fields a caller needs to *decide what to do next* — an identifier, a label, a status — and gate prose, URLs, and provenance behind `detail`. Never `asdict()` a domain dataclass straight into a row: it ships whatever the class happens to hold, including fields that are empty for every row. Measured on a real 5-row `marketplace_list_available`, `asdict()` emitted 21 fields per row of which 41% of all values were empty, and 8 fields were empty on *every* row; trimming to four cut the payload 77%. When `detail=true` does return the full record, still drop empty values and runtime-only internals — an absent value says nothing worth a token.
+**Default to the smallest useful row; put the rest behind `detail=true`.** Return the 3-4 fields a caller needs to *decide what to do next* — an identifier, a label, a status — and gate prose, URLs, and provenance behind `detail`. Never `asdict()` a domain dataclass straight into a row: it ships whatever the class happens to hold, including fields that are empty for every row. Measured on a real 5-row `haybale-marketplace_list_available`, `asdict()` emitted 21 fields per row of which 41% of all values were empty, and 8 fields were empty on *every* row; trimming to four cut the payload 77%. When `detail=true` does return the full record, still drop empty values and runtime-only internals — an absent value says nothing worth a token.
 
-**Make the caller drill down: separate WHICH from HOW MUCH.** A tool whose full response is expensive should force the caller to choose, on each independent axis, rather than defaulting to everything. `graph_editor_inspect_node` is the reference implementation, with three orthogonal parameters:
+**Make the caller drill down: separate WHICH from HOW MUCH.** A tool whose full response is expensive should force the caller to choose, on each independent axis, rather than defaulting to everything. `haybale-graph-editor_inspect_node` is the reference implementation, with three orthogonal parameters:
 
 | Axis | Parameter | Effect |
 |---|---|---|
@@ -179,7 +179,7 @@ The payoff is concrete: on a real 29-field, 5-bag node, an unfiltered `info` dum
 - **Put the cost preview in the summary.** `get=["summary"]` returns per-bag `setting_counts` (`{"color": 17, "depth": 6, …}`), not just a total — a bare "29 settings in 5 bags" leaves the caller with an all-or-nothing choice, while per-bag counts let it pick a `by_bag` and fetch one slice.
 - **Don't show an agent what the user cannot see.** A field whose `effective_ui_state` is `HIDDEN` is absent from the properties panel entirely (ADR 0020), so returning it in full puts the agent in a different reality from the human sharing the graph. Collapse it to `{name, ui_state: "hidden"}` — **collapse, not omit**: the gate is state, not structure, so an agent that flips the controlling flag must still be able to find the field. Naming it in `by_name` expands it in full.
 - **The host validates `input_schema_override` before `run()` executes** — an empty `get` or a misspelled `enum` value is rejected at the protocol boundary (`Input validation error: [] should be non-empty`), so the tool body never sees it. Keep the in-body guards for non-MCP callers, but write tests against the schema error, not the `FarmhandError`.
-- `summary` is emitted **unconditionally** (the canon rule above) *and* is selectable, so `get=["summary"]` is a legitimate cheap survey — the same ergonomic as `count_only=true` on `studio_list_components`.
+- `summary` is emitted **unconditionally** (the canon rule above) *and* is selectable, so `get=["summary"]` is a legitimate cheap survey — the same ergonomic as `count_only=true` on `haybale-studio_list_components`.
 
 Prefer these axes over a pile of `include_*` booleans: booleans multiply combinatorially and each one has to be discovered separately, whereas one enum per axis is self-describing in the derived schema.
 
@@ -205,7 +205,7 @@ return {
 
 **Large single payloads truncate too.** Pagination covers lists; a tool returning one *big* value (a source file, a README) needs the same guarantee, because an uncapped read silently dominates the caller's context. Cap by default, report the full size, and offer the escape hatch:
 
-- Return the natural unit — lines for source (`studio_read_component_source`, `total_lines`, absolute line numbers preserved so a windowed read stays quotable), characters for prose (`marketplace_get_library_docs`, `total_chars`).
+- Return the natural unit — lines for source (`haybale-studio_read_component_source`, `total_lines`, absolute line numbers preserved so a windowed read stays quotable), characters for prose (`haybale-marketplace_get_library_docs`, `total_chars`).
 - Say it was truncated in `summary`, and add a `help` key naming the exact follow-up call (`offset=<end>` for the next window, or `full=true`).
 - Accept `full=true` to bypass the cap. Never omit a large field entirely — a preview plus the total beats forcing a second blind call.
 
@@ -213,7 +213,7 @@ return {
 
 ### 4.3 Say what to do next
 
-**Put a `help` key on list and mutation results, not just on errors.** `FarmhandError(help=)` covers the failure path; the success path needs the same courtesy — the asymmetry is the bug. After a list, name the drill-down (`studio_describe_component registry_key=<key>`); after a mutation, name what makes the change useful (`haystack_create_graph` → add a node, then save — it is unsaved until you do). Carry forward ids you already hold so the hint is a runnable command rather than a template, and prefer a concrete value over a placeholder when you know it: `studio_list_components count_only=true` names its own biggest bucket. Omit `help` on detail views — they are self-contained, and a hint there is noise. Omit it on an empty page too, except to say how to create the first item.
+**Put a `help` key on list and mutation results, not just on errors.** `FarmhandError(help=)` covers the failure path; the success path needs the same courtesy — the asymmetry is the bug. After a list, name the drill-down (`haybale-studio_describe_component registry_key=<key>`); after a mutation, name what makes the change useful (`haybale-haystack_create_graph` → add a node, then save — it is unsaved until you do). Carry forward ids you already hold so the hint is a runnable command rather than a template, and prefer a concrete value over a placeholder when you know it: `haybale-studio_list_components count_only=true` names its own biggest bucket. Omit `help` on detail views — they are self-contained, and a hint there is noise. Omit it on an empty page too, except to say how to create the first item.
 
 The error-path half of this rule lives with the `FarmhandError` contract in §3 — same principle, applied where the agent needs it most.
 
@@ -246,7 +246,7 @@ What we took, and what changed in translation:
 | §1 emit TOON on stdout | **Not adopted.** MCP negotiates its own typing: the client owns the parse, and the protocol already carries a real object in `structuredContent`. Emitting TOON inside `content[].text` would hand every client a format it has no contract for. Measured on a real payload, TOON saved ~40% on uniform tabular rows but was *larger* than JSON on nested count maps, and has no representation for the multi-line source strings some tools return. Schema trimming (§4.1) delivered ~12× more on the same payload with no new dependency — do that first, and revisit the format question only against an already-trimmed baseline. |
 | §6 exit codes 0/1/2, errors to stdout | **N/A.** MCP has `isError`; there is no exit code and no stdout. |
 | §7 session hooks, §10 `--help` and bin path | **N/A.** `list_tools` and the `instructions=` field do this job — which is why `instructions=` is worth writing carefully (§3). |
-| §8 no-args shows live content | Closest equivalent is `studio_status`, not a per-tool behaviour. |
+| §8 no-args shows live content | Closest equivalent is `haybale-studio_status`, not a per-tool behaviour. |
 
 The measurements above are from a reproducible analysis of payload size and structure. See the internal documentation for the detailed script and results.
 
@@ -366,15 +366,15 @@ from haywire.api.workbench import (
 | Writing `instructions=` as a restated `label` | Agent gets no signal on when to call the tool or how to shape arguments — write it as usage guidance, not a title |
 | Assuming type hints alone can express an `enum` | Derived schemas only map primitive types; use `input_schema_override` |
 | Raising a bare `ValueError`/`KeyError` for an expected failure | Agent sees an unstructured error instead of a stable `code` it can branch on |
-| Returning a list without `limit`/`offset` | No way for a caller to scope a large result — the exact problem `studio_list_components` had before it grew filters |
-| Slicing a list by hand instead of `page()` + `truncation_note()` | Silently drops the rest with no signal — `marketplace_list_available` and `studio_get_errors` both shipped this way, reporting a bare `total` a caller had no way to act on |
+| Returning a list without `limit`/`offset` | No way for a caller to scope a large result — the exact problem `haybale-studio_list_components` had before it grew filters |
+| Slicing a list by hand instead of `page()` + `truncation_note()` | Silently drops the rest with no signal — `haybale-marketplace_list_available` and `haybale-studio_get_errors` both shipped this way, reporting a bare `total` a caller had no way to act on |
 | Returning a whole file or document uncapped | One call can swamp the caller's context, and nothing tells it whether it got a preview or everything — cap, report `total_lines`/`total_chars`, offer `full=true` |
 | Putting the recovery hint in `message` prose instead of `help=` | The agent has to regex it out of the sentence; `help=` is a separate line it can act on directly |
-| `asdict()`-ing a domain dataclass into a list row | Ships every field the class happens to hold — `marketplace_list_available` emitted 21 fields/row with 41% of values empty and 8 fields empty on *every* row. Pick fields explicitly; gate the rest behind `detail=true` |
+| `asdict()`-ing a domain dataclass into a list row | Ships every field the class happens to hold — `haybale-marketplace_list_available` emitted 21 fields/row with 41% of values empty and 8 fields empty on *every* row. Pick fields explicitly; gate the rest behind `detail=true` |
 | A successful list or mutation with no `help` | The error path tells the agent what to do next but the success path leaves it guessing — the asymmetry is the bug |
 | Mutating state without `ctx.broadcast(...)` | Open studio editors silently go stale until their next unrelated refresh |
 | Writing a tool when a static resource would do | Resources (`farmhand://...`) are cheaper for the client and don't need argument handling — reserve tools for actions |
 | Returning a value without checking it serializes | `json.dumps(..., default=str)` turns a mesh/frame into an unbounded object repr instead of failing — check with `is_cattrs_serializable` and emit an explicit omission marker |
 | Passing a `widget_config` through verbatim | `properties["options"]` may be a live callable (dynamic dropdowns). Resolve it like the widget does; a plain port can't hold one (ADR 0018) but a **promoted** port can |
-| Trusting a mutating tool's success when the write path is silent | `setting.__set__` drops a validator-rejected write and returns normally, so the action "succeeds". Verify by reading the value back (`graph_editor_set_property` raises `set_rejected`) |
+| Trusting a mutating tool's success when the write path is silent | `setting.__set__` drops a validator-rejected write and returns normally, so the action "succeeds". Verify by reading the value back (`haybale-graph-editor_set_property` raises `set_rejected`) |
 | Walking `type(node)._settings_bags` without filtering | `props` (framework position/size/locked/skin, 14 fields) sits in there beside author bags — include it deliberately or exclude it deliberately, never accidentally |
