@@ -10,10 +10,7 @@ Component folders (registered in ``register_components``):
 
 from pathlib import Path
 
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.node.registry import NodeRegistry
-from haywire.core.types.registry import TypeRegistry
+from haywire.api import BaseLibrary, NodeRegistry, TypeRegistry, library
 
 
 @library(

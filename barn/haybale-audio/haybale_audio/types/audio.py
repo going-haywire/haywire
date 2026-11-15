@@ -2,9 +2,7 @@
 
 from typing import Any
 
-from haywire.barn.builtin.wires import DataWire
-from haywire.core.types import PrimitiveField, PrimitiveType, StoreStrategy
-from haywire.core.types import type as type_decorator
+from haywire.api import DataWire, PrimitiveField, PrimitiveType, StoreStrategy, type as type_decorator
 
 from haybale_audio.value import AudioBlock
 

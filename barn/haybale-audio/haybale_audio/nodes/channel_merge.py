@@ -1,8 +1,6 @@
 """Channel Merge — stacks audio blocks into one multichannel block."""
 
-from haywire.core.execution.execution_context import ExecutionContext
-from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.types import PortOrigin
+from haywire.api import ADD, BaseNode, ExecutionContext, NodeType, PortOrigin, node
 
 from haybale_audio.dsp import channels as ops
 from haybale_audio.value import AudioBlock
@@ -27,8 +25,6 @@ class ChannelMergeNode(BaseNode):
     """
 
     def init(self) -> None:
-        from haywire.barn.builtin.types import ADD
-
         from haybale_audio.types.audio import AUDIO
 
         self.add(ADD[AUDIO].as_inlet(id=f"{_PREFIX}0", label="In 0", on_connect="hb_resolve"))
@@ -36,7 +32,6 @@ class ChannelMergeNode(BaseNode):
 
     def hb_resolve(self, port, edge_wrapper) -> None:
         """Turn the open input into an audio input and add a new open one below it."""
-        from haywire.barn.builtin.types import ADD
 
         from haybale_audio.types.audio import AUDIO
 
