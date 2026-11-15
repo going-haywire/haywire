@@ -474,6 +474,9 @@ def _build_ranking(form: QuestionnaireForm, element: dict) -> _Field:
                     ui.label(f"{position}. {labels[value]}").classes("text-sm")
 
     def _moved(old: int, new: int) -> None:
+        if not toggle.enabled:
+            _draw()  # put the dragged row back
+            return
         order.insert(new, order.pop(old))
         _draw()
         form.commit(name, list(order))
@@ -485,7 +488,26 @@ def _build_ranking(form: QuestionnaireForm, element: dict) -> _Field:
             order[:] = list(labels)
         _draw()
 
-    return _Field(element, box, _set, [box])
+    toggle = _SortableToggle(box)
+    return _Field(element, box, _set, [toggle])
+
+
+class _SortableToggle:
+    """Enables and disables a sortable column like an input; a column has no ``disable()``."""
+
+    def __init__(self, box: ui.element) -> None:
+        self.box = box
+        self.enabled = True
+
+    def set_enabled(self, enabled: bool) -> None:
+        self.enabled = enabled
+        if enabled:
+            self.box.classes(remove="disabled pointer-events-none")
+        else:
+            self.box.classes("disabled pointer-events-none")
+
+    def disable(self) -> None:
+        self.set_enabled(False)
 
 
 def _build_check(form: QuestionnaireForm, element: dict) -> _Field:

@@ -35,6 +35,27 @@ DEFINITION: dict[str, Any] = {
 }
 
 
+EVERY_TYPE: dict[str, Any] = {
+    "elements": [
+        {"type": "boolean", "name": "b"},
+        {"type": "radiogroup", "name": "r", "choices": ["x", "y"], "showOtherItem": True},
+        {"type": "checkbox", "name": "cb", "choices": ["x", "y"]},
+        {"type": "dropdown", "name": "d", "choices": ["x", "y"]},
+        {"type": "text", "name": "t"},
+        {"type": "text", "name": "n", "inputType": "number"},
+        {"type": "text", "name": "col", "inputType": "color"},
+        {"type": "text", "name": "rng", "inputType": "range", "min": 0, "max": 10},
+        {"type": "comment", "name": "co"},
+        {"type": "rating", "name": "ra"},
+        {"type": "rating", "name": "st", "rateType": "stars"},
+        {"type": "ranking", "name": "rk", "choices": ["x", "y"], "enableIf": "{b} = true"},
+        {"type": "check", "name": "ch", "do": "Do.", "expect": "Expect."},
+        {"type": "html", "html": "<p>note</p>"},
+    ]
+}
+"""One question of every type; the ranking is enabled only while ``b`` is yes."""
+
+
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"
@@ -46,7 +67,14 @@ async def user() -> AsyncGenerator[User, None]:
         yield u
 
 
-async def _forms(user: User, count: int, answers: dict | None = None, *, read_only: bool = False):
+async def _forms(
+    user: User,
+    count: int,
+    answers: dict | None = None,
+    *,
+    read_only: bool = False,
+    definition: dict[str, Any] = DEFINITION,
+):
     """Draw ``count`` forms over one shared answer dict, as sessions over one store do."""
     store: dict[str, Any] = dict(answers or {})
     reported: list[tuple[int, str, Any]] = []
@@ -65,7 +93,7 @@ async def _forms(user: User, count: int, answers: dict | None = None, *, read_on
     def page() -> None:
         for index in range(count):
             form = QuestionnaireForm(
-                DEFINITION,
+                definition,
                 store,
                 on_answer=functools.partial(_on_answer, index),
                 read_only=read_only,
@@ -168,3 +196,25 @@ async def test_a_read_only_form_shows_answers_and_reports_nothing(user: User) ->
 
     verdict.set_value("pass")
     assert reported == []
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_every_type_draws_read_only_with_its_inputs_disabled(user: User) -> None:
+    (form,), _store, _reported = await _forms(
+        user, 1, {"rk": ["y", "x"], "b": True}, read_only=True, definition=EVERY_TYPE
+    )
+    for name, field_ in form._fields.items():
+        for item in field_.inputs:
+            assert item.enabled is False, name
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_enable_if_disables_a_ranking(user: User) -> None:
+    (form,), _store, reported = await _forms(user, 1, definition=EVERY_TYPE)
+    (ranking,) = _field(form, "rk").inputs
+    assert ranking.enabled is False
+    form.commit("b", True)
+    assert ranking.enabled is True
+    assert "disabled" not in ranking.box.classes
